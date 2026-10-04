@@ -631,7 +631,6 @@ kbd {
 /* Real work items */
 .card.placeholder {
   border-style: dashed;
-  background: transparent;
 }
 .st-deferred {
   --c: var(--st-todo);
