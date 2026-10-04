@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import { descendants, isCluster, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
+import { descendants, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'dim'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
@@ -11,6 +11,8 @@ export type Derived = {
   trace: Map<string, TraceRole> | null
   collapsed: Set<string>
   zoom: number
+  /** While ⌘ is held: what needs you, keyed by the card or folded group that shows it. */
+  attention: Map<string, AttentionMark> | null
 }
 
 export type Actions = {
@@ -115,4 +117,20 @@ export function traceFrom(id: string, preds: Map<string, string[]>, succs: Map<s
   const roles = new Map<string, TraceRole>()
   for (const n of ids) roles.set(n, n === id ? 'self' : up.has(n) ? 'up' : down.has(n) ? 'down' : 'dim')
   return roles
+}
+
+/** Your move on GitHub, or nobody's yet and ready to pick up. */
+export type AttentionTier = 'mine' | 'start'
+export type AttentionMark = { tier: AttentionTier; ids: string[] }
+
+export function needsAttention(nodes: AppNode[], status: Map<string, ViewStatus>) {
+  const out = new Map<string, AttentionTier>()
+  for (const n of nodes) {
+    if (!isTask(n) || isNote(n)) continue
+    const st = status.get(n.id)
+    if (!st || st === 'done' || st === 'deferred' || st === 'blocked') continue
+    if (n.data.who === 'you') out.set(n.id, 'mine')
+    else if (!n.data.who && (st === 'ready' || st === 'active')) out.set(n.id, 'start')
+  }
+  return out
 }

@@ -1044,3 +1044,104 @@ kbd {
   font-size: 11.5px;
   color: var(--muted);
 }
+
+/* Attention: hold ⌘ to see what needs you */
+.canvas.is-attending .card:not(.attn-mine, .attn-start),
+.canvas.is-attending .bubble:not(.attn-mine, .attn-start),
+.canvas.is-attending .ghost {
+  opacity: 0.3;
+}
+.card.attn-mine,
+.bubble.attn-mine {
+  border-color: var(--st-active);
+  box-shadow:
+    inset 3px 0 0 var(--c, var(--st-active)),
+    0 0 0 2px var(--st-active);
+}
+.card.attn-start,
+.bubble.attn-start {
+  border-color: var(--accent);
+  box-shadow:
+    inset 3px 0 0 var(--c, var(--accent)),
+    0 0 0 2px var(--accent);
+}
+.bubble.attn-mine,
+.bubble.attn-start {
+  border-width: 1px;
+}
+.attention {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+}
+.attention svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.attn-line line {
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+}
+.attn-line.attn-mine line {
+  stroke: var(--st-active);
+  stroke-width: 2;
+}
+.attn-line.attn-start line {
+  stroke: var(--accent);
+  opacity: 0.7;
+}
+.attn-line.attn-mine circle {
+  fill: var(--st-active);
+}
+.attn-line.attn-start circle {
+  fill: var(--accent);
+}
+.attn-origin {
+  fill: var(--ink);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .attn-line line {
+    animation: attn-march 0.6s linear infinite;
+  }
+}
+@keyframes attn-march {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+.attn-chip {
+  position: absolute;
+  pointer-events: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  font: 500 11.5px var(--font-ui);
+  cursor: pointer;
+}
+.attn-chip.attn-mine {
+  color: var(--st-active);
+}
+.attn-chip.attn-start {
+  color: var(--accent);
+}
+.attn-tally {
+  position: absolute;
+  padding: 4px 9px;
+  border-radius: 7px;
+  background: var(--ink);
+  color: var(--surface);
+  font: 500 11px var(--font-data);
+  white-space: nowrap;
+}
+.attn-tally .attn-mine,
+.attn-tally .attn-start {
+  color: inherit;
+  font-weight: 700;
+}

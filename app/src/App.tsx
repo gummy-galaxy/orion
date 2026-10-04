@@ -20,7 +20,8 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { ActionsContext, DerivedContext, deriveWork, traceFrom, type Derived, type GroupStats } from './derive'
+import { AttentionOverlay, type AttentionTarget } from './attention'
+import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
 import { reflow, reflowAll } from './layout'
 import {
   STATUS_LABEL,
@@ -69,6 +70,7 @@ const GHOST_GAP = 90
 const GHOST_PEEK = 0.4
 const FIT_MARGIN_Y = 90
 const FIT_MAX_ZOOM = 1.25
+const ATTEND_DELAY_MS = 150
 
 type Menu = {
   x: number
@@ -105,6 +107,8 @@ const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.
 function Canvas() {
   const rf = useReactFlow<ViewNode, Edge>()
   const zoom = useStore((s) => s.transform[2])
+  const panX = useStore((s) => s.transform[0])
+  const panY = useStore((s) => s.transform[1])
   const [nodes, setNodes] = useState<AppNode[]>([])
   const [links, setLinks] = useState<Link[]>([])
   const [ready, setReady] = useState(false)
@@ -446,9 +450,100 @@ function Canvas() {
     return out
   }, [links, view, work, trace, root])
 
+  // ---- Attention: hold ⌘ to see what needs you ----
+  const [attending, setAttending] = useState(false)
+  const pointer = useRef<{ x: number; y: number } | null>(null)
+  const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const stop = () => {
+      clearTimeout(timer)
+      setAttending(false)
+    }
+    // A short delay keeps shortcuts like ⌘G from flashing the overlay.
+    const down = (e: KeyboardEvent) => {
+      if (e.key !== 'Meta') return stop()
+      if (e.repeat) return
+      timer = setTimeout(() => {
+        const r = canvasRef.current?.getBoundingClientRect()
+        if (r) setCanvasSize({ w: r.width, h: r.height })
+        setCursor(pointer.current ?? (r ? { x: r.width / 2, y: r.height / 2 } : null))
+        setAttending(true)
+      }, ATTEND_DELAY_MS)
+    }
+    const up = (e: KeyboardEvent) => e.key === 'Meta' && stop()
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', stop)
+    window.addEventListener('pointerdown', stop)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', stop)
+      window.removeEventListener('pointerdown', stop)
+    }
+  }, [])
+
+  const trackPointer = (e: React.PointerEvent) => {
+    const r = canvasRef.current?.getBoundingClientRect()
+    if (!r) return
+    pointer.current = { x: e.clientX - r.left, y: e.clientY - r.top }
+    if (attending) setCursor(pointer.current)
+  }
+
+  const needs = useMemo(() => needsAttention(nodes, work.status), [nodes, work.status])
+
+  // Work that needs you, gathered onto whatever shows it: the card, or the folded group around it.
+  const attention = useMemo(() => {
+    if (!attending) return null
+    const marks = new Map<string, AttentionMark>()
+    const tally = { mine: 0, start: 0 }
+    let elsewhere = 0
+    for (const [id, tier] of needs) {
+      const shown = view.rep(id)
+      if (!shown) {
+        elsewhere++
+        continue
+      }
+      tally[tier]++
+      const m = marks.get(shown) ?? { tier, ids: [] }
+      if (tier === 'mine') m.tier = 'mine'
+      m.ids.push(id)
+      marks.set(shown, m)
+    }
+    return { marks, tally, elsewhere }
+  }, [attending, needs, view])
+
+  const attentionTargets = useMemo<AttentionTarget[]>(() => {
+    if (!attention) return []
+    const out: AttentionTarget[] = []
+    for (const [id, m] of attention.marks) {
+      const n = map.get(id)
+      if (!n) continue
+      const p = absPos(n, map)
+      const s = sizeOf(n)
+      // A folded group's bubble rises from its center, so lines meet it there.
+      const folded = isCluster(n)
+      out.push({
+        id,
+        jump: m.ids[0],
+        tier: m.tier,
+        count: m.ids.length,
+        label: m.ids.length === 1 ? (map.get(m.ids[0])?.data.label ?? '') : n.data.label,
+        rect: folded
+          ? { x: (p.x + s.w / 2) * zoom + panX, y: (p.y + s.h / 2) * zoom + panY, w: 0, h: 0 }
+          : { x: p.x * zoom + panX, y: p.y * zoom + panY, w: s.w * zoom, h: s.h * zoom },
+      })
+    }
+    return out
+  }, [attention, map, zoom, panX, panY])
+
   const derived = useMemo<Derived>(
-    () => ({ status: work.status, leverage: work.leverage, groups: work.groups, trace, collapsed, zoom }),
-    [work, trace, collapsed, zoom],
+    () => ({ status: work.status, leverage: work.leverage, groups: work.groups, trace, collapsed, zoom, attention: attention?.marks ?? null }),
+    [work, trace, collapsed, zoom, attention],
   )
 
   const onNodesChange = useCallback(
@@ -697,7 +792,7 @@ function Canvas() {
               hide={() => toggleSidebar(false)}
             />
           )}
-          <div className="canvas" ref={canvasRef}>
+          <div className={`canvas${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
             {ready && (
               <ReactFlow<ViewNode, Edge>
                 fitView
@@ -849,6 +944,17 @@ function Canvas() {
                   )}
                 </Panel>
               </ReactFlow>
+            )}
+            {attending && cursor && (
+              <AttentionOverlay
+                targets={attentionTargets}
+                tally={attention?.tally ?? { mine: 0, start: 0 }}
+                elsewhere={attention?.elsewhere ?? 0}
+                cursor={cursor}
+                width={canvasSize.w}
+                height={canvasSize.h}
+                onJump={jumpTo}
+              />
             )}
             {!ready && <div className="loading">Laying out…</div>}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}

@@ -33,6 +33,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const st = d.status.get(id) ?? 'ready'
   const lev = d.leverage.get(id) ?? 0
   const tr = d.trace?.get(id)
+  const attn = d.attention?.get(id)
   if (data.itemKind === 'note') {
     return (
       <div className={`card note${tr ? ' tr-' + tr : ''}`}>
@@ -46,7 +47,9 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
     )
   }
   return (
-    <div className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}`}>
+    <div
+      className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn-' + attn.tier : ''}`}
+    >
       <Handle type="target" position={Position.Left} />
       <div className="meta">
         <span>{taskTag(data)}</span>
@@ -86,6 +89,7 @@ export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
   const tr = d.trace?.get(id)
   // A folded group raises a bubble from its center. The bubble keeps one on-screen size at every zoom.
   const screenWidth = (width ?? 300) * d.zoom
+  const attn = d.attention?.get(id)
   return (
     <div className={`cluster${collapsed ? ' is-collapsed' : ''}${tr ? ' tr-' + tr : ''}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} />
@@ -93,7 +97,7 @@ export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
         <div className="pop drag" style={{ '--inv': 1 / d.zoom } as CSSProperties}>
           <span className="pop-anchor" />
           <div className="pop-place">
-            <div className={`bubble${screenWidth < BUBBLE_DETAIL_WIDTH ? ' is-compact' : ''}`}>
+            <div className={`bubble${screenWidth < BUBBLE_DETAIL_WIDTH ? ' is-compact' : ''}${attn ? ' attn-' + attn.tier : ''}`}>
               <div className="bubble-title">
                 <Ring done={s.done} total={s.total} size={16} />
                 <strong>{data.label}</strong>
