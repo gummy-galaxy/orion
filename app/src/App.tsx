@@ -64,6 +64,11 @@ const COLLAPSE_ZOOM = 0.3
 const COLLAPSE_STEP = 0.12
 const GHOST_W = 200
 const GHOST_H = 62
+const GHOST_GAP = 90
+/** How much of the outside connections shows when a group opens. */
+const GHOST_PEEK = 0.4
+const FIT_MARGIN_Y = 90
+const FIT_MAX_ZOOM = 1.25
 
 type Menu = {
   x: number
@@ -105,6 +110,8 @@ function Canvas() {
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
   const [hover, setHover] = useState<string | null>(null)
+  // A double-clicked card keeps its trace while you pan around; any click lets it go.
+  const [pinned, setPinned] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
@@ -211,9 +218,16 @@ function Canvas() {
         x1 = Math.max(x1, p.x + s.w)
         y1 = Math.max(y1, p.y + s.h)
       }
-      // Leave room for the connections drawn outside an opened group.
-      const side = target ? GHOST_W + 110 : 0
-      rf.fitBounds({ x: x0 - side, y: y0, width: x1 - x0 + side * 2, height: y1 - y0 }, { padding: 0.08, duration: 450 })
+      const box = canvasRef.current?.getBoundingClientRect()
+      if (!target || !box) {
+        rf.fitBounds({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, { padding: 0.08, duration: 450 })
+        return
+      }
+      // An opened group fills the view, with the connections outside it peeking in from the edges.
+      const width = x1 - x0 + 2 * (GHOST_GAP + GHOST_W * GHOST_PEEK)
+      const height = y1 - y0 + FIT_MARGIN_Y * 2
+      const zoom = Math.min(box.width / width, box.height / height, FIT_MAX_ZOOM)
+      rf.setViewport({ x: box.width / 2 - ((x0 + x1) / 2) * zoom, y: box.height / 2 - ((y0 + y1) / 2) * zoom, zoom }, { duration: 450 })
     },
     [rf],
   )
@@ -339,7 +353,7 @@ function Canvas() {
           id: `ghost:${side}:${id}`,
           type: 'ghost',
           position: {
-            x: side === 'in' ? p.x - GHOST_W - 90 : p.x + s.w + 90,
+            x: side === 'in' ? p.x - GHOST_W - GHOST_GAP : p.x + s.w + GHOST_GAP,
             y: p.y + s.h / 2 + (i - (ids.length - 1) / 2) * (GHOST_H + 18) - GHOST_H / 2,
           },
           width: GHOST_W,
@@ -375,7 +389,8 @@ function Canvas() {
   )
 
   const trace = useMemo(() => {
-    const h = hover ? map.get(hover) : undefined
+    const from = pinned ?? hover
+    const h = from ? map.get(from) : undefined
     return h && isTask(h)
       ? traceFrom(
           h.id,
@@ -384,7 +399,7 @@ function Canvas() {
           nodes.filter(isTask).map((n) => n.id),
         )
       : null
-  }, [hover, map, work, nodes])
+  }, [pinned, hover, map, work, nodes])
 
   const edges = useMemo(() => {
     const out: Edge[] = []
@@ -645,7 +660,8 @@ function Canvas() {
       } else if (e.key === 'Enter' && selected.length === 1 && isCluster(selected[0])) {
         actions.open(selected[0].id)
       } else if (e.key === 'Escape') {
-        if (root) setRoot(map.get(root)?.parentId ?? null)
+        if (pinned) setPinned(null)
+        else if (root) setRoot(map.get(root)?.parentId ?? null)
         else setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n)))
       } else if (e.shiftKey && e.code === 'Digit1') {
         fitTo(root)
@@ -656,7 +672,7 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, map, fitTo, addNote, viewportCenter])
+  }, [doGroup, doUngroup, selected, actions, root, map, fitTo, addNote, viewportCenter, pinned])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
@@ -692,13 +708,19 @@ function Canvas() {
                 onNodesChange={onNodesChange}
                 onNodeDragStop={onDragStop}
                 onConnect={onConnect}
-                onNodeMouseEnter={(_, n) => n.type === 'task' && setHover(n.id)}
+                onNodeMouseEnter={(_, n) => setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
                 onNodeMouseLeave={() => setHover(null)}
-                onNodeClick={(_, n) => n.type === 'ghost' && jumpTo(n.data.taskId)}
+                onNodeClick={(_, n) => {
+                  setPinned(null)
+                  if (n.type === 'ghost') jumpTo(n.data.taskId)
+                }}
                 onNodeDoubleClick={(_, n) => {
                   if (n.type === 'cluster') actions.open(n.id)
                   else if (n.type === 'task' && isNote(n)) setEditing(n.id)
+                  else if (n.type === 'task') setPinned(n.id)
                 }}
+                onPaneClick={() => setPinned(null)}
+                onEdgeClick={() => setPinned(null)}
                 onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
                 onNodeContextMenu={(e, n) => {
                   if (n.type !== 'ghost' && !n.selected) selectOnly(n.id)
@@ -814,7 +836,8 @@ function Canvas() {
                   {showHelp ? (
                     <>
                       Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
-                      double-click a group to open · Esc to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                      double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge
+                      to link{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>

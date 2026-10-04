@@ -61,8 +61,9 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
 }
 
 export function GhostView({ data }: NodeProps<GhostNode>) {
+  const tr = useContext(DerivedContext)!.trace?.get(data.taskId)
   return (
-    <div className={`ghost st-${data.status} side-${data.side}`} title={`Jump to ${data.label}`}>
+    <div className={`ghost st-${data.status} side-${data.side}${tr ? ' tr-' + tr : ''}`} title={`Jump to ${data.label}`}>
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
       <span className="ghost-where">
         {data.side === 'in' ? 'from' : 'to'} {data.where}

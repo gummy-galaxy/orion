@@ -801,7 +801,29 @@ kbd {
   border-radius: 7px;
   background: var(--bg);
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition:
+    border-color 0.15s,
+    opacity 0.2s;
+}
+.ghost.tr-dim {
+  opacity: 0.2;
+}
+.ghost.tr-up,
+.ghost.tr-down,
+.ghost.tr-self {
+  border-style: solid;
+  background: var(--surface);
+}
+.ghost.tr-up {
+  border-color: var(--st-review);
+  box-shadow: 0 0 0 1px var(--st-review);
+}
+.ghost.tr-down {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.ghost.tr-self {
+  box-shadow: 0 0 0 2px var(--ink);
 }
 .ghost:hover {
   border-color: var(--accent);
