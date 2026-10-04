@@ -185,7 +185,7 @@ select {
 }
 .st-blocked {
   --c: var(--st-blocked);
-  opacity: 0.62;
+  --fade: 0.62;
 }
 .st-done {
   --c: var(--st-done);
@@ -246,9 +246,22 @@ select {
   opacity: 1;
 }
 
+/*
+ * Fading: cards, ghosts and bubbles keep a solid fill so lines never show through.
+ * Only their contents fade, by the --fade a state sets.
+ */
+.card > :not(.react-flow__handle),
+.ghost > :not(.react-flow__handle),
+.bubble > * {
+  opacity: var(--fade, 1);
+  transition: opacity 0.2s;
+}
+
 /* Hover trace */
 .card.tr-dim {
-  opacity: 0.2;
+  --fade: 0.25;
+  border-color: var(--line);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 25%, var(--surface));
 }
 .card.tr-up {
   border-color: var(--st-review);
@@ -533,7 +546,7 @@ select {
   border-color: var(--accent);
 }
 .cluster.tr-dim .bubble {
-  opacity: 0.3;
+  --fade: 0.3;
 }
 .cluster.tr-up .bubble {
   border-color: var(--st-review);
@@ -743,7 +756,7 @@ kbd {
 }
 .st-deferred {
   --c: var(--st-todo);
-  opacity: 0.5;
+  --fade: 0.5;
   background: var(--bg);
 }
 .react-flow__minimap-node.mm-deferred {
@@ -915,7 +928,7 @@ kbd {
     opacity 0.2s;
 }
 .ghost.tr-dim {
-  opacity: 0.2;
+  --fade: 0.25;
 }
 .ghost.tr-up,
 .ghost.tr-down,
@@ -972,7 +985,7 @@ kbd {
 }
 .ghost.st-done {
   --c: var(--st-done);
-  opacity: 0.7;
+  --fade: 0.7;
 }
 .ghost .react-flow__handle {
   opacity: 0;
@@ -1049,7 +1062,7 @@ kbd {
 .canvas.is-attending .card:not(.attn-mine, .attn-start),
 .canvas.is-attending .bubble:not(.attn-mine, .attn-start),
 .canvas.is-attending .ghost {
-  opacity: 0.3;
+  --fade: 0.3;
 }
 .card.attn-mine,
 .bubble.attn-mine {
