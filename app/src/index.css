@@ -741,6 +741,40 @@ kbd {
   max-width: min(980px, calc(100vw - 420px));
   text-align: center;
 }
+.zoom-exit-hint {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font: 500 11px var(--font-data);
+  pointer-events: none;
+}
+.zoom-exit-hint span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zoom-exit-track {
+  height: 3px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+.zoom-exit-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
 .loading {
   position: fixed;
   inset: 0;

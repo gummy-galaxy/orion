@@ -17,6 +17,7 @@ import {
   type Edge,
   type NodeChange,
   type NodeTypes,
+  type Viewport,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
@@ -30,6 +31,7 @@ import {
   absPos,
   ancestors,
   byId,
+  descendants,
   groupSelection,
   isCluster,
   isNote,
@@ -70,6 +72,11 @@ const GHOST_GAP = 90
 const GHOST_PEEK = 0.4
 const FIT_MARGIN_Y = 90
 const FIT_MAX_ZOOM = 1.25
+const EXIT_RATIO_MAX = 0.6
+const EXIT_RATIO_MIN = 0.25
+const EXIT_RATIO_PER_DOUBLING = 0.1
+const HINT_SPAN = 0.6
+const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
 
 type Menu = {
@@ -104,6 +111,19 @@ function writeFlag(key: string, value: boolean) {
 const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
+function exitRatio(count: number) {
+  return Math.max(EXIT_RATIO_MIN, Math.min(EXIT_RATIO_MAX, EXIT_RATIO_MAX - EXIT_RATIO_PER_DOUBLING * Math.log2(Math.max(count, 1))))
+}
+
+function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
+  const p = absPos(group, map)
+  const size = sizeOf(group)
+  const width = size.w + 2 * (GHOST_GAP + GHOST_W * GHOST_PEEK)
+  const height = size.h + FIT_MARGIN_Y * 2
+  const zoom = Math.min(box.width / width, box.height / height, FIT_MAX_ZOOM)
+  return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: box.height / 2 - (p.y + size.h / 2) * zoom, zoom }
+}
+
 function Canvas() {
   const rf = useReactFlow<ViewNode, Edge>()
   const zoom = useStore((s) => s.transform[2])
@@ -113,6 +133,7 @@ function Canvas() {
   const [links, setLinks] = useState<Link[]>([])
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
+  const [exitHint, setExitHint] = useState<{ root: string; progress: number } | null>(null)
   const [hover, setHover] = useState<string | null>(null)
   // A double-clicked card keeps its trace while you pan around; any click lets it go.
   const [pinned, setPinned] = useState<string | null>(null)
@@ -122,6 +143,11 @@ function Canvas() {
   const [menu, setMenu] = useState<Menu | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef({ nodes, links })
+  const fitZoom = useRef(new Map<string, number>())
+  const fitting = useRef(false)
+  const fitSequence = useRef(0)
+  const previousZoom = useRef(zoom)
+  const skipNextFit = useRef(false)
   useEffect(() => {
     latest.current = { nodes, links }
   }, [nodes, links])
@@ -228,10 +254,14 @@ function Canvas() {
         return
       }
       // An opened group fills the view, with the connections outside it peeking in from the edges.
-      const width = x1 - x0 + 2 * (GHOST_GAP + GHOST_W * GHOST_PEEK)
-      const height = y1 - y0 + FIT_MARGIN_Y * 2
-      const zoom = Math.min(box.width / width, box.height / height, FIT_MAX_ZOOM)
-      rf.setViewport({ x: box.width / 2 - ((x0 + x1) / 2) * zoom, y: box.height / 2 - ((y0 + y1) / 2) * zoom, zoom }, { duration: 450 })
+      const viewport = groupFitViewport(items[0], m, box)
+      fitZoom.current.set(target, viewport.zoom)
+      fitting.current = true
+      setExitHint(null)
+      const sequence = ++fitSequence.current
+      void rf.setViewport(viewport, { duration: 450 }).then(() => {
+        if (fitSequence.current === sequence) fitting.current = false
+      })
     },
     [rf],
   )
@@ -260,6 +290,10 @@ function Canvas() {
   useEffect(() => {
     if (fittedFor.current === root) return
     fittedFor.current = root
+    setExitHint(null)
+    const skipFit = skipNextFit.current
+    skipNextFit.current = false
+    if (skipFit) return
     const f = pendingFocus.current
     pendingFocus.current = null
     if (f) setTimeout(() => focusNode(f), 30)
@@ -306,6 +340,66 @@ function Canvas() {
   }, [])
 
   const map = useMemo(() => byId(nodes), [nodes])
+  const rootWorkCount = useMemo(() => {
+    if (!root) return 0
+    const inside = descendants(root, nodes)
+    return nodes.filter((n) => inside.has(n.id) && isTask(n) && !isNote(n)).length
+  }, [root, nodes])
+  const onViewportMove = useCallback(
+    (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+      const wasZoom = previousZoom.current
+      previousZoom.current = viewport.zoom
+      if (!event) {
+        setExitHint(null)
+        return
+      }
+      const userZoom = event.type === 'wheel' || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
+      if (!userZoom || fitting.current || viewport.zoom === wasZoom) return
+      if (viewport.zoom > wasZoom) {
+        const box = canvasRef.current?.getBoundingClientRect()
+        if (!box?.width || !box.height) return
+        const cursor =
+          'touches' in event
+            ? { x: (event.touches[0].clientX + event.touches[1].clientX) / 2, y: (event.touches[0].clientY + event.touches[1].clientY) / 2 }
+            : { x: event.clientX, y: event.clientY }
+        const point = rf.screenToFlowPosition(cursor)
+        const group = nodes.find((n) => {
+          if (!isCluster(n) || (n.parentId ?? null) !== root) return false
+          const p = absPos(n, map)
+          const size = sizeOf(n)
+          return (
+            point.x >= p.x &&
+            point.x <= p.x + size.w &&
+            point.y >= p.y &&
+            point.y <= p.y + size.h &&
+            Math.max((size.w * viewport.zoom) / box.width, (size.h * viewport.zoom) / box.height) >= ENTER_FILL
+          )
+        })
+        if (group) {
+          fitZoom.current.set(group.id, groupFitViewport(group, map, box).zoom)
+          skipNextFit.current = true
+          setExitHint(null)
+          setRoot(group.id)
+          return
+        }
+      }
+      const fit = root ? fitZoom.current.get(root) : undefined
+      if (!root || fit === undefined) return
+      const exit = exitRatio(rootWorkCount)
+      const hint = exit + (1 - exit) * HINT_SPAN
+      if (viewport.zoom < wasZoom && viewport.zoom < fit * exit) {
+        const parent = map.get(root)?.parentId ?? null
+        // Where you arrive becomes the parent's home zoom, so one gesture leaves one level.
+        if (parent) fitZoom.current.set(parent, viewport.zoom)
+        skipNextFit.current = true
+        setExitHint(null)
+        setRoot(parent)
+      } else {
+        setExitHint(viewport.zoom < fit * hint ? { root, progress: Math.min(1, (hint - viewport.zoom / fit) / (hint - exit)) } : null)
+      }
+    },
+    [root, map, nodes, rf, rootWorkCount],
+  )
   const work = useMemo(() => deriveWork(nodes, links), [nodes, links])
 
   // Which groups read as single bodies at this zoom, and which nodes that hides.
@@ -801,6 +895,7 @@ function Canvas() {
                 edges={edges}
                 nodeTypes={nodeTypes}
                 onNodesChange={onNodesChange}
+                onMove={onViewportMove}
                 onNodeDragStop={onDragStop}
                 onConnect={onConnect}
                 onNodeMouseEnter={(_, n) => setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
@@ -928,6 +1023,14 @@ function Canvas() {
                 )}
 
                 <Panel position="bottom-center" className="panel help">
+                  {root && exitHint?.root === root && (
+                    <div className="zoom-exit-hint">
+                      <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
+                      <div className="zoom-exit-track">
+                        <div className="zoom-exit-fill" style={{ width: `${exitHint.progress * 100}%` }} />
+                      </div>
+                    </div>
+                  )}
                   {showHelp ? (
                     <>
                       Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
