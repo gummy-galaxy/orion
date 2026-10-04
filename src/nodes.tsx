@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext } from './derive'
-import { STATUS_LABEL, taskTag, type ClusterNode, type TaskNode } from './model'
+import { STATUS_LABEL, taskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
@@ -30,6 +30,18 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const st = d.status.get(id) ?? 'ready'
   const lev = d.leverage.get(id) ?? 0
   const tr = d.trace?.get(id)
+  if (data.itemKind === 'note') {
+    return (
+      <div className={`card note${tr ? ' tr-' + tr : ''}`}>
+        <Handle type="target" position={Position.Left} />
+        <div className="meta">
+          <span>Note</span>
+        </div>
+        <div className="note-text">{data.label || 'Empty note'}</div>
+        <Handle type="source" position={Position.Right} />
+      </div>
+    )
+  }
   return (
     <div className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}`}>
       <Handle type="target" position={Position.Left} />
@@ -44,6 +56,20 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       {st !== 'done' && st !== 'deferred' && lev > 0 && <span className={`lev${lev >= 4 ? ' big' : ''}`}>unblocks {lev}</span>}
       {st !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
       <Handle type="source" position={Position.Right} />
+    </div>
+  )
+}
+
+export function GhostView({ data }: NodeProps<GhostNode>) {
+  return (
+    <div className={`ghost st-${data.status} side-${data.side}`} title={`Jump to ${data.label}`}>
+      {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
+      <span className="ghost-where">
+        {data.side === 'in' ? 'from' : 'to'} {data.where}
+      </span>
+      <span className="label">{data.label}</span>
+      <span className="ghost-status">{STATUS_LABEL[data.status]}</span>
+      {data.side === 'in' && <Handle type="source" position={Position.Right} isConnectable={false} />}
     </div>
   )
 }

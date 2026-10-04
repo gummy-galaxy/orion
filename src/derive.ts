@@ -53,22 +53,37 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 export function deriveWork(nodes: AppNode[], links: Link[]) {
   const tasks = new Map(nodes.filter(isTask).map((n) => [n.id, n as TaskNode]))
   const { preds, succs } = graph(links)
-  const open = (id: string) => tasks.get(id)?.data.status !== 'done'
+  const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
+  // A note is open while anything feeding into it is, so blocking passes through notes.
+  const noteOpen = new Map<string, boolean>()
+  const open = (id: string, seen = new Set<string>()): boolean => {
+    const t = tasks.get(id)
+    if (!t) return false
+    if (!isNote(id)) return t.data.status !== 'done'
+    if (noteOpen.has(id)) return noteOpen.get(id)!
+    if (seen.has(id)) return false
+    seen.add(id)
+    const r = (preds.get(id) ?? []).some((p) => open(p, seen))
+    noteOpen.set(id, r)
+    return r
+  }
 
   const status = new Map<string, ViewStatus>()
   for (const t of tasks.values()) {
     const s = t.data.status
-    if (s === 'done' || s === 'deferred' || s === 'blocked') status.set(t.id, s)
-    else if ((preds.get(t.id) ?? []).some(open)) status.set(t.id, 'blocked')
+    if (isNote(t.id)) status.set(t.id, open(t.id) ? 'blocked' : 'done')
+    else if (s === 'done' || s === 'deferred' || s === 'blocked') status.set(t.id, s)
+    else if ((preds.get(t.id) ?? []).some((p) => open(p))) status.set(t.id, 'blocked')
     else status.set(t.id, s === 'todo' ? 'ready' : s)
   }
 
   const leverage = new Map<string, number>()
   const downstream = new Map<string, Set<string>>()
   for (const t of tasks.values()) {
-    if (!open(t.id)) continue
-    // Parked work doesn't count toward what finishing something unlocks.
-    const d = walk(t.id, succs, (id) => open(id) && tasks.get(id)?.data.status !== 'deferred')
+    if (isNote(t.id) || !open(t.id)) continue
+    // Parked work doesn't count toward what finishing something unlocks, and notes aren't work.
+    const reach = walk(t.id, succs, (id) => open(id) && tasks.get(id)?.data.status !== 'deferred')
+    const d = new Set([...reach].filter((id) => !isNote(id)))
     downstream.set(t.id, d)
     leverage.set(t.id, d.size)
   }
@@ -80,7 +95,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     const reach = new Set<string>()
     for (const id of inside) {
       const st = status.get(id)
-      if (!st) continue
+      if (!st || isNote(id)) continue
       s.total++
       if (st === 'done') s.done++
       if (st === 'ready') s.ready++

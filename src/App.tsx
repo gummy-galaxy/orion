@@ -6,6 +6,7 @@ import {
   MarkerType,
   MiniMap,
   Panel,
+  Position,
   ReactFlow,
   ReactFlowProvider,
   SelectionMode,
@@ -18,16 +19,19 @@ import {
   type NodeTypes,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { ContextMenu, type MenuItem } from './ContextMenu'
 import { ActionsContext, DerivedContext, deriveWork, traceFrom, type Derived, type GroupStats } from './derive'
-import { seedLinks, seedNodes } from './seed'
 import { reflow, reflowAll } from './layout'
 import {
   STATUS_LABEL,
+  TASK_H,
+  TASK_W,
   absPos,
   ancestors,
   byId,
   groupSelection,
   isCluster,
+  isNote,
   isTask,
   normalize,
   prUrl,
@@ -36,23 +40,37 @@ import {
   ungroup,
   type AppNode,
   type ClusterData,
+  type GhostNode,
   type Link,
   type Status,
   type TaskData,
   type Who,
 } from './model'
-import { ClusterView, TaskView } from './nodes'
+import { ClusterView, GhostView, TaskView } from './nodes'
+import { seedLinks, seedNodes } from './seed'
+import { Sidebar } from './Sidebar'
 
-const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView }
+type ViewNode = AppNode | GhostNode
+
+const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
 const STORAGE_KEY = 'orion:v2'
+const SIDEBAR_KEY = 'orion:sidebar'
 /**
  * Zoom below which a group reads as one body. Nested groups fold first as you
  * zoom out, so detail drops away from the inside.
  */
 const COLLAPSE_ZOOM = 0.3
 const COLLAPSE_STEP = 0.12
+const GHOST_W = 200
+const GHOST_H = 62
 
 type Saved = { nodes: AppNode[]; links: Link[] }
+type Menu = {
+  x: number
+  y: number
+  flow: { x: number; y: number }
+  target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string }
+}
 
 function load(): Saved | null {
   try {
@@ -83,10 +101,28 @@ function save({ nodes, links }: Saved) {
   }
 }
 
+function readFlag(key: string, fallback: boolean) {
+  try {
+    const v = localStorage.getItem(key)
+    return v === null ? fallback : v === '1'
+  } catch {
+    return fallback
+  }
+}
+
+function writeFlag(key: string, value: boolean) {
+  try {
+    localStorage.setItem(key, value ? '1' : '0')
+  } catch {
+    // Only a remembered preference.
+  }
+}
+
 const ease = (t: number) => 1 - Math.pow(1 - t, 3)
+const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
 function Canvas() {
-  const rf = useReactFlow<AppNode, Edge>()
+  const rf = useReactFlow<ViewNode, Edge>()
   const zoom = useStore((s) => s.transform[2])
   const [nodes, setNodes] = useState<AppNode[]>([])
   const [links, setLinks] = useState<Link[]>([])
@@ -95,6 +131,9 @@ function Canvas() {
   const [hover, setHover] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(true)
+  const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
+  const [menu, setMenu] = useState<Menu | null>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef({ nodes, links })
   useEffect(() => {
     latest.current = { nodes, links }
@@ -143,18 +182,58 @@ function Canvas() {
         x1 = Math.max(x1, p.x + s.w)
         y1 = Math.max(y1, p.y + s.h)
       }
-      rf.fitBounds({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, { padding: 0.12, duration: 450 })
+      // Leave room for the connections drawn outside an opened group.
+      const side = target ? GHOST_W + 110 : 0
+      rf.fitBounds({ x: x0 - side, y: y0, width: x1 - x0 + side * 2, height: y1 - y0 }, { padding: 0.08, duration: 450 })
     },
     [rf],
   )
 
-  // The first fit comes from React Flow's fitView prop; this one follows opening and closing groups.
+  const selectOnly = useCallback(
+    (id: string) => setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, selected: true } : n.selected ? { ...n, selected: false } : n))),
+    [],
+  )
+
+  const focusNode = useCallback(
+    (id: string) => {
+      const m = byId(latest.current.nodes)
+      const n = m.get(id)
+      if (!n) return
+      selectOnly(id)
+      const p = absPos(n, m)
+      const s = sizeOf(n)
+      rf.setCenter(p.x + s.w / 2, p.y + s.h / 2, { zoom: Math.max(rf.getZoom(), 0.9), duration: 450 })
+    },
+    [rf, selectOnly],
+  )
+
+  // Opening or closing a group fits it, unless a jump asked to land on one card.
   const fittedFor = useRef<string | null>(null)
+  const pendingFocus = useRef<string | null>(null)
   useEffect(() => {
     if (fittedFor.current === root) return
     fittedFor.current = root
-    fitTo(root)
-  }, [root, fitTo])
+    const f = pendingFocus.current
+    pendingFocus.current = null
+    if (f) setTimeout(() => focusNode(f), 30)
+    else fitTo(root)
+  }, [root, fitTo, focusNode])
+
+  /** Opens the group a card lives in and lands on the card. */
+  const jumpTo = useCallback(
+    (id: string) => {
+      const n = byId(latest.current.nodes).get(id)
+      if (!n) return
+      const target = n.parentId ?? null
+      setHover(null)
+      if (target === root) focusNode(id)
+      else {
+        pendingFocus.current = id
+        setRoot(target)
+      }
+    },
+    [root, focusNode],
+  )
 
   /** Moves nodes to new positions over a few frames so edges follow along. */
   const tweenTo = useCallback((target: AppNode[]) => {
@@ -207,7 +286,64 @@ function Canvas() {
     return { rep, hidden }
   }, [nodes, map, collapsed, inView])
 
-  const viewNodes = useMemo(() => nodes.map((n) => (view.hidden.has(n.id) ? { ...n, hidden: true } : n)), [nodes, view])
+  // With a group open, work outside it that links in or out is drawn along its sides.
+  const ghosts = useMemo(() => {
+    const out: GhostNode[] = []
+    const rootNode = root ? map.get(root) : undefined
+    if (!rootNode) return out
+    const incoming: string[] = []
+    const outgoing: string[] = []
+    for (const l of links) {
+      const a = inView(l.from)
+      const b = inView(l.to)
+      if (a && !b && !outgoing.includes(l.to)) outgoing.push(l.to)
+      if (!a && b && !incoming.includes(l.from)) incoming.push(l.from)
+    }
+    const p = absPos(rootNode, map)
+    const s = sizeOf(rootNode)
+    const place = (ids: string[], side: 'in' | 'out') =>
+      ids.forEach((id, i) => {
+        const n = map.get(id)
+        if (!n || !isTask(n)) return
+        const parent = n.parentId ? map.get(n.parentId) : undefined
+        out.push({
+          id: `ghost:${side}:${id}`,
+          type: 'ghost',
+          position: {
+            x: side === 'in' ? p.x - GHOST_W - 90 : p.x + s.w + 90,
+            y: p.y + s.h / 2 + (i - (ids.length - 1) / 2) * (GHOST_H + 18) - GHOST_H / 2,
+          },
+          width: GHOST_W,
+          height: GHOST_H,
+          // Ghosts are rebuilt every render, so declare their handles instead of waiting on a measure.
+          handles: [
+            side === 'in'
+              ? { type: 'source', position: Position.Right, x: GHOST_W - 4, y: GHOST_H / 2 - 4, width: 8, height: 8 }
+              : { type: 'target', position: Position.Left, x: -4, y: GHOST_H / 2 - 4, width: 8, height: 8 },
+          ],
+          selectable: false,
+          draggable: false,
+          connectable: false,
+          zIndex: 5,
+          data: {
+            kind: 'ghost',
+            taskId: id,
+            label: n.data.label || 'Note',
+            where: parent ? (parent.data as ClusterData).label : 'loose work',
+            status: work.status.get(id) ?? 'ready',
+            side,
+          },
+        })
+      })
+    place(incoming, 'in')
+    place(outgoing, 'out')
+    return out
+  }, [root, map, links, inView, work])
+
+  const viewNodes = useMemo<ViewNode[]>(
+    () => [...nodes.map((n) => (view.hidden.has(n.id) ? { ...n, hidden: true } : n)), ...ghosts],
+    [nodes, view, ghosts],
+  )
 
   const trace = useMemo(() => {
     const h = hover ? map.get(hover) : undefined
@@ -226,11 +362,14 @@ function Canvas() {
     const marker = (live: boolean) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: live ? 'var(--edge-hot)' : 'var(--edge)' })
     const agg = new Map<string, { a: string; b: string; count: number; live: boolean }>()
     for (const l of links) {
-      const a = view.rep(l.from)
-      const b = view.rep(l.to)
+      let a = view.rep(l.from)
+      let b = view.rep(l.to)
+      if (root && !a && b) a = `ghost:in:${l.from}`
+      if (root && a && !b && !a.startsWith('ghost:')) b = `ghost:out:${l.to}`
       if (!a || !b || a === b) continue
       const live = l.kind === 'blocks' && work.status.get(l.from) !== 'done'
-      if (a === l.from && b === l.to) {
+      const direct = (a === l.from || a.startsWith('ghost:')) && (b === l.to || b.startsWith('ghost:'))
+      if (direct) {
         let cls = l.kind === 'related' ? 'e-rel' : live ? 'e-live' : 'e-done'
         if (trace) {
           const ra = trace.get(l.from)
@@ -239,14 +378,7 @@ function Canvas() {
           const down = l.kind === 'blocks' && (ra === 'down' || ra === 'self') && rb === 'down'
           cls += up ? ' tr-e-up' : down ? ' tr-e-down' : ' tr-e-dim'
         }
-        out.push({
-          id: l.id,
-          source: l.from,
-          target: l.to,
-          className: cls,
-          selectable: false,
-          markerEnd: l.kind === 'blocks' ? marker(live) : undefined,
-        })
+        out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(live) : undefined })
       } else if (l.kind === 'blocks') {
         const k = a + '>' + b
         const e = agg.get(k) ?? { a, b, count: 0, live: false }
@@ -268,14 +400,18 @@ function Canvas() {
       })
     }
     return out
-  }, [links, view, work, trace])
+  }, [links, view, work, trace, root])
 
   const derived = useMemo<Derived>(
     () => ({ status: work.status, leverage: work.leverage, groups: work.groups, trace, collapsed, zoom }),
     [work, trace, collapsed, zoom],
   )
 
-  const onNodesChange = useCallback((changes: NodeChange<AppNode>[]) => setNodes((ns) => applyNodeChanges(changes, ns)), [])
+  const onNodesChange = useCallback(
+    (changes: NodeChange<ViewNode>[]) =>
+      setNodes((ns) => applyNodeChanges(changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[], ns)),
+    [],
+  )
   const onDragStop = useCallback(() => setNodes((ns) => normalize(ns)), [])
   const onConnect = useCallback((c: Connection) => {
     if (!c.source || !c.target || c.source === c.target) return
@@ -287,11 +423,6 @@ function Canvas() {
   }, [])
 
   const selected = nodes.filter((n) => n.selected && !view.hidden.has(n.id))
-
-  const select = useCallback(
-    (id: string) => setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, selected: true } : n.selected ? { ...n, selected: false } : n))),
-    [],
-  )
 
   const doGroup = useCallback(() => {
     const visibleSel = nodes.map((n) => (n.selected && view.hidden.has(n.id) ? { ...n, selected: false } : n))
@@ -325,6 +456,79 @@ function Canvas() {
     [tweenTo],
   )
 
+  const updateData = useCallback(
+    (id: string, patch: Partial<TaskData> | Partial<ClusterData>) =>
+      setNodes((ns) => ns.map((n) => (n.id === id ? ({ ...n, data: { ...n.data, ...patch } } as AppNode) : n))),
+    [],
+  )
+
+  // ---- Notes and links ----
+
+  /** Adds a note with its top-left at `at` (flow coordinates), optionally spliced into links. */
+  const addNote = useCallback(
+    (at: { x: number; y: number }, opts: { parent?: string | null; from?: string; to?: string; replace?: string } = {}) => {
+      const { nodes: ns, links: ls } = latest.current
+      const m = byId(ns)
+      const parent = opts.parent === undefined ? root : opts.parent
+      const parentNode = parent ? m.get(parent) : undefined
+      const origin = parentNode ? absPos(parentNode, m) : { x: 0, y: 0 }
+      const id = newId('note')
+      const note: AppNode = {
+        id,
+        type: 'task',
+        parentId: parentNode?.id,
+        position: { x: at.x - origin.x, y: at.y - origin.y },
+        data: { kind: 'task', label: '', itemKind: 'note', status: 'todo' },
+        selected: true,
+      }
+      const kind = ls.find((l) => l.id === opts.replace)?.kind ?? 'blocks'
+      const next = ls.filter((l) => l.id !== opts.replace)
+      if (opts.from) next.push({ id: `${opts.from}>${id}`, from: opts.from, to: id, kind })
+      if (opts.to) next.push({ id: `${id}>${opts.to}`, from: id, to: opts.to, kind })
+      setNodes(normalize([...ns.map((n) => (n.selected ? { ...n, selected: false } : n)), note]))
+      setLinks(next)
+      setEditing(id)
+    },
+    [root],
+  )
+
+  const viewportCenter = useCallback(() => {
+    const r = canvasRef.current?.getBoundingClientRect()
+    if (!r) return { x: 0, y: 0 }
+    const c = rf.screenToFlowPosition({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
+    return { x: c.x - TASK_W / 2, y: c.y - TASK_H / 2 }
+  }, [rf])
+
+  const insertNoteOnLink = (linkId: string) => {
+    const l = links.find((x) => x.id === linkId)
+    const a = l && map.get(l.from)
+    const b = l && map.get(l.to)
+    if (!l || !a || !b) return
+    const pa = absPos(a, map)
+    const pb = absPos(b, map)
+    const chainB = [b.parentId, ...ancestors(b.id, map)]
+    const parent = [a.parentId, ...ancestors(a.id, map)].find((p) => p && chainB.includes(p)) ?? null
+    addNote({ x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 + TASK_H }, { parent, from: l.from, to: l.to, replace: l.id })
+  }
+
+  /** Removes a note and reconnects whatever ran through it. */
+  const deleteNote = (id: string) => {
+    setLinks((ls) => {
+      const ins = ls.filter((l) => l.to === id)
+      const outs = ls.filter((l) => l.from === id)
+      const next = ls.filter((l) => l.from !== id && l.to !== id)
+      for (const i of ins)
+        for (const o of outs)
+          if (!next.some((l) => l.from === i.from && l.to === o.to))
+            next.push({ id: `${i.from}>${o.to}`, from: i.from, to: o.to, kind: i.kind === 'blocks' && o.kind === 'blocks' ? 'blocks' : 'related' })
+      return next
+    })
+    setNodes((ns) => normalize(ns.filter((n) => n.id !== id)))
+  }
+
+  const removeLink = (id: string) => setLinks((ls) => ls.filter((l) => l.id !== id))
+  const flipLink = (id: string) => setLinks((ls) => ls.map((l) => (l.id === id ? { ...l, kind: l.kind === 'blocks' ? 'related' : 'blocks' } : l)))
+
   const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
   const reset = () => {
     const l = seedLinks()
@@ -336,14 +540,71 @@ function Canvas() {
     })
   }
 
-  const goTo = (id: string) => {
-    const n = map.get(id)
-    if (!n) return
-    if (!inView(id)) setRoot(null)
-    select(id)
-    const p = absPos(n, map)
-    const s = sizeOf(n)
-    rf.setCenter(p.x + s.w / 2, p.y + s.h / 2, { zoom: Math.max(zoom, 1), duration: 450 })
+  // ---- Context menu ----
+
+  const openMenu = (e: MouseEvent | React.MouseEvent, target: Menu['target']) => {
+    e.preventDefault()
+    setMenu({ x: e.clientX, y: e.clientY, flow: rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }), target })
+  }
+
+  const menuItems = (m: Menu): MenuItem[] => {
+    const t = m.target
+    if (t.kind === 'edge') {
+      const l = links.find((x) => x.id === t.id)
+      if (!l) return []
+      return [
+        { label: 'Insert a note here', run: () => insertNoteOnLink(l.id) },
+        { label: l.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link', run: () => flipLink(l.id) },
+        'divider',
+        { label: 'Remove link', danger: true, run: () => removeLink(l.id) },
+      ]
+    }
+    if (t.kind === 'node') {
+      if (t.id.startsWith('ghost:')) {
+        const taskId = t.id.split(':')[2]
+        return [{ label: 'Jump to it', run: () => jumpTo(taskId) }]
+      }
+      const n = map.get(t.id)
+      if (!n) return []
+      const many: MenuItem[] = selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }, 'divider'] : []
+      if (isCluster(n))
+        return [
+          ...many,
+          { label: 'Open', hint: '↵', run: () => actions.open(n.id) },
+          { label: 'Rename', run: () => (selectOnly(n.id), setEditing(n.id)) },
+          { label: 'Reflow', run: () => actions.reflow(n.id) },
+          { label: 'Ungroup', hint: '⇧⌘G', run: () => doUngroup([n.id]) },
+        ]
+      const p = absPos(n, map)
+      const after = { x: p.x + TASK_W + 48, y: p.y + TASK_H + 24 }
+      if (isNote(n))
+        return [
+          ...many,
+          { label: 'Edit note', run: () => (selectOnly(n.id), setEditing(n.id)) },
+          { label: 'Turn into a work item', run: () => updateData(n.id, { itemKind: 'step', status: 'todo' }) },
+          'divider',
+          { label: 'Delete note', danger: true, run: () => deleteNote(n.id) },
+        ]
+      const data = n.data as TaskData
+      const url = prUrl(data)
+      return [
+        ...many,
+        ...(url ? [{ label: `Open ${taskTag(data)}`, hint: '↗', run: () => window.open(url, '_blank', 'noreferrer') }] : []),
+        data.status === 'done'
+          ? { label: 'Mark not done', run: () => updateData(n.id, { status: 'todo' }) }
+          : { label: 'Mark done', run: () => updateData(n.id, { status: 'done' }) },
+        { label: 'Add a note after this', run: () => addNote(after, { parent: n.parentId ?? null, from: n.id }) },
+        ...(n.parentId !== root ? [{ label: 'Open its group', run: () => jumpTo(n.id) }] : []),
+      ]
+    }
+    return [
+      { label: 'Add a note here', hint: 'N', run: () => addNote(m.flow) },
+      ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }] : []),
+      'divider',
+      { label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy },
+      { label: 'Fit to screen', hint: '⇧1', run: () => fitTo(root) },
+      ...(root ? [{ label: 'Go up a level', hint: 'Esc', run: () => setRoot(map.get(root)?.parentId ?? null) }] : []),
+    ]
   }
 
   useEffect(() => {
@@ -360,130 +621,188 @@ function Canvas() {
         else setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n)))
       } else if (e.shiftKey && e.code === 'Digit1') {
         fitTo(root)
+      } else if (!e.metaKey && !e.ctrlKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault()
+        addNote(viewportCenter())
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, map, fitTo])
-
-  const updateData = (id: string, patch: Partial<TaskData> | Partial<ClusterData>) =>
-    setNodes((ns) => ns.map((n) => (n.id === id ? ({ ...n, data: { ...n.data, ...patch } } as AppNode) : n)))
+  }, [doGroup, doUngroup, selected, actions, root, map, fitTo, addNote, viewportCenter])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
+  const readyTotal = [...work.status.values()].filter((s) => s === 'ready').length
+
+  const toggleSidebar = (v: boolean) => {
+    setSidebar(v)
+    writeFlag(SIDEBAR_KEY, v)
+  }
 
   return (
     <DerivedContext.Provider value={derived}>
       <ActionsContext.Provider value={actions}>
-        {ready && (
-          <ReactFlow<AppNode, Edge>
-            fitView
-            fitViewOptions={{ padding: 0.12 }}
-            nodes={viewNodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            onNodesChange={onNodesChange}
-            onNodeDragStop={onDragStop}
-            onConnect={onConnect}
-            onNodeMouseEnter={(_, n) => isTask(n) && setHover(n.id)}
-            onNodeMouseLeave={() => setHover(null)}
-            onNodeDoubleClick={(_, n) => isCluster(n) && actions.open(n.id)}
-            selectionOnDrag
-            panOnDrag={[1, 2]}
-            panOnScroll
-            selectionMode={SelectionMode.Full}
-            multiSelectionKeyCode={['Meta', 'Shift']}
-            deleteKeyCode={null}
-            zoomOnDoubleClick={false}
-            minZoom={0.06}
-            maxZoom={2}
-            colorMode="system"
-          >
-            <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
-            <Controls showInteractive={false} />
-            <MiniMap pannable zoomable nodeClassName={(n) => (n.type === 'cluster' ? 'mm-cluster' : 'mm-' + (work.status.get(n.id) ?? 'ready'))} />
+        <div className="app">
+          {sidebar && (
+            <Sidebar
+              nodes={nodes}
+              groups={work.groups}
+              root={root}
+              open={(id) => setRoot(id)}
+              readyTotal={readyTotal}
+              hide={() => toggleSidebar(false)}
+            />
+          )}
+          <div className="canvas" ref={canvasRef}>
+            {ready && (
+              <ReactFlow<ViewNode, Edge>
+                fitView
+                fitViewOptions={{ padding: 0.12 }}
+                nodes={viewNodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onNodeDragStop={onDragStop}
+                onConnect={onConnect}
+                onNodeMouseEnter={(_, n) => n.type === 'task' && setHover(n.id)}
+                onNodeMouseLeave={() => setHover(null)}
+                onNodeClick={(_, n) => n.type === 'ghost' && jumpTo(n.data.taskId)}
+                onNodeDoubleClick={(_, n) => {
+                  if (n.type === 'cluster') actions.open(n.id)
+                  else if (n.type === 'task' && isNote(n)) setEditing(n.id)
+                }}
+                onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
+                onNodeContextMenu={(e, n) => {
+                  if (n.type !== 'ghost' && !n.selected) selectOnly(n.id)
+                  openMenu(e, { kind: 'node', id: n.id })
+                }}
+                onSelectionContextMenu={(e, ns) => openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })}
+                onEdgeContextMenu={(e, edge) => !edge.id.startsWith('agg:') && openMenu(e, { kind: 'edge', id: edge.id })}
+                panOnDrag={[0, 1]}
+                selectionKeyCode="Meta"
+                selectionOnDrag={false}
+                panOnScroll={false}
+                zoomOnScroll
+                zoomOnPinch
+                selectionMode={SelectionMode.Full}
+                multiSelectionKeyCode={['Meta', 'Shift']}
+                deleteKeyCode={null}
+                zoomOnDoubleClick={false}
+                minZoom={0.06}
+                maxZoom={2}
+                colorMode="system"
+              >
+                <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
+                <Controls showInteractive={false} />
+                <MiniMap
+                  pannable
+                  zoomable
+                  nodeClassName={(n) =>
+                    n.type === 'cluster' ? 'mm-cluster' : n.type === 'ghost' ? 'mm-ghost' : 'mm-' + (work.status.get(n.id) ?? 'ready')
+                  }
+                />
 
-            <Panel position="top-left" className="panel crumbs">
-              <button type="button" className={root ? 'crumb' : 'crumb current'} onClick={() => setRoot(null)}>
-                All work
-              </button>
-              {crumbs.map((id) => (
-                <span key={id} className="crumb-wrap">
-                  <span className="sep">›</span>
-                  <button type="button" className={id === root ? 'crumb current' : 'crumb'} onClick={() => setRoot(id)}>
-                    {(map.get(id)?.data as ClusterData | undefined)?.label}
-                  </button>
-                </span>
-              ))}
-              <span className="crumb-actions">
-                <button type="button" className="btn" onClick={tidy}>
-                  Tidy {root ? 'group' : 'canvas'}
-                </button>
-                <button type="button" className="btn" onClick={reset}>
-                  Reset to seed
-                </button>
-              </span>
-            </Panel>
-
-            {selected.length > 0 && (
-              <Panel position="top-right" className="panel inspector">
-                {!one ? (
-                  <div className="insp">
-                    <strong>{selected.length} selected</strong>
-                    <button type="button" className="btn primary" onClick={doGroup}>
-                      Group selection <kbd>⌘G</kbd>
+                <Panel position="top-left" className="panel crumbs">
+                  {!sidebar && (
+                    <button type="button" className="crumb" onClick={() => toggleSidebar(true)} title="Show the group list">
+                      ☰
                     </button>
-                  </div>
-                ) : isTask(one) ? (
-                  <TaskInspector key={one.id} node={one} work={work} map={map} update={updateData} goTo={goTo} />
-                ) : (
-                  <div className="insp" key={one.id}>
-                    <label htmlFor="g-label">Group name</label>
-                    <input
-                      id="g-label"
-                      value={(one.data as ClusterData).label}
-                      autoFocus={editing === one.id}
-                      onFocus={(e) => editing === one.id && e.target.select()}
-                      onBlur={() => setEditing(null)}
-                      onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                      onChange={(e) => updateData(one.id, { label: e.target.value })}
-                    />
-                    {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
-                    <GroupFacts stats={work.groups.get(one.id)} />
-                    <div className="row">
-                      <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
-                        Open
-                      </button>
-                      <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
-                        Reflow
-                      </button>
-                      <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
-                        Ungroup <kbd>⇧⌘G</kbd>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </Panel>
-            )}
-
-            <Panel position="bottom-center" className="panel help">
-              {showHelp ? (
-                <>
-                  Drag to select · ⌘ or ⇧ click to add · ⌘G group · ⇧⌘G ungroup · double-click a group to open · Esc to go up · scroll or space-drag
-                  to pan · pinch to zoom · ⇧1 fit · drag from a card's edge to link{' '}
-                  <button type="button" className="link" onClick={() => setShowHelp(false)}>
-                    Hide
+                  )}
+                  <button type="button" className={root ? 'crumb' : 'crumb current'} onClick={() => setRoot(null)}>
+                    All work
                   </button>
-                </>
-              ) : (
-                <button type="button" className="link" onClick={() => setShowHelp(true)}>
-                  Shortcuts
-                </button>
-              )}
-            </Panel>
-          </ReactFlow>
-        )}
-        {!ready && <div className="loading">Laying out…</div>}
+                  {crumbs.map((id) => (
+                    <span key={id} className="crumb-wrap">
+                      <span className="sep">›</span>
+                      <button type="button" className={id === root ? 'crumb current' : 'crumb'} onClick={() => setRoot(id)}>
+                        {(map.get(id)?.data as ClusterData | undefined)?.label}
+                      </button>
+                    </span>
+                  ))}
+                  <span className="crumb-actions">
+                    <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
+                      Add note
+                    </button>
+                    <button type="button" className="btn" onClick={tidy}>
+                      Tidy {root ? 'group' : 'canvas'}
+                    </button>
+                    <button type="button" className="btn" onClick={reset}>
+                      Reset to seed
+                    </button>
+                  </span>
+                </Panel>
+
+                {selected.length > 0 && (
+                  <Panel position="top-right" className="panel inspector">
+                    {!one ? (
+                      <div className="insp">
+                        <strong>{selected.length} selected</strong>
+                        <button type="button" className="btn primary" onClick={doGroup}>
+                          Group selection <kbd>⌘G</kbd>
+                        </button>
+                      </div>
+                    ) : isNote(one) ? (
+                      <NoteInspector
+                        key={one.id}
+                        node={one}
+                        focus={editing === one.id}
+                        doneEditing={() => setEditing(null)}
+                        update={updateData}
+                        remove={() => deleteNote(one.id)}
+                      />
+                    ) : isTask(one) ? (
+                      <TaskInspector key={one.id} node={one} work={work} map={map} update={updateData} jumpTo={jumpTo} />
+                    ) : (
+                      <div className="insp" key={one.id}>
+                        <label htmlFor="g-label">Group name</label>
+                        <input
+                          id="g-label"
+                          value={(one.data as ClusterData).label}
+                          autoFocus={editing === one.id}
+                          onFocus={(e) => editing === one.id && e.target.select()}
+                          onBlur={() => setEditing(null)}
+                          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                          onChange={(e) => updateData(one.id, { label: e.target.value })}
+                        />
+                        {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
+                        <GroupFacts stats={work.groups.get(one.id)} />
+                        <div className="row">
+                          <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
+                            Open
+                          </button>
+                          <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
+                            Reflow
+                          </button>
+                          <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
+                            Ungroup <kbd>⇧⌘G</kbd>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </Panel>
+                )}
+
+                <Panel position="bottom-center" className="panel help">
+                  {showHelp ? (
+                    <>
+                      Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
+                      double-click a group to open · Esc to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                      <button type="button" className="link" onClick={() => setShowHelp(false)}>
+                        Hide
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="link" onClick={() => setShowHelp(true)}>
+                      Shortcuts
+                    </button>
+                  )}
+                </Panel>
+              </ReactFlow>
+            )}
+            {!ready && <div className="loading">Laying out…</div>}
+            {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
+          </div>
+        </div>
       </ActionsContext.Provider>
     </DerivedContext.Provider>
   )
@@ -499,18 +818,57 @@ function GroupFacts({ stats }: { stats?: GroupStats }) {
   )
 }
 
+function NoteInspector({
+  node,
+  focus,
+  doneEditing,
+  update,
+  remove,
+}: {
+  node: AppNode
+  focus: boolean
+  doneEditing: () => void
+  update: (id: string, patch: Partial<TaskData>) => void
+  remove: () => void
+}) {
+  const data = node.data as TaskData
+  return (
+    <div className="insp">
+      <label htmlFor="n-text">Note</label>
+      <textarea
+        id="n-text"
+        rows={5}
+        value={data.label}
+        autoFocus={focus}
+        placeholder="A detail to remember, or a plan that might become a pull request"
+        onBlur={doneEditing}
+        onChange={(e) => update(node.id, { label: e.target.value })}
+      />
+      <p className="facts">Notes pass blocking through but never count as work.</p>
+      <div className="row">
+        <button type="button" className="btn" onClick={() => update(node.id, { itemKind: 'step', status: 'todo' })}>
+          Turn into a work item
+        </button>
+        <button type="button" className="btn danger" onClick={remove}>
+          Delete
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function TaskInspector({
   node,
   work,
   map,
   update,
-  goTo,
+  jumpTo,
 }: {
   node: AppNode
   work: ReturnType<typeof deriveWork>
   map: Map<string, AppNode>
   update: (id: string, patch: Partial<TaskData>) => void
-  goTo: (id: string) => void
+  jumpTo: (id: string) => void
 }) {
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
@@ -519,13 +877,18 @@ function TaskInspector({
   const list = (ids: string[]) =>
     ids.length ? (
       <ul>
-        {ids.map((id) => (
-          <li key={id}>
-            <button type="button" className="link" onClick={() => goTo(id)}>
-              {(map.get(id)?.data as TaskData | undefined)?.label} <span>({STATUS_LABEL[work.status.get(id) ?? 'ready']})</span>
-            </button>
-          </li>
-        ))}
+        {ids.map((id) => {
+          const other = map.get(id)
+          const parent = other?.parentId ? map.get(other.parentId) : undefined
+          return (
+            <li key={id}>
+              <button type="button" className="link" onClick={() => jumpTo(id)}>
+                {(other?.data as TaskData | undefined)?.label || 'Note'} <span>({STATUS_LABEL[work.status.get(id) ?? 'ready']})</span>
+              </button>
+              {parent && parent.id !== node.parentId && <span className="link-where">in {(parent.data as ClusterData).label}</span>}
+            </li>
+          )
+        })}
       </ul>
     ) : (
       <p className="facts">Nothing</p>

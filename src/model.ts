@@ -9,8 +9,11 @@ export const HEAD = 52
 export type Status = 'todo' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
 export type Who = 'you' | 'review' | 'ci'
 export type ViewStatus = 'ready' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
-/** A pull request that exists, one that is expected but not opened yet, or a step with no pull request. */
-export type ItemKind = 'pr' | 'placeholder' | 'step'
+/**
+ * A pull request that exists, one that is expected but not opened yet, a step with no
+ * pull request, or a note. Notes are annotations, not work: they pass blocking through.
+ */
+export type ItemKind = 'pr' | 'placeholder' | 'step' | 'note'
 
 export type TaskData = {
   kind: 'task'
@@ -24,6 +27,9 @@ export type TaskData = {
 }
 export type ClusterData = { kind: 'cluster'; label: string; blurb?: string }
 export type TaskNode = Node<TaskData, 'task'>
+/** Stand-in for work outside the opened group that links into it. Never stored. */
+export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status: ViewStatus; side: 'in' | 'out' }
+export type GhostNode = Node<GhostData, 'ghost'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
 export type AppNode = TaskNode | ClusterNode
 
@@ -52,6 +58,7 @@ export function prUrl(d: TaskData): string | null {
 
 export const isCluster = (n: AppNode): n is ClusterNode => n.type === 'cluster'
 export const isTask = (n: AppNode): n is TaskNode => n.type === 'task'
+export const isNote = (n: AppNode | undefined): boolean => !!n && isTask(n) && n.data.itemKind === 'note'
 
 export function byId(nodes: AppNode[]): Map<string, AppNode> {
   return new Map(nodes.map((n) => [n.id, n]))
