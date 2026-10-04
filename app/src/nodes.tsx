@@ -1,4 +1,4 @@
-import { useContext } from 'react'
+import { useContext, type CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext } from './derive'
 import { STATUS_LABEL, taskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
@@ -13,6 +13,9 @@ function Lock() {
     </svg>
   )
 }
+
+/** Below this on-screen width, a folded group's bubble shows only its name. */
+const BUBBLE_DETAIL_WIDTH = 150
 
 function Ring({ done, total, size = 22 }: { done: number; total: number; size?: number }) {
   const r = 8
@@ -75,25 +78,32 @@ export function GhostView({ data }: NodeProps<GhostNode>) {
   )
 }
 
-export function ClusterView({ id, data, width, height }: NodeProps<ClusterNode>) {
+export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
   const d = useContext(DerivedContext)!
   const actions = useContext(ActionsContext)!
   const s = d.groups.get(id) ?? { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
   const collapsed = d.collapsed.has(id)
   const tr = d.trace?.get(id)
-  // Summary text stays readable on screen but never outgrows the group's box.
-  const fs = Math.min(13 / d.zoom, (width ?? 300) / 18, (height ?? 200) / 10)
+  // A folded group raises a bubble from its center. The bubble keeps one on-screen size at every zoom.
+  const screenWidth = (width ?? 300) * d.zoom
   return (
     <div className={`cluster${collapsed ? ' is-collapsed' : ''}${tr ? ' tr-' + tr : ''}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} />
       {collapsed ? (
-        <div className="cluster-summary drag" style={{ fontSize: `${fs}px` }}>
-          <Ring done={s.done} total={s.total} size={fs * 3.6} />
-          <strong>{data.label}</strong>
-          <span>
-            {s.done}/{s.total} done · {s.ready} ready · {s.blocked} blocked
-          </span>
-          {s.outside > 0 && <span className="lev big">unblocks {s.outside} outside</span>}
+        <div className="pop drag" style={{ '--inv': 1 / d.zoom } as CSSProperties}>
+          <span className="pop-anchor" />
+          <div className="pop-place">
+            <div className={`bubble${screenWidth < BUBBLE_DETAIL_WIDTH ? ' is-compact' : ''}`}>
+              <div className="bubble-title">
+                <Ring done={s.done} total={s.total} size={16} />
+                <strong>{data.label}</strong>
+              </div>
+              <span className="bubble-stats">
+                {s.done}/{s.total} done · {s.ready} ready · {s.blocked} blocked
+              </span>
+              {s.outside > 0 && <span className="bubble-lev">unblocks {s.outside} outside</span>}
+            </div>
+          </div>
         </div>
       ) : (
         <div className="cluster-head drag" title="Double-click to open">
