@@ -19,7 +19,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ActionsContext, DerivedContext, deriveWork, traceFrom, type Derived, type GroupStats } from './derive'
-import { sampleLinks, sampleNodes } from './fixture'
+import { seedLinks, seedNodes } from './seed'
 import { reflow, reflowAll } from './layout'
 import {
   STATUS_LABEL,
@@ -30,7 +30,9 @@ import {
   isCluster,
   isTask,
   normalize,
+  prUrl,
   sizeOf,
+  taskTag,
   ungroup,
   type AppNode,
   type ClusterData,
@@ -42,7 +44,7 @@ import {
 import { ClusterView, TaskView } from './nodes'
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView }
-const STORAGE_KEY = 'orion:v1'
+const STORAGE_KEY = 'orion:v2'
 /**
  * Zoom below which a group reads as one body. Nested groups fold first as you
  * zoom out, so detail drops away from the inside.
@@ -101,7 +103,7 @@ function Canvas() {
   useEffect(() => {
     let cancelled = false
     const saved = load()
-    const start = saved ? Promise.resolve(saved) : reflowAll(sampleNodes(), sampleLinks()).then((n) => ({ nodes: n, links: sampleLinks() }))
+    const start = saved ? Promise.resolve(saved) : reflowAll(seedNodes(), seedLinks()).then((n) => ({ nodes: n, links: seedLinks() }))
     start.then((s) => {
       if (cancelled) return
       setNodes(s.nodes)
@@ -325,9 +327,9 @@ function Canvas() {
 
   const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
   const reset = () => {
-    const l = sampleLinks()
+    const l = seedLinks()
     setRoot(null)
-    reflowAll(sampleNodes(), l).then((n) => {
+    reflowAll(seedNodes(), l).then((n) => {
       setNodes(n)
       setLinks(l)
       setTimeout(() => fitTo(null), 40)
@@ -418,7 +420,7 @@ function Canvas() {
                   Tidy {root ? 'group' : 'canvas'}
                 </button>
                 <button type="button" className="btn" onClick={reset}>
-                  Reset sample
+                  Reset to seed
                 </button>
               </span>
             </Panel>
@@ -446,6 +448,7 @@ function Canvas() {
                       onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
                       onChange={(e) => updateData(one.id, { label: e.target.value })}
                     />
+                    {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
                     <GroupFacts stats={work.groups.get(one.id)} />
                     <div className="row">
                       <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
@@ -512,6 +515,7 @@ function TaskInspector({
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
   const lev = work.leverage.get(node.id) ?? 0
+  const url = prUrl(data)
   const list = (ids: string[]) =>
     ids.length ? (
       <ul>
@@ -530,10 +534,37 @@ function TaskInspector({
     <div className="insp">
       <label htmlFor="t-label">Title</label>
       <input id="t-label" value={data.label} onChange={(e) => update(node.id, { label: e.target.value })} />
+      {url && (
+        <a className="pr-link" href={url} target="_blank" rel="noreferrer">
+          Open {taskTag(data)} ↗
+        </a>
+      )}
       <div className="grid2">
         <div>
-          <label htmlFor="t-tag">Reference</label>
-          <input id="t-tag" value={data.tag} onChange={(e) => update(node.id, { tag: e.target.value })} />
+          <label htmlFor="t-repo">Repository</label>
+          <input
+            id="t-repo"
+            value={data.repo ?? ''}
+            placeholder="None"
+            onChange={(e) => {
+              const repo = e.target.value.trim() || undefined
+              update(node.id, { repo, itemKind: data.pr && repo ? 'pr' : repo ? 'placeholder' : 'step' })
+            }}
+          />
+        </div>
+        <div>
+          <label htmlFor="t-pr">Pull request</label>
+          <input
+            id="t-pr"
+            inputMode="numeric"
+            value={data.pr ?? ''}
+            placeholder="Not opened"
+            onChange={(e) => {
+              const n = Number(e.target.value.replace(/^#/, ''))
+              const pr = Number.isInteger(n) && n > 0 ? n : undefined
+              update(node.id, { pr, itemKind: pr && data.repo ? 'pr' : data.repo ? 'placeholder' : 'step' })
+            }}
+          />
         </div>
         <div>
           <label htmlFor="t-status">Status</label>
@@ -541,17 +572,23 @@ function TaskInspector({
             <option value="todo">To do</option>
             <option value="active">In progress</option>
             <option value="review">In review</option>
+            <option value="blocked">Blocked</option>
+            <option value="deferred">Deferred</option>
             <option value="done">Done</option>
           </select>
         </div>
+        <div>
+          <label htmlFor="t-who">Whose move</label>
+          <select id="t-who" value={data.who ?? ''} onChange={(e) => update(node.id, { who: (e.target.value || undefined) as Who | undefined })}>
+            <option value="">Not set</option>
+            <option value="you">You</option>
+            <option value="review">Reviewer</option>
+            <option value="ci">CI</option>
+          </select>
+        </div>
       </div>
-      <label htmlFor="t-who">Whose move</label>
-      <select id="t-who" value={data.who ?? ''} onChange={(e) => update(node.id, { who: (e.target.value || undefined) as Who | undefined })}>
-        <option value="">Not set</option>
-        <option value="you">You</option>
-        <option value="review">Reviewer</option>
-        <option value="ci">CI</option>
-      </select>
+      <label htmlFor="t-note">Notes</label>
+      <textarea id="t-note" rows={3} value={data.note ?? ''} onChange={(e) => update(node.id, { note: e.target.value || undefined })} />
       <p className="facts">
         Shown as <b>{STATUS_LABEL[st]}</b>
         {lev > 0 && <> · unblocks {lev}</>}

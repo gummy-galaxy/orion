@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext } from './derive'
-import { STATUS_LABEL, type ClusterNode, type TaskNode } from './model'
+import { STATUS_LABEL, taskTag, type ClusterNode, type TaskNode } from './model'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
@@ -31,17 +31,17 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const lev = d.leverage.get(id) ?? 0
   const tr = d.trace?.get(id)
   return (
-    <div className={`card st-${st}${tr ? ' tr-' + tr : ''}`}>
+    <div className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}`}>
       <Handle type="target" position={Position.Left} />
       <div className="meta">
-        <span>{data.tag}</span>
+        <span>{taskTag(data)}</span>
         <span className="st">
           {st === 'blocked' && <Lock />}
           {STATUS_LABEL[st]}
         </span>
       </div>
       <div className="label">{data.label}</div>
-      {st !== 'done' && lev > 0 && <span className={`lev${lev >= 4 ? ' big' : ''}`}>unblocks {lev}</span>}
+      {st !== 'done' && st !== 'deferred' && lev > 0 && <span className={`lev${lev >= 4 ? ' big' : ''}`}>unblocks {lev}</span>}
       {st !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
       <Handle type="source" position={Position.Right} />
     </div>

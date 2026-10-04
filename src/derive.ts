@@ -58,7 +58,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   const status = new Map<string, ViewStatus>()
   for (const t of tasks.values()) {
     const s = t.data.status
-    if (s === 'done') status.set(t.id, 'done')
+    if (s === 'done' || s === 'deferred' || s === 'blocked') status.set(t.id, s)
     else if ((preds.get(t.id) ?? []).some(open)) status.set(t.id, 'blocked')
     else status.set(t.id, s === 'todo' ? 'ready' : s)
   }
@@ -67,7 +67,8 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   const downstream = new Map<string, Set<string>>()
   for (const t of tasks.values()) {
     if (!open(t.id)) continue
-    const d = walk(t.id, succs, open)
+    // Parked work doesn't count toward what finishing something unlocks.
+    const d = walk(t.id, succs, (id) => open(id) && tasks.get(id)?.data.status !== 'deferred')
     downstream.set(t.id, d)
     leverage.set(t.id, d.size)
   }

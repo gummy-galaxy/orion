@@ -1,0 +1,608 @@
+{
+  "groups": [
+    {
+      "id": "ws0",
+      "label": "Changewrite & release unblock",
+      "blurb": "Publish-branch config and debug runs in Changewrite, then a thinner lute run check in Flipbook."
+    },
+    {
+      "id": "ws1",
+      "label": "CI events → PostHog",
+      "blurb": "Pending changes, beta and prod publishes, and release annotations sent from GitHub Actions."
+    },
+    {
+      "id": "ws2",
+      "label": "Release health dashboard",
+      "blurb": "One PostHog view of beta vs prod, by build hash."
+    },
+    {
+      "id": "ws3",
+      "label": "Error & boot telemetry",
+      "blurb": "Errors and boot rates through the existing backend pipe."
+    },
+    {
+      "id": "ws4p",
+      "label": "Storyteller perf",
+      "blurb": "Make two Flipbook copies tolerable so beta can be the daily driver."
+    },
+    {
+      "id": "ws4",
+      "label": "Release habits",
+      "blurb": "Daily beta use, lute run status, and a rollback runbook."
+    },
+    {
+      "id": "ws5",
+      "label": "Context lint",
+      "blurb": "Catch gated API use, like unsafe Source reads, before it ships."
+    },
+    {
+      "id": "ws6",
+      "label": "QA skill",
+      "blurb": "Agent QA in Studio: gateway for setup, virtual input for the test."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "backend-annotate",
+      "label": "Annotate backend deploys",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws1",
+      "repo": "flipbook-backend",
+      "note": "Later. From cd.yml after a healthy deploy."
+    },
+    {
+      "id": "backend-errors",
+      "label": "PluginLoaded + ErrorOccurred → $exception",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws3",
+      "repo": "flipbook-backend"
+    },
+    {
+      "id": "be-23",
+      "label": "Rollbackable backend deploys",
+      "kind": "pr",
+      "status": "done",
+      "group": "ws3",
+      "repo": "flipbook-backend",
+      "pr": 23
+    },
+    {
+      "id": "bench-events",
+      "label": "Benchmark results → PostHog",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws1",
+      "repo": "storyteller",
+      "note": "Later."
+    },
+    {
+      "id": "beta-daily",
+      "label": "Use the beta build daily",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws4"
+    },
+    {
+      "id": "chart-drop",
+      "label": "Pending-changes chart drops to 0",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws1"
+    },
+    {
+      "id": "ci-events-pr",
+      "label": "Report release health to PostHog",
+      "kind": "pr",
+      "status": "active",
+      "group": "ws1",
+      "repo": "flipbook",
+      "pr": 658,
+      "note": "Needs the flipbook-posthog-ci 1Password item and a posthog environment with OP_SERVICE_ACCOUNT_TOKEN before merge.",
+      "who": "you"
+    },
+    {
+      "id": "client-errors",
+      "label": "Error boundary + boot events",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws3",
+      "repo": "flipbook",
+      "note": "Flipbook-only frames, instance paths stripped, story errors by category only."
+    },
+    {
+      "id": "cw-65",
+      "label": "Configure the publish branch and add debug release runs",
+      "kind": "pr",
+      "status": "done",
+      "group": "ws0",
+      "repo": "changewrite",
+      "pr": 65,
+      "note": "Merged 2026-10-04."
+    },
+    {
+      "id": "cw-release",
+      "label": "Publish v0.9.0",
+      "kind": "pr",
+      "status": "done",
+      "group": "ws0",
+      "repo": "changewrite",
+      "pr": 68,
+      "note": "Changewrite v0.9.0 released 2026-10-04, including #65 and #67."
+    },
+    {
+      "id": "cw-rollout",
+      "label": "Roll out Changewrite to the other 7 repos",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws0",
+      "note": "Bump rokit.toml and the action ref together; replace the debug expressions in each release.yml with the debug input."
+    },
+    {
+      "id": "dashboard",
+      "label": "Release health dashboard built",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws2",
+      "note": "Pending changes by category, boot funnel, errors by build_hash, release annotations."
+    },
+    {
+      "id": "diag-buffer",
+      "label": "Diagnostics buffer in Feedback",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws3",
+      "repo": "flipbook"
+    },
+    {
+      "id": "embedded-reporting",
+      "label": "Embedded error reporting",
+      "kind": "step",
+      "status": "deferred",
+      "group": "ws3",
+      "note": "Through the #601 proxy once embedded consent exists."
+    },
+    {
+      "id": "fb-601",
+      "label": "Embedded HTTP proxy",
+      "kind": "pr",
+      "status": "deferred",
+      "group": "ws3",
+      "repo": "flipbook",
+      "pr": 601
+    },
+    {
+      "id": "fb-602",
+      "label": "Story-snapshot skill",
+      "kind": "pr",
+      "status": "active",
+      "group": "ws6",
+      "repo": "flipbook",
+      "pr": 602,
+      "note": "Check overlap with the QA report.",
+      "who": "you"
+    },
+    {
+      "id": "fb-627",
+      "label": "Separate Studio validation scenarios",
+      "kind": "pr",
+      "status": "active",
+      "group": "ws6",
+      "repo": "flipbook",
+      "pr": 627,
+      "who": "you"
+    },
+    {
+      "id": "fb-641",
+      "label": "Publish v2.6.0",
+      "kind": "pr",
+      "status": "blocked",
+      "group": "ws1",
+      "repo": "flipbook",
+      "pr": 641,
+      "note": "Blocked by lute run check failing on the publish branch. Unblocked by the Flipbook check cleanup after Changewrite releases. Merge after the CI events PR so the chart records the drop."
+    },
+    {
+      "id": "fb-650",
+      "label": "Show Flipbook in the Edit-mode viewport",
+      "kind": "pr",
+      "status": "active",
+      "group": "ws6",
+      "repo": "flipbook",
+      "pr": 650,
+      "who": "you"
+    },
+    {
+      "id": "fb-653",
+      "label": "Generate changelog entries for RobloxPackages upgrades",
+      "kind": "pr",
+      "status": "done",
+      "group": "ws0",
+      "repo": "flipbook",
+      "pr": 653,
+      "note": "Merged 2026-10-04. Hold #631 (0.738 upgrade) until after v2.6.0."
+    },
+    {
+      "id": "fb-655",
+      "label": "Require consent before sending telemetry",
+      "kind": "pr",
+      "status": "active",
+      "group": "ws3",
+      "repo": "flipbook",
+      "pr": 655,
+      "note": "Adds the flipbook-telemetry package new events build on.",
+      "who": "you"
+    },
+    {
+      "id": "fb-category-order",
+      "label": "Order changelog categories",
+      "kind": "pr",
+      "status": "review",
+      "group": "ws0",
+      "repo": "flipbook",
+      "pr": 660,
+      "note": "Configure Changewrite categories as Features, Changes, Fixes, Dependencies, Internal so the v2.6.0 notes use that order.",
+      "who": "review"
+    },
+    {
+      "id": "fb-check-cleanup",
+      "label": "Check change entries with Changewrite directly",
+      "kind": "pr",
+      "status": "done",
+      "group": "ws0",
+      "repo": "flipbook",
+      "pr": 657,
+      "note": "check.luau just runs changewrite check; delete checkChangeEntry.luau and getMainBranch; CI analyze job restores lute setup, lint, analyze steps; drop branch expressions from ci.yml and release.yml; bump Changewrite in rokit.toml and the action ref together."
+    },
+    {
+      "id": "fb-st-bump",
+      "label": "Bump Storyteller to 1.13",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws4p",
+      "repo": "flipbook"
+    },
+    {
+      "id": "lint-ml",
+      "label": "Adopt capability lint",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws5",
+      "repo": "module-loader"
+    },
+    {
+      "id": "lint-mvp",
+      "label": "Capability lint MVP",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws5",
+      "repo": "flipbook-batteries"
+    },
+    {
+      "id": "lint-proof",
+      "label": "Flags reverted b63fe05 + 51d29bc",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws5"
+    },
+    {
+      "id": "lint-st",
+      "label": "Adopt capability lint",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws5",
+      "repo": "storyteller"
+    },
+    {
+      "id": "measure-two",
+      "label": "Measure two open copies",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws4p"
+    },
+    {
+      "id": "posthog-secrets",
+      "label": "1Password item + posthog environment",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws1",
+      "note": "Item flipbook-posthog-ci in the Flipbook vault (project-token, personal-api-key, project-id). Environment posthog with OP_SERVICE_ACCOUNT_TOKEN, limited to main and release tags."
+    },
+    {
+      "id": "qa-260",
+      "label": "v2.6.0 QA pass",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws0",
+      "note": "Freeze after #657. Agent: story sweep, embedded virtual input, gateway actions, Rojo-synced live reload. You: plugin widget checklist. Real-client check in the deployed experience."
+    },
+    {
+      "id": "qa-change",
+      "label": "qa-in-studio: change-driven pass",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws6",
+      "repo": "agent-skills"
+    },
+    {
+      "id": "qa-sweep",
+      "label": "qa-in-studio: regression sweep",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws6",
+      "repo": "agent-skills"
+    },
+    {
+      "id": "release-qa",
+      "label": "Release QA against the beta hash",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws6"
+    },
+    {
+      "id": "rollback-dryrun",
+      "label": "Rollback dry run on dev asset",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws4"
+    },
+    {
+      "id": "rollback-runbook",
+      "label": "Rollback runbook",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws4",
+      "repo": "agent-skills",
+      "note": "In release-and-operations."
+    },
+    {
+      "id": "skills-one-entry",
+      "label": "One changelog entry per PR in changelog-entries",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws0",
+      "repo": "agent-skills"
+    },
+    {
+      "id": "st-126",
+      "label": "Publish v1.13.0",
+      "kind": "pr",
+      "status": "blocked",
+      "group": "ws4p",
+      "repo": "storyteller",
+      "pr": 126,
+      "note": "Blocked on #156, or it ships the embedded crash."
+    },
+    {
+      "id": "st-148",
+      "label": "StorytellerStore benchmarks",
+      "kind": "pr",
+      "status": "done",
+      "group": "ws4p",
+      "repo": "storyteller",
+      "pr": 148
+    },
+    {
+      "id": "st-156",
+      "label": "Track multi-story module records",
+      "kind": "pr",
+      "status": "review",
+      "group": "ws4p",
+      "repo": "storyteller",
+      "pr": 156,
+      "note": "Carries b63fe05, the Source fix. main still has the unguarded listener.",
+      "who": "review"
+    },
+    {
+      "id": "st-161",
+      "label": "Batch matching discovery queries",
+      "kind": "pr",
+      "status": "done",
+      "group": "ws4p",
+      "repo": "storyteller",
+      "pr": 161
+    },
+    {
+      "id": "st-162",
+      "label": "Reference-count Storyteller consumers",
+      "kind": "pr",
+      "status": "done",
+      "group": "ws4p",
+      "repo": "storyteller",
+      "pr": 162
+    },
+    {
+      "id": "st-163",
+      "label": "Collections-backed discovery",
+      "kind": "pr",
+      "status": "deferred",
+      "group": "ws4p",
+      "repo": "storyteller",
+      "pr": 163,
+      "note": "Only if two copies are still too slow."
+    },
+    {
+      "id": "status-cmd",
+      "label": "lute run status",
+      "kind": "placeholder",
+      "status": "todo",
+      "group": "ws4",
+      "repo": "flipbook",
+      "note": "Prod version and hash, pending entries since, dashboard link."
+    },
+    {
+      "id": "verify-650",
+      "label": "Verify input + screenshots in viewport",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws6"
+    },
+    {
+      "id": "widget-check",
+      "label": "Confirm closing the widget stops polling",
+      "kind": "step",
+      "status": "todo",
+      "group": "ws4p",
+      "note": "Cheapest path: one open widget at a time may be enough."
+    }
+  ],
+  "links": [
+    {
+      "from": "backend-errors",
+      "to": "client-errors"
+    },
+    {
+      "from": "be-23",
+      "to": "backend-errors"
+    },
+    {
+      "from": "beta-daily",
+      "to": "release-qa"
+    },
+    {
+      "from": "ci-events-pr",
+      "to": "dashboard"
+    },
+    {
+      "from": "ci-events-pr",
+      "to": "fb-641"
+    },
+    {
+      "from": "client-errors",
+      "to": "dashboard"
+    },
+    {
+      "from": "cw-65",
+      "to": "cw-release"
+    },
+    {
+      "from": "cw-release",
+      "to": "cw-rollout"
+    },
+    {
+      "from": "cw-release",
+      "to": "fb-check-cleanup"
+    },
+    {
+      "from": "dashboard",
+      "to": "status-cmd"
+    },
+    {
+      "from": "fb-601",
+      "to": "embedded-reporting"
+    },
+    {
+      "from": "fb-602",
+      "to": "qa-sweep"
+    },
+    {
+      "from": "fb-627",
+      "to": "qa-sweep"
+    },
+    {
+      "from": "fb-641",
+      "to": "chart-drop"
+    },
+    {
+      "from": "fb-650",
+      "to": "verify-650"
+    },
+    {
+      "from": "fb-655",
+      "to": "client-errors"
+    },
+    {
+      "from": "fb-655",
+      "to": "embedded-reporting"
+    },
+    {
+      "from": "fb-category-order",
+      "to": "fb-641"
+    },
+    {
+      "from": "fb-check-cleanup",
+      "to": "fb-641"
+    },
+    {
+      "from": "fb-check-cleanup",
+      "to": "qa-260"
+    },
+    {
+      "from": "fb-st-bump",
+      "to": "measure-two"
+    },
+    {
+      "from": "lint-ml",
+      "to": "lint-proof"
+    },
+    {
+      "from": "lint-mvp",
+      "to": "lint-ml"
+    },
+    {
+      "from": "lint-mvp",
+      "to": "lint-st"
+    },
+    {
+      "from": "lint-st",
+      "to": "lint-proof"
+    },
+    {
+      "from": "measure-two",
+      "to": "beta-daily"
+    },
+    {
+      "from": "measure-two",
+      "to": "st-163"
+    },
+    {
+      "from": "posthog-secrets",
+      "to": "ci-events-pr"
+    },
+    {
+      "from": "qa-260",
+      "to": "fb-641"
+    },
+    {
+      "from": "qa-change",
+      "to": "release-qa"
+    },
+    {
+      "from": "qa-sweep",
+      "to": "qa-change"
+    },
+    {
+      "from": "rollback-runbook",
+      "to": "rollback-dryrun"
+    },
+    {
+      "from": "st-126",
+      "to": "fb-st-bump"
+    },
+    {
+      "from": "st-148",
+      "to": "measure-two"
+    },
+    {
+      "from": "st-156",
+      "to": "st-126"
+    },
+    {
+      "from": "st-161",
+      "to": "st-126"
+    },
+    {
+      "from": "st-162",
+      "to": "st-126"
+    },
+    {
+      "from": "verify-650",
+      "to": "qa-sweep"
+    },
+    {
+      "from": "widget-check",
+      "to": "beta-daily"
+    }
+  ]
+}

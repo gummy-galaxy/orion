@@ -5,12 +5,24 @@ export const TASK_H = 66
 export const PAD = 24
 export const HEAD = 52
 
-export type Status = 'todo' | 'active' | 'review' | 'done'
+/** `blocked` is set by hand for blockers outside the graph; dependency blocking is derived. */
+export type Status = 'todo' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
 export type Who = 'you' | 'review' | 'ci'
-export type ViewStatus = 'ready' | 'active' | 'review' | 'blocked' | 'done'
+export type ViewStatus = 'ready' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
+/** A pull request that exists, one that is expected but not opened yet, or a step with no pull request. */
+export type ItemKind = 'pr' | 'placeholder' | 'step'
 
-export type TaskData = { kind: 'task'; label: string; tag: string; status: Status; who?: Who }
-export type ClusterData = { kind: 'cluster'; label: string }
+export type TaskData = {
+  kind: 'task'
+  label: string
+  itemKind: ItemKind
+  status: Status
+  repo?: string
+  pr?: number
+  note?: string
+  who?: Who
+}
+export type ClusterData = { kind: 'cluster'; label: string; blurb?: string }
 export type TaskNode = Node<TaskData, 'task'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
 export type AppNode = TaskNode | ClusterNode
@@ -22,7 +34,20 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   active: 'In progress',
   review: 'In review',
   blocked: 'Blocked',
+  deferred: 'Deferred',
   done: 'Done',
+}
+
+// Every repository in the seed lives in this org. Revisit once sources other than Flipbook arrive.
+const GITHUB_ORG = 'flipbook-labs'
+
+export function taskTag(d: TaskData): string {
+  if (d.repo && d.pr) return `${d.repo}#${d.pr}`
+  return d.repo ?? 'step'
+}
+
+export function prUrl(d: TaskData): string | null {
+  return d.repo && d.pr ? `https://github.com/${GITHUB_ORG}/${d.repo}/pull/${d.pr}` : null
 }
 
 export const isCluster = (n: AppNode): n is ClusterNode => n.type === 'cluster'

@@ -2,7 +2,7 @@
 
 A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with zoom levels that go from single cards out to whole bodies of work.
 
-This is a prototype running on sample data. It runs in the browser for now; a desktop shell comes later.
+This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs in the browser for now; a desktop shell comes later.
 
 ## Run
 
@@ -23,7 +23,9 @@ npm run dev
 - Reflow lays out the inside of a group. Tidy lays out the current level.
 - Drag from the edge of a card to another card to add a dependency.
 
-State saves to local storage. Reset sample restores the sample data.
+State saves to local storage. Reset to seed restores the snapshot.
+
+Dashed cards are pull requests that aren't opened yet. Select a card to edit it, add notes, or open its pull request.
 
 ## Layout of the code
 
@@ -32,4 +34,4 @@ State saves to local storage. Reset sample restores the sample data.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, and the inspector.
-- `src/fixture.ts`: sample data.
+- `src/seed.json` and `src/seed.ts`: the Flipbook snapshot and its loader.
