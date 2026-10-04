@@ -4,12 +4,37 @@ A canvas for graph-shaped work: tasks and pull requests with dependencies, group
 
 This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs in the browser for now; a desktop shell comes later.
 
-## Run
+- `app/`: the canvas.
+- `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people.
+
+## Data
+
+Everything lives in one file, `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another folder. The app and the CLI take the same lock before writing and bump a revision with each write, so both can be open at once. Changes from either side show up in the other within a moment.
+
+## Run the app
 
 ```sh
+cd app
 npm install
 npm run dev
 ```
+
+The dev server reads and writes the data file. The first time it runs without one, it carries over what the browser had saved, or starts from the seed.
+
+## Build the CLI
+
+The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang/lute).
+
+```sh
+cd cli
+rokit install
+lute run install
+lute run build
+```
+
+That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. See [`AGENTS.md`](AGENTS.md) for how agents should use it.
+
+Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 
 ## Using the canvas
 
@@ -26,12 +51,16 @@ npm run dev
 - Reflow lays out the inside of a group. Tidy lays out the current level.
 - Drag from the edge of a card to another card to add a dependency.
 
-State saves to local storage. Reset to seed restores the snapshot.
+Reset to seed restores the snapshot.
 
-Dashed cards are pull requests that aren't opened yet. Select a card to edit it, add notes, or open its pull request.
+Dashed cards are pull requests that aren't opened yet. Select a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
 
 ## Layout of the code
 
+In `app/`:
+
+- `server/store.ts`: the dev-server endpoint for the data file, its lock, and change notifications.
+- `src/persist.ts`: loading, saving, and reacting to changes from other writers.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: ELK layout for one group or the top level.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
@@ -39,3 +68,11 @@ Dashed cards are pull requests that aren't opened yet. Select a card to edit it,
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, notes, and the inspector.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
 - `src/seed.json` and `src/seed.ts`: the Flipbook snapshot and its loader.
+
+In `cli/src/`:
+
+- `cli/init.luau`: commands and their options.
+- `store.luau`: reading, locking, and writing the data file.
+- `graph.luau`: derived status and leverage, and every edit the commands make.
+- `github.luau`: looking up pull requests and mapping their state onto cards.
+- `render.luau`: text and JSON output.

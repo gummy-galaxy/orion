@@ -37,6 +37,7 @@ import {
   prUrl,
   sizeOf,
   taskTag,
+  githubSummary,
   ungroup,
   type AppNode,
   type ClusterData,
@@ -47,13 +48,13 @@ import {
   type Who,
 } from './model'
 import { ClusterView, GhostView, TaskView } from './nodes'
+import { fetchRemote, fingerprint, load, onRemoteChange, readBrowser, save, type Remote } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
 
 type ViewNode = AppNode | GhostNode
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
-const STORAGE_KEY = 'orion:v2'
 const SIDEBAR_KEY = 'orion:sidebar'
 /**
  * Zoom below which a group reads as one body. Nested groups fold first as you
@@ -64,7 +65,6 @@ const COLLAPSE_STEP = 0.12
 const GHOST_W = 200
 const GHOST_H = 62
 
-type Saved = { nodes: AppNode[]; links: Link[] }
 type Menu = {
   x: number
   y: number
@@ -72,33 +72,9 @@ type Menu = {
   target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string }
 }
 
-function load(): Saved | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const s = JSON.parse(raw)
-    if (!Array.isArray(s.nodes) || !Array.isArray(s.links)) return null
-    return { nodes: normalize(s.nodes), links: s.links }
-  } catch {
-    return null
-  }
-}
-
-function save({ nodes, links }: Saved) {
-  try {
-    const slim = nodes.map((n) => ({
-      id: n.id,
-      type: n.type,
-      position: n.position,
-      parentId: n.parentId,
-      data: n.data,
-      width: n.width,
-      height: n.height,
-    }))
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: slim, links }))
-  } catch {
-    // Saving is a convenience; the canvas keeps working without it.
-  }
+async function seeded() {
+  const links = seedLinks()
+  return { nodes: await reflowAll(seedNodes(), links), links }
 }
 
 function readFlag(key: string, fallback: boolean) {
@@ -139,26 +115,79 @@ function Canvas() {
     latest.current = { nodes, links }
   }, [nodes, links])
 
+  // ---- Persistence ----
+  const source = useRef<'file' | 'browser'>('file')
+  const revision = useRef<number | null>(null)
+  const savedPrint = useRef('')
+  // Saves and reloads run one at a time so a reload never lands on a half-finished save.
+  const queue = useRef<Promise<void>>(Promise.resolve())
+
+  const adopt = useCallback((doc: Remote) => {
+    const next = normalize(doc.nodes)
+    revision.current = doc.revision
+    savedPrint.current = fingerprint({ nodes: next, links: doc.links })
+    setNodes((ns) => {
+      const picked = new Set(ns.filter((n) => n.selected).map((n) => n.id))
+      return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
+    })
+    setLinks(doc.links)
+  }, [])
+
+  const reload = useCallback(async () => {
+    const doc = await fetchRemote()
+    if (doc && doc.revision !== revision.current) adopt(doc)
+  }, [adopt])
+
   useEffect(() => {
     let cancelled = false
-    const saved = load()
-    const start = saved ? Promise.resolve(saved) : reflowAll(seedNodes(), seedLinks()).then((n) => ({ nodes: n, links: seedLinks() }))
-    start.then((s) => {
+    load().then(async (loaded) => {
+      if (loaded.source === 'file') {
+        if (cancelled) return
+        adopt(loaded.doc)
+        setReady(true)
+        return
+      }
+      source.current = loaded.source === 'missing' ? 'file' : 'browser'
+      // The first run with a data file carries over what this browser had, or starts from the seed.
+      const kept = loaded.source === 'browser' ? loaded.saved : readBrowser()
+      const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : await seeded()
       if (cancelled) return
-      setNodes(s.nodes)
-      setLinks(s.links)
+      setNodes(start.nodes)
+      setLinks(start.links)
       setReady(true)
     })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [adopt])
+
+  useEffect(
+    () =>
+      onRemoteChange((next) => {
+        queue.current = queue.current.then(() => (next !== revision.current ? reload() : undefined))
+      }),
+    [reload],
+  )
 
   useEffect(() => {
     if (!ready) return
-    const t = setTimeout(() => save({ nodes, links }), 400)
+    const t = setTimeout(() => {
+      const snapshot = { nodes, links }
+      const print = fingerprint(snapshot)
+      queue.current = queue.current.then(async () => {
+        if (print === savedPrint.current) return
+        const result = await save(source.current, revision.current, snapshot)
+        if (result.ok) {
+          revision.current = result.revision
+          savedPrint.current = print
+        } else if (result.conflict) {
+          // Someone else wrote first; theirs wins and this edit is dropped.
+          await reload()
+        }
+      })
+    }, 400)
     return () => clearTimeout(t)
-  }, [nodes, links, ready])
+  }, [nodes, links, ready, reload])
 
   /**
    * Fits the opened group, or everything at the top level. Bounds come from our own
@@ -531,11 +560,10 @@ function Canvas() {
 
   const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
   const reset = () => {
-    const l = seedLinks()
     setRoot(null)
-    reflowAll(seedNodes(), l).then((n) => {
-      setNodes(n)
-      setLinks(l)
+    seeded().then((s) => {
+      setNodes(s.nodes)
+      setLinks(s.links)
       setTimeout(() => fitTo(null), 40)
     })
   }
@@ -902,6 +930,7 @@ function TaskInspector({
           Open {taskTag(data)} ↗
         </a>
       )}
+      {data.github && <p className="facts">{githubSummary(data.github)}</p>}
       <div className="grid2">
         <div>
           <label htmlFor="t-repo">Repository</label>

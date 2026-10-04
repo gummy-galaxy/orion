@@ -24,7 +24,10 @@ export type TaskData = {
   pr?: number
   note?: string
   who?: Who
+  /** Written by `orion sync`; read-only here. */
+  github?: GithubState
 }
+export type GithubState = { state: string; draft: boolean; reviewDecision?: string; title: string; checkedAt: string }
 export type ClusterData = { kind: 'cluster'; label: string; blurb?: string }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. */
@@ -203,3 +206,25 @@ export function descendants(id: string, nodes: AppNode[]): Set<string> {
   walk(id)
   return out
 }
+
+/** "Merged · checked 2h ago" for a synced pull request. */
+export function githubSummary(github: GithubState, now = Date.now()) {
+  const state =
+    github.state === 'OPEN'
+      ? github.draft
+        ? 'Draft'
+        : (REVIEW_LABEL[github.reviewDecision ?? ''] ?? 'Open')
+      : github.state.charAt(0) + github.state.slice(1).toLowerCase()
+  const minutes = Math.max(0, Math.round((now - Date.parse(github.checkedAt)) / 60000))
+  const ago =
+    minutes < 1
+      ? 'just now'
+      : minutes < 60
+        ? `${minutes}m ago`
+        : minutes < 1440
+          ? `${Math.round(minutes / 60)}h ago`
+          : `${Math.round(minutes / 1440)}d ago`
+  return `${state} on GitHub · checked ${ago}`
+}
+
+const REVIEW_LABEL: Record<string, string> = { APPROVED: 'Approved', CHANGES_REQUESTED: 'Changes requested', REVIEW_REQUIRED: 'Awaiting review' }
