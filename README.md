@@ -46,7 +46,7 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 - Zoom in while pointing at a group to enter it when it fills most of the canvas.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to jump to it.
 - Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
-- Hold ⌘ to see what needs you: your move on GitHub (blue) and unowned work that's ready to start (teal). Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
+- Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
 - Hover a card to trace what it needs (amber) and what it unlocks (teal). Double-click a card to hold its trace while you pan; click anywhere or press Esc to let it go.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks.
 - "Unblocks N" counts every open task downstream, directly or not.

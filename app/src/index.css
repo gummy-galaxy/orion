@@ -1092,29 +1092,18 @@ kbd {
   color: var(--muted);
 }
 
-/* Attention: hold ⌘ to see what needs you */
-.canvas.is-attending .card:not(.attn-mine, .attn-start),
-.canvas.is-attending .bubble:not(.attn-mine, .attn-start),
+/* Attention: hold ⌥ to see where it's your move */
+.canvas.is-attending .card:not(.attn),
+.canvas.is-attending .bubble:not(.attn),
 .canvas.is-attending .ghost {
   --fade: 0.3;
 }
-.card.attn-mine,
-.bubble.attn-mine {
+.card.attn,
+.bubble.attn {
   border-color: var(--st-active);
   box-shadow:
     inset 3px 0 0 var(--c, var(--st-active)),
     0 0 0 2px var(--st-active);
-}
-.card.attn-start,
-.bubble.attn-start {
-  border-color: var(--accent);
-  box-shadow:
-    inset 3px 0 0 var(--c, var(--accent)),
-    0 0 0 2px var(--accent);
-}
-.bubble.attn-mine,
-.bubble.attn-start {
-  border-width: 1px;
 }
 .attention {
   position: absolute;
@@ -1128,22 +1117,12 @@ kbd {
   overflow: visible;
 }
 .attn-line line {
-  stroke-width: 1.5;
-  stroke-dasharray: 5 5;
-}
-.attn-line.attn-mine line {
   stroke: var(--st-active);
   stroke-width: 2;
+  stroke-dasharray: 5 5;
 }
-.attn-line.attn-start line {
-  stroke: var(--accent);
-  opacity: 0.7;
-}
-.attn-line.attn-mine circle {
+.attn-line circle {
   fill: var(--st-active);
-}
-.attn-line.attn-start circle {
-  fill: var(--accent);
 }
 .attn-origin {
   fill: var(--ink);
@@ -1169,14 +1148,9 @@ kbd {
   border: 1px solid currentColor;
   background: var(--surface);
   box-shadow: var(--shadow);
+  color: var(--st-active);
   font: 500 11.5px var(--font-ui);
   cursor: pointer;
-}
-.attn-chip.attn-mine {
-  color: var(--st-active);
-}
-.attn-chip.attn-start {
-  color: var(--accent);
 }
 .attn-tally {
   position: absolute;
@@ -1186,9 +1160,4 @@ kbd {
   color: var(--surface);
   font: 500 11px var(--font-data);
   white-space: nowrap;
-}
-.attn-tally .attn-mine,
-.attn-tally .attn-start {
-  color: inherit;
-  font-weight: 700;
 }

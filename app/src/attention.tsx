@@ -1,14 +1,12 @@
-import type { AttentionTier } from './derive'
-
 /**
- * Lines from the cursor to everything that needs you while ⌘ is held. Work off
+ * Lines from the cursor to everything that needs you while ⌥ is held. Work off
  * screen gets a chip at the edge, in the direction of the work, that jumps to it.
  */
 
 export type Point = { x: number; y: number }
 export type Rect = { x: number; y: number; w: number; h: number }
 /** `id` is the card or folded group drawn; `jump` is the first piece of work inside it. */
-export type AttentionTarget = { id: string; jump: string; label: string; count: number; tier: AttentionTier; rect: Rect }
+export type AttentionTarget = { id: string; jump: string; label: string; count: number; rect: Rect }
 
 const EDGE_INSET = 28
 const CHIP_MAX = 180
@@ -34,7 +32,7 @@ function exitPoint(from: Point, to: Point, w: number, h: number): Point {
 
 export function AttentionOverlay({
   targets,
-  tally,
+  count,
   elsewhere,
   cursor,
   width,
@@ -42,7 +40,7 @@ export function AttentionOverlay({
   onJump,
 }: {
   targets: AttentionTarget[]
-  tally: Record<AttentionTier, number>
+  count: number
   elsewhere: number
   cursor: Point
   width: number
@@ -60,7 +58,7 @@ export function AttentionOverlay({
     <div className="attention" aria-hidden="true">
       <svg width={width} height={height}>
         {lines.map(({ t, end }) => (
-          <g key={t.id} className={`attn-line attn-${t.tier}`}>
+          <g key={t.id} className="attn-line">
             <line x1={cursor.x} y1={cursor.y} x2={end.x} y2={end.y} />
             <circle cx={end.x} cy={end.y} r={3.5} />
           </g>
@@ -73,7 +71,7 @@ export function AttentionOverlay({
             <button
               key={t.id}
               type="button"
-              className={`attn-chip attn-${t.tier}`}
+              className="attn-chip"
               style={{
                 left: clamp(chip.x, 8, width - 8),
                 top: clamp(chip.y, 20, height - 20),
@@ -92,7 +90,7 @@ export function AttentionOverlay({
           ),
       )}
       <div className="attn-tally" style={{ left: clamp(cursor.x + 14, 8, width - 220), top: clamp(cursor.y + 16, 8, height - 30) }}>
-        <span className="attn-mine">{tally.mine} your move</span> · <span className="attn-start">{tally.start} ready to start</span>
+        <strong>{count}</strong> your move
         {elsewhere > 0 && <> · {elsewhere} outside this group</>}
       </div>
     </div>

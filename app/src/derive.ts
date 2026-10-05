@@ -119,18 +119,16 @@ export function traceFrom(id: string, preds: Map<string, string[]>, succs: Map<s
   return roles
 }
 
-/** Your move on GitHub, or nobody's yet and ready to pick up. */
-export type AttentionTier = 'mine' | 'start'
-export type AttentionMark = { tier: AttentionTier; ids: string[] }
+/** Cards where it's your move, gathered onto whatever shows them. */
+export type AttentionMark = { ids: string[] }
 
+/** Open work where it's your move. Blocked work can't move, so it waits. */
 export function needsAttention(nodes: AppNode[], status: Map<string, ViewStatus>) {
-  const out = new Map<string, AttentionTier>()
+  const out: string[] = []
   for (const n of nodes) {
-    if (!isTask(n) || isNote(n)) continue
+    if (!isTask(n) || isNote(n) || n.data.who !== 'you') continue
     const st = status.get(n.id)
-    if (!st || st === 'done' || st === 'deferred' || st === 'blocked') continue
-    if (n.data.who === 'you') out.set(n.id, 'mine')
-    else if (!n.data.who && (st === 'ready' || st === 'active')) out.set(n.id, 'start')
+    if (st && st !== 'done' && st !== 'deferred' && st !== 'blocked') out.push(n.id)
   }
   return out
 }

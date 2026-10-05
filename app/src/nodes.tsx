@@ -47,9 +47,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
     )
   }
   return (
-    <div
-      className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn-' + attn.tier : ''}`}
-    >
+    <div className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn' : ''}`}>
       <Handle type="target" position={Position.Left} />
       <div className="meta">
         <span>{taskTag(data)}</span>
@@ -97,7 +95,7 @@ export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
         <div className="pop drag" style={{ '--inv': 1 / d.zoom } as CSSProperties}>
           <span className="pop-anchor" />
           <div className="pop-place">
-            <div className={`bubble${screenWidth < BUBBLE_DETAIL_WIDTH ? ' is-compact' : ''}${attn ? ' attn-' + attn.tier : ''}`}>
+            <div className={`bubble${screenWidth < BUBBLE_DETAIL_WIDTH ? ' is-compact' : ''}${attn ? ' attn' : ''}`}>
               <div className="bubble-title">
                 <Ring done={s.done} total={s.total} size={16} />
                 <strong>{data.label}</strong>

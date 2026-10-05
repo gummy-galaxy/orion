@@ -561,9 +561,9 @@ function Canvas() {
       clearTimeout(timer)
       setAttending(false)
     }
-    // A short delay keeps shortcuts like ⌘G from flashing the overlay.
+    // A short delay keeps ⌥ shortcuts from flashing the overlay.
     const down = (e: KeyboardEvent) => {
-      if (e.key !== 'Meta') return stop()
+      if (e.key !== 'Alt') return stop()
       if (e.repeat) return
       timer = setTimeout(() => {
         const r = canvasRef.current?.getBoundingClientRect()
@@ -572,7 +572,7 @@ function Canvas() {
         setAttending(true)
       }, ATTEND_DELAY_MS)
     }
-    const up = (e: KeyboardEvent) => e.key === 'Meta' && stop()
+    const up = (e: KeyboardEvent) => e.key === 'Alt' && stop()
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
     window.addEventListener('blur', stop)
@@ -599,21 +599,18 @@ function Canvas() {
   const attention = useMemo(() => {
     if (!attending) return null
     const marks = new Map<string, AttentionMark>()
-    const tally = { mine: 0, start: 0 }
     let elsewhere = 0
-    for (const [id, tier] of needs) {
+    for (const id of needs) {
       const shown = view.rep(id)
       if (!shown) {
         elsewhere++
         continue
       }
-      tally[tier]++
-      const m = marks.get(shown) ?? { tier, ids: [] }
-      if (tier === 'mine') m.tier = 'mine'
+      const m = marks.get(shown) ?? { ids: [] }
       m.ids.push(id)
       marks.set(shown, m)
     }
-    return { marks, tally, elsewhere }
+    return { marks, count: needs.length - elsewhere, elsewhere }
   }, [attending, needs, view])
 
   const attentionTargets = useMemo<AttentionTarget[]>(() => {
@@ -629,7 +626,6 @@ function Canvas() {
       out.push({
         id,
         jump: m.ids[0],
-        tier: m.tier,
         count: m.ids.length,
         label: m.ids.length === 1 ? (map.get(m.ids[0])?.data.label ?? '') : n.data.label,
         rect: folded
@@ -1056,7 +1052,7 @@ function Canvas() {
             {attending && cursor && (
               <AttentionOverlay
                 targets={attentionTargets}
-                tally={attention?.tally ?? { mine: 0, start: 0 }}
+                count={attention?.count ?? 0}
                 elsewhere={attention?.elsewhere ?? 0}
                 cursor={cursor}
                 width={canvasSize.w}
