@@ -500,9 +500,7 @@ select {
     position: absolute;
     inset: -1px;
     border-radius: inherit;
-    box-shadow: 0 0 0 6px color-mix(in srgb, var(--st-active) 40%, transparent);
     pointer-events: none;
-    will-change: opacity, transform;
     animation: pulse 1.8s ease-out infinite;
   }
 }
@@ -533,14 +531,14 @@ select {
     stroke-dashoffset: -21;
   }
 }
+/* Painted rather than composited: a transform or opacity animation inside the zoomed canvas makes WebKit
+   rasterize the whole canvas as one layer, which blurs it when zoomed in. */
 @keyframes pulse {
   0% {
-    opacity: 1;
-    transform: scale(0.97);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--st-active) 45%, transparent);
   }
   100% {
-    opacity: 0;
-    transform: scale(1.03);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--st-active) 0%, transparent);
   }
 }
 
@@ -806,7 +804,7 @@ select {
 @media (prefers-reduced-motion: no-preference) {
   .bubble,
   .far-card {
-    animation: pop-up 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+    animation: pop-up 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.25) backwards;
   }
 }
 @keyframes pop-up {
