@@ -25,6 +25,33 @@ test.case("derive passes blocking through notes without counting them", function
 	assert.eq(derived.leverage.n, nil)
 end)
 
+test.case("derive finishes a gate once everything it waits on is done", function(assert)
+	local gate = task("g", "Ready to ship", "todo", nil, { itemKind = "gate" })
+	local doc = testing.doc(
+		{ task("a", "A", "done"), task("b", "B", "active"), gate, task("c", "C", "todo") },
+		{ { "a", "g" }, { "b", "g" }, { "g", "c" } }
+	)
+	local derived = graph.derive(doc)
+	assert.eq(derived.status.g, "blocked")
+	assert.eq(derived.status.c, "blocked")
+	assert.eq(derived.leverage.b, 2)
+	doc.nodes[2].data.status = "done"
+	derived = graph.derive(doc)
+	assert.eq(derived.status.g, "done")
+	assert.eq(derived.status.c, "ready")
+
+	local lone = testing.doc({ task("g", "Lone gate", "todo", nil, { itemKind = "gate" }) })
+	assert.eq(graph.derive(lone).status.g, "ready")
+end)
+
+test.case("add and set take a gate kind", function(assert)
+	local doc = testing.doc({})
+	local item = graph.addItem(doc, "Closure audit", { kind = "gate" })
+	assert.eq(item.data.itemKind, "gate")
+	graph.setFields(doc, item.id, { kind = "step" })
+	assert.eq(item.data.itemKind, "step")
+end)
+
 test.case("derive keeps hand-set blocked and deferred, and skips deferred work in leverage", function(assert)
 	local doc = testing.doc(
 		{ task("a", "A", "todo"), task("b", "B", "deferred"), task("c", "C", "blocked") },

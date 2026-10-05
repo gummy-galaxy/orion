@@ -67,12 +67,14 @@ export function deriveWork(nodes: AppNode[], links: Link[], owner = 'flipbook-la
   for (const task of tasks.values()) sources.set(task.id, badgesOf(task, owner))
   const { preds, succs } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
-  // A note is open while anything feeding into it is, so blocking passes through notes.
+  const isGate = (id: string) => tasks.get(id)?.data.itemKind === 'gate' && preds.has(id)
+  // A note is open while anything feeding into it is, so blocking passes through notes. Gates pass it
+  // through the same way but count as work: one is done once everything it waits on is.
   const noteOpen = new Map<string, boolean>()
   const open = (id: string, seen = new Set<string>()): boolean => {
     const t = tasks.get(id)
     if (!t) return false
-    if (!isNote(id)) return t.data.status !== 'done'
+    if (!isNote(id) && !isGate(id)) return t.data.status !== 'done'
     if (noteOpen.has(id)) return noteOpen.get(id)!
     if (seen.has(id)) return false
     seen.add(id)
@@ -84,7 +86,7 @@ export function deriveWork(nodes: AppNode[], links: Link[], owner = 'flipbook-la
   const status = new Map<string, ViewStatus>()
   for (const t of tasks.values()) {
     const s = t.data.status
-    if (isNote(t.id)) status.set(t.id, open(t.id) ? 'blocked' : 'done')
+    if (isNote(t.id) || (isGate(t.id) && s !== 'deferred')) status.set(t.id, open(t.id) ? 'blocked' : 'done')
     else if (s === 'done' || s === 'deferred' || s === 'blocked') status.set(t.id, s)
     else if ((preds.get(t.id) ?? []).some((p) => open(p))) status.set(t.id, 'blocked')
     else status.set(t.id, s === 'todo' ? 'ready' : s)

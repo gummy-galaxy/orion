@@ -52,8 +52,12 @@ export type Report = {
 	unlinked: { StackLink },
 	checked: number,
 }
+export type ReleaseRef = { owner: string, name: string, tag: string, host: string? }
+export type ReleaseState = { name: string?, url: string, publishedAt: string?, draft: boolean, prerelease: boolean }
 export type Fetched = {
 	pulls: { [string]: PullState },
+	--- Keyed by `github.releaseKey`. A tag with no release yet is absent.
+	releases: { [string]: ReleaseState }?,
 	authored: { PullState },
 	reviews: { PullState },
 	viewer: string,
@@ -212,6 +216,69 @@ function github.fetch(run: CommandRunner, refs: { Ref }): { [string]: PullState 
 					local parsed = if pull then pullFromObject(pull, ref.owner, ref.name, ref.host) else nil
 					if parsed then
 						found[github.key(ref)] = parsed
+					end
+				end
+			end
+		end
+	end
+	return found
+end
+
+function github.releaseKey(ref: ReleaseRef): string
+	local host = if ref.host and ref.host ~= "github.com" then `{ref.host}/` else ""
+	return string.lower(`{host}{ref.owner}/{ref.name}`) .. `@{ref.tag}`
+end
+
+function github.releaseRefOf(source: refs.Ref, defaultOwner: string): ReleaseRef?
+	local repo, tag = source.repo, source.tag
+	if source.kind ~= "github-release" or type(repo) ~= "string" or type(tag) ~= "string" then
+		return nil
+	end
+	local owner, name = repo:match("^([^/]+)/([^/]+)$")
+	return { owner = owner or defaultOwner, name = name or repo, tag = tag, host = str(source.host) }
+end
+
+function github.fetchReleases(run: CommandRunner, wanted: { ReleaseRef }): { [string]: ReleaseState }
+	local found: { [string]: ReleaseState } = {}
+	local byHost: { [string]: { ReleaseRef } } = {}
+	for _, ref in wanted do
+		local host = ref.host or "github.com"
+		byHost[host] = byHost[host] or {}
+		table.insert(byHost[host], ref)
+	end
+	for host, hostRefs in byHost do
+		for start = 1, #hostRefs, BATCH_SIZE do
+			local parts = {}
+			local batch: { [string]: ReleaseRef } = {}
+			for index = start, math.min(start + BATCH_SIZE - 1, #hostRefs) do
+				local ref = hostRefs[index]
+				assert(
+					ref.owner:match(NAME_PATTERN) and ref.name:match(NAME_PATTERN),
+					`invalid repository {ref.owner}/{ref.name}`
+				)
+				local alias = `r{index}`
+				batch[alias] = ref
+				table.insert(
+					parts,
+					`{alias}: repository(owner: "{ref.owner}", name: "{ref.name}") \{ release(tagName: {json.serialize(
+						ref.tag
+					)}) \{ name url publishedAt isDraft isPrerelease } }`
+				)
+			end
+			local data = query(run, `query \{ {table.concat(parts, " ")} }`, if host == "github.com" then nil else host)
+			if data then
+				for alias, ref in batch do
+					local repository = json.asObject(data[alias])
+					local release = if repository then json.asObject(repository.release) else nil
+					local url = if release then str(release.url) else nil
+					if release and url then
+						found[github.releaseKey(ref)] = {
+							name = str(release.name),
+							url = url,
+							publishedAt = str(release.publishedAt),
+							draft = release.isDraft == true,
+							prerelease = release.isPrerelease == true,
+						}
 					end
 				end
 			end
@@ -392,14 +459,24 @@ end
 
 function github.collect(doc: Doc, run: CommandRunner, discover: boolean): Fetched
 	local keys: { Ref } = {}
+	local releases: { ReleaseRef } = {}
 	for _, item in doc.nodes do
 		for _, entry in github.pullSources(item, doc.settings.githubOwner) do
 			table.insert(keys, entry.key)
+		end
+		if item.type == "task" then
+			for _, source in refs.ofKind(item, "github-release") do
+				local ref = github.releaseRefOf(source, doc.settings.githubOwner)
+				if ref then
+					table.insert(releases, ref)
+				end
+			end
 		end
 	end
 	local authored, viewer = github.authoredOpen(run)
 	return {
 		pulls = github.fetch(run, keys),
+		releases = if #releases > 0 then github.fetchReleases(run, releases) else {},
 		authored = authored,
 		reviews = github.reviewRequested(run),
 		viewer = viewer,
@@ -557,13 +634,51 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	end
 end
 
+--- Records what GitHub has for each release source, and whether any of them is published.
+local function recordReleases(doc: Doc, item: Item, fetched: Fetched, checkedAt: string): boolean
+	if item.type ~= "task" or not fetched.releases then
+		return false
+	end
+	local published = false
+	for _, source in refs.ofKind(item, "github-release") do
+		local ref = github.releaseRefOf(source, doc.settings.githubOwner)
+		if not ref then
+			continue
+		end
+		local release = fetched.releases[github.releaseKey(ref)]
+		local state = json.object({ checkedAt = checkedAt })
+		if release then
+			state.name, state.url, state.publishedAt = release.name, release.url, release.publishedAt
+			state.draft, state.prerelease = release.draft, release.prerelease
+			published = published or (release.publishedAt ~= nil and not release.draft)
+		end
+		source.state = state
+	end
+	return published
+end
+
 function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 	local report: Report =
 		{ changes = {}, missing = {}, added = {}, reviewAdded = {}, linked = {}, unlinked = {}, checked = 0 }
 	local onCanvas: { [string]: boolean } = {}
 	for _, item in doc.nodes do
+		local published = recordReleases(doc, item, fetched, checkedAt)
 		local entries = github.pullSources(item, doc.settings.githubOwner)
 		if #entries == 0 then
+			local status = str(item.data.status) or "todo"
+			if published and status ~= "done" and item.data.itemKind ~= "gate" then
+				report.checked += 1
+				local who = str(item.data.who)
+				table.insert(report.changes, {
+					id = item.id,
+					label = graph.label(item),
+					fromStatus = status,
+					toStatus = "done",
+					fromWho = who,
+					closed = false,
+				})
+				item.data.status, item.data.who = "done", nil
+			end
 			continue
 		end
 		local found: { PullState } = {}

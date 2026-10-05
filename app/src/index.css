@@ -935,6 +935,17 @@ kbd {
   grid-template-columns: 92px minmax(0, 1fr) auto;
   gap: 6px;
 }
+.insp .gate-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  font-size: 12.5px;
+}
+.insp .gate-toggle input {
+  width: auto;
+  margin: 0;
+}
 .source-error {
   color: var(--st-blocked);
 }
@@ -1014,6 +1025,17 @@ kbd {
 /* Real work items */
 .card.placeholder {
   border-style: dashed;
+}
+.gate-mark {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-right: 1px;
+  border: 1.5px solid var(--c);
+  transform: rotate(45deg);
+}
+.st-done .gate-mark {
+  background: var(--c);
 }
 .st-deferred {
   --c: var(--st-todo);

@@ -31,6 +31,7 @@ export type ItemFields = {
 	who: string?,
 	note: string?,
 	blurb: string?,
+	kind: string?,
 }
 
 local graph = {}
@@ -50,6 +51,10 @@ end
 
 function graph.isNote(item: Item): boolean
 	return item.type == "task" and field(item, "itemKind") == "note"
+end
+
+function graph.isGate(item: Item): boolean
+	return item.type == "task" and field(item, "itemKind") == "gate"
 end
 
 function graph.find(doc: Doc, id: string): Item?
@@ -88,7 +93,8 @@ local function sizeOf(item: Item): (number, number)
 	return item.width or 320, item.height or 200
 end
 
--- Status and leverage, matching app/src/derive.ts. Notes pass blocking through and never count as work.
+-- Status and leverage, matching app/src/derive.ts. Notes pass blocking through and never count as work. Gates
+-- also pass blocking through, but count as work: one is done once everything it waits on is.
 function graph.derive(doc: Doc): Derived
 	local tasks: { [string]: Item } = {}
 	for _, item in doc.nodes do
@@ -113,7 +119,8 @@ function graph.derive(doc: Doc): Derived
 		if not item then
 			return false
 		end
-		if not graph.isNote(item) then
+		local passes = graph.isNote(item) or (graph.isGate(item) and preds[id] ~= nil)
+		if not passes then
 			return field(item, "status") ~= "done"
 		end
 		if noteOpen[id] ~= nil then
@@ -145,7 +152,7 @@ function graph.derive(doc: Doc): Derived
 				break
 			end
 		end
-		if graph.isNote(item) then
+		if graph.isNote(item) or (graph.isGate(item) and preds[id] and recorded ~= "deferred") then
 			status[id] = if isOpen(id) then "blocked" else "done"
 		elseif recorded == "done" or recorded == "deferred" or recorded == "blocked" then
 			status[id] = recorded
@@ -225,6 +232,7 @@ local function checkFields(fields: ItemFields)
 	)
 	assert(fields.who == nil or fields.who == "" or WHO[fields.who], `who must be one of you, review, ci`)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
+	assert(fields.kind == nil or fields.kind == "step" or fields.kind == "gate", "kind must be step or gate")
 end
 
 export type AddOptions = ItemFields & { group: string?, sources: { refs.Ref }? }
@@ -243,7 +251,7 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
-		itemKind = "step",
+		itemKind = if options.kind == "gate" then "gate" else "step",
 		status = options.status or "todo",
 	})
 	data.note = options.note
@@ -285,7 +293,11 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	checkFields(fields)
 	if graph.isGroup(item) then
 		assert(
-			fields.status == nil and fields.repo == nil and fields.pr == nil and fields.who == nil,
+			fields.status == nil
+				and fields.repo == nil
+				and fields.pr == nil
+				and fields.who == nil
+				and fields.kind == nil,
 			"groups only take a label and blurb"
 		)
 		if fields.label then
@@ -310,6 +322,11 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	end
 	if not graph.isNote(item) and (fields.repo or fields.pr) then
 		refs.setPull(item, fields.repo, fields.pr)
+	end
+	if fields.kind then
+		assert(not graph.isNote(item), "notes don't take a kind; make it a work item first")
+		item.data.itemKind = fields.kind
+		item.data.itemKind = refs.itemKind(item)
 	end
 	return item
 end

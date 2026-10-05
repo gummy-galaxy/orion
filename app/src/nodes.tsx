@@ -156,9 +156,12 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
     )
   }
   return (
-    <div className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn' : ''}`}>
+    <div
+      className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${data.itemKind === 'gate' ? ' gate' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn' : ''}`}
+    >
       <Handle type="target" position={Position.Left} />
       <div className="meta">
+        {data.itemKind === 'gate' && <span className="gate-mark" title="Gate: done once everything it waits on is" />}
         <span className="meta-tag" title={taskTag(data)}>
           {taskTag(data)}
         </span>

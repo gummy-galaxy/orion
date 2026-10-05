@@ -280,6 +280,39 @@ test.case("collect batches pull request lookups by host", function(assert)
 	assert.eq(hosts["github.example.com"], true)
 end)
 
+test.case("collect looks up release tags, and a published release finishes a release-only card", function(assert)
+	local function release(id: string, tag: string)
+		local item = testing.task(id, tag, "todo")
+		refs.attach(item, refs.parse("github-release", `Roblox/foundation@{tag}`, "flipbook-labs"))
+		return item
+	end
+	local doc = testing.doc({ release("rel", "Foundation@1.112.0"), release("next", "Foundation@1.113.0") })
+	local releaseQuery: string? = nil
+	local fetched = github.collect(doc, function(argv)
+		local query = argv[#argv]
+		if query:find("pullRequests(first:", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
+		elseif query:find("search(query:", 1, true) then
+			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+		elseif query:find("release(tagName:", 1, true) then
+			releaseQuery = query
+			return testing.result(
+				true,
+				[[{"data":{"r1":{"release":{"name":"Foundation 1.112.0","url":"https://github.com/Roblox/foundation/releases/tag/Foundation%401.112.0","publishedAt":"2026-10-01T00:00:00Z","isDraft":false,"isPrerelease":false}},"r2":{"release":null}}}]]
+			)
+		end
+		return testing.result(true, [[{"data":{}}]])
+	end, false)
+	assert.strContains(releaseQuery or "", [[release(tagName: "Foundation@1.112.0")]])
+	local report = github.apply(doc, fetched, "2026-10-04T00:00:00Z")
+	assert.eq(#report.changes, 1)
+	assert.eq(report.changes[1].id, "rel")
+	assert.eq(doc.nodes[1].data.status, "done")
+	assert.eq(doc.nodes[2].data.status, "todo")
+	local state = require("@std/json").asObject(refs.list(doc.nodes[1])[1].state)
+	assert.eq(state and state.publishedAt, "2026-10-01T00:00:00Z")
+end)
+
 test.case("apply updates statuses, reports what's missing, and files new pull requests in an Inbox", function(assert)
 	local doc = testing.doc({
 		testing.task("a", "Mine", "active", nil, { repo = "flipbook", pr = 1, who = "you" }),

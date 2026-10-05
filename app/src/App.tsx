@@ -78,6 +78,7 @@ import {
   detachSource,
   driver,
   identity,
+  itemKindFor,
   ordered,
   parseSource,
   primaryLink,
@@ -1496,6 +1497,14 @@ function SourceList({ data, githubOwner, update }: { data: TaskData; githubOwner
           {list.map((source) => {
             const url = sourceUrl(source, githubOwner)
             const expected = source.kind === 'github-pr' && typeof source.number !== 'number'
+            const release = source.kind === 'github-release' && source.state
+            const kindLabel = expected
+              ? 'Expected pull request'
+              : release
+                ? release.publishedAt && !release.draft
+                  ? 'Released'
+                  : 'Not released'
+                : KIND_LABEL[source.kind]
             return (
               <li key={identity(source)}>
                 <span className="source-role">{ROLE_LABEL[roleOf(source)]}</span>
@@ -1506,7 +1515,7 @@ function SourceList({ data, githubOwner, update }: { data: TaskData; githubOwner
                 ) : (
                   <span>{sourceTag(source)}</span>
                 )}
-                <span className="source-kind">{expected ? 'Expected pull request' : KIND_LABEL[source.kind]}</span>
+                <span className="source-kind">{kindLabel}</span>
                 <button type="button" className="link" aria-label={`Remove ${sourceTag(source)}`} onClick={() => update(detachSource(data, source))}>
                   ×
                 </button>
@@ -1620,6 +1629,14 @@ function TaskInspector({
         </div>
       )}
       <SourceList data={data} githubOwner={githubOwner} update={(patch) => update(node.id, patch)} />
+      <label className="gate-toggle">
+        <input
+          type="checkbox"
+          checked={data.itemKind === 'gate'}
+          onChange={(e) => update(node.id, { itemKind: e.target.checked ? 'gate' : itemKindFor({ ...data, itemKind: 'step' }) })}
+        />
+        Gate: done once everything it waits on is
+      </label>
       <div className="grid2">
         <div>
           <label htmlFor="t-status">Status</label>
