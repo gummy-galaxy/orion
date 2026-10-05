@@ -1,13 +1,53 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useStore } from '@xyflow/react'
+import { inDesktop } from './external'
 
 export type MotionSettings = { arrows: boolean; glow: boolean; pauseWhileMoving: boolean }
 
 type Sample = { fps: number; worst: number; slow: number; nodes: number; edges: number; live: number; glowing: number; moving: boolean }
+/** One of the app's processes as the desktop shell reports it: CPU in percent of a core, memory in bytes. */
+type ProcessUsage = { name: string; cpu: number | null; memory: number }
 
 const SAMPLE_MS = 500
 /** A frame slower than this misses 60 fps by a full frame or more. */
 const SLOW_FRAME_MS = 33
+const USAGE_MS = 1000
+
+const megabytes = (bytes: number) => `${Math.round(bytes / 1048576)} MB`
+const percent = (cpu: number | null) => (cpu === null ? '…' : `${cpu < 10 ? cpu.toFixed(1) : Math.round(cpu)}%`)
+
+/** CPU and memory summed over the app and the WebKit processes drawing it, with each one in the tooltip. */
+function Usage() {
+  const [usage, setUsage] = useState<ProcessUsage[] | null>(null)
+  useEffect(() => {
+    if (!inDesktop()) return
+    let stopped = false
+    const poll = () =>
+      void import('@tauri-apps/api/core')
+        .then(({ invoke }) => invoke<ProcessUsage[]>('process_usage'))
+        .then((next) => {
+          if (!stopped) setUsage(next)
+        })
+        .catch(() => {
+          // An older shell without the command; the rest of the bar still works.
+        })
+    poll()
+    const timer = setInterval(poll, USAGE_MS)
+    return () => {
+      stopped = true
+      clearInterval(timer)
+    }
+  }, [])
+  if (!usage?.length) return null
+  const cpu = usage.some((p) => p.cpu === null) ? null : usage.reduce((sum, p) => sum + (p.cpu ?? 0), 0)
+  const memory = usage.reduce((sum, p) => sum + p.memory, 0)
+  const detail = usage.map((p) => `${p.name}: ${percent(p.cpu)} CPU, ${megabytes(p.memory)}`).join('\n')
+  return (
+    <span title={detail}>
+      cpu {percent(cpu)} · mem {megabytes(memory)}
+    </span>
+  )
+}
 
 /** Bottom bar with frame timing and what's animating, for chasing down sluggish panning. */
 export function DebugBar({
@@ -60,6 +100,7 @@ export function DebugBar({
   return (
     <div className="debug-bar" role="status">
       <span className={`debug-fps ${fpsClass}`}>{sample ? `${sample.fps} fps` : '… fps'}</span>
+      <Usage />
       {sample && (
         <>
           <span title="Slowest frame in the last half second">worst {sample.worst} ms</span>
