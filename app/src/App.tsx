@@ -16,6 +16,7 @@ import {
   useStoreApi,
   type Connection,
   type Edge,
+  type EdgeTypes,
   type NodeChange,
   type NodeTypes,
   type Viewport,
@@ -56,6 +57,7 @@ import {
   type Who,
 } from './model'
 import { DebugBar, type MotionSettings } from './DebugBar'
+import { CurveEdge } from './edges'
 import { openExternal } from './external'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
@@ -102,6 +104,7 @@ import { readViewport, writeViewport } from './viewport'
 type ViewNode = AppNode | GhostNode
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
+const edgeTypes: EdgeTypes = { default: CurveEdge }
 const SIDEBAR_KEY = 'orion:sidebar'
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
@@ -1352,6 +1355,7 @@ function Canvas() {
                 nodes={viewNodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 onNodesChange={onNodesChange}
                 onMove={onViewportMove}
                 onNodeDragStop={onDragStop}
