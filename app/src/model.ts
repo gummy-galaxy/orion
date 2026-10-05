@@ -1,10 +1,10 @@
 import type { Node } from '@xyflow/react'
 import { migrateTask, type Source } from './sources'
 
-export const TASK_W = 208
-export const TASK_H = 66
-export const PAD = 24
-export const HEAD = 52
+export const TASK_W = 216
+export const TASK_H = 72
+export const PAD = 32
+export const HEAD = 78
 
 /** `blocked` is set by hand for blockers outside the graph; dependency blocking is derived. */
 export type Status = 'todo' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
@@ -59,8 +59,21 @@ export type UnplacedPr = {
   matches: { id: string; score: number }[]
 }
 export type GithubSnapshot = { viewer: string; checkedAt: string; unplaced: UnplacedPr[] }
+/**
+ * How reflow arranges a group's children: `auto` flows them by dependency and wraps long rows, `grid` places them
+ * `columns` across in dependency order, and `custom` keeps them where they were put.
+ */
+export type Arrange = 'auto' | 'grid' | 'custom'
 /** `layout` asks the app to lay out a group the CLI changed: `pending` for a new group, `refit` to tidy one in place. */
-export type ClusterData = { kind: 'cluster'; label: string; blurb?: string; layout?: 'pending' | 'refit' }
+export type ClusterData = {
+  kind: 'cluster'
+  label: string
+  blurb?: string
+  layout?: 'pending' | 'refit'
+  arrange?: Arrange
+  /** Only for `grid`; reflow uses `WRAP` when unset. */
+  columns?: number
+}
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. */
 export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status: ViewStatus; side: 'in' | 'out' }

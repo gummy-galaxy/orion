@@ -247,9 +247,11 @@ export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
           </span>
           {s.outside > 0 && <span className="lev-inline">unblocks {s.outside} outside</span>}
           <span className="head-actions">
-            <button type="button" className="nodrag" onClick={() => actions.reflow(id)}>
-              Reflow
-            </button>
+            {data.arrange !== 'custom' && (
+              <button type="button" className="nodrag" onClick={() => actions.reflow(id)}>
+                Reflow
+              </button>
+            )}
             <button type="button" className="nodrag" onClick={() => actions.open(id)}>
               Open
             </button>

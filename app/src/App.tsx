@@ -26,7 +26,7 @@ import { Lens } from './Lens'
 import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
-import { reflow, reflowAll } from './layout'
+import { WRAP, reflow, reflowAll } from './layout'
 import { mergeDocs } from './merge'
 import {
   STATUS_LABEL,
@@ -46,6 +46,7 @@ import {
   relativeTime,
   ungroup,
   type AppNode,
+  type Arrange,
   type ClusterData,
   type GhostNode,
   type GithubSnapshot,
@@ -1008,6 +1009,15 @@ function Canvas() {
     [tweenTo, openRoot],
   )
 
+  const arrangeGroup = useCallback(
+    (gid: string, patch: Pick<ClusterData, 'arrange' | 'columns'>) => {
+      const { nodes: ns, links: ls } = latest.current
+      const next = ns.map((n) => (n.id === gid && isCluster(n) ? { ...n, data: { ...n.data, ...patch } } : n))
+      reflow(next, ls, gid).then(tweenTo)
+    },
+    [tweenTo],
+  )
+
   const updateData = useCallback(
     (id: string, patch: Partial<TaskData> | Partial<ClusterData>) =>
       setNodes((ns) => ns.map((n) => (n.id === id ? ({ ...n, data: { ...n.data, ...patch } } as AppNode) : n))),
@@ -1082,6 +1092,7 @@ function Canvas() {
   const flipLink = (id: string) => setLinks((ls) => ls.map((l) => (l.id === id ? { ...l, kind: l.kind === 'blocks' ? 'related' : 'blocks' } : l)))
 
   const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
+  const rootCustom = !!root && (map.get(root)?.data as ClusterData | undefined)?.arrange === 'custom'
   const reset = () => {
     openRoot(null)
     seeded().then((s) => {
@@ -1123,7 +1134,7 @@ function Canvas() {
           ...many,
           { label: 'Open', hint: '↵', run: () => actions.open(n.id) },
           { label: 'Rename', run: () => (selectOnly(n.id), setEditing(n.id)) },
-          { label: 'Reflow', run: () => actions.reflow(n.id) },
+          ...(n.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(n.id) }]),
           { label: 'Ungroup', hint: '⇧⌘G', run: () => doUngroup([n.id]) },
         ]
       const p = absPos(n, map)
@@ -1152,7 +1163,7 @@ function Canvas() {
       { label: 'Add a note here', hint: 'N', run: () => addNote(m.flow) },
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }] : []),
       'divider',
-      { label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy },
+      ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
       { label: 'Fit to screen', hint: '⇧1', run: () => fitTo(root) },
       ...(root ? [{ label: 'Go up a level', hint: 'Esc', run: () => (peeking ? leaveRoot() : openRoot(map.get(root)?.parentId ?? null)) }] : []),
     ]
@@ -1332,9 +1343,11 @@ function Canvas() {
                     <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                       Add note
                     </button>
-                    <button type="button" className="btn" onClick={tidy}>
-                      Tidy {root ? 'group' : 'canvas'}
-                    </button>
+                    {!rootCustom && (
+                      <button type="button" className="btn" onClick={tidy}>
+                        Tidy {root ? 'group' : 'canvas'}
+                      </button>
+                    )}
                     <button type="button" className="btn" onClick={reset}>
                       Reset to seed
                     </button>
@@ -1402,13 +1415,20 @@ function Canvas() {
                         />
                         {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
                         <GroupFacts stats={work.groups.get(one.id)} />
+                        <GroupArrange
+                          key={(one.data as ClusterData).columns}
+                          data={one.data as ClusterData}
+                          change={(patch) => arrangeGroup(one.id, patch)}
+                        />
                         <div className="row">
                           <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
                             Open
                           </button>
-                          <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
-                            Reflow
-                          </button>
+                          {(one.data as ClusterData).arrange !== 'custom' && (
+                            <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
+                              Reflow
+                            </button>
+                          )}
                           <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
                             Ungroup <kbd>⇧⌘G</kbd>
                           </button>
@@ -1473,6 +1493,43 @@ function GroupFacts({ stats }: { stats?: GroupStats }) {
       {stats.done}/{stats.total} done · {stats.ready} ready · {stats.blocked} blocked
       {stats.outside > 0 && <> · unblocks {stats.outside} outside</>}
     </p>
+  )
+}
+
+function GroupArrange({ data, change }: { data: ClusterData; change: (patch: Pick<ClusterData, 'arrange' | 'columns'>) => void }) {
+  const arrange = data.arrange ?? 'auto'
+  const [columns, setColumns] = useState(String(data.columns ?? WRAP))
+  const pick = (next: Arrange) => change({ arrange: next === 'auto' ? undefined : next, columns: next === 'grid' ? data.columns : undefined })
+  const commitColumns = () => {
+    const n = Math.round(Number(columns))
+    if (Number.isFinite(n) && n >= 1 && n !== (data.columns ?? WRAP)) change({ arrange: 'grid', columns: n })
+    else setColumns(String(data.columns ?? WRAP))
+  }
+  return (
+    <div className="grid2">
+      <div>
+        <label htmlFor="g-arrange">Arrange</label>
+        <select id="g-arrange" value={arrange} onChange={(e) => pick(e.target.value as Arrange)}>
+          <option value="auto">Automatic</option>
+          <option value="grid">Grid</option>
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      {arrange === 'grid' && (
+        <div>
+          <label htmlFor="g-columns">Columns</label>
+          <input
+            id="g-columns"
+            type="number"
+            min={1}
+            value={columns}
+            onChange={(e) => setColumns(e.target.value)}
+            onBlur={commitColumns}
+            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+          />
+        </div>
+      )}
+    </div>
   )
 }
 

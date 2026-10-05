@@ -20,6 +20,7 @@ Pass `--workspace <name>` to work in a specific workspace, or rely on the active
 - `orion add <title> [--group <id>] [--source <kind:value|url>] [--kind gate] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as an audit or sign-off.
 - `orion attach <id> <kind> <value>` (or `orion attach <id> <url>`) links what a card stands for, and `orion detach` takes it off. Kinds are `github-pr` (`repo#123`, or `repo` for one not opened yet), `github-issue`, `github-release` (`repo@tag`), `jira` (`KEY-123`), `hop` (`repo:branch`), `slack`, and `url`. Jira tickets and issues say what the work is, pull requests stacked on them drive its status, and the rest are links.
 - `orion set <id> [--label …] [--status …] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
+- `orion set <group> --arrange auto|grid|custom [--columns <n>]` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `grid` places items `--columns` across (six by default) in dependency order; `custom` keeps items where they are.
 - `orion done <id>` marks an item done.
 - `orion link <first> <then>` makes `<then>` wait on `<first>`. Add `--related` for a link that never blocks. `orion unlink` removes one.
 - `orion note <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it goes inside that existing link.

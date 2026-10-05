@@ -9,14 +9,15 @@ type Link = types.Link
 type Position = types.Position
 
 -- Card and group sizes match the app so CLI placements line up with its layout.
-local TASK_W = 208
-local TASK_H = 66
-local PAD = 24
-local HEAD = 52
+local TASK_W = 216
+local TASK_H = 72
+local PAD = 32
+local HEAD = 78
 local GAP = 48
 
 local STATUSES = { todo = true, active = true, review = true, blocked = true, deferred = true, done = true }
 local WHO = { you = true, review = true, ci = true }
+local ARRANGE = { auto = true, grid = true, custom = true }
 
 export type Derived = {
 	status: { [string]: string },
@@ -32,6 +33,8 @@ export type ItemFields = {
 	note: string?,
 	blurb: string?,
 	kind: string?,
+	arrange: string?,
+	columns: number?,
 }
 
 local graph = {}
@@ -233,6 +236,11 @@ local function checkFields(fields: ItemFields)
 	assert(fields.who == nil or fields.who == "" or WHO[fields.who], `who must be one of you, review, ci`)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
 	assert(fields.kind == nil or fields.kind == "step" or fields.kind == "gate", "kind must be step or gate")
+	assert(fields.arrange == nil or ARRANGE[fields.arrange], "arrange must be one of auto, grid, custom")
+	assert(
+		fields.columns == nil or (fields.columns > 0 and fields.columns % 1 == 0),
+		"columns must be a positive whole number"
+	)
 end
 
 export type AddOptions = ItemFields & { group: string?, sources: { refs.Ref }? }
@@ -298,7 +306,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.pr == nil
 				and fields.who == nil
 				and fields.kind == nil,
-			"groups only take a label and blurb"
+			"groups only take a label, blurb, arrange, and columns"
 		)
 		if fields.label then
 			item.data.label = fields.label
@@ -306,8 +314,22 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 		if fields.blurb then
 			item.data.blurb = if fields.blurb == "" then nil else fields.blurb
 		end
+		if fields.arrange or fields.columns then
+			local arrange = fields.arrange or field(item, "arrange") or "auto"
+			assert(fields.columns == nil or arrange == "grid", "columns only apply to a grid; pass --arrange grid")
+			item.data.arrange = if arrange == "auto" then nil else arrange
+			if arrange ~= "grid" then
+				item.data.columns = nil
+			elseif fields.columns then
+				item.data.columns = fields.columns
+			end
+			if arrange ~= "custom" and item.data.layout == nil then
+				item.data.layout = "refit"
+			end
+		end
 		return item
 	end
+	assert(fields.arrange == nil and fields.columns == nil, `"{id}" is an item; only groups take arrange and columns`)
 	if fields.label then
 		item.data.label = fields.label
 	end
