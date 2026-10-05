@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ancestors, byId, isCluster, type AppNode } from './model'
 import { taskTag } from './sources'
 
-type Props = { nodes: AppNode[]; jumpTo: (id: string) => void; open: (id: string) => void; close: () => void }
+export type Command = { id: string; label: string; detail: string; hint?: string; run: () => void }
+type Props = { nodes: AppNode[]; commands: Command[]; jumpTo: (id: string) => void; open: (id: string) => void; close: () => void }
 type Match = { score: number; indices: number[] }
 type Result = { node: AppNode; path: string; score: number; labelMatch: number[]; tagMatch: number[]; idMatch: boolean }
+type CommandResult = { command: Command; score: number; labelMatch: number[] }
 
 function match(query: string, value: string): Match | null {
   const needle = query.toLowerCase()
@@ -35,7 +37,7 @@ function highlighted(value: string, indices: number[]) {
   return [...value].map((char, i) => (picked.has(i) ? <mark key={i}>{char}</mark> : char))
 }
 
-export function Palette({ nodes, jumpTo, open, close }: Props) {
+export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const input = useRef<HTMLInputElement>(null)
@@ -47,7 +49,7 @@ export function Palette({ nodes, jumpTo, open, close }: Props) {
     return () => previous?.focus()
   }, [])
 
-  const results = useMemo(() => {
+  const results = useMemo((): (Result | CommandResult)[] => {
     const map = byId(nodes)
     const term = query.trim()
     if (!term) {
@@ -68,7 +70,13 @@ export function Palette({ nodes, jumpTo, open, close }: Props) {
           idMatch: false,
         }))
     }
-    return nodes
+    const found = commands
+      .map((command): CommandResult | null => {
+        const labelMatch = match(term, command.label)
+        return labelMatch && { command, score: labelMatch.score, labelMatch: labelMatch.indices }
+      })
+      .filter((result): result is CommandResult => result !== null)
+    const cards = nodes
       .map((node): Result | null => {
         const labelMatch = match(term, node.data.label)
         const tagMatch = node.type === 'task' ? match(term, taskTag(node.data)) : null
@@ -90,16 +98,17 @@ export function Palette({ nodes, jumpTo, open, close }: Props) {
       })
       .filter((result): result is Result => result !== null)
       .sort((a, b) => b.score - a.score || a.node.data.label.length - b.node.data.label.length || a.node.data.label.localeCompare(b.node.data.label))
-      .slice(0, 50)
-  }, [nodes, query])
+    return [...found, ...cards].sort((a, b) => b.score - a.score).slice(0, 50)
+  }, [nodes, commands, query])
 
   useEffect(() => {
     list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
   }, [selected, results])
 
-  const pick = (result: Result) => {
+  const pick = (result: Result | CommandResult) => {
     close()
-    if (isCluster(result.node)) open(result.node.id)
+    if ('command' in result) result.command.run()
+    else if (isCluster(result.node)) open(result.node.id)
     else jumpTo(result.node.id)
   }
 
@@ -141,7 +150,7 @@ export function Palette({ nodes, jumpTo, open, close }: Props) {
           aria-expanded="true"
           aria-controls="palette-results"
           aria-activedescendant={results[selected] ? `palette-result-${selected}` : undefined}
-          placeholder="Search groups, cards, PRs…"
+          placeholder="Search groups, cards, PRs, actions…"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -150,6 +159,31 @@ export function Palette({ nodes, jumpTo, open, close }: Props) {
         />
         <div ref={list} className="palette-results" id="palette-results" role="listbox">
           {results.map((result, i) => {
+            if ('command' in result) {
+              const { command } = result
+              return (
+                <button
+                  key={'command:' + command.id}
+                  id={`palette-result-${i}`}
+                  type="button"
+                  role="option"
+                  aria-selected={i === selected}
+                  className="palette-result"
+                  onMouseEnter={() => setSelected(i)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => pick(result)}
+                >
+                  <span className="palette-kind">Action</span>
+                  <span className="palette-details">
+                    <span className="palette-label">{highlighted(command.label, result.labelMatch)}</span>
+                    <span className="palette-path">
+                      {command.detail}
+                      {command.hint && <> · {command.hint}</>}
+                    </span>
+                  </span>
+                </button>
+              )
+            }
             const { node } = result
             const tag = node.type === 'task' ? taskTag(node.data) : null
             return (
