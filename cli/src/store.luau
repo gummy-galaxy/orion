@@ -9,6 +9,7 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Item = types.Item
 type Link = types.Link
+type Source = types.Source
 
 -- The app's dev server takes the same lock, so neither side overwrites the other.
 local FILE = "orion.json"
@@ -73,15 +74,45 @@ function store.decode(text: string): Doc
 				from = from,
 				to = to,
 				kind = str(object.kind) or "blocks",
+				origin = str(object.origin),
 			})
 		end
 	end
 
 	local settings = json.asObject(root.settings) or json.object({})
+	local sources: { Source } = {}
+	for _, raw in json.asArray(settings.sources) or {} do
+		local source = json.asObject(raw)
+		if source and type(source.id) == "string" and type(source.kind) == "string" then
+			local function strings(value: json.Value): { string }?
+				local array = json.asArray(value)
+				if not array then
+					return nil
+				end
+				local result = {}
+				for _, entry in array do
+					if type(entry) == "string" then
+						table.insert(result, entry)
+					end
+				end
+				return result
+			end
+			table.insert(sources, {
+				id = source.id,
+				kind = source.kind,
+				host = str(source.host),
+				owners = strings(source.owners),
+				include = strings(source.include),
+				exclude = strings(source.exclude),
+				command = strings(source.command),
+				browse = str(source.browse),
+			})
+		end
+	end
 	return {
 		version = num(root.version) or 1,
 		revision = num(root.revision) or 0,
-		settings = { githubOwner = str(settings.githubOwner) or DEFAULT_OWNER },
+		settings = { githubOwner = str(settings.githubOwner) or DEFAULT_OWNER, sources = sources },
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
@@ -90,6 +121,16 @@ function store.decode(text: string): Doc
 end
 
 function store.encode(doc: Doc): string
+	local function stringArray(values: { string }?): json.Array?
+		if not values then
+			return nil
+		end
+		local result: json.Array = {}
+		for _, value in values do
+			table.insert(result, value)
+		end
+		return result
+	end
 	local nodes: json.Array = {}
 	for _, item in doc.nodes do
 		local object: json.Object = json.object({
@@ -105,12 +146,28 @@ function store.encode(doc: Doc): string
 	end
 	local links: json.Array = {}
 	for _, link in doc.links do
-		table.insert(links, json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind }))
+		local object = json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind })
+		object.origin = link.origin
+		table.insert(links, object)
 	end
 	local root = json.object(doc.raw or {})
 	root.version = doc.version
 	root.revision = doc.revision
-	root.settings = json.object({ githubOwner = doc.settings.githubOwner })
+	local settings = json.asObject(root.settings) or json.object({})
+	settings.githubOwner = doc.settings.githubOwner
+	local sources: json.Array = {}
+	for _, source in doc.settings.sources do
+		local value = json.object({ id = source.id, kind = source.kind })
+		value.host = source.host
+		value.owners = stringArray(source.owners)
+		value.include = stringArray(source.include)
+		value.exclude = stringArray(source.exclude)
+		value.command = stringArray(source.command)
+		value.browse = source.browse
+		table.insert(sources, value)
+	end
+	settings.sources = sources
+	root.settings = settings
 	root.nodes = nodes
 	root.links = links
 	root.github = doc.github

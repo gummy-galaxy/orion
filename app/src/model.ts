@@ -22,6 +22,21 @@ export type TaskData = {
   status: Status
   repo?: string
   pr?: number
+  host?: string
+  branch?: string
+  issue?: number
+  jira?: {
+    key: string
+    url?: string
+    status: string
+    statusCategory: 'new' | 'indeterminate' | 'done'
+    type: string
+    epicKey?: string
+    epicSummary?: string
+    updatedAt?: string
+  }
+  activity?: { lastActiveAt: string; sessions: string[] }
+  sources?: string[]
   note?: string
   who?: Who
   /** Written by `orion sync`; read-only here. */
@@ -62,7 +77,7 @@ export type GhostNode = Node<GhostData, 'ghost'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
 export type AppNode = TaskNode | ClusterNode
 
-export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related' }
+export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related'; origin?: 'stack' | 'mention' }
 
 export const STATUS_LABEL: Record<ViewStatus, string> = {
   ready: 'Ready',
@@ -76,12 +91,14 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
 const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
 
 export function taskTag(d: TaskData): string {
+  if (d.jira) return d.jira.key
+  if (d.repo && d.issue) return `${d.repo}#${d.issue}`
   if (d.repo && d.pr) return `${d.repo}#${d.pr}`
   return d.repo ?? 'step'
 }
 
 export function prUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
-  return d.repo && d.pr ? `https://github.com/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}` : null
+  return d.repo && d.pr ? `https://${d.host ?? 'github.com'}/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}` : null
 }
 
 export const isCluster = (n: AppNode): n is ClusterNode => n.type === 'cluster'

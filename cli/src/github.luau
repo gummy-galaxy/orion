@@ -24,9 +24,12 @@ export type PullState = {
 	additions: number,
 	deletions: number,
 	checks: string?,
+	branch: string?,
+	body: string?,
+	host: string?,
 }
 
-export type Ref = { owner: string, name: string, number: number }
+export type Ref = { owner: string, name: string, number: number, host: string? }
 export type Change = {
 	id: string,
 	label: string,
@@ -53,14 +56,15 @@ export type Fetched = {
 
 local BATCH_SIZE = 25
 local PULL_FIELDS =
-	"number title url state isDraft reviewDecision author { login } updatedAt additions deletions commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
+	"number title body url state isDraft reviewDecision headRefName author { login } updatedAt additions deletions commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
 local NAME_PATTERN = "^[%w%-%._]+$"
 local INBOX_ID = "inbox"
 local REVIEWS_ID = "reviews"
 local github = {}
 
 function github.key(ref: Ref): string
-	return string.lower(`{ref.owner}/{ref.name}#{ref.number}`)
+	local host = if ref.host and ref.host ~= "github.com" then `{ref.host}/` else ""
+	return string.lower(`{host}{ref.owner}/{ref.name}#{ref.number}`)
 end
 
 function github.refFor(item: Item, defaultOwner: string): Ref?
@@ -70,14 +74,19 @@ function github.refFor(item: Item, defaultOwner: string): Ref?
 		return nil
 	end
 	local owner, name = repo:match("^([^/]+)/([^/]+)$")
-	return { owner = owner or defaultOwner, name = name or repo, number = number }
+	return {
+		owner = owner or defaultOwner,
+		name = name or repo,
+		number = number,
+		host = if type(item.data.host) == "string" then item.data.host else nil,
+	}
 end
 
 local function str(value: json.Value): string?
 	return if type(value) == "string" then value else nil
 end
 
-local function pullFromObject(object: json.Object, owner: string, name: string): PullState?
+local function pullFromObject(object: json.Object, owner: string, name: string, host: string?): PullState?
 	local number, state, url = object.number, object.state, object.url
 	if type(number) ~= "number" or type(state) ~= "string" or type(url) ~= "string" then
 		return nil
@@ -114,12 +123,23 @@ local function pullFromObject(object: json.Object, owner: string, name: string):
 		additions = if type(object.additions) == "number" then object.additions else 0,
 		deletions = if type(object.deletions) == "number" then object.deletions else 0,
 		checks = if rollup then str(rollup.state) else nil,
+		branch = str(object.headRefName),
+		body = str(object.body),
+		host = host,
 	}
 end
 
 -- gh can exit non-zero for a partially resolved GraphQL query while retaining usable data.
-local function query(run: CommandRunner, source: string): json.Object?
-	local ok, response = pcall(run, { "gh", "api", "graphql", "-f", `query={source}` })
+function github.query(run: CommandRunner, source: string, host: string?): json.Object?
+	local argv = { "gh", "api" }
+	if host then
+		table.insert(argv, "--hostname")
+		table.insert(argv, host)
+	end
+	table.insert(argv, "graphql")
+	table.insert(argv, "-f")
+	table.insert(argv, `query={source}`)
+	local ok, response = pcall(run, argv)
 	if not ok then
 		return nil
 	end
@@ -132,32 +152,42 @@ local function query(run: CommandRunner, source: string): json.Object?
 	return json.asObject(body.data)
 end
 
+local query = github.query
+
 function github.fetch(run: CommandRunner, refs: { Ref }): { [string]: PullState }
 	local found: { [string]: PullState } = {}
-	for start = 1, #refs, BATCH_SIZE do
-		local parts = {}
-		local batch: { [string]: Ref } = {}
-		for index = start, math.min(start + BATCH_SIZE - 1, #refs) do
-			local ref = refs[index]
-			assert(
-				ref.owner:match(NAME_PATTERN) and ref.name:match(NAME_PATTERN),
-				`invalid repository {ref.owner}/{ref.name}`
-			)
-			local alias = `p{index}`
-			batch[alias] = ref
-			table.insert(
-				parts,
-				`{alias}: repository(owner: "{ref.owner}", name: "{ref.name}") \{ pullRequest(number: {ref.number}) \{ {PULL_FIELDS} } }`
-			)
-		end
-		local data = query(run, `query \{ {table.concat(parts, " ")} }`)
-		if data then
-			for alias, ref in batch do
-				local repository = json.asObject(data[alias])
-				local pull = if repository then json.asObject(repository.pullRequest) else nil
-				local parsed = if pull then pullFromObject(pull, ref.owner, ref.name) else nil
-				if parsed then
-					found[github.key(ref)] = parsed
+	local byHost: { [string]: { Ref } } = {}
+	for _, ref in refs do
+		local host = ref.host or "github.com"
+		byHost[host] = byHost[host] or {}
+		table.insert(byHost[host], ref)
+	end
+	for host, hostRefs in byHost do
+		for start = 1, #hostRefs, BATCH_SIZE do
+			local parts = {}
+			local batch: { [string]: Ref } = {}
+			for index = start, math.min(start + BATCH_SIZE - 1, #hostRefs) do
+				local ref = hostRefs[index]
+				assert(
+					ref.owner:match(NAME_PATTERN) and ref.name:match(NAME_PATTERN),
+					`invalid repository {ref.owner}/{ref.name}`
+				)
+				local alias = `p{index}`
+				batch[alias] = ref
+				table.insert(
+					parts,
+					`{alias}: repository(owner: "{ref.owner}", name: "{ref.name}") \{ pullRequest(number: {ref.number}) \{ {PULL_FIELDS} } }`
+				)
+			end
+			local data = query(run, `query \{ {table.concat(parts, " ")} }`, if host == "github.com" then nil else host)
+			if data then
+				for alias, ref in batch do
+					local repository = json.asObject(data[alias])
+					local pull = if repository then json.asObject(repository.pullRequest) else nil
+					local parsed = if pull then pullFromObject(pull, ref.owner, ref.name, ref.host) else nil
+					if parsed then
+						found[github.key(ref)] = parsed
+					end
 				end
 			end
 		end
@@ -181,6 +211,110 @@ local function pullList(nodes: json.Array?): { PullState }
 		end
 	end
 	return out
+end
+
+export type IssueState = { owner: string, name: string, number: number, title: string, url: string, host: string? }
+
+local function searchPage(
+	run: CommandRunner,
+	host: string,
+	expression: string,
+	cursor: string?
+): (json.Array, string?, boolean)
+	local after = if cursor then `, after: {json.serialize(cursor)}` else ""
+	local source =
+		`query \{ search(query: {json.serialize(expression)}, type: ISSUE, first: 100{after}) \{ nodes \{ ... on PullRequest \{ {PULL_FIELDS} repository \{ name owner \{ login } } } ... on Issue \{ number title url repository \{ name owner \{ login } } } } pageInfo \{ hasNextPage endCursor } } }`
+	local data = assert(query(run, source, host), `could not search {host}`)
+	local search = assert(json.asObject(data.search), `invalid search response from {host}`)
+	local info = json.asObject(search.pageInfo)
+	return json.asArray(search.nodes) or {},
+		if info then str(info.endCursor) else nil,
+		if info then info.hasNextPage == true else false
+end
+
+local function listed(repos: { string }?, name: string): boolean
+	if not repos then
+		return false
+	end
+	for _, repo in repos do
+		if repo:lower() == name:lower() then
+			return true
+		end
+	end
+	return false
+end
+
+function github.involved(
+	run: CommandRunner,
+	host: string,
+	owners: { string },
+	since: string,
+	include: { string }?,
+	exclude: { string }?
+): ({ PullState }, { IssueState }, string)
+	local viewerData = assert(query(run, "query { viewer { login } }", host), `could not fetch GitHub viewer on {host}`)
+	local viewer = json.asObject(viewerData.viewer)
+	local login = assert(if viewer then str(viewer.login) else nil, `could not fetch GitHub viewer on {host}`)
+	local pulls: { PullState } = {}
+	local issues: { IssueState } = {}
+	local seen: { [string]: boolean } = {}
+	for _, owner in owners do
+		for _, filter in
+			{
+				"is:open is:pr involves:@me",
+				`is:pr is:merged author:@me merged:>={since}`,
+				"is:open is:issue assignee:@me",
+			}
+		do
+			local cursor: string? = nil
+			local count = 0
+			while count < 300 do
+				local nodes, nextCursor, more = searchPage(run, host, `{filter} user:{owner}`, cursor)
+				for _, raw in nodes do
+					count += 1
+					local object = json.asObject(raw)
+					local repository = if object then json.asObject(object.repository) else nil
+					local repositoryOwner = if repository then json.asObject(repository.owner) else nil
+					local name = if repository then str(repository.name) else nil
+					local actualOwner = if repositoryOwner then str(repositoryOwner.login) else nil
+					if not object or not name or not actualOwner or actualOwner:lower() ~= owner:lower() then
+						continue
+					end
+					if include and not listed(include, name) or listed(exclude, name) then
+						continue
+					end
+					local number = object.number
+					if type(number) ~= "number" then
+						continue
+					end
+					local key = github.key({ host = host, owner = actualOwner, name = name, number = number })
+					if seen[key] then
+						continue
+					end
+					local pull = pullFromObject(object, actualOwner, name, host)
+					if pull then
+						seen[key] = true
+						table.insert(pulls, pull)
+					elseif type(object.title) == "string" and type(object.url) == "string" then
+						seen[key] = true
+						table.insert(issues, {
+							owner = actualOwner,
+							name = name,
+							number = number,
+							title = object.title,
+							url = object.url,
+							host = host,
+						})
+					end
+				end
+				if not more or not nextCursor or #nodes == 0 then
+					break
+				end
+				cursor = nextCursor
+			end
+		end
+	end
+	return pulls, issues, login
 end
 
 function github.authoredOpen(run: CommandRunner): ({ PullState }, string)
@@ -249,7 +383,7 @@ function github.collect(doc: Doc, run: CommandRunner, discover: boolean): Fetche
 	}
 end
 
-local function recorded(pull: PullState, viewer: string, checkedAt: string): json.Object
+function github.recorded(pull: PullState, viewer: string, checkedAt: string): json.Object
 	local result = json.object({
 		state = pull.state,
 		draft = pull.draft,
@@ -267,6 +401,8 @@ local function recorded(pull: PullState, viewer: string, checkedAt: string): jso
 	result.checks = pull.checks
 	return result
 end
+
+local recorded = github.recorded
 
 local function repoName(doc: Doc, pull: PullState): string
 	return if pull.owner:lower() == doc.settings.githubOwner:lower() then pull.name else `{pull.owner}/{pull.name}`
@@ -314,6 +450,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			item.data.status, item.data.who = nextStatus, nextWho
 		end
 		item.data.github = recorded(pull, fetched.viewer, checkedAt)
+		item.data.branch = pull.branch or item.data.branch
 	end
 
 	for _, pull in fetched.reviews do
@@ -331,6 +468,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			who = who,
 		})
 		item.data.github = recorded(pull, fetched.viewer, checkedAt)
+		item.data.branch = pull.branch
 		onCanvas[key] = true
 		table.insert(report.added, item.id)
 		table.insert(report.reviewAdded, item.id)
@@ -354,6 +492,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 				who = who,
 			})
 			item.data.github = recorded(pull, fetched.viewer, checkedAt)
+			item.data.branch = pull.branch
 			onCanvas[key] = true
 			table.insert(report.added, item.id)
 		else
