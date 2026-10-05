@@ -41,17 +41,31 @@ import {
   sizeOf,
   taskTag,
   githubSummary,
+  relativeTime,
   ungroup,
   type AppNode,
   type ClusterData,
   type GhostNode,
+  type GithubSnapshot,
   type Link,
   type Status,
   type TaskData,
   type Who,
 } from './model'
 import { ClusterView, GhostView, TaskView } from './nodes'
-import { fetchRemote, fingerprint, load, onRemoteChange, readBrowser, save, type Remote } from './persist'
+import {
+  fetchRemote,
+  fingerprint,
+  getSyncStatus,
+  load,
+  onRemoteChange,
+  onSyncStatus,
+  readBrowser,
+  requestSync,
+  save,
+  type Remote,
+  type SyncStatus,
+} from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
 
@@ -138,6 +152,10 @@ function Canvas() {
   const panY = useStore((s) => s.transform[1])
   const [nodes, setNodes] = useState<AppNode[]>([])
   const [links, setLinks] = useState<Link[]>([])
+  const [github, setGithub] = useState<GithubSnapshot | null>(null)
+  const [githubOwner, setGithubOwner] = useState('flipbook-labs')
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [clock, setClock] = useState(() => Date.now())
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
   const [peek, setPeek] = useState<string | null>(null)
@@ -184,6 +202,8 @@ function Canvas() {
       return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
     })
     setLinks(doc.links)
+    setGithub(doc.github ?? null)
+    setGithubOwner(doc.settings.githubOwner)
   }, [])
 
   const reload = useCallback(async () => {
@@ -221,6 +241,24 @@ function Canvas() {
       }),
     [reload],
   )
+
+  useEffect(() => {
+    void getSyncStatus().then((status) => status && setSyncStatus(status))
+    const off = onSyncStatus(setSyncStatus)
+    const onFocus = () => void requestSync().then((status) => status && setSyncStatus(status))
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') onFocus()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisible)
+    const timer = setInterval(() => setClock(Date.now()), 60_000)
+    return () => {
+      off()
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisible)
+      clearInterval(timer)
+    }
+  }, [])
 
   useEffect(() => {
     if (!ready) return
@@ -871,7 +909,7 @@ function Canvas() {
           { label: 'Delete note', danger: true, run: () => deleteNote(n.id) },
         ]
       const data = n.data as TaskData
-      const url = prUrl(data)
+      const url = data.github?.url ?? prUrl(data, githubOwner)
       return [
         ...many,
         ...(url ? [{ label: `Open ${taskTag(data)}`, hint: '↗', run: () => window.open(url, '_blank', 'noreferrer') }] : []),
@@ -1022,6 +1060,24 @@ function Canvas() {
                     <button type="button" className="btn" onClick={reset}>
                       Reset to seed
                     </button>
+                    {syncStatus && (
+                      <button
+                        type="button"
+                        className="sync-status"
+                        title={syncStatus.message ?? 'Sync with GitHub now'}
+                        onClick={() => void requestSync(true).then((status) => status && setSyncStatus(status))}
+                      >
+                        {syncStatus.state === 'running'
+                          ? 'Syncing…'
+                          : syncStatus.state === 'error'
+                            ? 'Sync failed'
+                            : syncStatus.state === 'unavailable'
+                              ? 'Sync unavailable'
+                              : syncStatus.lastRun
+                                ? `Synced ${relativeTime(syncStatus.lastRun, clock)}`
+                                : 'Sync now'}
+                      </button>
+                    )}
                   </span>
                 </Panel>
 
@@ -1044,7 +1100,16 @@ function Canvas() {
                         remove={() => deleteNote(one.id)}
                       />
                     ) : isTask(one) ? (
-                      <TaskInspector key={one.id} node={one} work={work} map={map} update={updateData} jumpTo={jumpTo} />
+                      <TaskInspector
+                        key={one.id}
+                        node={one}
+                        work={work}
+                        map={map}
+                        github={github}
+                        githubOwner={githubOwner}
+                        update={updateData}
+                        jumpTo={jumpTo}
+                      />
                     ) : (
                       <div className="insp" key={one.id}>
                         <label htmlFor="g-label">Group name</label>
@@ -1174,19 +1239,35 @@ function TaskInspector({
   node,
   work,
   map,
+  github,
+  githubOwner,
   update,
   jumpTo,
 }: {
   node: AppNode
   work: ReturnType<typeof deriveWork>
   map: Map<string, AppNode>
+  github: GithubSnapshot | null
+  githubOwner: string
   update: (id: string, patch: Partial<TaskData>) => void
   jumpTo: (id: string) => void
 }) {
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
   const lev = work.leverage.get(node.id) ?? 0
-  const url = prUrl(data)
+  const url = data.github?.url ?? prUrl(data, githubOwner)
+  const linked = new Set(
+    [...map.values()]
+      .filter(isTask)
+      .filter((n) => n.data.repo && n.data.pr)
+      .map((n) => `${n.data.repo}#${n.data.pr}`),
+  )
+  const suggestions = data.pr
+    ? []
+    : (github?.unplaced ?? [])
+        .filter((pr) => !linked.has(`${pr.repo}#${pr.number}`))
+        .flatMap((pr) => pr.matches.filter((match) => match.id === node.id).map((match) => ({ pr, score: match.score })))
+        .sort((a, b) => b.score - a.score)
   const list = (ids: string[]) =>
     ids.length ? (
       <ul>
@@ -1215,7 +1296,31 @@ function TaskInspector({
           Open {taskTag(data)} ↗
         </a>
       )}
-      {data.github && <p className="facts">{githubSummary(data.github)}</p>}
+      {data.github && (
+        <div className="github-details">
+          <p className="facts">{githubSummary(data.github)}</p>
+          <p className="facts">
+            {data.github.checks && (
+              <>
+                <span className={`check-dot check-${data.github.checks.toLowerCase()}`} />
+                {data.github.checks === 'SUCCESS'
+                  ? 'Checks passing'
+                  : ['FAILURE', 'ERROR'].includes(data.github.checks)
+                    ? 'Checks failing'
+                    : 'Checks pending'}{' '}
+                ·{' '}
+              </>
+            )}
+            {typeof data.github.additions === 'number' && (
+              <>
+                +{data.github.additions} −{data.github.deletions} · updated {relativeTime(data.github.updatedAt)}
+              </>
+            )}
+          </p>
+          {data.github.author && !data.github.mine && <p className="facts">By {data.github.author}</p>}
+          {data.github.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
+        </div>
+      )}
       <div className="grid2">
         <div>
           <label htmlFor="t-repo">Repository</label>
@@ -1264,6 +1369,26 @@ function TaskInspector({
           </select>
         </div>
       </div>
+      {suggestions.length > 0 && (
+        <div className="suggestions">
+          <span className="label-text">Possible pull requests</span>
+          {suggestions.map(({ pr, score }) => (
+            <div className="suggestion" key={`${pr.repo}#${pr.number}`}>
+              <div className="suggestion-copy">
+                <a href={pr.url} target="_blank" rel="noreferrer">
+                  {pr.title}
+                </a>
+                <span>
+                  {pr.repo}#{pr.number} · {score >= 0.6 ? 'High' : score >= 0.35 ? 'Medium' : 'Low'} confidence
+                </span>
+              </div>
+              <button type="button" className="btn" onClick={() => update(node.id, { repo: pr.repo, pr: pr.number, itemKind: 'pr' })}>
+                Link
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
       <label htmlFor="t-note">Notes</label>
       <textarea id="t-note" rows={3} value={data.note ?? ''} onChange={(e) => update(node.id, { note: e.target.value || undefined })} />
       <p className="facts">

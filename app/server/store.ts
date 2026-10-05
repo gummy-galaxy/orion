@@ -1,7 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, watch, writeFileSync } from 'node:fs'
+import { execFile } from 'node:child_process'
 import type { IncomingMessage } from 'node:http'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
 import type { Plugin } from 'vite'
 
 /**
@@ -15,7 +18,13 @@ const LOCK = 'orion.lock'
 const LOCK_TIMEOUT_MS = 5000
 const STALE_LOCK_SECONDS = 30
 const API = '/api/orion'
+const SYNC_API = '/api/sync'
+const SYNC_INTERVAL_MS = 5 * 60 * 1000
+const SYNC_THROTTLE_MS = 60 * 1000
+const execFileAsync = promisify(execFile)
 export const CHANGED_EVENT = 'orion:changed'
+
+type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 
 type Doc = { version: number; revision: number; settings: { githubOwner: string }; nodes: unknown[]; links: unknown[] }
 
@@ -102,24 +111,55 @@ export function orionStore(): Plugin {
     name: 'orion-store',
     apply: 'serve',
     configureServer(server) {
-      server.middlewares.use(API, async (req, res) => {
-        const reply = (status: number, value: unknown) => {
-          res.statusCode = status
-          res.setHeader('content-type', 'application/json')
-          res.end(JSON.stringify(value))
+      let status: SyncStatus = { state: 'idle' }
+      let running = false
+      let lastFinished = 0
+      const binary = process.env.ORION_BIN || fileURLToPath(new URL('../../cli/build/orion', import.meta.url))
+      const publish = (next: SyncStatus) => {
+        status = next
+        server.ws.send({ type: 'custom', event: 'orion:sync', data: status })
+      }
+      const sync = async (force = false): Promise<SyncStatus> => {
+        if (running || (!force && lastFinished && Date.now() - lastFinished < SYNC_THROTTLE_MS)) return status
+        running = true
+        publish({ ...status, state: 'running', message: undefined })
+        try {
+          await execFileAsync(binary, ['sync', '--json'], { env: { ...process.env, ORION_DATA_DIR: dir } })
+          publish({ state: 'idle', lastRun: new Date().toISOString() })
+        } catch (error) {
+          const failure = error as Error & { code?: string; stderr?: string }
+          const lastRun = new Date().toISOString()
+          if (failure.code === 'ENOENT') publish({ state: 'unavailable', lastRun, message: 'Build the CLI: cd cli && lute run build' })
+          else publish({ state: 'error', lastRun, message: failure.stderr?.trim().split(/\r?\n/).at(-1) || failure.message })
+        } finally {
+          lastFinished = Date.now()
+          running = false
         }
+        return status
+      }
+      const reply = (res: import('node:http').ServerResponse, code: number, value: unknown) => {
+        res.statusCode = code
+        res.setHeader('content-type', 'application/json')
+        res.end(JSON.stringify(value))
+      }
+      server.middlewares.use(SYNC_API, async (req, res) => {
+        if (req.method === 'GET') return reply(res, 200, status)
+        if (req.method === 'POST') return reply(res, 200, await sync(new URL(req.url ?? '', 'http://localhost').searchParams.get('force') === '1'))
+        reply(res, 405, { error: 'method not allowed' })
+      })
+      server.middlewares.use(API, async (req, res) => {
         try {
           if (req.method === 'GET') {
             const doc = read(dir)
-            return doc ? reply(200, doc) : reply(404, { path: join(dir, FILE) })
+            return doc ? reply(res, 200, doc) : reply(res, 404, { path: join(dir, FILE) })
           }
           if (req.method === 'PUT') {
             const result = await put(dir, (await body(req)) as Put)
-            return reply(result.status, { revision: result.revision })
+            return reply(res, result.status, { revision: result.revision })
           }
-          reply(405, { error: 'method not allowed' })
+          reply(res, 405, { error: 'method not allowed' })
         } catch (error) {
-          reply(500, { error: String(error) })
+          reply(res, 500, { error: String(error) })
         }
       })
 
@@ -138,7 +178,14 @@ export function orionStore(): Plugin {
           }
         }, 60)
       })
-      server.httpServer?.on('close', () => watcher.close())
+      const startup = setTimeout(() => void sync(), 5000)
+      const interval = setInterval(() => void sync(), SYNC_INTERVAL_MS)
+      server.httpServer?.on('close', () => {
+        clearTimeout(startup)
+        clearInterval(interval)
+        clearTimeout(timer)
+        watcher.close()
+      })
     },
   }
 }

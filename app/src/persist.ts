@@ -1,4 +1,4 @@
-import type { AppNode, Link } from './model'
+import type { AppNode, GithubSnapshot, Link } from './model'
 
 /**
  * The canvas lives in orion.json, served by the dev server so the CLI and the
@@ -7,13 +7,40 @@ import type { AppNode, Link } from './model'
  */
 
 export type Saved = { nodes: AppNode[]; links: Link[] }
-export type Remote = Saved & { revision: number }
+export type Remote = Saved & { revision: number; settings: { githubOwner: string }; github?: GithubSnapshot }
+export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing' } | { source: 'browser'; saved: Saved | null }
 export type SaveResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
 
 const API = '/api/orion'
 const STORAGE_KEY = 'orion:v2'
 const CHANGED_EVENT = 'orion:changed'
+const SYNC_EVENT = 'orion:sync'
+
+export async function getSyncStatus(): Promise<SyncStatus | null> {
+  try {
+    const response = await fetch('/api/sync')
+    return response.ok ? ((await response.json()) as SyncStatus) : null
+  } catch {
+    return null
+  }
+}
+
+export async function requestSync(force = false): Promise<SyncStatus | null> {
+  try {
+    const response = await fetch(force ? '/api/sync?force=1' : '/api/sync', { method: 'POST' })
+    return response.ok ? ((await response.json()) as SyncStatus) : null
+  } catch {
+    return null
+  }
+}
+
+export function onSyncStatus(callback: (status: SyncStatus) => void) {
+  const hot = import.meta.hot
+  if (!hot) return () => {}
+  hot.on(SYNC_EVENT, callback)
+  return () => hot.off(SYNC_EVENT, callback)
+}
 
 /** Only what's worth keeping; selection, measurements and handles are view state. */
 export function slim(nodes: AppNode[]) {

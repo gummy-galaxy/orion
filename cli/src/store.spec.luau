@@ -1,4 +1,5 @@
 local fs = require("@std/fs")
+local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
@@ -9,6 +10,17 @@ test.case("load explains how to create data when none exists", function(assert)
 	assert.throwsWith("Open the Orion app once to create it.", function()
 		store.load(testing.directory("missing"))
 	end)
+end)
+
+test.case("store round-trips top-level GitHub data and unknown fields", function(assert)
+	local doc = store.decode(
+		[[{"version":1,"revision":0,"settings":{"githubOwner":"flipbook-labs"},"nodes":[],"links":[],"github":{"viewer":"vocksel","checkedAt":"now","unplaced":[]},"future":{"kept":true}}]]
+	)
+	local encoded = json.asObject(json.deserialize(store.encode(doc)) :: json.Value)
+	local github = if encoded then json.asObject(encoded.github) else nil
+	local future = if encoded then json.asObject(encoded.future) else nil
+	assert.eq(github and github.viewer, "vocksel")
+	assert.eq(future and future.kept, true)
 end)
 
 test.case("transaction bumps the revision and keeps fields it doesn't know about", function(assert)

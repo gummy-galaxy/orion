@@ -155,6 +155,33 @@ select {
   font-size: 10.5px;
   color: var(--muted);
   white-space: nowrap;
+  min-width: 0;
+}
+.card .meta-tag {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  margin-right: auto;
+}
+.card .meta-lines,
+.card .meta .st,
+.card .meta .check-dot {
+  flex: none;
+}
+.check-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--st-review);
+  vertical-align: middle;
+}
+.check-success {
+  background: var(--st-done);
+}
+.check-failure,
+.check-error {
+  background: var(--st-blocked);
 }
 .card .meta .st {
   color: var(--c);
@@ -647,6 +674,18 @@ select {
   padding-left: 10px;
   border-left: 1px solid var(--line);
 }
+.sync-status {
+  border: 0;
+  background: none;
+  padding: 5px 6px;
+  color: var(--muted);
+  font: 11px var(--font-data);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sync-status:hover {
+  color: var(--accent);
+}
 .btn {
   border: 1px solid var(--line);
   background: var(--surface);
@@ -745,6 +784,39 @@ kbd {
 .facts b {
   color: var(--ink);
   font-weight: 500;
+}
+.github-details {
+  display: grid;
+  gap: 3px;
+}
+.github-details .check-dot {
+  margin-right: 5px;
+}
+.review-requested {
+  color: var(--st-review);
+}
+.suggestions {
+  display: grid;
+  gap: 7px;
+}
+.suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.suggestion-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+}
+.suggestion-copy a {
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.suggestion-copy span {
+  color: var(--muted);
+  font: 10.5px var(--font-data);
 }
 .help {
   padding: 6px 12px;

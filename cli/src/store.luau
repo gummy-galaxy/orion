@@ -84,6 +84,8 @@ function store.decode(text: string): Doc
 		settings = { githubOwner = str(settings.githubOwner) or DEFAULT_OWNER },
 		nodes = nodes,
 		links = links,
+		github = json.asObject(root.github),
+		raw = json.object(root),
 	}
 end
 
@@ -105,16 +107,14 @@ function store.encode(doc: Doc): string
 	for _, link in doc.links do
 		table.insert(links, json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind }))
 	end
-	return json.serialize(
-		json.object({
-			version = doc.version,
-			revision = doc.revision,
-			settings = json.object({ githubOwner = doc.settings.githubOwner }),
-			nodes = nodes,
-			links = links,
-		}),
-		true
-	)
+	local root = json.object(doc.raw or {})
+	root.version = doc.version
+	root.revision = doc.revision
+	root.settings = json.object({ githubOwner = doc.settings.githubOwner })
+	root.nodes = nodes
+	root.links = links
+	root.github = doc.github
+	return json.serialize(root, true)
 end
 
 function store.read(dir: string): Doc?

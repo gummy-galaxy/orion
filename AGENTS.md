@@ -27,7 +27,9 @@ Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set 
 
 Cards with a repository and pull request number stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. Run `orion sync --dry-run` first when unsure.
 
-`orion sync --discover` also adds your open pull requests that aren't on the canvas to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
+`orion sync` adds pending review requests without cards to the Review requests group. It also records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. Link one to an existing card with `orion set <id> --repo <repo> --pr <n>`.
+
+`orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
 
 ## Habits
 

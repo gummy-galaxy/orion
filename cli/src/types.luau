@@ -35,6 +35,8 @@ export type Doc = {
 	settings: { githubOwner: string },
 	nodes: { Item },
 	links: { Link },
+	github: json.Object?,
+	raw: json.Object?,
 }
 
 return {}

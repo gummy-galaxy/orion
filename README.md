@@ -20,6 +20,7 @@ npm run dev
 ```
 
 The dev server reads and writes the data file. The first time it runs without one, it carries over what the browser had saved, or starts from the seed.
+It runs `orion sync --json` five seconds after startup and every five minutes, using `cli/build/orion` and the same data folder as the app. Set `ORION_BIN` to use another CLI binary. Returning to the window also requests a sync, with a one-minute server throttle.
 
 ## Build the CLI
 
@@ -57,6 +58,7 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 Reset to seed restores the snapshot.
 
 Dashed cards are pull requests that aren't opened yet. Select a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
+The toolbar shows when GitHub was last synced, or a sync error; click the status to force a sync. Linked cards show a checks dot (green passing, red failing, amber pending) and changed line count. The inspector shows checks, additions and deletions, update time, author, and review requests. An unlinked work item may show possible pull requests in its inspector; use **Link** to attach one to the card.
 
 ## Layout of the code
 

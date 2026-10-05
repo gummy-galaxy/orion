@@ -9,7 +9,7 @@ local function pull(
 	state: string,
 	extra: { draft: boolean?, reviewDecision: string?, reviewRequests: number? }?
 ): PullState
-	local given = extra or {}
+	local given: { draft: boolean?, reviewDecision: string?, reviewRequests: number? } = extra or {}
 	return {
 		owner = "flipbook-labs",
 		name = "flipbook",
@@ -18,30 +18,52 @@ local function pull(
 		draft = given.draft == true,
 		reviewDecision = given.reviewDecision,
 		reviewRequests = given.reviewRequests or 0,
+		requestedReviewers = {},
 		title = "Title",
 		url = "https://github.com/flipbook-labs/flipbook/pull/1",
+		author = "vocksel",
+		updatedAt = "2026-10-04T00:00:00Z",
+		additions = 12,
+		deletions = 3,
+		checks = "SUCCESS",
 	}
 end
 
 test.case("desired follows the pull request's state", function(assert)
-	assert.eq(github.desired(pull("MERGED"), "review", "review"), "done")
-	assert.eq(github.desired(pull("CLOSED"), "active", "you"), "deferred")
-	assert.eq(github.desired(pull("OPEN", { draft = true }), "todo", nil), "active")
-	local status, who = github.desired(pull("OPEN", { reviewRequests = 1 }), "active", "you")
+	assert.eq(github.desired(pull("MERGED"), "review", "review", "vocksel"), "done")
+	assert.eq(github.desired(pull("CLOSED"), "active", "you", "vocksel"), "deferred")
+	assert.eq(github.desired(pull("OPEN", { draft = true }), "todo", nil, "vocksel"), "active")
+	local status, who = github.desired(pull("OPEN", { reviewRequests = 1 }), "active", "you", "vocksel")
 	assert.eq(status, "review")
 	assert.eq(who, "review")
-	status, who = github.desired(pull("OPEN", { reviewDecision = "CHANGES_REQUESTED" }), "review", "review")
+	status, who = github.desired(pull("OPEN", { reviewDecision = "CHANGES_REQUESTED" }), "review", "review", "vocksel")
 	assert.eq(status, "active")
 	assert.eq(who, "you")
-	status, who = github.desired(pull("OPEN", { reviewDecision = "APPROVED" }), "review", "review")
+	status, who = github.desired(pull("OPEN", { reviewDecision = "APPROVED" }), "review", "review", "vocksel")
 	assert.eq(status, "review")
 	assert.eq(who, "you")
 end)
 
 test.case("desired keeps hand-set holds while the pull request is open", function(assert)
-	assert.eq(github.desired(pull("OPEN", { reviewRequests = 1 }), "blocked", nil), "blocked")
-	assert.eq(github.desired(pull("OPEN"), "deferred", nil), "deferred")
-	assert.eq(github.desired(pull("MERGED"), "blocked", nil), "done")
+	assert.eq(github.desired(pull("OPEN", { reviewRequests = 1 }), "blocked", nil, "vocksel"), "blocked")
+	assert.eq(github.desired(pull("OPEN"), "deferred", nil, "vocksel"), "deferred")
+	assert.eq(github.desired(pull("MERGED"), "blocked", nil, "vocksel"), "done")
+end)
+
+test.case("desired tracks requested reviews on other people's pull requests", function(assert)
+	local other = pull("OPEN")
+	other.author = "colleague"
+	other.requestedReviewers = { "vocksel" }
+	local status, who = github.desired(other, "todo", nil, "vocksel")
+	assert.eq(status, "review")
+	assert.eq(who, "you")
+	other.requestedReviewers = {}
+	status, who = github.desired(other, "review", "you", "vocksel")
+	assert.eq(status, "review")
+	assert.eq(who, nil)
+	assert.eq(github.desired(other, "blocked", "ci", "vocksel"), "blocked")
+	other.state = "MERGED"
+	assert.eq(github.desired(other, "review", "you", "vocksel"), "done")
 end)
 
 test.case("refFor reads bare and owner-qualified repositories", function(assert)
@@ -53,6 +75,61 @@ test.case("refFor reads bare and owner-qualified repositories", function(assert)
 	assert.eq(github.refFor(testing.task("c", "C", "todo"), "flipbook-labs"), nil)
 end)
 
+test.case("apply creates review cards and stores unplaced authored pull requests with matches", function(assert)
+	local doc = testing.doc({
+		testing.task("dashboard", "Release health dashboard", "todo", nil, { repo = "flipbook" }),
+	})
+	local review = pull("OPEN")
+	review.author = "colleague"
+	review.name = "storyteller"
+	review.number = 3
+	review.title = "Review story"
+	review.requestedReviewers = { "vocksel" }
+	local authored = pull("OPEN")
+	authored.number = 670
+	authored.title = "Add release health dashboard"
+	local report = github.apply(doc, {
+		pulls = {},
+		authored = { authored },
+		reviews = { review },
+		viewer = "vocksel",
+		discover = false,
+	}, "2026-10-04T18:05:00Z")
+	assert.eq(report.reviewAdded[1], report.added[1])
+	assert.eq(doc.nodes[2].id, "reviews")
+	assert.eq(doc.nodes[3].data.itemKind, "pr")
+	assert.eq(doc.nodes[3].data.who, "you")
+	local recorded = require("@std/json").asObject(doc.nodes[3].data.github)
+	assert.eq(recorded and recorded.requestedFromYou, true)
+	assert.eq(recorded and recorded.mine, false)
+	local top = doc.github
+	assert.eq(top and top.viewer, "vocksel")
+	local unplaced = if top then require("@std/json").asArray(top.unplaced) else nil
+	assert.eq(unplaced and #unplaced, 1)
+	local entry = if unplaced then require("@std/json").asObject(unplaced[1]) else nil
+	local matches = if entry then require("@std/json").asArray(entry.matches) else nil
+	local first = if matches then require("@std/json").asObject(matches[1]) else nil
+	assert.eq(first and first.id, "dashboard")
+end)
+
+test.case("discover files authored pulls in Inbox and clears unplaced", function(assert)
+	local doc = testing.doc({})
+	local authored = pull("OPEN", { draft = true })
+	local report = github.apply(doc, {
+		pulls = {},
+		authored = { authored },
+		reviews = {},
+		viewer = "vocksel",
+		discover = true,
+	}, "2026-10-04T18:05:00Z")
+	assert.eq(report.added[1], "flipbook-1")
+	assert.eq(doc.nodes[2].data.itemKind, "pr")
+	assert.eq(doc.nodes[2].data.status, "active")
+	local top = doc.github
+	local unplaced = if top then require("@std/json").asArray(top.unplaced) else nil
+	assert.eq(unplaced and #unplaced, 0)
+end)
+
 test.case("fetch batches pull requests into one GraphQL query", function(assert)
 	local calls = 0
 	local query = ""
@@ -61,7 +138,7 @@ test.case("fetch batches pull requests into one GraphQL query", function(assert)
 		query = argv[5]
 		return testing.result(
 			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health","url":"u","state":"OPEN","isDraft":false,"reviewDecision":"REVIEW_REQUIRED","reviewRequests":{"totalCount":2}}},"p2":{"pullRequest":null}}}]]
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health","url":"u","state":"OPEN","isDraft":false,"reviewDecision":"REVIEW_REQUIRED","reviewRequests":{"totalCount":2,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"author":{"login":"colleague"},"updatedAt":"2026-10-04T18:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"PENDING"}}}]}}},"p2":{"pullRequest":null}}}]]
 		)
 	end, {
 		{ owner = "flipbook-labs", name = "flipbook", number = 658 },
@@ -69,8 +146,13 @@ test.case("fetch batches pull requests into one GraphQL query", function(assert)
 	})
 	assert.eq(calls, 1)
 	assert.strContains(query, "pullRequest(number: 658)")
+	assert.strContains(query, "statusCheckRollup")
+	assert.strContains(query, "requestedReviewer")
 	local hit = found["flipbook-labs/flipbook#658"]
 	assert.eq(hit and hit.reviewRequests, 2)
+	assert.eq(hit and hit.author, "colleague")
+	assert.eq(hit and hit.requestedReviewers[1], "vocksel")
+	assert.eq(hit and hit.checks, "PENDING")
 	assert.eq(found["flipbook-labs/flipbook#9999"], nil)
 end)
 
@@ -90,24 +172,16 @@ test.case("apply updates statuses, reports what's missing, and files new pull re
 	local merged = pull("MERGED")
 	local report = github.apply(doc, {
 		pulls = { ["flipbook-labs/flipbook#1"] = merged },
-		authored = {
-			{
-				owner = "flipbook-labs",
-				name = "storyteller",
-				number = 7,
-				state = "OPEN",
-				draft = true,
-				reviewRequests = 0,
-				title = "New work",
-				url = "u",
-			},
-		},
+		authored = {},
+		reviews = {},
+		viewer = "vocksel",
+		discover = false,
 	}, "2026-10-04T00:00:00Z")
 	assert.eq(#report.changes, 1)
 	assert.eq(report.changes[1].toStatus, "done")
 	assert.eq(report.missing[1], "b")
-	assert.eq(report.added[1], "storyteller-7")
-	assert.eq(doc.nodes[3].id, "inbox")
-	assert.eq(doc.nodes[4].parentId, "inbox")
-	assert.eq(doc.nodes[4].data.status, "active")
+	assert.eq(#report.added, 0)
+	local recorded = require("@std/json").asObject(doc.nodes[1].data.github)
+	assert.eq(recorded and recorded.checks, "SUCCESS")
+	assert.eq(recorded and recorded.additions, 12)
 end)

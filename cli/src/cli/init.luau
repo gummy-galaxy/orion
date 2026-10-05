@@ -44,6 +44,7 @@ local COMMAND_HELP: { [string]: string } = {
 	ungroup = "Dissolve a group, keeping its items in place",
 	move = "Move an item or group into another group",
 	sync = "Update pull request items from GitHub",
+	matches = "List unplaced pull requests and likely cards",
 	path = "Print where Orion keeps its data",
 	help = "Show help for Orion or one of its commands",
 }
@@ -149,6 +150,8 @@ local function createParsers(): Parsers
 	sync:add("discover", "flag", { help = "Add your open pull requests that aren't on the canvas to an Inbox group" })
 	sync:add("dry-run", "flag", { help = "Show what would change without writing" })
 	addJsonFlag(sync)
+
+	addJsonFlag(command("matches"))
 
 	command("path")
 	command("help"):add("command", "positional", { help = "Command to describe" })
@@ -281,7 +284,10 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 		table.insert(lines, "  Everything already matches.")
 	end
 	for _, id in report.added do
-		table.insert(lines, `  added {id} to Inbox`)
+		table.insert(
+			lines,
+			`  added {id} to {if table.find(report.reviewAdded, id) then "Review requests" else "Inbox"}`
+		)
 	end
 	if #report.missing > 0 then
 		table.insert(lines, `  not found on GitHub: {table.concat(report.missing, ", ")}`)
@@ -350,6 +356,33 @@ local function execute(args: { string }, options: Dependencies?)
 		)
 	elseif command == "groups" then
 		groupsReport(deps, store.load(dir), asJson)
+	elseif command == "matches" then
+		local doc = store.load(dir)
+		local unplaced = if doc.github then json.asArray(doc.github.unplaced) else nil
+		local values: json.Array = unplaced or {}
+		if asJson then
+			deps.write(json.serialize(values, true))
+		else
+			local lines: { string } = {}
+			for _, raw in values do
+				local pull = json.asObject(raw)
+				if not pull then
+					continue
+				end
+				table.insert(lines, `{pull.repo}#{pull.number}  {pull.title}`)
+				for _, entry in json.asArray(pull.matches) or {} do
+					local candidate = json.asObject(entry)
+					if candidate then
+						local item = if type(candidate.id) == "string" then graph.find(doc, candidate.id) else nil
+						table.insert(
+							lines,
+							`  {candidate.id}  {if item then graph.label(item) else ""}  {candidate.score}`
+						)
+					end
+				end
+			end
+			deps.write(if #lines > 0 then table.concat(lines, "\n") else "No unplaced pull requests.")
+		end
 	elseif command == "show" then
 		local doc = store.load(dir)
 		local item = graph.get(doc, required(parser, "id"))

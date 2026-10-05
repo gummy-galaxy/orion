@@ -50,7 +50,13 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
     <div className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn' : ''}`}>
       <Handle type="target" position={Position.Left} />
       <div className="meta">
-        <span>{taskTag(data)}</span>
+        <span className="meta-tag" title={taskTag(data)}>
+          {taskTag(data)}
+        </span>
+        {typeof data.github?.additions === 'number' && <span className="meta-lines">{data.github.additions + data.github.deletions} lines</span>}
+        {data.github?.checks && (
+          <span className={`check-dot check-${data.github.checks.toLowerCase()}`} title={`Checks: ${data.github.checks.toLowerCase()}`} />
+        )}
         <span className="st">
           {st === 'blocked' && <Lock />}
           {STATUS_LABEL[st]}

@@ -27,7 +27,33 @@ export type TaskData = {
   /** Written by `orion sync`; read-only here. */
   github?: GithubState
 }
-export type GithubState = { state: string; draft: boolean; reviewDecision?: string; title: string; checkedAt: string }
+export type GithubState = {
+  state: 'OPEN' | 'MERGED' | 'CLOSED'
+  draft: boolean
+  reviewDecision?: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED'
+  title: string
+  url: string
+  author: string
+  mine: boolean
+  requestedFromYou: boolean
+  updatedAt: string
+  additions: number
+  deletions: number
+  checks?: 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED'
+  checkedAt: string
+}
+export type UnplacedPr = {
+  repo: string
+  number: number
+  title: string
+  url: string
+  draft: boolean
+  updatedAt: string
+  additions: number
+  deletions: number
+  matches: { id: string; score: number }[]
+}
+export type GithubSnapshot = { viewer: string; checkedAt: string; unplaced: UnplacedPr[] }
 export type ClusterData = { kind: 'cluster'; label: string; blurb?: string }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. */
@@ -47,16 +73,15 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   done: 'Done',
 }
 
-// Every repository in the seed lives in this org. Revisit once sources other than Flipbook arrive.
-const GITHUB_ORG = 'flipbook-labs'
+const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
 
 export function taskTag(d: TaskData): string {
   if (d.repo && d.pr) return `${d.repo}#${d.pr}`
   return d.repo ?? 'step'
 }
 
-export function prUrl(d: TaskData): string | null {
-  return d.repo && d.pr ? `https://github.com/${GITHUB_ORG}/${d.repo}/pull/${d.pr}` : null
+export function prUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
+  return d.repo && d.pr ? `https://github.com/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}` : null
 }
 
 export const isCluster = (n: AppNode): n is ClusterNode => n.type === 'cluster'
@@ -215,7 +240,11 @@ export function githubSummary(github: GithubState, now = Date.now()) {
         ? 'Draft'
         : (REVIEW_LABEL[github.reviewDecision ?? ''] ?? 'Open')
       : github.state.charAt(0) + github.state.slice(1).toLowerCase()
-  const minutes = Math.max(0, Math.round((now - Date.parse(github.checkedAt)) / 60000))
+  return `${state} on GitHub · checked ${relativeTime(github.checkedAt, now)}`
+}
+
+export function relativeTime(iso: string, now = Date.now()) {
+  const minutes = Math.max(0, Math.round((now - Date.parse(iso)) / 60000))
   const ago =
     minutes < 1
       ? 'just now'
@@ -224,7 +253,7 @@ export function githubSummary(github: GithubState, now = Date.now()) {
         : minutes < 1440
           ? `${Math.round(minutes / 60)}h ago`
           : `${Math.round(minutes / 1440)}d ago`
-  return `${state} on GitHub · checked ${ago}`
+  return ago
 }
 
 const REVIEW_LABEL: Record<string, string> = { APPROVED: 'Approved', CHANGES_REQUESTED: 'Changes requested', REVIEW_REQUIRED: 'Awaiting review' }
