@@ -2,8 +2,11 @@ local test = require("@std/test")
 
 local github = require("@root/github")
 local testing = require("@root/testing")
+local types = require("@root/types")
 
 type PullState = github.PullState
+type Fetched = github.Fetched
+type Doc = types.Doc
 
 local function pull(
 	state: string,
@@ -15,6 +18,8 @@ local function pull(
 		name = "flipbook",
 		number = 1,
 		state = state,
+		baseRefName = "main",
+		headRefName = "feature/a",
 		draft = given.draft == true,
 		reviewDecision = given.reviewDecision,
 		reviewRequests = given.reviewRequests or 0,
@@ -28,6 +33,76 @@ local function pull(
 		checks = "SUCCESS",
 	}
 end
+
+local function stackFixture(): (Doc, Fetched)
+	local parent = pull("OPEN")
+	local child = pull("OPEN")
+	child.number = 2
+	child.baseRefName = parent.headRefName
+	child.headRefName = "feature/b"
+	local doc = testing.doc({
+		testing.task("a", "Parent", "todo", nil, { repo = "flipbook", pr = 1 }),
+		testing.task("b", "Child", "todo", nil, { repo = "flipbook", pr = 2 }),
+	})
+	return doc,
+		{
+			pulls = { [github.key(parent)] = parent, [github.key(child)] = child },
+			authored = {},
+			reviews = {},
+			viewer = "vocksel",
+			discover = false,
+		}
+end
+
+test.case("apply links stacked pull requests once", function(assert)
+	local doc, fetched = stackFixture()
+	local report = github.apply(doc, fetched, "now")
+	assert.eq(#doc.links, 1)
+	assert.eq(doc.links[1].from, "a")
+	assert.eq(doc.links[1].to, "b")
+	assert.eq(doc.links[1].kind, "blocks")
+	assert.eq(doc.links[1].origin, "stack")
+	assert.eq(report.linked[1].from, "a")
+	assert.eq(report.linked[1].to, "b")
+	assert.eq(#github.apply(doc, fetched, "later").linked, 0)
+	assert.eq(#doc.links, 1)
+end)
+
+test.case("apply leaves hand-made links in either direction untouched", function(assert)
+	for _, pair in { { "a", "b" }, { "b", "a" } } do
+		local doc, fetched = stackFixture()
+		doc.links = { { id = "manual", from = pair[1], to = pair[2], kind = "related" } }
+		local report = github.apply(doc, fetched, "now")
+		assert.eq(#report.linked, 0)
+		assert.eq(#doc.links, 1)
+		assert.eq(doc.links[1].id, "manual")
+		assert.eq(doc.links[1].kind, "related")
+		assert.eq(doc.links[1].origin, nil)
+	end
+end)
+
+test.case("apply unlinks a retargeted open stack without changing a hand-made link", function(assert)
+	local doc, fetched = stackFixture()
+	github.apply(doc, fetched, "now")
+	table.insert(doc.links, { id = "manual", from = "a", to = "b", kind = "related" })
+	fetched.pulls["flipbook-labs/flipbook#2"].baseRefName = "main"
+	local report = github.apply(doc, fetched, "later")
+	assert.eq(report.unlinked[1].from, "a")
+	assert.eq(report.unlinked[1].to, "b")
+	assert.eq(#doc.links, 1)
+	assert.eq(doc.links[1].id, "manual")
+end)
+
+test.case("apply keeps a merged parent's stack link after the child is retargeted", function(assert)
+	local doc, fetched = stackFixture()
+	github.apply(doc, fetched, "now")
+	fetched.pulls["flipbook-labs/flipbook#1"].state = "MERGED"
+	fetched.pulls["flipbook-labs/flipbook#2"].baseRefName = "main"
+	local report = github.apply(doc, fetched, "later")
+	assert.eq(#report.unlinked, 0)
+	assert.eq(#doc.links, 1)
+	assert.eq(doc.links[1].origin, "stack")
+end)
 
 test.case("desired follows the pull request's state", function(assert)
 	assert.eq(github.desired(pull("MERGED"), "review", "review", "vocksel"), "done")
@@ -138,7 +213,7 @@ test.case("fetch batches pull requests into one GraphQL query", function(assert)
 		query = argv[5]
 		return testing.result(
 			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health","url":"u","state":"OPEN","isDraft":false,"reviewDecision":"REVIEW_REQUIRED","reviewRequests":{"totalCount":2,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"author":{"login":"colleague"},"updatedAt":"2026-10-04T18:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"PENDING"}}}]}}},"p2":{"pullRequest":null}}}]]
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health","url":"u","state":"OPEN","baseRefName":"main","headRefName":"feature/a","isDraft":false,"reviewDecision":"REVIEW_REQUIRED","reviewRequests":{"totalCount":2,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"author":{"login":"colleague"},"updatedAt":"2026-10-04T18:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"PENDING"}}}]}}},"p2":{"pullRequest":null}}}]]
 		)
 	end, {
 		{ owner = "flipbook-labs", name = "flipbook", number = 658 },
@@ -148,11 +223,14 @@ test.case("fetch batches pull requests into one GraphQL query", function(assert)
 	assert.strContains(query, "pullRequest(number: 658)")
 	assert.strContains(query, "statusCheckRollup")
 	assert.strContains(query, "requestedReviewer")
+	assert.strContains(query, "baseRefName headRefName")
 	local hit = found["flipbook-labs/flipbook#658"]
 	assert.eq(hit and hit.reviewRequests, 2)
 	assert.eq(hit and hit.author, "colleague")
 	assert.eq(hit and hit.requestedReviewers[1], "vocksel")
 	assert.eq(hit and hit.checks, "PENDING")
+	assert.eq(hit and hit.baseRefName, "main")
+	assert.eq(hit and hit.headRefName, "feature/a")
 	assert.eq(found["flipbook-labs/flipbook#9999"], nil)
 end)
 

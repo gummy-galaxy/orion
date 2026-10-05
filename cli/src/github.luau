@@ -13,6 +13,8 @@ export type PullState = {
 	name: string,
 	number: number,
 	state: string,
+	baseRefName: string,
+	headRefName: string,
 	draft: boolean,
 	reviewDecision: string?,
 	reviewRequests: number,
@@ -36,11 +38,14 @@ export type Change = {
 	toWho: string?,
 	closed: boolean,
 }
+export type StackLink = { from: string, to: string }
 export type Report = {
 	changes: { Change },
 	missing: { string },
 	added: { string },
 	reviewAdded: { string },
+	linked: { StackLink },
+	unlinked: { StackLink },
 	checked: number,
 }
 export type Fetched = {
@@ -53,7 +58,7 @@ export type Fetched = {
 
 local BATCH_SIZE = 25
 local PULL_FIELDS =
-	"number title url state isDraft reviewDecision author { login } updatedAt additions deletions commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
+	"number title url state baseRefName headRefName isDraft reviewDecision author { login } updatedAt additions deletions commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
 local NAME_PATTERN = "^[%w%-%._]+$"
 local INBOX_ID = "inbox"
 local REVIEWS_ID = "reviews"
@@ -103,6 +108,8 @@ local function pullFromObject(object: json.Object, owner: string, name: string):
 		name = name,
 		number = number,
 		state = state,
+		baseRefName = str(object.baseRefName) or "",
+		headRefName = str(object.headRefName) or "",
 		draft = object.isDraft == true,
 		reviewDecision = str(object.reviewDecision),
 		reviewRequests = if requests and type(requests.totalCount) == "number" then requests.totalCount else 0,
@@ -283,8 +290,70 @@ local function ensureGroup(doc: Doc, id: string, label: string, blurb: string)
 	end
 end
 
+local function stacked(parent: PullState, child: PullState): boolean
+	return parent.owner:lower() == child.owner:lower()
+		and parent.name:lower() == child.name:lower()
+		and parent.number ~= child.number
+		and parent.headRefName ~= ""
+		and parent.headRefName == child.baseRefName
+end
+
+local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
+	local pulls = table.clone(fetched.pulls)
+	for _, list in { fetched.authored, fetched.reviews } do
+		for _, pull in list do
+			local key = github.key(pull)
+			if not pulls[key] then
+				pulls[key] = pull
+			end
+		end
+	end
+	local cards: { { id: string, pull: PullState } } = {}
+	local byId: { [string]: PullState } = {}
+	for _, item in doc.nodes do
+		local ref = github.refFor(item, doc.settings.githubOwner)
+		local pull = if ref then pulls[github.key(ref)] else nil
+		if pull then
+			table.insert(cards, { id = item.id, pull = pull })
+			byId[item.id] = pull
+		end
+	end
+	for index = #doc.links, 1, -1 do
+		local link = doc.links[index]
+		if link.origin ~= "stack" then
+			continue
+		end
+		local parent, child = byId[link.from], byId[link.to]
+		if parent and child and parent.state == "OPEN" and child.state == "OPEN" and not stacked(parent, child) then
+			table.remove(doc.links, index)
+			table.insert(report.unlinked, { from = link.from, to = link.to })
+		end
+	end
+	for _, parent in cards do
+		for _, child in cards do
+			if not stacked(parent.pull, child.pull) then
+				continue
+			end
+			local exists = false
+			for _, link in doc.links do
+				if
+					(link.from == parent.id and link.to == child.id) or (link.from == child.id and link.to == parent.id)
+				then
+					exists = true
+					break
+				end
+			end
+			if not exists then
+				graph.link(doc, parent.id, child.id, "blocks").origin = "stack"
+				table.insert(report.linked, { from = parent.id, to = child.id })
+			end
+		end
+	end
+end
+
 function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
-	local report: Report = { changes = {}, missing = {}, added = {}, reviewAdded = {}, checked = 0 }
+	local report: Report =
+		{ changes = {}, missing = {}, added = {}, reviewAdded = {}, linked = {}, unlinked = {}, checked = 0 }
 	local onCanvas: { [string]: boolean } = {}
 	for _, item in doc.nodes do
 		local ref = github.refFor(item, doc.settings.githubOwner)
@@ -377,6 +446,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			)
 		end
 	end
+	syncStackLinks(doc, fetched, report)
 	table.sort(unplaced, function(a, b)
 		local left, right = json.asObject(a), json.asObject(b)
 		local leftTime: string = if left then str(left.updatedAt) or "" else ""

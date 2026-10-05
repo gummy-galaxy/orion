@@ -12,6 +12,20 @@ test.case("load explains how to create data when none exists", function(assert)
 	end)
 end)
 
+test.case("store round-trips stack origins without adding one to hand-made links", function(assert)
+	local doc = store.decode(
+		[[{"nodes":[],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks","origin":"stack"},{"id":"b>c","from":"b","to":"c","kind":"related"}]}]]
+	)
+	assert.eq(doc.links[1].origin, "stack")
+	assert.eq(doc.links[2].origin, nil)
+	local encoded = json.asObject(json.deserialize(store.encode(doc)) :: json.Value)
+	local links = if encoded then json.asArray(encoded.links) else nil
+	local stack = if links then json.asObject(links[1]) else nil
+	local manual = if links then json.asObject(links[2]) else nil
+	assert.eq(stack and stack.origin, "stack")
+	assert.eq(manual and manual.origin, nil)
+end)
+
 test.case("store round-trips top-level GitHub data and unknown fields", function(assert)
 	local doc = store.decode(
 		[[{"version":1,"revision":0,"settings":{"githubOwner":"flipbook-labs"},"nodes":[],"links":[],"github":{"viewer":"vocksel","checkedAt":"now","unplaced":[]},"future":{"kept":true}}]]
