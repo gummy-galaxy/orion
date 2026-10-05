@@ -1117,17 +1117,21 @@ kbd {
   --c: var(--note-edge);
   background: var(--note);
   border-color: var(--note-edge);
+  height: auto;
+  display: flex;
+  flex-direction: column;
 }
 .card.note .meta {
   color: var(--note-ink);
 }
 .note-text {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   font-size: 12px;
   line-height: 1.3;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
   white-space: pre-wrap;
 }
 

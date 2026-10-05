@@ -2,6 +2,8 @@ import type { Node } from '@xyflow/react'
 
 export const TASK_W = 208
 export const TASK_H = 66
+/** Notes grow with their text to this height, then scroll. */
+export const NOTE_MAX_H = TASK_H * 2
 export const PAD = 24
 export const HEAD = 52
 
@@ -104,6 +106,7 @@ export function ancestors(id: string, map: Map<string, AppNode>): string[] {
 }
 
 export function sizeOf(n: AppNode): { w: number; h: number } {
+  if (isNote(n)) return { w: TASK_W, h: n.measured?.height ?? TASK_H }
   if (isTask(n)) return { w: TASK_W, h: TASK_H }
   return { w: n.width ?? 320, h: n.height ?? 200 }
 }
@@ -123,7 +126,8 @@ export function absPos(n: AppNode, map: Map<string, AppNode>): { x: number; y: n
 
 /** Fills in the React Flow fields every node needs, so saved data stays minimal. */
 function hydrate(n: AppNode): AppNode {
-  if (isTask(n)) return { ...n, width: TASK_W, height: TASK_H, expandParent: !!n.parentId }
+  // Notes are measured, so their height follows the text up to NOTE_MAX_H.
+  if (isTask(n)) return { ...n, width: TASK_W, height: isNote(n) ? undefined : TASK_H, expandParent: !!n.parentId }
   return { ...n, dragHandle: '.drag', expandParent: !!n.parentId }
 }
 

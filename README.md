@@ -51,7 +51,7 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 - Hover a card to trace what it needs (amber) and what it unlocks (teal). Double-click a card to hold its trace while you pan; click anywhere or press Esc to let it go.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks.
 - "Unblocks N" counts every open task downstream, directly or not.
-- N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
+- N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later. A note grows with its text to twice a card's height, then scrolls.
 - Reflow lays out the inside of a group. Tidy lays out the current level.
 - Drag from the edge of a card to another card to add a dependency.
 

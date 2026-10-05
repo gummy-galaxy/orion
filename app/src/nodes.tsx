@@ -1,7 +1,7 @@
-import { useContext, type CSSProperties } from 'react'
+import { useContext, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext } from './derive'
-import { STATUS_LABEL, taskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { NOTE_MAX_H, STATUS_LABEL, TASK_H, taskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
@@ -28,6 +28,26 @@ function Ring({ done, total, size = 22 }: { done: number; total: number; size?: 
   )
 }
 
+/** Takes the wheel only while it has more text to scroll, so short notes still pan and zoom the canvas. */
+function NoteText({ text }: { text: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [scrolls, setScrolls] = useState(false)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const check = () => setScrolls(el.scrollHeight > el.clientHeight)
+    check()
+    const observer = new ResizeObserver(check)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [text])
+  return (
+    <div ref={ref} className={`note-text${scrolls ? ' nowheel' : ''}`}>
+      {text}
+    </div>
+  )
+}
+
 export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const d = useContext(DerivedContext)!
   const st = d.status.get(id) ?? 'ready'
@@ -36,12 +56,12 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const attn = d.attention?.get(id)
   if (data.itemKind === 'note') {
     return (
-      <div className={`card note${tr ? ' tr-' + tr : ''}`}>
+      <div className={`card note${tr ? ' tr-' + tr : ''}`} style={{ minHeight: TASK_H, maxHeight: NOTE_MAX_H }}>
         <Handle type="target" position={Position.Left} />
         <div className="meta">
           <span>Note</span>
         </div>
-        <div className="note-text">{data.label || 'Empty note'}</div>
+        <NoteText text={data.label || 'Empty note'} />
         <Handle type="source" position={Position.Right} />
       </div>
     )
