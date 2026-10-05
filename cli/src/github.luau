@@ -70,7 +70,9 @@ export type Fetched = {
 
 local BATCH_SIZE = 25
 local PULL_FIELDS =
-	"number title body url state baseRefName headRefName isDraft reviewDecision mergeStateStatus latestReviews(first: 20) { nodes { state author { login } } } author { login } updatedAt additions deletions commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
+	"number title body url state baseRefName headRefName isDraft reviewDecision author { login } updatedAt additions deletions commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
+-- Only for pull requests on cards: GitHub computes merge state on request, which times out across a long list.
+local REVIEW_FIELDS = "mergeStateStatus latestReviews(first: 20) { nodes { state author { login } } }"
 local NAME_PATTERN = "^[%w%-%._]+$"
 local INBOX_ID = "inbox"
 local REVIEWS_ID = "reviews"
@@ -222,7 +224,7 @@ function github.fetch(run: CommandRunner, refs: { Ref }): { [string]: PullState 
 				batch[alias] = ref
 				table.insert(
 					parts,
-					`{alias}: repository(owner: "{ref.owner}", name: "{ref.name}") \{ pullRequest(number: {ref.number}) \{ {PULL_FIELDS} } }`
+					`{alias}: repository(owner: "{ref.owner}", name: "{ref.name}") \{ pullRequest(number: {ref.number}) \{ {PULL_FIELDS} {REVIEW_FIELDS} } }`
 				)
 			end
 			local data = query(run, `query \{ {table.concat(parts, " ")} }`, if host == "github.com" then nil else host)
@@ -426,24 +428,53 @@ function github.involved(
 	return pulls, issues, login
 end
 
+-- Lists come in small pages: a page of 100 pull requests with checks and reviews outlasts GitHub's gateway timeout.
+local LIST_PAGE = 25
+
+--- Pages through `connection` (found by `pick` in each response) until `limit` pull requests or the last page.
+local function pagedPulls(
+	run: CommandRunner,
+	limit: number,
+	build: (page: string) -> string,
+	pick: (data: json.Object?) -> json.Object?
+): { PullState }
+	local out: { PullState } = {}
+	local cursor: string? = nil
+	while #out < limit do
+		local after = if cursor then `, after: {json.serialize(cursor)}` else ""
+		local connection = pick(query(run, build(`first: {math.min(LIST_PAGE, limit - #out)}{after}`)))
+		for _, pull in pullList(if connection then json.asArray(connection.nodes) else nil) do
+			table.insert(out, pull)
+		end
+		local info = if connection then json.asObject(connection.pageInfo) else nil
+		local nextCursor = if info then str(info.endCursor) else nil
+		if not info or info.hasNextPage ~= true or not nextCursor then
+			break
+		end
+		cursor = nextCursor
+	end
+	return out
+end
+
 function github.authoredOpen(run: CommandRunner): ({ PullState }, string)
-	local data = query(
-		run,
-		`query \{ viewer \{ login pullRequests(first: 100, states: OPEN, orderBy: \{field: UPDATED_AT, direction: DESC}) \{ nodes \{ {PULL_FIELDS} repository \{ name owner \{ login } } } } } }`
-	)
-	local viewer = if data then json.asObject(data.viewer) else nil
-	assert(viewer and type(viewer.login) == "string", "could not fetch GitHub viewer")
-	local pulls = json.asObject(viewer.pullRequests)
-	return pullList(if pulls then json.asArray(pulls.nodes) else nil), viewer.login
+	local login: string? = nil
+	local pulls = pagedPulls(run, 100, function(page)
+		return `query \{ viewer \{ login pullRequests({page}, states: OPEN, orderBy: \{field: UPDATED_AT, direction: DESC}) \{ nodes \{ {PULL_FIELDS} repository \{ name owner \{ login } } } pageInfo \{ hasNextPage endCursor } } } }`
+	end, function(data)
+		local viewer = if data then json.asObject(data.viewer) else nil
+		assert(viewer and type(viewer.login) == "string", "could not fetch GitHub viewer")
+		login = viewer.login
+		return json.asObject(viewer.pullRequests)
+	end)
+	return pulls, login :: string
 end
 
 function github.reviewRequested(run: CommandRunner): { PullState }
-	local data = query(
-		run,
-		`query \{ search(query: "is:open is:pr review-requested:@me archived:false", type: ISSUE, first: 50) \{ nodes \{ ... on PullRequest \{ {PULL_FIELDS} repository \{ name owner \{ login } } } } } }`
-	)
-	local search = if data then json.asObject(data.search) else nil
-	return pullList(if search then json.asArray(search.nodes) else nil)
+	return pagedPulls(run, 50, function(page)
+		return `query \{ search(query: "is:open is:pr review-requested:@me archived:false", type: ISSUE, {page}) \{ nodes \{ ... on PullRequest \{ {PULL_FIELDS} repository \{ name owner \{ login } } } } pageInfo \{ hasNextPage endCursor } } }`
+	end, function(data)
+		return if data then json.asObject(data.search) else nil
+	end)
 end
 
 local function requestedFrom(pull: PullState, viewer: string): boolean

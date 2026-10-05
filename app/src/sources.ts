@@ -324,10 +324,14 @@ export function badgeOf(source: Source, owner: string): Badge {
       return { icon: 'slack', domain: 'slack.com', label, href }
     case 'hop':
       return { icon: 'hop', domain: 'hop', label, href }
-    default:
-      return { icon: 'url', domain: hostname(source.url) ?? source.url, label, href }
+    default: {
+      const domain = hostname(source.url) ?? source.url
+      return { icon: GITHUB_HOST.test(domain) ? 'github' : 'url', domain, label, href }
+    }
   }
 }
+
+const GITHUB_HOST = /^(?:www\.)?github\.com$/i
 
 /** Badges group by service; links group by site. */
 export const badgeGroup = (badge: Badge) => (badge.icon === 'url' ? `url:${badge.domain}` : badge.icon)
