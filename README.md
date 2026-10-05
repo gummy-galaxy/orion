@@ -84,7 +84,6 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
 - Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
-- Zoom in while pointing at a group to enter it when it fills most of the canvas.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to jump to it.
 - Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
