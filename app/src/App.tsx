@@ -24,6 +24,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
 import { reflow, reflowAll } from './layout'
+import { settleGroups, type GroupPosition } from './gravity'
 import {
   STATUS_LABEL,
   TASK_H,
@@ -68,7 +69,6 @@ import {
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
-import { SkyscraperSpike } from './SkyscraperSpike'
 
 type ViewNode = AppNode | GhostNode
 
@@ -168,7 +168,12 @@ function Canvas() {
   const [pinned, setPinned] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(true)
-  const [skyscraperSpike, setSkyscraperSpike] = useState(false)
+  const [gravityMode, setGravityMode] = useState(false)
+  const [gravityPositions, setGravityPositions] = useState<Map<string, GroupPosition>>(new Map())
+  const gravityPositionsRef = useRef<Map<string, GroupPosition>>(new Map())
+  const gravityFrame = useRef<number | null>(null)
+  const gravityViewport = useRef<Viewport | null>(null)
+  const gravityRoot = useRef<string | null>(null)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [menu, setMenu] = useState<Menu | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -399,6 +404,83 @@ function Canvas() {
     requestAnimationFrame(step)
   }, [])
 
+  const showGravityPositions = useCallback((positions: Map<string, GroupPosition>) => {
+    gravityPositionsRef.current = positions
+    setGravityPositions(positions)
+  }, [])
+
+  const stopGravityAnimation = useCallback(() => {
+    if (gravityFrame.current !== null) cancelAnimationFrame(gravityFrame.current)
+    gravityFrame.current = null
+  }, [])
+
+  const animateGravity = useCallback(
+    (target: Map<string, GroupPosition>) => {
+      stopGravityAnimation()
+      const from = gravityPositionsRef.current
+      const start = performance.now()
+      const step = (now: number) => {
+        const t = ease(Math.min(1, (now - start) / 380))
+        const positions = new Map<string, GroupPosition>()
+        for (const [id, end] of target) {
+          const begin = from.get(id) ?? end
+          positions.set(id, { x: begin.x + (end.x - begin.x) * t, y: begin.y + (end.y - begin.y) * t })
+        }
+        showGravityPositions(positions)
+        gravityFrame.current = t < 1 ? requestAnimationFrame(step) : null
+      }
+      gravityFrame.current = requestAnimationFrame(step)
+    },
+    [showGravityPositions, stopGravityAnimation],
+  )
+
+  const leaveGravity = useCallback(
+    (restoreViewport = true) => {
+      stopGravityAnimation()
+      setGravityMode(false)
+      showGravityPositions(new Map())
+      const viewport = gravityViewport.current
+      gravityViewport.current = null
+      const previousRoot = gravityRoot.current
+      gravityRoot.current = null
+      if (restoreViewport && previousRoot) {
+        openRoot(previousRoot)
+        skipNextFit.current = true
+      }
+      if (restoreViewport && viewport) void rf.setViewport(viewport, { duration: 450 })
+    },
+    [showGravityPositions, stopGravityAnimation, openRoot, rf],
+  )
+
+  const enterGravity = useCallback(() => {
+    const groups = nodes.filter((n) => isCluster(n) && !n.parentId)
+    const positions = new Map(groups.map((n) => [n.id, n.position]))
+    const settled = settleGroups(nodes, positions)
+    gravityViewport.current = rf.getViewport()
+    gravityRoot.current = root
+    if (root) {
+      openRoot(null)
+      skipNextFit.current = true
+    }
+    setMenu(null)
+    setPinned(null)
+    setHover(null)
+    showGravityPositions(positions)
+    setGravityMode(true)
+    animateGravity(settled)
+    if (groups.length) {
+      const first = groups.reduce((a, b) => (a.position.x < b.position.x ? a : b))
+      const box = canvasRef.current?.getBoundingClientRect()
+      if (box) {
+        const focus = settled.get(first.id) ?? first.position
+        const zoom = 0.35
+        void rf.setViewport({ x: 30 - focus.x * zoom, y: box.height / 2 - (focus.y + sizeOf(first).h / 2) * zoom, zoom }, { duration: 450 })
+      }
+    }
+  }, [nodes, root, openRoot, showGravityPositions, animateGravity, rf])
+
+  useEffect(() => () => stopGravityAnimation(), [stopGravityAnimation])
+
   const map = useMemo(() => byId(nodes), [nodes])
   const rootWorkCount = useMemo(() => {
     if (!root) return 0
@@ -496,7 +578,7 @@ function Canvas() {
     const chain = ancestors(id, map)
     return levelRoot ? chain.indexOf(levelRoot) : chain.length
   }
-  const small = nodes
+  const small = (gravityMode ? [] : nodes)
     // The open group stays open while peeking; only its surroundings fold.
     .filter((n) => isCluster(n) && n.id !== levelRoot && n.id !== root && inView(n.id) && zoom < COLLAPSE_ZOOM + COLLAPSE_STEP * depthInView(n.id))
     .map((n) => n.id)
@@ -574,12 +656,13 @@ function Canvas() {
     () => [
       ...nodes.map((n) => ({
         ...n,
+        ...(gravityMode ? { position: gravityPositions.get(n.id) ?? n.position, draggable: isCluster(n) && !n.parentId, connectable: false } : {}),
         hidden: view.hidden.has(n.id),
         className: [n.className, peeking && !inFocus(n.id) ? 'is-peek' : ''].filter(Boolean).join(' ') || undefined,
       })),
       ...ghosts,
     ],
-    [nodes, view, ghosts, peeking, inFocus],
+    [nodes, view, ghosts, peeking, inFocus, gravityMode, gravityPositions],
   )
 
   const trace = useMemo(() => {
@@ -729,16 +812,57 @@ function Canvas() {
   }, [attention, map, zoom, panX, panY])
 
   const derived = useMemo<Derived>(
-    () => ({ status: work.status, leverage: work.leverage, groups: work.groups, trace, collapsed, zoom, attention: attention?.marks ?? null }),
-    [work, trace, collapsed, zoom, attention],
+    () => ({
+      status: work.status,
+      leverage: work.leverage,
+      groups: work.groups,
+      trace,
+      collapsed,
+      zoom,
+      gravityMode,
+      attention: attention?.marks ?? null,
+    }),
+    [work, trace, collapsed, zoom, gravityMode, attention],
   )
 
   const onNodesChange = useCallback(
-    (changes: NodeChange<ViewNode>[]) =>
-      setNodes((ns) => applyNodeChanges(changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[], ns)),
-    [],
+    (changes: NodeChange<ViewNode>[]) => {
+      if (!gravityMode) {
+        setNodes((ns) => applyNodeChanges(changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[], ns))
+        return
+      }
+      const positions = changes.filter((c) => {
+        if (c.type !== 'position' || !c.position) return false
+        const node = map.get(c.id)
+        return !!node && isCluster(node) && !node.parentId
+      })
+      if (positions.length) {
+        stopGravityAnimation()
+        const next = new Map(gravityPositionsRef.current)
+        for (const change of positions) {
+          if (change.type === 'position' && change.position) next.set(change.id, change.position)
+        }
+        showGravityPositions(next)
+      }
+      const selections = changes.filter((c) => c.type === 'select') as NodeChange<AppNode>[]
+      if (selections.length) setNodes((ns) => applyNodeChanges(selections, ns))
+    },
+    [gravityMode, map, showGravityPositions, stopGravityAnimation],
   )
-  const onDragStop = useCallback(() => setNodes((ns) => normalize(ns)), [])
+  const onDragStop = useCallback(
+    (_: unknown, node: ViewNode) => {
+      if (!gravityMode) {
+        setNodes((ns) => normalize(ns))
+        return
+      }
+      if (node.type !== 'cluster' || node.parentId) return
+      const next = new Map(gravityPositionsRef.current)
+      next.set(node.id, node.position)
+      showGravityPositions(next)
+      animateGravity(settleGroups(nodes, next, node.id))
+    },
+    [gravityMode, nodes, showGravityPositions, animateGravity],
+  )
   const onConnect = useCallback((c: Connection) => {
     if (!c.source || !c.target || c.source === c.target) return
     setLinks((ls) =>
@@ -771,15 +895,17 @@ function Canvas() {
   const actions = useMemo(
     () => ({
       reflow: (gid: string) => {
+        if (gravityMode) return
         const { nodes: ns, links: ls } = latest.current
         reflow(ns, ls, gid).then(tweenTo)
       },
       open: (gid: string) => {
+        if (gravityMode) leaveGravity(false)
         openRoot(gid)
         setHover(null)
       },
     }),
-    [tweenTo, openRoot],
+    [tweenTo, openRoot, gravityMode, leaveGravity],
   )
 
   const updateData = useCallback(
@@ -934,8 +1060,8 @@ function Canvas() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (skyscraperSpike) {
-        if (e.key === 'Escape') setSkyscraperSpike(false)
+      if (gravityMode) {
+        if (e.key === 'Escape') leaveGravity()
         return
       }
       if ((e.target as HTMLElement).closest('input, textarea, select')) return
@@ -959,7 +1085,23 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot, skyscraperSpike])
+  }, [
+    doGroup,
+    doUngroup,
+    selected,
+    actions,
+    root,
+    peeking,
+    map,
+    fitTo,
+    addNote,
+    viewportCenter,
+    pinned,
+    leaveRoot,
+    openRoot,
+    gravityMode,
+    leaveGravity,
+  ])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
@@ -974,11 +1116,21 @@ function Canvas() {
     <DerivedContext.Provider value={derived}>
       <ActionsContext.Provider value={actions}>
         <div className="app">
-          {sidebar && !skyscraperSpike && (
-            <Sidebar nodes={nodes} groups={work.groups} root={root} open={openRoot} readyTotal={readyTotal} hide={() => toggleSidebar(false)} />
+          {sidebar && (
+            <Sidebar
+              nodes={nodes}
+              groups={work.groups}
+              root={root}
+              open={(id) => {
+                if (gravityMode) leaveGravity(false)
+                openRoot(id)
+              }}
+              readyTotal={readyTotal}
+              hide={() => toggleSidebar(false)}
+            />
           )}
           <div className={`canvas${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
-            {ready && !skyscraperSpike && (
+            {ready && (
               <ReactFlow<ViewNode, Edge>
                 fitView
                 fitViewOptions={{ padding: 0.12 }}
@@ -988,7 +1140,7 @@ function Canvas() {
                 onNodesChange={onNodesChange}
                 onMove={onViewportMove}
                 onNodeDragStop={onDragStop}
-                onConnect={onConnect}
+                onConnect={gravityMode ? undefined : onConnect}
                 onNodeMouseEnter={(_, n) => setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
                 onNodeMouseLeave={() => setHover(null)}
                 onNodeClick={(_, n) => {
@@ -997,6 +1149,10 @@ function Canvas() {
                   if (n.type === 'ghost') jumpTo(n.data.taskId)
                 }}
                 onNodeDoubleClick={(_, n) => {
+                  if (gravityMode) {
+                    if (n.type === 'cluster') actions.open(n.id)
+                    return
+                  }
                   if (peeking && !inFocus(n.id)) leaveRoot()
                   if (n.type === 'cluster') actions.open(n.id)
                   else if (n.type === 'task' && isNote(n)) setEditing(n.id)
@@ -1007,14 +1163,27 @@ function Canvas() {
                 }}
                 onPaneClick={() => setPinned(null)}
                 onEdgeClick={() => setPinned(null)}
-                onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
+                onPaneContextMenu={(e) => {
+                  if (gravityMode) e.preventDefault()
+                  else openMenu(e, { kind: 'pane' })
+                }}
                 onNodeContextMenu={(e, n) => {
+                  if (gravityMode) {
+                    e.preventDefault()
+                    return
+                  }
                   if (peeking && !inFocus(n.id)) leaveRoot()
                   if (n.type !== 'ghost' && !n.selected) selectOnly(n.id)
                   openMenu(e, { kind: 'node', id: n.id })
                 }}
-                onSelectionContextMenu={(e, ns) => openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })}
-                onEdgeContextMenu={(e, edge) => !edge.id.startsWith('agg:') && openMenu(e, { kind: 'edge', id: edge.id })}
+                onSelectionContextMenu={(e, ns) => {
+                  if (gravityMode) e.preventDefault()
+                  else openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })
+                }}
+                onEdgeContextMenu={(e, edge) => {
+                  if (gravityMode) e.preventDefault()
+                  else if (!edge.id.startsWith('agg:')) openMenu(e, { kind: 'edge', id: edge.id })
+                }}
                 panOnDrag={[0, 1]}
                 selectionKeyCode="Meta"
                 selectionOnDrag={false}
@@ -1057,18 +1226,29 @@ function Canvas() {
                     </span>
                   ))}
                   <span className="crumb-actions">
-                    <button type="button" className="btn" onClick={() => setSkyscraperSpike(true)}>
-                      Try skyscrapers
+                    <button
+                      type="button"
+                      className="btn"
+                      title={gravityMode ? 'Return to the original canvas layout' : 'Drag group headers; groups settle against their left support'}
+                      onClick={gravityMode ? () => leaveGravity() : enterGravity}
+                    >
+                      {gravityMode ? 'Leave group gravity' : 'Try group gravity'}
                     </button>
-                    <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
-                      Add note
-                    </button>
-                    <button type="button" className="btn" onClick={tidy}>
-                      Tidy {root ? 'group' : 'canvas'}
-                    </button>
-                    <button type="button" className="btn" onClick={reset}>
-                      Reset to seed
-                    </button>
+                    {!gravityMode && (
+                      <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
+                        Add note
+                      </button>
+                    )}
+                    {!gravityMode && (
+                      <button type="button" className="btn" onClick={tidy}>
+                        Tidy {root ? 'group' : 'canvas'}
+                      </button>
+                    )}
+                    {!gravityMode && (
+                      <button type="button" className="btn" onClick={reset}>
+                        Reset to seed
+                      </button>
+                    )}
                     {syncStatus && (
                       <button
                         type="button"
@@ -1090,7 +1270,7 @@ function Canvas() {
                   </span>
                 </Panel>
 
-                {selected.length > 0 && (
+                {!gravityMode && selected.length > 0 && (
                   <Panel position="top-right" className="panel inspector">
                     {!one ? (
                       <div className="insp">
@@ -1149,33 +1329,35 @@ function Canvas() {
                   </Panel>
                 )}
 
-                <Panel position="bottom-center" className="panel help">
-                  {root && exitHint?.root === root && (
-                    <div className="zoom-exit-hint">
-                      <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
-                      <div className="zoom-exit-track">
-                        <div className="zoom-exit-fill" style={{ width: `${exitHint.progress * 100}%` }} />
+                {!gravityMode && (
+                  <Panel position="bottom-center" className="panel help">
+                    {root && exitHint?.root === root && (
+                      <div className="zoom-exit-hint">
+                        <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
+                        <div className="zoom-exit-track">
+                          <div className="zoom-exit-fill" style={{ width: `${exitHint.progress * 100}%` }} />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  {showHelp ? (
-                    <>
-                      Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
-                      double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge
-                      to link{' '}
-                      <button type="button" className="link" onClick={() => setShowHelp(false)}>
-                        Hide
+                    )}
+                    {showHelp ? (
+                      <>
+                        Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
+                        double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's
+                        edge to link{' '}
+                        <button type="button" className="link" onClick={() => setShowHelp(false)}>
+                          Hide
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="link" onClick={() => setShowHelp(true)}>
+                        Shortcuts
                       </button>
-                    </>
-                  ) : (
-                    <button type="button" className="link" onClick={() => setShowHelp(true)}>
-                      Shortcuts
-                    </button>
-                  )}
-                </Panel>
+                    )}
+                  </Panel>
+                )}
               </ReactFlow>
             )}
-            {attending && cursor && (
+            {!gravityMode && attending && cursor && (
               <AttentionOverlay
                 targets={attentionTargets}
                 count={attention?.count ?? 0}
@@ -1188,7 +1370,6 @@ function Canvas() {
             )}
             {!ready && <div className="loading">Laying out…</div>}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
-            {skyscraperSpike && <SkyscraperSpike onClose={() => setSkyscraperSpike(false)} />}
           </div>
         </div>
       </ActionsContext.Provider>
