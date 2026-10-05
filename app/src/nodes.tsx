@@ -1,7 +1,8 @@
 import { useContext, useState, type CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { ActionsContext, DerivedContext, type SourceRef } from './derive'
-import { STATUS_LABEL, taskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { ActionsContext, DerivedContext } from './derive'
+import { STATUS_LABEL, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { badgeGroup, driver, taskTag, type Badge } from './sources'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
@@ -41,30 +42,82 @@ function Favicon({ domain }: { domain: string }) {
   )
 }
 
-function SourceBadges({ sources, inBubble = false }: { sources: SourceRef[]; inBubble?: boolean }) {
-  const domains = new Map<string, string[]>()
-  for (const { domain, label } of sources.length ? sources : [{ domain: 'orion', label: 'Orion' }]) {
-    const labels = domains.get(domain) ?? []
-    if (!labels.includes(label)) labels.push(label)
-    domains.set(domain, labels)
+const SERVICE_NAME: Record<Badge['icon'], string | null> = { github: 'GitHub', jira: 'Jira', slack: 'Slack', hop: 'hop', orion: 'Orion', url: null }
+
+function ServiceIcon({ badge }: { badge: Badge }) {
+  switch (badge.icon) {
+    case 'github':
+      return (
+        <span className="source-favicon source-icon-github">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M12 .3a12 12 0 0 0-3.8 23.38c.6.12.82-.26.82-.57v-2.04c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.74.08-.73.08-.73 1.2.09 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .1-.78.42-1.3.76-1.6-2.67-.31-5.47-1.34-5.47-5.94 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.1-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.28-1.55 3.29-1.23 3.29-1.23.64 1.66.24 2.88.12 3.18a4.65 4.65 0 0 1 1.23 3.22c0 4.61-2.8 5.63-5.48 5.92.42.36.81 1.1.81 2.22v3.29c0 .32.22.69.83.57A12 12 0 0 0 12 .3"
+            />
+          </svg>
+        </span>
+      )
+    case 'jira':
+      return (
+        <span className="source-favicon source-icon-jira">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path fill="#2684ff" d="M10 1.5 18.5 10 10 18.5 7.6 16.1 13.7 10 7.6 3.9Z" />
+            <path fill="#0052cc" d="M10 6.2 13.8 10 10 13.8 6.2 10ZM5.2 7.6 7.6 10 5.2 12.4 2.8 10Z" />
+          </svg>
+        </span>
+      )
+    case 'slack':
+      return (
+        <span className="source-favicon source-icon-slack">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <rect x="7" y="2" width="3" height="9" rx="1.5" fill="#36c5f0" />
+            <rect x="9" y="7" width="9" height="3" rx="1.5" fill="#2eb67d" />
+            <rect x="10" y="9" width="3" height="9" rx="1.5" fill="#ecb22e" />
+            <rect x="2" y="10" width="9" height="3" rx="1.5" fill="#e01e5a" />
+          </svg>
+        </span>
+      )
+    case 'hop':
+      return (
+        <span className="source-favicon source-icon-hop">
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M3 15c1.5-6 5.5-9 11-9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="m11.5 3 3.5 3-3.5 3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="4" cy="16" r="1.8" fill="currentColor" />
+          </svg>
+        </span>
+      )
+    default:
+      return <Favicon domain={badge.domain} />
+  }
+}
+
+function SourceBadges({ sources, inBubble = false }: { sources: Badge[]; inBubble?: boolean }) {
+  const grouped = new Map<string, Badge[]>()
+  for (const badge of sources.length ? sources : [{ icon: 'orion', domain: 'orion', label: 'Orion' } as Badge]) {
+    const key = badgeGroup(badge)
+    const list = grouped.get(key) ?? []
+    if (!list.some((b) => b.label === badge.label)) list.push(badge)
+    grouped.set(key, list)
   }
   return (
     <div className={`source-badges${inBubble ? ' in-bubble' : ''}`}>
-      {[...domains].map(([domain, labels]) => {
-        const name = domain === 'orion' ? 'Orion' : domain
+      {[...grouped].map(([key, badges]) => {
+        const name = SERVICE_NAME[badges[0].icon] ?? badges[0].domain
+        const labels = badges.map((b) => b.label)
         return labels.length === 1 ? (
-          <span key={domain} className="source-domain" role="img" aria-label={`${name}: ${labels[0]}`} title={`${name}: ${labels[0]}`}>
-            <Favicon domain={domain} />
+          <span key={key} className="source-domain" role="img" aria-label={`${name}: ${labels[0]}`} title={`${name}: ${labels[0]}`}>
+            <ServiceIcon badge={badges[0]} />
           </span>
         ) : (
           <details
-            key={domain}
+            key={key}
             className="source-domain source-domain-many nodrag"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
             <summary aria-label={`${name}: ${labels.length} sources`} title={`${name}: ${labels.length} sources. Click to show them.`}>
-              <Favicon domain={domain} />
+              <ServiceIcon badge={badges[0]} />
               <span className="source-count">{labels.length}</span>
             </summary>
             <div className="source-menu">
@@ -88,6 +141,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const lev = d.leverage.get(id) ?? 0
   const tr = d.trace?.get(id)
   const attn = d.attention?.get(id)
+  const github = driver(data)?.state
   if (data.itemKind === 'note') {
     return (
       <div className={`card note${tr ? ' tr-' + tr : ''}`}>
@@ -108,10 +162,8 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
         <span className="meta-tag" title={taskTag(data)}>
           {taskTag(data)}
         </span>
-        {typeof data.github?.additions === 'number' && <span className="meta-lines">{data.github.additions + data.github.deletions} lines</span>}
-        {data.github?.checks && (
-          <span className={`check-dot check-${data.github.checks.toLowerCase()}`} title={`Checks: ${data.github.checks.toLowerCase()}`} />
-        )}
+        {typeof github?.additions === 'number' && <span className="meta-lines">{github.additions + github.deletions} lines</span>}
+        {github?.checks && <span className={`check-dot check-${github.checks.toLowerCase()}`} title={`Checks: ${github.checks.toLowerCase()}`} />}
         <span className="st">
           {st === 'blocked' && <Lock />}
           {STATUS_LABEL[st]}

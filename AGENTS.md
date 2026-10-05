@@ -17,7 +17,8 @@ Pass `--workspace <name>` to work in a specific workspace, or rely on the active
 
 ## Changing it
 
-- `orion add <title> [--group <id>] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item.
+- `orion add <title> [--group <id>] [--source <kind:value|url>] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item.
+- `orion attach <id> <kind> <value>` (or `orion attach <id> <url>`) links what a card stands for, and `orion detach` takes it off. Kinds are `github-pr` (`repo#123`, or `repo` for one not opened yet), `github-issue`, `github-release` (`repo@tag`), `jira` (`KEY-123`), `hop` (`repo:branch`), `slack`, and `url`. Jira tickets and issues say what the work is, pull requests stacked on them drive its status, and the rest are links.
 - `orion set <id> [--label …] [--status …] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
 - `orion done <id>` marks an item done.
 - `orion link <first> <then>` makes `<then>` wait on `<first>`. Add `--related` for a link that never blocks. `orion unlink` removes one.
@@ -33,9 +34,9 @@ Run `orion suggest` to find related ungrouped cards, then review `orion suggesti
 
 ## Keeping pull requests current
 
-Cards with a repository and pull request number stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. Run `orion sync --dry-run` first when unsure.
+Cards with a pull request source stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. Run `orion sync --dry-run` first when unsure.
 
-`orion sync` adds pending review requests without cards to the Review requests group. It also records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. Link one to an existing card with `orion set <id> --repo <repo> --pr <n>`.
+`orion sync` adds pending review requests without cards to the Review requests group. It also records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. Link one to an existing card with `orion attach <id> github-pr <repo>#<n>`.
 
 `orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
 

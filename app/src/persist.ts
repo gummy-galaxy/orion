@@ -1,4 +1,4 @@
-import type { AppNode, GithubSnapshot, Link } from './model'
+import { migrateNodes, type AppNode, type GithubSnapshot, type Link } from './model'
 
 /**
  * The canvas lives in orion.json, served by the dev server so the CLI and the
@@ -97,7 +97,7 @@ export function readBrowser(): Saved | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     const s = raw ? JSON.parse(raw) : null
-    return isSaved(s) ? s : null
+    return isSaved(s) ? { ...s, nodes: migrateNodes(s.nodes) } : null
   } catch {
     return null
   }
@@ -120,7 +120,8 @@ export async function load(workspace = 'default'): Promise<Loaded> {
     }
     if (res.ok && res.headers.get('content-type')?.includes('json')) {
       const doc = await res.json()
-      if (isSaved(doc) && typeof (doc as Remote).revision === 'number') return { source: 'file', doc: doc as Remote }
+      if (isSaved(doc) && typeof (doc as Remote).revision === 'number')
+        return { source: 'file', doc: { ...(doc as Remote), nodes: migrateNodes(doc.nodes) } }
     }
   } catch {
     // No dev server.

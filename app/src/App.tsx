@@ -39,9 +39,7 @@ import {
   isNote,
   isTask,
   normalize,
-  prUrl,
   sizeOf,
-  taskTag,
   githubSummary,
   relativeTime,
   ungroup,
@@ -75,6 +73,21 @@ import {
   type Workspaces,
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
+import {
+  attachSource,
+  detachSource,
+  driver,
+  identity,
+  ordered,
+  parseSource,
+  primaryLink,
+  pulls,
+  roleOf,
+  sourceTag,
+  sourceUrl,
+  type Source,
+  type SourceKind,
+} from './sources'
 import { Sidebar } from './Sidebar'
 
 type ViewNode = AppNode | GhostNode
@@ -659,7 +672,7 @@ function Canvas() {
     },
     [root, peeking, map, nodes, rf, rootWorkCount, leaveRoot],
   )
-  const work = useMemo(() => deriveWork(nodes, links), [nodes, links])
+  const work = useMemo(() => deriveWork(nodes, links, githubOwner), [nodes, links, githubOwner])
 
   // Which groups read as single bodies at this zoom, and which nodes that hides.
   const levelRoot = peeking ? (map.get(root)?.parentId ?? null) : root
@@ -902,7 +915,16 @@ function Canvas() {
   }, [attention, map, zoom, panX, panY])
 
   const derived = useMemo<Derived>(
-    () => ({ status: work.status, leverage: work.leverage, groups: work.groups, sources: work.sources, trace, collapsed, zoom, attention: attention?.marks ?? null }),
+    () => ({
+      status: work.status,
+      leverage: work.leverage,
+      groups: work.groups,
+      sources: work.sources,
+      trace,
+      collapsed,
+      zoom,
+      attention: attention?.marks ?? null,
+    }),
     [work, trace, collapsed, zoom, attention],
   )
 
@@ -1084,10 +1106,10 @@ function Canvas() {
           { label: 'Delete note', danger: true, run: () => deleteNote(n.id) },
         ]
       const data = n.data as TaskData
-      const url = data.github?.url ?? prUrl(data, githubOwner)
+      const link = primaryLink(data, githubOwner)
       return [
         ...many,
-        ...(url ? [{ label: `Open ${taskTag(data)}`, hint: '↗', run: () => window.open(url, '_blank', 'noreferrer') }] : []),
+        ...(link ? [{ label: `Open ${link.tag}`, hint: '↗', run: () => window.open(link.url, '_blank', 'noreferrer') }] : []),
         data.status === 'done'
           ? { label: 'Mark not done', run: () => updateData(n.id, { status: 'todo' }) }
           : { label: 'Mark done', run: () => updateData(n.id, { status: 'done' }) },
@@ -1439,6 +1461,87 @@ function NoteInspector({
   )
 }
 
+const ROLE_LABEL = { tracking: 'Tracks', implementation: 'Implements', context: 'Context' }
+const KIND_LABEL: Record<SourceKind, string> = {
+  'github-pr': 'Pull request',
+  'github-issue': 'Issue',
+  'github-release': 'Release',
+  jira: 'Jira',
+  slack: 'Slack',
+  hop: 'hop branch',
+  url: 'Link',
+}
+
+/** Tickets and issues say what the work is; pull requests stacked on them drive its status; the rest are links. */
+function SourceList({ data, githubOwner, update }: { data: TaskData; githubOwner: string; update: (patch: Partial<TaskData>) => void }) {
+  const [text, setText] = useState('')
+  const [kind, setKind] = useState<SourceKind | ''>('')
+  const [error, setError] = useState<string | null>(null)
+  const list = ordered(data)
+  const add = () => {
+    try {
+      const source: Source = parseSource(text, githubOwner, kind || undefined)
+      update(attachSource(data, source))
+      setText('')
+      setError(null)
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+  return (
+    <div className="sources">
+      <span className="label-text">Sources</span>
+      {list.length ? (
+        <ul>
+          {list.map((source) => {
+            const url = sourceUrl(source, githubOwner)
+            const expected = source.kind === 'github-pr' && typeof source.number !== 'number'
+            return (
+              <li key={identity(source)}>
+                <span className="source-role">{ROLE_LABEL[roleOf(source)]}</span>
+                {url ? (
+                  <a href={url} target="_blank" rel="noreferrer">
+                    {sourceTag(source)} ↗
+                  </a>
+                ) : (
+                  <span>{sourceTag(source)}</span>
+                )}
+                <span className="source-kind">{expected ? 'Expected pull request' : KIND_LABEL[source.kind]}</span>
+                <button type="button" className="link" aria-label={`Remove ${sourceTag(source)}`} onClick={() => update(detachSource(data, source))}>
+                  ×
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <p className="facts">None yet</p>
+      )}
+      <div className="source-add">
+        <select aria-label="Source kind" value={kind} onChange={(e) => setKind(e.target.value as SourceKind | '')}>
+          <option value="">Any</option>
+          {Object.entries(KIND_LABEL).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <input
+          aria-label="Source"
+          value={text}
+          placeholder="URL, repo#123, KEY-123"
+          onChange={(e) => (setText(e.target.value), setError(null))}
+          onKeyDown={(e) => e.key === 'Enter' && text.trim() && add()}
+        />
+        <button type="button" className="btn" disabled={!text.trim()} onClick={add}>
+          Add
+        </button>
+      </div>
+      {error && <p className="facts source-error">{error}</p>}
+    </div>
+  )
+}
+
 function TaskInspector({
   node,
   work,
@@ -1459,14 +1562,14 @@ function TaskInspector({
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
   const lev = work.leverage.get(node.id) ?? 0
-  const url = data.github?.url ?? prUrl(data, githubOwner)
+  const pull = driver(data)?.state
   const linked = new Set(
     [...map.values()]
       .filter(isTask)
-      .filter((n) => n.data.repo && n.data.pr)
-      .map((n) => `${n.data.repo}#${n.data.pr}`),
+      .flatMap((n) => pulls(n.data))
+      .map((s) => `${s.repo}#${s.number}`),
   )
-  const suggestions = data.pr
+  const suggestions = pulls(data).length
     ? []
     : (github?.unplaced ?? [])
         .filter((pr) => !linked.has(`${pr.repo}#${pr.number}`))
@@ -1495,63 +1598,29 @@ function TaskInspector({
     <div className="insp">
       <label htmlFor="t-label">Title</label>
       <input id="t-label" value={data.label} onChange={(e) => update(node.id, { label: e.target.value })} />
-      {url && (
-        <a className="pr-link" href={url} target="_blank" rel="noreferrer">
-          Open {taskTag(data)} ↗
-        </a>
-      )}
-      {data.github && (
+      {pull && (
         <div className="github-details">
-          <p className="facts">{githubSummary(data.github)}</p>
+          <p className="facts">{githubSummary(pull)}</p>
           <p className="facts">
-            {data.github.checks && (
+            {pull.checks && (
               <>
-                <span className={`check-dot check-${data.github.checks.toLowerCase()}`} />
-                {data.github.checks === 'SUCCESS'
-                  ? 'Checks passing'
-                  : ['FAILURE', 'ERROR'].includes(data.github.checks)
-                    ? 'Checks failing'
-                    : 'Checks pending'}{' '}
+                <span className={`check-dot check-${pull.checks.toLowerCase()}`} />
+                {pull.checks === 'SUCCESS' ? 'Checks passing' : ['FAILURE', 'ERROR'].includes(pull.checks) ? 'Checks failing' : 'Checks pending'}{' '}
                 ·{' '}
               </>
             )}
-            {typeof data.github.additions === 'number' && (
+            {typeof pull.additions === 'number' && (
               <>
-                +{data.github.additions} −{data.github.deletions} · updated {relativeTime(data.github.updatedAt)}
+                +{pull.additions} −{pull.deletions} · updated {relativeTime(pull.updatedAt)}
               </>
             )}
           </p>
-          {data.github.author && !data.github.mine && <p className="facts">By {data.github.author}</p>}
-          {data.github.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
+          {pull.author && !pull.mine && <p className="facts">By {pull.author}</p>}
+          {pull.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
         </div>
       )}
+      <SourceList data={data} githubOwner={githubOwner} update={(patch) => update(node.id, patch)} />
       <div className="grid2">
-        <div>
-          <label htmlFor="t-repo">Repository</label>
-          <input
-            id="t-repo"
-            value={data.repo ?? ''}
-            placeholder="None"
-            onChange={(e) => {
-              const repo = e.target.value.trim() || undefined
-              update(node.id, { repo, itemKind: data.pr && repo ? 'pr' : repo ? 'placeholder' : 'step' })
-            }}
-          />
-        </div>
-        <div>
-          <label htmlFor="t-pr">Pull request</label>
-          <input
-            id="t-pr"
-            inputMode="numeric"
-            value={data.pr ?? ''}
-            placeholder="Not opened"
-            onChange={(e) => {
-              const n = Number(e.target.value.replace(/^#/, ''))
-              const pr = Number.isInteger(n) && n > 0 ? n : undefined
-              update(node.id, { pr, itemKind: pr && data.repo ? 'pr' : data.repo ? 'placeholder' : 'step' })
-            }}
-          />
-        </div>
         <div>
           <label htmlFor="t-status">Status</label>
           <select id="t-status" value={data.status} onChange={(e) => update(node.id, { status: e.target.value as Status })}>
@@ -1586,7 +1655,11 @@ function TaskInspector({
                   {pr.repo}#{pr.number} · {score >= 0.6 ? 'High' : score >= 0.35 ? 'Medium' : 'Low'} confidence
                 </span>
               </div>
-              <button type="button" className="btn" onClick={() => update(node.id, { repo: pr.repo, pr: pr.number, itemKind: 'pr' })}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => update(node.id, attachSource(data, { kind: 'github-pr', repo: pr.repo, number: pr.number }))}
+              >
                 Link
               </button>
             </div>

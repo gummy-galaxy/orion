@@ -1,15 +1,15 @@
 import { createContext } from 'react'
 import { descendants, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
+import { badgeGroup, badgeOf, ordered, type Badge } from './sources'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'dim'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
-export type SourceRef = { domain: string; label: string }
 
 export type Derived = {
   status: Map<string, ViewStatus>
   leverage: Map<string, number>
   groups: Map<string, GroupStats>
-  sources: Map<string, SourceRef[]>
+  sources: Map<string, Badge[]>
   trace: Map<string, TraceRole> | null
   collapsed: Set<string>
   zoom: number
@@ -25,18 +25,11 @@ export type Actions = {
 export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
 
-function sourceOf(task: TaskNode): SourceRef {
-  const repo = task.data.repo?.trim()
-  if (!repo) return { domain: 'orion', label: 'Orion' }
-  if (task.data.github?.url) {
-    try {
-      const url = new URL(task.data.github.url)
-      if (url.protocol === 'https:') return { domain: url.hostname.toLowerCase(), label: repo }
-    } catch {
-      // Fall back to the repository host used by the CLI.
-    }
-  }
-  return { domain: 'github.com', label: repo }
+const ORION: Badge = { icon: 'orion', domain: 'orion', label: 'Orion' }
+
+function badgesOf(task: TaskNode, owner: string): Badge[] {
+  const list = ordered(task.data).map((source) => badgeOf(source, owner))
+  return list.length ? list : [ORION]
 }
 
 function graph(links: Link[]) {
@@ -68,10 +61,10 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 }
 
 /** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
-export function deriveWork(nodes: AppNode[], links: Link[]) {
+export function deriveWork(nodes: AppNode[], links: Link[], owner = 'flipbook-labs') {
   const tasks = new Map(nodes.filter(isTask).map((n) => [n.id, n as TaskNode]))
-  const sources = new Map<string, SourceRef[]>()
-  for (const task of tasks.values()) sources.set(task.id, [sourceOf(task)])
+  const sources = new Map<string, Badge[]>()
+  for (const task of tasks.values()) sources.set(task.id, badgesOf(task, owner))
   const { preds, succs } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
   // A note is open while anything feeding into it is, so blocking passes through notes.
@@ -112,14 +105,10 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   for (const g of nodes.filter(isCluster)) {
     const inside = descendants(g.id, nodes)
     const s: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
-    const groupSources = new Map<string, SourceRef>()
+    const groupSources = new Map<string, Badge>()
     const reach = new Set<string>()
     for (const id of inside) {
-      const task = tasks.get(id)
-      if (task) {
-        const source = sourceOf(task)
-        groupSources.set(`${source.domain}:${source.label}`, source)
-      }
+      for (const badge of sources.get(id) ?? []) groupSources.set(`${badgeGroup(badge)}:${badge.label}`, badge)
       const st = status.get(id)
       if (!st || isNote(id)) continue
       s.total++
@@ -132,7 +121,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     groups.set(g.id, s)
     sources.set(
       g.id,
-      [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label)),
+      [...groupSources.values()].sort((a, b) => badgeGroup(a).localeCompare(badgeGroup(b)) || a.label.localeCompare(b.label)),
     )
   }
 

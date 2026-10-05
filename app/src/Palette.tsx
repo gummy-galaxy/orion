@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ancestors, byId, isCluster, taskTag, type AppNode } from './model'
+import { ancestors, byId, isCluster, type AppNode } from './model'
+import { taskTag } from './sources'
 
 type Props = { nodes: AppNode[]; jumpTo: (id: string) => void; open: (id: string) => void; close: () => void }
 type Match = { score: number; indices: number[] }

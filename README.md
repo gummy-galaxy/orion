@@ -97,7 +97,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 
 Reset to seed restores the snapshot.
 
-Dashed cards are pull requests that aren't opened yet. Select a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
+Dashed cards are pull requests that aren't opened yet. Select a card to edit it, add notes, or open what it stands for. Cards take sources: Jira tickets and GitHub issues say what the work is, pull requests and hop branches stacked on them drive its status, and releases, Slack threads, and other links add context. The inspector lists and edits them, `orion attach` and `orion detach` do the same from the CLI, and each card shows a badge per source at its bottom right. Cards with a pull request show what GitHub reported the last time `orion sync` ran.
 The toolbar shows when GitHub was last synced, or a sync error; click the status to force a sync. Linked cards show a checks dot (green passing, red failing, amber pending) and changed line count. The inspector shows checks, additions and deletions, update time, author, and review requests. An unlinked work item may show possible pull requests in its inspector; use **Link** to attach one to the card.
 
 ## Layout of the code
@@ -109,6 +109,7 @@ In `app/`:
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: ELK layout for one group or the top level.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
+- `src/sources.ts`: card sources, their precedence, links, and badges.
 - `src/nodes.tsx`: task cards and group frames.
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, notes, and the inspector.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
@@ -119,5 +120,6 @@ In `cli/src/`:
 - `cli/init.luau`: commands and their options.
 - `store.luau`: reading, locking, and writing the data file.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
+- `refs.luau`: card sources, their precedence, parsing, and carrying older fields over.
 - `github.luau`: looking up pull requests and mapping their state onto cards.
 - `render.luau`: text and JSON output.

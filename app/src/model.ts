@@ -1,4 +1,5 @@
 import type { Node } from '@xyflow/react'
+import { migrateTask, type Source } from './sources'
 
 export const TASK_W = 208
 export const TASK_H = 66
@@ -11,36 +12,21 @@ export type Who = 'you' | 'review' | 'ci'
 export type ViewStatus = 'ready' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
 /**
  * A pull request that exists, one that is expected but not opened yet, a step with no
- * pull request, or a note. Notes are annotations, not work: they pass blocking through.
+ * pull request, a gate that opens once everything it waits on is done, or a note.
+ * Notes are annotations, not work: they pass blocking through. Sources decide the
+ * first three; see `sources.ts`.
  */
-export type ItemKind = 'pr' | 'placeholder' | 'step' | 'note'
+export type ItemKind = 'pr' | 'placeholder' | 'step' | 'gate' | 'note'
 
 export type TaskData = {
   kind: 'task'
   label: string
   itemKind: ItemKind
   status: Status
-  repo?: string
-  pr?: number
-  host?: string
-  branch?: string
-  issue?: number
-  jira?: {
-    key: string
-    url?: string
-    status: string
-    statusCategory: 'new' | 'indeterminate' | 'done'
-    type: string
-    epicKey?: string
-    epicSummary?: string
-    updatedAt?: string
-  }
-  activity?: { lastActiveAt: string; sessions: string[] }
-  sources?: string[]
+  /** What the card stands for, in the order they were attached. Snapshots inside are written by `orion sync`. */
+  sources?: Source[]
   note?: string
   who?: Who
-  /** Written by `orion sync`; read-only here. */
-  github?: GithubState
 }
 export type GithubState = {
   state: 'OPEN' | 'MERGED' | 'CLOSED'
@@ -90,17 +76,13 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   done: 'Done',
 }
 
-const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
-
-export function taskTag(d: TaskData): string {
-  if (d.jira) return d.jira.key
-  if (d.repo && d.issue) return `${d.repo}#${d.issue}`
-  if (d.repo && d.pr) return `${d.repo}#${d.pr}`
-  return d.repo ?? 'step'
-}
-
-export function prUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
-  return d.repo && d.pr ? `https://${d.host ?? 'github.com'}/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}` : null
+/** Carries cards saved before typed sources over to them, as the CLI does when it reads a file. */
+export function migrateNodes(nodes: AppNode[]): AppNode[] {
+  return nodes.map((n) => {
+    if (n.type !== 'task') return n
+    const data = migrateTask(n.data)
+    return data === n.data ? n : { ...n, data }
+  })
 }
 
 export const isCluster = (n: AppNode): n is ClusterNode => n.type === 'cluster'

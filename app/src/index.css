@@ -906,6 +906,38 @@ kbd {
 .review-requested {
   color: var(--st-review);
 }
+.sources {
+  display: grid;
+  gap: 6px;
+}
+.sources li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.sources li a {
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.source-role,
+.source-kind {
+  color: var(--muted);
+  font: 10.5px var(--font-data);
+}
+.sources li .link {
+  text-decoration: none;
+  color: var(--muted);
+}
+.source-add {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  gap: 6px;
+}
+.source-error {
+  color: var(--st-blocked);
+}
 .suggestions {
   display: grid;
   gap: 7px;

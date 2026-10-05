@@ -76,8 +76,8 @@ describe('mergeDocs', () => {
 
   it('compares values structurally, including property order', () => {
     const original = node('a')
-    const local = { ...original, position: { x: 0, y: 0 }, data: { ...original.data, github: { state: 'OPEN', draft: false } } } as AppNode
-    const remote = { ...original, position: { y: 0, x: 0 }, data: { ...original.data, github: { draft: false, state: 'OPEN' } } } as AppNode
+    const local = { ...original, position: { x: 0, y: 0 }, data: { ...original.data, sources: [{ kind: 'jira', key: 'ABC-1' }] } } as AppNode
+    const remote = { ...original, position: { y: 0, x: 0 }, data: { ...original.data, sources: [{ key: 'ABC-1', kind: 'jira' }] } } as AppNode
     expect(mergeDocs(doc([original]), doc([local]), doc([remote])).conflicts).toEqual([])
   })
 
