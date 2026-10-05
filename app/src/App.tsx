@@ -291,6 +291,7 @@ function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef<Saved>({ nodes, links, stickers, stickerLoadout: loadout })
   const fitZoom = useRef(new Map<string, number>())
+  const shownExtent = useRef<{ root: string; w: number; h: number } | null>(null)
   const fitting = useRef(false)
   const fitSequence = useRef(0)
   const previousZoom = useRef(store.getState().transform[2])
@@ -762,8 +763,12 @@ function Canvas() {
         return
       }
       if (!userZoom || viewport.zoom === wasZoom) return
-      const fit = root ? fitZoom.current.get(root) : undefined
-      if (!root || fit === undefined) return
+      const home = root ? fitZoom.current.get(root) : undefined
+      if (!root || home === undefined) return
+      // Leaving waits until everything the open view shows, outside connections included, fits on screen.
+      const box = canvasRef.current?.getBoundingClientRect()
+      const extent = shownExtent.current
+      const fit = extent?.root === root && box?.width ? Math.min(home, box.width / extent.w, box.height / extent.h) : home
       const exit = exitRatio(rootWorkCount)
       const hint = exit + (1 - exit) * HINT_SPAN
       const progress = Math.min(1, Math.max(0, (hint - viewport.zoom / fit) / (hint - exit * PEEK_SPAN)))
@@ -862,6 +867,25 @@ function Canvas() {
     place(outgoing, 'out')
     return out
   }, [root, peeking, map, links, inView, work])
+
+  // Peeking hides the ghosts, so the extent is only measured while they show.
+  useEffect(() => {
+    const rootNode = root ? map.get(root) : undefined
+    if (!root || !rootNode || peeking) return
+    const p = absPos(rootNode, map)
+    const s = sizeOf(rootNode)
+    let x0 = p.x
+    let y0 = p.y
+    let x1 = p.x + s.w
+    let y1 = p.y + s.h
+    for (const g of ghosts) {
+      x0 = Math.min(x0, g.position.x)
+      y0 = Math.min(y0, g.position.y)
+      x1 = Math.max(x1, g.position.x + GHOST_W)
+      y1 = Math.max(y1, g.position.y + GHOST_H)
+    }
+    shownExtent.current = { root, w: x1 - x0 + FIT_MARGIN_Y * 2, h: y1 - y0 + FIT_MARGIN_Y * 2 }
+  }, [root, peeking, map, ghosts])
 
   const viewNodes = useMemo<ViewNode[]>(
     () => [
