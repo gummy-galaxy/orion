@@ -81,7 +81,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Drag to pan, scroll to zoom. ⌘-drag selects; ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
-- Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result.
+- Press ⇧⌘P (or Ctrl+Shift+P) to search groups, cards, PRs, notes, and actions such as Reload window, then press Enter to jump to a result or run the action.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
 - Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to jump to it.

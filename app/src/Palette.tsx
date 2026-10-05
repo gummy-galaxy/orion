@@ -53,7 +53,8 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
     const map = byId(nodes)
     const term = query.trim()
     if (!term) {
-      return nodes
+      const actions = commands.map((command): CommandResult => ({ command, score: 0, labelMatch: [] }))
+      const places = nodes
         .filter((n) => isCluster(n) || (n.type === 'task' && n.data.who === 'you'))
         .sort((a, b) => Number(isCluster(b)) - Number(isCluster(a)))
         .slice(0, 50)
@@ -69,6 +70,8 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
           tagMatch: [],
           idMatch: false,
         }))
+      const groups = places.filter((result) => isCluster(result.node)).length
+      return [...places.slice(0, groups), ...actions, ...places.slice(groups)]
     }
     const found = commands
       .map((command): CommandResult | null => {

@@ -1216,7 +1216,7 @@ function Canvas() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'p') {
         e.preventDefault()
         setPaletteOpen(true)
         return
@@ -1271,6 +1271,24 @@ function Canvas() {
       label: debug ? 'Hide debug bar' : 'Show debug bar',
       detail: 'Frame rate and animation toggles',
       run: () => toggleDebug(!debug),
+    },
+    {
+      id: 'sidebar',
+      label: sidebar ? 'Hide group list' : 'Show group list',
+      detail: 'Groups and their progress',
+      run: () => toggleSidebar(!sidebar),
+    },
+    {
+      id: 'sync',
+      label: 'Sync with GitHub',
+      detail: 'Refresh pull request status now',
+      run: () => void requestSync(true).then((status) => status && setSyncStatus(status)),
+    },
+    {
+      id: 'reload',
+      label: 'Reload window',
+      detail: 'Load the app again',
+      run: () => window.location.reload(),
     },
   ]
 
@@ -1406,7 +1424,7 @@ function Canvas() {
                   ))}
                   <span className="crumb-actions">
                     <button type="button" className="btn" onClick={() => setPaletteOpen(true)}>
-                      Search <kbd>⌘K</kbd>
+                      Search <kbd>⇧⌘P</kbd>
                     </button>
                     <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                       Add note
