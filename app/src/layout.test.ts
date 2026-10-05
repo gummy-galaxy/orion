@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROW_WIDTH, WRAP, reflow } from './layout'
+import { ROW_WIDTH, WRAP, reflow, routesFor } from './layout'
 import { TASK_H, TASK_W, type AppNode, type ClusterData, type Link } from './model'
 
 const task = (id: string, parentId = 'g', x = 0, y = 0): AppNode => ({
@@ -71,7 +71,11 @@ describe('reflow', () => {
       task(id + 'a', id, 0, 0),
       task(id + 'b', id, 800, 0),
     ])
-    const out = await reflow(nodes, sections.slice(1).map((id, i) => blocks(sections[i], id)), undefined)
+    const out = await reflow(
+      nodes,
+      sections.slice(1).map((id, i) => blocks(sections[i], id)),
+      undefined,
+    )
     const tops = out.filter((n) => sections.includes(n.id)).map((n) => n.position)
     expect(distinct(tops.map((p) => p.y))).toBeGreaterThan(1)
     expect(Math.max(...tops.map((p) => p.x))).toBeLessThan(ROW_WIDTH)
@@ -96,5 +100,25 @@ describe('reflow', () => {
   it('leaves a custom group alone', async () => {
     const nodes = [group({ arrange: 'custom' }), task('a', 'g', 500, 40), task('b', 'g', 3, 900)]
     expect(await reflow(nodes, [blocks('a', 'b')], 'g')).toBe(nodes)
+  })
+})
+
+describe('routesFor', () => {
+  it('routes links between cards where the flow left them, and none once a card moves', async () => {
+    const links = [blocks('a', 'b'), blocks('a', 'c')]
+    const laid = await reflow([group(), task('a'), task('b'), task('c')], links, 'g')
+    const routes = await routesFor(laid, links, 'g')
+    const route = routes.get('a>b')!
+    const at = (id: string) => laid.find((n) => n.id === id)!.position
+    expect(route[0].x).toBeCloseTo(at('a').x + TASK_W)
+    expect(route[route.length - 1].x).toBeCloseTo(at('b').x)
+    const moved = laid.map((n) => (n.id === 'b' ? { ...n, position: { x: n.position.x + 40, y: n.position.y } } : n))
+    expect((await routesFor(moved, links, 'g')).size).toBe(0)
+  })
+
+  it('has no routes for groups that are not arranged automatically', async () => {
+    const links = [blocks('a', 'b')]
+    const laid = await reflow([group({ arrange: 'grid' }), task('a'), task('b')], links, 'g')
+    expect((await routesFor(laid, links, 'g')).size).toBe(0)
   })
 })

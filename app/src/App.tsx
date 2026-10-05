@@ -16,6 +16,7 @@ import {
   useStoreApi,
   type Connection,
   type Edge,
+  type EdgeTypes,
   type NodeChange,
   type NodeTypes,
   type Viewport,
@@ -26,7 +27,7 @@ import { Lens } from './Lens'
 import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
-import { WRAP, reflow, reflowAll } from './layout'
+import { WRAP, reflow, reflowAll, routesFor, type Route } from './layout'
 import { mergeDocs } from './merge'
 import {
   STATUS_LABEL,
@@ -47,6 +48,7 @@ import {
   ungroup,
   type AppNode,
   type Arrange,
+  type Arrows,
   type ClusterData,
   type GhostNode,
   type GithubSnapshot,
@@ -56,6 +58,7 @@ import {
   type Who,
 } from './model'
 import { DebugBar, type MotionSettings } from './DebugBar'
+import { RoutedEdgeView } from './edges'
 import { openExternal } from './external'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
@@ -102,10 +105,22 @@ import { readViewport, writeViewport } from './viewport'
 type ViewNode = AppNode | GhostNode
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
+const edgeTypes: EdgeTypes = { routed: RoutedEdgeView }
+const ARROWS_KEY = 'orion:arrows'
+const ARROWS: Record<Arrows, string> = { curve: 'Curves', smooth: 'Right angles', routed: 'Routed by ELK' }
 const SIDEBAR_KEY = 'orion:sidebar'
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
 const DEFAULT_MOTION: MotionSettings = { arrows: true, glow: true, pauseWhileMoving: true }
+
+function readArrows(): Arrows {
+  try {
+    const saved = localStorage.getItem(ARROWS_KEY)
+    return saved && saved in ARROWS ? (saved as Arrows) : 'curve'
+  } catch {
+    return 'curve'
+  }
+}
 
 function readMotion(): MotionSettings {
   try {
@@ -251,6 +266,7 @@ function Canvas() {
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
   const [motion, setMotion] = useState(readMotion)
+  const [arrows, setArrows] = useState(readArrows)
   const [menu, setMenu] = useState<Menu | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -835,6 +851,52 @@ function Canvas() {
       : null
   }, [pinned, hover, map, work, nodes])
 
+  /** The arrow style a group asks for, inherited from the groups around it, else the canvas default. */
+  const arrowsIn = useCallback(
+    (gid: string | undefined): Arrows => {
+      for (let cur = gid; cur; cur = map.get(cur)?.parentId) {
+        const own = (map.get(cur)?.data as ClusterData | undefined)?.arrows
+        if (own) return own
+      }
+      return arrows
+    },
+    [map, arrows],
+  )
+
+  const [routes, setRoutes] = useState<Map<string, Map<string, Route>>>(new Map())
+  useEffect(() => {
+    const routed = [undefined, ...nodes.filter(isCluster).map((n) => n.id)].filter((gid) => arrowsIn(gid) === 'routed')
+    let live = true
+    const timer = setTimeout(async () => {
+      const next = new Map<string, Map<string, Route>>()
+      for (const gid of routed) next.set(gid ?? '', await routesFor(nodes, links, gid))
+      if (live) setRoutes((r) => (r.size || next.size ? next : r))
+    }, 150)
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
+  }, [nodes, links, arrowsIn])
+
+  /** How the arrow between two shown nodes is drawn, by the group that holds both of them. */
+  const shape = useCallback(
+    (a: string, b: string): Pick<Edge, 'type' | 'data'> => {
+      const outer = (id: string): (string | undefined)[] =>
+        map.has(id) ? [...ancestors(id, map), undefined] : root ? [root, ...ancestors(root, map), undefined] : [undefined]
+      const around = outer(b)
+      const gid = outer(a).find((g) => around.includes(g))
+      const style = arrowsIn(gid)
+      if (style === 'curve') return {}
+      if (style === 'smooth') return { type: 'smoothstep' }
+      const direct = map.get(a)?.parentId === gid && map.get(b)?.parentId === gid
+      const route = direct ? routes.get(gid ?? '')?.get(`${a}>${b}`) : undefined
+      const group = gid ? map.get(gid) : undefined
+      const origin = group ? absPos(group, map) : { x: 0, y: 0 }
+      return { type: 'routed', data: { route: route?.map((p) => ({ x: p.x + origin.x, y: p.y + origin.y })) } }
+    },
+    [map, root, arrowsIn, routes],
+  )
+
   const edges = useMemo(() => {
     const out: Edge[] = []
     const marker = (live: boolean) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: live ? 'var(--edge-hot)' : 'var(--edge)' })
@@ -857,7 +919,7 @@ function Canvas() {
           cls += up ? ' tr-e-up' : down ? ' tr-e-down' : ' tr-e-dim'
         }
         if (peeking && !inFocus(a) && !inFocus(b)) cls += ' e-peek'
-        out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(live) : undefined })
+        out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(live) : undefined, ...shape(a, b) })
       } else if (l.kind === 'blocks') {
         const k = a + '>' + b
         const e = agg.get(k) ?? { a, b, count: 0, live: false }
@@ -876,10 +938,11 @@ function Canvas() {
         label: e.count > 1 ? `${e.count} links` : undefined,
         markerEnd: marker(e.live),
         style: { strokeWidth: Math.min(6, 1.5 + e.count * 0.8) },
+        ...shape(e.a, e.b),
       })
     }
     return out
-  }, [links, view, work, trace, root, peeking, inFocus])
+  }, [links, view, work, trace, root, peeking, inFocus, shape])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1049,7 +1112,7 @@ function Canvas() {
   )
 
   const arrangeGroup = useCallback(
-    (gid: string, patch: Pick<ClusterData, 'arrange' | 'columns'>) => {
+    (gid: string, patch: Partial<Pick<ClusterData, 'arrange' | 'columns' | 'arrows'>>) => {
       const { nodes: ns, links: ls } = latest.current
       const next = ns.map((n) => (n.id === gid && isCluster(n) ? { ...n, data: { ...n.data, ...patch } } : n))
       reflow(next, ls, gid).then(tweenTo)
@@ -1273,6 +1336,14 @@ function Canvas() {
       detail: 'Frame rate and animation toggles',
       run: () => toggleDebug(!debug),
     },
+    ...(Object.keys(ARROWS) as Arrows[])
+      .filter((key) => key !== arrows)
+      .map((key) => ({
+        id: `arrows-${key}`,
+        label: `Arrows: ${ARROWS[key]}`,
+        detail: `Canvas default, now ${ARROWS[arrows]}. Groups can set their own.`,
+        run: () => changeArrows(key),
+      })),
     {
       id: 'sidebar',
       label: sidebar ? 'Hide group list' : 'Show group list',
@@ -1296,6 +1367,14 @@ function Canvas() {
   const toggleSidebar = (v: boolean) => {
     setSidebar(v)
     writeFlag(SIDEBAR_KEY, v)
+  }
+  const changeArrows = (next: Arrows) => {
+    setArrows(next)
+    try {
+      localStorage.setItem(ARROWS_KEY, next)
+    } catch {
+      // Storage can be unavailable; the choice still applies until reload.
+    }
   }
   const toggleDebug = (v: boolean) => {
     setDebug(v)
@@ -1342,6 +1421,7 @@ function Canvas() {
                 nodes={viewNodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 onNodesChange={onNodesChange}
                 onMove={onViewportMove}
                 onNodeDragStop={onDragStop}
@@ -1510,6 +1590,34 @@ function Canvas() {
                           data={one.data as ClusterData}
                           change={(patch) => arrangeGroup(one.id, patch)}
                         />
+                        <label htmlFor="g-arrows">Arrows</label>
+                        <select
+                          id="g-arrows"
+                          value={(one.data as ClusterData).arrows ?? ''}
+                          onChange={(e) => {
+                            const next = (e.target.value || undefined) as Arrows | undefined
+                            const data = one.data as ClusterData
+                            if ((next ?? arrowsIn(one.parentId)) === 'routed' && (data.arrange ?? 'auto') === 'auto')
+                              arrangeGroup(one.id, { arrows: next })
+                            else updateData(one.id, { arrows: next })
+                          }}
+                        >
+                          <option value="">Inherit ({ARROWS[arrowsIn(one.parentId)]})</option>
+                          {(Object.keys(ARROWS) as Arrows[]).map((key) => (
+                            <option key={key} value={key}>
+                              {ARROWS[key]}
+                            </option>
+                          ))}
+                        </select>
+                        {arrowsIn(one.id) === 'routed' && ((one.data as ClusterData).arrange ?? 'auto') !== 'auto' && (
+                          <p className="facts">ELK only routes automatic groups, so arrows here run at right angles.</p>
+                        )}
+                        {arrowsIn(one.id) === 'routed' &&
+                          ((one.data as ClusterData).arrange ?? 'auto') === 'auto' &&
+                          routes.get(one.id)?.size === 0 &&
+                          links.some((l) => l.kind === 'blocks' && map.get(l.from)?.parentId === one.id && map.get(l.to)?.parentId === one.id) && (
+                            <p className="facts">Cards moved since the last layout. Reflow to route these arrows.</p>
+                          )}
                         <div className="row">
                           <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
                             Open
