@@ -965,7 +965,22 @@ function Canvas() {
       setNodes((ns) => applyNodeChanges(changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[], ns)),
     [],
   )
-  const onDragStop = useCallback(() => setNodes((ns) => normalize(ns)), [])
+  const dragOrigins = useRef(new Map<string, AppNode['position']>())
+  const onDragStart = useCallback((dragged: ViewNode[]) => {
+    const map = byId(latest.current.nodes)
+    dragOrigins.current = new Map()
+    for (const d of dragged) {
+      const n = map.get(d.id)
+      const parent = n?.parentId ? map.get(n.parentId) : undefined
+      if (n && parent && isCluster(parent) && parent.data.arrange !== 'custom') dragOrigins.current.set(n.id, n.position)
+    }
+  }, [])
+  const onDragStop = useCallback(() => {
+    const origins = dragOrigins.current
+    dragOrigins.current = new Map()
+    if (!origins.size) return setNodes((ns) => normalize(ns))
+    tweenTo(normalize(latest.current.nodes.map((n) => (origins.has(n.id) ? { ...n, position: origins.get(n.id)! } : n))))
+  }, [tweenTo])
   const onConnect = useCallback((c: Connection) => {
     if (!c.source || !c.target || c.source === c.target) return
     setLinks((ls) =>
@@ -1273,8 +1288,9 @@ function Canvas() {
                   else if (n.type === 'task' && isNote(n)) setEditing(n.id)
                   else if (n.type === 'task') setPinned(n.id)
                 }}
-                onNodeDragStart={(_, n) => {
+                onNodeDragStart={(_, n, dragged) => {
                   if (peeking && !inFocus(n.id)) leaveRoot()
+                  onDragStart(dragged)
                 }}
                 onPaneClick={() => setPinned(null)}
                 onEdgeClick={() => setPinned(null)}

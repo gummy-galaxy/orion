@@ -5,6 +5,8 @@ const elk = new ELK()
 
 /** The default flow keeps chains, and runs of interchangeable siblings, to about this many across. */
 export const WRAP = 6
+/** A wrapped row stops growing at about this width, so chains of large nested groups stack instead of sprawling. */
+export const ROW_WIDTH = 2400
 
 type Gap = { node: number; layer: number; component: number }
 type Point = { x: number; y: number }
@@ -67,8 +69,9 @@ export function dependencyOrder(kids: AppNode[], edges: Edge[]): AppNode[] {
 }
 
 /**
- * Cuts a left-to-right layout into strips of at most `WRAP` layers and stacks them top to bottom, so a long chain
- * reads like lines of text. Returns null when the layout already fits.
+ * Cuts a left-to-right layout into strips of at most `WRAP` layers, each no wider than `ROW_WIDTH` unless a single
+ * layer is wider on its own, and stacks them top to bottom, so a long chain reads like lines of text. Returns null
+ * when the layout already fits.
  */
 export function wrapLayers(boxes: Map<string, Box>, gap: number): Map<string, Box> | null {
   const layers: { x: number; right: number; ids: string[] }[] = []
@@ -79,11 +82,16 @@ export function wrapLayers(boxes: Map<string, Box>, gap: number): Map<string, Bo
       last.right = Math.max(last.right, b.x + b.w)
     } else layers.push({ x: b.x, right: b.x + b.w, ids: [id] })
   }
-  if (layers.length <= WRAP) return null
+  const strips: (typeof layers)[] = []
+  for (const l of layers) {
+    const strip = strips[strips.length - 1]
+    if (strip && strip.length < WRAP && l.right - strip[0].x <= ROW_WIDTH) strip.push(l)
+    else strips.push([l])
+  }
+  if (strips.length <= 1) return null
   const out = new Map<string, Box>()
   let top = 0
-  for (let i = 0; i < layers.length; i += WRAP) {
-    const strip = layers.slice(i, i + WRAP)
+  for (const strip of strips) {
     const inStrip = strip.flatMap((l) => l.ids.map((id) => boxes.get(id)!))
     const y0 = Math.min(...inStrip.map((b) => b.y))
     const y1 = Math.max(...inStrip.map((b) => b.y + b.h))

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WRAP, reflow } from './layout'
+import { ROW_WIDTH, WRAP, reflow } from './layout'
 import { TASK_H, TASK_W, type AppNode, type ClusterData, type Link } from './model'
 
 const task = (id: string, parentId = 'g', x = 0, y = 0): AppNode => ({
@@ -62,6 +62,19 @@ describe('reflow', () => {
       expect(i % WRAP === 0 ? b.y > a.y : b.x > a.x && b.y === a.y).toBe(true)
     }
     expect(overlaps(pos)).toBe(false)
+  })
+
+  it('wraps a chain of wide groups once a row reaches the row width', async () => {
+    const sections = ids(6, 's')
+    const nodes: AppNode[] = sections.flatMap((id) => [
+      { id, type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: id } },
+      task(id + 'a', id, 0, 0),
+      task(id + 'b', id, 800, 0),
+    ])
+    const out = await reflow(nodes, sections.slice(1).map((id, i) => blocks(sections[i], id)), undefined)
+    const tops = out.filter((n) => sections.includes(n.id)).map((n) => n.position)
+    expect(distinct(tops.map((p) => p.y))).toBeGreaterThan(1)
+    expect(Math.max(...tops.map((p) => p.x))).toBeLessThan(ROW_WIDTH)
   })
 
   it('keeps short chains on one row', async () => {
