@@ -49,6 +49,7 @@ local COMMAND_HELP: { [string]: string } = {
 	path = "Print where Orion keeps its data",
 	backups = "List saved Orion data revisions",
 	restore = "Restore a saved revision as a new revision",
+	workspace = "List, create, and choose workspaces",
 	help = "Show help for Orion or one of its commands",
 }
 
@@ -68,6 +69,10 @@ local function addJsonFlag(parser: batteriesCli.Parser)
 	parser:add("json", "flag", { help = "Print JSON" })
 end
 
+local function addWorkspaceOption(parser: batteriesCli.Parser)
+	parser:add("workspace", "option", { help = "Use this workspace for this command" })
+end
+
 local function addFieldOptions(parser: batteriesCli.Parser)
 	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
 	parser:add("repo", "option", { help = "Repository, as name or owner/name" })
@@ -84,10 +89,12 @@ type Parsers = {
 local function createParsers(): Parsers
 	local root = batteriesCli.parser()
 	addHelpFlag(root)
+	addWorkspaceOption(root)
 	local commands: { [string]: batteriesCli.Parser } = {}
 	local function command(name: string): batteriesCli.Parser
 		local parser = root:subcommand(name, { help = COMMAND_HELP[name] })
 		addHelpFlag(parser)
+		addWorkspaceOption(parser)
 		commands[name] = parser
 		return parser
 	end
@@ -159,6 +166,21 @@ local function createParsers(): Parsers
 	command("restore"):add("revision", "positional", { help = "Revision to restore" })
 
 	command("path")
+	local workspace = command("workspace")
+	for _, name in { "list", "create", "use", "current" } do
+		local sub = workspace:subcommand(name, { help = name })
+		addHelpFlag(sub)
+		addWorkspaceOption(sub)
+		if name == "list" then
+			addJsonFlag(sub)
+		elseif name == "create" then
+			sub:add("name", "positional", { help = "Workspace name" })
+			sub:add("label", "option", { help = "Display label" })
+			sub:add("owner", "option", { help = "Default GitHub owner" })
+		elseif name == "use" then
+			sub:add("name", "positional", { help = "Workspace name" })
+		end
+	end
 	command("help"):add("command", "positional", { help = "Command to describe" })
 
 	return { root = root, commands = commands }
@@ -329,11 +351,56 @@ local function execute(args: { string }, options: Dependencies?)
 		return
 	end
 
-	local dir = deps.dataDir
+	local root = deps.dataDir
+	local selected = parser:get("workspace") or parsers.root:get("workspace")
+	local workspaceCommand: string? = nil
+	local workspaceParser: batteriesCli.Parser? = nil
+	if command == "workspace" then
+		workspaceCommand, workspaceParser = parser:selected()
+	end
+	if workspaceParser then
+		selected = workspaceParser:get("workspace") or selected
+	end
+	if command == "workspace" then
+		assert(workspaceCommand and workspaceParser, "choose list, create, use, or current")
+		if workspaceCommand == "create" then
+			local name = required(workspaceParser, "name")
+			store.createWorkspace(root, name, workspaceParser:get("label"), workspaceParser:get("owner"))
+			deps.write(`Created workspace {name}`)
+		elseif workspaceCommand == "use" then
+			local name = required(workspaceParser, "name")
+			store.useWorkspace(root, name)
+			deps.write(`Using workspace {name}`)
+		elseif workspaceCommand == "list" then
+			local list = store.workspaces(root)
+			list.active = store.activeWorkspace(root, selected)
+			if workspaceParser:has("json") then
+				local entries: json.Array = {}
+				for _, entry in list.workspaces do
+					table.insert(entries, json.object({ name = entry.name, label = entry.label }))
+				end
+				deps.write(json.serialize(json.object({ active = list.active, workspaces = entries }), true))
+			else
+				local lines = {}
+				for _, entry in list.workspaces do
+					table.insert(
+						lines,
+						`{if entry.name == list.active then "*" else " "} {entry.name} · {entry.label}`
+					)
+				end
+				deps.write(table.concat(lines, "\n"))
+			end
+		elseif workspaceCommand == "current" then
+			deps.write(store.activeWorkspace(root, selected))
+		end
+		return
+	end
+	local active = store.activeWorkspace(root, selected)
+	local dir = store.workspaceDir(root, active)
 	local asJson = parser:has("json")
 
 	if command == "path" then
-		deps.write(store.filePath(dir))
+		deps.write(dir)
 	elseif command == "backups" then
 		local backups = store.backups(dir)
 		if asJson then

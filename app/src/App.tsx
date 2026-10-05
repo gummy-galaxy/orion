@@ -55,17 +55,22 @@ import {
 } from './model'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
+  createWorkspace,
   fetchRemote,
   fingerprint,
   getSyncStatus,
+  getWorkspaces,
   load,
   onRemoteChange,
   onSyncStatus,
+  onWorkspaceChange,
   readBrowser,
   requestSync,
   save,
+  setActiveWorkspace,
   type Remote,
   type SyncStatus,
+  type Workspaces,
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
@@ -156,6 +161,7 @@ function Canvas() {
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [githubOwner, setGithubOwner] = useState('flipbook-labs')
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
   const [clock, setClock] = useState(() => Date.now())
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
@@ -194,13 +200,16 @@ function Canvas() {
   const savedPrint = useRef('')
   // Saves and reloads run one at a time so a reload never lands on a half-finished save.
   const queue = useRef<Promise<void>>(Promise.resolve())
+  const workspace = useRef('default')
+  const workspaceEpoch = useRef(0)
+  const pendingWorkspaceFit = useRef<number | null>(null)
 
-  const adopt = useCallback((doc: Remote) => {
+  const adopt = useCallback((doc: Remote, preserveSelection = true) => {
     const next = normalize(doc.nodes)
     revision.current = doc.revision
     savedPrint.current = fingerprint({ nodes: next, links: doc.links })
     setNodes((ns) => {
-      const picked = new Set(ns.filter((n) => n.selected).map((n) => n.id))
+      const picked = new Set(preserveSelection ? ns.filter((n) => n.selected).map((n) => n.id) : [])
       return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
     })
     setLinks(doc.links)
@@ -209,32 +218,47 @@ function Canvas() {
   }, [])
 
   const reload = useCallback(async () => {
-    const doc = await fetchRemote()
+    const doc = await fetchRemote(workspace.current)
     if (doc && doc.revision !== revision.current) adopt(doc)
   }, [adopt])
 
+  const loadWorkspace = useCallback(
+    async (epoch: number, switched = false) => {
+      const loaded = await load(workspace.current)
+      if (epoch !== workspaceEpoch.current) return
+      if (loaded.source === 'file') {
+        source.current = 'file'
+        adopt(loaded.doc, !switched)
+      } else {
+        source.current = loaded.source === 'missing' ? 'file' : 'browser'
+        const isDefault = workspace.current === 'default'
+        const kept = isDefault ? (loaded.source === 'browser' ? loaded.saved : readBrowser()) : null
+        const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : isDefault ? await seeded() : { nodes: [], links: [] }
+        if (epoch !== workspaceEpoch.current) return
+        revision.current = null
+        savedPrint.current = ''
+        setNodes(start.nodes)
+        setLinks(start.links)
+        setGithub(null)
+        setGithubOwner('flipbook-labs')
+      }
+      setReady(true)
+    },
+    [adopt],
+  )
+
   useEffect(() => {
     let cancelled = false
-    load().then(async (loaded) => {
-      if (loaded.source === 'file') {
-        if (cancelled) return
-        adopt(loaded.doc)
-        setReady(true)
-        return
-      }
-      source.current = loaded.source === 'missing' ? 'file' : 'browser'
-      // The first run with a data file carries over what this browser had, or starts from the seed.
-      const kept = loaded.source === 'browser' ? loaded.saved : readBrowser()
-      const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : await seeded()
+    void getWorkspaces().then(async (list) => {
       if (cancelled) return
-      setNodes(start.nodes)
-      setLinks(start.links)
-      setReady(true)
+      workspace.current = list.active
+      setWorkspaces(list)
+      await loadWorkspace(workspaceEpoch.current)
     })
     return () => {
       cancelled = true
     }
-  }, [adopt])
+  }, [loadWorkspace])
 
   useEffect(
     () =>
@@ -267,9 +291,13 @@ function Canvas() {
     const t = setTimeout(() => {
       const snapshot = { nodes, links }
       const print = fingerprint(snapshot)
+      const epoch = workspaceEpoch.current
+      const name = workspace.current
       queue.current = queue.current.then(async () => {
+        if (epoch !== workspaceEpoch.current) return
         if (print === savedPrint.current) return
-        const result = await save(source.current, revision.current, snapshot)
+        const result = await save(source.current, revision.current, snapshot, name)
+        if (epoch !== workspaceEpoch.current) return
         if (result.ok) {
           revision.current = result.revision
           savedPrint.current = print
@@ -281,6 +309,52 @@ function Canvas() {
     }, 400)
     return () => clearTimeout(t)
   }, [nodes, links, ready, reload])
+
+  const changeWorkspace = useCallback(
+    (name: string) => {
+      if (name === workspace.current) return
+      workspace.current = name
+      const epoch = ++workspaceEpoch.current
+      pendingWorkspaceFit.current = epoch
+      setReady(false)
+      setRoot(null)
+      setPeek(null)
+      setPinned(null)
+      setHover(null)
+      setEditing(null)
+      queue.current = queue.current.then(async () => {
+        setWorkspaces(await getWorkspaces())
+        await loadWorkspace(epoch, true)
+      })
+    },
+    [loadWorkspace],
+  )
+
+  useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
+
+  useEffect(() => {
+    if (!ready || pendingWorkspaceFit.current !== workspaceEpoch.current) return
+    const epoch = workspaceEpoch.current
+    const frame = requestAnimationFrame(() => {
+      if (pendingWorkspaceFit.current !== epoch) return
+      pendingWorkspaceFit.current = null
+      if (nodes.length) void rf.fitView({ padding: 0.08, duration: 450 })
+      else void rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 450 })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [ready, nodes, rf])
+
+  const switchWorkspace = async (name: string) => {
+    const list = await setActiveWorkspace(name)
+    setWorkspaces(list)
+    changeWorkspace(name)
+  }
+
+  const newWorkspace = async (name: string, label: string) => {
+    const list = await createWorkspace(name, label)
+    setWorkspaces(list)
+    await switchWorkspace(name)
+  }
 
   /**
    * Fits the opened group, or everything at the top level. Bounds come from our own
@@ -977,7 +1051,17 @@ function Canvas() {
       <ActionsContext.Provider value={actions}>
         <div className="app">
           {sidebar && (
-            <Sidebar nodes={nodes} groups={work.groups} root={root} open={openRoot} readyTotal={readyTotal} hide={() => toggleSidebar(false)} />
+            <Sidebar
+              nodes={nodes}
+              groups={work.groups}
+              root={root}
+              open={openRoot}
+              readyTotal={readyTotal}
+              hide={() => toggleSidebar(false)}
+              workspaces={workspaces}
+              switchWorkspace={switchWorkspace}
+              newWorkspace={newWorkspace}
+            />
           )}
           <div className={`canvas${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
             {ready && (

@@ -19,8 +19,16 @@ local DAILY_DAYS = 30
 local LOCK_TIMEOUT_SECONDS = 5
 local STALE_LOCK_SECONDS = 30
 local DEFAULT_OWNER = "flipbook-labs"
+local WORKSPACES = "workspaces.json"
+
+export type Workspace = { name: string, label: string }
+export type WorkspaceList = { active: string, workspaces: { Workspace } }
 
 local store = {}
+
+local function str(value: json.Value): string?
+	return if type(value) == "string" then value else nil
+end
 
 function store.defaultDir(): string
 	local configured = process.env.ORION_DATA_DIR
@@ -30,8 +38,8 @@ function store.defaultDir(): string
 	return tostring(path.join(process.homedir(), "Library", "Application Support", "Orion"))
 end
 
-function store.filePath(dir: string): string
-	return tostring(path.join(dir, FILE))
+function store.validWorkspace(name: string): boolean
+	return name ~= "" and name:match("^[a-z0-9%-]+$") ~= nil
 end
 
 export type Backup = { revision: number, time: string, size: number, file: string }
@@ -85,8 +93,105 @@ function store.pruneBackups(dir: string, now: number)
 	end
 end
 
-local function str(value: json.Value): string?
-	return if type(value) == "string" then value else nil
+function store.workspaceDir(root: string, name: string): string
+	assert(store.validWorkspace(name), `invalid workspace name: {name}`)
+	return if name == "default" then root else tostring(path.join(root, "workspaces", name))
+end
+
+function store.workspaces(root: string): WorkspaceList
+	local file = tostring(path.join(root, WORKSPACES))
+	local result: WorkspaceList = { active = "default", workspaces = { { name = "default", label = "Default" } } }
+	if not fs.exists(file) then
+		return result
+	end
+	local raw = json.asObject(json.deserialize(fs.readFileToString(file)) :: json.Value)
+	assert(raw, `invalid workspace list at {file}`)
+	local names: { [string]: boolean } = { default = true }
+	for _, entry in json.asArray(raw.workspaces) or {} do
+		local item = json.asObject(entry)
+		local name = if item then str(item.name) else nil
+		local label = if item then str(item.label) else nil
+		assert(name and store.validWorkspace(name) and label and label ~= "", `invalid workspace in {file}`)
+		if name == "default" then
+			result.workspaces[1].label = label
+		elseif not names[name] then
+			table.insert(result.workspaces, { name = name, label = label })
+			names[name] = true
+		end
+	end
+	local active = str(raw.active) or "default"
+	assert(names[active], `unknown workspace: {active}`)
+	result.active = active
+	return result
+end
+
+local workspaceWriteSequence = 0
+
+local function writeWorkspaces(root: string, list: WorkspaceList)
+	if not fs.exists(root) then
+		fs.createDirectory(root, { makeParents = true })
+	end
+	local entries: json.Array = {}
+	for _, workspace in list.workspaces do
+		table.insert(entries, json.object({ name = workspace.name, label = workspace.label }))
+	end
+	local file = tostring(path.join(root, WORKSPACES))
+	workspaceWriteSequence += 1
+	local temporary = `{file}.tmp.{process.pid()}.{workspaceWriteSequence}`
+	fs.writeStringToFile(temporary, json.serialize(json.object({ active = list.active, workspaces = entries }), true))
+	fs.move(temporary, file)
+end
+
+function store.activeWorkspace(root: string, requested: string?): string
+	local list = store.workspaces(root)
+	local configured = process.env.ORION_WORKSPACE
+	local name = requested or (if configured ~= "" then configured else nil) or list.active
+	assert(store.validWorkspace(name), `invalid workspace name: {name}`)
+	for _, workspace in list.workspaces do
+		if workspace.name == name then
+			return name
+		end
+	end
+	error(`unknown workspace: {name}`)
+end
+
+function store.createWorkspace(root: string, name: string, label: string?, owner: string?): WorkspaceList
+	assert(store.validWorkspace(name), `invalid workspace name: {name}`)
+	assert(label == nil or label:match("%S"), "label must be nonempty")
+	assert(owner == nil or owner ~= "", "owner must be nonempty")
+	local list = store.workspaces(root)
+	for _, workspace in list.workspaces do
+		assert(workspace.name ~= name, `workspace already exists: {name}`)
+	end
+	local dir = store.workspaceDir(root, name)
+	assert(not fs.exists(dir), `workspace folder already exists: {dir}`)
+	store.write(dir, {
+		version = 1,
+		revision = 0,
+		settings = { githubOwner = owner or DEFAULT_OWNER },
+		nodes = {},
+		links = {},
+	})
+	table.insert(list.workspaces, { name = name, label = label or name })
+	writeWorkspaces(root, list)
+	return list
+end
+
+function store.useWorkspace(root: string, name: string): WorkspaceList
+	local list = store.workspaces(root)
+	assert(store.validWorkspace(name), `invalid workspace name: {name}`)
+	local known = false
+	for _, workspace in list.workspaces do
+		known = known or workspace.name == name
+	end
+	assert(known, `unknown workspace: {name}`)
+	list.active = name
+	writeWorkspaces(root, list)
+	return list
+end
+
+function store.filePath(dir: string): string
+	return tostring(path.join(dir, FILE))
 end
 
 local function num(value: json.Value): number?

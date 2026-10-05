@@ -10,7 +10,13 @@ This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs 
 
 ## Data
 
-Everything lives in one file, `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another folder. The app and the CLI take the same lock before writing and bump a revision with each write, so both can be open at once. Changes from either side show up in the other within a moment.
+The default canvas lives in `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another data root. The app and the CLI take the same lock before writing and bump a revision with each write, so both can be open at once. Changes from either side show up in the other within a moment.
+
+### Workspaces
+
+The original canvas is the `default` workspace in the data root. Other workspaces keep separate `orion.json` files under `<data root>/workspaces/<name>/`. The root's `workspaces.json` records their names, labels, and the active workspace. Workspace names use lowercase letters, digits, and hyphens.
+
+Use `orion workspace list`, `orion workspace create <name> [--label <label>] [--owner <github owner>]`, and `orion workspace use <name>` to manage them. `orion workspace current` shows the selected workspace, and `orion path` prints its folder. The app's sidebar can also create and switch workspaces. Pass `--workspace <name>` to a CLI command to use one without changing the active workspace; `ORION_WORKSPACE` provides the same choice for the environment. The command option takes precedence, followed by the environment, `workspaces.json`, and `default`.
 
 Before replacing an existing data file, both writers copy it to `backups/orion-r<revision>-<UTC timestamp>.json` in the data folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list them newest first, and `orion restore <revision>` to recover one as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
 
@@ -22,7 +28,7 @@ npm install
 npm run dev
 ```
 
-The dev server reads and writes the data file. The first time it runs without one, it carries over what the browser had saved, or starts from the seed.
+The dev server reads and writes the active workspace's data file. When the default workspace has no file, it carries over what the browser had saved, or starts from the seed. Other new workspaces start empty.
 It runs `orion sync --json` five seconds after startup and every five minutes, using `cli/build/orion` and the same data folder as the app. Set `ORION_BIN` to use another CLI binary. Returning to the window also requests a sync, with a one-minute server throttle.
 
 ## Desktop app

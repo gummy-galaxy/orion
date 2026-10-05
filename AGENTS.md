@@ -13,6 +13,8 @@ Add `--json` to any of these for structured output. Statuses in the output are d
 
 `orion backups [--json]` lists saved revisions. If a change was a mistake, `orion restore <revision>` restores the newest backup with that revision as a new revision and backs up the current file first.
 
+Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces.
+
 ## Changing it
 
 - `orion add <title> [--group <id>] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item.
