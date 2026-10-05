@@ -4,6 +4,7 @@ local path = require("@std/path")
 local process = require("@std/process")
 local task = require("@std/task")
 
+local refs = require("@root/refs")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -267,6 +268,9 @@ function store.decode(text: string): Doc
 				browse = str(source.browse),
 			})
 		end
+	end
+	for _, item in nodes do
+		refs.migrate(item, sources)
 	end
 	return {
 		version = num(root.version) or 1,

@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local graph = require("@root/graph")
+local refs = require("@root/refs")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -13,14 +14,10 @@ local function str(value: json.Value): string?
 end
 
 function render.tag(item: Item): string
-	local repo = str(item.data.repo)
-	local pr = item.data.pr
 	if graph.isNote(item) then
 		return "note"
-	elseif repo and type(pr) == "number" then
-		return `{repo}#{pr}`
 	end
-	return repo or "step"
+	return refs.itemTag(item) or str(item.data.itemKind) or "step"
 end
 
 local function groupLabel(doc: Doc, item: Item): string?
@@ -39,11 +36,21 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 	})
 	object.group = item.parentId
 	object.groupLabel = groupLabel(doc, item)
-	object.repo = item.data.repo
-	object.pr = item.data.pr
+	local driver = refs.driver(item)
+	object.repo = if driver then driver.repo else refs.repo(item)
+	object.pr = if driver then driver.number else nil
 	object.who = item.data.who
 	object.note = item.data.note
-	object.github = item.data.github
+	object.github = if driver then driver.state else nil
+	local sources: json.Array = {}
+	for _, ref in refs.ordered(item) do
+		local copy = json.object(ref)
+		copy.href = refs.url(ref, doc.settings.githubOwner)
+		table.insert(sources, copy)
+	end
+	if #sources > 0 then
+		object.sources = sources
+	end
 	local waitsOn: json.Array = {}
 	local unblocks: json.Array = {}
 	for _, link in doc.links do
@@ -110,6 +117,10 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 	local who = str(item.data.who)
 	if who then
 		table.insert(lines, `  move     {who}`)
+	end
+	for _, ref in refs.ordered(item) do
+		local href = refs.url(ref, doc.settings.githubOwner)
+		table.insert(lines, `  source   {refs.describe(ref)}{if href then `  {href}` else ""}`)
 	end
 	local leverage = derived.leverage[item.id] or 0
 	if leverage > 0 then

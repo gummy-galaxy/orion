@@ -39,8 +39,8 @@ end)
 
 test.case("heuristics join a shared Jira epic", function(assert)
 	local doc = pair(
-		json.object({ jira = json.object({ epicKey = "ABC-1", epicSummary = "Avatar loading" }) }),
-		json.object({ jira = json.object({ epicKey = "ABC-1" }) })
+		json.object({ jira = json.object({ key = "ABC-2", epicKey = "ABC-1", epicSummary = "Avatar loading" }) }),
+		json.object({ jira = json.object({ key = "ABC-3", epicKey = "ABC-1" }) })
 	)
 	local result = compute(doc)
 	assert.eq(result.groups[1].title, "Avatar loading")
@@ -73,7 +73,7 @@ test.case("heuristics join issue references in titles and branches", function(as
 		testing.task("a", "Issue #123", "todo", nil, json.object({ repo = "app", issue = 123 })),
 		testing.task("b", "Build view", "todo", nil, json.object({ repo = "app", branch = "fix-#123" })),
 		testing.task("c", "ABC-9 migration", "todo"),
-		testing.task("d", "Migrate data", "todo", nil, json.object({ branch = "work/ABC-9" })),
+		testing.task("d", "Migrate data", "todo", nil, json.object({ repo = "data", branch = "work/ABC-9" })),
 	})
 	local result = compute(doc)
 	assert.eq(#result.groups, 2)
@@ -98,14 +98,14 @@ test.case("title overlap joins only a matching repository without epic conflict"
 			"Improve avatar loading",
 			"todo",
 			nil,
-			json.object({ repo = "app", jira = json.object({ epicKey = "ABC-1" }) })
+			json.object({ repo = "app", jira = json.object({ key = "ABC-3", epicKey = "ABC-1" }) })
 		),
 		testing.task(
 			"b",
 			"Fix avatar loading",
 			"todo",
 			nil,
-			json.object({ repo = "app", jira = json.object({ epicKey = "ABC-2" }) })
+			json.object({ repo = "app", jira = json.object({ key = "ABC-4", epicKey = "ABC-2" }) })
 		),
 	})
 	assert.eq(#compute(conflicting).groups, 0)

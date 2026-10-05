@@ -4,6 +4,7 @@ local path = require("@std/path")
 local test = require("@std/test")
 
 local cli = require("@root/cli")
+local refs = require("@root/refs")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -195,7 +196,8 @@ test.case("sync writes GitHub state through the command runner", function(assert
 	assert.strContains(text, "ci: active → done")
 	local item = store.load(dir).nodes[2]
 	assert.eq(item.data.status, "done")
-	local recorded = json.asObject(item.data.github)
+	local driver = refs.driver(item)
+	local recorded = if driver then json.asObject(driver.state) else nil
 	assert.eq(recorded and recorded.state, "MERGED")
 	assert.eq(recorded and recorded.checks, "SUCCESS")
 	assert.eq(recorded and recorded.additions, 120)

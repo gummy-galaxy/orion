@@ -2,6 +2,7 @@ local json = require("@std/json")
 
 local graph = require("@root/graph")
 local match = require("@root/match")
+local refs = require("@root/refs")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -23,34 +24,40 @@ local function field(item: Item, key: string): string?
 end
 
 local function epic(item: Item): (string?, string?)
-	local jira = json.asObject(item.data.jira)
-	return if jira then jira.epicKey :: string? else nil, if jira then jira.epicSummary :: string? else nil
+	local jira = refs.jira(item)
+	local state = if jira then json.asObject(jira.state) else nil
+	return if state then state.epicKey :: string? else nil, if state then state.epicSummary :: string? else nil
+end
+
+local function repoOf(item: Item): string?
+	return (refs.repo(item))
 end
 
 local function host(item: Item): string
-	return field(item, "host") or "github.com"
+	local _, itemHost = refs.repo(item)
+	return itemHost or "github.com"
 end
 
 local function sameRepo(a: Item, b: Item): boolean
-	local repo = field(a, "repo")
-	return repo ~= nil and repo == field(b, "repo") and host(a) == host(b)
+	local repo = repoOf(a)
+	return repo ~= nil and repo == repoOf(b) and host(a) == host(b)
 end
 
 local function references(item: Item): { [string]: boolean }
 	local result: { [string]: boolean } = {}
-	local jira = json.asObject(item.data.jira)
+	local jira = refs.jira(item)
 	if jira and type(jira.key) == "string" then
 		result[`jira:{jira.key:upper()}`] = true
 	end
-	if type(item.data.issue) == "number" then
-		result[`issue:{host(item)}:{field(item, "repo") or ""}:{item.data.issue}`] = true
+	for _, issue in refs.ofKind(item, "github-issue") do
+		result[`issue:{host(item)}:{issue.repo or ""}:{issue.number}`] = true
 	end
-	for _, value in { graph.label(item), field(item, "branch") or "" } do
+	for _, value in { graph.label(item), refs.branch(item) or "" } do
 		for key in value:upper():gmatch("[A-Z][A-Z0-9]+%-%d+") do
 			result[`jira:{key}`] = true
 		end
 		for number in value:gmatch("#(%d+)") do
-			result[`issue:{host(item)}:{field(item, "repo") or ""}:{number}`] = true
+			result[`issue:{host(item)}:{repoOf(item) or ""}:{number}`] = true
 		end
 	end
 	return result
@@ -87,7 +94,7 @@ local function componentTitle(items: { Item }): string
 	local summary: string? = nil
 	local commonEpic: string? = nil
 	local mixedEpics = false
-	local sharedRepo: string? = field(items[1], "repo")
+	local sharedRepo: string? = repoOf(items[1])
 	local sharedHost = host(items[1])
 	local counts: { [string]: number } = {}
 	for _, item in items do
@@ -101,7 +108,7 @@ local function componentTitle(items: { Item }): string
 		if name and name ~= "" and not summary then
 			summary = name
 		end
-		if field(item, "repo") ~= sharedRepo or host(item) ~= sharedHost then
+		if repoOf(item) ~= sharedRepo or host(item) ~= sharedHost then
 			sharedRepo = nil
 		end
 		for word in match.words(graph.label(item)) do
@@ -185,10 +192,10 @@ local function heuristic(doc: Doc, cards: { Item }): { Group }
 		for j = i + 1, #cards do
 			local a, b = cards[i], cards[j]
 			local ae, be = epic(a), epic(b)
-			local branch = field(a, "branch")
+			local branch = refs.branch(a)
 			if ae and ae == be then
 				join(a.id, b.id, `Shared epic {ae}`)
-			elseif sameRepo(a, b) and branch and branch ~= "" and branch == field(b, "branch") then
+			elseif sameRepo(a, b) and branch and branch ~= "" and branch == refs.branch(b) then
 				join(a.id, b.id, `Shared branch {branch}`)
 			elseif commonReference(a, b) then
 				join(a.id, b.id, "Shared Jira or issue reference")
@@ -254,7 +261,7 @@ local function agentGroups(
 		if ao ~= bo then
 			return ao
 		end
-		local aa, ba = json.asObject(a.data.activity), json.asObject(b.data.activity)
+		local aa, ba = refs.activity(a), refs.activity(b)
 		local at = if aa and type(aa.lastActiveAt) == "string" then aa.lastActiveAt else ""
 		local bt = if ba and type(ba.lastActiveAt) == "string" then ba.lastActiveAt else ""
 		return if at == bt then a.id < b.id else at > bt
@@ -266,18 +273,16 @@ local function agentGroups(
 	local contextCards: json.Array = {}
 	for _, item in ordered do
 		allowed[item.id] = true
-		local key, epicKey = nil, nil
-		local jira = json.asObject(item.data.jira)
-		if jira then
-			key, epicKey = jira.key, jira.epicKey
-		end
+		local jira = refs.jira(item)
+		local key = if jira then jira.key else nil
+		local epicKey = epic(item)
 		table.insert(
 			contextCards,
 			json.object({
 				id = item.id,
 				label = bounded(graph.label(item), 160),
-				repo = bounded(field(item, "repo"), 100),
-				branch = bounded(field(item, "branch"), 120),
+				repo = bounded(repoOf(item), 100),
+				branch = bounded(refs.branch(item), 120),
 				jira = bounded(if type(key) == "string" then key else nil, 50),
 				epic = bounded(if type(epicKey) == "string" then epicKey else nil, 120),
 				status = bounded(field(item, "status"), 20),

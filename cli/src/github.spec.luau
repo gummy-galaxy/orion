@@ -1,6 +1,7 @@
 local test = require("@std/test")
 
 local github = require("@root/github")
+local refs = require("@root/refs")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
@@ -175,7 +176,8 @@ test.case("apply creates review cards and stores unplaced authored pull requests
 	assert.eq(doc.nodes[2].data.layout, "pending")
 	assert.eq(doc.nodes[3].data.itemKind, "pr")
 	assert.eq(doc.nodes[3].data.who, "you")
-	local recorded = require("@std/json").asObject(doc.nodes[3].data.github)
+	local driver = refs.driver(doc.nodes[3])
+	local recorded = if driver then require("@std/json").asObject(driver.state) else nil
 	assert.eq(recorded and recorded.requestedFromYou, true)
 	assert.eq(recorded and recorded.mine, false)
 	local top = doc.github
@@ -295,7 +297,8 @@ test.case("apply updates statuses, reports what's missing, and files new pull re
 	assert.eq(report.changes[1].toStatus, "done")
 	assert.eq(report.missing[1], "b")
 	assert.eq(#report.added, 0)
-	local recorded = require("@std/json").asObject(doc.nodes[1].data.github)
+	local driver = refs.driver(doc.nodes[1])
+	local recorded = if driver then require("@std/json").asObject(driver.state) else nil
 	assert.eq(recorded and recorded.checks, "SUCCESS")
 	assert.eq(recorded and recorded.additions, 12)
 end)

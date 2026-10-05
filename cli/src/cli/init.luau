@@ -7,6 +7,7 @@ local defaultRun = require("@root/command")
 local github = require("@root/github")
 local graph = require("@root/graph")
 local ingest = require("@root/ingest")
+local refs = require("@root/refs")
 local render = require("@root/render")
 local sources = require("@root/sources")
 local store = require("@root/store")
@@ -43,6 +44,8 @@ local COMMAND_HELP: { [string]: string } = {
 	add = "Add a work item",
 	set = "Change an item's or group's fields",
 	done = "Mark an item done",
+	attach = "Attach a source (GitHub, Jira, Slack, hop, or a link) to an item",
+	detach = "Remove a source from an item",
 	link = "Make one item wait on another",
 	unlink = "Remove the link between two items",
 	note = "Add a note, optionally between two linked items",
@@ -68,6 +71,9 @@ Statuses: todo, active, review, blocked, deferred, done.
   Listed statuses are derived: todo shows as ready once nothing it waits on is open,
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
+Sources are github-pr (repo#123, or repo for one not opened yet), github-issue (repo#123),
+  github-release (repo@tag), jira (KEY-123), hop (repo:branch), slack, or url; any of them can be a URL.
+  Tickets and issues say what the work is, pull requests stacked on them drive its status, and the rest are links.
 Data lives in ~/Library/Application Support/Orion/orion.json; set ORION_DATA_DIR to change it.
 The Orion app watches that file, so changes show up while it's open.]]
 
@@ -124,8 +130,19 @@ local function createParsers(): Parsers
 	local add = command("add")
 	add:add("label", "variadic", { help = "What the work is" })
 	add:add("group", "option", { help = "Group to add it to" })
+	add:add("source", "option", { help = "A source, as kind:value or a URL" })
 	addFieldOptions(add)
 	addJsonFlag(add)
+
+	for _, name in { "attach", "detach" } do
+		local parser = command(name)
+		parser:add("id", "positional", { help = "Item id" })
+		parser:add("source", "variadic", { help = "A kind and value, as github-pr repo#123, or a URL" })
+		if name == "attach" then
+			parser:add("label", "option", { help = "Label for a Slack or url source" })
+		end
+		addJsonFlag(parser)
+	end
 
 	local set = command("set")
 	set:add("id", "positional", { help = "Item or group id" })
@@ -681,10 +698,36 @@ local function execute(args: { string }, options: Dependencies?)
 		local added: Item
 		local options = fields(parser) :: graph.AddOptions
 		options.group = parser:get("group")
+		local spec = parser:get("source")
 		local doc = store.transaction(dir, function(doc)
+			if spec then
+				options.sources = { refs.parseSpec(spec, doc.settings.githubOwner) }
+			end
 			added = graph.addItem(doc, label, options)
 		end)
 		emitItem(deps, doc, added, asJson, "Added")
+	elseif command == "attach" or command == "detach" then
+		local id = required(parser, "id")
+		local values = parser:variadics()
+		assert(#values == 1 or #values == 2, `usage: orion {command} <id> <kind> <value>, or <id> <url>`)
+		local changed: Item
+		local doc = store.transaction(dir, function(doc)
+			local owner = doc.settings.githubOwner
+			local ref = if #values == 2
+				then refs.parse(values[1], values[2], owner)
+				else refs.parse(nil, values[1], owner)
+			if command == "attach" then
+				local label = parser:get("label")
+				if label then
+					assert(ref.kind == "slack" or ref.kind == "url", "only Slack and url sources take a label")
+					ref.label = label
+				end
+				changed = graph.attach(doc, id, ref)
+			else
+				changed = graph.detach(doc, id, ref)
+			end
+		end)
+		emitItem(deps, doc, changed, asJson, if command == "attach" then "Attached to" else "Detached from")
 	elseif command == "set" then
 		local id = required(parser, "id")
 		local changed: Item

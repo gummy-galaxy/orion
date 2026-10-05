@@ -1,5 +1,6 @@
 local json = require("@std/json")
 
+local refs = require("@root/refs")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -217,13 +218,6 @@ function graph.nextSlot(doc: Doc, parentId: string?): Position
 	return { x = (right :: number) + (if parentId then GAP else GAP * 2), y = top :: number }
 end
 
-local function itemKindFor(repo: string?, pr: number?): string
-	if repo and pr then
-		return "pr"
-	end
-	return if repo then "placeholder" else "step"
-end
-
 local function checkFields(fields: ItemFields)
 	assert(
 		fields.status == nil or STATUSES[fields.status],
@@ -233,7 +227,7 @@ local function checkFields(fields: ItemFields)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
 end
 
-export type AddOptions = ItemFields & { group: string? }
+export type AddOptions = ItemFields & { group: string?, sources: { refs.Ref }? }
 
 function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	assert(label ~= "", "an item needs a label")
@@ -241,15 +235,17 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	if options.group then
 		graph.group(doc, options.group)
 	end
-	local base = if options.repo and options.pr then `{slug(options.repo)}-{options.pr}` else slug(label)
+	local first = if options.sources then options.sources[1] else nil
+	local base = if options.repo and options.pr
+		then `{slug(options.repo)}-{options.pr}`
+		elseif first and type(first.number) == "number" then `{slug((refs.tag(first):gsub("#.*$", "")))}-{first.number}`
+		else slug(label)
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
-		itemKind = itemKindFor(options.repo, options.pr),
+		itemKind = "step",
 		status = options.status or "todo",
 	})
-	data.repo = options.repo
-	data.pr = options.pr
 	data.note = options.note
 	data.who = if options.who == "" then nil else options.who
 	local item: Item = {
@@ -259,7 +255,28 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 		parentId = options.group,
 		data = data,
 	}
+	if options.repo or options.pr then
+		refs.setPull(item, options.repo, options.pr)
+	end
+	for _, ref in options.sources or {} do
+		refs.attach(item, ref)
+	end
+	data.itemKind = refs.itemKind(item)
 	table.insert(doc.nodes, item)
+	return item
+end
+
+function graph.attach(doc: Doc, id: string, ref: refs.Ref): Item
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), `"{id}" is a group; attach sources to the items inside it`)
+	refs.attach(item, ref)
+	return item
+end
+
+function graph.detach(doc: Doc, id: string, ref: refs.Ref): Item
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), `"{id}" is a group`)
+	refs.detach(item, ref)
 	return item
 end
 
@@ -291,16 +308,8 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	if fields.note then
 		item.data.note = if fields.note == "" then nil else fields.note
 	end
-	if fields.repo then
-		item.data.repo = if fields.repo == "" then nil else fields.repo
-	end
-	if fields.pr then
-		item.data.pr = fields.pr
-	end
 	if not graph.isNote(item) and (fields.repo or fields.pr) then
-		local repo = field(item, "repo")
-		local pr = item.data.pr
-		item.data.itemKind = itemKindFor(repo, if type(pr) == "number" then pr else nil)
+		refs.setPull(item, fields.repo, fields.pr)
 	end
 	return item
 end

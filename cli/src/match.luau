@@ -1,4 +1,5 @@
 local graph = require("@root/graph")
+local refs = require("@root/refs")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -48,10 +49,10 @@ end
 function match.candidates(doc: Doc, title: string, owner: string, name: string): { Candidate }
 	local out: { Candidate } = {}
 	for _, item in doc.nodes do
-		if item.type ~= "task" or graph.isNote(item) or item.data.pr ~= nil or item.data.status == "done" then
+		if item.type ~= "task" or graph.isNote(item) or #refs.pulls(item) > 0 or item.data.status == "done" then
 			continue
 		end
-		local repo = stringField(item, "repo")
+		local repo = refs.repo(item)
 		local agreement = if repo == nil
 			then 0.3
 			elseif

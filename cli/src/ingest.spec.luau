@@ -3,6 +3,7 @@ local test = require("@std/test")
 
 local cli = require("@root/cli")
 local ingest = require("@root/ingest")
+local refs = require("@root/refs")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -64,7 +65,8 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 	assert.eq(#doc.nodes, count)
 	assert.eq(#doc.links, 2)
 	assert.eq(second.sources[1].updated, 2)
-	local jira = json.asObject(doc.nodes[4].data.jira)
+	local ref = refs.jira(doc.nodes[4])
+	local jira = if ref then json.asObject(ref.state) else nil
 	assert.eq(jira and jira.epicKey, "ABC-1")
 	assert.eq(jira and jira.statusCategory, "indeterminate")
 	assert.eq(doc.nodes[4].data.status, "active")

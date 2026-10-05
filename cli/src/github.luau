@@ -2,6 +2,7 @@ local json = require("@std/json")
 
 local graph = require("@root/graph")
 local match = require("@root/match")
+local refs = require("@root/refs")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -72,23 +73,40 @@ function github.key(ref: Ref): string
 	return string.lower(`{host}{ref.owner}/{ref.name}#{ref.number}`)
 end
 
-function github.refFor(item: Item, defaultOwner: string): Ref?
-	local repo = item.data.repo
-	local number = item.data.pr
+local function str(value: json.Value): string?
+	return if type(value) == "string" then value else nil
+end
+
+function github.keyOf(source: refs.Ref, defaultOwner: string): Ref?
+	local repo = source.repo
+	local number = source.number
 	if type(repo) ~= "string" or type(number) ~= "number" then
 		return nil
 	end
 	local owner, name = repo:match("^([^/]+)/([^/]+)$")
-	return {
-		owner = owner or defaultOwner,
-		name = name or repo,
-		number = number,
-		host = if type(item.data.host) == "string" then item.data.host else nil,
-	}
+	return { owner = owner or defaultOwner, name = name or repo, number = number, host = str(source.host) }
 end
 
-local function str(value: json.Value): string?
-	return if type(value) == "string" then value else nil
+--- The pull request a card shows, if it has one.
+function github.refFor(item: Item, defaultOwner: string): Ref?
+	local driver = refs.driver(item)
+	return if driver then github.keyOf(driver, defaultOwner) else nil
+end
+
+export type PullSource = { key: Ref, source: refs.Ref }
+
+function github.pullSources(item: Item, defaultOwner: string): { PullSource }
+	local out: { PullSource } = {}
+	if item.type ~= "task" then
+		return out
+	end
+	for _, source in refs.pulls(item) do
+		local key = github.keyOf(source, defaultOwner)
+		if key then
+			table.insert(out, { key = key, source = source })
+		end
+	end
+	return out
 end
 
 local function pullFromObject(object: json.Object, owner: string, name: string, host: string?): PullState?
@@ -373,16 +391,15 @@ function github.desired(pull: PullState, status: string, who: string?, viewer: s
 end
 
 function github.collect(doc: Doc, run: CommandRunner, discover: boolean): Fetched
-	local refs: { Ref } = {}
+	local keys: { Ref } = {}
 	for _, item in doc.nodes do
-		local ref = github.refFor(item, doc.settings.githubOwner)
-		if ref then
-			table.insert(refs, ref)
+		for _, entry in github.pullSources(item, doc.settings.githubOwner) do
+			table.insert(keys, entry.key)
 		end
 	end
 	local authored, viewer = github.authoredOpen(run)
 	return {
-		pulls = github.fetch(run, refs),
+		pulls = github.fetch(run, keys),
 		authored = authored,
 		reviews = github.reviewRequested(run),
 		viewer = viewer,
@@ -410,6 +427,50 @@ function github.recorded(pull: PullState, viewer: string, checkedAt: string): js
 end
 
 local recorded = github.recorded
+
+local function record(item: Item, pull: PullState, viewer: string, checkedAt: string): refs.Ref
+	local driver = assert(refs.driver(item))
+	driver.state = recorded(pull, viewer, checkedAt)
+	driver.branch = pull.branch
+	return driver
+end
+
+local function resolvedTicket(item: Item): boolean
+	for _, ref in refs.list(item) do
+		local state = json.asObject(ref.state)
+		if ref.kind == "jira" and state and state.statusCategory == "done" then
+			return true
+		end
+	end
+	return false
+end
+
+--- A card's status from all its pull requests: the topmost open one decides; otherwise any merge finishes the
+--- card, and a card whose pull requests all closed is deferred. A resolved ticket finishes a card with no open
+--- pull request.
+function github.combined(
+	item: Item,
+	pulls: { PullState },
+	status: string,
+	who: string?,
+	viewer: string
+): (string, string?)
+	local open: PullState? = nil
+	local merged = false
+	for _, pull in pulls do
+		if pull.state == "OPEN" then
+			open = pull
+		elseif pull.state == "MERGED" then
+			merged = true
+		end
+	end
+	if open then
+		return github.desired(open, status, who, viewer)
+	elseif merged or resolvedTicket(item) then
+		return "done", nil
+	end
+	return github.desired(pulls[#pulls], status, who, viewer)
+end
 
 local function repoName(doc: Doc, pull: PullState): string
 	return if pull.owner:lower() == doc.settings.githubOwner:lower() then pull.name else `{pull.owner}/{pull.name}`
@@ -451,10 +512,15 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	local cards: { { id: string, pull: PullState } } = {}
 	local byId: { [string]: PullState } = {}
 	for _, item in doc.nodes do
+		for _, entry in github.pullSources(item, doc.settings.githubOwner) do
+			local pull = pulls[github.key(entry.key)]
+			if pull then
+				table.insert(cards, { id = item.id, pull = pull })
+			end
+		end
 		local ref = github.refFor(item, doc.settings.githubOwner)
 		local pull = if ref then pulls[github.key(ref)] else nil
 		if pull then
-			table.insert(cards, { id = item.id, pull = pull })
 			byId[item.id] = pull
 		end
 	end
@@ -471,7 +537,7 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	end
 	for _, parent in cards do
 		for _, child in cards do
-			if not stacked(parent.pull, child.pull) then
+			if parent.id == child.id or not stacked(parent.pull, child.pull) then
 				continue
 			end
 			local exists = false
@@ -496,20 +562,28 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		{ changes = {}, missing = {}, added = {}, reviewAdded = {}, linked = {}, unlinked = {}, checked = 0 }
 	local onCanvas: { [string]: boolean } = {}
 	for _, item in doc.nodes do
-		local ref = github.refFor(item, doc.settings.githubOwner)
-		if not ref then
+		local entries = github.pullSources(item, doc.settings.githubOwner)
+		if #entries == 0 then
 			continue
 		end
-		local key = github.key(ref)
-		onCanvas[key] = true
-		local pull = fetched.pulls[key]
-		if not pull then
+		local found: { PullState } = {}
+		for _, entry in entries do
+			local key = github.key(entry.key)
+			onCanvas[key] = true
+			local pull = fetched.pulls[key]
+			if pull then
+				entry.source.state = recorded(pull, fetched.viewer, checkedAt)
+				entry.source.branch = pull.branch or entry.source.branch
+				table.insert(found, pull)
+			end
+		end
+		if #found == 0 then
 			table.insert(report.missing, item.id)
 			continue
 		end
 		report.checked += 1
 		local status, who = str(item.data.status) or "todo", str(item.data.who)
-		local nextStatus, nextWho = github.desired(pull, status, who, fetched.viewer)
+		local nextStatus, nextWho = github.combined(item, found, status, who, fetched.viewer)
 		if nextStatus ~= status or nextWho ~= who then
 			table.insert(report.changes, {
 				id = item.id,
@@ -518,12 +592,10 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 				toStatus = nextStatus,
 				fromWho = who,
 				toWho = nextWho,
-				closed = pull.state == "CLOSED",
+				closed = nextStatus == "deferred" and found[#found].state == "CLOSED",
 			})
 			item.data.status, item.data.who = nextStatus, nextWho
 		end
-		item.data.github = recorded(pull, fetched.viewer, checkedAt)
-		item.data.branch = pull.branch or item.data.branch
 	end
 
 	for _, pull in fetched.reviews do
@@ -540,8 +612,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			status = status,
 			who = who,
 		})
-		item.data.github = recorded(pull, fetched.viewer, checkedAt)
-		item.data.branch = pull.branch
+		record(item, pull, fetched.viewer, checkedAt)
 		onCanvas[key] = true
 		table.insert(report.added, item.id)
 		table.insert(report.reviewAdded, item.id)
@@ -564,8 +635,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 				status = status,
 				who = who,
 			})
-			item.data.github = recorded(pull, fetched.viewer, checkedAt)
-			item.data.branch = pull.branch
+			record(item, pull, fetched.viewer, checkedAt)
 			onCanvas[key] = true
 			table.insert(report.added, item.id)
 		else

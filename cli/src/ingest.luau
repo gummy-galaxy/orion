@@ -2,6 +2,7 @@ local json = require("@std/json")
 
 local github = require("@root/github")
 local graph = require("@root/graph")
+local refs = require("@root/refs")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -194,66 +195,64 @@ local function fullRepo(doc: Doc, repo: string): string
 	return (if repo:find("/", 1, true) then repo else `{doc.settings.githubOwner}/{repo}`):lower()
 end
 
-local function itemRepo(doc: Doc, item: Item): string?
-	local repo = str(item.data.repo)
+local function refRepo(doc: Doc, ref: refs.Ref): string?
+	local repo = str(ref.repo)
 	return if repo then fullRepo(doc, repo) else nil
 end
 
-local function itemHost(item: Item): string
-	return str(item.data.host) or "github.com"
+local function refHost(ref: refs.Ref): string
+	return str(ref.host) or "github.com"
+end
+
+local function findNumbered(doc: Doc, kind: string, repo: string, number: number, host: string): Item?
+	for _, item in doc.nodes do
+		if item.type ~= "task" then
+			continue
+		end
+		for _, ref in refs.ofKind(item, kind) do
+			if ref.number == number and refRepo(doc, ref) == repo and refHost(ref) == host then
+				return item
+			end
+		end
+	end
+	return nil
 end
 
 local function findPull(doc: Doc, repo: string, number: number, host: string): Item?
-	for _, item in doc.nodes do
-		if
-			item.type == "task"
-			and item.data.pr == number
-			and itemRepo(doc, item) == repo
-			and itemHost(item) == host
-		then
-			return item
-		end
-	end
-	return nil
+	return findNumbered(doc, "github-pr", repo, number, host)
 end
 
 local function findIssue(doc: Doc, repo: string, number: number, host: string): Item?
-	for _, item in doc.nodes do
-		if
-			item.type == "task"
-			and item.data.issue == number
-			and itemRepo(doc, item) == repo
-			and itemHost(item) == host
-		then
-			return item
-		end
-	end
-	return nil
+	return findNumbered(doc, "github-issue", repo, number, host)
 end
 
 local function findBranch(doc: Doc, repo: string, branch: string): Item?
 	for _, item in doc.nodes do
-		if
-			item.type == "task"
-			and itemRepo(doc, item) == repo
-			and item.data.branch == branch
-			and item.data.issue == nil
-		then
-			return item
+		if item.type ~= "task" or #refs.ofKind(item, "github-issue") > 0 then
+			continue
+		end
+		for _, ref in refs.list(item) do
+			if
+				(ref.kind == "github-pr" or ref.kind == "hop")
+				and ref.branch == branch
+				and refRepo(doc, ref) == repo
+			then
+				return item
+			end
 		end
 	end
 	return nil
 end
 
-local function sourceOn(item: Item, id: string)
-	local sources = json.asArray(item.data.sources) or {}
-	if not table.find(sources, id) then
-		table.insert(sources, id)
+local function newRef(fields: { [string]: json.Value }): refs.Ref
+	local ref = json.object({})
+	for key, value in fields do
+		ref[key] = value
 	end
-	item.data.sources = sources
+	return ref
 end
 
-local function newItem(doc: Doc, label: string, repo: string?, status: string, who: string?): Item
+local function newItem(doc: Doc, label: string, status: string, who: string?): Item
 	if not graph.find(doc, "unsorted") then
 		table.insert(doc.nodes, {
 			id = "unsorted",
@@ -267,7 +266,7 @@ local function newItem(doc: Doc, label: string, repo: string?, status: string, w
 	if unsorted.data.layout == nil then
 		unsorted.data.layout = "refit"
 	end
-	return graph.addItem(doc, label, { group = "unsorted", repo = repo, status = status, who = who })
+	return graph.addItem(doc, label, { group = "unsorted", status = status, who = who })
 end
 
 local function mark(report: SourceReport, existing: Item?)
@@ -295,7 +294,7 @@ local function mentionLinks(doc: Doc, pull: github.PullState, item: Item, report
 	local text = `{pull.title} {pull.branch or ""} {pull.body or ""}`
 	for key in text:upper():gmatch("%f[%w][A-Z][A-Z0-9]*%-%d+%f[^%w]") do
 		for _, other in doc.nodes do
-			local jira = json.asObject(other.data.jira)
+			local jira = if other.type == "task" then refs.jira(other) else nil
 			if jira and str(jira.key) == key then
 				linkMention(doc, other, item, report)
 			end
@@ -332,68 +331,67 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			local host = pull.host or "github.com"
 			local existing = findPull(doc, repo, pull.number, host)
 			local step = if not existing and pull.branch then findBranch(doc, repo, pull.branch) else nil
-			if step and step.data.pr then
+			if step and #refs.pulls(step) > 0 then
 				step = nil
 			end
-			local item = existing or step or newItem(doc, pull.title, repoName(doc, pull.owner, pull.name), "todo", nil)
+			local item = existing or step or newItem(doc, pull.title, "todo", nil)
 			mark(result.report, existing or step)
 			local status, who =
 				github.desired(pull, str(item.data.status) or "todo", str(item.data.who), assert(result.viewer))
 			item.data.label = pull.title
-			item.data.itemKind = "pr"
-			item.data.repo = repoName(doc, pull.owner, pull.name)
-			item.data.pr = pull.number
 			item.data.status = status
 			item.data.who = who
-			item.data.branch = pull.branch or item.data.branch
-			item.data.host = if host ~= "github.com" then host else nil
-			item.data.github = github.recorded(pull, assert(result.viewer), now)
-			sourceOn(item, id)
+			local ref =
+				newRef({ kind = "github-pr", repo = repoName(doc, pull.owner, pull.name), number = pull.number })
+			ref.host = if host ~= "github.com" then host else nil
+			ref = refs.attach(item, ref)
+			ref.branch = pull.branch or ref.branch
+			ref.state = github.recorded(pull, assert(result.viewer), now)
+			refs.via(ref, id)
 			table.insert(pendingLinks, { pull, item, result.report })
 		end
 		for _, issue in result.issues or {} do
 			local repo = string.lower(`{issue.owner}/{issue.name}`)
 			local item = findIssue(doc, repo, issue.number, issue.host or "github.com")
 			mark(result.report, item)
-			item = item or newItem(doc, issue.title, repoName(doc, issue.owner, issue.name), "todo", "you")
-			item.data.label = issue.title
-			item.data.itemKind = "placeholder"
-			item.data.repo = repoName(doc, issue.owner, issue.name)
-			item.data.issue = issue.number
-			item.data.host = if issue.host ~= "github.com" then issue.host else nil
-			sourceOn(item, id)
+			local card = item or newItem(doc, issue.title, "todo", "you")
+			card.data.label = issue.title
+			local ref =
+				newRef({ kind = "github-issue", repo = repoName(doc, issue.owner, issue.name), number = issue.number })
+			ref.host = if issue.host ~= "github.com" then issue.host else nil
+			ref = refs.attach(card, ref)
+			ref.state = json.object({ title = issue.title, url = issue.url })
+			refs.via(ref, id)
 		end
 		for _, jira in result.jira or {} do
 			local item: Item? = nil
 			for _, candidate in doc.nodes do
-				local data = json.asObject(candidate.data.jira)
+				local data = if candidate.type == "task" then refs.jira(candidate) else nil
 				if data and str(data.key) == jira.key then
 					item = candidate
 					break
 				end
 			end
 			mark(result.report, item)
-			item = item or newItem(doc, jira.summary, nil, "todo", "you")
+			local card = item or newItem(doc, jira.summary, "todo", "you")
 			local status = if jira.category == "done"
 				then "done"
 				elseif jira.category == "indeterminate" then "active"
 				else "todo"
-			item.data.label = jira.summary
-			item.data.itemKind = "step"
-			item.data.status = status
-			item.data.who = if status == "done" then nil else "you"
-			local data = json.object({
-				key = jira.key,
-				status = jira.status,
-				statusCategory = jira.category,
-				type = jira.issueType,
-			})
-			data.url = if result.source.browse then `{result.source.browse}/{jira.key}` else nil
-			data.epicKey = jira.epicKey
-			data.epicSummary = jira.epicSummary
-			data.updatedAt = jira.updated
-			item.data.jira = data
-			sourceOn(item, id)
+			card.data.label = jira.summary
+			-- Pull requests stacked on the ticket drive the card until the ticket resolves.
+			if #refs.pulls(card) == 0 or status == "done" then
+				card.data.status = status
+				card.data.who = if status == "done" then nil else "you"
+			end
+			local ref = refs.attach(card, newRef({ kind = "jira", key = jira.key }))
+			ref.url = if result.source.browse then `{result.source.browse}/{jira.key}` else ref.url
+			local state = json.object({ status = jira.status, statusCategory = jira.category, type = jira.issueType })
+			state.epicKey = jira.epicKey
+			state.epicSummary = jira.epicSummary
+			state.updatedAt = jira.updated
+			ref.state = state
+			refs.via(ref, id)
 		end
 	end
 	local cutoff = unix(now) - 21 * 86400
@@ -408,10 +406,26 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 	end
 	local knownRepos: { [string]: boolean } = {}
 	for _, item in doc.nodes do
-		local known = str(item.data.repo)
-		if known and item.data.github ~= nil then
-			knownRepos[(known:match("([^/]+)$") or known):lower()] = true
+		for _, pull in if item.type == "task" then refs.pulls(item) else {} do
+			local known = str(pull.repo)
+			if known and pull.state ~= nil then
+				knownRepos[(known:match("([^/]+)$") or known):lower()] = true
+			end
 		end
+	end
+	local function hopRepo(raw: string): string
+		if not raw:find("/", 1, true) then
+			return raw
+		end
+		local repo = fullRepo(doc, raw)
+		return if repo:match("^([^/]+)/") == doc.settings.githubOwner:lower()
+			then repo:match("/([^/]+)$") :: string
+			else raw
+	end
+	local function hopSource(card: Item, raw: string, branch: string): refs.Ref
+		local ref = refs.attach(card, newRef({ kind = "hop", repo = hopRepo(raw), branch = branch }))
+		ref.state = json.asObject(ref.state) or json.object({})
+		return ref
 	end
 	local function inScope(name: string): boolean
 		if next(owners) == nil then
@@ -438,39 +452,26 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			mark(result.report, item)
 			if not item then
 				local label = tree.branch:gsub("([A-Z][A-Z0-9]*)%-(%d+)", "%1\1%2"):gsub("[-/]", " "):gsub("\1", "-")
-				item = newItem(
-					doc,
-					label,
-					if tree.repo:find("/", 1, true)
-						then (if repo:match("^([^/]+)/") == doc.settings.githubOwner:lower()
-							then repo:match("/([^/]+)$")
-							else tree.repo)
-						else tree.repo,
-					"active",
-					"you"
-				)
+				item = newItem(doc, label, "active", "you")
 			end
 			local card = assert(item)
-			if not card.data.pr then
-				card.data.itemKind = "step"
-			end
-			card.data.branch = tree.branch
-			local activity = json.asObject(card.data.activity) or json.object({})
+			local ref = hopSource(card, tree.repo, tree.branch)
+			local activity = assert(json.asObject(ref.state))
 			local stamp = os.date("!%Y-%m-%dT%H:%M:%SZ", tree.lastActivity)
 			if stamp > (str(activity.lastActiveAt) or "") then
 				activity.lastActiveAt = stamp
 			end
 			activity.sessions = {}
 			cleared[card.id] = true
-			card.data.activity = activity
-			sourceOn(card, result.source.id)
+			refs.via(ref, result.source.id)
 		end
 		for _, session in result.sessions or {} do
 			local item = findBranch(doc, fullRepo(doc, session.repo), session.branch)
 			if not item then
 				continue
 			end
-			local activity = json.asObject(item.data.activity) or json.object({})
+			local ref = hopSource(item, session.repo, session.branch)
+			local activity = assert(json.asObject(ref.state))
 			if not cleared[item.id] then
 				activity.sessions = {}
 				cleared[item.id] = true
@@ -485,8 +486,7 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 				table.insert(titles, session.title)
 			end
 			activity.sessions = titles
-			item.data.activity = activity
-			sourceOn(item, result.source.id)
+			refs.via(ref, result.source.id)
 		end
 	end
 	for _, entry in pendingLinks do
