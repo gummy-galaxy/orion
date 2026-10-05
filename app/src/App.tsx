@@ -85,6 +85,7 @@ import {
   driver,
   identity,
   itemKindFor,
+  jiraBrowse,
   ordered,
   parseSource,
   primaryLink,
@@ -1674,7 +1675,17 @@ const KIND_LABEL: Record<SourceKind, string> = {
 }
 
 /** Tickets and issues say what the work is; pull requests stacked on them drive its status; the rest are links. */
-function SourceList({ data, githubOwner, update }: { data: TaskData; githubOwner: string; update: (patch: Partial<TaskData>) => void }) {
+function SourceList({
+  data,
+  githubOwner,
+  browse,
+  update,
+}: {
+  data: TaskData
+  githubOwner: string
+  browse: () => string | null
+  update: (patch: Partial<TaskData>) => void
+}) {
   const [text, setText] = useState('')
   const [kind, setKind] = useState<SourceKind | ''>('')
   const [error, setError] = useState<string | null>(null)
@@ -1682,7 +1693,8 @@ function SourceList({ data, githubOwner, update }: { data: TaskData; githubOwner
   const add = () => {
     try {
       const source: Source = parseSource(text, githubOwner, kind || undefined)
-      update(attachSource(data, source))
+      const site = source.kind === 'jira' && !source.url ? browse() : null
+      update(attachSource(data, site && source.kind === 'jira' ? { ...source, url: `${site}/${source.key}` } : source))
       setText('')
       setError(null)
     } catch (e) {
@@ -1816,7 +1828,12 @@ function TaskInspector({
           {pull.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
         </div>
       )}
-      <SourceList data={data} githubOwner={githubOwner} update={(patch) => update(node.id, patch)} />
+      <SourceList
+        data={data}
+        githubOwner={githubOwner}
+        browse={() => jiraBrowse([...map.values()].filter(isTask).map((n) => n.data))}
+        update={(patch) => update(node.id, patch)}
+      />
       <label className="gate-toggle">
         <input
           type="checkbox"

@@ -275,6 +275,7 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 		refs.setPull(item, options.repo, options.pr)
 	end
 	for _, ref in options.sources or {} do
+		graph.linkJira(doc, ref)
 		refs.attach(item, ref)
 	end
 	data.itemKind = refs.itemKind(item)
@@ -282,9 +283,41 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	return item
 end
 
+--- Where this canvas's Jira tickets open: the Jira source's browse URL, or the site of a ticket already linked.
+local function jiraBrowse(doc: Doc): string?
+	for _, source in doc.settings.sources do
+		if source.kind == "jira" and source.browse then
+			return source.browse
+		end
+	end
+	for _, item in doc.nodes do
+		if item.type == "task" then
+			for _, ref in refs.ofKind(item, "jira") do
+				local url = if type(ref.url) == "string" then ref.url else nil
+				local browse = url and url:match("^(https://[^/@]+.-/browse)/[^/]+$")
+				if browse then
+					return browse
+				end
+			end
+		end
+	end
+	return nil
+end
+
+--- Gives a bare Jira key the link its siblings have, so every ticket opens.
+function graph.linkJira(doc: Doc, ref: refs.Ref)
+	if ref.kind == "jira" and not ref.url and type(ref.key) == "string" then
+		local browse = jiraBrowse(doc)
+		if browse then
+			ref.url = `{browse}/{ref.key}`
+		end
+	end
+end
+
 function graph.attach(doc: Doc, id: string, ref: refs.Ref): Item
 	local item = graph.get(doc, id)
 	assert(not graph.isGroup(item), `"{id}" is a group; attach sources to the items inside it`)
+	graph.linkJira(doc, ref)
 	refs.attach(item, ref)
 	return item
 end

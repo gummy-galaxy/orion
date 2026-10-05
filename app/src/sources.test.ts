@@ -1,11 +1,38 @@
 import { describe, expect, it } from 'vitest'
 import type { TaskData } from './model'
-import { attachSource, detachSource, driver, itemKindFor, migrateTask, ordered, parseSource, primaryLink, taskTag } from './sources'
+import {
+  attachSource,
+  detachSource,
+  driver,
+  itemKindFor,
+  jiraBrowse,
+  migrateTask,
+  ordered,
+  parseSource,
+  primaryLink,
+  sourceUrl,
+  taskTag,
+} from './sources'
 
 const task = (extra: Record<string, unknown> = {}): TaskData =>
   ({ kind: 'task', label: 'Work', itemKind: 'step', status: 'todo', ...extra }) as TaskData
 
 describe('sources', () => {
+  it('links a pull request not opened yet to its branch, or else its repository', () => {
+    expect(sourceUrl({ kind: 'github-pr', repo: 'orion', branch: 'agent/next' }, 'vocksel')).toBe('https://github.com/vocksel/orion/tree/agent/next')
+    expect(sourceUrl({ kind: 'github-pr', repo: 'orion' }, 'vocksel')).toBe('https://github.com/vocksel/orion')
+  })
+
+  it('finds the Jira site from a ticket that already links to it', () => {
+    expect(jiraBrowse([task({ sources: [{ kind: 'jira', key: 'ABC-1' }] })])).toBeNull()
+    expect(
+      jiraBrowse([
+        task({ sources: [{ kind: 'jira', key: 'ABC-1' }] }),
+        task({ sources: [{ kind: 'jira', key: 'ABC-2', url: 'https://example.atlassian.net/browse/ABC-2' }] }),
+      ]),
+    ).toBe('https://example.atlassian.net/browse')
+  })
+
   it('carries legacy fields over the way the CLI does', () => {
     const data = migrateTask(
       task({

@@ -1,6 +1,7 @@
 local test = require("@std/test")
 
 local graph = require("@root/graph")
+local refs = require("@root/refs")
 local testing = require("@root/testing")
 
 local task = testing.task
@@ -148,4 +149,13 @@ test.case("move drops groups it leaves empty and refuses cycles", function(asser
 	assert.throws(function()
 		graph.move(doc, "h", "h")
 	end)
+end)
+
+test.case("attaching a bare Jira key links it to the site the canvas already uses", function(assert)
+	local doc = testing.doc({ task("a", "A", "todo"), task("b", "B", "todo") }, {})
+	graph.attach(doc, "a", refs.parse("jira", "UIBLOX-1", "Roblox"))
+	assert.eq(refs.ofKind(graph.get(doc, "a"), "jira")[1].url, nil)
+	graph.attach(doc, "a", refs.parse(nil, "https://roblox.atlassian.net/browse/UIBLOX-2", "Roblox"))
+	graph.attach(doc, "b", refs.parse("jira", "UIBLOX-3", "Roblox"))
+	assert.eq(refs.ofKind(graph.get(doc, "b"), "jira")[1].url, "https://roblox.atlassian.net/browse/UIBLOX-3")
 end)

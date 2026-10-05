@@ -126,7 +126,15 @@ export function sourceUrl(source: Source, owner: string): string | null {
   const host = 'host' in source && source.host ? source.host : 'github.com'
   switch (source.kind) {
     case 'github-pr':
-      return source.state?.url ?? (typeof source.number === 'number' ? `https://${host}/${fullRepo(source.repo, owner)}/pull/${source.number}` : null)
+      return (
+        source.state?.url ??
+        `https://${host}/${fullRepo(source.repo, owner)}` +
+          (typeof source.number === 'number'
+            ? `/pull/${source.number}`
+            : source.branch
+              ? `/tree/${source.branch.split('/').map(encodeURIComponent).join('/')}`
+              : '')
+      )
     case 'github-issue':
       return source.state?.url ?? `https://${host}/${fullRepo(source.repo, owner)}/issues/${source.number}`
     case 'github-release':
@@ -138,6 +146,16 @@ export function sourceUrl(source: Source, owner: string): string | null {
     default:
       return source.url
   }
+}
+
+/** Where this canvas's Jira tickets open, taken from a ticket that already links to its site. Mirrors the CLI. */
+export function jiraBrowse(cards: TaskData[]): string | null {
+  for (const data of cards)
+    for (const source of data.sources ?? []) {
+      const browse = source.kind === 'jira' && source.url ? /^(https:\/\/[^/@]+.*?\/browse)\/[^/]+$/.exec(source.url)?.[1] : undefined
+      if (browse) return browse
+    }
+  return null
 }
 
 /** The first source, in precedence order, that has somewhere to open. */
