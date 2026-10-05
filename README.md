@@ -89,7 +89,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - However far you zoom out, folded groups, cards, and notes keep their full details at a readable size, and open groups' headers grow to stay legible. Hover one to bring it above its neighbors.
 - Hold Space over a card, note, or group to read it up close without changing the zoom. A group shows what it contains.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
-- Hover a card to trace what it needs (amber) and what it unlocks (teal). Double-click a card to hold its trace while you pan; click anywhere or press Esc to let it go.
+- Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it (dark dots). Double-click a card to hold its trace while you pan; click anywhere or press Esc to let it go.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks; they show only while you hover, hold, or select one of their cards.
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.

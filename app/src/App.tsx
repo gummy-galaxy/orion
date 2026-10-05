@@ -831,9 +831,10 @@ function Canvas() {
           work.preds,
           work.succs,
           nodes.filter(isTask).map((n) => n.id),
+          links.filter((l) => l.kind === 'related' && (l.from === h.id || l.to === h.id)).map((l) => (l.from === h.id ? l.to : l.from)),
         )
       : null
-  }, [pinned, hover, map, work, nodes])
+  }, [pinned, hover, map, work, nodes, links])
 
   const selectedKey = nodes
     .filter((n) => n.selected)
@@ -862,7 +863,8 @@ function Canvas() {
           const rb = trace.get(l.to)
           const up = l.kind === 'blocks' && ra === 'up' && (rb === 'up' || rb === 'self')
           const down = l.kind === 'blocks' && (ra === 'down' || ra === 'self') && rb === 'down'
-          cls += up ? ' tr-e-up' : down ? ' tr-e-down' : ' tr-e-dim'
+          const near = l.kind === 'related' && (ra === 'self' || rb === 'self')
+          cls += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
         }
         if (peeking && !inFocus(a) && !inFocus(b)) cls += ' e-peek'
         out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(live) : undefined })

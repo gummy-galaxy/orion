@@ -439,6 +439,12 @@ select {
     inset 3px 0 0 var(--c),
     0 0 0 1px var(--accent);
 }
+.card.tr-related {
+  border-color: var(--ink);
+  box-shadow:
+    inset 3px 0 0 var(--c),
+    0 0 0 1px color-mix(in srgb, var(--ink) 40%, transparent);
+}
 .card.tr-self {
   box-shadow:
     inset 3px 0 0 var(--c),
@@ -461,8 +467,8 @@ select {
 }
 .react-flow__edge.e-rel .react-flow__edge-path {
   stroke: var(--muted);
-  stroke-width: 1.6;
-  stroke-dasharray: 0.5 6;
+  stroke-width: 2.2;
+  stroke-dasharray: 0.5 5;
   stroke-linecap: round;
 }
 .react-flow__edge.e-agg.e-live .react-flow__edge-path {
@@ -480,6 +486,11 @@ select {
   stroke-width: 2.4;
   stroke-dasharray: none;
   animation: none;
+  opacity: 1;
+}
+.react-flow__edge.tr-e-rel .react-flow__edge-path {
+  stroke: var(--ink);
+  stroke-width: 2.6;
   opacity: 1;
 }
 .react-flow__edge.tr-e-dim {
