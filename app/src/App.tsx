@@ -55,6 +55,7 @@ import {
   type TaskData,
   type Who,
 } from './model'
+import { openExternal } from './external'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
   createWorkspace,
@@ -1169,7 +1170,7 @@ function Canvas() {
       const link = primaryLink(data, githubOwner)
       return [
         ...many,
-        ...(link ? [{ label: `Open ${link.tag}`, hint: '↗', run: () => window.open(link.url, '_blank', 'noreferrer') }] : []),
+        ...(link ? [{ label: `Open ${link.tag}`, hint: '↗', run: () => openExternal(link.url) }] : []),
         data.status === 'done'
           ? { label: 'Mark not done', run: () => updateData(n.id, { status: 'todo' }) }
           : { label: 'Mark done', run: () => updateData(n.id, { status: 'done' }) },
