@@ -1,6 +1,6 @@
-import { useContext, type CSSProperties } from 'react'
+import { useContext, useState, type CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { ActionsContext, DerivedContext } from './derive'
+import { ActionsContext, DerivedContext, type SourceRef } from './derive'
 import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
@@ -28,40 +28,57 @@ function Ring({ done, total, size = 22 }: { done: number; total: number; size?: 
   )
 }
 
-function sourceInitials(source: string) {
-  if (!source) return 'O'
-  const name = source.split('/').at(-1) || source
-  const word = (name.split(/[-_.]/).filter(Boolean).at(-1) || name).toUpperCase()
-  const consonants = word.replace(/[^A-Z0-9]|[AEIOU]/g, '')
-  return (consonants.length >= 2 ? consonants : word).slice(0, 2)
-}
-
-function sourceHue(source: string) {
-  let hash = 0
-  for (const char of source) hash = (hash * 31 + char.charCodeAt(0)) % 360
-  return hash
-}
-
-function SourceBadges({ sources, inBubble = false }: { sources: string[]; inBubble?: boolean }) {
-  const visible = sources.length ? sources : ['']
+function Favicon({ domain }: { domain: string }) {
+  const [failed, setFailed] = useState(false)
   return (
-    <span
-      className={`source-badges${inBubble ? ' in-bubble' : ''}`}
-      role="img"
-      aria-label={`Sources: ${visible.map((source) => source || 'Orion').join(', ')}`}
-    >
-      {visible.map((source) => (
-        <span
-          key={source || 'local'}
-          className={`source-badge${source ? '' : ' is-local'}`}
-          style={source ? ({ '--source-hue': sourceHue(source) } as CSSProperties) : undefined}
-          title={source ? `Repository: ${source}` : 'Orion work item'}
-          aria-hidden="true"
-        >
-          {sourceInitials(source)}
-        </span>
-      ))}
+    <span className="source-favicon">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M3 10h14M10 3c-4 4-4 10 0 14 4-4 4-10 0-14Z" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+      {!failed && <img src={domain === 'orion' ? '/favicon.svg' : `https://${domain}/favicon.ico`} alt="" onError={() => setFailed(true)} />}
     </span>
+  )
+}
+
+function SourceBadges({ sources, inBubble = false }: { sources: SourceRef[]; inBubble?: boolean }) {
+  const domains = new Map<string, string[]>()
+  for (const { domain, label } of sources.length ? sources : [{ domain: 'orion', label: 'Orion' }]) {
+    const labels = domains.get(domain) ?? []
+    if (!labels.includes(label)) labels.push(label)
+    domains.set(domain, labels)
+  }
+  return (
+    <div className={`source-badges${inBubble ? ' in-bubble' : ''}`}>
+      {[...domains].map(([domain, labels]) => {
+        const name = domain === 'orion' ? 'Orion' : domain
+        return labels.length === 1 ? (
+          <span key={domain} className="source-domain" role="img" aria-label={`${name}: ${labels[0]}`} title={`${name}: ${labels[0]}`}>
+            <Favicon domain={domain} />
+          </span>
+        ) : (
+          <details
+            key={domain}
+            className="source-domain source-domain-many nodrag"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <summary aria-label={`${name}: ${labels.length} sources`} title={`${name}: ${labels.length} sources. Click to show them.`}>
+              <Favicon domain={domain} />
+              <span className="source-count">{labels.length}</span>
+            </summary>
+            <div className="source-menu">
+              <strong>{name}</strong>
+              <ul>
+                {labels.map((label) => (
+                  <li key={label}>{label}</li>
+                ))}
+              </ul>
+            </div>
+          </details>
+        )
+      })}
+    </div>
   )
 }
 
