@@ -415,14 +415,18 @@ local function repoName(doc: Doc, pull: PullState): string
 	return if pull.owner:lower() == doc.settings.githubOwner:lower() then pull.name else `{pull.owner}/{pull.name}`
 end
 
+--- Callers add a card next, so the app is asked to place a new group or tidy an existing one.
 local function ensureGroup(doc: Doc, id: string, label: string, blurb: string)
-	if not graph.find(doc, id) then
+	local group = graph.find(doc, id)
+	if not group then
 		table.insert(doc.nodes, {
 			id = id,
 			type = "cluster",
 			position = graph.nextSlot(doc, nil),
-			data = json.object({ kind = "cluster", label = label, blurb = blurb }),
+			data = json.object({ kind = "cluster", label = label, blurb = blurb, layout = "pending" }),
 		})
+	elseif group.data.layout == nil then
+		group.data.layout = "refit"
 	end
 end
 

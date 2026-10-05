@@ -172,6 +172,7 @@ test.case("apply creates review cards and stores unplaced authored pull requests
 	}, "2026-10-04T18:05:00Z")
 	assert.eq(report.reviewAdded[1], report.added[1])
 	assert.eq(doc.nodes[2].id, "reviews")
+	assert.eq(doc.nodes[2].data.layout, "pending")
 	assert.eq(doc.nodes[3].data.itemKind, "pr")
 	assert.eq(doc.nodes[3].data.who, "you")
 	local recorded = require("@std/json").asObject(doc.nodes[3].data.github)
