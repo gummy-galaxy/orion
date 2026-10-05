@@ -39,7 +39,7 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 
 ## Using the canvas
 
-- Drag to pan, scroll to zoom. ⌘-drag selects; ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
+- Drag or scroll to pan; pinch or ⌘-scroll to zoom. ⌘-drag selects; ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.

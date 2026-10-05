@@ -1151,7 +1151,7 @@ function Canvas() {
                   )}
                   {showHelp ? (
                     <>
-                      Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
+                      Drag or scroll to pan · pinch or ⌘-scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
                       double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge
                       to link{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
