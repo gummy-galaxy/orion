@@ -1,5 +1,4 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
-import type { ElkExtendedEdge } from 'elkjs/lib/elk-api'
 import { HEAD, PAD, byId, isCluster, ancestors, normalize, sizeOf, type AppNode, type Link } from './model'
 
 const elk = new ELK()
@@ -21,7 +20,6 @@ const TOP: Gap = { node: 72, layer: 120, component: 96 }
 const elkOptions = (gap: Gap) => ({
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
-  'elk.edgeRouting': 'ORTHOGONAL',
   'elk.spacing.nodeNode': String(gap.node),
   'elk.layered.spacing.nodeNodeBetweenLayers': String(gap.layer),
   'elk.spacing.componentComponent': String(gap.component),
@@ -114,31 +112,14 @@ const bounds = (boxes: Box[]): Box => {
   return { x, y, w: Math.max(...boxes.map((b) => b.x + b.w)) - x, h: Math.max(...boxes.map((b) => b.y + b.h)) - y }
 }
 
-/** An arrow's path from its start through each bend to its end, in the coordinates of the group's children. */
-export type Route = Point[]
-
-async function elkBoxes(
-  units: { id: string; w: number; h: number }[],
-  edges: Edge[],
-  gap: Gap,
-): Promise<{ boxes: Map<string, Box>; routes: Map<string, Route> }> {
+async function elkBoxes(units: { id: string; w: number; h: number }[], edges: Edge[], gap: Gap): Promise<Map<string, Box>> {
   const res = await elk.layout({
     id: 'root',
     layoutOptions: elkOptions(gap),
     children: units.map((u) => ({ id: u.id, width: u.w, height: u.h })),
     edges: edges.map(([a, b]) => ({ id: a + '>' + b, sources: [a], targets: [b] })),
   })
-  const boxes = new Map((res.children ?? []).map((c) => [c.id, { x: c.x ?? 0, y: c.y ?? 0, w: c.width ?? 0, h: c.height ?? 0 }]))
-  const routes = new Map<string, Route>()
-  for (const e of (res.edges ?? []) as ElkExtendedEdge[]) {
-    const s = e.sections?.[0]
-    if (s)
-      routes.set(
-        e.id,
-        [s.startPoint, ...(s.bendPoints ?? []), s.endPoint].map(({ x, y }) => ({ x, y })),
-      )
-  }
-  return { boxes, routes }
+  return new Map((res.children ?? []).map((c) => [c.id, { x: c.x ?? 0, y: c.y ?? 0, w: c.width ?? 0, h: c.height ?? 0 }]))
 }
 
 /**
@@ -146,7 +127,7 @@ async function elkBoxes(
  * same things are interchangeable, so a run of more than `WRAP` of them is laid out as one grid. Chains longer than
  * `WRAP` steps wrap onto further rows, and the pieces are packed again.
  */
-async function flow(kids: AppNode[], edges: Edge[], gap: Gap): Promise<{ pos: Map<string, Point>; routes: Map<string, Route> }> {
+async function flow(kids: AppNode[], edges: Edge[], gap: Gap): Promise<Map<string, Point>> {
   const ends = new Map(kids.map((k) => [k.id, { in: [] as string[], out: [] as string[] }]))
   for (const [a, b] of edges) {
     ends.get(a)!.out.push(b)
@@ -188,8 +169,7 @@ async function flow(kids: AppNode[], edges: Edge[], gap: Gap): Promise<{ pos: Ma
     unitEdges.push(e)
   }
 
-  const first = await elkBoxes(units, unitEdges, gap)
-  let placed = first.boxes
+  let placed = await elkBoxes(units, unitEdges, gap)
   const root = new Map(units.map((u) => [u.id, u.id]))
   const find = (id: string): string => (root.get(id) === id ? id : find(root.get(id)!))
   for (const [a, b] of unitEdges) root.set(find(a), find(b))
@@ -205,7 +185,7 @@ async function flow(kids: AppNode[], edges: Edge[], gap: Gap): Promise<{ pos: Ma
       const boxes = wrapped.get(id) ?? part
       return { id, boxes, frame: bounds([...boxes.values()]) }
     })
-    const { boxes: packed } = await elkBoxes(
+    const packed = await elkBoxes(
       shapes.map((s) => ({ id: s.id, w: s.frame.w, h: s.frame.h })),
       [],
       gap,
@@ -224,20 +204,7 @@ async function flow(kids: AppNode[], edges: Edge[], gap: Gap): Promise<{ pos: Ma
     const offset = block ? block.at[block.members.indexOf(k)] : { x: 0, y: 0 }
     pos.set(k.id, { x: unit.x + offset.x, y: unit.y + offset.y })
   }
-  // Wrapping and packing move whole strips, so a route survives only when both of its ends moved together.
-  const routes = new Map<string, Route>()
-  for (const [a, b] of edges) {
-    const route = unitOf.get(a) === a && unitOf.get(b) === b ? first.routes.get(a + '>' + b) : undefined
-    if (!route) continue
-    const da = { x: placed.get(a)!.x - first.boxes.get(a)!.x, y: placed.get(a)!.y - first.boxes.get(a)!.y }
-    const db = { x: placed.get(b)!.x - first.boxes.get(b)!.x, y: placed.get(b)!.y - first.boxes.get(b)!.y }
-    if (da.x === db.x && da.y === db.y)
-      routes.set(
-        a + '>' + b,
-        route.map((p) => ({ x: p.x + da.x, y: p.y + da.y })),
-      )
-  }
-  return { pos, routes }
+  return pos
 }
 
 /**
@@ -246,41 +213,12 @@ async function flow(kids: AppNode[], edges: Edge[], gap: Gap): Promise<{ pos: Ma
  * placed as single boxes.
  */
 export async function reflow(nodes: AppNode[], links: Link[], groupId: string | undefined): Promise<AppNode[]> {
-  const { group, arrange, kids, edges } = children(nodes, links, groupId)
-  if (arrange === 'custom' || !kids.length) return nodes
-  const gap = groupId ? INNER : TOP
-  let pos: Map<string, Point>
-  if (arrange === 'grid') {
-    const order = dependencyOrder(kids, edges)
-    const columns = group && isCluster(group) ? group.data.columns : undefined
-    const g = grid(order.map(sizeOf), columns ?? WRAP, gap.node)
-    pos = new Map(order.map((k, i) => [k.id, g.at[i]]))
-  } else pos = (await flow(kids, edges, gap)).pos
-  const offset = groupId ? { x: PAD, y: HEAD } : { x: 0, y: 0 }
-  return normalize(nodes.map((n) => (pos.has(n.id) ? { ...n, position: { x: pos.get(n.id)!.x + offset.x, y: pos.get(n.id)!.y + offset.y } } : n)))
-}
-
-/**
- * ELK's routes for the links between a group's direct children, keyed `from>to`, in the same coordinates as the
- * children's positions. Only an automatic group that still sits where its flow put it has them, since the routes
- * come from laying it out again.
- */
-export async function routesFor(nodes: AppNode[], links: Link[], groupId: string | undefined): Promise<Map<string, Route>> {
-  const { arrange, kids, edges } = children(nodes, links, groupId)
-  if (arrange !== 'auto' || !kids.length || !edges.length) return new Map()
-  const { pos, routes } = await flow(kids, edges, groupId ? INNER : TOP)
-  const shift = { x: kids[0].position.x - pos.get(kids[0].id)!.x, y: kids[0].position.y - pos.get(kids[0].id)!.y }
-  const moved = kids.some((k) => Math.abs(k.position.x - pos.get(k.id)!.x - shift.x) > 1 || Math.abs(k.position.y - pos.get(k.id)!.y - shift.y) > 1)
-  if (moved) return new Map()
-  return new Map([...routes].map(([key, route]) => [key, route.map((p) => ({ x: p.x + shift.x, y: p.y + shift.y }))]))
-}
-
-/** A group's direct children and the blocking links between them, with links between descendants lifted to them. */
-function children(nodes: AppNode[], links: Link[], groupId: string | undefined) {
   const map = byId(nodes)
   const group = groupId ? map.get(groupId) : undefined
   const arrange = group && isCluster(group) ? (group.data.arrange ?? 'auto') : 'auto'
+  if (arrange === 'custom') return nodes
   const kids = nodes.filter((n) => n.parentId === groupId)
+  if (!kids.length) return nodes
   const lift = (id: string): string | null => {
     let cur: string | undefined = id
     while (cur) {
@@ -301,7 +239,16 @@ function children(nodes: AppNode[], links: Link[], groupId: string | undefined) 
     seen.add(a + '>' + b)
     edges.push([a, b])
   }
-  return { group, arrange, kids, edges }
+  const gap = groupId ? INNER : TOP
+  let pos: Map<string, Point>
+  if (arrange === 'grid') {
+    const order = dependencyOrder(kids, edges)
+    const columns = group && isCluster(group) ? group.data.columns : undefined
+    const g = grid(order.map(sizeOf), columns ?? WRAP, gap.node)
+    pos = new Map(order.map((k, i) => [k.id, g.at[i]]))
+  } else pos = await flow(kids, edges, gap)
+  const offset = groupId ? { x: PAD, y: HEAD } : { x: 0, y: 0 }
+  return normalize(nodes.map((n) => (pos.has(n.id) ? { ...n, position: { x: pos.get(n.id)!.x + offset.x, y: pos.get(n.id)!.y + offset.y } } : n)))
 }
 
 /** Lays out every group from the deepest up, then the top level. */

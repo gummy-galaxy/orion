@@ -64,11 +64,6 @@ export type GithubSnapshot = { viewer: string; checkedAt: string; unplaced: Unpl
  * `columns` across in dependency order, and `custom` keeps them where they were put.
  */
 export type Arrange = 'auto' | 'grid' | 'custom'
-/**
- * How arrows inside a group are drawn: `curve` bends smoothly, `smooth` runs at right angles with rounded corners, and
- * `routed` follows the paths ELK found around cards, falling back to `smooth` where it has none. Unset inherits.
- */
-export type Arrows = 'curve' | 'smooth' | 'routed'
 /** `layout` asks the app to lay out a group the CLI changed: `pending` for a new group, `refit` to tidy one in place. */
 export type ClusterData = {
   kind: 'cluster'
@@ -78,7 +73,6 @@ export type ClusterData = {
   arrange?: Arrange
   /** Only for `grid`; reflow uses `WRAP` when unset. */
   columns?: number
-  arrows?: Arrows
 }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. */
