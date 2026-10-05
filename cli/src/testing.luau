@@ -48,7 +48,13 @@ function testing.doc(nodes: { Item }, links: { { string } }?): Doc
 	for _, pair in links or {} do
 		table.insert(out, { id = `{pair[1]}>{pair[2]}`, from = pair[1], to = pair[2], kind = pair[3] or "blocks" })
 	end
-	return { version = 1, revision = 0, settings = { githubOwner = "flipbook-labs" }, nodes = nodes, links = out }
+	return {
+		version = 1,
+		revision = 0,
+		settings = { githubOwner = "flipbook-labs", sources = {} },
+		nodes = nodes,
+		links = out,
+	}
 end
 
 function testing.result(ok: boolean, stdout: string): types.CommandResult

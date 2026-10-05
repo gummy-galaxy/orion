@@ -6,7 +6,9 @@ local process = require("@std/process")
 local defaultRun = require("@root/command")
 local github = require("@root/github")
 local graph = require("@root/graph")
+local ingest = require("@root/ingest")
 local render = require("@root/render")
+local sources = require("@root/sources")
 local store = require("@root/store")
 local types = require("@root/types")
 
@@ -45,6 +47,8 @@ local COMMAND_HELP: { [string]: string } = {
 	ungroup = "Dissolve a group, keeping its items in place",
 	move = "Move an item or group into another group",
 	sync = "Update pull request items from GitHub",
+	source = "List, add, or remove ingestion sources",
+	ingest = "Import work from configured sources",
 	matches = "List unplaced pull requests and likely cards",
 	path = "Print where Orion keeps its data",
 	backups = "List saved Orion data revisions",
@@ -160,6 +164,13 @@ local function createParsers(): Parsers
 	sync:add("discover", "flag", { help = "Add your open pull requests that aren't on the canvas to an Inbox group" })
 	sync:add("dry-run", "flag", { help = "Show what would change without writing" })
 	addJsonFlag(sync)
+
+	local ingestion = command("ingest")
+	ingestion:add("dry-run", "flag", { help = "Show changes without writing" })
+	ingestion:add("source", "option", { help = "Only ingest this source id" })
+	addJsonFlag(ingestion)
+
+	command("source")
 
 	addJsonFlag(command("matches"))
 	addJsonFlag(command("backups"))
@@ -328,7 +339,70 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 	return table.concat(lines, "\n")
 end
 
+local function sourceCommand(args: { string }, deps: Resolved)
+	local action = assert(args[2], "usage: orion source list|add|remove")
+	local dir = deps.dataDir
+	if action == "list" then
+		assert(#args == 2 or #args == 3 and args[3] == "--json", "usage: orion source list [--json]")
+		local values = sources.asJson(store.load(dir).settings.sources)
+		if args[3] == "--json" then
+			deps.write(json.serialize(values, true))
+		else
+			local lines = {}
+			for _, value in values do
+				local source = json.asObject(value)
+				if source then
+					table.insert(lines, `{source.id}  {source.kind}`)
+				end
+			end
+			deps.write(if #lines > 0 then table.concat(lines, "\n") else "No sources configured.")
+		end
+	elseif action == "add" then
+		local source = sources.create({ table.unpack(args, 3) })
+		store.transaction(dir, function(doc)
+			for _, existing in doc.settings.sources do
+				assert(existing.id ~= source.id, `source id "{source.id}" already exists`)
+			end
+			table.insert(doc.settings.sources, source)
+		end)
+		deps.write(`Added source {source.id}`)
+	elseif action == "remove" then
+		assert(#args == 3, "usage: orion source remove <id>")
+		local id = args[3]
+		store.transaction(dir, function(doc)
+			local found = false
+			for index = #doc.settings.sources, 1, -1 do
+				if doc.settings.sources[index].id == id then
+					table.remove(doc.settings.sources, index)
+					found = true
+				end
+			end
+			assert(found, `no source with id "{id}"`)
+		end)
+		deps.write(`Removed source {id}`)
+	else
+		error(`unknown source action {action}`)
+	end
+end
+
+local function ingestReport(report: ingest.Report, dryRun: boolean): string
+	local lines = { if dryRun then "Ingest dry run:" else "Ingested:" }
+	for _, source in report.sources do
+		table.insert(
+			lines,
+			`{source.id}: {source.added} added, {source.updated} updated, {source.linked} linked{if source.failed
+				then `; failed: {source.failed}`
+				else ""}`
+		)
+	end
+	return table.concat(lines, "\n")
+end
+
 local function execute(args: { string }, options: Dependencies?)
+	if args[1] == "source" and args[2] ~= "--help" then
+		sourceCommand(args, dependencies(options))
+		return
+	end
 	local parsers = createParsers()
 	parsers.root:parse(args)
 	local deps = dependencies(options)
@@ -603,6 +677,19 @@ local function execute(args: { string }, options: Dependencies?)
 		else
 			deps.write(syncReport(report, dryRun))
 		end
+	elseif command == "ingest" then
+		local dryRun = parser:has("dry-run")
+		local now = deps.now()
+		local fetched = ingest.collect(store.load(dir), deps.runner, now, parser:get("source"))
+		local report: ingest.Report
+		if dryRun then
+			report = ingest.apply(store.load(dir), fetched, now)
+		else
+			store.transaction(dir, function(doc)
+				report = ingest.apply(doc, fetched, now)
+			end)
+		end
+		deps.write(if asJson then json.serialize(ingest.reportJson(report), true) else ingestReport(report, dryRun))
 	end
 end
 
