@@ -55,6 +55,7 @@ import {
   type TaskData,
   type Who,
 } from './model'
+import { DebugBar, type MotionSettings } from './DebugBar'
 import { openExternal } from './external'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
@@ -101,6 +102,17 @@ type ViewNode = AppNode | GhostNode
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
 const SIDEBAR_KEY = 'orion:sidebar'
+const DEBUG_KEY = 'orion:debug'
+const MOTION_KEY = 'orion:motion'
+const DEFAULT_MOTION: MotionSettings = { arrows: true, glow: true, pauseWhileMoving: true }
+
+function readMotion(): MotionSettings {
+  try {
+    return { ...DEFAULT_MOTION, ...(JSON.parse(localStorage.getItem(MOTION_KEY) ?? '{}') as Partial<MotionSettings>) }
+  } catch {
+    return DEFAULT_MOTION
+  }
+}
 /**
  * Zoom below which a group reads as one body. Nested groups fold first as you
  * zoom out, so detail drops away from the inside.
@@ -236,6 +248,8 @@ function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
+  const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
+  const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -463,8 +477,13 @@ function Canvas() {
   }, [ready, nodes, rf])
 
   const rememberView = useCallback((_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+    canvasRef.current?.removeAttribute('data-moving')
     if (viewFor.current === workspace.current) writeViewport(workspace.current, viewport)
   }, [])
+  // An attribute rather than a class, so re-renders mid-move don't clear it.
+  const onMoveStart = useCallback(() => {
+    if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
+  }, [motion.pauseWhileMoving])
 
   const switchWorkspace = async (name: string) => {
     const list = await setActiveWorkspace(name)
@@ -1241,11 +1260,29 @@ function Canvas() {
           },
         ]
       : []),
+    {
+      id: 'debug-bar',
+      label: debug ? 'Hide debug bar' : 'Show debug bar',
+      detail: 'Frame rate and animation toggles',
+      run: () => toggleDebug(!debug),
+    },
   ]
 
   const toggleSidebar = (v: boolean) => {
     setSidebar(v)
     writeFlag(SIDEBAR_KEY, v)
+  }
+  const toggleDebug = (v: boolean) => {
+    setDebug(v)
+    writeFlag(DEBUG_KEY, v)
+  }
+  const changeMotion = (next: MotionSettings) => {
+    setMotion(next)
+    try {
+      localStorage.setItem(MOTION_KEY, JSON.stringify(next))
+    } catch {
+      // Private windows can refuse storage; the setting still applies for this session.
+    }
   }
 
   return (
@@ -1265,12 +1302,17 @@ function Canvas() {
               newWorkspace={newWorkspace}
             />
           )}
-          <div className={`canvas${attending ? ' is-attending' : ''}${still ? ' is-still' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
+          <div
+            className={`canvas${attending ? ' is-attending' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+            ref={canvasRef}
+            onPointerMove={trackPointer}
+          >
             {ready && (
               <ReactFlow<ViewNode, Edge>
                 fitView={!savedView}
                 fitViewOptions={INITIAL_FIT}
                 defaultViewport={savedView ?? undefined}
+                onMoveStart={onMoveStart}
                 onMoveEnd={rememberView}
                 nodes={viewNodes}
                 edges={edges}
@@ -1497,6 +1539,7 @@ function Canvas() {
               />
             )}
             {!ready && <div className="loading">Laying out…</div>}
+            {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
           </div>
           {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
