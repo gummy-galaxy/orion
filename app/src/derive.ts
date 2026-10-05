@@ -10,6 +10,7 @@ export type Derived = {
   status: Map<string, ViewStatus>
   leverage: Map<string, number>
   groups: Map<string, GroupStats>
+  sources: Map<string, string[]>
   trace: Map<string, TraceRole> | null
   collapsed: Set<string>
   zoom: number
@@ -56,6 +57,8 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 /** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
 export function deriveWork(nodes: AppNode[], links: Link[]) {
   const tasks = new Map(nodes.filter(isTask).map((n) => [n.id, n as TaskNode]))
+  const sources = new Map<string, string[]>()
+  for (const task of tasks.values()) sources.set(task.id, [task.data.repo?.trim() || ''])
   const { preds, succs } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
   // A note is open while anything feeding into it is, so blocking passes through notes.
@@ -113,8 +116,11 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   for (const g of nodes.filter(isCluster)) {
     const inside = descendants(g.id, nodes)
     const s: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
+    const groupSources = new Set<string>()
     const reach = new Set<string>()
     for (const id of inside) {
+      const task = tasks.get(id)
+      if (task) groupSources.add(task.data.repo?.trim() || '')
       const st = status.get(id)
       if (!st || isNote(id)) continue
       s.total++
@@ -125,9 +131,13 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     }
     s.outside = reach.size
     groups.set(g.id, s)
+    sources.set(
+      g.id,
+      [...groupSources].sort((a, b) => a.localeCompare(b)),
+    )
   }
 
-  return { status, flow, leverage, groups, preds, succs }
+  return { status, flow, leverage, groups, sources, preds, succs }
 }
 
 export function traceFrom(id: string, preds: Map<string, string[]>, succs: Map<string, string[]>, ids: string[]) {
