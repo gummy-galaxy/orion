@@ -1,7 +1,6 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
-local process = require("@std/process")
 local test = require("@std/test")
 
 local cli = require("@root/cli")
@@ -19,10 +18,12 @@ local function harness(name: string)
 		}, { { "ci", "pub" } })
 	)
 	local output = {}
+	local environment = ""
 	local function run(args: { string }, runner: any?)
 		table.clear(output)
 		cli.execute(args, {
 			dataDir = dir,
+			workspace = environment,
 			write = function(text)
 				table.insert(output, text)
 			end,
@@ -33,7 +34,10 @@ local function harness(name: string)
 		})
 		return table.concat(output, "\n")
 	end
-	return dir, run
+	local function setWorkspace(name: string)
+		environment = name
+	end
+	return dir, run, setWorkspace
 end
 
 test.case("ready lists startable work, most unblocking first", function(assert)
@@ -126,17 +130,27 @@ test.case("workspace create and list use a temporary data root", function(assert
 	end)
 end)
 
+test.case("sources belong to the selected workspace", function(assert)
+	local root, run = harness("workspace-sources")
+	run({ "workspace", "create", "roblox" })
+	run({ "workspace", "use", "roblox" })
+	run({ "source", "add", "github", "--host", "github.com", "--owner", "Roblox" })
+	run({ "--workspace", "default", "source", "add", "hop" })
+	local roblox = store.load(tostring(path.join(root, "workspaces", "roblox")))
+	assert.eq(#roblox.settings.sources, 1)
+	assert.eq(roblox.settings.sources[1].kind, "github")
+	assert.eq(store.load(root).settings.sources[1].kind, "hop")
+end)
+
 test.case("workspace selection follows option, environment, manifest, default", function(assert)
-	local root, run = harness("workspace-use")
-	local previous = process.env.ORION_WORKSPACE
-	process.env.ORION_WORKSPACE = nil
+	local root, run, setWorkspace = harness("workspace-use")
 	assert.eq(run({ "workspace", "current" }), "default")
 	run({ "workspace", "create", "roblox" })
 	run({ "workspace", "create", "docs" })
 	run({ "workspace", "use", "roblox" })
 	assert.eq(run({ "workspace", "current" }), "roblox")
 	assert.eq(run({ "path" }), tostring(path.join(root, "workspaces", "roblox")))
-	process.env.ORION_WORKSPACE = "docs"
+	setWorkspace("docs")
 	assert.eq(run({ "workspace", "current" }), "docs")
 	local listed = json.asObject(json.deserialize(run({ "workspace", "list", "--json" })) :: json.Value)
 	assert.eq(listed and listed.active, "docs")
@@ -144,7 +158,7 @@ test.case("workspace selection follows option, environment, manifest, default", 
 	local overridden =
 		json.asObject(json.deserialize(run({ "workspace", "list", "--json", "--workspace", "roblox" })) :: json.Value)
 	assert.eq(overridden and overridden.active, "roblox")
-	process.env.ORION_WORKSPACE = previous
+	setWorkspace("")
 	assert.throwsWith("unknown workspace: missing", function()
 		run({ "workspace", "use", "missing" })
 	end)

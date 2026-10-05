@@ -143,9 +143,9 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 	fs.move(temporary, file)
 end
 
-function store.activeWorkspace(root: string, requested: string?): string
+--- `configured` is ORION_WORKSPACE, passed in so callers decide where it comes from.
+function store.activeWorkspace(root: string, requested: string?, configured: string?): string
 	local list = store.workspaces(root)
-	local configured = process.env.ORION_WORKSPACE
 	local name = requested or (if configured ~= "" then configured else nil) or list.active
 	assert(store.validWorkspace(name), `invalid workspace name: {name}`)
 	for _, workspace in list.workspaces do

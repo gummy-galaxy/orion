@@ -21,6 +21,8 @@ export type Dependencies = {
 	write: ((string) -> ())?,
 	dataDir: string?,
 	now: (() -> string)?,
+	-- Stands in for ORION_WORKSPACE; "" means unset.
+	workspace: string?,
 }
 
 type Resolved = {
@@ -28,6 +30,7 @@ type Resolved = {
 	write: (string) -> (),
 	dataDir: string,
 	now: () -> string,
+	workspace: string?,
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
@@ -229,6 +232,7 @@ local function dependencies(options: Dependencies?): Resolved
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 		end,
+		workspace = given.workspace or process.env.ORION_WORKSPACE,
 	}
 end
 
@@ -354,9 +358,9 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 	return table.concat(lines, "\n")
 end
 
-local function sourceCommand(args: { string }, deps: Resolved)
+local function sourceCommand(args: { string }, deps: Resolved, workspace: string?)
 	local action = assert(args[2], "usage: orion source list|add|remove")
-	local dir = deps.dataDir
+	local dir = store.workspaceDir(deps.dataDir, store.activeWorkspace(deps.dataDir, workspace, deps.workspace))
 	if action == "list" then
 		assert(#args == 2 or #args == 3 and args[3] == "--json", "usage: orion source list [--json]")
 		local values = sources.asJson(store.load(dir).settings.sources)
@@ -414,8 +418,21 @@ local function ingestReport(report: ingest.Report, dryRun: boolean): string
 end
 
 local function execute(args: { string }, options: Dependencies?)
-	if args[1] == "source" and args[2] ~= "--help" then
-		sourceCommand(args, dependencies(options))
+	-- `source` parses its own arguments, so lift `--workspace` out of them first.
+	local rest: { string } = {}
+	local workspace: string? = nil
+	local index = 1
+	while index <= #args do
+		if args[index] == "--workspace" then
+			workspace = assert(args[index + 1], "--workspace needs a name")
+			index += 2
+		else
+			table.insert(rest, args[index])
+			index += 1
+		end
+	end
+	if rest[1] == "source" and rest[2] ~= "--help" then
+		sourceCommand(rest, dependencies(options), workspace)
 		return
 	end
 	local parsers = createParsers()
@@ -462,7 +479,7 @@ local function execute(args: { string }, options: Dependencies?)
 			deps.write(`Using workspace {name}`)
 		elseif workspaceCommand == "list" then
 			local list = store.workspaces(root)
-			list.active = store.activeWorkspace(root, selected)
+			list.active = store.activeWorkspace(root, selected, deps.workspace)
 			if workspaceParser:has("json") then
 				local entries: json.Array = {}
 				for _, entry in list.workspaces do
@@ -480,11 +497,11 @@ local function execute(args: { string }, options: Dependencies?)
 				deps.write(table.concat(lines, "\n"))
 			end
 		elseif workspaceCommand == "current" then
-			deps.write(store.activeWorkspace(root, selected))
+			deps.write(store.activeWorkspace(root, selected, deps.workspace))
 		end
 		return
 	end
-	local active = store.activeWorkspace(root, selected)
+	local active = store.activeWorkspace(root, selected, deps.workspace)
 	local dir = store.workspaceDir(root, active)
 	local asJson = parser:has("json")
 
