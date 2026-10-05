@@ -96,7 +96,6 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.
 - A group's inspector picks its arrangement: Automatic flows by dependency, Grid places cards a set number of columns across, and Custom keeps cards where you put them. `orion set <group> --arrange grid --columns 4` does the same from the CLI.
 - Drag from the edge of a card to another card to add a dependency.
-- Arrows are drawn as curves, right angles, or routes ELK finds around cards. The palette sets the canvas default and a group's inspector overrides it for everything inside. ELK routes only automatic groups laid out since their cards last moved, and other arrows fall back to right angles.
 - A card's inspector lists what it waits on, what it unblocks, and related cards, each with a button to remove the link. **Add link** searches for another card to connect.
 
 Reset to seed restores the snapshot.
