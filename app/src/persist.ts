@@ -18,6 +18,7 @@ const STORAGE_KEY = 'orion:v2'
 const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:workspace'
+const WORKSPACES_EVENT = 'orion:workspaces'
 
 export async function getWorkspaces(): Promise<Workspaces> {
   try {
@@ -45,6 +46,14 @@ export function onWorkspaceChange(callback: (active: string) => void) {
   const listener = (data: { active: string }) => callback(data.active)
   hot.on(WORKSPACE_EVENT, listener)
   return () => hot.off(WORKSPACE_EVENT, listener)
+}
+
+/** Calls back when the workspace list changes on disk, such as a workspace the CLI created. */
+export function onWorkspaceListChange(callback: (list: Workspaces) => void) {
+  const hot = import.meta.hot
+  if (!hot) return () => {}
+  hot.on(WORKSPACES_EVENT, callback)
+  return () => hot.off(WORKSPACES_EVENT, callback)
 }
 
 export async function getSyncStatus(): Promise<SyncStatus | null> {

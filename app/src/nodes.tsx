@@ -1,4 +1,4 @@
-import { useContext, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext } from './derive'
 import { STATUS_LABEL, WHO_LABEL, reviewStage, type ClusterNode, type GhostNode, type TaskNode } from './model'
@@ -85,6 +85,67 @@ export function ServiceIcon({ badge }: { badge: Badge }) {
   }
 }
 
+const stop = (e: SyntheticEvent) => e.stopPropagation()
+
+function SourceLink({ badge, label, className, children }: { badge: Badge; label?: string; className?: string; children: ReactNode }) {
+  return badge.href ? (
+    <a
+      className={className}
+      href={badge.href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={label}
+      onPointerDown={stop}
+      onClick={stop}
+      onDoubleClick={stop}
+    >
+      {children}
+    </a>
+  ) : (
+    <span className={className} role={label ? 'img' : undefined} aria-label={label}>
+      {children}
+    </span>
+  )
+}
+
+function SourceMenu({ name, badges }: { name: string; badges: Badge[] }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDetailsElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const dismiss = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', dismiss, true)
+    return () => document.removeEventListener('pointerdown', dismiss, true)
+  }, [open])
+  return (
+    <details
+      ref={ref}
+      open={open}
+      className="source-domain source-domain-many nodrag"
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+      onPointerDown={stop}
+      onClick={stop}
+    >
+      <summary aria-label={`${name}: ${badges.length} sources`} title={`${name}: ${badges.length} sources. Click to show them.`}>
+        <ServiceIcon badge={badges[0]} />
+        <span className="source-count">{badges.length}</span>
+      </summary>
+      <div className="source-menu">
+        <strong>{name}</strong>
+        <ul>
+          {badges.map((badge) => (
+            <li key={badge.label}>
+              <SourceLink badge={badge}>{badge.label}</SourceLink>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
+  )
+}
+
 function SourceBadges({ sources, inBubble = false }: { sources: Badge[]; inBubble?: boolean }) {
   const grouped = new Map<string, Badge[]>()
   for (const badge of sources.length ? sources : [{ icon: 'orion', domain: 'orion', label: 'Orion' } as Badge]) {
@@ -97,31 +158,14 @@ function SourceBadges({ sources, inBubble = false }: { sources: Badge[]; inBubbl
     <div className={`source-badges${inBubble ? ' in-bubble' : ''}`}>
       {[...grouped].map(([key, badges]) => {
         const name = SERVICE_NAME[badges[0].icon] ?? badges[0].domain
-        const labels = badges.map((b) => b.label)
-        return labels.length === 1 ? (
-          <span key={key} className="source-domain" role="img" aria-label={`${name}: ${labels[0]}`} title={`${name}: ${labels[0]}`}>
-            <ServiceIcon badge={badges[0]} />
+        return badges.length === 1 ? (
+          <span key={key} className="source-domain nodrag" title={`${name}: ${badges[0].label}`}>
+            <SourceLink badge={badges[0]} label={`${name}: ${badges[0].label}`} className="source-link">
+              <ServiceIcon badge={badges[0]} />
+            </SourceLink>
           </span>
         ) : (
-          <details
-            key={key}
-            className="source-domain source-domain-many nodrag"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <summary aria-label={`${name}: ${labels.length} sources`} title={`${name}: ${labels.length} sources. Click to show them.`}>
-              <ServiceIcon badge={badges[0]} />
-              <span className="source-count">{labels.length}</span>
-            </summary>
-            <div className="source-menu">
-              <strong>{name}</strong>
-              <ul>
-                {labels.map((label) => (
-                  <li key={label}>{label}</li>
-                ))}
-              </ul>
-            </div>
-          </details>
+          <SourceMenu key={key} name={name} badges={badges} />
         )
       })}
     </div>

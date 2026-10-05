@@ -66,6 +66,7 @@ import {
   onRemoteChange,
   onSyncStatus,
   onWorkspaceChange,
+  onWorkspaceListChange,
   readBrowser,
   requestSync,
   save,
@@ -445,6 +446,8 @@ function Canvas() {
   )
 
   useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
+
+  useEffect(() => onWorkspaceListChange((list) => setWorkspaces((current) => ({ ...current, workspaces: list.workspaces }))), [])
 
   useEffect(() => {
     if (!ready || pendingWorkspaceFit.current !== workspaceEpoch.current) return

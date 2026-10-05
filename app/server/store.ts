@@ -40,6 +40,7 @@ const SYNC_INTERVAL_MS = 5 * 60 * 1000
 const SYNC_THROTTLE_MS = 60 * 1000
 const execFileAsync = promisify(execFile)
 export const CHANGED_EVENT = 'orion:changed'
+const WORKSPACES_EVENT = 'orion:workspaces'
 
 type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 
@@ -291,6 +292,7 @@ export function orionStore(): Plugin {
           const name = list.active
           knownWorkspace(list, name)
           switchTo(name)
+          server.ws.send({ type: 'custom', event: WORKSPACES_EVENT, data: { ...list, active } })
         } catch {
           // A concurrent writer may still be finishing the manifest.
         }
