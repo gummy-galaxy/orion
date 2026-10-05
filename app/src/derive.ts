@@ -3,12 +3,13 @@ import { descendants, isCluster, isNote, isTask, type AppNode, type Link, type T
 
 export type TraceRole = 'self' | 'up' | 'down' | 'dim'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
+export type SourceRef = { domain: string; label: string }
 
 export type Derived = {
   status: Map<string, ViewStatus>
   leverage: Map<string, number>
   groups: Map<string, GroupStats>
-  sources: Map<string, string[]>
+  sources: Map<string, SourceRef[]>
   trace: Map<string, TraceRole> | null
   collapsed: Set<string>
   zoom: number
@@ -23,6 +24,20 @@ export type Actions = {
 
 export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
+
+function sourceOf(task: TaskNode): SourceRef {
+  const repo = task.data.repo?.trim()
+  if (!repo) return { domain: 'orion', label: 'Orion' }
+  if (task.data.github?.url) {
+    try {
+      const url = new URL(task.data.github.url)
+      if (url.protocol === 'https:') return { domain: url.hostname.toLowerCase(), label: repo }
+    } catch {
+      // Fall back to the repository host used by the CLI.
+    }
+  }
+  return { domain: 'github.com', label: repo }
+}
 
 function graph(links: Link[]) {
   const preds = new Map<string, string[]>()
@@ -55,8 +70,8 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 /** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
 export function deriveWork(nodes: AppNode[], links: Link[]) {
   const tasks = new Map(nodes.filter(isTask).map((n) => [n.id, n as TaskNode]))
-  const sources = new Map<string, string[]>()
-  for (const task of tasks.values()) sources.set(task.id, [task.data.repo?.trim() || ''])
+  const sources = new Map<string, SourceRef[]>()
+  for (const task of tasks.values()) sources.set(task.id, [sourceOf(task)])
   const { preds, succs } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
   // A note is open while anything feeding into it is, so blocking passes through notes.
@@ -97,11 +112,14 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   for (const g of nodes.filter(isCluster)) {
     const inside = descendants(g.id, nodes)
     const s: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
-    const groupSources = new Set<string>()
+    const groupSources = new Map<string, SourceRef>()
     const reach = new Set<string>()
     for (const id of inside) {
       const task = tasks.get(id)
-      if (task) groupSources.add(task.data.repo?.trim() || '')
+      if (task) {
+        const source = sourceOf(task)
+        groupSources.set(`${source.domain}:${source.label}`, source)
+      }
       const st = status.get(id)
       if (!st || isNote(id)) continue
       s.total++
@@ -114,7 +132,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     groups.set(g.id, s)
     sources.set(
       g.id,
-      [...groupSources].sort((a, b) => a.localeCompare(b)),
+      [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label)),
     )
   }
 
