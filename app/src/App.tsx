@@ -22,6 +22,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
+import { Lens } from './Lens'
 import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
@@ -105,6 +106,8 @@ const COLLAPSE_ZOOM = 0.3
 const COLLAPSE_STEP = 0.12
 /** Zoom below which cards are too small for motion to read, so animations pause. */
 const STILL_ZOOM = 0.45
+/** Zoom below which every group has folded, so the cards still showing hold their details at one on-screen size. */
+const FAR_ZOOM = COLLAPSE_ZOOM
 const GHOST_W = 200
 const GHOST_H = 62
 const GHOST_GAP = 90
@@ -210,6 +213,7 @@ function Canvas() {
   // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
   const foldFrom = useStore((s) => Math.floor((s.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
   const still = useStore((s) => s.transform[2] < STILL_ZOOM)
+  const far = useStore((s) => s.transform[2] < FAR_ZOOM)
   const [nodes, setNodes] = useState<AppNode[]>([])
   const [links, setLinks] = useState<Link[]>([])
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
@@ -949,9 +953,10 @@ function Canvas() {
       sources: work.sources,
       trace,
       collapsed,
+      far,
       attention: attention?.marks ?? null,
     }),
-    [work, trace, collapsed, attention],
+    [work, trace, collapsed, far, attention],
   )
 
   const onNodesChange = useCallback(
@@ -1425,8 +1430,8 @@ function Canvas() {
                   {showHelp ? (
                     <>
                       Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
-                      double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge
-                      to link{' '}
+                      double-click a group to open · double-click a card to hold its trace · hold Space over anything to read it up close · Esc to go
+                      up · N note · ⇧1 fit · drag from a card's edge to link{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>
@@ -1437,6 +1442,7 @@ function Canvas() {
                     </button>
                   )}
                 </Panel>
+                <Lens />
               </ReactFlow>
             )}
             {attending && cursor && (

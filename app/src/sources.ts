@@ -310,6 +310,15 @@ export function migrateTask(data: TaskData): TaskData {
 /** How a source shows at the bottom right of a tile: bundled icons for known services, a favicon for links. */
 export type Badge = { icon: 'github' | 'jira' | 'slack' | 'hop' | 'url' | 'orion'; domain: string; label: string; href?: string }
 
+export const SERVICE_NAME: Record<Badge['icon'], string | null> = {
+  github: 'GitHub',
+  jira: 'Jira',
+  slack: 'Slack',
+  hop: 'hop',
+  orion: 'Orion',
+  url: null,
+}
+
 export function badgeOf(source: Source, owner: string): Badge {
   const href = sourceUrl(source, owner) ?? undefined
   const label = sourceTag(source)

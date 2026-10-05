@@ -12,6 +12,8 @@ export type Derived = {
   sources: Map<string, Badge[]>
   trace: Map<string, TraceRole> | null
   collapsed: Set<string>
+  /** Zoomed out far enough that cards and notes show their details at one on-screen size. */
+  far: boolean
   /** While ⌘ is held: what needs you, keyed by the card or folded group that shows it. */
   attention: Map<string, AttentionMark> | null
 }

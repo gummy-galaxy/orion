@@ -80,6 +80,8 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   done: 'Done',
 }
 
+export const WHO_LABEL: Record<Who, string> = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
+
 /** Carries cards saved before typed sources over to them, as the CLI does when it reads a file. */
 export function migrateNodes(nodes: AppNode[]): AppNode[] {
   return nodes.map((n) => {
