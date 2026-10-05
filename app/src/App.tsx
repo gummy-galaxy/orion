@@ -13,6 +13,7 @@ import {
   applyNodeChanges,
   useReactFlow,
   useStore,
+  useStoreApi,
   type Connection,
   type Edge,
   type NodeChange,
@@ -101,6 +102,8 @@ const SIDEBAR_KEY = 'orion:sidebar'
  */
 const COLLAPSE_ZOOM = 0.3
 const COLLAPSE_STEP = 0.12
+/** Zoom below which cards are too small for motion to read, so animations pause. */
+const STILL_ZOOM = 0.45
 const GHOST_W = 200
 const GHOST_H = 62
 const GHOST_GAP = 90
@@ -200,9 +203,10 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
 
 function Canvas() {
   const rf = useReactFlow<ViewNode, Edge>()
-  const zoom = useStore((s) => s.transform[2])
-  const panX = useStore((s) => s.transform[0])
-  const panY = useStore((s) => s.transform[1])
+  const store = useStoreApi<ViewNode, Edge>()
+  // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
+  const foldFrom = useStore((s) => Math.floor((s.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
+  const still = useStore((s) => s.transform[2] < STILL_ZOOM)
   const [nodes, setNodes] = useState<AppNode[]>([])
   const [links, setLinks] = useState<Link[]>([])
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
@@ -229,7 +233,7 @@ function Canvas() {
   const fitZoom = useRef(new Map<string, number>())
   const fitting = useRef(false)
   const fitSequence = useRef(0)
-  const previousZoom = useRef(zoom)
+  const previousZoom = useRef(store.getState().transform[2])
   const skipNextFit = useRef(false)
   const openRoot = useCallback((target: string | null) => {
     setPeek(null)
@@ -240,6 +244,17 @@ function Canvas() {
   useEffect(() => {
     latest.current = { nodes, links }
   }, [nodes, links])
+  // Folded groups hold one on-screen size through --inv, set outside React so zooming doesn't re-render them.
+  useEffect(() => {
+    let shown = 0
+    const apply = (zoom: number) => {
+      if (zoom === shown) return
+      shown = zoom
+      canvasRef.current?.style.setProperty('--inv', String(1 / zoom))
+    }
+    apply(store.getState().transform[2])
+    return store.subscribe((s) => apply(s.transform[2]))
+  }, [store])
 
   // ---- Persistence ----
   const source = useRef<'file' | 'browser'>('file')
@@ -655,7 +670,7 @@ function Canvas() {
   }
   const small = nodes
     // The open group stays open while peeking; only its surroundings fold.
-    .filter((n) => isCluster(n) && n.id !== levelRoot && n.id !== root && inView(n.id) && zoom < COLLAPSE_ZOOM + COLLAPSE_STEP * depthInView(n.id))
+    .filter((n) => isCluster(n) && n.id !== levelRoot && n.id !== root && inView(n.id) && depthInView(n.id) >= foldFrom)
     .map((n) => n.id)
   const smallSet = new Set(small)
   const collapsedKey = small.filter((id) => !ancestors(id, map).some((a) => smallSet.has(a))).join(',')
@@ -862,8 +877,10 @@ function Canvas() {
     return { marks, count: needs.length - elsewhere, elsewhere }
   }, [attending, needs, view])
 
+  const transform = useStore((s) => (attending ? s.transform : null))
   const attentionTargets = useMemo<AttentionTarget[]>(() => {
-    if (!attention) return []
+    if (!attention || !transform) return []
+    const [panX, panY, zoom] = transform
     const out: AttentionTarget[] = []
     for (const [id, m] of attention.marks) {
       const n = map.get(id)
@@ -883,7 +900,7 @@ function Canvas() {
       })
     }
     return out
-  }, [attention, map, zoom, panX, panY])
+  }, [attention, map, transform])
 
   const derived = useMemo<Derived>(
     () => ({
@@ -893,10 +910,9 @@ function Canvas() {
       sources: work.sources,
       trace,
       collapsed,
-      zoom,
       attention: attention?.marks ?? null,
     }),
-    [work, trace, collapsed, zoom, attention],
+    [work, trace, collapsed, attention],
   )
 
   const onNodesChange = useCallback(
@@ -1155,7 +1171,7 @@ function Canvas() {
               newWorkspace={newWorkspace}
             />
           )}
-          <div className={`canvas${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
+          <div className={`canvas${attending ? ' is-attending' : ''}${still ? ' is-still' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
             {ready && (
               <ReactFlow<ViewNode, Edge>
                 fitView
