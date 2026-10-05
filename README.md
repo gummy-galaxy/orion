@@ -90,7 +90,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Hold Space over a card, note, or group to read it up close without changing the zoom. A group shows what it contains.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
 - Hover a card to trace what it needs (amber) and what it unlocks (teal). Double-click a card to hold its trace while you pan; click anywhere or press Esc to let it go.
-- Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks.
+- Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks; they show only while you hover, hold, or select one of their cards.
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
 - Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.

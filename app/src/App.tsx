@@ -835,11 +835,19 @@ function Canvas() {
       : null
   }, [pinned, hover, map, work, nodes])
 
+  const selectedKey = nodes
+    .filter((n) => n.selected)
+    .map((n) => n.id)
+    .join(',')
+  /** Related links never block, so they show only for the cards being looked at. */
+  const focused = useMemo(() => new Set([pinned ?? hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
+
   const edges = useMemo(() => {
     const out: Edge[] = []
     const marker = (live: boolean) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: live ? 'var(--edge-hot)' : 'var(--edge)' })
     const agg = new Map<string, { a: string; b: string; count: number; live: boolean }>()
     for (const l of links) {
+      if (l.kind === 'related' && !focused.has(l.from) && !focused.has(l.to)) continue
       let a = view.rep(l.from)
       let b = view.rep(l.to)
       if (root && !peeking && !a && b) a = `ghost:in:${l.from}`
@@ -879,7 +887,7 @@ function Canvas() {
       })
     }
     return out
-  }, [links, view, work, trace, root, peeking, inFocus])
+  }, [links, view, work, trace, root, peeking, inFocus, focused])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
