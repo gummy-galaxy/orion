@@ -367,7 +367,10 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 		table.insert(lines, "  Everything already matches.")
 	end
 	for _, link in report.linked do
-		table.insert(lines, `  linked {link.from} → {link.to} (stacked)`)
+		local why = if link.origin == "mention"
+			then (if link.kind == "related" then "mentioned, related" else "mentioned")
+			else "stacked"
+		table.insert(lines, `  linked {link.from} → {link.to} ({why})`)
 	end
 	for _, link in report.unlinked do
 		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)

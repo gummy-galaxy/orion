@@ -2,6 +2,7 @@ local json = require("@std/json")
 
 local graph = require("@root/graph")
 local match = require("@root/match")
+local mentions = require("@root/mentions")
 local refs = require("@root/refs")
 local types = require("@root/types")
 
@@ -46,7 +47,8 @@ export type Change = {
 	toWho: string?,
 	closed: boolean,
 }
-export type StackLink = { from: string, to: string }
+--- A link sync added or removed. `origin` is "stack" for a stacked branch or "mention" for a direct reference.
+export type StackLink = { from: string, to: string, kind: string?, origin: string? }
 export type Report = {
 	changes: { Change },
 	missing: { string },
@@ -651,7 +653,7 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 		local parent, child = byId[link.from], byId[link.to]
 		if parent and child and parent.state == "OPEN" and child.state == "OPEN" and not stacked(parent, child) then
 			table.remove(doc.links, index)
-			table.insert(report.unlinked, { from = link.from, to = link.to })
+			table.insert(report.unlinked, { from = link.from, to = link.to, kind = "blocks", origin = "stack" })
 		end
 	end
 	for _, parent in cards do
@@ -670,7 +672,24 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 			end
 			if not exists then
 				graph.link(doc, parent.id, child.id, "blocks").origin = "stack"
-				table.insert(report.linked, { from = parent.id, to = child.id })
+				table.insert(report.linked, { from = parent.id, to = child.id, kind = "blocks", origin = "stack" })
+			end
+		end
+	end
+end
+
+local function syncMentionLinks(doc: Doc, fetched: Fetched, report: Report)
+	for _, item in doc.nodes do
+		for _, entry in github.pullSources(item, doc.settings.githubOwner) do
+			local pull = fetched.pulls[github.key(entry.key)]
+			if pull then
+				local context = { owner = pull.owner, name = pull.name, host = pull.host }
+				for _, link in mentions.link(doc, item, `{pull.title}\n{pull.body or ""}`, context) do
+					table.insert(
+						report.linked,
+						{ from = link.from, to = link.to, kind = link.kind, origin = "mention" }
+					)
+				end
 			end
 		end
 	end
@@ -796,6 +815,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		end
 	end
 	syncStackLinks(doc, fetched, report)
+	syncMentionLinks(doc, fetched, report)
 	table.sort(unplaced, function(a, b)
 		local left, right = json.asObject(a), json.asObject(b)
 		local leftTime: string = if left then str(left.updatedAt) or "" else ""

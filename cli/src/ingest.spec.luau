@@ -50,11 +50,18 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 		)
 	end
 	local first = ingest.apply(doc, ingest.collect(doc, runner, NOW), NOW)
-	assert.eq(first.sources[1].added, 2)
-	assert.eq(first.sources[1].linked, 2)
+	-- The pull request names ABC-123, so it joins the ticket's card instead of making its own.
 	assert.eq(first.sources[2].added, 1)
-	assert.eq(#doc.links, 2)
+	assert.eq(first.sources[1].added, 1)
+	assert.eq(first.sources[1].updated, 1)
+	assert.eq(first.sources[1].linked, 1)
+	local ticket = doc.nodes[2]
+	assert.eq(ticket.data.label, "Avatar loading")
+	assert.eq(#refs.pulls(ticket), 1)
+	assert.eq(#doc.links, 1)
 	assert.eq(doc.links[1].origin, "mention")
+	assert.eq(doc.links[1].kind, "related")
+	assert.eq(doc.links[1].to, ticket.id)
 	local dir = testing.directory("mention-links")
 	store.write(dir, doc)
 	assert.eq(store.load(dir).links[1].origin, "mention")
@@ -63,13 +70,40 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 	local count = #doc.nodes
 	local second = ingest.apply(doc, ingest.collect(doc, runner, NOW), NOW)
 	assert.eq(#doc.nodes, count)
-	assert.eq(#doc.links, 2)
+	assert.eq(#doc.links, 1)
 	assert.eq(second.sources[1].updated, 2)
-	local ref = refs.jira(doc.nodes[4])
+	local ref = refs.jira(ticket)
 	local jira = if ref then json.asObject(ref.state) else nil
 	assert.eq(jira and jira.epicKey, "ABC-1")
 	assert.eq(jira and jira.statusCategory, "indeterminate")
-	assert.eq(doc.nodes[4].data.status, "active")
+end)
+
+test.case("Jira issue links and description mentions link tickets", function(assert)
+	local doc = testing.doc({})
+	doc.settings.sources = { { id = "jira", kind = "jira", command = { "acli" } } }
+	local function runner()
+		return testing.result(
+			true,
+			[[{"issues":[
+				{"key":"ABC-1","fields":{"summary":"First","status":{"name":"To Do","statusCategory":{"key":"new"}},"issuelinks":[{"type":{"name":"Blocks"},"outwardIssue":{"key":"ABC-2"}}]}},
+				{"key":"ABC-2","fields":{"summary":"Second","status":{"name":"To Do","statusCategory":{"key":"new"}}}},
+				{"key":"ABC-3","fields":{"summary":"Third","status":{"name":"To Do","statusCategory":{"key":"new"}},"description":{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Depends on ABC-2. Background in ABC-1."}]}]}}}
+			]}]]
+		)
+	end
+	local report = ingest.apply(doc, ingest.collect(doc, runner, NOW), NOW)
+	assert.eq(report.sources[1].linked, 3)
+	local labels: { [string]: string } = {}
+	for _, node in doc.nodes do
+		labels[node.id] = tostring(node.data.label)
+	end
+	local byPair: { [string]: string } = {}
+	for _, link in doc.links do
+		byPair[`{labels[link.from]}>{labels[link.to]}`] = link.kind
+	end
+	assert.eq(byPair["First>Second"], "blocks")
+	assert.eq(byPair["Second>Third"], "blocks")
+	assert.eq(byPair["First>Third"], "related")
 end)
 
 test.case("hop step converts to a pull request without changing placement or note", function(assert)

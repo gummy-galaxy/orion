@@ -1030,6 +1030,28 @@ kbd {
   grid-template-columns: 92px minmax(0, 1fr) auto;
   gap: 6px;
 }
+.links {
+  display: grid;
+  gap: 6px;
+}
+.links li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 6px;
+}
+.links li .link-where {
+  grid-column: 1 / -1;
+}
+.links .link-remove {
+  text-decoration: none;
+  color: var(--muted);
+}
+.link-add {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 6px;
+}
 .insp .gate-toggle {
   display: flex;
   align-items: center;

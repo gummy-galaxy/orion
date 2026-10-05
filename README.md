@@ -61,7 +61,7 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 
 ### Sources
 
-Configure sources once, then run `orion ingest --dry-run` to preview work involving you. `orion ingest` adds new cards to Unsorted, updates matching cards in place, and links mentioned Jira issues or GitHub issues to pull requests. `orion source list --json` shows the configuration. Sources and cards live in the selected Orion data file; source commands run through the CLI and keep credentials in their own tools.
+Configure sources once, then run `orion ingest --dry-run` to preview work involving you. `orion ingest` adds new cards to Unsorted, updates matching cards in place, files a pull request on the card of the Jira ticket its title or branch names, and links cards that reference each other. "Stacked on", "Depends on", and "Blocked by" before a reference, Jira "Blocks" issue links, and stacked branches make blocking links; other mentions make related ones. Include the description and issue links in the Jira command's output to link tickets from them. `orion source list --json` shows the configuration. Sources and cards live in the selected Orion data file; source commands run through the CLI and keep credentials in their own tools.
 
 For a Roblox setup:
 
@@ -96,6 +96,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.
 - A group's inspector picks its arrangement: Automatic flows by dependency, Grid places cards a set number of columns across, and Custom keeps cards where you put them. `orion set <group> --arrange grid --columns 4` does the same from the CLI.
 - Drag from the edge of a card to another card to add a dependency.
+- A card's inspector lists what it waits on, what it unblocks, and related cards, each with a button to remove the link. **Add link** searches for another card to connect.
 
 Reset to seed restores the snapshot.
 

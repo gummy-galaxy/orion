@@ -41,6 +41,10 @@ Cards with a pull request source stay in step with GitHub through `orion sync`. 
 
 `orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
 
+## Automatic links
+
+Sync and ingestion only link cards on a direct reference. A pull request based on another's branch waits on it. A pull request title or body, or a Jira description, that names another card's pull request, issue, or ticket after "Stacked on", "Depends on", or "Blocked by" waits on it, and after "Blocks" leads to it. Any other mention makes a related link. Jira issue links of the "Blocks" type block, and other types relate. A pull request whose title or branch names a Jira key joins that ticket's card. Orion doesn't remember links you remove, so fix the source text when a removed link keeps returning.
+
 ## Sources and ingestion
 
 Use `orion source list` to inspect configured GitHub, Jira, and hop sources. Add a GitHub source with `orion source add github --host <host> --owner <owner>` (repeat `--owner` for more owners; `--include` and `--exclude` filter repositories). Add Jira with `orion source add jira --command '<JSON array>' --browse <url>` and hop with `orion source add hop`. Keep credentials in `gh` and `acli`, never in the source command. Remove a source with `orion source remove <id>`.

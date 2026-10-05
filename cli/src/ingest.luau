@@ -2,6 +2,7 @@ local json = require("@std/json")
 
 local github = require("@root/github")
 local graph = require("@root/graph")
+local mentions = require("@root/mentions")
 local refs = require("@root/refs")
 local types = require("@root/types")
 
@@ -21,7 +22,11 @@ type JiraIssue = {
 	epicKey: string?,
 	epicSummary: string?,
 	updated: string?,
+	description: string?,
+	links: { JiraLink },
 }
+--- One of Jira's own issue links, from this ticket's side. `upstream` means the other ticket comes first.
+type JiraLink = { key: string, kind: string, upstream: boolean }
 type Worktree = { repo: string, branch: string, lastActivity: number, onDefault: boolean }
 type Session = { repo: string, branch: string, title: string, updatedAt: number }
 type Result = {
@@ -47,6 +52,66 @@ local function commandJson(run: CommandRunner, argv: { string }): json.Value
 	local ok, value = pcall(json.deserialize, result.stdout)
 	assert(ok, `{argv[1]} returned invalid JSON`)
 	return value :: json.Value
+end
+
+--- Plain text from a Jira description, which is either a string or an Atlassian document. Link targets count as text.
+local function documentText(value: json.Value?): string?
+	if type(value) == "string" then
+		return value
+	end
+	local parts: { string } = {}
+	local function walk(node: json.Value?)
+		local object = json.asObject(node)
+		if not object then
+			for _, child in json.asArray(node) or {} do
+				walk(child)
+			end
+			return
+		end
+		table.insert(parts, str(object.text) or "")
+		local attrs = json.asObject(object.attrs)
+		local url = if attrs then str(attrs.url) or str(attrs.href) else nil
+		if url then
+			table.insert(parts, ` {url} `)
+		end
+		for _, raw in json.asArray(object.marks) or {} do
+			local mark = json.asObject(raw)
+			local markAttrs = if mark then json.asObject(mark.attrs) else nil
+			local href = if markAttrs then str(markAttrs.href) else nil
+			if href then
+				table.insert(parts, ` {href} `)
+			end
+		end
+		walk(object.content)
+		if object.type == "paragraph" or object.type == "listItem" or object.type == "heading" then
+			table.insert(parts, "\n")
+		end
+	end
+	walk(value)
+	local text = table.concat(parts)
+	return if text ~= "" then text else nil
+end
+
+local function jiraLinks(fields: json.Object?): { JiraLink }
+	local out: { JiraLink } = {}
+	for _, raw in (if fields then json.asArray(fields.issuelinks) else nil) or {} do
+		local link = json.asObject(raw)
+		local linkType = if link then json.asObject(link.type) else nil
+		local blocks = linkType ~= nil and (str(linkType.name) or ""):lower() == "blocks"
+		for _, side in { "outwardIssue", "inwardIssue" } do
+			local other = if link then json.asObject(link[side]) else nil
+			local key = if other then str(other.key) else nil
+			if key then
+				-- An outward "blocks" link means this ticket blocks the other one.
+				table.insert(out, {
+					key = key,
+					kind = if blocks then "blocks" else "related",
+					upstream = side == "inwardIssue" or not blocks,
+				})
+			end
+		end
+	end
+	return out
 end
 
 local function jiraIssues(value: json.Value): { JiraIssue }
@@ -82,6 +147,10 @@ local function jiraIssues(value: json.Value): { JiraIssue }
 				then str(epic.summary) or str(epic.name) or (if epicFields then str(epicFields.summary) else nil)
 				else nil),
 			updated = (if issue then str(issue.updatedAt) else nil) or (if fields then str(fields.updated) else nil),
+			description = documentText(
+				(if fields then fields.description else nil) or (if issue then issue.description else nil)
+			),
+			links = jiraLinks(fields),
 		})
 	end
 	return out
@@ -277,101 +346,27 @@ local function mark(report: SourceReport, existing: Item?)
 	end
 end
 
-local function linkMention(doc: Doc, from: Item, to: Item, report: SourceReport)
-	if from.id == to.id then
-		return
-	end
-	for _, link in doc.links do
-		if link.from == from.id and link.to == to.id or link.from == to.id and link.to == from.id then
-			return
+local function jiraDone(item: Item): boolean
+	for _, ref in refs.ofKind(item, "jira") do
+		local state = json.asObject(ref.state)
+		if state and state.statusCategory == "done" then
+			return true
 		end
 	end
-	graph.link(doc, from.id, to.id, "related").origin = "mention"
-	report.linked += 1
-end
-
-local function mentionLinks(doc: Doc, pull: github.PullState, item: Item, report: SourceReport)
-	local text = `{pull.title} {pull.branch or ""} {pull.body or ""}`
-	for key in text:upper():gmatch("%f[%w][A-Z][A-Z0-9]*%-%d+%f[^%w]") do
-		for _, other in doc.nodes do
-			local jira = if other.type == "task" then refs.jira(other) else nil
-			if jira and str(jira.key) == key then
-				linkMention(doc, other, item, report)
-			end
-		end
-	end
-	local repo = string.lower(`{pull.owner}/{pull.name}`)
-	local host = pull.host or "github.com"
-	for owner, name, number in text:gmatch("([%w_.%-]+)/([%w_.%-]+)#(%d+)") do
-		if string.lower(`{owner}/{name}`) == repo then
-			local issue = findIssue(doc, repo, tonumber(number) :: number, host)
-			if issue then
-				linkMention(doc, issue, item, report)
-			end
-		end
-	end
-	local bare = text:gsub("[%w_.%-]+/[%w_.%-]+#%d+", "")
-	for number in bare:gmatch("#(%d+)") do
-		local issue = findIssue(doc, repo, tonumber(number) :: number, host)
-		if issue then
-			linkMention(doc, issue, item, report)
-		end
-	end
+	return false
 end
 
 function ingest.apply(doc: Doc, results: { Result }, now: string): Report
-	local pendingLinks: { { github.PullState | Item | SourceReport } } = {}
+	local pendingPulls: { { pull: github.PullState, item: Item, report: SourceReport } } = {}
+	local pendingJira: { { jira: JiraIssue, item: Item, report: SourceReport } } = {}
+	-- Tickets first, so pull requests that name one can join its card.
 	for _, result in results do
-		if result.report.failed or result.source.kind == "hop" then
+		if result.report.failed then
 			continue
 		end
 		local id = result.source.id
-		for _, pull in result.pulls or {} do
-			local repo = string.lower(`{pull.owner}/{pull.name}`)
-			local host = pull.host or "github.com"
-			local existing = findPull(doc, repo, pull.number, host)
-			local step = if not existing and pull.branch then findBranch(doc, repo, pull.branch) else nil
-			if step and #refs.pulls(step) > 0 then
-				step = nil
-			end
-			local item = existing or step or newItem(doc, pull.title, "todo", nil)
-			mark(result.report, existing or step)
-			local status, who =
-				github.desired(pull, str(item.data.status) or "todo", str(item.data.who), assert(result.viewer))
-			item.data.label = pull.title
-			item.data.status = status
-			item.data.who = who
-			local ref =
-				newRef({ kind = "github-pr", repo = repoName(doc, pull.owner, pull.name), number = pull.number })
-			ref.host = if host ~= "github.com" then host else nil
-			ref = refs.attach(item, ref)
-			ref.branch = pull.branch or ref.branch
-			ref.state = github.recorded(pull, assert(result.viewer), now)
-			refs.via(ref, id)
-			table.insert(pendingLinks, { pull, item, result.report })
-		end
-		for _, issue in result.issues or {} do
-			local repo = string.lower(`{issue.owner}/{issue.name}`)
-			local item = findIssue(doc, repo, issue.number, issue.host or "github.com")
-			mark(result.report, item)
-			local card = item or newItem(doc, issue.title, "todo", "you")
-			card.data.label = issue.title
-			local ref =
-				newRef({ kind = "github-issue", repo = repoName(doc, issue.owner, issue.name), number = issue.number })
-			ref.host = if issue.host ~= "github.com" then issue.host else nil
-			ref = refs.attach(card, ref)
-			ref.state = json.object({ title = issue.title, url = issue.url })
-			refs.via(ref, id)
-		end
 		for _, jira in result.jira or {} do
-			local item: Item? = nil
-			for _, candidate in doc.nodes do
-				local data = if candidate.type == "task" then refs.jira(candidate) else nil
-				if data and str(data.key) == jira.key then
-					item = candidate
-					break
-				end
-			end
+			local item = mentions.findJira(doc, jira.key)
 			mark(result.report, item)
 			local card = item or newItem(doc, jira.summary, "todo", "you")
 			local status = if jira.category == "done"
@@ -391,6 +386,56 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			state.epicSummary = jira.epicSummary
 			state.updatedAt = jira.updated
 			ref.state = state
+			refs.via(ref, id)
+			table.insert(pendingJira, { jira = jira, item = card, report = result.report })
+		end
+	end
+	for _, result in results do
+		if result.report.failed or result.source.kind == "hop" then
+			continue
+		end
+		local id = result.source.id
+		for _, pull in result.pulls or {} do
+			local repo = string.lower(`{pull.owner}/{pull.name}`)
+			local host = pull.host or "github.com"
+			local existing = findPull(doc, repo, pull.number, host)
+			local step = if not existing and pull.branch then findBranch(doc, repo, pull.branch) else nil
+			if step and #refs.pulls(step) > 0 then
+				step = nil
+			end
+			local ownKey = if existing or step then nil else mentions.ownKey(pull.title, pull.branch)
+			local ticket = if ownKey then mentions.findJira(doc, ownKey) else nil
+			local item = existing or step or ticket or newItem(doc, pull.title, "todo", nil)
+			mark(result.report, existing or step or ticket)
+			if not jiraDone(item) then
+				local status, who =
+					github.desired(pull, str(item.data.status) or "todo", str(item.data.who), assert(result.viewer))
+				item.data.status = status
+				item.data.who = who
+			end
+			if not refs.jira(item) then
+				item.data.label = pull.title
+			end
+			local ref =
+				newRef({ kind = "github-pr", repo = repoName(doc, pull.owner, pull.name), number = pull.number })
+			ref.host = if host ~= "github.com" then host else nil
+			ref = refs.attach(item, ref)
+			ref.branch = pull.branch or ref.branch
+			ref.state = github.recorded(pull, assert(result.viewer), now)
+			refs.via(ref, id)
+			table.insert(pendingPulls, { pull = pull, item = item, report = result.report })
+		end
+		for _, issue in result.issues or {} do
+			local repo = string.lower(`{issue.owner}/{issue.name}`)
+			local item = findIssue(doc, repo, issue.number, issue.host or "github.com")
+			mark(result.report, item)
+			local card = item or newItem(doc, issue.title, "todo", "you")
+			card.data.label = issue.title
+			local ref =
+				newRef({ kind = "github-issue", repo = repoName(doc, issue.owner, issue.name), number = issue.number })
+			ref.host = if issue.host ~= "github.com" then issue.host else nil
+			ref = refs.attach(card, ref)
+			ref.state = json.object({ title = issue.title, url = issue.url })
 			refs.via(ref, id)
 		end
 	end
@@ -489,8 +534,21 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			refs.via(ref, result.source.id)
 		end
 	end
-	for _, entry in pendingLinks do
-		mentionLinks(doc, entry[1] :: github.PullState, entry[2] :: Item, entry[3] :: SourceReport)
+	for _, entry in pendingPulls do
+		local pull = entry.pull
+		local text = `{pull.title}\n{pull.body or ""}`
+		local context = { owner = pull.owner, name = pull.name, host = pull.host }
+		entry.report.linked += #mentions.link(doc, entry.item, text, context)
+	end
+	for _, entry in pendingJira do
+		local count = #mentions.link(doc, entry.item, entry.jira.description or "", nil)
+		for _, link in entry.jira.links do
+			local other = mentions.findJira(doc, link.key)
+			if other and mentions.connect(doc, entry.item, other, link.kind, link.upstream) then
+				count += 1
+			end
+		end
+		entry.report.linked += count
 	end
 	local reports = {}
 	for _, result in results do
