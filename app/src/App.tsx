@@ -137,8 +137,10 @@ function readMotion(): MotionSettings {
  */
 const COLLAPSE_ZOOM = 0.3
 const COLLAPSE_STEP = 0.12
-/** Zoom below which cards are too small for motion to read, so animations pause. */
+/** Zoom below which cards are too small for transitions to read, so they're skipped. */
 const STILL_ZOOM = 0.45
+/** Zoom below which marching arrows and the active glow are too subtle to read, so they stop. */
+const QUIET_ZOOM = 0.6
 /** Zoom below which every group has folded, so the cards still showing hold their details at one on-screen size. */
 const FAR_ZOOM = COLLAPSE_ZOOM
 const GHOST_W = 200
@@ -174,6 +176,23 @@ type Menu = {
 async function seeded() {
   const links = seedLinks()
   return { nodes: await reflowAll(seedNodes(), links), links }
+}
+
+/** Whether the window is in the background, where looping motion only costs power. */
+function useAway() {
+  const [away, setAway] = useState(() => document.hidden || !document.hasFocus())
+  useEffect(() => {
+    const update = () => setAway(document.hidden || !document.hasFocus())
+    window.addEventListener('focus', update)
+    window.addEventListener('blur', update)
+    document.addEventListener('visibilitychange', update)
+    return () => {
+      window.removeEventListener('focus', update)
+      window.removeEventListener('blur', update)
+      document.removeEventListener('visibilitychange', update)
+    }
+  }, [])
+  return away
 }
 
 function readFlag(key: string, fallback: boolean) {
@@ -246,7 +265,9 @@ function Canvas() {
   // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
   const foldFrom = useStore((s) => Math.floor((s.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
   const still = useStore((s) => s.transform[2] < STILL_ZOOM)
+  const quietZoom = useStore((s) => s.transform[2] < QUIET_ZOOM)
   const far = useStore((s) => s.transform[2] < FAR_ZOOM)
+  const away = useAway()
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
@@ -863,7 +884,7 @@ function Canvas() {
   const edges = useMemo(() => {
     const out: Edge[] = []
     const marker = (live: boolean) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: live ? 'var(--edge-hot)' : 'var(--edge)' })
-    const agg = new Map<string, { a: string; b: string; count: number; live: boolean }>()
+    const agg = new Map<string, { a: string; b: string; count: number; live: boolean; flowing: boolean }>()
     for (const l of links) {
       if (l.kind === 'related' && !focused.has(l.from) && !focused.has(l.to)) continue
       let a = view.rep(l.from)
@@ -872,9 +893,12 @@ function Canvas() {
       if (root && !peeking && a && !b && !a.startsWith('ghost:')) b = `ghost:out:${l.to}`
       if (!a || !b || a === b) continue
       const live = l.kind === 'blocks' && work.status.get(l.from) !== 'done'
+      // Only work underway marches, so an idle canvas mostly holds still.
+      const flowing = live && work.status.get(l.from) === 'active'
       const direct = (a === l.from || a.startsWith('ghost:')) && (b === l.to || b.startsWith('ghost:'))
       if (direct) {
         let cls = l.kind === 'related' ? 'e-rel' : live ? 'e-live' : 'e-done'
+        if (flowing) cls += ' e-flow'
         if (trace) {
           const ra = trace.get(l.from)
           const rb = trace.get(l.to)
@@ -887,9 +911,10 @@ function Canvas() {
         out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(live) : undefined })
       } else if (l.kind === 'blocks') {
         const k = a + '>' + b
-        const e = agg.get(k) ?? { a, b, count: 0, live: false }
+        const e = agg.get(k) ?? { a, b, count: 0, live: false, flowing: false }
         e.count++
         e.live ||= live
+        e.flowing ||= flowing
         agg.set(k, e)
       }
     }
@@ -898,7 +923,8 @@ function Canvas() {
         id: 'agg:' + k,
         source: e.a,
         target: e.b,
-        className: 'e-agg ' + (e.live ? 'e-live' : 'e-done') + (peeking && !inFocus(e.a) && !inFocus(e.b) ? ' e-peek' : ''),
+        className:
+          'e-agg ' + (e.live ? 'e-live' : 'e-done') + (e.flowing ? ' e-flow' : '') + (peeking && !inFocus(e.a) && !inFocus(e.b) ? ' e-peek' : ''),
         selectable: false,
         label: e.count > 1 ? `${e.count} links` : undefined,
         markerEnd: marker(e.live),
@@ -1370,7 +1396,7 @@ function Canvas() {
           />
         )}
         <div
-          className={`canvas${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          className={`canvas${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${still ? ' is-still' : ''}${quietZoom || away ? ' is-quiet' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
           ref={canvasRef}
           onPointerMove={trackPointer}
         >

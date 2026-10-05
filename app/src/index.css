@@ -499,12 +499,14 @@ select {
 .react-flow__edge.e-peek .react-flow__edge-path {
   opacity: 0.35;
 }
+/* Each frame these loops change repaints the canvas under them, so steps() holds them to 15 a second (one step
+   per 1/15 s of duration) rather than the display's 120. WebKit skips the frames between steps. */
 @media (prefers-reduced-motion: no-preference) {
-  .react-flow__edge.e-live .react-flow__edge-path {
-    animation: flow 0.8s linear infinite;
+  .react-flow__edge.e-flow .react-flow__edge-path {
+    animation: flow 0.8s steps(12) infinite;
   }
-  .react-flow__edge.e-agg.e-live .react-flow__edge-path {
-    animation: flow-agg 1.2s linear infinite;
+  .react-flow__edge.e-agg.e-flow .react-flow__edge-path {
+    animation: flow-agg 1.2s steps(18) infinite;
   }
   .card.st-active:not(.lens)::after {
     content: '';
@@ -512,18 +514,20 @@ select {
     inset: -1px;
     border-radius: inherit;
     pointer-events: none;
-    animation: pulse 1.8s ease-out infinite;
+    animation: pulse 3.2s infinite;
   }
 }
-/* Zoomed far out, motion can't be read, so loops and fades stop. Moving the canvas pauses them too. */
-.canvas.is-still .react-flow__edge-path,
-.canvas.is-still .card::after,
+/* Zoomed out, in the background, or dimmed by a trace, motion can't be read, so loops stop. Moving the canvas
+   pauses them too. */
+.canvas.is-quiet .react-flow__edge-path,
+.canvas.is-quiet .card::after,
 .canvas[data-moving] .react-flow__edge-path,
 .canvas[data-moving] .card::after,
-.canvas.no-arrow-motion .react-flow__edge-path {
+.canvas.no-arrow-motion .react-flow__edge-path,
+.react-flow__edge.tr-e-dim .react-flow__edge-path {
   animation-play-state: paused !important;
 }
-.canvas.is-still .card::after,
+.canvas.is-quiet .card::after,
 .canvas.no-glow .card::after {
   display: none;
 }
@@ -544,12 +548,25 @@ select {
 }
 /* Painted rather than composited: a transform or opacity animation inside the zoomed canvas makes WebKit
    rasterize the whole canvas as one layer, which blurs it when zoomed in. */
+/* The ring eases out over the first half in stepped segments at 15 a second, then rests on one step so the
+   second half repaints nothing. */
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--st-active) 45%, transparent);
+    animation-timing-function: steps(5);
   }
+  10% {
+    box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--st-active) 31%, transparent);
+    animation-timing-function: steps(7);
+  }
+  25% {
+    box-shadow: 0 0 0 5.5px color-mix(in srgb, var(--st-active) 14%, transparent);
+    animation-timing-function: steps(12);
+  }
+  50%,
   100% {
     box-shadow: 0 0 0 8px color-mix(in srgb, var(--st-active) 0%, transparent);
+    animation-timing-function: steps(1);
   }
 }
 
@@ -1652,7 +1669,7 @@ kbd {
 }
 @media (prefers-reduced-motion: no-preference) {
   .attn-line line {
-    animation: attn-march 0.6s linear infinite;
+    animation: attn-march 0.6s steps(9) infinite;
   }
 }
 @keyframes attn-march {
