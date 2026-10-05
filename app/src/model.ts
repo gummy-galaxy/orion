@@ -54,7 +54,7 @@ export type UnplacedPr = {
   matches: { id: string; score: number }[]
 }
 export type GithubSnapshot = { viewer: string; checkedAt: string; unplaced: UnplacedPr[] }
-export type ClusterData = { kind: 'cluster'; label: string; blurb?: string }
+export type ClusterData = { kind: 'cluster'; label: string; blurb?: string; layout?: 'pending' }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. */
 export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status: ViewStatus; side: 'in' | 'out' }
@@ -62,7 +62,7 @@ export type GhostNode = Node<GhostData, 'ghost'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
 export type AppNode = TaskNode | ClusterNode
 
-export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related' }
+export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related'; origin?: 'stack' | 'mention' }
 
 export const STATUS_LABEL: Record<ViewStatus, string> = {
   ready: 'Ready',

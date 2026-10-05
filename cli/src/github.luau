@@ -119,7 +119,7 @@ end
 
 -- gh can exit non-zero for a partially resolved GraphQL query while retaining usable data.
 local function query(run: CommandRunner, source: string): json.Object?
-	local ok, response = pcall(run, { "gh", "api", "graphql", "-f", `query={source}` })
+	local ok, response = pcall(run, { "gh", "api", "graphql", "-f", `query={source}` }, nil)
 	if not ok then
 		return nil
 	end

@@ -73,6 +73,7 @@ function store.decode(text: string): Doc
 				from = from,
 				to = to,
 				kind = str(object.kind) or "blocks",
+				origin = str(object.origin),
 			})
 		end
 	end
@@ -85,6 +86,7 @@ function store.decode(text: string): Doc
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
+		suggestions = json.asObject(root.suggestions),
 		raw = json.object(root),
 	}
 end
@@ -105,15 +107,20 @@ function store.encode(doc: Doc): string
 	end
 	local links: json.Array = {}
 	for _, link in doc.links do
-		table.insert(links, json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind }))
+		local object = json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind })
+		object.origin = link.origin
+		table.insert(links, object)
 	end
 	local root = json.object(doc.raw or {})
 	root.version = doc.version
 	root.revision = doc.revision
-	root.settings = json.object({ githubOwner = doc.settings.githubOwner })
+	local settings = json.object(json.asObject(root.settings) or {})
+	settings.githubOwner = doc.settings.githubOwner
+	root.settings = settings
 	root.nodes = nodes
 	root.links = links
 	root.github = doc.github
+	root.suggestions = doc.suggestions
 	return json.serialize(root, true)
 end
 

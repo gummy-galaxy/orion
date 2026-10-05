@@ -6,6 +6,7 @@ This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs 
 
 - `app/`: the canvas.
 - `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people.
+- `orion suggest` proposes groups for ungrouped cards (or every card with `--scope all`). It joins cards by links, Jira epics, shared branches, and references, then `--agent codex` or `--agent claude` names and splits the result into groups by outcome. The agent's CLI must already be signed in. Review with `orion suggestions`, then `orion suggestions apply <id...>` (or `--all`) or `dismiss`. The app lays out applied groups to the right of existing ones without moving anything else.
 
 ## Data
 

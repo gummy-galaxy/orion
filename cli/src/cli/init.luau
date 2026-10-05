@@ -7,6 +7,7 @@ local github = require("@root/github")
 local graph = require("@root/graph")
 local render = require("@root/render")
 local store = require("@root/store")
+local suggest = require("@root/suggest")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -45,6 +46,8 @@ local COMMAND_HELP: { [string]: string } = {
 	move = "Move an item or group into another group",
 	sync = "Update pull request items from GitHub",
 	matches = "List unplaced pull requests and likely cards",
+	suggest = "Compute group suggestions",
+	suggestions = "List, apply, or dismiss group suggestions",
 	path = "Print where Orion keeps its data",
 	help = "Show help for Orion or one of its commands",
 }
@@ -152,6 +155,18 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	addJsonFlag(command("matches"))
+
+	local propose = command("suggest")
+	propose:add("agent", "option", { help = "claude, codex, or none" })
+	propose:add("scope", "option", { help = "unsorted or all" })
+	propose:add("dry-run", "flag", { help = "Show suggestions without writing" })
+	addJsonFlag(propose)
+
+	local suggestions = command("suggestions")
+	suggestions:add("action", "positional", { help = "apply or dismiss" })
+	suggestions:add("ids", "variadic", { help = "Suggestion ids" })
+	suggestions:add("all", "flag", { help = "Apply or dismiss every suggestion" })
+	addJsonFlag(suggestions)
 
 	command("path")
 	command("help"):add("command", "positional", { help = "Command to describe" })
@@ -382,6 +397,66 @@ local function execute(args: { string }, options: Dependencies?)
 				end
 			end
 			deps.write(if #lines > 0 then table.concat(lines, "\n") else "No unplaced pull requests.")
+		end
+	elseif command == "suggest" then
+		local current = store.load(dir)
+		local settings = if current.raw then json.asObject(current.raw.settings) else nil
+		local configured = if settings and type(settings.agent) == "string" then settings.agent else nil
+		local agent = parser:get("agent") or configured or "none"
+		local result, fallback =
+			suggest.compute(current, parser:get("scope") or "unsorted", agent, deps.runner, deps.now())
+		if not parser:has("dry-run") then
+			store.transaction(dir, function(doc)
+				suggest.save(doc, result)
+			end)
+		end
+		if asJson then
+			local value = suggest.toJson(result)
+			if fallback then
+				value.warning = "Agent unavailable or returned no valid groups; kept heuristic suggestions."
+			end
+			deps.write(json.serialize(value, true))
+		else
+			local lines = { `{#result.groups} group suggestions{if parser:has("dry-run") then " (dry run)" else ""}:` }
+			for _, group in result.groups do
+				table.insert(
+					lines,
+					`  {group.id}  {group.title}  [{table.concat(group.members, ", ")}] — {group.reason}`
+				)
+			end
+			if fallback then
+				table.insert(lines, "Agent unavailable or returned no valid groups; kept heuristic suggestions.")
+			end
+			deps.write(table.concat(lines, "\n"))
+		end
+	elseif command == "suggestions" then
+		local action = parser:get("action")
+		if action == nil then
+			local result = suggest.stored(store.load(dir))
+			if asJson then
+				deps.write(json.serialize(suggest.toJson(result), true))
+			else
+				local lines: { string } = {}
+				for _, group in result.groups do
+					table.insert(
+						lines,
+						`{group.id}  {group.title}  [{table.concat(group.members, ", ")}] — {group.reason}`
+					)
+				end
+				deps.write(if #lines > 0 then table.concat(lines, "\n") else "No group suggestions.")
+			end
+		else
+			assert(action == "apply" or action == "dismiss", "use suggestions apply or suggestions dismiss")
+			local changed: { string } = {}
+			store.transaction(dir, function(doc)
+				changed = suggest.change(doc, action, parser:variadics(), parser:has("all"))
+			end)
+			deps.write(
+				`{if action == "apply" then "Applied" else "Dismissed"} {#changed} suggestions: {table.concat(
+					changed,
+					", "
+				)}`
+			)
 		end
 	elseif command == "show" then
 		local doc = store.load(dir)
