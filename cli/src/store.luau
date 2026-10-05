@@ -13,6 +13,9 @@ type Link = types.Link
 -- The app's dev server takes the same lock, so neither side overwrites the other.
 local FILE = "orion.json"
 local LOCK = "orion.lock"
+local BACKUPS = "backups"
+local DAY_SECONDS = 24 * 60 * 60
+local DAILY_DAYS = 30
 local LOCK_TIMEOUT_SECONDS = 5
 local STALE_LOCK_SECONDS = 30
 local DEFAULT_OWNER = "flipbook-labs"
@@ -29,6 +32,57 @@ end
 
 function store.filePath(dir: string): string
 	return tostring(path.join(dir, FILE))
+end
+
+export type Backup = { revision: number, time: string, size: number, file: string }
+
+function store.backupName(revision: number, now: number): string
+	return `orion-r{revision}-{os.date("!%Y%m%dT%H%M%SZ", now)}.json`
+end
+
+function store.backups(dir: string): { Backup }
+	local folder = path.join(dir, BACKUPS)
+	local found: { Backup } = {}
+	if not fs.exists(folder) then
+		return found
+	end
+	for _, entry in fs.listDirectory(folder) do
+		local revision, time = entry.name:match("^orion%-r(%d+)%-(%d%d%d%d%d%d%d%dT%d%d%d%d%d%dZ)%.json$")
+		if entry.type == "file" and revision and time then
+			local file = tostring(path.join(folder, entry.name))
+			table.insert(
+				found,
+				{ revision = tonumber(revision) :: number, time = time, size = fs.metadata(file).size, file = file }
+			)
+		end
+	end
+	table.sort(found, function(a: Backup, b: Backup)
+		return if a.time == b.time then a.file > b.file else a.time > b.time
+	end)
+	return found
+end
+
+function store.pruneBackups(dir: string, now: number)
+	local hourCutoff = os.date("!%Y%m%dT%H%M%SZ", now - DAY_SECONDS) :: string
+	local dayCutoff = os.date("!%Y%m%d", now - (DAILY_DAYS - 1) * DAY_SECONDS) :: string
+	local today = os.date("!%Y%m%d", now) :: string
+	local current = os.date("!%Y%m%dT%H%M%SZ", now) :: string
+	local keptDays: { [string]: boolean } = {}
+	for _, backup in store.backups(dir) do
+		local day = backup.time:sub(1, 8)
+		local inDailyRange = day >= dayCutoff and day <= today and backup.time <= current
+		if backup.time >= hourCutoff and backup.time <= current then
+			if inDailyRange then
+				keptDays[day] = true
+			end
+			continue
+		end
+		if inDailyRange and not keptDays[day] then
+			keptDays[day] = true
+			continue
+		end
+		fs.remove(backup.file)
+	end
 end
 
 local function str(value: json.Value): string?
@@ -113,7 +167,9 @@ function store.encode(doc: Doc): string
 	local root = json.object(doc.raw or {})
 	root.version = doc.version
 	root.revision = doc.revision
-	root.settings = json.object({ githubOwner = doc.settings.githubOwner })
+	local settings = json.object(json.asObject(root.settings) or {})
+	settings.githubOwner = doc.settings.githubOwner
+	root.settings = settings
 	root.nodes = nodes
 	root.links = links
 	root.github = doc.github
@@ -168,7 +224,28 @@ local function atomicWrite(file: string, contents: string)
 	writeSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{writeSequence}`
 	fs.writeStringToFile(temporary, contents)
-	fs.move(temporary, file)
+	-- Backups are best-effort: a failed backup never blocks the write itself.
+	pcall(function()
+		if fs.exists(file) then
+			local now = os.time()
+			local dir = path.dirname(file)
+			local folder = path.join(dir, BACKUPS)
+			if not fs.exists(folder) then
+				fs.createDirectory(folder)
+			end
+			local previous = store.decode(fs.readFileToString(file))
+			local backup = path.join(folder, store.backupName(previous.revision, now))
+			if not fs.exists(backup) then
+				fs.copy(file, backup)
+			end
+			store.pruneBackups(dir, now)
+		end
+	end)
+	local ok, err = pcall(fs.move, temporary, file)
+	if not ok then
+		pcall(fs.remove, temporary)
+		error(err, 0)
+	end
 end
 
 -- Reads the latest data under the lock, applies `mutate`, and writes the next revision.
