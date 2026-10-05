@@ -884,7 +884,7 @@ function Canvas() {
   const edges = useMemo(() => {
     const out: Edge[] = []
     const marker = (live: boolean) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: live ? 'var(--edge-hot)' : 'var(--edge)' })
-    const agg = new Map<string, { a: string; b: string; count: number; live: boolean; flowing: boolean }>()
+    const agg = new Map<string, { a: string; b: string; count: number; live: boolean }>()
     for (const l of links) {
       if (l.kind === 'related' && !focused.has(l.from) && !focused.has(l.to)) continue
       let a = view.rep(l.from)
@@ -893,12 +893,9 @@ function Canvas() {
       if (root && !peeking && a && !b && !a.startsWith('ghost:')) b = `ghost:out:${l.to}`
       if (!a || !b || a === b) continue
       const live = l.kind === 'blocks' && work.status.get(l.from) !== 'done'
-      // Only work underway marches, so an idle canvas mostly holds still.
-      const flowing = live && work.status.get(l.from) === 'active'
       const direct = (a === l.from || a.startsWith('ghost:')) && (b === l.to || b.startsWith('ghost:'))
       if (direct) {
         let cls = l.kind === 'related' ? 'e-rel' : live ? 'e-live' : 'e-done'
-        if (flowing) cls += ' e-flow'
         if (trace) {
           const ra = trace.get(l.from)
           const rb = trace.get(l.to)
@@ -911,10 +908,9 @@ function Canvas() {
         out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(live) : undefined })
       } else if (l.kind === 'blocks') {
         const k = a + '>' + b
-        const e = agg.get(k) ?? { a, b, count: 0, live: false, flowing: false }
+        const e = agg.get(k) ?? { a, b, count: 0, live: false }
         e.count++
         e.live ||= live
-        e.flowing ||= flowing
         agg.set(k, e)
       }
     }
@@ -923,8 +919,7 @@ function Canvas() {
         id: 'agg:' + k,
         source: e.a,
         target: e.b,
-        className:
-          'e-agg ' + (e.live ? 'e-live' : 'e-done') + (e.flowing ? ' e-flow' : '') + (peeking && !inFocus(e.a) && !inFocus(e.b) ? ' e-peek' : ''),
+        className: 'e-agg ' + (e.live ? 'e-live' : 'e-done') + (peeking && !inFocus(e.a) && !inFocus(e.b) ? ' e-peek' : ''),
         selectable: false,
         label: e.count > 1 ? `${e.count} links` : undefined,
         markerEnd: marker(e.live),

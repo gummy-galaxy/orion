@@ -502,10 +502,10 @@ select {
 /* Each frame these loops change repaints the canvas under them, so steps() holds them to 15 a second (one step
    per 1/15 s of duration) rather than the display's 120. WebKit skips the frames between steps. */
 @media (prefers-reduced-motion: no-preference) {
-  .react-flow__edge.e-flow .react-flow__edge-path {
+  .react-flow__edge.e-live .react-flow__edge-path {
     animation: flow 0.8s steps(12) infinite;
   }
-  .react-flow__edge.e-agg.e-flow .react-flow__edge-path {
+  .react-flow__edge.e-agg.e-live .react-flow__edge-path {
     animation: flow-agg 1.2s steps(18) infinite;
   }
   .card.st-active:not(.lens)::after {
@@ -517,14 +517,15 @@ select {
     animation: pulse 3.2s infinite;
   }
 }
-/* Zoomed out, in the background, or dimmed by a trace, motion can't be read, so loops stop. Moving the canvas
-   pauses them too. */
+/* Zoomed out, in the background, off screen, or dimmed by a trace, motion can't be seen, so loops stop. Moving
+   the canvas pauses them too. */
 .canvas.is-quiet .react-flow__edge-path,
 .canvas.is-quiet .card::after,
 .canvas[data-moving] .react-flow__edge-path,
 .canvas[data-moving] .card::after,
 .canvas.no-arrow-motion .react-flow__edge-path,
-.react-flow__edge.tr-e-dim .react-flow__edge-path {
+.react-flow__edge.tr-e-dim .react-flow__edge-path,
+.react-flow__edge-path.is-offscreen {
   animation-play-state: paused !important;
 }
 .canvas.is-quiet .card::after,
