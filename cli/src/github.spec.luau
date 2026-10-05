@@ -24,6 +24,7 @@ local function pull(
 		draft = given.draft == true,
 		reviewDecision = given.reviewDecision,
 		reviewRequests = given.reviewRequests or 0,
+		approvers = {},
 		requestedReviewers = {},
 		title = "Title",
 		url = "https://github.com/flipbook-labs/flipbook/pull/1",
@@ -216,7 +217,7 @@ test.case("fetch batches pull requests into one GraphQL query", function(assert)
 		query = argv[5]
 		return testing.result(
 			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health","url":"u","state":"OPEN","baseRefName":"main","headRefName":"feature/a","isDraft":false,"reviewDecision":"REVIEW_REQUIRED","reviewRequests":{"totalCount":2,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"author":{"login":"colleague"},"updatedAt":"2026-10-04T18:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"PENDING"}}}]}}},"p2":{"pullRequest":null}}}]]
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health","url":"u","state":"OPEN","baseRefName":"main","headRefName":"feature/a","isDraft":false,"reviewDecision":"REVIEW_REQUIRED","mergeStateStatus":"BLOCKED","latestReviews":{"nodes":[{"state":"COMMENTED","author":{"login":"zed"}},{"state":"APPROVED","author":{"login":"mneff"}},{"state":"APPROVED","author":{"login":"jsu"}}]},"reviewRequests":{"totalCount":2,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"author":{"login":"colleague"},"updatedAt":"2026-10-04T18:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"PENDING"}}}]}}},"p2":{"pullRequest":null}}}]]
 		)
 	end, {
 		{ owner = "flipbook-labs", name = "flipbook", number = 658 },
@@ -234,6 +235,13 @@ test.case("fetch batches pull requests into one GraphQL query", function(assert)
 	assert.eq(hit and hit.checks, "PENDING")
 	assert.eq(hit and hit.baseRefName, "main")
 	assert.eq(hit and hit.headRefName, "feature/a")
+	assert.eq(hit and hit.mergeState, "BLOCKED")
+	assert.eq(hit and table.concat(hit.approvers, ","), "jsu,mneff")
+	assert.strContains(query, "latestReviews")
+	local snapshot = github.recorded(hit :: PullState, "vocksel", "now")
+	local approvers = require("@std/json").asArray(snapshot.approvers)
+	assert.eq(approvers and #approvers, 2)
+	assert.eq(snapshot.mergeStateStatus, "BLOCKED")
 	assert.eq(found["flipbook-labs/flipbook#9999"], nil)
 end)
 

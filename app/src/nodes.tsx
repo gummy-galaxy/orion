@@ -1,7 +1,7 @@
 import { useContext, useState, type CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext } from './derive'
-import { STATUS_LABEL, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { STATUS_LABEL, reviewStage, type ClusterNode, type GhostNode, type TaskNode } from './model'
 import { badgeGroup, driver, taskTag, type Badge } from './sources'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
@@ -142,6 +142,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const tr = d.trace?.get(id)
   const attn = d.attention?.get(id)
   const github = driver(data)?.state
+  const stage = st === 'review' ? reviewStage(github) : null
   if (data.itemKind === 'note') {
     return (
       <div className={`card note${tr ? ' tr-' + tr : ''}`}>
@@ -167,9 +168,9 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
         </span>
         {typeof github?.additions === 'number' && <span className="meta-lines">{github.additions + github.deletions} lines</span>}
         {github?.checks && <span className={`check-dot check-${github.checks.toLowerCase()}`} title={`Checks: ${github.checks.toLowerCase()}`} />}
-        <span className="st">
+        <span className={`st${stage ? ' stage-' + stage.replace(' ', '-').toLowerCase() : ''}`}>
           {st === 'blocked' && <Lock />}
-          {STATUS_LABEL[st]}
+          {stage ?? STATUS_LABEL[st]}
         </span>
       </div>
       <div className="label">{data.label}</div>

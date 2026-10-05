@@ -189,6 +189,12 @@ select {
   align-items: center;
   gap: 4px;
 }
+.card .meta .st.stage-approved {
+  color: var(--st-done);
+}
+.card .meta .st.stage-merge-blocked {
+  color: var(--st-blocked);
+}
 .card .label {
   font-size: 12.5px;
   font-weight: 500;

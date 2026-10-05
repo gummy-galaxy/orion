@@ -32,6 +32,10 @@ export type GithubState = {
   state: 'OPEN' | 'MERGED' | 'CLOSED'
   draft: boolean
   reviewDecision?: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED'
+  /** GitHub's MergeStateStatus: `BLOCKED` or `DIRTY` keep an approved pull request from merging. */
+  mergeStateStatus?: string
+  /** Whoever's latest review approves. */
+  approvers?: string[]
   title: string
   url: string
   author: string
@@ -233,13 +237,24 @@ export function descendants(id: string, nodes: AppNode[]): Set<string> {
   return out
 }
 
+/**
+ * How far review has come on an open pull request: approved and mergeable, approved but blocked from merging,
+ * or approved by someone without the code owner yet. Null when review hasn't produced an approval.
+ */
+export function reviewStage(github: GithubState | undefined): 'Approved' | 'Merge blocked' | 'Owner pending' | null {
+  if (!github || github.state !== 'OPEN' || github.draft) return null
+  if (github.reviewDecision === 'APPROVED')
+    return github.mergeStateStatus === 'BLOCKED' || github.mergeStateStatus === 'DIRTY' ? 'Merge blocked' : 'Approved'
+  return github.approvers?.length ? 'Owner pending' : null
+}
+
 /** "Merged · checked 2h ago" for a synced pull request. */
 export function githubSummary(github: GithubState, now = Date.now()) {
   const state =
     github.state === 'OPEN'
       ? github.draft
         ? 'Draft'
-        : (REVIEW_LABEL[github.reviewDecision ?? ''] ?? 'Open')
+        : (reviewStage(github) ?? REVIEW_LABEL[github.reviewDecision ?? ''] ?? 'Open')
       : github.state.charAt(0) + github.state.slice(1).toLowerCase()
   return `${state} on GitHub · checked ${relativeTime(github.checkedAt, now)}`
 }

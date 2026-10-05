@@ -1625,6 +1625,7 @@ function TaskInspector({
             )}
           </p>
           {pull.author && !pull.mine && <p className="facts">By {pull.author}</p>}
+          {!!pull.approvers?.length && <p className="facts">Approved by {pull.approvers.join(', ')}</p>}
           {pull.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
         </div>
       )}

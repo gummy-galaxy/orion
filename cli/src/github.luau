@@ -18,6 +18,10 @@ export type PullState = {
 	headRefName: string,
 	draft: boolean,
 	reviewDecision: string?,
+	--- CLEAN, BLOCKED, DIRTY, and the rest of GitHub's MergeStateStatus.
+	mergeState: string?,
+	--- Whoever's latest review approves, sorted.
+	approvers: { string },
 	reviewRequests: number,
 	requestedReviewers: { string },
 	title: string,
@@ -66,7 +70,7 @@ export type Fetched = {
 
 local BATCH_SIZE = 25
 local PULL_FIELDS =
-	"number title body url state baseRefName headRefName isDraft reviewDecision author { login } updatedAt additions deletions commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
+	"number title body url state baseRefName headRefName isDraft reviewDecision mergeStateStatus latestReviews(first: 20) { nodes { state author { login } } } author { login } updatedAt additions deletions commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
 local NAME_PATTERN = "^[%w%-%._]+$"
 local INBOX_ID = "inbox"
 local REVIEWS_ID = "reviews"
@@ -128,6 +132,17 @@ local function pullFromObject(object: json.Object, owner: string, name: string, 
 			table.insert(requestedReviewers, login)
 		end
 	end
+	local approvers: { string } = {}
+	local reviews = json.asObject(object.latestReviews)
+	for _, raw in (if reviews then json.asArray(reviews.nodes) else nil) or {} do
+		local review = json.asObject(raw)
+		local reviewer = if review then json.asObject(review.author) else nil
+		local login = if reviewer then str(reviewer.login) else nil
+		if review and review.state == "APPROVED" and login then
+			table.insert(approvers, login)
+		end
+	end
+	table.sort(approvers)
 	local author = json.asObject(object.author)
 	local commits = json.asObject(object.commits)
 	local commitNodes = if commits then json.asArray(commits.nodes) else nil
@@ -143,6 +158,8 @@ local function pullFromObject(object: json.Object, owner: string, name: string, 
 		headRefName = str(object.headRefName) or "",
 		draft = object.isDraft == true,
 		reviewDecision = str(object.reviewDecision),
+		mergeState = str(object.mergeStateStatus),
+		approvers = approvers,
 		reviewRequests = if requests and type(requests.totalCount) == "number" then requests.totalCount else 0,
 		requestedReviewers = requestedReviewers,
 		title = str(object.title) or "",
@@ -500,6 +517,14 @@ function github.recorded(pull: PullState, viewer: string, checkedAt: string): js
 	})
 	result.reviewDecision = pull.reviewDecision
 	result.checks = pull.checks
+	result.mergeStateStatus = pull.mergeState
+	if #pull.approvers > 0 then
+		local approvers: json.Array = {}
+		for _, login in pull.approvers do
+			table.insert(approvers, login)
+		end
+		result.approvers = approvers
+	end
 	return result
 end
 
