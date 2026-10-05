@@ -68,6 +68,7 @@ import {
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
+import { SkyscraperSpike } from './SkyscraperSpike'
 
 type ViewNode = AppNode | GhostNode
 
@@ -167,6 +168,7 @@ function Canvas() {
   const [pinned, setPinned] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(true)
+  const [skyscraperSpike, setSkyscraperSpike] = useState(false)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [menu, setMenu] = useState<Menu | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -932,6 +934,10 @@ function Canvas() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (skyscraperSpike) {
+        if (e.key === 'Escape') setSkyscraperSpike(false)
+        return
+      }
       if ((e.target as HTMLElement).closest('input, textarea, select')) return
       if (e.metaKey && e.key.toLowerCase() === 'g') {
         e.preventDefault()
@@ -953,7 +959,7 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot])
+  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot, skyscraperSpike])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
@@ -968,11 +974,11 @@ function Canvas() {
     <DerivedContext.Provider value={derived}>
       <ActionsContext.Provider value={actions}>
         <div className="app">
-          {sidebar && (
+          {sidebar && !skyscraperSpike && (
             <Sidebar nodes={nodes} groups={work.groups} root={root} open={openRoot} readyTotal={readyTotal} hide={() => toggleSidebar(false)} />
           )}
           <div className={`canvas${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
-            {ready && (
+            {ready && !skyscraperSpike && (
               <ReactFlow<ViewNode, Edge>
                 fitView
                 fitViewOptions={{ padding: 0.12 }}
@@ -1051,6 +1057,9 @@ function Canvas() {
                     </span>
                   ))}
                   <span className="crumb-actions">
+                    <button type="button" className="btn" onClick={() => setSkyscraperSpike(true)}>
+                      Try skyscrapers
+                    </button>
                     <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                       Add note
                     </button>
@@ -1179,6 +1188,7 @@ function Canvas() {
             )}
             {!ready && <div className="loading">Laying out…</div>}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
+            {skyscraperSpike && <SkyscraperSpike onClose={() => setSkyscraperSpike(false)} />}
           </div>
         </div>
       </ActionsContext.Provider>
