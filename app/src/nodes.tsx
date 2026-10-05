@@ -28,6 +28,43 @@ function Ring({ done, total, size = 22 }: { done: number; total: number; size?: 
   )
 }
 
+function sourceInitials(source: string) {
+  if (!source) return 'O'
+  const name = source.split('/').at(-1) || source
+  const word = (name.split(/[-_.]/).filter(Boolean).at(-1) || name).toUpperCase()
+  const consonants = word.replace(/[^A-Z0-9]|[AEIOU]/g, '')
+  return (consonants.length >= 2 ? consonants : word).slice(0, 2)
+}
+
+function sourceHue(source: string) {
+  let hash = 0
+  for (const char of source) hash = (hash * 31 + char.charCodeAt(0)) % 360
+  return hash
+}
+
+function SourceBadges({ sources, inBubble = false }: { sources: string[]; inBubble?: boolean }) {
+  const visible = sources.length ? sources : ['']
+  return (
+    <span
+      className={`source-badges${inBubble ? ' in-bubble' : ''}`}
+      role="img"
+      aria-label={`Sources: ${visible.map((source) => source || 'Orion').join(', ')}`}
+    >
+      {visible.map((source) => (
+        <span
+          key={source || 'local'}
+          className={`source-badge${source ? '' : ' is-local'}`}
+          style={source ? ({ '--source-hue': sourceHue(source) } as CSSProperties) : undefined}
+          title={source ? `Repository: ${source}` : 'Orion work item'}
+          aria-hidden="true"
+        >
+          {sourceInitials(source)}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const d = useContext(DerivedContext)!
   const st = d.status.get(id) ?? 'ready'
@@ -42,6 +79,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
           <span>Note</span>
         </div>
         <div className="note-text">{data.label || 'Empty note'}</div>
+        <SourceBadges sources={d.sources.get(id) ?? []} />
         <Handle type="source" position={Position.Right} />
       </div>
     )
@@ -65,13 +103,15 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       <div className="label">{data.label}</div>
       {st !== 'done' && st !== 'deferred' && lev > 0 && <span className={`lev${lev >= 4 ? ' big' : ''}`}>unblocks {lev}</span>}
       {st !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
+      <SourceBadges sources={d.sources.get(id) ?? []} />
       <Handle type="source" position={Position.Right} />
     </div>
   )
 }
 
 export function GhostView({ data }: NodeProps<GhostNode>) {
-  const tr = useContext(DerivedContext)!.trace?.get(data.taskId)
+  const d = useContext(DerivedContext)!
+  const tr = d.trace?.get(data.taskId)
   return (
     <div className={`ghost st-${data.status} side-${data.side}${tr ? ' tr-' + tr : ''}`} title={`Jump to ${data.label}`}>
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
@@ -80,6 +120,7 @@ export function GhostView({ data }: NodeProps<GhostNode>) {
       </span>
       <span className="label">{data.label}</span>
       <span className="ghost-status">{STATUS_LABEL[data.status]}</span>
+      <SourceBadges sources={d.sources.get(data.taskId) ?? []} />
       {data.side === 'in' && <Handle type="source" position={Position.Right} isConnectable={false} />}
     </div>
   )
@@ -110,6 +151,7 @@ export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
                 {s.done}/{s.total} done · {s.ready} ready · {s.blocked} blocked
               </span>
               {s.outside > 0 && <span className="bubble-lev">unblocks {s.outside} outside</span>}
+              <SourceBadges sources={d.sources.get(id) ?? []} inBubble />
             </div>
           </div>
         </div>
@@ -131,6 +173,7 @@ export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
           </span>
         </div>
       )}
+      {!collapsed && <SourceBadges sources={d.sources.get(id) ?? []} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
   )

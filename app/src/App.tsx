@@ -902,7 +902,7 @@ function Canvas() {
   }, [attention, map, zoom, panX, panY])
 
   const derived = useMemo<Derived>(
-    () => ({ status: work.status, leverage: work.leverage, groups: work.groups, trace, collapsed, zoom, attention: attention?.marks ?? null }),
+    () => ({ status: work.status, leverage: work.leverage, groups: work.groups, sources: work.sources, trace, collapsed, zoom, attention: attention?.marks ?? null }),
     [work, trace, collapsed, zoom, attention],
   )
 
