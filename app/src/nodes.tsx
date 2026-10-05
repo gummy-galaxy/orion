@@ -1,8 +1,9 @@
-import { useContext, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
+import { memo, useContext, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { ActionsContext, DerivedContext } from './derive'
+import { ActionsContext } from './derive'
 import { STATUS_LABEL, WHO_LABEL, reviewStage, type ClusterNode, type GhostNode, type TaskNode } from './model'
 import { SERVICE_NAME, badgeGroup, driver, taskTag, type Badge } from './sources'
+import { useCollapsed, useFar, useGroupStats, useLeverage, useMarked, useSources, useStatus, useTraceRole } from './state'
 
 export function Lock() {
   return (
@@ -181,12 +182,14 @@ function FarTag({ className, children }: { className: string; children: ReactNod
   )
 }
 
-export function TaskView({ id, data }: NodeProps<TaskNode>) {
-  const d = useContext(DerivedContext)!
-  const st = d.status.get(id) ?? 'ready'
-  const lev = d.leverage.get(id) ?? 0
-  const tr = d.trace?.get(id)
-  const attn = d.attention?.get(id)
+// Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
+export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>) {
+  const st = useStatus(id)
+  const lev = useLeverage(id)
+  const tr = useTraceRole(id)
+  const attn = useMarked(id)
+  const sources = useSources(id)
+  const far = useFar()
   const github = driver(data)?.state
   const stage = st === 'review' ? reviewStage(github) : null
   if (data.itemKind === 'note') {
@@ -197,13 +200,13 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
           <span>Note</span>
         </div>
         <div className="note-text">{data.label || 'Empty note'}</div>
-        <SourceBadges sources={d.sources.get(id) ?? []} />
+        <SourceBadges sources={sources} />
       </>
     )
     return (
       <div className={className}>
         <Handle type="target" position={Position.Left} />
-        {d.far ? <FarTag className={className}>{body}</FarTag> : body}
+        {far ? <FarTag className={className}>{body}</FarTag> : body}
         <Handle type="source" position={Position.Right} />
       </div>
     )
@@ -226,21 +229,21 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       <div className="label">{data.label}</div>
       {st !== 'done' && st !== 'deferred' && lev > 0 && <span className={`lev${lev >= 4 ? ' big' : ''}`}>unblocks {lev}</span>}
       {st !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
-      <SourceBadges sources={d.sources.get(id) ?? []} />
+      <SourceBadges sources={sources} />
     </>
   )
   return (
     <div className={className}>
       <Handle type="target" position={Position.Left} />
-      {d.far ? <FarTag className={className}>{body}</FarTag> : body}
+      {far ? <FarTag className={className}>{body}</FarTag> : body}
       <Handle type="source" position={Position.Right} />
     </div>
   )
-}
+})
 
-export function GhostView({ data }: NodeProps<GhostNode>) {
-  const d = useContext(DerivedContext)!
-  const tr = d.trace?.get(data.taskId)
+export const GhostView = memo(function GhostView({ data }: NodeProps<GhostNode>) {
+  const tr = useTraceRole(data.taskId)
+  const sources = useSources(data.taskId)
   return (
     <div className={`ghost st-${data.status} side-${data.side}${tr ? ' tr-' + tr : ''}`} title={`Jump to ${data.label}`}>
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
@@ -249,19 +252,19 @@ export function GhostView({ data }: NodeProps<GhostNode>) {
       </span>
       <span className="label">{data.label}</span>
       <span className="ghost-status">{STATUS_LABEL[data.status]}</span>
-      <SourceBadges sources={d.sources.get(data.taskId) ?? []} />
+      <SourceBadges sources={sources} />
       {data.side === 'in' && <Handle type="source" position={Position.Right} isConnectable={false} />}
     </div>
   )
-}
+})
 
-export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
-  const d = useContext(DerivedContext)!
+export const ClusterView = memo(function ClusterView({ id, data }: NodeProps<ClusterNode>) {
   const actions = useContext(ActionsContext)!
-  const s = d.groups.get(id) ?? { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
-  const collapsed = d.collapsed.has(id)
-  const tr = d.trace?.get(id)
-  const attn = d.attention?.get(id)
+  const s = useGroupStats(id)
+  const collapsed = useCollapsed(id)
+  const tr = useTraceRole(id)
+  const attn = useMarked(id)
+  const sources = useSources(id)
   return (
     <div className={`cluster${collapsed ? ' is-collapsed' : ''}${tr ? ' tr-' + tr : ''}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} />
@@ -278,7 +281,7 @@ export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
                 {s.done}/{s.total} done · {s.ready} ready · {s.blocked} blocked
               </span>
               {s.outside > 0 && <span className="bubble-lev">unblocks {s.outside} outside</span>}
-              <SourceBadges sources={d.sources.get(id) ?? []} inBubble />
+              <SourceBadges sources={sources} inBubble />
             </div>
           </div>
         </div>
@@ -302,8 +305,8 @@ export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
           </span>
         </div>
       )}
-      {!collapsed && <SourceBadges sources={d.sources.get(id) ?? []} />}
+      {!collapsed && <SourceBadges sources={sources} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
   )
-}
+})

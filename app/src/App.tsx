@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Provider, useAtom, useAtomValue, useSetAtom } from 'jotai'
 import {
   Background,
   BackgroundVariant,
@@ -26,7 +27,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { Lens } from './Lens'
 import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
-import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
+import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type GroupStats } from './derive'
 import { WRAP, reflow, reflowAll } from './layout'
 import { mergeDocs } from './merge'
 import {
@@ -99,6 +100,7 @@ import {
   type SourceKind,
 } from './sources'
 import { Sidebar } from './Sidebar'
+import { attentionAtom, collapsedAtom, farAtom, githubOwnerAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from './state'
 import { readViewport, writeViewport } from './viewport'
 
 type ViewNode = AppNode | GhostNode
@@ -109,6 +111,18 @@ const SIDEBAR_KEY = 'orion:sidebar'
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
 const DEFAULT_MOTION: MotionSettings = { arrows: true, glow: true, pauseWhileMoving: true }
+
+/** Hands back last render's edge wherever the new one draws the same, so React Flow redraws only edges that changed. */
+function keepDrawn(drawn: Map<string, { edge: Edge; print: string }>, next: Edge[]): Edge[] {
+  const kept = next.map((edge) => {
+    const print = JSON.stringify(edge)
+    const prev = drawn.get(edge.id)
+    return prev?.print === print ? prev : { edge, print }
+  })
+  drawn.clear()
+  for (const k of kept) drawn.set(k.edge.id, k)
+  return kept.map((k) => k.edge)
+}
 
 function readMotion(): MotionSettings {
   try {
@@ -233,10 +247,10 @@ function Canvas() {
   const foldFrom = useStore((s) => Math.floor((s.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
   const still = useStore((s) => s.transform[2] < STILL_ZOOM)
   const far = useStore((s) => s.transform[2] < FAR_ZOOM)
-  const [nodes, setNodes] = useState<AppNode[]>([])
-  const [links, setLinks] = useState<Link[]>([])
+  const [nodes, setNodes] = useAtom(nodesAtom)
+  const [links, setLinks] = useAtom(linksAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
-  const [githubOwner, setGithubOwner] = useState('flipbook-labs')
+  const [githubOwner, setGithubOwner] = useAtom(githubOwnerAtom)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
   const [clock, setClock] = useState(() => Date.now())
@@ -246,9 +260,8 @@ function Canvas() {
   // Zoomed out past the leave point: the open group's surroundings show, faded.
   const peeking = root !== null && peek === root
   const [exitHint, setExitHint] = useState<{ root: string; progress: number } | null>(null)
-  const [hover, setHover] = useState<string | null>(null)
-  // A double-clicked card keeps its trace while you pan around; any click lets it go.
-  const [pinned, setPinned] = useState<string | null>(null)
+  const [hover, setHover] = useAtom(hoverAtom)
+  const [pinned, setPinned] = useAtom(pinnedAtom)
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
@@ -301,22 +314,25 @@ function Canvas() {
   // The workspace the canvas is showing, so moves while switching aren't remembered for the next one.
   const viewFor = useRef<string | null>(null)
 
-  const adopt = useCallback((doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
-    const next = normalize(doc.nodes)
-    const server = compact({ nodes: normalize(serverDoc.nodes), links: serverDoc.links })
-    revision.current = doc.revision
-    base.current = server
-    savedPrint.current = fingerprint(server)
-    latest.current = { nodes: next, links: doc.links }
-    setNodes((ns) => {
-      const picked = new Set(preserveSelection ? ns.filter((n) => n.selected).map((n) => n.id) : [])
-      return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
-    })
-    setLinks(doc.links)
-    setGithub(doc.github ?? null)
-    setGithubOwner(doc.settings.githubOwner)
-    return { nodes: next, links: doc.links }
-  }, [])
+  const adopt = useCallback(
+    (doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
+      const next = normalize(doc.nodes)
+      const server = compact({ nodes: normalize(serverDoc.nodes), links: serverDoc.links })
+      revision.current = doc.revision
+      base.current = server
+      savedPrint.current = fingerprint(server)
+      latest.current = { nodes: next, links: doc.links }
+      setNodes((ns) => {
+        const picked = new Set(preserveSelection ? ns.filter((n) => n.selected).map((n) => n.id) : [])
+        return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
+      })
+      setLinks(doc.links)
+      setGithub(doc.github ?? null)
+      setGithubOwner(doc.settings.githubOwner)
+      return { nodes: next, links: doc.links }
+    },
+    [setNodes, setLinks, setGithubOwner],
+  )
 
   useEffect(
     () => () => {
@@ -364,7 +380,7 @@ function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt],
+    [adopt, setNodes, setLinks, setGithubOwner],
   )
 
   useEffect(() => {
@@ -461,7 +477,7 @@ function Canvas() {
         await loadWorkspace(epoch, true)
       })
     },
-    [loadWorkspace],
+    [loadWorkspace, setPinned, setHover],
   )
 
   useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
@@ -529,7 +545,7 @@ function Canvas() {
         layingOutPending.current = false
       }
     })()
-  }, [nodes, links, ready])
+  }, [nodes, links, ready, setNodes])
 
   /**
    * Fits the opened group, or everything at the top level. Bounds come from our own
@@ -574,7 +590,7 @@ function Canvas() {
 
   const selectOnly = useCallback(
     (id: string) => setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, selected: true } : n.selected ? { ...n, selected: false } : n))),
-    [],
+    [setNodes],
   )
 
   const focusNode = useCallback(
@@ -622,31 +638,34 @@ function Canvas() {
         openRoot(target)
       }
     },
-    [root, focusNode, openRoot],
+    [root, focusNode, openRoot, setHover],
   )
 
   /** Moves nodes to new positions over a few frames so edges follow along. */
-  const tweenTo = useCallback((target: AppNode[]) => {
-    const from = byId(latest.current.nodes)
-    const start = performance.now()
-    const step = (now: number) => {
-      const t = ease(Math.min(1, (now - start) / 380))
-      setNodes(
-        target.map((n) => {
-          const f = from.get(n.id)
-          if (!f || f.parentId !== n.parentId || t === 1) return n
-          const lerp = (a: number, b: number) => a + (b - a) * t
-          return {
-            ...n,
-            position: { x: lerp(f.position.x, n.position.x), y: lerp(f.position.y, n.position.y) },
-            ...(isCluster(n) && f.width && n.width ? { width: lerp(f.width, n.width), height: lerp(f.height ?? 0, n.height ?? 0) } : {}),
-          }
-        }),
-      )
-      if (t < 1) requestAnimationFrame(step)
-    }
-    requestAnimationFrame(step)
-  }, [])
+  const tweenTo = useCallback(
+    (target: AppNode[]) => {
+      const from = byId(latest.current.nodes)
+      const start = performance.now()
+      const step = (now: number) => {
+        const t = ease(Math.min(1, (now - start) / 380))
+        setNodes(
+          target.map((n) => {
+            const f = from.get(n.id)
+            if (!f || f.parentId !== n.parentId || t === 1) return n
+            const lerp = (a: number, b: number) => a + (b - a) * t
+            return {
+              ...n,
+              position: { x: lerp(f.position.x, n.position.x), y: lerp(f.position.y, n.position.y) },
+              ...(isCluster(n) && f.width && n.width ? { width: lerp(f.width, n.width), height: lerp(f.height ?? 0, n.height ?? 0) } : {}),
+            }
+          }),
+        )
+        if (t < 1) requestAnimationFrame(step)
+      }
+      requestAnimationFrame(step)
+    },
+    [setNodes],
+  )
 
   const map = useMemo(() => byId(nodes), [nodes])
   const rootWorkCount = useMemo(() => {
@@ -710,7 +729,7 @@ function Canvas() {
     },
     [root, peeking, map, rootWorkCount, leaveRoot],
   )
-  const work = useMemo(() => deriveWork(nodes, links, githubOwner), [nodes, links, githubOwner])
+  const work = useAtomValue(workAtom)
 
   // Which groups read as single bodies at this zoom, and which nodes that hides.
   const levelRoot = peeking ? (map.get(root)?.parentId ?? null) : root
@@ -813,31 +832,25 @@ function Canvas() {
     shownExtent.current = { root, w: x1 - x0 + FIT_MARGIN_Y * 2, h: y1 - y0 + FIT_MARGIN_Y * 2 }
   }, [root, peeking, map, ghosts])
 
+  // React Flow redraws a node whenever its object changes, so unchanged nodes keep last render's object.
+  const [shownNodes] = useState(() => new WeakMap<AppNode, AppNode>())
   const viewNodes = useMemo<ViewNode[]>(
     () => [
-      ...nodes.map((n) => ({
-        ...n,
-        hidden: view.hidden.has(n.id),
-        className: [n.className, peeking && !inFocus(n.id) ? 'is-peek' : ''].filter(Boolean).join(' ') || undefined,
-      })),
+      ...nodes.map((n) => {
+        const hidden = view.hidden.has(n.id)
+        const className = [n.className, peeking && !inFocus(n.id) ? 'is-peek' : ''].filter(Boolean).join(' ') || undefined
+        const shown = shownNodes.get(n)
+        if (shown && shown.hidden === hidden && shown.className === className) return shown
+        const next = { ...n, hidden, className }
+        shownNodes.set(n, next)
+        return next
+      }),
       ...ghosts,
     ],
-    [nodes, view, ghosts, peeking, inFocus],
+    [nodes, view, ghosts, peeking, inFocus, shownNodes],
   )
 
-  const trace = useMemo(() => {
-    const from = pinned ?? hover
-    const h = from ? map.get(from) : undefined
-    return h && isTask(h)
-      ? traceFrom(
-          h.id,
-          work.preds,
-          work.succs,
-          nodes.filter(isTask).map((n) => n.id),
-          links.filter((l) => l.kind === 'related' && (l.from === h.id || l.to === h.id)).map((l) => (l.from === h.id ? l.to : l.from)),
-        )
-      : null
-  }, [pinned, hover, map, work, nodes, links])
+  const trace = useAtomValue(traceAtom)
 
   const selectedKey = nodes
     .filter((n) => n.selected)
@@ -846,6 +859,7 @@ function Canvas() {
   /** Related links never block, so they show only for the cards being looked at. */
   const focused = useMemo(() => new Set([pinned ?? hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
 
+  const [drawnEdges] = useState(() => new Map<string, { edge: Edge; print: string }>())
   const edges = useMemo(() => {
     const out: Edge[] = []
     const marker = (live: boolean) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: live ? 'var(--edge-hot)' : 'var(--edge)' })
@@ -891,8 +905,8 @@ function Canvas() {
         style: { strokeWidth: Math.min(6, 1.5 + e.count * 0.8) },
       })
     }
-    return out
-  }, [links, view, work, trace, root, peeking, inFocus, focused])
+    return keepDrawn(drawnEdges, out)
+  }, [links, view, work, trace, root, peeking, inFocus, focused, drawnEdges])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -983,24 +997,20 @@ function Canvas() {
     return out
   }, [attention, map, transform])
 
-  const derived = useMemo<Derived>(
-    () => ({
-      status: work.status,
-      leverage: work.leverage,
-      groups: work.groups,
-      sources: work.sources,
-      trace,
-      collapsed,
-      far,
-      attention: attention?.marks ?? null,
-    }),
-    [work, trace, collapsed, far, attention],
-  )
+  const setCollapsedShown = useSetAtom(collapsedAtom)
+  const setFarShown = useSetAtom(farAtom)
+  const setAttentionShown = useSetAtom(attentionAtom)
+  // Before paint, so cards that read these never show a stale frame.
+  useLayoutEffect(() => {
+    setCollapsedShown(collapsed)
+    setFarShown(far)
+    setAttentionShown(attention?.marks ?? null)
+  }, [collapsed, far, attention, setCollapsedShown, setFarShown, setAttentionShown])
 
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) =>
       setNodes((ns) => applyNodeChanges(changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[], ns)),
-    [],
+    [setNodes],
   )
   const dragOrigins = useRef(new Map<string, AppNode['position']>())
   const onDragStart = useCallback((dragged: ViewNode[]) => {
@@ -1017,15 +1027,18 @@ function Canvas() {
     dragOrigins.current = new Map()
     if (!origins.size) return setNodes((ns) => normalize(ns))
     tweenTo(normalize(latest.current.nodes.map((n) => (origins.has(n.id) ? { ...n, position: origins.get(n.id)! } : n))))
-  }, [tweenTo])
-  const onConnect = useCallback((c: Connection) => {
-    if (!c.source || !c.target || c.source === c.target) return
-    setLinks((ls) =>
-      ls.some((l) => l.from === c.source && l.to === c.target)
-        ? ls
-        : [...ls, { id: `${c.source}>${c.target}`, from: c.source, to: c.target, kind: 'blocks' }],
-    )
-  }, [])
+  }, [tweenTo, setNodes])
+  const onConnect = useCallback(
+    (c: Connection) => {
+      if (!c.source || !c.target || c.source === c.target) return
+      setLinks((ls) =>
+        ls.some((l) => l.from === c.source && l.to === c.target)
+          ? ls
+          : [...ls, { id: `${c.source}>${c.target}`, from: c.source, to: c.target, kind: 'blocks' }],
+      )
+    },
+    [setLinks],
+  )
 
   const selected = nodes.filter((n) => n.selected && !view.hidden.has(n.id))
 
@@ -1035,7 +1048,7 @@ function Canvas() {
     if (!r) return
     setNodes(r.nodes)
     setEditing(r.groupId)
-  }, [nodes, view])
+  }, [nodes, view, setNodes])
 
   const doUngroup = useCallback(
     (ids?: string[]) => {
@@ -1044,7 +1057,7 @@ function Canvas() {
       if (root && targets.includes(root)) openRoot(map.get(root)?.parentId ?? null)
       setNodes(ungroup(nodes, targets))
     },
-    [nodes, selected, root, map, openRoot],
+    [nodes, selected, root, map, openRoot, setNodes],
   )
 
   const actions = useMemo(
@@ -1058,7 +1071,7 @@ function Canvas() {
         setHover(null)
       },
     }),
-    [tweenTo, openRoot],
+    [tweenTo, openRoot, setHover],
   )
 
   const arrangeGroup = useCallback(
@@ -1073,7 +1086,7 @@ function Canvas() {
   const updateData = useCallback(
     (id: string, patch: Partial<TaskData> | Partial<ClusterData>) =>
       setNodes((ns) => ns.map((n) => (n.id === id ? ({ ...n, data: { ...n.data, ...patch } } as AppNode) : n))),
-    [],
+    [setNodes],
   )
 
   // ---- Notes and links ----
@@ -1103,7 +1116,7 @@ function Canvas() {
       setLinks(next)
       setEditing(id)
     },
-    [root],
+    [root, setNodes, setLinks],
   )
 
   const viewportCenter = useCallback(() => {
@@ -1256,7 +1269,24 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot, paletteOpen])
+  }, [
+    doGroup,
+    doUngroup,
+    selected,
+    actions,
+    root,
+    peeking,
+    map,
+    fitTo,
+    addNote,
+    viewportCenter,
+    pinned,
+    leaveRoot,
+    openRoot,
+    paletteOpen,
+    setNodes,
+    setPinned,
+  ])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
@@ -1324,270 +1354,268 @@ function Canvas() {
   }
 
   return (
-    <DerivedContext.Provider value={derived}>
-      <ActionsContext.Provider value={actions}>
-        <div className="app">
-          {sidebar && (
-            <Sidebar
-              nodes={nodes}
-              groups={work.groups}
-              root={root}
-              open={openRoot}
-              readyTotal={readyTotal}
-              hide={() => toggleSidebar(false)}
-              workspaces={workspaces}
-              switchWorkspace={switchWorkspace}
-              newWorkspace={newWorkspace}
-            />
-          )}
-          <div
-            className={`canvas${attending ? ' is-attending' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
-            ref={canvasRef}
-            onPointerMove={trackPointer}
-          >
-            {ready && (
-              <ReactFlow<ViewNode, Edge>
-                fitView={!savedView}
-                fitViewOptions={INITIAL_FIT}
-                defaultViewport={savedView ?? undefined}
-                onMoveStart={onMoveStart}
-                onMoveEnd={rememberView}
-                nodes={viewNodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes}
-                onNodesChange={onNodesChange}
-                onMove={onViewportMove}
-                onNodeDragStop={onDragStop}
-                onConnect={onConnect}
-                onNodeMouseEnter={(_, n) => setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
-                onNodeMouseLeave={() => setHover(null)}
-                onNodeClick={(_, n) => {
-                  if (peeking && !inFocus(n.id)) leaveRoot()
-                  setPinned(null)
-                  if (n.type === 'ghost') jumpTo(n.data.taskId)
-                }}
-                onNodeDoubleClick={(_, n) => {
-                  if (peeking && !inFocus(n.id)) leaveRoot()
-                  if (n.type === 'cluster') actions.open(n.id)
-                  else if (n.type === 'task' && isNote(n)) setEditing(n.id)
-                  else if (n.type === 'task') setPinned(n.id)
-                }}
-                onNodeDragStart={(_, n, dragged) => {
-                  if (peeking && !inFocus(n.id)) leaveRoot()
-                  onDragStart(dragged)
-                }}
-                onPaneClick={() => setPinned(null)}
-                onEdgeClick={() => setPinned(null)}
-                onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
-                onNodeContextMenu={(e, n) => {
-                  if (peeking && !inFocus(n.id)) leaveRoot()
-                  if (n.type !== 'ghost' && !n.selected) selectOnly(n.id)
-                  openMenu(e, { kind: 'node', id: n.id })
-                }}
-                onSelectionContextMenu={(e, ns) => openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })}
-                onEdgeContextMenu={(e, edge) => !edge.id.startsWith('agg:') && openMenu(e, { kind: 'edge', id: edge.id })}
-                panOnDrag={[0, 1]}
-                selectionKeyCode="Meta"
-                selectionOnDrag={false}
-                panOnScroll={false}
-                zoomOnScroll
-                zoomOnPinch
-                selectionMode={SelectionMode.Full}
-                multiSelectionKeyCode={['Meta', 'Shift']}
-                deleteKeyCode={null}
-                zoomOnDoubleClick={false}
-                minZoom={0.06}
-                maxZoom={2}
-                colorMode="system"
-              >
-                <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
-                <Controls showInteractive={false} />
-                {mergeNotice !== null && (
-                  <Panel
-                    position="bottom-left"
-                    style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300, pointerEvents: 'none' }}
-                    role="status"
-                  >
-                    Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
-                  </Panel>
-                )}
-                <MiniMap
-                  pannable
-                  zoomable
-                  nodeClassName={(n) =>
-                    n.type === 'cluster' ? 'mm-cluster' : n.type === 'ghost' ? 'mm-ghost' : 'mm-' + (work.status.get(n.id) ?? 'ready')
-                  }
-                />
+    <ActionsContext.Provider value={actions}>
+      <div className="app">
+        {sidebar && (
+          <Sidebar
+            nodes={nodes}
+            groups={work.groups}
+            root={root}
+            open={openRoot}
+            readyTotal={readyTotal}
+            hide={() => toggleSidebar(false)}
+            workspaces={workspaces}
+            switchWorkspace={switchWorkspace}
+            newWorkspace={newWorkspace}
+          />
+        )}
+        <div
+          className={`canvas${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          ref={canvasRef}
+          onPointerMove={trackPointer}
+        >
+          {ready && (
+            <ReactFlow<ViewNode, Edge>
+              fitView={!savedView}
+              fitViewOptions={INITIAL_FIT}
+              defaultViewport={savedView ?? undefined}
+              onMoveStart={onMoveStart}
+              onMoveEnd={rememberView}
+              nodes={viewNodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onNodesChange={onNodesChange}
+              onMove={onViewportMove}
+              onNodeDragStop={onDragStop}
+              onConnect={onConnect}
+              onNodeMouseEnter={(_, n) => setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
+              onNodeMouseLeave={() => setHover(null)}
+              onNodeClick={(_, n) => {
+                if (peeking && !inFocus(n.id)) leaveRoot()
+                setPinned(null)
+                if (n.type === 'ghost') jumpTo(n.data.taskId)
+              }}
+              onNodeDoubleClick={(_, n) => {
+                if (peeking && !inFocus(n.id)) leaveRoot()
+                if (n.type === 'cluster') actions.open(n.id)
+                else if (n.type === 'task' && isNote(n)) setEditing(n.id)
+                else if (n.type === 'task') setPinned(n.id)
+              }}
+              onNodeDragStart={(_, n, dragged) => {
+                if (peeking && !inFocus(n.id)) leaveRoot()
+                onDragStart(dragged)
+              }}
+              onPaneClick={() => setPinned(null)}
+              onEdgeClick={() => setPinned(null)}
+              onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
+              onNodeContextMenu={(e, n) => {
+                if (peeking && !inFocus(n.id)) leaveRoot()
+                if (n.type !== 'ghost' && !n.selected) selectOnly(n.id)
+                openMenu(e, { kind: 'node', id: n.id })
+              }}
+              onSelectionContextMenu={(e, ns) => openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })}
+              onEdgeContextMenu={(e, edge) => !edge.id.startsWith('agg:') && openMenu(e, { kind: 'edge', id: edge.id })}
+              panOnDrag={[0, 1]}
+              selectionKeyCode="Meta"
+              selectionOnDrag={false}
+              panOnScroll={false}
+              zoomOnScroll
+              zoomOnPinch
+              selectionMode={SelectionMode.Full}
+              multiSelectionKeyCode={['Meta', 'Shift']}
+              deleteKeyCode={null}
+              zoomOnDoubleClick={false}
+              minZoom={0.06}
+              maxZoom={2}
+              colorMode="system"
+            >
+              <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
+              <Controls showInteractive={false} />
+              {mergeNotice !== null && (
+                <Panel
+                  position="bottom-left"
+                  style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300, pointerEvents: 'none' }}
+                  role="status"
+                >
+                  Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
+                </Panel>
+              )}
+              <MiniMap
+                pannable
+                zoomable
+                nodeClassName={(n) =>
+                  n.type === 'cluster' ? 'mm-cluster' : n.type === 'ghost' ? 'mm-ghost' : 'mm-' + (work.status.get(n.id) ?? 'ready')
+                }
+              />
 
-                <Panel position="top-left" className="panel crumbs">
-                  {!sidebar && (
-                    <button type="button" className="crumb" onClick={() => toggleSidebar(true)} title="Show the group list">
-                      ☰
+              <Panel position="top-left" className="panel crumbs">
+                {!sidebar && (
+                  <button type="button" className="crumb" onClick={() => toggleSidebar(true)} title="Show the group list">
+                    ☰
+                  </button>
+                )}
+                <button type="button" className={root ? 'crumb' : 'crumb current'} onClick={() => openRoot(null)}>
+                  All work
+                </button>
+                {crumbs.map((id) => (
+                  <span key={id} className="crumb-wrap">
+                    <span className="sep">›</span>
+                    <button type="button" className={id === root ? 'crumb current' : 'crumb'} onClick={() => openRoot(id)}>
+                      {(map.get(id)?.data as ClusterData | undefined)?.label}
+                    </button>
+                  </span>
+                ))}
+                <span className="crumb-actions">
+                  <button type="button" className="btn" onClick={() => setPaletteOpen(true)}>
+                    Search <kbd>⇧⌘P</kbd>
+                  </button>
+                  <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
+                    Add note
+                  </button>
+                  {!rootCustom && (
+                    <button type="button" className="btn" onClick={tidy}>
+                      Tidy {root ? 'group' : 'canvas'}
                     </button>
                   )}
-                  <button type="button" className={root ? 'crumb' : 'crumb current'} onClick={() => openRoot(null)}>
-                    All work
+                  <button type="button" className="btn" onClick={reset}>
+                    Reset to seed
                   </button>
-                  {crumbs.map((id) => (
-                    <span key={id} className="crumb-wrap">
-                      <span className="sep">›</span>
-                      <button type="button" className={id === root ? 'crumb current' : 'crumb'} onClick={() => openRoot(id)}>
-                        {(map.get(id)?.data as ClusterData | undefined)?.label}
-                      </button>
-                    </span>
-                  ))}
-                  <span className="crumb-actions">
-                    <button type="button" className="btn" onClick={() => setPaletteOpen(true)}>
-                      Search <kbd>⇧⌘P</kbd>
+                  {syncStatus && (
+                    <button
+                      type="button"
+                      className="sync-status"
+                      title={syncStatus.message ?? 'Sync with GitHub now'}
+                      onClick={() => void requestSync(true).then((status) => status && setSyncStatus(status))}
+                    >
+                      {syncStatus.state === 'running'
+                        ? 'Syncing…'
+                        : syncStatus.state === 'error'
+                          ? 'Sync failed'
+                          : syncStatus.state === 'unavailable'
+                            ? 'Sync unavailable'
+                            : syncStatus.lastRun
+                              ? `Synced ${relativeTime(syncStatus.lastRun, clock)}`
+                              : 'Sync now'}
                     </button>
-                    <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
-                      Add note
-                    </button>
-                    {!rootCustom && (
-                      <button type="button" className="btn" onClick={tidy}>
-                        Tidy {root ? 'group' : 'canvas'}
-                      </button>
-                    )}
-                    <button type="button" className="btn" onClick={reset}>
-                      Reset to seed
-                    </button>
-                    {syncStatus && (
-                      <button
-                        type="button"
-                        className="sync-status"
-                        title={syncStatus.message ?? 'Sync with GitHub now'}
-                        onClick={() => void requestSync(true).then((status) => status && setSyncStatus(status))}
-                      >
-                        {syncStatus.state === 'running'
-                          ? 'Syncing…'
-                          : syncStatus.state === 'error'
-                            ? 'Sync failed'
-                            : syncStatus.state === 'unavailable'
-                              ? 'Sync unavailable'
-                              : syncStatus.lastRun
-                                ? `Synced ${relativeTime(syncStatus.lastRun, clock)}`
-                                : 'Sync now'}
-                      </button>
-                    )}
-                  </span>
-                </Panel>
+                  )}
+                </span>
+              </Panel>
 
-                {selected.length > 0 && (
-                  <Panel position="top-right" className="panel inspector">
-                    {!one ? (
-                      <div className="insp">
-                        <strong>{selected.length} selected</strong>
-                        <button type="button" className="btn primary" onClick={doGroup}>
-                          Group selection <kbd>⌘G</kbd>
+              {selected.length > 0 && (
+                <Panel position="top-right" className="panel inspector">
+                  {!one ? (
+                    <div className="insp">
+                      <strong>{selected.length} selected</strong>
+                      <button type="button" className="btn primary" onClick={doGroup}>
+                        Group selection <kbd>⌘G</kbd>
+                      </button>
+                    </div>
+                  ) : isNote(one) ? (
+                    <NoteInspector
+                      key={one.id}
+                      node={one}
+                      focus={editing === one.id}
+                      doneEditing={() => setEditing(null)}
+                      update={updateData}
+                      remove={() => deleteNote(one.id)}
+                    />
+                  ) : isTask(one) ? (
+                    <TaskInspector
+                      key={one.id}
+                      node={one}
+                      work={work}
+                      map={map}
+                      github={github}
+                      githubOwner={githubOwner}
+                      update={updateData}
+                      jumpTo={jumpTo}
+                      links={links}
+                      addLink={addLink}
+                      removeLink={removeLink}
+                    />
+                  ) : (
+                    <div className="insp" key={one.id}>
+                      <label htmlFor="g-label">Group name</label>
+                      <input
+                        id="g-label"
+                        value={(one.data as ClusterData).label}
+                        autoFocus={editing === one.id}
+                        onFocus={(e) => editing === one.id && e.target.select()}
+                        onBlur={() => setEditing(null)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                        onChange={(e) => updateData(one.id, { label: e.target.value })}
+                      />
+                      {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
+                      <GroupFacts stats={work.groups.get(one.id)} />
+                      <GroupArrange
+                        key={(one.data as ClusterData).columns}
+                        data={one.data as ClusterData}
+                        change={(patch) => arrangeGroup(one.id, patch)}
+                      />
+                      <div className="row">
+                        <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
+                          Open
                         </button>
-                      </div>
-                    ) : isNote(one) ? (
-                      <NoteInspector
-                        key={one.id}
-                        node={one}
-                        focus={editing === one.id}
-                        doneEditing={() => setEditing(null)}
-                        update={updateData}
-                        remove={() => deleteNote(one.id)}
-                      />
-                    ) : isTask(one) ? (
-                      <TaskInspector
-                        key={one.id}
-                        node={one}
-                        work={work}
-                        map={map}
-                        github={github}
-                        githubOwner={githubOwner}
-                        update={updateData}
-                        jumpTo={jumpTo}
-                        links={links}
-                        addLink={addLink}
-                        removeLink={removeLink}
-                      />
-                    ) : (
-                      <div className="insp" key={one.id}>
-                        <label htmlFor="g-label">Group name</label>
-                        <input
-                          id="g-label"
-                          value={(one.data as ClusterData).label}
-                          autoFocus={editing === one.id}
-                          onFocus={(e) => editing === one.id && e.target.select()}
-                          onBlur={() => setEditing(null)}
-                          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                          onChange={(e) => updateData(one.id, { label: e.target.value })}
-                        />
-                        {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
-                        <GroupFacts stats={work.groups.get(one.id)} />
-                        <GroupArrange
-                          key={(one.data as ClusterData).columns}
-                          data={one.data as ClusterData}
-                          change={(patch) => arrangeGroup(one.id, patch)}
-                        />
-                        <div className="row">
-                          <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
-                            Open
+                        {(one.data as ClusterData).arrange !== 'custom' && (
+                          <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
+                            Reflow
                           </button>
-                          {(one.data as ClusterData).arrange !== 'custom' && (
-                            <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
-                              Reflow
-                            </button>
-                          )}
-                          <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
-                            Ungroup <kbd>⇧⌘G</kbd>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </Panel>
-                )}
-
-                <Panel position="bottom-center" className="panel help">
-                  {root && exitHint?.root === root && (
-                    <div className="zoom-exit-hint">
-                      <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
-                      <div className="zoom-exit-track">
-                        <div className="zoom-exit-fill" style={{ width: `${exitHint.progress * 100}%` }} />
+                        )}
+                        <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
+                          Ungroup <kbd>⇧⌘G</kbd>
+                        </button>
                       </div>
                     </div>
                   )}
-                  {showHelp ? (
-                    <>
-                      Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
-                      double-click a group to open · double-click a card to hold its trace · hold Space over anything to read it up close · Esc to go
-                      up · N note · ⇧1 fit · drag from a card's edge to link{' '}
-                      <button type="button" className="link" onClick={() => setShowHelp(false)}>
-                        Hide
-                      </button>
-                    </>
-                  ) : (
-                    <button type="button" className="link" onClick={() => setShowHelp(true)}>
-                      Shortcuts
-                    </button>
-                  )}
                 </Panel>
-                <Lens />
-              </ReactFlow>
-            )}
-            {attending && cursor && (
-              <AttentionOverlay
-                targets={attentionTargets}
-                count={attention?.count ?? 0}
-                elsewhere={attention?.elsewhere ?? 0}
-                cursor={cursor}
-                width={canvasSize.w}
-                height={canvasSize.h}
-                onJump={jumpTo}
-              />
-            )}
-            {!ready && <div className="loading">Laying out…</div>}
-            {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
-            {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
-          </div>
-          {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
+              )}
+
+              <Panel position="bottom-center" className="panel help">
+                {root && exitHint?.root === root && (
+                  <div className="zoom-exit-hint">
+                    <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
+                    <div className="zoom-exit-track">
+                      <div className="zoom-exit-fill" style={{ width: `${exitHint.progress * 100}%` }} />
+                    </div>
+                  </div>
+                )}
+                {showHelp ? (
+                  <>
+                    Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
+                    double-click a group to open · double-click a card to hold its trace · hold Space over anything to read it up close · Esc to go up
+                    · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                    <button type="button" className="link" onClick={() => setShowHelp(false)}>
+                      Hide
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="link" onClick={() => setShowHelp(true)}>
+                    Shortcuts
+                  </button>
+                )}
+              </Panel>
+              <Lens />
+            </ReactFlow>
+          )}
+          {attending && cursor && (
+            <AttentionOverlay
+              targets={attentionTargets}
+              count={attention?.count ?? 0}
+              elsewhere={attention?.elsewhere ?? 0}
+              cursor={cursor}
+              width={canvasSize.w}
+              height={canvasSize.h}
+              onJump={jumpTo}
+            />
+          )}
+          {!ready && <div className="loading">Laying out…</div>}
+          {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
+          {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
         </div>
-      </ActionsContext.Provider>
-    </DerivedContext.Provider>
+        {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
+      </div>
+    </ActionsContext.Provider>
   )
 }
 
@@ -2041,8 +2069,10 @@ function LinkList({
 
 export default function App() {
   return (
-    <ReactFlowProvider>
-      <Canvas />
-    </ReactFlowProvider>
+    <Provider>
+      <ReactFlowProvider>
+        <Canvas />
+      </ReactFlowProvider>
+    </Provider>
   )
 }

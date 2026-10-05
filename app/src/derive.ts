@@ -5,25 +5,11 @@ import { badgeGroup, badgeOf, ordered, type Badge } from './sources'
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
 
-export type Derived = {
-  status: Map<string, ViewStatus>
-  leverage: Map<string, number>
-  groups: Map<string, GroupStats>
-  sources: Map<string, Badge[]>
-  trace: Map<string, TraceRole> | null
-  collapsed: Set<string>
-  /** Zoomed out far enough that cards and notes show their details at one on-screen size. */
-  far: boolean
-  /** While ⌘ is held: what needs you, keyed by the card or folded group that shows it. */
-  attention: Map<string, AttentionMark> | null
-}
-
 export type Actions = {
   reflow: (groupId: string) => void
   open: (groupId: string) => void
 }
 
-export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
 
 const ORION: Badge = { icon: 'orion', domain: 'orion', label: 'Orion' }
@@ -130,6 +116,8 @@ export function deriveWork(nodes: AppNode[], links: Link[], owner = 'flipbook-la
 
   return { status, leverage, groups, sources, preds, succs }
 }
+
+export type Work = ReturnType<typeof deriveWork>
 
 /** What `id` needs, what it unlocks, and the cards related to it directly; everything else dims. */
 export function traceFrom(id: string, preds: Map<string, string[]>, succs: Map<string, string[]>, ids: string[], related: string[] = []) {

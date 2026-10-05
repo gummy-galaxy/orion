@@ -421,8 +421,8 @@ select {
   --fade: 0.35;
 }
 
-/* Hover trace */
-.card.tr-dim {
+/* Hover trace. Everything outside it dims through the canvas, so only cards whose role changes redraw. */
+:where(.canvas.is-tracing) .card:not(.tr-self, .tr-up, .tr-down, .tr-related, .lens) {
   --fade: 0.25;
   border-color: var(--line);
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 25%, var(--surface));
@@ -1393,7 +1393,7 @@ kbd {
     border-color 0.15s,
     opacity 0.2s;
 }
-.ghost.tr-dim {
+:where(.canvas.is-tracing) .ghost:not(.tr-self, .tr-up, .tr-down, .tr-related) {
   --fade: 0.25;
 }
 .ghost.tr-up,

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { BaseEdge, type EdgeProps } from '@xyflow/react'
 
 /**
@@ -5,7 +6,7 @@ import { BaseEdge, type EdgeProps } from '@xyflow/react'
  * into a tight S, so the arrow instead leaves forward, turns through a point halfway between the two, and comes back
  * into the target from behind.
  */
-export function CurveEdge(props: EdgeProps) {
+export const CurveEdge = memo(function CurveEdge(props: EdgeProps) {
   const { sourceX: sx, sourceY: sy, targetX: tx, targetY: ty, markerEnd, style, label, labelStyle } = props
   const reach = Math.min(80, Math.max(36, Math.abs(ty - sy) / 3))
   // A target only slightly behind still reads fine as a gentle S; the loop is for ones well behind.
@@ -28,4 +29,4 @@ export function CurveEdge(props: EdgeProps) {
     `C${tx - approach * 2},${midY} ${tx - approach},${ty} ${tx},${ty}`,
   ].join(' ')
   return <BaseEdge path={path} markerEnd={markerEnd} style={style} label={label} labelStyle={labelStyle} labelX={midX} labelY={midY} />
-}
+})

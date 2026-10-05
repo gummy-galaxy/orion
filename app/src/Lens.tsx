@@ -1,9 +1,11 @@
-import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useStore } from '@xyflow/react'
-import { DerivedContext, type Derived } from './derive'
+import { useAtomValue } from 'jotai'
+import type { Work } from './derive'
 import { STATUS_LABEL, WHO_LABEL, reviewStage, type AppNode, type ClusterNode, type GhostNode, type TaskNode } from './model'
 import { Lock, Ring, ServiceIcon } from './nodes'
 import { SERVICE_NAME, badgeGroup, driver, taskTag, type Badge } from './sources'
+import { workAtom } from './state'
 
 /** How many of a group's contents the lens lists before counting the rest. */
 const LENS_ITEMS = 12
@@ -64,7 +66,7 @@ export function Lens() {
   const transform = useStore((s) => (id ? s.transform : null))
   const nodes = useStore((s) => (target?.type === 'cluster' ? s.nodes : null)) as AppNode[] | null
   const parent = useStore((s) => (target?.parentId ? s.nodeLookup.get(target.parentId) : undefined)) as ClusterNode | undefined
-  const d = useContext(DerivedContext)!
+  const d = useAtomValue(workAtom)
   const ref = useRef<HTMLDivElement>(null)
 
   useLayoutEffect(() => {
@@ -122,7 +124,7 @@ function SourceList({ sources, counted = false }: { sources: Badge[]; counted?: 
   )
 }
 
-function TaskLens({ task, where, d }: { task: TaskNode; where?: string; d: Derived }) {
+function TaskLens({ task, where, d }: { task: TaskNode; where?: string; d: Work }) {
   const { data } = task
   const st = d.status.get(task.id) ?? 'ready'
   const lev = d.leverage.get(task.id) ?? 0
@@ -166,7 +168,7 @@ function TaskLens({ task, where, d }: { task: TaskNode; where?: string; d: Deriv
   )
 }
 
-function GroupLens({ group, nodes, d }: { group: ClusterNode; nodes: AppNode[]; d: Derived }) {
+function GroupLens({ group, nodes, d }: { group: ClusterNode; nodes: AppNode[]; d: Work }) {
   const s = d.groups.get(group.id) ?? { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
   const children = nodes.filter((n) => n.parentId === group.id).sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
   return (
