@@ -11,6 +11,8 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 
 Add `--json` to any of these for structured output. Statuses in the output are derived: `ready` means nothing the item waits on is still open.
 
+Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces.
+
 ## Changing it
 
 - `orion add <title> [--group <id>] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item.
