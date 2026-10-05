@@ -25,6 +25,7 @@ import { Palette } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
 import { reflow, reflowAll } from './layout'
+import { mergeDocs } from './merge'
 import {
   STATUS_LABEL,
   TASK_H,
@@ -69,6 +70,7 @@ import {
   save,
   setActiveWorkspace,
   type Remote,
+  type Saved,
   type SyncStatus,
   type Workspaces,
 } from './persist'
@@ -135,6 +137,9 @@ function writeFlag(key: string, value: boolean) {
     // Only a remembered preference.
   }
 }
+
+/** The stored shape of a document, for comparing and merging. */
+const compact = (doc: Saved): Saved => JSON.parse(fingerprint(doc)) as Saved
 
 const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
@@ -227,16 +232,22 @@ function Canvas() {
   const source = useRef<'file' | 'browser'>('file')
   const revision = useRef<number | null>(null)
   const savedPrint = useRef('')
+  const base = useRef<Saved>({ nodes: [], links: [] })
+  const [mergeNotice, setMergeNotice] = useState<number | null>(null)
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Saves and reloads run one at a time so a reload never lands on a half-finished save.
   const queue = useRef<Promise<void>>(Promise.resolve())
   const workspace = useRef('default')
   const workspaceEpoch = useRef(0)
   const pendingWorkspaceFit = useRef<number | null>(null)
 
-  const adopt = useCallback((doc: Remote, preserveSelection = true) => {
+  const adopt = useCallback((doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
     const next = normalize(doc.nodes)
+    const server = compact({ nodes: normalize(serverDoc.nodes), links: serverDoc.links })
     revision.current = doc.revision
-    savedPrint.current = fingerprint({ nodes: next, links: doc.links })
+    base.current = server
+    savedPrint.current = fingerprint(server)
+    latest.current = { nodes: next, links: doc.links }
     setNodes((ns) => {
       const picked = new Set(preserveSelection ? ns.filter((n) => n.selected).map((n) => n.id) : [])
       return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
@@ -244,11 +255,27 @@ function Canvas() {
     setLinks(doc.links)
     setGithub(doc.github ?? null)
     setGithubOwner(doc.settings.githubOwner)
+    return { nodes: next, links: doc.links }
   }, [])
 
+  useEffect(
+    () => () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current)
+    },
+    [],
+  )
+
   const reload = useCallback(async () => {
+    const epoch = workspaceEpoch.current
     const doc = await fetchRemote(workspace.current)
-    if (doc && doc.revision !== revision.current) adopt(doc)
+    if (epoch !== workspaceEpoch.current || !doc || doc.revision === revision.current) return
+    // Edits not saved yet merge onto the newer file instead of being replaced by it.
+    const local = compact(latest.current)
+    if (fingerprint(local) === savedPrint.current) adopt(doc)
+    else {
+      const merged = mergeDocs(base.current, local, compact(doc))
+      adopt({ ...doc, nodes: merged.nodes, links: merged.links }, doc)
+    }
   }, [adopt])
 
   const loadWorkspace = useCallback(
@@ -257,7 +284,7 @@ function Canvas() {
       if (epoch !== workspaceEpoch.current) return
       if (loaded.source === 'file') {
         source.current = 'file'
-        adopt(loaded.doc, !switched)
+        adopt(loaded.doc, loaded.doc, !switched)
       } else {
         source.current = loaded.source === 'missing' ? 'file' : 'browser'
         const isDefault = workspace.current === 'default'
@@ -325,19 +352,32 @@ function Canvas() {
       queue.current = queue.current.then(async () => {
         if (epoch !== workspaceEpoch.current) return
         if (print === savedPrint.current) return
-        const result = await save(source.current, revision.current, snapshot, name)
-        if (epoch !== workspaceEpoch.current) return
-        if (result.ok) {
-          revision.current = result.revision
-          savedPrint.current = print
-        } else if (result.conflict) {
-          // Someone else wrote first; theirs wins and this edit is dropped.
-          await reload()
+        let pending = snapshot
+        for (let attempt = 0; attempt <= 2; attempt++) {
+          const result = await save(source.current, revision.current, pending, name)
+          if (epoch !== workspaceEpoch.current) return
+          if (result.ok) {
+            revision.current = result.revision
+            base.current = compact(pending)
+            savedPrint.current = fingerprint(pending)
+            return
+          }
+          if (!result.conflict || attempt === 2) break
+          const remote = await fetchRemote(name)
+          if (!remote || epoch !== workspaceEpoch.current) break
+          const merged = mergeDocs(base.current, compact(latest.current), compact(remote))
+          pending = adopt({ ...remote, nodes: merged.nodes, links: merged.links }, remote)
+          if (merged.conflicts.length) {
+            setMergeNotice(merged.conflicts.length)
+            if (noticeTimer.current) clearTimeout(noticeTimer.current)
+            noticeTimer.current = setTimeout(() => setMergeNotice(null), 4500)
+          }
         }
+        await reload()
       })
     }, 400)
     return () => clearTimeout(t)
-  }, [nodes, links, ready, reload])
+  }, [nodes, links, ready, reload, adopt])
 
   const changeWorkspace = useCallback(
     (name: string) => {
@@ -1176,6 +1216,15 @@ function Canvas() {
               >
                 <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
                 <Controls showInteractive={false} />
+                {mergeNotice !== null && (
+                  <Panel
+                    position="bottom-left"
+                    style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300, pointerEvents: 'none' }}
+                    role="status"
+                  >
+                    Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
+                  </Panel>
+                )}
                 <MiniMap
                   pannable
                   zoomable
