@@ -846,6 +846,51 @@ function Canvas() {
   /** Related links never block, so they show only for the cards being looked at. */
   const focused = useMemo(() => new Set([pinned ?? hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
 
+  /**
+   * Spreads arrow ends across three anchors on each side of a card: the middle, and a third from the top and bottom.
+   * Ends on one side are ranked by where their other card sits, so arrows keep their order and don't cross; a lone
+   * end uses the middle unless the other card is well above or below.
+   */
+  const spreadAnchors = useCallback(
+    (out: Edge[]) => {
+      const middle = (id: string) => {
+        const n = map.get(id)
+        if (!n || !isTask(n)) return null
+        const h = n.measured?.height ?? sizeOf(n).h
+        return { y: absPos(n, map).y + h / 2, h }
+      }
+      const sides = new Map<string, { edge: Edge; end: 'source' | 'target'; other: number }[]>()
+      for (const edge of out) {
+        for (const [end, self, other] of [
+          ['source', edge.source, edge.target],
+          ['target', edge.target, edge.source],
+        ] as const) {
+          const there = middle(other)
+          if (!middle(self) || !there) continue
+          const key = `${self}:${end}`
+          sides.set(key, [...(sides.get(key) ?? []), { edge, end, other: there.y }])
+        }
+      }
+      for (const [key, ends] of sides) {
+        const self = middle(key.slice(0, key.lastIndexOf(':')))!
+        const step = self.h / 6
+        ends.sort((a, b) => a.other - b.other)
+        ends.forEach(({ edge, end, other }, i) => {
+          const slot =
+            ends.length === 1
+              ? Math.abs(other - self.y) <= self.h / 3
+                ? 0
+                : Math.sign(other - self.y)
+              : ends.length === 2
+                ? i * 2 - 1
+                : Math.floor((i * 3) / ends.length) - 1
+          edge.data = { ...edge.data, [end === 'source' ? 'sourceShift' : 'targetShift']: slot * step }
+        })
+      }
+    },
+    [map],
+  )
+
   const edges = useMemo(() => {
     const out: Edge[] = []
     const marker = (live: boolean) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: live ? 'var(--edge-hot)' : 'var(--edge)' })
@@ -891,8 +936,9 @@ function Canvas() {
         style: { strokeWidth: Math.min(6, 1.5 + e.count * 0.8) },
       })
     }
+    spreadAnchors(out)
     return out
-  }, [links, view, work, trace, root, peeking, inFocus, focused])
+  }, [links, view, work, trace, root, peeking, inFocus, focused, spreadAnchors])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
