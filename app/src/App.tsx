@@ -816,6 +816,7 @@ function Canvas() {
       status: work.status,
       leverage: work.leverage,
       groups: work.groups,
+      sources: work.sources,
       trace,
       collapsed,
       zoom,
