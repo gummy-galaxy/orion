@@ -50,7 +50,6 @@ local function stackFixture(): (Doc, Fetched)
 		{
 			pulls = { [github.key(parent)] = parent, [github.key(child)] = child },
 			authored = {},
-			reviews = {},
 			viewer = "vocksel",
 			discover = false,
 		}
@@ -152,35 +151,21 @@ test.case("refFor reads bare and owner-qualified repositories", function(assert)
 	assert.eq(github.refFor(testing.task("c", "C", "todo"), "flipbook-labs"), nil)
 end)
 
-test.case("apply creates review cards and stores unplaced authored pull requests with matches", function(assert)
+test.case("apply stores unplaced authored pull requests with matches", function(assert)
 	local doc = testing.doc({
 		testing.task("dashboard", "Release health dashboard", "todo", nil, { repo = "flipbook" }),
 	})
-	local review = pull("OPEN")
-	review.author = "colleague"
-	review.name = "storyteller"
-	review.number = 3
-	review.title = "Review story"
-	review.requestedReviewers = { "vocksel" }
 	local authored = pull("OPEN")
 	authored.number = 670
 	authored.title = "Add release health dashboard"
 	local report = github.apply(doc, {
 		pulls = {},
 		authored = { authored },
-		reviews = { review },
 		viewer = "vocksel",
 		discover = false,
 	}, "2026-10-04T18:05:00Z")
-	assert.eq(report.reviewAdded[1], report.added[1])
-	assert.eq(doc.nodes[2].id, "reviews")
-	assert.eq(doc.nodes[2].data.layout, "pending")
-	assert.eq(doc.nodes[3].data.itemKind, "pr")
-	assert.eq(doc.nodes[3].data.who, "you")
-	local driver = refs.driver(doc.nodes[3])
-	local recorded = if driver then require("@std/json").asObject(driver.state) else nil
-	assert.eq(recorded and recorded.requestedFromYou, true)
-	assert.eq(recorded and recorded.mine, false)
+	assert.eq(#report.added, 0)
+	assert.eq(#doc.nodes, 1)
 	local top = doc.github
 	assert.eq(top and top.viewer, "vocksel")
 	local unplaced = if top then require("@std/json").asArray(top.unplaced) else nil
@@ -197,7 +182,6 @@ test.case("discover files authored pulls in Inbox and clears unplaced", function
 	local report = github.apply(doc, {
 		pulls = {},
 		authored = { authored },
-		reviews = {},
 		viewer = "vocksel",
 		discover = true,
 	}, "2026-10-04T18:05:00Z")
@@ -242,6 +226,7 @@ test.case("fetch batches pull requests into one GraphQL query", function(assert)
 	local approvers = require("@std/json").asArray(snapshot.approvers)
 	assert.eq(approvers and #approvers, 2)
 	assert.eq(snapshot.mergeStateStatus, "BLOCKED")
+	assert.eq(snapshot.requestedFromYou, true)
 	assert.eq(found["flipbook-labs/flipbook#9999"], nil)
 end)
 
@@ -269,8 +254,6 @@ test.case("collect batches pull request lookups by host", function(assert)
 		local query = argv[#argv]
 		if query:find("pullRequests(first:", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
-		elseif query:find("search(query:", 1, true) then
-			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
 		table.insert(batches, argv)
 		return testing.result(true, [[{"data":{}}]])
@@ -300,8 +283,6 @@ test.case("collect looks up release tags, and a published release finishes a rel
 		local query = argv[#argv]
 		if query:find("pullRequests(first:", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
-		elseif query:find("search(query:", 1, true) then
-			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		elseif query:find("release(tagName:", 1, true) then
 			releaseQuery = query
 			return testing.result(
@@ -330,7 +311,6 @@ test.case("apply updates statuses, reports what's missing, and files new pull re
 	local report = github.apply(doc, {
 		pulls = { ["flipbook-labs/flipbook#1"] = merged },
 		authored = {},
-		reviews = {},
 		viewer = "vocksel",
 		discover = false,
 	}, "2026-10-04T00:00:00Z")

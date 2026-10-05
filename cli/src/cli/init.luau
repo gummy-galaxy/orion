@@ -366,10 +366,7 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)
 	end
 	for _, id in report.added do
-		table.insert(
-			lines,
-			`  added {id} to {if table.find(report.reviewAdded, id) then "Review requests" else "Inbox"}`
-		)
+		table.insert(lines, `  added {id} to Inbox`)
 	end
 	if #report.missing > 0 then
 		table.insert(lines, `  not found on GitHub: {table.concat(report.missing, ", ")}`)

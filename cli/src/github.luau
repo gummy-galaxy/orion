@@ -51,7 +51,6 @@ export type Report = {
 	changes: { Change },
 	missing: { string },
 	added: { string },
-	reviewAdded: { string },
 	linked: { StackLink },
 	unlinked: { StackLink },
 	checked: number,
@@ -63,7 +62,6 @@ export type Fetched = {
 	--- Keyed by `github.releaseKey`. A tag with no release yet is absent.
 	releases: { [string]: ReleaseState }?,
 	authored: { PullState },
-	reviews: { PullState },
 	viewer: string,
 	discover: boolean,
 }
@@ -75,7 +73,6 @@ local PULL_FIELDS =
 local REVIEW_FIELDS = "mergeStateStatus latestReviews(first: 20) { nodes { state author { login } } }"
 local NAME_PATTERN = "^[%w%-%._]+$"
 local INBOX_ID = "inbox"
-local REVIEWS_ID = "reviews"
 local github = {}
 
 function github.key(ref: Ref): string
@@ -469,14 +466,6 @@ function github.authoredOpen(run: CommandRunner): ({ PullState }, string)
 	return pulls, login :: string
 end
 
-function github.reviewRequested(run: CommandRunner): { PullState }
-	return pagedPulls(run, 50, function(page)
-		return `query \{ search(query: "is:open is:pr review-requested:@me archived:false", type: ISSUE, {page}) \{ nodes \{ ... on PullRequest \{ {PULL_FIELDS} repository \{ name owner \{ login } } } } pageInfo \{ hasNextPage endCursor } } }`
-	end, function(data)
-		return if data then json.asObject(data.search) else nil
-	end)
-end
-
 local function requestedFrom(pull: PullState, viewer: string): boolean
 	for _, login in pull.requestedReviewers do
 		if login:lower() == viewer:lower() then
@@ -526,7 +515,6 @@ function github.collect(doc: Doc, run: CommandRunner, discover: boolean): Fetche
 		pulls = github.fetch(run, keys),
 		releases = if #releases > 0 then github.fetchReleases(run, releases) else {},
 		authored = authored,
-		reviews = github.reviewRequested(run),
 		viewer = viewer,
 		discover = discover,
 	}
@@ -634,12 +622,10 @@ end
 
 local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	local pulls = table.clone(fetched.pulls)
-	for _, list in { fetched.authored, fetched.reviews } do
-		for _, pull in list do
-			local key = github.key(pull)
-			if not pulls[key] then
-				pulls[key] = pull
-			end
+	for _, pull in fetched.authored do
+		local key = github.key(pull)
+		if not pulls[key] then
+			pulls[key] = pull
 		end
 	end
 	local cards: { { id: string, pull: PullState } } = {}
@@ -714,8 +700,7 @@ local function recordReleases(doc: Doc, item: Item, fetched: Fetched, checkedAt:
 end
 
 function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
-	local report: Report =
-		{ changes = {}, missing = {}, added = {}, reviewAdded = {}, linked = {}, unlinked = {}, checked = 0 }
+	local report: Report = { changes = {}, missing = {}, added = {}, linked = {}, unlinked = {}, checked = 0 }
 	local onCanvas: { [string]: boolean } = {}
 	for _, item in doc.nodes do
 		local published = recordReleases(doc, item, fetched, checkedAt)
@@ -767,26 +752,6 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			})
 			item.data.status, item.data.who = nextStatus, nextWho
 		end
-	end
-
-	for _, pull in fetched.reviews do
-		local key = github.key(pull)
-		if onCanvas[key] then
-			continue
-		end
-		ensureGroup(doc, REVIEWS_ID, "Review requests", "Pull requests waiting on your review.")
-		local status, who = github.desired(pull, "todo", nil, fetched.viewer)
-		local item = graph.addItem(doc, pull.title, {
-			group = REVIEWS_ID,
-			repo = repoName(doc, pull),
-			pr = pull.number,
-			status = status,
-			who = who,
-		})
-		record(item, pull, fetched.viewer, checkedAt)
-		onCanvas[key] = true
-		table.insert(report.added, item.id)
-		table.insert(report.reviewAdded, item.id)
 	end
 
 	local unplaced: json.Array = {}

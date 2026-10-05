@@ -185,8 +185,6 @@ test.case("sync writes GitHub state through the command runner", function(assert
 	local text = run({ "sync" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
-		elseif argv[5]:find("search(", 1, true) then
-			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
 		return testing.result(
 			true,
@@ -209,8 +207,6 @@ test.case("sync --dry-run leaves the data alone", function(assert)
 	run({ "sync", "--dry-run" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
-		elseif argv[5]:find("search(", 1, true) then
-			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
 		return testing.result(
 			true,
@@ -242,26 +238,20 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 	assert.eq(values and #values, 1)
 end)
 
-test.case("sync creates review requests and unplaced authored pulls", function(assert)
-	local dir, run = harness("review")
-	local output = run({ "sync" }, function(argv)
+test.case("sync stores unplaced authored pulls without adding cards", function(assert)
+	local dir, run = harness("unplaced")
+	local before = #store.load(dir).nodes
+	run({ "sync" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
 				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
 			)
-		elseif argv[5]:find("search(", 1, true) then
-			return testing.result(
-				true,
-				[[{"data":{"search":{"nodes":[{"number":4,"title":"Review the release","url":"u4","state":"OPEN","isDraft":false,"author":{"login":"colleague"},"updatedAt":"2026-10-04T17:00:00Z","additions":3,"deletions":2,"reviewRequests":{"totalCount":1,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"repository":{"name":"storyteller","owner":{"login":"flipbook-labs"}}}]}}}]]
-			)
 		end
 		return testing.result(true, [[{"data":{"p1":{"pullRequest":null}}}]])
 	end)
-	assert.strContains(output, "Review requests")
 	local doc = store.load(dir)
-	assert.eq(doc.nodes[5].parentId, "reviews")
-	assert.eq(doc.nodes[5].data.who, "you")
+	assert.eq(#doc.nodes, before)
 	local top = doc.github
 	local unplaced = if top then json.asArray(top.unplaced) else nil
 	assert.eq(unplaced and #unplaced, 1)

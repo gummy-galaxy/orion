@@ -36,7 +36,7 @@ Run `orion suggest` to find related ungrouped cards, then review `orion suggesti
 
 Cards with a pull request source stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. A published `github-release` source finishes a card with no pull request. Run `orion sync --dry-run` first when unsure.
 
-`orion sync` adds pending review requests without cards to the Review requests group. It also records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. Link one to an existing card with `orion attach <id> github-pr <repo>#<n>`.
+`orion sync` also records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. Link one to an existing card with `orion attach <id> github-pr <repo>#<n>`.
 
 `orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
 
