@@ -275,6 +275,7 @@ function store.decode(text: string): Doc
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
+		suggestions = json.asObject(root.suggestions),
 		raw = json.object(root),
 	}
 end
@@ -330,6 +331,7 @@ function store.encode(doc: Doc): string
 	root.nodes = nodes
 	root.links = links
 	root.github = doc.github
+	root.suggestions = doc.suggestions
 	return json.serialize(root, true)
 end
 

@@ -7,7 +7,7 @@ export type CommandResult = {
 	stderr: string,
 }
 
-export type CommandRunner = ({ string }) -> CommandResult
+export type CommandRunner = ({ string }, string?) -> CommandResult
 
 export type Position = { x: number, y: number }
 
@@ -48,6 +48,7 @@ export type Doc = {
 	nodes: { Item },
 	links: { Link },
 	github: json.Object?,
+	suggestions: json.Object?,
 	raw: json.Object?,
 }
 

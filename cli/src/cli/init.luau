@@ -10,6 +10,7 @@ local ingest = require("@root/ingest")
 local render = require("@root/render")
 local sources = require("@root/sources")
 local store = require("@root/store")
+local suggest = require("@root/suggest")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -50,6 +51,8 @@ local COMMAND_HELP: { [string]: string } = {
 	source = "List, add, or remove ingestion sources",
 	ingest = "Import work from configured sources",
 	matches = "List unplaced pull requests and likely cards",
+	suggest = "Compute group suggestions",
+	suggestions = "List, apply, or dismiss group suggestions",
 	path = "Print where Orion keeps its data",
 	backups = "List saved Orion data revisions",
 	restore = "Restore a saved revision as a new revision",
@@ -175,6 +178,18 @@ local function createParsers(): Parsers
 	addJsonFlag(command("matches"))
 	addJsonFlag(command("backups"))
 	command("restore"):add("revision", "positional", { help = "Revision to restore" })
+
+	local propose = command("suggest")
+	propose:add("agent", "option", { help = "claude, codex, or none" })
+	propose:add("scope", "option", { help = "unsorted or all" })
+	propose:add("dry-run", "flag", { help = "Show suggestions without writing" })
+	addJsonFlag(propose)
+
+	local suggestions = command("suggestions")
+	suggestions:add("action", "positional", { help = "apply or dismiss" })
+	suggestions:add("ids", "variadic", { help = "Suggestion ids" })
+	suggestions:add("all", "flag", { help = "Apply or dismiss every suggestion" })
+	addJsonFlag(suggestions)
 
 	command("path")
 	local workspace = command("workspace")
@@ -575,6 +590,66 @@ local function execute(args: { string }, options: Dependencies?)
 				end
 			end
 			deps.write(if #lines > 0 then table.concat(lines, "\n") else "No unplaced pull requests.")
+		end
+	elseif command == "suggest" then
+		local current = store.load(dir)
+		local settings = if current.raw then json.asObject(current.raw.settings) else nil
+		local configured = if settings and type(settings.agent) == "string" then settings.agent else nil
+		local agent = parser:get("agent") or configured or "none"
+		local result, fallback =
+			suggest.compute(current, parser:get("scope") or "unsorted", agent, deps.runner, deps.now())
+		if not parser:has("dry-run") then
+			store.transaction(dir, function(doc)
+				suggest.save(doc, result)
+			end)
+		end
+		if asJson then
+			local value = suggest.toJson(result)
+			if fallback then
+				value.warning = "Agent unavailable or returned no valid groups; kept heuristic suggestions."
+			end
+			deps.write(json.serialize(value, true))
+		else
+			local lines = { `{#result.groups} group suggestions{if parser:has("dry-run") then " (dry run)" else ""}:` }
+			for _, group in result.groups do
+				table.insert(
+					lines,
+					`  {group.id}  {group.title}  [{table.concat(group.members, ", ")}] — {group.reason}`
+				)
+			end
+			if fallback then
+				table.insert(lines, "Agent unavailable or returned no valid groups; kept heuristic suggestions.")
+			end
+			deps.write(table.concat(lines, "\n"))
+		end
+	elseif command == "suggestions" then
+		local action = parser:get("action")
+		if action == nil then
+			local result = suggest.stored(store.load(dir))
+			if asJson then
+				deps.write(json.serialize(suggest.toJson(result), true))
+			else
+				local lines: { string } = {}
+				for _, group in result.groups do
+					table.insert(
+						lines,
+						`{group.id}  {group.title}  [{table.concat(group.members, ", ")}] — {group.reason}`
+					)
+				end
+				deps.write(if #lines > 0 then table.concat(lines, "\n") else "No group suggestions.")
+			end
+		else
+			assert(action == "apply" or action == "dismiss", "use suggestions apply or suggestions dismiss")
+			local changed: { string } = {}
+			store.transaction(dir, function(doc)
+				changed = suggest.change(doc, action, parser:variadics(), parser:has("all"))
+			end)
+			deps.write(
+				`{if action == "apply" then "Applied" else "Dismissed"} {#changed} suggestions: {table.concat(
+					changed,
+					", "
+				)}`
+			)
 		end
 	elseif command == "show" then
 		local doc = store.load(dir)
