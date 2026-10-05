@@ -72,8 +72,13 @@ const GHOST_GAP = 90
 const GHOST_PEEK = 0.4
 const FIT_MARGIN_Y = 90
 const FIT_MAX_ZOOM = 1.25
-const EXIT_RATIO_MAX = 0.6
-const EXIT_RATIO_MIN = 0.25
+/**
+ * Leaving a group means zooming out to this share of its opening zoom. Bigger groups
+ * get zoomed out more just to look around, so they need more: about 0.64 for 9 items.
+ */
+const EXIT_RATIO_BASE = 0.95
+const EXIT_RATIO_MAX = 0.8
+const EXIT_RATIO_MIN = 0.45
 const EXIT_RATIO_PER_DOUBLING = 0.1
 const HINT_SPAN = 0.6
 const ENTER_FILL = 0.7
@@ -112,7 +117,7 @@ const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
 function exitRatio(count: number) {
-  return Math.max(EXIT_RATIO_MIN, Math.min(EXIT_RATIO_MAX, EXIT_RATIO_MAX - EXIT_RATIO_PER_DOUBLING * Math.log2(Math.max(count, 1))))
+  return Math.max(EXIT_RATIO_MIN, Math.min(EXIT_RATIO_MAX, EXIT_RATIO_BASE - EXIT_RATIO_PER_DOUBLING * Math.log2(Math.max(count, 1))))
 }
 
 function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
