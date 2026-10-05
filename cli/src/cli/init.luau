@@ -1,4 +1,5 @@
 local batteriesCli = require("@batteries/cli")
+local fs = require("@std/fs")
 local json = require("@std/json")
 local process = require("@std/process")
 
@@ -46,6 +47,8 @@ local COMMAND_HELP: { [string]: string } = {
 	sync = "Update pull request items from GitHub",
 	matches = "List unplaced pull requests and likely cards",
 	path = "Print where Orion keeps its data",
+	backups = "List saved Orion data revisions",
+	restore = "Restore a saved revision as a new revision",
 	help = "Show help for Orion or one of its commands",
 }
 
@@ -152,6 +155,8 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	addJsonFlag(command("matches"))
+	addJsonFlag(command("backups"))
+	command("restore"):add("revision", "positional", { help = "Revision to restore" })
 
 	command("path")
 	command("help"):add("command", "positional", { help = "Command to describe" })
@@ -323,6 +328,47 @@ local function execute(args: { string }, options: Dependencies?)
 
 	if command == "path" then
 		deps.write(store.filePath(dir))
+	elseif command == "backups" then
+		local backups = store.backups(dir)
+		if asJson then
+			local values: json.Array = {}
+			for _, backup in backups do
+				table.insert(
+					values,
+					json.object({ revision = backup.revision, time = backup.time, size = backup.size })
+				)
+			end
+			deps.write(json.serialize(values, true))
+		else
+			local lines: { string } = {}
+			for _, backup in backups do
+				table.insert(lines, `r{backup.revision}  {backup.time}  {backup.size} bytes`)
+			end
+			deps.write(if #lines > 0 then table.concat(lines, "\n") else "No backups.")
+		end
+	elseif command == "restore" then
+		local value = required(parser, "revision")
+		assert(value:match("^%d+$"), "revision must be a nonnegative integer")
+		local revision = tonumber(value)
+		local restored = store.transaction(dir, function(doc)
+			local selected: store.Backup?
+			for _, backup in store.backups(dir) do
+				if backup.revision == revision then
+					selected = backup
+					break
+				end
+			end
+			assert(selected, `no backup for revision {revision}`)
+			local snapshot = store.decode(fs.readFileToString(selected.file))
+			doc.nodes = snapshot.nodes
+			doc.links = snapshot.links
+			doc.settings = snapshot.settings
+			doc.github = snapshot.github
+			local raw = doc.raw or json.object({})
+			raw.settings = if snapshot.raw then snapshot.raw.settings else nil
+			doc.raw = raw
+		end)
+		deps.write(`Restored revision {revision} as revision {restored.revision}`)
 	elseif command == "list" then
 		local doc = store.load(dir)
 		local derived = graph.derive(doc)

@@ -1,4 +1,6 @@
+local fs = require("@std/fs")
 local json = require("@std/json")
+local path = require("@std/path")
 local test = require("@std/test")
 
 local cli = require("@root/cli")
@@ -39,6 +41,58 @@ test.case("ready lists startable work, most unblocking first", function(assert)
 	assert.strContains(text, "ci")
 	assert.strContains(text, "unblocks 1")
 	assert.strNotContains(text, "pub")
+end)
+
+test.case("backups lists newest first with revision, time, and size", function(assert)
+	local dir, run = harness("backups")
+	local folder = path.join(dir, "backups")
+	fs.createDirectory(folder)
+	fs.writeStringToFile(path.join(folder, "orion-r2-20261002T010000Z.json"), "old")
+	fs.writeStringToFile(path.join(folder, "orion-r1-20261003T010000Z.json"), "newer")
+	local values = json.asArray(json.deserialize(run({ "backups", "--json" })) :: json.Value)
+	local first = if values then json.asObject(values[1]) else nil
+	assert.eq(values and #values, 2)
+	assert.eq(first and first.revision, 1)
+	assert.eq(first and first.time, "20261003T010000Z")
+	assert.eq(first and first.size, 5)
+	assert.strContains(run({ "backups" }), "r1  20261003T010000Z  5 bytes")
+end)
+
+test.case("restore takes the newest matching backup and backs up the current revision", function(assert)
+	local dir, run = harness("restore")
+	local folder = path.join(dir, "backups")
+	fs.createDirectory(folder)
+	local older = store.decode([[{"version":1,"revision":7,"settings":{"githubOwner":"older"},"nodes":[],"links":[]}]])
+	local newest = store.decode(
+		[[{"version":1,"revision":7,"settings":{"githubOwner":"restored","future":"kept"},"nodes":[{"id":"saved","type":"task","position":{"x":1,"y":2},"data":{"label":"Saved","status":"todo"}}],"links":[{"id":"saved>saved","from":"saved","to":"saved","kind":"related"}],"github":{"viewer":"saved"}}]]
+	)
+	fs.writeStringToFile(path.join(folder, "orion-r7-20261001T000000Z.json"), store.encode(older))
+	fs.writeStringToFile(path.join(folder, "orion-r7-20261002T000000Z.json"), store.encode(newest))
+	assert.strContains(run({ "restore", "7" }), "as revision 1")
+	local restored = store.load(dir)
+	assert.eq(restored.revision, 1)
+	assert.eq(restored.nodes[1].id, "saved")
+	assert.eq(restored.links[1].kind, "related")
+	assert.eq(restored.settings.githubOwner, "restored")
+	assert.eq(restored.github and restored.github.viewer, "saved")
+	local settings = if restored.raw then json.asObject(restored.raw.settings) else nil
+	assert.eq(settings and settings.future, "kept")
+	local currentBackup: store.Backup?
+	for _, backup in store.backups(dir) do
+		if backup.revision == 0 then
+			currentBackup = backup
+		end
+	end
+	assert.eq(currentBackup ~= nil, true)
+	assert.eq(store.decode(fs.readFileToString((currentBackup :: store.Backup).file)).nodes[1].id, "ws")
+end)
+
+test.case("restore reports a missing revision without changing data", function(assert)
+	local dir, run = harness("missing-backup")
+	assert.throwsWith("no backup for revision 9", function()
+		run({ "restore", "9" })
+	end)
+	assert.eq(store.load(dir).revision, 0)
 end)
 
 test.case("add, link, and done change the shared data", function(assert)
