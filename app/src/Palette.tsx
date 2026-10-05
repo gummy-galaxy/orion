@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ancestors, byId, isCluster, getTaskTag, type AppNode } from './model'
 
-type Command = { label: string; run: () => void }
-type Props = { nodes: AppNode[]; jumpTo: (id: string) => void; open: (id: string) => void; close: () => void; commands: Command[] }
+export type Command = { id: string; label: string; detail: string; hint?: string; run: () => void }
+type Props = { nodes: AppNode[]; commands: Command[]; jumpTo: (id: string) => void; open: (id: string) => void; close: () => void }
 type Match = { score: number; indices: number[] }
 type NodeResult = { kind: 'node'; node: AppNode; path: string; score: number; labelMatch: number[]; tagMatch: number[]; idMatch: boolean }
 type CommandResult = { kind: 'command'; command: Command; score: number; labelMatch: number[] }
@@ -37,7 +37,7 @@ function highlighted(value: string, indices: number[]) {
   return [...value].map((char, i) => (picked.has(i) ? <mark key={i}>{char}</mark> : char))
 }
 
-export function Palette({ nodes, jumpTo, open, close, commands }: Props) {
+export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const input = useRef<HTMLInputElement>(null)
@@ -154,11 +154,11 @@ export function Palette({ nodes, jumpTo, open, close, commands }: Props) {
           ref={input}
           type="search"
           role="combobox"
-          aria-label="Search groups, cards, and settings"
+          aria-label="Search groups, cards, and actions"
           aria-expanded="true"
           aria-controls="palette-results"
           aria-activedescendant={results[selected] ? `palette-result-${selected}` : undefined}
-          placeholder="Search groups, cards, PRs, settings…"
+          placeholder="Search groups, cards, PRs, actions…"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -170,7 +170,7 @@ export function Palette({ nodes, jumpTo, open, close, commands }: Props) {
             if (result.kind === 'command') {
               return (
                 <button
-                  key={result.command.label}
+                  key={'command:' + result.command.id}
                   id={`palette-result-${i}`}
                   type="button"
                   role="option"
@@ -180,10 +180,13 @@ export function Palette({ nodes, jumpTo, open, close, commands }: Props) {
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => pick(result)}
                 >
-                  <span className="palette-kind">Setting</span>
+                  <span className="palette-kind">Action</span>
                   <span className="palette-details">
                     <span className="palette-label">{highlighted(result.command.label, result.labelMatch)}</span>
-                    <span className="palette-path">View</span>
+                    <span className="palette-path">
+                      {result.command.detail}
+                      {result.command.hint && <> · {result.command.hint}</>}
+                    </span>
                   </span>
                 </button>
               )

@@ -21,7 +21,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { Palette } from './Palette'
+import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import {
   ActionsContext,
@@ -93,6 +93,7 @@ import { Sidebar } from './Sidebar'
 import { StickerLayer, StickerWheel, type PlacedSticker, type StickerBounds, type StickerMove } from './Stickers'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from './sticker'
 import { Toolbar, type Tool } from './Toolbar'
+import { readViewport, writeViewport } from './viewport'
 
 type ViewNode = AppNode | GhostNode
 
@@ -117,6 +118,8 @@ const FIT_MARGIN_Y = 90
 const FIT_MAX_ZOOM = 1.25
 /** How far across a card, on each side, the selection box has to reach to pick it up. */
 const MARQUEE_REACH = 0.25
+/** Kept stable: a new object each render would replace the options of any `fitView` call still queued. */
+const INITIAL_FIT = { padding: 0.12 }
 /**
  * Leaving a group means zooming out to this share of its opening zoom. Bigger groups
  * get zoomed out more just to look around, so they need more: about 0.64 for 9 items.
@@ -358,6 +361,9 @@ function Canvas() {
   const workspace = useRef('default')
   const workspaceEpoch = useRef(0)
   const pendingWorkspaceFit = useRef<number | null>(null)
+  const [savedView, setSavedView] = useState<Viewport | null>(null)
+  // The workspace the canvas is showing, so moves while switching aren't remembered for the next one.
+  const viewFor = useRef<string | null>(null)
 
   const adopt = useCallback((doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
     const next = normalize(doc.nodes)
@@ -433,6 +439,10 @@ function Canvas() {
         setGithub(null)
         setGithubOwner('flipbook-labs')
       }
+      const view = readViewport(workspace.current)
+      if (view) pendingWorkspaceFit.current = null
+      setSavedView(view)
+      viewFor.current = workspace.current
       setReady(true)
     },
     [adopt],
@@ -554,6 +564,7 @@ function Canvas() {
       if (name === workspace.current) return
       clearFocus(workspace.current)
       workspace.current = name
+      viewFor.current = null
       const epoch = ++workspaceEpoch.current
       pendingWorkspaceFit.current = epoch
       setReady(false)
@@ -589,6 +600,10 @@ function Canvas() {
     })
     return () => cancelAnimationFrame(frame)
   }, [ready, nodes, rf])
+
+  const rememberView = useCallback((_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+    if (viewFor.current === workspace.current) writeViewport(workspace.current, viewport)
+  }, [])
 
   const switchWorkspace = async (name: string) => {
     const list = await setActiveWorkspace(name)
@@ -1633,6 +1648,32 @@ function Canvas() {
   const focusSize = focused && sizeOf(focused)
   const readyTotal = [...work.status.values()].filter((s) => s === 'ready').length
 
+  const commands: Command[] = [
+    {
+      id: 'fit-board',
+      label: 'Fit entire board',
+      detail: 'Show all work',
+      hint: root ? undefined : '⇧1',
+      run: () => (root ? openRoot(null) : fitTo(null)),
+    },
+    ...(selected.length
+      ? [
+          {
+            id: 'fit-selection',
+            label: 'Fit selection',
+            detail: `Show ${selected.length} selected`,
+            run: () => void rf.fitView({ nodes: selected.map((n) => ({ id: n.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: 450 }),
+          },
+        ]
+      : []),
+    ...(['light', 'dark', 'system'] as const).map((mode) => ({
+      id: `color-mode-${mode}`,
+      label: `Color mode: ${mode[0].toUpperCase()}${mode.slice(1)}`,
+      detail: 'Saved on this device',
+      run: () => chooseColorMode(mode),
+    })),
+  ]
+
   const toggleSidebar = (v: boolean) => {
     setSidebar(v)
     writeFlag(SIDEBAR_KEY, v)
@@ -1674,8 +1715,10 @@ function Canvas() {
           >
             {ready && (
               <ReactFlow<ViewNode, Edge>
-                fitView
-                fitViewOptions={{ padding: 0.12 }}
+                fitView={!savedView}
+                fitViewOptions={INITIAL_FIT}
+                defaultViewport={savedView ?? undefined}
+                onMoveEnd={rememberView}
                 nodes={viewNodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
@@ -1982,18 +2025,7 @@ function Canvas() {
               />
             )}
           </div>
-          {paletteOpen && (
-            <Palette
-              nodes={nodes}
-              jumpTo={jumpTo}
-              open={actions.open}
-              close={() => setPaletteOpen(false)}
-              commands={(['light', 'dark', 'system'] as const).map((mode) => ({
-                label: `Color mode: ${mode[0].toUpperCase()}${mode.slice(1)}`,
-                run: () => chooseColorMode(mode),
-              }))}
-            />
-          )}
+          {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
         </div>
       </ActionsContext.Provider>
     </DerivedContext.Provider>
