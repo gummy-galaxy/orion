@@ -12,6 +12,7 @@ import {
   applyNodeChanges,
   useReactFlow,
   useStore,
+  useStoreApi,
   type Connection,
   type Edge,
   type NodeChange,
@@ -105,6 +106,8 @@ type ColorMode = 'light' | 'dark' | 'system'
  */
 const COLLAPSE_ZOOM = 0.3
 const COLLAPSE_STEP = 0.12
+/** Zoom below which cards are too small for motion to read, so animations pause. */
+const STILL_ZOOM = 0.45
 const GHOST_W = 200
 const GHOST_H = 62
 const GHOST_GAP = 90
@@ -249,9 +252,10 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
 
 function Canvas() {
   const rf = useReactFlow<ViewNode, Edge>()
-  const zoom = useStore((s) => s.transform[2])
-  const panX = useStore((s) => s.transform[0])
-  const panY = useStore((s) => s.transform[1])
+  const store = useStoreApi<ViewNode, Edge>()
+  // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
+  const foldFrom = useStore((s) => Math.floor((s.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
+  const still = useStore((s) => s.transform[2] < STILL_ZOOM)
   const [nodes, setNodes] = useState<AppNode[]>([])
   const [links, setLinks] = useState<Link[]>([])
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
@@ -289,7 +293,7 @@ function Canvas() {
   const fitZoom = useRef(new Map<string, number>())
   const fitting = useRef(false)
   const fitSequence = useRef(0)
-  const previousZoom = useRef(zoom)
+  const previousZoom = useRef(store.getState().transform[2])
   const skipNextFit = useRef(false)
   const openRoot = useCallback((target: string | null) => {
     setPeek(null)
@@ -329,6 +333,17 @@ function Canvas() {
   useEffect(() => {
     latest.current = { nodes, links, stickers, stickerLoadout: loadout }
   }, [nodes, links, stickers, loadout])
+  // Folded groups hold one on-screen size through --inv, set outside React so zooming doesn't re-render them.
+  useEffect(() => {
+    let shown = 0
+    const apply = (zoom: number) => {
+      if (zoom === shown) return
+      shown = zoom
+      canvasRef.current?.style.setProperty('--inv', String(1 / zoom))
+    }
+    apply(store.getState().transform[2])
+    return store.subscribe((s) => apply(s.transform[2]))
+  }, [store])
 
   // ---- Persistence ----
   const source = useRef<'file' | 'browser'>('file')
@@ -776,7 +791,7 @@ function Canvas() {
   }
   const small = nodes
     // The open group stays open while peeking; only its surroundings fold.
-    .filter((n) => isCluster(n) && n.id !== levelRoot && n.id !== root && inView(n.id) && zoom < COLLAPSE_ZOOM + COLLAPSE_STEP * depthInView(n.id))
+    .filter((n) => isCluster(n) && n.id !== levelRoot && n.id !== root && inView(n.id) && depthInView(n.id) >= foldFrom)
     .map((n) => n.id)
   const smallSet = new Set(small)
   const collapsedKey = small.filter((id) => !ancestors(id, map).some((a) => smallSet.has(a))).join(',')
@@ -1056,8 +1071,12 @@ function Canvas() {
     return { marks, count: needs.length - elsewhere, elsewhere }
   }, [attending, needs, view])
 
+  const transform = useStore((s) => (attending ? s.transform : null))
+  // The focus view tracks the viewport only while open, so zooming elsewhere doesn't re-render the canvas.
+  const focusTransform = useStore((s) => (focus ? s.transform : null))
   const attentionTargets = useMemo<AttentionTarget[]>(() => {
-    if (!attention) return []
+    if (!attention || !transform) return []
+    const [panX, panY, zoom] = transform
     const out: AttentionTarget[] = []
     for (const [id, m] of attention.marks) {
       const n = map.get(id)
@@ -1077,11 +1096,19 @@ function Canvas() {
       })
     }
     return out
-  }, [attention, map, zoom, panX, panY])
+  }, [attention, map, transform])
 
   const derived = useMemo<Derived>(
-    () => ({ status: work.status, leverage: work.leverage, groups: work.groups, sources: work.sources, trace, collapsed, zoom, attention: attention?.marks ?? null }),
-    [work, trace, collapsed, zoom, attention],
+    () => ({
+      status: work.status,
+      leverage: work.leverage,
+      groups: work.groups,
+      sources: work.sources,
+      trace,
+      collapsed,
+      attention: attention?.marks ?? null,
+    }),
+    [work, trace, collapsed, attention],
   )
 
   const onNodesChange = useCallback(
@@ -1614,7 +1641,7 @@ function Canvas() {
             />
           )}
           <div
-            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${focus ? ' is-focus' : ''}`}
+            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${focus ? ' is-focus' : ''}${still ? ' is-still' : ''}`}
             style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
             ref={canvasRef}
             onPointerDown={startMarquee}
@@ -1875,11 +1902,16 @@ function Canvas() {
                 onJump={jumpTo}
               />
             )}
-            {focused && focusPos && focusSize && focusItems && (
+            {focused && focusPos && focusSize && focusItems && focusTransform && (
               <FocusView
                 key={focused.id}
                 label={focused.data.label || 'Note'}
-                card={{ x: focusPos.x * zoom + panX, y: focusPos.y * zoom + panY, w: focusSize.w * zoom, h: focusSize.h * zoom }}
+                card={{
+                  x: focusPos.x * focusTransform[2] + focusTransform[0],
+                  y: focusPos.y * focusTransform[2] + focusTransform[1],
+                  w: focusSize.w * focusTransform[2],
+                  h: focusSize.h * focusTransform[2],
+                }}
                 sideWidth={FOCUS_SIDE_W}
                 inset={FOCUS_INSET}
                 incoming={focusItems.incoming}
