@@ -256,6 +256,15 @@ select {
   opacity: var(--fade, 1);
   transition: opacity 0.2s;
 }
+.cluster-head > * {
+  opacity: var(--fade, 1);
+  transition: opacity 0.2s;
+}
+.react-flow__node.is-peek .card,
+.react-flow__node.is-peek .bubble,
+.react-flow__node.is-peek .cluster-head {
+  --fade: 0.35;
+}
 
 /* Hover trace */
 .card.tr-dim {
@@ -320,6 +329,9 @@ select {
 }
 .react-flow__edge.tr-e-dim {
   opacity: 0.1;
+}
+.react-flow__edge.e-peek .react-flow__edge-path {
+  opacity: 0.35;
 }
 @media (prefers-reduced-motion: no-preference) {
   .react-flow__edge.e-live .react-flow__edge-path {

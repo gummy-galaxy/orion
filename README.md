@@ -42,7 +42,7 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
-- Zoom out far enough in an open group to go up one level without changing the viewport; the distance scales with the group's work.
+- Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
 - Zoom in while pointing at a group to enter it when it fills most of the canvas.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to jump to it.
 - Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.

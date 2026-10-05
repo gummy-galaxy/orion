@@ -81,6 +81,8 @@ const EXIT_RATIO_MAX = 0.8
 const EXIT_RATIO_MIN = 0.45
 const EXIT_RATIO_PER_DOUBLING = 0.1
 const HINT_SPAN = 0.6
+const PEEK_SPAN = 0.8
+const PEEK_KEEP_VISIBLE = 0.4
 const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
 
@@ -138,6 +140,9 @@ function Canvas() {
   const [links, setLinks] = useState<Link[]>([])
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
+  const [peek, setPeek] = useState<string | null>(null)
+  // Zoomed out past the leave point: the open group's surroundings show, faded.
+  const peeking = root !== null && peek === root
   const [exitHint, setExitHint] = useState<{ root: string; progress: number } | null>(null)
   const [hover, setHover] = useState<string | null>(null)
   // A double-clicked card keeps its trace while you pan around; any click lets it go.
@@ -153,6 +158,12 @@ function Canvas() {
   const fitSequence = useRef(0)
   const previousZoom = useRef(zoom)
   const skipNextFit = useRef(false)
+  const openRoot = useCallback((target: string | null) => {
+    setPeek(null)
+    setExitHint(null)
+    skipNextFit.current = false
+    setRoot(target)
+  }, [])
   useEffect(() => {
     latest.current = { nodes, links }
   }, [nodes, links])
@@ -237,6 +248,7 @@ function Canvas() {
    */
   const fitTo = useCallback(
     (target: string | null) => {
+      setPeek(null)
       const ns = latest.current.nodes
       const m = byId(ns)
       const items = target ? [m.get(target)].filter((n) => !!n) : ns.filter((n) => !n.parentId)
@@ -312,13 +324,16 @@ function Canvas() {
       if (!n) return
       const target = n.parentId ?? null
       setHover(null)
-      if (target === root) focusNode(id)
-      else {
+      if (target === root) {
+        setPeek(null)
+        setExitHint(null)
+        focusNode(id)
+      } else {
         pendingFocus.current = id
-        setRoot(target)
+        openRoot(target)
       }
     },
-    [root, focusNode],
+    [root, focusNode, openRoot],
   )
 
   /** Moves nodes to new positions over a few frames so edges follow along. */
@@ -350,16 +365,41 @@ function Canvas() {
     const inside = descendants(root, nodes)
     return nodes.filter((n) => inside.has(n.id) && isTask(n) && !isNote(n)).length
   }, [root, nodes])
+  const leaveRoot = useCallback(
+    (atZoom = rf.getZoom()) => {
+      if (!root) return
+      const parent = map.get(root)?.parentId ?? null
+      // Where you arrive becomes the parent's home zoom, so one gesture leaves one level.
+      if (parent) fitZoom.current.set(parent, atZoom)
+      skipNextFit.current = true
+      setPeek(null)
+      setExitHint(null)
+      setRoot(parent)
+    },
+    [root, map, rf],
+  )
   const onViewportMove = useCallback(
     (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
       const wasZoom = previousZoom.current
       previousZoom.current = viewport.zoom
-      if (!event) {
-        setExitHint(null)
+      if (!event || fitting.current) return
+      const userZoom = event.type === 'wheel' || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
+      if (peeking && !userZoom) {
+        const group = map.get(root)
+        const box = canvasRef.current?.getBoundingClientRect()
+        if (group && box) {
+          const p = absPos(group, map)
+          const s = sizeOf(group)
+          const x = p.x * viewport.zoom + viewport.x
+          const y = p.y * viewport.zoom + viewport.y
+          const w = s.w * viewport.zoom
+          const h = s.h * viewport.zoom
+          const visible = Math.max(0, Math.min(box.width, x + w) - Math.max(0, x)) * Math.max(0, Math.min(box.height, y + h) - Math.max(0, y))
+          if (visible < w * h * PEEK_KEEP_VISIBLE) leaveRoot(viewport.zoom)
+        }
         return
       }
-      const userZoom = event.type === 'wheel' || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
-      if (!userZoom || fitting.current || viewport.zoom === wasZoom) return
+      if (!userZoom || viewport.zoom === wasZoom) return
       if (viewport.zoom > wasZoom) {
         const box = canvasRef.current?.getBoundingClientRect()
         if (!box?.width || !box.height) return
@@ -383,6 +423,7 @@ function Canvas() {
         if (group) {
           fitZoom.current.set(group.id, groupFitViewport(group, map, box).zoom)
           skipNextFit.current = true
+          setPeek(null)
           setExitHint(null)
           setRoot(group.id)
           return
@@ -392,29 +433,32 @@ function Canvas() {
       if (!root || fit === undefined) return
       const exit = exitRatio(rootWorkCount)
       const hint = exit + (1 - exit) * HINT_SPAN
-      if (viewport.zoom < wasZoom && viewport.zoom < fit * exit) {
-        const parent = map.get(root)?.parentId ?? null
-        // Where you arrive becomes the parent's home zoom, so one gesture leaves one level.
-        if (parent) fitZoom.current.set(parent, viewport.zoom)
-        skipNextFit.current = true
-        setExitHint(null)
-        setRoot(parent)
+      const progress = Math.min(1, Math.max(0, (hint - viewport.zoom / fit) / (hint - exit * PEEK_SPAN)))
+      if (viewport.zoom < wasZoom && viewport.zoom < fit * exit * PEEK_SPAN) {
+        leaveRoot(viewport.zoom)
+      } else if (viewport.zoom <= fit * exit) {
+        setPeek(root)
+        setExitHint({ root, progress })
       } else {
-        setExitHint(viewport.zoom < fit * hint ? { root, progress: Math.min(1, (hint - viewport.zoom / fit) / (hint - exit)) } : null)
+        if (peeking) setPeek(null)
+        setExitHint(viewport.zoom < fit * hint ? { root, progress } : null)
       }
     },
-    [root, map, nodes, rf, rootWorkCount],
+    [root, peeking, map, nodes, rf, rootWorkCount, leaveRoot],
   )
   const work = useMemo(() => deriveWork(nodes, links), [nodes, links])
 
   // Which groups read as single bodies at this zoom, and which nodes that hides.
-  const inView = useCallback((id: string) => !root || id === root || ancestors(id, map).includes(root), [root, map])
+  const levelRoot = peeking ? (map.get(root)?.parentId ?? null) : root
+  const inFocus = useCallback((id: string) => !!root && (id === root || ancestors(id, map).includes(root)), [root, map])
+  const inView = useCallback((id: string) => !levelRoot || id === levelRoot || ancestors(id, map).includes(levelRoot), [levelRoot, map])
   const depthInView = (id: string) => {
     const chain = ancestors(id, map)
-    return root ? chain.indexOf(root) : chain.length
+    return levelRoot ? chain.indexOf(levelRoot) : chain.length
   }
   const small = nodes
-    .filter((n) => isCluster(n) && n.id !== root && inView(n.id) && zoom < COLLAPSE_ZOOM + COLLAPSE_STEP * depthInView(n.id))
+    // The open group stays open while peeking; only its surroundings fold.
+    .filter((n) => isCluster(n) && n.id !== levelRoot && n.id !== root && inView(n.id) && zoom < COLLAPSE_ZOOM + COLLAPSE_STEP * depthInView(n.id))
     .map((n) => n.id)
   const smallSet = new Set(small)
   const collapsedKey = small.filter((id) => !ancestors(id, map).some((a) => smallSet.has(a))).join(',')
@@ -436,7 +480,7 @@ function Canvas() {
   const ghosts = useMemo(() => {
     const out: GhostNode[] = []
     const rootNode = root ? map.get(root) : undefined
-    if (!rootNode) return out
+    if (!rootNode || peeking) return out
     const incoming: string[] = []
     const outgoing: string[] = []
     for (const l of links) {
@@ -484,11 +528,18 @@ function Canvas() {
     place(incoming, 'in')
     place(outgoing, 'out')
     return out
-  }, [root, map, links, inView, work])
+  }, [root, peeking, map, links, inView, work])
 
   const viewNodes = useMemo<ViewNode[]>(
-    () => [...nodes.map((n) => (view.hidden.has(n.id) ? { ...n, hidden: true } : n)), ...ghosts],
-    [nodes, view, ghosts],
+    () => [
+      ...nodes.map((n) => ({
+        ...n,
+        hidden: view.hidden.has(n.id),
+        className: [n.className, peeking && !inFocus(n.id) ? 'is-peek' : ''].filter(Boolean).join(' ') || undefined,
+      })),
+      ...ghosts,
+    ],
+    [nodes, view, ghosts, peeking, inFocus],
   )
 
   const trace = useMemo(() => {
@@ -511,8 +562,8 @@ function Canvas() {
     for (const l of links) {
       let a = view.rep(l.from)
       let b = view.rep(l.to)
-      if (root && !a && b) a = `ghost:in:${l.from}`
-      if (root && a && !b && !a.startsWith('ghost:')) b = `ghost:out:${l.to}`
+      if (root && !peeking && !a && b) a = `ghost:in:${l.from}`
+      if (root && !peeking && a && !b && !a.startsWith('ghost:')) b = `ghost:out:${l.to}`
       if (!a || !b || a === b) continue
       const live = l.kind === 'blocks' && work.status.get(l.from) !== 'done'
       const direct = (a === l.from || a.startsWith('ghost:')) && (b === l.to || b.startsWith('ghost:'))
@@ -525,6 +576,7 @@ function Canvas() {
           const down = l.kind === 'blocks' && (ra === 'down' || ra === 'self') && rb === 'down'
           cls += up ? ' tr-e-up' : down ? ' tr-e-down' : ' tr-e-dim'
         }
+        if (peeking && !inFocus(a) && !inFocus(b)) cls += ' e-peek'
         out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(live) : undefined })
       } else if (l.kind === 'blocks') {
         const k = a + '>' + b
@@ -539,7 +591,7 @@ function Canvas() {
         id: 'agg:' + k,
         source: e.a,
         target: e.b,
-        className: 'e-agg ' + (e.live ? 'e-live' : 'e-done'),
+        className: 'e-agg ' + (e.live ? 'e-live' : 'e-done') + (peeking && !inFocus(e.a) && !inFocus(e.b) ? ' e-peek' : ''),
         selectable: false,
         label: e.count > 1 ? `${e.count} links` : undefined,
         markerEnd: marker(e.live),
@@ -547,7 +599,7 @@ function Canvas() {
       })
     }
     return out
-  }, [links, view, work, trace, root])
+  }, [links, view, work, trace, root, peeking, inFocus])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -670,10 +722,10 @@ function Canvas() {
     (ids?: string[]) => {
       const targets = ids ?? selected.filter(isCluster).map((n) => n.id)
       if (!targets.length) return
-      if (root && targets.includes(root)) setRoot(map.get(root)?.parentId ?? null)
+      if (root && targets.includes(root)) openRoot(map.get(root)?.parentId ?? null)
       setNodes(ungroup(nodes, targets))
     },
-    [nodes, selected, root, map],
+    [nodes, selected, root, map, openRoot],
   )
 
   const actions = useMemo(
@@ -683,11 +735,11 @@ function Canvas() {
         reflow(ns, ls, gid).then(tweenTo)
       },
       open: (gid: string) => {
-        setRoot(gid)
+        openRoot(gid)
         setHover(null)
       },
     }),
-    [tweenTo],
+    [tweenTo, openRoot],
   )
 
   const updateData = useCallback(
@@ -765,7 +817,7 @@ function Canvas() {
 
   const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
   const reset = () => {
-    setRoot(null)
+    openRoot(null)
     seeded().then((s) => {
       setNodes(s.nodes)
       setLinks(s.links)
@@ -836,7 +888,7 @@ function Canvas() {
       'divider',
       { label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy },
       { label: 'Fit to screen', hint: '⇧1', run: () => fitTo(root) },
-      ...(root ? [{ label: 'Go up a level', hint: 'Esc', run: () => setRoot(map.get(root)?.parentId ?? null) }] : []),
+      ...(root ? [{ label: 'Go up a level', hint: 'Esc', run: () => (peeking ? leaveRoot() : openRoot(map.get(root)?.parentId ?? null)) }] : []),
     ]
   }
 
@@ -850,8 +902,9 @@ function Canvas() {
       } else if (e.key === 'Enter' && selected.length === 1 && isCluster(selected[0])) {
         actions.open(selected[0].id)
       } else if (e.key === 'Escape') {
-        if (pinned) setPinned(null)
-        else if (root) setRoot(map.get(root)?.parentId ?? null)
+        if (peeking) leaveRoot()
+        else if (pinned) setPinned(null)
+        else if (root) openRoot(map.get(root)?.parentId ?? null)
         else setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n)))
       } else if (e.shiftKey && e.code === 'Digit1') {
         fitTo(root)
@@ -862,7 +915,7 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, map, fitTo, addNote, viewportCenter, pinned])
+  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
@@ -878,14 +931,7 @@ function Canvas() {
       <ActionsContext.Provider value={actions}>
         <div className="app">
           {sidebar && (
-            <Sidebar
-              nodes={nodes}
-              groups={work.groups}
-              root={root}
-              open={(id) => setRoot(id)}
-              readyTotal={readyTotal}
-              hide={() => toggleSidebar(false)}
-            />
+            <Sidebar nodes={nodes} groups={work.groups} root={root} open={openRoot} readyTotal={readyTotal} hide={() => toggleSidebar(false)} />
           )}
           <div className={`canvas${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
             {ready && (
@@ -902,18 +948,24 @@ function Canvas() {
                 onNodeMouseEnter={(_, n) => setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
                 onNodeMouseLeave={() => setHover(null)}
                 onNodeClick={(_, n) => {
+                  if (peeking && !inFocus(n.id)) leaveRoot()
                   setPinned(null)
                   if (n.type === 'ghost') jumpTo(n.data.taskId)
                 }}
                 onNodeDoubleClick={(_, n) => {
+                  if (peeking && !inFocus(n.id)) leaveRoot()
                   if (n.type === 'cluster') actions.open(n.id)
                   else if (n.type === 'task' && isNote(n)) setEditing(n.id)
                   else if (n.type === 'task') setPinned(n.id)
+                }}
+                onNodeDragStart={(_, n) => {
+                  if (peeking && !inFocus(n.id)) leaveRoot()
                 }}
                 onPaneClick={() => setPinned(null)}
                 onEdgeClick={() => setPinned(null)}
                 onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
                 onNodeContextMenu={(e, n) => {
+                  if (peeking && !inFocus(n.id)) leaveRoot()
                   if (n.type !== 'ghost' && !n.selected) selectOnly(n.id)
                   openMenu(e, { kind: 'node', id: n.id })
                 }}
@@ -949,13 +1001,13 @@ function Canvas() {
                       ☰
                     </button>
                   )}
-                  <button type="button" className={root ? 'crumb' : 'crumb current'} onClick={() => setRoot(null)}>
+                  <button type="button" className={root ? 'crumb' : 'crumb current'} onClick={() => openRoot(null)}>
                     All work
                   </button>
                   {crumbs.map((id) => (
                     <span key={id} className="crumb-wrap">
                       <span className="sep">›</span>
-                      <button type="button" className={id === root ? 'crumb current' : 'crumb'} onClick={() => setRoot(id)}>
+                      <button type="button" className={id === root ? 'crumb current' : 'crumb'} onClick={() => openRoot(id)}>
                         {(map.get(id)?.data as ClusterData | undefined)?.label}
                       </button>
                     </span>
