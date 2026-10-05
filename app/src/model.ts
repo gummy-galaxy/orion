@@ -54,7 +54,8 @@ export type UnplacedPr = {
   matches: { id: string; score: number }[]
 }
 export type GithubSnapshot = { viewer: string; checkedAt: string; unplaced: UnplacedPr[] }
-export type ClusterData = { kind: 'cluster'; label: string; blurb?: string; layout?: 'pending' }
+/** `layout` asks the app to lay out a group the CLI changed: `pending` for a new group, `refit` to tidy one in place. */
+export type ClusterData = { kind: 'cluster'; label: string; blurb?: string; layout?: 'pending' | 'refit' }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. */
 export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status: ViewStatus; side: 'in' | 'out' }

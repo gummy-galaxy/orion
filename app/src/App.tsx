@@ -312,24 +312,25 @@ function Canvas() {
   const layingOutPending = useRef(false)
   useEffect(() => {
     if (!ready || layingOutPending.current) return
-    const pending = nodes.filter((n) => isCluster(n) && n.data.layout === 'pending')
-    if (!pending.length) return
+    const marked = nodes.filter((n) => isCluster(n) && n.data.layout)
+    if (!marked.length) return
+    const pending = marked.filter((n) => isCluster(n) && n.data.layout === 'pending')
     layingOutPending.current = true
     void (async () => {
       let next = nodes
       try {
-        for (const group of pending) {
+        for (const group of marked) {
           try {
             next = await reflow(next, links, group.id)
           } catch (error) {
             console.error('Could not lay out group', group.id, error)
           }
         }
-        next = placeBesideExisting(next, new Set(pending.map((g) => g.id)))
+        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((g) => g.id)))
       } catch (error) {
         console.error('Could not lay out canvas', error)
       } finally {
-        setNodes(next.map((n) => (isCluster(n) && n.data.layout === 'pending' ? { ...n, data: { ...n.data, layout: undefined } } : n)))
+        setNodes(next.map((n) => (isCluster(n) && n.data.layout ? { ...n, data: { ...n.data, layout: undefined } } : n)))
         layingOutPending.current = false
       }
     })()

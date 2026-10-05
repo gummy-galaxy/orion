@@ -220,6 +220,23 @@ test.case("suggestions apply keeps links, marks layout pending, and prunes empty
 	assert.eq(#suggest.stored(after).groups, 0)
 end)
 
+test.case("suggestions apply asks the app to tidy groups that lost cards", function(assert)
+	local doc = testing.doc({
+		testing.group("unsorted", "Unsorted"),
+		testing.task("a", "Avatar one", "todo", "unsorted"),
+		testing.task("b", "Avatar two", "todo", "unsorted"),
+		testing.task("c", "Something else", "todo", "unsorted"),
+	}, {})
+	suggest.save(doc, {
+		createdAt = "2026-10-04T00:00:00Z",
+		groups = { { id = "s1", title = "Avatars", members = { "a", "b" }, reason = "", source = "agent" } },
+	})
+	suggest.change(doc, "apply", { "s1" }, false)
+	local unsorted = graph.get(doc, "unsorted")
+	assert.eq(unsorted.data.layout, "refit")
+	assert.eq(graph.get(doc, "c").parentId, "unsorted")
+end)
+
 test.case("suggestions dismiss removes chosen suggestions without moving cards", function(assert)
 	local doc = pair(json.object({ repo = "app", branch = "same" }), json.object({ repo = "app", branch = "same" }))
 	suggest.save(doc, compute(doc))

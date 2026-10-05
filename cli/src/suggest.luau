@@ -476,6 +476,7 @@ function suggest.change(doc: Doc, action: string, ids: { string }, all: boolean)
 	end
 	local changed: { string } = {}
 	local remaining: { Group } = {}
+	local left: { [string]: boolean } = {}
 	for _, group in result.groups do
 		if all or selected[group.id] then
 			if action == "apply" then
@@ -503,6 +504,10 @@ function suggest.change(doc: Doc, action: string, ids: { string }, all: boolean)
 				end
 				table.insert(doc.nodes, made)
 				for index, id in group.members do
+					local from = graph.get(doc, id).parentId
+					if from then
+						left[from] = true
+					end
 					graph.move(doc, id, made.id)
 					graph.get(doc, id).position = { x = 24, y = 52 + (index - 1) * 90 }
 				end
@@ -510,6 +515,13 @@ function suggest.change(doc: Doc, action: string, ids: { string }, all: boolean)
 			table.insert(changed, group.id)
 		else
 			table.insert(remaining, group)
+		end
+	end
+	-- Groups that lost cards keep their old gaps until the app tidies them.
+	for id in left do
+		local group = graph.find(doc, id)
+		if group and group.data.layout == nil then
+			group.data.layout = "refit"
 		end
 	end
 	result.groups = remaining
