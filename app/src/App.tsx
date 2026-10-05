@@ -125,7 +125,6 @@ const EXIT_RATIO_PER_DOUBLING = 0.1
 const HINT_SPAN = 0.6
 const PEEK_SPAN = 0.8
 const PEEK_KEEP_VISIBLE = 0.4
-const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
 /** A click on a group waits this long for a second one before it selects. */
 const DOUBLE_CLICK_MS = 280
@@ -748,35 +747,6 @@ function Canvas() {
         return
       }
       if (!userZoom || viewport.zoom === wasZoom) return
-      if (viewport.zoom > wasZoom) {
-        const box = canvasRef.current?.getBoundingClientRect()
-        if (!box?.width || !box.height) return
-        const cursor =
-          'touches' in event
-            ? { x: (event.touches[0].clientX + event.touches[1].clientX) / 2, y: (event.touches[0].clientY + event.touches[1].clientY) / 2 }
-            : { x: event.clientX, y: event.clientY }
-        const point = rf.screenToFlowPosition(cursor)
-        const group = nodes.find((n) => {
-          if (!isCluster(n) || (n.parentId ?? null) !== root) return false
-          const p = absPos(n, map)
-          const size = sizeOf(n)
-          return (
-            point.x >= p.x &&
-            point.x <= p.x + size.w &&
-            point.y >= p.y &&
-            point.y <= p.y + size.h &&
-            Math.max((size.w * viewport.zoom) / box.width, (size.h * viewport.zoom) / box.height) >= ENTER_FILL
-          )
-        })
-        if (group) {
-          fitZoom.current.set(group.id, groupFitViewport(group, map, box).zoom)
-          skipNextFit.current = true
-          setPeek(null)
-          setExitHint(null)
-          setRoot(group.id)
-          return
-        }
-      }
       const fit = root ? fitZoom.current.get(root) : undefined
       if (!root || fit === undefined) return
       const exit = exitRatio(rootWorkCount)
@@ -792,7 +762,7 @@ function Canvas() {
         setExitHint(viewport.zoom < fit * hint ? { root, progress } : null)
       }
     },
-    [root, peeking, map, nodes, rf, rootWorkCount, leaveRoot],
+    [root, peeking, map, rootWorkCount, leaveRoot],
   )
   const work = useMemo(() => deriveWork(nodes, links), [nodes, links])
 
