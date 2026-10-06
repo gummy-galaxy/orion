@@ -10,7 +10,7 @@ type Doc = types.Doc
 type Item = types.Item
 type Link = types.Link
 
--- The app's dev server takes the same lock, so neither side overwrites the other.
+-- All Orion writers use this lock and the same atomic write path.
 local FILE = "orion.json"
 local LOCK = "orion.lock"
 local BACKUPS = "backups"
@@ -382,6 +382,39 @@ function store.write(dir: string, doc: Doc)
 	if not ok then
 		error(err, 0)
 	end
+end
+
+-- Saves app edits only if the latest file still has the revision the app read.
+-- Work directly with the JSON object so fields owned by other writers survive.
+function store.put(dir: string, baseRevision: number?, nodes: json.Array, links: json.Array): (boolean, number?)
+	if not fs.exists(dir) then
+		fs.createDirectory(dir, { makeParents = true })
+	end
+	local lockPath = acquire(dir)
+	local didSucceed, isSaved, revision = pcall(function(): (boolean, number?)
+		local current = store.read(dir)
+		local previous = if current then current.revision else nil
+		if baseRevision ~= previous then
+			return false, previous
+		end
+		local root = json.object(if current
+			then (current.raw or {})
+			else {
+				version = 1,
+				settings = json.object({ githubOwner = DEFAULT_OWNER }),
+			})
+		local nextRevision = if previous then previous + 1 else 0
+		root.revision = nextRevision
+		root.nodes = nodes
+		root.links = links
+		atomicWrite(store.filePath(dir), json.serialize(root, true))
+		return true, nextRevision
+	end)
+	release(lockPath)
+	if not didSucceed then
+		error(isSaved, 0)
+	end
+	return isSaved :: boolean, revision
 end
 
 return table.freeze(store)
