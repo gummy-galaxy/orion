@@ -335,13 +335,20 @@ export function orionStore(): Plugin {
       server.middlewares.use(API, async (req, res) => {
         try {
           if (req.method === 'GET') {
-            const doc = read(dir)
-            return doc ? reply(res, 200, doc) : reply(res, 404, { path: join(dir, FILE), workspace: active })
+            const requested = req.headers['x-orion-workspace'] ?? active
+            knownWorkspace(getWorkspaces(root), requested)
+            const requestedDir = getWorkspaceDir(root, requested)
+            const doc = read(requestedDir)
+            return doc ? reply(res, 200, doc) : reply(res, 404, { path: join(requestedDir, FILE), workspace: requested })
           }
           if (req.method === 'PUT') {
             if (req.headers['x-orion-workspace'] && req.headers['x-orion-workspace'] !== active)
               return reply(res, 409, { error: 'workspace changed' })
-            const result = await put(dir, (await body(req)) as Put)
+            const targetWorkspace = active
+            const targetDir = dir
+            const change = (await body(req)) as Put
+            if (targetWorkspace !== active) return reply(res, 409, { error: 'workspace changed' })
+            const result = await put(targetDir, change)
             return reply(res, result.status, { revision: result.revision })
           }
           reply(res, 405, { error: 'method not allowed' })

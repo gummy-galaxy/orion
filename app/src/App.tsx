@@ -25,6 +25,7 @@ import { Palette } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
 import { reflow, reflowAll } from './layout'
+import { mergeDocs } from './merge'
 import {
   STATUS_LABEL,
   TASK_H,
@@ -69,6 +70,7 @@ import {
   save,
   setActiveWorkspace,
   type Remote,
+  type Saved,
   type SyncStatus,
   type Workspaces,
 } from './persist'
@@ -135,6 +137,9 @@ function writeFlag(key: string, value: boolean) {
     // Only a remembered preference.
   }
 }
+
+/** The stored shape of a document, for comparing and merging. */
+const getCompactDoc = (doc: Saved): Saved => JSON.parse(fingerprint(doc)) as Saved
 
 const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
@@ -227,16 +232,22 @@ function Canvas() {
   const source = useRef<'file' | 'browser'>('file')
   const revision = useRef<number | null>(null)
   const savedPrint = useRef('')
+  const base = useRef<Saved>({ nodes: [], links: [] })
+  const [mergeNotice, setMergeNotice] = useState<number | null>(null)
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Saves and reloads run one at a time so a reload never lands on a half-finished save.
   const queue = useRef<Promise<void>>(Promise.resolve())
   const workspace = useRef('default')
   const workspaceEpoch = useRef(0)
   const pendingWorkspaceFit = useRef<number | null>(null)
 
-  const adopt = useCallback((doc: Remote, preserveSelection = true) => {
+  const adopt = useCallback((doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
     const next = normalize(doc.nodes)
+    const server = getCompactDoc({ nodes: normalize(serverDoc.nodes), links: serverDoc.links })
     revision.current = doc.revision
-    savedPrint.current = fingerprint({ nodes: next, links: doc.links })
+    base.current = server
+    savedPrint.current = fingerprint(server)
+    latest.current = { nodes: next, links: doc.links }
     setNodes((ns) => {
       const picked = new Set(preserveSelection ? ns.filter((n) => n.selected).map((n) => n.id) : [])
       return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
@@ -244,28 +255,49 @@ function Canvas() {
     setLinks(doc.links)
     setGithub(doc.github ?? null)
     setGithubOwner(doc.settings.githubOwner)
+    return { nodes: next, links: doc.links }
   }, [])
 
-  const reload = useCallback(async () => {
-    const doc = await fetchRemote(workspace.current)
-    if (doc && doc.revision !== revision.current) adopt(doc)
-  }, [adopt])
+  useEffect(
+    () => () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current)
+    },
+    [],
+  )
+
+  const reload = useCallback(
+    async (name: string, epoch: number) => {
+      if (epoch !== workspaceEpoch.current) return
+      const doc = await fetchRemote(name)
+      if (epoch !== workspaceEpoch.current) return
+      if (!doc || doc.revision === revision.current) return
+      const local = getCompactDoc(latest.current)
+      if (fingerprint(local) === savedPrint.current) adopt(doc)
+      else {
+        const merged = mergeDocs(base.current, local, getCompactDoc(doc))
+        adopt({ ...doc, nodes: merged.nodes, links: merged.links }, doc)
+      }
+    },
+    [adopt],
+  )
 
   const loadWorkspace = useCallback(
-    async (epoch: number, switched = false) => {
-      const loaded = await load(workspace.current)
+    async (name: string, epoch: number, switched = false) => {
+      const loaded = await load(name)
       if (epoch !== workspaceEpoch.current) return
       if (loaded.source === 'file') {
         source.current = 'file'
-        adopt(loaded.doc, !switched)
+        adopt(loaded.doc, loaded.doc, !switched)
       } else {
         source.current = loaded.source === 'missing' ? 'file' : 'browser'
-        const isDefault = workspace.current === 'default'
+        const isDefault = name === 'default'
         const kept = isDefault ? (loaded.source === 'browser' ? loaded.saved : readBrowser()) : null
         const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : isDefault ? await seeded() : { nodes: [], links: [] }
         if (epoch !== workspaceEpoch.current) return
         revision.current = null
         savedPrint.current = ''
+        base.current = { nodes: [], links: [] }
+        latest.current = start
         setNodes(start.nodes)
         setLinks(start.links)
         setGithub(null)
@@ -278,11 +310,12 @@ function Canvas() {
 
   useEffect(() => {
     let cancelled = false
+    const epoch = workspaceEpoch.current
     void getWorkspaces().then(async (list) => {
-      if (cancelled) return
+      if (cancelled || epoch !== workspaceEpoch.current) return
       workspace.current = list.active
       setWorkspaces(list)
-      await loadWorkspace(workspaceEpoch.current)
+      await loadWorkspace(list.active, epoch)
     })
     return () => {
       cancelled = true
@@ -292,7 +325,9 @@ function Canvas() {
   useEffect(
     () =>
       onRemoteChange((next) => {
-        queue.current = queue.current.then(() => (next !== revision.current ? reload() : undefined))
+        const name = workspace.current
+        const epoch = workspaceEpoch.current
+        queue.current = queue.current.then(() => (epoch === workspaceEpoch.current && next !== revision.current ? reload(name, epoch) : undefined))
       }),
     [reload],
   )
@@ -325,19 +360,33 @@ function Canvas() {
       queue.current = queue.current.then(async () => {
         if (epoch !== workspaceEpoch.current) return
         if (print === savedPrint.current) return
-        const result = await save(source.current, revision.current, snapshot, name)
-        if (epoch !== workspaceEpoch.current) return
-        if (result.ok) {
-          revision.current = result.revision
-          savedPrint.current = print
-        } else if (result.conflict) {
-          // Someone else wrote first; theirs wins and this edit is dropped.
-          await reload()
+        let pending = snapshot
+        for (let attempt = 0; attempt <= 2; attempt++) {
+          const result = await save(source.current, revision.current, pending, name)
+          if (epoch !== workspaceEpoch.current) return
+          if (result.ok) {
+            revision.current = result.revision
+            base.current = getCompactDoc(pending)
+            savedPrint.current = fingerprint(pending)
+            return
+          }
+          if (!result.conflict || attempt === 2) break
+          const remote = await fetchRemote(name)
+          if (epoch !== workspaceEpoch.current) return
+          if (!remote) break
+          const merged = mergeDocs(base.current, getCompactDoc(latest.current), getCompactDoc(remote))
+          pending = adopt({ ...remote, nodes: merged.nodes, links: merged.links }, remote)
+          if (merged.conflicts.length) {
+            setMergeNotice(merged.conflicts.length)
+            if (noticeTimer.current) clearTimeout(noticeTimer.current)
+            noticeTimer.current = setTimeout(() => setMergeNotice(null), 4500)
+          }
         }
+        await reload(name, epoch)
       })
     }, 400)
     return () => clearTimeout(t)
-  }, [nodes, links, ready, reload])
+  }, [nodes, links, ready, reload, adopt])
 
   const pendingLayoutEpoch = useRef<number | null>(null)
   useEffect(() => {
@@ -380,9 +429,13 @@ function Canvas() {
       setPinned(null)
       setHover(null)
       setEditing(null)
+      setMergeNotice(null)
+      if (noticeTimer.current) clearTimeout(noticeTimer.current)
       queue.current = queue.current.then(async () => {
-        setWorkspaces(await getWorkspaces())
-        await loadWorkspace(epoch, true)
+        const list = await getWorkspaces()
+        if (epoch !== workspaceEpoch.current) return
+        setWorkspaces(list)
+        await loadWorkspace(name, epoch, true)
       })
     },
     [loadWorkspace],
@@ -1175,6 +1228,15 @@ function Canvas() {
               >
                 <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
                 <Controls showInteractive={false} />
+                {mergeNotice !== null && (
+                  <Panel
+                    position="bottom-left"
+                    style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300, pointerEvents: 'none' }}
+                    role="status"
+                  >
+                    Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
+                  </Panel>
+                )}
                 <MiniMap
                   pannable
                   zoomable
