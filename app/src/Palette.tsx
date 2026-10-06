@@ -11,8 +11,8 @@ function match(query: string, value: string): Match | null {
   // A contiguous match beats any scattered one, and more so at a word start.
   const at = haystack.indexOf(needle)
   if (at >= 0) {
-    const wordStart = at === 0 || !/[a-z0-9]/i.test(value[at - 1])
-    return { score: 1000 + (wordStart ? 200 : 0) - at, indices: Array.from({ length: needle.length }, (_, i) => at + i) }
+    const isWordStart = at === 0 || !/[a-z0-9]/i.test(value[at - 1])
+    return { score: 1000 + (isWordStart ? 200 : 0) - at, indices: Array.from({ length: needle.length }, (_, i) => at + i) }
   }
   const indices: number[] = []
   let score = 0
