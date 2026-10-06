@@ -10,27 +10,23 @@
     },
     "devUrl": "http://localhost:5199",
     "beforeBuildCommand": {
-      "cwd": "../../app",
-      "script": "npm run build"
+      "cwd": "../",
+      "script": "npm --prefix ../app run build && ./scripts/prepare-sidecar.sh"
     },
     "frontendDist": "../../app/dist"
   },
   "app": {
-    "windows": [
-      {
-        "title": "Orion",
-        "width": 1440,
-        "height": 900,
-        "minWidth": 960,
-        "minHeight": 640
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": null
     }
   },
   "bundle": {
     "active": true,
+    "externalBin": ["binaries/orion"],
+    "resources": {
+      "../../app/dist/": "dist/"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

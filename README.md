@@ -34,7 +34,7 @@ Build the CLI first with `cd cli && lute run build`. Vite starts `orion serve` a
 
 ## Desktop app
 
-Install Rust 1.90 or newer and the Xcode Command Line Tools, then run:
+Install Rust 1.90 or newer, the Xcode Command Line Tools, and Lute, then run:
 
 ```sh
 cd desktop
@@ -42,7 +42,7 @@ npm install
 npm run dev
 ```
 
-The development window uses the app's Vite server on port 5199, which proxies the data API and WebSocket to `orion serve`. `npm run build` packages the canvas without that server. The packaged app currently saves to browser storage; it does not use `orion.json` or run automatic sync.
+The development window uses the app's Vite server on port 5199, which proxies the data API and WebSocket to `orion serve`. `npm run build` builds the CLI with Lute and packages it with the canvas. The packaged app runs `orion serve`, so it reads and writes the same workspace files as the CLI, including when `ORION_DATA_DIR` selects another data root.
 
 ## Build the CLI
 
