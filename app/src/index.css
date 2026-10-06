@@ -11,7 +11,7 @@
   --edge: #9aa9b0;
   --edge-hot: #0d6f74;
   /* Mixed from the theme's own edges, so every color mode gets it. */
-  --edge-held: color-mix(in srgb, var(--edge-hot) 40%, var(--edge));
+  --edge-held: color-mix(in srgb, var(--edge-hot) 25%, var(--edge));
   --st-todo: #5d6d75;
   --st-active: #1f62c9;
   --st-review: #a56300;
@@ -383,6 +383,7 @@ select {
 }
 .react-flow__edge.e-held .react-flow__edge-path {
   stroke: var(--edge-held);
+  opacity: 0.7;
 }
 .react-flow__edge.e-rel .react-flow__edge-path {
   stroke: var(--muted);
@@ -1737,6 +1738,7 @@ kbd {
 }
 .focus-line.held {
   stroke: var(--edge-held);
+  opacity: 0.7;
 }
 .focus-line.related {
   stroke: var(--muted);
