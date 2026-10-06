@@ -9,7 +9,6 @@ import {
   Position,
   ReactFlow,
   ReactFlowProvider,
-  SelectionMode,
   applyNodeChanges,
   useReactFlow,
   useStore,
@@ -678,6 +677,71 @@ function Canvas() {
     }
   }, [])
 
+  // ---- Selection box ----
+  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+
+  /**
+   * Drags a selection box from empty canvas. Anything it touches is selected, but an open
+   * group needs to be fully inside, since you drag across its body to reach what's in it.
+   * ⇧ or ⌘ adds to the selection, and ⌘ draws the box in Pan too.
+   */
+  const startMarquee = (e: React.PointerEvent) => {
+    const target = e.target as HTMLElement
+    const box = canvasRef.current?.getBoundingClientRect()
+    if (e.button !== 0 || !box || !target.classList.contains('react-flow__pane')) return
+    // In Select, a draggable pane means Space is held to pan.
+    if (tool === 'select' ? target.classList.contains('draggable') : !(tool === 'hand' && e.metaKey)) return
+    // Keeps the drag from also panning in Pan.
+    e.preventDefault()
+    const start = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+    const base = e.shiftKey || e.metaKey ? nodes.filter((n) => n.selected).map((n) => n.id) : []
+    const things = nodes
+      .filter((n) => n.id !== root && !view.hidden.has(n.id) && inView(n.id))
+      .map((n) => {
+        const p = absPos(n, map)
+        const s = sizeOf(n)
+        return { id: n.id, x0: p.x, y0: p.y, x1: p.x + s.w, y1: p.y + s.h, whole: isCluster(n) && !collapsed.has(n.id) }
+      })
+    let moved = false
+    let last = ''
+    const move = (ev: PointerEvent) => {
+      if (!moved && Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 3) return
+      moved = true
+      const end = rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY })
+      const [x0, x1] = [Math.min(start.x, end.x), Math.max(start.x, end.x)]
+      const [y0, y1] = [Math.min(start.y, end.y), Math.max(start.y, end.y)]
+      const from = rf.flowToScreenPosition(start)
+      setMarquee({
+        x: Math.min(from.x, ev.clientX) - box.left,
+        y: Math.min(from.y, ev.clientY) - box.top,
+        w: Math.abs(ev.clientX - from.x),
+        h: Math.abs(ev.clientY - from.y),
+      })
+      const hit = things
+        .filter((t) => (t.whole ? t.x0 >= x0 && t.x1 <= x1 && t.y0 >= y0 && t.y1 <= y1 : t.x1 >= x0 && t.x0 <= x1 && t.y1 >= y0 && t.y0 <= y1))
+        .map((t) => t.id)
+      const key = hit.join(',')
+      if (key === last) return
+      last = key
+      const want = new Set([...base, ...hit])
+      setNodes((ns) => ns.map((n) => (!!n.selected === want.has(n.id) ? n : { ...n, selected: want.has(n.id) })))
+    }
+    const end = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      setMarquee(null)
+      if (!moved) return
+      // The click that ends a drag would otherwise clear the selection.
+      const swallow = (ev: MouseEvent) => ev.stopPropagation()
+      window.addEventListener('click', swallow, { capture: true, once: true })
+      setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+  }
+
   const trackPointer = (e: React.PointerEvent) => {
     const r = canvasRef.current?.getBoundingClientRect()
     if (!r) return
@@ -997,7 +1061,12 @@ function Canvas() {
           {sidebar && (
             <Sidebar nodes={nodes} groups={work.groups} root={root} open={openRoot} readyTotal={readyTotal} hide={() => toggleSidebar(false)} />
           )}
-          <div className={`canvas tool-${tool}${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
+          <div
+            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}`}
+            ref={canvasRef}
+            onPointerDown={startMarquee}
+            onPointerMove={trackPointer}
+          >
             {ready && (
               <ReactFlow<ViewNode, Edge>
                 fitView
@@ -1039,14 +1108,12 @@ function Canvas() {
                 onSelectionContextMenu={(e, ns) => openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })}
                 onEdgeContextMenu={(e, edge) => !edge.id.startsWith('agg:') && openMenu(e, { kind: 'edge', id: edge.id })}
                 panOnDrag={tool === 'hand' ? [0, 1] : [1]}
-                selectionKeyCode="Meta"
-                selectionOnDrag={tool === 'select'}
+                selectionKeyCode={null}
                 nodesDraggable={tool !== 'hand'}
                 nodesConnectable={tool !== 'hand'}
                 panOnScroll={false}
                 zoomOnScroll
                 zoomOnPinch
-                selectionMode={SelectionMode.Full}
                 multiSelectionKeyCode={['Meta', 'Shift']}
                 deleteKeyCode={null}
                 zoomOnDoubleClick={false}
@@ -1054,6 +1121,12 @@ function Canvas() {
                 maxZoom={2}
                 colorMode="system"
               >
+                {marquee && (
+                  <div
+                    className="react-flow__selection marquee"
+                    style={{ transform: `translate(${marquee.x}px, ${marquee.y}px)`, width: marquee.w, height: marquee.h }}
+                  />
+                )}
                 <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
                 <Controls showInteractive={false} />
                 <MiniMap

@@ -852,8 +852,11 @@ kbd {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
-.tool-select .react-flow__pane.selection:not(.draggable) {
-  cursor: default;
+.marquee {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
 .tool-hand .react-flow__pane,
 .tool-hand .react-flow__node {
