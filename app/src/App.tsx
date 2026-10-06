@@ -22,9 +22,11 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
+import { Palette } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
 import { reflow, reflowAll } from './layout'
+import { mergeDocs } from './merge'
 import { settleDrop, snapDrag, snapGuides, type Guide } from './snap'
 import {
   STATUS_LABEL,
@@ -39,9 +41,9 @@ import {
   isNote,
   isTask,
   normalize,
-  prUrl,
+  getTaskUrl,
   sizeOf,
-  taskTag,
+  getTaskTag,
   githubSummary,
   relativeTime,
   ungroup,
@@ -56,17 +58,23 @@ import {
 } from './model'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
+  createWorkspace,
   fetchRemote,
   fingerprint,
   getSyncStatus,
+  getWorkspaces,
   load,
   onRemoteChange,
   onSyncStatus,
+  onWorkspaceChange,
   readBrowser,
   requestSync,
   save,
+  setActiveWorkspace,
   type Remote,
+  type Saved,
   type SyncStatus,
+  type Workspaces,
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
@@ -101,6 +109,7 @@ const PEEK_SPAN = 0.8
 const PEEK_KEEP_VISIBLE = 0.4
 const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
+const PLACE_GAP = 80
 /** How close on screen an edge or spacing has to come before a drag holds to it. */
 const SNAP_PX = 8
 /** A drop moving at least this fast (screen pixels per millisecond) was thrown. */
@@ -136,6 +145,9 @@ function writeFlag(key: string, value: boolean) {
   }
 }
 
+/** The stored shape of a document, for comparing and merging. */
+const getCompactDoc = (doc: Saved): Saved => JSON.parse(fingerprint(doc)) as Saved
+
 const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
@@ -152,6 +164,34 @@ function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { widt
   return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: box.height / 2 - (p.y + size.h / 2) * zoom, zoom }
 }
 
+/**
+ * Stacks newly created groups in columns to the right of everything else at the top
+ * level, so laying them out never moves groups that were already placed.
+ */
+function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
+  const top = nodes.filter((n) => !n.parentId)
+  const settled = top.filter((n) => !fresh.has(n.id))
+  const right = settled.length ? Math.max(...settled.map((n) => n.position.x + sizeOf(n).w)) : 0
+  const topY = settled.length ? Math.min(...settled.map((n) => n.position.y)) : 0
+  const columnHeight = Math.max(1600, ...settled.map((n) => n.position.y + sizeOf(n).h - topY))
+  const placed = new Map<string, { x: number; y: number }>()
+  let x = right + PLACE_GAP * 2
+  let y = topY
+  let columnWidth = 0
+  for (const group of top.filter((n) => fresh.has(n.id))) {
+    const size = sizeOf(group)
+    if (y > topY && y + size.h > topY + columnHeight) {
+      x += columnWidth + PLACE_GAP
+      y = topY
+      columnWidth = 0
+    }
+    placed.set(group.id, { x, y })
+    y += size.h + PLACE_GAP
+    columnWidth = Math.max(columnWidth, size.w)
+  }
+  return nodes.map((n) => (placed.has(n.id) ? { ...n, position: placed.get(n.id)! } : n))
+}
+
 function Canvas() {
   const rf = useReactFlow<ViewNode, Edge>()
   const zoom = useStore((s) => s.transform[2])
@@ -162,6 +202,7 @@ function Canvas() {
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [githubOwner, setGithubOwner] = useState('flipbook-labs')
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
   const [clock, setClock] = useState(() => Date.now())
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
@@ -176,6 +217,7 @@ function Canvas() {
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [menu, setMenu] = useState<Menu | null>(null)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef({ nodes, links })
   const fitZoom = useRef(new Map<string, number>())
@@ -197,54 +239,102 @@ function Canvas() {
   const source = useRef<'file' | 'browser'>('file')
   const revision = useRef<number | null>(null)
   const savedPrint = useRef('')
+  const base = useRef<Saved>({ nodes: [], links: [] })
+  const [mergeNotice, setMergeNotice] = useState<number | null>(null)
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Saves and reloads run one at a time so a reload never lands on a half-finished save.
   const queue = useRef<Promise<void>>(Promise.resolve())
+  const workspace = useRef('default')
+  const workspaceEpoch = useRef(0)
+  const pendingWorkspaceFit = useRef<number | null>(null)
 
-  const adopt = useCallback((doc: Remote) => {
+  const adopt = useCallback((doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
     const next = normalize(doc.nodes)
+    const server = getCompactDoc({ nodes: normalize(serverDoc.nodes), links: serverDoc.links })
     revision.current = doc.revision
-    savedPrint.current = fingerprint({ nodes: next, links: doc.links })
+    base.current = server
+    savedPrint.current = fingerprint(server)
+    latest.current = { nodes: next, links: doc.links }
     setNodes((ns) => {
-      const picked = new Set(ns.filter((n) => n.selected).map((n) => n.id))
+      const picked = new Set(preserveSelection ? ns.filter((n) => n.selected).map((n) => n.id) : [])
       return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
     })
     setLinks(doc.links)
     setGithub(doc.github ?? null)
     setGithubOwner(doc.settings.githubOwner)
+    return { nodes: next, links: doc.links }
   }, [])
 
-  const reload = useCallback(async () => {
-    const doc = await fetchRemote()
-    if (doc && doc.revision !== revision.current) adopt(doc)
-  }, [adopt])
+  useEffect(
+    () => () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current)
+    },
+    [],
+  )
+
+  const reload = useCallback(
+    async (name: string, epoch: number) => {
+      if (epoch !== workspaceEpoch.current) return
+      const doc = await fetchRemote(name)
+      if (epoch !== workspaceEpoch.current) return
+      if (!doc || doc.revision === revision.current) return
+      const local = getCompactDoc(latest.current)
+      if (fingerprint(local) === savedPrint.current) adopt(doc)
+      else {
+        const merged = mergeDocs(base.current, local, getCompactDoc(doc))
+        adopt({ ...doc, nodes: merged.nodes, links: merged.links }, doc)
+      }
+    },
+    [adopt],
+  )
+
+  const loadWorkspace = useCallback(
+    async (name: string, epoch: number, switched = false) => {
+      const loaded = await load(name)
+      if (epoch !== workspaceEpoch.current) return
+      if (loaded.source === 'file') {
+        source.current = 'file'
+        adopt(loaded.doc, loaded.doc, !switched)
+      } else {
+        source.current = loaded.source === 'missing' ? 'file' : 'browser'
+        const isDefault = name === 'default'
+        const kept = isDefault ? (loaded.source === 'browser' ? loaded.saved : readBrowser()) : null
+        const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : isDefault ? await seeded() : { nodes: [], links: [] }
+        if (epoch !== workspaceEpoch.current) return
+        revision.current = null
+        savedPrint.current = ''
+        base.current = { nodes: [], links: [] }
+        latest.current = start
+        setNodes(start.nodes)
+        setLinks(start.links)
+        setGithub(null)
+        setGithubOwner('flipbook-labs')
+      }
+      setReady(true)
+    },
+    [adopt],
+  )
 
   useEffect(() => {
     let cancelled = false
-    load().then(async (loaded) => {
-      if (loaded.source === 'file') {
-        if (cancelled) return
-        adopt(loaded.doc)
-        setReady(true)
-        return
-      }
-      source.current = loaded.source === 'missing' ? 'file' : 'browser'
-      // The first run with a data file carries over what this browser had, or starts from the seed.
-      const kept = loaded.source === 'browser' ? loaded.saved : readBrowser()
-      const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : await seeded()
-      if (cancelled) return
-      setNodes(start.nodes)
-      setLinks(start.links)
-      setReady(true)
+    const epoch = workspaceEpoch.current
+    void getWorkspaces().then(async (list) => {
+      if (cancelled || epoch !== workspaceEpoch.current) return
+      workspace.current = list.active
+      setWorkspaces(list)
+      await loadWorkspace(list.active, epoch)
     })
     return () => {
       cancelled = true
     }
-  }, [adopt])
+  }, [loadWorkspace])
 
   useEffect(
     () =>
       onRemoteChange((next) => {
-        queue.current = queue.current.then(() => (next !== revision.current ? reload() : undefined))
+        const name = workspace.current
+        const epoch = workspaceEpoch.current
+        queue.current = queue.current.then(() => (epoch === workspaceEpoch.current && next !== revision.current ? reload(name, epoch) : undefined))
       }),
     [reload],
   )
@@ -272,20 +362,117 @@ function Canvas() {
     const t = setTimeout(() => {
       const snapshot = { nodes, links }
       const print = fingerprint(snapshot)
+      const epoch = workspaceEpoch.current
+      const name = workspace.current
       queue.current = queue.current.then(async () => {
+        if (epoch !== workspaceEpoch.current) return
         if (print === savedPrint.current) return
-        const result = await save(source.current, revision.current, snapshot)
-        if (result.ok) {
-          revision.current = result.revision
-          savedPrint.current = print
-        } else if (result.conflict) {
-          // Someone else wrote first; theirs wins and this edit is dropped.
-          await reload()
+        let pending = snapshot
+        for (let attempt = 0; attempt <= 2; attempt++) {
+          const result = await save(source.current, revision.current, pending, name)
+          if (epoch !== workspaceEpoch.current) return
+          if (result.ok) {
+            revision.current = result.revision
+            base.current = getCompactDoc(pending)
+            savedPrint.current = fingerprint(pending)
+            return
+          }
+          if (!result.conflict || attempt === 2) break
+          const remote = await fetchRemote(name)
+          if (epoch !== workspaceEpoch.current) return
+          if (!remote) break
+          const merged = mergeDocs(base.current, getCompactDoc(latest.current), getCompactDoc(remote))
+          pending = adopt({ ...remote, nodes: merged.nodes, links: merged.links }, remote)
+          if (merged.conflicts.length) {
+            setMergeNotice(merged.conflicts.length)
+            if (noticeTimer.current) clearTimeout(noticeTimer.current)
+            noticeTimer.current = setTimeout(() => setMergeNotice(null), 4500)
+          }
         }
+        await reload(name, epoch)
       })
     }, 400)
     return () => clearTimeout(t)
-  }, [nodes, links, ready, reload])
+  }, [nodes, links, ready, reload, adopt])
+
+  const pendingLayoutEpoch = useRef<number | null>(null)
+  useEffect(() => {
+    const epoch = workspaceEpoch.current
+    if (!ready || pendingLayoutEpoch.current === epoch) return
+    const marked = nodes.filter((n) => isCluster(n) && n.data.layout)
+    if (!marked.length) return
+    const pending = marked.filter((n) => isCluster(n) && n.data.layout === 'pending')
+    pendingLayoutEpoch.current = epoch
+    void (async () => {
+      let next = nodes
+      try {
+        for (const group of marked) {
+          try {
+            next = await reflow(next, links, group.id)
+          } catch (error) {
+            console.error('Could not lay out group', group.id, error)
+          }
+        }
+        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((g) => g.id)))
+      } catch (error) {
+        console.error('Could not lay out canvas', error)
+      } finally {
+        if (epoch === workspaceEpoch.current) {
+          setNodes(next.map((n) => (isCluster(n) && n.data.layout ? { ...n, data: { ...n.data, layout: undefined } } : n)))
+        }
+        if (pendingLayoutEpoch.current === epoch) pendingLayoutEpoch.current = null
+      }
+    })()
+  }, [nodes, links, ready])
+  const changeWorkspace = useCallback(
+    (name: string) => {
+      if (name === workspace.current) return
+      workspace.current = name
+      const epoch = ++workspaceEpoch.current
+      pendingWorkspaceFit.current = epoch
+      setReady(false)
+      setRoot(null)
+      setPeek(null)
+      setPinned(null)
+      setHover(null)
+      setEditing(null)
+      setMergeNotice(null)
+      if (noticeTimer.current) clearTimeout(noticeTimer.current)
+      queue.current = queue.current.then(async () => {
+        const list = await getWorkspaces()
+        if (epoch !== workspaceEpoch.current) return
+        setWorkspaces(list)
+        await loadWorkspace(name, epoch, true)
+      })
+    },
+    [loadWorkspace],
+  )
+
+  useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
+
+  useEffect(() => {
+    if (!ready || pendingWorkspaceFit.current !== workspaceEpoch.current) return
+    const epoch = workspaceEpoch.current
+    const frame = requestAnimationFrame(() => {
+      if (pendingWorkspaceFit.current !== epoch) return
+      pendingWorkspaceFit.current = null
+      if (nodes.length) void rf.fitView({ padding: 0.08, duration: 450 })
+      else void rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 450 })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [ready, nodes, rf])
+
+  const switchWorkspace = async (name: string) => {
+    const list = await setActiveWorkspace(name)
+    setWorkspaces(list)
+    changeWorkspace(name)
+  }
+
+  const newWorkspace = async (name: string, label: string) => {
+    const list = await createWorkspace(name, label)
+    setWorkspaces(list)
+    await switchWorkspace(name)
+  }
 
   /**
    * Fits the opened group, or everything at the top level. Bounds come from our own
@@ -428,7 +615,8 @@ function Canvas() {
       const wasZoom = previousZoom.current
       previousZoom.current = viewport.zoom
       if (!event || fitting.current) return
-      const userZoom = event.type === 'wheel' || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
+      const userZoom =
+        (event.type === 'wheel' && viewport.zoom !== wasZoom) || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
       if (peeking && !userZoom) {
         const group = map.get(root)
         const box = canvasRef.current?.getBoundingClientRect()
@@ -957,10 +1145,10 @@ function Canvas() {
           { label: 'Delete note', danger: true, run: () => deleteNote(n.id) },
         ]
       const data = n.data as TaskData
-      const url = data.github?.url ?? prUrl(data, githubOwner)
+      const url = getTaskUrl(data, githubOwner)
       return [
         ...many,
-        ...(url ? [{ label: `Open ${taskTag(data)}`, hint: '↗', run: () => window.open(url, '_blank', 'noreferrer') }] : []),
+        ...(url ? [{ label: `Open ${getTaskTag(data)}`, hint: '↗', run: () => window.open(url, '_blank', 'noreferrer') }] : []),
         data.status === 'done'
           ? { label: 'Mark not done', run: () => updateData(n.id, { status: 'todo' }) }
           : { label: 'Mark done', run: () => updateData(n.id, { status: 'done' }) },
@@ -980,7 +1168,13 @@ function Canvas() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest('input, textarea, select')) return
+      if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen(true)
+        return
+      }
+      if (paletteOpen) return
       if (e.metaKey && e.key.toLowerCase() === 'g') {
         e.preventDefault()
         if (e.shiftKey) doUngroup()
@@ -1001,7 +1195,7 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot])
+  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot, paletteOpen])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
@@ -1017,7 +1211,17 @@ function Canvas() {
       <ActionsContext.Provider value={actions}>
         <div className="app">
           {sidebar && (
-            <Sidebar nodes={nodes} groups={work.groups} root={root} open={openRoot} readyTotal={readyTotal} hide={() => toggleSidebar(false)} />
+            <Sidebar
+              nodes={nodes}
+              groups={work.groups}
+              root={root}
+              open={openRoot}
+              readyTotal={readyTotal}
+              hide={() => toggleSidebar(false)}
+              workspaces={workspaces}
+              switchWorkspace={switchWorkspace}
+              newWorkspace={newWorkspace}
+            />
           )}
           <div className={`canvas${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
             {ready && (
@@ -1062,8 +1266,7 @@ function Canvas() {
                 panOnDrag={[0, 1]}
                 selectionKeyCode="Meta"
                 selectionOnDrag={false}
-                panOnScroll={false}
-                zoomOnScroll
+                panOnScroll
                 zoomOnPinch
                 selectionMode={SelectionMode.Full}
                 multiSelectionKeyCode={['Meta', 'Shift']}
@@ -1080,6 +1283,15 @@ function Canvas() {
                   </ViewportPortal>
                 )}
                 <Controls showInteractive={false} />
+                {mergeNotice !== null && (
+                  <Panel
+                    position="bottom-left"
+                    style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300, pointerEvents: 'none' }}
+                    role="status"
+                  >
+                    Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
+                  </Panel>
+                )}
                 <MiniMap
                   pannable
                   zoomable
@@ -1106,6 +1318,9 @@ function Canvas() {
                     </span>
                   ))}
                   <span className="crumb-actions">
+                    <button type="button" className="btn" onClick={() => setPaletteOpen(true)}>
+                      Search <kbd>⌘K</kbd>
+                    </button>
                     <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                       Add note
                     </button>
@@ -1206,7 +1421,7 @@ function Canvas() {
                   )}
                   {showHelp ? (
                     <>
-                      Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
+                      Drag or scroll to pan · pinch or ⌘-scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
                       double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge
                       to link · hold Ctrl while dragging to skip snapping{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
@@ -1235,6 +1450,7 @@ function Canvas() {
             {!ready && <div className="loading">Laying out…</div>}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
           </div>
+          {paletteOpen && <Palette nodes={nodes} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
         </div>
       </ActionsContext.Provider>
     </DerivedContext.Provider>
@@ -1332,7 +1548,7 @@ function TaskInspector({
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
   const lev = work.leverage.get(node.id) ?? 0
-  const url = data.github?.url ?? prUrl(data, githubOwner)
+  const url = getTaskUrl(data, githubOwner)
   const linked = new Set(
     [...map.values()]
       .filter(isTask)
@@ -1370,7 +1586,7 @@ function TaskInspector({
       <input id="t-label" value={data.label} onChange={(e) => update(node.id, { label: e.target.value })} />
       {url && (
         <a className="pr-link" href={url} target="_blank" rel="noreferrer">
-          Open {taskTag(data)} ↗
+          Open {getTaskTag(data)} ↗
         </a>
       )}
       {data.github && (

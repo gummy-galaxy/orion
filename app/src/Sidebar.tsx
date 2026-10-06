@@ -1,5 +1,6 @@
 import type { GroupStats } from './derive'
 import { isCluster, type AppNode, type ClusterData } from './model'
+import type { Workspaces } from './persist'
 
 type Props = {
   nodes: AppNode[]
@@ -8,12 +9,27 @@ type Props = {
   open: (id: string | null) => void
   readyTotal: number
   hide: () => void
+  workspaces: Workspaces
+  switchWorkspace: (name: string) => Promise<void>
+  newWorkspace: (name: string, label: string) => Promise<void>
 }
 
 /** A stable list of every group, in canvas order, for jumping between bodies of work. */
-export function Sidebar({ nodes, groups, root, open, readyTotal, hide }: Props) {
+export function Sidebar({ nodes, groups, root, open, readyTotal, hide, workspaces, switchWorkspace, newWorkspace }: Props) {
   const clusters = nodes.filter(isCluster)
   const children = (parent: string | undefined) => clusters.filter((c) => c.parentId === parent)
+  const current = workspaces.workspaces.find((item) => item.name === workspaces.active)
+  const create = async () => {
+    const name = window.prompt('Workspace name (lowercase letters, digits, hyphens)')?.trim()
+    if (!name) return
+    const label = window.prompt('Workspace label', name)?.trim()
+    if (label === undefined) return
+    try {
+      await newWorkspace(name, label || name)
+    } catch (error) {
+      window.alert(String(error))
+    }
+  }
 
   const row = (c: AppNode, depth: number) => {
     const s = groups.get(c.id)
@@ -49,6 +65,29 @@ export function Sidebar({ nodes, groups, root, open, readyTotal, hide }: Props) 
           ‹
         </button>
       </div>
+      <details style={{ padding: '4px 10px', position: 'relative' }}>
+        <summary style={{ cursor: 'pointer', fontSize: 13 }} title="Choose a workspace">
+          {current?.label ?? workspaces.active}
+        </summary>
+        <div style={{ display: 'grid', gap: 4, padding: '8px 0' }}>
+          {workspaces.workspaces.map((item) => (
+            <button
+              key={item.name}
+              type="button"
+              className={`side-row${item.name === workspaces.active ? ' current' : ''}`}
+              onClick={(event) => {
+                event.currentTarget.closest('details')?.removeAttribute('open')
+                void switchWorkspace(item.name).catch((error) => window.alert(String(error)))
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+          <button type="button" className="side-row" onClick={() => void create()}>
+            New workspace…
+          </button>
+        </div>
+      </details>
       <button type="button" className={`side-row all${root === null ? ' current' : ''}`} onClick={() => open(null)}>
         <span className="side-label">All work</span>
         <span className="side-meta">

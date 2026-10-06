@@ -37,6 +37,9 @@ local function overlap(a: string, b: string): number
 	return if union == 0 then 0 else intersection / union
 end
 
+match.overlap = overlap
+match.words = words
+
 local function stringField(item: Item, key: string): string?
 	local value = item.data[key]
 	return if type(value) == "string" then value else nil
