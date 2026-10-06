@@ -3,11 +3,9 @@ local types = require("@root/types")
 
 type CommandRunner = types.CommandRunner
 
-local parent = {}
-
-function parent.isProcessAlive(pid: number, runner: CommandRunner?): boolean
+local function isProcessAlive(pid: number, runner: CommandRunner?): boolean
 	local run = runner or runCommand
 	return run({ "kill", "-0", tostring(pid) }).ok
 end
 
-return table.freeze(parent)
+return isProcessAlive

@@ -34,8 +34,6 @@ fn start_server(app: &tauri::App) -> Option<(Child, WebviewUrl)> {
         &port.to_string(),
         "--static",
         static_dir.to_str()?,
-        "--parent-pid",
-        &std::process::id().to_string(),
     ]);
 
     let mut path = env::var_os("PATH").unwrap_or_default();
