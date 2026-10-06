@@ -866,6 +866,181 @@ kbd {
 .tool-comment .react-flow__pane:not(.draggable) {
   cursor: crosshair;
 }
+.canvas.tool-sticker .react-flow__pane:not(.draggable),
+.canvas.tool-sticker .react-flow__node,
+.canvas.tool-sticker .react-flow__node * {
+  cursor: var(--sticker-cursor);
+}
+.tool-emoji {
+  font-size: 17px;
+  line-height: 1;
+}
+
+/* Stickers */
+.sticker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  /* Above every card, including selected ones raised by React Flow. */
+  z-index: 5000;
+}
+.sticker-art {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 40px;
+  line-height: 1;
+  transform: translate(-50%, -50%) rotate(var(--tilt));
+  /* A die-cut white edge and a little lift off the canvas. */
+  filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+    drop-shadow(0 2px 2px rgb(23 36 43 / 0.25));
+  pointer-events: none;
+  transition: scale 140ms ease;
+}
+.sticker.is-interactive .sticker-art {
+  pointer-events: auto;
+  cursor: grab;
+}
+.sticker.is-interactive:hover .sticker-art {
+  scale: 1.08;
+}
+.sticker.is-held .sticker-art {
+  scale: 1.16;
+  cursor: grabbing;
+  filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+    drop-shadow(0 9px 7px rgb(23 36 43 / 0.22));
+}
+.sticker::after {
+  content: '';
+  position: absolute;
+  left: -30px;
+  top: -30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sticker.is-fresh .sticker-art {
+    animation: sticker-stamp 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  }
+  .sticker.is-fresh::after {
+    animation: sticker-ring 480ms ease-out 140ms;
+  }
+}
+@keyframes sticker-stamp {
+  0% {
+    opacity: 0;
+    scale: 1.9;
+    transform: translate(-50%, -50%) rotate(calc(var(--tilt) - 18deg));
+  }
+  45% {
+    opacity: 1;
+    scale: 0.86;
+    transform: translate(-50%, -50%) rotate(var(--tilt));
+  }
+  70% {
+    scale: 1.06;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes sticker-ring {
+  from {
+    opacity: 0.55;
+    scale: 0.5;
+  }
+  to {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+.wheel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+.wheel {
+  position: fixed;
+  width: 0;
+  height: 0;
+}
+.wheel::before {
+  content: '';
+  position: absolute;
+  left: -108px;
+  top: -108px;
+  width: 216px;
+  height: 216px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+.wheel-item {
+  position: absolute;
+  left: -24px;
+  top: -24px;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transform: translate(var(--x), var(--y));
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+.wheel-item.current {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.wheel-item.hover {
+  background: var(--accent-soft);
+  transform: translate(var(--x), var(--y)) scale(1.2);
+}
+.wheel-item:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.wheel-hub {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  color: var(--muted);
+  font: 500 11px var(--font-data);
+  white-space: nowrap;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wheel::before {
+    animation: wheel-open 160ms ease-out both;
+  }
+  .wheel-item {
+    animation: wheel-item-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+    animation-delay: calc(var(--i) * 16ms);
+  }
+}
+@keyframes wheel-open {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+@keyframes wheel-item-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
 .help {
   padding: 6px 12px;
   font-size: 11.5px;

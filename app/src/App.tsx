@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -68,6 +68,8 @@ import {
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
+import { StickerLayer, StickerWheel, type PlacedSticker } from './Stickers'
+import { stickerCursor, stickerKind, type Sticker } from './sticker'
 import { Toolbar, type Tool } from './Toolbar'
 
 type ViewNode = AppNode | GhostNode
@@ -100,12 +102,17 @@ const PEEK_SPAN = 0.8
 const PEEK_KEEP_VISIBLE = 0.4
 const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
+/** Stickers land up to this many degrees off straight. */
+const STICKER_TILT = 14
+const STICKER_FRESH_MS = 700
+/** How far above the toolbar the sticker wheel opens. */
+const WHEEL_LIFT = 140
 
 type Menu = {
   x: number
   y: number
   flow: { x: number; y: number }
-  target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string }
+  target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string } | { kind: 'sticker'; id: string }
 }
 
 async function seeded() {
@@ -171,6 +178,10 @@ function Canvas() {
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [menu, setMenu] = useState<Menu | null>(null)
   const [tool, setTool] = useState<Tool>('select')
+  const [stickers, setStickers] = useState<Sticker[]>([])
+  const [sticker, setSticker] = useState('party')
+  const [wheel, setWheel] = useState<{ x: number; y: number; held: boolean } | null>(null)
+  const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set())
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef({ nodes, links })
   const fitZoom = useRef(new Map<string, number>())
@@ -198,12 +209,13 @@ function Canvas() {
   const adopt = useCallback((doc: Remote) => {
     const next = normalize(doc.nodes)
     revision.current = doc.revision
-    savedPrint.current = fingerprint({ nodes: next, links: doc.links })
+    savedPrint.current = fingerprint({ nodes: next, links: doc.links, stickers: doc.stickers ?? [] })
     setNodes((ns) => {
       const picked = new Set(ns.filter((n) => n.selected).map((n) => n.id))
       return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
     })
     setLinks(doc.links)
+    setStickers(doc.stickers ?? [])
     setGithub(doc.github ?? null)
     setGithubOwner(doc.settings.githubOwner)
   }, [])
@@ -229,6 +241,7 @@ function Canvas() {
       if (cancelled) return
       setNodes(start.nodes)
       setLinks(start.links)
+      setStickers(kept?.stickers ?? [])
       setReady(true)
     })
     return () => {
@@ -265,7 +278,9 @@ function Canvas() {
   useEffect(() => {
     if (!ready) return
     const t = setTimeout(() => {
-      const snapshot = { nodes, links }
+      // Stickers on cards or groups that are gone go with them.
+      const ids = new Set(nodes.map((n) => n.id))
+      const snapshot = { nodes, links, stickers: stickers.filter((s) => !s.on || ids.has(s.on)) }
       const print = fingerprint(snapshot)
       queue.current = queue.current.then(async () => {
         if (print === savedPrint.current) return
@@ -280,7 +295,7 @@ function Canvas() {
       })
     }, 400)
     return () => clearTimeout(t)
-  }, [nodes, links, ready, reload])
+  }, [nodes, links, stickers, ready, reload])
 
   /**
    * Fits the opened group, or everything at the top level. Bounds come from our own
@@ -825,28 +840,110 @@ function Canvas() {
     return { x: c.x - TASK_W / 2, y: c.y - TASK_H / 2 }
   }, [rf])
 
-  /** Drops a note centered on a click, inside the innermost open group under it. */
-  const placeComment = useCallback(
-    (e: React.MouseEvent) => {
-      const point = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
-      let parent = levelRoot
+  /** The innermost visible card or group under a canvas point that `accept` allows. */
+  const nodeAt = useCallback(
+    (point: { x: number; y: number }, accept: (n: AppNode) => boolean) => {
+      let found: string | null = null
       let depth = -1
       for (const n of nodes) {
-        if (!isCluster(n) || view.hidden.has(n.id) || collapsed.has(n.id) || !inView(n.id)) continue
+        if (view.hidden.has(n.id) || !inView(n.id) || !accept(n)) continue
         const p = absPos(n, map)
         const s = sizeOf(n)
         const d = ancestors(n.id, map).length
         if (point.x >= p.x && point.x <= p.x + s.w && point.y >= p.y && point.y <= p.y + s.h && d > depth) {
-          parent = n.id
+          found = n.id
           depth = d
         }
       }
+      return found
+    },
+    [nodes, map, view, inView],
+  )
+
+  /** Drops a note centered on a click, inside the innermost open group under it. */
+  const placeComment = useCallback(
+    (e: React.MouseEvent) => {
+      const point = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      const parent = nodeAt(point, (n) => isCluster(n) && !collapsed.has(n.id)) ?? levelRoot
       if (peeking && !(parent && inFocus(parent))) leaveRoot()
       addNote({ x: point.x - TASK_W / 2, y: point.y - TASK_H / 2 }, { parent })
       setTool('select')
     },
-    [rf, nodes, map, view, collapsed, inView, levelRoot, peeking, inFocus, leaveRoot, addNote],
+    [rf, nodeAt, collapsed, levelRoot, peeking, inFocus, leaveRoot, addNote],
   )
+
+  // ---- Stickers ----
+
+  /** Where a sticker dropped at a canvas point sits: on the card or group under it, or loose. */
+  const anchorAt = useCallback(
+    (point: { x: number; y: number }) => {
+      const on = nodeAt(point, () => true)
+      const n = on ? map.get(on) : undefined
+      if (!n) return { x: Math.round(point.x), y: Math.round(point.y) }
+      const p = absPos(n, map)
+      return { x: Math.round(point.x - p.x), y: Math.round(point.y - p.y), on: n.id }
+    },
+    [nodeAt, map],
+  )
+
+  const stamp = useCallback(
+    (e: React.MouseEvent) => {
+      const id = newId('sticker')
+      const at = anchorAt(rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }))
+      setStickers((ss) => [...ss, { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at }])
+      setFresh((f) => new Set(f).add(id))
+      setTimeout(
+        () =>
+          setFresh((f) => {
+            const next = new Set(f)
+            next.delete(id)
+            return next
+          }),
+        STICKER_FRESH_MS,
+      )
+    },
+    [rf, sticker, anchorAt],
+  )
+
+  const moveSticker = useCallback(
+    (id: string, at: { x: number; y: number }) =>
+      setStickers((ss) => ss.map((s) => (s.id === id ? { id: s.id, kind: s.kind, tilt: s.tilt, ...anchorAt(at) } : s))),
+    [anchorAt],
+  )
+
+  const placedStickers = useMemo<PlacedSticker[]>(
+    () =>
+      stickers.flatMap((s) => {
+        if (!s.on) return [{ ...s, fresh: fresh.has(s.id) }]
+        const n = map.get(s.on)
+        if (!n || view.hidden.has(n.id)) return []
+        const p = absPos(n, map)
+        return [{ ...s, x: p.x + s.x, y: p.y + s.y, fresh: fresh.has(s.id) }]
+      }),
+    [stickers, map, view, fresh],
+  )
+
+  /** Picking Sticker opens the wheel: above its button, or at the cursor when S is held. */
+  const chooseTool = useCallback((next: Tool, from?: DOMRect) => {
+    if (next !== 'sticker') {
+      setWheel(null)
+      setTool(next)
+      return
+    }
+    if (from) {
+      setWheel({ x: from.left + from.width / 2, y: from.top - WHEEL_LIFT, held: false })
+      return
+    }
+    const r = canvasRef.current?.getBoundingClientRect()
+    const p = pointer.current
+    if (r) setWheel({ x: r.left + (p?.x ?? r.width / 2), y: r.top + (p?.y ?? r.height / 2), held: true })
+  }, [])
+
+  const pickSticker = useCallback((id: string) => {
+    setSticker(id)
+    setTool('sticker')
+    setWheel(null)
+  }, [])
 
   const insertNoteOnLink = (linkId: string) => {
     const l = links.find((x) => x.id === linkId)
@@ -884,6 +981,7 @@ function Canvas() {
     seeded().then((s) => {
       setNodes(s.nodes)
       setLinks(s.links)
+      setStickers([])
       setTimeout(() => fitTo(null), 40)
     })
   }
@@ -897,6 +995,7 @@ function Canvas() {
 
   const menuItems = (m: Menu): MenuItem[] => {
     const t = m.target
+    if (t.kind === 'sticker') return [{ label: 'Remove sticker', danger: true, run: () => setStickers((ss) => ss.filter((s) => s.id !== t.id)) }]
     if (t.kind === 'edge') {
       const l = links.find((x) => x.id === t.id)
       if (!l) return []
@@ -997,7 +1096,12 @@ function Canvas() {
           {sidebar && (
             <Sidebar nodes={nodes} groups={work.groups} root={root} open={openRoot} readyTotal={readyTotal} hide={() => toggleSidebar(false)} />
           )}
-          <div className={`canvas tool-${tool}${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
+          <div
+            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}`}
+            style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
+            ref={canvasRef}
+            onPointerMove={trackPointer}
+          >
             {ready && (
               <ReactFlow<ViewNode, Edge>
                 fitView
@@ -1011,12 +1115,14 @@ function Canvas() {
                 onConnect={onConnect}
                 onNodeMouseEnter={(_, n) => setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
                 onNodeMouseLeave={() => setHover(null)}
-                onNodeClick={(_, n) => {
+                onNodeClick={(e, n) => {
                   if (peeking && !inFocus(n.id)) leaveRoot()
                   setPinned(null)
                   if (n.type === 'ghost') jumpTo(n.data.taskId)
+                  else if (tool === 'sticker') stamp(e)
                 }}
                 onNodeDoubleClick={(_, n) => {
+                  if (tool === 'sticker') return
                   if (peeking && !inFocus(n.id)) leaveRoot()
                   if (n.type === 'cluster') actions.open(n.id)
                   else if (n.type === 'task' && isNote(n)) setEditing(n.id)
@@ -1028,6 +1134,7 @@ function Canvas() {
                 onPaneClick={(e) => {
                   setPinned(null)
                   if (tool === 'comment') placeComment(e)
+                  else if (tool === 'sticker') stamp(e)
                 }}
                 onEdgeClick={() => setPinned(null)}
                 onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
@@ -1041,8 +1148,9 @@ function Canvas() {
                 panOnDrag={tool === 'hand' ? [0, 1] : [1]}
                 selectionKeyCode="Meta"
                 selectionOnDrag={tool === 'select'}
-                nodesDraggable={tool !== 'hand'}
-                nodesConnectable={tool !== 'hand'}
+                nodesDraggable={tool === 'select' || tool === 'comment'}
+                nodesConnectable={tool === 'select' || tool === 'comment'}
+                elementsSelectable={tool !== 'sticker'}
                 panOnScroll={false}
                 zoomOnScroll
                 zoomOnPinch
@@ -1054,6 +1162,12 @@ function Canvas() {
                 maxZoom={2}
                 colorMode="system"
               >
+                <StickerLayer
+                  stickers={placedStickers}
+                  interactive={tool === 'select'}
+                  move={moveSticker}
+                  menu={(e, id) => openMenu(e, { kind: 'sticker', id })}
+                />
                 <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
                 <Controls showInteractive={false} />
                 <MiniMap
@@ -1180,13 +1294,13 @@ function Canvas() {
                       </div>
                     </div>
                   )}
-                  <Toolbar tool={tool} setTool={setTool} />
+                  <Toolbar tool={tool} sticker={stickerKind(sticker).emoji} setTool={chooseTool} />
                   <div className="panel help">
                     {showHelp ? (
                       <>
-                        V select · H pan · C comment · drag to select · middle-drag or Space-drag to pan · scroll to zoom · ⌘ or ⇧ click to add ·
-                        right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open · double-click a card to hold its trace · Esc
-                        to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                        V select · H pan · C comment · hold S for stickers · drag to select · middle-drag or Space-drag to pan · scroll to zoom · ⌘ or
+                        ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open · double-click a card to hold
+                        its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
                         <button type="button" className="link" onClick={() => setShowHelp(false)}>
                           Hide
                         </button>
@@ -1213,6 +1327,7 @@ function Canvas() {
             )}
             {!ready && <div className="loading">Laying out…</div>}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
+            {wheel && <StickerWheel at={wheel} held={wheel.held} current={sticker} pick={pickSticker} close={() => setWheel(null)} />}
           </div>
         </div>
       </ActionsContext.Provider>
