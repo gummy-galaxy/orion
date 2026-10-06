@@ -7,7 +7,7 @@ local watcher = require("@root/server/watcher")
 
 test.case("watcher announces external edits and follows manifest switches", function(expect)
 	local root = testing.directory("server-watcher")
-	store.write(root, testing.doc({}, {}))
+	store.write(root, testing.createDoc({}, {}))
 	store.createWorkspace(root, "other")
 	local active = "default"
 	local revisions: { number } = {}

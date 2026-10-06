@@ -5,7 +5,7 @@ local sync = require("@root/server/sync")
 local testing = require("@root/testing")
 
 test.case("sync throttles repeated requests and force bypasses the throttle", function(assert)
-	local root = testing.harness("sync-throttle")
+	local root = testing.createHarness("sync-throttle")
 	local calls = 0
 	local now = 100
 	local loop = sync.create(root, "default", function(_status: json.Object) end, function(_argv)

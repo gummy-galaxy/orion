@@ -28,7 +28,7 @@ function orionServer(port: number): Plugin {
         server.config.logger.warn('Build the CLI: cd cli && lute run build')
         return
       }
-      let child: ChildProcess | undefined = spawn(binary, ['serve', '--host', '127.0.0.1', '--port', String(port)], {
+      let child: ChildProcess | undefined = spawn(binary, ['serve', '--host', '127.0.0.1', '--port', String(port), '--parent-pid', String(process.pid)], {
         env: process.env,
         stdio: ['ignore', 'pipe', 'pipe'],
       })
