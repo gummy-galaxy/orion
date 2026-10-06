@@ -75,6 +75,39 @@ test.case("PUT retains unknown top-level fields and rejects a stale workspace", 
 	assert.eq(#store.getBackups(root), 1)
 end)
 
+test.case("PUT saves stickers when present and preserves them when omitted", function(assert)
+	local root, router = createRouter("routes-stickers")
+	store.write(root, testing.createDoc({}, {}))
+	local stickers: json.Array = { json.object({ id = "one", emoji = "⭐" }) }
+	local loadout: json.Array = { "one", json.null }
+	local first =
+		json.object({ baseRevision = 0, nodes = {}, links = {}, stickers = stickers, stickerLoadout = loadout })
+	assert.eq(router.handle(createRequest("PUT", "/api/orion", first)).status, 200)
+	local saved = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
+	assert.eq(#(json.asArray(saved.stickers) or {}), 1)
+	assert.eq(#(json.asArray(saved.stickerLoadout) or {}), 2)
+	assert.eq(
+		router.handle(createRequest("PUT", "/api/orion", json.object({ baseRevision = 1, nodes = {}, links = {} }))).status,
+		200
+	)
+	local preserved = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
+	assert.eq(#(json.asArray(preserved.stickers) or {}), 1)
+	assert.eq(#(json.asArray(preserved.stickerLoadout) or {}), 2)
+	assert.eq(
+		router.handle(
+			createRequest(
+				"PUT",
+				"/api/orion",
+				json.object({ baseRevision = 2, nodes = {}, links = {}, stickers = {}, stickerLoadout = {} })
+			)
+		).status,
+		200
+	)
+	local cleared = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
+	assert.eq(#(json.asArray(cleared.stickers) or {}), 0)
+	assert.eq(#(json.asArray(cleared.stickerLoadout) or {}), 0)
+end)
+
 test.case("workspace routes create, list, and switch", function(assert)
 	local root, router = createRouter("routes-workspaces")
 	local created =
