@@ -53,13 +53,12 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
         <span className="meta-tag" title={getTaskTag(data)}>
           {getTaskTag(data)}
         </span>
-        {typeof data.github?.additions === 'number' && <span className="meta-lines">{data.github.additions + data.github.deletions} lines</span>}
         {data.github?.checks && (
           <span className={`check-dot check-${data.github.checks.toLowerCase()}`} title={`Checks: ${data.github.checks.toLowerCase()}`} />
         )}
-        <span className="st">
+        <span className="st" title={STATUS_LABEL[st]}>
           {st === 'blocked' && <Lock />}
-          {STATUS_LABEL[st]}
+          <span className="st-label">{STATUS_LABEL[st]}</span>
         </span>
       </div>
       <div className="label">{data.label}</div>
