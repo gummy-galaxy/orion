@@ -86,6 +86,8 @@ const GHOST_GAP = 90
 const GHOST_PEEK = 0.4
 const FIT_MARGIN_Y = 90
 const FIT_MAX_ZOOM = 1.25
+/** How far across a card, on each side, the selection box has to reach to pick it up. */
+const MARQUEE_REACH = 0.25
 /**
  * Leaving a group means zooming out to this share of its opening zoom. Bigger groups
  * get zoomed out more just to look around, so they need more: about 0.64 for 9 items.
@@ -717,9 +719,13 @@ function Canvas() {
         w: Math.abs(ev.clientX - from.x),
         h: Math.abs(ev.clientY - from.y),
       })
-      const hit = things
-        .filter((t) => (t.whole ? t.x0 >= x0 && t.x1 <= x1 && t.y0 >= y0 && t.y1 <= y1 : t.x1 >= x0 && t.x0 <= x1 && t.y1 >= y0 && t.y0 <= y1))
-        .map((t) => t.id)
+      const covered = (t: (typeof things)[number]) => {
+        const w = Math.min(t.x1, x1) - Math.max(t.x0, x0)
+        const h = Math.min(t.y1, y1) - Math.max(t.y0, y0)
+        const need = t.whole ? 1 : MARQUEE_REACH
+        return w >= (t.x1 - t.x0) * need - 0.5 && h >= (t.y1 - t.y0) * need - 0.5
+      }
+      const hit = things.filter(covered).map((t) => t.id)
       const key = hit.join(',')
       if (key === last) return
       last = key

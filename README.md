@@ -39,7 +39,7 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 
 ## Using the canvas
 
-- The toolbar at the bottom switches tools. Select (V) is the default: drag a box to select everything it touches, and ⇧ adds to the selection. An open group is selected only when the box covers all of it. Middle-drag or hold Space and drag to pan. Pan (H) drags the canvas from anywhere, with ⌘-drag to select. Comment (C) drops a note where you click, then returns to Select. Esc also returns to Select.
+- The toolbar at the bottom switches tools. Select (V) is the default: drag a box to select every card it covers at least a quarter of each way, and ⇧ adds to the selection. An open group is selected only when the box covers all of it. Middle-drag or hold Space and drag to pan. Pan (H) drags the canvas from anywhere, with ⌘-drag to select. Comment (C) drops a note where you click, then returns to Select. Esc also returns to Select.
 - Scroll to zoom. ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
