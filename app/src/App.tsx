@@ -107,7 +107,7 @@ const FOCUS_INSET = 20
 /** Share of the room between the focus columns that the focused card takes up. */
 const FOCUS_FILL = 0.6
 const FOCUS_MIN_ZOOM = 1
-const FOCUS_MAX_ZOOM = 1.5
+const FOCUS_MAX_ZOOM = 1.2
 /** The focused card sits this far down the canvas, leaving room for its details above. */
 const FOCUS_CARD_Y = 0.7
 const FOCUS_BOTTOM_GAP = 24
