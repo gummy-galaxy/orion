@@ -368,11 +368,6 @@ select {
     inset 3px 0 0 var(--c),
     0 0 0 1px var(--accent);
 }
-.card.tr-self {
-  box-shadow:
-    inset 3px 0 0 var(--c),
-    0 0 0 2px var(--ink);
-}
 
 /* Edges: motion only where work is waiting */
 .react-flow__edge .react-flow__edge-path {
@@ -402,19 +397,13 @@ select {
 .react-flow__edge.e-agg.e-held .react-flow__edge-path {
   stroke-dasharray: 12 9;
 }
-.react-flow__edge.tr-e-up .react-flow__edge-path {
-  stroke: var(--st-review);
-  stroke-width: 2.4;
-  stroke-dasharray: none;
-  animation: none;
+/* Traced links keep their own look and stand out by weight while every other link fades. */
+.react-flow__edge:is(.tr-e-up, .tr-e-down) .react-flow__edge-path {
+  stroke-width: 2.2;
   opacity: 1;
 }
-.react-flow__edge.tr-e-down .react-flow__edge-path {
-  stroke: var(--accent);
-  stroke-width: 2.4;
-  stroke-dasharray: none;
-  animation: none;
-  opacity: 1;
+.react-flow__edge:is(.tr-e-up, .tr-e-down):is(.e-live, .e-held) .react-flow__edge-path {
+  stroke-width: 2.6;
 }
 .react-flow__edge.tr-e-dim {
   opacity: 0.1;
@@ -1432,9 +1421,6 @@ kbd {
 .ghost.tr-down {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
-}
-.ghost.tr-self {
-  box-shadow: 0 0 0 2px var(--ink);
 }
 .ghost:hover {
   border-color: var(--accent);
