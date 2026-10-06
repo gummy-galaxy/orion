@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "vitest run --root src",
+    "test": "vitest run --root src && vitest run --root server",
     "lint": "oxlint",
     "preview": "vite preview",
     "format": "prettier --write src"

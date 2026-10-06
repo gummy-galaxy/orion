@@ -18,6 +18,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import type { Plugin } from 'vite'
+import { MAX_IMAGE_BYTES, addImageAsset, readImageAsset } from './images.js'
 
 /**
  * Serves orion.json to the app during development. The CLI takes the same
@@ -343,6 +344,34 @@ export function orionStore(): Plugin {
         if (req.method === 'GET') return reply(res, 200, status)
         if (req.method === 'POST') return reply(res, 200, await sync(new URL(req.url ?? '', 'http://localhost').searchParams.get('force') === '1'))
         reply(res, 405, { error: 'method not allowed' })
+      })
+      server.middlewares.use('/api/images', async (req, res) => {
+        try {
+          const url = new URL(req.url ?? '', 'http://localhost')
+          const name = url.searchParams.get('workspace')
+          knownWorkspace(workspaces(root), name)
+          const folder = workspaceDir(root, name)
+          if (req.method === 'GET' && url.pathname.startsWith('/')) {
+            const { bytes, mime } = readImageAsset(folder, decodeURIComponent(url.pathname.slice(1)))
+            res.statusCode = 200
+            res.setHeader('content-type', mime)
+            return res.end(bytes)
+          }
+          if (req.method === 'POST' && url.pathname === '/') {
+            const chunks: Buffer[] = []
+            let size = 0
+            for await (const chunk of req) {
+              const bytes = chunk as Buffer
+              size += bytes.length
+              if (size > MAX_IMAGE_BYTES) throw new Error('Image must be 5 MB or smaller')
+              chunks.push(bytes)
+            }
+            return reply(res, 201, addImageAsset(folder, Buffer.concat(chunks)))
+          }
+          reply(res, 405, { error: 'method not allowed' })
+        } catch (error) {
+          reply(res, 400, { error: String(error) })
+        }
       })
       server.middlewares.use(API, async (req, res) => {
         try {

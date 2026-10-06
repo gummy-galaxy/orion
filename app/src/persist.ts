@@ -22,6 +22,34 @@ const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:workspace'
 const WORKSPACES_EVENT = 'orion:workspaces'
 const NATIVE_POLL_MS = 1000
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+export type ImageAsset = { asset: string; mime: string }
+
+export async function importImage(file: File, workspace: string): Promise<ImageAsset> {
+  if (file.size === 0 || file.size > MAX_IMAGE_BYTES) throw new Error('Choose an image smaller than 5 MB.')
+  if (isTauri()) {
+    const bytes = Array.from(new Uint8Array(await file.arrayBuffer()))
+    return invoke<ImageAsset>('orion_import_image', { workspace, bytes })
+  }
+  const response = await fetch(`/api/images?workspace=${encodeURIComponent(workspace)}`, { method: 'POST', body: file })
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string }
+    throw new Error(body.error ?? 'Could not add the image. Open Orion in the desktop app or dev server.')
+  }
+  return (await response.json()) as ImageAsset
+}
+
+export async function imageSource(workspace: string, asset: string): Promise<string> {
+  const mime = asset.endsWith('.png') ? 'image/png' : asset.endsWith('.jpg') ? 'image/jpeg' : asset.endsWith('.gif') ? 'image/gif' : 'image/webp'
+  if (isTauri()) {
+    const bytes = await invoke<number[]>('orion_image_bytes', { workspace, asset })
+    return URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: mime }))
+  }
+  const response = await fetch(`/api/images/${encodeURIComponent(asset)}?workspace=${encodeURIComponent(workspace)}`)
+  if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Image unavailable')
+  return URL.createObjectURL(await response.blob())
+}
 
 function pollNative<T>(read: () => Promise<T>, changed: (value: T) => void) {
   let previous: string | undefined

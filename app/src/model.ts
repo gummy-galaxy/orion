@@ -74,12 +74,14 @@ export type ClusterData = {
   /** Only for `grid`; reflow uses `WRAP` when unset. */
   columns?: number
 }
+export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. */
 export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status: ViewStatus; side: 'in' | 'out' }
 export type GhostNode = Node<GhostData, 'ghost'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
-export type AppNode = TaskNode | ClusterNode
+export type ImageNode = Node<ImageData, 'image'>
+export type AppNode = TaskNode | ClusterNode | ImageNode
 
 /** `origin` marks links Orion derived itself: stacked pull requests, or a reference in a title, body or branch. */
 export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related'; origin?: 'stack' | 'mention' }
@@ -106,6 +108,7 @@ export function migrateNodes(nodes: AppNode[]): AppNode[] {
 
 export const isCluster = (n: AppNode): n is ClusterNode => n.type === 'cluster'
 export const isTask = (n: AppNode): n is TaskNode => n.type === 'task'
+export const isImage = (n: AppNode): n is ImageNode => n.type === 'image'
 export const isNote = (n: AppNode | undefined): boolean => !!n && isTask(n) && n.data.itemKind === 'note'
 
 export function byId(nodes: AppNode[]): Map<string, AppNode> {
@@ -144,6 +147,7 @@ export function absPos(n: AppNode, map: Map<string, AppNode>): { x: number; y: n
 /** Fills in the React Flow fields every node needs, so saved data stays minimal. */
 function hydrate(n: AppNode): AppNode {
   if (isTask(n)) return { ...n, width: TASK_W, height: TASK_H, expandParent: !!n.parentId }
+  if (isImage(n)) return { ...n, width: n.width ?? 256, height: n.height ?? 256, expandParent: !!n.parentId }
   return { ...n, dragHandle: '.drag', expandParent: !!n.parentId }
 }
 

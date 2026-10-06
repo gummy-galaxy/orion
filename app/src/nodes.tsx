@@ -1,7 +1,8 @@
 import { useContext, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext } from './derive'
-import { STATUS_LABEL, WHO_LABEL, reviewStage, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { STATUS_LABEL, WHO_LABEL, reviewStage, type ClusterNode, type GhostNode, type ImageNode, type TaskNode } from './model'
+import { imageSource } from './persist'
 import { SERVICE_NAME, badgeGroup, driver, taskTag, type Badge } from './sources'
 
 export function Lock() {
@@ -86,6 +87,37 @@ export function ServiceIcon({ badge }: { badge: Badge }) {
 }
 
 const stop = (e: SyntheticEvent) => e.stopPropagation()
+
+export function ImagePreview({ data }: { data: ImageNode['data'] }) {
+  const [loaded, setLoaded] = useState<{ key: string; src: string } | null>(null)
+  const key = `${data.workspace}/${data.asset}`
+  const src = loaded?.key === key ? loaded.src : null
+  useEffect(() => {
+    let active = true
+    let url: string | null = null
+    void imageSource(data.workspace, data.asset)
+      .then((loaded) => {
+        url = loaded
+        if (active) setLoaded({ key, src: loaded })
+        else URL.revokeObjectURL(loaded)
+      })
+      .catch(() => active && setLoaded(null))
+    return () => {
+      active = false
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [data.workspace, data.asset, key])
+  return (
+    <div className="image-node" title={data.label}>
+      {src ? <img src={src} alt={data.label} draggable={false} /> : <span className="image-missing">Image unavailable</span>}
+      <span className="image-label">{data.label}</span>
+    </div>
+  )
+}
+
+export function ImageView({ data }: NodeProps<ImageNode>) {
+  return <ImagePreview data={data} />
+}
 
 function SourceLink({ badge, label, className, children }: { badge: Badge; label?: string; className?: string; children: ReactNode }) {
   return badge.href ? (
