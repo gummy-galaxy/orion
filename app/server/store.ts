@@ -307,7 +307,7 @@ export function orionStore(): Plugin {
             switchTo(name)
             return reply(res, 200, list)
           }
-          if (pathname === '/' && req.method === 'GET') return reply(res, 200, { ...workspaces(root), active })
+          if (pathname === '/' && req.method === 'GET') return reply(res, 200, { ...getWorkspaces(root), active })
           if (pathname === '/' && req.method === 'POST') {
             const { name, label } = (await body(req)) as { name?: unknown; label?: unknown }
             if (!isValidWorkspace(name)) throw new Error(`invalid workspace name: ${String(name)}`)
