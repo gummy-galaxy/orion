@@ -11,7 +11,7 @@ type Runner = types.CommandRunner
 local THROTTLE_SECONDS = 60
 local sync = {}
 
-function sync.new(
+function sync.create(
 	root: string,
 	initialWorkspace: string,
 	publish: (json.Object) -> (),
@@ -32,7 +32,7 @@ function sync.new(
 		publish(status)
 	end
 
-	function loop.status(): json.Object
+	function loop.getStatus(): json.Object
 		return status
 	end
 
@@ -58,7 +58,7 @@ function sync.new(
 		running.message = nil
 		setStatus(running)
 		local didSucceed, failure = pcall(function()
-			local dir = store.workspaceDir(root, target)
+			local dir = store.getWorkspaceDir(root, target)
 			local fetched = github.collect(store.load(dir), command, false)
 			store.transaction(dir, function(doc)
 				github.apply(doc, fetched, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)

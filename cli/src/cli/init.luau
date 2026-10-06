@@ -364,8 +364,8 @@ local function execute(args: { string }, options: Dependencies?)
 	if subparser then
 		selected = subparser:get("workspace") or selected
 	end
-	local active = store.activeWorkspace(root, selected, deps.workspace)
-	local dir = store.workspaceDir(root, active)
+	local active = store.getActiveWorkspace(root, selected, deps.workspace)
+	local dir = store.getWorkspaceDir(root, active)
 	local asJson = parser:has("json")
 	local registered = COMMANDS[command]
 	if registered then

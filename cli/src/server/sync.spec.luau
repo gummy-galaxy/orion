@@ -8,7 +8,7 @@ test.case("sync throttles repeated requests and force bypasses the throttle", fu
 	local root = testing.harness("sync-throttle")
 	local calls = 0
 	local now = 100
-	local loop = sync.new(root, "default", function(_status: json.Object) end, function(_argv)
+	local loop = sync.create(root, "default", function(_status: json.Object) end, function(_argv)
 		calls += 1
 		error("offline")
 	end, function()

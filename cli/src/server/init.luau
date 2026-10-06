@@ -15,16 +15,16 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	if not fs.exists(root) then
 		fs.createDirectory(root, { makeParents = true })
 	end
-	local dir = store.workspaceDir(root, workspace)
+	local dir = store.getWorkspaceDir(root, workspace)
 	if not fs.exists(dir) then
 		fs.createDirectory(dir, { makeParents = true })
 	end
-	local hub = events.new()
-	local syncLoop = sync.new(root, workspace, function(status: json.Object)
+	local hub = events.create()
+	local syncLoop = sync.create(root, workspace, function(status: json.Object)
 		hub.publish("orion:sync", status)
 	end)
 	local monitor
-	local router = routes.new(root, workspace, syncLoop, function(name: string)
+	local router = routes.create(root, workspace, syncLoop, function(name: string)
 		assert(monitor).switchTo(name)
 		syncLoop.switchTo(name)
 		hub.publish("orion:workspace", json.object({ active = name }))
@@ -32,7 +32,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			syncLoop.run(true)
 		end)
 	end, staticDir)
-	monitor = watcher.new(root, router.active, router.switchTo, function(revision: number)
+	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number)
 		hub.publish("orion:changed", json.object({ revision = revision }))
 	end)
 	local running = net.serve({

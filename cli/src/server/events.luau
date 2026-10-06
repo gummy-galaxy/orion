@@ -5,7 +5,7 @@ type Socket = net.ServerWebSocket
 
 local events = {}
 
-function events.new()
+function events.create()
 	local clients: { [Socket]: boolean } = {}
 	local hub = {}
 

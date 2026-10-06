@@ -12,7 +12,7 @@ return table.freeze({
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 	run = function(parser: batteriesCli.Parser, options: Context)
-		local list = store.workspaces(options.root)
+		local list = store.getWorkspaces(options.root)
 		list.active = options.workspace
 		if parser:has("json") then
 			local entries: json.Array = {}

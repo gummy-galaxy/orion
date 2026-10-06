@@ -65,7 +65,7 @@ test.case("transaction releases the lock when the change fails", function(assert
 end)
 
 test.case("backup names use the replaced revision and UTC second", function(assert)
-	assert.eq(store.backupName(42, 1791115200), "orion-r42-20261004T120000Z.json")
+	assert.eq(store.getBackupName(42, 1791115200), "orion-r42-20261004T120000Z.json")
 end)
 
 test.case("transaction saves the exact previous file before replacing it", function(assert)
@@ -75,14 +75,14 @@ test.case("transaction saves the exact previous file before replacing it", funct
 	store.transaction(dir, function(doc)
 		doc.nodes[1].data.label = "After"
 	end)
-	local backups = store.backups(dir)
+	local backups = store.getBackups(dir)
 	assert.eq(#backups, 1)
 	assert.eq(backups[1].revision, 0)
 	assert.eq(backups[1].size, #before)
 	assert.eq(fs.readFileToString(backups[1].file), before)
 	assert.eq(store.load(dir).nodes[1].data.label, "After")
 	store.write(dir, testing.doc({}))
-	local replaced = store.backups(dir)
+	local replaced = store.getBackups(dir)
 	assert.eq(#replaced, 2)
 	assert.eq(replaced[1].revision, 1)
 	assert.eq(store.decode(fs.readFileToString(replaced[1].file)).nodes[1].data.label, "After")

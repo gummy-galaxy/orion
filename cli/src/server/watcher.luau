@@ -1,33 +1,57 @@
 local fs = require("@std/fs")
+local path = require("@std/path")
 local task = require("@std/task")
 
 local store = require("@root/store")
 
+type Stamp = { size: number, modified: number }
+
 local watcher = {}
 
-function watcher.new(root: string, active: () -> string, switchTo: (string) -> (), changed: (number) -> ())
+local function getStamp(file: string): Stamp?
+	local didSucceed, metadata = pcall(fs.metadata, file)
+	if not didSucceed or metadata.type ~= "file" then
+		return nil
+	end
+	return { size = metadata.size, modified = metadata.modified:toNanoseconds() }
+end
+
+local function hasStampChanged(previous: Stamp?, current: Stamp?): boolean
+	if previous == nil or current == nil then
+		return previous ~= current
+	end
+	return previous.size ~= current.size or previous.modified ~= current.modified
+end
+
+function watcher.create(root: string, active: () -> string, switchTo: (string) -> (), changed: (number) -> ())
 	local isClosed = false
-	local watchedWorkspace = active()
-	local lastManifestActive = store.workspaces(root).active
-	local folder = fs.watch(store.workspaceDir(root, watchedWorkspace))
+	local dataFile = store.filePath(store.getWorkspaceDir(root, active()))
+	local manifestFile = tostring(path.join(root, "workspaces.json"))
+	local lastDataStamp = getStamp(dataFile)
+	local lastManifestStamp = getStamp(manifestFile)
+	local lastManifestActive = store.getWorkspaces(root).active
+	local folder = fs.watch(store.getWorkspaceDir(root, active()))
 	local manifest = fs.watch(root)
 	local generation = 0
-	local function revision(name: string): number?
-		local didSucceed, doc = pcall(store.read, store.workspaceDir(root, name))
+	local monitor = {}
+
+	local function getRevision(): number?
+		local didSucceed, doc = pcall(store.read, store.getWorkspaceDir(root, active()))
 		return if didSucceed and doc then doc.revision else nil
 	end
-	local lastRevision = revision(watchedWorkspace)
-	local monitor = {}
+
+	local lastRevision = getRevision()
 
 	function monitor.switchTo(name: string)
 		folder:close()
-		watchedWorkspace = name
-		local dir = store.workspaceDir(root, name)
+		local dir = store.getWorkspaceDir(root, name)
 		if not fs.exists(dir) then
 			fs.createDirectory(dir, { makeParents = true })
 		end
 		folder = fs.watch(dir)
-		lastRevision = revision(name)
+		dataFile = store.filePath(dir)
+		lastDataStamp = getStamp(dataFile)
+		lastRevision = getRevision()
 		generation += 1
 	end
 
@@ -38,18 +62,48 @@ function watcher.new(root: string, active: () -> string, switchTo: (string) -> (
 			if isClosed or scheduled ~= generation then
 				return
 			end
-			local didSucceed, doc = pcall(store.read, store.workspaceDir(root, active()))
-			if didSucceed and doc and doc.revision ~= lastRevision then
-				lastRevision = doc.revision
-				changed(doc.revision)
+			local current = getStamp(dataFile)
+			if not hasStampChanged(lastDataStamp, current) then
+				return
+			end
+			if current == nil then
+				lastDataStamp = nil
+				lastRevision = nil
+				return
+			end
+			local revision = getRevision()
+			if revision == nil then
+				return -- A writer may still be finishing; retry on the next check.
+			end
+			lastDataStamp = current
+			if revision ~= lastRevision then
+				lastRevision = revision
+				changed(revision)
 			end
 		end)
 	end
 
 	local function checkChange()
-		local current = revision(active())
-		if current ~= nil and current ~= lastRevision then
+		if hasStampChanged(lastDataStamp, getStamp(dataFile)) then
 			scheduleChange()
+		end
+	end
+
+	local function checkWorkspace()
+		local current = getStamp(manifestFile)
+		if not hasStampChanged(lastManifestStamp, current) then
+			return
+		end
+		local didSucceed, list = pcall(store.getWorkspaces, root)
+		if not didSucceed or not list then
+			return -- Retry if a concurrent writer has not finished the manifest.
+		end
+		lastManifestStamp = current
+		if list.active ~= lastManifestActive then
+			lastManifestActive = list.active
+			if list.active ~= active() then
+				switchTo(list.active)
+			end
 		end
 	end
 
@@ -58,19 +112,8 @@ function watcher.new(root: string, active: () -> string, switchTo: (string) -> (
 			while not isClosed do
 				while manifest:next() do
 				end
-				local didSucceed, list = pcall(store.workspaces, root)
-				if didSucceed and list and list.active ~= lastManifestActive then
-					lastManifestActive = list.active
-					if list.active ~= active() then
-						switchTo(list.active)
-					end
-				end
-				local hasFolderEvent = false
+				checkWorkspace()
 				while folder:next() do
-					hasFolderEvent = true
-				end
-				if hasFolderEvent then
-					scheduleChange()
 				end
 				checkChange()
 				task.wait(0.1)
