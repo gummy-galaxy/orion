@@ -13,52 +13,52 @@ export type Result = { createdAt: string, groups: { Group } }
 
 local suggest = {}
 
-local function bounded(value: string?, limit: number): string?
+local function getBounded(value: string?, limit: number): string?
 	return if value then value:sub(1, limit) else nil
 end
 
-local function field(item: Item, key: string): string?
+local function getField(item: Item, key: string): string?
 	local value = item.data[key]
 	return if type(value) == "string" then value else nil
 end
 
-local function epic(item: Item): (string?, string?)
+local function getEpic(item: Item): (string?, string?)
 	local jira = json.asObject(item.data.jira)
 	return if jira then jira.epicKey :: string? else nil, if jira then jira.epicSummary :: string? else nil
 end
 
-local function host(item: Item): string
-	return field(item, "host") or "github.com"
+local function getHost(item: Item): string
+	return getField(item, "host") or "github.com"
 end
 
-local function sameRepo(a: Item, b: Item): boolean
-	local repo = field(a, "repo")
-	return repo ~= nil and repo == field(b, "repo") and host(a) == host(b)
+local function isSameRepo(a: Item, b: Item): boolean
+	local repo = getField(a, "repo")
+	return repo ~= nil and repo == getField(b, "repo") and getHost(a) == getHost(b)
 end
 
-local function references(item: Item): { [string]: boolean }
+local function getReferences(item: Item): { [string]: boolean }
 	local result: { [string]: boolean } = {}
 	local jira = json.asObject(item.data.jira)
 	if jira and type(jira.key) == "string" then
 		result[`jira:{jira.key:upper()}`] = true
 	end
 	if type(item.data.issue) == "number" then
-		result[`issue:{host(item)}:{field(item, "repo") or ""}:{item.data.issue}`] = true
+		result[`issue:{getHost(item)}:{getField(item, "repo") or ""}:{item.data.issue}`] = true
 	end
-	for _, value in { graph.label(item), field(item, "branch") or "" } do
+	for _, value in { graph.label(item), getField(item, "branch") or "" } do
 		for key in value:upper():gmatch("[A-Z][A-Z0-9]+%-%d+") do
 			result[`jira:{key}`] = true
 		end
 		for number in value:gmatch("#(%d+)") do
-			result[`issue:{host(item)}:{field(item, "repo") or ""}:{number}`] = true
+			result[`issue:{getHost(item)}:{getField(item, "repo") or ""}:{number}`] = true
 		end
 	end
 	return result
 end
 
-local function commonReference(a: Item, b: Item): boolean
-	local left = references(a)
-	for ref in references(b) do
+local function hasCommonReference(a: Item, b: Item): boolean
+	local left = getReferences(a)
+	for ref in getReferences(b) do
 		if left[ref] then
 			return true
 		end
@@ -66,7 +66,7 @@ local function commonReference(a: Item, b: Item): boolean
 	return false
 end
 
-local function eligible(doc: Doc, scope: string): { Item }
+local function getEligible(doc: Doc, scope: string): { Item }
 	local cards: { Item } = {}
 	for _, item in doc.nodes do
 		if
@@ -83,32 +83,32 @@ local function eligible(doc: Doc, scope: string): { Item }
 	return cards
 end
 
-local function componentTitle(items: { Item }): string
+local function getComponentTitle(items: { Item }): string
 	local summary: string? = nil
 	local commonEpic: string? = nil
-	local mixedEpics = false
-	local sharedRepo: string? = field(items[1], "repo")
-	local sharedHost = host(items[1])
+	local hasMixedEpics = false
+	local sharedRepo: string? = getField(items[1], "repo")
+	local sharedHost = getHost(items[1])
 	local counts: { [string]: number } = {}
 	for _, item in items do
-		local key, name = epic(item)
+		local key, name = getEpic(item)
 		if key then
 			if commonEpic and commonEpic ~= key then
-				mixedEpics = true
+				hasMixedEpics = true
 			end
 			commonEpic = commonEpic or key
 		end
 		if name and name ~= "" and not summary then
 			summary = name
 		end
-		if field(item, "repo") ~= sharedRepo or host(item) ~= sharedHost then
+		if getField(item, "repo") ~= sharedRepo or getHost(item) ~= sharedHost then
 			sharedRepo = nil
 		end
 		for word in match.words(graph.label(item)) do
 			counts[word] = (counts[word] or 0) + 1
 		end
 	end
-	if summary and commonEpic and not mixedEpics then
+	if summary and commonEpic and not hasMixedEpics then
 		return summary
 	end
 	local words: { string } = {}
@@ -127,7 +127,7 @@ local function componentTitle(items: { Item }): string
 	return if sharedRepo and sharedRepo ~= "" then `{sharedRepo}: {title}` else title
 end
 
-local function heuristic(doc: Doc, cards: { Item }): { Group }
+local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 	local parents: { [string]: string } = {}
 	local reasons: { [string]: string } = {}
 	local byId: { [string]: Item } = {}
@@ -135,7 +135,7 @@ local function heuristic(doc: Doc, cards: { Item }): { Group }
 		parents[item.id] = item.id
 		byId[item.id] = item
 	end
-	local function root(id: string): string
+	local function getRoot(id: string): string
 		local current = id
 		while parents[current] ~= current do
 			current = parents[current]
@@ -143,15 +143,15 @@ local function heuristic(doc: Doc, cards: { Item }): { Group }
 		parents[id] = current
 		return current
 	end
-	local function conflicts(a: string, b: string): boolean
+	local function hasConflictingEpics(a: string, b: string): boolean
 		local left, right = {}, {}
 		for _, item in cards do
-			local key = epic(item)
+			local key = getEpic(item)
 			if key then
-				if root(item.id) == a then
+				if getRoot(item.id) == a then
 					left[key] = true
 				end
-				if root(item.id) == b then
+				if getRoot(item.id) == b then
 					right[key] = true
 				end
 			end
@@ -165,9 +165,9 @@ local function heuristic(doc: Doc, cards: { Item }): { Group }
 		end
 		return false
 	end
-	local function join(a: string, b: string, reason: string, guard: boolean?)
-		local left, right = root(a), root(b)
-		if left == right or (guard and conflicts(left, right)) then
+	local function join(a: string, b: string, reason: string, shouldCheckEpics: boolean?)
+		local left, right = getRoot(a), getRoot(b)
+		if left == right or (shouldCheckEpics and hasConflictingEpics(left, right)) then
 			return
 		end
 		if right < left then
@@ -184,13 +184,13 @@ local function heuristic(doc: Doc, cards: { Item }): { Group }
 	for i = 1, #cards do
 		for j = i + 1, #cards do
 			local a, b = cards[i], cards[j]
-			local ae, be = epic(a), epic(b)
-			local branch = field(a, "branch")
+			local ae, be = getEpic(a), getEpic(b)
+			local branch = getField(a, "branch")
 			if ae and ae == be then
 				join(a.id, b.id, `Shared epic {ae}`)
-			elseif sameRepo(a, b) and branch and branch ~= "" and branch == field(b, "branch") then
+			elseif isSameRepo(a, b) and branch and branch ~= "" and branch == getField(b, "branch") then
 				join(a.id, b.id, `Shared branch {branch}`)
-			elseif commonReference(a, b) then
+			elseif hasCommonReference(a, b) then
 				join(a.id, b.id, "Shared Jira or issue reference")
 			end
 		end
@@ -198,14 +198,14 @@ local function heuristic(doc: Doc, cards: { Item }): { Group }
 	for i = 1, #cards do
 		for j = i + 1, #cards do
 			local a, b = cards[i], cards[j]
-			if sameRepo(a, b) and match.overlap(graph.label(a), graph.label(b)) >= 0.5 then
+			if isSameRepo(a, b) and match.overlap(graph.label(a), graph.label(b)) >= 0.5 then
 				join(a.id, b.id, "Strong title overlap", true)
 			end
 		end
 	end
 	local components: { [string]: { Item } } = {}
 	for _, item in cards do
-		local id = root(item.id)
+		local id = getRoot(item.id)
 		components[id] = components[id] or {}
 		table.insert(components[id], item)
 	end
@@ -219,7 +219,7 @@ local function heuristic(doc: Doc, cards: { Item }): { Group }
 			table.sort(members)
 			table.insert(groups, {
 				id = "",
-				title = componentTitle(items),
+				title = getComponentTitle(items),
 				members = members,
 				reason = reasons[id] or "Related work",
 				source = "heuristic",
@@ -232,16 +232,16 @@ local function heuristic(doc: Doc, cards: { Item }): { Group }
 	return groups
 end
 
-local function firstObject(text: string): json.Object?
+local function getFirstObject(text: string): json.Object?
 	local object = text:match("(%b{})")
 	if not object then
 		return nil
 	end
-	local ok, decoded = pcall(json.deserialize, object)
-	return if ok then json.asObject(decoded :: json.Value) else nil
+	local didParse, decoded = pcall(json.deserialize, object)
+	return if didParse then json.asObject(decoded :: json.Value) else nil
 end
 
-local function agentGroups(
+local function getAgentGroups(
 	doc: Doc,
 	cards: { Item },
 	heuristics: { Group },
@@ -275,12 +275,12 @@ local function agentGroups(
 			contextCards,
 			json.object({
 				id = item.id,
-				label = bounded(graph.label(item), 160),
-				repo = bounded(field(item, "repo"), 100),
-				branch = bounded(field(item, "branch"), 120),
-				jira = bounded(if type(key) == "string" then key else nil, 50),
-				epic = bounded(if type(epicKey) == "string" then epicKey else nil, 120),
-				status = bounded(field(item, "status"), 20),
+				label = getBounded(graph.label(item), 160),
+				repo = getBounded(getField(item, "repo"), 100),
+				branch = getBounded(getField(item, "branch"), 120),
+				jira = getBounded(if type(key) == "string" then key else nil, 50),
+				epic = getBounded(if type(epicKey) == "string" then epicKey else nil, 120),
+				status = getBounded(getField(item, "status"), 20),
 			})
 		)
 	end
@@ -333,13 +333,13 @@ local function agentGroups(
 	if #argv == 0 then
 		return nil
 	end
-	local ok, response = pcall(run, argv, prompt)
-	if not ok or not response.ok then
+	local didRun, response = pcall(run, argv, prompt)
+	if not didRun or not response.ok then
 		return nil
 	end
-	local parsed = firstObject(response.stdout)
+	local parsed = getFirstObject(response.stdout)
 	if parsed and type(parsed.result) == "string" then
-		parsed = firstObject(parsed.result)
+		parsed = getFirstObject(parsed.result)
 	end
 	local rawGroups = if parsed then json.asArray(parsed.groups) else nil
 	if not rawGroups then
@@ -400,24 +400,24 @@ end
 function suggest.compute(doc: Doc, scope: string, agent: string, run: CommandRunner, now: string): (Result, boolean)
 	assert(scope == "unsorted" or scope == "all", "scope must be unsorted or all")
 	assert(agent == "none" or agent == "claude" or agent == "codex", "agent must be claude, codex, or none")
-	local cards = eligible(doc, scope)
-	local groups = heuristic(doc, cards)
-	local fallback = false
+	local cards = getEligible(doc, scope)
+	local groups = getHeuristicGroups(doc, cards)
+	local didFallback = false
 	if agent ~= "none" and #cards >= 2 then
-		local proposed = agentGroups(doc, cards, groups, agent, run)
+		local proposed = getAgentGroups(doc, cards, groups, agent, run)
 		if proposed then
 			groups = proposed
 		else
-			fallback = true
+			didFallback = true
 		end
 	end
 	for index, group in groups do
 		group.id = `s{index}`
 	end
-	return { createdAt = now, groups = groups }, fallback
+	return { createdAt = now, groups = groups }, didFallback
 end
 
-function suggest.stored(doc: Doc): Result
+function suggest.getStored(doc: Doc): Result
 	local saved = doc.suggestions
 	local groups: { Group } = {}
 	for _, raw in (if saved then json.asArray(saved.groups) else nil) or {} do
@@ -441,7 +441,7 @@ function suggest.stored(doc: Doc): Result
 	return { createdAt = if saved and type(saved.createdAt) == "string" then saved.createdAt else "", groups = groups }
 end
 
-function suggest.toJson(result: Result): json.Object
+function suggest.convertToJson(result: Result): json.Object
 	local groups: json.Array = {}
 	for _, group in result.groups do
 		table.insert(
@@ -459,12 +459,12 @@ function suggest.toJson(result: Result): json.Object
 end
 
 function suggest.save(doc: Doc, result: Result)
-	doc.suggestions = suggest.toJson(result)
+	doc.suggestions = suggest.convertToJson(result)
 end
 
-function suggest.change(doc: Doc, action: string, ids: { string }, all: boolean): { string }
-	local result = suggest.stored(doc)
-	assert(all or #ids > 0, "give suggestion ids or --all")
+function suggest.change(doc: Doc, action: string, ids: { string }, isAll: boolean): { string }
+	local result = suggest.getStored(doc)
+	assert(isAll or #ids > 0, "give suggestion ids or --all")
 	local selected: { [string]: boolean } = {}
 	local available: { [string]: boolean } = {}
 	for _, group in result.groups do
@@ -478,7 +478,7 @@ function suggest.change(doc: Doc, action: string, ids: { string }, all: boolean)
 	local remaining: { Group } = {}
 	local left: { [string]: boolean } = {}
 	for _, group in result.groups do
-		if all or selected[group.id] then
+		if isAll or selected[group.id] then
 			if action == "apply" then
 				for _, id in group.members do
 					assert(graph.find(doc, id), `no item with id "{id}"`)

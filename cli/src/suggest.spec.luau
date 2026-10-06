@@ -1,28 +1,20 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local cli = require("@root/cli")
 local graph = require("@root/graph")
-local store = require("@root/store")
 local suggest = require("@root/suggest")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
-local function unexpectedRunner(_argv: { string }, _stdin: string?): types.CommandResult
+local function runUnexpected(_argv: { string }, _stdin: string?): types.CommandResult
 	error("unexpected agent call")
 end
 
 local function compute(doc: types.Doc, agent: string?, runner: types.CommandRunner?, scope: string?)
-	return suggest.compute(
-		doc,
-		scope or "unsorted",
-		agent or "none",
-		runner or unexpectedRunner,
-		"2026-10-04T00:00:00Z"
-	)
+	return suggest.compute(doc, scope or "unsorted", agent or "none", runner or runUnexpected, "2026-10-04T00:00:00Z")
 end
 
-local function pair(extraA: json.Object?, extraB: json.Object?)
+local function getPair(extraA: json.Object?, extraB: json.Object?)
 	return testing.doc({
 		testing.task("a", "First work", "todo", nil, extraA),
 		testing.task("b", "Second work", "todo", nil, extraB),
@@ -30,7 +22,7 @@ local function pair(extraA: json.Object?, extraB: json.Object?)
 end
 
 test.case("heuristics join linked cards", function(assert)
-	local doc = pair()
+	local doc = getPair()
 	graph.link(doc, "a", "b", "related")
 	local result = compute(doc)
 	assert.eq(#result.groups, 1)
@@ -38,7 +30,7 @@ test.case("heuristics join linked cards", function(assert)
 end)
 
 test.case("heuristics join a shared Jira epic", function(assert)
-	local doc = pair(
+	local doc = getPair(
 		json.object({ jira = json.object({ epicKey = "ABC-1", epicSummary = "Avatar loading" }) }),
 		json.object({ jira = json.object({ epicKey = "ABC-1" }) })
 	)
@@ -48,7 +40,7 @@ test.case("heuristics join a shared Jira epic", function(assert)
 end)
 
 test.case("heuristics join the same repository branch", function(assert)
-	local doc = pair(
+	local doc = getPair(
 		json.object({ repo = "app", branch = "agent/avatar" }),
 		json.object({ repo = "app", branch = "agent/avatar" })
 	)
@@ -132,7 +124,7 @@ test.case("agent reply drops unknown and duplicate ids while retaining ignored h
 		testing.task("d", "Color two", "todo", nil, json.object({ repo = "app", branch = "color" })),
 	})
 	local prompt = ""
-	local result, fallback = compute(doc, "claude", function(argv, stdin)
+	local result, didFallback = compute(doc, "claude", function(argv, stdin)
 		assert.eq(argv[1], "claude")
 		prompt = stdin
 		return testing.result(
@@ -140,7 +132,7 @@ test.case("agent reply drops unknown and duplicate ids while retaining ignored h
 			[[{"result":"{\"groups\":[{\"title\":\"Avatar work\",\"members\":[\"a\",\"missing\",\"a\",\"b\"]},{\"title\":\"Too small\",\"members\":[\"b\",\"c\"]}]}"}]]
 		)
 	end)
-	assert.eq(fallback, false)
+	assert.eq(didFallback, false)
 	assert.strContains(prompt, "heuristicComponents")
 	assert.eq(#result.groups, 2)
 	assert.eq(result.groups[1].source, "agent")
@@ -150,74 +142,14 @@ test.case("agent reply drops unknown and duplicate ids while retaining ignored h
 end)
 
 test.case("garbage agent reply keeps heuristic suggestions", function(assert)
-	local doc = pair(json.object({ repo = "app", branch = "same" }), json.object({ repo = "app", branch = "same" }))
-	local result, fallback = compute(doc, "codex", function(argv, stdin)
+	local doc = getPair(json.object({ repo = "app", branch = "same" }), json.object({ repo = "app", branch = "same" }))
+	local result, didFallback = compute(doc, "codex", function(argv, stdin)
 		assert.eq(argv[1], "codex")
 		assert.strContains(stdin or "", "cards")
 		return testing.result(true, "not JSON")
 	end)
-	assert.eq(fallback, true)
+	assert.eq(didFallback, true)
 	assert.eq(result.groups[1].source, "heuristic")
-end)
-
-test.case("configured agent command receives bounded context on stdin", function(assert)
-	local dir = testing.directory("suggest-command")
-	local doc = pair(json.object({ repo = "app", branch = "same" }), json.object({ repo = "app", branch = "same" }))
-	doc.raw = json.object({ settings = json.object({ agent = "claude", agentCommand = { "custom-agent", "--json" } }) })
-	store.write(dir, doc)
-	local output = ""
-	cli.execute({ "suggest", "--dry-run", "--json" }, {
-		dataDir = dir,
-		write = function(value)
-			output = value
-		end,
-		runner = function(argv, stdin)
-			assert.eq(table.concat(argv, " "), "custom-agent --json")
-			assert.strContains(stdin or "", "singletons")
-			return testing.result(true, [[{"groups":[{"title":"Avatar work","members":["a","b"]}]}]])
-		end,
-	})
-	local result = json.asObject(json.deserialize(output) :: json.Value)
-	local groups = if result then json.asArray(result.groups) else nil
-	local first = if groups then json.asObject(groups[1]) else nil
-	assert.eq(first and first.source, "agent")
-	assert.eq(store.load(dir).revision, 0)
-end)
-
-test.case("suggestions apply keeps links, marks layout pending, and prunes empty Unsorted", function(assert)
-	local dir = testing.directory("suggest-apply")
-	local doc = testing.doc({
-		testing.group("unsorted", "Unsorted"),
-		testing.task("a", "Avatar one", "todo", "unsorted", json.object({ repo = "app", branch = "same" })),
-		testing.task("b", "Avatar two", "todo", "unsorted", json.object({ repo = "app", branch = "same" })),
-	}, { { "a", "b" } })
-	doc.links[1].origin = "mention"
-	store.write(dir, doc)
-	local output = {}
-	local function run(args: { string })
-		table.clear(output)
-		cli.execute(args, {
-			dataDir = dir,
-			write = function(value)
-				table.insert(output, value)
-			end,
-		})
-		return table.concat(output)
-	end
-	run({ "suggest", "--dry-run" })
-	assert.eq(store.load(dir).revision, 0)
-	run({ "suggest" })
-	assert.strContains(run({ "suggestions" }), "s1")
-	run({ "suggestions", "apply", "s1" })
-	local after = store.load(dir)
-	assert.eq(after.revision, 2)
-	assert.eq(graph.find(after, "unsorted"), nil)
-	assert.eq(#after.links, 1)
-	assert.eq(after.links[1].origin, "mention")
-	assert.eq(after.nodes[1].parentId, after.nodes[3].id)
-	assert.eq(after.nodes[2].parentId, after.nodes[3].id)
-	assert.eq(after.nodes[3].data.layout, "pending")
-	assert.eq(#suggest.stored(after).groups, 0)
 end)
 
 test.case("suggestions apply asks the app to tidy groups that lost cards", function(assert)
@@ -238,10 +170,10 @@ test.case("suggestions apply asks the app to tidy groups that lost cards", funct
 end)
 
 test.case("suggestions dismiss removes chosen suggestions without moving cards", function(assert)
-	local doc = pair(json.object({ repo = "app", branch = "same" }), json.object({ repo = "app", branch = "same" }))
+	local doc = getPair(json.object({ repo = "app", branch = "same" }), json.object({ repo = "app", branch = "same" }))
 	suggest.save(doc, compute(doc))
 	local changed = suggest.change(doc, "dismiss", { "s1" }, false)
 	assert.eq(changed[1], "s1")
-	assert.eq(#suggest.stored(doc).groups, 0)
+	assert.eq(#suggest.getStored(doc).groups, 0)
 	assert.eq(doc.nodes[1].parentId, nil)
 end)

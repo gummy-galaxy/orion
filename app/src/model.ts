@@ -63,6 +63,7 @@ export type GhostNode = Node<GhostData, 'ghost'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
 export type AppNode = TaskNode | ClusterNode
 
+/** `origin` marks links Orion derived itself: stacked pull requests, or a reference in a title, body or branch. */
 export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related'; origin?: 'stack' | 'mention' }
 
 export const STATUS_LABEL: Record<ViewStatus, string> = {
