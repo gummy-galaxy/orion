@@ -67,7 +67,7 @@ import {
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
-import { StickerLayer, StickerWheel, type PlacedSticker } from './Stickers'
+import { StickerLayer, StickerWheel, type PlacedSticker, type StickerBounds, type StickerMove } from './Stickers'
 import { stickerCursor, stickerKind, type Sticker } from './sticker'
 import { Toolbar, type Tool } from './Toolbar'
 
@@ -969,11 +969,30 @@ function Canvas() {
     [rf, sticker, anchorAt],
   )
 
-  const moveSticker = useCallback(
-    (id: string, at: { x: number; y: number }) =>
-      setStickers((ss) => ss.map((s) => (s.id === id ? { id: s.id, kind: s.kind, tilt: s.tilt, ...anchorAt(at) } : s))),
+  const settleStickers = useCallback(
+    (moves: StickerMove[]) => {
+      const landed = new Map(moves.map((m) => [m.id, m]))
+      setStickers((ss) =>
+        ss.map((s) => {
+          const at = landed.get(s.id)
+          return at ? { id: s.id, kind: s.kind, tilt: s.tilt, ...anchorAt(at) } : s
+        }),
+      )
+    },
     [anchorAt],
   )
+
+  /** Every group frame on screen, which stickers bounce inside and off of. */
+  const stickerBounds = useMemo<StickerBounds[]>(() => {
+    const shown = nodes.filter((n) => isCluster(n) && !view.hidden.has(n.id) && inView(n.id))
+    const ids = new Set(shown.map((n) => n.id))
+    return shown.map((n) => {
+      const p = absPos(n, map)
+      const s = sizeOf(n)
+      const chain = ancestors(n.id, map)
+      return { id: n.id, x0: p.x, y0: p.y, x1: p.x + s.w, y1: p.y + s.h, parent: chain.find((a) => ids.has(a)) ?? null, depth: chain.length }
+    })
+  }, [nodes, map, view, inView])
 
   const placedStickers = useMemo<PlacedSticker[]>(
     () =>
@@ -1228,7 +1247,8 @@ function Canvas() {
                 <StickerLayer
                   stickers={placedStickers}
                   interactive={tool === 'select'}
-                  move={moveSticker}
+                  bounds={stickerBounds}
+                  settle={settleStickers}
                   menu={(e, id) => openMenu(e, { kind: 'sticker', id })}
                 />
                 {marquee && (
