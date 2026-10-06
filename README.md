@@ -48,7 +48,8 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to jump to it.
 - Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
-- Hover a card to trace what it needs (amber) and what it unlocks (teal). Double-click a card to hold its trace while you pan; click anywhere or press Esc to let it go.
+- Hover a card to trace what it needs (amber) and what it unlocks (teal).
+- Double-click a card to focus on it. The canvas zooms onto it, with what it waits on in a scrolling column on the left and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. Clicks on cards wait a moment before selecting so a double-click doesn't open the inspector first.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks.
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
@@ -70,7 +71,8 @@ In `app/`:
 - `src/layout.ts`: ELK layout for one group or the top level.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
-- `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, notes, and the inspector.
+- `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
+- `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
 - `src/seed.json` and `src/seed.ts`: the Flipbook snapshot and its loader.
 
