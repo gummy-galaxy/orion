@@ -84,6 +84,8 @@ type ViewNode = AppNode | GhostNode
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
 const SIDEBAR_KEY = 'orion:sidebar'
+const COLOR_MODE_KEY = 'orion:color-mode'
+type ColorMode = 'light' | 'dark' | 'system'
 /**
  * Zoom below which a group reads as one body. Nested groups fold first as you
  * zoom out, so detail drops away from the inside.
@@ -153,6 +155,23 @@ function readFlag(key: string, fallback: boolean) {
 function writeFlag(key: string, value: boolean) {
   try {
     localStorage.setItem(key, value ? '1' : '0')
+  } catch {
+    // Only a remembered preference.
+  }
+}
+
+function readColorMode(): ColorMode {
+  try {
+    const mode = localStorage.getItem(COLOR_MODE_KEY)
+    return mode === 'light' || mode === 'dark' ? mode : 'system'
+  } catch {
+    return 'system'
+  }
+}
+
+function writeColorMode(mode: ColorMode) {
+  try {
+    localStorage.setItem(COLOR_MODE_KEY, mode)
   } catch {
     // Only a remembered preference.
   }
@@ -242,6 +261,7 @@ function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
+  const [colorMode, setColorMode] = useState(readColorMode)
   const [menu, setMenu] = useState<Menu | null>(null)
   const [tool, setTool] = useState<Tool>('select')
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -1528,7 +1548,25 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot, tool, paletteOpen, focus, exitFocus])
+  }, [
+    doGroup,
+    doUngroup,
+    selected,
+    actions,
+    root,
+    peeking,
+    map,
+    fitTo,
+    addNote,
+    viewportCenter,
+    pinned,
+    leaveRoot,
+    openRoot,
+    tool,
+    paletteOpen,
+    focus,
+    exitFocus,
+  ])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
@@ -1540,6 +1578,13 @@ function Canvas() {
   const toggleSidebar = (v: boolean) => {
     setSidebar(v)
     writeFlag(SIDEBAR_KEY, v)
+  }
+
+  const chooseColorMode = (mode: ColorMode) => {
+    setColorMode(mode)
+    if (mode === 'system') document.documentElement.removeAttribute('data-theme')
+    else document.documentElement.dataset.theme = mode
+    writeColorMode(mode)
   }
 
   return (
@@ -1557,6 +1602,8 @@ function Canvas() {
               workspaces={workspaces}
               switchWorkspace={switchWorkspace}
               newWorkspace={newWorkspace}
+              colorMode={colorMode}
+              chooseColorMode={chooseColorMode}
             />
           )}
           <div
@@ -1636,7 +1683,7 @@ function Canvas() {
                 zoomOnDoubleClick={false}
                 minZoom={0.06}
                 maxZoom={2}
-                colorMode="system"
+                colorMode={colorMode}
               >
                 <StickerLayer
                   stickers={placedStickers}
@@ -1795,7 +1842,8 @@ function Canvas() {
                       <>
                         V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
                         ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
-                        double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                        double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a
+                        card's edge to link{' '}
                         <button type="button" className="link" onClick={() => setShowHelp(false)}>
                           Hide
                         </button>
@@ -1871,7 +1919,18 @@ function Canvas() {
               />
             )}
           </div>
-          {paletteOpen && <Palette nodes={nodes} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
+          {paletteOpen && (
+            <Palette
+              nodes={nodes}
+              jumpTo={jumpTo}
+              open={actions.open}
+              close={() => setPaletteOpen(false)}
+              commands={(['light', 'dark', 'system'] as const).map((mode) => ({
+                label: `Color mode: ${mode[0].toUpperCase()}${mode.slice(1)}`,
+                run: () => chooseColorMode(mode),
+              }))}
+            />
+          )}
         </div>
       </ActionsContext.Provider>
     </DerivedContext.Provider>
