@@ -2,9 +2,10 @@
 
 A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with zoom levels that go from single cards out to whole bodies of work.
 
-This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs in the browser for now; a desktop shell comes later.
+This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs in the browser or in a desktop shell.
 
 - `app/`: the canvas.
+- `desktop/`: the Tauri desktop shell.
 - `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people.
 
 ## Data
@@ -23,6 +24,18 @@ npm run dev
 
 The dev server reads and writes the data file. The first time it runs without one, it carries over what the browser had saved, or starts from the seed.
 It runs `orion sync --json` five seconds after startup and every five minutes, using `cli/build/orion` and the same data folder as the app. Set `ORION_BIN` to use another CLI binary. Returning to the window also requests a sync, with a one-minute server throttle.
+
+## Desktop app
+
+Install Rust 1.90 or newer and the Xcode Command Line Tools, then run:
+
+```sh
+cd desktop
+npm install
+npm run dev
+```
+
+The development window uses the app's Vite server on port 5199, including its data endpoint and automatic sync. `npm run build` packages the canvas without that server. The packaged app currently saves to browser storage; it does not use `orion.json` or run automatic sync.
 
 ## Build the CLI
 
