@@ -13,6 +13,7 @@ const FILE: &str = "orion.json";
 const LOCK: &str = "orion.lock";
 const WORKSPACES: &str = "workspaces.json";
 const BACKUPS: &str = "backups";
+const MAX_IMAGE_BYTES: usize = 5 * 1024 * 1024;
 static SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -25,6 +26,76 @@ pub struct Workspace {
 pub struct WorkspaceList {
     pub active: String,
     pub workspaces: Vec<Workspace>,
+}
+
+#[derive(Serialize)]
+pub struct ImageAsset {
+    pub asset: String,
+    pub mime: String,
+}
+
+fn image_format(bytes: &[u8]) -> Option<(&'static str, &'static str)> {
+    if bytes.starts_with(&[137, 80, 78, 71, 13, 10, 26, 10]) {
+        Some(("png", "image/png"))
+    } else if bytes.starts_with(&[255, 216, 255]) {
+        Some(("jpg", "image/jpeg"))
+    } else if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
+        Some(("gif", "image/gif"))
+    } else if bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP") {
+        Some(("webp", "image/webp"))
+    } else {
+        None
+    }
+}
+
+fn import_image_at(root: &Path, workspace: &str, bytes: &[u8]) -> Result<ImageAsset, String> {
+    known_workspace(root, workspace)?;
+    if bytes.is_empty() || bytes.len() > MAX_IMAGE_BYTES {
+        return Err("image must be 5 MB or smaller".into());
+    }
+    let (extension, mime) = image_format(bytes).ok_or("image must be PNG, JPEG, GIF, or WebP")?;
+    let folder = workspace_dir(root, workspace).join("assets");
+    fs::create_dir_all(&folder).map_err(|err| error("create image assets", err))?;
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|err| error("clock", err))?
+        .as_nanos();
+    let sequence = SEQUENCE.fetch_add(1, Ordering::Relaxed);
+    let asset = format!("image-{now}-{sequence}.{extension}");
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(folder.join(&asset))
+        .map_err(|err| error("create image asset", err))?;
+    file.write_all(bytes)
+        .map_err(|err| error("write image asset", err))?;
+    file.sync_all()
+        .map_err(|err| error("sync image asset", err))?;
+    Ok(ImageAsset {
+        asset,
+        mime: mime.into(),
+    })
+}
+
+fn image_bytes_at(root: &Path, workspace: &str, asset: &str) -> Result<Vec<u8>, String> {
+    known_workspace(root, workspace)?;
+    let (stem, extension) = asset.rsplit_once('.').ok_or("invalid image asset")?;
+    if stem.is_empty()
+        || !stem
+            .bytes()
+            .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+        || !["png", "jpg", "gif", "webp"].contains(&extension)
+    {
+        return Err("invalid image asset".into());
+    }
+    let bytes = fs::read(workspace_dir(root, workspace).join("assets").join(asset))
+        .map_err(|err| error("read image asset", err))?;
+    if bytes.len() > MAX_IMAGE_BYTES
+        || image_format(&bytes).map(|format| format.0) != Some(extension)
+    {
+        return Err("invalid image asset".into());
+    }
+    Ok(bytes)
 }
 
 fn error(context: &str, err: impl std::fmt::Display) -> String {
@@ -384,6 +455,14 @@ pub fn save(workspace: &str, base_revision: Option<u64>, saved: Value) -> Result
     save_at(&data_dir()?, workspace, base_revision, saved)
 }
 
+pub fn import_image(workspace: &str, bytes: &[u8]) -> Result<ImageAsset, String> {
+    import_image_at(&data_dir()?, workspace, bytes)
+}
+
+pub fn image_bytes(workspace: &str, asset: &str) -> Result<Vec<u8>, String> {
+    image_bytes_at(&data_dir()?, workspace, asset)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -408,6 +487,20 @@ mod tests {
         fn drop(&mut self) {
             let _ = fs::remove_dir_all(&self.0);
         }
+    }
+
+    #[test]
+    fn image_assets_are_workspace_scoped_and_validate_names() {
+        let folder = TestDir::new();
+        let root = folder.path();
+        create_workspace_at(root, "ideas", "Ideas").unwrap();
+        let png = [137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3];
+        let imported = import_image_at(root, "ideas", &png).unwrap();
+        assert!(imported.asset.ends_with(".png"));
+        assert_eq!(image_bytes_at(root, "ideas", &imported.asset).unwrap(), png);
+        assert!(image_bytes_at(root, "default", &imported.asset).is_err());
+        assert!(image_bytes_at(root, "ideas", "../orion.json").is_err());
+        assert!(import_image_at(root, "ideas", b"not an image").is_err());
     }
 
     #[test]

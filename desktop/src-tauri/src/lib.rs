@@ -36,6 +36,16 @@ fn orion_save(
     store::save(&workspace, base_revision, saved)
 }
 
+#[tauri::command]
+fn orion_import_image(workspace: String, bytes: Vec<u8>) -> Result<store::ImageAsset, String> {
+    store::import_image(&workspace, &bytes)
+}
+
+#[tauri::command]
+fn orion_image_bytes(workspace: String, asset: String) -> Result<Vec<u8>, String> {
+    store::image_bytes(&workspace, &asset)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -45,7 +55,9 @@ pub fn run() {
             orion_create_workspace,
             orion_load,
             orion_revision,
-            orion_save
+            orion_save,
+            orion_import_image,
+            orion_image_bytes
         ])
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())

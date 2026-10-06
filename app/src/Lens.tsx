@@ -2,7 +2,7 @@ import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useStore } from '@xyflow/react'
 import { DerivedContext, type Derived } from './derive'
 import { STATUS_LABEL, WHO_LABEL, reviewStage, type AppNode, type ClusterNode, type GhostNode, type TaskNode } from './model'
-import { Lock, Ring, ServiceIcon } from './nodes'
+import { ImagePreview, Lock, Ring, ServiceIcon } from './nodes'
 import { SERVICE_NAME, badgeGroup, driver, taskTag, type Badge } from './sources'
 
 /** How many of a group's contents the lens lists before counting the rest. */
@@ -89,6 +89,10 @@ export function Lens() {
     <div ref={ref} className="lens-host" role="tooltip">
       {target.type === 'cluster' ? (
         <GroupLens group={target} nodes={nodes ?? []} d={d} />
+      ) : target.type === 'image' ? (
+        <div className="lens lens-image">
+          <ImagePreview data={target.data} />
+        </div>
       ) : (
         <TaskLens task={target} where={parent?.data.label} d={d} />
       )}
@@ -183,6 +187,14 @@ function GroupLens({ group, nodes, d }: { group: ClusterNode; nodes: AppNode[]; 
       {children.length > 0 && (
         <ul className="lens-items">
           {children.slice(0, LENS_ITEMS).map((n) => {
+            if (n.type === 'image')
+              return (
+                <li key={n.id} className="is-note">
+                  <span className="lens-dot" />
+                  <span>{n.data.label}</span>
+                  <span className="lens-count">Image</span>
+                </li>
+              )
             if (n.type === 'cluster') {
               const g = d.groups.get(n.id)
               return (

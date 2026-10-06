@@ -6,6 +6,7 @@ local process = require("@std/process")
 local defaultRun = require("@root/command")
 local github = require("@root/github")
 local graph = require("@root/graph")
+local images = require("@root/images")
 local ingest = require("@root/ingest")
 local refs = require("@root/refs")
 local render = require("@root/render")
@@ -63,6 +64,7 @@ local COMMAND_HELP: { [string]: string } = {
 	backups = "List saved Orion data revisions",
 	restore = "Restore a saved revision as a new revision",
 	workspace = "List, create, and choose workspaces",
+	image = "Add or list image nodes",
 	help = "Show help for Orion or one of its commands",
 }
 
@@ -230,6 +232,18 @@ local function createParsers(): Parsers
 			sub:add("name", "positional", { help = "Workspace name" })
 		end
 	end
+	local image = command("image")
+	local imageAdd = image:subcommand("add", { help = "Add an image node from a file" })
+	addHelpFlag(imageAdd)
+	addWorkspaceOption(imageAdd)
+	imageAdd:add("file", "positional", { help = "PNG, JPEG, GIF, or WebP file" })
+	imageAdd:add("label", "option", { help = "Image label" })
+	imageAdd:add("group", "option", { help = "Group to put the image in" })
+	addJsonFlag(imageAdd)
+	local imageList = image:subcommand("list", { help = "List image nodes" })
+	addHelpFlag(imageList)
+	addWorkspaceOption(imageList)
+	addJsonFlag(imageList)
 	command("help"):add("command", "positional", { help = "Command to describe" })
 
 	return { root = root, commands = commands }
@@ -493,6 +507,13 @@ local function execute(args: { string }, options: Dependencies?)
 	if workspaceParser then
 		selected = workspaceParser:get("workspace") or selected
 	end
+	local imageCommand: string? = nil
+	local imageParser: batteriesCli.Parser? = nil
+	if command == "image" then
+		imageCommand, imageParser = parser:selected()
+		assert(imageCommand and imageParser, "choose image add or list")
+		selected = imageParser:get("workspace") or selected
+	end
 	if command == "workspace" then
 		assert(workspaceCommand and workspaceParser, "choose list, create, use, or current")
 		if workspaceCommand == "create" then
@@ -530,6 +551,48 @@ local function execute(args: { string }, options: Dependencies?)
 	local active = store.activeWorkspace(root, selected, deps.workspace)
 	local dir = store.workspaceDir(root, active)
 	local asJson = parser:has("json")
+	if imageCommand and imageParser then
+		if imageCommand == "add" then
+			local item = images.add(
+				dir,
+				active,
+				required(imageParser, "file"),
+				imageParser:get("label"),
+				imageParser:get("group")
+			)
+			if imageParser:has("json") then
+				deps.write(json.serialize(
+					json.object({
+						id = item.id,
+						label = graph.label(item),
+						asset = item.data.asset,
+						workspace = active,
+					}),
+					true
+				))
+			else
+				deps.write(`Added image {item.id} · {graph.label(item)}`)
+			end
+		elseif imageCommand == "list" then
+			local items: json.Array = {}
+			local lines: { string } = {}
+			for _, item in store.load(dir).nodes do
+				if item.type == "image" then
+					table.insert(
+						items,
+						json.object({ id = item.id, label = graph.label(item), asset = item.data.asset })
+					)
+					table.insert(lines, `{item.id}  {graph.label(item)}`)
+				end
+			end
+			deps.write(
+				if imageParser:has("json")
+					then json.serialize(items, true)
+					else if #lines > 0 then table.concat(lines, "\n") else "No images."
+			)
+		end
+		return
+	end
 
 	if command == "path" then
 		deps.write(dir)
