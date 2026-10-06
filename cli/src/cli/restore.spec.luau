@@ -26,7 +26,7 @@ test.case("restore takes the newest matching backup and backs up the current rev
 	local settings = if restored.raw then json.asObject(restored.raw.settings) else nil
 	assert.eq(settings and settings.future, "kept")
 	local currentBackup: store.Backup?
-	for _, backup in store.backups(dir) do
+	for _, backup in store.getBackups(dir) do
 		if backup.revision == 0 then
 			currentBackup = backup
 		end
@@ -38,7 +38,7 @@ end)
 test.case("restore changes only the selected workspace", function(assert)
 	local root, run = testing.harness("workspace-restore")
 	run({ "workspace", "create", "roblox" })
-	local roblox = store.workspaceDir(root, "roblox")
+	local roblox = store.getWorkspaceDir(root, "roblox")
 	store.transaction(roblox, function(doc)
 		doc.settings.githubOwner = "changed"
 	end)
@@ -46,8 +46,8 @@ test.case("restore changes only the selected workspace", function(assert)
 	assert.strContains(run({ "restore", "0", "--workspace", "roblox" }), "as revision 2")
 	assert.eq(store.load(roblox).settings.githubOwner, "flipbook-labs")
 	assert.eq(store.load(root).revision, 0)
-	assert.eq(#store.backups(root), 0)
-	assert.eq(#store.backups(roblox), 2)
+	assert.eq(#store.getBackups(root), 0)
+	assert.eq(#store.getBackups(roblox), 2)
 end)
 
 test.case("restore reports a missing revision without changing data", function(assert)

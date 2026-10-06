@@ -53,22 +53,22 @@ export function dataDir() {
   return configured ? resolve(configured) : join(homedir(), 'Library', 'Application Support', 'Orion')
 }
 
-function isValidName(name: unknown): name is string {
+function isValidWorkspace(name: unknown): name is string {
   return typeof name === 'string' && /^[a-z0-9-]+$/.test(name)
 }
 
-function workspaceDir(root: string, name: string) {
+function getWorkspaceDir(root: string, name: string) {
   return name === 'default' ? root : join(root, 'workspaces', name)
 }
 
-function workspaces(root: string): WorkspaceList {
+function getWorkspaces(root: string): WorkspaceList {
   const file = join(root, WORKSPACES_FILE)
   if (!existsSync(file)) return { active: 'default', workspaces: [{ name: 'default', label: 'Default' }] }
   const value = JSON.parse(readFileSync(file, 'utf8')) as WorkspaceList
   if (!Array.isArray(value.workspaces)) throw new Error(`invalid workspace list at ${file}`)
   const entries: Workspace[] = [{ name: 'default', label: 'Default' }]
   for (const entry of value.workspaces) {
-    if (!isValidName(entry.name) || typeof entry.label !== 'string' || !entry.label) throw new Error(`invalid workspace in ${file}`)
+    if (!isValidWorkspace(entry.name) || typeof entry.label !== 'string' || !entry.label) throw new Error(`invalid workspace in ${file}`)
     if (entry.name === 'default') entries[0] = entry
     else if (!entries.some((known) => known.name === entry.name)) entries.push(entry)
   }
@@ -87,7 +87,7 @@ function writeWorkspaces(root: string, list: WorkspaceList) {
 }
 
 function knownWorkspace(list: WorkspaceList, name: unknown): asserts name is string {
-  if (!isValidName(name)) throw new Error(`invalid workspace name: ${String(name)}`)
+  if (!isValidWorkspace(name)) throw new Error(`invalid workspace name: ${String(name)}`)
   if (!list.workspaces.some((entry) => entry.name === name)) throw new Error(`unknown workspace: ${name}`)
 }
 
@@ -213,10 +213,10 @@ export function orionStore(): Plugin {
     apply: 'serve',
     configureServer(server) {
       mkdirSync(root, { recursive: true })
-      let list = workspaces(root)
+      let list = getWorkspaces(root)
       let active = list.active
       knownWorkspace(list, active)
-      let dir = workspaceDir(root, active)
+      let dir = getWorkspaceDir(root, active)
       mkdirSync(dir, { recursive: true })
       let status: SyncStatus = { state: 'idle' }
       let running = false
@@ -271,7 +271,7 @@ export function orionStore(): Plugin {
       let watcher = watchFolder(dir)
       const switchTo = (name: string) => {
         if (name === active) return
-        const nextDir = workspaceDir(root, name)
+        const nextDir = getWorkspaceDir(root, name)
         mkdirSync(nextDir, { recursive: true })
         const nextWatcher = watchFolder(nextDir)
         watcher.close()
@@ -287,7 +287,7 @@ export function orionStore(): Plugin {
       const manifestWatcher = watch(root, (_event, name) => {
         if (name !== WORKSPACES_FILE) return
         try {
-          list = workspaces(root)
+          list = getWorkspaces(root)
           const name = list.active
           knownWorkspace(list, name)
           switchTo(name)
@@ -300,7 +300,7 @@ export function orionStore(): Plugin {
         try {
           if (pathname === '/active' && req.method === 'POST') {
             const { name } = (await body(req)) as { name?: unknown }
-            list = workspaces(root)
+            list = getWorkspaces(root)
             knownWorkspace(list, name)
             list.active = name
             writeWorkspaces(root, list)
@@ -310,11 +310,11 @@ export function orionStore(): Plugin {
           if (pathname === '/' && req.method === 'GET') return reply(res, 200, { ...workspaces(root), active })
           if (pathname === '/' && req.method === 'POST') {
             const { name, label } = (await body(req)) as { name?: unknown; label?: unknown }
-            if (!isValidName(name)) throw new Error(`invalid workspace name: ${String(name)}`)
+            if (!isValidWorkspace(name)) throw new Error(`invalid workspace name: ${String(name)}`)
             if (label !== undefined && (typeof label !== 'string' || !label.trim())) throw new Error('label must be nonempty')
-            list = workspaces(root)
+            list = getWorkspaces(root)
             if (list.workspaces.some((entry) => entry.name === name)) throw new Error(`workspace already exists: ${name}`)
-            const folder = workspaceDir(root, name)
+            const folder = getWorkspaceDir(root, name)
             if (existsSync(folder)) throw new Error(`workspace folder already exists: ${folder}`)
             mkdirSync(folder, { recursive: true })
             await put(folder, { baseRevision: null, nodes: [], links: [] })

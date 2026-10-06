@@ -43,12 +43,12 @@ function store.isValidWorkspace(name: string): boolean
 	return name ~= "" and name:match("^[a-z0-9%-]+$") ~= nil
 end
 
-function store.workspaceDir(root: string, name: string): string
+function store.getWorkspaceDir(root: string, name: string): string
 	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
 	return if name == "default" then root else tostring(path.join(root, "workspaces", name))
 end
 
-function store.workspaces(root: string): WorkspaceList
+function store.getWorkspaces(root: string): WorkspaceList
 	local file = tostring(path.join(root, WORKSPACES))
 	local result: WorkspaceList = { active = "default", workspaces = { { name = "default", label = "Default" } } }
 	if not fs.exists(file) then
@@ -92,8 +92,8 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 	fs.move(temporary, file)
 end
 
-function store.activeWorkspace(root: string, requested: string?, configured: string?): string
-	local list = store.workspaces(root)
+function store.getActiveWorkspace(root: string, requested: string?, configured: string?): string
+	local list = store.getWorkspaces(root)
 	local name = requested or (if configured ~= "" then configured else nil) or list.active
 	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
 	for _, workspace in list.workspaces do
@@ -108,11 +108,11 @@ function store.createWorkspace(root: string, name: string, label: string?, owner
 	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
 	assert(label == nil or label:match("%S"), "label must be nonempty")
 	assert(owner == nil or owner ~= "", "owner must be nonempty")
-	local list = store.workspaces(root)
+	local list = store.getWorkspaces(root)
 	for _, workspace in list.workspaces do
 		assert(workspace.name ~= name, `workspace already exists: {name}`)
 	end
-	local dir = store.workspaceDir(root, name)
+	local dir = store.getWorkspaceDir(root, name)
 	assert(not fs.exists(dir), `workspace folder already exists: {dir}`)
 	store.write(dir, {
 		version = 1,
@@ -127,7 +127,7 @@ function store.createWorkspace(root: string, name: string, label: string?, owner
 end
 
 function store.useWorkspace(root: string, name: string): WorkspaceList
-	local list = store.workspaces(root)
+	local list = store.getWorkspaces(root)
 	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
 	local isKnown = false
 	for _, workspace in list.workspaces do
@@ -143,11 +143,11 @@ function store.filePath(dir: string): string
 	return tostring(path.join(dir, FILE))
 end
 
-function store.backupName(revision: number, now: number): string
+function store.getBackupName(revision: number, now: number): string
 	return `orion-r{revision}-{os.date("!%Y%m%dT%H%M%SZ", now)}.json`
 end
 
-function store.backups(dir: string): { Backup }
+function store.getBackups(dir: string): { Backup }
 	local folder = path.join(dir, BACKUPS)
 	local found: { Backup } = {}
 	if not fs.exists(folder) then
@@ -175,7 +175,7 @@ function store.pruneBackups(dir: string, now: number)
 	local today = os.date("!%Y%m%d", now) :: string
 	local current = os.date("!%Y%m%dT%H%M%SZ", now) :: string
 	local keptDays: { [string]: boolean } = {}
-	for _, backup in store.backups(dir) do
+	for _, backup in store.getBackups(dir) do
 		local day = backup.time:sub(1, 8)
 		local isInDailyRange = day >= dayCutoff and day <= today and backup.time <= current
 		if backup.time >= hourCutoff and backup.time <= current then
@@ -337,7 +337,7 @@ local function atomicWrite(file: string, contents: string)
 				fs.createDirectory(folder)
 			end
 			local previous = store.decode(fs.readFileToString(file))
-			local backup = path.join(folder, store.backupName(previous.revision, now))
+			local backup = path.join(folder, store.getBackupName(previous.revision, now))
 			if not fs.exists(backup) then
 				fs.copy(file, backup)
 			end
