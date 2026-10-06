@@ -59,8 +59,8 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 	return object
 end
 
-function render.groupJson(doc: Doc, derived: graph.Derived, group: Item): json.Object
-	local progress = graph.progress(doc, derived, group.id)
+function render.serializeGroup(doc: Doc, derived: graph.Derived, group: Item): json.Object
+	local progress = graph.countProgress(doc, derived, group.id)
 	local object: json.Object = json.object({
 		id = group.id,
 		label = graph.label(group),
@@ -72,8 +72,8 @@ function render.groupJson(doc: Doc, derived: graph.Derived, group: Item): json.O
 	return object
 end
 
-function render.groupLine(doc: Doc, derived: graph.Derived, group: Item): string
-	local progress = graph.progress(doc, derived, group.id)
+function render.formatGroupLine(doc: Doc, derived: graph.Derived, group: Item): string
+	local progress = graph.countProgress(doc, derived, group.id)
 	return `{graph.label(group)}  {progress.done}/{progress.total} done, {progress.ready} ready`
 end
 
@@ -153,7 +153,7 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 end
 
 -- Ids the app reported that are still on the canvas; the app can be a moment behind the file.
-local function selectedItems(doc: Doc, focus: Focus): { Item }
+local function findSelectedItems(doc: Doc, focus: Focus): { Item }
 	local items = {}
 	for _, id in focus.selected do
 		local item = graph.find(doc, id)
@@ -164,13 +164,13 @@ local function selectedItems(doc: Doc, focus: Focus): { Item }
 	return items
 end
 
-local function openGroup(doc: Doc, focus: Focus): Item?
+local function findOpenGroup(doc: Doc, focus: Focus): Item?
 	local item = if focus.open then graph.find(doc, focus.open) else nil
 	return if item and graph.isGroup(item) then item else nil
 end
 
 -- The open group's ancestors, outermost first.
-local function trail(doc: Doc, group: Item): { Item }
+local function findAncestorTrail(doc: Doc, group: Item): { Item }
 	local out = {}
 	for _, id in graph.ancestors(doc, group.id) do
 		local parent = graph.find(doc, id)
@@ -181,7 +181,7 @@ local function trail(doc: Doc, group: Item): { Item }
 	return out
 end
 
-function render.focusJson(doc: Doc, derived: graph.Derived, focus: Focus?): json.Object
+function render.serializeFocus(doc: Doc, derived: graph.Derived, focus: Focus?): json.Object
 	local object: json.Object = json.object({ appOpen = focus ~= nil })
 	local selected: json.Array = {}
 	object.selected = selected
@@ -189,19 +189,19 @@ function render.focusJson(doc: Doc, derived: graph.Derived, focus: Focus?): json
 		return object
 	end
 	object.updatedAt = focus.updatedAt
-	local group = openGroup(doc, focus)
+	local group = findOpenGroup(doc, focus)
 	if group then
-		local open = render.groupJson(doc, derived, group)
+		local open = render.serializeGroup(doc, derived, group)
 		local path: json.Array = {}
-		for _, parent in trail(doc, group) do
+		for _, parent in findAncestorTrail(doc, group) do
 			table.insert(path, json.object({ id = parent.id, label = graph.label(parent) }))
 		end
 		open.path = path
 		object.open = open
 	end
-	for _, item in selectedItems(doc, focus) do
+	for _, item in findSelectedItems(doc, focus) do
 		if graph.isGroup(item) then
-			local entry = render.groupJson(doc, derived, item)
+			local entry = render.serializeGroup(doc, derived, item)
 			entry.kind = "group"
 			table.insert(selected, entry)
 		else
@@ -211,30 +211,30 @@ function render.focusJson(doc: Doc, derived: graph.Derived, focus: Focus?): json
 	return object
 end
 
-function render.focus(doc: Doc, derived: graph.Derived, focus: Focus?): string
+function render.formatFocus(doc: Doc, derived: graph.Derived, focus: Focus?): string
 	if not focus then
 		return "The Orion app isn't open, so nothing is in focus."
 	end
 	local lines = {}
-	local group = openGroup(doc, focus)
+	local group = findOpenGroup(doc, focus)
 	if group then
 		local within = {}
-		for _, parent in trail(doc, group) do
+		for _, parent in findAncestorTrail(doc, group) do
 			table.insert(within, graph.label(parent))
 		end
 		local inside = if #within > 0 then `, inside {table.concat(within, " › ")}` else ""
-		table.insert(lines, `Open: {group.id}  {render.groupLine(doc, derived, group)}{inside}`)
+		table.insert(lines, `Open: {group.id}  {render.formatGroupLine(doc, derived, group)}{inside}`)
 	else
 		table.insert(lines, "Open: the top level")
 	end
-	local items = selectedItems(doc, focus)
+	local items = findSelectedItems(doc, focus)
 	if #items == 0 then
 		table.insert(lines, "Nothing selected.")
 	else
 		table.insert(lines, "Selected:")
 		for _, item in items do
 			if graph.isGroup(item) then
-				table.insert(lines, `  {pad("group", 9)}{pad(item.id, 24)}{render.groupLine(doc, derived, item)}`)
+				table.insert(lines, `  {pad("group", 9)}{pad(item.id, 24)}{render.formatGroupLine(doc, derived, item)}`)
 			else
 				table.insert(lines, `  {render.table(doc, derived, { item })}`)
 			end

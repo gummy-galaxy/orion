@@ -83,7 +83,7 @@ end
 export type Progress = { total: number, done: number, ready: number }
 
 -- Counts the work anywhere inside a group, leaving out notes.
-function graph.progress(doc: Doc, derived: Derived, groupId: string): Progress
+function graph.countProgress(doc: Doc, derived: Derived, groupId: string): Progress
 	local out = { total = 0, done = 0, ready = 0 }
 	for _, item in doc.nodes do
 		if item.type == "task" and not graph.isNote(item) and table.find(graph.ancestors(doc, item.id), groupId) then
