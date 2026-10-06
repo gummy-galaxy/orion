@@ -259,7 +259,7 @@ function Canvas() {
   // A double-clicked card keeps its trace while you pan around; any click lets it go.
   const [pinned, setPinned] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
-  const [showHelp, setShowHelp] = useState(true)
+  const [showHelp, setShowHelp] = useState(false)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
   const [motion, setMotion] = useState(readMotion)
@@ -711,7 +711,8 @@ function Canvas() {
       const wasZoom = previousZoom.current
       previousZoom.current = viewport.zoom
       if (!event || fitting.current) return
-      const userZoom = event.type === 'wheel' || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
+      const userZoom =
+        (event.type === 'wheel' && viewport.zoom !== wasZoom) || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
       if (peeking && !userZoom) {
         const group = map.get(root)
         const box = canvasRef.current?.getBoundingClientRect()
@@ -1637,8 +1638,7 @@ function Canvas() {
                 nodesDraggable={tool === 'select' || tool === 'comment'}
                 nodesConnectable={tool === 'select' || tool === 'comment'}
                 elementsSelectable={tool !== 'sticker'}
-                panOnScroll={false}
-                zoomOnScroll
+                panOnScroll
                 zoomOnPinch
                 multiSelectionKeyCode={['Meta', 'Shift']}
                 deleteKeyCode={null}
@@ -1814,9 +1814,10 @@ function Canvas() {
                   <div className="panel help">
                     {showHelp ? (
                       <>
-                        V select · H pan · C comment · hold S for stickers · drag to select · middle-drag or Space-drag to pan · scroll to zoom · ⌘ or
-                        ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open · double-click a card to hold
-                        its trace · hold Space over anything to read it up close · Esc to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                        V select · H pan · C comment · hold S for stickers · drag to select · middle-drag or Space-drag to pan · scroll to pan · pinch
+                        or ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
+                        double-click a card to hold its trace · hold Space over anything to read it up close · Esc to go up · N note · ⇧1 fit · drag
+                        from a card's edge to link{' '}
                         <button type="button" className="link" onClick={() => setShowHelp(false)}>
                           Hide
                         </button>
