@@ -7,7 +7,7 @@ export type CommandResult = {
 	stderr: string,
 }
 
-export type CommandRunner = ({ string }) -> CommandResult
+export type CommandRunner = ({ string }, string?) -> CommandResult
 
 export type Position = { x: number, y: number }
 
@@ -30,13 +30,25 @@ export type Link = {
 	origin: string?,
 }
 
+export type Source = {
+	id: string,
+	kind: string,
+	host: string?,
+	owners: { string }?,
+	include: { string }?,
+	exclude: { string }?,
+	command: { string }?,
+	browse: string?,
+}
+
 export type Doc = {
 	version: number,
 	revision: number,
-	settings: { githubOwner: string },
+	settings: { githubOwner: string, sources: { Source } },
 	nodes: { Item },
 	links: { Link },
 	github: json.Object?,
+	suggestions: json.Object?,
 	raw: json.Object?,
 }
 

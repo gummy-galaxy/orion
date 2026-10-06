@@ -27,6 +27,10 @@ Pass `--workspace <name>` to work in a specific workspace, or rely on the active
 
 Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set `blocked` or `deferred` only for reasons the graph can't show, since waiting on open work already reads as blocked.
 
+## Organizing work
+
+Run `orion suggest` to find related ungrouped cards, then review `orion suggestions`. Apply only suggestions that clearly fit with `orion suggestions apply <id...>`; use `orion suggestions dismiss <id...>` for the rest.
+
 ## Keeping pull requests current
 
 Cards with a repository and pull request number stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. Run `orion sync --dry-run` first when unsure.
@@ -34,6 +38,14 @@ Cards with a repository and pull request number stay in step with GitHub through
 `orion sync` adds pending review requests without cards to the Review requests group. It also records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. Link one to an existing card with `orion set <id> --repo <repo> --pr <n>`.
 
 `orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
+
+## Sources and ingestion
+
+Use `orion source list` to inspect configured GitHub, Jira, and hop sources. Add a GitHub source with `orion source add github --host <host> --owners <owner,owner>`; `--include` and `--exclude` also take comma-separated repository lists. Add Jira with `orion source add jira --command '<JSON array>' --browse <url>` and hop with `orion source add hop`. Keep credentials in `gh` and `acli`, never in the source command. Remove a source with `orion source remove <id>`.
+
+Run `orion ingest --dry-run` before `orion ingest`; add `--json` for structured counts or `--source <id>` to limit the run. Ingestion files new cards in Unsorted, updates existing cards in place, and leaves cards that are no longer returned alone. Place cards into outcome groups after reviewing them.
+
+Cards ingested from Jira use `data.external` with the source ID and issue key as their identity. It also holds the source URL, status, completion state, update time, and source-specific details. GitHub pull request fields and hop activity remain separate.
 
 ## Habits
 
