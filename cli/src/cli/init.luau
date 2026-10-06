@@ -11,6 +11,7 @@ local ingest = require("@root/cli/ingest")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local restore = require("@root/cli/restore")
+local serve = require("@root/cli/serve")
 local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggest = require("@root/cli/suggest")
@@ -45,6 +46,7 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
 	restore = restore,
+	serve = serve,
 	suggest = suggest,
 	suggestions = suggestions,
 	workspace = workspace,
@@ -79,7 +81,7 @@ Statuses: todo, active, review, blocked, deferred, done.
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
 Data lives in ~/Library/Application Support/Orion/orion.json; set ORION_DATA_DIR to change it.
-The Orion app watches that file, so changes show up while it's open.]]
+The Orion app talks to orion serve, which watches the data files.]]
 
 local function addHelpFlag(parser: batteriesCli.Parser)
 	parser:add("help", "flag", { help = "Show this help", aliases = { "h" } })
@@ -188,6 +190,7 @@ local function createParsers(): Parsers
 	addJsonFlag(command("matches"))
 	registeredCommand("backups")
 	registeredCommand("restore")
+	registeredCommand("serve")
 	registeredCommand("source")
 	registeredCommand("ingest")
 

@@ -11,7 +11,7 @@ This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs 
 
 ## Data
 
-The default canvas lives in `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another data root. The app and the CLI take the same lock before writing and bump a revision with each write, so both can be open at once. Changes from either side show up in the other within a moment.
+The default canvas lives in `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another data root. `orion serve` owns the app's data API, and all file access goes through the Luau CLI store. The app talks to that API over HTTP and receives changes over WebSocket. The CLI takes the same lock for every write, so the app and other commands can be open at once.
 
 ### Workspaces
 
@@ -19,7 +19,7 @@ The original canvas is the `default` workspace in the data root. Other workspace
 
 Use `orion workspace list`, `orion workspace create <name> [--label <label>] [--owner <github owner>]`, and `orion workspace use <name>` to manage them. `orion workspace current` shows the selected workspace, and `orion path` prints its folder. The app's sidebar can also create and switch workspaces. Pass `--workspace <name>` to a CLI command to use one without changing the active workspace; `ORION_WORKSPACE` provides the same choice for the environment. The command option takes precedence, followed by the environment, `workspaces.json`, and `default`.
 
-Before replacing an existing data file, both writers copy it to `backups/orion-r<revision>-<UTC timestamp>.json` in that workspace's folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list the selected workspace's backups newest first, and `orion restore <revision>` to recover one in that workspace as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
+Before replacing an existing data file, the CLI store copies it to `backups/orion-r<revision>-<UTC timestamp>.json` in that workspace's folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list the selected workspace's backups newest first, and `orion restore <revision>` to recover one in that workspace as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
 
 ## Run the app
 
@@ -29,8 +29,9 @@ npm install
 npm run dev
 ```
 
-The dev server reads and writes the active workspace's data file. When the default workspace has no file, it carries over what the browser had saved, or starts from the seed. Other new workspaces start empty.
-It runs `orion sync --json` five seconds after startup and every five minutes, using `cli/build/orion` and the same data folder as the app. Set `ORION_BIN` to use another CLI binary. Returning to the window also requests a sync, with a one-minute server throttle.
+Build the CLI first with `cd cli && lute run build`. Vite starts `orion serve` and proxies `/api` to it. Set `ORION_BIN` to use another CLI binary. If the binary is missing, Vite still runs and the app falls back to browser storage.
+
+`orion serve` reads and writes the active workspace's data file. Run it directly with `orion serve [--host 127.0.0.1] [--port 5198] [--static app/dist]`; `--static` serves a built app with an `index.html` fallback. When the default workspace has no file, the app carries over what the browser had saved, or starts from the seed. Other new workspaces start empty. The server syncs five seconds after startup and every five minutes. Returning to the window also requests a sync, with a one-minute throttle.
 
 ## Desktop app
 
@@ -42,7 +43,7 @@ npm install
 npm run dev
 ```
 
-The development window uses the app's Vite server on port 5199, including its data endpoint and automatic sync. `npm run build` packages the canvas without that server. The packaged app currently saves to browser storage; it does not use `orion.json` or run automatic sync.
+The development window uses the app's Vite server on port 5199, which proxies the data API and WebSocket to `orion serve`. `npm run build` packages the canvas without that server. The packaged app currently saves to browser storage; it does not use `orion.json` or run automatic sync.
 
 ## Build the CLI
 
@@ -108,7 +109,7 @@ The toolbar shows when GitHub was last synced, or a sync error; click the status
 
 In `app/`:
 
-- `server/store.ts`: the dev-server endpoint for the data file, its lock, and change notifications.
+- `vite.config.ts`: starts `orion serve` for development and proxies its API.
 - `src/persist.ts`: loading, saving, and reacting to changes from other writers.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: ELK layout for one group or the top level.
@@ -122,6 +123,7 @@ In `cli/src/`:
 
 - `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
 - `store.luau`: reading, locking, and writing the data file.
+- `server/`: HTTP routes, WebSocket events, file watching, and sync scheduling for `orion serve`.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
 - `github.luau`: looking up pull requests and mapping their state onto cards.
 - `render.luau`: text and JSON output.

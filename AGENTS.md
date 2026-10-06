@@ -1,6 +1,6 @@
 # Orion agent guide
 
-Orion is a canvas of work items, notes, and groups linked by dependencies. Use the `orion` CLI to read and change it. Never edit `orion.json` directly: the CLI takes the lock the app expects, and the app picks up every change while it's open.
+Orion is a canvas of work items, notes, and groups linked by dependencies. Use the `orion` CLI to read and change it. Never edit `orion.json` directly: the Luau CLI owns the data and its lock. The app talks to `orion serve` over HTTP and WebSocket and picks up every change while it's open.
 
 ## Reading the canvas
 
