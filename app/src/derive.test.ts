@@ -17,11 +17,11 @@ describe('deriveWork flow', () => {
     expect(flow.get('b')).toBe('held')
   })
 
-  it('holds after blocked or deferred work and settles after done work', () => {
+  it('holds after blocked or deferred work and keeps moving after done work', () => {
     const { flow } = deriveWork([task('blocked', 'blocked'), task('deferred', 'deferred'), task('done', 'done')], [])
     expect(flow.get('blocked')).toBe('held')
     expect(flow.get('deferred')).toBe('held')
-    expect(flow.get('done')).toBe('done')
+    expect(flow.get('done')).toBe('live')
   })
 
   it('passes flow through notes', () => {

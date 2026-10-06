@@ -2,8 +2,8 @@ import { createContext } from 'react'
 import { descendants, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'dim'
-/** How a link out of a card reads: moving work, open work that's stuck, or settled. */
-export type Flow = 'live' | 'held' | 'done'
+/** How a link out of a card reads: moving, or held behind work that's stuck. */
+export type Flow = 'live' | 'held'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
 
 export type Derived = {
@@ -81,7 +81,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     else status.set(t.id, s === 'todo' ? 'ready' : s)
   }
 
-  // Links out of open work move only while that work can. Notes pass on whatever reaches them.
+  // Links move unless they come out of work that's stuck. Notes pass on whatever reaches them.
   const flow = new Map<string, Flow>()
   const flowOf = (id: string, seen = new Set<string>()): Flow => {
     const known = flow.get(id)
@@ -90,7 +90,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     seen.add(id)
     const s = status.get(id)
     let f: Flow
-    if (s === 'done') f = 'done'
+    if (s === 'done') f = 'live'
     else if (isNote(id)) f = (preds.get(id) ?? []).some((p) => flowOf(p, seen) === 'live') ? 'live' : 'held'
     else f = s === 'blocked' || s === 'deferred' ? 'held' : 'live'
     flow.set(id, f)

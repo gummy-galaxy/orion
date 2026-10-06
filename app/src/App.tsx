@@ -140,9 +140,7 @@ const STICKER_TILT = 14
 const STICKER_FRESH_MS = 700
 /** How far above the toolbar the sticker wheel opens. */
 const WHEEL_LIFT = 140
-const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held', done: '--edge' }
-/** A bundle of links reads as its most active member. */
-const FLOW_RANK: Record<Flow, number> = { done: 0, held: 1, live: 2 }
+const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held' }
 
 type Menu = {
   x: number
@@ -929,9 +927,10 @@ function Canvas() {
         out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(flow) : undefined })
       } else if (l.kind === 'blocks') {
         const k = a + '>' + b
-        const e = agg.get(k) ?? { a, b, count: 0, flow: 'done' }
+        const e = agg.get(k) ?? { a, b, count: 0, flow: 'held' }
         e.count++
-        if (FLOW_RANK[flow] > FLOW_RANK[e.flow]) e.flow = flow
+        // A bundle moves if any of its links do.
+        if (flow === 'live') e.flow = 'live'
         agg.set(k, e)
       }
     }

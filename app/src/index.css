@@ -369,7 +369,7 @@ select {
     0 0 0 1px var(--accent);
 }
 
-/* Edges: motion only where work is waiting */
+/* Edges: motion everywhere but behind stuck work */
 .react-flow__edge .react-flow__edge-path {
   stroke: var(--edge);
   stroke-width: 1.3;
@@ -384,9 +384,6 @@ select {
 .react-flow__edge.e-held .react-flow__edge-path {
   stroke: var(--edge-held);
 }
-.react-flow__edge.e-done .react-flow__edge-path {
-  opacity: 0.75;
-}
 .react-flow__edge.e-rel .react-flow__edge-path {
   stroke: var(--muted);
   stroke-width: 1.6;
@@ -399,11 +396,8 @@ select {
 }
 /* Traced links keep their own look and stand out by weight while every other link fades. */
 .react-flow__edge:is(.tr-e-up, .tr-e-down) .react-flow__edge-path {
-  stroke-width: 2.2;
-  opacity: 1;
-}
-.react-flow__edge:is(.tr-e-up, .tr-e-down):is(.e-live, .e-held) .react-flow__edge-path {
   stroke-width: 2.6;
+  opacity: 1;
 }
 .react-flow__edge.tr-e-dim {
   opacity: 0.1;
@@ -1918,9 +1912,6 @@ kbd {
 }
 .focus-arrow.held {
   fill: var(--edge-held);
-}
-.focus-arrow.done {
-  fill: var(--edge);
 }
 .focus-details {
   position: absolute;

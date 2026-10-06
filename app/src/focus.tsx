@@ -147,7 +147,7 @@ export function FocusView({
     <div className="focus" ref={root} onAnimationEnd={measure}>
       <svg width={size.w} height={size.h} aria-hidden="true">
         <defs>
-          {['live', 'held', 'done'].map((kind) => (
+          {['live', 'held'].map((kind) => (
             <marker
               key={kind}
               id={`focus-arrow-${kind}`}
