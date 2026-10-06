@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Artemis Arrow icon study</title>
+  <desc id="desc">An arrow cuts through a crescent of leaves and three waypoints.</desc>
+  <defs>
+    <linearGradient id="forest" x1="58" y1="28" x2="471" y2="488" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#184833"/>
+      <stop offset=".55" stop-color="#27714E"/>
+      <stop offset="1" stop-color="#123C37"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="135" y1="128" x2="373" y2="394" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#DFF0AA"/>
+      <stop offset="1" stop-color="#F5D79C"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="111" fill="url(#forest)"/>
+  <rect x="17" y="17" width="478" height="478" rx="110" stroke="#D8F2BF" stroke-opacity=".28" stroke-width="2"/>
+  <path d="M335 117a156 156 0 1 0 58 267c-73 28-151-7-180-72-31-68 4-153 122-195Z" fill="url(#moon)"/>
+  <path d="m113 360 241-218" stroke="#124736" stroke-width="30" stroke-linecap="round"/>
+  <path d="m113 360 241-218" stroke="#F8F0BA" stroke-width="15" stroke-linecap="round"/>
+  <path d="m326 117 80-13-22 76-17-39-41-24Z" fill="#E8F6AD"/>
+  <path d="m113 360 4-63 52 11-56 52ZM113 360l60-2-2 57-58-55Z" fill="#B7D68B"/>
+  <circle cx="209" cy="275" r="15" fill="#185741" stroke="#F8E9AE" stroke-width="7"/>
+  <circle cx="268" cy="222" r="15" fill="#185741" stroke="#F8E9AE" stroke-width="7"/>
+  <circle cx="327" cy="169" r="15" fill="#185741" stroke="#F8E9AE" stroke-width="7"/>
+  <path d="M99 147c29-27 52-31 81-27-11 28-33 44-76 49M402 345c-29 27-52 31-81 27 11-28 33-44 76-49" fill="#A6D184" opacity=".67"/>
+</svg>
