@@ -2,6 +2,8 @@
 
 Six square vector studies for three possible product names:
 
+The direction and decision criteria are in [BRIEF.md](BRIEF.md).
+
 - **Orion:** Belt / constellation and Orbit / network
 - **Star Charter:** Folded route and Compass rose
 - **Artemis:** Bow / arrow and Moon / arrow
