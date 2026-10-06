@@ -40,36 +40,11 @@ const INSET = 100, BOX = SIZE - INSET * 2, RADIUS = 185
 function squircle(ctx) {
   ctx.beginPath(); ctx.roundRect(INSET, INSET, BOX, BOX, RADIUS)
 }
-// Orion's belt: Alnitak, Alnilam, and Mintaka, in box units (0..1) with core radius.
-const STARS = [[0.25, 0.67, 0.034], [0.5, 0.5, 0.04], [0.75, 0.33, 0.031]]
-function sparkle(ctx, x, y, r) {
-  const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 5)
-  glow.addColorStop(0, 'rgba(255,255,255,0.5)'); glow.addColorStop(0.4, 'rgba(255,255,255,0.12)'); glow.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(x, y, r * 5, 0, Math.PI * 2); ctx.fill()
-  // Thin diffraction spikes, long on the vertical, under a round core.
-  ctx.fillStyle = 'rgba(255,255,255,0.9)'
-  for (const [dx, dy, length] of [[0, -1, 5.5], [0, 1, 5.5], [1, 0, 4], [-1, 0, 4]]) {
-    const half = r * 0.22
-    ctx.beginPath()
-    ctx.moveTo(x + dy * half, y - dx * half)
-    ctx.lineTo(x + dx * r * length, y + dy * r * length)
-    ctx.lineTo(x - dy * half, y + dx * half)
-    ctx.fill()
-  }
-  ctx.fillStyle = '#fff'
-  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill()
-}
-function mark(ctx) {
-  const at = ([x, y]) => [INSET + x * BOX, INSET + y * BOX]
-  // The belt drawn as linked work: a line from each star to the next, under the stars.
-  ctx.save()
-  ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = BOX * 0.012; ctx.lineCap = 'round'
-  ctx.beginPath(); ctx.moveTo(...at(STARS[0]))
-  for (const star of STARS.slice(1)) ctx.lineTo(...at(star))
-  ctx.stroke()
-  ctx.restore()
-  for (const [x, y, r] of STARS) sparkle(ctx, INSET + x * BOX, INSET + y * BOX, r * BOX)
-}
+// The star motif lives in stars.svg so it can be edited in Figma; it's drawn over the background as is.
+const stars = new Image()
+stars.src = '/stars.svg'
+await stars.decode()
+
 for (const v of variants) {
   mount.setUniforms(uniforms(v)); mount.setFrame(v.frame)
   await frame(); await frame()
@@ -83,10 +58,16 @@ for (const v of variants) {
   const shade = ctx.createRadialGradient(SIZE / 2, SIZE / 2, BOX * 0.2, SIZE / 2, SIZE / 2, BOX * 0.75)
   shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, 'rgba(0,0,0,0.35)')
   ctx.fillStyle = shade; ctx.fillRect(INSET, INSET, BOX, BOX)
-  mark(ctx); ctx.restore()
-  const fig = document.createElement('figure'); fig.id = v.name
-  const cap = document.createElement('figcaption'); cap.textContent = v.name
-  fig.append(out, cap); document.body.append(fig)
+  ctx.restore()
+  // The background layer on its own, then the full icon with the stars on top.
+  const background = document.createElement('canvas'); background.width = background.height = SIZE; background.className = 'out'
+  background.getContext('2d').drawImage(out, 0, 0)
+  ctx.save(); squircle(ctx); ctx.clip(); ctx.drawImage(stars, 0, 0, SIZE, SIZE); ctx.restore()
+  for (const [id, canvas] of [[v.name, out], [`${v.name}-background`, background]]) {
+    const fig = document.createElement('figure'); fig.id = id
+    const cap = document.createElement('figcaption'); cap.textContent = id
+    fig.append(canvas, cap); document.body.append(fig)
+  }
 }
 window.saveIcon = async (name) => {
   const out = document.querySelector(`#${name} canvas`)

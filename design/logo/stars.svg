@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.5"/>
+      <stop offset="0.4" stop-color="#fff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <polyline id="belt" points="306,652.08 512,512 718,371.92" fill="none" stroke="#fff" stroke-opacity="0.75" stroke-width="9.89" stroke-linecap="round" stroke-linejoin="round"/>
+  <g id="alnitak">
+    <circle cx="306" cy="652.08" r="140.08" fill="url(#glow)"/>
+    <path d="M299.84 652.08 L306 497.99 L312.16 652.08 Z" fill="#fff" fill-opacity="0.9"/>
+    <path d="M312.16 652.08 L306 806.17 L299.84 652.08 Z" fill="#fff" fill-opacity="0.9"/>
+    <path d="M306 645.92 L418.06 652.08 L306 658.24 Z" fill="#fff" fill-opacity="0.9"/>
+    <path d="M306 658.24 L193.94 652.08 L306 645.92 Z" fill="#fff" fill-opacity="0.9"/>
+    <circle cx="306" cy="652.08" r="28.02" fill="#fff"/>
+  </g>
+  <g id="alnilam">
+    <circle cx="512" cy="512" r="164.8" fill="url(#glow)"/>
+    <path d="M504.75 512 L512 330.72 L519.25 512 Z" fill="#fff" fill-opacity="0.9"/>
+    <path d="M519.25 512 L512 693.28 L504.75 512 Z" fill="#fff" fill-opacity="0.9"/>
+    <path d="M512 504.75 L643.84 512 L512 519.25 Z" fill="#fff" fill-opacity="0.9"/>
+    <path d="M512 519.25 L380.16 512 L512 504.75 Z" fill="#fff" fill-opacity="0.9"/>
+    <circle cx="512" cy="512" r="32.96" fill="#fff"/>
+  </g>
+  <g id="mintaka">
+    <circle cx="718" cy="371.92" r="127.72" fill="url(#glow)"/>
+    <path d="M712.38 371.92 L718 231.43 L723.62 371.92 Z" fill="#fff" fill-opacity="0.9"/>
+    <path d="M723.62 371.92 L718 512.41 L712.38 371.92 Z" fill="#fff" fill-opacity="0.9"/>
+    <path d="M718 366.3 L820.18 371.92 L718 377.54 Z" fill="#fff" fill-opacity="0.9"/>
+    <path d="M718 377.54 L615.82 371.92 L718 366.3 Z" fill="#fff" fill-opacity="0.9"/>
+    <circle cx="718" cy="371.92" r="25.54" fill="#fff"/>
+  </g>
+</svg>

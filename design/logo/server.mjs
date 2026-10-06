@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, extname } from 'node:path'
 const root = process.cwd()
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.png': 'image/png' }
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml' }
 createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x')
   if (req.method === 'POST' && url.pathname === '/save') {
