@@ -36,11 +36,11 @@ type Result = {
 
 local ingest = {}
 
-local function str(value: json.Value): string?
+local function getString(value: json.Value): string?
 	return if type(value) == "string" then value else nil
 end
 
-local function commandJson(run: CommandRunner, argv: { string }): json.Value
+local function getCommandJson(run: CommandRunner, argv: { string }): json.Value
 	local result = run(argv)
 	assert(result.ok, `{argv[1]} failed: {result.stderr}`)
 	local ok, value = pcall(json.deserialize, result.stdout)
@@ -48,7 +48,7 @@ local function commandJson(run: CommandRunner, argv: { string }): json.Value
 	return value :: json.Value
 end
 
-local function jiraIssues(value: json.Value): { JiraIssue }
+local function getJiraIssues(value: json.Value): { JiraIssue }
 	local root = json.asObject(value)
 	local array = if root then json.asArray(root.issues) else json.asArray(value)
 	assert(array, "Jira response must be an array or contain issues")
@@ -56,12 +56,13 @@ local function jiraIssues(value: json.Value): { JiraIssue }
 	for _, raw in array do
 		local issue = json.asObject(raw)
 		local fields = if issue then json.asObject(issue.fields) else nil
-		local key = if issue then str(issue.key) else nil
-		local summary = (if issue then str(issue.summary) else nil) or (if fields then str(fields.summary) else nil)
+		local key = if issue then getString(issue.key) else nil
+		local summary = (if issue then getString(issue.summary) else nil)
+			or (if fields then getString(fields.summary) else nil)
 		local status = if fields then json.asObject(fields.status) else nil
 		local category = if status then json.asObject(status.statusCategory) else nil
-		local categoryKey = (if issue then str(issue.statusCategory) else nil)
-			or (if category then str(category.key) else nil)
+		local categoryKey = (if issue then getString(issue.statusCategory) else nil)
+			or (if category then getString(category.key) else nil)
 		local issueType = if fields then json.asObject(fields.issuetype) else nil
 		if not key or not summary then
 			continue
@@ -71,24 +72,29 @@ local function jiraIssues(value: json.Value): { JiraIssue }
 		table.insert(out, {
 			key = key,
 			summary = summary,
-			status = (if issue then str(issue.status) else nil) or (if status then str(status.name) else nil) or "",
+			status = (if issue then getString(issue.status) else nil) or (if status
+				then getString(status.name)
+				else nil) or "",
 			category = if categoryKey == "done" or categoryKey == "indeterminate" then categoryKey else "new",
-			issueType = (if issue then str(issue.type) else nil)
-				or (if issueType then str(issueType.name) else nil)
-				or "",
-			epicKey = (if issue then str(issue.epicKey) else nil) or (if epic then str(epic.key) else nil),
-			epicSummary = (if issue then str(issue.epicSummary) else nil) or (if epic
-				then str(epic.summary) or str(epic.name) or (if epicFields then str(epicFields.summary) else nil)
+			issueType = (if issue then getString(issue.type) else nil) or (if issueType
+				then getString(issueType.name)
+				else nil) or "",
+			epicKey = (if issue then getString(issue.epicKey) else nil) or (if epic then getString(epic.key) else nil),
+			epicSummary = (if issue then getString(issue.epicSummary) else nil) or (if epic
+				then getString(epic.summary) or getString(epic.name) or (if epicFields
+					then getString(epicFields.summary)
+					else nil)
 				else nil),
-			updated = (if issue then str(issue.updatedAt) else nil) or (if fields then str(fields.updated) else nil),
+			updated = (if issue then getString(issue.updatedAt) else nil)
+				or (if fields then getString(fields.updated) else nil),
 		})
 	end
 	return out
 end
 
-local function hopData(run: CommandRunner, source: Source): ({ Worktree }, { Session })
+local function getHopData(run: CommandRunner, source: Source): ({ Worktree }, { Session })
 	local binary = assert(source.command and source.command[1], "hop source needs a command")
-	local list = json.asObject(commandJson(run, { binary, "list", "--json" }))
+	local list = json.asObject(getCommandJson(run, { binary, "list", "--json" }))
 	assert(list, "hop list returned invalid JSON")
 	local worktrees: { Worktree } = {}
 	for _, raw in json.asArray(list.worktrees) or {} do
@@ -96,9 +102,9 @@ local function hopData(run: CommandRunner, source: Source): ({ Worktree }, { Ses
 		local repository = if tree then json.asObject(tree.repository) else nil
 		local repo: string? = nil
 		if repository then
-			repo = str(repository.remote) or str(repository.name)
+			repo = getString(repository.remote) or getString(repository.name)
 		end
-		local branch = if tree then str(tree.branch) else nil
+		local branch = if tree then getString(tree.branch) else nil
 		if tree and repo and branch then
 			table.insert(worktrees, {
 				repo = repo :: string,
@@ -108,14 +114,14 @@ local function hopData(run: CommandRunner, source: Source): ({ Worktree }, { Ses
 			})
 		end
 	end
-	local recent = json.asArray(commandJson(run, { binary, "recent", "--json", "--limit", "50" }))
+	local recent = json.asArray(getCommandJson(run, { binary, "recent", "--json", "--limit", "50" }))
 	assert(recent, "hop recent returned invalid JSON")
 	local sessions: { Session } = {}
 	for _, raw in recent do
 		local session = json.asObject(raw)
-		local repo = if session then str(session.repository) else nil
-		local branch = if session then str(session.branch) else nil
-		local title = if session then str(session.title) else nil
+		local repo = if session then getString(session.repository) else nil
+		local branch = if session then getString(session.branch) else nil
+		local title = if session then getString(session.title) else nil
 		if session and repo and branch and title then
 			table.insert(sessions, {
 				repo = repo,
@@ -128,7 +134,7 @@ local function hopData(run: CommandRunner, source: Source): ({ Worktree }, { Ses
 	return worktrees, sessions
 end
 
-local function unix(iso: string): number
+local function getUnix(iso: string): number
 	local year, month, day, hour, minute, second = iso:match("^(%d+)%-(%d+)%-(%d+)T(%d+):(%d+):(%d+)")
 	if not year then
 		return os.time()
@@ -151,7 +157,7 @@ end
 
 function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: string?): { Result }
 	local results: { Result } = {}
-	local since = os.date("!%Y-%m-%d", unix(now) - 14 * 86400)
+	local since = os.date("!%Y-%m-%d", getUnix(now) - 14 * 86400)
 	local found = false
 	for _, source in doc.settings.sources do
 		if selected and source.id ~= selected then
@@ -161,7 +167,7 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 		local result: Result = { source = source, report = { id = source.id, added = 0, updated = 0, linked = 0 } }
 		local ok, err = pcall(function()
 			if source.kind == "github" then
-				result.pulls, result.issues, result.viewer = github.involved(
+				result.pulls, result.issues, result.viewer = github.getInvolved(
 					run,
 					assert(source.host),
 					assert(source.owners),
@@ -170,9 +176,9 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 					source.exclude
 				)
 			elseif source.kind == "jira" then
-				result.jira = jiraIssues(commandJson(run, assert(source.command)))
+				result.jira = getJiraIssues(getCommandJson(run, assert(source.command)))
 			elseif source.kind == "hop" then
-				result.worktrees, result.sessions = hopData(run, source)
+				result.worktrees, result.sessions = getHopData(run, source)
 			else
 				error(`unknown source kind {source.kind}`)
 			end
@@ -186,21 +192,21 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 	return results
 end
 
-local function repoName(doc: Doc, owner: string, name: string): string
+local function getRepoName(doc: Doc, owner: string, name: string): string
 	return if owner:lower() == doc.settings.githubOwner:lower() then name else `{owner}/{name}`
 end
 
-local function fullRepo(doc: Doc, repo: string): string
+local function getFullRepo(doc: Doc, repo: string): string
 	return (if repo:find("/", 1, true) then repo else `{doc.settings.githubOwner}/{repo}`):lower()
 end
 
-local function itemRepo(doc: Doc, item: Item): string?
-	local repo = str(item.data.repo)
-	return if repo then fullRepo(doc, repo) else nil
+local function getItemRepo(doc: Doc, item: Item): string?
+	local repo = getString(item.data.repo)
+	return if repo then getFullRepo(doc, repo) else nil
 end
 
-local function itemHost(item: Item): string
-	return str(item.data.host) or "github.com"
+local function getItemHost(item: Item): string
+	return getString(item.data.host) or "github.com"
 end
 
 local function findPull(doc: Doc, repo: string, number: number, host: string): Item?
@@ -208,8 +214,8 @@ local function findPull(doc: Doc, repo: string, number: number, host: string): I
 		if
 			item.type == "task"
 			and item.data.pr == number
-			and itemRepo(doc, item) == repo
-			and itemHost(item) == host
+			and getItemRepo(doc, item) == repo
+			and getItemHost(item) == host
 		then
 			return item
 		end
@@ -222,8 +228,8 @@ local function findIssue(doc: Doc, repo: string, number: number, host: string): 
 		if
 			item.type == "task"
 			and item.data.issue == number
-			and itemRepo(doc, item) == repo
-			and itemHost(item) == host
+			and getItemRepo(doc, item) == repo
+			and getItemHost(item) == host
 		then
 			return item
 		end
@@ -235,7 +241,7 @@ local function findBranch(doc: Doc, repo: string, branch: string): Item?
 	for _, item in doc.nodes do
 		if
 			item.type == "task"
-			and itemRepo(doc, item) == repo
+			and getItemRepo(doc, item) == repo
 			and item.data.branch == branch
 			and item.data.issue == nil
 		then
@@ -245,7 +251,7 @@ local function findBranch(doc: Doc, repo: string, branch: string): Item?
 	return nil
 end
 
-local function sourceOn(item: Item, id: string)
+local function markSourceOn(item: Item, id: string)
 	local sources = json.asArray(item.data.sources) or {}
 	if not table.find(sources, id) then
 		table.insert(sources, id)
@@ -253,7 +259,7 @@ local function sourceOn(item: Item, id: string)
 	item.data.sources = sources
 end
 
-local function newItem(doc: Doc, label: string, repo: string?, status: string, who: string?): Item
+local function createItem(doc: Doc, label: string, repo: string?, status: string, who: string?): Item
 	if not graph.find(doc, "unsorted") then
 		table.insert(doc.nodes, {
 			id = "unsorted",
@@ -270,7 +276,7 @@ local function newItem(doc: Doc, label: string, repo: string?, status: string, w
 	return graph.addItem(doc, label, { group = "unsorted", repo = repo, status = status, who = who })
 end
 
-local function mark(report: SourceReport, existing: Item?)
+local function markItem(report: SourceReport, existing: Item?)
 	if existing then
 		report.updated += 1
 	else
@@ -291,12 +297,12 @@ local function linkMention(doc: Doc, from: Item, to: Item, report: SourceReport)
 	report.linked += 1
 end
 
-local function mentionLinks(doc: Doc, pull: github.PullState, item: Item, report: SourceReport)
+local function linkMentions(doc: Doc, pull: github.PullState, item: Item, report: SourceReport)
 	local text = `{pull.title} {pull.branch or ""} {pull.body or ""}`
 	for key in text:upper():gmatch("%f[%w][A-Z][A-Z0-9]*%-%d+%f[^%w]") do
 		for _, other in doc.nodes do
 			local jira = json.asObject(other.data.jira)
-			if jira and str(jira.key) == key then
+			if jira and getString(jira.key) == key then
 				linkMention(doc, other, item, report)
 			end
 		end
@@ -335,45 +341,51 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			if step and step.data.pr then
 				step = nil
 			end
-			local item = existing or step or newItem(doc, pull.title, repoName(doc, pull.owner, pull.name), "todo", nil)
-			mark(result.report, existing or step)
-			local status, who =
-				github.desired(pull, str(item.data.status) or "todo", str(item.data.who), assert(result.viewer))
+			local item = existing
+				or step
+				or createItem(doc, pull.title, getRepoName(doc, pull.owner, pull.name), "todo", nil)
+			markItem(result.report, existing or step)
+			local status, who = github.getDesired(
+				pull,
+				getString(item.data.status) or "todo",
+				getString(item.data.who),
+				assert(result.viewer)
+			)
 			item.data.label = pull.title
 			item.data.itemKind = "pr"
-			item.data.repo = repoName(doc, pull.owner, pull.name)
+			item.data.repo = getRepoName(doc, pull.owner, pull.name)
 			item.data.pr = pull.number
 			item.data.status = status
 			item.data.who = who
 			item.data.branch = pull.branch or item.data.branch
 			item.data.host = if host ~= "github.com" then host else nil
-			item.data.github = github.recorded(pull, assert(result.viewer), now)
-			sourceOn(item, id)
+			item.data.github = github.getRecorded(pull, assert(result.viewer), now)
+			markSourceOn(item, id)
 			table.insert(pendingLinks, { pull, item, result.report })
 		end
 		for _, issue in result.issues or {} do
 			local repo = string.lower(`{issue.owner}/{issue.name}`)
 			local item = findIssue(doc, repo, issue.number, issue.host or "github.com")
-			mark(result.report, item)
-			item = item or newItem(doc, issue.title, repoName(doc, issue.owner, issue.name), "todo", "you")
+			markItem(result.report, item)
+			item = item or createItem(doc, issue.title, getRepoName(doc, issue.owner, issue.name), "todo", "you")
 			item.data.label = issue.title
 			item.data.itemKind = "placeholder"
-			item.data.repo = repoName(doc, issue.owner, issue.name)
+			item.data.repo = getRepoName(doc, issue.owner, issue.name)
 			item.data.issue = issue.number
 			item.data.host = if issue.host ~= "github.com" then issue.host else nil
-			sourceOn(item, id)
+			markSourceOn(item, id)
 		end
 		for _, jira in result.jira or {} do
 			local item: Item? = nil
 			for _, candidate in doc.nodes do
 				local data = json.asObject(candidate.data.jira)
-				if data and str(data.key) == jira.key then
+				if data and getString(data.key) == jira.key then
 					item = candidate
 					break
 				end
 			end
-			mark(result.report, item)
-			item = item or newItem(doc, jira.summary, nil, "todo", "you")
+			markItem(result.report, item)
+			item = item or createItem(doc, jira.summary, nil, "todo", "you")
 			local status = if jira.category == "done"
 				then "done"
 				elseif jira.category == "indeterminate" then "active"
@@ -393,10 +405,10 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			data.epicSummary = jira.epicSummary
 			data.updatedAt = jira.updated
 			item.data.jira = data
-			sourceOn(item, id)
+			markSourceOn(item, id)
 		end
 	end
-	local cutoff = unix(now) - 21 * 86400
+	local cutoff = getUnix(now) - 21 * 86400
 	-- Hop sees every local checkout, so keep only work owned by this canvas's GitHub sources.
 	local owners: { [string]: boolean } = {}
 	for _, source in doc.settings.sources do
@@ -408,12 +420,12 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 	end
 	local knownRepos: { [string]: boolean } = {}
 	for _, item in doc.nodes do
-		local known = str(item.data.repo)
+		local known = getString(item.data.repo)
 		if known and item.data.github ~= nil then
 			knownRepos[(known:match("([^/]+)$") or known):lower()] = true
 		end
 	end
-	local function inScope(name: string): boolean
+	local function isInScope(name: string): boolean
 		if next(owners) == nil then
 			return true
 		end
@@ -430,15 +442,15 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 		end
 		local cleared: { [string]: boolean } = {}
 		for _, tree in result.worktrees or {} do
-			if tree.onDefault or tree.lastActivity < cutoff or not inScope(tree.repo) then
+			if tree.onDefault or tree.lastActivity < cutoff or not isInScope(tree.repo) then
 				continue
 			end
-			local repo = fullRepo(doc, tree.repo)
+			local repo = getFullRepo(doc, tree.repo)
 			local item = findBranch(doc, repo, tree.branch)
-			mark(result.report, item)
+			markItem(result.report, item)
 			if not item then
 				local label = tree.branch:gsub("([A-Z][A-Z0-9]*)%-(%d+)", "%1\1%2"):gsub("[-/]", " "):gsub("\1", "-")
-				item = newItem(
+				item = createItem(
 					doc,
 					label,
 					if tree.repo:find("/", 1, true)
@@ -457,16 +469,16 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			card.data.branch = tree.branch
 			local activity = json.asObject(card.data.activity) or json.object({})
 			local stamp = os.date("!%Y-%m-%dT%H:%M:%SZ", tree.lastActivity)
-			if stamp > (str(activity.lastActiveAt) or "") then
+			if stamp > (getString(activity.lastActiveAt) or "") then
 				activity.lastActiveAt = stamp
 			end
 			activity.sessions = {}
 			cleared[card.id] = true
 			card.data.activity = activity
-			sourceOn(card, result.source.id)
+			markSourceOn(card, result.source.id)
 		end
 		for _, session in result.sessions or {} do
-			local item = findBranch(doc, fullRepo(doc, session.repo), session.branch)
+			local item = findBranch(doc, getFullRepo(doc, session.repo), session.branch)
 			if not item then
 				continue
 			end
@@ -486,11 +498,11 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			end
 			activity.sessions = titles
 			item.data.activity = activity
-			sourceOn(item, result.source.id)
+			markSourceOn(item, result.source.id)
 		end
 	end
 	for _, entry in pendingLinks do
-		mentionLinks(doc, entry[1] :: github.PullState, entry[2] :: Item, entry[3] :: SourceReport)
+		linkMentions(doc, entry[1] :: github.PullState, entry[2] :: Item, entry[3] :: SourceReport)
 	end
 	local reports = {}
 	for _, result in results do
@@ -499,7 +511,7 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 	return { sources = reports }
 end
 
-function ingest.reportJson(report: Report): json.Object
+function ingest.getReportJson(report: Report): json.Object
 	local entries: json.Array = {}
 	for _, source in report.sources do
 		local entry =

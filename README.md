@@ -2,14 +2,23 @@
 
 A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with zoom levels that go from single cards out to whole bodies of work.
 
-This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs in the browser for now; a desktop shell comes later.
+This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs in the browser or in a desktop shell.
 
 - `app/`: the canvas.
+- `desktop/`: the Tauri desktop shell.
 - `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people.
 
 ## Data
 
-Everything lives in one file, `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another folder. The app and the CLI take the same lock before writing and bump a revision with each write, so both can be open at once. Changes from either side show up in the other within a moment.
+The default canvas lives in `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another data root. The app and the CLI take the same lock before writing and bump a revision with each write, so both can be open at once. Changes from either side show up in the other within a moment.
+
+### Workspaces
+
+The original canvas is the `default` workspace in the data root. Other workspaces keep separate `orion.json` files under `<data root>/workspaces/<name>/`. The root's `workspaces.json` records their names, labels, and the active workspace. Workspace names use lowercase letters, digits, and hyphens.
+
+Use `orion workspace list`, `orion workspace create <name> [--label <label>] [--owner <github owner>]`, and `orion workspace use <name>` to manage them. `orion workspace current` shows the selected workspace, and `orion path` prints its folder. The app's sidebar can also create and switch workspaces. Pass `--workspace <name>` to a CLI command to use one without changing the active workspace; `ORION_WORKSPACE` provides the same choice for the environment. The command option takes precedence, followed by the environment, `workspaces.json`, and `default`.
+
+Before replacing an existing data file, both writers copy it to `backups/orion-r<revision>-<UTC timestamp>.json` in that workspace's folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list the selected workspace's backups newest first, and `orion restore <revision>` to recover one in that workspace as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
 
 ## Run the app
 
@@ -19,8 +28,20 @@ npm install
 npm run dev
 ```
 
-The dev server reads and writes the data file. The first time it runs without one, it carries over what the browser had saved, or starts from the seed.
+The dev server reads and writes the active workspace's data file. When the default workspace has no file, it carries over what the browser had saved, or starts from the seed. Other new workspaces start empty.
 It runs `orion sync --json` five seconds after startup and every five minutes, using `cli/build/orion` and the same data folder as the app. Set `ORION_BIN` to use another CLI binary. Returning to the window also requests a sync, with a one-minute server throttle.
+
+## Desktop app
+
+Install Rust 1.90 or newer and the Xcode Command Line Tools, then run:
+
+```sh
+cd desktop
+npm install
+npm run dev
+```
+
+The development window uses the app's Vite server on port 5199, including its data endpoint and automatic sync. `npm run build` packages the canvas without that server. The packaged app currently saves to browser storage; it does not use `orion.json` or run automatic sync.
 
 ## Build the CLI
 
@@ -59,6 +80,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Drag to pan, scroll to zoom. ⌘-drag selects; ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
+- Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
 - Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
 - Zoom in while pointing at a group to enter it when it fills most of the canvas.
@@ -93,7 +115,7 @@ In `app/`:
 
 In `cli/src/`:
 
-- `cli/init.luau`: commands and their options.
+- `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
 - `store.luau`: reading, locking, and writing the data file.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
 - `github.luau`: looking up pull requests and mapping their state onto cards.

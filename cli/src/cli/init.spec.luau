@@ -1,40 +1,11 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local cli = require("@root/cli")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
-local function harness(name: string)
-	local dir = testing.directory(name)
-	store.write(
-		dir,
-		testing.doc({
-			testing.group("ws", "Release"),
-			testing.task("ci", "Report release health", "active", "ws", { repo = "flipbook", pr = 658 }),
-			testing.task("pub", "Publish v2.6.0", "todo", "ws"),
-		}, { { "ci", "pub" } })
-	)
-	local output = {}
-	local function run(args: { string }, runner: any?)
-		table.clear(output)
-		cli.execute(args, {
-			dataDir = dir,
-			write = function(text)
-				table.insert(output, text)
-			end,
-			runner = runner,
-			now = function()
-				return "2026-10-04T00:00:00Z"
-			end,
-		})
-		return table.concat(output, "\n")
-	end
-	return dir, run
-end
-
 test.case("ready lists startable work, most unblocking first", function(assert)
-	local _, run = harness("ready")
+	local _, run = testing.createHarness("ready")
 	local text = run({ "ready" })
 	assert.strContains(text, "ci")
 	assert.strContains(text, "unblocks 1")
@@ -42,7 +13,7 @@ test.case("ready lists startable work, most unblocking first", function(assert)
 end)
 
 test.case("add, link, and done change the shared data", function(assert)
-	local dir, run = harness("edit")
+	local dir, run = testing.createHarness("edit")
 	assert.strContains(run({ "add", "Write", "release", "notes", "--group", "ws" }), "Added write-release-notes")
 	run({ "link", "pub", "write-release-notes" })
 	local shown = json.asObject(json.deserialize(run({ "show", "write-release-notes", "--json" })) :: json.Value)
@@ -54,7 +25,7 @@ test.case("add, link, and done change the shared data", function(assert)
 end)
 
 test.case("sync writes GitHub state through the command runner", function(assert)
-	local dir, run = harness("sync")
+	local dir, run = testing.createHarness("sync")
 	local text = run({ "sync" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
@@ -77,7 +48,7 @@ test.case("sync writes GitHub state through the command runner", function(assert
 end)
 
 test.case("sync --dry-run leaves the data alone", function(assert)
-	local dir, run = harness("dry")
+	local dir, run = testing.createHarness("dry")
 	run({ "sync", "--dry-run" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
@@ -93,7 +64,7 @@ test.case("sync --dry-run leaves the data alone", function(assert)
 end)
 
 test.case("matches reads stored suggestions without a runner", function(assert)
-	local dir, run = harness("matches")
+	local dir, run = testing.createHarness("matches")
 	store.transaction(dir, function(doc)
 		doc.github = json.object({
 			viewer = "vocksel",
@@ -115,7 +86,7 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 end)
 
 test.case("sync creates review requests and unplaced authored pulls", function(assert)
-	local dir, run = harness("review")
+	local dir, run = testing.createHarness("review")
 	local output = run({ "sync" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(

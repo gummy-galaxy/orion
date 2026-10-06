@@ -77,6 +77,7 @@ export type GhostNode = Node<GhostData, 'ghost'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
 export type AppNode = TaskNode | ClusterNode
 
+/** `origin` marks links Orion derived itself: stacked pull requests, or a reference in a title, body or branch. */
 export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related'; origin?: 'stack' | 'mention' }
 
 export const STATUS_LABEL: Record<ViewStatus, string> = {
@@ -90,14 +91,14 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
 
 const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
 
-export function taskTag(d: TaskData): string {
+export function getTaskTag(d: TaskData): string {
   if (d.jira) return d.jira.key
   if (d.repo && d.issue) return `${d.repo}#${d.issue}`
   if (d.repo && d.pr) return `${d.repo}#${d.pr}`
   return d.repo ?? 'step'
 }
 
-export function prUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
+export function getPrUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
   return d.repo && d.pr ? `https://${d.host ?? 'github.com'}/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}` : null
 }
 

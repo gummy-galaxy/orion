@@ -2,22 +2,30 @@ local batteriesCli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local backups = require("@root/cli/backups")
+local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local github = require("@root/github")
 local graph = require("@root/graph")
-local ingest = require("@root/ingest")
+local ingest = require("@root/cli/ingest")
 local render = require("@root/render")
-local sources = require("@root/sources")
+local restore = require("@root/cli/restore")
+local source = require("@root/cli/source")
 local store = require("@root/store")
 local types = require("@root/types")
+local workspace = require("@root/cli/workspace")
 
 type Doc = types.Doc
 type Item = types.Item
+type Context = context.Context
+
+type Command = context.Command
 
 export type Dependencies = {
 	runner: types.CommandRunner?,
 	write: ((string) -> ())?,
 	dataDir: string?,
+	workspace: string?,
 	now: (() -> string)?,
 }
 
@@ -25,10 +33,19 @@ type Resolved = {
 	runner: types.CommandRunner,
 	write: (string) -> (),
 	dataDir: string,
+	workspace: string?,
 	now: () -> string,
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
+
+local COMMANDS: { [string]: Command } = {
+	backups = backups,
+	restore = restore,
+	workspace = workspace,
+	source = source,
+	ingest = ingest,
+}
 
 local COMMAND_HELP: { [string]: string } = {
 	list = "List work items with their derived status",
@@ -46,8 +63,6 @@ local COMMAND_HELP: { [string]: string } = {
 	ungroup = "Dissolve a group, keeping its items in place",
 	move = "Move an item or group into another group",
 	sync = "Update pull request items from GitHub",
-	source = "List, add, or remove ingestion sources",
-	ingest = "Import work from configured sources",
 	matches = "List unplaced pull requests and likely cards",
 	path = "Print where Orion keeps its data",
 	help = "Show help for Orion or one of its commands",
@@ -69,6 +84,10 @@ local function addJsonFlag(parser: batteriesCli.Parser)
 	parser:add("json", "flag", { help = "Print JSON" })
 end
 
+local function addWorkspaceOption(parser: batteriesCli.Parser)
+	parser:add("workspace", "option", { help = "Use this workspace for this command" })
+end
+
 local function addFieldOptions(parser: batteriesCli.Parser)
 	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
 	parser:add("repo", "option", { help = "Repository, as name or owner/name" })
@@ -85,12 +104,18 @@ type Parsers = {
 local function createParsers(): Parsers
 	local root = batteriesCli.parser()
 	addHelpFlag(root)
+	addWorkspaceOption(root)
 	local commands: { [string]: batteriesCli.Parser } = {}
 	local function command(name: string): batteriesCli.Parser
-		local parser = root:subcommand(name, { help = COMMAND_HELP[name] })
+		local registered = COMMANDS[name]
+		local parser = root:subcommand(name, { help = if registered then registered.help else COMMAND_HELP[name] })
 		addHelpFlag(parser)
+		addWorkspaceOption(parser)
 		commands[name] = parser
 		return parser
+	end
+	local function registeredCommand(name: string)
+		COMMANDS[name].define(command(name))
 	end
 
 	local list = command("list")
@@ -155,16 +180,14 @@ local function createParsers(): Parsers
 	sync:add("dry-run", "flag", { help = "Show what would change without writing" })
 	addJsonFlag(sync)
 
-	local ingestion = command("ingest")
-	ingestion:add("dry-run", "flag", { help = "Show changes without writing" })
-	ingestion:add("source", "option", { help = "Only ingest this source id" })
-	addJsonFlag(ingestion)
-
-	command("source")
-
 	addJsonFlag(command("matches"))
+	registeredCommand("backups")
+	registeredCommand("restore")
+	registeredCommand("source")
+	registeredCommand("ingest")
 
 	command("path")
+	registeredCommand("workspace")
 	command("help"):add("command", "positional", { help = "Command to describe" })
 
 	return { root = root, commands = commands }
@@ -175,7 +198,9 @@ local function rootHelp(parser: batteriesCli.Parser): string
 end
 
 local function commandHelp(name: string, parser: batteriesCli.Parser): string
-	return `{COMMAND_HELP[name]}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
+	local registered = COMMANDS[name]
+	local help = if registered then registered.help else COMMAND_HELP[name]
+	return `{help}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
 end
 
 local function dependencies(options: Dependencies?): Resolved
@@ -184,6 +209,7 @@ local function dependencies(options: Dependencies?): Resolved
 		runner = given.runner or defaultRun,
 		write = given.write or print,
 		dataDir = given.dataDir or store.defaultDir(),
+		workspace = if given.workspace == nil then process.env.ORION_WORKSPACE else given.workspace,
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 		end,
@@ -291,8 +317,14 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 		local closed = if change.closed then " — closed without merging; deferred until you decide" else ""
 		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
 	end
-	if #report.changes == 0 then
+	if #report.changes == 0 and #report.added == 0 and #report.linked == 0 and #report.unlinked == 0 then
 		table.insert(lines, "  Everything already matches.")
+	end
+	for _, link in report.linked do
+		table.insert(lines, `  linked {link.from} → {link.to} (stacked)`)
+	end
+	for _, link in report.unlinked do
+		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)
 	end
 	for _, id in report.added do
 		table.insert(
@@ -306,70 +338,7 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 	return table.concat(lines, "\n")
 end
 
-local function sourceCommand(args: { string }, deps: Resolved)
-	local action = assert(args[2], "usage: orion source list|add|remove")
-	local dir = deps.dataDir
-	if action == "list" then
-		assert(#args == 2 or #args == 3 and args[3] == "--json", "usage: orion source list [--json]")
-		local values = sources.asJson(store.load(dir).settings.sources)
-		if args[3] == "--json" then
-			deps.write(json.serialize(values, true))
-		else
-			local lines = {}
-			for _, value in values do
-				local source = json.asObject(value)
-				if source then
-					table.insert(lines, `{source.id}  {source.kind}`)
-				end
-			end
-			deps.write(if #lines > 0 then table.concat(lines, "\n") else "No sources configured.")
-		end
-	elseif action == "add" then
-		local source = sources.create({ table.unpack(args, 3) })
-		store.transaction(dir, function(doc)
-			for _, existing in doc.settings.sources do
-				assert(existing.id ~= source.id, `source id "{source.id}" already exists`)
-			end
-			table.insert(doc.settings.sources, source)
-		end)
-		deps.write(`Added source {source.id}`)
-	elseif action == "remove" then
-		assert(#args == 3, "usage: orion source remove <id>")
-		local id = args[3]
-		store.transaction(dir, function(doc)
-			local found = false
-			for index = #doc.settings.sources, 1, -1 do
-				if doc.settings.sources[index].id == id then
-					table.remove(doc.settings.sources, index)
-					found = true
-				end
-			end
-			assert(found, `no source with id "{id}"`)
-		end)
-		deps.write(`Removed source {id}`)
-	else
-		error(`unknown source action {action}`)
-	end
-end
-
-local function ingestReport(report: ingest.Report, dryRun: boolean): string
-	local lines = { if dryRun then "Ingest dry run:" else "Ingested:" }
-	for _, source in report.sources do
-		table.insert(
-			lines,
-			`{source.id}: {source.added} added, {source.updated} updated, {source.linked} linked{if source.failed
-				then `; failed: {source.failed}`
-				else ""}`
-		)
-	end
-	return table.concat(lines, "\n")
-end
-
 local function execute(args: { string }, options: Dependencies?)
-	if args[1] == "source" and args[2] ~= "--help" then
-		sourceCommand(args, dependencies(options))
-		return
-	end
 	local parsers = createParsers()
 	parsers.root:parse(args)
 	local deps = dependencies(options)
@@ -391,12 +360,37 @@ local function execute(args: { string }, options: Dependencies?)
 		deps.write(commandHelp(command, parser))
 		return
 	end
+	local subName, subparser = parser:selected()
+	if subName and subparser and subparser:has("help") then
+		deps.write(`{command} {subName}\n\n{subparser:usage(`orion {command} {subName}`)}\n\n{subparser:help()}`)
+		return
+	end
 
-	local dir = deps.dataDir
+	local root = deps.dataDir
+	local selected = parser:get("workspace") or parsers.root:get("workspace")
+	if subparser then
+		selected = subparser:get("workspace") or selected
+	end
+	local active = store.getActiveWorkspace(root, selected, deps.workspace)
+	local dir = store.getWorkspaceDir(root, active)
 	local asJson = parser:has("json")
+	local registered = COMMANDS[command]
+	if registered then
+		registered.run(parser, {
+			dir = dir,
+			root = root,
+			workspace = active,
+			write = deps.write,
+			asJson = asJson,
+			runner = deps.runner,
+			now = deps.now,
+			args = args,
+		})
+		return
+	end
 
 	if command == "path" then
-		deps.write(store.filePath(dir))
+		deps.write(dir)
 	elseif command == "list" then
 		local doc = store.load(dir)
 		local derived = graph.derive(doc)
@@ -558,19 +552,6 @@ local function execute(args: { string }, options: Dependencies?)
 		else
 			deps.write(syncReport(report, dryRun))
 		end
-	elseif command == "ingest" then
-		local dryRun = parser:has("dry-run")
-		local now = deps.now()
-		local fetched = ingest.collect(store.load(dir), deps.runner, now, parser:get("source"))
-		local report: ingest.Report
-		if dryRun then
-			report = ingest.apply(store.load(dir), fetched, now)
-		else
-			store.transaction(dir, function(doc)
-				report = ingest.apply(doc, fetched, now)
-			end)
-		end
-		deps.write(if asJson then json.serialize(ingest.reportJson(report), true) else ingestReport(report, dryRun))
 	end
 end
 

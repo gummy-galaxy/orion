@@ -9,7 +9,7 @@ local ID = "^[a-z][a-z0-9%-]*$"
 local NAME = "^[%w_.%-]+$"
 local HOST = "^[%w%.%-]+$"
 
-local function command(value: string): { string }
+local function parseCommand(value: string): { string }
 	local ok, decoded = pcall(json.deserialize, value)
 	local array = if ok then json.asArray(decoded :: json.Value) else nil
 	assert(array and #array > 0, "--command must be a nonempty JSON array")
@@ -26,29 +26,13 @@ local function command(value: string): { string }
 	return result
 end
 
-local function parse(args: { string }): ({ [string]: { string } }, string)
-	local options: { [string]: { string } } = {}
-	local kind = assert(args[1], "source add needs a kind")
-	local i = 2
-	while i <= #args do
-		local key = args[i]:match("^%-%-([%w%-]+)$")
-		assert(key, `unexpected argument {args[i]}`)
-		local value = assert(args[i + 1], `missing value for --{key}`)
-		options[key] = options[key] or {}
-		table.insert(options[key], value)
-		i += 2
-	end
-	return options, kind
-end
-
-local function one(options: { [string]: { string } }, key: string): string?
+local function getOne(options: { [string]: { string } }, key: string): string?
 	local values = options[key]
 	assert(not values or #values == 1, `--{key} may be given once`)
 	return if values then values[1] else nil
 end
 
-function sources.create(args: { string }): Source
-	local options, kind = parse(args)
+function sources.createSource(kind: string, options: { [string]: { string } }): Source
 	local allowed = if kind == "github"
 		then { host = true, owner = true, include = true, exclude = true, id = true }
 		elseif kind == "jira" then { command = true, browse = true, id = true }
@@ -59,7 +43,7 @@ function sources.create(args: { string }): Source
 	end
 	local source: Source = { id = "", kind = kind }
 	if kind == "github" then
-		local host = assert(one(options, "host"), "github needs --host")
+		local host = assert(getOne(options, "host"), "github needs --host")
 		assert(host:match(HOST) and host:find("%.", 1), "invalid GitHub host")
 		local owners = assert(options.owner, "github needs --owner")
 		for _, owner in owners do
@@ -72,30 +56,32 @@ function sources.create(args: { string }): Source
 			end
 		end
 		source.include, source.exclude = options.include, options.exclude
-		source.id = one(options, "id") or `gh-{owners[1]:lower()}`
+		source.id = getOne(options, "id") or `gh-{owners[1]:lower()}`
 	elseif kind == "jira" then
-		local argv = command(assert(one(options, "command"), "jira needs --command"))
+		local argv = parseCommand(assert(getOne(options, "command"), "jira needs --command"))
 		assert(
 			argv[1] == "acli" and argv[2] == "jira" and argv[3] == "workitem" and argv[4] == "search",
 			"Jira command must be acli jira workitem search"
 		)
 		source.command = argv
-		local browse = one(options, "browse")
+		local browse = getOne(options, "browse")
 		assert(not browse or browse:match("^https://[^/@]+[^@]*$"), "--browse needs an HTTPS URL without credentials")
 		source.browse = if browse then browse:gsub("/+$", "") else nil
-		source.id = one(options, "id") or "jira"
+		source.id = getOne(options, "id") or "jira"
 	else
-		local argv: { string } = if one(options, "command") then command(assert(one(options, "command"))) else { "hop" }
+		local argv: { string } = if getOne(options, "command")
+			then parseCommand(assert(getOne(options, "command")))
+			else { "hop" }
 		assert((argv[1] == "hop" or argv[1]:match("/hop$")) and #argv == 1, "hop command must name the hop executable")
 		source.command = argv
-		source.id = one(options, "id") or "hop"
+		source.id = getOne(options, "id") or "hop"
 	end
 	assert(source.id:match(ID), "source id must use lowercase letters, digits, and hyphens")
 	return source
 end
 
-function sources.asJson(values: { Source }): json.Array
-	local function stringArray(strings: { string }?): json.Array?
+function sources.getJson(values: { Source }): json.Array
+	local function getStringArray(strings: { string }?): json.Array?
 		if not strings then
 			return nil
 		end
@@ -109,8 +95,8 @@ function sources.asJson(values: { Source }): json.Array
 	for _, source in values do
 		local value = json.object({ id = source.id, kind = source.kind })
 		value.host, value.owners, value.include, value.exclude =
-			source.host, stringArray(source.owners), stringArray(source.include), stringArray(source.exclude)
-		value.command, value.browse = stringArray(source.command), source.browse
+			source.host, getStringArray(source.owners), getStringArray(source.include), getStringArray(source.exclude)
+		value.command, value.browse = getStringArray(source.command), source.browse
 		table.insert(out, value)
 	end
 	return out
