@@ -53,6 +53,7 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
 - Reflow lays out the inside of a group. Tidy lays out the current level.
+- The Layered and Weave toggle picks how Tidy and Reflow work. Layered lays the level out again from scratch. Weave keeps your arrangement and moves cards the shortest way off lines that run through them, shoving neighbors along when they're in the way. It moves nothing when the level is too tangled for that.
 - Drag from the edge of a card to another card to add a dependency.
 
 Reset to seed restores the snapshot.
@@ -68,6 +69,7 @@ In `app/`:
 - `src/persist.ts`: loading, saving, and reacting to changes from other writers.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: ELK layout for one group or the top level.
+- `src/weave.ts`: the Weave layout, which nudges cards off the lines that cross them.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, notes, and the inspector.

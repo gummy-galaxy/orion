@@ -24,6 +24,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
 import { reflow, reflowAll } from './layout'
+import { weave, type WeaveResult } from './weave'
 import {
   STATUS_LABEL,
   TASK_H,
@@ -70,9 +71,13 @@ import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
 
 type ViewNode = AppNode | GhostNode
+/** Layered lays a level out from scratch; Weave nudges the current arrangement until lines clear the cards. */
+type LayoutMode = 'layered' | 'weave'
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
 const SIDEBAR_KEY = 'orion:sidebar'
+const LAYOUT_KEY = 'orion:layout'
+const LAYOUT_NOTE_MS = 3500
 /**
  * Zoom below which a group reads as one body. Nested groups fold first as you
  * zoom out, so detail drops away from the inside.
@@ -129,6 +134,36 @@ function writeFlag(key: string, value: boolean) {
   }
 }
 
+function readLayout(): LayoutMode {
+  try {
+    return localStorage.getItem(LAYOUT_KEY) === 'weave' ? 'weave' : 'layered'
+  } catch {
+    return 'layered'
+  }
+}
+
+function writeLayout(mode: LayoutMode) {
+  try {
+    localStorage.setItem(LAYOUT_KEY, mode)
+  } catch {
+    // Only a remembered preference.
+  }
+}
+
+function weaveSummary(r: WeaveResult) {
+  const lines = (n: number) => `${n} ${n === 1 ? 'line' : 'lines'}`
+  switch (r.outcome) {
+    case 'clean':
+      return 'Lines already clear the cards'
+    case 'woven':
+      return `Cleared ${r.before - r.after} of ${lines(r.before)} from cards, moving ${r.moved}`
+    case 'stuck':
+      return `No nudge clears the ${lines(r.before)} through cards`
+    case 'tangled':
+      return `Too tangled to weave (${lines(r.before)} through cards). Try Layered first.`
+  }
+}
+
 const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
@@ -168,6 +203,8 @@ function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
+  const [layoutMode, setLayoutMode] = useState(readLayout)
+  const [layoutNote, setLayoutNote] = useState<string | null>(null)
   const [menu, setMenu] = useState<Menu | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef({ nodes, links })
@@ -396,6 +433,27 @@ function Canvas() {
     }
     requestAnimationFrame(step)
   }, [])
+
+  useEffect(() => {
+    if (!layoutNote) return
+    const t = setTimeout(() => setLayoutNote(null), LAYOUT_NOTE_MS)
+    return () => clearTimeout(t)
+  }, [layoutNote])
+
+  /** Lays out one group, or the top level, the way the current layout mode does. */
+  const arrange = useCallback(
+    (groupId: string | undefined) => {
+      const { nodes: ns, links: ls } = latest.current
+      if (layoutMode === 'layered') {
+        void reflow(ns, ls, groupId).then(tweenTo)
+        return
+      }
+      const r = weave(ns, ls, groupId)
+      if (r.moved) tweenTo(r.nodes)
+      setLayoutNote(weaveSummary(r))
+    },
+    [layoutMode, tweenTo],
+  )
 
   const map = useMemo(() => byId(nodes), [nodes])
   const rootWorkCount = useMemo(() => {
@@ -768,16 +826,13 @@ function Canvas() {
 
   const actions = useMemo(
     () => ({
-      reflow: (gid: string) => {
-        const { nodes: ns, links: ls } = latest.current
-        reflow(ns, ls, gid).then(tweenTo)
-      },
+      reflow: (gid: string) => arrange(gid),
       open: (gid: string) => {
         openRoot(gid)
         setHover(null)
       },
     }),
-    [tweenTo, openRoot],
+    [arrange, openRoot],
   )
 
   const updateData = useCallback(
@@ -853,7 +908,13 @@ function Canvas() {
   const removeLink = (id: string) => setLinks((ls) => ls.filter((l) => l.id !== id))
   const flipLink = (id: string) => setLinks((ls) => ls.map((l) => (l.id === id ? { ...l, kind: l.kind === 'blocks' ? 'related' : 'blocks' } : l)))
 
-  const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
+  const tidy = () => arrange(root ?? undefined)
+  const tidyVerb = layoutMode === 'weave' ? 'Weave' : 'Tidy'
+  const tidyLabel = `${tidyVerb} ${root ? 'this group' : 'canvas'}`
+  const pickLayout = (mode: LayoutMode) => {
+    setLayoutMode(mode)
+    writeLayout(mode)
+  }
   const reset = () => {
     openRoot(null)
     seeded().then((s) => {
@@ -924,7 +985,7 @@ function Canvas() {
       { label: 'Add a note here', hint: 'N', run: () => addNote(m.flow) },
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }] : []),
       'divider',
-      { label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy },
+      { label: tidyLabel, run: tidy },
       { label: 'Fit to screen', hint: '⇧1', run: () => fitTo(root) },
       ...(root ? [{ label: 'Go up a level', hint: 'Esc', run: () => (peeking ? leaveRoot() : openRoot(map.get(root)?.parentId ?? null)) }] : []),
     ]
@@ -1054,8 +1115,22 @@ function Canvas() {
                     <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                       Add note
                     </button>
+                    <span className="seg" role="group" aria-label="Layout mode">
+                      {(['layered', 'weave'] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          className={layoutMode === mode ? 'on' : undefined}
+                          aria-pressed={layoutMode === mode}
+                          title={mode === 'weave' ? 'Nudge cards off the lines that run through them' : 'Lay everything out again'}
+                          onClick={() => pickLayout(mode)}
+                        >
+                          {mode === 'weave' ? 'Weave' : 'Layered'}
+                        </button>
+                      ))}
+                    </span>
                     <button type="button" className="btn" onClick={tidy}>
-                      Tidy {root ? 'group' : 'canvas'}
+                      {tidyVerb} {root ? 'group' : 'canvas'}
                     </button>
                     <button type="button" className="btn" onClick={reset}>
                       Reset to seed
@@ -1141,6 +1216,11 @@ function Canvas() {
                 )}
 
                 <Panel position="bottom-center" className="panel help">
+                  {layoutNote && !(root && exitHint?.root === root) && (
+                    <div className="layout-note" role="status">
+                      <span>{layoutNote}</span>
+                    </div>
+                  )}
                   {root && exitHint?.root === root && (
                     <div className="zoom-exit-hint">
                       <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>

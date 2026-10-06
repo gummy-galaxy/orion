@@ -703,6 +703,37 @@ select {
   border-color: var(--accent);
   color: var(--surface);
 }
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.seg button {
+  border: 0;
+  background: none;
+  padding: 5px 9px;
+  color: var(--muted);
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.seg button + button {
+  border-left: 1px solid var(--line);
+}
+.seg button:hover {
+  color: var(--ink);
+}
+.seg button.on {
+  background: var(--bg);
+  color: var(--ink);
+  font-weight: 500;
+}
+.seg button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
 kbd {
   font-family: var(--font-data);
   font-size: 10.5px;
@@ -825,7 +856,8 @@ kbd {
   max-width: min(980px, calc(100vw - 420px));
   text-align: center;
 }
-.zoom-exit-hint {
+.zoom-exit-hint,
+.layout-note {
   position: absolute;
   bottom: calc(100% + 8px);
   left: 50%;
@@ -841,7 +873,8 @@ kbd {
   font: 500 11px var(--font-data);
   pointer-events: none;
 }
-.zoom-exit-hint span {
+.zoom-exit-hint span,
+.layout-note span {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
