@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, access } from 'node:fs/promises';
+import { mkdtemp, rm, access, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
@@ -21,6 +21,7 @@ test('MCP tools round-trip through the Orion CLI and workspace storage', { skip:
     const names = (await client.listTools()).tools.map((tool) => tool.name);
     assert.ok(names.includes('orion_inspect'));
     assert.ok(names.includes('orion_create_workspace'));
+    assert.ok(names.includes('orion_add_image'));
 
     let response = await client.callTool({ name: 'orion_create_workspace', arguments: {
       name: 'sample', label: 'Sample', owner: 'vocksel',
@@ -39,6 +40,18 @@ test('MCP tools round-trip through the Orion CLI and workspace storage', { skip:
     } });
     assert.equal(response.isError, undefined);
     assert.match(response.content[0].text, /MCP smoke test/);
+
+    const imageFile = join(dataDir, 'sample.png');
+    await writeFile(imageFile, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/Zc8AAAAASUVORK5CYII=', 'base64'));
+    response = await client.callTool({ name: 'orion_add_image', arguments: {
+      path: imageFile, label: 'Sample image', workspace: 'sample',
+    } });
+    assert.equal(response.isError, undefined);
+    const image = JSON.parse(response.content[0].text);
+    assert.equal(image.label, 'Sample image');
+    response = await client.callTool({ name: 'orion_images', arguments: { workspace: 'sample' } });
+    assert.equal(response.isError, undefined);
+    assert.equal(JSON.parse(response.content[0].text)[0].id, image.id);
 
     const unexpectedFile = join(dataDir, 'unexpected');
     response = await client.callTool({ name: 'orion_add_note', arguments: {

@@ -2,6 +2,8 @@
 
 Orion's local MCP server exposes focused canvas and workspace actions to agents. It calls the Orion CLI for every action, so the CLI remains the only writer and keeps the app's file lock and revision behavior. The server never runs a shell command assembled from tool input.
 
+`orion_add_image` imports a local PNG, JPEG, GIF, or WebP file as a canvas node; `orion_images` lists the workspace's image nodes. The CLI copies imported files into that workspace's assets folder.
+
 ## Install locally for Codex
 
 Build the current CLI in `cli/` with `lute run install` and `lute run build`, then from the repository root:
