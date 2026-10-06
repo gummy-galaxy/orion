@@ -12,10 +12,24 @@ type Props = {
   workspaces: Workspaces
   switchWorkspace: (name: string) => Promise<void>
   newWorkspace: (name: string, label: string) => Promise<void>
+  colorMode: 'light' | 'dark' | 'system'
+  chooseColorMode: (mode: 'light' | 'dark' | 'system') => void
 }
 
 /** A stable list of every group, in canvas order, for jumping between bodies of work. */
-export function Sidebar({ nodes, groups, root, open, readyTotal, hide, workspaces, switchWorkspace, newWorkspace }: Props) {
+export function Sidebar({
+  nodes,
+  groups,
+  root,
+  open,
+  readyTotal,
+  hide,
+  workspaces,
+  switchWorkspace,
+  newWorkspace,
+  colorMode,
+  chooseColorMode,
+}: Props) {
   const clusters = nodes.filter(isCluster)
   const children = (parent: string | undefined) => clusters.filter((c) => c.parentId === parent)
   const current = workspaces.workspaces.find((item) => item.name === workspaces.active)
@@ -96,6 +110,16 @@ export function Sidebar({ nodes, groups, root, open, readyTotal, hide, workspace
       </button>
       <ul className="side-list">{children(undefined).map((c) => row(c, 0))}</ul>
       <p className="side-foot">The bar shows how much of each group is done. ↗ counts open work outside the group that waits on it.</p>
+      <div className="side-settings" role="group" aria-label="Color mode">
+        <span className="side-settings-label">Color mode</span>
+        <div className="color-mode-options">
+          {(['light', 'dark', 'system'] as const).map((mode) => (
+            <button key={mode} type="button" aria-pressed={colorMode === mode} onClick={() => chooseColorMode(mode)}>
+              {mode[0].toUpperCase() + mode.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
     </aside>
   )
 }

@@ -23,8 +23,30 @@
   --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   color-scheme: light;
 }
+:root[data-theme='dark'] {
+  --bg: #0f1619;
+  --surface: #172227;
+  --ink: #e3eaed;
+  --muted: #92a3aa;
+  --line: #2b3a41;
+  --dots: #26343a;
+  --accent: #4fc1c4;
+  --accent-soft: #163a3c;
+  --edge: #4c5d65;
+  --edge-hot: #4fc1c4;
+  --st-todo: #92a3aa;
+  --st-active: #6ea2f2;
+  --st-review: #e2a34a;
+  --st-blocked: #f07a6f;
+  --st-done: #6cc28a;
+  --note: #2e2a17;
+  --note-edge: #8a7428;
+  --note-ink: #d9c272;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
+  color-scheme: dark;
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #0f1619;
     --surface: #172227;
     --ink: #e3eaed;
@@ -1079,6 +1101,43 @@ kbd {
   font-size: 11.5px;
   color: var(--muted);
 }
+.side-settings {
+  padding: 12px 8px 0;
+  border-top: 1px solid var(--line);
+}
+.side-settings-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.color-mode-options {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.color-mode-options button {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 2px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.color-mode-options button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.color-mode-options button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 
 /* Connections outside an opened group */
 .ghost {
@@ -1191,12 +1250,12 @@ kbd {
   justify-content: center;
   align-items: flex-start;
   padding: min(12vh, 90px) 16px 16px;
-  background: rgb(0 0 0 / 0.35);
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
 }
 .palette {
   width: min(600px, 100%);
   overflow: hidden;
-  box-shadow: 0 14px 50px rgb(0 0 0 / 0.2);
+  box-shadow: 0 14px 50px color-mix(in srgb, var(--ink) 20%, transparent);
 }
 .palette input {
   display: block;
