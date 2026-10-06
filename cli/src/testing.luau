@@ -4,6 +4,8 @@ local path = require("@std/path")
 local process = require("@std/process")
 local system = require("@std/system")
 
+local cli = require("@root/cli")
+local store = require("@root/store")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -53,6 +55,34 @@ end
 
 function testing.result(ok: boolean, stdout: string): types.CommandResult
 	return { ok = ok, exitCode = if ok then 0 else 1, stdout = stdout, stderr = "" }
+end
+
+function testing.harness(name: string)
+	local dir = testing.directory(name)
+	store.write(
+		dir,
+		testing.doc({
+			testing.group("ws", "Release"),
+			testing.task("ci", "Report release health", "active", "ws", { repo = "flipbook", pr = 658 }),
+			testing.task("pub", "Publish v2.6.0", "todo", "ws"),
+		}, { { "ci", "pub" } })
+	)
+	local output: { string } = {}
+	local function run(args: { string }, runner: types.CommandRunner?)
+		table.clear(output)
+		cli.execute(args, {
+			dataDir = dir,
+			write = function(text)
+				table.insert(output, text)
+			end,
+			runner = runner,
+			now = function()
+				return "2026-10-04T00:00:00Z"
+			end,
+		})
+		return table.concat(output, "\n")
+	end
+	return dir, run
 end
 
 return testing

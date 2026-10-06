@@ -11,6 +11,8 @@ This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs 
 
 Everything lives in one file, `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another folder. The app and the CLI take the same lock before writing and bump a revision with each write, so both can be open at once. Changes from either side show up in the other within a moment.
 
+Before replacing an existing data file, both writers copy it to `backups/orion-r<revision>-<UTC timestamp>.json` in the data folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list them newest first, and `orion restore <revision>` to recover one as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
+
 ## Run the app
 
 ```sh

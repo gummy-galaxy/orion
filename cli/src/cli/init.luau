@@ -2,15 +2,25 @@ local batteriesCli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local backups = require("@root/cli/backups")
+local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local github = require("@root/github")
 local graph = require("@root/graph")
 local render = require("@root/render")
+local restore = require("@root/cli/restore")
 local store = require("@root/store")
 local types = require("@root/types")
 
 type Doc = types.Doc
 type Item = types.Item
+type Context = context.Context
+
+type Command = {
+	read help: string,
+	read define: (batteriesCli.Parser) -> (),
+	read run: (batteriesCli.Parser, Context) -> (),
+}
 
 export type Dependencies = {
 	runner: types.CommandRunner?,
@@ -27,6 +37,11 @@ type Resolved = {
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
+
+local COMMANDS: { [string]: Command } = {
+	backups = backups,
+	restore = restore,
+}
 
 local COMMAND_HELP: { [string]: string } = {
 	list = "List work items with their derived status",
@@ -83,10 +98,14 @@ local function createParsers(): Parsers
 	addHelpFlag(root)
 	local commands: { [string]: batteriesCli.Parser } = {}
 	local function command(name: string): batteriesCli.Parser
-		local parser = root:subcommand(name, { help = COMMAND_HELP[name] })
+		local registered = COMMANDS[name]
+		local parser = root:subcommand(name, { help = if registered then registered.help else COMMAND_HELP[name] })
 		addHelpFlag(parser)
 		commands[name] = parser
 		return parser
+	end
+	local function registeredCommand(name: string)
+		COMMANDS[name].define(command(name))
 	end
 
 	local list = command("list")
@@ -152,6 +171,8 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	addJsonFlag(command("matches"))
+	registeredCommand("backups")
+	registeredCommand("restore")
 
 	command("path")
 	command("help"):add("command", "positional", { help = "Command to describe" })
@@ -164,7 +185,9 @@ local function rootHelp(parser: batteriesCli.Parser): string
 end
 
 local function commandHelp(name: string, parser: batteriesCli.Parser): string
-	return `{COMMAND_HELP[name]}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
+	local registered = COMMANDS[name]
+	local help = if registered then registered.help else COMMAND_HELP[name]
+	return `{help}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
 end
 
 local function dependencies(options: Dependencies?): Resolved
@@ -326,6 +349,11 @@ local function execute(args: { string }, options: Dependencies?)
 
 	local dir = deps.dataDir
 	local asJson = parser:has("json")
+	local registered = COMMANDS[command]
+	if registered then
+		registered.run(parser, { dir = dir, write = deps.write, asJson = asJson })
+		return
+	end
 
 	if command == "path" then
 		deps.write(store.filePath(dir))

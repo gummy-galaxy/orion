@@ -1,0 +1,21 @@
+local fs = require("@std/fs")
+local json = require("@std/json")
+local path = require("@std/path")
+local test = require("@std/test")
+
+local testing = require("@root/testing")
+
+test.case("backups lists newest first with revision, time, and size", function(assert)
+	local dir, run = testing.harness("backups")
+	local folder = path.join(dir, "backups")
+	fs.createDirectory(folder)
+	fs.writeStringToFile(path.join(folder, "orion-r2-20261002T010000Z.json"), "old")
+	fs.writeStringToFile(path.join(folder, "orion-r1-20261003T010000Z.json"), "newer")
+	local values = json.asArray(json.deserialize(run({ "backups", "--json" })) :: json.Value)
+	local first = if values then json.asObject(values[1]) else nil
+	assert.eq(values and #values, 2)
+	assert.eq(first and first.revision, 1)
+	assert.eq(first and first.time, "20261003T010000Z")
+	assert.eq(first and first.size, 5)
+	assert.strContains(run({ "backups" }), "r1  20261003T010000Z  5 bytes")
+end)

@@ -11,6 +11,8 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 
 Add `--json` to any of these for structured output. Statuses in the output are derived: `ready` means nothing the item waits on is still open.
 
+`orion backups [--json]` lists saved revisions. If a change was a mistake, `orion restore <revision>` restores the newest backup with that revision as a new revision and backs up the current file first.
+
 ## Changing it
 
 - `orion add <title> [--group <id>] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item.
