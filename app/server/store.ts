@@ -11,14 +11,19 @@ import type { Plugin } from 'vite'
  * Serves orion.json to the app during development. The CLI takes the same
  * mkdir lock and writes the same way, so either side can edit while the other
  * is open, and every change is announced to open pages.
+ *
+ * Pages also report what they have open and selected to focus.json, which
+ * `orion focus` reads. It's view state, so it skips the lock and the revision.
  */
 
 const FILE = 'orion.json'
+const FOCUS_FILE = 'focus.json'
 const LOCK = 'orion.lock'
 const LOCK_TIMEOUT_MS = 5000
 const STALE_LOCK_SECONDS = 30
 const API = '/api/orion'
 const SYNC_API = '/api/sync'
+const FOCUS_API = '/api/focus'
 const SYNC_INTERVAL_MS = 5 * 60 * 1000
 const SYNC_THROTTLE_MS = 60 * 1000
 const execFileAsync = promisify(execFile)
@@ -84,6 +89,27 @@ async function body(req: IncomingMessage) {
 
 type Put = { baseRevision: number | null; nodes: unknown[]; links: unknown[] }
 
+type Focus = { tab: string; open: string | null; selected: string[] }
+
+function readFocus(dir: string): Focus | null {
+  try {
+    return JSON.parse(readFileSync(join(dir, FOCUS_FILE), 'utf8')) as Focus
+  } catch {
+    return null
+  }
+}
+
+/** The page that last reported wins. A closing page only clears what it reported itself. */
+function putFocus(dir: string, focus: Focus & { closed?: boolean }) {
+  if (focus.closed) {
+    if (readFocus(dir)?.tab === focus.tab) rmSync(join(dir, FOCUS_FILE), { force: true })
+    return
+  }
+  const { tab, open, selected } = focus
+  mkdirSync(dir, { recursive: true })
+  atomicWrite(join(dir, FOCUS_FILE), JSON.stringify({ tab, open, selected, updatedAt: new Date().toISOString() }, null, 2))
+}
+
 /** Writes the canvas when nobody else has changed it since `baseRevision`. */
 async function put(dir: string, change: Put): Promise<{ status: number; revision: number | null }> {
   mkdirSync(dir, { recursive: true })
@@ -147,6 +173,15 @@ export function orionStore(): Plugin {
         if (req.method === 'POST') return reply(res, 200, await sync(new URL(req.url ?? '', 'http://localhost').searchParams.get('force') === '1'))
         reply(res, 405, { error: 'method not allowed' })
       })
+      server.middlewares.use(FOCUS_API, async (req, res) => {
+        if (req.method !== 'POST') return reply(res, 405, { error: 'method not allowed' })
+        try {
+          putFocus(dir, (await body(req)) as Focus & { closed?: boolean })
+          reply(res, 200, {})
+        } catch (error) {
+          reply(res, 500, { error: String(error) })
+        }
+      })
       server.middlewares.use(API, async (req, res) => {
         try {
           if (req.method === 'GET') {
@@ -162,6 +197,10 @@ export function orionStore(): Plugin {
           reply(res, 500, { error: String(error) })
         }
       })
+
+      // Focus from an earlier run describes pages that are gone.
+      const clearFocus = () => rmSync(join(dir, FOCUS_FILE), { force: true })
+      clearFocus()
 
       // Watch the folder: atomic writes replace the file, which ends a watch on the file itself.
       mkdirSync(dir, { recursive: true })
@@ -185,6 +224,7 @@ export function orionStore(): Plugin {
         clearInterval(interval)
         clearTimeout(timer)
         watcher.close()
+        clearFocus()
       })
     },
   }

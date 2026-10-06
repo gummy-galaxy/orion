@@ -11,6 +11,16 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 
 Add `--json` to any of these for structured output. Statuses in the output are derived: `ready` means nothing the item waits on is still open.
 
+## What the person is looking at
+
+`orion focus` shows the group open in the app, the groups it sits inside, and what's selected. Run it before answering a question about the canvas.
+
+- Read the question as being about the selection first, then the open group, then work linked to either. Widen to the whole canvas only when the question names something else or the focus doesn't fit it.
+- "This", "these", "here", and unnamed items most likely mean the selection, or the open group when nothing is selected.
+- `orion list --group <id>` and `orion show <id>` fill in the details for whatever is in focus.
+- Say which focus you assumed when it shaped the answer, so a wrong guess is easy to correct.
+- At the top level with nothing selected, or with the app closed, there's no focus to lean on.
+
 ## Changing it
 
 - `orion add <title> [--group <id>] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item.

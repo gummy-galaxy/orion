@@ -33,6 +33,7 @@ local COMMAND_HELP: { [string]: string } = {
 	ready = "List items that can start now, most unblocking first",
 	groups = "List groups with their progress",
 	show = "Show one item or group",
+	focus = "Show the group open in the app and what's selected",
 	add = "Add a work item",
 	set = "Change an item's or group's fields",
 	done = "Mark an item done",
@@ -55,7 +56,8 @@ Statuses: todo, active, review, blocked, deferred, done.
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
 Data lives in ~/Library/Application Support/Orion/orion.json; set ORION_DATA_DIR to change it.
-The Orion app watches that file, so changes show up while it's open.]]
+The Orion app watches that file, so changes show up while it's open.
+While the app is open, `orion focus` shows what the person has open and selected there.]]
 
 local function addHelpFlag(parser: batteriesCli.Parser)
 	parser:add("help", "flag", { help = "Show this help", aliases = { "h" } })
@@ -100,6 +102,8 @@ local function createParsers(): Parsers
 	local show = command("show")
 	show:add("id", "positional", { help = "Item or group id" })
 	addJsonFlag(show)
+
+	addJsonFlag(command("focus"))
 
 	local add = command("add")
 	add:add("label", "variadic", { help = "What the work is" })
@@ -250,23 +254,10 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	local values: json.Array = {}
 	local lines = {}
 	for _, group in doc.nodes do
-		if not graph.isGroup(group) then
-			continue
+		if graph.isGroup(group) then
+			table.insert(values, render.groupJson(doc, derived, group))
+			table.insert(lines, `{group.id}  {render.groupLine(doc, derived, group)}`)
 		end
-		local total, done, ready = 0, 0, 0
-		for _, item in doc.nodes do
-			if item.type == "task" and not graph.isNote(item) and insideGroup(doc, item, group.id) then
-				total += 1
-				local status = derived.status[item.id]
-				done += if status == "done" then 1 else 0
-				ready += if status == "ready" then 1 else 0
-			end
-		end
-		local object: json.Object =
-			json.object({ id = group.id, label = graph.label(group), total = total, done = done, ready = ready })
-		object.parent = group.parentId
-		table.insert(values, object)
-		table.insert(lines, `{group.id}  {graph.label(group)}  {done}/{total} done, {ready} ready`)
 	end
 	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
 end
@@ -390,6 +381,14 @@ local function execute(args: { string }, options: Dependencies?)
 			deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
 		else
 			deps.write(render.show(doc, graph.derive(doc), item))
+		end
+	elseif command == "focus" then
+		local doc = store.load(dir)
+		local focus = store.readFocus(dir)
+		if asJson then
+			deps.write(json.serialize(render.focusJson(doc, graph.derive(doc), focus), true))
+		else
+			deps.write(render.focus(doc, graph.derive(doc), focus))
 		end
 	elseif command == "add" then
 		local label = joined(parser:variadics(), "<label>")

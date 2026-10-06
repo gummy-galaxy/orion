@@ -7,11 +7,14 @@ local task = require("@std/task")
 local types = require("@root/types")
 
 type Doc = types.Doc
+type Focus = types.Focus
 type Item = types.Item
 type Link = types.Link
 
 -- The app's dev server takes the same lock, so neither side overwrites the other.
 local FILE = "orion.json"
+-- Written only by the app, without the lock, and removed when the app goes away.
+local FOCUS_FILE = "focus.json"
 local LOCK = "orion.lock"
 local LOCK_TIMEOUT_SECONDS = 5
 local STALE_LOCK_SECONDS = 30
@@ -123,6 +126,30 @@ function store.read(dir: string): Doc?
 		return nil
 	end
 	return store.decode(fs.readFileToString(file))
+end
+
+function store.decodeFocus(text: string): Focus
+	local root = json.asObject(json.deserialize(text) :: json.Value)
+	assert(root, "Orion focus must be a JSON object")
+	local selected: { string } = {}
+	for _, id in json.asArray(root.selected) or {} do
+		if type(id) == "string" then
+			table.insert(selected, id)
+		end
+	end
+	return { open = str(root.open), selected = selected, updatedAt = str(root.updatedAt) }
+end
+
+-- Nil when the app isn't open, or caught the file mid-replace.
+function store.readFocus(dir: string): Focus?
+	local file = path.join(dir, FOCUS_FILE)
+	if not fs.exists(file) then
+		return nil
+	end
+	local ok, focus = pcall(function()
+		return store.decodeFocus(fs.readFileToString(file))
+	end)
+	return if ok then focus else nil
 end
 
 -- Fails with a pointer to the app when there is nothing to work with yet.

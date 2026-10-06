@@ -80,6 +80,22 @@ function graph.ancestors(doc: Doc, id: string): { string }
 	return out
 end
 
+export type Progress = { total: number, done: number, ready: number }
+
+-- Counts the work anywhere inside a group, leaving out notes.
+function graph.progress(doc: Doc, derived: Derived, groupId: string): Progress
+	local out = { total = 0, done = 0, ready = 0 }
+	for _, item in doc.nodes do
+		if item.type == "task" and not graph.isNote(item) and table.find(graph.ancestors(doc, item.id), groupId) then
+			out.total += 1
+			local status = derived.status[item.id]
+			out.done += if status == "done" then 1 else 0
+			out.ready += if status == "ready" then 1 else 0
+		end
+	end
+	return out
+end
+
 local function sizeOf(item: Item): (number, number)
 	if item.type == "task" then
 		return TASK_W, TASK_H

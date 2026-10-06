@@ -54,6 +54,7 @@ import {
 } from './model'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
+  clearFocus,
   fetchRemote,
   fingerprint,
   getSyncStatus,
@@ -61,8 +62,10 @@ import {
   onRemoteChange,
   onSyncStatus,
   readBrowser,
+  reportFocus,
   requestSync,
   save,
+  type Focus,
   type Remote,
   type SyncStatus,
 } from './persist'
@@ -747,6 +750,25 @@ function Canvas() {
   }, [])
 
   const selected = nodes.filter((n) => n.selected && !view.hidden.has(n.id))
+
+  // Reported again on focus so the page the person is using wins over other open pages.
+  const focusKey = JSON.stringify({ open: root, selected: selected.map((n) => n.id) } satisfies Focus)
+  useEffect(() => {
+    if (!ready) return
+    const report = () => reportFocus(JSON.parse(focusKey) as Focus)
+    const t = setTimeout(report, 150)
+    window.addEventListener('focus', report)
+    window.addEventListener('pageshow', report)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('focus', report)
+      window.removeEventListener('pageshow', report)
+    }
+  }, [focusKey, ready])
+  useEffect(() => {
+    window.addEventListener('pagehide', clearFocus)
+    return () => window.removeEventListener('pagehide', clearFocus)
+  }, [])
 
   const doGroup = useCallback(() => {
     const visibleSel = nodes.map((n) => (n.selected && view.hidden.has(n.id) ? { ...n, selected: false } : n))

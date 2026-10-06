@@ -119,6 +119,28 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
   }
 }
 
+export type Focus = { open: string | null; selected: string[] }
+
+const FOCUS_API = '/api/focus'
+// Each page reports under its own id, so closing one page leaves another's focus alone.
+const TAB = crypto.randomUUID()
+
+/** Tells agents, through `orion focus`, what this page has open and selected. */
+export function reportFocus(focus: Focus) {
+  void fetch(FOCUS_API, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ tab: TAB, ...focus }),
+  }).catch(() => {
+    // No dev server; there's no CLI to tell.
+  })
+}
+
+/** Withdraws this page's focus as it goes away. */
+export function clearFocus() {
+  navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB, closed: true })], { type: 'application/json' }))
+}
+
 /** Calls back when another writer (the CLI, an agent, another window) changes the file. */
 export function onRemoteChange(callback: (revision: number) => void) {
   const hot = import.meta.hot

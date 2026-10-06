@@ -11,6 +11,8 @@ This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs 
 
 Everything lives in one file, `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another folder. The app and the CLI take the same lock before writing and bump a revision with each write, so both can be open at once. Changes from either side show up in the other within a moment.
 
+While the app is open, it also writes the group you have open and your selection to `focus.json` in the same folder, which `orion focus` reads so agents can tell what you're looking at. The file goes away when the page closes or the dev server stops.
+
 ## Run the app
 
 ```sh
@@ -64,8 +66,8 @@ The toolbar shows when GitHub was last synced, or a sync error; click the status
 
 In `app/`:
 
-- `server/store.ts`: the dev-server endpoint for the data file, its lock, and change notifications.
-- `src/persist.ts`: loading, saving, and reacting to changes from other writers.
+- `server/store.ts`: the dev-server endpoints for the data file, its lock, change notifications, and the app's focus.
+- `src/persist.ts`: loading, saving, reacting to changes from other writers, and reporting focus.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: ELK layout for one group or the top level.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
@@ -77,7 +79,7 @@ In `app/`:
 In `cli/src/`:
 
 - `cli/init.luau`: commands and their options.
-- `store.luau`: reading, locking, and writing the data file.
+- `store.luau`: reading, locking, and writing the data file, and reading the app's focus.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
 - `github.luau`: looking up pull requests and mapping their state onto cards.
 - `render.luau`: text and JSON output.
