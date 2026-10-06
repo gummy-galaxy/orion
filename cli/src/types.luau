@@ -27,6 +27,7 @@ export type Link = {
 	from: string,
 	to: string,
 	kind: string,
+	origin: string?,
 }
 
 export type Doc = {

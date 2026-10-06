@@ -9,13 +9,43 @@ import type { AppNode, GithubSnapshot, Link } from './model'
 export type Saved = { nodes: AppNode[]; links: Link[] }
 export type Remote = Saved & { revision: number; settings: { githubOwner: string }; github?: GithubSnapshot }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
-export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing' } | { source: 'browser'; saved: Saved | null }
+export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
 export type SaveResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
+export type Workspaces = { active: string; workspaces: { name: string; label: string }[] }
 
 const API = '/api/orion'
 const STORAGE_KEY = 'orion:v2'
 const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
+const WORKSPACE_EVENT = 'orion:workspace'
+
+export async function getWorkspaces(): Promise<Workspaces> {
+  try {
+    const response = await fetch('/api/workspaces')
+    if (response.ok) return (await response.json()) as Workspaces
+  } catch {
+    // A static build has only browser storage for the default workspace.
+  }
+  return { active: 'default', workspaces: [{ name: 'default', label: 'Default' }] }
+}
+
+async function workspaceRequest(url: string, value: object): Promise<Workspaces> {
+  const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.error || `Workspace request failed (${response.status})`)
+  return result as Workspaces
+}
+
+export const setActiveWorkspace = (name: string) => workspaceRequest('/api/workspaces/active', { name })
+export const createWorkspace = (name: string, label: string) => workspaceRequest('/api/workspaces', { name, label })
+
+export function onWorkspaceChange(callback: (active: string) => void) {
+  const hot = import.meta.hot
+  if (!hot) return () => {}
+  const listener = (data: { active: string }) => callback(data.active)
+  hot.on(WORKSPACE_EVENT, listener)
+  return () => hot.off(WORKSPACE_EVENT, listener)
+}
 
 export async function getSyncStatus(): Promise<SyncStatus | null> {
   try {
@@ -81,10 +111,13 @@ function writeBrowser({ nodes, links }: Saved) {
   }
 }
 
-export async function load(): Promise<Loaded> {
+export async function load(workspace = 'default'): Promise<Loaded> {
   try {
-    const res = await fetch(API)
-    if (res.status === 404) return { source: 'missing' }
+    const res = await fetch(API, { headers: { 'x-orion-workspace': workspace } })
+    if (res.status === 404) {
+      const body = (await res.json()) as { workspace?: string }
+      return { source: 'missing', workspace: body.workspace ?? 'default' }
+    }
     if (res.ok && res.headers.get('content-type')?.includes('json')) {
       const doc = await res.json()
       if (isSaved(doc) && typeof (doc as Remote).revision === 'number') return { source: 'file', doc: doc as Remote }
@@ -92,16 +125,16 @@ export async function load(): Promise<Loaded> {
   } catch {
     // No dev server.
   }
-  return { source: 'browser', saved: readBrowser() }
+  return workspace === 'default' ? { source: 'browser', saved: readBrowser() } : { source: 'missing', workspace }
 }
 
-export async function fetchRemote(): Promise<Remote | null> {
-  const loaded = await load()
+export async function fetchRemote(workspace = 'default'): Promise<Remote | null> {
+  const loaded = await load(workspace)
   return loaded.source === 'file' ? loaded.doc : null
 }
 
 /** `baseRevision` is null when creating the file. */
-export async function save(source: 'file' | 'browser', baseRevision: number | null, saved: Saved): Promise<SaveResult> {
+export async function save(source: 'file' | 'browser', baseRevision: number | null, saved: Saved, workspace = 'default'): Promise<SaveResult> {
   if (source === 'browser') {
     writeBrowser(saved)
     return { ok: true, revision: 0 }
@@ -109,7 +142,7 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
   try {
     const res = await fetch(API, {
       method: 'PUT',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
       body: JSON.stringify({ baseRevision, nodes: slim(saved.nodes), links: saved.links }),
     })
     if (res.ok) return { ok: true, revision: (await res.json()).revision }
