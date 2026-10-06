@@ -64,7 +64,14 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			syncLoop.run()
 		end
 	end)
-	return running
+	return {
+		hostname = running.hostname,
+		port = running.port,
+		close = function()
+			assert(monitor).close()
+			running.close()
+		end,
+	}
 end
 
 return table.freeze(server)
