@@ -280,8 +280,14 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 		local closed = if change.closed then " — closed without merging; deferred until you decide" else ""
 		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
 	end
-	if #report.changes == 0 then
+	if #report.changes == 0 and #report.added == 0 and #report.linked == 0 and #report.unlinked == 0 then
 		table.insert(lines, "  Everything already matches.")
+	end
+	for _, link in report.linked do
+		table.insert(lines, `  linked {link.from} → {link.to} (stacked)`)
+	end
+	for _, link in report.unlinked do
+		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)
 	end
 	for _, id in report.added do
 		table.insert(

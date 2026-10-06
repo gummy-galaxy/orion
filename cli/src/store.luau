@@ -73,6 +73,7 @@ function store.decode(text: string): Doc
 				from = from,
 				to = to,
 				kind = str(object.kind) or "blocks",
+				origin = str(object.origin),
 			})
 		end
 	end
@@ -105,7 +106,9 @@ function store.encode(doc: Doc): string
 	end
 	local links: json.Array = {}
 	for _, link in doc.links do
-		table.insert(links, json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind }))
+		local object = json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind })
+		object.origin = link.origin
+		table.insert(links, object)
 	end
 	local root = json.object(doc.raw or {})
 	root.version = doc.version
