@@ -45,47 +45,62 @@ function testing.group(id: string, label: string, parentId: string?): Item
 	}
 end
 
-function testing.doc(nodes: { Item }, links: { { string } }?): Doc
+function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 	local out = {}
 	for _, pair in links or {} do
 		table.insert(out, { id = `{pair[1]}>{pair[2]}`, from = pair[1], to = pair[2], kind = pair[3] or "blocks" })
 	end
-	return { version = 1, revision = 0, settings = { githubOwner = "flipbook-labs" }, nodes = nodes, links = out }
+	return {
+		version = 1,
+		revision = 0,
+		settings = { githubOwner = "flipbook-labs", sources = {} },
+		nodes = nodes,
+		links = out,
+	}
 end
 
 function testing.result(ok: boolean, stdout: string): types.CommandResult
 	return { ok = ok, exitCode = if ok then 0 else 1, stdout = stdout, stderr = "" }
 end
 
-function testing.harness(name: string)
+function testing.run(
+	dir: string,
+	args: { string },
+	runner: types.CommandRunner?,
+	now: string?,
+	workspace: string?
+): string
+	local output: { string } = {}
+	cli.execute(args, {
+		dataDir = dir,
+		workspace = workspace,
+		write = function(line)
+			table.insert(output, line)
+		end,
+		runner = runner,
+		now = function()
+			return now or "2026-10-04T00:00:00Z"
+		end,
+	})
+	return table.concat(output, "\n")
+end
+
+function testing.createHarness(name: string)
 	local dir = testing.directory(name)
 	store.write(
 		dir,
-		testing.doc({
+		testing.createDoc({
 			testing.group("ws", "Release"),
 			testing.task("ci", "Report release health", "active", "ws", { repo = "flipbook", pr = 658 }),
 			testing.task("pub", "Publish v2.6.0", "todo", "ws"),
 		}, { { "ci", "pub" } })
 	)
-	local output: { string } = {}
 	local workspace = ""
 	local function setWorkspace(name: string)
 		workspace = name
 	end
 	local function run(args: { string }, runner: types.CommandRunner?)
-		table.clear(output)
-		cli.execute(args, {
-			dataDir = dir,
-			workspace = workspace,
-			write = function(text)
-				table.insert(output, text)
-			end,
-			runner = runner,
-			now = function()
-				return "2026-10-04T00:00:00Z"
-			end,
-		})
-		return table.concat(output, "\n")
+		return testing.run(dir, args, runner, nil, workspace)
 	end
 	return dir, run, setWorkspace
 end

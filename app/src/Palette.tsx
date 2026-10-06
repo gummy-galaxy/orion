@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ancestors, byId, isCluster, taskTag, type AppNode } from './model'
+import { ancestors, byId, isCluster, getTaskTag, type AppNode } from './model'
 
 type Props = { nodes: AppNode[]; jumpTo: (id: string) => void; open: (id: string) => void; close: () => void }
 type Match = { score: number; indices: number[] }
@@ -70,7 +70,7 @@ export function Palette({ nodes, jumpTo, open, close }: Props) {
     return nodes
       .map((node): Result | null => {
         const labelMatch = match(term, node.data.label)
-        const tagMatch = node.type === 'task' ? match(term, taskTag(node.data)) : null
+        const tagMatch = node.type === 'task' ? match(term, getTaskTag(node.data)) : null
         const idMatch = node.type === 'task' ? match(term, node.id) : null
         const score = Math.max(labelMatch?.score ?? -Infinity, tagMatch?.score ?? -Infinity, idMatch?.score ?? -Infinity)
         if (score === -Infinity) return null
@@ -150,7 +150,7 @@ export function Palette({ nodes, jumpTo, open, close }: Props) {
         <div ref={list} className="palette-results" id="palette-results" role="listbox">
           {results.map((result, i) => {
             const { node } = result
-            const tag = node.type === 'task' ? taskTag(node.data) : null
+            const tag = node.type === 'task' ? getTaskTag(node.data) : null
             return (
               <button
                 key={node.id}

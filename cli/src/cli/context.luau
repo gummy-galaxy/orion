@@ -1,4 +1,5 @@
 local batteriesCli = require("@batteries/cli")
+local types = require("@root/types")
 
 export type Context = {
 	dir: string,
@@ -6,6 +7,8 @@ export type Context = {
 	workspace: string,
 	write: (string) -> (),
 	asJson: boolean,
+	runner: types.CommandRunner,
+	now: () -> string,
 }
 
 export type Command = {

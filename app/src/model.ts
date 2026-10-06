@@ -22,6 +22,21 @@ export type TaskData = {
   status: Status
   repo?: string
   pr?: number
+  host?: string
+  branch?: string
+  issue?: number
+  /** An item from an ingested source other than a GitHub pull request, such as a Jira issue. */
+  external?: {
+    source: string
+    key: string
+    url?: string
+    status?: string
+    isDone?: boolean
+    updatedAt?: string
+    details?: Record<string, string>
+  }
+  activity?: { lastActiveAt: string; sessions: string[] }
+  sources?: string[]
   note?: string
   who?: Who
   /** Written by `orion sync`; read-only here. */
@@ -76,13 +91,17 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
 
 const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
 
-export function taskTag(d: TaskData): string {
+export function getTaskTag(d: TaskData): string {
+  if (d.external) return d.external.key
+  if (d.repo && d.issue) return `${d.repo}#${d.issue}`
   if (d.repo && d.pr) return `${d.repo}#${d.pr}`
   return d.repo ?? 'step'
 }
 
-export function prUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
-  return d.repo && d.pr ? `https://github.com/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}` : null
+export function getTaskUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
+  if (d.github?.url) return d.github.url
+  if (d.repo && d.pr) return `https://${d.host ?? 'github.com'}/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}`
+  return d.external?.url ?? null
 }
 
 export const isCluster = (n: AppNode): n is ClusterNode => n.type === 'cluster'

@@ -40,13 +40,13 @@ local function stackFixture(): (Doc, Fetched)
 	child.number = 2
 	child.baseRefName = parent.headRefName
 	child.headRefName = "feature/b"
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.task("a", "Parent", "todo", nil, { repo = "flipbook", pr = 1 }),
 		testing.task("b", "Child", "todo", nil, { repo = "flipbook", pr = 2 }),
 	})
 	return doc,
 		{
-			pulls = { [github.key(parent)] = parent, [github.key(child)] = child },
+			pulls = { [github.getKey(parent)] = parent, [github.getKey(child)] = child },
 			authored = {},
 			reviews = {},
 			viewer = "vocksel",
@@ -105,53 +105,54 @@ test.case("apply keeps a merged parent's stack link after the child is retargete
 end)
 
 test.case("desired follows the pull request's state", function(assert)
-	assert.eq(github.desired(pull("MERGED"), "review", "review", "vocksel"), "done")
-	assert.eq(github.desired(pull("CLOSED"), "active", "you", "vocksel"), "deferred")
-	assert.eq(github.desired(pull("OPEN", { draft = true }), "todo", nil, "vocksel"), "active")
-	local status, who = github.desired(pull("OPEN", { reviewRequests = 1 }), "active", "you", "vocksel")
+	assert.eq(github.getDesired(pull("MERGED"), "review", "review", "vocksel"), "done")
+	assert.eq(github.getDesired(pull("CLOSED"), "active", "you", "vocksel"), "deferred")
+	assert.eq(github.getDesired(pull("OPEN", { draft = true }), "todo", nil, "vocksel"), "active")
+	local status, who = github.getDesired(pull("OPEN", { reviewRequests = 1 }), "active", "you", "vocksel")
 	assert.eq(status, "review")
 	assert.eq(who, "review")
-	status, who = github.desired(pull("OPEN", { reviewDecision = "CHANGES_REQUESTED" }), "review", "review", "vocksel")
+	status, who =
+		github.getDesired(pull("OPEN", { reviewDecision = "CHANGES_REQUESTED" }), "review", "review", "vocksel")
 	assert.eq(status, "active")
 	assert.eq(who, "you")
-	status, who = github.desired(pull("OPEN", { reviewDecision = "APPROVED" }), "review", "review", "vocksel")
+	status, who = github.getDesired(pull("OPEN", { reviewDecision = "APPROVED" }), "review", "review", "vocksel")
 	assert.eq(status, "review")
 	assert.eq(who, "you")
 end)
 
 test.case("desired keeps hand-set holds while the pull request is open", function(assert)
-	assert.eq(github.desired(pull("OPEN", { reviewRequests = 1 }), "blocked", nil, "vocksel"), "blocked")
-	assert.eq(github.desired(pull("OPEN"), "deferred", nil, "vocksel"), "deferred")
-	assert.eq(github.desired(pull("MERGED"), "blocked", nil, "vocksel"), "done")
+	assert.eq(github.getDesired(pull("OPEN", { reviewRequests = 1 }), "blocked", nil, "vocksel"), "blocked")
+	assert.eq(github.getDesired(pull("OPEN"), "deferred", nil, "vocksel"), "deferred")
+	assert.eq(github.getDesired(pull("MERGED"), "blocked", nil, "vocksel"), "done")
 end)
 
 test.case("desired tracks requested reviews on other people's pull requests", function(assert)
 	local other = pull("OPEN")
 	other.author = "colleague"
 	other.requestedReviewers = { "vocksel" }
-	local status, who = github.desired(other, "todo", nil, "vocksel")
+	local status, who = github.getDesired(other, "todo", nil, "vocksel")
 	assert.eq(status, "review")
 	assert.eq(who, "you")
 	other.requestedReviewers = {}
-	status, who = github.desired(other, "review", "you", "vocksel")
+	status, who = github.getDesired(other, "review", "you", "vocksel")
 	assert.eq(status, "review")
 	assert.eq(who, nil)
-	assert.eq(github.desired(other, "blocked", "ci", "vocksel"), "blocked")
+	assert.eq(github.getDesired(other, "blocked", "ci", "vocksel"), "blocked")
 	other.state = "MERGED"
-	assert.eq(github.desired(other, "review", "you", "vocksel"), "done")
+	assert.eq(github.getDesired(other, "review", "you", "vocksel"), "done")
 end)
 
 test.case("refFor reads bare and owner-qualified repositories", function(assert)
-	local bare = github.refFor(testing.task("a", "A", "todo", nil, { repo = "flipbook", pr = 5 }), "flipbook-labs")
-	assert.eq(bare and github.key(bare), "flipbook-labs/flipbook#5")
+	local bare = github.getRefFor(testing.task("a", "A", "todo", nil, { repo = "flipbook", pr = 5 }), "flipbook-labs")
+	assert.eq(bare and github.getKey(bare), "flipbook-labs/flipbook#5")
 	local qualified =
-		github.refFor(testing.task("b", "B", "todo", nil, { repo = "vocksel/orion", pr = 2 }), "flipbook-labs")
-	assert.eq(qualified and github.key(qualified), "vocksel/orion#2")
-	assert.eq(github.refFor(testing.task("c", "C", "todo"), "flipbook-labs"), nil)
+		github.getRefFor(testing.task("b", "B", "todo", nil, { repo = "vocksel/orion", pr = 2 }), "flipbook-labs")
+	assert.eq(qualified and github.getKey(qualified), "vocksel/orion#2")
+	assert.eq(github.getRefFor(testing.task("c", "C", "todo"), "flipbook-labs"), nil)
 end)
 
 test.case("apply creates review cards and stores unplaced authored pull requests with matches", function(assert)
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.task("dashboard", "Release health dashboard", "todo", nil, { repo = "flipbook" }),
 	})
 	local review = pull("OPEN")
@@ -188,7 +189,7 @@ test.case("apply creates review cards and stores unplaced authored pull requests
 end)
 
 test.case("discover files authored pulls in Inbox and clears unplaced", function(assert)
-	local doc = testing.doc({})
+	local doc = testing.createDoc({})
 	local authored = pull("OPEN", { draft = true })
 	local report = github.apply(doc, {
 		pulls = {},
@@ -208,7 +209,7 @@ end)
 test.case("fetch batches pull requests into one GraphQL query", function(assert)
 	local calls = 0
 	local query = ""
-	local found = github.fetch(function(argv)
+	local found = github.fetchPulls(function(argv)
 		calls += 1
 		query = argv[5]
 		return testing.result(
@@ -224,6 +225,7 @@ test.case("fetch batches pull requests into one GraphQL query", function(assert)
 	assert.strContains(query, "statusCheckRollup")
 	assert.strContains(query, "requestedReviewer")
 	assert.strContains(query, "baseRefName headRefName")
+	assert.strContains(query, "title body url")
 	local hit = found["flipbook-labs/flipbook#658"]
 	assert.eq(hit and hit.reviewRequests, 2)
 	assert.eq(hit and hit.author, "colleague")
@@ -236,14 +238,49 @@ end)
 
 test.case("fetch rejects repository names that would break the query", function(assert)
 	assert.throws(function()
-		github.fetch(function()
+		github.fetchPulls(function()
 			return testing.result(true, "{}")
 		end, { { owner = 'x") { evil }', name = "y", number = 1 } })
 	end)
 end)
 
+test.case("collect batches pull request lookups by host", function(assert)
+	local doc = testing.createDoc({
+		testing.task("public", "Public", "todo", nil, { repo = "flipbook", pr = 1 }),
+		testing.task(
+			"private",
+			"Private",
+			"todo",
+			nil,
+			{ repo = "Roblox/avatar", pr = 2, host = "github.example.com" }
+		),
+	})
+	local batches = {}
+	github.collect(doc, function(argv)
+		local query = argv[#argv]
+		if query:find("pullRequests(first:", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
+		elseif query:find("search(query:", 1, true) then
+			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+		end
+		table.insert(batches, argv)
+		return testing.result(true, [[{"data":{}}]])
+	end, false)
+	assert.eq(#batches, 2)
+	local hosts: { [string]: boolean } = {}
+	for _, argv in batches do
+		if argv[3] == "--hostname" then
+			hosts[argv[4]] = true
+		else
+			hosts["github.com"] = true
+		end
+	end
+	assert.eq(hosts["github.com"], true)
+	assert.eq(hosts["github.example.com"], true)
+end)
+
 test.case("apply updates statuses, reports what's missing, and files new pull requests in an Inbox", function(assert)
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.task("a", "Mine", "active", nil, { repo = "flipbook", pr = 1, who = "you" }),
 		testing.task("b", "Gone", "todo", nil, { repo = "flipbook", pr = 2 }),
 	})

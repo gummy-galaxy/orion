@@ -35,6 +35,14 @@ Cards with a repository and pull request number stay in step with GitHub through
 
 `orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
 
+## Sources and ingestion
+
+Use `orion source list` to inspect configured GitHub, Jira, and hop sources. Add a GitHub source with `orion source add github --host <host> --owners <owner,owner>`; `--include` and `--exclude` also take comma-separated repository lists. Add Jira with `orion source add jira --command '<JSON array>' --browse <url>` and hop with `orion source add hop`. Keep credentials in `gh` and `acli`, never in the source command. Remove a source with `orion source remove <id>`.
+
+Run `orion ingest --dry-run` before `orion ingest`; add `--json` for structured counts or `--source <id>` to limit the run. Ingestion files new cards in Unsorted, updates existing cards in place, and leaves cards that are no longer returned alone. Place cards into outcome groups after reviewing them.
+
+Cards ingested from Jira use `data.external` with the source ID and issue key as their identity. It also holds the source URL, status, completion state, update time, and source-specific details. GitHub pull request fields and hop activity remain separate.
+
 ## Habits
 
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
