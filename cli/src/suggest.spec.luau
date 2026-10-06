@@ -31,8 +31,16 @@ end)
 
 test.case("heuristics join a shared Jira epic", function(assert)
 	local doc = getPair(
-		json.object({ external = json.object({ source = "jira", key = "ITEM-1", details = json.object({ epicKey = "ABC-1", epicSummary = "Avatar loading" }) }) }),
-		json.object({ external = json.object({ source = "jira", key = "ITEM-2", details = json.object({ epicKey = "ABC-1" }) }) })
+		json.object({
+			external = json.object({
+				source = "jira",
+				key = "ITEM-1",
+				details = json.object({ epicKey = "ABC-1", epicSummary = "Avatar loading" }),
+			}),
+		}),
+		json.object({
+			external = json.object({ source = "jira", key = "ITEM-2", details = json.object({ epicKey = "ABC-1" }) }),
+		})
 	)
 	local result = compute(doc)
 	assert.eq(result.groups[1].title, "Avatar loading")
@@ -90,14 +98,28 @@ test.case("title overlap joins only a matching repository without epic conflict"
 			"Improve avatar loading",
 			"todo",
 			nil,
-			json.object({ repo = "app", external = json.object({ source = "jira", key = "ITEM-3", details = json.object({ epicKey = "ABC-1" }) }) })
+			json.object({
+				repo = "app",
+				external = json.object({
+					source = "jira",
+					key = "ITEM-3",
+					details = json.object({ epicKey = "ABC-1" }),
+				}),
+			})
 		),
 		testing.task(
 			"b",
 			"Fix avatar loading",
 			"todo",
 			nil,
-			json.object({ repo = "app", external = json.object({ source = "jira", key = "ITEM-4", details = json.object({ epicKey = "ABC-2" }) }) })
+			json.object({
+				repo = "app",
+				external = json.object({
+					source = "jira",
+					key = "ITEM-4",
+					details = json.object({ epicKey = "ABC-2" }),
+				}),
+			})
 		),
 	})
 	assert.eq(#compute(conflicting).groups, 0)
