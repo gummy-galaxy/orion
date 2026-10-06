@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { ViewportPortal, useReactFlow, type ReactFlowInstance } from '@xyflow/react'
-import { STICKERS, stickerKind, type Sticker } from './sticker'
+import { WHEEL_SLOTS, firstEmoji, type Loadout, type Sticker } from './sticker'
 
 type XY = { x: number; y: number }
 export type PlacedSticker = Sticker & { fresh: boolean }
@@ -411,13 +411,11 @@ export function StickerLayer({
       {stickers.map((s) => {
         const at = world.position(s)
         const held = world.hold?.active && world.hold.id === s.id
-        const kind = stickerKind(s.kind)
         return (
           <div
             key={s.id}
             className={`sticker nopan${s.fresh ? ' is-fresh' : ''}${held ? ' is-held' : ''}${interactive ? ' is-interactive' : ''}`}
             style={{ transform: `translate(${at.x}px, ${at.y}px)`, '--tilt': `${s.tilt + at.lean}deg` } as CSSProperties}
-            title={kind.label}
             onPointerDown={(e) => {
               if (e.button !== 0 || !interactive) return
               e.stopPropagation()
@@ -432,7 +430,7 @@ export function StickerLayer({
               menu(e, s.id)
             }}
           >
-            <span className="sticker-art">{kind.emoji}</span>
+            <span className="sticker-art">{s.kind}</span>
           </div>
         )
       })}
@@ -446,48 +444,74 @@ const HUB = 30
 
 /**
  * Picks a sticker. Opened by holding S, it follows FigJam: point at one and let go.
- * A quick tap leaves it open for clicking, as does opening it from the toolbar.
+ * A quick tap leaves it open, as does opening it from the toolbar, and then any
+ * emoji typed or pasted into the middle is loaded. Right-clicking a slot, or
+ * clicking an empty one, fills it with the next emoji instead.
  */
 export function StickerWheel({
   at,
   held,
   current,
+  loadout,
   pick,
+  assign,
   close,
 }: {
   at: XY
   held: boolean
   current: string
-  pick: (id: string) => void
+  loadout: Loadout
+  pick: (emoji: string) => void
+  assign: (slot: number, emoji: string | null) => void
   close: () => void
 }) {
   const [hover, setHover] = useState<number | null>(null)
+  const [holding, setHolding] = useState(held)
+  const [filling, setFilling] = useState<number | null>(null)
+  const field = useRef<HTMLInputElement>(null)
   const center = {
     x: Math.max(WHEEL_EDGE, Math.min(window.innerWidth - WHEEL_EDGE, at.x)),
     y: Math.max(WHEEL_EDGE, Math.min(window.innerHeight - WHEEL_EDGE, at.y)),
   }
-  const latest = useRef({ hover, held, pick, close })
+
+  const choose = (slot: number) => {
+    const emoji = loadout[slot]
+    if (emoji) return pick(emoji)
+    setHolding(false)
+    setFilling(slot)
+  }
+  const latest = useRef({ hover, holding, filling, choose, assign, close })
   useLayoutEffect(() => {
-    latest.current = { hover, held, pick, close }
+    latest.current = { hover, holding, filling, choose, assign, close }
   })
+
+  useEffect(() => {
+    if (!holding) field.current?.focus()
+  }, [holding, filling])
 
   useEffect(() => {
     const opened = performance.now()
     const down = (e: KeyboardEvent) => {
-      const { hover, pick, close } = latest.current
+      const { hover, filling, choose, assign, close } = latest.current
       const digit = Number(e.key)
-      if (e.key === 'Escape') close()
-      else if (Number.isInteger(digit) && digit >= 1 && digit <= STICKERS.length) pick(STICKERS[digit - 1].id)
-      else if (e.key === 'Enter' && hover !== null) pick(STICKERS[hover].id)
-      else if (e.key.toLowerCase() !== 's') return
+      if (e.key === 'Escape') {
+        if (filling !== null) setFilling(null)
+        else close()
+      } else if (/^[1-9]$/.test(e.key) && digit <= WHEEL_SLOTS) choose(digit - 1)
+      else if (e.key === 'Enter' && hover !== null) choose(hover)
+      else if ((e.key === 'Backspace' || e.key === 'Delete') && filling !== null) {
+        assign(filling, null)
+        setFilling(null)
+      } else if (e.key.toLowerCase() !== 's' || e.target === field.current) return
       e.preventDefault()
       e.stopImmediatePropagation()
     }
     const up = (e: KeyboardEvent) => {
-      const { hover, held, pick, close } = latest.current
-      if (!held || e.key.toLowerCase() !== 's') return
-      if (hover !== null) pick(STICKERS[hover].id)
+      const { hover, holding, choose, close } = latest.current
+      if (!holding || e.key.toLowerCase() !== 's') return
+      if (hover !== null) choose(hover)
       else if (performance.now() - opened > 350) close()
+      else setHolding(false)
     }
     window.addEventListener('keydown', down, { capture: true })
     window.addEventListener('keyup', up)
@@ -503,10 +527,17 @@ export function StickerWheel({
     const d = Math.hypot(dx, dy)
     if (d < HUB || d > WHEEL_EDGE * 1.6) return setHover(null)
     const turn = (Math.atan2(dx, -dy) / (2 * Math.PI) + 1) % 1
-    setHover(Math.round(turn * STICKERS.length) % STICKERS.length)
+    setHover(Math.round(turn * WHEEL_SLOTS) % WHEEL_SLOTS)
   }
 
-  const shown = hover !== null ? STICKERS[hover] : stickerKind(current)
+  const typed = (text: string) => {
+    const emoji = firstEmoji(text)
+    if (!emoji) return
+    if (filling === null) return pick(emoji)
+    assign(filling, emoji)
+    setFilling(null)
+  }
+
   return (
     <div
       className="wheel-backdrop"
@@ -518,23 +549,51 @@ export function StickerWheel({
       }}
     >
       <div className="wheel" style={{ left: center.x, top: center.y }} role="menu" aria-label="Stickers">
-        {STICKERS.map((s, i) => {
-          const angle = (i / STICKERS.length) * 2 * Math.PI
+        {loadout.map((emoji, i) => {
+          const angle = (i / WHEEL_SLOTS) * 2 * Math.PI
+          const classes = [
+            'wheel-item',
+            emoji ? '' : 'empty',
+            hover === i ? 'hover' : '',
+            emoji === current ? 'current' : '',
+            filling === i ? 'filling' : '',
+          ]
           return (
             <button
-              key={s.id}
+              key={i}
               type="button"
               role="menuitem"
-              className={`wheel-item${hover === i ? ' hover' : ''}${current === s.id ? ' current' : ''}`}
+              className={classes.filter(Boolean).join(' ')}
               style={{ '--x': `${Math.sin(angle) * WHEEL_RADIUS}px`, '--y': `${-Math.cos(angle) * WHEEL_RADIUS}px`, '--i': i } as CSSProperties}
-              title={`${s.label} (${i + 1})`}
-              onClick={() => pick(s.id)}
+              title={emoji ? `${emoji} (${i + 1}), right-click to change` : `Empty slot (${i + 1}), click to fill`}
+              aria-label={emoji ?? `Empty slot ${i + 1}`}
+              onClick={() => choose(i)}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setHolding(false)
+                setFilling(i)
+              }}
             >
-              {s.emoji}
+              {emoji}
             </button>
           )
         })}
-        <span className="wheel-hub">{shown.label}</span>
+        <input
+          ref={field}
+          className="wheel-hub"
+          value=""
+          placeholder={filling === null ? 'any emoji' : `slot ${filling + 1}`}
+          aria-label={filling === null ? 'Stamp any emoji' : `Emoji for slot ${filling + 1}`}
+          onChange={(e) => typed(e.target.value)}
+        />
+        {!holding && (
+          <p className="wheel-tip">
+            {filling === null
+              ? 'Type or paste any emoji, or ⌃⌘Space for all of them. Right-click a slot to change it.'
+              : `Type or paste an emoji for slot ${filling + 1}. ⌫ empties it, Esc cancels.`}
+          </p>
+        )}
       </div>
     </div>
   )

@@ -68,7 +68,7 @@ import {
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
 import { StickerLayer, StickerWheel, type PlacedSticker, type StickerBounds, type StickerMove } from './Stickers'
-import { stickerCursor, stickerKind, type Sticker } from './sticker'
+import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from './sticker'
 import { Toolbar, type Tool } from './Toolbar'
 
 type ViewNode = AppNode | GhostNode
@@ -178,7 +178,9 @@ function Canvas() {
   const [menu, setMenu] = useState<Menu | null>(null)
   const [tool, setTool] = useState<Tool>('select')
   const [stickers, setStickers] = useState<Sticker[]>([])
-  const [sticker, setSticker] = useState('party')
+  const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
+  const [chosenSticker, setSticker] = useState<string | null>(null)
+  const sticker = chosenSticker ?? loadout.find((s) => s !== null) ?? FALLBACK_STICKER
   const [wheel, setWheel] = useState<{ x: number; y: number; held: boolean } | null>(null)
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set())
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -208,13 +210,15 @@ function Canvas() {
   const adopt = useCallback((doc: Remote) => {
     const next = normalize(doc.nodes)
     revision.current = doc.revision
-    savedPrint.current = fingerprint({ nodes: next, links: doc.links, stickers: doc.stickers ?? [] })
+    const stickerLoadout = loadoutOf(doc.stickerLoadout)
+    savedPrint.current = fingerprint({ nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout })
     setNodes((ns) => {
       const picked = new Set(ns.filter((n) => n.selected).map((n) => n.id))
       return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
     })
     setLinks(doc.links)
     setStickers(doc.stickers ?? [])
+    setLoadout(stickerLoadout)
     setGithub(doc.github ?? null)
     setGithubOwner(doc.settings.githubOwner)
   }, [])
@@ -241,6 +245,7 @@ function Canvas() {
       setNodes(start.nodes)
       setLinks(start.links)
       setStickers(kept?.stickers ?? [])
+      setLoadout(loadoutOf(kept?.stickerLoadout))
       setReady(true)
     })
     return () => {
@@ -279,7 +284,7 @@ function Canvas() {
     const t = setTimeout(() => {
       // Stickers on cards or groups that are gone go with them.
       const ids = new Set(nodes.map((n) => n.id))
-      const snapshot = { nodes, links, stickers: stickers.filter((s) => !s.on || ids.has(s.on)) }
+      const snapshot = { nodes, links, stickers: stickers.filter((s) => !s.on || ids.has(s.on)), stickerLoadout: loadout }
       const print = fingerprint(snapshot)
       queue.current = queue.current.then(async () => {
         if (print === savedPrint.current) return
@@ -294,7 +299,7 @@ function Canvas() {
       })
     }, 400)
     return () => clearTimeout(t)
-  }, [nodes, links, stickers, ready, reload])
+  }, [nodes, links, stickers, loadout, ready, reload])
 
   /**
    * Fits the opened group, or everything at the top level. Bounds come from our own
@@ -1022,6 +1027,8 @@ function Canvas() {
     if (r) setWheel({ x: r.left + (p?.x ?? r.width / 2), y: r.top + (p?.y ?? r.height / 2), held: true })
   }, [])
 
+  const assignSlot = useCallback((slot: number, emoji: string | null) => setLoadout((l) => l.map((s, i) => (i === slot ? emoji : s))), [])
+
   const pickSticker = useCallback((id: string) => {
     setSticker(id)
     setTool('sticker')
@@ -1383,7 +1390,7 @@ function Canvas() {
                       </div>
                     </div>
                   )}
-                  <Toolbar tool={tool} sticker={stickerKind(sticker).emoji} setTool={chooseTool} />
+                  <Toolbar tool={tool} sticker={sticker} setTool={chooseTool} />
                   <div className="panel help">
                     {showHelp ? (
                       <>
@@ -1416,7 +1423,17 @@ function Canvas() {
             )}
             {!ready && <div className="loading">Laying out…</div>}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
-            {wheel && <StickerWheel at={wheel} held={wheel.held} current={sticker} pick={pickSticker} close={() => setWheel(null)} />}
+            {wheel && (
+              <StickerWheel
+                at={wheel}
+                held={wheel.held}
+                current={sticker}
+                loadout={loadout}
+                pick={pickSticker}
+                assign={assignSlot}
+                close={() => setWheel(null)}
+              />
+            )}
           </div>
         </div>
       </ActionsContext.Provider>

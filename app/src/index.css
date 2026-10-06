@@ -1013,15 +1013,61 @@ kbd {
 .wheel-item:focus-visible {
   outline: 2px solid var(--accent);
 }
+.wheel-item.empty::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border: 1.5px dashed var(--line);
+  border-radius: 50%;
+}
+.wheel-item.empty.hover::after {
+  border-color: var(--accent);
+}
+.wheel-item.filling {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.wheel-item.filling::after {
+  border-color: var(--accent);
+}
 .wheel-hub {
   position: absolute;
-  left: 0;
-  top: 0;
-  transform: translate(-50%, -50%);
-  color: var(--muted);
+  left: -32px;
+  top: -14px;
+  width: 64px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--ink);
   font: 500 11px var(--font-data);
-  white-space: nowrap;
-  pointer-events: none;
+  text-align: center;
+  caret-color: var(--accent);
+}
+.wheel-hub::placeholder {
+  color: var(--muted);
+}
+.wheel-hub:focus {
+  outline: none;
+  background: var(--accent-soft);
+}
+.wheel-tip {
+  position: absolute;
+  left: 0;
+  top: 118px;
+  margin: 0;
+  padding: 4px 10px;
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  width: max-content;
+  max-width: 220px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--muted);
+  font: 500 11px/1.4 var(--font-data);
+  text-align: center;
 }
 @media (prefers-reduced-motion: no-preference) {
   .wheel::before {

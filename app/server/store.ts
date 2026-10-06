@@ -26,7 +26,15 @@ export const CHANGED_EVENT = 'orion:changed'
 
 type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 
-type Doc = { version: number; revision: number; settings: { githubOwner: string }; nodes: unknown[]; links: unknown[]; stickers?: unknown[] }
+type Doc = {
+  version: number
+  revision: number
+  settings: { githubOwner: string }
+  nodes: unknown[]
+  links: unknown[]
+  stickers?: unknown[]
+  stickerLoadout?: unknown[]
+}
 
 export function dataDir() {
   const configured = process.env.ORION_DATA_DIR
@@ -82,7 +90,7 @@ async function body(req: IncomingMessage) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'))
 }
 
-type Put = { baseRevision: number | null; nodes: unknown[]; links: unknown[]; stickers?: unknown[] }
+type Put = { baseRevision: number | null; nodes: unknown[]; links: unknown[]; stickers?: unknown[]; stickerLoadout?: unknown[] }
 
 /** Writes the canvas when nobody else has changed it since `baseRevision`. */
 async function put(dir: string, change: Put): Promise<{ status: number; revision: number | null }> {
@@ -98,6 +106,7 @@ async function put(dir: string, change: Put): Promise<{ status: number; revision
       nodes: change.nodes,
       links: change.links,
       ...(change.stickers ? { stickers: change.stickers } : {}),
+      ...(change.stickerLoadout ? { stickerLoadout: change.stickerLoadout } : {}),
     }
     atomicWrite(join(dir, FILE), JSON.stringify(next, null, 2))
     return { status: 200, revision: next.revision }
