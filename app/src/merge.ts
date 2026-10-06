@@ -1,5 +1,6 @@
 import type { AppNode, Link } from './model'
 import type { Saved } from './persist'
+import { loadoutOf, type Loadout, type Sticker } from './sticker'
 
 type Conflict = { id: string; field: string }
 const missing = Symbol('missing')
@@ -99,5 +100,19 @@ export function mergeDocs(base: Saved, local: Saved, remote: Saved): Saved & { c
     equal,
     conflicts,
   ).filter((link) => ids.has(link.from) && ids.has(link.to))
-  return { nodes, links, conflicts }
+  const stickers = mergeItems<Sticker>(
+    base.stickers ?? [],
+    local.stickers ?? [],
+    remote.stickers ?? [],
+    (before, ours, theirs, found) => mergeFields(before, ours, theirs, ['kind', 'x', 'y', 'tilt', 'on'], found),
+    equal,
+    conflicts,
+  ).filter((sticker) => !sticker.on || ids.has(sticker.on))
+  const before = loadoutOf(base.stickerLoadout)
+  const left = loadoutOf(local.stickerLoadout)
+  const right = loadoutOf(remote.stickerLoadout)
+  const stickerLoadout: Loadout = before.map((slot, index) =>
+    mergeValue('stickerLoadout', String(index), slot, left[index], right[index], conflicts),
+  ) as Loadout
+  return { nodes, links, stickers, stickerLoadout, conflicts }
 }

@@ -91,6 +91,32 @@ describe('mergeDocs', () => {
     expect(merged.conflicts).toEqual([])
   })
 
+  it('merges concurrent sticker moves and wheel slot changes', () => {
+    const sticker = { id: 'sticker-a', kind: '⭐', x: 0, y: 0, tilt: 0, on: 'a' }
+    const base = { ...doc([node('a')]), stickers: [sticker], stickerLoadout: ['⭐', '🎉'] }
+    const local = {
+      ...base,
+      stickers: [
+        { ...sticker, x: 10 },
+        { id: 'sticker-local', kind: '🔥', x: 1, y: 1, tilt: 0 },
+      ],
+      stickerLoadout: ['🔥', '🎉'],
+    }
+    const remote = {
+      ...base,
+      stickers: [
+        { ...sticker, y: 20 },
+        { id: 'sticker-remote', kind: '👀', x: 2, y: 2, tilt: 0 },
+      ],
+      stickerLoadout: ['⭐', '👀'],
+    }
+    const merged = mergeDocs(base, local, remote)
+    expect(merged.stickers?.map((s) => s.id)).toEqual(['sticker-a', 'sticker-remote', 'sticker-local'])
+    expect(merged.stickers?.[0]).toMatchObject({ x: 10, y: 20 })
+    expect(merged.stickerLoadout?.slice(0, 2)).toEqual(['🔥', '👀'])
+    expect(merged.conflicts).toEqual([])
+  })
+
   it('keeps an edited link against deletion and resolves concurrent link edits locally', () => {
     const nodes = [node('a'), node('b'), node('c')]
     const base = doc(nodes, [link('edge', 'a', 'b')])
