@@ -2,20 +2,28 @@ local batteriesCli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local backups = require("@root/cli/backups")
+local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local github = require("@root/github")
 local graph = require("@root/graph")
 local render = require("@root/render")
+local restore = require("@root/cli/restore")
 local store = require("@root/store")
 local types = require("@root/types")
+local workspace = require("@root/cli/workspace")
 
 type Doc = types.Doc
 type Item = types.Item
+type Context = context.Context
+
+type Command = context.Command
 
 export type Dependencies = {
 	runner: types.CommandRunner?,
 	write: ((string) -> ())?,
 	dataDir: string?,
+	workspace: string?,
 	now: (() -> string)?,
 }
 
@@ -23,10 +31,17 @@ type Resolved = {
 	runner: types.CommandRunner,
 	write: (string) -> (),
 	dataDir: string,
+	workspace: string?,
 	now: () -> string,
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
+
+local COMMANDS: { [string]: Command } = {
+	backups = backups,
+	restore = restore,
+	workspace = workspace,
+}
 
 local COMMAND_HELP: { [string]: string } = {
 	list = "List work items with their derived status",
@@ -46,7 +61,6 @@ local COMMAND_HELP: { [string]: string } = {
 	sync = "Update pull request items from GitHub",
 	matches = "List unplaced pull requests and likely cards",
 	path = "Print where Orion keeps its data",
-	workspace = "List, create, and choose workspaces",
 	help = "Show help for Orion or one of its commands",
 }
 
@@ -89,11 +103,15 @@ local function createParsers(): Parsers
 	addWorkspaceOption(root)
 	local commands: { [string]: batteriesCli.Parser } = {}
 	local function command(name: string): batteriesCli.Parser
-		local parser = root:subcommand(name, { help = COMMAND_HELP[name] })
+		local registered = COMMANDS[name]
+		local parser = root:subcommand(name, { help = if registered then registered.help else COMMAND_HELP[name] })
 		addHelpFlag(parser)
 		addWorkspaceOption(parser)
 		commands[name] = parser
 		return parser
+	end
+	local function registeredCommand(name: string)
+		COMMANDS[name].define(command(name))
 	end
 
 	local list = command("list")
@@ -159,23 +177,11 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	addJsonFlag(command("matches"))
+	registeredCommand("backups")
+	registeredCommand("restore")
 
 	command("path")
-	local workspace = command("workspace")
-	for _, name in { "list", "create", "use", "current" } do
-		local sub = workspace:subcommand(name, { help = name })
-		addHelpFlag(sub)
-		addWorkspaceOption(sub)
-		if name == "list" then
-			addJsonFlag(sub)
-		elseif name == "create" then
-			sub:add("name", "positional", { help = "Workspace name" })
-			sub:add("label", "option", { help = "Display label" })
-			sub:add("owner", "option", { help = "Default GitHub owner" })
-		elseif name == "use" then
-			sub:add("name", "positional", { help = "Workspace name" })
-		end
-	end
+	registeredCommand("workspace")
 	command("help"):add("command", "positional", { help = "Command to describe" })
 
 	return { root = root, commands = commands }
@@ -186,7 +192,9 @@ local function rootHelp(parser: batteriesCli.Parser): string
 end
 
 local function commandHelp(name: string, parser: batteriesCli.Parser): string
-	return `{COMMAND_HELP[name]}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
+	local registered = COMMANDS[name]
+	local help = if registered then registered.help else COMMAND_HELP[name]
+	return `{help}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
 end
 
 local function dependencies(options: Dependencies?): Resolved
@@ -195,6 +203,7 @@ local function dependencies(options: Dependencies?): Resolved
 		runner = given.runner or defaultRun,
 		write = given.write or print,
 		dataDir = given.dataDir or store.defaultDir(),
+		workspace = if given.workspace == nil then process.env.ORION_WORKSPACE else given.workspace,
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 		end,
@@ -302,8 +311,14 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 		local closed = if change.closed then " — closed without merging; deferred until you decide" else ""
 		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
 	end
-	if #report.changes == 0 then
+	if #report.changes == 0 and #report.added == 0 and #report.linked == 0 and #report.unlinked == 0 then
 		table.insert(lines, "  Everything already matches.")
+	end
+	for _, link in report.linked do
+		table.insert(lines, `  linked {link.from} → {link.to} (stacked)`)
+	end
+	for _, link in report.unlinked do
+		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)
 	end
 	for _, id in report.added do
 		table.insert(
@@ -342,51 +357,18 @@ local function execute(args: { string }, options: Dependencies?)
 
 	local root = deps.dataDir
 	local selected = parser:get("workspace") or parsers.root:get("workspace")
-	local workspaceCommand: string? = nil
-	local workspaceParser: batteriesCli.Parser? = nil
-	if command == "workspace" then
-		workspaceCommand, workspaceParser = parser:selected()
+	local _, subparser = parser:selected()
+	if subparser then
+		selected = subparser:get("workspace") or selected
 	end
-	if workspaceParser then
-		selected = workspaceParser:get("workspace") or selected
-	end
-	if command == "workspace" then
-		assert(workspaceCommand and workspaceParser, "choose list, create, use, or current")
-		if workspaceCommand == "create" then
-			local name = required(workspaceParser, "name")
-			store.createWorkspace(root, name, workspaceParser:get("label"), workspaceParser:get("owner"))
-			deps.write(`Created workspace {name}`)
-		elseif workspaceCommand == "use" then
-			local name = required(workspaceParser, "name")
-			store.useWorkspace(root, name)
-			deps.write(`Using workspace {name}`)
-		elseif workspaceCommand == "list" then
-			local list = store.workspaces(root)
-			list.active = store.activeWorkspace(root, selected)
-			if workspaceParser:has("json") then
-				local entries: json.Array = {}
-				for _, entry in list.workspaces do
-					table.insert(entries, json.object({ name = entry.name, label = entry.label }))
-				end
-				deps.write(json.serialize(json.object({ active = list.active, workspaces = entries }), true))
-			else
-				local lines = {}
-				for _, entry in list.workspaces do
-					table.insert(
-						lines,
-						`{if entry.name == list.active then "*" else " "} {entry.name} · {entry.label}`
-					)
-				end
-				deps.write(table.concat(lines, "\n"))
-			end
-		elseif workspaceCommand == "current" then
-			deps.write(store.activeWorkspace(root, selected))
-		end
-		return
-	end
-	local active = store.activeWorkspace(root, selected)
+	local active = store.activeWorkspace(root, selected, deps.workspace)
 	local dir = store.workspaceDir(root, active)
 	local asJson = parser:has("json")
+	local registered = COMMANDS[command]
+	if registered then
+		registered.run(parser, { dir = dir, root = root, workspace = active, write = deps.write, asJson = asJson })
+		return
+	end
 
 	if command == "path" then
 		deps.write(dir)
