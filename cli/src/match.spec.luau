@@ -6,7 +6,7 @@ local testing = require("@root/testing")
 test.case(
 	"candidates rank words and repository agreement, excluding notes, linked cards, and done work",
 	function(assert)
-		local doc = testing.doc({
+		local doc = testing.createDoc({
 			testing.task("best", "Release dashboard", "todo", nil, { repo = "flipbook", note = "health" }),
 			testing.task("generic", "Release health", "active"),
 			testing.task("other", "Release health dashboard", "todo", nil, { repo = "storyteller" }),

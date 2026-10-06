@@ -2,20 +2,34 @@ local batteriesCli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local backups = require("@root/cli/backups")
+local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local github = require("@root/github")
 local graph = require("@root/graph")
+local ingest = require("@root/cli/ingest")
+local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
+local restore = require("@root/cli/restore")
+local serve = require("@root/cli/serve")
+local source = require("@root/cli/source")
 local store = require("@root/store")
+local suggest = require("@root/cli/suggest")
+local suggestions = require("@root/cli/suggestions")
 local types = require("@root/types")
+local workspace = require("@root/cli/workspace")
 
 type Doc = types.Doc
 type Item = types.Item
+type Context = context.Context
+
+type Command = context.Command
 
 export type Dependencies = {
 	runner: types.CommandRunner?,
 	write: ((string) -> ())?,
 	dataDir: string?,
+	workspace: string?,
 	now: (() -> string)?,
 }
 
@@ -23,10 +37,22 @@ type Resolved = {
 	runner: types.CommandRunner,
 	write: (string) -> (),
 	dataDir: string,
+	workspace: string?,
 	now: () -> string,
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
+
+local COMMANDS: { [string]: Command } = {
+	backups = backups,
+	restore = restore,
+	serve = serve,
+	suggest = suggest,
+	suggestions = suggestions,
+	workspace = workspace,
+	source = source,
+	ingest = ingest,
+}
 
 local COMMAND_HELP: { [string]: string } = {
 	list = "List work items with their derived status",
@@ -55,7 +81,7 @@ Statuses: todo, active, review, blocked, deferred, done.
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
 Data lives in ~/Library/Application Support/Orion/orion.json; set ORION_DATA_DIR to change it.
-The Orion app watches that file, so changes show up while it's open.]]
+The Orion app talks to orion serve, which watches the data files.]]
 
 local function addHelpFlag(parser: batteriesCli.Parser)
 	parser:add("help", "flag", { help = "Show this help", aliases = { "h" } })
@@ -63,6 +89,10 @@ end
 
 local function addJsonFlag(parser: batteriesCli.Parser)
 	parser:add("json", "flag", { help = "Print JSON" })
+end
+
+local function addWorkspaceOption(parser: batteriesCli.Parser)
+	parser:add("workspace", "option", { help = "Use this workspace for this command" })
 end
 
 local function addFieldOptions(parser: batteriesCli.Parser)
@@ -81,12 +111,18 @@ type Parsers = {
 local function createParsers(): Parsers
 	local root = batteriesCli.parser()
 	addHelpFlag(root)
+	addWorkspaceOption(root)
 	local commands: { [string]: batteriesCli.Parser } = {}
 	local function command(name: string): batteriesCli.Parser
-		local parser = root:subcommand(name, { help = COMMAND_HELP[name] })
+		local registered = COMMANDS[name]
+		local parser = root:subcommand(name, { help = if registered then registered.help else COMMAND_HELP[name] })
 		addHelpFlag(parser)
+		addWorkspaceOption(parser)
 		commands[name] = parser
 		return parser
+	end
+	local function registeredCommand(name: string)
+		COMMANDS[name].define(command(name))
 	end
 
 	local list = command("list")
@@ -152,8 +188,17 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	addJsonFlag(command("matches"))
+	registeredCommand("backups")
+	registeredCommand("restore")
+	registeredCommand("serve")
+	registeredCommand("source")
+	registeredCommand("ingest")
+
+	registeredCommand("suggest")
+	registeredCommand("suggestions")
 
 	command("path")
+	registeredCommand("workspace")
 	command("help"):add("command", "positional", { help = "Command to describe" })
 
 	return { root = root, commands = commands }
@@ -164,7 +209,9 @@ local function rootHelp(parser: batteriesCli.Parser): string
 end
 
 local function commandHelp(name: string, parser: batteriesCli.Parser): string
-	return `{COMMAND_HELP[name]}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
+	local registered = COMMANDS[name]
+	local help = if registered then registered.help else COMMAND_HELP[name]
+	return `{help}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
 end
 
 local function dependencies(options: Dependencies?): Resolved
@@ -173,6 +220,7 @@ local function dependencies(options: Dependencies?): Resolved
 		runner = given.runner or defaultRun,
 		write = given.write or print,
 		dataDir = given.dataDir or store.defaultDir(),
+		workspace = if given.workspace == nil then process.env.ORION_WORKSPACE else given.workspace,
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 		end,
@@ -280,8 +328,14 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 		local closed = if change.closed then " — closed without merging; deferred until you decide" else ""
 		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
 	end
-	if #report.changes == 0 then
+	if #report.changes == 0 and #report.added == 0 and #report.linked == 0 and #report.unlinked == 0 then
 		table.insert(lines, "  Everything already matches.")
+	end
+	for _, link in report.linked do
+		table.insert(lines, `  linked {link.from} → {link.to} (stacked)`)
+	end
+	for _, link in report.unlinked do
+		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)
 	end
 	for _, id in report.added do
 		table.insert(
@@ -317,12 +371,36 @@ local function execute(args: { string }, options: Dependencies?)
 		deps.write(commandHelp(command, parser))
 		return
 	end
+	local subName, subparser = parser:selected()
+	if subName and subparser and subparser:has("help") then
+		deps.write(`{command} {subName}\n\n{subparser:usage(`orion {command} {subName}`)}\n\n{subparser:help()}`)
+		return
+	end
 
-	local dir = deps.dataDir
+	local root = deps.dataDir
+	local selected = parser:get("workspace") or parsers.root:get("workspace")
+	if subparser then
+		selected = subparser:get("workspace") or selected
+	end
+	local active = store.getActiveWorkspace(root, selected, deps.workspace)
+	local dir = store.getWorkspaceDir(root, active)
 	local asJson = parser:has("json")
+	local registered = COMMANDS[command]
+	if registered then
+		registered.run(parser, {
+			dir = dir,
+			root = root,
+			workspace = active,
+			write = deps.write,
+			asJson = asJson,
+			runner = deps.runner,
+			now = deps.now,
+		})
+		return
+	end
 
 	if command == "path" then
-		deps.write(store.filePath(dir))
+		deps.write(dir)
 	elseif command == "list" then
 		local doc = store.load(dir)
 		local derived = graph.derive(doc)
@@ -445,10 +523,7 @@ local function execute(args: { string }, options: Dependencies?)
 		deps.write(`Removed {id}`)
 	elseif command == "group" then
 		local label = joined(parser:variadics(), "<label>")
-		local ids = {}
-		for id in (parser:get("items") or ""):gmatch("[^,%s]+") do
-			table.insert(ids, id)
-		end
+		local ids = parseCommaList(parser:get("items") or "")
 		local made: Item
 		local doc = store.transaction(dir, function(doc)
 			made = graph.makeGroup(doc, label, ids)
