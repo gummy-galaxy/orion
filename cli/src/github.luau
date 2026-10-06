@@ -290,7 +290,7 @@ local function ensureGroup(doc: Doc, id: string, label: string, blurb: string)
 	end
 end
 
-local function stacked(parent: PullState, child: PullState): boolean
+local function isStacked(parent: PullState, child: PullState): boolean
 	return parent.owner:lower() == child.owner:lower()
 		and parent.name:lower() == child.name:lower()
 		and parent.number ~= child.number
@@ -324,26 +324,26 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 			continue
 		end
 		local parent, child = byId[link.from], byId[link.to]
-		if parent and child and parent.state == "OPEN" and child.state == "OPEN" and not stacked(parent, child) then
+		if parent and child and parent.state == "OPEN" and child.state == "OPEN" and not isStacked(parent, child) then
 			table.remove(doc.links, index)
 			table.insert(report.unlinked, { from = link.from, to = link.to })
 		end
 	end
 	for _, parent in cards do
 		for _, child in cards do
-			if not stacked(parent.pull, child.pull) then
+			if not isStacked(parent.pull, child.pull) then
 				continue
 			end
-			local exists = false
+			local isLinked = false
 			for _, link in doc.links do
 				if
 					(link.from == parent.id and link.to == child.id) or (link.from == child.id and link.to == parent.id)
 				then
-					exists = true
+					isLinked = true
 					break
 				end
 			end
-			if not exists then
+			if not isLinked then
 				graph.link(doc, parent.id, child.id, "blocks").origin = "stack"
 				table.insert(report.linked, { from = parent.id, to = child.id })
 			end
