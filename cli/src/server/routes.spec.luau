@@ -62,7 +62,7 @@ end)
 
 test.case("PUT retains unknown top-level fields and rejects a stale workspace", function(assert)
 	local root, router = createRouter("routes-preserve")
-	local doc = testing.doc({}, {})
+	local doc = testing.createDoc({}, {})
 	doc.raw = json.object({ extra = json.object({ held = true }) })
 	store.write(root, doc)
 	local change = json.object({ baseRevision = 0, nodes = {}, links = {} })

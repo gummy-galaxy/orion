@@ -7,6 +7,7 @@ This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs 
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
 - `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people.
+- `orion suggest` proposes groups for ungrouped cards (or every card with `--scope all`). It joins cards by links, Jira epics, shared branches, and references, then `--agent codex` or `--agent claude` names and splits the result into groups by outcome. The agent's CLI must already be signed in. Review with `orion suggestions`, then use `orion suggestions apply <id...> | --all` or `orion suggestions dismiss <id...> | --all`. These commands use the selected workspace. The app places new groups to the right of existing ones and refits groups whose cards moved.
 
 ## Data
 
@@ -59,9 +60,30 @@ That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. S
 
 Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 
+### Sources
+
+Configure sources once, then run `orion ingest --dry-run` to preview work involving you. `orion ingest` adds new cards to Unsorted, updates matching cards in place, and links mentioned Jira issues or GitHub issues to pull requests. `orion source list --json` shows the configuration. Sources and cards live in the selected Orion data file; source commands run through the CLI and keep credentials in their own tools.
+
+For GitHub sources, `--owners`, `--include`, and `--exclude` accept comma-separated lists. Spaces around entries are ignored, so `--owners vocksel,flipbook-labs --include "orion, hop"` works.
+
+Ingested Jira cards store their source ID, issue key, URL, status, completion state, update time, and Jira-specific details in `data.external`. The source ID and key identify a card across ingests.
+
+For a Roblox setup:
+
+```sh
+orion source add github --host github.com --owners Roblox
+orion source add github --host github.example.com --owners Roblox --id gh-roblox-enterprise
+orion source add jira --command '["acli","jira","workitem","search","--jql","assignee = currentUser() AND resolution = Unresolved","--json"]' --browse https://jira.example.com/browse
+orion source add hop
+orion ingest --dry-run
+orion ingest
+```
+
+Use `orion ingest --source <id> --json` for one source and a machine-readable report. `orion source remove <id>` stops future ingestion from a source; cards already on the canvas remain.
+
 ## Using the canvas
 
-- Drag to pan, scroll to zoom. ⌘-drag selects; ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
+- Drag or scroll to pan; pinch or ⌘-scroll to zoom. ⌘-drag selects; ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result.

@@ -7,7 +7,7 @@ local store = require("@root/store")
 local testing = require("@root/testing")
 
 test.case("backups lists newest first with revision, time, and size", function(assert)
-	local dir, run = testing.harness("backups")
+	local dir, run = testing.createHarness("backups")
 	local folder = path.join(dir, "backups")
 	fs.createDirectory(folder)
 	fs.writeStringToFile(path.join(folder, "orion-r2-20261002T010000Z.json"), "old")
@@ -22,7 +22,7 @@ test.case("backups lists newest first with revision, time, and size", function(a
 end)
 
 test.case("--workspace lists backups from the selected workspace", function(assert)
-	local root, run, setWorkspace = testing.harness("workspace-backups")
+	local root, run, setWorkspace = testing.createHarness("workspace-backups")
 	run({ "workspace", "create", "roblox" })
 	local roblox = store.getWorkspaceDir(root, "roblox")
 	store.transaction(root, function() end)

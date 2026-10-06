@@ -153,7 +153,7 @@ function writeBrowser({ nodes, links }: Saved) {
 
 export async function load(workspace = 'default'): Promise<Loaded> {
   try {
-    const res = await fetch(API)
+    const res = await fetch(API, { headers: { 'x-orion-workspace': workspace } })
     if (res.status === 404) {
       const body = (await res.json()) as { workspace?: string }
       return { source: 'missing', workspace: body.workspace ?? 'default' }

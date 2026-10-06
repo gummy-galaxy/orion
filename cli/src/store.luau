@@ -9,6 +9,7 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Item = types.Item
 type Link = types.Link
+type Source = types.Source
 
 -- All Orion writers use this lock and the same atomic write path.
 local FILE = "orion.json"
@@ -117,7 +118,7 @@ function store.createWorkspace(root: string, name: string, label: string?, owner
 	store.write(dir, {
 		version = 1,
 		revision = 0,
-		settings = { githubOwner = owner or DEFAULT_OWNER },
+		settings = { githubOwner = owner or DEFAULT_OWNER, sources = {} },
 		nodes = {},
 		links = {},
 	})
@@ -236,18 +237,58 @@ function store.decode(text: string): Doc
 	end
 
 	local settings = json.asObject(root.settings) or json.object({})
+	local sources: { Source } = {}
+	for _, raw in json.asArray(settings.sources) or {} do
+		local source = json.asObject(raw)
+		if source and type(source.id) == "string" and type(source.kind) == "string" then
+			local function getStrings(value: json.Value): { string }?
+				local array = json.asArray(value)
+				if not array then
+					return nil
+				end
+				local result = {}
+				for _, entry in array do
+					if type(entry) == "string" then
+						table.insert(result, entry)
+					end
+				end
+				return result
+			end
+			table.insert(sources, {
+				id = source.id,
+				kind = source.kind,
+				host = str(source.host),
+				owners = getStrings(source.owners),
+				include = getStrings(source.include),
+				exclude = getStrings(source.exclude),
+				command = getStrings(source.command),
+				browse = str(source.browse),
+			})
+		end
+	end
 	return {
 		version = num(root.version) or 1,
 		revision = num(root.revision) or 0,
-		settings = { githubOwner = str(settings.githubOwner) or DEFAULT_OWNER },
+		settings = { githubOwner = str(settings.githubOwner) or DEFAULT_OWNER, sources = sources },
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
+		suggestions = json.asObject(root.suggestions),
 		raw = json.object(root),
 	}
 end
 
 function store.encode(doc: Doc): string
+	local function getStringArray(values: { string }?): json.Array?
+		if not values then
+			return nil
+		end
+		local result: json.Array = {}
+		for _, value in values do
+			table.insert(result, value)
+		end
+		return result
+	end
 	local nodes: json.Array = {}
 	for _, item in doc.nodes do
 		local object: json.Object = json.object({
@@ -272,10 +313,23 @@ function store.encode(doc: Doc): string
 	root.revision = doc.revision
 	local settings = json.object(json.asObject(root.settings) or {})
 	settings.githubOwner = doc.settings.githubOwner
+	local sources: json.Array = {}
+	for _, source in doc.settings.sources do
+		local value = json.object({ id = source.id, kind = source.kind })
+		value.host = source.host
+		value.owners = getStringArray(source.owners)
+		value.include = getStringArray(source.include)
+		value.exclude = getStringArray(source.exclude)
+		value.command = getStringArray(source.command)
+		value.browse = source.browse
+		table.insert(sources, value)
+	end
+	settings.sources = sources
 	root.settings = settings
 	root.nodes = nodes
 	root.links = links
 	root.github = doc.github
+	root.suggestions = doc.suggestions
 	return json.serialize(root, true)
 end
 
@@ -401,7 +455,7 @@ function store.put(dir: string, baseRevision: number?, nodes: json.Array, links:
 			then (current.raw or {})
 			else {
 				version = 1,
-				settings = json.object({ githubOwner = DEFAULT_OWNER }),
+				settings = json.object({ githubOwner = DEFAULT_OWNER, sources = {} :: json.Array }),
 			})
 		local nextRevision = if previous then previous + 1 else 0
 		root.revision = nextRevision
