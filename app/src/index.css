@@ -818,6 +818,54 @@ kbd {
   color: var(--muted);
   font: 10.5px var(--font-data);
 }
+.dock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+}
+.tool {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tool:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+.tool.current {
+  background: var(--accent);
+  color: var(--surface);
+}
+.tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.tool-select .react-flow__pane.selection:not(.draggable) {
+  cursor: default;
+}
+.tool-hand .react-flow__pane,
+.tool-hand .react-flow__node {
+  cursor: grab;
+}
+.tool-hand .react-flow__pane.dragging,
+.tool-hand .react-flow__pane.dragging .react-flow__node {
+  cursor: grabbing;
+}
+.tool-comment .react-flow__pane:not(.draggable) {
+  cursor: crosshair;
+}
 .help {
   padding: 6px 12px;
   font-size: 11.5px;

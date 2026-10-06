@@ -68,6 +68,7 @@ import {
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
+import { Toolbar, type Tool } from './Toolbar'
 
 type ViewNode = AppNode | GhostNode
 
@@ -169,6 +170,7 @@ function Canvas() {
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [menu, setMenu] = useState<Menu | null>(null)
+  const [tool, setTool] = useState<Tool>('select')
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef({ nodes, links })
   const fitZoom = useRef(new Map<string, number>())
@@ -823,6 +825,29 @@ function Canvas() {
     return { x: c.x - TASK_W / 2, y: c.y - TASK_H / 2 }
   }, [rf])
 
+  /** Drops a note centered on a click, inside the innermost open group under it. */
+  const placeComment = useCallback(
+    (e: React.MouseEvent) => {
+      const point = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      let parent = levelRoot
+      let depth = -1
+      for (const n of nodes) {
+        if (!isCluster(n) || view.hidden.has(n.id) || collapsed.has(n.id) || !inView(n.id)) continue
+        const p = absPos(n, map)
+        const s = sizeOf(n)
+        const d = ancestors(n.id, map).length
+        if (point.x >= p.x && point.x <= p.x + s.w && point.y >= p.y && point.y <= p.y + s.h && d > depth) {
+          parent = n.id
+          depth = d
+        }
+      }
+      if (peeking && !(parent && inFocus(parent))) leaveRoot()
+      addNote({ x: point.x - TASK_W / 2, y: point.y - TASK_H / 2 }, { parent })
+      setTool('select')
+    },
+    [rf, nodes, map, view, collapsed, inView, levelRoot, peeking, inFocus, leaveRoot, addNote],
+  )
+
   const insertNoteOnLink = (linkId: string) => {
     const l = links.find((x) => x.id === linkId)
     const a = l && map.get(l.from)
@@ -940,7 +965,8 @@ function Canvas() {
       } else if (e.key === 'Enter' && selected.length === 1 && isCluster(selected[0])) {
         actions.open(selected[0].id)
       } else if (e.key === 'Escape') {
-        if (peeking) leaveRoot()
+        if (tool !== 'select') setTool('select')
+        else if (peeking) leaveRoot()
         else if (pinned) setPinned(null)
         else if (root) openRoot(map.get(root)?.parentId ?? null)
         else setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n)))
@@ -953,7 +979,7 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot])
+  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot, tool])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
@@ -971,7 +997,7 @@ function Canvas() {
           {sidebar && (
             <Sidebar nodes={nodes} groups={work.groups} root={root} open={openRoot} readyTotal={readyTotal} hide={() => toggleSidebar(false)} />
           )}
-          <div className={`canvas${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
+          <div className={`canvas tool-${tool}${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
             {ready && (
               <ReactFlow<ViewNode, Edge>
                 fitView
@@ -999,7 +1025,10 @@ function Canvas() {
                 onNodeDragStart={(_, n) => {
                   if (peeking && !inFocus(n.id)) leaveRoot()
                 }}
-                onPaneClick={() => setPinned(null)}
+                onPaneClick={(e) => {
+                  setPinned(null)
+                  if (tool === 'comment') placeComment(e)
+                }}
                 onEdgeClick={() => setPinned(null)}
                 onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
                 onNodeContextMenu={(e, n) => {
@@ -1009,9 +1038,11 @@ function Canvas() {
                 }}
                 onSelectionContextMenu={(e, ns) => openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })}
                 onEdgeContextMenu={(e, edge) => !edge.id.startsWith('agg:') && openMenu(e, { kind: 'edge', id: edge.id })}
-                panOnDrag={[0, 1]}
+                panOnDrag={tool === 'hand' ? [0, 1] : [1]}
                 selectionKeyCode="Meta"
-                selectionOnDrag={false}
+                selectionOnDrag={tool === 'select'}
+                nodesDraggable={tool !== 'hand'}
+                nodesConnectable={tool !== 'hand'}
                 panOnScroll={false}
                 zoomOnScroll
                 zoomOnPinch
@@ -1140,7 +1171,7 @@ function Canvas() {
                   </Panel>
                 )}
 
-                <Panel position="bottom-center" className="panel help">
+                <Panel position="bottom-center" className="dock">
                   {root && exitHint?.root === root && (
                     <div className="zoom-exit-hint">
                       <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
@@ -1149,20 +1180,23 @@ function Canvas() {
                       </div>
                     </div>
                   )}
-                  {showHelp ? (
-                    <>
-                      Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
-                      double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge
-                      to link{' '}
-                      <button type="button" className="link" onClick={() => setShowHelp(false)}>
-                        Hide
+                  <Toolbar tool={tool} setTool={setTool} />
+                  <div className="panel help">
+                    {showHelp ? (
+                      <>
+                        V select · H pan · C comment · drag to select · middle-drag or Space-drag to pan · scroll to zoom · ⌘ or ⇧ click to add ·
+                        right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open · double-click a card to hold its trace · Esc
+                        to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                        <button type="button" className="link" onClick={() => setShowHelp(false)}>
+                          Hide
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="link" onClick={() => setShowHelp(true)}>
+                        Shortcuts
                       </button>
-                    </>
-                  ) : (
-                    <button type="button" className="link" onClick={() => setShowHelp(true)}>
-                      Shortcuts
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </Panel>
               </ReactFlow>
             )}
