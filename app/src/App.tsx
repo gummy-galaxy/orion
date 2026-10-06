@@ -105,6 +105,7 @@ const PEEK_SPAN = 0.8
 const PEEK_KEEP_VISIBLE = 0.4
 const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
+const PLACE_GAP = 80
 
 type Menu = {
   x: number
@@ -149,6 +150,34 @@ function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { widt
   const height = size.h + FIT_MARGIN_Y * 2
   const zoom = Math.min(box.width / width, box.height / height, FIT_MAX_ZOOM)
   return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: box.height / 2 - (p.y + size.h / 2) * zoom, zoom }
+}
+
+/**
+ * Stacks newly created groups in columns to the right of everything else at the top
+ * level, so laying them out never moves groups that were already placed.
+ */
+function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
+  const top = nodes.filter((n) => !n.parentId)
+  const settled = top.filter((n) => !fresh.has(n.id))
+  const right = settled.length ? Math.max(...settled.map((n) => n.position.x + sizeOf(n).w)) : 0
+  const topY = settled.length ? Math.min(...settled.map((n) => n.position.y)) : 0
+  const columnHeight = Math.max(1600, ...settled.map((n) => n.position.y + sizeOf(n).h - topY))
+  const placed = new Map<string, { x: number; y: number }>()
+  let x = right + PLACE_GAP * 2
+  let y = topY
+  let columnWidth = 0
+  for (const group of top.filter((n) => fresh.has(n.id))) {
+    const size = sizeOf(group)
+    if (y > topY && y + size.h > topY + columnHeight) {
+      x += columnWidth + PLACE_GAP
+      y = topY
+      columnWidth = 0
+    }
+    placed.set(group.id, { x, y })
+    y += size.h + PLACE_GAP
+    columnWidth = Math.max(columnWidth, size.w)
+  }
+  return nodes.map((n) => (placed.has(n.id) ? { ...n, position: placed.get(n.id)! } : n))
 }
 
 function Canvas() {
@@ -310,6 +339,35 @@ function Canvas() {
     return () => clearTimeout(t)
   }, [nodes, links, ready, reload])
 
+  const pendingLayoutEpoch = useRef<number | null>(null)
+  useEffect(() => {
+    const epoch = workspaceEpoch.current
+    if (!ready || pendingLayoutEpoch.current === epoch) return
+    const marked = nodes.filter((n) => isCluster(n) && n.data.layout)
+    if (!marked.length) return
+    const pending = marked.filter((n) => isCluster(n) && n.data.layout === 'pending')
+    pendingLayoutEpoch.current = epoch
+    void (async () => {
+      let next = nodes
+      try {
+        for (const group of marked) {
+          try {
+            next = await reflow(next, links, group.id)
+          } catch (error) {
+            console.error('Could not lay out group', group.id, error)
+          }
+        }
+        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((g) => g.id)))
+      } catch (error) {
+        console.error('Could not lay out canvas', error)
+      } finally {
+        if (epoch === workspaceEpoch.current) {
+          setNodes(next.map((n) => (isCluster(n) && n.data.layout ? { ...n, data: { ...n.data, layout: undefined } } : n)))
+        }
+        if (pendingLayoutEpoch.current === epoch) pendingLayoutEpoch.current = null
+      }
+    })()
+  }, [nodes, links, ready])
   const changeWorkspace = useCallback(
     (name: string) => {
       if (name === workspace.current) return

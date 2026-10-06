@@ -13,6 +13,8 @@ local render = require("@root/render")
 local restore = require("@root/cli/restore")
 local source = require("@root/cli/source")
 local store = require("@root/store")
+local suggest = require("@root/cli/suggest")
+local suggestions = require("@root/cli/suggestions")
 local types = require("@root/types")
 local workspace = require("@root/cli/workspace")
 
@@ -43,6 +45,8 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
 	restore = restore,
+	suggest = suggest,
+	suggestions = suggestions,
 	workspace = workspace,
 	source = source,
 	ingest = ingest,
@@ -186,6 +190,9 @@ local function createParsers(): Parsers
 	registeredCommand("restore")
 	registeredCommand("source")
 	registeredCommand("ingest")
+
+	registeredCommand("suggest")
+	registeredCommand("suggestions")
 
 	command("path")
 	registeredCommand("workspace")

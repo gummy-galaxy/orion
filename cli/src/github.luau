@@ -146,7 +146,7 @@ function github.query(run: CommandRunner, source: string, host: string?): json.O
 	table.insert(argv, "graphql")
 	table.insert(argv, "-f")
 	table.insert(argv, `query={source}`)
-	local ok, response = pcall(run, argv)
+	local ok, response = pcall(run, argv, nil)
 	if not ok then
 		return nil
 	end
