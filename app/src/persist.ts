@@ -1,21 +1,95 @@
 import type { AppNode, GithubSnapshot, Link } from './model'
+import type { Loadout, Sticker } from './sticker'
 
 /**
- * The canvas lives in orion.json, served by the dev server so the CLI and the
+ * The canvas lives in orion.json, served by the Orion CLI so the CLI and the
  * app share one copy. Without that server (a static build), it falls back to
  * this browser's storage.
  */
 
-export type Saved = { nodes: AppNode[]; links: Link[] }
+export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
 export type Remote = Saved & { revision: number; settings: { githubOwner: string }; github?: GithubSnapshot }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
-export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing' } | { source: 'browser'; saved: Saved | null }
+export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
 export type SaveResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
+export type Workspaces = { active: string; workspaces: { name: string; label: string }[] }
 
 const API = '/api/orion'
 const STORAGE_KEY = 'orion:v2'
 const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
+const WORKSPACE_EVENT = 'orion:workspace'
+
+type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT
+const listeners = new Map<EventName, Set<(data: never) => void>>()
+let socket: WebSocket | undefined
+let retryTimer: ReturnType<typeof setTimeout> | undefined
+let retryDelay = 250
+
+function connectEvents() {
+  if (typeof WebSocket === 'undefined' || socket || listeners.size === 0) return
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+  const current = new WebSocket(`${protocol}//${location.host}/api/events`)
+  socket = current
+  current.onopen = () => { retryDelay = 250 }
+  current.onmessage = (message) => {
+    try {
+      const event = JSON.parse(message.data) as { event: EventName; data: never }
+      listeners.get(event.event)?.forEach((callback) => callback(event.data))
+    } catch {
+      // Ignore malformed messages from a restarting server.
+    }
+  }
+  current.onclose = () => {
+    if (socket !== current) return
+    socket = undefined
+    if (listeners.size > 0) {
+      retryTimer = setTimeout(connectEvents, retryDelay)
+      retryDelay = Math.min(retryDelay * 2, 10000)
+    }
+  }
+  current.onerror = () => current.close()
+}
+
+function subscribe<T>(event: EventName, callback: (data: T) => void) {
+  const callbacks = listeners.get(event) ?? new Set<(data: never) => void>()
+  callbacks.add(callback as (data: never) => void)
+  listeners.set(event, callbacks)
+  connectEvents()
+  return () => {
+    callbacks.delete(callback as (data: never) => void)
+    if (callbacks.size === 0) listeners.delete(event)
+    if (listeners.size === 0) {
+      clearTimeout(retryTimer)
+      socket?.close()
+      socket = undefined
+    }
+  }
+}
+
+export async function getWorkspaces(): Promise<Workspaces> {
+  try {
+    const response = await fetch('/api/workspaces')
+    if (response.ok) return (await response.json()) as Workspaces
+  } catch {
+    // A static build has only browser storage for the default workspace.
+  }
+  return { active: 'default', workspaces: [{ name: 'default', label: 'Default' }] }
+}
+
+async function workspaceRequest(url: string, value: object): Promise<Workspaces> {
+  const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) })
+  const result = await response.json()
+  if (!response.ok) throw new Error(result.error || `Workspace request failed (${response.status})`)
+  return result as Workspaces
+}
+
+export const setActiveWorkspace = (name: string) => workspaceRequest('/api/workspaces/active', { name })
+export const createWorkspace = (name: string, label: string) => workspaceRequest('/api/workspaces', { name, label })
+
+export function onWorkspaceChange(callback: (active: string) => void) {
+  return subscribe<{ active: string }>(WORKSPACE_EVENT, (data) => callback(data.active))
+}
 
 export async function getSyncStatus(): Promise<SyncStatus | null> {
   try {
@@ -36,10 +110,7 @@ export async function requestSync(force = false): Promise<SyncStatus | null> {
 }
 
 export function onSyncStatus(callback: (status: SyncStatus) => void) {
-  const hot = import.meta.hot
-  if (!hot) return () => {}
-  hot.on(SYNC_EVENT, callback)
-  return () => hot.off(SYNC_EVENT, callback)
+  return subscribe(SYNC_EVENT, callback)
 }
 
 /** Only what's worth keeping; selection, measurements and handles are view state. */
@@ -56,7 +127,8 @@ export function slim(nodes: AppNode[]) {
 }
 
 /** A stable fingerprint, so view-only changes don't cause writes. */
-export const fingerprint = ({ nodes, links }: Saved) => JSON.stringify({ nodes: slim(nodes), links })
+export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) =>
+  JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout })
 
 function isSaved(value: unknown): value is Saved {
   const s = value as Saved | null
@@ -73,18 +145,21 @@ export function readBrowser(): Saved | null {
   }
 }
 
-function writeBrowser({ nodes, links }: Saved) {
+function writeBrowser({ nodes, links, stickers, stickerLoadout }: Saved) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: slim(nodes), links }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout }))
   } catch {
     // Saving is a convenience; the canvas keeps working without it.
   }
 }
 
-export async function load(): Promise<Loaded> {
+export async function load(workspace = 'default'): Promise<Loaded> {
   try {
-    const res = await fetch(API)
-    if (res.status === 404) return { source: 'missing' }
+    const res = await fetch(API, { headers: { 'x-orion-workspace': workspace } })
+    if (res.status === 404) {
+      const body = (await res.json()) as { workspace?: string }
+      return { source: 'missing', workspace: body.workspace ?? 'default' }
+    }
     if (res.ok && res.headers.get('content-type')?.includes('json')) {
       const doc = await res.json()
       if (isSaved(doc) && typeof (doc as Remote).revision === 'number') return { source: 'file', doc: doc as Remote }
@@ -92,16 +167,16 @@ export async function load(): Promise<Loaded> {
   } catch {
     // No dev server.
   }
-  return { source: 'browser', saved: readBrowser() }
+  return workspace === 'default' ? { source: 'browser', saved: readBrowser() } : { source: 'missing', workspace }
 }
 
-export async function fetchRemote(): Promise<Remote | null> {
-  const loaded = await load()
+export async function fetchRemote(workspace = 'default'): Promise<Remote | null> {
+  const loaded = await load(workspace)
   return loaded.source === 'file' ? loaded.doc : null
 }
 
 /** `baseRevision` is null when creating the file. */
-export async function save(source: 'file' | 'browser', baseRevision: number | null, saved: Saved): Promise<SaveResult> {
+export async function save(source: 'file' | 'browser', baseRevision: number | null, saved: Saved, workspace = 'default'): Promise<SaveResult> {
   if (source === 'browser') {
     writeBrowser(saved)
     return { ok: true, revision: 0 }
@@ -109,8 +184,14 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
   try {
     const res = await fetch(API, {
       method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ baseRevision, nodes: slim(saved.nodes), links: saved.links }),
+      headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
+      body: JSON.stringify({
+        baseRevision,
+        nodes: slim(saved.nodes),
+        links: saved.links,
+        stickers: saved.stickers,
+        stickerLoadout: saved.stickerLoadout,
+      }),
     })
     if (res.ok) return { ok: true, revision: (await res.json()).revision }
     return { ok: false, conflict: res.status === 409 }
@@ -121,9 +202,12 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
 
 /** Calls back when another writer (the CLI, an agent, another window) changes the file. */
 export function onRemoteChange(callback: (revision: number) => void) {
-  const hot = import.meta.hot
-  if (!hot) return () => {}
-  const listener = (data: { revision: number }) => callback(data.revision)
-  hot.on(CHANGED_EVENT, listener)
-  return () => hot.off(CHANGED_EVENT, listener)
+  return subscribe<{ revision: number }>(CHANGED_EVENT, (data) => callback(data.revision))
 }
+
+import.meta.hot?.dispose(() => {
+  clearTimeout(retryTimer)
+  socket?.close()
+  socket = undefined
+  listeners.clear()
+})
