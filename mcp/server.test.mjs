@@ -1,0 +1,58 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, rm, access } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { test } from 'node:test';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+
+const bin = process.env.ORION_TEST_BIN;
+
+test('MCP tools round-trip through the Orion CLI and workspace storage', { skip: !bin }, async () => {
+  const dataDir = await mkdtemp(join(tmpdir(), 'orion-mcp-test-'));
+  const client = new Client({ name: 'orion-test', version: '1.0.0' });
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [resolve('server.mjs')],
+    env: { ...process.env, ORION_BIN: bin, ORION_DATA_DIR: dataDir },
+  });
+  try {
+    await client.connect(transport);
+    const names = (await client.listTools()).tools.map((tool) => tool.name);
+    assert.ok(names.includes('orion_inspect'));
+    assert.ok(names.includes('orion_create_workspace'));
+
+    let response = await client.callTool({ name: 'orion_create_workspace', arguments: {
+      name: 'sample', label: 'Sample', owner: 'vocksel',
+    } });
+    assert.equal(response.isError, undefined);
+
+    response = await client.callTool({ name: 'orion_add_item', arguments: {
+      title: 'MCP smoke test', workspace: 'sample',
+    } });
+    assert.equal(response.isError, undefined);
+    const added = JSON.parse(response.content[0].text);
+    assert.equal(added.label, 'MCP smoke test');
+
+    response = await client.callTool({ name: 'orion_inspect', arguments: {
+      view: 'show', workspace: 'sample', id: added.id,
+    } });
+    assert.equal(response.isError, undefined);
+    assert.match(response.content[0].text, /MCP smoke test/);
+
+    const unexpectedFile = join(dataDir, 'unexpected');
+    response = await client.callTool({ name: 'orion_add_note', arguments: {
+      text: `Literal $(touch ${unexpectedFile})`, workspace: 'sample',
+    } });
+    assert.equal(response.isError, undefined);
+    await assert.rejects(access(unexpectedFile));
+
+    response = await client.callTool({ name: 'orion_inspect', arguments: {
+      view: 'show', workspace: 'sample', id: 'missing',
+    } });
+    assert.equal(response.isError, true);
+  } finally {
+    await client.close();
+    await rm(dataDir, { recursive: true, force: true });
+  }
+});
