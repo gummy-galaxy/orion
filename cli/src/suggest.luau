@@ -22,9 +22,14 @@ local function getField(item: Item, key: string): string?
 	return if type(value) == "string" then value else nil
 end
 
+local function getExternal(item: Item): (json.Object?, json.Object?)
+	local external = json.asObject(item.data.external)
+	return external, if external then json.asObject(external.details) else nil
+end
+
 local function getEpic(item: Item): (string?, string?)
-	local jira = json.asObject(item.data.jira)
-	return if jira then jira.epicKey :: string? else nil, if jira then jira.epicSummary :: string? else nil
+	local _, details = getExternal(item)
+	return if details then details.epicKey :: string? else nil, if details then details.epicSummary :: string? else nil
 end
 
 local function getHost(item: Item): string
@@ -38,16 +43,16 @@ end
 
 local function getReferences(item: Item): { [string]: boolean }
 	local result: { [string]: boolean } = {}
-	local jira = json.asObject(item.data.jira)
-	if jira and type(jira.key) == "string" then
-		result[`jira:{jira.key:upper()}`] = true
+	local external = getExternal(item)
+	if external and type(external.key) == "string" then
+		result[`key:{external.key:upper()}`] = true
 	end
 	if type(item.data.issue) == "number" then
 		result[`issue:{getHost(item)}:{getField(item, "repo") or ""}:{item.data.issue}`] = true
 	end
 	for _, value in { graph.label(item), getField(item, "branch") or "" } do
 		for key in value:upper():gmatch("[A-Z][A-Z0-9]+%-%d+") do
-			result[`jira:{key}`] = true
+			result[`key:{key}`] = true
 		end
 		for number in value:gmatch("#(%d+)") do
 			result[`issue:{getHost(item)}:{getField(item, "repo") or ""}:{number}`] = true
@@ -266,11 +271,9 @@ local function getAgentGroups(
 	local contextCards: json.Array = {}
 	for _, item in ordered do
 		allowed[item.id] = true
-		local key, epicKey = nil, nil
-		local jira = json.asObject(item.data.jira)
-		if jira then
-			key, epicKey = jira.key, jira.epicKey
-		end
+		local external, details = getExternal(item)
+		local key = if external then external.key else nil
+		local epicKey = if details then details.epicKey else nil
 		table.insert(
 			contextCards,
 			json.object({
@@ -278,7 +281,7 @@ local function getAgentGroups(
 				label = getBounded(graph.label(item), 160),
 				repo = getBounded(getField(item, "repo"), 100),
 				branch = getBounded(getField(item, "branch"), 120),
-				jira = getBounded(if type(key) == "string" then key else nil, 50),
+				key = getBounded(if type(key) == "string" then key else nil, 50),
 				epic = getBounded(if type(epicKey) == "string" then epicKey else nil, 120),
 				status = getBounded(getField(item, "status"), 20),
 			})

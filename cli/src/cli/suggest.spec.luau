@@ -7,7 +7,7 @@ local testing = require("@root/testing")
 
 test.case("configured agent command receives bounded context on stdin", function(assert)
 	local dir = testing.directory("suggest-command")
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.task("a", "First work", "todo", nil, json.object({ repo = "app", branch = "same" })),
 		testing.task("b", "Second work", "todo", nil, json.object({ repo = "app", branch = "same" })),
 	})
@@ -33,12 +33,12 @@ test.case("configured agent command receives bounded context on stdin", function
 end)
 
 test.case("suggest reads and saves only the selected workspace", function(assert)
-	local root, run = testing.harness("suggest-workspace")
+	local root, run = testing.createHarness("suggest-workspace")
 	run({ "workspace", "create", "roblox" })
 	local dir = store.getWorkspaceDir(root, "roblox")
 	store.write(
 		dir,
-		testing.doc({
+		testing.createDoc({
 			testing.task("a", "First work", "todo", nil, json.object({ repo = "app", branch = "same" })),
 			testing.task("b", "Second work", "todo", nil, json.object({ repo = "app", branch = "same" })),
 		})

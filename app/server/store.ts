@@ -43,7 +43,7 @@ export const CHANGED_EVENT = 'orion:changed'
 
 type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 
-type Doc = { version: number; revision: number; settings: { githubOwner: string }; nodes: unknown[]; links: unknown[] }
+type Doc = { version: number; revision: number; settings: { githubOwner: string; sources?: unknown[] }; nodes: unknown[]; links: unknown[] }
 type Workspace = { name: string; label: string }
 type WorkspaceList = { active: string; workspaces: Workspace[] }
 let workspaceSequence = 0
@@ -194,7 +194,7 @@ async function put(dir: string, change: Put): Promise<{ status: number; revision
     const revision = current ? current.revision : null
     if (change.baseRevision !== revision) return { status: 409, revision }
     const next: Doc = {
-      ...(current ?? { version: 1, settings: { githubOwner: 'flipbook-labs' } }),
+      ...(current ?? { version: 1, settings: { githubOwner: 'flipbook-labs', sources: [] } }),
       revision: current ? current.revision + 1 : 0,
       nodes: change.nodes,
       links: change.links,

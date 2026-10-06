@@ -38,9 +38,9 @@ import {
   isNote,
   isTask,
   normalize,
-  prUrl,
+  getTaskUrl,
   sizeOf,
-  taskTag,
+  getTaskTag,
   githubSummary,
   relativeTime,
   ungroup,
@@ -1043,10 +1043,10 @@ function Canvas() {
           { label: 'Delete note', danger: true, run: () => deleteNote(n.id) },
         ]
       const data = n.data as TaskData
-      const url = data.github?.url ?? prUrl(data, githubOwner)
+      const url = getTaskUrl(data, githubOwner)
       return [
         ...many,
-        ...(url ? [{ label: `Open ${taskTag(data)}`, hint: '↗', run: () => window.open(url, '_blank', 'noreferrer') }] : []),
+        ...(url ? [{ label: `Open ${getTaskTag(data)}`, hint: '↗', run: () => window.open(url, '_blank', 'noreferrer') }] : []),
         data.status === 'done'
           ? { label: 'Mark not done', run: () => updateData(n.id, { status: 'todo' }) }
           : { label: 'Mark done', run: () => updateData(n.id, { status: 'done' }) },
@@ -1409,7 +1409,7 @@ function TaskInspector({
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
   const lev = work.leverage.get(node.id) ?? 0
-  const url = data.github?.url ?? prUrl(data, githubOwner)
+  const url = getTaskUrl(data, githubOwner)
   const linked = new Set(
     [...map.values()]
       .filter(isTask)
@@ -1447,7 +1447,7 @@ function TaskInspector({
       <input id="t-label" value={data.label} onChange={(e) => update(node.id, { label: e.target.value })} />
       {url && (
         <a className="pr-link" href={url} target="_blank" rel="noreferrer">
-          Open {taskTag(data)} ↗
+          Open {getTaskTag(data)} ↗
         </a>
       )}
       {data.github && (

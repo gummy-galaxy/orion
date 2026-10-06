@@ -15,7 +15,7 @@ local function compute(doc: types.Doc, agent: string?, runner: types.CommandRunn
 end
 
 local function getPair(extraA: json.Object?, extraB: json.Object?)
-	return testing.doc({
+	return testing.createDoc({
 		testing.task("a", "First work", "todo", nil, extraA),
 		testing.task("b", "Second work", "todo", nil, extraB),
 	})
@@ -31,8 +31,8 @@ end)
 
 test.case("heuristics join a shared Jira epic", function(assert)
 	local doc = getPair(
-		json.object({ jira = json.object({ epicKey = "ABC-1", epicSummary = "Avatar loading" }) }),
-		json.object({ jira = json.object({ epicKey = "ABC-1" }) })
+		json.object({ external = json.object({ source = "jira", key = "ITEM-1", details = json.object({ epicKey = "ABC-1", epicSummary = "Avatar loading" }) }) }),
+		json.object({ external = json.object({ source = "jira", key = "ITEM-2", details = json.object({ epicKey = "ABC-1" }) }) })
 	)
 	local result = compute(doc)
 	assert.eq(result.groups[1].title, "Avatar loading")
@@ -61,7 +61,7 @@ test.case("heuristics join the same repository branch", function(assert)
 end)
 
 test.case("heuristics join issue references in titles and branches", function(assert)
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.task("a", "Issue #123", "todo", nil, json.object({ repo = "app", issue = 123 })),
 		testing.task("b", "Build view", "todo", nil, json.object({ repo = "app", branch = "fix-#123" })),
 		testing.task("c", "ABC-9 migration", "todo"),
@@ -74,7 +74,7 @@ test.case("heuristics join issue references in titles and branches", function(as
 end)
 
 test.case("title overlap joins only a matching repository without epic conflict", function(assert)
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.task("a", "Improve avatar loading", "todo", nil, json.object({ repo = "app" })),
 		testing.task("b", "Fix avatar loading", "todo", nil, json.object({ repo = "app" })),
 		testing.task("c", "Fix avatar loading", "todo", nil, json.object({ repo = "other" })),
@@ -84,27 +84,27 @@ test.case("title overlap joins only a matching repository without epic conflict"
 	assert.eq(table.concat(result.groups[1].members, ","), "a,b")
 	assert.eq(result.groups[1].reason, "Strong title overlap")
 
-	local conflicting = testing.doc({
+	local conflicting = testing.createDoc({
 		testing.task(
 			"a",
 			"Improve avatar loading",
 			"todo",
 			nil,
-			json.object({ repo = "app", jira = json.object({ epicKey = "ABC-1" }) })
+			json.object({ repo = "app", external = json.object({ source = "jira", key = "ITEM-3", details = json.object({ epicKey = "ABC-1" }) }) })
 		),
 		testing.task(
 			"b",
 			"Fix avatar loading",
 			"todo",
 			nil,
-			json.object({ repo = "app", jira = json.object({ epicKey = "ABC-2" }) })
+			json.object({ repo = "app", external = json.object({ source = "jira", key = "ITEM-4", details = json.object({ epicKey = "ABC-2" }) }) })
 		),
 	})
 	assert.eq(#compute(conflicting).groups, 0)
 end)
 
 test.case("default scope includes unsorted and top-level cards, ignoring notes", function(assert)
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.group("unsorted", "Unsorted"),
 		testing.group("placed", "Placed"),
 		testing.task("a", "Alpha loading", "todo", "unsorted", json.object({ repo = "app" })),
@@ -117,7 +117,7 @@ test.case("default scope includes unsorted and top-level cards, ignoring notes",
 end)
 
 test.case("agent reply drops unknown and duplicate ids while retaining ignored heuristics", function(assert)
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.task("a", "Avatar one", "todo", nil, json.object({ repo = "app", branch = "avatar" })),
 		testing.task("b", "Avatar two", "todo", nil, json.object({ repo = "app", branch = "avatar" })),
 		testing.task("c", "Color one", "todo", nil, json.object({ repo = "app", branch = "color" })),
@@ -153,7 +153,7 @@ test.case("garbage agent reply keeps heuristic suggestions", function(assert)
 end)
 
 test.case("suggestions apply asks the app to tidy groups that lost cards", function(assert)
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.group("unsorted", "Unsorted"),
 		testing.task("a", "Avatar one", "todo", "unsorted"),
 		testing.task("b", "Avatar two", "todo", "unsorted"),

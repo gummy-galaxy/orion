@@ -9,7 +9,7 @@ local testing = require("@root/testing")
 
 test.case("suggestions apply keeps links, marks layout pending, and prunes empty Unsorted", function(assert)
 	local dir = testing.directory("suggest-apply")
-	local doc = testing.doc({
+	local doc = testing.createDoc({
 		testing.group("unsorted", "Unsorted"),
 		testing.task("a", "Avatar one", "todo", "unsorted", json.object({ repo = "app", branch = "same" })),
 		testing.task("b", "Avatar two", "todo", "unsorted", json.object({ repo = "app", branch = "same" })),
@@ -44,13 +44,13 @@ test.case("suggestions apply keeps links, marks layout pending, and prunes empty
 end)
 
 test.case("suggestions apply and dismiss select their workspace", function(assert)
-	local root, run = testing.harness("suggestions-workspace")
+	local root, run = testing.createHarness("suggestions-workspace")
 	run({ "workspace", "create", "roblox" })
 	local dir = store.getWorkspaceDir(root, "roblox")
 	local function saveSuggestion()
 		store.write(
 			dir,
-			testing.doc({
+			testing.createDoc({
 				testing.task("a", "First work", "todo"),
 				testing.task("b", "Second work", "todo"),
 			})

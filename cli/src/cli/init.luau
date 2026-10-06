@@ -7,8 +7,11 @@ local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local github = require("@root/github")
 local graph = require("@root/graph")
+local ingest = require("@root/cli/ingest")
+local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local restore = require("@root/cli/restore")
+local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggest = require("@root/cli/suggest")
 local suggestions = require("@root/cli/suggestions")
@@ -45,6 +48,8 @@ local COMMANDS: { [string]: Command } = {
 	suggest = suggest,
 	suggestions = suggestions,
 	workspace = workspace,
+	source = source,
+	ingest = ingest,
 }
 
 local COMMAND_HELP: { [string]: string } = {
@@ -183,6 +188,8 @@ local function createParsers(): Parsers
 	addJsonFlag(command("matches"))
 	registeredCommand("backups")
 	registeredCommand("restore")
+	registeredCommand("source")
+	registeredCommand("ingest")
 
 	registeredCommand("suggest")
 	registeredCommand("suggestions")
@@ -361,10 +368,14 @@ local function execute(args: { string }, options: Dependencies?)
 		deps.write(commandHelp(command, parser))
 		return
 	end
+	local subName, subparser = parser:selected()
+	if subName and subparser and subparser:has("help") then
+		deps.write(`{command} {subName}\n\n{subparser:usage(`orion {command} {subName}`)}\n\n{subparser:help()}`)
+		return
+	end
 
 	local root = deps.dataDir
 	local selected = parser:get("workspace") or parsers.root:get("workspace")
-	local _, subparser = parser:selected()
 	if subparser then
 		selected = subparser:get("workspace") or selected
 	end
@@ -509,10 +520,7 @@ local function execute(args: { string }, options: Dependencies?)
 		deps.write(`Removed {id}`)
 	elseif command == "group" then
 		local label = joined(parser:variadics(), "<label>")
-		local ids = {}
-		for id in (parser:get("items") or ""):gmatch("[^,%s]+") do
-			table.insert(ids, id)
-		end
+		local ids = parseCommaList(parser:get("items") or "")
 		local made: Item
 		local doc = store.transaction(dir, function(doc)
 			made = graph.makeGroup(doc, label, ids)
