@@ -68,10 +68,15 @@ function testing.harness(name: string)
 		}, { { "ci", "pub" } })
 	)
 	local output: { string } = {}
+	local workspace = ""
+	local function setWorkspace(name: string)
+		workspace = name
+	end
 	local function run(args: { string }, runner: types.CommandRunner?)
 		table.clear(output)
 		cli.execute(args, {
 			dataDir = dir,
+			workspace = workspace,
 			write = function(text)
 				table.insert(output, text)
 			end,
@@ -82,7 +87,7 @@ function testing.harness(name: string)
 		})
 		return table.concat(output, "\n")
 	end
-	return dir, run
+	return dir, run, setWorkspace
 end
 
 return testing

@@ -34,6 +34,8 @@ const LOCK_TIMEOUT_MS = 5000
 const STALE_LOCK_SECONDS = 30
 const API = '/api/orion'
 const SYNC_API = '/api/sync'
+const WORKSPACES_API = '/api/workspaces'
+const WORKSPACES_FILE = 'workspaces.json'
 const SYNC_INTERVAL_MS = 5 * 60 * 1000
 const SYNC_THROTTLE_MS = 60 * 1000
 const execFileAsync = promisify(execFile)
@@ -42,10 +44,51 @@ export const CHANGED_EVENT = 'orion:changed'
 type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 
 type Doc = { version: number; revision: number; settings: { githubOwner: string }; nodes: unknown[]; links: unknown[] }
+type Workspace = { name: string; label: string }
+type WorkspaceList = { active: string; workspaces: Workspace[] }
+let workspaceSequence = 0
 
 export function dataDir() {
   const configured = process.env.ORION_DATA_DIR
   return configured ? resolve(configured) : join(homedir(), 'Library', 'Application Support', 'Orion')
+}
+
+function isValidWorkspace(name: unknown): name is string {
+  return typeof name === 'string' && /^[a-z0-9-]+$/.test(name)
+}
+
+function getWorkspaceDir(root: string, name: string) {
+  return name === 'default' ? root : join(root, 'workspaces', name)
+}
+
+function getWorkspaces(root: string): WorkspaceList {
+  const file = join(root, WORKSPACES_FILE)
+  if (!existsSync(file)) return { active: 'default', workspaces: [{ name: 'default', label: 'Default' }] }
+  const value = JSON.parse(readFileSync(file, 'utf8')) as WorkspaceList
+  if (!Array.isArray(value.workspaces)) throw new Error(`invalid workspace list at ${file}`)
+  const entries: Workspace[] = [{ name: 'default', label: 'Default' }]
+  for (const entry of value.workspaces) {
+    if (!isValidWorkspace(entry.name) || typeof entry.label !== 'string' || !entry.label) throw new Error(`invalid workspace in ${file}`)
+    if (entry.name === 'default') entries[0] = entry
+    else if (!entries.some((known) => known.name === entry.name)) entries.push(entry)
+  }
+  const active = value.active ?? 'default'
+  if (!entries.some((entry) => entry.name === active)) throw new Error(`unknown workspace: ${active}`)
+  return { active, workspaces: entries }
+}
+
+function writeWorkspaces(root: string, list: WorkspaceList) {
+  mkdirSync(root, { recursive: true })
+  const file = join(root, WORKSPACES_FILE)
+  workspaceSequence += 1
+  const temporary = `${file}.tmp.${process.pid}.${workspaceSequence}`
+  writeFileSync(temporary, JSON.stringify(list, null, 2))
+  renameSync(temporary, file)
+}
+
+function knownWorkspace(list: WorkspaceList, name: unknown): asserts name is string {
+  if (!isValidWorkspace(name)) throw new Error(`invalid workspace name: ${String(name)}`)
+  if (!list.workspaces.some((entry) => entry.name === name)) throw new Error(`unknown workspace: ${name}`)
 }
 
 function read(dir: string): Doc | null {
@@ -164,14 +207,21 @@ async function put(dir: string, change: Put): Promise<{ status: number; revision
 }
 
 export function orionStore(): Plugin {
-  const dir = dataDir()
+  const root = dataDir()
   return {
     name: 'orion-store',
     apply: 'serve',
     configureServer(server) {
+      mkdirSync(root, { recursive: true })
+      let list = getWorkspaces(root)
+      let active = list.active
+      knownWorkspace(list, active)
+      let dir = getWorkspaceDir(root, active)
+      mkdirSync(dir, { recursive: true })
       let status: SyncStatus = { state: 'idle' }
       let running = false
       let lastFinished = 0
+      let generation = 0
       const binary = process.env.ORION_BIN || fileURLToPath(new URL('../../cli/build/orion', import.meta.url))
       const publish = (next: SyncStatus) => {
         status = next
@@ -179,19 +229,23 @@ export function orionStore(): Plugin {
       }
       const sync = async (force = false): Promise<SyncStatus> => {
         if (running || (!force && lastFinished && Date.now() - lastFinished < SYNC_THROTTLE_MS)) return status
+        const started = generation
         running = true
         publish({ ...status, state: 'running', message: undefined })
         try {
-          await execFileAsync(binary, ['sync', '--json'], { env: { ...process.env, ORION_DATA_DIR: dir } })
-          publish({ state: 'idle', lastRun: new Date().toISOString() })
+          await execFileAsync(binary, ['sync', '--json'], { env: { ...process.env, ORION_DATA_DIR: root, ORION_WORKSPACE: active } })
+          if (started === generation) publish({ state: 'idle', lastRun: new Date().toISOString() })
         } catch (error) {
           const failure = error as Error & { code?: string; stderr?: string }
           const lastRun = new Date().toISOString()
-          if (failure.code === 'ENOENT') publish({ state: 'unavailable', lastRun, message: 'Build the CLI: cd cli && lute run build' })
-          else publish({ state: 'error', lastRun, message: failure.stderr?.trim().split(/\r?\n/).at(-1) || failure.message })
+          if (started === generation) {
+            if (failure.code === 'ENOENT') publish({ state: 'unavailable', lastRun, message: 'Build the CLI: cd cli && lute run build' })
+            else publish({ state: 'error', lastRun, message: failure.stderr?.trim().split(/\r?\n/).at(-1) || failure.message })
+          }
         } finally {
-          lastFinished = Date.now()
+          if (started === generation) lastFinished = Date.now()
           running = false
+          if (started !== generation) void sync(true)
         }
         return status
       }
@@ -200,6 +254,79 @@ export function orionStore(): Plugin {
         res.setHeader('content-type', 'application/json')
         res.end(JSON.stringify(value))
       }
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const watchFolder = (folder: string) =>
+        watch(folder, (_event, name) => {
+          if (name !== FILE || folder !== dir) return
+          clearTimeout(timer)
+          timer = setTimeout(() => {
+            try {
+              const doc = read(dir)
+              if (doc) server.ws.send({ type: 'custom', event: CHANGED_EVENT, data: { revision: doc.revision } })
+            } catch {
+              // Caught mid-write; the next event carries the finished file.
+            }
+          }, 60)
+        })
+      let watcher = watchFolder(dir)
+      const switchTo = (name: string) => {
+        if (name === active) return
+        const nextDir = getWorkspaceDir(root, name)
+        mkdirSync(nextDir, { recursive: true })
+        const nextWatcher = watchFolder(nextDir)
+        watcher.close()
+        watcher = nextWatcher
+        active = name
+        dir = nextDir
+        generation += 1
+        lastFinished = 0
+        status = { state: 'idle' }
+        server.ws.send({ type: 'custom', event: 'orion:workspace', data: { active } })
+        void sync(true)
+      }
+      const manifestWatcher = watch(root, (_event, name) => {
+        if (name !== WORKSPACES_FILE) return
+        try {
+          list = getWorkspaces(root)
+          const name = list.active
+          knownWorkspace(list, name)
+          switchTo(name)
+        } catch {
+          // A concurrent writer may still be finishing the manifest.
+        }
+      })
+      server.middlewares.use(WORKSPACES_API, async (req, res, next) => {
+        const pathname = new URL(req.url ?? '', 'http://localhost').pathname
+        try {
+          if (pathname === '/active' && req.method === 'POST') {
+            const { name } = (await body(req)) as { name?: unknown }
+            list = getWorkspaces(root)
+            knownWorkspace(list, name)
+            list.active = name
+            writeWorkspaces(root, list)
+            switchTo(name)
+            return reply(res, 200, list)
+          }
+          if (pathname === '/' && req.method === 'GET') return reply(res, 200, { ...getWorkspaces(root), active })
+          if (pathname === '/' && req.method === 'POST') {
+            const { name, label } = (await body(req)) as { name?: unknown; label?: unknown }
+            if (!isValidWorkspace(name)) throw new Error(`invalid workspace name: ${String(name)}`)
+            if (label !== undefined && (typeof label !== 'string' || !label.trim())) throw new Error('label must be nonempty')
+            list = getWorkspaces(root)
+            if (list.workspaces.some((entry) => entry.name === name)) throw new Error(`workspace already exists: ${name}`)
+            const folder = getWorkspaceDir(root, name)
+            if (existsSync(folder)) throw new Error(`workspace folder already exists: ${folder}`)
+            mkdirSync(folder, { recursive: true })
+            await put(folder, { baseRevision: null, nodes: [], links: [] })
+            list.workspaces.push({ name, label: typeof label === 'string' ? label : name })
+            writeWorkspaces(root, list)
+            return reply(res, 201, { ...list, active })
+          }
+          next()
+        } catch (error) {
+          reply(res, 400, { error: String(error) })
+        }
+      })
       server.middlewares.use(SYNC_API, async (req, res) => {
         if (req.method === 'GET') return reply(res, 200, status)
         if (req.method === 'POST') return reply(res, 200, await sync(new URL(req.url ?? '', 'http://localhost').searchParams.get('force') === '1'))
@@ -209,9 +336,11 @@ export function orionStore(): Plugin {
         try {
           if (req.method === 'GET') {
             const doc = read(dir)
-            return doc ? reply(res, 200, doc) : reply(res, 404, { path: join(dir, FILE) })
+            return doc ? reply(res, 200, doc) : reply(res, 404, { path: join(dir, FILE), workspace: active })
           }
           if (req.method === 'PUT') {
+            if (req.headers['x-orion-workspace'] && req.headers['x-orion-workspace'] !== active)
+              return reply(res, 409, { error: 'workspace changed' })
             const result = await put(dir, (await body(req)) as Put)
             return reply(res, result.status, { revision: result.revision })
           }
@@ -221,21 +350,6 @@ export function orionStore(): Plugin {
         }
       })
 
-      // Watch the folder: atomic writes replace the file, which ends a watch on the file itself.
-      mkdirSync(dir, { recursive: true })
-      let timer: ReturnType<typeof setTimeout> | undefined
-      const watcher = watch(dir, (_event, name) => {
-        if (name !== FILE) return
-        clearTimeout(timer)
-        timer = setTimeout(() => {
-          try {
-            const doc = read(dir)
-            if (doc) server.ws.send({ type: 'custom', event: CHANGED_EVENT, data: { revision: doc.revision } })
-          } catch {
-            // Caught mid-write; the next event carries the finished file.
-          }
-        }, 60)
-      })
       const startup = setTimeout(() => void sync(), 5000)
       const interval = setInterval(() => void sync(), SYNC_INTERVAL_MS)
       server.httpServer?.on('close', () => {
@@ -243,6 +357,7 @@ export function orionStore(): Plugin {
         clearInterval(interval)
         clearTimeout(timer)
         watcher.close()
+        manifestWatcher.close()
       })
     },
   }

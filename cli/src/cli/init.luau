@@ -11,21 +11,19 @@ local render = require("@root/render")
 local restore = require("@root/cli/restore")
 local store = require("@root/store")
 local types = require("@root/types")
+local workspace = require("@root/cli/workspace")
 
 type Doc = types.Doc
 type Item = types.Item
 type Context = context.Context
 
-type Command = {
-	read help: string,
-	read define: (batteriesCli.Parser) -> (),
-	read run: (batteriesCli.Parser, Context) -> (),
-}
+type Command = context.Command
 
 export type Dependencies = {
 	runner: types.CommandRunner?,
 	write: ((string) -> ())?,
 	dataDir: string?,
+	workspace: string?,
 	now: (() -> string)?,
 }
 
@@ -33,6 +31,7 @@ type Resolved = {
 	runner: types.CommandRunner,
 	write: (string) -> (),
 	dataDir: string,
+	workspace: string?,
 	now: () -> string,
 }
 
@@ -41,6 +40,7 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
 	restore = restore,
+	workspace = workspace,
 }
 
 local COMMAND_HELP: { [string]: string } = {
@@ -80,6 +80,10 @@ local function addJsonFlag(parser: batteriesCli.Parser)
 	parser:add("json", "flag", { help = "Print JSON" })
 end
 
+local function addWorkspaceOption(parser: batteriesCli.Parser)
+	parser:add("workspace", "option", { help = "Use this workspace for this command" })
+end
+
 local function addFieldOptions(parser: batteriesCli.Parser)
 	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
 	parser:add("repo", "option", { help = "Repository, as name or owner/name" })
@@ -96,11 +100,13 @@ type Parsers = {
 local function createParsers(): Parsers
 	local root = batteriesCli.parser()
 	addHelpFlag(root)
+	addWorkspaceOption(root)
 	local commands: { [string]: batteriesCli.Parser } = {}
 	local function command(name: string): batteriesCli.Parser
 		local registered = COMMANDS[name]
 		local parser = root:subcommand(name, { help = if registered then registered.help else COMMAND_HELP[name] })
 		addHelpFlag(parser)
+		addWorkspaceOption(parser)
 		commands[name] = parser
 		return parser
 	end
@@ -175,6 +181,7 @@ local function createParsers(): Parsers
 	registeredCommand("restore")
 
 	command("path")
+	registeredCommand("workspace")
 	command("help"):add("command", "positional", { help = "Command to describe" })
 
 	return { root = root, commands = commands }
@@ -196,6 +203,7 @@ local function dependencies(options: Dependencies?): Resolved
 		runner = given.runner or defaultRun,
 		write = given.write or print,
 		dataDir = given.dataDir or store.defaultDir(),
+		workspace = if given.workspace == nil then process.env.ORION_WORKSPACE else given.workspace,
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 		end,
@@ -347,16 +355,23 @@ local function execute(args: { string }, options: Dependencies?)
 		return
 	end
 
-	local dir = deps.dataDir
+	local root = deps.dataDir
+	local selected = parser:get("workspace") or parsers.root:get("workspace")
+	local _, subparser = parser:selected()
+	if subparser then
+		selected = subparser:get("workspace") or selected
+	end
+	local active = store.getActiveWorkspace(root, selected, deps.workspace)
+	local dir = store.getWorkspaceDir(root, active)
 	local asJson = parser:has("json")
 	local registered = COMMANDS[command]
 	if registered then
-		registered.run(parser, { dir = dir, write = deps.write, asJson = asJson })
+		registered.run(parser, { dir = dir, root = root, workspace = active, write = deps.write, asJson = asJson })
 		return
 	end
 
 	if command == "path" then
-		deps.write(store.filePath(dir))
+		deps.write(dir)
 	elseif command == "list" then
 		local doc = store.load(dir)
 		local derived = graph.derive(doc)

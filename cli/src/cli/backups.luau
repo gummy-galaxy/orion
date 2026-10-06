@@ -12,7 +12,7 @@ return table.freeze({
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 	run = function(_parser: batteriesCli.Parser, options: Context)
-		local backups = store.backups(options.dir)
+		local backups = store.getBackups(options.dir)
 		if options.asJson then
 			local values: json.Array = {}
 			for _, backup in backups do

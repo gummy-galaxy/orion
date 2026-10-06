@@ -18,7 +18,7 @@ return table.freeze({
 		local revision = tonumber(value)
 		local restored = store.transaction(options.dir, function(doc)
 			local selected: store.Backup?
-			for _, backup in store.backups(options.dir) do
+			for _, backup in store.getBackups(options.dir) do
 				if backup.revision == revision then
 					selected = backup
 					break
