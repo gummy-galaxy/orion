@@ -38,7 +38,7 @@ import {
   isNote,
   isTask,
   normalize,
-  getPrUrl,
+  getTaskUrl,
   sizeOf,
   getTaskTag,
   githubSummary,
@@ -985,7 +985,7 @@ function Canvas() {
           { label: 'Delete note', danger: true, run: () => deleteNote(n.id) },
         ]
       const data = n.data as TaskData
-      const url = data.github?.url ?? getPrUrl(data, githubOwner)
+      const url = getTaskUrl(data, githubOwner)
       return [
         ...many,
         ...(url ? [{ label: `Open ${getTaskTag(data)}`, hint: '↗', run: () => window.open(url, '_blank', 'noreferrer') }] : []),
@@ -1351,7 +1351,7 @@ function TaskInspector({
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
   const lev = work.leverage.get(node.id) ?? 0
-  const url = data.github?.url ?? getPrUrl(data, githubOwner)
+  const url = getTaskUrl(data, githubOwner)
   const linked = new Set(
     [...map.values()]
       .filter(isTask)

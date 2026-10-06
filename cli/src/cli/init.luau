@@ -8,6 +8,7 @@ local defaultRun = require("@root/command")
 local github = require("@root/github")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
+local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local restore = require("@root/cli/restore")
 local source = require("@root/cli/source")
@@ -384,7 +385,6 @@ local function execute(args: { string }, options: Dependencies?)
 			asJson = asJson,
 			runner = deps.runner,
 			now = deps.now,
-			args = args,
 		})
 		return
 	end
@@ -513,10 +513,7 @@ local function execute(args: { string }, options: Dependencies?)
 		deps.write(`Removed {id}`)
 	elseif command == "group" then
 		local label = joined(parser:variadics(), "<label>")
-		local ids = {}
-		for id in (parser:get("items") or ""):gmatch("[^,%s]+") do
-			table.insert(ids, id)
-		end
+		local ids = parseCommaList(parser:get("items") or "")
 		local made: Item
 		local doc = store.transaction(dir, function(doc)
 			made = graph.makeGroup(doc, label, ids)

@@ -9,7 +9,6 @@ export type Context = {
 	asJson: boolean,
 	runner: types.CommandRunner,
 	now: () -> string,
-	args: { string },
 }
 
 export type Command = {

@@ -62,11 +62,15 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 
 Configure sources once, then run `orion ingest --dry-run` to preview work involving you. `orion ingest` adds new cards to Unsorted, updates matching cards in place, and links mentioned Jira issues or GitHub issues to pull requests. `orion source list --json` shows the configuration. Sources and cards live in the selected Orion data file; source commands run through the CLI and keep credentials in their own tools.
 
+For GitHub sources, `--owners`, `--include`, and `--exclude` accept comma-separated lists. Spaces around entries are ignored, so `--owners vocksel,flipbook-labs --include "orion, hop"` works.
+
+Ingested Jira cards store their source ID, issue key, URL, status, completion state, update time, and Jira-specific details in `data.external`. The source ID and key identify a card across ingests.
+
 For a Roblox setup:
 
 ```sh
-orion source add github --host github.com --owner Roblox
-orion source add github --host github.example.com --owner Roblox --id gh-roblox-enterprise
+orion source add github --host github.com --owners Roblox
+orion source add github --host github.example.com --owners Roblox --id gh-roblox-enterprise
 orion source add jira --command '["acli","jira","workitem","search","--jql","assignee = currentUser() AND resolution = Unresolved","--json"]' --browse https://jira.example.com/browse
 orion source add hop
 orion ingest --dry-run

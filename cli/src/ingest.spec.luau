@@ -63,10 +63,54 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 	assert.eq(#doc.nodes, count)
 	assert.eq(#doc.links, 2)
 	assert.eq(second.sources[1].updated, 2)
-	local jira = json.asObject(doc.nodes[4].data.jira)
-	assert.eq(jira and jira.epicKey, "ABC-1")
-	assert.eq(jira and jira.statusCategory, "indeterminate")
+	local external = json.asObject(doc.nodes[4].data.external)
+	local details = if external then json.asObject(external.details) else nil
+	assert.eq(external and external.source, "jira")
+	assert.eq(external and external.key, "ABC-123")
+	assert.eq(external and external.url, "https://jira.example.com/browse/ABC-123")
+	assert.eq(external and external.status, "In Progress")
+	assert.eq(external and external.isDone, false)
+	assert.eq(external and external.updatedAt, "2026-10-03T00:00:00Z")
+	assert.eq(details and details.type, "Story")
+	assert.eq(details and details.epicKey, "ABC-1")
+	assert.eq(details and details.epicSummary, "Avatar")
 	assert.eq(doc.nodes[4].data.status, "active")
+end)
+
+test.case("external cards with the same key in different sources stay separate", function(assert)
+	local doc = testing.createDoc({})
+	doc.settings.sources = {
+		{ id = "jira-one", kind = "jira", command = { "acli", "one" } },
+		{ id = "jira-two", kind = "jira", command = { "acli", "two" } },
+	}
+	local function runCommand(argv: { string })
+		local summary = if argv[2] == "one" then "First issue" else "Second issue"
+		local category = if argv[2] == "one" then "new" else "done"
+		return testing.result(
+			true,
+			string.format(
+				'[{"key":"ABC-123","summary":"%s","status":"Done","statusCategory":"%s","type":"Task"}]',
+				summary,
+				category
+			)
+		)
+	end
+	local first = ingest.apply(doc, ingest.collect(doc, runCommand, NOW), NOW)
+	assert.eq(first.sources[1].added, 1)
+	assert.eq(first.sources[2].added, 1)
+	assert.eq(#doc.nodes, 3)
+	local one = json.asObject(doc.nodes[2].data.external)
+	local two = json.asObject(doc.nodes[3].data.external)
+	assert.eq(one and one.source, "jira-one")
+	assert.eq(two and two.source, "jira-two")
+	assert.eq(two and two.isDone, true)
+	assert.eq(doc.nodes[3].data.status, "done")
+	local second = ingest.apply(doc, ingest.collect(doc, runCommand, NOW), NOW)
+	assert.eq(second.sources[1].updated, 1)
+	assert.eq(second.sources[2].updated, 1)
+	assert.eq(#doc.nodes, 3)
+	assert.eq(doc.nodes[2].data.label, "First issue")
+	assert.eq(doc.nodes[3].data.label, "Second issue")
 end)
 
 test.case("hop step converts to a pull request without changing placement or note", function(assert)

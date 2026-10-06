@@ -12,20 +12,26 @@ test.case("source commands validate and persist configuration", function(assert)
 		"github",
 		"--host",
 		"github.com",
-		"--owner",
-		"Roblox",
-		"--owner",
-		"Example",
+		"--owners",
+		" Roblox, Example, , ",
 		"--include",
-		"avatar",
+		" avatar, hop, , ",
+		"--exclude",
+		" old, archived, , ",
 	})
 	run({ "source", "add", "jira", "--command", [[ ["acli","jira","workitem","search","--json"] ]] })
 	run({ "source", "add", "hop" })
 	local values = json.asArray(json.deserialize(run({ "source", "list", "--json" })) :: json.Value)
 	assert.eq(values and #values, 3)
-	assert.eq(store.load(dir).settings.sources[1].owners, { "Roblox", "Example" })
+	local github = store.load(dir).settings.sources[1]
+	assert.eq(github.owners, { "Roblox", "Example" })
+	assert.eq(github.include, { "avatar", "hop" })
+	assert.eq(github.exclude, { "old", "archived" })
 	assert.throws(function()
-		run({ "source", "add", "github", "--host", "evil/@host", "--owner", "Roblox" })
+		run({ "source", "add", "github", "--host", "evil/@host", "--owners", "Roblox" })
+	end)
+	assert.throws(function()
+		run({ "source", "add", "github", "--host", "github.com", "--owners", " , , " })
 	end)
 	run({ "source", "remove", "hop" })
 	assert.eq(#store.load(dir).settings.sources, 2)
@@ -43,7 +49,8 @@ test.case("sources stay in their selected workspace", function(assert)
 	assert.eq(beta.settings.sources[1].id, "hop-beta")
 	assert.eq(#store.load(root).settings.sources, 0)
 	assert.strContains(run({ "source", "list", "--workspace", "alpha" }), "hop-alpha")
-	assert.strContains(run({ "source", "add", "--help" }), "--owner")
+	assert.strContains(run({ "source", "add", "--help" }), "--owners")
+	assert.strContains(run({ "source", "add", "--help" }), "GitHub owners, comma-separated")
 	run({ "source", "add", "--workspace", "beta", "hop", "--id", "hop-beta-two" })
 	setWorkspace("beta")
 	assert.strContains(run({ "source", "list" }), "hop-beta")

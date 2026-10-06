@@ -25,15 +25,15 @@ export type TaskData = {
   host?: string
   branch?: string
   issue?: number
-  jira?: {
+  /** An item from an ingested source other than a GitHub pull request, such as a Jira issue. */
+  external?: {
+    source: string
     key: string
     url?: string
-    status: string
-    statusCategory: 'new' | 'indeterminate' | 'done'
-    type: string
-    epicKey?: string
-    epicSummary?: string
+    status?: string
+    isDone?: boolean
     updatedAt?: string
+    details?: Record<string, string>
   }
   activity?: { lastActiveAt: string; sessions: string[] }
   sources?: string[]
@@ -92,14 +92,16 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
 const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
 
 export function getTaskTag(d: TaskData): string {
-  if (d.jira) return d.jira.key
+  if (d.external) return d.external.key
   if (d.repo && d.issue) return `${d.repo}#${d.issue}`
   if (d.repo && d.pr) return `${d.repo}#${d.pr}`
   return d.repo ?? 'step'
 }
 
-export function getPrUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
-  return d.repo && d.pr ? `https://${d.host ?? 'github.com'}/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}` : null
+export function getTaskUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
+  if (d.github?.url) return d.github.url
+  if (d.repo && d.pr) return `https://${d.host ?? 'github.com'}/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}`
+  return d.external?.url ?? null
 }
 
 export const isCluster = (n: AppNode): n is ClusterNode => n.type === 'cluster'

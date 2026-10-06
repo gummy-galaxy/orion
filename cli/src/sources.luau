@@ -34,7 +34,7 @@ end
 
 function sources.createSource(kind: string, options: { [string]: { string } }): Source
 	local allowed = if kind == "github"
-		then { host = true, owner = true, include = true, exclude = true, id = true }
+		then { host = true, owners = true, include = true, exclude = true, id = true }
 		elseif kind == "jira" then { command = true, browse = true, id = true }
 		elseif kind == "hop" then { command = true, id = true }
 		else error(`unknown source kind {kind}`)
@@ -45,7 +45,8 @@ function sources.createSource(kind: string, options: { [string]: { string } }): 
 	if kind == "github" then
 		local host = assert(getOne(options, "host"), "github needs --host")
 		assert(host:match(HOST) and host:find("%.", 1), "invalid GitHub host")
-		local owners = assert(options.owner, "github needs --owner")
+		local owners = options.owners
+		assert(owners and #owners > 0, "github needs --owners")
 		for _, owner in owners do
 			assert(owner:match(NAME), `invalid owner {owner}`)
 		end

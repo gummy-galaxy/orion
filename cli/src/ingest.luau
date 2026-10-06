@@ -251,12 +251,33 @@ local function findBranch(doc: Doc, repo: string, branch: string): Item?
 	return nil
 end
 
+local function findExternal(doc: Doc, sourceId: string, key: string): Item?
+	for _, item in doc.nodes do
+		local external = json.asObject(item.data.external)
+		if
+			item.type == "task"
+			and external
+			and getString(external.source) == sourceId
+			and getString(external.key) == key
+		then
+			return item
+		end
+	end
+	return nil
+end
+
 local function markSourceOn(item: Item, id: string)
 	local sources = json.asArray(item.data.sources) or {}
 	if not table.find(sources, id) then
 		table.insert(sources, id)
 	end
 	item.data.sources = sources
+end
+
+local function applyExternal(item: Item, sourceId: string, fields: json.Object)
+	fields.source = sourceId
+	item.data.external = fields
+	markSourceOn(item, sourceId)
 end
 
 local function createItem(doc: Doc, label: string, repo: string?, status: string, who: string?): Item
@@ -300,10 +321,12 @@ end
 local function linkMentions(doc: Doc, pull: github.PullState, item: Item, report: SourceReport)
 	local text = `{pull.title} {pull.branch or ""} {pull.body or ""}`
 	for key in text:upper():gmatch("%f[%w][A-Z][A-Z0-9]*%-%d+%f[^%w]") do
-		for _, other in doc.nodes do
-			local jira = json.asObject(other.data.jira)
-			if jira and getString(jira.key) == key then
-				linkMention(doc, other, item, report)
+		for _, source in doc.settings.sources do
+			if source.kind == "jira" then
+				local other = findExternal(doc, source.id, key)
+				if other then
+					linkMention(doc, other, item, report)
+				end
 			end
 		end
 	end
@@ -376,14 +399,7 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			markSourceOn(item, id)
 		end
 		for _, jira in result.jira or {} do
-			local item: Item? = nil
-			for _, candidate in doc.nodes do
-				local data = json.asObject(candidate.data.jira)
-				if data and getString(data.key) == jira.key then
-					item = candidate
-					break
-				end
-			end
+			local item = findExternal(doc, id, jira.key)
 			markItem(result.report, item)
 			item = item or createItem(doc, jira.summary, nil, "todo", "you")
 			local status = if jira.category == "done"
@@ -394,18 +410,18 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			item.data.itemKind = "step"
 			item.data.status = status
 			item.data.who = if status == "done" then nil else "you"
-			local data = json.object({
+			local details = json.object({ type = jira.issueType })
+			details.epicKey = jira.epicKey
+			details.epicSummary = jira.epicSummary
+			local fields = json.object({
 				key = jira.key,
 				status = jira.status,
-				statusCategory = jira.category,
-				type = jira.issueType,
+				isDone = jira.category == "done",
+				details = details,
 			})
-			data.url = if result.source.browse then `{result.source.browse}/{jira.key}` else nil
-			data.epicKey = jira.epicKey
-			data.epicSummary = jira.epicSummary
-			data.updatedAt = jira.updated
-			item.data.jira = data
-			markSourceOn(item, id)
+			fields.url = if result.source.browse then `{result.source.browse}/{jira.key}` else nil
+			fields.updatedAt = jira.updated
+			applyExternal(item, id, fields)
 		end
 	end
 	local cutoff = getUnix(now) - 21 * 86400
