@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import {
   Background,
   BackgroundVariant,
@@ -23,6 +23,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { Palette } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
+import { FocusView, type FocusItem } from './focus'
 import { reflow, reflowAll } from './layout'
 import { mergeDocs } from './merge'
 import {
@@ -75,6 +76,8 @@ import {
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
+import { StickerLayer, StickerWheel, type PlacedSticker, type StickerBounds, type StickerMove } from './Stickers'
+import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from './sticker'
 import { Toolbar, type Tool } from './Toolbar'
 
 type ViewNode = AppNode | GhostNode
@@ -111,13 +114,28 @@ const PEEK_SPAN = 0.8
 const PEEK_KEEP_VISIBLE = 0.4
 const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
+/** A click on a group waits this long for a second one before it selects. */
+const DOUBLE_CLICK_MS = 280
+const FOCUS_SIDE_W = 248
+const FOCUS_INSET = 20
+const FOCUS_ZOOM = 1.2
+/** The focused card sits this far down the canvas, leaving room for its details above. */
+const FOCUS_CARD_Y = 0.7
+const FOCUS_BOTTOM_GAP = 24
+/** Focus moves head straight for the card and start fast. */
+const FOCUS_MOVE = { duration: 260, ease: (t: number) => 1 - Math.pow(1 - t, 3), interpolate: 'linear' } as const
 const PLACE_GAP = 80
+/** Stickers land up to this many degrees off straight. */
+const STICKER_TILT = 14
+const STICKER_FRESH_MS = 700
+/** How far above the toolbar the sticker wheel opens. */
+const WHEEL_LIFT = 140
 
 type Menu = {
   x: number
   y: number
   flow: { x: number; y: number }
-  target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string }
+  target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string } | { kind: 'sticker'; id: string }
 }
 
 async function seeded() {
@@ -160,7 +178,8 @@ function writeColorMode(mode: ColorMode) {
 }
 
 /** The stored shape of a document, for comparing and merging. */
-const getCompactDoc = (doc: Saved): Saved => JSON.parse(fingerprint(doc)) as Saved
+const getCompactDoc = (doc: Saved): Saved =>
+  JSON.parse(fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) })) as Saved
 
 const ease = (t: number) => 1 - Math.pow(1 - t, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
@@ -176,6 +195,15 @@ function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { widt
   const height = size.h + FIT_MARGIN_Y * 2
   const zoom = Math.min(box.width / width, box.height / height, FIT_MAX_ZOOM)
   return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: box.height / 2 - (p.y + size.h / 2) * zoom, zoom }
+}
+
+/** Puts a card between the focus columns, a little larger than life. */
+function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
+  const p = absPos(card, map)
+  const size = sizeOf(card)
+  const zoom = FOCUS_ZOOM
+  const centerY = Math.min(box.height * FOCUS_CARD_Y, box.height - FOCUS_BOTTOM_GAP - (size.h * zoom) / 2)
+  return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: centerY - (p.y + size.h / 2) * zoom, zoom }
 }
 
 /**
@@ -225,8 +253,11 @@ function Canvas() {
   const peeking = root !== null && peek === root
   const [exitHint, setExitHint] = useState<{ root: string; progress: number } | null>(null)
   const [hover, setHover] = useState<string | null>(null)
-  // A double-clicked card keeps its trace while you pan around; any click lets it go.
   const [pinned, setPinned] = useState<string | null>(null)
+  // A double-clicked card fills the view with what it waits on and leads to beside it.
+  const [focusPick, setFocus] = useState<string | null>(null)
+  // Where focus started, and whether it has since walked to another card or level.
+  const focusEntry = useRef<{ viewport: Viewport; moved: boolean } | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
@@ -234,8 +265,14 @@ function Canvas() {
   const [menu, setMenu] = useState<Menu | null>(null)
   const [tool, setTool] = useState<Tool>('select')
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [stickers, setStickers] = useState<Sticker[]>([])
+  const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
+  const [chosenSticker, setSticker] = useState<string | null>(null)
+  const sticker = chosenSticker ?? loadout.find((s) => s !== null) ?? FALLBACK_STICKER
+  const [wheel, setWheel] = useState<{ x: number; y: number; held: boolean } | null>(null)
+  const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set())
   const canvasRef = useRef<HTMLDivElement>(null)
-  const latest = useRef({ nodes, links })
+  const latest = useRef<Saved>({ nodes, links, stickers, stickerLoadout: loadout })
   const fitZoom = useRef(new Map<string, number>())
   const fitting = useRef(false)
   const fitSequence = useRef(0)
@@ -244,12 +281,41 @@ function Canvas() {
   const openRoot = useCallback((target: string | null) => {
     setPeek(null)
     setExitHint(null)
+    setFocus(null)
+    focusEntry.current = null
     skipNextFit.current = false
     setRoot(target)
   }, [])
+
+  // A group's selection waits until a second click, which would open it, can no longer arrive.
+  const plainClick = useRef<'defer' | null>(null)
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const clickQueue = useRef<(() => void)[]>([])
+  const afterClick = useCallback((run: () => void) => {
+    clickQueue.current.push(run)
+    clearTimeout(clickTimer.current)
+    clickTimer.current = setTimeout(() => {
+      const queued = clickQueue.current
+      clickQueue.current = []
+      for (const f of queued) f()
+    }, DOUBLE_CLICK_MS)
+  }, [])
+  const cancelClick = useCallback(() => {
+    clearTimeout(clickTimer.current)
+    clickQueue.current = []
+  }, [])
+  useEffect(() => cancelClick, [cancelClick])
+  // Runs before React Flow's own click handling, which selects the node as it goes.
+  const claimNodeClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    const node = target.closest('.react-flow__node')
+    if (e.metaKey || e.shiftKey || e.ctrlKey || !node || target.closest('button, input, textarea, select')) return
+    plainClick.current = node.classList.contains('react-flow__node-cluster') ? 'defer' : null
+    setTimeout(() => (plainClick.current = null))
+  }
   useEffect(() => {
-    latest.current = { nodes, links }
-  }, [nodes, links])
+    latest.current = { nodes, links, stickers, stickerLoadout: loadout }
+  }, [nodes, links, stickers, loadout])
 
   // ---- Persistence ----
   const source = useRef<'file' | 'browser'>('file')
@@ -266,19 +332,27 @@ function Canvas() {
 
   const adopt = useCallback((doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
     const next = normalize(doc.nodes)
-    const server = getCompactDoc({ nodes: normalize(serverDoc.nodes), links: serverDoc.links })
+    const server = getCompactDoc({
+      nodes: normalize(serverDoc.nodes),
+      links: serverDoc.links,
+      stickers: serverDoc.stickers,
+      stickerLoadout: serverDoc.stickerLoadout,
+    })
     revision.current = doc.revision
     base.current = server
     savedPrint.current = fingerprint(server)
-    latest.current = { nodes: next, links: doc.links }
+    const stickerLoadout = loadoutOf(doc.stickerLoadout)
+    latest.current = { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
     setNodes((ns) => {
       const picked = new Set(preserveSelection ? ns.filter((n) => n.selected).map((n) => n.id) : [])
       return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
     })
     setLinks(doc.links)
+    setStickers(doc.stickers ?? [])
+    setLoadout(stickerLoadout)
     setGithub(doc.github ?? null)
     setGithubOwner(doc.settings.githubOwner)
-    return { nodes: next, links: doc.links }
+    return { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
   }, [])
 
   useEffect(
@@ -298,7 +372,7 @@ function Canvas() {
       if (fingerprint(local) === savedPrint.current) adopt(doc)
       else {
         const merged = mergeDocs(base.current, local, getCompactDoc(doc))
-        adopt({ ...doc, nodes: merged.nodes, links: merged.links }, doc)
+        adopt({ ...doc, ...merged }, doc)
       }
     },
     [adopt],
@@ -316,13 +390,17 @@ function Canvas() {
         const isDefault = name === 'default'
         const kept = isDefault ? (loaded.source === 'browser' ? loaded.saved : readBrowser()) : null
         const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : isDefault ? await seeded() : { nodes: [], links: [] }
+        const initialStickers = kept?.stickers ?? []
+        const initialLoadout = loadoutOf(kept?.stickerLoadout)
         if (epoch !== workspaceEpoch.current) return
         revision.current = null
         savedPrint.current = ''
         base.current = { nodes: [], links: [] }
-        latest.current = start
+        latest.current = { ...start, stickers: initialStickers, stickerLoadout: initialLoadout }
         setNodes(start.nodes)
         setLinks(start.links)
+        setStickers(initialStickers)
+        setLoadout(initialLoadout)
         setGithub(null)
         setGithubOwner('flipbook-labs')
       }
@@ -376,14 +454,16 @@ function Canvas() {
   useEffect(() => {
     if (!ready) return
     const t = setTimeout(() => {
-      const snapshot = { nodes, links }
+      // Stickers on cards or groups that are gone go with them.
+      const ids = new Set(nodes.map((n) => n.id))
+      const snapshot = { nodes, links, stickers: stickers.filter((s) => !s.on || ids.has(s.on)), stickerLoadout: loadout }
       const print = fingerprint(snapshot)
       const epoch = workspaceEpoch.current
       const name = workspace.current
       queue.current = queue.current.then(async () => {
         if (epoch !== workspaceEpoch.current) return
         if (print === savedPrint.current) return
-        let pending = snapshot
+        let pending: Saved = snapshot
         for (let attempt = 0; attempt <= 2; attempt++) {
           const result = await save(source.current, revision.current, pending, name)
           if (epoch !== workspaceEpoch.current) return
@@ -398,7 +478,7 @@ function Canvas() {
           if (epoch !== workspaceEpoch.current) return
           if (!remote) break
           const merged = mergeDocs(base.current, getCompactDoc(latest.current), getCompactDoc(remote))
-          pending = adopt({ ...remote, nodes: merged.nodes, links: merged.links }, remote)
+          pending = adopt({ ...remote, ...merged }, remote)
           if (merged.conflicts.length) {
             setMergeNotice(merged.conflicts.length)
             if (noticeTimer.current) clearTimeout(noticeTimer.current)
@@ -409,7 +489,7 @@ function Canvas() {
       })
     }, 400)
     return () => clearTimeout(t)
-  }, [nodes, links, ready, reload, adopt])
+  }, [nodes, links, stickers, loadout, ready, reload, adopt])
 
   const pendingLayoutEpoch = useRef<number | null>(null)
   useEffect(() => {
@@ -449,6 +529,8 @@ function Canvas() {
       setReady(false)
       setRoot(null)
       setPeek(null)
+      setFocus(null)
+      focusEntry.current = null
       setPinned(null)
       setHover(null)
       setEditing(null)
@@ -608,6 +690,8 @@ function Canvas() {
   }, [])
 
   const map = useMemo(() => byId(nodes), [nodes])
+  // Focus ends on its own if someone else removes the card.
+  const focus = focusPick && map.has(focusPick) ? focusPick : null
   const rootWorkCount = useMemo(() => {
     if (!root) return 0
     const inside = descendants(root, nodes)
@@ -784,15 +868,18 @@ function Canvas() {
       ...nodes.map((n) => ({
         ...n,
         hidden: view.hidden.has(n.id),
-        className: [n.className, peeking && !inFocus(n.id) ? 'is-peek' : ''].filter(Boolean).join(' ') || undefined,
+        className:
+          [n.className, peeking && !inFocus(n.id) ? 'is-peek' : '', focus ? (n.id === focus ? 'is-focused' : 'is-unfocused') : '']
+            .filter(Boolean)
+            .join(' ') || undefined,
       })),
-      ...ghosts,
+      ...(focus ? ghosts.map((g) => ({ ...g, className: 'is-unfocused' })) : ghosts),
     ],
-    [nodes, view, ghosts, peeking, inFocus],
+    [nodes, view, ghosts, peeking, inFocus, focus],
   )
 
   const trace = useMemo(() => {
-    const from = pinned ?? hover
+    const from = focus ? null : (pinned ?? hover)
     const h = from ? map.get(from) : undefined
     return h && isTask(h)
       ? traceFrom(
@@ -802,7 +889,7 @@ function Canvas() {
           nodes.filter(isTask).map((n) => n.id),
         )
       : null
-  }, [pinned, hover, map, work, nodes])
+  }, [focus, pinned, hover, map, work, nodes])
 
   const edges = useMemo(() => {
     const out: Edge[] = []
@@ -898,7 +985,7 @@ function Canvas() {
   const startMarquee = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement
     const box = canvasRef.current?.getBoundingClientRect()
-    if (e.button !== 0 || !box || !target.classList.contains('react-flow__pane')) return
+    if (focus || e.button !== 0 || !box || !target.classList.contains('react-flow__pane')) return
     // In Select, a draggable pane means Space is held to pan.
     if (tool === 'select' ? target.classList.contains('draggable') : !(tool === 'hand' && e.metaKey)) return
     // Keeps the drag from also panning in Pan.
@@ -1012,10 +1099,99 @@ function Canvas() {
   )
 
   const onNodesChange = useCallback(
-    (changes: NodeChange<ViewNode>[]) =>
-      setNodes((ns) => applyNodeChanges(changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[], ns)),
-    [],
+    (changes: NodeChange<ViewNode>[]) => {
+      let own = changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[]
+      if (plainClick.current) {
+        const picks = own.filter((c) => c.type === 'select')
+        own = own.filter((c) => c.type !== 'select')
+        if (picks.length) afterClick(() => setNodes((ns) => applyNodeChanges(picks, ns)))
+      }
+      if (own.length) setNodes((ns) => applyNodeChanges(own, ns))
+    },
+    [afterClick],
   )
+
+  // ---- Focus on one card ----
+
+  const focusOn = useCallback(
+    (id: string) => {
+      const m = byId(latest.current.nodes)
+      const n = m.get(id)
+      const box = canvasRef.current?.getBoundingClientRect()
+      if (!n || !isTask(n) || !box) return
+      if (!focus || !focusEntry.current) focusEntry.current = { viewport: rf.getViewport(), moved: false }
+      else if (id !== focus) focusEntry.current.moved = true
+      if (peeking && !inFocus(id)) leaveRoot()
+      // Work outside the open level opens its own group underneath, so leaving focus lands there.
+      if (!inView(id)) {
+        const parent = n.parentId ? m.get(n.parentId) : undefined
+        if (parent) fitZoom.current.set(parent.id, groupFitViewport(parent, m, box).zoom)
+        skipNextFit.current = true
+        setPeek(null)
+        setExitHint(null)
+        setRoot(parent?.id ?? null)
+        focusEntry.current.moved = true
+      }
+      setHover(null)
+      setPinned(null)
+      setNodes((ns) => (ns.some((x) => x.selected) ? ns.map((x) => (x.selected ? { ...x, selected: false } : x)) : ns))
+      setFocus(id)
+      void rf.setViewport(focusViewport(n, m, box), FOCUS_MOVE)
+    },
+    [rf, focus, peeking, inFocus, inView, leaveRoot],
+  )
+
+  const exitFocus = useCallback(() => {
+    const entry = focusEntry.current
+    const m = byId(latest.current.nodes)
+    const n = focus ? m.get(focus) : undefined
+    setFocus(null)
+    focusEntry.current = null
+    if (!entry) return
+    if (!entry.moved || !n) {
+      void rf.setViewport(entry.viewport, FOCUS_MOVE)
+      return
+    }
+    const p = absPos(n, m)
+    const s = sizeOf(n)
+    const zoom = (root ? fitZoom.current.get(root) : undefined) ?? entry.viewport.zoom
+    void rf.setCenter(p.x + s.w / 2, p.y + s.h / 2, { zoom, ...FOCUS_MOVE })
+  }, [focus, root, rf])
+
+  const focusItems = useMemo(() => {
+    if (!focus) return null
+    const item = (id: string, related: boolean): FocusItem | null => {
+      const n = map.get(id)
+      if (!n || !isTask(n)) return null
+      const parent = n.parentId ? map.get(n.parentId) : undefined
+      const status = work.status.get(id) ?? 'ready'
+      return {
+        id,
+        label: n.data.label || (isNote(n) ? 'Empty note' : 'Untitled'),
+        tag: isNote(n) ? 'Note' : getTaskTag(n.data),
+        status,
+        where: parent ? (parent.data as ClusterData).label : 'Loose work',
+        related,
+        live: !related && status !== 'done',
+      }
+    }
+    const incoming: FocusItem[] = []
+    const outgoing: FocusItem[] = []
+    for (const l of links) {
+      if (l.to === focus && !incoming.some((i) => i.id === l.from)) {
+        const i = item(l.from, l.kind === 'related')
+        if (i) incoming.push(i)
+      }
+      if (l.from === focus && !outgoing.some((i) => i.id === l.to)) {
+        const o = item(l.to, l.kind === 'related')
+        // A link stays live while its source is open, and here the source is the focused card.
+        if (o) outgoing.push({ ...o, live: !o.related && work.status.get(focus) !== 'done' })
+      }
+    }
+    const settled = (i: FocusItem) => (i.status === 'done' || i.status === 'deferred' ? 1 : 0)
+    return { incoming: incoming.sort((a, b) => settled(a) - settled(b)), outgoing: outgoing.sort((a, b) => settled(a) - settled(b)) }
+  }, [focus, links, map, work])
+
   const onDragStop = useCallback(() => setNodes((ns) => normalize(ns)), [])
   const onConnect = useCallback((c: Connection) => {
     if (!c.source || !c.target || c.source === c.target) return
@@ -1103,28 +1279,131 @@ function Canvas() {
     return { x: c.x - TASK_W / 2, y: c.y - TASK_H / 2 }
   }, [rf])
 
-  /** Drops a note centered on a click, inside the innermost open group under it. */
-  const placeComment = useCallback(
-    (e: React.MouseEvent) => {
-      const point = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
-      let parent = levelRoot
+  /** The innermost visible card or group under a canvas point that `accept` allows. */
+  const nodeAt = useCallback(
+    (point: { x: number; y: number }, accept: (n: AppNode) => boolean) => {
+      let found: string | null = null
       let depth = -1
       for (const n of nodes) {
-        if (!isCluster(n) || view.hidden.has(n.id) || collapsed.has(n.id) || !inView(n.id)) continue
+        if (view.hidden.has(n.id) || !inView(n.id) || !accept(n)) continue
         const p = absPos(n, map)
         const s = sizeOf(n)
         const d = ancestors(n.id, map).length
         if (point.x >= p.x && point.x <= p.x + s.w && point.y >= p.y && point.y <= p.y + s.h && d > depth) {
-          parent = n.id
+          found = n.id
           depth = d
         }
       }
+      return found
+    },
+    [nodes, map, view, inView],
+  )
+
+  /** Drops a note centered on a click, inside the innermost open group under it. */
+  const placeComment = useCallback(
+    (e: React.MouseEvent) => {
+      const point = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      const parent = nodeAt(point, (n) => isCluster(n) && !collapsed.has(n.id)) ?? levelRoot
       if (peeking && !(parent && inFocus(parent))) leaveRoot()
       addNote({ x: point.x - TASK_W / 2, y: point.y - TASK_H / 2 }, { parent })
       setTool('select')
     },
-    [rf, nodes, map, view, collapsed, inView, levelRoot, peeking, inFocus, leaveRoot, addNote],
+    [rf, nodeAt, collapsed, levelRoot, peeking, inFocus, leaveRoot, addNote],
   )
+
+  // ---- Stickers ----
+
+  /** Where a sticker dropped at a canvas point sits: on the card or group under it, or loose. */
+  const anchorAt = useCallback(
+    (point: { x: number; y: number }) => {
+      const on = nodeAt(point, () => true)
+      const n = on ? map.get(on) : undefined
+      if (!n) return { x: Math.round(point.x), y: Math.round(point.y) }
+      const p = absPos(n, map)
+      return { x: Math.round(point.x - p.x), y: Math.round(point.y - p.y), on: n.id }
+    },
+    [nodeAt, map],
+  )
+
+  const stamp = useCallback(
+    (e: React.MouseEvent) => {
+      const id = newId('sticker')
+      const at = anchorAt(rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }))
+      setStickers((ss) => [...ss, { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at }])
+      setFresh((f) => new Set(f).add(id))
+      setTimeout(
+        () =>
+          setFresh((f) => {
+            const next = new Set(f)
+            next.delete(id)
+            return next
+          }),
+        STICKER_FRESH_MS,
+      )
+    },
+    [rf, sticker, anchorAt],
+  )
+
+  const settleStickers = useCallback(
+    (moves: StickerMove[]) => {
+      const landed = new Map(moves.map((m) => [m.id, m]))
+      setStickers((ss) =>
+        ss.map((s) => {
+          const at = landed.get(s.id)
+          return at ? { id: s.id, kind: s.kind, tilt: s.tilt, ...anchorAt(at) } : s
+        }),
+      )
+    },
+    [anchorAt],
+  )
+
+  /** Every group frame on screen, which stickers bounce inside and off of. */
+  const stickerBounds = useMemo<StickerBounds[]>(() => {
+    const shown = nodes.filter((n) => isCluster(n) && !view.hidden.has(n.id) && inView(n.id))
+    const ids = new Set(shown.map((n) => n.id))
+    return shown.map((n) => {
+      const p = absPos(n, map)
+      const s = sizeOf(n)
+      const chain = ancestors(n.id, map)
+      return { id: n.id, x0: p.x, y0: p.y, x1: p.x + s.w, y1: p.y + s.h, parent: chain.find((a) => ids.has(a)) ?? null, depth: chain.length }
+    })
+  }, [nodes, map, view, inView])
+
+  const placedStickers = useMemo<PlacedSticker[]>(
+    () =>
+      stickers.flatMap((s) => {
+        if (!s.on) return [{ ...s, fresh: fresh.has(s.id) }]
+        const n = map.get(s.on)
+        if (!n || view.hidden.has(n.id)) return []
+        const p = absPos(n, map)
+        return [{ ...s, x: p.x + s.x, y: p.y + s.y, fresh: fresh.has(s.id) }]
+      }),
+    [stickers, map, view, fresh],
+  )
+
+  /** Picking Sticker opens the wheel: above its button, or at the cursor when S is held. */
+  const chooseTool = useCallback((next: Tool, from?: DOMRect) => {
+    if (next !== 'sticker') {
+      setWheel(null)
+      setTool(next)
+      return
+    }
+    if (from) {
+      setWheel({ x: from.left + from.width / 2, y: from.top - WHEEL_LIFT, held: false })
+      return
+    }
+    const r = canvasRef.current?.getBoundingClientRect()
+    const p = pointer.current
+    if (r) setWheel({ x: r.left + (p?.x ?? r.width / 2), y: r.top + (p?.y ?? r.height / 2), held: true })
+  }, [])
+
+  const assignSlot = useCallback((slot: number, emoji: string | null) => setLoadout((l) => l.map((s, i) => (i === slot ? emoji : s))), [])
+
+  const pickSticker = useCallback((id: string) => {
+    setSticker(id)
+    setTool('sticker')
+    setWheel(null)
+  }, [])
 
   const insertNoteOnLink = (linkId: string) => {
     const l = links.find((x) => x.id === linkId)
@@ -1162,6 +1441,7 @@ function Canvas() {
     seeded().then((s) => {
       setNodes(s.nodes)
       setLinks(s.links)
+      setStickers([])
       setTimeout(() => fitTo(null), 40)
     })
   }
@@ -1175,6 +1455,7 @@ function Canvas() {
 
   const menuItems = (m: Menu): MenuItem[] => {
     const t = m.target
+    if (t.kind === 'sticker') return [{ label: 'Remove sticker', danger: true, run: () => setStickers((ss) => ss.filter((s) => s.id !== t.id)) }]
     if (t.kind === 'edge') {
       const l = links.find((x) => x.id === t.id)
       if (!l) return []
@@ -1242,6 +1523,10 @@ function Canvas() {
         return
       }
       if (paletteOpen) return
+      if (focus) {
+        if (e.key === 'Escape') exitFocus()
+        return
+      }
       if (e.metaKey && e.key.toLowerCase() === 'g') {
         e.preventDefault()
         if (e.shiftKey) doUngroup()
@@ -1263,10 +1548,31 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot, tool, paletteOpen])
+  }, [
+    doGroup,
+    doUngroup,
+    selected,
+    actions,
+    root,
+    peeking,
+    map,
+    fitTo,
+    addNote,
+    viewportCenter,
+    pinned,
+    leaveRoot,
+    openRoot,
+    tool,
+    paletteOpen,
+    focus,
+    exitFocus,
+  ])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
+  const focused = focus ? map.get(focus) : undefined
+  const focusPos = focused && absPos(focused, map)
+  const focusSize = focused && sizeOf(focused)
   const readyTotal = [...work.status.values()].filter((s) => s === 'ready').length
 
   const toggleSidebar = (v: boolean) => {
@@ -1301,10 +1607,12 @@ function Canvas() {
             />
           )}
           <div
-            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}`}
+            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${focus ? ' is-focus' : ''}`}
+            style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
             ref={canvasRef}
             onPointerDown={startMarquee}
             onPointerMove={trackPointer}
+            onClickCapture={claimNodeClick}
           >
             {ready && (
               <ReactFlow<ViewNode, Edge>
@@ -1317,43 +1625,59 @@ function Canvas() {
                 onMove={onViewportMove}
                 onNodeDragStop={onDragStop}
                 onConnect={onConnect}
-                onNodeMouseEnter={(_, n) => setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
+                onNodeMouseEnter={(_, n) => !focus && setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
                 onNodeMouseLeave={() => setHover(null)}
-                onNodeClick={(_, n) => {
-                  if (peeking && !inFocus(n.id)) leaveRoot()
+                onNodeClick={(e, n) => {
+                  if (tool === 'sticker') return stamp(e)
+                  if (focus) return
                   setPinned(null)
-                  if (n.type === 'ghost') jumpTo(n.data.taskId)
+                  if (n.type === 'ghost') {
+                    afterClick(() => jumpTo(n.data.taskId))
+                    return
+                  }
+                  if (peeking && !inFocus(n.id)) afterClick(() => leaveRoot())
                 }}
-                onNodeDoubleClick={(_, n) => {
+                onNodeDoubleClick={(e, n) => {
+                  cancelClick()
+                  if (tool === 'sticker' || focus) return
+                  if (e.shiftKey && n.type === 'task') {
+                    if (isNote(n)) setEditing(n.id)
+                    else setPinned(n.id)
+                    return
+                  }
+                  if (n.type === 'task' || n.type === 'ghost') return focusOn(n.type === 'ghost' ? n.data.taskId : n.id)
+                  if (n.type !== 'cluster') return
                   if (peeking && !inFocus(n.id)) leaveRoot()
-                  if (n.type === 'cluster') actions.open(n.id)
-                  else if (n.type === 'task' && isNote(n)) setEditing(n.id)
-                  else if (n.type === 'task') setPinned(n.id)
+                  actions.open(n.id)
                 }}
                 onNodeDragStart={(_, n) => {
                   if (peeking && !inFocus(n.id)) leaveRoot()
                 }}
                 onPaneClick={(e) => {
+                  if (focus) return exitFocus()
                   setPinned(null)
                   if (tool === 'comment') placeComment(e)
+                  else if (tool === 'sticker') stamp(e)
                 }}
                 onEdgeClick={() => setPinned(null)}
-                onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
+                onPaneContextMenu={(e) => (focus ? e.preventDefault() : openMenu(e, { kind: 'pane' }))}
                 onNodeContextMenu={(e, n) => {
+                  if (focus) return e.preventDefault()
                   if (peeking && !inFocus(n.id)) leaveRoot()
                   if (n.type !== 'ghost' && !n.selected) selectOnly(n.id)
                   openMenu(e, { kind: 'node', id: n.id })
                 }}
                 onSelectionContextMenu={(e, ns) => openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })}
                 onEdgeContextMenu={(e, edge) => !edge.id.startsWith('agg:') && openMenu(e, { kind: 'edge', id: edge.id })}
-                panOnDrag={tool === 'hand' ? [0, 1] : [1]}
+                panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
                 selectionKeyCode={null}
                 selectionOnDrag={false}
-                nodesDraggable={tool !== 'hand'}
-                nodesConnectable={tool !== 'hand'}
-                panOnScroll
+                nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
+                nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
+                elementsSelectable={!focus && tool !== 'sticker'}
+                panOnScroll={!focus}
                 zoomOnScroll={false}
-                zoomOnPinch
+                zoomOnPinch={!focus}
                 multiSelectionKeyCode={['Meta', 'Shift']}
                 deleteKeyCode={null}
                 zoomOnDoubleClick={false}
@@ -1361,6 +1685,13 @@ function Canvas() {
                 maxZoom={2}
                 colorMode={colorMode}
               >
+                <StickerLayer
+                  stickers={placedStickers}
+                  interactive={!focus && tool === 'select'}
+                  bounds={stickerBounds}
+                  settle={settleStickers}
+                  menu={(e, id) => openMenu(e, { kind: 'sticker', id })}
+                />
                 {marquee && (
                   <div
                     className="react-flow__selection marquee"
@@ -1505,13 +1836,14 @@ function Canvas() {
                       </div>
                     </div>
                   )}
-                  <Toolbar tool={tool} setTool={setTool} />
+                  <Toolbar tool={tool} sticker={sticker} setTool={chooseTool} />
                   <div className="panel help">
                     {showHelp ? (
                       <>
-                        V select · H pan · C comment · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or ⌘-scroll to zoom · ⌘ or ⇧
-                        click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open · double-click a card to hold
-                        its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                        V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
+                        ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
+                        double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a
+                        card's edge to link{' '}
                         <button type="button" className="link" onClick={() => setShowHelp(false)}>
                           Hide
                         </button>
@@ -1536,8 +1868,56 @@ function Canvas() {
                 onJump={jumpTo}
               />
             )}
+            {focused && focusPos && focusSize && focusItems && (
+              <FocusView
+                key={focused.id}
+                label={focused.data.label || 'Note'}
+                card={{ x: focusPos.x * zoom + panX, y: focusPos.y * zoom + panY, w: focusSize.w * zoom, h: focusSize.h * zoom }}
+                sideWidth={FOCUS_SIDE_W}
+                inset={FOCUS_INSET}
+                incoming={focusItems.incoming}
+                outgoing={focusItems.outgoing}
+                onFocus={focusOn}
+                onExit={exitFocus}
+              >
+                {isNote(focused) ? (
+                  <NoteInspector
+                    node={focused}
+                    focus={false}
+                    doneEditing={() => setEditing(null)}
+                    update={updateData}
+                    remove={() => {
+                      exitFocus()
+                      deleteNote(focused.id)
+                    }}
+                  />
+                ) : (
+                  <TaskInspector
+                    node={focused}
+                    work={work}
+                    map={map}
+                    github={github}
+                    githubOwner={githubOwner}
+                    update={updateData}
+                    jumpTo={focusOn}
+                    connections={false}
+                  />
+                )}
+              </FocusView>
+            )}
             {!ready && <div className="loading">Laying out…</div>}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
+            {wheel && (
+              <StickerWheel
+                at={wheel}
+                held={wheel.held}
+                current={sticker}
+                loadout={loadout}
+                pick={pickSticker}
+                assign={assignSlot}
+                close={() => setWheel(null)}
+              />
+            )}
           </div>
           {paletteOpen && (
             <Palette
@@ -1614,6 +1994,7 @@ function TaskInspector({
   githubOwner,
   update,
   jumpTo,
+  connections = true,
 }: {
   node: AppNode
   work: ReturnType<typeof deriveWork>
@@ -1622,6 +2003,8 @@ function TaskInspector({
   githubOwner: string
   update: (id: string, patch: Partial<TaskData>) => void
   jumpTo: (id: string) => void
+  /** Lists what the card waits on and unblocks. */
+  connections?: boolean
 }) {
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
@@ -1766,10 +2149,14 @@ function TaskInspector({
         Shown as <b>{STATUS_LABEL[st]}</b>
         {lev > 0 && <> · unblocks {lev}</>}
       </p>
-      <span className="label-text">Waits on</span>
-      {list(work.preds.get(node.id) ?? [])}
-      <span className="label-text">Unblocks</span>
-      {list(work.succs.get(node.id) ?? [])}
+      {connections && (
+        <>
+          <span className="label-text">Waits on</span>
+          {list(work.preds.get(node.id) ?? [])}
+          <span className="label-text">Unblocks</span>
+          {list(work.succs.get(node.id) ?? [])}
+        </>
+      )}
     </div>
   )
 }

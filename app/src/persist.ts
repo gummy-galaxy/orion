@@ -1,4 +1,5 @@
 import type { AppNode, GithubSnapshot, Link } from './model'
+import type { Loadout, Sticker } from './sticker'
 
 /**
  * The canvas lives in orion.json, served by the Orion CLI so the CLI and the
@@ -6,7 +7,7 @@ import type { AppNode, GithubSnapshot, Link } from './model'
  * this browser's storage.
  */
 
-export type Saved = { nodes: AppNode[]; links: Link[] }
+export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
 export type Remote = Saved & { revision: number; settings: { githubOwner: string }; github?: GithubSnapshot }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
@@ -126,7 +127,8 @@ export function slim(nodes: AppNode[]) {
 }
 
 /** A stable fingerprint, so view-only changes don't cause writes. */
-export const fingerprint = ({ nodes, links }: Saved) => JSON.stringify({ nodes: slim(nodes), links })
+export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) =>
+  JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout })
 
 function isSaved(value: unknown): value is Saved {
   const s = value as Saved | null
@@ -143,9 +145,9 @@ export function readBrowser(): Saved | null {
   }
 }
 
-function writeBrowser({ nodes, links }: Saved) {
+function writeBrowser({ nodes, links, stickers, stickerLoadout }: Saved) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: slim(nodes), links }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout }))
   } catch {
     // Saving is a convenience; the canvas keeps working without it.
   }
@@ -183,7 +185,13 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
     const res = await fetch(API, {
       method: 'PUT',
       headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
-      body: JSON.stringify({ baseRevision, nodes: slim(saved.nodes), links: saved.links }),
+      body: JSON.stringify({
+        baseRevision,
+        nodes: slim(saved.nodes),
+        links: saved.links,
+        stickers: saved.stickers,
+        stickerLoadout: saved.stickerLoadout,
+      }),
     })
     if (res.ok) return { ok: true, revision: (await res.json()).revision }
     return { ok: false, conflict: res.status === 409 }

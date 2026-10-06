@@ -440,7 +440,14 @@ end
 
 -- Saves app edits only if the latest file still has the revision the app read.
 -- Work directly with the JSON object so fields owned by other writers survive.
-function store.put(dir: string, baseRevision: number?, nodes: json.Array, links: json.Array): (boolean, number?)
+function store.put(
+	dir: string,
+	baseRevision: number?,
+	nodes: json.Array,
+	links: json.Array,
+	stickers: json.Array?,
+	stickerLoadout: json.Array?
+): (boolean, number?)
 	if not fs.exists(dir) then
 		fs.createDirectory(dir, { makeParents = true })
 	end
@@ -461,6 +468,12 @@ function store.put(dir: string, baseRevision: number?, nodes: json.Array, links:
 		root.revision = nextRevision
 		root.nodes = nodes
 		root.links = links
+		if stickers then
+			root.stickers = stickers
+		end
+		if stickerLoadout then
+			root.stickerLoadout = stickerLoadout
+		end
 		atomicWrite(store.filePath(dir), json.serialize(root, true))
 		return true, nextRevision
 	end)

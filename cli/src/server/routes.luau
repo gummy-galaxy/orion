@@ -131,8 +131,22 @@ function routes.create(
 					assert(base == json.null or type(base) == "number", "baseRevision must be a number or null")
 					local nodes = assert(json.asArray(change.nodes), "nodes must be an array")
 					local links = assert(json.asArray(change.links), "links must be an array")
-					local isSaved, revision =
-						store.put(dir, if base == json.null then nil else base :: number, nodes, links)
+					local stickersValue: json.Value? = change.stickers
+					local loadoutValue: json.Value? = change.stickerLoadout
+					local stickers = if stickersValue ~= nil
+						then assert(json.asArray(stickersValue), "stickers must be an array")
+						else nil
+					local stickerLoadout = if loadoutValue ~= nil
+						then assert(json.asArray(loadoutValue), "stickerLoadout must be an array")
+						else nil
+					local isSaved, revision = store.put(
+						dir,
+						if base == json.null then nil else base :: number,
+						nodes,
+						links,
+						stickers,
+						stickerLoadout
+					)
 					return reply(if isSaved then 200 else 409, json.object({ revision = revision or json.null }))
 				end
 				return reply(405, json.object({ error = "method not allowed" }))

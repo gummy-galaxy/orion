@@ -83,7 +83,8 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 
 ## Using the canvas
 
-- The toolbar at the bottom switches tools. Select (V) is the default: drag a box to select every card it covers at least a quarter of each way, and ⇧ adds to the selection. An open group is selected only when the box covers all of it. Middle-drag or hold Space and drag to pan. Pan (H) drags the canvas from anywhere, with ⌘-drag to select. Comment (C) drops a note where you click, then returns to Select. Esc also returns to Select.
+- The toolbar at the bottom switches tools. Select (V) is the default: drag a box to select everything it touches, and ⇧ adds to the selection. An open group is selected only when the box covers all of it. Middle-drag or hold Space and drag to pan. Pan (H) drags the canvas from anywhere, with ⌘-drag to select. Comment (C) drops a note where you click, then returns to Select. Esc also returns to Select.
+- Hold S to open the sticker wheel, point at one, and let go; a quick tap or the toolbar button leaves it open for clicking, and 1–8 pick by number. With it open, type or paste any emoji to stamp that instead, and right-click a slot, or click an empty one, to put a different emoji there. Each canvas keeps its own wheel. Then click to stamp it as many times as you like. Stickers stamped on a card or group move with it. In Select, drag a sticker to move it or flick it to send it sliding; stickers bounce off each other and stay inside their group's walls. Keep pulling past a wall to pop one out of a group, or into another. Right-click a sticker to remove it.
 - Scroll to pan; pinch or ⌘-scroll to zoom. ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
@@ -92,10 +93,11 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
 - Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
 - Zoom in while pointing at a group to enter it when it fills most of the canvas.
-- An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to jump to it.
+- An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
 - Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
-- Hover a card to trace what it needs (amber) and what it unlocks (teal). Double-click a card to hold its trace while you pan; click anywhere or press Esc to let it go.
+- Hover a card to trace what it needs (amber) and what it unlocks (teal).
+- Double-click a card to focus on it. The canvas zooms onto it with its details above, what it waits on in a scrolling column on the left, and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. ⌘ or ⇧ click adds to the selection.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks.
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
@@ -104,7 +106,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 
 Reset to seed restores the snapshot.
 
-Dashed cards are pull requests that aren't opened yet. Select a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
+Dashed cards are pull requests that aren't opened yet. Click a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
 The toolbar shows when GitHub was last synced, or a sync error; click the status to force a sync. Linked cards show a checks dot (green passing, red failing, amber pending) and changed line count. The inspector shows checks, additions and deletions, update time, author, and review requests. An unlinked work item may show possible pull requests in its inspector; use **Link** to attach one to the card.
 
 ## Layout of the code
@@ -117,7 +119,8 @@ In `app/`:
 - `src/layout.ts`: ELK layout for one group or the top level.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
-- `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, notes, and the inspector.
+- `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
+- `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
 - `src/seed.json` and `src/seed.ts`: the Flipbook snapshot and its loader.
 
