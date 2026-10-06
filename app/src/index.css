@@ -265,12 +265,12 @@ select {
 .st-blocked,
 .st-done,
 .st-deferred {
-  --fade: 0.55;
+  --fade: 0.75;
 }
 .card:is(.st-blocked, .st-done, .st-deferred) {
   background: var(--bg);
   color: var(--muted);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 45%, var(--bg));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 65%, var(--bg));
 }
 .react-flow__node-task.selected {
   border-radius: 7px;
