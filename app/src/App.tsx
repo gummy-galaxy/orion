@@ -13,6 +13,7 @@ import {
   applyNodeChanges,
   useReactFlow,
   useStore,
+  ViewportPortal,
   type Connection,
   type Edge,
   type NodeChange,
@@ -24,6 +25,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
 import { reflow, reflowAll } from './layout'
+import { settleDrop, snapDrag, snapGuides, type Guide } from './snap'
 import {
   STATUS_LABEL,
   TASK_H,
@@ -99,6 +101,11 @@ const PEEK_SPAN = 0.8
 const PEEK_KEEP_VISIBLE = 0.4
 const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
+/** How close on screen an edge or spacing has to come before a drag holds to it. */
+const SNAP_PX = 8
+/** A drop moving at least this fast (screen pixels per millisecond) was thrown. */
+const THROW_SPEED = 0.8
+const THROW_WINDOW_MS = 90
 
 type Menu = {
   x: number
@@ -731,12 +738,53 @@ function Canvas() {
     [work, trace, collapsed, zoom, attention],
   )
 
+  // ---- Dragging and snapping ----
+  const drag = useRef<{ ids: Set<string>; free: boolean; samples: { x: number; y: number; t: number }[] } | null>(null)
+
   const onNodesChange = useCallback(
-    (changes: NodeChange<ViewNode>[]) =>
-      setNodes((ns) => applyNodeChanges(changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[], ns)),
-    [],
+    (changes: NodeChange<ViewNode>[]) => {
+      const own = changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[]
+      // Read before queueing: the drop's final positions arrive just before the drag ends.
+      const session = drag.current
+      const moved = session && !session.free ? own.flatMap((c) => (c.type === 'position' && session.ids.has(c.id) ? [c.id] : [])) : []
+      const tolerance = SNAP_PX / rf.getZoom()
+      setNodes((ns) => {
+        const next = applyNodeChanges(own, ns)
+        return moved.length ? snapDrag(next, moved, tolerance) : next
+      })
+    },
+    [rf],
   )
-  const onDragStop = useCallback(() => setNodes((ns) => normalize(ns)), [])
+  const onDragStart = useCallback((event: MouseEvent | TouchEvent, dragged: ViewNode[]) => {
+    drag.current = { ids: new Set(dragged.map((n) => n.id)), free: event.ctrlKey, samples: [] }
+  }, [])
+  const onDrag = useCallback((event: MouseEvent | TouchEvent) => {
+    const session = drag.current
+    if (!session) return
+    session.free = event.ctrlKey
+    const point = 'touches' in event ? event.touches[0] : event
+    if (point) session.samples = [...session.samples.slice(-7), { x: point.clientX, y: point.clientY, t: performance.now() }]
+  }, [])
+  const onDragStop = useCallback(
+    (event: MouseEvent | TouchEvent) => {
+      const session = drag.current
+      drag.current = null
+      setNodes((ns) => normalize(ns))
+      if (!session || session.free || event.ctrlKey) return
+      const now = performance.now()
+      const recent = session.samples.filter((s) => now - s.t <= THROW_WINDOW_MS)
+      const a = recent[0]
+      const b = recent[recent.length - 1]
+      const thrown = !!a && b.t > a.t && Math.hypot(b.x - a.x, b.y - a.y) / (b.t - a.t) >= THROW_SPEED
+      const ids = [...session.ids]
+      requestAnimationFrame(() => {
+        const settled = settleDrop(latest.current.nodes, ids, thrown)
+        if (settled) tweenTo(normalize(settled))
+      })
+    },
+    [tweenTo],
+  )
+  const guides = useMemo(() => snapGuides(nodes), [nodes])
   const onConnect = useCallback((c: Connection) => {
     if (!c.source || !c.target || c.source === c.target) return
     setLinks((ls) =>
@@ -996,9 +1044,11 @@ function Canvas() {
                   else if (n.type === 'task' && isNote(n)) setEditing(n.id)
                   else if (n.type === 'task') setPinned(n.id)
                 }}
-                onNodeDragStart={(_, n) => {
+                onNodeDragStart={(e, n, ns) => {
                   if (peeking && !inFocus(n.id)) leaveRoot()
+                  onDragStart(e, ns)
                 }}
+                onNodeDrag={onDrag}
                 onPaneClick={() => setPinned(null)}
                 onEdgeClick={() => setPinned(null)}
                 onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
@@ -1024,6 +1074,11 @@ function Canvas() {
                 colorMode="system"
               >
                 <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
+                {guides.length > 0 && (
+                  <ViewportPortal>
+                    <SnapGuides guides={guides} zoom={zoom} />
+                  </ViewportPortal>
+                )}
                 <Controls showInteractive={false} />
                 <MiniMap
                   pannable
@@ -1153,7 +1208,7 @@ function Canvas() {
                     <>
                       Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
                       double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge
-                      to link{' '}
+                      to link · hold Ctrl while dragging to skip snapping{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>
@@ -1183,6 +1238,28 @@ function Canvas() {
         </div>
       </ActionsContext.Provider>
     </DerivedContext.Provider>
+  )
+}
+
+function SnapGuides({ guides, zoom }: { guides: Guide[]; zoom: number }) {
+  const tick = 4 / zoom
+  return (
+    <svg className="snap-guides">
+      {guides.map((g, i) => {
+        // Lines on the x axis stand upright; gaps on the x axis lie flat.
+        const flat = (g.kind === 'gap') === (g.axis === 'x')
+        const seg = (a: number, b: number, c: number, d: number) => (flat ? { x1: a, x2: b, y1: c, y2: d } : { x1: c, x2: d, y1: a, y2: b })
+        return g.kind === 'line' ? (
+          <line key={i} {...seg(g.from, g.to, g.at, g.at)} />
+        ) : (
+          <g key={i}>
+            <line {...seg(g.from, g.to, g.at, g.at)} />
+            <line {...seg(g.from, g.from, g.at - tick, g.at + tick)} />
+            <line {...seg(g.to, g.to, g.at - tick, g.at + tick)} />
+          </g>
+        )
+      })}
+    </svg>
   )
 }
 

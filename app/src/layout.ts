@@ -3,18 +3,21 @@ import { HEAD, PAD, byId, isCluster, ancestors, normalize, sizeOf, type AppNode,
 
 const elk = new ELK()
 
+/** Space between neighbors that layout leaves, inside groups and at the top level. */
+export const GAP = { inner: { x: 56, y: 24 }, top: { x: 120, y: 72 } }
+
 const INNER = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
-  'elk.spacing.nodeNode': '24',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '56',
+  'elk.spacing.nodeNode': String(GAP.inner.y),
+  'elk.layered.spacing.nodeNodeBetweenLayers': String(GAP.inner.x),
   'elk.spacing.componentComponent': '32',
 }
 
 const TOP = {
   ...INNER,
-  'elk.spacing.nodeNode': '72',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '120',
+  'elk.spacing.nodeNode': String(GAP.top.y),
+  'elk.layered.spacing.nodeNodeBetweenLayers': String(GAP.top.x),
   'elk.spacing.componentComponent': '96',
 }
 
