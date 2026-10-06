@@ -100,14 +100,10 @@ const PEEK_SPAN = 0.8
 const PEEK_KEEP_VISIBLE = 0.4
 const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
-/** A click on a node waits this long for a second one before it selects. */
+/** A click on a group waits this long for a second one before it selects. */
 const DOUBLE_CLICK_MS = 280
 const FOCUS_SIDE_W = 248
 const FOCUS_INSET = 20
-/** Share of the room between the focus columns that the focused card takes up. */
-const FOCUS_FILL = 0.6
-const FOCUS_MIN_ZOOM = 1
-const FOCUS_MAX_ZOOM = 1.2
 /** The focused card sits this far down the canvas, leaving room for its details above. */
 const FOCUS_CARD_Y = 0.7
 const FOCUS_BOTTOM_GAP = 24
@@ -159,14 +155,12 @@ function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { widt
   return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: box.height / 2 - (p.y + size.h / 2) * zoom, zoom }
 }
 
-/** Puts a card between the focus columns, as large as reads comfortably. */
+/** Puts a card at its true size between the focus columns, so its text matches theirs. */
 function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
   const p = absPos(card, map)
   const size = sizeOf(card)
-  const middle = box.width - 2 * (FOCUS_SIDE_W + FOCUS_INSET * 2)
-  const zoom = Math.min(FOCUS_MAX_ZOOM, Math.max(FOCUS_MIN_ZOOM, (middle * FOCUS_FILL) / size.w))
-  const centerY = Math.min(box.height * FOCUS_CARD_Y, box.height - FOCUS_BOTTOM_GAP - (size.h * zoom) / 2)
-  return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: centerY - (p.y + size.h / 2) * zoom, zoom }
+  const centerY = Math.min(box.height * FOCUS_CARD_Y, box.height - FOCUS_BOTTOM_GAP - size.h / 2)
+  return { x: box.width / 2 - (p.x + size.w / 2), y: centerY - (p.y + size.h / 2), zoom: 1 }
 }
 
 function Canvas() {
