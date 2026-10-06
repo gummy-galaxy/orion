@@ -1248,7 +1248,7 @@ kbd {
 
 /* Focus on one card */
 .react-flow__node {
-  transition: opacity 0.3s;
+  transition: opacity 0.18s;
 }
 .canvas.is-focus .react-flow__node.is-unfocused {
   opacity: 0;
@@ -1258,8 +1258,8 @@ kbd {
 .canvas .react-flow__edgelabel-renderer,
 .canvas .react-flow__panel {
   transition:
-    opacity 0.25s,
-    visibility 0.25s;
+    opacity 0.18s,
+    visibility 0.18s;
 }
 .canvas.is-focus .react-flow__edge,
 .canvas.is-focus .react-flow__edgelabel-renderer,
@@ -1461,7 +1461,7 @@ kbd {
   .focus-bar,
   .focus-details,
   .focus svg {
-    animation: focus-in 0.35s ease-out both;
+    animation: focus-in 0.2s ease-out both;
   }
 }
 @keyframes focus-in {

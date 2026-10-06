@@ -111,6 +111,8 @@ const FOCUS_MAX_ZOOM = 1.8
 /** The focused card sits this far down the canvas, leaving room for its details above. */
 const FOCUS_CARD_Y = 0.7
 const FOCUS_BOTTOM_GAP = 24
+/** Focus moves head straight for the card and start fast. */
+const FOCUS_MOVE = { duration: 260, ease: (t: number) => 1 - Math.pow(1 - t, 3), interpolate: 'linear' } as const
 
 type Menu = {
   x: number
@@ -826,7 +828,7 @@ function Canvas() {
       setHover(null)
       setNodes((ns) => (ns.some((x) => x.selected) ? ns.map((x) => (x.selected ? { ...x, selected: false } : x)) : ns))
       setFocus(id)
-      void rf.setViewport(focusViewport(n, m, box), { duration: 450 })
+      void rf.setViewport(focusViewport(n, m, box), FOCUS_MOVE)
     },
     [rf, focus, peeking, inFocus, inView, leaveRoot],
   )
@@ -839,13 +841,13 @@ function Canvas() {
     focusEntry.current = null
     if (!entry) return
     if (!entry.moved || !n) {
-      void rf.setViewport(entry.viewport, { duration: 450 })
+      void rf.setViewport(entry.viewport, FOCUS_MOVE)
       return
     }
     const p = absPos(n, m)
     const s = sizeOf(n)
     const zoom = (root ? fitZoom.current.get(root) : undefined) ?? entry.viewport.zoom
-    void rf.setCenter(p.x + s.w / 2, p.y + s.h / 2, { zoom, duration: 450 })
+    void rf.setCenter(p.x + s.w / 2, p.y + s.h / 2, { zoom, ...FOCUS_MOVE })
   }, [focus, root, rf])
 
   const focusItems = useMemo(() => {
