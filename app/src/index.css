@@ -1459,6 +1459,7 @@ kbd {
   }
   .focus-side,
   .focus-bar,
+  .focus-details,
   .focus svg {
     animation: focus-in 0.35s ease-out both;
   }
@@ -1470,4 +1471,12 @@ kbd {
 }
 .focus-arrow.still {
   fill: var(--edge);
+}
+.focus-details {
+  position: absolute;
+  translate: -50% -100%;
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
 }

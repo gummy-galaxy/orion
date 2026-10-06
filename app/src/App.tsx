@@ -108,6 +108,9 @@ const FOCUS_INSET = 20
 const FOCUS_FILL = 0.6
 const FOCUS_MIN_ZOOM = 1
 const FOCUS_MAX_ZOOM = 1.8
+/** The focused card sits this far down the canvas, leaving room for its details above. */
+const FOCUS_CARD_Y = 0.7
+const FOCUS_BOTTOM_GAP = 24
 
 type Menu = {
   x: number
@@ -154,13 +157,14 @@ function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { widt
   return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: box.height / 2 - (p.y + size.h / 2) * zoom, zoom }
 }
 
-/** Centers a card between the focus columns, as large as reads comfortably. */
+/** Puts a card between the focus columns, as large as reads comfortably. */
 function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
   const p = absPos(card, map)
   const size = sizeOf(card)
   const middle = box.width - 2 * (FOCUS_SIDE_W + FOCUS_INSET * 2)
   const zoom = Math.min(FOCUS_MAX_ZOOM, Math.max(FOCUS_MIN_ZOOM, (middle * FOCUS_FILL) / size.w))
-  return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: box.height / 2 - (p.y + size.h / 2) * zoom, zoom }
+  const centerY = Math.min(box.height * FOCUS_CARD_Y, box.height - FOCUS_BOTTOM_GAP - (size.h * zoom) / 2)
+  return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: centerY - (p.y + size.h / 2) * zoom, zoom }
 }
 
 function Canvas() {
@@ -205,8 +209,9 @@ function Canvas() {
     setRoot(target)
   }, [])
 
-  // Plain clicks on nodes hold their effects until a second click can't still be coming.
-  const clickDeferred = useRef(false)
+  // A plain click on a card focuses on it instead of selecting. One on a group holds its
+  // selection until a second click, which would open the group, can't still be coming.
+  const plainClick = useRef<'focus' | 'defer' | null>(null)
   const clickTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const clickQueue = useRef<(() => void)[]>([])
   const afterClick = useCallback((run: () => void) => {
@@ -224,11 +229,12 @@ function Canvas() {
   }, [])
   useEffect(() => cancelClick, [cancelClick])
   // Runs before React Flow's own click handling, which selects the node as it goes.
-  const deferNodeClick = (e: React.MouseEvent) => {
+  const claimNodeClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement
-    if (e.metaKey || e.shiftKey || e.ctrlKey || !target.closest('.react-flow__node') || target.closest('button, input, textarea, select')) return
-    clickDeferred.current = true
-    setTimeout(() => (clickDeferred.current = false))
+    const node = target.closest('.react-flow__node')
+    if (e.metaKey || e.shiftKey || e.ctrlKey || !node || target.closest('button, input, textarea, select')) return
+    plainClick.current = node.classList.contains('react-flow__node-cluster') ? 'defer' : 'focus'
+    setTimeout(() => (plainClick.current = null))
   }
   useEffect(() => {
     latest.current = { nodes, links }
@@ -786,10 +792,10 @@ function Canvas() {
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
       let own = changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[]
-      if (clickDeferred.current) {
+      if (plainClick.current) {
         const picks = own.filter((c) => c.type === 'select')
         own = own.filter((c) => c.type !== 'select')
-        if (picks.length) afterClick(() => setNodes((ns) => applyNodeChanges(picks, ns)))
+        if (picks.length && plainClick.current === 'defer') afterClick(() => setNodes((ns) => applyNodeChanges(picks, ns)))
       }
       if (own.length) setNodes((ns) => applyNodeChanges(own, ns))
     },
@@ -818,6 +824,7 @@ function Canvas() {
         focusEntry.current.moved = true
       }
       setHover(null)
+      setNodes((ns) => (ns.some((x) => x.selected) ? ns.map((x) => (x.selected ? { ...x, selected: false } : x)) : ns))
       setFocus(id)
       void rf.setViewport(focusViewport(n, m, box), { duration: 450 })
     },
@@ -1120,7 +1127,7 @@ function Canvas() {
             className={`canvas${attending ? ' is-attending' : ''}${focus ? ' is-focus' : ''}`}
             ref={canvasRef}
             onPointerMove={trackPointer}
-            onClickCapture={deferNodeClick}
+            onClickCapture={claimNodeClick}
           >
             {ready && (
               <ReactFlow<ViewNode, Edge>
@@ -1137,23 +1144,15 @@ function Canvas() {
                 onNodeMouseLeave={() => setHover(null)}
                 onNodeClick={(_, n) => {
                   if (focus) return
+                  if (plainClick.current === 'focus') return focusOn(n.type === 'ghost' ? n.data.taskId : n.id)
                   if (peeking && !inFocus(n.id)) leaveRoot()
-                  if (n.type !== 'ghost') return
-                  const taskId = n.data.taskId
-                  if (clickDeferred.current) afterClick(() => jumpTo(taskId))
-                  else jumpTo(taskId)
+                  if (n.type === 'ghost') jumpTo(n.data.taskId)
                 }}
                 onNodeDoubleClick={(_, n) => {
                   cancelClick()
-                  if (focus) return
-                  if (n.type === 'ghost') return focusOn(n.data.taskId)
-                  if (n.type === 'task' && !isNote(n)) return focusOn(n.id)
+                  if (focus || n.type !== 'cluster') return
                   if (peeking && !inFocus(n.id)) leaveRoot()
-                  if (n.type === 'cluster') actions.open(n.id)
-                  else if (n.type === 'task') {
-                    selectOnly(n.id)
-                    setEditing(n.id)
-                  }
+                  actions.open(n.id)
                 }}
                 onNodeDragStart={(_, n) => {
                   if (peeking && !inFocus(n.id)) leaveRoot()
@@ -1314,8 +1313,7 @@ function Canvas() {
                   {showHelp ? (
                     <>
                       Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
-                      double-click a group to open · double-click a card to focus on it · Esc to go up · N note · ⇧1 fit · drag from a card's edge to
-                      link{' '}
+                      double-click a group to open · click a card to focus on it · Esc to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>
@@ -1350,7 +1348,31 @@ function Canvas() {
                 outgoing={focusItems.outgoing}
                 onFocus={focusOn}
                 onExit={exitFocus}
-              />
+              >
+                {isNote(focused) ? (
+                  <NoteInspector
+                    node={focused}
+                    focus={false}
+                    doneEditing={() => setEditing(null)}
+                    update={updateData}
+                    remove={() => {
+                      exitFocus()
+                      deleteNote(focused.id)
+                    }}
+                  />
+                ) : (
+                  <TaskInspector
+                    node={focused}
+                    work={work}
+                    map={map}
+                    github={github}
+                    githubOwner={githubOwner}
+                    update={updateData}
+                    jumpTo={focusOn}
+                    connections={false}
+                  />
+                )}
+              </FocusView>
             )}
             {!ready && <div className="loading">Laying out…</div>}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
@@ -1418,6 +1440,7 @@ function TaskInspector({
   githubOwner,
   update,
   jumpTo,
+  connections = true,
 }: {
   node: AppNode
   work: ReturnType<typeof deriveWork>
@@ -1426,6 +1449,8 @@ function TaskInspector({
   githubOwner: string
   update: (id: string, patch: Partial<TaskData>) => void
   jumpTo: (id: string) => void
+  /** Lists what the card waits on and unblocks. */
+  connections?: boolean
 }) {
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
@@ -1570,10 +1595,14 @@ function TaskInspector({
         Shown as <b>{STATUS_LABEL[st]}</b>
         {lev > 0 && <> · unblocks {lev}</>}
       </p>
-      <span className="label-text">Waits on</span>
-      {list(work.preds.get(node.id) ?? [])}
-      <span className="label-text">Unblocks</span>
-      {list(work.succs.get(node.id) ?? [])}
+      {connections && (
+        <>
+          <span className="label-text">Waits on</span>
+          {list(work.preds.get(node.id) ?? [])}
+          <span className="label-text">Unblocks</span>
+          {list(work.succs.get(node.id) ?? [])}
+        </>
+      )}
     </div>
   )
 }

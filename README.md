@@ -45,11 +45,11 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
 - Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
 - Zoom in while pointing at a group to enter it when it fills most of the canvas.
-- An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to jump to it.
+- An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
 - Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
 - Hover a card to trace what it needs (amber) and what it unlocks (teal).
-- Double-click a card to focus on it. The canvas zooms onto it, with what it waits on in a scrolling column on the left and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. Clicks on cards wait a moment before selecting so a double-click doesn't open the inspector first.
+- Click a card to focus on it. The canvas zooms onto it with its details above, what it waits on in a scrolling column on the left, and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. ⌘ or ⇧ click still selects.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks.
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
@@ -58,7 +58,7 @@ Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 
 Reset to seed restores the snapshot.
 
-Dashed cards are pull requests that aren't opened yet. Select a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
+Dashed cards are pull requests that aren't opened yet. Click a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
 The toolbar shows when GitHub was last synced, or a sync error; click the status to force a sync. Linked cards show a checks dot (green passing, red failing, amber pending) and changed line count. The inspector shows checks, additions and deletions, update time, author, and review requests. An unlinked work item may show possible pull requests in its inspector; use **Link** to attach one to the card.
 
 ## Layout of the code
