@@ -9,7 +9,6 @@ import {
   Position,
   ReactFlow,
   ReactFlowProvider,
-  SelectionMode,
   applyNodeChanges,
   useReactFlow,
   useStore,
@@ -76,6 +75,7 @@ import {
 } from './persist'
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
+import { Toolbar, type Tool } from './Toolbar'
 
 type ViewNode = AppNode | GhostNode
 
@@ -94,6 +94,8 @@ const GHOST_GAP = 90
 const GHOST_PEEK = 0.4
 const FIT_MARGIN_Y = 90
 const FIT_MAX_ZOOM = 1.25
+/** How far across a card, on each side, the selection box has to reach to pick it up. */
+const MARQUEE_REACH = 0.25
 /**
  * Leaving a group means zooming out to this share of its opening zoom. Bigger groups
  * get zoomed out more just to look around, so they need more: about 0.64 for 9 items.
@@ -210,6 +212,7 @@ function Canvas() {
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [menu, setMenu] = useState<Menu | null>(null)
+  const [tool, setTool] = useState<Tool>('select')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef({ nodes, links })
@@ -864,6 +867,75 @@ function Canvas() {
     }
   }, [])
 
+  // ---- Selection box ----
+  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+
+  /**
+   * Drags a selection box from empty canvas. Anything it touches is selected, but an open
+   * group needs to be fully inside, since you drag across its body to reach what's in it.
+   * ⇧ or ⌘ adds to the selection, and ⌘ draws the box in Pan too.
+   */
+  const startMarquee = (e: React.PointerEvent) => {
+    const target = e.target as HTMLElement
+    const box = canvasRef.current?.getBoundingClientRect()
+    if (e.button !== 0 || !box || !target.classList.contains('react-flow__pane')) return
+    // In Select, a draggable pane means Space is held to pan.
+    if (tool === 'select' ? target.classList.contains('draggable') : !(tool === 'hand' && e.metaKey)) return
+    // Keeps the drag from also panning in Pan.
+    e.preventDefault()
+    const start = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+    const base = e.shiftKey || e.metaKey ? nodes.filter((n) => n.selected).map((n) => n.id) : []
+    const things = nodes
+      .filter((n) => n.id !== root && !view.hidden.has(n.id) && inView(n.id))
+      .map((n) => {
+        const p = absPos(n, map)
+        const s = sizeOf(n)
+        return { id: n.id, x0: p.x, y0: p.y, x1: p.x + s.w, y1: p.y + s.h, whole: isCluster(n) && !collapsed.has(n.id) }
+      })
+    let moved = false
+    let last = ''
+    const move = (ev: PointerEvent) => {
+      if (!moved && Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 3) return
+      moved = true
+      const end = rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY })
+      const [x0, x1] = [Math.min(start.x, end.x), Math.max(start.x, end.x)]
+      const [y0, y1] = [Math.min(start.y, end.y), Math.max(start.y, end.y)]
+      const from = rf.flowToScreenPosition(start)
+      setMarquee({
+        x: Math.min(from.x, ev.clientX) - box.left,
+        y: Math.min(from.y, ev.clientY) - box.top,
+        w: Math.abs(ev.clientX - from.x),
+        h: Math.abs(ev.clientY - from.y),
+      })
+      const covered = (t: (typeof things)[number]) => {
+        const w = Math.min(t.x1, x1) - Math.max(t.x0, x0)
+        const h = Math.min(t.y1, y1) - Math.max(t.y0, y0)
+        const need = t.whole ? 1 : MARQUEE_REACH
+        return w >= (t.x1 - t.x0) * need - 0.5 && h >= (t.y1 - t.y0) * need - 0.5
+      }
+      const hit = things.filter(covered).map((t) => t.id)
+      const key = hit.join(',')
+      if (key === last) return
+      last = key
+      const want = new Set([...base, ...hit])
+      setNodes((ns) => ns.map((n) => (!!n.selected === want.has(n.id) ? n : { ...n, selected: want.has(n.id) })))
+    }
+    const end = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+      setMarquee(null)
+      if (!moved) return
+      // The click that ends a drag would otherwise clear the selection.
+      const swallow = (ev: MouseEvent) => ev.stopPropagation()
+      window.addEventListener('click', swallow, { capture: true, once: true })
+      setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+  }
+
   const trackPointer = (e: React.PointerEvent) => {
     const r = canvasRef.current?.getBoundingClientRect()
     if (!r) return
@@ -1011,6 +1083,29 @@ function Canvas() {
     return { x: c.x - TASK_W / 2, y: c.y - TASK_H / 2 }
   }, [rf])
 
+  /** Drops a note centered on a click, inside the innermost open group under it. */
+  const placeComment = useCallback(
+    (e: React.MouseEvent) => {
+      const point = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      let parent = levelRoot
+      let depth = -1
+      for (const n of nodes) {
+        if (!isCluster(n) || view.hidden.has(n.id) || collapsed.has(n.id) || !inView(n.id)) continue
+        const p = absPos(n, map)
+        const s = sizeOf(n)
+        const d = ancestors(n.id, map).length
+        if (point.x >= p.x && point.x <= p.x + s.w && point.y >= p.y && point.y <= p.y + s.h && d > depth) {
+          parent = n.id
+          depth = d
+        }
+      }
+      if (peeking && !(parent && inFocus(parent))) leaveRoot()
+      addNote({ x: point.x - TASK_W / 2, y: point.y - TASK_H / 2 }, { parent })
+      setTool('select')
+    },
+    [rf, nodes, map, view, collapsed, inView, levelRoot, peeking, inFocus, leaveRoot, addNote],
+  )
+
   const insertNoteOnLink = (linkId: string) => {
     const l = links.find((x) => x.id === linkId)
     const a = l && map.get(l.from)
@@ -1134,7 +1229,8 @@ function Canvas() {
       } else if (e.key === 'Enter' && selected.length === 1 && isCluster(selected[0])) {
         actions.open(selected[0].id)
       } else if (e.key === 'Escape') {
-        if (peeking) leaveRoot()
+        if (tool !== 'select') setTool('select')
+        else if (peeking) leaveRoot()
         else if (pinned) setPinned(null)
         else if (root) openRoot(map.get(root)?.parentId ?? null)
         else setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n)))
@@ -1147,7 +1243,7 @@ function Canvas() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot, paletteOpen])
+  }, [doGroup, doUngroup, selected, actions, root, peeking, map, fitTo, addNote, viewportCenter, pinned, leaveRoot, openRoot, tool, paletteOpen])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
@@ -1175,7 +1271,12 @@ function Canvas() {
               newWorkspace={newWorkspace}
             />
           )}
-          <div className={`canvas${attending ? ' is-attending' : ''}`} ref={canvasRef} onPointerMove={trackPointer}>
+          <div
+            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}`}
+            ref={canvasRef}
+            onPointerDown={startMarquee}
+            onPointerMove={trackPointer}
+          >
             {ready && (
               <ReactFlow<ViewNode, Edge>
                 fitView
@@ -1203,7 +1304,10 @@ function Canvas() {
                 onNodeDragStart={(_, n) => {
                   if (peeking && !inFocus(n.id)) leaveRoot()
                 }}
-                onPaneClick={() => setPinned(null)}
+                onPaneClick={(e) => {
+                  setPinned(null)
+                  if (tool === 'comment') placeComment(e)
+                }}
                 onEdgeClick={() => setPinned(null)}
                 onPaneContextMenu={(e) => openMenu(e, { kind: 'pane' })}
                 onNodeContextMenu={(e, n) => {
@@ -1213,12 +1317,14 @@ function Canvas() {
                 }}
                 onSelectionContextMenu={(e, ns) => openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })}
                 onEdgeContextMenu={(e, edge) => !edge.id.startsWith('agg:') && openMenu(e, { kind: 'edge', id: edge.id })}
-                panOnDrag={[0, 1]}
-                selectionKeyCode="Meta"
+                panOnDrag={tool === 'hand' ? [0, 1] : [1]}
+                selectionKeyCode={null}
                 selectionOnDrag={false}
+                nodesDraggable={tool !== 'hand'}
+                nodesConnectable={tool !== 'hand'}
                 panOnScroll
+                zoomOnScroll={false}
                 zoomOnPinch
-                selectionMode={SelectionMode.Full}
                 multiSelectionKeyCode={['Meta', 'Shift']}
                 deleteKeyCode={null}
                 zoomOnDoubleClick={false}
@@ -1226,6 +1332,12 @@ function Canvas() {
                 maxZoom={2}
                 colorMode="system"
               >
+                {marquee && (
+                  <div
+                    className="react-flow__selection marquee"
+                    style={{ transform: `translate(${marquee.x}px, ${marquee.y}px)`, width: marquee.w, height: marquee.h }}
+                  />
+                )}
                 <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
                 <Controls showInteractive={false} />
                 {mergeNotice !== null && (
@@ -1355,7 +1467,7 @@ function Canvas() {
                   </Panel>
                 )}
 
-                <Panel position="bottom-center" className="panel help">
+                <Panel position="bottom-center" className="dock">
                   {root && exitHint?.root === root && (
                     <div className="zoom-exit-hint">
                       <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
@@ -1364,20 +1476,23 @@ function Canvas() {
                       </div>
                     </div>
                   )}
-                  {showHelp ? (
-                    <>
-                      Drag or scroll to pan · pinch or ⌘-scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
-                      double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge
-                      to link{' '}
-                      <button type="button" className="link" onClick={() => setShowHelp(false)}>
-                        Hide
+                  <Toolbar tool={tool} setTool={setTool} />
+                  <div className="panel help">
+                    {showHelp ? (
+                      <>
+                        V select · H pan · C comment · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or ⌘-scroll to zoom · ⌘ or ⇧ click to add ·
+                        right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open · double-click a card to hold its trace · Esc
+                        to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                        <button type="button" className="link" onClick={() => setShowHelp(false)}>
+                          Hide
+                        </button>
+                      </>
+                    ) : (
+                      <button type="button" className="link" onClick={() => setShowHelp(true)}>
+                        Shortcuts
                       </button>
-                    </>
-                  ) : (
-                    <button type="button" className="link" onClick={() => setShowHelp(true)}>
-                      Shortcuts
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </Panel>
               </ReactFlow>
             )}
