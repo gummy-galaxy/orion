@@ -105,10 +105,10 @@ function backupCurrent(file: string) {
     .sort((a, b) => b.time.localeCompare(a.time) || b.name.localeCompare(a.name))
   for (const { name, time } of backups) {
     const day = time.slice(0, 8)
-    const inDailyRange = day >= dayCutoff && day <= current.slice(0, 8) && time <= current
+    const isInDailyRange = day >= dayCutoff && day <= current.slice(0, 8) && time <= current
     if (time >= hourCutoff && time <= current) {
-      if (inDailyRange) keptDays.add(day)
-    } else if (inDailyRange && !keptDays.has(day)) {
+      if (isInDailyRange) keptDays.add(day)
+    } else if (isInDailyRange && !keptDays.has(day)) {
       keptDays.add(day)
     } else {
       unlinkSync(join(folder, name))

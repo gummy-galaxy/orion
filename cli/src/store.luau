@@ -70,14 +70,14 @@ function store.pruneBackups(dir: string, now: number)
 	local keptDays: { [string]: boolean } = {}
 	for _, backup in store.backups(dir) do
 		local day = backup.time:sub(1, 8)
-		local inDailyRange = day >= dayCutoff and day <= today and backup.time <= current
+		local isInDailyRange = day >= dayCutoff and day <= today and backup.time <= current
 		if backup.time >= hourCutoff and backup.time <= current then
-			if inDailyRange then
+			if isInDailyRange then
 				keptDays[day] = true
 			end
 			continue
 		end
-		if inDailyRange and not keptDays[day] then
+		if isInDailyRange and not keptDays[day] then
 			keptDays[day] = true
 			continue
 		end
