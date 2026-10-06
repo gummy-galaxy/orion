@@ -10,6 +10,8 @@
   --accent-soft: #d8eeee;
   --edge: #9aa9b0;
   --edge-hot: #0d6f74;
+  /* Mixed from the theme's own edges, so every color mode gets it. */
+  --edge-held: color-mix(in srgb, var(--edge-hot) 40%, var(--edge));
   --st-todo: #5d6d75;
   --st-active: #1f62c9;
   --st-review: #a56300;
@@ -236,28 +238,47 @@ select {
 }
 .st-ready {
   --c: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-soft);
 }
 .st-active {
   --c: var(--st-active);
-  border-color: color-mix(in srgb, var(--st-active) 45%, var(--line));
 }
 .st-review {
   --c: var(--st-review);
 }
 .st-blocked {
   --c: var(--st-blocked);
-  --fade: 0.62;
 }
 .st-done {
   --c: var(--st-done);
+}
+/* Work that can move stands out; done, blocked, and parked work recede alike. */
+.card:is(.st-ready, .st-active, .st-review) {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 8%, var(--surface));
+  box-shadow:
+    inset 4px 0 0 var(--c),
+    var(--shadow);
+}
+.card.st-ready {
+  background: var(--accent-soft);
+}
+.st-blocked,
+.st-done,
+.st-deferred {
+  --fade: 0.55;
+}
+.card:is(.st-blocked, .st-done, .st-deferred) {
   background: var(--bg);
   color: var(--muted);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 45%, var(--bg));
+}
+.react-flow__node-task.selected {
+  border-radius: 7px;
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .react-flow__node-task.selected .card {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 2.5px solid var(--accent);
+  outline-offset: 3px;
 }
 .lev {
   position: absolute;
@@ -359,10 +380,14 @@ select {
   stroke-width: 1.3;
   transition: opacity 0.2s;
 }
-.react-flow__edge.e-live .react-flow__edge-path {
+.react-flow__edge.e-live .react-flow__edge-path,
+.react-flow__edge.e-held .react-flow__edge-path {
   stroke: var(--edge-hot);
   stroke-width: 1.7;
   stroke-dasharray: 5 5;
+}
+.react-flow__edge.e-held .react-flow__edge-path {
+  stroke: var(--edge-held);
 }
 .react-flow__edge.e-done .react-flow__edge-path {
   opacity: 0.75;
@@ -373,7 +398,8 @@ select {
   stroke-dasharray: 0.5 6;
   stroke-linecap: round;
 }
-.react-flow__edge.e-agg.e-live .react-flow__edge-path {
+.react-flow__edge.e-agg.e-live .react-flow__edge-path,
+.react-flow__edge.e-agg.e-held .react-flow__edge-path {
   stroke-dasharray: 12 9;
 }
 .react-flow__edge.tr-e-up .react-flow__edge-path {
@@ -420,12 +446,14 @@ select {
 @keyframes pulse {
   0% {
     box-shadow:
-      inset 3px 0 0 var(--c),
+      inset 4px 0 0 var(--c),
+      var(--shadow),
       0 0 0 0 color-mix(in srgb, var(--st-active) 45%, transparent);
   }
   100% {
     box-shadow:
-      inset 3px 0 0 var(--c),
+      inset 4px 0 0 var(--c),
+      var(--shadow),
       0 0 0 8px color-mix(in srgb, var(--st-active) 0%, transparent);
   }
 }
@@ -1182,8 +1210,6 @@ kbd {
 }
 .st-deferred {
   --c: var(--st-todo);
-  --fade: 0.5;
-  background: var(--bg);
 }
 .react-flow__minimap-node.mm-deferred {
   fill: var(--line) !important;
@@ -1448,7 +1474,6 @@ kbd {
 }
 .ghost.st-done {
   --c: var(--st-done);
-  --fade: 0.7;
 }
 .ghost .react-flow__handle {
   opacity: 0;
@@ -1724,10 +1749,14 @@ kbd {
     opacity 0.15s,
     stroke-width 0.15s;
 }
-.focus-line.live {
+.focus-line.live,
+.focus-line.held {
   stroke: var(--edge-hot);
   stroke-width: 1.8;
   stroke-dasharray: 5 5;
+}
+.focus-line.held {
+  stroke: var(--edge-held);
 }
 .focus-line.related {
   stroke: var(--muted);
@@ -1901,7 +1930,10 @@ kbd {
     opacity: 0;
   }
 }
-.focus-arrow.still {
+.focus-arrow.held {
+  fill: var(--edge-held);
+}
+.focus-arrow.done {
   fill: var(--edge);
 }
 .focus-details {

@@ -22,7 +22,17 @@ import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { Palette } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
-import { ActionsContext, DerivedContext, deriveWork, needsAttention, traceFrom, type AttentionMark, type Derived, type GroupStats } from './derive'
+import {
+  ActionsContext,
+  DerivedContext,
+  deriveWork,
+  needsAttention,
+  traceFrom,
+  type AttentionMark,
+  type Derived,
+  type Flow,
+  type GroupStats,
+} from './derive'
 import { FocusView, type FocusItem } from './focus'
 import { reflow, reflowAll } from './layout'
 import { mergeDocs } from './merge'
@@ -130,6 +140,9 @@ const STICKER_TILT = 14
 const STICKER_FRESH_MS = 700
 /** How far above the toolbar the sticker wheel opens. */
 const WHEEL_LIFT = 140
+const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held', done: '--edge' }
+/** A bundle of links reads as its most active member. */
+const FLOW_RANK: Record<Flow, number> = { done: 0, held: 1, live: 2 }
 
 type Menu = {
   x: number
@@ -893,18 +906,18 @@ function Canvas() {
 
   const edges = useMemo(() => {
     const out: Edge[] = []
-    const marker = (live: boolean) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: live ? 'var(--edge-hot)' : 'var(--edge)' })
-    const agg = new Map<string, { a: string; b: string; count: number; live: boolean }>()
+    const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
+    const agg = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
     for (const l of links) {
       let a = view.rep(l.from)
       let b = view.rep(l.to)
       if (root && !peeking && !a && b) a = `ghost:in:${l.from}`
       if (root && !peeking && a && !b && !a.startsWith('ghost:')) b = `ghost:out:${l.to}`
       if (!a || !b || a === b) continue
-      const live = l.kind === 'blocks' && work.status.get(l.from) !== 'done'
+      const flow = work.flow.get(l.from) ?? 'live'
       const direct = (a === l.from || a.startsWith('ghost:')) && (b === l.to || b.startsWith('ghost:'))
       if (direct) {
-        let cls = l.kind === 'related' ? 'e-rel' : live ? 'e-live' : 'e-done'
+        let cls = l.kind === 'related' ? 'e-rel' : `e-${flow}`
         if (trace) {
           const ra = trace.get(l.from)
           const rb = trace.get(l.to)
@@ -913,12 +926,12 @@ function Canvas() {
           cls += up ? ' tr-e-up' : down ? ' tr-e-down' : ' tr-e-dim'
         }
         if (peeking && !inFocus(a) && !inFocus(b)) cls += ' e-peek'
-        out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(live) : undefined })
+        out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(flow) : undefined })
       } else if (l.kind === 'blocks') {
         const k = a + '>' + b
-        const e = agg.get(k) ?? { a, b, count: 0, live: false }
+        const e = agg.get(k) ?? { a, b, count: 0, flow: 'done' }
         e.count++
-        e.live ||= live
+        if (FLOW_RANK[flow] > FLOW_RANK[e.flow]) e.flow = flow
         agg.set(k, e)
       }
     }
@@ -927,10 +940,10 @@ function Canvas() {
         id: 'agg:' + k,
         source: e.a,
         target: e.b,
-        className: 'e-agg ' + (e.live ? 'e-live' : 'e-done') + (peeking && !inFocus(e.a) && !inFocus(e.b) ? ' e-peek' : ''),
+        className: `e-agg e-${e.flow}` + (peeking && !inFocus(e.a) && !inFocus(e.b) ? ' e-peek' : ''),
         selectable: false,
         label: e.count > 1 ? `${e.count} links` : undefined,
-        markerEnd: marker(e.live),
+        markerEnd: marker(e.flow),
         style: { strokeWidth: Math.min(6, 1.5 + e.count * 0.8) },
       })
     }
@@ -1172,7 +1185,7 @@ function Canvas() {
         status,
         where: parent ? (parent.data as ClusterData).label : 'Loose work',
         related,
-        live: !related && status !== 'done',
+        flow: work.flow.get(id) ?? 'live',
       }
     }
     const incoming: FocusItem[] = []
@@ -1184,8 +1197,8 @@ function Canvas() {
       }
       if (l.from === focus && !outgoing.some((i) => i.id === l.to)) {
         const o = item(l.to, l.kind === 'related')
-        // A link stays live while its source is open, and here the source is the focused card.
-        if (o) outgoing.push({ ...o, live: !o.related && work.status.get(focus) !== 'done' })
+        // A link reads by its source, and here the source is the focused card.
+        if (o) outgoing.push({ ...o, flow: work.flow.get(focus) ?? 'live' })
       }
     }
     const settled = (i: FocusItem) => (i.status === 'done' || i.status === 'deferred' ? 1 : 0)
