@@ -4,4 +4,4 @@ export type Context = {
 	asJson: boolean,
 }
 
-return table.freeze({})
+return nil
