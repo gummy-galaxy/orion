@@ -1,10 +1,11 @@
 import { migrateNodes, type AppNode, type GithubSnapshot, type Link } from './model'
 import type { Loadout, Sticker } from './sticker'
+import { invoke, isTauri } from '@tauri-apps/api/core'
 
 /**
- * The canvas lives in orion.json, served by the dev server so the CLI and the
- * app share one copy. Without that server (a static build), it falls back to
- * this browser's storage.
+ * The canvas lives in orion.json. The browser uses the dev server, and Tauri
+ * uses native commands that take the same lock as the CLI. A static browser
+ * build falls back to browser storage.
  */
 
 export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
@@ -20,8 +21,36 @@ const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:workspace'
 const WORKSPACES_EVENT = 'orion:workspaces'
+const NATIVE_POLL_MS = 1000
+
+function pollNative<T>(read: () => Promise<T>, changed: (value: T) => void) {
+  let previous: string | undefined
+  let reading = false
+  let stopped = false
+  const check = async () => {
+    if (reading || stopped) return
+    reading = true
+    try {
+      const value = await read()
+      const key = JSON.stringify(value)
+      if (previous !== undefined && previous !== key) changed(value)
+      previous = key
+    } catch (error) {
+      console.warn('[orion] native canvas poll failed', error)
+    } finally {
+      reading = false
+    }
+  }
+  void check()
+  const timer = setInterval(() => void check(), NATIVE_POLL_MS)
+  return () => {
+    stopped = true
+    clearInterval(timer)
+  }
+}
 
 export async function getWorkspaces(): Promise<Workspaces> {
+  if (isTauri()) return invoke<Workspaces>('orion_workspaces')
   try {
     const response = await fetch('/api/workspaces')
     if (response.ok) return (await response.json()) as Workspaces
@@ -38,10 +67,13 @@ async function workspaceRequest(url: string, value: object): Promise<Workspaces>
   return result as Workspaces
 }
 
-export const setActiveWorkspace = (name: string) => workspaceRequest('/api/workspaces/active', { name })
-export const createWorkspace = (name: string, label: string) => workspaceRequest('/api/workspaces', { name, label })
+export const setActiveWorkspace = (name: string) =>
+  isTauri() ? invoke<Workspaces>('orion_set_active_workspace', { name }) : workspaceRequest('/api/workspaces/active', { name })
+export const createWorkspace = (name: string, label: string) =>
+  isTauri() ? invoke<Workspaces>('orion_create_workspace', { name, label }) : workspaceRequest('/api/workspaces', { name, label })
 
 export function onWorkspaceChange(callback: (active: string) => void) {
+  if (isTauri()) return pollNative(() => getWorkspaces().then((list) => list.active), callback)
   const hot = import.meta.hot
   if (!hot) return () => {}
   const listener = (data: { active: string }) => callback(data.active)
@@ -51,6 +83,7 @@ export function onWorkspaceChange(callback: (active: string) => void) {
 
 /** Calls back when the workspace list changes on disk, such as a workspace the CLI created. */
 export function onWorkspaceListChange(callback: (list: Workspaces) => void) {
+  if (isTauri()) return pollNative(getWorkspaces, callback)
   const hot = import.meta.hot
   if (!hot) return () => {}
   hot.on(WORKSPACES_EVENT, callback)
@@ -58,6 +91,7 @@ export function onWorkspaceListChange(callback: (list: Workspaces) => void) {
 }
 
 export async function getSyncStatus(): Promise<SyncStatus | null> {
+  if (isTauri()) return { state: 'unavailable', message: 'Automatic sync is not available in the desktop app' }
   try {
     const response = await fetch('/api/sync')
     return response.ok ? ((await response.json()) as SyncStatus) : null
@@ -67,6 +101,7 @@ export async function getSyncStatus(): Promise<SyncStatus | null> {
 }
 
 export async function requestSync(force = false): Promise<SyncStatus | null> {
+  if (isTauri()) return getSyncStatus()
   try {
     const response = await fetch(force ? '/api/sync?force=1' : '/api/sync', { method: 'POST' })
     return response.ok ? ((await response.json()) as SyncStatus) : null
@@ -123,6 +158,12 @@ function writeBrowser({ nodes, links, stickers, stickerLoadout }: Saved) {
 }
 
 export async function load(workspace = 'default'): Promise<Loaded> {
+  if (isTauri()) {
+    const doc = await invoke<Remote | null>('orion_load', { workspace })
+    if (!doc) return { source: 'missing', workspace }
+    if (!isSaved(doc) || typeof doc.revision !== 'number') throw new Error('Invalid Orion canvas data')
+    return { source: 'file', doc: { ...doc, nodes: migrateNodes(doc.nodes) } }
+  }
   try {
     const res = await fetch(API)
     if (res.status === 404) {
@@ -151,6 +192,18 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
     writeBrowser(saved)
     return { ok: true, revision: 0 }
   }
+  if (isTauri()) {
+    try {
+      return await invoke<SaveResult>('orion_save', {
+        workspace,
+        baseRevision,
+        saved: { nodes: slim(saved.nodes), links: saved.links, stickers: saved.stickers, stickerLoadout: saved.stickerLoadout },
+      })
+    } catch (error) {
+      console.error('[orion] native canvas save failed', error)
+      return { ok: false, conflict: false }
+    }
+  }
   try {
     const res = await fetch(API, {
       method: 'PUT',
@@ -172,6 +225,13 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
 
 /** Calls back when another writer (the CLI, an agent, another window) changes the file. */
 export function onRemoteChange(callback: (revision: number) => void) {
+  if (isTauri())
+    return pollNative(
+      () => invoke<number | null>('orion_revision'),
+      (revision) => {
+        if (revision !== null) callback(revision)
+      },
+    )
   const hot = import.meta.hot
   if (!hot) return () => {}
   const listener = (data: { revision: number }) => callback(data.revision)

@@ -42,7 +42,7 @@ npm install
 npm run dev
 ```
 
-The development window uses the app's Vite server on port 5199, including its data endpoint and automatic sync. `npm run build` packages the canvas without that server. The packaged app currently saves to browser storage; it does not use `orion.json` or run automatic sync.
+The development window uses the app's Vite server on port 5199, including its data endpoint and automatic sync. `npm run build` packages the canvas with a native file bridge: the app and CLI read and write the same `orion.json` and workspace manifest under `~/Library/Application Support/Orion` (or `ORION_DATA_DIR`). The packaged app detects CLI edits while open. Automatic GitHub sync is available in the development window; use the CLI to sync the packaged app's canvas.
 
 ## Build the CLI
 
