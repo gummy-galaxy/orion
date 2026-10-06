@@ -497,7 +497,8 @@ function Canvas() {
       const wasZoom = previousZoom.current
       previousZoom.current = viewport.zoom
       if (!event || fitting.current) return
-      const userZoom = event.type === 'wheel' || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
+      const userZoom =
+        (event.type === 'wheel' && viewport.zoom !== wasZoom) || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
       if (peeking && !userZoom) {
         const group = map.get(root)
         const box = canvasRef.current?.getBoundingClientRect()
@@ -1104,8 +1105,7 @@ function Canvas() {
                 panOnDrag={[0, 1]}
                 selectionKeyCode="Meta"
                 selectionOnDrag={false}
-                panOnScroll={false}
-                zoomOnScroll
+                panOnScroll
                 zoomOnPinch
                 selectionMode={SelectionMode.Full}
                 multiSelectionKeyCode={['Meta', 'Shift']}
@@ -1246,7 +1246,7 @@ function Canvas() {
                   )}
                   {showHelp ? (
                     <>
-                      Drag to pan · scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
+                      Drag or scroll to pan · pinch or ⌘-scroll to zoom · ⌘-drag to select · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup ·
                       double-click a group to open · double-click a card to hold its trace · Esc to go up · N note · ⇧1 fit · drag from a card's edge
                       to link{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>

@@ -81,7 +81,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 
 ## Using the canvas
 
-- Drag to pan, scroll to zoom. ⌘-drag selects; ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
+- Drag or scroll to pan; pinch or ⌘-scroll to zoom. ⌘-drag selects; ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result.
