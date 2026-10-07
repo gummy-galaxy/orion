@@ -40,11 +40,13 @@ test.case("sync writes GitHub state through the command runner", function(assert
 		elseif argv[5]:find("search(", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
+
 		return testing.result(
 			true,
 			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health to PostHog","url":"u","state":"MERGED","isDraft":false,"reviewDecision":null,"reviewRequests":{"totalCount":0},"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"SUCCESS"}}}]}}}}}]]
 		)
 	end)
+
 	assert.strContains(text, "ci: active → done")
 	local item = store.load(dir).nodes[2]
 	assert.eq(item.data.status, "done")
@@ -63,11 +65,13 @@ test.case("sync --dry-run leaves the data alone", function(assert)
 		elseif argv[5]:find("search(", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
+
 		return testing.result(
 			true,
 			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,"reviewRequests":{"totalCount":0}}}}}]]
 		)
 	end)
+
 	assert.eq(store.load(dir).revision, 0)
 end)
 
@@ -87,6 +91,7 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 			},
 		})
 	end)
+
 	assert.strContains(run({ "matches" }), "flipbook#670")
 	assert.strContains(run({ "matches" }), "pub")
 	local values = json.asArray(json.deserialize(run({ "matches", "--json" })) :: json.Value)
@@ -107,8 +112,10 @@ test.case("sync creates review requests and unplaced authored pulls", function(a
 				[[{"data":{"search":{"nodes":[{"number":4,"title":"Review the release","url":"u4","state":"OPEN","isDraft":false,"author":{"login":"colleague"},"updatedAt":"2026-10-04T17:00:00Z","additions":3,"deletions":2,"reviewRequests":{"totalCount":1,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"repository":{"name":"storyteller","owner":{"login":"flipbook-labs"}}}]}}}]]
 			)
 		end
+
 		return testing.result(true, [[{"data":{"p1":{"pullRequest":null}}}]])
 	end)
+
 	assert.strContains(output, "Review requests")
 	local doc = store.load(dir)
 	assert.eq(doc.nodes[5].parentId, "reviews")

@@ -40,6 +40,7 @@ function sync.create(
 		if name == workspace then
 			return
 		end
+
 		workspace = name
 		generation += 1
 		lastFinished = 0
@@ -50,6 +51,7 @@ function sync.create(
 		if isRunning or (not isForced and lastFinished > 0 and now() - lastFinished < THROTTLE_SECONDS) then
 			return status
 		end
+
 		local started = generation
 		local target = workspace
 		isRunning = true
@@ -64,7 +66,9 @@ function sync.create(
 				github.apply(doc, fetched, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
 			end)
 		end)
+
 		local finishedAt = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+
 		if started == generation then
 			if didSucceed then
 				setStatus(json.object({ state = "idle", lastRun = finishedAt }))
@@ -72,14 +76,18 @@ function sync.create(
 				local message = tostring(failure):match("([^\r\n]+)$") or tostring(failure)
 				setStatus(json.object({ state = "error", lastRun = finishedAt, message = message }))
 			end
+
 			lastFinished = now()
 		end
+
 		isRunning = false
+
 		if started ~= generation then
 			task.defer(function()
 				loop.run(true)
 			end)
 		end
+
 		return status
 	end
 

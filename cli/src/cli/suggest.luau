@@ -15,6 +15,7 @@ return table.freeze({
 		parser:add("dry-run", "flag", { help = "Show suggestions without writing" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
+
 	run = function(parser: batteriesCli.Parser, options: Context)
 		local current = store.load(options.dir)
 		local settings = if current.raw then json.asObject(current.raw.settings) else nil
@@ -27,23 +28,29 @@ return table.freeze({
 				suggest.save(doc, result)
 			end)
 		end
+
 		if options.asJson then
 			local value = suggest.convertToJson(result)
+
 			if didFallback then
 				value.warning = "Agent unavailable or returned no valid groups; kept heuristic suggestions."
 			end
+
 			options.write(json.serialize(value, true))
 		else
 			local lines = { `{#result.groups} group suggestions{if parser:has("dry-run") then " (dry run)" else ""}:` }
+
 			for _, group in result.groups do
 				table.insert(
 					lines,
 					`  {group.id}  {group.title}  [{table.concat(group.members, ", ")}] — {group.reason}`
 				)
 			end
+
 			if didFallback then
 				table.insert(lines, "Agent unavailable or returned no valid groups; kept heuristic suggestions.")
 			end
+
 			options.write(table.concat(lines, "\n"))
 		end
 	end,

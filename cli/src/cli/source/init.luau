@@ -20,6 +20,7 @@ return table.freeze({
 			COMMANDS[name].define(sub)
 		end
 	end,
+
 	run = function(parser: batteriesCli.Parser, options: Context)
 		local name, sub = parser:selected()
 		assert(name and sub, "choose list, add, or remove")

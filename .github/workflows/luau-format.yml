@@ -1,0 +1,25 @@
+name: Luau formatting
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  stylua:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Luau tools with Rokit
+        uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
+        with:
+          version: 1.2.0
+          path: cli
+
+      - name: Check Luau formatting
+        working-directory: cli
+        run: stylua --check src cli.luau .lute project.luau loom.config.luau

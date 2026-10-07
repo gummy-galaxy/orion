@@ -19,28 +19,36 @@ return table.freeze({
 		parser:add("browse", "option", { help = "Jira browse URL" })
 		parser:add("id", "option", { help = "Source id" })
 	end,
+
 	run = function(parser: batteriesCli.Parser, options: Context)
 		local kind = assert(parser:get("kind"), "source add needs a kind")
 		local values: { [string]: { string } } = {}
+
 		for _, key in { "host", "command", "browse", "id" } do
 			local value = parser:get(key)
+
 			if value ~= nil then
 				values[key] = { value }
 			end
 		end
+
 		for _, key in { "owners", "include", "exclude" } do
 			local value = parser:get(key)
+
 			if value ~= nil then
 				values[key] = parseCommaList(value)
 			end
 		end
+
 		local source = sources.createSource(kind, values)
 		store.transaction(options.dir, function(doc)
 			for _, existing in doc.settings.sources do
 				assert(existing.id ~= source.id, `source id "{source.id}" already exists`)
 			end
+
 			table.insert(doc.settings.sources, source)
 		end)
+
 		options.write(`Added source {source.id}`)
 	end,
 })
