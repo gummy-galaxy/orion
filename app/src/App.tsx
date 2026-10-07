@@ -21,7 +21,6 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { Lens } from './Lens'
 import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import {
@@ -1943,9 +1942,9 @@ function Canvas() {
                     {showHelp ? (
                       <>
                         V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
-                        ⌘-scroll to zoom · hold Space over a node to read it up close · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G
-                        ungroup · double-click a group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc
-                        to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                        ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
+                        double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a
+                        card's edge to link{' '}
                         <button type="button" className="link" onClick={() => setShowHelp(false)}>
                           Hide
                         </button>
@@ -1957,7 +1956,6 @@ function Canvas() {
                     )}
                   </div>
                 </Panel>
-                <Lens />
               </ReactFlow>
             )}
             {attending && cursor && (

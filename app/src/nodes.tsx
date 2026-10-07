@@ -1,9 +1,11 @@
 import { useContext, useState, type ReactNode } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext, type SourceRef } from './derive'
-import { STATUS_LABEL, WHO_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
 
-export function Lock() {
+const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
+
+function Lock() {
   return (
     <svg viewBox="0 0 10 12" width="8" height="10" aria-hidden="true" className="lock">
       <path d="M2.5 5V3.5a2.5 2.5 0 0 1 5 0V5" fill="none" stroke="currentColor" strokeWidth="1.4" />
@@ -12,7 +14,7 @@ export function Lock() {
   )
 }
 
-export function Ring({ done, total, size = 22 }: { done: number; total: number; size?: number }) {
+function Ring({ done, total, size = 22 }: { done: number; total: number; size?: number }) {
   const r = 8
   const c = 2 * Math.PI * r
   return (
@@ -23,7 +25,7 @@ export function Ring({ done, total, size = 22 }: { done: number; total: number; 
   )
 }
 
-export function Favicon({ domain }: { domain: string }) {
+function Favicon({ domain }: { domain: string }) {
   const [failed, setFailed] = useState(false)
   return (
     <span className="source-favicon">
