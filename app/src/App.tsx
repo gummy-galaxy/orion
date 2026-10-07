@@ -964,7 +964,7 @@ function Canvas() {
     .filter((n) => n.selected)
     .map((n) => n.id)
     .join(',')
-  /** Related links never block, so they show only for the cards being looked at. */
+  /** Related links never block, so they stay faint except around the cards being looked at. */
   const relatedFocus = useMemo(() => new Set([pinned, hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
 
   const edges = useMemo(() => {
@@ -972,7 +972,6 @@ function Canvas() {
     const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
     const agg = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
     for (const l of links) {
-      if (l.kind === 'related' && !relatedFocus.has(l.from) && !relatedFocus.has(l.to)) continue
       let a = view.rep(l.from)
       let b = view.rep(l.to)
       if (root && !peeking && !a && b) a = `ghost:in:${l.from}`
@@ -982,6 +981,7 @@ function Canvas() {
       const direct = (a === l.from || a.startsWith('ghost:')) && (b === l.to || b.startsWith('ghost:'))
       if (direct) {
         let cls = l.kind === 'related' ? 'e-rel' : `e-${flow}`
+        if (l.kind === 'related' && !relatedFocus.has(l.from) && !relatedFocus.has(l.to)) cls += ' e-rel-quiet'
         if (trace) {
           const ra = trace.get(l.from)
           const rb = trace.get(l.to)

@@ -102,7 +102,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
 - Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it (dark dots).
 - Double-click a card to focus on it. The canvas zooms onto it with its details above, what it waits on in a scrolling column on the left, and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. ⌘ or ⇧ click adds to the selection.
-- Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks; they show only while you hover, hold, or select one of their cards.
+- Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks; they stay faint until you hover, hold, or select one of their cards.
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
 - Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.

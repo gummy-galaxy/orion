@@ -519,6 +519,9 @@ select {
   stroke-dasharray: 0.5 5;
   stroke-linecap: round;
 }
+.react-flow__edge.e-rel-quiet .react-flow__edge-path {
+  opacity: 0.3;
+}
 .react-flow__edge.e-agg.e-live .react-flow__edge-path,
 .react-flow__edge.e-agg.e-held .react-flow__edge-path {
   stroke-dasharray: 12 9;
