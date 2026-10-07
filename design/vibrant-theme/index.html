@@ -456,10 +456,24 @@
   .buddy-star.trail svg { width: 21px; height: 34px; }
   .buddy .eyes { transform-box: fill-box; transform-origin: center; transition: transform 0.08s; }
   .buddy.blink .eyes { transform: scaleY(0.12); }
-  .buddy .eye .alt { display: none; }
-  .buddy.wink .eye.r .u, .buddy.happy .eye .u { display: none; }
-  .buddy.wink .eye.r .alt, .buddy.happy .eye .alt { display: block; }
+  /* One eye shape per mood: content U, happy ^, sparkly when excited, round when surprised, shut when asleep. */
+  .buddy .eye > * { display: none; }
+  .buddy .eye .u { display: block; }
+  .buddy:is(.happy, .excited, .surprised, .sleepy, .curious) .eye .u, .buddy.wink .eye.r .u { display: none; }
+  .buddy.happy .eye .caret, .buddy.wink .eye.r .caret, .buddy.excited .eye .spark, .buddy.surprised .eye .o,
+  .buddy.sleepy .eye .line, .buddy.curious .eye .dot { display: block; }
   .buddy.worried .eye .u { transform: scaleY(0.55); transform-box: fill-box; transform-origin: center; }
+  .buddy .eye .spark { transform-box: fill-box; transform-origin: center; animation: twinkle 0.5s ease-in-out infinite alternate; }
+  @keyframes twinkle { to { transform: scale(1.25) rotate(12deg); } }
+  .buddy-z { position: absolute; left: 0; top: 0; display: none; }
+  .buddy.sleepy .buddy-z { display: block; }
+  .buddy-z i {
+    position: absolute; font: 800 12px var(--font-display); font-style: normal; color: var(--muted); opacity: 0;
+    animation: snooze 2.4s ease-out infinite;
+  }
+  .buddy-z i:nth-child(2) { animation-delay: 0.8s; font-size: 10px; }
+  .buddy-z i:nth-child(3) { animation-delay: 1.6s; font-size: 9px; }
+  @keyframes snooze { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 0.9; } 100% { opacity: 0; transform: translate(14px, -26px); } }
   .buddy-hint {
     position: absolute; left: 0; top: 0; white-space: nowrap; display: flex; align-items: center; gap: 6px;
     padding: 5px 9px 5px 7px; border-radius: var(--r-sm); background: rgb(var(--deep-rgb) / 0.92); border: 1px solid var(--line-2);
@@ -576,6 +590,7 @@
   <div class="buddy-star trail" data-star="right"></div>
   <div class="buddy-star main" data-star="main"></div>
   <div class="buddy-hint" id="buddyHint"></div>
+  <div class="buddy-z" id="buddyZ"><i>z</i><i>z</i><i>z</i></div>
 </div>
 <div class="park" id="park"></div>
 
@@ -1056,8 +1071,14 @@ const STAR = (face) => {
   const pts = [[0, -Lv], [b, -b], [Lh, 0], [b, b], [0, Lv], [-b, b], [-Lh, 0], [-b, -b]]
   const eyes = face
     ? `<g class="eyes" fill="none" stroke="#1a1240" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
-        <g class="eye l"><path class="u" d="M-35 -16 C-35 6 -13 6 -13 -16"/><path class="alt" d="M-37 2 L-24 -12 L-11 2"/></g>
-        <g class="eye r"><path class="u" d="M13 -16 C13 6 35 6 35 -16"/><path class="alt" d="M11 2 L24 -12 L37 2"/></g>
+        ${[['l', -24], ['r', 24]].map(([side, x]) => `<g class="eye ${side}">
+          <path class="u" d="M${x - 11} -16 C${x - 11} 6 ${x + 11} 6 ${x + 11} -16"/>
+          <path class="caret" d="M${x - 13} 2 L${x} -12 L${x + 13} 2"/>
+          <path class="spark" fill="#1a1240" stroke="none" d="M${x} -24 L${x + 5} -10 L${x + 18} -5 L${x + 5} 0 L${x} 14 L${x - 5} 0 L${x - 18} -5 L${x - 5} -10 Z"/>
+          <circle class="o" cx="${x}" cy="-4" r="12"/>
+          <path class="line" d="M${x - 12} 0 L${x + 12} 0"/>
+          <circle class="dot" cx="${x + 5}" cy="-10" r="8" fill="#1a1240" stroke="none"/>
+        </g>`).join('')}
       </g>`
     : ''
   return `<svg viewBox="-110 -190 220 380"><path d="M${pts.map((p) => p.join(' ')).join(' L')} Z" fill="#fff"/><circle r="${r}" fill="#fff"/>${eyes}</svg>`
@@ -1087,8 +1108,8 @@ const ICONS = {
 }
 const HINTS = {
   you: { icon: 'you', text: 'Your move', mood: 'wink' },
-  ready: { icon: 'ready', text: 'Ready' },
-  review: { icon: 'review', text: 'Waiting on review' },
+  ready: { icon: 'ready', text: 'Ready', mood: 'excited' },
+  review: { icon: 'review', text: 'Waiting on review', mood: 'curious' },
   blocked: { icon: 'blocked', text: 'Blocked', mood: 'worried' },
   done: { icon: 'done', text: 'Shipped', mood: 'happy' },
   expected: { icon: 'expected', text: 'Not opened' },
@@ -1142,10 +1163,42 @@ let lastChoice = 0
 
 let mood = ''
 let pendingMood = ''
+let baseMood = ''
+let flashMood = { mood: '', until: 0 }
+let sleeping = false
+let lastActivity = performance.now()
+/** Show a mood for a moment, then fall back to the one that fits where it's perched. */
+function flash(m, ms) { flashMood = { mood: m, until: performance.now() + ms } }
+const moodNow = (now) => (sleeping ? 'sleepy' : now < flashMood.until ? flashMood.mood : baseMood)
+
+/** Arms: the side stars bob up and down out of step for a moment. */
+let wiggle = { start: 0, until: 0 }
+function wave(ms) { const now = performance.now(); wiggle = { start: now, until: now + ms } }
+function armLift(now) {
+  if (now >= wiggle.until) return 0
+  const t = (now - wiggle.start) / 1000, p = (now - wiggle.start) / (wiggle.until - wiggle.start)
+  return Math.sin(t * Math.PI * 2 * 4.5) * 10 * Math.sin(Math.PI * p)
+}
+
+for (const type of ['pointermove', 'wheel', 'keydown']) {
+  document.addEventListener(type, () => {
+    lastActivity = performance.now()
+    if (!sleeping) return
+    // Startled awake.
+    sleeping = false
+    flash('surprised', 700)
+    wave(600)
+  }, { passive: true })
+}
+$('.top .pill-btn.hot').addEventListener('click', () => { flash('excited', 1800); wave(1300) })
+;(function fidget() {
+  setTimeout(() => { if (!sleeping) wave(800); fidget() }, 8000 + Math.random() * 8000)
+})()
+
 function setFocus(el) {
   focusEl = el
   hintEl.classList.remove('on')
-  setMood('')
+  baseMood = ''
   if (!el) return
   const h = hintFor(el)
   if (!h) return
@@ -1194,14 +1247,20 @@ function step(now) {
   // Stiff springs need small steps to stay stable, so the frame is split into fixed 4ms substeps.
   const steps = Math.ceil(frameDt / 0.004)
   dt = frameDt / steps
+  if (!sleeping && now - lastActivity > 15000) { sleeping = true; hintEl.classList.remove('on') }
+  const lift = armLift(now)
+  const droop = mood === 'sleepy' || mood === 'worried' ? 1 : 0
   for (let i = 0; i < steps; i++) {
-    spring(m, parts.main, tx, ty + Math.sin(t * 2.2) * 3)
+    spring(m, parts.main, tx, ty + (sleeping ? Math.sin(t * 1.1) * 2 + 4 : Math.sin(t * 2.2) * 3))
     const bodySpeed = Math.hypot(m.vx, m.vy)
     const loose = Math.max(0, Math.min(1, (bodySpeed - 2600) / 2400))
     for (const name of ['left', 'right']) {
       const p = parts[name]
-      const phase = name === 'left' ? 0 : Math.PI
-      spring(state[name], p, m.x + p.off[0], m.y + p.off[1] + Math.sin(t * 2.6 + phase) * 4, p.zeta - loose * 0.5)
+      const side = name === 'left' ? -1 : 1
+      const bob = sleeping ? 0 : Math.sin(t * 2.6 + (side < 0 ? 0 : Math.PI)) * 4
+      const gx = m.x + p.off[0] - side * droop * 4
+      const gy = m.y + p.off[1] + bob + side * lift + droop * 10
+      spring(state[name], p, gx, gy, p.zeta - loose * 0.5)
     }
   }
   for (const [name, p] of Object.entries(parts)) {
@@ -1211,16 +1270,21 @@ function step(now) {
   }
   // The eyes look where the body is heading.
   const speed = Math.hypot(m.vx, m.vy)
+  if (speed > 3200 && !sleeping) flash('surprised', 250) // Whee.
+  const want = moodNow(now)
+  if (want !== mood) setMood(want)
   const lx = speed > 20 ? (m.vx / speed) * 6 : 0, ly = speed > 20 ? (m.vy / speed) * 5 : 0
   eyes.setAttribute('transform', `translate(${lx.toFixed(1)} ${ly.toFixed(1)})`)
   // Once perched, show the hint and the mood that goes with it.
   const still = speed < 30 && Math.hypot(tx - m.x, ty - m.y) < 10
   settled = still ? settled + dt : 0
-  if (focusEl && settled > 0.12 && !hintEl.classList.contains('on')) {
+  if (focusEl && !sleeping && settled > 0.12 && !hintEl.classList.contains('on')) {
     hintEl.classList.add('on')
-    setMood(pendingMood)
-    if (pendingMood === 'wink') setTimeout(() => mood === 'wink' && setMood(''), 900)
+    if (pendingMood === 'wink') { baseMood = ''; flash('wink', 900) }
+    else baseMood = pendingMood
+    if (pendingMood === 'excited') wave(900)
   }
+  $('#buddyZ').style.transform = `translate(${m.x + 14}px, ${m.y - 36}px)`
   // The bubble sits to the right of the body, or flips to the left near the edge of the view.
   const hw = hintEl.offsetWidth
   const hx = m.x + 50 + hw > innerWidth - 8 ? m.x - 50 - hw : m.x + 50
