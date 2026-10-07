@@ -21,7 +21,12 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	if not fs.exists(dir) then
 		fs.createDirectory(dir, { makeParents = true })
 	end
-
+	local function clearFocus()
+		for _, entry in store.getWorkspaces(root).workspaces do
+			store.clearFocus(store.getWorkspaceDir(root, entry.name))
+		end
+	end
+	clearFocus()
 	local hub = events.create()
 	local syncLoop = sync.create(root, workspace, function(status: json.Object)
 		hub.publish("orion:sync", status)
@@ -80,6 +85,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		close = function()
 			assert(monitor).close()
 			running.close()
+			clearFocus()
 		end,
 	}
 end

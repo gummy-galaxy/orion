@@ -4,23 +4,20 @@ local path = require("@std/path")
 local process = require("@std/process")
 local task = require("@std/task")
 
+local fileNames = require("@root/fileNames")
 local types = require("@root/types")
 
 type Doc = types.Doc
+type Focus = types.Focus
 type Item = types.Item
 type Link = types.Link
 type Source = types.Source
 
--- All Orion writers use this lock and the same atomic write path.
-local FILE = "orion.json"
-local LOCK = "orion.lock"
-local BACKUPS = "backups"
 local DAY_SECONDS = 24 * 60 * 60
 local DAILY_DAYS = 30
 local LOCK_TIMEOUT_SECONDS = 5
 local STALE_LOCK_SECONDS = 30
 local DEFAULT_OWNER = "flipbook-labs"
-local WORKSPACES = "workspaces.json"
 
 export type Workspace = { name: string, label: string }
 export type WorkspaceList = { active: string, workspaces: { Workspace } }
@@ -52,7 +49,7 @@ function store.getWorkspaceDir(root: string, name: string): string
 end
 
 function store.getWorkspaces(root: string): WorkspaceList
-	local file = tostring(path.join(root, WORKSPACES))
+	local file = tostring(path.join(root, fileNames.workspaces))
 	local result: WorkspaceList = { active = "default", workspaces = { { name = "default", label = "Default" } } }
 
 	if not fs.exists(file) then
@@ -95,8 +92,7 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 	for _, workspace in list.workspaces do
 		table.insert(entries, json.object({ name = workspace.name, label = workspace.label }))
 	end
-
-	local file = tostring(path.join(root, WORKSPACES))
+	local file = tostring(path.join(root, fileNames.workspaces))
 	workspaceWriteSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{workspaceWriteSequence}`
 	fs.writeStringToFile(temporary, json.serialize(json.object({ active = list.active, workspaces = entries }), true))
@@ -157,7 +153,7 @@ function store.useWorkspace(root: string, name: string): WorkspaceList
 end
 
 function store.filePath(dir: string): string
-	return tostring(path.join(dir, FILE))
+	return tostring(path.join(dir, fileNames.document))
 end
 
 function store.getBackupName(revision: number, now: number): string
@@ -165,7 +161,7 @@ function store.getBackupName(revision: number, now: number): string
 end
 
 function store.getBackups(dir: string): { Backup }
-	local folder = path.join(dir, BACKUPS)
+	local folder = path.join(dir, fileNames.backups)
 	local found: { Backup } = {}
 
 	if not fs.exists(folder) then
@@ -391,6 +387,73 @@ function store.read(dir: string): Doc?
 	return store.decode(fs.readFileToString(file))
 end
 
+function store.decodeFocus(text: string): Focus
+	local root = json.asObject(json.deserialize(text) :: json.Value)
+	assert(root, "Orion focus must be a JSON object")
+	local selected: { string } = {}
+	for _, id in json.asArray(root.selected) or {} do
+		if type(id) == "string" then
+			table.insert(selected, id)
+		end
+	end
+	return { open = str(root.open), selected = selected, updatedAt = str(root.updatedAt) }
+end
+
+-- Nil when the app isn't open, or caught the file mid-replace.
+function store.readFocus(dir: string): Focus?
+	local file = path.join(dir, fileNames.focus)
+	if not fs.exists(file) then
+		return nil
+	end
+	local ok, focus = pcall(function()
+		return store.decodeFocus(fs.readFileToString(file))
+	end)
+	return if ok then focus else nil
+end
+
+function store.clearFocus(dir: string)
+	local file = tostring(path.join(dir, fileNames.focus))
+	if fs.exists(file) then
+		fs.remove(file)
+	end
+end
+
+local focusWriteSequence = 0
+
+function store.putFocus(dir: string, tab: string, open: string?, selected: json.Array?, isClosed: boolean?)
+	local file = tostring(path.join(dir, fileNames.focus))
+	if isClosed then
+		if fs.exists(file) then
+			local didRead, value = pcall(function()
+				return json.asObject(json.deserialize(fs.readFileToString(file)) :: json.Value)
+			end)
+			if didRead and value and value.tab == tab then
+				store.clearFocus(dir)
+			end
+		end
+		return
+	end
+	if not fs.exists(dir) then
+		fs.createDirectory(dir, { makeParents = true })
+	end
+	focusWriteSequence += 1
+	local temporary = `{file}.tmp.{process.pid()}.{focusWriteSequence}`
+	local value = json.object({
+		tab = tab,
+		open = open or json.null,
+		selected = selected or {},
+		updatedAt = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+	})
+	local didWrite, message = pcall(function()
+		fs.writeStringToFile(temporary, json.serialize(value, true))
+		fs.move(temporary, file)
+	end)
+	if not didWrite then
+		pcall(fs.remove, temporary)
+		error(message, 0)
+	end
+end
+
 -- Fails with a pointer to the app when there is nothing to work with yet.
 function store.load(dir: string): Doc
 	local doc = store.read(dir)
@@ -405,7 +468,7 @@ local function release(lockPath: string)
 end
 
 local function acquire(dir: string): string
-	local lockPath = tostring(path.join(dir, LOCK))
+	local lockPath = tostring(path.join(dir, fileNames.lock))
 	local ownerPath = path.join(lockPath, "owner")
 	local deadline = os.time() + LOCK_TIMEOUT_SECONDS
 
@@ -440,8 +503,7 @@ local function atomicWrite(file: string, contents: string)
 		if fs.exists(file) then
 			local now = os.time()
 			local dir = path.dirname(file)
-			local folder = path.join(dir, BACKUPS)
-
+			local folder = path.join(dir, fileNames.backups)
 			if not fs.exists(folder) then
 				fs.createDirectory(folder)
 			end

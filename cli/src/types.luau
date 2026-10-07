@@ -52,4 +52,11 @@ export type Doc = {
 	raw: json.Object?,
 }
 
+-- What the app has open and selected, as it last reported.
+export type Focus = {
+	open: string?,
+	selected: { string },
+	updatedAt: string?,
+}
+
 return {}

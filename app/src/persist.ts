@@ -31,7 +31,9 @@ function connectEvents() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
   const current = new WebSocket(`${protocol}//${location.host}/api/events`)
   socket = current
-  current.onopen = () => { retryDelay = 250 }
+  current.onopen = () => {
+    retryDelay = 250
+  }
   current.onmessage = (message) => {
     try {
       const event = JSON.parse(message.data) as { event: EventName; data: never }
@@ -198,6 +200,28 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
   } catch {
     return { ok: false, conflict: false }
   }
+}
+
+export type FocusReport = { open: string | null; selected: string[] }
+
+const FOCUS_API = '/api/focus'
+// Each page reports under its own id, so closing one page leaves another's focus alone.
+const TAB = crypto.randomUUID()
+
+/** Tells agents, through `orion focus`, what this page has open and selected. */
+export function reportFocus(report: FocusReport, workspace: string) {
+  void fetch(FOCUS_API, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ tab: TAB, workspace, ...report }),
+  }).catch(() => {
+    // No server is available to record this page.
+  })
+}
+
+/** Withdraws this page's focus as it goes away. */
+export function clearFocus(workspace: string) {
+  navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB, workspace, closed: true })], { type: 'application/json' }))
 }
 
 /** Calls back when another writer (the CLI, an agent, another window) changes the file. */

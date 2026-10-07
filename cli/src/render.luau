@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local graph = require("@root/graph")
+local pad = require("@root/render/pad")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -60,14 +61,6 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 	object.waitsOn = waitsOn
 	object.leadsTo = unblocks
 	return object
-end
-
-local function pad(text: string, width: number): string
-	if #text >= width then
-		return text:sub(1, width - 1) .. "…"
-	end
-
-	return text .. string.rep(" ", width - #text)
 end
 
 function render.table(doc: Doc, derived: graph.Derived, items: { Item }): string

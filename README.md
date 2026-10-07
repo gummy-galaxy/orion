@@ -21,6 +21,8 @@ Use `orion workspace list`, `orion workspace create <name> [--label <label>] [--
 
 Before replacing an existing data file, the CLI store copies it to `backups/orion-r<revision>-<UTC timestamp>.json` in that workspace's folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list the selected workspace's backups newest first, and `orion restore <revision>` to recover one in that workspace as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
 
+While the app is open, it reports its open group and selection to `orion serve`. The server writes `focus.json` in the active workspace's folder without changing the canvas revision; `orion focus` reads it. The report is cleared when its tab closes, the workspace changes, or the server stops.
+
 ## Run the app
 
 ```sh
@@ -115,7 +117,7 @@ The toolbar shows when GitHub was last synced, or a sync error; click the status
 In `app/`:
 
 - `vite.config.ts`: starts `orion serve` for development and proxies its API.
-- `src/persist.ts`: loading, saving, and reacting to changes from other writers.
+- `src/persist.ts`: loading, saving, reacting to changes from other writers, and reporting focus.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: ELK layout for one group or the top level.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
@@ -128,7 +130,8 @@ In `app/`:
 In `cli/src/`:
 
 - `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
-- `store.luau`: reading, locking, and writing the data file.
+- `cli/focus.luau`: reads and renders the app's reported open group and selection.
+- `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.
 - `server/`: HTTP routes, WebSocket events, file watching, and sync scheduling for `orion serve`.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
 - `github.luau`: looking up pull requests and mapping their state onto cards.

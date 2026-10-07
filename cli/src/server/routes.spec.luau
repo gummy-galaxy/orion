@@ -111,6 +111,82 @@ test.case("PUT saves stickers when present and preserves them when omitted", fun
 	assert.eq(#(json.asArray(cleared.stickerLoadout) or {}), 0)
 end)
 
+test.case("focus reports use the workspace and tab without changing the document", function(assert)
+	local root, router = createRouter("routes-focus")
+	store.write(root, testing.createDoc({}, {}))
+	store.createWorkspace(root, "other")
+	local other = store.getWorkspaceDir(root, "other")
+	local focusFile = tostring(path.join(root, "focus.json"))
+	assert.eq(
+		router.handle(
+			createRequest(
+				"POST",
+				"/api/focus",
+				json.object({ tab = "a", workspace = "missing", open = json.null, selected = {} })
+			)
+		).status,
+		404
+	)
+	assert.eq(
+		router.handle(
+			createRequest(
+				"POST",
+				"/api/focus",
+				json.object({ tab = "a", workspace = "other", open = json.null, selected = {} })
+			)
+		).status,
+		409
+	)
+	assert.eq(
+		router.handle(
+			createRequest(
+				"POST",
+				"/api/focus",
+				json.object({ tab = "a", workspace = "default", open = "group", selected = { "card" } })
+			)
+		).status,
+		200
+	)
+	local focus = json.asObject(json.deserialize(fs.readFileToString(focusFile)) :: json.Value)
+	if not focus then
+		error("missing focus report")
+	end
+	assert.eq(focus.tab, "a")
+	assert.eq(focus.open, "group")
+	assert.eq(#(json.asArray(focus.selected) or {}), 1)
+	assert.eq(type(focus.updatedAt), "string")
+	assert.eq(
+		router.handle(
+			createRequest("POST", "/api/focus", json.object({ tab = "b", workspace = "default", closed = true }))
+		).status,
+		200
+	)
+	assert.eq(fs.exists(focusFile), true)
+	assert.eq(
+		router.handle(
+			createRequest("POST", "/api/focus", json.object({ tab = "a", workspace = "default", closed = true }))
+		).status,
+		200
+	)
+	assert.eq(fs.exists(focusFile), false)
+	assert.eq(
+		router.handle(
+			createRequest(
+				"POST",
+				"/api/focus",
+				json.object({ tab = "a", workspace = "default", open = json.null, selected = {} })
+			)
+		).status,
+		200
+	)
+	router.switchTo("other")
+	assert.eq(fs.exists(focusFile), false)
+	assert.eq(fs.exists(path.join(other, "focus.json")), false)
+	local doc = store.read(root)
+	assert.eq(if doc then doc.revision else nil, 0)
+	assert.eq(#store.getBackups(root), 0)
+end)
+
 test.case("workspace routes create, list, and switch", function(assert)
 	local root, router = createRouter("routes-workspaces")
 	local created =

@@ -67,6 +67,7 @@ import {
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
   createWorkspace,
+  clearFocus,
   fetchRemote,
   fingerprint,
   getSyncStatus,
@@ -76,9 +77,11 @@ import {
   onSyncStatus,
   onWorkspaceChange,
   readBrowser,
+  reportFocus,
   requestSync,
   save,
   setActiveWorkspace,
+  type FocusReport,
   type Remote,
   type Saved,
   type SyncStatus,
@@ -534,6 +537,7 @@ function Canvas() {
   const changeWorkspace = useCallback(
     (name: string) => {
       if (name === workspace.current) return
+      clearFocus(workspace.current)
       workspace.current = name
       const epoch = ++workspaceEpoch.current
       pendingWorkspaceFit.current = epoch
@@ -1215,6 +1219,27 @@ function Canvas() {
   }, [])
 
   const selected = nodes.filter((n) => n.selected && !view.hidden.has(n.id))
+
+  // Reported again on focus so the page the person is using wins over other open pages.
+  const focusReportKey = JSON.stringify({ open: root, selected: selected.map((n) => n.id) } satisfies FocusReport)
+  useEffect(() => {
+    if (!ready) return
+    const workspaceName = workspace.current
+    const report = () => reportFocus(JSON.parse(focusReportKey) as FocusReport, workspaceName)
+    const t = setTimeout(report, 150)
+    window.addEventListener('focus', report)
+    window.addEventListener('pageshow', report)
+    return () => {
+      clearTimeout(t)
+      window.removeEventListener('focus', report)
+      window.removeEventListener('pageshow', report)
+    }
+  }, [focusReportKey, ready, workspaces.active])
+  useEffect(() => {
+    const close = () => clearFocus(workspace.current)
+    window.addEventListener('pagehide', close)
+    return () => window.removeEventListener('pagehide', close)
+  }, [])
 
   const doGroup = useCallback(() => {
     const visibleSel = nodes.map((n) => (n.selected && view.hidden.has(n.id) ? { ...n, selected: false } : n))

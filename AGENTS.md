@@ -15,6 +15,16 @@ Pass `--workspace <name>` to work in a specific workspace, or rely on the active
 
 `orion backups [--json]` lists saved revisions for the selected workspace. If a change was a mistake, `orion restore <revision>` restores the newest backup with that revision in the selected workspace as a new revision and backs up the current file first.
 
+## What the person is looking at
+
+The app reports its open group and selection to `orion serve`. `orion focus` shows that report for the selected workspace, including the open group's ancestors. Run it before answering a question about the canvas.
+
+- Read the question as being about the selection first, then the open group, then work linked to either. Widen to the whole canvas only when the question names something else or the focus doesn't fit it.
+- "This", "these", "here", and unnamed items most likely mean the selection, or the open group when nothing is selected.
+- `orion list --group <id>` and `orion show <id>` fill in the details for whatever is in focus.
+- Say which focus you assumed when it shaped the answer, so a wrong guess is easy to correct.
+- At the top level with nothing selected, or with the app closed, there's no focus to lean on.
+
 ## Changing it
 
 - `orion add <title> [--group <id>] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item.

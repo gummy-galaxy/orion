@@ -5,11 +5,13 @@ local process = require("@std/process")
 local backups = require("@root/cli/backups")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
+local focus = require("@root/cli/focus")
 local github = require("@root/github")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
+local renderGroup = require("@root/render/group")
 local restore = require("@root/cli/restore")
 local serve = require("@root/cli/serve")
 local source = require("@root/cli/source")
@@ -45,6 +47,7 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
+	focus = focus,
 	restore = restore,
 	serve = serve,
 	suggest = suggest,
@@ -81,7 +84,8 @@ Statuses: todo, active, review, blocked, deferred, done.
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
 Data lives in ~/Library/Application Support/Orion/orion.json; set ORION_DATA_DIR to change it.
-The Orion app talks to orion serve, which watches the data files.]]
+The Orion app talks to orion serve, which watches the data files.
+While the app is open, orion focus shows its open group and selection.]]
 
 local function addHelpFlag(parser: batteriesCli.Parser)
 	parser:add("help", "flag", { help = "Show this help", aliases = { "h" } })
@@ -138,6 +142,8 @@ local function createParsers(): Parsers
 	local show = command("show")
 	show:add("id", "positional", { help = "Item or group id" })
 	addJsonFlag(show)
+
+	registeredCommand("focus")
 
 	local add = command("add")
 	add:add("label", "variadic", { help = "What the work is" })
@@ -308,26 +314,10 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	local lines = {}
 
 	for _, group in doc.nodes do
-		if not graph.isGroup(group) then
-			continue
+		if graph.isGroup(group) then
+			table.insert(values, renderGroup.serialize(doc, derived, group))
+			table.insert(lines, `{group.id}  {renderGroup.formatLine(doc, derived, group)}`)
 		end
-
-		local total, done, ready = 0, 0, 0
-
-		for _, item in doc.nodes do
-			if item.type == "task" and not graph.isNote(item) and insideGroup(doc, item, group.id) then
-				total += 1
-				local status = derived.status[item.id]
-				done += if status == "done" then 1 else 0
-				ready += if status == "ready" then 1 else 0
-			end
-		end
-
-		local object: json.Object =
-			json.object({ id = group.id, label = graph.label(group), total = total, done = done, ready = ready })
-		object.parent = group.parentId
-		table.insert(values, object)
-		table.insert(lines, `{group.id}  {graph.label(group)}  {done}/{total} done, {ready} ready`)
 	end
 
 	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
