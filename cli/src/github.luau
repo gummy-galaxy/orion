@@ -46,7 +46,6 @@ export type Report = {
 	changes: { Change },
 	missing: { string },
 	added: { string },
-	reviewAdded: { string },
 	linked: { StackLink },
 	unlinked: { StackLink },
 	checked: number,
@@ -54,7 +53,6 @@ export type Report = {
 export type Fetched = {
 	pulls: { [string]: PullState },
 	authored: { PullState },
-	reviews: { PullState },
 	viewer: string,
 	discover: boolean,
 }
@@ -64,7 +62,6 @@ local PULL_FIELDS =
 	"number title body url state baseRefName headRefName isDraft reviewDecision author { login } updatedAt additions deletions commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } reviewRequests(first: 20) { totalCount nodes { requestedReviewer { ... on User { login } } } }"
 local NAME_PATTERN = "^[%w%-%._]+$"
 local INBOX_ID = "inbox"
-local REVIEWS_ID = "reviews"
 local github = {}
 
 function github.getKey(ref: Ref): string
@@ -365,23 +362,31 @@ function github.getInvolved(
 end
 
 function github.getAuthoredOpen(run: CommandRunner): ({ PullState }, string)
-	local data = query(
-		run,
-		`query \{ viewer \{ login pullRequests(first: 100, states: OPEN, orderBy: \{field: UPDATED_AT, direction: DESC}) \{ nodes \{ {PULL_FIELDS} repository \{ name owner \{ login } } } } } }`
-	)
-	local viewer = if data then json.asObject(data.viewer) else nil
-	assert(viewer and type(viewer.login) == "string", "could not fetch GitHub viewer")
-	local pulls = json.asObject(viewer.pullRequests)
-	return getPullList(if pulls then json.asArray(pulls.nodes) else nil), viewer.login
-end
-
-function github.getReviewRequested(run: CommandRunner): { PullState }
-	local data = query(
-		run,
-		`query \{ search(query: "is:open is:pr review-requested:@me archived:false", type: ISSUE, first: 50) \{ nodes \{ ... on PullRequest \{ {PULL_FIELDS} repository \{ name owner \{ login } } } } } }`
-	)
-	local search = if data then json.asObject(data.search) else nil
-	return getPullList(if search then json.asArray(search.nodes) else nil)
+	local authored: { PullState } = {}
+	local cursor: string? = nil
+	local login: string? = nil
+	while true do
+		local after = if cursor then `, after: {json.serialize(cursor)}` else ""
+		local data = query(
+			run,
+			`query \{ viewer \{ login pullRequests(first: 100, states: OPEN, orderBy: \{field: UPDATED_AT, direction: DESC}{after}) \{ nodes \{ {PULL_FIELDS} repository \{ name owner \{ login } } } pageInfo \{ hasNextPage endCursor } } } }`
+		)
+		local viewer = if data then json.asObject(data.viewer) else nil
+		assert(viewer and type(viewer.login) == "string", "could not fetch GitHub viewer")
+		login = viewer.login :: string
+		local pulls = json.asObject(viewer.pullRequests)
+		for _, pull in getPullList(if pulls then json.asArray(pulls.nodes) else nil) do
+			table.insert(authored, pull)
+		end
+		local pageInfo = if pulls then json.asObject(pulls.pageInfo) else nil
+		if not pageInfo or pageInfo.hasNextPage ~= true then
+			break
+		end
+		local nextCursor = getString(pageInfo.endCursor)
+		assert(nextCursor and nextCursor ~= cursor, "invalid GitHub pull request cursor")
+		cursor = nextCursor
+	end
+	return authored, login :: string
 end
 
 local function isRequestedFrom(pull: PullState, viewer: string): boolean
@@ -429,7 +434,6 @@ function github.collect(doc: Doc, run: CommandRunner, discover: boolean): Fetche
 	return {
 		pulls = github.fetchPulls(run, refs),
 		authored = authored,
-		reviews = github.getReviewRequested(run),
 		viewer = viewer,
 		discover = discover,
 	}
@@ -481,14 +485,10 @@ end
 
 local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	local pulls = table.clone(fetched.pulls)
-
-	for _, list in { fetched.authored, fetched.reviews } do
-		for _, pull in list do
-			local key = github.getKey(pull)
-
-			if not pulls[key] then
-				pulls[key] = pull
-			end
+	for _, pull in fetched.authored do
+		local key = github.getKey(pull)
+		if not pulls[key] then
+			pulls[key] = pull
 		end
 	end
 
@@ -545,9 +545,28 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	end
 end
 
+-- Your own open pull requests only belong on a canvas whose GitHub sources cover their repository.
+-- A canvas without GitHub sources takes them all.
+local function isInSources(doc: Doc, pull: PullState): boolean
+	local hasSources = false
+	for _, source in doc.settings.sources do
+		if source.kind ~= "github" or (source.host or "github.com") ~= "github.com" then
+			continue
+		end
+		hasSources = true
+		if
+			isListed(source.owners, pull.owner)
+			and (not source.include or isListed(source.include, pull.name))
+			and not isListed(source.exclude, pull.name)
+		then
+			return true
+		end
+	end
+	return not hasSources
+end
+
 function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
-	local report: Report =
-		{ changes = {}, missing = {}, added = {}, reviewAdded = {}, linked = {}, unlinked = {}, checked = 0 }
+	local report: Report = { changes = {}, missing = {}, added = {}, linked = {}, unlinked = {}, checked = 0 }
 	local onCanvas: { [string]: boolean } = {}
 
 	for _, item in doc.nodes do
@@ -587,35 +606,11 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		item.data.branch = pull.branch or item.data.branch
 	end
 
-	for _, pull in fetched.reviews do
-		local key = github.getKey(pull)
-
-		if onCanvas[key] then
-			continue
-		end
-
-		ensureGroup(doc, REVIEWS_ID, "Review requests", "Pull requests waiting on your review.")
-		local status, who = github.getDesired(pull, "todo", nil, fetched.viewer)
-		local item = graph.addItem(doc, pull.title, {
-			group = REVIEWS_ID,
-			repo = getRepoName(doc, pull),
-			pr = pull.number,
-			status = status,
-			who = who,
-		})
-		item.data.github = recorded(pull, fetched.viewer, checkedAt)
-		item.data.branch = pull.branch
-		onCanvas[key] = true
-		table.insert(report.added, item.id)
-		table.insert(report.reviewAdded, item.id)
-	end
-
 	local unplaced: json.Array = {}
 
 	for _, pull in fetched.authored do
 		local key = github.getKey(pull)
-
-		if onCanvas[key] then
+		if onCanvas[key] or not isInSources(doc, pull) then
 			continue
 		end
 

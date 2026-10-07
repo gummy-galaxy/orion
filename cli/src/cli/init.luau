@@ -357,10 +357,7 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 	end
 
 	for _, id in report.added do
-		table.insert(
-			lines,
-			`  added {id} to {if table.find(report.reviewAdded, id) then "Review requests" else "Inbox"}`
-		)
+		table.insert(lines, `  added {id} to Inbox`)
 	end
 
 	if #report.missing > 0 then

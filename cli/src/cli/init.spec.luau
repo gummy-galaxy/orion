@@ -98,28 +98,27 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 	assert.eq(values and #values, 1)
 end)
 
-test.case("sync creates review requests and unplaced authored pulls", function(assert)
+test.case("sync records unplaced authored pulls without adding review request cards", function(assert)
 	local dir, run = testing.createHarness("review")
+	local isSearched = false
 	local output = run({ "sync" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
 				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
 			)
-		elseif argv[5]:find("search(", 1, true) then
-			return testing.result(
-				true,
-				[[{"data":{"search":{"nodes":[{"number":4,"title":"Review the release","url":"u4","state":"OPEN","isDraft":false,"author":{"login":"colleague"},"updatedAt":"2026-10-04T17:00:00Z","additions":3,"deletions":2,"reviewRequests":{"totalCount":1,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"repository":{"name":"storyteller","owner":{"login":"flipbook-labs"}}}]}}}]]
-			)
+		elseif argv[5]:find("review-requested", 1, true) then
+			isSearched = true
 		end
 
 		return testing.result(true, [[{"data":{"p1":{"pullRequest":null}}}]])
 	end)
-
-	assert.strContains(output, "Review requests")
+	assert.eq(isSearched, false)
+	assert.eq(output:find("Review requests", 1, true), nil)
 	local doc = store.load(dir)
-	assert.eq(doc.nodes[5].parentId, "reviews")
-	assert.eq(doc.nodes[5].data.who, "you")
+	for _, item in doc.nodes do
+		assert.neq(item.id, "reviews")
+	end
 	local top = doc.github
 	local unplaced = if top then json.asArray(top.unplaced) else nil
 	assert.eq(unplaced and #unplaced, 1)
