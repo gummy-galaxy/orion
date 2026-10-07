@@ -1,4 +1,4 @@
-local fs = require("@std/fs")
+local filesystem = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
@@ -44,32 +44,32 @@ test.case("store round-trips top-level GitHub data and unknown fields", function
 end)
 
 test.case("transaction bumps the revision and keeps fields it doesn't know about", function(assert)
-	local dir = testing.directory("roundtrip")
+	local directory = testing.directory("roundtrip")
 	local doc = testing.createDoc({ testing.task("a", "A", "todo", nil, { future = "kept" }) })
-	store.write(dir, doc)
-	local after = store.transaction(dir, function(current)
+	store.write(directory, doc)
+	local after = store.transaction(directory, function(current)
 		current.nodes[1].data.status = "done"
 	end)
 
 	assert.eq(after.revision, 1)
-	local reread = store.load(dir)
+	local reread = store.load(directory)
 	assert.eq(reread.revision, 1)
 	assert.eq(reread.nodes[1].data.status, "done")
 	assert.eq(reread.nodes[1].data.future, "kept")
-	assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
+	assert.eq(filesystem.exists(path.join(directory, "orion.lock")), false)
 end)
 
 test.case("transaction releases the lock when the change fails", function(assert)
-	local dir = testing.directory("failure")
-	store.write(dir, testing.createDoc({}))
+	local directory = testing.directory("failure")
+	store.write(directory, testing.createDoc({}))
 	assert.throws(function()
-		store.transaction(dir, function()
+		store.transaction(directory, function()
 			error("nope")
 		end)
 	end)
 
-	assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
-	assert.eq(store.load(dir).revision, 0)
+	assert.eq(filesystem.exists(path.join(directory, "orion.lock")), false)
+	assert.eq(store.load(directory).revision, 0)
 end)
 
 test.case("backup names use the replaced revision and UTC second", function(assert)
@@ -77,30 +77,30 @@ test.case("backup names use the replaced revision and UTC second", function(asse
 end)
 
 test.case("transaction saves the exact previous file before replacing it", function(assert)
-	local dir = testing.directory("backup")
-	store.write(dir, testing.createDoc({ testing.task("a", "Before", "todo") }))
-	local before = fs.readFileToString(store.filePath(dir))
-	store.transaction(dir, function(doc)
+	local directory = testing.directory("backup")
+	store.write(directory, testing.createDoc({ testing.task("a", "Before", "todo") }))
+	local before = filesystem.readFileToString(store.filePath(directory))
+	store.transaction(directory, function(doc)
 		doc.nodes[1].data.label = "After"
 	end)
 
-	local backups = store.getBackups(dir)
+	local backups = store.getBackups(directory)
 	assert.eq(#backups, 1)
 	assert.eq(backups[1].revision, 0)
 	assert.eq(backups[1].size, #before)
-	assert.eq(fs.readFileToString(backups[1].file), before)
-	assert.eq(store.load(dir).nodes[1].data.label, "After")
-	store.write(dir, testing.createDoc({}))
-	local replaced = store.getBackups(dir)
+	assert.eq(filesystem.readFileToString(backups[1].file), before)
+	assert.eq(store.load(directory).nodes[1].data.label, "After")
+	store.write(directory, testing.createDoc({}))
+	local replaced = store.getBackups(directory)
 	assert.eq(#replaced, 2)
 	assert.eq(replaced[1].revision, 1)
-	assert.eq(store.decode(fs.readFileToString(replaced[1].file)).nodes[1].data.label, "After")
+	assert.eq(store.decode(filesystem.readFileToString(replaced[1].file)).nodes[1].data.label, "After")
 end)
 
 test.case("pruning keeps recent backups and one newest backup per UTC day", function(assert)
-	local dir = testing.directory("prune")
-	local folder = path.join(dir, "backups")
-	fs.createDirectory(folder, { makeParents = true })
+	local directory = testing.directory("prune")
+	local folder = path.join(directory, "backups")
+	filesystem.createDirectory(folder, { makeParents = true })
 	local names = {
 		"orion-r1-20261004T110000Z.json",
 		"orion-r2-20261003T130000Z.json",
@@ -114,22 +114,22 @@ test.case("pruning keeps recent backups and one newest backup per UTC day", func
 	}
 
 	for _, name in names do
-		fs.writeStringToFile(path.join(folder, name), name)
+		filesystem.writeStringToFile(path.join(folder, name), name)
 	end
 
-	fs.writeStringToFile(path.join(folder, "keep-me.json"), "unrelated")
-	fs.writeStringToFile(path.join(folder, "orion-r9-20261002T010000Z.json.tmp"), "unrelated")
-	fs.createDirectory(path.join(folder, "orion-r10-20260904T010000Z.json"))
-	store.pruneBackups(dir, 1791115200)
+	filesystem.writeStringToFile(path.join(folder, "keep-me.json"), "unrelated")
+	filesystem.writeStringToFile(path.join(folder, "orion-r9-20261002T010000Z.json.tmp"), "unrelated")
+	filesystem.createDirectory(path.join(folder, "orion-r10-20260904T010000Z.json"))
+	store.pruneBackups(directory, 1791115200)
 
 	for index, name in names do
 		assert.eq(
-			fs.exists(path.join(folder, name)),
+			filesystem.exists(path.join(folder, name)),
 			index == 1 or index == 2 or index == 3 or index == 5 or index == 7
 		)
 	end
 
-	assert.eq(fs.exists(path.join(folder, "keep-me.json")), true)
-	assert.eq(fs.exists(path.join(folder, "orion-r9-20261002T010000Z.json.tmp")), true)
-	assert.eq(fs.exists(path.join(folder, "orion-r10-20260904T010000Z.json")), true)
+	assert.eq(filesystem.exists(path.join(folder, "keep-me.json")), true)
+	assert.eq(filesystem.exists(path.join(folder, "orion-r9-20261002T010000Z.json.tmp")), true)
+	assert.eq(filesystem.exists(path.join(folder, "orion-r10-20260904T010000Z.json")), true)
 end)

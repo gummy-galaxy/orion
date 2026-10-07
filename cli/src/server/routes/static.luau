@@ -1,4 +1,4 @@
-local fs = require("@std/fs")
+local filesystem = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 
@@ -44,13 +44,17 @@ function static.serve(folder: string, requestPath: string): shared.Response
 		return shared.reply(404, json.object({ error = "not found" }))
 	end
 	local file = tostring(path.join(folder, name))
-	if not fs.exists(file) or fs.type(file) ~= "file" then
+	if not filesystem.exists(file) or filesystem.type(file) ~= "file" then
 		file = tostring(path.join(folder, "index.html"))
 	end
-	if not fs.exists(file) then
+	if not filesystem.exists(file) then
 		return shared.reply(404, json.object({ error = "not found" }))
 	end
-	return { status = 200, body = fs.readFileToString(file), headers = { ["content-type"] = getContentType(file) } }
+	return {
+		status = 200,
+		body = filesystem.readFileToString(file),
+		headers = { ["content-type"] = getContentType(file) },
+	}
 end
 
 return table.freeze(static)

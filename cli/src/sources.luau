@@ -10,8 +10,8 @@ local NAME = "^[%w_.%-]+$"
 local HOST = "^[%w%.%-]+$"
 
 local function parseCommand(value: string): { string }
-	local ok, decoded = pcall(json.deserialize, value)
-	local array = if ok then json.asArray(decoded :: json.Value) else nil
+	local succeeded, decoded = pcall(json.deserialize, value)
+	local array = if succeeded then json.asArray(decoded :: json.Value) else nil
 	assert(array and #array > 0, "--command must be a nonempty JSON array")
 	local result = {}
 
@@ -61,8 +61,8 @@ function sources.createSource(kind: string, options: { [string]: { string } }): 
 		source.host, source.owners = host, owners
 
 		for _, key in { "include", "exclude" } do
-			for _, repo in options[key] or {} do
-				assert(repo:match(NAME), `invalid repository {repo}`)
+			for _, repository in options[key] or {} do
+				assert(repository:match(NAME), `invalid repository {repository}`)
 			end
 		end
 
@@ -98,26 +98,26 @@ function sources.getJson(values: { Source }): json.Array
 			return nil
 		end
 
-		local out: json.Array = {}
+		local result: json.Array = {}
 
 		for _, entry in strings do
-			table.insert(out, entry)
+			table.insert(result, entry)
 		end
 
-		return out
+		return result
 	end
 
-	local out: json.Array = {}
+	local result: json.Array = {}
 
 	for _, source in values do
 		local value = json.object({ id = source.id, kind = source.kind })
 		value.host, value.owners, value.include, value.exclude =
 			source.host, getStringArray(source.owners), getStringArray(source.include), getStringArray(source.exclude)
 		value.command, value.browse = getStringArray(source.command), source.browse
-		table.insert(out, value)
+		table.insert(result, value)
 	end
 
-	return out
+	return result
 end
 
 return table.freeze(sources)

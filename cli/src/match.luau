@@ -22,8 +22,8 @@ local function words(value: string): { [string]: boolean }
 	return result
 end
 
-local function overlap(a: string, b: string): number
-	local left, right = words(a), words(b)
+local function overlap(firstText: string, secondText: string): number
+	local left, right = words(firstText), words(secondText)
 	local intersection, union = 0, 0
 
 	for word in left do
@@ -52,37 +52,39 @@ local function stringField(item: Item, key: string): string?
 end
 
 function match.candidates(doc: Doc, title: string, owner: string, name: string): { Candidate }
-	local out: { Candidate } = {}
+	local candidates: { Candidate } = {}
 
 	for _, item in doc.nodes do
 		if item.type ~= "task" or graph.isNote(item) or item.data.pr ~= nil or item.data.status == "done" then
 			continue
 		end
 
-		local repo = stringField(item, "repo")
-		local agreement = if repo == nil
+		local repository = stringField(item, "repo")
+		local agreement = if repository == nil
 			then 0.3
 			elseif
-				(repo:lower() == name:lower() and owner:lower() == doc.settings.githubOwner:lower())
-				or repo:lower() == string.lower(`{owner}/{name}`)
+				(repository:lower() == name:lower() and owner:lower() == doc.settings.githubOwner:lower())
+				or repository:lower() == string.lower(`{owner}/{name}`)
 			then 1
 			else 0
 		local score = 0.65 * overlap(title, `{graph.label(item)} {stringField(item, "note") or ""}`) + 0.35 * agreement
 
 		if score >= 0.2 then
-			table.insert(out, { id = item.id, score = math.floor(score * 100 + 0.5) / 100 })
+			table.insert(candidates, { id = item.id, score = math.floor(score * 100 + 0.5) / 100 })
 		end
 	end
 
-	table.sort(out, function(a: Candidate, b: Candidate)
-		return if a.score == b.score then a.id < b.id else a.score > b.score
+	table.sort(candidates, function(firstCandidate: Candidate, secondCandidate: Candidate)
+		return if firstCandidate.score == secondCandidate.score
+			then firstCandidate.id < secondCandidate.id
+			else firstCandidate.score > secondCandidate.score
 	end)
 
-	while #out > 3 do
-		table.remove(out)
+	while #candidates > 3 do
+		table.remove(candidates)
 	end
 
-	return out
+	return candidates
 end
 
 return table.freeze(match)

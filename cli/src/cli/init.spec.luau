@@ -13,27 +13,27 @@ test.case("ready lists startable work, most unblocking first", function(assert)
 end)
 
 test.case("add, link, and done change the shared data", function(assert)
-	local dir, run = testing.createHarness("edit")
+	local directory, run = testing.createHarness("edit")
 	assert.strContains(run({ "add", "Write", "release", "notes", "--group", "ws" }), "Added write-release-notes")
 	run({ "link", "pub", "write-release-notes" })
 	local shown = json.asObject(json.deserialize(run({ "show", "write-release-notes", "--json" })) :: json.Value)
 	assert.eq(shown and shown.status, "blocked")
 	run({ "done", "ci" })
 	run({ "done", "pub" })
-	assert.eq(store.load(dir).revision, 4)
+	assert.eq(store.load(directory).revision, 4)
 	assert.strContains(run({ "ready" }), "write-release-notes")
 end)
 
 test.case("group parses comma-separated ids with spaces and empty entries", function(assert)
-	local dir, run = testing.createHarness("group-items")
+	local directory, run = testing.createHarness("group-items")
 	run({ "group", "Milestone", "--items", " ci, pub, , " })
-	local doc = store.load(dir)
+	local doc = store.load(directory)
 	assert.eq(doc.nodes[2].parentId, doc.nodes[3].parentId)
 	assert.eq(doc.nodes[2].parentId == "ws", false)
 end)
 
 test.case("sync writes GitHub state through the command runner", function(assert)
-	local dir, run = testing.createHarness("sync")
+	local directory, run = testing.createHarness("sync")
 	local text = run({ "sync" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
@@ -48,7 +48,7 @@ test.case("sync writes GitHub state through the command runner", function(assert
 	end)
 
 	assert.strContains(text, "ci: active → done")
-	local item = store.load(dir).nodes[2]
+	local item = store.load(directory).nodes[2]
 	assert.eq(item.data.status, "done")
 	local recorded = json.asObject(item.data.github)
 	assert.eq(recorded and recorded.state, "MERGED")
@@ -58,7 +58,7 @@ test.case("sync writes GitHub state through the command runner", function(assert
 end)
 
 test.case("sync --dry-run leaves the data alone", function(assert)
-	local dir, run = testing.createHarness("dry")
+	local directory, run = testing.createHarness("dry")
 	run({ "sync", "--dry-run" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
@@ -72,12 +72,12 @@ test.case("sync --dry-run leaves the data alone", function(assert)
 		)
 	end)
 
-	assert.eq(store.load(dir).revision, 0)
+	assert.eq(store.load(directory).revision, 0)
 end)
 
 test.case("matches reads stored suggestions without a runner", function(assert)
-	local dir, run = testing.createHarness("matches")
-	store.transaction(dir, function(doc)
+	local directory, run = testing.createHarness("matches")
+	store.transaction(directory, function(doc)
 		doc.github = json.object({
 			viewer = "vocksel",
 			checkedAt = "now",
@@ -99,7 +99,7 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 end)
 
 test.case("sync records unplaced authored pulls without adding review request cards", function(assert)
-	local dir, run = testing.createHarness("review")
+	local directory, run = testing.createHarness("review")
 	local isSearched = false
 	local output = run({ "sync" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
@@ -115,7 +115,7 @@ test.case("sync records unplaced authored pulls without adding review request ca
 	end)
 	assert.eq(isSearched, false)
 	assert.eq(output:find("Review requests", 1, true), nil)
-	local doc = store.load(dir)
+	local doc = store.load(directory)
 	for _, item in doc.nodes do
 		assert.neq(item.id, "reviews")
 	end

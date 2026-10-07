@@ -17,14 +17,14 @@ return table.freeze({
 	end,
 
 	run = function(parser: batteriesCli.Parser, options: Context)
-		local current = store.load(options.dir)
+		local current = store.load(options.directory)
 		local settings = if current.raw then json.asObject(current.raw.settings) else nil
 		local configured = if settings and type(settings.agent) == "string" then settings.agent else nil
 		local agent = parser:get("agent") or configured or "none"
 		local result, didFallback =
 			suggest.compute(current, parser:get("scope") or "unsorted", agent, options.runner, options.now())
 		if not parser:has("dry-run") then
-			store.transaction(options.dir, function(doc)
+			store.transaction(options.directory, function(doc)
 				suggest.save(doc, result)
 			end)
 		end

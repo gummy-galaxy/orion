@@ -1,6 +1,6 @@
 local test = require("@std/test")
 
-local getParentPid = require("@root/server/getParentPid")
+local getParentProcessId = require("@root/server/getParentPid")
 local testing = require("@root/testing")
 
 test.case("getParentPid reads the parent from ps", function(assert)
@@ -9,7 +9,7 @@ test.case("getParentPid reads the parent from ps", function(assert)
 		return testing.result(true, "  7\n")
 	end
 
-	assert.eq(getParentPid(run, 42), 7)
+	assert.eq(getParentProcessId(run, 42), 7)
 end)
 
 test.case("getParentPid returns nil when ps fails", function(assert)
@@ -17,5 +17,5 @@ test.case("getParentPid returns nil when ps fails", function(assert)
 		return testing.result(false, "")
 	end
 
-	assert.eq(getParentPid(run, 42), nil)
+	assert.eq(getParentProcessId(run, 42), nil)
 end)

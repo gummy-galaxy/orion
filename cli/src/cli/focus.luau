@@ -14,8 +14,8 @@ return table.freeze({
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 	run = function(_parser: batteriesCli.Parser, options: Context)
-		local doc = store.load(options.dir)
-		local report = store.readFocus(options.dir)
+		local doc = store.load(options.directory)
+		local report = store.readFocus(options.directory)
 		local derived = graph.derive(doc)
 		if options.asJson then
 			options.write(json.serialize(renderFocus.serialize(doc, derived, report), true))

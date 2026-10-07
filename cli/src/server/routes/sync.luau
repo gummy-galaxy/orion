@@ -1,5 +1,5 @@
 local json = require("@std/json")
-local net = require("@lute/net/server")
+local network = require("@lute/net/server")
 
 local shared = require("@root/server/routes/shared")
 
@@ -7,7 +7,7 @@ export type SyncLoop = { getStatus: () -> json.Object, run: (boolean?) -> json.O
 
 local sync = {}
 
-function sync.handle(request: net.ReceivedRequest, loop: SyncLoop): shared.Response
+function sync.handle(request: network.ReceivedRequest, loop: SyncLoop): shared.Response
 	if request.method == "GET" then
 		return shared.reply(200, loop.getStatus())
 	end

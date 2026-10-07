@@ -30,7 +30,7 @@ test.case("watcher announces external edits and follows manifest switches", func
 	task.wait(0.3)
 	expect.eq(active, "other")
 	store.transaction(root, function() end)
-	store.transaction(store.getWorkspaceDir(root, "other"), function() end)
+	store.transaction(store.getWorkspaceDirectory(root, "other"), function() end)
 	task.wait(0.3)
 	expect.eq(#revisions, 2)
 	expect.eq(revisions[2], 1)

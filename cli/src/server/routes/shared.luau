@@ -1,5 +1,5 @@
 local json = require("@std/json")
-local net = require("@lute/net/server")
+local network = require("@lute/net/server")
 
 local store = require("@root/store")
 
@@ -11,7 +11,7 @@ function shared.reply(status: number, value: json.Value): Response
 	return { status = status, body = json.serialize(value), headers = { ["content-type"] = "application/json" } }
 end
 
-function shared.parseBody(request: net.ReceivedRequest): json.Object
+function shared.parseBody(request: network.ReceivedRequest): json.Object
 	return assert(json.asObject(json.deserialize(request.body) :: json.Value), "body must be an object")
 end
 

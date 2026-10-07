@@ -69,16 +69,16 @@ test.case("addNote splices into an existing link and remove reconnects it", func
 end)
 
 test.case("makeGroup and ungroup keep items in place", function(assert)
-	local a = task("a", "A", "todo")
-	a.position = { x = 100, y = 50 }
-	local doc = testing.createDoc({ a, task("b", "B", "todo") })
+	local firstTask = task("a", "A", "todo")
+	firstTask.position = { x = 100, y = 50 }
+	local doc = testing.createDoc({ firstTask, task("b", "B", "todo") })
 	local group = graph.makeGroup(doc, "Pair", { "a", "b" })
-	assert.eq(a.parentId, group.id)
-	assert.eq(group.position.x + a.position.x, 100)
+	assert.eq(firstTask.parentId, group.id)
+	assert.eq(group.position.x + firstTask.position.x, 100)
 	graph.ungroup(doc, group.id)
-	assert.eq(a.parentId, nil)
-	assert.eq(a.position.x, 100)
-	assert.eq(a.position.y, 50)
+	assert.eq(firstTask.parentId, nil)
+	assert.eq(firstTask.position.x, 100)
+	assert.eq(firstTask.position.y, 50)
 end)
 
 test.case("move drops groups it leaves empty and refuses cycles", function(assert)

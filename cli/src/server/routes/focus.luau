@@ -1,5 +1,5 @@
 local json = require("@std/json")
-local net = require("@lute/net/server")
+local network = require("@lute/net/server")
 
 local shared = require("@root/server/routes/shared")
 local store = require("@root/store")
@@ -8,7 +8,7 @@ type Response = shared.Response
 
 local focus = {}
 
-function focus.handle(request: net.ReceivedRequest, root: string, active: string): Response
+function focus.handle(request: network.ReceivedRequest, root: string, active: string): Response
 	if request.method ~= "POST" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))
 	end
@@ -39,7 +39,7 @@ function focus.handle(request: net.ReceivedRequest, root: string, active: string
 			end
 		end
 
-		store.putFocus(store.getWorkspaceDir(root, workspace), tab, open, selected, isClosed)
+		store.putFocus(store.getWorkspaceDirectory(root, workspace), tab, open, selected, isClosed)
 		return shared.reply(200, json.object({}))
 	end)
 

@@ -1,7 +1,7 @@
 local json = require("@std/json")
-local net = require("@lute/net/server")
+local network = require("@lute/net/server")
 
-type Socket = net.ServerWebSocket
+type Socket = network.ServerWebSocket
 
 local events = {}
 

@@ -1,5 +1,5 @@
 local json = require("@std/json")
-local net = require("@lute/net/server")
+local network = require("@lute/net/server")
 
 local shared = require("@root/server/routes/shared")
 local store = require("@root/store")
@@ -8,18 +8,21 @@ type Response = shared.Response
 
 local orion = {}
 
-function orion.handle(request: net.ReceivedRequest, root: string, active: string): Response
+function orion.handle(request: network.ReceivedRequest, root: string, active: string): Response
 	local didSucceed, response = pcall(function(): Response
-		local dir = store.getWorkspaceDir(root, active)
+		local directory = store.getWorkspaceDirectory(root, active)
 		if request.method == "GET" then
 			local requested = request.headers["x-orion-workspace"] or active
 			if not shared.isKnownWorkspace(root, requested) then
 				return shared.reply(404, json.object({ error = `unknown workspace: {requested}` }))
 			end
-			local requestedDir = store.getWorkspaceDir(root, requested)
-			local doc = store.read(requestedDir)
+			local requestedDirectory = store.getWorkspaceDirectory(root, requested)
+			local doc = store.read(requestedDirectory)
 			if not doc then
-				return shared.reply(404, json.object({ path = store.filePath(requestedDir), workspace = requested }))
+				return shared.reply(
+					404,
+					json.object({ path = store.filePath(requestedDirectory), workspace = requested })
+				)
 			end
 			return shared.reply(200, assert(doc.raw))
 		elseif request.method == "PUT" then
@@ -41,7 +44,7 @@ function orion.handle(request: net.ReceivedRequest, root: string, active: string
 				then assert(json.asArray(loadoutValue), "stickerLoadout must be an array")
 				else nil
 			local isSaved, revision = store.put(
-				dir,
+				directory,
 				if base == json.null then nil else base :: number,
 				nodes,
 				links,

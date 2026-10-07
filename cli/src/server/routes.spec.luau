@@ -1,6 +1,6 @@
-local fs = require("@std/fs")
+local filesystem = require("@std/fs")
 local json = require("@std/json")
-local net = require("@lute/net/server")
+local network = require("@lute/net/server")
 local path = require("@std/path")
 local test = require("@std/test")
 
@@ -13,7 +13,7 @@ local function createRequest(
 	route: string,
 	value: json.Object?,
 	workspace: string?
-): net.ReceivedRequest
+): network.ReceivedRequest
 	local headers: { [string]: string } = {}
 
 	if workspace then
@@ -115,7 +115,7 @@ test.case("focus reports use the workspace and tab without changing the document
 	local root, router = createRouter("routes-focus")
 	store.write(root, testing.createDoc({}, {}))
 	store.createWorkspace(root, "other")
-	local other = store.getWorkspaceDir(root, "other")
+	local other = store.getWorkspaceDirectory(root, "other")
 	local focusFile = tostring(path.join(root, "focus.json"))
 	assert.eq(
 		router.handle(
@@ -147,7 +147,7 @@ test.case("focus reports use the workspace and tab without changing the document
 		).status,
 		200
 	)
-	local focus = json.asObject(json.deserialize(fs.readFileToString(focusFile)) :: json.Value)
+	local focus = json.asObject(json.deserialize(filesystem.readFileToString(focusFile)) :: json.Value)
 	if not focus then
 		error("missing focus report")
 	end
@@ -161,14 +161,14 @@ test.case("focus reports use the workspace and tab without changing the document
 		).status,
 		200
 	)
-	assert.eq(fs.exists(focusFile), true)
+	assert.eq(filesystem.exists(focusFile), true)
 	assert.eq(
 		router.handle(
 			createRequest("POST", "/api/focus", json.object({ tab = "a", workspace = "default", closed = true }))
 		).status,
 		200
 	)
-	assert.eq(fs.exists(focusFile), false)
+	assert.eq(filesystem.exists(focusFile), false)
 	assert.eq(
 		router.handle(
 			createRequest(
@@ -180,8 +180,8 @@ test.case("focus reports use the workspace and tab without changing the document
 		200
 	)
 	router.switchTo("other")
-	assert.eq(fs.exists(focusFile), false)
-	assert.eq(fs.exists(path.join(other, "focus.json")), false)
+	assert.eq(filesystem.exists(focusFile), false)
+	assert.eq(filesystem.exists(path.join(other, "focus.json")), false)
 	local doc = store.read(root)
 	assert.eq(if doc then doc.revision else nil, 0)
 	assert.eq(#store.getBackups(root), 0)
@@ -193,7 +193,7 @@ test.case("workspace routes create, list, and switch", function(assert)
 		router.handle(createRequest("POST", "/api/workspaces", json.object({ name = "planning", label = "Planning" })))
 	assert.eq(created.status, 201)
 	assert.eq(decodeResponse(created).active, "default")
-	local createdDoc = store.read(store.getWorkspaceDir(root, "planning"))
+	local createdDoc = store.read(store.getWorkspaceDirectory(root, "planning"))
 	assert.eq(if createdDoc then createdDoc.revision else nil, 0)
 	local switched = router.handle(createRequest("POST", "/api/workspaces/active", json.object({ name = "planning" })))
 	assert.eq(switched.status, 200)
@@ -223,9 +223,9 @@ end)
 test.case("static route serves files and falls back to index outside the API", function(assert)
 	local root, _router = createRouter("routes-static")
 	local folder = tostring(path.join(root, "site"))
-	fs.createDirectory(folder, { makeParents = true })
-	fs.writeStringToFile(path.join(folder, "index.html"), "home")
-	fs.writeStringToFile(path.join(folder, "app.js"), "code")
+	filesystem.createDirectory(folder, { makeParents = true })
+	filesystem.writeStringToFile(path.join(folder, "index.html"), "home")
+	filesystem.writeStringToFile(path.join(folder, "app.js"), "code")
 	local router = routes.create(root, "default", {
 		getStatus = function()
 			return json.object({ state = "idle" })

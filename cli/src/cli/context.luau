@@ -2,7 +2,7 @@ local batteriesCli = require("@batteries/cli")
 local types = require("@root/types")
 
 export type Context = {
-	dir: string,
+	directory: string,
 	root: string,
 	workspace: string,
 	write: (string) -> (),

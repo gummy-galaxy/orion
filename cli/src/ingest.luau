@@ -43,8 +43,8 @@ end
 local function getCommandJson(run: CommandRunner, argv: { string }): json.Value
 	local result = run(argv)
 	assert(result.ok, `{argv[1]} failed: {result.stderr}`)
-	local ok, value = pcall(json.deserialize, result.stdout)
-	assert(ok, `{argv[1]} returned invalid JSON`)
+	local succeeded, value = pcall(json.deserialize, result.stdout)
+	assert(succeeded, `{argv[1]} returned invalid JSON`)
 	return value :: json.Value
 end
 
@@ -52,7 +52,7 @@ local function getJiraIssues(value: json.Value): { JiraIssue }
 	local root = json.asObject(value)
 	local array = if root then json.asArray(root.issues) else json.asArray(value)
 	assert(array, "Jira response must be an array or contain issues")
-	local out = {}
+	local result = {}
 
 	for _, raw in array do
 		local issue = json.asObject(raw)
@@ -72,7 +72,7 @@ local function getJiraIssues(value: json.Value): { JiraIssue }
 
 		local epic = if fields then json.asObject(fields.epic) or json.asObject(fields.parent) else nil
 		local epicFields = if epic then json.asObject(epic.fields) else nil
-		table.insert(out, {
+		table.insert(result, {
 			key = key,
 			summary = summary,
 			status = (if issue then getString(issue.status) else nil) or (if status
@@ -93,7 +93,7 @@ local function getJiraIssues(value: json.Value): { JiraIssue }
 		})
 	end
 
-	return out
+	return result
 end
 
 local function getHopData(run: CommandRunner, source: Source): ({ Worktree }, { Session })
@@ -104,18 +104,18 @@ local function getHopData(run: CommandRunner, source: Source): ({ Worktree }, { 
 
 	for _, raw in json.asArray(list.worktrees) or {} do
 		local tree = json.asObject(raw)
-		local repository = if tree then json.asObject(tree.repository) else nil
-		local repo: string? = nil
+		local repositoryObject = if tree then json.asObject(tree.repository) else nil
+		local repositoryName: string? = nil
 
-		if repository then
-			repo = getString(repository.remote) or getString(repository.name)
+		if repositoryObject then
+			repositoryName = getString(repositoryObject.remote) or getString(repositoryObject.name)
 		end
 
 		local branch = if tree then getString(tree.branch) else nil
 
-		if tree and repo and branch then
+		if tree and repositoryName and branch then
 			table.insert(worktrees, {
-				repo = repo :: string,
+				repo = repositoryName :: string,
 				branch = branch,
 				lastActivity = if type(tree.lastActivity) == "number" then tree.lastActivity else 0,
 				onDefault = tree.onDefaultBranch == true,
@@ -129,13 +129,13 @@ local function getHopData(run: CommandRunner, source: Source): ({ Worktree }, { 
 
 	for _, raw in recent do
 		local session = json.asObject(raw)
-		local repo = if session then getString(session.repository) else nil
+		local repository = if session then getString(session.repository) else nil
 		local branch = if session then getString(session.branch) else nil
 		local title = if session then getString(session.title) else nil
 
-		if session and repo and branch and title then
+		if session and repository and branch and title then
 			table.insert(sessions, {
-				repo = repo,
+				repo = repository,
 				branch = branch,
 				title = title:sub(1, 120),
 				updatedAt = if type(session.updatedAt) == "number" then session.updatedAt else 0,
@@ -146,8 +146,8 @@ local function getHopData(run: CommandRunner, source: Source): ({ Worktree }, { 
 	return worktrees, sessions
 end
 
-local function getUnix(iso: string): number
-	local year, month, day, hour, minute, second = iso:match("^(%d+)%-(%d+)%-(%d+)T(%d+):(%d+):(%d+)")
+local function getUnix(timestamp: string): number
+	local year, month, day, hour, minute, second = timestamp:match("^(%d+)%-(%d+)%-(%d+)T(%d+):(%d+):(%d+)")
 
 	if not year then
 		return os.time()
@@ -161,11 +161,18 @@ local function getUnix(iso: string): number
 		min = tonumber(minute) :: number,
 		sec = tonumber(second) :: number,
 	})
-	local utc = os.date("!*t", localTime)
+	local utcDate = os.date("!*t", localTime)
 	return localTime
 		+ os.difftime(
 			localTime,
-			os.time({ year = utc.year, month = utc.month, day = utc.day, hour = utc.hour, min = utc.min, sec = utc.sec })
+			os.time({
+				year = utcDate.year,
+				month = utcDate.month,
+				day = utcDate.day,
+				hour = utcDate.hour,
+				min = utcDate.min,
+				sec = utcDate.sec,
+			})
 		)
 end
 
@@ -181,7 +188,7 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 
 		found = true
 		local result: Result = { source = source, report = { id = source.id, added = 0, updated = 0, linked = 0 } }
-		local ok, err = pcall(function()
+		local succeeded, failureMessage = pcall(function()
 			if source.kind == "github" then
 				result.pulls, result.issues, result.viewer = github.getInvolved(
 					run,
@@ -200,8 +207,8 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 			end
 		end)
 
-		if not ok then
-			result.report.failed = tostring(err)
+		if not succeeded then
+			result.report.failed = tostring(failureMessage)
 		end
 
 		table.insert(results, result)
@@ -211,29 +218,29 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 	return results
 end
 
-local function getRepoName(doc: Doc, owner: string, name: string): string
+local function getRepositoryName(doc: Doc, owner: string, name: string): string
 	return if owner:lower() == doc.settings.githubOwner:lower() then name else `{owner}/{name}`
 end
 
-local function getFullRepo(doc: Doc, repo: string): string
-	return (if repo:find("/", 1, true) then repo else `{doc.settings.githubOwner}/{repo}`):lower()
+local function getFullRepository(doc: Doc, repository: string): string
+	return (if repository:find("/", 1, true) then repository else `{doc.settings.githubOwner}/{repository}`):lower()
 end
 
-local function getItemRepo(doc: Doc, item: Item): string?
-	local repo = getString(item.data.repo)
-	return if repo then getFullRepo(doc, repo) else nil
+local function getItemRepository(doc: Doc, item: Item): string?
+	local repository = getString(item.data.repo)
+	return if repository then getFullRepository(doc, repository) else nil
 end
 
 local function getItemHost(item: Item): string
 	return getString(item.data.host) or "github.com"
 end
 
-local function findPull(doc: Doc, repo: string, number: number, host: string): Item?
+local function findPull(doc: Doc, repository: string, number: number, host: string): Item?
 	for _, item in doc.nodes do
 		if
 			item.type == "task"
 			and item.data.pr == number
-			and getItemRepo(doc, item) == repo
+			and getItemRepository(doc, item) == repository
 			and getItemHost(item) == host
 		then
 			return item
@@ -243,12 +250,12 @@ local function findPull(doc: Doc, repo: string, number: number, host: string): I
 	return nil
 end
 
-local function findIssue(doc: Doc, repo: string, number: number, host: string): Item?
+local function findIssue(doc: Doc, repository: string, number: number, host: string): Item?
 	for _, item in doc.nodes do
 		if
 			item.type == "task"
 			and item.data.issue == number
-			and getItemRepo(doc, item) == repo
+			and getItemRepository(doc, item) == repository
 			and getItemHost(item) == host
 		then
 			return item
@@ -258,11 +265,11 @@ local function findIssue(doc: Doc, repo: string, number: number, host: string): 
 	return nil
 end
 
-local function findBranch(doc: Doc, repo: string, branch: string): Item?
+local function findBranch(doc: Doc, repository: string, branch: string): Item?
 	for _, item in doc.nodes do
 		if
 			item.type == "task"
-			and getItemRepo(doc, item) == repo
+			and getItemRepository(doc, item) == repository
 			and item.data.branch == branch
 			and item.data.issue == nil
 		then
@@ -305,7 +312,7 @@ local function applyExternal(item: Item, sourceId: string, fields: json.Object)
 	markSourceOn(item, sourceId)
 end
 
-local function createItem(doc: Doc, label: string, repo: string?, status: string, who: string?): Item
+local function createItem(doc: Doc, label: string, repository: string?, status: string, who: string?): Item
 	if not graph.find(doc, "unsorted") then
 		table.insert(doc.nodes, {
 			id = "unsorted",
@@ -322,7 +329,7 @@ local function createItem(doc: Doc, label: string, repo: string?, status: string
 		unsorted.data.layout = "refit"
 	end
 
-	return graph.addItem(doc, label, { group = "unsorted", repo = repo, status = status, who = who })
+	return graph.addItem(doc, label, { group = "unsorted", repo = repository, status = status, who = who })
 end
 
 local function markItem(report: SourceReport, existing: Item?)
@@ -363,12 +370,12 @@ local function linkMentions(doc: Doc, pull: github.PullState, item: Item, report
 		end
 	end
 
-	local repo = string.lower(`{pull.owner}/{pull.name}`)
+	local repository = string.lower(`{pull.owner}/{pull.name}`)
 	local host = pull.host or "github.com"
 
 	for owner, name, number in text:gmatch("([%w_.%-]+)/([%w_.%-]+)#(%d+)") do
-		if string.lower(`{owner}/{name}`) == repo then
-			local issue = findIssue(doc, repo, tonumber(number) :: number, host)
+		if string.lower(`{owner}/{name}`) == repository then
+			local issue = findIssue(doc, repository, tonumber(number) :: number, host)
 
 			if issue then
 				linkMention(doc, issue, item, report)
@@ -379,7 +386,7 @@ local function linkMentions(doc: Doc, pull: github.PullState, item: Item, report
 	local bare = text:gsub("[%w_.%-]+/[%w_.%-]+#%d+", "")
 
 	for number in bare:gmatch("#(%d+)") do
-		local issue = findIssue(doc, repo, tonumber(number) :: number, host)
+		local issue = findIssue(doc, repository, tonumber(number) :: number, host)
 
 		if issue then
 			linkMention(doc, issue, item, report)
@@ -398,10 +405,10 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 		local id = result.source.id
 
 		for _, pull in result.pulls or {} do
-			local repo = string.lower(`{pull.owner}/{pull.name}`)
+			local repository = string.lower(`{pull.owner}/{pull.name}`)
 			local host = pull.host or "github.com"
-			local existing = findPull(doc, repo, pull.number, host)
-			local step = if not existing and pull.branch then findBranch(doc, repo, pull.branch) else nil
+			local existing = findPull(doc, repository, pull.number, host)
+			local step = if not existing and pull.branch then findBranch(doc, repository, pull.branch) else nil
 
 			if step and step.data.pr then
 				step = nil
@@ -409,7 +416,7 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 
 			local item = existing
 				or step
-				or createItem(doc, pull.title, getRepoName(doc, pull.owner, pull.name), "todo", nil)
+				or createItem(doc, pull.title, getRepositoryName(doc, pull.owner, pull.name), "todo", nil)
 			markItem(result.report, existing or step)
 			local status, who = github.getDesired(
 				pull,
@@ -419,7 +426,7 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			)
 			item.data.label = pull.title
 			item.data.itemKind = "pr"
-			item.data.repo = getRepoName(doc, pull.owner, pull.name)
+			item.data.repo = getRepositoryName(doc, pull.owner, pull.name)
 			item.data.pr = pull.number
 			item.data.status = status
 			item.data.who = who
@@ -431,13 +438,13 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 		end
 
 		for _, issue in result.issues or {} do
-			local repo = string.lower(`{issue.owner}/{issue.name}`)
-			local item = findIssue(doc, repo, issue.number, issue.host or "github.com")
+			local repository = string.lower(`{issue.owner}/{issue.name}`)
+			local item = findIssue(doc, repository, issue.number, issue.host or "github.com")
 			markItem(result.report, item)
-			item = item or createItem(doc, issue.title, getRepoName(doc, issue.owner, issue.name), "todo", "you")
+			item = item or createItem(doc, issue.title, getRepositoryName(doc, issue.owner, issue.name), "todo", "you")
 			item.data.label = issue.title
 			item.data.itemKind = "placeholder"
-			item.data.repo = getRepoName(doc, issue.owner, issue.name)
+			item.data.repo = getRepositoryName(doc, issue.owner, issue.name)
 			item.data.issue = issue.number
 			item.data.host = if issue.host ~= "github.com" then issue.host else nil
 			markSourceOn(item, id)
@@ -519,8 +526,8 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 				continue
 			end
 
-			local repo = getFullRepo(doc, tree.repo)
-			local item = findBranch(doc, repo, tree.branch)
+			local repository = getFullRepository(doc, tree.repo)
+			local item = findBranch(doc, repository, tree.branch)
 			markItem(result.report, item)
 
 			if not item then
@@ -530,8 +537,8 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 					label,
 
 					if tree.repo:find("/", 1, true)
-						then (if repo:match("^([^/]+)/") == doc.settings.githubOwner:lower()
-							then repo:match("/([^/]+)$")
+						then (if repository:match("^([^/]+)/") == doc.settings.githubOwner:lower()
+							then repository:match("/([^/]+)$")
 							else tree.repo)
 						else tree.repo,
 					"active",
@@ -560,7 +567,7 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 		end
 
 		for _, session in result.sessions or {} do
-			local item = findBranch(doc, getFullRepo(doc, session.repo), session.branch)
+			local item = findBranch(doc, getFullRepository(doc, session.repo), session.branch)
 
 			if not item then
 				continue

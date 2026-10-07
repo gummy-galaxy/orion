@@ -31,7 +31,7 @@ export type PullState = {
 	host: string?,
 }
 
-export type Ref = { owner: string, name: string, number: number, host: string? }
+export type PullReference = { owner: string, name: string, number: number, host: string? }
 export type Change = {
 	id: string,
 	label: string,
@@ -64,23 +64,23 @@ local NAME_PATTERN = "^[%w%-%._]+$"
 local INBOX_ID = "inbox"
 local github = {}
 
-function github.getKey(ref: Ref): string
-	local host = if ref.host and ref.host ~= "github.com" then `{ref.host}/` else ""
-	return string.lower(`{host}{ref.owner}/{ref.name}#{ref.number}`)
+function github.getKey(reference: PullReference): string
+	local host = if reference.host and reference.host ~= "github.com" then `{reference.host}/` else ""
+	return string.lower(`{host}{reference.owner}/{reference.name}#{reference.number}`)
 end
 
-function github.getRefFor(item: Item, defaultOwner: string): Ref?
-	local repo = item.data.repo
+function github.getReferenceFor(item: Item, defaultOwner: string): PullReference?
+	local repository = item.data.repo
 	local number = item.data.pr
 
-	if type(repo) ~= "string" or type(number) ~= "number" then
+	if type(repository) ~= "string" or type(number) ~= "number" then
 		return nil
 	end
 
-	local owner, name = repo:match("^([^/]+)/([^/]+)$")
+	local owner, name = repository:match("^([^/]+)/([^/]+)$")
 	return {
 		owner = owner or defaultOwner,
-		name = name or repo,
+		name = name or repository,
 		number = number,
 		host = if type(item.data.host) == "string" then item.data.host else nil,
 	}
@@ -152,9 +152,9 @@ function github.query(run: CommandRunner, source: string, host: string?): json.O
 	table.insert(argv, "graphql")
 	table.insert(argv, "-f")
 	table.insert(argv, `query={source}`)
-	local ok, response = pcall(run, argv, nil)
+	local succeeded, response = pcall(run, argv, nil)
 
-	if not ok then
+	if not succeeded then
 		return nil
 	end
 
@@ -171,45 +171,47 @@ end
 
 local query = github.query
 
-function github.fetchPulls(run: CommandRunner, refs: { Ref }): { [string]: PullState }
+function github.fetchPulls(run: CommandRunner, references: { PullReference }): { [string]: PullState }
 	local found: { [string]: PullState } = {}
-	local byHost: { [string]: { Ref } } = {}
+	local byHost: { [string]: { PullReference } } = {}
 
-	for _, ref in refs do
-		local host = ref.host or "github.com"
+	for _, reference in references do
+		local host = reference.host or "github.com"
 		byHost[host] = byHost[host] or {}
-		table.insert(byHost[host], ref)
+		table.insert(byHost[host], reference)
 	end
 
-	for host, hostRefs in byHost do
-		for start = 1, #hostRefs, BATCH_SIZE do
+	for host, hostReferences in byHost do
+		for start = 1, #hostReferences, BATCH_SIZE do
 			local parts = {}
-			local batch: { [string]: Ref } = {}
+			local batch: { [string]: PullReference } = {}
 
-			for index = start, math.min(start + BATCH_SIZE - 1, #hostRefs) do
-				local ref = hostRefs[index]
+			for index = start, math.min(start + BATCH_SIZE - 1, #hostReferences) do
+				local reference = hostReferences[index]
 				assert(
-					ref.owner:match(NAME_PATTERN) and ref.name:match(NAME_PATTERN),
-					`invalid repository {ref.owner}/{ref.name}`
+					reference.owner:match(NAME_PATTERN) and reference.name:match(NAME_PATTERN),
+					`invalid repository {reference.owner}/{reference.name}`
 				)
 				local alias = `p{index}`
-				batch[alias] = ref
+				batch[alias] = reference
 				table.insert(
 					parts,
-					`{alias}: repository(owner: "{ref.owner}", name: "{ref.name}") \{ pullRequest(number: {ref.number}) \{ {PULL_FIELDS} } }`
+					`{alias}: repository(owner: "{reference.owner}", name: "{reference.name}") \{ pullRequest(number: {reference.number}) \{ {PULL_FIELDS} } }`
 				)
 			end
 
 			local data = query(run, `query \{ {table.concat(parts, " ")} }`, if host == "github.com" then nil else host)
 
 			if data then
-				for alias, ref in batch do
+				for alias, reference in batch do
 					local repository = json.asObject(data[alias])
 					local pull = if repository then json.asObject(repository.pullRequest) else nil
-					local parsed = if pull then getPullFromObject(pull, ref.owner, ref.name, ref.host) else nil
+					local parsed = if pull
+						then getPullFromObject(pull, reference.owner, reference.name, reference.host)
+						else nil
 
 					if parsed then
-						found[github.getKey(ref)] = parsed
+						found[github.getKey(reference)] = parsed
 					end
 				end
 			end
@@ -220,7 +222,7 @@ function github.fetchPulls(run: CommandRunner, refs: { Ref }): { [string]: PullS
 end
 
 local function getPullList(nodes: json.Array?): { PullState }
-	local out: { PullState } = {}
+	local pulls: { PullState } = {}
 
 	for _, raw in nodes or {} do
 		local object = json.asObject(raw)
@@ -233,12 +235,12 @@ local function getPullList(nodes: json.Array?): { PullState }
 			local parsed = getPullFromObject(object, login, name)
 
 			if parsed then
-				table.insert(out, parsed)
+				table.insert(pulls, parsed)
 			end
 		end
 	end
 
-	return out
+	return pulls
 end
 
 export type IssueState = { owner: string, name: string, number: number, title: string, url: string, host: string? }
@@ -265,8 +267,8 @@ local function isListed(repos: { string }?, name: string): boolean
 		return false
 	end
 
-	for _, repo in repos do
-		if repo:lower() == name:lower() then
+	for _, repository in repos do
+		if repository:lower() == name:lower() then
 			return true
 		end
 	end
@@ -420,19 +422,19 @@ function github.getDesired(pull: PullState, status: string, who: string?, viewer
 end
 
 function github.collect(doc: Doc, run: CommandRunner, discover: boolean): Fetched
-	local refs: { Ref } = {}
+	local references: { PullReference } = {}
 
 	for _, item in doc.nodes do
-		local ref = github.getRefFor(item, doc.settings.githubOwner)
+		local reference = github.getReferenceFor(item, doc.settings.githubOwner)
 
-		if ref then
-			table.insert(refs, ref)
+		if reference then
+			table.insert(references, reference)
 		end
 	end
 
 	local authored, viewer = github.getAuthoredOpen(run)
 	return {
-		pulls = github.fetchPulls(run, refs),
+		pulls = github.fetchPulls(run, references),
 		authored = authored,
 		viewer = viewer,
 		discover = discover,
@@ -460,7 +462,7 @@ end
 
 local recorded = github.getRecorded
 
-local function getRepoName(doc: Doc, pull: PullState): string
+local function getRepositoryName(doc: Doc, pull: PullState): string
 	return if pull.owner:lower() == doc.settings.githubOwner:lower() then pull.name else `{pull.owner}/{pull.name}`
 end
 
@@ -496,8 +498,8 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	local byId: { [string]: PullState } = {}
 
 	for _, item in doc.nodes do
-		local ref = github.getRefFor(item, doc.settings.githubOwner)
-		local pull = if ref then pulls[github.getKey(ref)] else nil
+		local reference = github.getReferenceFor(item, doc.settings.githubOwner)
+		local pull = if reference then pulls[github.getKey(reference)] else nil
 
 		if pull then
 			table.insert(cards, { id = item.id, pull = pull })
@@ -570,13 +572,13 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 	local onCanvas: { [string]: boolean } = {}
 
 	for _, item in doc.nodes do
-		local ref = github.getRefFor(item, doc.settings.githubOwner)
+		local reference = github.getReferenceFor(item, doc.settings.githubOwner)
 
-		if not ref then
+		if not reference then
 			continue
 		end
 
-		local key = github.getKey(ref)
+		local key = github.getKey(reference)
 		onCanvas[key] = true
 		local pull = fetched.pulls[key]
 
@@ -614,14 +616,14 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			continue
 		end
 
-		local repo = getRepoName(doc, pull)
+		local repository = getRepositoryName(doc, pull)
 
 		if fetched.discover then
 			ensureGroup(doc, INBOX_ID, "Inbox", "Open pull requests found on GitHub that aren't placed yet.")
 			local status, who = github.getDesired(pull, "todo", nil, fetched.viewer)
 			local item = graph.addItem(doc, pull.title, {
 				group = INBOX_ID,
-				repo = repo,
+				repo = repository,
 				pr = pull.number,
 				status = status,
 				who = who,
@@ -640,7 +642,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			table.insert(
 				unplaced,
 				json.object({
-					repo = repo,
+					repo = repository,
 					number = pull.number,
 					title = pull.title,
 					url = pull.url,
@@ -655,8 +657,8 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 	end
 
 	syncStackLinks(doc, fetched, report)
-	table.sort(unplaced, function(a, b)
-		local left, right = json.asObject(a), json.asObject(b)
+	table.sort(unplaced, function(firstPull, secondPull)
+		local left, right = json.asObject(firstPull), json.asObject(secondPull)
 		local leftTime: string = if left then getString(left.updatedAt) or "" else ""
 		local rightTime: string = if right then getString(right.updatedAt) or "" else ""
 		return (tonumber((leftTime:gsub("%D", ""))) or 0) > (tonumber((rightTime:gsub("%D", ""))) or 0)

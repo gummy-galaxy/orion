@@ -1,5 +1,5 @@
 local json = require("@std/json")
-local net = require("@lute/net/server")
+local network = require("@lute/net/server")
 
 local shared = require("@root/server/routes/shared")
 local store = require("@root/store")
@@ -9,7 +9,7 @@ type Response = shared.Response
 local workspaces = {}
 
 function workspaces.handle(
-	request: net.ReceivedRequest,
+	request: network.ReceivedRequest,
 	root: string,
 	getActive: () -> string,
 	switchTo: (string) -> ()

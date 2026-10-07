@@ -3,7 +3,7 @@ local process = require("@std/process")
 local task = require("@std/task")
 
 local context = require("@root/cli/context")
-local getParentPid = require("@root/server/getParentPid")
+local getParentProcessId = require("@root/server/getParentPid")
 local isProcessAlive = require("@root/server/isProcessAlive")
 local server = require("@root/server")
 
@@ -21,8 +21,8 @@ return table.freeze({
 		local port = tonumber(parser:get("port") or "5198")
 		assert(port and port >= 0 and port <= 65535 and port % 1 == 0, "port must be an integer from 0 to 65535")
 		-- Exit once whatever started the server is gone, so a crashed app or dev server can't leave it running.
-		local parentPid = getParentPid(options.runner)
-		local isWatchingParent = parentPid ~= nil and parentPid > 1
+		local parentProcessId = getParentProcessId(options.runner)
+		local isWatchingParent = parentProcessId ~= nil and parentProcessId > 1
 		local host = parser:get("host") or "127.0.0.1"
 		local running = server.start(options.root, options.workspace, host, port, parser:get("static"))
 		options.write(`Orion serving on http://{running.hostname}:{running.port}`)
@@ -30,7 +30,7 @@ return table.freeze({
 		while true do
 			task.wait(if isWatchingParent then 2 else 3600)
 
-			if isWatchingParent and not isProcessAlive(parentPid :: number, options.runner) then
+			if isWatchingParent and not isProcessAlive(parentProcessId :: number, options.runner) then
 				running.close()
 				process.exit(0)
 			end

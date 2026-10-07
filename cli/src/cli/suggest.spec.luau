@@ -6,16 +6,16 @@ local store = require("@root/store")
 local testing = require("@root/testing")
 
 test.case("configured agent command receives bounded context on stdin", function(assert)
-	local dir = testing.directory("suggest-command")
+	local directory = testing.directory("suggest-command")
 	local doc = testing.createDoc({
 		testing.task("a", "First work", "todo", nil, json.object({ repo = "app", branch = "same" })),
 		testing.task("b", "Second work", "todo", nil, json.object({ repo = "app", branch = "same" })),
 	})
 	doc.raw = json.object({ settings = json.object({ agent = "claude", agentCommand = { "custom-agent", "--json" } }) })
-	store.write(dir, doc)
+	store.write(directory, doc)
 	local output = ""
 	cli.execute({ "suggest", "--dry-run", "--json" }, {
-		dataDir = dir,
+		dataDirectory = directory,
 		write = function(value)
 			output = value
 		end,
@@ -30,15 +30,15 @@ test.case("configured agent command receives bounded context on stdin", function
 	local groups = if result then json.asArray(result.groups) else nil
 	local first = if groups then json.asObject(groups[1]) else nil
 	assert.eq(first and first.source, "agent")
-	assert.eq(store.load(dir).revision, 0)
+	assert.eq(store.load(directory).revision, 0)
 end)
 
 test.case("suggest reads and saves only the selected workspace", function(assert)
 	local root, run = testing.createHarness("suggest-workspace")
 	run({ "workspace", "create", "roblox" })
-	local dir = store.getWorkspaceDir(root, "roblox")
+	local directory = store.getWorkspaceDirectory(root, "roblox")
 	store.write(
-		dir,
+		directory,
 		testing.createDoc({
 			testing.task("a", "First work", "todo", nil, json.object({ repo = "app", branch = "same" })),
 			testing.task("b", "Second work", "todo", nil, json.object({ repo = "app", branch = "same" })),

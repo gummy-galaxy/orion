@@ -14,7 +14,7 @@ return table.freeze({
 	end,
 
 	run = function(parser: batteriesCli.Parser, options: Context)
-		local values = sources.getJson(store.load(options.dir).settings.sources)
+		local values = sources.getJson(store.load(options.directory).settings.sources)
 
 		if parser:has("json") then
 			options.write(json.serialize(values, true))

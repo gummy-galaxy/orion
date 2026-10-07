@@ -143,12 +143,13 @@ test.case("desired tracks requested reviews on other people's pull requests", fu
 end)
 
 test.case("refFor reads bare and owner-qualified repositories", function(assert)
-	local bare = github.getRefFor(testing.task("a", "A", "todo", nil, { repo = "flipbook", pr = 5 }), "flipbook-labs")
+	local bare =
+		github.getReferenceFor(testing.task("a", "A", "todo", nil, { repo = "flipbook", pr = 5 }), "flipbook-labs")
 	assert.eq(bare and github.getKey(bare), "flipbook-labs/flipbook#5")
 	local qualified =
-		github.getRefFor(testing.task("b", "B", "todo", nil, { repo = "vocksel/orion", pr = 2 }), "flipbook-labs")
+		github.getReferenceFor(testing.task("b", "B", "todo", nil, { repo = "vocksel/orion", pr = 2 }), "flipbook-labs")
 	assert.eq(qualified and github.getKey(qualified), "vocksel/orion#2")
-	assert.eq(github.getRefFor(testing.task("c", "C", "todo"), "flipbook-labs"), nil)
+	assert.eq(github.getReferenceFor(testing.task("c", "C", "todo"), "flipbook-labs"), nil)
 end)
 
 test.case("apply stores unplaced authored pull requests with matches", function(assert)
@@ -181,13 +182,13 @@ test.case("apply keeps authored pull requests to the workspace's GitHub sources"
 		{ { id = "gh-vocksel", kind = "github", host = "github.com", owners = { "vocksel" }, include = { "orion" } } }
 	local inside = pull("OPEN")
 	inside.owner, inside.name, inside.number = "vocksel", "orion", 1
-	local otherRepo = pull("OPEN")
-	otherRepo.owner, otherRepo.name, otherRepo.number = "vocksel", "hop", 2
+	local otherRepository = pull("OPEN")
+	otherRepository.owner, otherRepository.name, otherRepository.number = "vocksel", "hop", 2
 	local otherOwner = pull("OPEN")
 	otherOwner.owner, otherOwner.name, otherOwner.number = "flipbook-labs", "orion", 3
 	local report = github.apply(doc, {
 		pulls = {},
-		authored = { inside, otherRepo, otherOwner },
+		authored = { inside, otherRepository, otherOwner },
 		viewer = "vocksel",
 		discover = true,
 	}, "2026-10-04T18:05:00Z")

@@ -1,4 +1,4 @@
-local fs = require("@std/fs")
+local filesystem = require("@std/fs")
 local path = require("@std/path")
 local task = require("@std/task")
 
@@ -9,7 +9,7 @@ type Stamp = { size: number, modified: number }
 local watcher = {}
 
 local function getStamp(file: string): Stamp?
-	local didSucceed, metadata = pcall(fs.metadata, file)
+	local didSucceed, metadata = pcall(filesystem.metadata, file)
 
 	if not didSucceed or metadata.type ~= "file" then
 		return nil
@@ -28,18 +28,18 @@ end
 
 function watcher.create(root: string, active: () -> string, switchTo: (string) -> (), changed: (number) -> ())
 	local isClosed = false
-	local dataFile = store.filePath(store.getWorkspaceDir(root, active()))
+	local dataFile = store.filePath(store.getWorkspaceDirectory(root, active()))
 	local manifestFile = tostring(path.join(root, "workspaces.json"))
 	local lastDataStamp = getStamp(dataFile)
 	local lastManifestStamp = getStamp(manifestFile)
 	local lastManifestActive = store.getWorkspaces(root).active
-	local folder = fs.watch(store.getWorkspaceDir(root, active()))
-	local manifest = fs.watch(root)
+	local folder = filesystem.watch(store.getWorkspaceDirectory(root, active()))
+	local manifest = filesystem.watch(root)
 	local generation = 0
 	local monitor = {}
 
 	local function getRevision(): number?
-		local didSucceed, doc = pcall(store.read, store.getWorkspaceDir(root, active()))
+		local didSucceed, doc = pcall(store.read, store.getWorkspaceDirectory(root, active()))
 		return if didSucceed and doc then doc.revision else nil
 	end
 
@@ -47,14 +47,14 @@ function watcher.create(root: string, active: () -> string, switchTo: (string) -
 
 	function monitor.switchTo(name: string)
 		folder:close()
-		local dir = store.getWorkspaceDir(root, name)
+		local directory = store.getWorkspaceDirectory(root, name)
 
-		if not fs.exists(dir) then
-			fs.createDirectory(dir, { makeParents = true })
+		if not filesystem.exists(directory) then
+			filesystem.createDirectory(directory, { makeParents = true })
 		end
 
-		folder = fs.watch(dir)
-		dataFile = store.filePath(dir)
+		folder = filesystem.watch(directory)
+		dataFile = store.filePath(directory)
 		lastDataStamp = getStamp(dataFile)
 		lastRevision = getRevision()
 		generation += 1

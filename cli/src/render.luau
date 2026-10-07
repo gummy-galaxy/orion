@@ -9,21 +9,21 @@ type Item = types.Item
 
 local render = {}
 
-local function str(value: json.Value): string?
+local function asString(value: json.Value): string?
 	return if type(value) == "string" then value else nil
 end
 
 function render.tag(item: Item): string
-	local repo = str(item.data.repo)
+	local repository = asString(item.data.repo)
 	local pr = item.data.pr
 
 	if graph.isNote(item) then
 		return "note"
-	elseif repo and type(pr) == "number" then
-		return `{repo}#{pr}`
+	elseif repository and type(pr) == "number" then
+		return `{repository}#{pr}`
 	end
 
-	return repo or "step"
+	return repository or "step"
 end
 
 local function groupLabel(doc: Doc, item: Item): string?
@@ -35,9 +35,9 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 	local object: json.Object = json.object({
 		id = item.id,
 		label = graph.label(item),
-		kind = str(item.data.itemKind) or "step",
+		kind = asString(item.data.itemKind) or "step",
 		status = derived.status[item.id] or "ready",
-		recordedStatus = str(item.data.status) or "todo",
+		recordedStatus = asString(item.data.status) or "todo",
 		unblocks = derived.leverage[item.id] or 0,
 	})
 	object.group = item.parentId
@@ -87,7 +87,7 @@ end
 function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 	if graph.isGroup(item) then
 		local lines = { `{graph.label(item)}  ({item.id}, group)` }
-		local blurb = str(item.data.blurb)
+		local blurb = asString(item.data.blurb)
 
 		if blurb then
 			table.insert(lines, blurb)
@@ -106,7 +106,7 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 		`{graph.label(item)}`,
 		`  id       {item.id}`,
 		`  kind     {render.tag(item)}`,
-		`  status   {derived.status[item.id] or "ready"} (recorded {str(item.data.status) or "todo"})`,
+		`  status   {derived.status[item.id] or "ready"} (recorded {asString(item.data.status) or "todo"})`,
 	}
 	local where = groupLabel(doc, item)
 
@@ -114,7 +114,7 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 		table.insert(lines, `  group    {where} ({item.parentId})`)
 	end
 
-	local who = str(item.data.who)
+	local who = asString(item.data.who)
 
 	if who then
 		table.insert(lines, `  move     {who}`)
@@ -139,7 +139,7 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 		end
 	end
 
-	local note = str(item.data.note)
+	local note = asString(item.data.note)
 
 	if note then
 		table.insert(lines, `  note     {note}`)

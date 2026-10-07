@@ -1,4 +1,4 @@
-local fs = require("@std/fs")
+local filesystem = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
@@ -18,13 +18,13 @@ local sequence = 0
 
 function testing.directory(name: string): string
 	sequence += 1
-	local dir = tostring(path.join(system.tmpdir(), `orion-spec-{process.pid()}-{sequence}-{name}`))
+	local directory = tostring(path.join(system.tmpdir(), `orion-spec-{process.pid()}-{sequence}-{name}`))
 
-	if fs.exists(dir) then
-		fs.removeDirectory(dir, { recursive = true })
+	if filesystem.exists(directory) then
+		filesystem.removeDirectory(directory, { recursive = true })
 	end
 
-	return dir
+	return directory
 end
 
 function testing.task(id: string, label: string, status: string, parentId: string?, extra: json.Object?): Item
@@ -50,10 +50,10 @@ function testing.group(id: string, label: string, parentId: string?): Item
 end
 
 function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
-	local out = {}
+	local output = {}
 
 	for _, pair in links or {} do
-		table.insert(out, { id = `{pair[1]}>{pair[2]}`, from = pair[1], to = pair[2], kind = pair[3] or "blocks" })
+		table.insert(output, { id = `{pair[1]}>{pair[2]}`, from = pair[1], to = pair[2], kind = pair[3] or "blocks" })
 	end
 
 	return {
@@ -61,16 +61,16 @@ function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 		revision = 0,
 		settings = { githubOwner = "flipbook-labs", sources = {} },
 		nodes = nodes,
-		links = out,
+		links = output,
 	}
 end
 
-function testing.result(ok: boolean, stdout: string): types.CommandResult
-	return { ok = ok, exitCode = if ok then 0 else 1, stdout = stdout, stderr = "" }
+function testing.result(succeeded: boolean, stdout: string): types.CommandResult
+	return { ok = succeeded, exitCode = if succeeded then 0 else 1, stdout = stdout, stderr = "" }
 end
 
 function testing.run(
-	dir: string,
+	directory: string,
 	args: { string },
 	runner: types.CommandRunner?,
 	now: string?,
@@ -78,7 +78,7 @@ function testing.run(
 ): string
 	local output: { string } = {}
 	cli.execute(args, {
-		dataDir = dir,
+		dataDirectory = directory,
 		workspace = workspace,
 		write = function(line)
 			table.insert(output, line)
@@ -93,9 +93,9 @@ function testing.run(
 end
 
 function testing.createHarness(name: string)
-	local dir = testing.directory(name)
+	local directory = testing.directory(name)
 	store.write(
-		dir,
+		directory,
 		testing.createDoc({
 			testing.group("ws", "Release"),
 			testing.task("ci", "Report release health", "active", "ws", { repo = "flipbook", pr = 658 }),
@@ -109,10 +109,10 @@ function testing.createHarness(name: string)
 	end
 
 	local function run(args: { string }, runner: types.CommandRunner?)
-		return testing.run(dir, args, runner, nil, workspace)
+		return testing.run(directory, args, runner, nil, workspace)
 	end
 
-	return dir, run, setWorkspace
+	return directory, run, setWorkspace
 end
 
 return testing

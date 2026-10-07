@@ -1,5 +1,5 @@
 local json = require("@std/json")
-local net = require("@lute/net/server")
+local network = require("@lute/net/server")
 local test = require("@std/test")
 
 local events = require("@root/server/events")
@@ -7,8 +7,8 @@ local events = require("@root/server/events")
 test.case("event hub sends the custom event payload and drops closed clients", function(expect)
 	local hub = events.create()
 	local sent: { string } = {}
-	local socket: net.ServerWebSocket = {
-		send = function(_self: net.ServerWebSocket, message: string | buffer): number
+	local socket: network.ServerWebSocket = {
+		send = function(_self: network.ServerWebSocket, message: string | buffer): number
 			if type(message) == "string" then
 				table.insert(sent, message)
 			end
@@ -16,7 +16,7 @@ test.case("event hub sends the custom event payload and drops closed clients", f
 			return 1
 		end,
 
-		close = function(_self: net.ServerWebSocket, _code: number?, _message: string?) end,
+		close = function(_self: network.ServerWebSocket, _code: number?, _message: string?) end,
 	}
 	hub.open(socket)
 	hub.publish("orion:changed", json.object({ revision = 4 }))

@@ -3,9 +3,9 @@ local types = require("@root/types")
 
 type CommandRunner = types.CommandRunner
 
-local function isProcessAlive(pid: number, runner: CommandRunner?): boolean
+local function isProcessAlive(processId: number, runner: CommandRunner?): boolean
 	local run = runner or runCommand
-	return run({ "kill", "-0", tostring(pid) }).ok
+	return run({ "kill", "-0", tostring(processId) }).ok
 end
 
 return isProcessAlive

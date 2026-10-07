@@ -18,22 +18,22 @@ return table.freeze({
 		parser:add("json", "flag", { help = "Print JSON" })
 
 		for _, name in { "apply", "dismiss" } do
-			local sub = parser:subcommand(name, { help = COMMANDS[name].help })
-			sub:add("help", "flag", { help = "Show this help", aliases = { "h" } })
-			sub:add("workspace", "option", { help = "Use this workspace for this command" })
-			COMMANDS[name].define(sub)
+			local subcommand = parser:subcommand(name, { help = COMMANDS[name].help })
+			subcommand:add("help", "flag", { help = "Show this help", aliases = { "h" } })
+			subcommand:add("workspace", "option", { help = "Use this workspace for this command" })
+			COMMANDS[name].define(subcommand)
 		end
 	end,
 
 	run = function(parser: batteriesCli.Parser, options: Context)
-		local name, sub = parser:selected()
+		local name, subcommand = parser:selected()
 
-		if name and sub then
-			COMMANDS[name].run(sub, options)
+		if name and subcommand then
+			COMMANDS[name].run(subcommand, options)
 			return
 		end
 
-		local result = suggest.getStored(store.load(options.dir))
+		local result = suggest.getStored(store.load(options.directory))
 
 		if options.asJson then
 			options.write(json.serialize(suggest.convertToJson(result), true))

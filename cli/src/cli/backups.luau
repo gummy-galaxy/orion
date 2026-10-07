@@ -13,7 +13,7 @@ return table.freeze({
 	end,
 
 	run = function(_parser: batteriesCli.Parser, options: Context)
-		local backups = store.getBackups(options.dir)
+		local backups = store.getBackups(options.directory)
 
 		if options.asJson then
 			local values: json.Array = {}
