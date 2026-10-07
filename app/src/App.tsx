@@ -21,7 +21,6 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { Lens } from './Lens'
 import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import {
@@ -36,7 +35,7 @@ import {
   type GroupStats,
 } from './derive'
 import { FocusView, type FocusItem } from './focus'
-import { WRAP, reflow, reflowAll } from './layout'
+import { reflow, reflowAll } from './layout'
 import { mergeDocs } from './merge'
 import {
   STATUS_LABEL,
@@ -1331,7 +1330,7 @@ function Canvas() {
   )
 
   const arrangeGroup = useCallback(
-    (gid: string, patch: Pick<ClusterData, 'arrange' | 'columns'>) => {
+    (gid: string, patch: Pick<ClusterData, 'arrange'>) => {
       const { nodes: ns, links: ls } = latest.current
       const next = ns.map((n) => (n.id === gid && isCluster(n) ? { ...n, data: { ...n.data, ...patch } } : n))
       reflow(next, ls, gid).then(tweenTo)
@@ -1964,11 +1963,7 @@ function Canvas() {
                         />
                         {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
                         <GroupFacts stats={work.groups.get(one.id)} />
-                        <GroupArrange
-                          key={(one.data as ClusterData).columns}
-                          data={one.data as ClusterData}
-                          change={(patch) => arrangeGroup(one.id, patch)}
-                        />
+                        <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
                         <div className="row">
                           <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
                             Open
@@ -2001,9 +1996,9 @@ function Canvas() {
                     {showHelp ? (
                       <>
                         V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
-                        ⌘-scroll to zoom · hold Space over a node to read it up close · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G
-                        ungroup · double-click a group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc
-                        to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                        ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
+                        double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a
+                        card's edge to link{' '}
                         <button type="button" className="link" onClick={() => setShowHelp(false)}>
                           Hide
                         </button>
@@ -2015,7 +2010,6 @@ function Canvas() {
                     )}
                   </div>
                 </Panel>
-                <Lens />
               </ReactFlow>
             )}
             {attending && cursor && (
@@ -2102,39 +2096,15 @@ function GroupFacts({ stats }: { stats?: GroupStats }) {
   )
 }
 
-function GroupArrange({ data, change }: { data: ClusterData; change: (patch: Pick<ClusterData, 'arrange' | 'columns'>) => void }) {
-  const arrange = data.arrange ?? 'auto'
-  const [columns, setColumns] = useState(String(data.columns ?? WRAP))
-  const pick = (next: Arrange) => change({ arrange: next === 'auto' ? undefined : next, columns: next === 'grid' ? data.columns : undefined })
-  const commitColumns = () => {
-    const n = Math.round(Number(columns))
-    if (Number.isFinite(n) && n >= 1 && n !== (data.columns ?? WRAP)) change({ arrange: 'grid', columns: n })
-    else setColumns(String(data.columns ?? WRAP))
-  }
+function GroupArrange({ data, change }: { data: ClusterData; change: (patch: Pick<ClusterData, 'arrange'>) => void }) {
+  const pick = (next: Arrange) => change({ arrange: next === 'auto' ? undefined : next })
   return (
-    <div className="grid2">
-      <div>
-        <label htmlFor="g-arrange">Arrange</label>
-        <select id="g-arrange" value={arrange} onChange={(e) => pick(e.target.value as Arrange)}>
-          <option value="auto">Automatic</option>
-          <option value="grid">Grid</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      {arrange === 'grid' && (
-        <div>
-          <label htmlFor="g-columns">Columns</label>
-          <input
-            id="g-columns"
-            type="number"
-            min={1}
-            value={columns}
-            onChange={(e) => setColumns(e.target.value)}
-            onBlur={commitColumns}
-            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-          />
-        </div>
-      )}
+    <div>
+      <label htmlFor="g-arrange">Arrange</label>
+      <select id="g-arrange" value={data.arrange ?? 'auto'} onChange={(e) => pick(e.target.value as Arrange)}>
+        <option value="auto">Automatic</option>
+        <option value="custom">Custom</option>
+      </select>
     </div>
   )
 }

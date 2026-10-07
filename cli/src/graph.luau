@@ -16,7 +16,7 @@ local GAP = 48
 
 local STATUSES = { todo = true, active = true, review = true, blocked = true, deferred = true, done = true }
 local WHO = { you = true, review = true, ci = true }
-local ARRANGE = { auto = true, grid = true, custom = true }
+local ARRANGE = { auto = true, custom = true }
 
 export type Derived = {
 	status: { [string]: string },
@@ -32,7 +32,6 @@ export type ItemFields = {
 	note: string?,
 	blurb: string?,
 	arrange: string?,
-	columns: number?,
 }
 
 local graph = {}
@@ -285,11 +284,7 @@ local function checkFields(fields: ItemFields)
 	)
 	assert(fields.who == nil or fields.who == "" or WHO[fields.who], `who must be one of you, review, ci`)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
-	assert(fields.arrange == nil or ARRANGE[fields.arrange], "arrange must be one of auto, grid, custom")
-	assert(
-		fields.columns == nil or (fields.columns > 0 and fields.columns % 1 == 0),
-		"columns must be a positive whole number"
-	)
+	assert(fields.arrange == nil or ARRANGE[fields.arrange], "arrange must be one of auto, custom")
 end
 
 export type AddOptions = ItemFields & { group: string? }
@@ -331,7 +326,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	if graph.isGroup(item) then
 		assert(
 			fields.status == nil and fields.repo == nil and fields.pr == nil and fields.who == nil,
-			"groups only take a label, blurb, arrange, and columns"
+			"groups only take a label, blurb, and arrange"
 		)
 
 		if fields.label then
@@ -342,16 +337,9 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 			item.data.blurb = if fields.blurb == "" then nil else fields.blurb
 		end
 
-		if fields.arrange or fields.columns then
-			local arrange = fields.arrange or field(item, "arrange") or "auto"
-			assert(fields.columns == nil or arrange == "grid", "columns only apply to a grid; pass --arrange grid")
-			item.data.arrange = if arrange == "auto" then nil else arrange
-			if arrange ~= "grid" then
-				item.data.columns = nil
-			elseif fields.columns then
-				item.data.columns = fields.columns
-			end
-			if arrange ~= "custom" and item.data.layout == nil then
+		if fields.arrange then
+			item.data.arrange = if fields.arrange == "auto" then nil else fields.arrange
+			if fields.arrange ~= "custom" and item.data.layout == nil then
 				item.data.layout = "refit"
 			end
 		end
@@ -359,7 +347,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 		return item
 	end
 
-	assert(fields.arrange == nil and fields.columns == nil, `"{id}" is an item; only groups take arrange and columns`)
+	assert(fields.arrange == nil, `"{id}" is an item; only groups take an arrangement`)
 	if fields.label then
 		item.data.label = fields.label
 	end

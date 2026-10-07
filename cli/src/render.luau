@@ -62,7 +62,6 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 	object.leadsTo = unblocks
 	if graph.isGroup(item) then
 		object.arrange = str(item.data.arrange) or "auto"
-		object.columns = item.data.columns
 	end
 	return object
 end
@@ -99,8 +98,7 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 
 		local arrange = str(item.data.arrange)
 		if arrange then
-			local columns = item.data.columns
-			table.insert(lines, `  arrange  {arrange}{if type(columns) == "number" then `, {columns} columns` else ""}`)
+			table.insert(lines, `  arrange  {arrange}`)
 		end
 
 		for _, child in doc.nodes do

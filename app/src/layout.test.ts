@@ -86,17 +86,6 @@ describe('reflow', () => {
     expect(distinct([...pos.values()].map((p) => p.y))).toBe(1)
   })
 
-  it('lays a grid group out the given number of columns across, in dependency order', async () => {
-    const cards = ids(10)
-    const nodes = [group({ arrange: 'grid', columns: 4 }), ...cards.map((id, i) => task(id, 'g', i * 10))]
-    const pos = await placed(nodes, [blocks('t09', 't00')])
-    expect(distinct([...pos.values()].map((p) => p.x))).toBe(4)
-    expect(distinct([...pos.values()].map((p) => p.y))).toBe(3)
-    const order = [...pos].sort(([, a], [, b]) => a.y - b.y || a.x - b.x).map(([id]) => id)
-    expect(order.indexOf('t09')).toBeLessThan(order.indexOf('t00'))
-    expect(order.slice(0, 3)).toEqual(['t01', 't02', 't03'])
-  })
-
   it('leaves a custom group alone', async () => {
     const nodes = [group({ arrange: 'custom' }), task('a', 'g', 500, 40), task('b', 'g', 3, 900)]
     expect(await reflow(nodes, [blocks('a', 'b')], 'g')).toBe(nodes)
