@@ -5,7 +5,7 @@ import { SourceLink } from './SourceLink'
 
 const stopPropagation = (event: SyntheticEvent) => event.stopPropagation()
 
-export function SourceMenu({ domain, name, sources }: { domain: string; name: string; sources: SourceRef[] }) {
+export function SourceMenu({ domain, sources }: { domain: string; sources: SourceRef[] }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDetailsElement>(null)
 
@@ -27,12 +27,12 @@ export function SourceMenu({ domain, name, sources }: { domain: string; name: st
       onPointerDown={stopPropagation}
       onClick={stopPropagation}
     >
-      <summary aria-label={`${name}: ${sources.length} sources`} title={`${name}: ${sources.length} sources. Click to show them.`}>
+      <summary aria-label={`${domain}: ${sources.length} sources`} title={`${domain}: ${sources.length} sources. Click to show them.`}>
         <Favicon domain={domain} />
         <span className="source-count">{sources.length}</span>
       </summary>
       <div className="source-menu">
-        <strong>{name}</strong>
+        <strong>{domain}</strong>
         <ul>
           {sources.map((source) => (
             <li key={source.label}>

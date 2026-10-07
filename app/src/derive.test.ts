@@ -22,6 +22,11 @@ describe('deriveWork sources', () => {
     expect(sources.get('pull')).toEqual([{ domain: 'github.com', label: 'orion', href: 'https://github.com/vocksel/orion/pull/42' }])
     expect(sources.get('external')).toEqual([{ domain: 'jira.example.com', label: 'WORK-7', href: 'https://jira.example.com/browse/WORK-7' }])
   })
+
+  it('gives cards without a repository or outside source no badge', () => {
+    const { sources } = deriveWork([task('local')], [])
+    expect(sources.get('local')).toEqual([])
+  })
 })
 
 describe('deriveWork flow', () => {

@@ -26,10 +26,11 @@ export type Actions = {
 export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
 
-function sourceOf(task: TaskNode, githubOwner?: string): SourceRef {
+/** Where a card's work comes from, or null for a card that only lives in Orion. */
+function sourceOf(task: TaskNode, githubOwner?: string): SourceRef | null {
   const repo = task.data.repo?.trim()
   const href = getTaskUrl(task.data, githubOwner) ?? undefined
-  if (!repo && !task.data.external) return { domain: 'orion', label: 'Orion' }
+  if (!repo && !task.data.external) return null
   if (href) {
     try {
       const url = new URL(href)
@@ -76,7 +77,10 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string) {
   const tasks = new Map(nodes.filter(isTask).map((n) => [n.id, n as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
-  for (const task of tasks.values()) sources.set(task.id, [sourceOf(task, githubOwner)])
+  for (const task of tasks.values()) {
+    const source = sourceOf(task, githubOwner)
+    sources.set(task.id, source ? [source] : [])
+  }
   const { preds, succs } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
   // A note is open while anything feeding into it is, so blocking passes through notes.
@@ -140,8 +144,8 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
       const task = tasks.get(id)
       if (task) {
         const source = sourceOf(task, githubOwner)
-        const key = `${source.domain}:${source.label}`
-        if (!groupSources.get(key)?.href) groupSources.set(key, source)
+        const key = source && `${source.domain}:${source.label}`
+        if (source && key && !groupSources.get(key)?.href) groupSources.set(key, source)
       }
       const st = status.get(id)
       if (!st || isNote(id)) continue
