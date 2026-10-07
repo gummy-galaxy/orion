@@ -67,6 +67,7 @@ import {
   type TaskData,
   type Who,
 } from './model'
+import { DebugBar, type MotionSettings } from './DebugBar'
 import { openExternal } from './external'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
@@ -105,6 +106,18 @@ const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: Ghos
 const SIDEBAR_KEY = 'orion:sidebar'
 const COLOR_MODE_KEY = 'orion:color-mode'
 type ColorMode = 'light' | 'dark' | 'system'
+const DEBUG_KEY = 'orion:debug'
+const MOTION_KEY = 'orion:motion'
+const DEFAULT_MOTION: MotionSettings = { arrows: true, glow: true, pauseWhileMoving: true }
+
+function readMotion(): MotionSettings {
+  try {
+    return { ...DEFAULT_MOTION, ...(JSON.parse(localStorage.getItem(MOTION_KEY) ?? '{}') as Partial<MotionSettings>) }
+  } catch {
+    return DEFAULT_MOTION
+  }
+}
+
 /**
  * Zoom below which a group reads as one body. Nested groups fold first as you
  * zoom out, so detail drops away from the inside.
@@ -286,6 +299,8 @@ function Canvas() {
   const [showHelp, setShowHelp] = useState(true)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [colorMode, setColorMode] = useState(readColorMode)
+  const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
+  const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
   const [tool, setTool] = useState<Tool>('select')
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -608,8 +623,13 @@ function Canvas() {
   }, [ready, nodes, rf])
 
   const rememberView = useCallback((_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+    canvasRef.current?.removeAttribute('data-moving')
     if (viewFor.current === workspace.current) writeViewport(workspace.current, viewport)
   }, [])
+  // An attribute rather than a class, so re-renders mid-move don't clear it.
+  const onMoveStart = useCallback(() => {
+    if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
+  }, [motion.pauseWhileMoving])
 
   const switchWorkspace = async (name: string) => {
     const list = await setActiveWorkspace(name)
@@ -1721,11 +1741,30 @@ function Canvas() {
       detail: 'Load the app again',
       run: () => window.location.reload(),
     },
+    {
+      id: 'debug-bar',
+      label: debug ? 'Hide debug bar' : 'Show debug bar',
+      detail: 'Frame rate and animation toggles',
+      run: () => toggleDebug(!debug),
+    },
   ]
 
   const toggleSidebar = (v: boolean) => {
     setSidebar(v)
     writeFlag(SIDEBAR_KEY, v)
+  }
+  const toggleDebug = (v: boolean) => {
+    setDebug(v)
+    writeFlag(DEBUG_KEY, v)
+  }
+  const changeMotion = (next: MotionSettings) => {
+    setMotion(next)
+    if (!next.pauseWhileMoving) canvasRef.current?.removeAttribute('data-moving')
+    try {
+      localStorage.setItem(MOTION_KEY, JSON.stringify(next))
+    } catch {
+      // Private windows can refuse storage; the setting still applies for this session.
+    }
   }
 
   const chooseColorMode = (mode: ColorMode) => {
@@ -1755,7 +1794,7 @@ function Canvas() {
             />
           )}
           <div
-            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${focus ? ' is-focus' : ''}${still ? ' is-still' : ''}`}
+            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${focus ? ' is-focus' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
             style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
             ref={canvasRef}
             onPointerDown={startMarquee}
@@ -1767,6 +1806,7 @@ function Canvas() {
                 fitView={!savedView}
                 fitViewOptions={INITIAL_FIT}
                 defaultViewport={savedView ?? undefined}
+                onMoveStart={onMoveStart}
                 onMoveEnd={rememberView}
                 nodes={viewNodes}
                 edges={edges}
@@ -2072,6 +2112,7 @@ function Canvas() {
               </FocusView>
             )}
             {!ready && <div className="loading">Laying out…</div>}
+            {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
             {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
             {wheel && (
               <StickerWheel
