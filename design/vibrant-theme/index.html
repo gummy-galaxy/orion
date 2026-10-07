@@ -452,6 +452,12 @@
   .buddy { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; }
   .buddy-star { position: absolute; left: 0; top: 0; will-change: transform; filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.55)) drop-shadow(0 0 16px rgb(201 139 255 / 0.5)); }
   .buddy-star svg { display: block; overflow: visible; }
+  /* Tethers: a soft noodle from each side star to the body. */
+  .buddy-tether { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; overflow: visible; }
+  .buddy-tether path {
+    fill: none; stroke: rgb(255 255 255 / 0.7); stroke-width: 2.5; stroke-linecap: round;
+    filter: drop-shadow(0 0 3px rgb(201 139 255 / 0.6));
+  }
   .buddy-star.main svg { width: 40px; height: 64px; }
   .buddy-star.trail svg { width: 21px; height: 34px; }
   .buddy .eyes { transform-box: fill-box; transform-origin: center; transition: transform 0.08s; }
@@ -586,6 +592,7 @@
 </main>
 
 <div class="buddy" id="buddy" aria-hidden="true">
+  <svg class="buddy-tether"><path data-tether="left"/><path data-tether="right"/></svg>
   <div class="buddy-star trail" data-star="left"></div>
   <div class="buddy-star trail" data-star="right"></div>
   <div class="buddy-star main" data-star="main"></div>
@@ -764,7 +771,8 @@ function makePainter(w, h) {
   host.className = 'painter'
   Object.assign(host.style, { width: `${w}px`, height: `${h}px` })
   document.body.append(host)
-  const mount = new ShaderMount(host, ditheringFragmentShader, layer(seeded(''), 'warp', '#ffffff', 1, 2), { preserveDrawingBuffer: true, premultipliedAlpha: true }, 0, 0, 2)
+  const { frame: _, ...initial } = layer(seeded(''), 'warp', '#ffffff', 1, 2)
+  const mount = new ShaderMount(host, ditheringFragmentShader, initial, { preserveDrawingBuffer: true, premultipliedAlpha: true }, 0, 0, 2)
   const ready = (async () => {
     for (let i = 0; i < 90 && mount.canvasElement.width === 300; i++) await frame()
   })()
@@ -1099,6 +1107,7 @@ parts.main.el.innerHTML = STAR(true)
 parts.left.el.innerHTML = STAR(false)
 parts.right.el.innerHTML = STAR(false)
 const eyes = $('.eyes', buddy)
+const tethers = { left: $('[data-tether="left"]', buddy), right: $('[data-tether="right"]', buddy) }
 
 const ICONS = {
   you: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4.5 7.5 8 11l3.5-3.5M3 14h10"/></svg>',
@@ -1249,7 +1258,7 @@ function step(now) {
     s.y += s.vy * dt
   }
   // Stiff springs need small steps to stay stable, so the frame is split into fixed 4ms substeps.
-  const steps = Math.ceil(frameDt / 0.004)
+  const steps = Math.max(1, Math.ceil(frameDt / 0.004))
   dt = frameDt / steps
   if (!sleeping && now - lastActivity > 15000) { sleeping = true; hintEl.classList.remove('on') }
   const lift = armLift(now)
@@ -1273,6 +1282,24 @@ function step(now) {
     const lean = Math.max(-18, Math.min(18, s.vx * 0.03)) + (name === 'main' ? sway * 8 : 0)
     p.el.style.transform = `translate(${s.x - p.w / 2}px, ${s.y - p.h / 2}px) rotate(${lean}deg)`
   }
+  // Tethers are noodles with a little slack: one S-shaped wiggle that sways gently, goes slacker as a star comes
+  // closer, pulls taut as it falls behind, and drags a touch against the star's motion.
+  for (const name of ['left', 'right']) {
+    const s = state[name], p = parts[name]
+    const dx = m.x - s.x, dy = m.y - s.y
+    const len = Math.hypot(dx, dy) || 1
+    const nx = -dy / len, ny = dx / len
+    const restLen = Math.hypot(p.off[0], p.off[1])
+    const slack = Math.max(0, Math.min(1.4, (restLen + 12 - len) / 14))
+    const phase = t * 2.4 + (name === 'left' ? 0 : 1.7)
+    const amp = 7 * slack * (0.75 + 0.25 * Math.sin(phase))
+    const drag = Math.max(-6, Math.min(6, ((s.vx - m.vx) * nx + (s.vy - m.vy) * ny) * -0.004)) * slack
+    const a1 = amp + drag, a2 = -amp * 0.8 + drag
+    const c1x = s.x + dx / 3 + nx * a1, c1y = s.y + dy / 3 + ny * a1
+    const c2x = s.x + (dx * 2) / 3 + nx * a2, c2y = s.y + (dy * 2) / 3 + ny * a2
+    tethers[name].setAttribute('d', `M${s.x.toFixed(1)} ${s.y.toFixed(1)} C${c1x.toFixed(1)} ${c1y.toFixed(1)} ${c2x.toFixed(1)} ${c2y.toFixed(1)} ${m.x.toFixed(1)} ${m.y.toFixed(1)}`)
+  }
+
   // The eyes look where the body is heading.
   const speed = Math.hypot(m.vx, m.vy)
   if (speed > 3200 && !sleeping) flash('surprised', 250) // Whee.
