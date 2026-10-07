@@ -12,8 +12,10 @@ test.case("event hub sends the custom event payload and drops closed clients", f
 			if type(message) == "string" then
 				table.insert(sent, message)
 			end
+
 			return 1
 		end,
+
 		close = function(_self: net.ServerWebSocket, _code: number?, _message: string?) end,
 	}
 	hub.open(socket)

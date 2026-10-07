@@ -30,9 +30,11 @@ test.case("source commands validate and persist configuration", function(assert)
 	assert.throws(function()
 		run({ "source", "add", "github", "--host", "evil/@host", "--owners", "Roblox" })
 	end)
+
 	assert.throws(function()
 		run({ "source", "add", "github", "--host", "github.com", "--owners", " , , " })
 	end)
+
 	run({ "source", "remove", "hop" })
 	assert.eq(#store.load(dir).settings.sources, 2)
 end)

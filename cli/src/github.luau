@@ -75,9 +75,11 @@ end
 function github.getRefFor(item: Item, defaultOwner: string): Ref?
 	local repo = item.data.repo
 	local number = item.data.pr
+
 	if type(repo) ~= "string" or type(number) ~= "number" then
 		return nil
 	end
+
 	local owner, name = repo:match("^([^/]+)/([^/]+)$")
 	return {
 		owner = owner or defaultOwner,
@@ -93,19 +95,24 @@ end
 
 local function getPullFromObject(object: json.Object, owner: string, name: string, host: string?): PullState?
 	local number, state, url = object.number, object.state, object.url
+
 	if type(number) ~= "number" or type(state) ~= "string" or type(url) ~= "string" then
 		return nil
 	end
+
 	local requests = json.asObject(object.reviewRequests)
 	local requestedReviewers: { string } = {}
+
 	for _, raw in (if requests then json.asArray(requests.nodes) else nil) or {} do
 		local node = json.asObject(raw)
 		local reviewer = if node then json.asObject(node.requestedReviewer) else nil
 		local login = if reviewer then getString(reviewer.login) else nil
+
 		if login then
 			table.insert(requestedReviewers, login)
 		end
 	end
+
 	local author = json.asObject(object.author)
 	local commits = json.asObject(object.commits)
 	local commitNodes = if commits then json.asArray(commits.nodes) else nil
@@ -139,23 +146,29 @@ end
 -- gh can exit non-zero for a partially resolved GraphQL query while retaining usable data.
 function github.query(run: CommandRunner, source: string, host: string?): json.Object?
 	local argv = { "gh", "api" }
+
 	if host then
 		table.insert(argv, "--hostname")
 		table.insert(argv, host)
 	end
+
 	table.insert(argv, "graphql")
 	table.insert(argv, "-f")
 	table.insert(argv, `query={source}`)
 	local ok, response = pcall(run, argv, nil)
+
 	if not ok then
 		return nil
 	end
+
 	local decodedOk, decoded = pcall(json.deserialize, response.stdout)
 	local body = if decodedOk then json.asObject(decoded :: json.Value) else nil
+
 	if body == nil then
 		assert(response.ok, `gh api graphql failed: {response.stderr}`)
 		return nil
 	end
+
 	return json.asObject(body.data)
 end
 
@@ -164,15 +177,18 @@ local query = github.query
 function github.fetchPulls(run: CommandRunner, refs: { Ref }): { [string]: PullState }
 	local found: { [string]: PullState } = {}
 	local byHost: { [string]: { Ref } } = {}
+
 	for _, ref in refs do
 		local host = ref.host or "github.com"
 		byHost[host] = byHost[host] or {}
 		table.insert(byHost[host], ref)
 	end
+
 	for host, hostRefs in byHost do
 		for start = 1, #hostRefs, BATCH_SIZE do
 			local parts = {}
 			local batch: { [string]: Ref } = {}
+
 			for index = start, math.min(start + BATCH_SIZE - 1, #hostRefs) do
 				local ref = hostRefs[index]
 				assert(
@@ -186,12 +202,15 @@ function github.fetchPulls(run: CommandRunner, refs: { Ref }): { [string]: PullS
 					`{alias}: repository(owner: "{ref.owner}", name: "{ref.name}") \{ pullRequest(number: {ref.number}) \{ {PULL_FIELDS} } }`
 				)
 			end
+
 			local data = query(run, `query \{ {table.concat(parts, " ")} }`, if host == "github.com" then nil else host)
+
 			if data then
 				for alias, ref in batch do
 					local repository = json.asObject(data[alias])
 					local pull = if repository then json.asObject(repository.pullRequest) else nil
 					local parsed = if pull then getPullFromObject(pull, ref.owner, ref.name, ref.host) else nil
+
 					if parsed then
 						found[github.getKey(ref)] = parsed
 					end
@@ -199,24 +218,29 @@ function github.fetchPulls(run: CommandRunner, refs: { Ref }): { [string]: PullS
 			end
 		end
 	end
+
 	return found
 end
 
 local function getPullList(nodes: json.Array?): { PullState }
 	local out: { PullState } = {}
+
 	for _, raw in nodes or {} do
 		local object = json.asObject(raw)
 		local repository = if object then json.asObject(object.repository) else nil
 		local owner = if repository then json.asObject(repository.owner) else nil
 		local name = if repository then getString(repository.name) else nil
 		local login = if owner then getString(owner.login) else nil
+
 		if object and name and login then
 			local parsed = getPullFromObject(object, login, name)
+
 			if parsed then
 				table.insert(out, parsed)
 			end
 		end
 	end
+
 	return out
 end
 
@@ -243,11 +267,13 @@ local function isListed(repos: { string }?, name: string): boolean
 	if not repos then
 		return false
 	end
+
 	for _, repo in repos do
 		if repo:lower() == name:lower() then
 			return true
 		end
 	end
+
 	return false
 end
 
@@ -265,6 +291,7 @@ function github.getInvolved(
 	local pulls: { PullState } = {}
 	local issues: { IssueState } = {}
 	local seen: { [string]: boolean } = {}
+
 	for _, owner in owners do
 		for _, filter in
 			{
@@ -275,8 +302,10 @@ function github.getInvolved(
 		do
 			local cursor: string? = nil
 			local count = 0
+
 			while count < 300 do
 				local nodes, nextCursor, more = getSearchPage(run, host, `{filter} user:{owner}`, cursor)
+
 				for _, raw in nodes do
 					count += 1
 					local object = json.asObject(raw)
@@ -284,21 +313,29 @@ function github.getInvolved(
 					local repositoryOwner = if repository then json.asObject(repository.owner) else nil
 					local name = if repository then getString(repository.name) else nil
 					local actualOwner = if repositoryOwner then getString(repositoryOwner.login) else nil
+
 					if not object or not name or not actualOwner or actualOwner:lower() ~= owner:lower() then
 						continue
 					end
+
 					if include and not isListed(include, name) or isListed(exclude, name) then
 						continue
 					end
+
 					local number = object.number
+
 					if type(number) ~= "number" then
 						continue
 					end
+
 					local key = github.getKey({ host = host, owner = actualOwner, name = name, number = number })
+
 					if seen[key] then
 						continue
 					end
+
 					local pull = getPullFromObject(object, actualOwner, name, host)
+
 					if pull then
 						seen[key] = true
 						table.insert(pulls, pull)
@@ -314,13 +351,16 @@ function github.getInvolved(
 						})
 					end
 				end
+
 				if not more or not nextCursor or #nodes == 0 then
 					break
 				end
+
 				cursor = nextCursor
 			end
 		end
 	end
+
 	return pulls, issues, login
 end
 
@@ -350,6 +390,7 @@ local function isRequestedFrom(pull: PullState, viewer: string): boolean
 			return true
 		end
 	end
+
 	return false
 end
 
@@ -369,17 +410,21 @@ function github.getDesired(pull: PullState, status: string, who: string?, viewer
 	elseif pull.reviewRequests > 0 then
 		return "review", "review"
 	end
+
 	return "review", "you"
 end
 
 function github.collect(doc: Doc, run: CommandRunner, discover: boolean): Fetched
 	local refs: { Ref } = {}
+
 	for _, item in doc.nodes do
 		local ref = github.getRefFor(item, doc.settings.githubOwner)
+
 		if ref then
 			table.insert(refs, ref)
 		end
 	end
+
 	local authored, viewer = github.getAuthoredOpen(run)
 	return {
 		pulls = github.fetchPulls(run, refs),
@@ -436,41 +481,53 @@ end
 
 local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	local pulls = table.clone(fetched.pulls)
+
 	for _, list in { fetched.authored, fetched.reviews } do
 		for _, pull in list do
 			local key = github.getKey(pull)
+
 			if not pulls[key] then
 				pulls[key] = pull
 			end
 		end
 	end
+
 	local cards: { { id: string, pull: PullState } } = {}
 	local byId: { [string]: PullState } = {}
+
 	for _, item in doc.nodes do
 		local ref = github.getRefFor(item, doc.settings.githubOwner)
 		local pull = if ref then pulls[github.getKey(ref)] else nil
+
 		if pull then
 			table.insert(cards, { id = item.id, pull = pull })
 			byId[item.id] = pull
 		end
 	end
+
 	for index = #doc.links, 1, -1 do
 		local link = doc.links[index]
+
 		if link.origin ~= "stack" then
 			continue
 		end
+
 		local parent, child = byId[link.from], byId[link.to]
+
 		if parent and child and parent.state == "OPEN" and child.state == "OPEN" and not isStacked(parent, child) then
 			table.remove(doc.links, index)
 			table.insert(report.unlinked, { from = link.from, to = link.to })
 		end
 	end
+
 	for _, parent in cards do
 		for _, child in cards do
 			if not isStacked(parent.pull, child.pull) then
 				continue
 			end
+
 			local isLinked = false
+
 			for _, link in doc.links do
 				if
 					(link.from == parent.id and link.to == child.id) or (link.from == child.id and link.to == parent.id)
@@ -479,6 +536,7 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 					break
 				end
 			end
+
 			if not isLinked then
 				graph.link(doc, parent.id, child.id, "blocks").origin = "stack"
 				table.insert(report.linked, { from = parent.id, to = child.id })
@@ -491,21 +549,27 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 	local report: Report =
 		{ changes = {}, missing = {}, added = {}, reviewAdded = {}, linked = {}, unlinked = {}, checked = 0 }
 	local onCanvas: { [string]: boolean } = {}
+
 	for _, item in doc.nodes do
 		local ref = github.getRefFor(item, doc.settings.githubOwner)
+
 		if not ref then
 			continue
 		end
+
 		local key = github.getKey(ref)
 		onCanvas[key] = true
 		local pull = fetched.pulls[key]
+
 		if not pull then
 			table.insert(report.missing, item.id)
 			continue
 		end
+
 		report.checked += 1
 		local status, who = getString(item.data.status) or "todo", getString(item.data.who)
 		local nextStatus, nextWho = github.getDesired(pull, status, who, fetched.viewer)
+
 		if nextStatus ~= status or nextWho ~= who then
 			table.insert(report.changes, {
 				id = item.id,
@@ -518,15 +582,18 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			})
 			item.data.status, item.data.who = nextStatus, nextWho
 		end
+
 		item.data.github = recorded(pull, fetched.viewer, checkedAt)
 		item.data.branch = pull.branch or item.data.branch
 	end
 
 	for _, pull in fetched.reviews do
 		local key = github.getKey(pull)
+
 		if onCanvas[key] then
 			continue
 		end
+
 		ensureGroup(doc, REVIEWS_ID, "Review requests", "Pull requests waiting on your review.")
 		local status, who = github.getDesired(pull, "todo", nil, fetched.viewer)
 		local item = graph.addItem(doc, pull.title, {
@@ -544,12 +611,16 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 	end
 
 	local unplaced: json.Array = {}
+
 	for _, pull in fetched.authored do
 		local key = github.getKey(pull)
+
 		if onCanvas[key] then
 			continue
 		end
+
 		local repo = getRepoName(doc, pull)
+
 		if fetched.discover then
 			ensureGroup(doc, INBOX_ID, "Inbox", "Open pull requests found on GitHub that aren't placed yet.")
 			local status, who = github.getDesired(pull, "todo", nil, fetched.viewer)
@@ -566,9 +637,11 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			table.insert(report.added, item.id)
 		else
 			local candidates: json.Array = {}
+
 			for _, candidate in match.candidates(doc, pull.title, pull.owner, pull.name) do
 				table.insert(candidates, json.object({ id = candidate.id, score = candidate.score }))
 			end
+
 			table.insert(
 				unplaced,
 				json.object({
@@ -585,6 +658,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			)
 		end
 	end
+
 	syncStackLinks(doc, fetched, report)
 	table.sort(unplaced, function(a, b)
 		local left, right = json.asObject(a), json.asObject(b)
@@ -592,6 +666,7 @@ function github.apply(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		local rightTime: string = if right then getString(right.updatedAt) or "" else ""
 		return (tonumber((leftTime:gsub("%D", ""))) or 0) > (tonumber((rightTime:gsub("%D", ""))) or 0)
 	end)
+
 	doc.github = json.object({ viewer = fetched.viewer, checkedAt = checkedAt, unplaced = unplaced })
 	return report
 end
