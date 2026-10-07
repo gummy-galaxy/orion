@@ -3,7 +3,7 @@ local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local graph = require("@root/graph")
-local render = require("@root/render")
+local renderFocus = require("@root/render/focus")
 local store = require("@root/store")
 
 type Context = context.Context
@@ -18,9 +18,9 @@ return table.freeze({
 		local report = store.readFocus(options.dir)
 		local derived = graph.derive(doc)
 		if options.asJson then
-			options.write(json.serialize(render.serializeFocus(doc, derived, report), true))
+			options.write(json.serialize(renderFocus.serialize(doc, derived, report), true))
 		else
-			options.write(render.formatFocus(doc, derived, report))
+			options.write(renderFocus.format(doc, derived, report))
 		end
 	end,
 })

@@ -11,6 +11,7 @@ local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
+local renderGroup = require("@root/render/group")
 local restore = require("@root/cli/restore")
 local serve = require("@root/cli/serve")
 local source = require("@root/cli/source")
@@ -304,8 +305,8 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	local lines = {}
 	for _, group in doc.nodes do
 		if graph.isGroup(group) then
-			table.insert(values, render.serializeGroup(doc, derived, group))
-			table.insert(lines, `{group.id}  {render.formatGroupLine(doc, derived, group)}`)
+			table.insert(values, renderGroup.serialize(doc, derived, group))
+			table.insert(lines, `{group.id}  {renderGroup.formatLine(doc, derived, group)}`)
 		end
 	end
 	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))

@@ -4,6 +4,7 @@ local path = require("@std/path")
 local process = require("@std/process")
 local task = require("@std/task")
 
+local fileNames = require("@root/fileNames")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -12,18 +13,11 @@ type Item = types.Item
 type Link = types.Link
 type Source = types.Source
 
--- All Orion writers use this lock and the same atomic write path.
-local FILE = "orion.json"
--- A transient server report, separate from the document lock and revision.
-local FOCUS_FILE = "focus.json"
-local LOCK = "orion.lock"
-local BACKUPS = "backups"
 local DAY_SECONDS = 24 * 60 * 60
 local DAILY_DAYS = 30
 local LOCK_TIMEOUT_SECONDS = 5
 local STALE_LOCK_SECONDS = 30
 local DEFAULT_OWNER = "flipbook-labs"
-local WORKSPACES = "workspaces.json"
 
 export type Workspace = { name: string, label: string }
 export type WorkspaceList = { active: string, workspaces: { Workspace } }
@@ -53,7 +47,7 @@ function store.getWorkspaceDir(root: string, name: string): string
 end
 
 function store.getWorkspaces(root: string): WorkspaceList
-	local file = tostring(path.join(root, WORKSPACES))
+	local file = tostring(path.join(root, fileNames.workspaces))
 	local result: WorkspaceList = { active = "default", workspaces = { { name = "default", label = "Default" } } }
 	if not fs.exists(file) then
 		return result
@@ -89,7 +83,7 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 	for _, workspace in list.workspaces do
 		table.insert(entries, json.object({ name = workspace.name, label = workspace.label }))
 	end
-	local file = tostring(path.join(root, WORKSPACES))
+	local file = tostring(path.join(root, fileNames.workspaces))
 	workspaceWriteSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{workspaceWriteSequence}`
 	fs.writeStringToFile(temporary, json.serialize(json.object({ active = list.active, workspaces = entries }), true))
@@ -144,7 +138,7 @@ function store.useWorkspace(root: string, name: string): WorkspaceList
 end
 
 function store.filePath(dir: string): string
-	return tostring(path.join(dir, FILE))
+	return tostring(path.join(dir, fileNames.document))
 end
 
 function store.getBackupName(revision: number, now: number): string
@@ -152,7 +146,7 @@ function store.getBackupName(revision: number, now: number): string
 end
 
 function store.getBackups(dir: string): { Backup }
-	local folder = path.join(dir, BACKUPS)
+	local folder = path.join(dir, fileNames.backups)
 	local found: { Backup } = {}
 	if not fs.exists(folder) then
 		return found
@@ -358,7 +352,7 @@ end
 
 -- Nil when the app isn't open, or caught the file mid-replace.
 function store.readFocus(dir: string): Focus?
-	local file = path.join(dir, FOCUS_FILE)
+	local file = path.join(dir, fileNames.focus)
 	if not fs.exists(file) then
 		return nil
 	end
@@ -369,7 +363,7 @@ function store.readFocus(dir: string): Focus?
 end
 
 function store.clearFocus(dir: string)
-	local file = tostring(path.join(dir, FOCUS_FILE))
+	local file = tostring(path.join(dir, fileNames.focus))
 	if fs.exists(file) then
 		fs.remove(file)
 	end
@@ -378,7 +372,7 @@ end
 local focusWriteSequence = 0
 
 function store.putFocus(dir: string, tab: string, open: string?, selected: json.Array?, isClosed: boolean?)
-	local file = tostring(path.join(dir, FOCUS_FILE))
+	local file = tostring(path.join(dir, fileNames.focus))
 	if isClosed then
 		if fs.exists(file) then
 			local didRead, value = pcall(function()
@@ -425,7 +419,7 @@ local function release(lockPath: string)
 end
 
 local function acquire(dir: string): string
-	local lockPath = tostring(path.join(dir, LOCK))
+	local lockPath = tostring(path.join(dir, fileNames.lock))
 	local ownerPath = path.join(lockPath, "owner")
 	local deadline = os.time() + LOCK_TIMEOUT_SECONDS
 	while true do
@@ -456,7 +450,7 @@ local function atomicWrite(file: string, contents: string)
 		if fs.exists(file) then
 			local now = os.time()
 			local dir = path.dirname(file)
-			local folder = path.join(dir, BACKUPS)
+			local folder = path.join(dir, fileNames.backups)
 			if not fs.exists(folder) then
 				fs.createDirectory(folder)
 			end
