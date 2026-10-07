@@ -1,7 +1,8 @@
-import { useContext, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
+import { useContext, type ReactNode } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import { ActionsContext, DerivedContext, type SourceRef } from './derive'
+import { ActionsContext, DerivedContext } from './derive'
 import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { SourceBadges } from './SourceBadges'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
@@ -22,109 +23,6 @@ function Ring({ done, total, size = 22 }: { done: number; total: number; size?: 
       <circle cx="10" cy="10" r={r} className="ring-bg" />
       <circle cx="10" cy="10" r={r} className="ring-fg" strokeDasharray={`${total ? (done / total) * c : 0} ${c}`} transform="rotate(-90 10 10)" />
     </svg>
-  )
-}
-
-function Favicon({ domain }: { domain: string }) {
-  const [failed, setFailed] = useState(false)
-  return (
-    <span className="source-favicon">
-      <svg viewBox="0 0 20 20" aria-hidden="true">
-        <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M3 10h14M10 3c-4 4-4 10 0 14 4-4 4-10 0-14Z" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      </svg>
-      {!failed && (domain === 'orion' || domain.includes('.')) && (
-        <img src={domain === 'orion' ? '/favicon.svg' : `https://${domain}/favicon.ico`} alt="" onError={() => setFailed(true)} />
-      )}
-    </span>
-  )
-}
-
-const stop = (event: SyntheticEvent) => event.stopPropagation()
-
-function SourceLink({ source, label, className, children }: { source: SourceRef; label?: string; className?: string; children: ReactNode }) {
-  return source.href ? (
-    <a
-      className={className}
-      href={source.href}
-      target="_blank"
-      rel="noreferrer"
-      aria-label={label}
-      onPointerDown={stop}
-      onClick={stop}
-      onDoubleClick={stop}
-    >
-      {children}
-    </a>
-  ) : (
-    <span className={className} role={label ? 'img' : undefined} aria-label={label}>
-      {children}
-    </span>
-  )
-}
-
-function SourceMenu({ domain, name, sources }: { domain: string; name: string; sources: SourceRef[] }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDetailsElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const dismiss = (event: PointerEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false)
-    }
-    document.addEventListener('pointerdown', dismiss, true)
-    return () => document.removeEventListener('pointerdown', dismiss, true)
-  }, [open])
-
-  return (
-    <details
-      ref={ref}
-      open={open}
-      className="source-domain source-domain-many nodrag"
-      onToggle={(event) => setOpen(event.currentTarget.open)}
-      onPointerDown={stop}
-      onClick={stop}
-    >
-      <summary aria-label={`${name}: ${sources.length} sources`} title={`${name}: ${sources.length} sources. Click to show them.`}>
-        <Favicon domain={domain} />
-        <span className="source-count">{sources.length}</span>
-      </summary>
-      <div className="source-menu">
-        <strong>{name}</strong>
-        <ul>
-          {sources.map((source) => (
-            <li key={source.label}>
-              <SourceLink source={source}>{source.label}</SourceLink>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </details>
-  )
-}
-
-function SourceBadges({ sources, inBubble = false }: { sources: SourceRef[]; inBubble?: boolean }) {
-  const domains = new Map<string, SourceRef[]>()
-  for (const source of sources.length ? sources : [{ domain: 'orion', label: 'Orion' }]) {
-    const entries = domains.get(source.domain) ?? []
-    if (!entries.some((entry) => entry.label === source.label)) entries.push(source)
-    domains.set(source.domain, entries)
-  }
-  return (
-    <div className={`source-badges${inBubble ? ' in-bubble' : ''}`}>
-      {[...domains].map(([domain, entries]) => {
-        const name = domain === 'orion' ? 'Orion' : domain
-        return entries.length === 1 ? (
-          <span key={domain} className="source-domain nodrag" title={`${name}: ${entries[0].label}`}>
-            <SourceLink source={entries[0]} label={`${name}: ${entries[0].label}`} className="source-link">
-              <Favicon domain={domain} />
-            </SourceLink>
-          </span>
-        ) : (
-          <SourceMenu key={domain} domain={domain} name={name} sources={entries} />
-        )
-      })}
-    </div>
   )
 }
 
