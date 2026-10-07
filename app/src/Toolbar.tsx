@@ -4,9 +4,9 @@ export type Tool = 'select' | 'hand' | 'comment' | 'sticker'
 
 type ToolSpec = { id: Tool; label: string; key: string; hint: string; icon?: ReactNode }
 
-const icon = (d: string) => (
+const icon = (pathData: string) => (
   <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-    <path d={d} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    <path d={pathData} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
   </svg>
 )
 
@@ -48,9 +48,9 @@ const TOOLS: ToolSpec[] = [
  */
 export function Toolbar({ tool, sticker, setTool }: { tool: Tool; sticker: string; setTool: (tool: Tool, from?: DOMRect) => void }) {
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey || (e.target as HTMLElement).closest('input, textarea, select')) return
-      const picked = TOOLS.find((t) => t.key.toLowerCase() === e.key.toLowerCase())
+    const onKey = (event: KeyboardEvent) => {
+      if (event.repeat || event.metaKey || event.ctrlKey || event.altKey || (event.target as HTMLElement).closest('input, textarea, select')) return
+      const picked = TOOLS.find((toolSpec) => toolSpec.key.toLowerCase() === event.key.toLowerCase())
       if (picked) setTool(picked.id)
     }
     window.addEventListener('keydown', onKey)
@@ -58,16 +58,16 @@ export function Toolbar({ tool, sticker, setTool }: { tool: Tool; sticker: strin
   }, [setTool])
   return (
     <div className="panel toolbar" role="toolbar" aria-label="Canvas tools">
-      {TOOLS.map((t) => (
+      {TOOLS.map((toolSpec) => (
         <button
-          key={t.id}
+          key={toolSpec.id}
           type="button"
-          className={`tool${tool === t.id ? ' current' : ''}`}
-          aria-pressed={tool === t.id}
-          title={`${t.label} (${t.key}): ${t.hint}`}
-          onClick={(e) => setTool(t.id, e.currentTarget.getBoundingClientRect())}
+          className={`tool${tool === toolSpec.id ? ' current' : ''}`}
+          aria-pressed={tool === toolSpec.id}
+          title={`${toolSpec.label} (${toolSpec.key}): ${toolSpec.hint}`}
+          onClick={(event) => setTool(toolSpec.id, event.currentTarget.getBoundingClientRect())}
         >
-          {t.icon ?? <span className="tool-emoji">{sticker}</span>}
+          {toolSpec.icon ?? <span className="tool-emoji">{sticker}</span>}
         </button>
       ))}
     </div>

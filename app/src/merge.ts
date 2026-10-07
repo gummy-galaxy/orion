@@ -5,13 +5,15 @@ import type { Sticker } from './sticker'
 type Conflict = { id: string; field: string }
 const missing = Symbol('missing')
 
-function isEqual(a: unknown, b: unknown): boolean {
-  if (Object.is(a, b)) return true
-  if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false
-  if (Array.isArray(a) || Array.isArray(b))
-    return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((value, index) => isEqual(value, b[index]))
-  const left = a as Record<string, unknown>
-  const right = b as Record<string, unknown>
+function isEqual(first: unknown, second: unknown): boolean {
+  if (Object.is(first, second)) return true
+  if (first === null || second === null || typeof first !== 'object' || typeof second !== 'object') return false
+  if (Array.isArray(first) || Array.isArray(second))
+    return (
+      Array.isArray(first) && Array.isArray(second) && first.length === second.length && first.every((value, index) => isEqual(value, second[index]))
+    )
+  const left = first as Record<string, unknown>
+  const right = second as Record<string, unknown>
   const keys = Object.keys(left)
   return keys.length === Object.keys(right).length && keys.every((key) => Object.hasOwn(right, key) && isEqual(left[key], right[key]))
 }
@@ -54,14 +56,14 @@ function mergeNode(base: AppNode | undefined, local: AppNode, remote: AppNode, c
   return { ...node, data } as AppNode
 }
 
-function isSameNode(a: AppNode, b: AppNode): boolean {
+function isSameNode(first: AppNode, second: AppNode): boolean {
   return (
-    a.type === b.type &&
-    isEqual(a.position, b.position) &&
-    a.parentId === b.parentId &&
-    a.width === b.width &&
-    a.height === b.height &&
-    isEqual(a.data, b.data)
+    first.type === second.type &&
+    isEqual(first.position, second.position) &&
+    first.parentId === second.parentId &&
+    first.width === second.width &&
+    first.height === second.height &&
+    isEqual(first.data, second.data)
   )
 }
 
@@ -88,7 +90,7 @@ function mergeItems<T extends { id: string }>(
   return result
 }
 
-export function mergeDocs(base: Saved, local: Saved, remote: Saved): Saved & { conflicts: Conflict[] } {
+export function mergeDocuments(base: Saved, local: Saved, remote: Saved): Saved & { conflicts: Conflict[] } {
   const conflicts: Conflict[] = []
   const nodes = mergeItems(base.nodes, local.nodes, remote.nodes, mergeNode, isSameNode, conflicts)
   const ids = new Set(nodes.map((node) => node.id))

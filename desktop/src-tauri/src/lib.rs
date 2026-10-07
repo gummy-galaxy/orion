@@ -19,11 +19,11 @@ fn stop_server(child: &mut Child) {
     let _ = child.wait();
 }
 
-fn start_server(app: &tauri::App) -> Option<(Child, WebviewUrl)> {
+fn start_server(application: &tauri::App) -> Option<(Child, WebviewUrl)> {
     let port = get_free_port().ok()?;
     let url = format!("http://127.0.0.1:{port}/").parse().ok()?;
     let binary = env::current_exe().ok()?.with_file_name("orion");
-    let static_dir = app.path().resource_dir().ok()?.join("dist");
+    let static_directory = application.path().resource_dir().ok()?.join("dist");
 
     let mut command = Command::new(binary);
     command.args([
@@ -33,7 +33,7 @@ fn start_server(app: &tauri::App) -> Option<(Child, WebviewUrl)> {
         "--port",
         &port.to_string(),
         "--static",
-        static_dir.to_str()?,
+        static_directory.to_str()?,
     ]);
 
     let mut path = env::var_os("PATH").unwrap_or_default();
@@ -42,8 +42,8 @@ fn start_server(app: &tauri::App) -> Option<(Child, WebviewUrl)> {
     }
     path.push("/opt/homebrew/bin:/usr/local/bin");
     command.env("PATH", path);
-    if let Some(data_dir) = env::var_os("ORION_DATA_DIR") {
-        command.env("ORION_DATA_DIR", data_dir);
+    if let Some(data_directory) = env::var_os("ORION_DATA_DIR") {
+        command.env("ORION_DATA_DIR", data_directory);
     }
 
     let mut child = command.spawn().ok()?;
@@ -72,17 +72,17 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        .setup(move |app| {
+        .setup(move |application| {
             let url = if cfg!(debug_assertions) {
                 WebviewUrl::App("index.html".into())
-            } else if let Some((child, url)) = start_server(app) {
+            } else if let Some((child, url)) = start_server(application) {
                 *server_for_setup.lock().unwrap() = Some(child);
                 url
             } else {
                 WebviewUrl::App("index.html".into())
             };
 
-            WebviewWindowBuilder::new(app, "main", url)
+            WebviewWindowBuilder::new(application, "main", url)
                 .title("Orion")
                 .inner_size(1440.0, 900.0)
                 .min_inner_size(960.0, 640.0)

@@ -15,12 +15,12 @@ const STARTER: Loadout = ['🎉', '🔥', '👀', '❤️', '🚀', '✅', '⭐'
 /** A saved loadout, padded or trimmed to the wheel; files without one get the starter set. */
 export const loadoutOf = (saved?: Loadout | null) => Array.from({ length: WHEEL_SLOTS }, (_, i) => (saved ? (saved[i] ?? null) : STARTER[i]))
 
-const EMOJI = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u20e3/u
+const EMOJI_PATTERN = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u20e3/u
 const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
 
 /** The first emoji in some typed or pasted text. */
 export function firstEmoji(text: string): string | null {
-  for (const { segment } of graphemes.segment(text)) if (EMOJI.test(segment)) return segment
+  for (const { segment } of graphemes.segment(text)) if (EMOJI_PATTERN.test(segment)) return segment
   return null
 }
 

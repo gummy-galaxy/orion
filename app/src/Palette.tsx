@@ -20,8 +20,8 @@ function match(query: string, value: string): Match | null {
   const indices: number[] = []
   let score = 0
   let from = 0
-  for (const char of needle) {
-    const at = haystack.indexOf(char, from)
+  for (const character of needle) {
+    const at = haystack.indexOf(character, from)
     if (at < 0) return null
     indices.push(at)
     score += 10
@@ -34,7 +34,7 @@ function match(query: string, value: string): Match | null {
 
 function highlighted(value: string, indices: number[]) {
   const picked = new Set(indices)
-  return [...value].map((char, i) => (picked.has(i) ? <mark key={i}>{char}</mark> : char))
+  return [...value].map((character, i) => (picked.has(i) ? <mark key={i}>{character}</mark> : character))
 }
 
 export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
@@ -54,8 +54,8 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
     const term = query.trim()
     if (!term) {
       const nodeResults = nodes
-        .filter((n) => isCluster(n) || (n.type === 'task' && n.data.who === 'you'))
-        .sort((a, b) => Number(isCluster(b)) - Number(isCluster(a)))
+        .filter((node) => isCluster(node) || (node.type === 'task' && node.data.who === 'you'))
+        .sort((first, second) => Number(isCluster(second)) - Number(isCluster(first)))
         .slice(0, 50)
         .map((node): NodeResult => ({
           kind: 'node',
@@ -101,7 +101,12 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
         }
       })
       .filter((result): result is NodeResult => result !== null)
-      .sort((a, b) => b.score - a.score || a.node.data.label.length - b.node.data.label.length || a.node.data.label.localeCompare(b.node.data.label))
+      .sort(
+        (first, second) =>
+          second.score - first.score ||
+          first.node.data.label.length - second.node.data.label.length ||
+          first.node.data.label.localeCompare(second.node.data.label),
+      )
       .slice(0, 50)
     return [...commandResults, ...nodeResults]
   }, [nodes, query, commands])
@@ -120,35 +125,35 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
     else jumpTo(result.node.id)
   }
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      e.preventDefault()
-      e.stopPropagation()
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
       close()
-    } else if (e.key === 'Tab') {
+    } else if (event.key === 'Tab') {
       const buttons = list.current?.querySelectorAll<HTMLButtonElement>('button')
       const last = buttons?.[buttons.length - 1]
-      if (e.shiftKey && e.target === input.current) {
-        e.preventDefault()
+      if (event.shiftKey && event.target === input.current) {
+        event.preventDefault()
         last?.focus()
-      } else if (!e.shiftKey && (!last || e.target === last)) {
-        e.preventDefault()
+      } else if (!event.shiftKey && (!last || event.target === last)) {
+        event.preventDefault()
         input.current?.focus()
       }
-    } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault()
-      e.stopPropagation()
-      if (results.length) setSelected((index) => (index + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length)
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      event.stopPropagation()
+      if (results.length) setSelected((index) => (index + (event.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length)
       input.current?.focus()
-    } else if (e.key === 'Enter' && e.target === input.current) {
-      e.preventDefault()
-      e.stopPropagation()
+    } else if (event.key === 'Enter' && event.target === input.current) {
+      event.preventDefault()
+      event.stopPropagation()
       if (results[selected]) pick(results[selected])
     }
   }
 
   return (
-    <div className="palette-backdrop" onMouseDown={(e) => e.target === e.currentTarget && close()}>
+    <div className="palette-backdrop" onMouseDown={(event) => event.target === event.currentTarget && close()}>
       <div className="palette panel" role="dialog" aria-modal="true" aria-label="Search canvas" onKeyDown={onKeyDown}>
         <input
           ref={input}
@@ -160,8 +165,8 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
           aria-activedescendant={results[selected] ? `palette-result-${selected}` : undefined}
           placeholder="Search groups, cards, PRs, actions…"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
+          onChange={(event) => {
+            setQuery(event.target.value)
             setSelected(0)
           }}
         />
@@ -177,7 +182,7 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
                   aria-selected={i === selected}
                   className="palette-result"
                   onMouseEnter={() => setSelected(i)}
-                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseDown={(event) => event.preventDefault()}
                   onClick={() => pick(result)}
                 >
                   <span className="palette-kind">Action</span>
@@ -202,7 +207,7 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
                 aria-selected={i === selected}
                 className="palette-result"
                 onMouseEnter={() => setSelected(i)}
-                onMouseDown={(e) => e.preventDefault()}
+                onMouseDown={(event) => event.preventDefault()}
                 onClick={() => pick(result)}
               >
                 <span className="palette-kind">{isCluster(node) ? 'Group' : node.data.itemKind === 'note' ? 'Note' : 'Card'}</span>
