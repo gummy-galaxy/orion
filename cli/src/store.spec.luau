@@ -50,6 +50,7 @@ test.case("transaction bumps the revision and keeps fields it doesn't know about
 	local after = store.transaction(dir, function(current)
 		current.nodes[1].data.status = "done"
 	end)
+
 	assert.eq(after.revision, 1)
 	local reread = store.load(dir)
 	assert.eq(reread.revision, 1)
@@ -66,6 +67,7 @@ test.case("transaction releases the lock when the change fails", function(assert
 			error("nope")
 		end)
 	end)
+
 	assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
 	assert.eq(store.load(dir).revision, 0)
 end)
@@ -81,6 +83,7 @@ test.case("transaction saves the exact previous file before replacing it", funct
 	store.transaction(dir, function(doc)
 		doc.nodes[1].data.label = "After"
 	end)
+
 	local backups = store.getBackups(dir)
 	assert.eq(#backups, 1)
 	assert.eq(backups[1].revision, 0)
@@ -109,19 +112,23 @@ test.case("pruning keeps recent backups and one newest backup per UTC day", func
 		"orion-r7-20260905T010000Z.json",
 		"orion-r8-20260904T230000Z.json",
 	}
+
 	for _, name in names do
 		fs.writeStringToFile(path.join(folder, name), name)
 	end
+
 	fs.writeStringToFile(path.join(folder, "keep-me.json"), "unrelated")
 	fs.writeStringToFile(path.join(folder, "orion-r9-20261002T010000Z.json.tmp"), "unrelated")
 	fs.createDirectory(path.join(folder, "orion-r10-20260904T010000Z.json"))
 	store.pruneBackups(dir, 1791115200)
+
 	for index, name in names do
 		assert.eq(
 			fs.exists(path.join(folder, name)),
 			index == 1 or index == 2 or index == 3 or index == 5 or index == 7
 		)
 	end
+
 	assert.eq(fs.exists(path.join(folder, "keep-me.json")), true)
 	assert.eq(fs.exists(path.join(folder, "orion-r9-20261002T010000Z.json.tmp")), true)
 	assert.eq(fs.exists(path.join(folder, "orion-r10-20260904T010000Z.json")), true)

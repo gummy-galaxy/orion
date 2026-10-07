@@ -16,6 +16,7 @@ return table.freeze({
 		parser:add("host", "option", { help = "HTTP host (default 127.0.0.1)" })
 		parser:add("static", "option", { help = "Built app directory" })
 	end,
+
 	run = function(parser: batteriesCli.Parser, options: Context)
 		local port = tonumber(parser:get("port") or "5198")
 		assert(port and port >= 0 and port <= 65535 and port % 1 == 0, "port must be an integer from 0 to 65535")
@@ -25,8 +26,10 @@ return table.freeze({
 		local host = parser:get("host") or "127.0.0.1"
 		local running = server.start(options.root, options.workspace, host, port, parser:get("static"))
 		options.write(`Orion serving on http://{running.hostname}:{running.port}`)
+
 		while true do
 			task.wait(if isWatchingParent then 2 else 3600)
+
 			if isWatchingParent and not isProcessAlive(parentPid :: number, options.runner) then
 				running.close()
 				process.exit(0)

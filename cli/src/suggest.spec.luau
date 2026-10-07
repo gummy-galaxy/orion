@@ -154,6 +154,7 @@ test.case("agent reply drops unknown and duplicate ids while retaining ignored h
 			[[{"result":"{\"groups\":[{\"title\":\"Avatar work\",\"members\":[\"a\",\"missing\",\"a\",\"b\"]},{\"title\":\"Too small\",\"members\":[\"b\",\"c\"]}]}"}]]
 		)
 	end)
+
 	assert.eq(didFallback, false)
 	assert.strContains(prompt, "heuristicComponents")
 	assert.eq(#result.groups, 2)
@@ -170,6 +171,7 @@ test.case("garbage agent reply keeps heuristic suggestions", function(assert)
 		assert.strContains(stdin or "", "cards")
 		return testing.result(true, "not JSON")
 	end)
+
 	assert.eq(didFallback, true)
 	assert.eq(result.groups[1].source, "heuristic")
 end)

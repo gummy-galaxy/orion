@@ -15,9 +15,11 @@ local function createRequest(
 	workspace: string?
 ): net.ReceivedRequest
 	local headers: { [string]: string } = {}
+
 	if workspace then
 		headers["x-orion-workspace"] = workspace
 	end
+
 	return {
 		method = method,
 		path = route,
@@ -39,6 +41,7 @@ local function createRouter(name: string)
 		getStatus = function()
 			return status
 		end,
+
 		run = function()
 			return status
 		end,
@@ -151,6 +154,7 @@ test.case("static route serves files and falls back to index outside the API", f
 		getStatus = function()
 			return json.object({ state = "idle" })
 		end,
+
 		run = function()
 			return json.object({ state = "idle" })
 		end,

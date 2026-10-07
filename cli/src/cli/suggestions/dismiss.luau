@@ -12,11 +12,13 @@ return table.freeze({
 		parser:add("ids", "variadic", { help = "Suggestion ids" })
 		parser:add("all", "flag", { help = "Dismiss every suggestion" })
 	end,
+
 	run = function(parser: batteriesCli.Parser, options: Context)
 		local changed: { string } = {}
 		store.transaction(options.dir, function(doc)
 			changed = suggest.change(doc, "dismiss", parser:variadics(), parser:has("all"))
 		end)
+
 		options.write(`Dismissed {#changed} suggestions: {table.concat(changed, ", ")}`)
 	end,
 })

@@ -52,3 +52,9 @@ Cards ingested from Jira use `data.external` with the source ID and issue key as
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
 - Look up ids with `orion list --all` or `orion show` rather than guessing them.
 - Group by outcome, not by repository.
+
+## Luau style
+
+- Keep related requires, type aliases, constants, and short assignments together. Separate those groups and adjacent functions with blank lines.
+- Within functions, use blank lines between logical steps: setup, guards, loops and branches, state changes, and the final result. Keep statements that form one step together.
+- Run StyLua after editing Luau, then review the spacing yourself. StyLua sorts requires and formats statements, but does not add these logical blank lines.

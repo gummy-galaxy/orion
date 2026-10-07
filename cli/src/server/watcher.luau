@@ -10,9 +10,11 @@ local watcher = {}
 
 local function getStamp(file: string): Stamp?
 	local didSucceed, metadata = pcall(fs.metadata, file)
+
 	if not didSucceed or metadata.type ~= "file" then
 		return nil
 	end
+
 	return { size = metadata.size, modified = metadata.modified:toNanoseconds() }
 end
 
@@ -20,6 +22,7 @@ local function hasStampChanged(previous: Stamp?, current: Stamp?): boolean
 	if previous == nil or current == nil then
 		return previous ~= current
 	end
+
 	return previous.size ~= current.size or previous.modified ~= current.modified
 end
 
@@ -45,9 +48,11 @@ function watcher.create(root: string, active: () -> string, switchTo: (string) -
 	function monitor.switchTo(name: string)
 		folder:close()
 		local dir = store.getWorkspaceDir(root, name)
+
 		if not fs.exists(dir) then
 			fs.createDirectory(dir, { makeParents = true })
 		end
+
 		folder = fs.watch(dir)
 		dataFile = store.filePath(dir)
 		lastDataStamp = getStamp(dataFile)
@@ -62,20 +67,27 @@ function watcher.create(root: string, active: () -> string, switchTo: (string) -
 			if isClosed or scheduled ~= generation then
 				return
 			end
+
 			local current = getStamp(dataFile)
+
 			if not hasStampChanged(lastDataStamp, current) then
 				return
 			end
+
 			if current == nil then
 				lastDataStamp = nil
 				lastRevision = nil
 				return
 			end
+
 			local revision = getRevision()
+
 			if revision == nil then
 				return -- A writer may still be finishing; retry on the next check.
 			end
+
 			lastDataStamp = current
+
 			if revision ~= lastRevision then
 				lastRevision = revision
 				changed(revision)
@@ -91,16 +103,22 @@ function watcher.create(root: string, active: () -> string, switchTo: (string) -
 
 	local function checkWorkspace()
 		local current = getStamp(manifestFile)
+
 		if not hasStampChanged(lastManifestStamp, current) then
 			return
 		end
+
 		local didSucceed, list = pcall(store.getWorkspaces, root)
+
 		if not didSucceed or not list then
 			return -- Retry if a concurrent writer has not finished the manifest.
 		end
+
 		lastManifestStamp = current
+
 		if list.active ~= lastManifestActive then
 			lastManifestActive = list.active
+
 			if list.active ~= active() then
 				switchTo(list.active)
 			end
@@ -112,9 +130,12 @@ function watcher.create(root: string, active: () -> string, switchTo: (string) -
 			while not isClosed do
 				while manifest:next() do
 				end
+
 				checkWorkspace()
+
 				while folder:next() do
 				end
+
 				checkChange()
 				task.wait(0.1)
 			end

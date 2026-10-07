@@ -40,11 +40,13 @@ test.case("sync writes GitHub state through the command runner", function(assert
 		elseif argv[5]:find("search(", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
+
 		return testing.result(
 			true,
 			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health to PostHog","url":"u","state":"MERGED","isDraft":false,"reviewDecision":null,"reviewRequests":{"totalCount":0},"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"SUCCESS"}}}]}}}}}]]
 		)
 	end)
+
 	assert.strContains(text, "ci: active → done")
 	local item = store.load(dir).nodes[2]
 	assert.eq(item.data.status, "done")
@@ -63,11 +65,13 @@ test.case("sync --dry-run leaves the data alone", function(assert)
 		elseif argv[5]:find("search(", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
+
 		return testing.result(
 			true,
 			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,"reviewRequests":{"totalCount":0}}}}}]]
 		)
 	end)
+
 	assert.eq(store.load(dir).revision, 0)
 end)
 
@@ -87,6 +91,7 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 			},
 		})
 	end)
+
 	assert.strContains(run({ "matches" }), "flipbook#670")
 	assert.strContains(run({ "matches" }), "pub")
 	local values = json.asArray(json.deserialize(run({ "matches", "--json" })) :: json.Value)
@@ -105,6 +110,7 @@ test.case("sync records unplaced authored pulls without adding review request ca
 		elseif argv[5]:find("review-requested", 1, true) then
 			isSearched = true
 		end
+
 		return testing.result(true, [[{"data":{"p1":{"pullRequest":null}}}]])
 	end)
 	assert.eq(isSearched, false)

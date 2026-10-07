@@ -17,6 +17,7 @@ test.case("suggestions apply keeps links, marks layout pending, and prunes empty
 	doc.links[1].origin = "mention"
 	store.write(dir, doc)
 	local output = {}
+
 	local function run(args: { string })
 		table.clear(output)
 		cli.execute(args, {
@@ -27,6 +28,7 @@ test.case("suggestions apply keeps links, marks layout pending, and prunes empty
 		})
 		return table.concat(output)
 	end
+
 	run({ "suggest", "--dry-run" })
 	assert.eq(store.load(dir).revision, 0)
 	run({ "suggest" })
@@ -47,6 +49,7 @@ test.case("suggestions apply and dismiss select their workspace", function(asser
 	local root, run = testing.createHarness("suggestions-workspace")
 	run({ "workspace", "create", "roblox" })
 	local dir = store.getWorkspaceDir(root, "roblox")
+
 	local function saveSuggestion()
 		store.write(
 			dir,
@@ -70,6 +73,7 @@ test.case("suggestions apply and dismiss select their workspace", function(asser
 			})
 		end)
 	end
+
 	saveSuggestion()
 	assert.eq(run({ "suggestions" }), "No group suggestions.")
 	assert.strContains(run({ "suggestions", "apply", "--all", "--workspace", "roblox" }), "Applied 1 suggestions")
