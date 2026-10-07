@@ -1,11 +1,9 @@
-import { useContext, useState } from 'react'
+import { useContext, useState, type ReactNode } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext, type SourceRef } from './derive'
-import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { STATUS_LABEL, WHO_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
 
-const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
-
-function Lock() {
+export function Lock() {
   return (
     <svg viewBox="0 0 10 12" width="8" height="10" aria-hidden="true" className="lock">
       <path d="M2.5 5V3.5a2.5 2.5 0 0 1 5 0V5" fill="none" stroke="currentColor" strokeWidth="1.4" />
@@ -14,10 +12,7 @@ function Lock() {
   )
 }
 
-/** Below this on-screen width, a folded group's bubble shows only its name. */
-const BUBBLE_DETAIL_WIDTH = 150
-
-function Ring({ done, total, size = 22 }: { done: number; total: number; size?: number }) {
+export function Ring({ done, total, size = 22 }: { done: number; total: number; size?: number }) {
   const r = 8
   const c = 2 * Math.PI * r
   return (
@@ -28,7 +23,7 @@ function Ring({ done, total, size = 22 }: { done: number; total: number; size?: 
   )
 }
 
-function Favicon({ domain }: { domain: string }) {
+export function Favicon({ domain }: { domain: string }) {
   const [failed, setFailed] = useState(false)
   return (
     <span className="source-favicon">
@@ -82,28 +77,46 @@ function SourceBadges({ sources, inBubble = false }: { sources: SourceRef[]; inB
   )
 }
 
+/** Zoom below which a card's details sit in a tag over its body that keeps one on-screen size. */
+const FAR_ZOOM = 0.3
+
+function FarTag({ className, children }: { className: string; children: ReactNode }) {
+  return (
+    <div className="pop-place">
+      <div className={`${className} far-card`}>{children}</div>
+    </div>
+  )
+}
+
 export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const d = useContext(DerivedContext)!
+  const far = useStore((s) => s.transform[2] < FAR_ZOOM)
   const st = d.status.get(id) ?? 'ready'
   const lev = d.leverage.get(id) ?? 0
   const tr = d.trace?.get(id)
   const attn = d.attention?.get(id)
   if (data.itemKind === 'note') {
-    return (
-      <div className={`card note${tr ? ' tr-' + tr : ''}`}>
-        <Handle type="target" position={Position.Left} />
+    const className = `card note${tr ? ' tr-' + tr : ''}`
+    const body = (
+      <>
         <div className="meta">
           <span>Note</span>
         </div>
         <div className="note-text">{data.label || 'Empty note'}</div>
         <SourceBadges sources={d.sources.get(id) ?? []} />
+      </>
+    )
+    return (
+      <div className={className}>
+        <Handle type="target" position={Position.Left} />
+        {far ? <FarTag className={className}>{body}</FarTag> : body}
         <Handle type="source" position={Position.Right} />
       </div>
     )
   }
-  return (
-    <div className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn' : ''}`}>
-      <Handle type="target" position={Position.Left} />
+  const className = `card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn' : ''}`
+  const body = (
+    <>
       <div className="meta">
         <span className="meta-tag" title={getTaskTag(data)}>
           {getTaskTag(data)}
@@ -120,6 +133,12 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       {st !== 'done' && st !== 'deferred' && lev > 0 && <span className={`lev${lev >= 4 ? ' big' : ''}`}>unblocks {lev}</span>}
       {st !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
       <SourceBadges sources={d.sources.get(id) ?? []} />
+    </>
+  )
+  return (
+    <div className={className}>
+      <Handle type="target" position={Position.Left} />
+      {far ? <FarTag className={className}>{body}</FarTag> : body}
       <Handle type="source" position={Position.Right} />
     </div>
   )
@@ -142,14 +161,12 @@ export function GhostView({ data }: NodeProps<GhostNode>) {
   )
 }
 
-export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
+export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
   const d = useContext(DerivedContext)!
   const actions = useContext(ActionsContext)!
   const s = d.groups.get(id) ?? { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
   const collapsed = d.collapsed.has(id)
   const tr = d.trace?.get(id)
-  // A folded group raises a bubble from its center. The bubble keeps one on-screen size at every zoom.
-  const compact = useStore((s) => collapsed && (width ?? 300) * s.transform[2] < BUBBLE_DETAIL_WIDTH)
   const attn = d.attention?.get(id)
   return (
     <div className={`cluster${collapsed ? ' is-collapsed' : ''}${tr ? ' tr-' + tr : ''}`}>
@@ -158,7 +175,7 @@ export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
         <div className="pop drag">
           <span className="pop-anchor" />
           <div className="pop-place">
-            <div className={`bubble${compact ? ' is-compact' : ''}${attn ? ' attn' : ''}`}>
+            <div className={`bubble${attn ? ' attn' : ''}`}>
               <div className="bubble-title">
                 <Ring done={s.done} total={s.total} size={16} />
                 <strong>{data.label}</strong>

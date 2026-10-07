@@ -90,6 +90,8 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   done: 'Done',
 }
 
+export const WHO_LABEL: Record<Who, string> = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
+
 const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
 
 export function getTaskTag(d: TaskData): string {
