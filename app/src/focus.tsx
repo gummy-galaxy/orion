@@ -4,6 +4,7 @@
  */
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { Rect } from './attention'
+import type { Flow } from './derive'
 import { STATUS_LABEL, type ViewStatus } from './model'
 
 /** Lines from cards scrolled out of a column stop this far inside its edge. */
@@ -22,8 +23,8 @@ export type FocusItem = {
   status: ViewStatus
   where: string
   related: boolean
-  /** The link still blocks: it comes from open work. */
-  live: boolean
+  /** How the link between this card and the focused one reads. */
+  flow: Flow
 }
 
 type Anchor = { x: number; y: number; clipped: boolean }
@@ -98,8 +99,8 @@ export function FocusView({
     if (!a) return []
     const mid = card.y + card.h / 2
     const d = side === 'in' ? curve(a, { x: card.x, y: mid }) : curve({ x: card.x + card.w, y: mid }, a)
-    const cls = ['focus-line', item.related ? 'related' : item.live ? 'live' : 'still', a.clipped ? 'clipped' : '', hot === key ? 'hot' : '']
-    return [{ key, d, cls: cls.filter(Boolean).join(' '), arrow: item.related ? undefined : `url(#focus-arrow-${item.live ? 'live' : 'still'})` }]
+    const cls = ['focus-line', item.related ? 'related' : item.flow, a.clipped ? 'clipped' : '', hot === key ? 'hot' : '']
+    return [{ key, d, cls: cls.filter(Boolean).join(' '), arrow: item.related ? undefined : `url(#focus-arrow-${item.flow})` }]
   })
 
   const column = (side: 'in' | 'out', items: FocusItem[]) => (
@@ -146,7 +147,7 @@ export function FocusView({
     <div className="focus" ref={root} onAnimationEnd={measure}>
       <svg width={size.w} height={size.h} aria-hidden="true">
         <defs>
-          {['live', 'still'].map((kind) => (
+          {['live', 'held'].map((kind) => (
             <marker
               key={kind}
               id={`focus-arrow-${kind}`}
