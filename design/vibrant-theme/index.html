@@ -1103,17 +1103,42 @@ function hintFor(el) {
 }
 
 let focusEl = null
-let leaveTimer = 0
-document.addEventListener('pointerover', (e) => {
-  const el = e.target.closest('.card, .tile, .spot')
-  if (!el) return
-  clearTimeout(leaveTimer)
-  if (el !== focusEl) setFocus(el)
-})
-document.addEventListener('pointerout', (e) => {
-  const el = e.target.closest('.card, .tile, .spot')
-  if (el && !el.contains(e.relatedTarget)) leaveTimer = setTimeout(() => setFocus(null), 500)
-})
+let pointer = null
+document.addEventListener('pointermove', (e) => (pointer = [e.clientX, e.clientY]))
+
+/** The part of an element you can actually see, after its scroll containers clip it, or null when none of it shows. */
+function visibleRect(el) {
+  const r = el.getBoundingClientRect()
+  let left = r.left, top = Math.max(r.top, 60), right = Math.min(r.right, innerWidth), bottom = Math.min(r.bottom, innerHeight)
+  const clip = el.closest('.canvas')
+  if (clip) {
+    const c = clip.getBoundingClientRect()
+    left = Math.max(left, c.left); top = Math.max(top, c.top); right = Math.min(right, c.right); bottom = Math.min(bottom, c.bottom)
+  }
+  return right - left > 24 && bottom - top > 24 ? { left, top, right, bottom } : null
+}
+
+/**
+ * Perch on whatever is nearest the cursor, so the companion stays nearby instead of flying home whenever the pointer
+ * crosses a gap. A new neighbor has to be clearly closer before it takes over, which keeps it from flickering.
+ */
+function chooseFocus() {
+  const [x, y] = pointer ?? [innerWidth / 2, innerHeight / 2]
+  const dist = (el) => {
+    const r = visibleRect(el)
+    if (!r) return Infinity
+    return Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom))
+  }
+  let best = null, bestD = Infinity
+  for (const el of document.querySelectorAll('.card, .tile, .spot')) {
+    const d = dist(el)
+    if (d < bestD) { best = el; bestD = d }
+  }
+  const currentD = focusEl ? dist(focusEl) : Infinity
+  if (best !== focusEl && bestD < currentD - 40) setFocus(best)
+  else if (currentD === Infinity && !best) setFocus(null)
+}
+let lastChoice = 0
 
 let mood = ''
 let pendingMood = ''
@@ -1134,13 +1159,10 @@ function setMood(m) {
   if (m) buddy.classList.add(m)
 }
 
-/** Where the body wants to be: perched at a focused thing's top-right corner, or resting in the corner of the view. */
+/** Where the body wants to be: perched at the focused thing's top-right corner, or in the corner of the view when nothing shows. */
 function target() {
-  if (focusEl) {
-    const r = focusEl.getBoundingClientRect()
-    const onScreen = r.bottom > 60 && r.top < innerHeight && r.right > 0 && r.left < innerWidth
-    if (onScreen) return [Math.min(r.right - 6, innerWidth - 90), Math.max(r.top - 14, 84)]
-  }
+  const r = focusEl && visibleRect(focusEl)
+  if (r) return [Math.min(r.right - 6, innerWidth - 90), Math.max(r.top - 14, 84)]
   return [innerWidth - 64, innerHeight - 70]
 }
 
@@ -1158,6 +1180,7 @@ function step(now) {
   let dt = frameDt
   last = now
   const t = now / 1000
+  if (now - lastChoice > 120) { chooseFocus(); lastChoice = now }
   const [tx, ty] = target()
   const m = state.main
   const spring = (s, p, gx, gy, zeta = p.zeta) => {
