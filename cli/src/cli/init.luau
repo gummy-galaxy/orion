@@ -155,8 +155,7 @@ local function createParsers(): Parsers
 	set:add("id", "positional", { help = "Item or group id" })
 	set:add("label", "option", { help = "New label" })
 	set:add("blurb", "option", { help = "Group description" })
-	set:add("arrange", "option", { help = "How reflow arranges a group: auto, grid, or custom" })
-	set:add("columns", "option", { help = "Columns across for a grid group" })
+	set:add("arrange", "option", { help = "How reflow arranges a group: auto or custom" })
 	addFieldOptions(set)
 	addJsonFlag(set)
 
@@ -241,9 +240,6 @@ local function fields(parser: batteriesCli.Parser): graph.ItemFields
 	local pr = parser:get("pr")
 	local number = if pr then tonumber((pr:gsub("^#", ""))) else nil
 	assert(pr == nil or number, "pr must be a number")
-	local columns = parser:get("columns")
-	local count = if columns then tonumber(columns) else nil
-	assert(columns == nil or count, "columns must be a number")
 	return {
 		label = if parser:has("label") then parser:get("label") else nil,
 		blurb = parser:get("blurb"),
@@ -253,7 +249,6 @@ local function fields(parser: batteriesCli.Parser): graph.ItemFields
 		who = parser:get("who"),
 		note = parser:get("note"),
 		arrange = parser:get("arrange"),
-		columns = count,
 	}
 end
 

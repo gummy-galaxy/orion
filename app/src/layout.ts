@@ -48,26 +48,6 @@ export function grid(sizes: Size[], columns: number, gap: number): { at: Point[]
   }
 }
 
-/** Children in dependency order, taking whatever is free in reading order. A cycle falls back to reading order. */
-export function dependencyOrder(kids: AppNode[], edges: Edge[]): AppNode[] {
-  const waiting = new Map(kids.map((k) => [k.id, 0]))
-  for (const [, to] of edges) waiting.set(to, (waiting.get(to) ?? 0) + 1)
-  const left = [...kids].sort(reading)
-  const out: AppNode[] = []
-  while (left.length) {
-    const [next] = left.splice(
-      Math.max(
-        0,
-        left.findIndex((k) => waiting.get(k.id) === 0),
-      ),
-      1,
-    )
-    out.push(next)
-    for (const [from, to] of edges) if (from === next.id) waiting.set(to, (waiting.get(to) ?? 0) - 1)
-  }
-  return out
-}
-
 /**
  * Cuts a left-to-right layout into strips of at most `WRAP` layers, each no wider than `ROW_WIDTH` unless a single
  * layer is wider on its own, and stacks them top to bottom, so a long chain reads like lines of text. Returns null
@@ -240,13 +220,7 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
     edges.push([a, b])
   }
   const gap = groupId ? INNER : TOP
-  let pos: Map<string, Point>
-  if (arrange === 'grid') {
-    const order = dependencyOrder(kids, edges)
-    const columns = group && isCluster(group) ? group.data.columns : undefined
-    const g = grid(order.map(sizeOf), columns ?? WRAP, gap.node)
-    pos = new Map(order.map((k, i) => [k.id, g.at[i]]))
-  } else pos = await flow(kids, edges, gap)
+  const pos = await flow(kids, edges, gap)
   const offset = groupId ? { x: PAD, y: HEAD } : { x: 0, y: 0 }
   return normalize(nodes.map((n) => (pos.has(n.id) ? { ...n, position: { x: pos.get(n.id)!.x + offset.x, y: pos.get(n.id)!.y + offset.y } } : n)))
 }
