@@ -10,6 +10,8 @@ A look at Orion in a dark purple theme built from the app icon's inks: teal, blu
 - Corners use medium radii, from 3px on chips to 12px on panels, set with the `--r-*` tokens.
 - Your-move cards glow, finished cards fade to gray with a stamp, expected cards get a dashed frame, and gates get a full-spectrum frame.
 
+- The logo's stars double as a companion. The center star is the body and springs to whatever you hover, while the side stars chase it on looser springs and swing in when it stops. Once perched it shows a picture and a word or two, blinks now and then, winks at your-move cards, squints happily at shipped ones, and narrows its eyes at blocked ones.
+
 Open `index.html` through any static server, for example:
 
 ```bash

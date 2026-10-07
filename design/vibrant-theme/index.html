@@ -409,6 +409,28 @@
   .note p { margin: 8px 0 0; font: 500 15px/1.45 var(--font-ui); color: var(--ink); }
 
   .park { position: fixed; left: -9999px; top: 0; width: 260px; height: 156px; }
+
+  /* ── Companion: the logo's stars as a little guide that follows your focus ── */
+  .buddy { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; }
+  .buddy-star { position: absolute; left: 0; top: 0; will-change: transform; filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.55)) drop-shadow(0 0 16px rgb(201 139 255 / 0.5)); }
+  .buddy-star svg { display: block; overflow: visible; }
+  .buddy-star.main svg { width: 40px; height: 64px; }
+  .buddy-star.side svg { width: 21px; height: 34px; }
+  .buddy .eyes { transform-box: fill-box; transform-origin: center; transition: transform 0.08s; }
+  .buddy.blink .eyes { transform: scaleY(0.12); }
+  .buddy .eye path { display: none; }
+  .buddy.wink .eye.r ellipse, .buddy.happy .eye ellipse { display: none; }
+  .buddy.wink .eye.r path, .buddy.happy .eye path { display: block; }
+  .buddy.worried .eye ellipse { transform: scaleY(0.6); transform-box: fill-box; transform-origin: center; }
+  .buddy-hint {
+    position: absolute; left: 0; top: 0; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+    padding: 5px 9px 5px 7px; border-radius: var(--r-sm); background: rgb(12 9 32 / 0.92); border: 1px solid var(--line-2);
+    box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(0 0 0 / 0.3);
+    font: 700 12px var(--font-ui); color: var(--ink);
+    opacity: 0; scale: 0.6; transform-origin: 0% 50%; transition: opacity 0.18s, scale 0.25s cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+  .buddy-hint.on { opacity: 1; scale: 1; }
+  .buddy-hint svg { width: 14px; height: 14px; color: var(--c, var(--ink)); flex: none; }
   .painter { position: fixed; left: 0; top: 0; opacity: 0; pointer-events: none; z-index: -1; }
 </style>
 </head>
@@ -510,6 +532,12 @@
   </div>
 </main>
 
+<div class="buddy" id="buddy" aria-hidden="true">
+  <div class="buddy-star side" data-star="left"></div>
+  <div class="buddy-star side" data-star="right"></div>
+  <div class="buddy-star main" data-star="main"></div>
+  <div class="buddy-hint" id="buddyHint"></div>
+</div>
 <div class="park" id="park"></div>
 
 <script type="importmap">{ "imports": { "@paper-design/shaders": "https://cdn.jsdelivr.net/npm/@paper-design/shaders@0.0.81/dist/index.js" } }</script>
@@ -958,6 +986,168 @@ $('#spot').addEventListener('pointermove', (e) => {
 })
 
 paintAll(render())
+
+/* ── Companion ─────────────────────────────────────────────────────────
+ * The center star is the body: it springs toward whatever has your focus. The side stars chase the body on looser
+ * springs, so they lag, overshoot, and swing back in when it stops.
+ */
+
+const STAR = (face) => {
+  const Lv = 182, Lh = 104, b = 24, r = face ? 66 : 46
+  const pts = [[0, -Lv], [b, -b], [Lh, 0], [b, b], [0, Lv], [-b, b], [-Lh, 0], [-b, -b]]
+  const eyes = face
+    ? `<g class="eyes" fill="#1a1240" stroke="#1a1240" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+        <g class="eye l"><ellipse cx="-24" cy="-4" rx="11" ry="19" stroke="none"/><path d="M-37 2 L-24 -12 L-11 2" fill="none"/></g>
+        <g class="eye r"><ellipse cx="24" cy="-4" rx="11" ry="19" stroke="none"/><path d="M11 2 L24 -12 L37 2" fill="none"/></g>
+      </g>`
+    : ''
+  return `<svg viewBox="-110 -190 220 380"><path d="M${pts.map((p) => p.join(' ')).join(' L')} Z" fill="#fff"/><circle r="${r}" fill="#fff"/>${eyes}</svg>`
+}
+
+const buddy = $('#buddy')
+const hintEl = $('#buddyHint')
+const parts = {
+  main: { el: $('[data-star="main"]', buddy), w: 40, h: 64, k: 170, c: 20 },
+  left: { el: $('[data-star="left"]', buddy), w: 21, h: 34, k: 55, c: 6.5, off: [-30, 12] },
+  right: { el: $('[data-star="right"]', buddy), w: 21, h: 34, k: 42, c: 5.5, off: [30, 12] },
+}
+parts.main.el.innerHTML = STAR(true)
+parts.left.el.innerHTML = STAR(false)
+parts.right.el.innerHTML = STAR(false)
+const eyes = $('.eyes', buddy)
+
+const ICONS = {
+  you: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4.5 7.5 8 11l3.5-3.5M3 14h10"/></svg>',
+  ready: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8.5 3 3 7-7"/></svg>',
+  review: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/></svg>',
+  blocked: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>',
+  done: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5 9.3 6.7 14.5 8 9.3 9.3 8 14.5 6.7 9.3 1.5 8 6.7 6.7Z"/></svg>',
+  expected: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="2.2 2.2"><circle cx="8" cy="8" r="5.5"/></svg>',
+  gate: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 14V6a5 5 0 0 1 10 0v8M3 14h10"/></svg>',
+  group: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 14V2.5l9 3-9 3"/></svg>',
+}
+const HINTS = {
+  you: { icon: 'you', text: 'Your move', mood: 'wink' },
+  ready: { icon: 'ready', text: 'Ready' },
+  review: { icon: 'review', text: 'Waiting on review' },
+  blocked: { icon: 'blocked', text: 'Blocked', mood: 'worried' },
+  done: { icon: 'done', text: 'Shipped', mood: 'happy' },
+  expected: { icon: 'expected', text: 'Not opened' },
+  gate: { icon: 'gate', text: '1 of 3 in' },
+}
+/** A picture and a word or two, never a sentence. */
+function hintFor(el) {
+  if (el.classList.contains('spot')) return { ...HINTS.you, c: 'var(--st-you)' }
+  if (el.classList.contains('tile')) return { icon: 'group', text: $('.tag', el).textContent, c: 'var(--teal)' }
+  const st = Object.keys(HINTS).find((k) => el.classList.contains(k))
+  return st ? { ...HINTS[st], c: STATUS[st].color } : null
+}
+
+let focusEl = null
+let leaveTimer = 0
+document.addEventListener('pointerover', (e) => {
+  const el = e.target.closest('.card, .tile, .spot')
+  if (!el) return
+  clearTimeout(leaveTimer)
+  if (el !== focusEl) setFocus(el)
+})
+document.addEventListener('pointerout', (e) => {
+  const el = e.target.closest('.card, .tile, .spot')
+  if (el && !el.contains(e.relatedTarget)) leaveTimer = setTimeout(() => setFocus(null), 500)
+})
+
+let mood = ''
+let pendingMood = ''
+function setFocus(el) {
+  focusEl = el
+  hintEl.classList.remove('on')
+  setMood('')
+  if (!el) return
+  const h = hintFor(el)
+  if (!h) return
+  hintEl.style.setProperty('--c', h.c)
+  hintEl.innerHTML = `${ICONS[h.icon]}<span>${esc(h.text)}</span>`
+  pendingMood = h.mood ?? ''
+}
+function setMood(m) {
+  if (mood) buddy.classList.remove(mood)
+  mood = m
+  if (m) buddy.classList.add(m)
+}
+
+/** Where the body wants to be: perched at a focused thing's top-right corner, or resting in the corner of the view. */
+function target() {
+  if (focusEl) {
+    const r = focusEl.getBoundingClientRect()
+    const onScreen = r.bottom > 60 && r.top < innerHeight && r.right > 0 && r.left < innerWidth
+    if (onScreen) return [Math.min(r.right - 6, innerWidth - 90), Math.max(r.top - 14, 84)]
+  }
+  return [innerWidth - 64, innerHeight - 70]
+}
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+const state = {}
+{
+  const [x, y] = target()
+  for (const [name, p] of Object.entries(parts)) state[name] = { x: x + (p.off?.[0] ?? 0), y: y + (p.off?.[1] ?? 0), vx: 0, vy: 0 }
+}
+
+let last = performance.now()
+let settled = 0
+function step(now) {
+  const dt = Math.min(0.033, (now - last) / 1000)
+  last = now
+  const t = now / 1000
+  const [tx, ty] = target()
+  const m = state.main
+  const spring = (s, p, gx, gy) => {
+    if (reduce) { s.x = gx; s.y = gy; s.vx = s.vy = 0; return }
+    s.vx += (p.k * (gx - s.x) - p.c * s.vx) * dt
+    s.vy += (p.k * (gy - s.y) - p.c * s.vy) * dt
+    s.x += s.vx * dt
+    s.y += s.vy * dt
+  }
+  spring(m, parts.main, tx, ty + Math.sin(t * 2.2) * 3)
+  for (const name of ['left', 'right']) {
+    const p = parts[name]
+    const phase = name === 'left' ? 0 : Math.PI
+    spring(state[name], p, m.x + p.off[0], m.y + p.off[1] + Math.sin(t * 2.6 + phase) * 4)
+  }
+  for (const [name, p] of Object.entries(parts)) {
+    const s = state[name]
+    const lean = Math.max(-18, Math.min(18, s.vx * 0.03))
+    p.el.style.transform = `translate(${s.x - p.w / 2}px, ${s.y - p.h / 2}px) rotate(${lean}deg)`
+  }
+  // The eyes look where the body is heading.
+  const speed = Math.hypot(m.vx, m.vy)
+  const lx = speed > 20 ? (m.vx / speed) * 6 : 0, ly = speed > 20 ? (m.vy / speed) * 5 : 0
+  eyes.setAttribute('transform', `translate(${lx.toFixed(1)} ${ly.toFixed(1)})`)
+  // Once perched, show the hint and the mood that goes with it.
+  const still = speed < 30 && Math.hypot(tx - m.x, ty - m.y) < 10
+  settled = still ? settled + dt : 0
+  if (focusEl && settled > 0.12 && !hintEl.classList.contains('on')) {
+    hintEl.classList.add('on')
+    setMood(pendingMood)
+    if (pendingMood === 'wink') setTimeout(() => mood === 'wink' && setMood(''), 900)
+  }
+  // The bubble sits to the right of the body, or flips to the left near the edge of the view.
+  const hw = hintEl.offsetWidth
+  const hx = m.x + 50 + hw > innerWidth - 8 ? m.x - 50 - hw : m.x + 50
+  hintEl.style.transformOrigin = hx < m.x ? '100% 50%' : '0% 50%'
+  hintEl.style.transform = `translate(${hx}px, ${m.y - 13}px)`
+  requestAnimationFrame(step)
+}
+requestAnimationFrame(step)
+
+;(function blink() {
+  setTimeout(() => {
+    if (!mood) {
+      buddy.classList.add('blink')
+      setTimeout(() => buddy.classList.remove('blink'), 130)
+    }
+    blink()
+  }, 2600 + Math.random() * 3600)
+})()
 </script>
 </body>
 </html>
