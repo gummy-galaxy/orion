@@ -1108,8 +1108,8 @@ parts.left.el.innerHTML = STAR(false)
 parts.right.el.innerHTML = STAR(false)
 const eyes = $('.eyes', buddy)
 const tethers = { left: $('[data-tether="left"]', buddy), right: $('[data-tether="right"]', buddy) }
-/** How far below the body's center the tethers attach: halfway between its side points (0px) and the bottom of its core (11px). */
-const ATTACH = 6
+/** How far below the body's center the tethers attach: just under its side points, partway down to the bottom of its core (11px). */
+const ATTACH = 4
 
 const ICONS = {
   you: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4.5 7.5 8 11l3.5-3.5M3 14h10"/></svg>',
