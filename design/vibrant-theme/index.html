@@ -337,13 +337,23 @@
     margin-left: auto; padding: 6px 9px; border-radius: var(--r-xs); font: 800 11.5px/1 var(--font-ui); letter-spacing: 0.01em;
     color: var(--st); background: color-mix(in oklab, var(--st) 16%, #120d30); border: 1px solid color-mix(in oklab, var(--st) 45%, transparent);
   }
-  .sheen {
-    position: absolute; inset: 0; border-radius: var(--r-md); pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.3s;
-    background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 30%), rgb(255 255 255 / 0.16), transparent 45%),
-      linear-gradient(115deg, transparent 30%, rgb(24 214 192 / 0.10) 45%, rgb(180 92 255 / 0.12) 55%, transparent 70%);
-    mix-blend-mode: screen;
+  /* The holo lives on the art and the frame only, so the text box stays flat and readable while a card tilts. */
+  .holo {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; transition: opacity 0.3s;
+    background:
+      radial-gradient(120px circle at var(--mx, 50%) var(--my, 30%), rgb(255 255 255 / 0.55), transparent 60%),
+      repeating-linear-gradient(115deg, #18d6c0 0%, #3b6cff 7%, #b45cff 14%, #ff8fa3 21%, #ffd166 28%, #18d6c0 35%);
+    background-size: 100% 100%, 300% 300%;
+    background-position: 0 0, var(--mx, 50%) var(--my, 50%);
+    mix-blend-mode: color-dodge;
   }
-  .card:hover .sheen { opacity: 1; }
+  .card:hover .holo { opacity: 0.5; }
+  .card:hover .frame {
+    background: linear-gradient(115deg, var(--teal), var(--blue), var(--violet), var(--pink), var(--amber), var(--teal));
+    background-size: 300% 300%;
+    background-position: var(--mx, 50%) var(--my, 50%);
+  }
+  .card:hover .text { color: var(--ink); }
 
   .card.done .art img { filter: grayscale(0.8) brightness(0.75); }
   .card.done .card-title h3 { color: var(--muted); }
@@ -698,7 +708,7 @@ function cardHtml(card) {
       <div class="frame"><div class="card-inner">
         <header class="card-title"><h3>${esc(card.title)}</h3>${card.pr ? `<span class="cost">#${card.pr}</span>` : ''}</header>
         <div class="art">
-          <img class="art-base" alt=""><img class="art-top" alt="">
+          <img class="art-base" alt=""><img class="art-top" alt=""><i class="holo"></i>
           ${card.st === 'done' ? '<span class="stamp">Merged</span>' : `<span class="art-status">${st.label}</span>`}
           ${card.repo ? `<span class="emblem"><i>${card.repo[0].toUpperCase()}</i>${card.repo}</span>` : ''}
         </div>
@@ -706,7 +716,6 @@ function cardHtml(card) {
         <p class="text${card.text.length < 12 ? ' flavor' : ''}">${esc(card.text)}</p>
         <footer>${foot}<span class="pt">${card.st === 'done' ? 'Done' : st.label}</span></footer>
       </div></div>
-      <i class="sheen"></i>
     </article>`
 }
 
@@ -891,8 +900,8 @@ world.addEventListener('pointermove', (e) => {
   if (!card) return
   const r = card.getBoundingClientRect()
   const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height
-  card.style.setProperty('--ry', `${(px - 0.5) * 10}deg`)
-  card.style.setProperty('--rx', `${(0.5 - py) * 8}deg`)
+  card.style.setProperty('--ry', `${(px - 0.5) * 7}deg`)
+  card.style.setProperty('--rx', `${(0.5 - py) * 5}deg`)
   card.style.setProperty('--mx', `${px * 100}%`)
   card.style.setProperty('--my', `${py * 100}%`)
 })
