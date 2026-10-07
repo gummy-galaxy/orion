@@ -1108,8 +1108,8 @@ parts.left.el.innerHTML = STAR(false)
 parts.right.el.innerHTML = STAR(false)
 const eyes = $('.eyes', buddy)
 const tethers = { left: $('[data-tether="left"]', buddy), right: $('[data-tether="right"]', buddy) }
-/** How far below the body's center the tethers attach: halfway between its bottom tip (31px) and the arms (12px). */
-const ATTACH = 21
+/** How far below the body's center the tethers attach: halfway between its side points (0px) and the bottom of its core (11px). */
+const ATTACH = 6
 
 const ICONS = {
   you: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v9M4.5 7.5 8 11l3.5-3.5M3 14h10"/></svg>',
@@ -1287,7 +1287,7 @@ function step(now) {
   }
   // Tethers are noodles with a little slack: one S-shaped wiggle that sways gently, goes slacker as a star comes
   // closer, pulls taut as it falls behind, and drags a touch against the star's motion.
-  // They attach to the body's lower ray, halfway between its bottom tip and the arms, and turn with its lean.
+  // They attach just under the body's side points, halfway down to the bottom of its core, and turn with its lean.
   const rad = ((m.lean ?? 0) * Math.PI) / 180
   const ax = m.x - Math.sin(rad) * ATTACH, ay = m.y + Math.cos(rad) * ATTACH
   for (const name of ['left', 'right']) {
