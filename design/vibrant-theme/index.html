@@ -456,13 +456,13 @@
   .buddy-star.trail svg { width: 21px; height: 34px; }
   .buddy .eyes { transform-box: fill-box; transform-origin: center; transition: transform 0.08s; }
   .buddy.blink .eyes { transform: scaleY(0.12); }
-  /* One eye shape per mood: content U, happy ^, sparkly when excited, round when surprised, shut when asleep. */
+  /* One eye shape per mood: a soft U by default, happy ^, sparkly when excited, round when surprised, shut when asleep,
+     side-eyed when curious, and dots under tilted brows when worried. */
   .buddy .eye > * { display: none; }
   .buddy .eye .u { display: block; }
-  .buddy:is(.happy, .excited, .surprised, .sleepy, .curious) .eye .u, .buddy.wink .eye.r .u { display: none; }
+  .buddy:is(.happy, .excited, .surprised, .sleepy, .curious, .worried) .eye .u, .buddy.wink .eye.r .u { display: none; }
   .buddy.happy .eye .caret, .buddy.wink .eye.r .caret, .buddy.excited .eye .spark, .buddy.surprised .eye .o,
-  .buddy.sleepy .eye .line, .buddy.curious .eye .dot { display: block; }
-  .buddy.worried .eye .u { transform: scaleY(0.55); transform-box: fill-box; transform-origin: center; }
+  .buddy.sleepy .eye .line, .buddy.curious .eye :is(.ring, .pupil), .buddy.worried .eye :is(.pip, .brow) { display: block; }
   .buddy .eye .spark { transform-box: fill-box; transform-origin: center; animation: twinkle 0.5s ease-in-out infinite alternate; }
   @keyframes twinkle { to { transform: scale(1.25) rotate(12deg); } }
   .buddy-z { position: absolute; left: 0; top: 0; display: none; }
@@ -1072,12 +1072,15 @@ const STAR = (face) => {
   const eyes = face
     ? `<g class="eyes" fill="none" stroke="#1a1240" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
         ${[['l', -24], ['r', 24]].map(([side, x]) => `<g class="eye ${side}">
-          <path class="u" d="M${x - 11} -16 C${x - 11} 6 ${x + 11} 6 ${x + 11} -16"/>
+          <path class="u" d="M${x - 11} -10 C${x - 11} 2 ${x + 11} 2 ${x + 11} -10"/>
           <path class="caret" d="M${x - 13} 2 L${x} -12 L${x + 13} 2"/>
           <path class="spark" fill="#1a1240" stroke="none" d="M${x} -24 L${x + 5} -10 L${x + 18} -5 L${x + 5} 0 L${x} 14 L${x - 5} 0 L${x - 18} -5 L${x - 5} -10 Z"/>
           <circle class="o" cx="${x}" cy="-4" r="12"/>
           <path class="line" d="M${x - 12} 0 L${x + 12} 0"/>
-          <circle class="dot" cx="${x + 5}" cy="-10" r="8" fill="#1a1240" stroke="none"/>
+          <circle class="ring" cx="${x}" cy="-6" r="14" stroke-width="6"/>
+          <circle class="pupil" cx="${x + 6}" cy="-10" r="7" fill="#1a1240" stroke="none"/>
+          <circle class="pip" cx="${x}" cy="-2" r="7" fill="#1a1240" stroke="none"/>
+          <path class="brow" stroke-width="8" d="${side === 'l' ? `M${x - 13} -20 L${x + 9} -29` : `M${x - 9} -29 L${x + 13} -20`}"/>
         </g>`).join('')}
       </g>`
     : ''
