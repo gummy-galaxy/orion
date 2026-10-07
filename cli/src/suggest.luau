@@ -591,8 +591,8 @@ function suggest.change(doc: Doc, action: string, ids: { string }, isAll: boolea
 					id = group.id,
 					type = "cluster",
 					position = position,
-					width = 256,
-					height = 76 + #group.members * 90,
+					width = 280,
+					height = 110 + #group.members * 96,
 					data = json.object({ kind = "cluster", label = group.title, layout = "pending" }),
 				}
 				local base = group.title:lower():gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
@@ -619,7 +619,7 @@ function suggest.change(doc: Doc, action: string, ids: { string }, isAll: boolea
 					end
 
 					graph.move(doc, id, made.id)
-					graph.get(doc, id).position = { x = 24, y = 52 + (index - 1) * 90 }
+					graph.get(doc, id).position = { x = 32, y = 78 + (index - 1) * 96 }
 				end
 			end
 
