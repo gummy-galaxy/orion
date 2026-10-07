@@ -457,12 +457,12 @@
   .buddy .eyes { transform-box: fill-box; transform-origin: center; transition: transform 0.08s; }
   .buddy.blink .eyes { transform: scaleY(0.12); }
   /* One eye shape per mood: a soft U by default, happy ^, sparkly when excited, round when surprised, shut when asleep,
-     side-eyed when curious, and dots under tilted brows when worried. */
+     side-eyed when curious, dots under tilted brows when worried, and half-lidded when impatient. */
   .buddy .eye > * { display: none; }
   .buddy .eye .u { display: block; }
-  .buddy:is(.happy, .excited, .surprised, .sleepy, .curious, .worried) .eye .u, .buddy.wink .eye.r .u { display: none; }
+  .buddy:is(.happy, .excited, .surprised, .sleepy, .curious, .worried, .impatient) .eye .u, .buddy.wink .eye.r .u { display: none; }
   .buddy.happy .eye .caret, .buddy.wink .eye.r .caret, .buddy.excited .eye .spark, .buddy.surprised .eye .o,
-  .buddy.sleepy .eye .line, .buddy.curious .eye :is(.ring, .pupil), .buddy.worried .eye :is(.pip, .brow) { display: block; }
+  .buddy.sleepy .eye .line, .buddy.curious .eye :is(.ring, .pupil), .buddy.worried .eye :is(.pip, .brow), .buddy.impatient .eye .lid { display: block; }
   .buddy .eye .spark { transform-box: fill-box; transform-origin: center; animation: twinkle 0.5s ease-in-out infinite alternate; }
   @keyframes twinkle { to { transform: scale(1.25) rotate(12deg); } }
   .buddy-z { position: absolute; left: 0; top: 0; display: none; }
@@ -1077,6 +1077,7 @@ const STAR = (face) => {
           <path class="spark" fill="#1a1240" stroke="none" d="M${x} -24 L${x + 5} -10 L${x + 18} -5 L${x + 5} 0 L${x} 14 L${x - 5} 0 L${x - 18} -5 L${x - 5} -10 Z"/>
           <circle class="o" cx="${x}" cy="-4" r="12"/>
           <path class="line" d="M${x - 12} 0 L${x + 12} 0"/>
+          <path class="lid" fill="#1a1240" stroke-width="6" d="M${x - 12} -10 L${x + 12} -10 C${x + 12} 6 ${x - 12} 6 ${x - 12} -10 Z"/>
           <circle class="ring" cx="${x}" cy="-6" r="14" stroke-width="6"/>
           <circle class="pupil" cx="${x + 6}" cy="-10" r="7" fill="#1a1240" stroke="none"/>
           <circle class="pip" cx="${x}" cy="-2" r="7" fill="#1a1240" stroke="none"/>
@@ -1253,8 +1254,9 @@ function step(now) {
   if (!sleeping && now - lastActivity > 15000) { sleeping = true; hintEl.classList.remove('on') }
   const lift = armLift(now)
   const droop = mood === 'sleepy' || mood === 'worried' ? 1 : 0
+  const sway = mood === 'impatient' ? Math.sin(t * Math.PI * 2 * 0.85) : 0
   for (let i = 0; i < steps; i++) {
-    spring(m, parts.main, tx, ty + (sleeping ? Math.sin(t * 1.1) * 2 + 4 : Math.sin(t * 2.2) * 3))
+    spring(m, parts.main, tx + sway * 6, ty + (sleeping ? Math.sin(t * 1.1) * 2 + 4 : Math.sin(t * 2.2) * 3 * (1 - Math.abs(sway))))
     const bodySpeed = Math.hypot(m.vx, m.vy)
     const loose = Math.max(0, Math.min(1, (bodySpeed - 2600) / 2400))
     for (const name of ['left', 'right']) {
@@ -1262,13 +1264,13 @@ function step(now) {
       const side = name === 'left' ? -1 : 1
       const bob = sleeping ? 0 : Math.sin(t * 2.6 + (side < 0 ? 0 : Math.PI)) * 4
       const gx = m.x + p.off[0] - side * droop * 4
-      const gy = m.y + p.off[1] + bob + side * lift + droop * 10
+      const gy = m.y + p.off[1] + bob + side * lift + droop * 10 - side * sway * 4
       spring(state[name], p, gx, gy, p.zeta - loose * 0.5)
     }
   }
   for (const [name, p] of Object.entries(parts)) {
     const s = state[name]
-    const lean = Math.max(-18, Math.min(18, s.vx * 0.03))
+    const lean = Math.max(-18, Math.min(18, s.vx * 0.03)) + (name === 'main' ? sway * 8 : 0)
     p.el.style.transform = `translate(${s.x - p.w / 2}px, ${s.y - p.h / 2}px) rotate(${lean}deg)`
   }
   // The eyes look where the body is heading.
@@ -1276,15 +1278,19 @@ function step(now) {
   if (speed > 3200 && !sleeping) flash('surprised', 250) // Whee.
   const want = moodNow(now)
   if (want !== mood) setMood(want)
-  const lx = speed > 20 ? (m.vx / speed) * 6 : 0, ly = speed > 20 ? (m.vy / speed) * 5 : 0
+  const lx = speed > 60 ? (m.vx / speed) * 6 : sway * 5, ly = speed > 60 ? (m.vy / speed) * 5 : 0
   eyes.setAttribute('transform', `translate(${lx.toFixed(1)} ${ly.toFixed(1)})`)
   // Once perched, show the hint and the mood that goes with it.
   const still = speed < 30 && Math.hypot(tx - m.x, ty - m.y) < 10
   settled = still ? settled + dt : 0
   if (focusEl && !sleeping && settled > 0.12 && !hintEl.classList.contains('on')) {
     hintEl.classList.add('on')
-    if (pendingMood === 'wink') { baseMood = ''; flash('wink', 900) }
-    else baseMood = pendingMood
+    if (pendingMood === 'wink') {
+      baseMood = ''
+      flash('wink', 900)
+      const waitingOn = focusEl
+      setTimeout(() => { if (focusEl === waitingOn && baseMood === '') baseMood = 'impatient' }, 2600)
+    } else baseMood = pendingMood
     if (pendingMood === 'excited') wave(900)
   }
   $('#buddyZ').style.transform = `translate(${m.x + 14}px, ${m.y - 36}px)`
