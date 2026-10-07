@@ -14,15 +14,19 @@ local function parseCommand(value: string): { string }
 	local array = if ok then json.asArray(decoded :: json.Value) else nil
 	assert(array and #array > 0, "--command must be a nonempty JSON array")
 	local result = {}
+
 	for _, part in array do
 		assert(type(part) == "string" and part ~= "", "--command must contain only nonempty strings")
 		local lower = part:lower()
+
 		for _, secret in { "--token", "--password", "--secret", "--api-key", "--auth" } do
 			assert(not lower:find(secret, 1, true), "do not store credentials in source commands")
 		end
+
 		assert(not lower:match("https?://[^/]*@"), "do not store credentials in source commands")
 		table.insert(result, part)
 	end
+
 	return result
 end
 
@@ -41,21 +45,27 @@ function sources.createSource(kind: string, options: { [string]: { string } }): 
 	for key in options do
 		assert(allowed[key], `--{key} does not apply to {kind}`)
 	end
+
 	local source: Source = { id = "", kind = kind }
+
 	if kind == "github" then
 		local host = assert(getOne(options, "host"), "github needs --host")
 		assert(host:match(HOST) and host:find("%.", 1), "invalid GitHub host")
 		local owners = options.owners
 		assert(owners and #owners > 0, "github needs --owners")
+
 		for _, owner in owners do
 			assert(owner:match(NAME), `invalid owner {owner}`)
 		end
+
 		source.host, source.owners = host, owners
+
 		for _, key in { "include", "exclude" } do
 			for _, repo in options[key] or {} do
 				assert(repo:match(NAME), `invalid repository {repo}`)
 			end
 		end
+
 		source.include, source.exclude = options.include, options.exclude
 		source.id = getOne(options, "id") or `gh-{owners[1]:lower()}`
 	elseif kind == "jira" then
@@ -77,6 +87,7 @@ function sources.createSource(kind: string, options: { [string]: { string } }): 
 		source.command = argv
 		source.id = getOne(options, "id") or "hop"
 	end
+
 	assert(source.id:match(ID), "source id must use lowercase letters, digits, and hyphens")
 	return source
 end
@@ -86,13 +97,18 @@ function sources.getJson(values: { Source }): json.Array
 		if not strings then
 			return nil
 		end
+
 		local out: json.Array = {}
+
 		for _, entry in strings do
 			table.insert(out, entry)
 		end
+
 		return out
 	end
+
 	local out: json.Array = {}
+
 	for _, source in values do
 		local value = json.object({ id = source.id, kind = source.kind })
 		value.host, value.owners, value.include, value.exclude =
@@ -100,6 +116,7 @@ function sources.getJson(values: { Source }): json.Array
 		value.command, value.browse = getStringArray(source.command), source.browse
 		table.insert(out, value)
 	end
+
 	return out
 end
 

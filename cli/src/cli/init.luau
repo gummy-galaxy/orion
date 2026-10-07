@@ -117,6 +117,7 @@ local function createParsers(): Parsers
 	addHelpFlag(root)
 	addWorkspaceOption(root)
 	local commands: { [string]: batteriesCli.Parser } = {}
+
 	local function command(name: string): batteriesCli.Parser
 		local registered = COMMANDS[name]
 		local parser = root:subcommand(name, { help = if registered then registered.help else COMMAND_HELP[name] })
@@ -125,6 +126,7 @@ local function createParsers(): Parsers
 		commands[name] = parser
 		return parser
 	end
+
 	local function registeredCommand(name: string)
 		COMMANDS[name].define(command(name))
 	end
@@ -268,27 +270,34 @@ end
 
 local function sortedTasks(doc: Doc, derived: graph.Derived, keep: (Item) -> boolean): { Item }
 	local items: { Item } = {}
+
 	for _, item in doc.nodes do
 		if item.type == "task" and keep(item) then
 			table.insert(items, item)
 		end
 	end
+
 	table.sort(items, function(a, b)
 		local la, lb = derived.leverage[a.id] or 0, derived.leverage[b.id] or 0
+
 		if la ~= lb then
 			return la > lb
 		end
+
 		return a.id < b.id
 	end)
+
 	return items
 end
 
 local function printItems(deps: Resolved, doc: Doc, derived: graph.Derived, items: { Item }, asJson: boolean)
 	if asJson then
 		local values: json.Array = {}
+
 		for _, item in items do
 			table.insert(values, render.itemJson(doc, derived, item))
 		end
+
 		deps.write(json.serialize(values, true))
 	else
 		deps.write(render.table(doc, derived, items))
@@ -303,17 +312,20 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	local derived = graph.derive(doc)
 	local values: json.Array = {}
 	local lines = {}
+
 	for _, group in doc.nodes do
 		if graph.isGroup(group) then
 			table.insert(values, renderGroup.serialize(doc, derived, group))
 			table.insert(lines, `{group.id}  {renderGroup.formatLine(doc, derived, group)}`)
 		end
 	end
+
 	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
 end
 
 local function syncReport(report: github.Report, dryRun: boolean): string
 	local lines = { `{if dryRun then "Would update" else "Checked"} {report.checked} pull requests on GitHub.` }
+
 	for _, change in report.changes do
 		local who = if change.fromWho ~= change.toWho
 			then ` (move: {change.fromWho or "unset"} → {change.toWho or "unset"})`
@@ -321,24 +333,27 @@ local function syncReport(report: github.Report, dryRun: boolean): string
 		local closed = if change.closed then " — closed without merging; deferred until you decide" else ""
 		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
 	end
+
 	if #report.changes == 0 and #report.added == 0 and #report.linked == 0 and #report.unlinked == 0 then
 		table.insert(lines, "  Everything already matches.")
 	end
+
 	for _, link in report.linked do
 		table.insert(lines, `  linked {link.from} → {link.to} (stacked)`)
 	end
+
 	for _, link in report.unlinked do
 		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)
 	end
+
 	for _, id in report.added do
-		table.insert(
-			lines,
-			`  added {id} to {if table.find(report.reviewAdded, id) then "Review requests" else "Inbox"}`
-		)
+		table.insert(lines, `  added {id} to Inbox`)
 	end
+
 	if #report.missing > 0 then
 		table.insert(lines, `  not found on GitHub: {table.concat(report.missing, ", ")}`)
 	end
+
 	return table.concat(lines, "\n")
 end
 
@@ -348,23 +363,29 @@ local function execute(args: { string }, options: Dependencies?)
 	local deps = dependencies(options)
 
 	local command, parser = parsers.root:selected()
+
 	if command == "help" and parser then
 		local topic = parser:get("command")
+
 		if topic then
 			local topicParser = assert(parsers.commands[topic], `unknown command: {topic}`)
 			deps.write(commandHelp(topic, topicParser))
 			return
 		end
 	end
+
 	if command == nil or parser == nil or command == "help" or parsers.root:has("help") then
 		deps.write(rootHelp(parsers.root))
 		return
 	end
+
 	if parser:has("help") then
 		deps.write(commandHelp(command, parser))
 		return
 	end
+
 	local subName, subparser = parser:selected()
+
 	if subName and subparser and subparser:has("help") then
 		deps.write(`{command} {subName}\n\n{subparser:usage(`orion {command} {subName}`)}\n\n{subparser:help()}`)
 		return
@@ -372,13 +393,16 @@ local function execute(args: { string }, options: Dependencies?)
 
 	local root = deps.dataDir
 	local selected = parser:get("workspace") or parsers.root:get("workspace")
+
 	if subparser then
 		selected = subparser:get("workspace") or selected
 	end
+
 	local active = store.getActiveWorkspace(root, selected, deps.workspace)
 	local dir = store.getWorkspaceDir(root, active)
 	local asJson = parser:has("json")
 	local registered = COMMANDS[command]
+
 	if registered then
 		registered.run(parser, {
 			dir = dir,
@@ -398,9 +422,11 @@ local function execute(args: { string }, options: Dependencies?)
 		local doc = store.load(dir)
 		local derived = graph.derive(doc)
 		local groupId = parser:get("group")
+
 		if groupId then
 			graph.group(doc, groupId)
 		end
+
 		local all = parser:has("all")
 		printItems(
 			deps,
@@ -431,18 +457,24 @@ local function execute(args: { string }, options: Dependencies?)
 		local doc = store.load(dir)
 		local unplaced = if doc.github then json.asArray(doc.github.unplaced) else nil
 		local values: json.Array = unplaced or {}
+
 		if asJson then
 			deps.write(json.serialize(values, true))
 		else
 			local lines: { string } = {}
+
 			for _, raw in values do
 				local pull = json.asObject(raw)
+
 				if not pull then
 					continue
 				end
+
 				table.insert(lines, `{pull.repo}#{pull.number}  {pull.title}`)
+
 				for _, entry in json.asArray(pull.matches) or {} do
 					local candidate = json.asObject(entry)
+
 					if candidate then
 						local item = if type(candidate.id) == "string" then graph.find(doc, candidate.id) else nil
 						table.insert(
@@ -452,11 +484,13 @@ local function execute(args: { string }, options: Dependencies?)
 					end
 				end
 			end
+
 			deps.write(if #lines > 0 then table.concat(lines, "\n") else "No unplaced pull requests.")
 		end
 	elseif command == "show" then
 		local doc = store.load(dir)
 		local item = graph.get(doc, required(parser, "id"))
+
 		if asJson then
 			deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
 		else
@@ -470,6 +504,7 @@ local function execute(args: { string }, options: Dependencies?)
 		local doc = store.transaction(dir, function(doc)
 			added = graph.addItem(doc, label, options)
 		end)
+
 		emitItem(deps, doc, added, asJson, "Added")
 	elseif command == "set" then
 		local id = required(parser, "id")
@@ -477,12 +512,14 @@ local function execute(args: { string }, options: Dependencies?)
 		local doc = store.transaction(dir, function(doc)
 			changed = graph.setFields(doc, id, fields(parser))
 		end)
+
 		emitItem(deps, doc, changed, asJson, "Updated")
 	elseif command == "done" then
 		local id = required(parser, "id")
 		local doc = store.transaction(dir, function(doc)
 			graph.setFields(doc, id, { status = "done" })
 		end)
+
 		deps.write(`Done: {id} · {graph.label(graph.get(doc, id))}`)
 	elseif command == "link" then
 		local from, to = required(parser, "from"), required(parser, "to")
@@ -490,12 +527,14 @@ local function execute(args: { string }, options: Dependencies?)
 		store.transaction(dir, function(doc)
 			graph.link(doc, from, to, kind)
 		end)
+
 		deps.write(if kind == "blocks" then `{to} now waits on {from}` else `{from} and {to} are related`)
 	elseif command == "unlink" then
 		local from, to = required(parser, "from"), required(parser, "to")
 		store.transaction(dir, function(doc)
 			graph.unlink(doc, from, to)
 		end)
+
 		deps.write(`Removed the link from {from} to {to}`)
 	elseif command == "note" then
 		local text = joined(parser:variadics(), "<text>")
@@ -507,12 +546,14 @@ local function execute(args: { string }, options: Dependencies?)
 				{ group = parser:get("group"), after = parser:get("after"), before = parser:get("before") }
 			)
 		end)
+
 		emitItem(deps, doc, added, asJson, "Added note")
 	elseif command == "remove" then
 		local id = required(parser, "id")
 		store.transaction(dir, function(doc)
 			graph.remove(doc, id)
 		end)
+
 		deps.write(`Removed {id}`)
 	elseif command == "group" then
 		local label = joined(parser:variadics(), "<label>")
@@ -521,12 +562,14 @@ local function execute(args: { string }, options: Dependencies?)
 		local doc = store.transaction(dir, function(doc)
 			made = graph.makeGroup(doc, label, ids)
 		end)
+
 		emitItem(deps, doc, made, asJson, "Grouped into")
 	elseif command == "ungroup" then
 		local id = required(parser, "id")
 		store.transaction(dir, function(doc)
 			graph.ungroup(doc, id)
 		end)
+
 		deps.write(`Ungrouped {id}`)
 	elseif command == "move" then
 		local id = required(parser, "id")
@@ -535,11 +578,13 @@ local function execute(args: { string }, options: Dependencies?)
 		store.transaction(dir, function(doc)
 			graph.move(doc, id, if parser:has("top") then nil else to)
 		end)
+
 		deps.write(`Moved {id} to {to or "the top level"}`)
 	elseif command == "sync" then
 		local dryRun = parser:has("dry-run")
 		local fetched = github.collect(store.load(dir), deps.runner, parser:has("discover"))
 		local report: github.Report
+
 		if dryRun then
 			report = github.apply(store.load(dir), fetched, deps.now())
 		else
@@ -547,6 +592,7 @@ local function execute(args: { string }, options: Dependencies?)
 				report = github.apply(doc, fetched, deps.now())
 			end)
 		end
+
 		if asJson then
 			deps.write(json.serialize(report :: any, true))
 		else
@@ -558,6 +604,7 @@ end
 -- Lute passes the program path as the first argument.
 local function run(argv: { string })
 	local ok, message = pcall(execute, { table.unpack(argv, 2) }, nil)
+
 	if not ok then
 		local text = tostring(message):gsub("^[^\n]-:%d+: ", "", 1)
 		print(`Error: {text}`)

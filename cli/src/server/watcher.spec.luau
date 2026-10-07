@@ -20,6 +20,7 @@ test.case("watcher announces external edits and follows manifest switches", func
 	end, function(revision)
 		table.insert(revisions, revision)
 	end)
+
 	monitor.start()
 	store.transaction(root, function() end)
 	task.wait(0.3)

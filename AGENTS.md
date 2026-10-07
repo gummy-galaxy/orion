@@ -45,7 +45,7 @@ Run `orion suggest` to find related ungrouped cards, then review `orion suggesti
 
 Cards with a repository and pull request number stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. Run `orion sync --dry-run` first when unsure.
 
-`orion sync` adds pending review requests without cards to the Review requests group. It also records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. Link one to an existing card with `orion set <id> --repo <repo> --pr <n>`.
+`orion sync` records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. When the workspace has GitHub sources, only pull requests in their repositories count. Link one to an existing card with `orion set <id> --repo <repo> --pr <n>`.
 
 `orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
 
@@ -62,3 +62,9 @@ Cards ingested from Jira use `data.external` with the source ID and issue key as
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
 - Look up ids with `orion list --all` or `orion show` rather than guessing them.
 - Group by outcome, not by repository.
+
+## Luau style
+
+- Keep related requires, type aliases, constants, and short assignments together. Separate those groups and adjacent functions with blank lines.
+- Within functions, use blank lines between logical steps: setup, guards, loops and branches, state changes, and the final result. Keep statements that form one step together.
+- Run StyLua after editing Luau, then review the spacing yourself. StyLua sorts requires and formats statements, but does not add these logical blank lines.

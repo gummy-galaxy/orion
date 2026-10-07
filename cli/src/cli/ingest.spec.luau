@@ -11,11 +11,13 @@ test.case("ingest dry run reports changes without writing", function(assert)
 	local doc = testing.createDoc({})
 	doc.settings.sources = { { id = "jira", kind = "jira", command = { "acli", "jira", "workitem", "search" } } }
 	store.write(dir, doc)
+
 	local function run(args: { string }): string
 		return testing.run(dir, args, function()
 			return testing.result(true, [[ [{"key":"ABC-9","summary":"Ship","statusCategory":"new","type":"Task"}] ]])
 		end, NOW)
 	end
+
 	local report = json.asObject(json.deserialize(run({ "ingest", "--dry-run", "--json" })) :: json.Value)
 	local sources = if report then json.asArray(report.sources) else nil
 	local first = if sources then json.asObject(sources[1]) else nil

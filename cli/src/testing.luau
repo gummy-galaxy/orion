@@ -19,17 +19,21 @@ local sequence = 0
 function testing.directory(name: string): string
 	sequence += 1
 	local dir = tostring(path.join(system.tmpdir(), `orion-spec-{process.pid()}-{sequence}-{name}`))
+
 	if fs.exists(dir) then
 		fs.removeDirectory(dir, { recursive = true })
 	end
+
 	return dir
 end
 
 function testing.task(id: string, label: string, status: string, parentId: string?, extra: json.Object?): Item
 	local data = json.object({ kind = "task", label = label, itemKind = "step", status = status })
+
 	for key, value in extra or {} do
 		data[key] = value
 	end
+
 	return { id = id, type = "task", position = { x = 0, y = 0 }, parentId = parentId, data = data }
 end
 
@@ -47,9 +51,11 @@ end
 
 function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 	local out = {}
+
 	for _, pair in links or {} do
 		table.insert(out, { id = `{pair[1]}>{pair[2]}`, from = pair[1], to = pair[2], kind = pair[3] or "blocks" })
 	end
+
 	return {
 		version = 1,
 		revision = 0,
@@ -77,6 +83,7 @@ function testing.run(
 		write = function(line)
 			table.insert(output, line)
 		end,
+
 		runner = runner,
 		now = function()
 			return now or "2026-10-04T00:00:00Z"
@@ -96,12 +103,15 @@ function testing.createHarness(name: string)
 		}, { { "ci", "pub" } })
 	)
 	local workspace = ""
+
 	local function setWorkspace(name: string)
 		workspace = name
 	end
+
 	local function run(args: { string }, runner: types.CommandRunner?)
 		return testing.run(dir, args, runner, nil, workspace)
 	end
+
 	return dir, run, setWorkspace
 end
 

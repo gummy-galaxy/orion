@@ -5,6 +5,7 @@ local testing = require("@root/testing")
 
 test.case("isProcessAlive checks the pid with kill -0", function(assert)
 	local calls = 0
+
 	local function run(argv: { string })
 		calls += 1
 		assert.eq(table.concat(argv, " "), "kill -0 1234")

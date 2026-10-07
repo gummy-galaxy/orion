@@ -15,7 +15,9 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	if not fs.exists(root) then
 		fs.createDirectory(root, { makeParents = true })
 	end
+
 	local dir = store.getWorkspaceDir(root, workspace)
+
 	if not fs.exists(dir) then
 		fs.createDirectory(dir, { makeParents = true })
 	end
@@ -29,6 +31,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	local syncLoop = sync.create(root, workspace, function(status: json.Object)
 		hub.publish("orion:sync", status)
 	end)
+
 	local monitor
 	local router = routes.create(root, workspace, syncLoop, function(name: string)
 		assert(monitor).switchTo(name)
@@ -41,6 +44,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number)
 		hub.publish("orion:changed", json.object({ revision = revision }))
 	end)
+
 	local running = net.serve({
 		hostname = host,
 		port = port,
@@ -49,10 +53,13 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 				if socketServer:upgrade(request) then
 					return nil
 				end
+
 				return { status = 400, body = "WebSocket upgrade required" }
 			end
+
 			return router.handle(request) :: net.ServerResponse
 		end,
+
 		websocket = {
 			open = hub.open,
 			close = function(socket)
@@ -64,12 +71,14 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	task.delay(5, function()
 		syncLoop.run()
 	end)
+
 	task.spawn(function()
 		while true do
 			task.wait(5 * 60)
 			syncLoop.run()
 		end
 	end)
+
 	return {
 		hostname = running.hostname,
 		port = running.port,

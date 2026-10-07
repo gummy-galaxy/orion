@@ -61,6 +61,7 @@ lute run build
 That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. See [`AGENTS.md`](AGENTS.md) for how agents should use it.
 
 Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
+StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute project.luau loom.config.luau` from `cli/` to format all Luau sources, including the Lute scripts. CI checks the same paths.
 
 ### Sources
 

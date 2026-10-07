@@ -51,12 +51,15 @@ function routes.create(
 		if route == "/api/focus" then
 			return focus.handle(request, root, active)
 		end
+
 		if route == "/api/workspaces" or route == "/api/workspaces/active" then
 			return workspaces.handle(request, root, router.getActive, router.switchTo)
 		end
+
 		if route == "/api/sync" then
 			return sync.handle(request, syncLoop)
 		end
+
 		if route:sub(1, 5) == "/api/" or route == "/api" then
 			return shared.reply(404, json.object({ error = "not found" }))
 		end

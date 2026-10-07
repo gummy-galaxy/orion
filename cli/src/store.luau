@@ -31,9 +31,11 @@ end
 
 function store.defaultDir(): string
 	local configured = process.env.ORION_DATA_DIR
+
 	if configured and configured ~= "" then
 		return tostring(path.resolve(configured))
 	end
+
 	return tostring(path.join(process.homedir(), "Library", "Application Support", "Orion"))
 end
 
@@ -49,17 +51,21 @@ end
 function store.getWorkspaces(root: string): WorkspaceList
 	local file = tostring(path.join(root, fileNames.workspaces))
 	local result: WorkspaceList = { active = "default", workspaces = { { name = "default", label = "Default" } } }
+
 	if not fs.exists(file) then
 		return result
 	end
+
 	local raw = json.asObject(json.deserialize(fs.readFileToString(file)) :: json.Value)
 	assert(raw, `invalid workspace list at {file}`)
 	local names: { [string]: boolean } = { default = true }
+
 	for _, entry in json.asArray(raw.workspaces) or {} do
 		local item = json.asObject(entry)
 		local name = if item then str(item.name) else nil
 		local label = if item then str(item.label) else nil
 		assert(name and store.isValidWorkspace(name) and label and label ~= "", `invalid workspace in {file}`)
+
 		if name == "default" then
 			result.workspaces[1].label = label
 		elseif not names[name] then
@@ -67,6 +73,7 @@ function store.getWorkspaces(root: string): WorkspaceList
 			names[name] = true
 		end
 	end
+
 	local active = str(raw.active) or "default"
 	assert(names[active], `unknown workspace: {active}`)
 	result.active = active
@@ -79,7 +86,9 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 	if not fs.exists(root) then
 		fs.createDirectory(root, { makeParents = true })
 	end
+
 	local entries: json.Array = {}
+
 	for _, workspace in list.workspaces do
 		table.insert(entries, json.object({ name = workspace.name, label = workspace.label }))
 	end
@@ -94,11 +103,13 @@ function store.getActiveWorkspace(root: string, requested: string?, configured: 
 	local list = store.getWorkspaces(root)
 	local name = requested or (if configured ~= "" then configured else nil) or list.active
 	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
+
 	for _, workspace in list.workspaces do
 		if workspace.name == name then
 			return name
 		end
 	end
+
 	error(`unknown workspace: {name}`)
 end
 
@@ -107,9 +118,11 @@ function store.createWorkspace(root: string, name: string, label: string?, owner
 	assert(label == nil or label:match("%S"), "label must be nonempty")
 	assert(owner == nil or owner ~= "", "owner must be nonempty")
 	local list = store.getWorkspaces(root)
+
 	for _, workspace in list.workspaces do
 		assert(workspace.name ~= name, `workspace already exists: {name}`)
 	end
+
 	local dir = store.getWorkspaceDir(root, name)
 	assert(not fs.exists(dir), `workspace folder already exists: {dir}`)
 	store.write(dir, {
@@ -128,9 +141,11 @@ function store.useWorkspace(root: string, name: string): WorkspaceList
 	local list = store.getWorkspaces(root)
 	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
 	local isKnown = false
+
 	for _, workspace in list.workspaces do
 		isKnown = isKnown or workspace.name == name
 	end
+
 	assert(isKnown, `unknown workspace: {name}`)
 	list.active = name
 	writeWorkspaces(root, list)
@@ -148,11 +163,14 @@ end
 function store.getBackups(dir: string): { Backup }
 	local folder = path.join(dir, fileNames.backups)
 	local found: { Backup } = {}
+
 	if not fs.exists(folder) then
 		return found
 	end
+
 	for _, entry in fs.listDirectory(folder) do
 		local revision, time = entry.name:match("^orion%-r(%d+)%-(%d%d%d%d%d%d%d%dT%d%d%d%d%d%dZ)%.json$")
+
 		if entry.type == "file" and revision and time then
 			local file = tostring(path.join(folder, entry.name))
 			table.insert(
@@ -161,9 +179,11 @@ function store.getBackups(dir: string): { Backup }
 			)
 		end
 	end
+
 	table.sort(found, function(a: Backup, b: Backup)
 		return if a.time == b.time then a.file > b.file else a.time > b.time
 	end)
+
 	return found
 end
 
@@ -173,19 +193,24 @@ function store.pruneBackups(dir: string, now: number)
 	local today = os.date("!%Y%m%d", now) :: string
 	local current = os.date("!%Y%m%dT%H%M%SZ", now) :: string
 	local keptDays: { [string]: boolean } = {}
+
 	for _, backup in store.getBackups(dir) do
 		local day = backup.time:sub(1, 8)
 		local isInDailyRange = day >= dayCutoff and day <= today and backup.time <= current
+
 		if backup.time >= hourCutoff and backup.time <= current then
 			if isInDailyRange then
 				keptDays[day] = true
 			end
+
 			continue
 		end
+
 		if isInDailyRange and not keptDays[day] then
 			keptDays[day] = true
 			continue
 		end
+
 		fs.remove(backup.file)
 	end
 end
@@ -199,10 +224,12 @@ function store.decode(text: string): Doc
 	assert(root, "Orion data must be a JSON object")
 
 	local nodes: { Item } = {}
+
 	for _, raw in json.asArray(root.nodes) or {} do
 		local object = json.asObject(raw)
 		local id = if object then str(object.id) else nil
 		local kind = if object then str(object.type) else nil
+
 		if object and id and kind then
 			local position = json.asObject(object.position) or json.object({})
 			table.insert(nodes, {
@@ -218,10 +245,12 @@ function store.decode(text: string): Doc
 	end
 
 	local links: { Link } = {}
+
 	for _, raw in json.asArray(root.links) or {} do
 		local object = json.asObject(raw)
 		local from = if object then str(object.from) else nil
 		local to = if object then str(object.to) else nil
+
 		if object and from and to then
 			table.insert(links, {
 				id = str(object.id) or `{from}>{to}`,
@@ -235,22 +264,29 @@ function store.decode(text: string): Doc
 
 	local settings = json.asObject(root.settings) or json.object({})
 	local sources: { Source } = {}
+
 	for _, raw in json.asArray(settings.sources) or {} do
 		local source = json.asObject(raw)
+
 		if source and type(source.id) == "string" and type(source.kind) == "string" then
 			local function getStrings(value: json.Value): { string }?
 				local array = json.asArray(value)
+
 				if not array then
 					return nil
 				end
+
 				local result = {}
+
 				for _, entry in array do
 					if type(entry) == "string" then
 						table.insert(result, entry)
 					end
 				end
+
 				return result
 			end
+
 			table.insert(sources, {
 				id = source.id,
 				kind = source.kind,
@@ -263,6 +299,7 @@ function store.decode(text: string): Doc
 			})
 		end
 	end
+
 	return {
 		version = num(root.version) or 1,
 		revision = num(root.revision) or 0,
@@ -280,13 +317,18 @@ function store.encode(doc: Doc): string
 		if not values then
 			return nil
 		end
+
 		local result: json.Array = {}
+
 		for _, value in values do
 			table.insert(result, value)
 		end
+
 		return result
 	end
+
 	local nodes: json.Array = {}
+
 	for _, item in doc.nodes do
 		local object: json.Object = json.object({
 			id = item.id,
@@ -299,18 +341,22 @@ function store.encode(doc: Doc): string
 		object.height = item.height
 		table.insert(nodes, object)
 	end
+
 	local links: json.Array = {}
+
 	for _, link in doc.links do
 		local object = json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind })
 		object.origin = link.origin
 		table.insert(links, object)
 	end
+
 	local root = json.object(doc.raw or {})
 	root.version = doc.version
 	root.revision = doc.revision
 	local settings = json.object(json.asObject(root.settings) or {})
 	settings.githubOwner = doc.settings.githubOwner
 	local sources: json.Array = {}
+
 	for _, source in doc.settings.sources do
 		local value = json.object({ id = source.id, kind = source.kind })
 		value.host = source.host
@@ -321,6 +367,7 @@ function store.encode(doc: Doc): string
 		value.browse = source.browse
 		table.insert(sources, value)
 	end
+
 	settings.sources = sources
 	root.settings = settings
 	root.nodes = nodes
@@ -332,9 +379,11 @@ end
 
 function store.read(dir: string): Doc?
 	local file = store.filePath(dir)
+
 	if not fs.exists(file) then
 		return nil
 	end
+
 	return store.decode(fs.readFileToString(file))
 end
 
@@ -422,18 +471,22 @@ local function acquire(dir: string): string
 	local lockPath = tostring(path.join(dir, fileNames.lock))
 	local ownerPath = path.join(lockPath, "owner")
 	local deadline = os.time() + LOCK_TIMEOUT_SECONDS
+
 	while true do
 		if process.run({ "mkdir", lockPath }).ok then
 			fs.writeStringToFile(ownerPath, `{process.pid()} {os.time()}`)
 			return lockPath
 		end
+
 		-- Reclaim a lock left behind by a writer that crashed.
 		local ok, owner = pcall(fs.readFileToString, ownerPath)
 		local stamp = if ok then tonumber(owner:match("%s(%d+)")) else nil
+
 		if stamp and os.time() - stamp > STALE_LOCK_SECONDS then
 			release(lockPath)
 			continue
 		end
+
 		assert(os.time() < deadline, `timed out waiting for {lockPath}`)
 		task.wait(0.05)
 	end
@@ -454,15 +507,20 @@ local function atomicWrite(file: string, contents: string)
 			if not fs.exists(folder) then
 				fs.createDirectory(folder)
 			end
+
 			local previous = store.decode(fs.readFileToString(file))
 			local backup = path.join(folder, store.getBackupName(previous.revision, now))
+
 			if not fs.exists(backup) then
 				fs.copy(file, backup)
 			end
+
 			store.pruneBackups(dir, now)
 		end
 	end)
+
 	local ok, err = pcall(fs.move, temporary, file)
+
 	if not ok then
 		pcall(fs.remove, temporary)
 		error(err, 0)
@@ -474,6 +532,7 @@ function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
 	if not fs.exists(dir) then
 		fs.createDirectory(dir, { makeParents = true })
 	end
+
 	local lockPath = acquire(dir)
 	local ok, result = pcall(function(): Doc
 		local doc = store.load(dir)
@@ -482,10 +541,13 @@ function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
 		atomicWrite(store.filePath(dir), store.encode(doc))
 		return doc
 	end)
+
 	release(lockPath)
+
 	if not ok then
 		error(result, 0)
 	end
+
 	return result :: Doc
 end
 
@@ -494,9 +556,11 @@ function store.write(dir: string, doc: Doc)
 	if not fs.exists(dir) then
 		fs.createDirectory(dir, { makeParents = true })
 	end
+
 	local lockPath = acquire(dir)
 	local ok, err = pcall(atomicWrite, store.filePath(dir), store.encode(doc))
 	release(lockPath)
+
 	if not ok then
 		error(err, 0)
 	end
@@ -515,13 +579,16 @@ function store.put(
 	if not fs.exists(dir) then
 		fs.createDirectory(dir, { makeParents = true })
 	end
+
 	local lockPath = acquire(dir)
 	local didSucceed, isSaved, revision = pcall(function(): (boolean, number?)
 		local current = store.read(dir)
 		local previous = if current then current.revision else nil
+
 		if baseRevision ~= previous then
 			return false, previous
 		end
+
 		local root = json.object(if current
 			then (current.raw or {})
 			else {
@@ -532,19 +599,25 @@ function store.put(
 		root.revision = nextRevision
 		root.nodes = nodes
 		root.links = links
+
 		if stickers then
 			root.stickers = stickers
 		end
+
 		if stickerLoadout then
 			root.stickerLoadout = stickerLoadout
 		end
+
 		atomicWrite(store.filePath(dir), json.serialize(root, true))
 		return true, nextRevision
 	end)
+
 	release(lockPath)
+
 	if not didSucceed then
 		error(isSaved, 0)
 	end
+
 	return isSaved :: boolean, revision
 end
 

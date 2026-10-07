@@ -31,7 +31,9 @@ function connectEvents() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
   const current = new WebSocket(`${protocol}//${location.host}/api/events`)
   socket = current
-  current.onopen = () => { retryDelay = 250 }
+  current.onopen = () => {
+    retryDelay = 250
+  }
   current.onmessage = (message) => {
     try {
       const event = JSON.parse(message.data) as { event: EventName; data: never }

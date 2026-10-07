@@ -16,11 +16,13 @@ end
 function render.tag(item: Item): string
 	local repo = str(item.data.repo)
 	local pr = item.data.pr
+
 	if graph.isNote(item) then
 		return "note"
 	elseif repo and type(pr) == "number" then
 		return `{repo}#{pr}`
 	end
+
 	return repo or "step"
 end
 
@@ -47,6 +49,7 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 	object.github = item.data.github
 	local waitsOn: json.Array = {}
 	local unblocks: json.Array = {}
+
 	for _, link in doc.links do
 		if link.kind == "blocks" and link.to == item.id then
 			table.insert(waitsOn, link.from)
@@ -54,6 +57,7 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 			table.insert(unblocks, link.to)
 		end
 	end
+
 	object.waitsOn = waitsOn
 	object.leadsTo = unblocks
 	return object
@@ -63,7 +67,9 @@ function render.table(doc: Doc, derived: graph.Derived, items: { Item }): string
 	if #items == 0 then
 		return "Nothing matches."
 	end
+
 	local lines = {}
+
 	for _, item in items do
 		local status = derived.status[item.id] or "ready"
 		local leverage = derived.leverage[item.id] or 0
@@ -74,6 +80,7 @@ function render.table(doc: Doc, derived: graph.Derived, items: { Item }): string
 			`{pad(status, 9)}{pad(item.id, 24)}{pad(graph.label(item), 44)}{pad(render.tag(item), 20)}{where or ""}{extra}`
 		)
 	end
+
 	return table.concat(lines, "\n")
 end
 
@@ -81,16 +88,20 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 	if graph.isGroup(item) then
 		local lines = { `{graph.label(item)}  ({item.id}, group)` }
 		local blurb = str(item.data.blurb)
+
 		if blurb then
 			table.insert(lines, blurb)
 		end
+
 		for _, child in doc.nodes do
 			if child.parentId == item.id then
 				table.insert(lines, `  {pad(derived.status[child.id] or "group", 9)}{child.id}  {graph.label(child)}`)
 			end
 		end
+
 		return table.concat(lines, "\n")
 	end
+
 	local lines = {
 		`{graph.label(item)}`,
 		`  id       {item.id}`,
@@ -98,19 +109,26 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 		`  status   {derived.status[item.id] or "ready"} (recorded {str(item.data.status) or "todo"})`,
 	}
 	local where = groupLabel(doc, item)
+
 	if where then
 		table.insert(lines, `  group    {where} ({item.parentId})`)
 	end
+
 	local who = str(item.data.who)
+
 	if who then
 		table.insert(lines, `  move     {who}`)
 	end
+
 	local leverage = derived.leverage[item.id] or 0
+
 	if leverage > 0 then
 		table.insert(lines, `  unblocks {leverage}`)
 	end
+
 	for _, link in doc.links do
 		local other = if link.to == item.id then link.from elseif link.from == item.id then link.to else nil
+
 		if other then
 			local direction = if link.kind ~= "blocks"
 				then "related"
@@ -120,10 +138,13 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 			table.insert(lines, `  {pad(direction, 9)}{other}  {if target then graph.label(target) else ""}`)
 		end
 	end
+
 	local note = str(item.data.note)
+
 	if note then
 		table.insert(lines, `  note     {note}`)
 	end
+
 	return table.concat(lines, "\n")
 end
 

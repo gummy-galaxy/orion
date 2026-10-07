@@ -1,6 +1,7 @@
 local test = require("@std/test")
 
 local github = require("@root/github")
+local graph = require("@root/graph")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
@@ -48,7 +49,6 @@ local function stackFixture(): (Doc, Fetched)
 		{
 			pulls = { [github.getKey(parent)] = parent, [github.getKey(child)] = child },
 			authored = {},
-			reviews = {},
 			viewer = "vocksel",
 			discover = false,
 		}
@@ -151,33 +151,20 @@ test.case("refFor reads bare and owner-qualified repositories", function(assert)
 	assert.eq(github.getRefFor(testing.task("c", "C", "todo"), "flipbook-labs"), nil)
 end)
 
-test.case("apply creates review cards and stores unplaced authored pull requests with matches", function(assert)
+test.case("apply stores unplaced authored pull requests with matches", function(assert)
 	local doc = testing.createDoc({
 		testing.task("dashboard", "Release health dashboard", "todo", nil, { repo = "flipbook" }),
 	})
-	local review = pull("OPEN")
-	review.author = "colleague"
-	review.name = "storyteller"
-	review.number = 3
-	review.title = "Review story"
-	review.requestedReviewers = { "vocksel" }
 	local authored = pull("OPEN")
 	authored.number = 670
 	authored.title = "Add release health dashboard"
 	local report = github.apply(doc, {
 		pulls = {},
 		authored = { authored },
-		reviews = { review },
 		viewer = "vocksel",
 		discover = false,
 	}, "2026-10-04T18:05:00Z")
-	assert.eq(report.reviewAdded[1], report.added[1])
-	assert.eq(doc.nodes[2].id, "reviews")
-	assert.eq(doc.nodes[3].data.itemKind, "pr")
-	assert.eq(doc.nodes[3].data.who, "you")
-	local recorded = require("@std/json").asObject(doc.nodes[3].data.github)
-	assert.eq(recorded and recorded.requestedFromYou, true)
-	assert.eq(recorded and recorded.mine, false)
+	assert.eq(#report.added, 0)
 	local top = doc.github
 	assert.eq(top and top.viewer, "vocksel")
 	local unplaced = if top then require("@std/json").asArray(top.unplaced) else nil
@@ -188,13 +175,33 @@ test.case("apply creates review cards and stores unplaced authored pull requests
 	assert.eq(first and first.id, "dashboard")
 end)
 
+test.case("apply keeps authored pull requests to the workspace's GitHub sources", function(assert)
+	local doc = testing.createDoc({})
+	doc.settings.sources =
+		{ { id = "gh-vocksel", kind = "github", host = "github.com", owners = { "vocksel" }, include = { "orion" } } }
+	local inside = pull("OPEN")
+	inside.owner, inside.name, inside.number = "vocksel", "orion", 1
+	local otherRepo = pull("OPEN")
+	otherRepo.owner, otherRepo.name, otherRepo.number = "vocksel", "hop", 2
+	local otherOwner = pull("OPEN")
+	otherOwner.owner, otherOwner.name, otherOwner.number = "flipbook-labs", "orion", 3
+	local report = github.apply(doc, {
+		pulls = {},
+		authored = { inside, otherRepo, otherOwner },
+		viewer = "vocksel",
+		discover = true,
+	}, "2026-10-04T18:05:00Z")
+	assert.eq(#report.added, 1)
+	local added = graph.find(doc, report.added[1])
+	assert.eq(added and added.data.pr, 1)
+end)
+
 test.case("discover files authored pulls in Inbox and clears unplaced", function(assert)
 	local doc = testing.createDoc({})
 	local authored = pull("OPEN", { draft = true })
 	local report = github.apply(doc, {
 		pulls = {},
 		authored = { authored },
-		reviews = {},
 		viewer = "vocksel",
 		discover = true,
 	}, "2026-10-04T18:05:00Z")
@@ -244,6 +251,31 @@ test.case("fetch rejects repository names that would break the query", function(
 	end)
 end)
 
+test.case("authored pull requests include every page", function(assert)
+	local calls = 0
+	local authored, viewer = github.getAuthoredOpen(function(argv)
+		calls += 1
+		local query = argv[#argv]
+		if calls == 1 then
+			assert.eq(query:find("after:", 1, true), nil)
+			return testing.result(
+				true,
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":1,"state":"OPEN","url":"u1","repository":{"name":"orion","owner":{"login":"vocksel"}}}],"pageInfo":{"hasNextPage":true,"endCursor":"next"}}}}}]]
+			)
+		end
+		assert.strContains(query, 'after: "next"')
+		return testing.result(
+			true,
+			[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":2,"state":"OPEN","url":"u2","repository":{"name":"orion","owner":{"login":"vocksel"}}}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}]]
+		)
+	end)
+	assert.eq(calls, 2)
+	assert.eq(viewer, "vocksel")
+	assert.eq(#authored, 2)
+	assert.eq(authored[1].number, 1)
+	assert.eq(authored[2].number, 2)
+end)
+
 test.case("collect batches pull request lookups by host", function(assert)
 	local doc = testing.createDoc({
 		testing.task("public", "Public", "todo", nil, { repo = "flipbook", pr = 1 }),
@@ -258,16 +290,19 @@ test.case("collect batches pull request lookups by host", function(assert)
 	local batches = {}
 	github.collect(doc, function(argv)
 		local query = argv[#argv]
+
 		if query:find("pullRequests(first:", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
 		elseif query:find("search(query:", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
+
 		table.insert(batches, argv)
 		return testing.result(true, [[{"data":{}}]])
 	end, false)
 	assert.eq(#batches, 2)
 	local hosts: { [string]: boolean } = {}
+
 	for _, argv in batches do
 		if argv[3] == "--hostname" then
 			hosts[argv[4]] = true
@@ -275,6 +310,7 @@ test.case("collect batches pull request lookups by host", function(assert)
 			hosts["github.com"] = true
 		end
 	end
+
 	assert.eq(hosts["github.com"], true)
 	assert.eq(hosts["github.example.com"], true)
 end)
@@ -288,7 +324,6 @@ test.case("apply updates statuses, reports what's missing, and files new pull re
 	local report = github.apply(doc, {
 		pulls = { ["flipbook-labs/flipbook#1"] = merged },
 		authored = {},
-		reviews = {},
 		viewer = "vocksel",
 		discover = false,
 	}, "2026-10-04T00:00:00Z")
