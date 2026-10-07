@@ -12,6 +12,7 @@ import {
   applyNodeChanges,
   useReactFlow,
   useStore,
+  useStoreApi,
   type Connection,
   type Edge,
   type NodeChange,
@@ -20,7 +21,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { Palette } from './Palette'
+import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import {
   ActionsContext,
@@ -92,6 +93,7 @@ import { Sidebar } from './Sidebar'
 import { StickerLayer, StickerWheel, type PlacedSticker, type StickerBounds, type StickerMove } from './Stickers'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from './sticker'
 import { Toolbar, type Tool } from './Toolbar'
+import { readViewport, writeViewport } from './viewport'
 
 type ViewNode = AppNode | GhostNode
 
@@ -105,6 +107,8 @@ type ColorMode = 'light' | 'dark' | 'system'
  */
 const COLLAPSE_ZOOM = 0.3
 const COLLAPSE_STEP = 0.12
+/** Zoom below which cards are too small for motion to read, so animations pause. */
+const STILL_ZOOM = 0.45
 const GHOST_W = 200
 const GHOST_H = 62
 const GHOST_GAP = 90
@@ -114,6 +118,8 @@ const FIT_MARGIN_Y = 90
 const FIT_MAX_ZOOM = 1.25
 /** How far across a card, on each side, the selection box has to reach to pick it up. */
 const MARQUEE_REACH = 0.25
+/** Kept stable: a new object each render would replace the options of any `fitView` call still queued. */
+const INITIAL_FIT = { padding: 0.12 }
 /**
  * Leaving a group means zooming out to this share of its opening zoom. Bigger groups
  * get zoomed out more just to look around, so they need more: about 0.64 for 9 items.
@@ -125,7 +131,6 @@ const EXIT_RATIO_PER_DOUBLING = 0.1
 const HINT_SPAN = 0.6
 const PEEK_SPAN = 0.8
 const PEEK_KEEP_VISIBLE = 0.4
-const ENTER_FILL = 0.7
 const ATTEND_DELAY_MS = 150
 /** A click on a group waits this long for a second one before it selects. */
 const DOUBLE_CLICK_MS = 280
@@ -250,9 +255,10 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
 
 function Canvas() {
   const rf = useReactFlow<ViewNode, Edge>()
-  const zoom = useStore((s) => s.transform[2])
-  const panX = useStore((s) => s.transform[0])
-  const panY = useStore((s) => s.transform[1])
+  const store = useStoreApi<ViewNode, Edge>()
+  // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
+  const foldFrom = useStore((s) => Math.floor((s.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
+  const still = useStore((s) => s.transform[2] < STILL_ZOOM)
   const [nodes, setNodes] = useState<AppNode[]>([])
   const [links, setLinks] = useState<Link[]>([])
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
@@ -288,9 +294,10 @@ function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef<Saved>({ nodes, links, stickers, stickerLoadout: loadout })
   const fitZoom = useRef(new Map<string, number>())
+  const shownExtent = useRef<{ root: string; w: number; h: number } | null>(null)
   const fitting = useRef(false)
   const fitSequence = useRef(0)
-  const previousZoom = useRef(zoom)
+  const previousZoom = useRef(store.getState().transform[2])
   const skipNextFit = useRef(false)
   const openRoot = useCallback((target: string | null) => {
     setPeek(null)
@@ -330,6 +337,17 @@ function Canvas() {
   useEffect(() => {
     latest.current = { nodes, links, stickers, stickerLoadout: loadout }
   }, [nodes, links, stickers, loadout])
+  // Folded groups hold one on-screen size through --inv, set outside React so zooming doesn't re-render them.
+  useEffect(() => {
+    let shown = 0
+    const apply = (zoom: number) => {
+      if (zoom === shown) return
+      shown = zoom
+      canvasRef.current?.style.setProperty('--inv', String(1 / zoom))
+    }
+    apply(store.getState().transform[2])
+    return store.subscribe((s) => apply(s.transform[2]))
+  }, [store])
 
   // ---- Persistence ----
   const source = useRef<'file' | 'browser'>('file')
@@ -343,6 +361,9 @@ function Canvas() {
   const workspace = useRef('default')
   const workspaceEpoch = useRef(0)
   const pendingWorkspaceFit = useRef<number | null>(null)
+  const [savedView, setSavedView] = useState<Viewport | null>(null)
+  // The workspace the canvas is showing, so moves while switching aren't remembered for the next one.
+  const viewFor = useRef<string | null>(null)
 
   const adopt = useCallback((doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
     const next = normalize(doc.nodes)
@@ -418,6 +439,10 @@ function Canvas() {
         setGithub(null)
         setGithubOwner('flipbook-labs')
       }
+      const view = readViewport(workspace.current)
+      if (view) pendingWorkspaceFit.current = null
+      setSavedView(view)
+      viewFor.current = workspace.current
       setReady(true)
     },
     [adopt],
@@ -539,6 +564,7 @@ function Canvas() {
       if (name === workspace.current) return
       clearFocus(workspace.current)
       workspace.current = name
+      viewFor.current = null
       const epoch = ++workspaceEpoch.current
       pendingWorkspaceFit.current = epoch
       setReady(false)
@@ -574,6 +600,10 @@ function Canvas() {
     })
     return () => cancelAnimationFrame(frame)
   }, [ready, nodes, rf])
+
+  const rememberView = useCallback((_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+    if (viewFor.current === workspace.current) writeViewport(workspace.current, viewport)
+  }, [])
 
   const switchWorkspace = async (name: string) => {
     const list = await setActiveWorkspace(name)
@@ -748,37 +778,12 @@ function Canvas() {
         return
       }
       if (!userZoom || viewport.zoom === wasZoom) return
-      if (viewport.zoom > wasZoom) {
-        const box = canvasRef.current?.getBoundingClientRect()
-        if (!box?.width || !box.height) return
-        const cursor =
-          'touches' in event
-            ? { x: (event.touches[0].clientX + event.touches[1].clientX) / 2, y: (event.touches[0].clientY + event.touches[1].clientY) / 2 }
-            : { x: event.clientX, y: event.clientY }
-        const point = rf.screenToFlowPosition(cursor)
-        const group = nodes.find((n) => {
-          if (!isCluster(n) || (n.parentId ?? null) !== root) return false
-          const p = absPos(n, map)
-          const size = sizeOf(n)
-          return (
-            point.x >= p.x &&
-            point.x <= p.x + size.w &&
-            point.y >= p.y &&
-            point.y <= p.y + size.h &&
-            Math.max((size.w * viewport.zoom) / box.width, (size.h * viewport.zoom) / box.height) >= ENTER_FILL
-          )
-        })
-        if (group) {
-          fitZoom.current.set(group.id, groupFitViewport(group, map, box).zoom)
-          skipNextFit.current = true
-          setPeek(null)
-          setExitHint(null)
-          setRoot(group.id)
-          return
-        }
-      }
-      const fit = root ? fitZoom.current.get(root) : undefined
-      if (!root || fit === undefined) return
+      const home = root ? fitZoom.current.get(root) : undefined
+      if (!root || home === undefined) return
+      // Leaving waits until everything the open view shows, outside connections included, fits on screen.
+      const box = canvasRef.current?.getBoundingClientRect()
+      const extent = shownExtent.current
+      const fit = extent?.root === root && box?.width ? Math.min(home, box.width / extent.w, box.height / extent.h) : home
       const exit = exitRatio(rootWorkCount)
       const hint = exit + (1 - exit) * HINT_SPAN
       const progress = Math.min(1, Math.max(0, (hint - viewport.zoom / fit) / (hint - exit * PEEK_SPAN)))
@@ -792,7 +797,7 @@ function Canvas() {
         setExitHint(viewport.zoom < fit * hint ? { root, progress } : null)
       }
     },
-    [root, peeking, map, nodes, rf, rootWorkCount, leaveRoot],
+    [root, peeking, map, rootWorkCount, leaveRoot],
   )
   const work = useMemo(() => deriveWork(nodes, links), [nodes, links])
 
@@ -806,7 +811,7 @@ function Canvas() {
   }
   const small = nodes
     // The open group stays open while peeking; only its surroundings fold.
-    .filter((n) => isCluster(n) && n.id !== levelRoot && n.id !== root && inView(n.id) && zoom < COLLAPSE_ZOOM + COLLAPSE_STEP * depthInView(n.id))
+    .filter((n) => isCluster(n) && n.id !== levelRoot && n.id !== root && inView(n.id) && depthInView(n.id) >= foldFrom)
     .map((n) => n.id)
   const smallSet = new Set(small)
   const collapsedKey = small.filter((id) => !ancestors(id, map).some((a) => smallSet.has(a))).join(',')
@@ -877,6 +882,25 @@ function Canvas() {
     place(outgoing, 'out')
     return out
   }, [root, peeking, map, links, inView, work])
+
+  // Peeking hides the ghosts, so the extent is only measured while they show.
+  useEffect(() => {
+    const rootNode = root ? map.get(root) : undefined
+    if (!root || !rootNode || peeking) return
+    const p = absPos(rootNode, map)
+    const s = sizeOf(rootNode)
+    let x0 = p.x
+    let y0 = p.y
+    let x1 = p.x + s.w
+    let y1 = p.y + s.h
+    for (const g of ghosts) {
+      x0 = Math.min(x0, g.position.x)
+      y0 = Math.min(y0, g.position.y)
+      x1 = Math.max(x1, g.position.x + GHOST_W)
+      y1 = Math.max(y1, g.position.y + GHOST_H)
+    }
+    shownExtent.current = { root, w: x1 - x0 + FIT_MARGIN_Y * 2, h: y1 - y0 + FIT_MARGIN_Y * 2 }
+  }, [root, peeking, map, ghosts])
 
   const viewNodes = useMemo<ViewNode[]>(
     () => [
@@ -1086,8 +1110,12 @@ function Canvas() {
     return { marks, count: needs.length - elsewhere, elsewhere }
   }, [attending, needs, view])
 
+  const transform = useStore((s) => (attending ? s.transform : null))
+  // The focus view tracks the viewport only while open, so zooming elsewhere doesn't re-render the canvas.
+  const focusTransform = useStore((s) => (focus ? s.transform : null))
   const attentionTargets = useMemo<AttentionTarget[]>(() => {
-    if (!attention) return []
+    if (!attention || !transform) return []
+    const [panX, panY, zoom] = transform
     const out: AttentionTarget[] = []
     for (const [id, m] of attention.marks) {
       const n = map.get(id)
@@ -1107,11 +1135,19 @@ function Canvas() {
       })
     }
     return out
-  }, [attention, map, zoom, panX, panY])
+  }, [attention, map, transform])
 
   const derived = useMemo<Derived>(
-    () => ({ status: work.status, leverage: work.leverage, groups: work.groups, sources: work.sources, trace, collapsed, zoom, attention: attention?.marks ?? null }),
-    [work, trace, collapsed, zoom, attention],
+    () => ({
+      status: work.status,
+      leverage: work.leverage,
+      groups: work.groups,
+      sources: work.sources,
+      trace,
+      collapsed,
+      attention: attention?.marks ?? null,
+    }),
+    [work, trace, collapsed, attention],
   )
 
   const onNodesChange = useCallback(
@@ -1612,6 +1648,32 @@ function Canvas() {
   const focusSize = focused && sizeOf(focused)
   const readyTotal = [...work.status.values()].filter((s) => s === 'ready').length
 
+  const commands: Command[] = [
+    {
+      id: 'fit-board',
+      label: 'Fit entire board',
+      detail: 'Show all work',
+      hint: root ? undefined : '⇧1',
+      run: () => (root ? openRoot(null) : fitTo(null)),
+    },
+    ...(selected.length
+      ? [
+          {
+            id: 'fit-selection',
+            label: 'Fit selection',
+            detail: `Show ${selected.length} selected`,
+            run: () => void rf.fitView({ nodes: selected.map((n) => ({ id: n.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: 450 }),
+          },
+        ]
+      : []),
+    ...(['light', 'dark', 'system'] as const).map((mode) => ({
+      id: `color-mode-${mode}`,
+      label: `Color mode: ${mode[0].toUpperCase()}${mode.slice(1)}`,
+      detail: 'Saved on this device',
+      run: () => chooseColorMode(mode),
+    })),
+  ]
+
   const toggleSidebar = (v: boolean) => {
     setSidebar(v)
     writeFlag(SIDEBAR_KEY, v)
@@ -1644,7 +1706,7 @@ function Canvas() {
             />
           )}
           <div
-            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${focus ? ' is-focus' : ''}`}
+            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${focus ? ' is-focus' : ''}${still ? ' is-still' : ''}`}
             style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
             ref={canvasRef}
             onPointerDown={startMarquee}
@@ -1653,8 +1715,10 @@ function Canvas() {
           >
             {ready && (
               <ReactFlow<ViewNode, Edge>
-                fitView
-                fitViewOptions={{ padding: 0.12 }}
+                fitView={!savedView}
+                fitViewOptions={INITIAL_FIT}
+                defaultViewport={savedView ?? undefined}
+                onMoveEnd={rememberView}
                 nodes={viewNodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
@@ -1905,11 +1969,16 @@ function Canvas() {
                 onJump={jumpTo}
               />
             )}
-            {focused && focusPos && focusSize && focusItems && (
+            {focused && focusPos && focusSize && focusItems && focusTransform && (
               <FocusView
                 key={focused.id}
                 label={focused.data.label || 'Note'}
-                card={{ x: focusPos.x * zoom + panX, y: focusPos.y * zoom + panY, w: focusSize.w * zoom, h: focusSize.h * zoom }}
+                card={{
+                  x: focusPos.x * focusTransform[2] + focusTransform[0],
+                  y: focusPos.y * focusTransform[2] + focusTransform[1],
+                  w: focusSize.w * focusTransform[2],
+                  h: focusSize.h * focusTransform[2],
+                }}
                 sideWidth={FOCUS_SIDE_W}
                 inset={FOCUS_INSET}
                 incoming={focusItems.incoming}
@@ -1956,18 +2025,7 @@ function Canvas() {
               />
             )}
           </div>
-          {paletteOpen && (
-            <Palette
-              nodes={nodes}
-              jumpTo={jumpTo}
-              open={actions.open}
-              close={() => setPaletteOpen(false)}
-              commands={(['light', 'dark', 'system'] as const).map((mode) => ({
-                label: `Color mode: ${mode[0].toUpperCase()}${mode.slice(1)}`,
-                run: () => chooseColorMode(mode),
-              }))}
-            />
-          )}
+          {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
         </div>
       </ActionsContext.Provider>
     </DerivedContext.Provider>

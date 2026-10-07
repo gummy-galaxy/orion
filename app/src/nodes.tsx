@@ -1,5 +1,5 @@
-import { useContext, useState, type CSSProperties } from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { useContext, useState } from 'react'
+import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext, type SourceRef } from './derive'
 import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
 
@@ -151,16 +151,16 @@ export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
   const collapsed = d.collapsed.has(id)
   const tr = d.trace?.get(id)
   // A folded group raises a bubble from its center. The bubble keeps one on-screen size at every zoom.
-  const screenWidth = (width ?? 300) * d.zoom
+  const compact = useStore((s) => collapsed && (width ?? 300) * s.transform[2] < BUBBLE_DETAIL_WIDTH)
   const attn = d.attention?.get(id)
   return (
     <div className={`cluster${collapsed ? ' is-collapsed' : ''}${tr ? ' tr-' + tr : ''}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} />
       {collapsed ? (
-        <div className="pop drag" style={{ '--inv': 1 / d.zoom } as CSSProperties}>
+        <div className="pop drag">
           <span className="pop-anchor" />
           <div className="pop-place">
-            <div className={`bubble${screenWidth < BUBBLE_DETAIL_WIDTH ? ' is-compact' : ''}${attn ? ' attn' : ''}`}>
+            <div className={`bubble${compact ? ' is-compact' : ''}${attn ? ' attn' : ''}`}>
               <div className="bubble-title">
                 <Ring done={s.done} total={s.total} size={16} />
                 <strong>{data.label}</strong>

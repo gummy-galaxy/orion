@@ -522,6 +522,16 @@ select {
     animation: pulse 1.8s ease-out infinite;
   }
 }
+/* Zoomed far out, motion can't be read, so loops and fades stop. */
+.canvas.is-still .react-flow__edge-path,
+.canvas.is-still .st-active {
+  animation: none !important;
+}
+.canvas.is-still .react-flow__node,
+.canvas.is-still .react-flow__node *,
+.canvas.is-still .react-flow__edge-path {
+  transition: none !important;
+}
 @keyframes flow {
   to {
     stroke-dashoffset: -10;
@@ -624,9 +634,11 @@ select {
 .head-actions button:hover {
   background: var(--accent-soft);
 }
+/* Folded frames keep a visible outline however far out you zoom, so regions still read. */
 .cluster.is-collapsed {
-  border: 1.5px solid var(--line);
-  background: transparent;
+  border: max(1.5px, calc(1.5px * var(--inv, 1))) solid var(--edge);
+  border-radius: max(12px, calc(8px * var(--inv, 1)));
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
 /* Folded groups paint above expanded frames; transparent bodies cannot cover neighboring bubbles. */
 .react-flow__node-cluster:has(.cluster.is-collapsed) {
