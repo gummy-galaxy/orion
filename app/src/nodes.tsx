@@ -1,6 +1,6 @@
-import { useContext, type CSSProperties } from 'react'
+import { useContext, useState, type CSSProperties } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { ActionsContext, DerivedContext } from './derive'
+import { ActionsContext, DerivedContext, type SourceRef } from './derive'
 import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
@@ -28,6 +28,62 @@ function Ring({ done, total, size = 22 }: { done: number; total: number; size?: 
   )
 }
 
+function Favicon({ domain }: { domain: string }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <span className="source-favicon">
+      <svg viewBox="0 0 20 20" aria-hidden="true">
+        <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M3 10h14M10 3c-4 4-4 10 0 14 4-4 4-10 0-14Z" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+      {!failed && (domain === 'orion' || domain.includes('.')) && (
+        <img src={domain === 'orion' ? '/favicon.svg' : `https://${domain}/favicon.ico`} alt="" onError={() => setFailed(true)} />
+      )}
+    </span>
+  )
+}
+
+function SourceBadges({ sources, inBubble = false }: { sources: SourceRef[]; inBubble?: boolean }) {
+  const domains = new Map<string, string[]>()
+  for (const { domain, label } of sources.length ? sources : [{ domain: 'orion', label: 'Orion' }]) {
+    const labels = domains.get(domain) ?? []
+    if (!labels.includes(label)) labels.push(label)
+    domains.set(domain, labels)
+  }
+  return (
+    <div className={`source-badges${inBubble ? ' in-bubble' : ''}`}>
+      {[...domains].map(([domain, labels]) => {
+        const name = domain === 'orion' ? 'Orion' : domain
+        return labels.length === 1 ? (
+          <span key={domain} className="source-domain" role="img" aria-label={`${name}: ${labels[0]}`} title={`${name}: ${labels[0]}`}>
+            <Favicon domain={domain} />
+          </span>
+        ) : (
+          <details
+            key={domain}
+            className="source-domain source-domain-many nodrag"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <summary aria-label={`${name}: ${labels.length} sources`} title={`${name}: ${labels.length} sources. Click to show them.`}>
+              <Favicon domain={domain} />
+              <span className="source-count">{labels.length}</span>
+            </summary>
+            <div className="source-menu">
+              <strong>{name}</strong>
+              <ul>
+                {labels.map((label) => (
+                  <li key={label}>{label}</li>
+                ))}
+              </ul>
+            </div>
+          </details>
+        )
+      })}
+    </div>
+  )
+}
+
 export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const d = useContext(DerivedContext)!
   const st = d.status.get(id) ?? 'ready'
@@ -42,6 +98,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
           <span>Note</span>
         </div>
         <div className="note-text">{data.label || 'Empty note'}</div>
+        <SourceBadges sources={d.sources.get(id) ?? []} />
         <Handle type="source" position={Position.Right} />
       </div>
     )
@@ -64,13 +121,15 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       <div className="label">{data.label}</div>
       {st !== 'done' && st !== 'deferred' && lev > 0 && <span className={`lev${lev >= 4 ? ' big' : ''}`}>unblocks {lev}</span>}
       {st !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
+      <SourceBadges sources={d.sources.get(id) ?? []} />
       <Handle type="source" position={Position.Right} />
     </div>
   )
 }
 
 export function GhostView({ data }: NodeProps<GhostNode>) {
-  const tr = useContext(DerivedContext)!.trace?.get(data.taskId)
+  const d = useContext(DerivedContext)!
+  const tr = d.trace?.get(data.taskId)
   return (
     <div className={`ghost st-${data.status} side-${data.side}${tr ? ' tr-' + tr : ''}`} title={`Jump to ${data.label}`}>
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
@@ -79,6 +138,7 @@ export function GhostView({ data }: NodeProps<GhostNode>) {
       </span>
       <span className="label">{data.label}</span>
       <span className="ghost-status">{STATUS_LABEL[data.status]}</span>
+      <SourceBadges sources={d.sources.get(data.taskId) ?? []} />
       {data.side === 'in' && <Handle type="source" position={Position.Right} isConnectable={false} />}
     </div>
   )
@@ -109,6 +169,7 @@ export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
                 {s.done}/{s.total} done · {s.ready} ready · {s.blocked} blocked
               </span>
               {s.outside > 0 && <span className="bubble-lev">unblocks {s.outside} outside</span>}
+              <SourceBadges sources={d.sources.get(id) ?? []} inBubble />
             </div>
           </div>
         </div>
@@ -130,6 +191,7 @@ export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
           </span>
         </div>
       )}
+      {!collapsed && <SourceBadges sources={d.sources.get(id) ?? []} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
   )

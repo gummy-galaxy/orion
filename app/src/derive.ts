@@ -5,11 +5,13 @@ export type TraceRole = 'self' | 'up' | 'down' | 'dim'
 /** How a link out of a card reads: moving, or held behind work that's stuck. */
 export type Flow = 'live' | 'held'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
+export type SourceRef = { domain: string; label: string }
 
 export type Derived = {
   status: Map<string, ViewStatus>
   leverage: Map<string, number>
   groups: Map<string, GroupStats>
+  sources: Map<string, SourceRef[]>
   trace: Map<string, TraceRole> | null
   collapsed: Set<string>
   zoom: number
@@ -24,6 +26,24 @@ export type Actions = {
 
 export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
+
+function hostOf(url: string | undefined): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' ? parsed.hostname.toLowerCase() : null
+  } catch {
+    return null
+  }
+}
+
+function sourceOf(task: TaskNode): SourceRef {
+  const repo = task.data.repo?.trim()
+  const external = task.data.external
+  if (!repo && external) return { domain: hostOf(external.url) ?? external.source, label: external.key }
+  if (!repo) return { domain: 'orion', label: 'Orion' }
+  return { domain: hostOf(task.data.github?.url) ?? 'github.com', label: repo }
+}
 
 function graph(links: Link[]) {
   const preds = new Map<string, string[]>()
@@ -56,6 +76,8 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 /** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
 export function deriveWork(nodes: AppNode[], links: Link[]) {
   const tasks = new Map(nodes.filter(isTask).map((n) => [n.id, n as TaskNode]))
+  const sources = new Map<string, SourceRef[]>()
+  for (const task of tasks.values()) sources.set(task.id, [sourceOf(task)])
   const { preds, succs } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
   // A note is open while anything feeding into it is, so blocking passes through notes.
@@ -113,8 +135,14 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   for (const g of nodes.filter(isCluster)) {
     const inside = descendants(g.id, nodes)
     const s: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
+    const groupSources = new Map<string, SourceRef>()
     const reach = new Set<string>()
     for (const id of inside) {
+      const task = tasks.get(id)
+      if (task) {
+        const source = sourceOf(task)
+        groupSources.set(`${source.domain}:${source.label}`, source)
+      }
       const st = status.get(id)
       if (!st || isNote(id)) continue
       s.total++
@@ -125,9 +153,13 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     }
     s.outside = reach.size
     groups.set(g.id, s)
+    sources.set(
+      g.id,
+      [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label)),
+    )
   }
 
-  return { status, flow, leverage, groups, preds, succs }
+  return { status, flow, leverage, groups, sources, preds, succs }
 }
 
 export function traceFrom(id: string, preds: Map<string, string[]>, succs: Map<string, string[]>, ids: string[]) {
