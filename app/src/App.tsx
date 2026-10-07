@@ -67,6 +67,7 @@ import {
   type TaskData,
   type Who,
 } from './model'
+import { openExternal } from './external'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
   createWorkspace,
@@ -79,6 +80,7 @@ import {
   onRemoteChange,
   onSyncStatus,
   onWorkspaceChange,
+  onWorkspaceListChange,
   readBrowser,
   reportFocus,
   requestSync,
@@ -591,6 +593,8 @@ function Canvas() {
 
   useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
 
+  useEffect(() => onWorkspaceListChange((list) => setWorkspaces((current) => ({ ...current, workspaces: list.workspaces }))), [])
+
   useEffect(() => {
     if (!ready || pendingWorkspaceFit.current !== workspaceEpoch.current) return
     const epoch = workspaceEpoch.current
@@ -801,7 +805,7 @@ function Canvas() {
     },
     [root, peeking, map, rootWorkCount, leaveRoot],
   )
-  const work = useMemo(() => deriveWork(nodes, links), [nodes, links])
+  const work = useMemo(() => deriveWork(nodes, links, githubOwner), [nodes, links, githubOwner])
 
   // Which groups read as single bodies at this zoom, and which nodes that hides.
   const levelRoot = peeking ? (map.get(root)?.parentId ?? null) : root
@@ -1596,7 +1600,7 @@ function Canvas() {
       const url = getTaskUrl(data, githubOwner)
       return [
         ...many,
-        ...(url ? [{ label: `Open ${getTaskTag(data)}`, hint: '↗', run: () => window.open(url, '_blank', 'noreferrer') }] : []),
+        ...(url ? [{ label: `Open ${getTaskTag(data)}`, hint: '↗', run: () => openExternal(url) }] : []),
         data.status === 'done'
           ? { label: 'Mark not done', run: () => updateData(n.id, { status: 'todo' }) }
           : { label: 'Mark done', run: () => updateData(n.id, { status: 'done' }) },
@@ -1699,6 +1703,24 @@ function Canvas() {
       detail: 'Saved on this device',
       run: () => chooseColorMode(mode),
     })),
+    {
+      id: 'sidebar',
+      label: sidebar ? 'Hide group list' : 'Show group list',
+      detail: 'Groups and their progress',
+      run: () => toggleSidebar(!sidebar),
+    },
+    {
+      id: 'sync',
+      label: 'Sync with GitHub',
+      detail: 'Refresh pull request status now',
+      run: () => void requestSync(true).then((status) => status && setSyncStatus(status)),
+    },
+    {
+      id: 'reload',
+      label: 'Reload window',
+      detail: 'Load the app again',
+      run: () => window.location.reload(),
+    },
   ]
 
   const toggleSidebar = (v: boolean) => {

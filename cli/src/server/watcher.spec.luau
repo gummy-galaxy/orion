@@ -11,6 +11,7 @@ test.case("watcher announces external edits and follows manifest switches", func
 	store.createWorkspace(root, "other")
 	local active = "default"
 	local revisions: { number } = {}
+	local workspaceLists: { store.WorkspaceList } = {}
 	local monitor
 	monitor = watcher.create(root, function()
 		return active
@@ -19,9 +20,15 @@ test.case("watcher announces external edits and follows manifest switches", func
 		assert(monitor).switchTo(name)
 	end, function(revision)
 		table.insert(revisions, revision)
+	end, function(list)
+		table.insert(workspaceLists, list)
 	end)
 
 	monitor.start()
+	store.createWorkspace(root, "new")
+	task.wait(0.3)
+	expect.eq(#workspaceLists, 1)
+	expect.eq(workspaceLists[1].workspaces[3].name, "new")
 	store.transaction(root, function() end)
 	task.wait(0.3)
 	expect.eq(#revisions, 1)
@@ -29,6 +36,8 @@ test.case("watcher announces external edits and follows manifest switches", func
 	store.useWorkspace(root, "other")
 	task.wait(0.3)
 	expect.eq(active, "other")
+	expect.eq(#workspaceLists, 2)
+	expect.eq(workspaceLists[2].active, "other")
 	store.transaction(root, function() end)
 	store.transaction(store.getWorkspaceDir(root, "other"), function() end)
 	task.wait(0.3)

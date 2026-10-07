@@ -1,4 +1,4 @@
-import { useContext, useState, type ReactNode } from 'react'
+import { useContext, useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext, DerivedContext, type SourceRef } from './derive'
 import { STATUS_LABEL, WHO_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
@@ -36,41 +36,88 @@ export function Favicon({ domain }: { domain: string }) {
   )
 }
 
+const stop = (event: SyntheticEvent) => event.stopPropagation()
+
+function SourceLink({ source, label, className, children }: { source: SourceRef; label?: string; className?: string; children: ReactNode }) {
+  return source.href ? (
+    <a
+      className={className}
+      href={source.href}
+      target="_blank"
+      rel="noreferrer"
+      aria-label={label}
+      onPointerDown={stop}
+      onClick={stop}
+      onDoubleClick={stop}
+    >
+      {children}
+    </a>
+  ) : (
+    <span className={className} role={label ? 'img' : undefined} aria-label={label}>
+      {children}
+    </span>
+  )
+}
+
+function SourceMenu({ domain, name, sources }: { domain: string; name: string; sources: SourceRef[] }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDetailsElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const dismiss = (event: PointerEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', dismiss, true)
+    return () => document.removeEventListener('pointerdown', dismiss, true)
+  }, [open])
+
+  return (
+    <details
+      ref={ref}
+      open={open}
+      className="source-domain source-domain-many nodrag"
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+      onPointerDown={stop}
+      onClick={stop}
+    >
+      <summary aria-label={`${name}: ${sources.length} sources`} title={`${name}: ${sources.length} sources. Click to show them.`}>
+        <Favicon domain={domain} />
+        <span className="source-count">{sources.length}</span>
+      </summary>
+      <div className="source-menu">
+        <strong>{name}</strong>
+        <ul>
+          {sources.map((source) => (
+            <li key={source.label}>
+              <SourceLink source={source}>{source.label}</SourceLink>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
+  )
+}
+
 function SourceBadges({ sources, inBubble = false }: { sources: SourceRef[]; inBubble?: boolean }) {
-  const domains = new Map<string, string[]>()
-  for (const { domain, label } of sources.length ? sources : [{ domain: 'orion', label: 'Orion' }]) {
-    const labels = domains.get(domain) ?? []
-    if (!labels.includes(label)) labels.push(label)
-    domains.set(domain, labels)
+  const domains = new Map<string, SourceRef[]>()
+  for (const source of sources.length ? sources : [{ domain: 'orion', label: 'Orion' }]) {
+    const entries = domains.get(source.domain) ?? []
+    if (!entries.some((entry) => entry.label === source.label)) entries.push(source)
+    domains.set(source.domain, entries)
   }
   return (
     <div className={`source-badges${inBubble ? ' in-bubble' : ''}`}>
-      {[...domains].map(([domain, labels]) => {
+      {[...domains].map(([domain, entries]) => {
         const name = domain === 'orion' ? 'Orion' : domain
-        return labels.length === 1 ? (
-          <span key={domain} className="source-domain" role="img" aria-label={`${name}: ${labels[0]}`} title={`${name}: ${labels[0]}`}>
-            <Favicon domain={domain} />
+        return entries.length === 1 ? (
+          <span key={domain} className="source-domain nodrag" title={`${name}: ${entries[0].label}`}>
+            <SourceLink source={entries[0]} label={`${name}: ${entries[0].label}`} className="source-link">
+              <Favicon domain={domain} />
+            </SourceLink>
           </span>
         ) : (
-          <details
-            key={domain}
-            className="source-domain source-domain-many nodrag"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <summary aria-label={`${name}: ${labels.length} sources`} title={`${name}: ${labels.length} sources. Click to show them.`}>
-              <Favicon domain={domain} />
-              <span className="source-count">{labels.length}</span>
-            </summary>
-            <div className="source-menu">
-              <strong>{name}</strong>
-              <ul>
-                {labels.map((label) => (
-                  <li key={label}>{label}</li>
-                ))}
-              </ul>
-            </div>
-          </details>
+          <SourceMenu key={domain} domain={domain} name={name} sources={entries} />
         )
       })}
     </div>
