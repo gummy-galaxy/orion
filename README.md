@@ -98,7 +98,6 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
 - Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
 - However far you zoom out, folded groups, cards, and notes keep their full details at a readable size, and open groups' headers grow to stay legible. Hover one to bring it above its neighbors.
-- Hold Space over a card, note, or group to read it up close without changing the zoom. A group shows what it contains.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
 - Hover a card to trace what it needs (amber) and what it unlocks (teal).
 - Double-click a card to focus on it. The canvas zooms onto it with its details above, what it waits on in a scrolling column on the left, and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. ⌘ or ⇧ click adds to the selection.
@@ -124,7 +123,6 @@ In `app/`:
 - `src/layout.ts`: laying out one group or the top level: ELK with wrapping, grids, and custom groups left alone.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
-- `src/Lens.tsx`: holding Space to read one card, note, or group up close.
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
