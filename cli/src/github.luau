@@ -322,14 +322,31 @@ function github.getInvolved(
 end
 
 function github.getAuthoredOpen(run: CommandRunner): ({ PullState }, string)
-	local data = query(
-		run,
-		`query \{ viewer \{ login pullRequests(first: 100, states: OPEN, orderBy: \{field: UPDATED_AT, direction: DESC}) \{ nodes \{ {PULL_FIELDS} repository \{ name owner \{ login } } } } } }`
-	)
-	local viewer = if data then json.asObject(data.viewer) else nil
-	assert(viewer and type(viewer.login) == "string", "could not fetch GitHub viewer")
-	local pulls = json.asObject(viewer.pullRequests)
-	return getPullList(if pulls then json.asArray(pulls.nodes) else nil), viewer.login
+	local authored: { PullState } = {}
+	local cursor: string? = nil
+	local login: string? = nil
+	while true do
+		local after = if cursor then `, after: {json.serialize(cursor)}` else ""
+		local data = query(
+			run,
+			`query \{ viewer \{ login pullRequests(first: 100, states: OPEN, orderBy: \{field: UPDATED_AT, direction: DESC}{after}) \{ nodes \{ {PULL_FIELDS} repository \{ name owner \{ login } } } pageInfo \{ hasNextPage endCursor } } } }`
+		)
+		local viewer = if data then json.asObject(data.viewer) else nil
+		assert(viewer and type(viewer.login) == "string", "could not fetch GitHub viewer")
+		login = viewer.login :: string
+		local pulls = json.asObject(viewer.pullRequests)
+		for _, pull in getPullList(if pulls then json.asArray(pulls.nodes) else nil) do
+			table.insert(authored, pull)
+		end
+		local pageInfo = if pulls then json.asObject(pulls.pageInfo) else nil
+		if not pageInfo or pageInfo.hasNextPage ~= true then
+			break
+		end
+		local nextCursor = getString(pageInfo.endCursor)
+		assert(nextCursor and nextCursor ~= cursor, "invalid GitHub pull request cursor")
+		cursor = nextCursor
+	end
+	return authored, login :: string
 end
 
 local function isRequestedFrom(pull: PullState, viewer: string): boolean
