@@ -1,7 +1,7 @@
 import { createContext } from 'react'
 import { descendants, getTaskUrl, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
 
-export type TraceRole = 'self' | 'up' | 'down' | 'dim'
+export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
 /** How a link out of a card reads: moving, or held behind work that's stuck. */
 export type Flow = 'live' | 'held'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
@@ -162,11 +162,13 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
   return { status, flow, leverage, groups, sources, preds, succs }
 }
 
-export function traceFrom(id: string, preds: Map<string, string[]>, succs: Map<string, string[]>, ids: string[]) {
+/** What `id` needs, what it unlocks, and the cards related to it directly; everything else dims. */
+export function traceFrom(id: string, preds: Map<string, string[]>, succs: Map<string, string[]>, ids: string[], related: string[] = []) {
   const up = walk(id, preds, () => true)
   const down = walk(id, succs, () => true)
+  const near = new Set(related)
   const roles = new Map<string, TraceRole>()
-  for (const n of ids) roles.set(n, n === id ? 'self' : up.has(n) ? 'up' : down.has(n) ? 'down' : 'dim')
+  for (const n of ids) roles.set(n, n === id ? 'self' : up.has(n) ? 'up' : down.has(n) ? 'down' : near.has(n) ? 'related' : 'dim')
   return roles
 }
 

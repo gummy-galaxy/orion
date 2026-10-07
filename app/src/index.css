@@ -490,6 +490,12 @@ select {
     inset 3px 0 0 var(--c),
     0 0 0 1px var(--accent);
 }
+.card.tr-related {
+  border-color: var(--ink);
+  box-shadow:
+    inset 3px 0 0 var(--c),
+    0 0 0 1px color-mix(in srgb, var(--ink) 40%, transparent);
+}
 
 /* Edges: motion everywhere but behind stuck work */
 .react-flow__edge .react-flow__edge-path {
@@ -509,8 +515,8 @@ select {
 }
 .react-flow__edge.e-rel .react-flow__edge-path {
   stroke: var(--muted);
-  stroke-width: 1.6;
-  stroke-dasharray: 0.5 6;
+  stroke-width: 2.2;
+  stroke-dasharray: 0.5 5;
   stroke-linecap: round;
 }
 .react-flow__edge.e-agg.e-live .react-flow__edge-path,
@@ -519,6 +525,11 @@ select {
 }
 /* Traced links keep their own look and stand out by weight while every other link fades. */
 .react-flow__edge:is(.tr-e-up, .tr-e-down) .react-flow__edge-path {
+  stroke-width: 2.6;
+  opacity: 1;
+}
+.react-flow__edge.tr-e-rel .react-flow__edge-path {
+  stroke: var(--ink);
   stroke-width: 2.6;
   opacity: 1;
 }
@@ -1038,6 +1049,28 @@ kbd {
 }
 .review-requested {
   color: var(--st-review);
+}
+.links {
+  display: grid;
+  gap: 6px;
+}
+.links li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  column-gap: 6px;
+}
+.links li .link-where {
+  grid-column: 1 / -1;
+}
+.links :is(.link-flip, .link-remove) {
+  text-decoration: none;
+  color: var(--muted);
+}
+.link-add {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 6px;
 }
 .suggestions {
   display: grid;

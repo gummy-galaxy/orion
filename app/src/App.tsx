@@ -15,6 +15,7 @@ import {
   useStoreApi,
   type Connection,
   type Edge,
+  type EdgeTypes,
   type NodeChange,
   type NodeTypes,
   type Viewport,
@@ -68,6 +69,7 @@ import {
   type Who,
 } from './model'
 import { DebugBar, type MotionSettings } from './DebugBar'
+import { CurveEdge } from './edges'
 import { openExternal } from './external'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
@@ -103,6 +105,7 @@ import { readViewport, writeViewport } from './viewport'
 type ViewNode = AppNode | GhostNode
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
+const edgeTypes: EdgeTypes = { default: CurveEdge }
 const SIDEBAR_KEY = 'orion:sidebar'
 const COLOR_MODE_KEY = 'orion:color-mode'
 type ColorMode = 'light' | 'dark' | 'system'
@@ -952,15 +955,24 @@ function Canvas() {
           work.preds,
           work.succs,
           nodes.filter(isTask).map((n) => n.id),
+          links.filter((l) => l.kind === 'related' && (l.from === h.id || l.to === h.id)).map((l) => (l.from === h.id ? l.to : l.from)),
         )
       : null
-  }, [focus, pinned, hover, map, work, nodes])
+  }, [focus, pinned, hover, map, work, nodes, links])
+
+  const selectedKey = nodes
+    .filter((n) => n.selected)
+    .map((n) => n.id)
+    .join(',')
+  /** Related links never block, so they show only for the cards being looked at. */
+  const relatedFocus = useMemo(() => new Set([pinned, hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
 
   const edges = useMemo(() => {
     const out: Edge[] = []
     const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
     const agg = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
     for (const l of links) {
+      if (l.kind === 'related' && !relatedFocus.has(l.from) && !relatedFocus.has(l.to)) continue
       let a = view.rep(l.from)
       let b = view.rep(l.to)
       if (root && !peeking && !a && b) a = `ghost:in:${l.from}`
@@ -975,7 +987,8 @@ function Canvas() {
           const rb = trace.get(l.to)
           const up = l.kind === 'blocks' && ra === 'up' && (rb === 'up' || rb === 'self')
           const down = l.kind === 'blocks' && (ra === 'down' || ra === 'self') && rb === 'down'
-          cls += up ? ' tr-e-up' : down ? ' tr-e-down' : ' tr-e-dim'
+          const near = l.kind === 'related' && (ra === 'self' || rb === 'self')
+          cls += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
         }
         if (peeking && !inFocus(a) && !inFocus(b)) cls += ' e-peek'
         out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(flow) : undefined })
@@ -1001,7 +1014,7 @@ function Canvas() {
       })
     }
     return out
-  }, [links, view, work, trace, root, peeking, inFocus])
+  }, [links, view, work, trace, root, peeking, inFocus, relatedFocus])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1556,6 +1569,12 @@ function Canvas() {
   }
 
   const removeLink = (id: string) => setLinks((ls) => ls.filter((l) => l.id !== id))
+  /** One link per pair of cards: adding a link replaces whatever already joined them. */
+  const addLink = (from: string, to: string, kind: Link['kind']) =>
+    setLinks((ls) => [
+      ...ls.filter((l) => !((l.from === from && l.to === to) || (l.from === to && l.to === from))),
+      { id: `${from}>${to}`, from, to, kind },
+    ])
   const flipLink = (id: string) => setLinks((ls) => ls.map((l) => (l.id === id ? { ...l, kind: l.kind === 'blocks' ? 'related' : 'blocks' } : l)))
 
   const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
@@ -1811,6 +1830,7 @@ function Canvas() {
                 nodes={viewNodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 onNodesChange={onNodesChange}
                 onMove={onViewportMove}
                 onNodeDragStop={onDragStop}
@@ -1989,6 +2009,10 @@ function Canvas() {
                         githubOwner={githubOwner}
                         update={updateData}
                         jumpTo={jumpTo}
+                        links={links}
+                        addLink={addLink}
+                        removeLink={removeLink}
+                        flipLink={flipLink}
                       />
                     ) : (
                       <div className="insp" key={one.id}>
@@ -2107,6 +2131,10 @@ function Canvas() {
                     update={updateData}
                     jumpTo={focusOn}
                     connections={false}
+                    links={links}
+                    addLink={addLink}
+                    removeLink={removeLink}
+                    flipLink={flipLink}
                   />
                 )}
               </FocusView>
@@ -2228,6 +2256,10 @@ function TaskInspector({
   update,
   jumpTo,
   connections = true,
+  links,
+  addLink,
+  removeLink,
+  flipLink,
 }: {
   node: AppNode
   work: ReturnType<typeof deriveWork>
@@ -2236,8 +2268,12 @@ function TaskInspector({
   githubOwner: string
   update: (id: string, patch: Partial<TaskData>) => void
   jumpTo: (id: string) => void
-  /** Lists what the card waits on and unblocks. */
+  /** Focus view draws connections beside the inspector. */
   connections?: boolean
+  links: Link[]
+  addLink: (from: string, to: string, kind: Link['kind']) => void
+  removeLink: (id: string) => void
+  flipLink: (id: string) => void
 }) {
   const data = node.data as TaskData
   const st = work.status.get(node.id) ?? 'ready'
@@ -2255,25 +2291,6 @@ function TaskInspector({
         .filter((pr) => !linked.has(`${pr.repo}#${pr.number}`))
         .flatMap((pr) => pr.matches.filter((match) => match.id === node.id).map((match) => ({ pr, score: match.score })))
         .sort((a, b) => b.score - a.score)
-  const list = (ids: string[]) =>
-    ids.length ? (
-      <ul>
-        {ids.map((id) => {
-          const other = map.get(id)
-          const parent = other?.parentId ? map.get(other.parentId) : undefined
-          return (
-            <li key={id}>
-              <button type="button" className="link" onClick={() => jumpTo(id)}>
-                {(other?.data as TaskData | undefined)?.label || 'Note'} <span>({STATUS_LABEL[work.status.get(id) ?? 'ready']})</span>
-              </button>
-              {parent && parent.id !== node.parentId && <span className="link-where">in {(parent.data as ClusterData).label}</span>}
-            </li>
-          )
-        })}
-      </ul>
-    ) : (
-      <p className="facts">Nothing</p>
-    )
   return (
     <div className="insp">
       <label htmlFor="t-label">Title</label>
@@ -2383,13 +2400,144 @@ function TaskInspector({
         {lev > 0 && <> · unblocks {lev}</>}
       </p>
       {connections && (
-        <>
-          <span className="label-text">Waits on</span>
-          {list(work.preds.get(node.id) ?? [])}
-          <span className="label-text">Unblocks</span>
-          {list(work.succs.get(node.id) ?? [])}
-        </>
+        <LinkList node={node} work={work} map={map} links={links} jumpTo={jumpTo} addLink={addLink} removeLink={removeLink} flipLink={flipLink} />
       )}
+    </div>
+  )
+}
+
+type Direction = 'waits' | 'unblocks' | 'related'
+const DIRECTION_LABEL: Record<Direction, string> = { waits: 'Waits on', unblocks: 'Unblocks', related: 'Related' }
+const ORIGIN_LABEL = { stack: 'stacked', mention: 'mentioned' }
+
+/** The card's own links, not the chains derived through notes, so each one can be removed where it is listed. */
+function LinkList({
+  node,
+  work,
+  map,
+  links,
+  jumpTo,
+  addLink,
+  removeLink,
+  flipLink,
+}: {
+  node: AppNode
+  work: ReturnType<typeof deriveWork>
+  map: Map<string, AppNode>
+  links: Link[]
+  jumpTo: (id: string) => void
+  addLink: (from: string, to: string, kind: Link['kind']) => void
+  removeLink: (id: string) => void
+  flipLink: (id: string) => void
+}) {
+  const [direction, setDirection] = useState<Direction>('waits')
+  const [query, setQuery] = useState('')
+  const own = links.filter((l) => (l.from === node.id || l.to === node.id) && map.has(l.from) && map.has(l.to))
+  const groups: Record<Direction, Link[]> = {
+    waits: own.filter((l) => l.kind === 'blocks' && l.to === node.id),
+    unblocks: own.filter((l) => l.kind === 'blocks' && l.from === node.id),
+    related: own.filter((l) => l.kind === 'related'),
+  }
+  const labelOf = (n: AppNode) => (n.data as TaskData).label || 'Note'
+  const joined = new Set(own.map((l) => (l.from === node.id ? l.to : l.from)))
+  const needle = query.trim().toLowerCase()
+  const matches = needle
+    ? [...map.values()]
+        .filter(isTask)
+        .filter((n) => n.id !== node.id && !joined.has(n.id) && labelOf(n).toLowerCase().includes(needle))
+        .slice(0, 6)
+    : []
+  const connect = (other: string) => {
+    if (direction === 'unblocks') addLink(node.id, other, 'blocks')
+    else addLink(other, node.id, direction === 'waits' ? 'blocks' : 'related')
+    setQuery('')
+  }
+  return (
+    <div className="links">
+      {(Object.keys(groups) as Direction[]).map((key) => (
+        <div key={key}>
+          <span className="label-text">{DIRECTION_LABEL[key]}</span>
+          {groups[key].length ? (
+            <ul>
+              {groups[key].map((l) => {
+                const id = l.from === node.id ? l.to : l.from
+                const other = map.get(id)!
+                const parent = other.parentId ? map.get(other.parentId) : undefined
+                return (
+                  <li key={l.id}>
+                    <button type="button" className="link" onClick={() => jumpTo(id)}>
+                      {labelOf(other)} <span>({STATUS_LABEL[work.status.get(id) ?? 'ready']})</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="link link-flip"
+                      aria-label={`${l.kind === 'blocks' ? 'Make related' : 'Make blocking'} link to ${labelOf(other)}`}
+                      onClick={() => flipLink(l.id)}
+                    >
+                      {l.kind === 'blocks' ? 'Related' : 'Blocking'}
+                    </button>
+                    <button
+                      type="button"
+                      className="link link-remove"
+                      aria-label={`Remove link to ${labelOf(other)}`}
+                      onClick={() => removeLink(l.id)}
+                    >
+                      ×
+                    </button>
+                    {(parent && parent.id !== node.parentId) || l.origin ? (
+                      <span className="link-where">
+                        {[parent && parent.id !== node.parentId && `in ${(parent.data as ClusterData).label}`, l.origin && ORIGIN_LABEL[l.origin]]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          ) : (
+            <p className="facts">Nothing</p>
+          )}
+        </div>
+      ))}
+      <span className="label-text">Add link</span>
+      <div className="link-add">
+        <select aria-label="Link kind" value={direction} onChange={(e) => setDirection(e.target.value as Direction)}>
+          {(Object.keys(DIRECTION_LABEL) as Direction[]).map((key) => (
+            <option key={key} value={key}>
+              {DIRECTION_LABEL[key]}
+            </option>
+          ))}
+        </select>
+        <input
+          aria-label="Card to link"
+          value={query}
+          placeholder="Search cards"
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && matches[0]) connect(matches[0].id)
+            if (e.key === 'Escape') setQuery('')
+          }}
+        />
+      </div>
+      {needle &&
+        (matches.length ? (
+          <ul className="link-matches">
+            {matches.map((n) => {
+              const parent = n.parentId ? map.get(n.parentId) : undefined
+              return (
+                <li key={n.id}>
+                  <button type="button" className="link" onClick={() => connect(n.id)}>
+                    {labelOf(n)}
+                  </button>
+                  {parent && <span className="link-where">in {(parent.data as ClusterData).label}</span>}
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <p className="facts">No cards match</p>
+        ))}
     </div>
   )
 }
