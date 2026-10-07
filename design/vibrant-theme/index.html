@@ -170,31 +170,55 @@
   .pill-btn[aria-pressed='true'] { background: rgb(24 214 192 / 0.18); color: var(--teal); }
 
   .hero {
-    position: relative; height: 320px; overflow: hidden;
+    position: relative; height: 300px; overflow: hidden;
     background: linear-gradient(112deg, #c43cff 0%, #6a22d6 22%, #2a1577 48%, #140d3a 72%, var(--bg) 100%);
   }
   .hero-fx { position: absolute; inset: 0; mix-blend-mode: screen; opacity: 0.55; }
   .hero::after { content: ''; position: absolute; inset: auto 0 0 0; height: 120px; background: linear-gradient(transparent, var(--bg)); }
-  .hero-copy { position: absolute; left: 44px; top: 64px; z-index: 2; }
-  .hero h1 {
-    margin: 0; font: 800 46px/1 var(--font-display); letter-spacing: -0.01em; font-style: italic; text-transform: uppercase;
-    text-shadow: 0 2px 24px rgb(80 0 160 / 0.5);
+  /* A spotlight on the next card that's your move, at half the hero's width. */
+  .spot { position: absolute; left: 44px; top: 36px; z-index: 2; width: clamp(540px, calc(50% - 44px), 720px); height: 228px; }
+  .spot .glow { opacity: 0.55; animation: spin 5s linear infinite; }
+  .spot-frame {
+    height: 100%; border-radius: var(--r-md); padding: 2px;
+    background: linear-gradient(155deg, color-mix(in oklab, var(--st) 90%, white), color-mix(in oklab, var(--c1) 35%, #1a1240) 40%, color-mix(in oklab, var(--c2) 30%, #1a1240) 70%, var(--st));
+    box-shadow: 0 24px 50px -16px rgb(0 0 0 / 0.7);
   }
-  .hero .who { display: flex; align-items: center; gap: 20px; margin-top: 22px; }
-  .hero .who .avatar { width: 72px; height: 72px; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 4px rgb(255 255 255 / 0.12); }
-  .hero .who .avatar img { width: 100%; height: 100%; image-rendering: pixelated; }
-  .hero .who strong { font: 300 50px/1 var(--font-display); letter-spacing: -0.02em; }
-  .hero .chips { display: flex; gap: 8px; margin-top: 22px; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px; border-radius: var(--r-sm);
-    background: rgb(7 5 26 / 0.45); backdrop-filter: blur(8px); font-weight: 700; font-size: 13px; border: 1px solid var(--line-2);
+  .spot:hover .spot-frame {
+    background: linear-gradient(115deg, var(--teal), var(--blue), var(--violet), var(--pink), var(--amber), var(--teal));
+    background-size: 300% 300%; background-position: var(--mx, 50%) var(--my, 50%);
   }
-  .chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
-  .belt { position: absolute; right: 6%; top: 34px; width: 470px; height: 260px; z-index: 1; }
-  .belt svg { position: absolute; inset: 0; filter: drop-shadow(0 0 18px rgb(255 255 255 / 0.55)); }
+  .spot:hover .holo { opacity: 0.5; }
+  .spot-inner {
+    height: 100%; border-radius: 6px; overflow: hidden; display: flex; gap: 16px; padding: 12px;
+    background: radial-gradient(80% 120% at 0% 0%, color-mix(in oklab, var(--c1) 22%, transparent), transparent 70%), linear-gradient(180deg, rgb(26 19 68 / 0.94), rgb(18 13 48 / 0.96));
+    backdrop-filter: blur(12px);
+  }
+  .spot-art { position: relative; flex: none; width: 232px; border-radius: var(--r-xs); overflow: hidden; background: #0d0a22; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08); }
+  .spot-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+  .spot-art::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: radial-gradient(120% 95% at 50% 35%, transparent 55%, rgb(5 3 18 / 0.55)); }
+  .spot-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .spot-top { display: flex; align-items: center; gap: 8px; }
+  .spot-top .art-status { position: static; }
+  .spot-top .count { margin-left: auto; font: 600 12px var(--font-data); color: var(--muted); }
+  .spot-top .icon-btn { width: 24px; height: 24px; color: var(--muted); }
+  .spot-top .icon-btn svg { width: 14px; height: 14px; }
+  .spot h3 { margin: 0; font: 700 20px/1.25 var(--font-ui); letter-spacing: -0.01em; }
+  .spot .typeline { border-bottom: 0; padding-bottom: 0; }
+  .spot p { margin: 0; flex: 1; font: 400 14px/1.45 var(--font-ui); color: var(--body); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .spot footer { display: flex; align-items: center; gap: 8px; font: 600 12px var(--font-data); color: var(--muted); }
+  .spot footer .spacer { flex: 1; }
+  .spot footer .pill-btn { height: 30px; font: 700 13px var(--font-ui); white-space: nowrap; }
+  .spot footer .pill-btn.icon { width: 30px; padding: 0; justify-content: center; }
+  .spot footer .pill-btn.icon svg { width: 16px; height: 16px; }
+
+  .belt { position: absolute; right: 3%; top: 26px; width: 380px; height: 250px; z-index: 1; }
+  .belt .mark {
+    position: absolute; left: 8%; top: 12%; width: 84%; filter: drop-shadow(0 0 16px rgb(255 255 255 / 0.45));
+    animation: float 8s ease-in-out infinite;
+  }
   .planet { position: absolute; border-radius: 50%; overflow: hidden; animation: float 7s ease-in-out infinite; }
   .planet img { width: 100%; height: 100%; image-rendering: pixelated; }
-  @keyframes float { 50% { transform: translateY(-10px) rotate(4deg); } }
+  @keyframes float { 50% { transform: translateY(-8px) rotate(3deg); } }
 
   section.block { padding: 8px 44px 28px; position: relative; z-index: 2; }
   .block h2 {
@@ -432,27 +456,37 @@
 
   <div class="hero">
     <div class="hero-fx" id="heroFx"></div>
-    <div class="hero-copy">
-      <h1>Good evening,</h1>
-      <div class="who"><div class="avatar"><img data-avatar alt=""></div><strong>vocksel</strong></div>
-      <div class="chips">
-        <span class="chip" style="--c: var(--st-you)"><i></i>5 your move</span>
-        <span class="chip" style="--c: var(--st-review)"><i></i>2 in review</span>
-        <span class="chip" style="--c: var(--st-blocked)"><i></i>2 blocked</span>
-      </div>
-    </div>
+    <article class="spot" id="spot" style="--st: var(--st-you); --c1: #b45cff; --c2: #ff8fa3">
+      <i class="glow"></i>
+      <div class="spot-frame"><div class="spot-inner">
+        <div class="spot-art">
+          <img data-spot="base" alt=""><img data-spot="top" alt=""><i class="holo"></i>
+          <span class="emblem"><i>F</i>flipbook</span>
+        </div>
+        <div class="spot-body">
+          <div class="spot-top">
+            <span class="art-status">Your move</span>
+            <span class="count">1 of 5</span>
+            <button class="icon-btn" title="Previous"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m10 3-5 5 5 5"/></svg></button>
+            <button class="icon-btn" title="Next"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 3 5 5-5 5"/></svg></button>
+          </div>
+          <h3>Report release health to PostHog</h3>
+          <div class="typeline"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm0 2.122a2.25 2.25 0 1 0-1.5 0v5.256a2.25 2.25 0 1 0 1.5 0Zm7.25 5.256V7a2.5 2.5 0 0 0-2.5-2.5H8.06l1.22-1.22-1.06-1.06L5.19 5.25l3.03 3.03 1.06-1.06L8.06 6h1.69c.552 0 1 .448 1 1v3.628a2.25 2.25 0 1 0 1.5 0ZM12.25 12a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0ZM4.25 12.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"/></svg>Pull request · flipbook #658</div>
+          <p>Needs the flipbook-posthog-ci item and a posthog environment with OP_SERVICE_ACCOUNT_TOKEN.</p>
+          <footer>
+            <span class="add">+412</span><span class="del">−38</span><span class="ci" style="--c: var(--amber)"><i></i>CI</span>
+            <span class="spacer"></span>
+            <button class="pill-btn icon" title="Show on canvas"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="5"/><circle cx="8" cy="8" r="1.5" fill="currentColor"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2"/></svg></button>
+            <button class="pill-btn hot">Open PR</button>
+          </footer>
+        </div>
+      </div></div>
+    </article>
     <div class="belt">
-      <div class="planet" style="left: 8px; top: 150px; width: 64px; height: 64px;"><img data-planet="0" alt=""></div>
-      <div class="planet" style="right: 0; top: 4px; width: 92px; height: 92px; animation-delay: -3s;"><img data-planet="1" alt=""></div>
-      <div class="planet" style="right: 70px; top: 196px; width: 40px; height: 40px; animation-delay: -5s;"><img data-planet="2" alt=""></div>
-      <svg viewBox="0 0 470 260" aria-hidden="true">
-        <path d="M120 150 L235 118 L350 150" stroke="rgb(255 255 255 / 0.35)" stroke-width="2" stroke-dasharray="2 8" fill="none" stroke-linecap="round"/>
-        <g fill="#fff">
-          <path d="M120 112 L125 145 L156 150 L125 155 L120 188 L115 155 L84 150 L115 145Z"/><circle cx="120" cy="150" r="13"/>
-          <path d="M235 58 L242 110 L292 118 L242 126 L235 178 L228 126 L178 118 L228 110Z"/><circle cx="235" cy="118" r="21"/>
-          <path d="M350 112 L355 145 L386 150 L355 155 L350 188 L345 155 L314 150 L345 145Z"/><circle cx="350" cy="150" r="13"/>
-        </g>
-      </svg>
+      <div class="planet" style="left: 0; top: 150px; width: 52px; height: 52px;"><img data-planet="0" alt=""></div>
+      <div class="planet" style="right: 4px; top: 0; width: 76px; height: 76px; animation-delay: -3s;"><img data-planet="1" alt=""></div>
+      <div class="planet" style="right: 54px; top: 186px; width: 34px; height: 34px; animation-delay: -5s;"><img data-planet="2" alt=""></div>
+      <img class="mark" src="logo-mark.svg" alt="">
     </div>
   </div>
 
@@ -815,6 +849,10 @@ async function paintAll(workspaces) {
     cardPainter.paint(spec, { split: true }).then(([base, top]) => {
       $('.art-base', el).src = base
       $('.art-top', el).src = top
+      if (card.id === 'ci-events-pr') {
+        $('[data-spot="base"]').src = base
+        $('[data-spot="top"]').src = top
+      }
     })
   }
   for (const n of NOTES) {
@@ -911,6 +949,12 @@ world.addEventListener('pointermove', (e) => {
   card.classList.add('tilting')
   clearTimeout(settle)
   settle = setTimeout(() => card.classList.remove('tilting'), 220)
+})
+
+$('#spot').addEventListener('pointermove', (e) => {
+  const r = e.currentTarget.getBoundingClientRect()
+  e.currentTarget.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`)
+  e.currentTarget.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`)
 })
 
 paintAll(render())
