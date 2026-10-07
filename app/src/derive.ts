@@ -27,18 +27,22 @@ export type Actions = {
 export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
 
+function hostOf(url: string | undefined): string | null {
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' ? parsed.hostname.toLowerCase() : null
+  } catch {
+    return null
+  }
+}
+
 function sourceOf(task: TaskNode): SourceRef {
   const repo = task.data.repo?.trim()
+  const external = task.data.external
+  if (!repo && external) return { domain: hostOf(external.url) ?? external.source, label: external.key }
   if (!repo) return { domain: 'orion', label: 'Orion' }
-  if (task.data.github?.url) {
-    try {
-      const url = new URL(task.data.github.url)
-      if (url.protocol === 'https:') return { domain: url.hostname.toLowerCase(), label: repo }
-    } catch {
-      // Fall back to the repository host used by the CLI.
-    }
-  }
-  return { domain: 'github.com', label: repo }
+  return { domain: hostOf(task.data.github?.url) ?? 'github.com', label: repo }
 }
 
 function graph(links: Link[]) {
