@@ -5,7 +5,7 @@ Three stars of Orion's belt, linked like work on the canvas, over the grain grad
 The icon has two layers:
 
 - `stars.svg`: the stars and the line between them, on the same 1024px canvas. Edit it in Figma.
-- `<palette>-background.png`: the rounded square with its grain gradient, vignette, and shadow.
+- `<palette>-background.png`: the rounded square with its grain gradient and vignette, on a transparent canvas with no drop shadow.
 
 `index.html` renders every palette at 1024px with [Paper Shaders](https://github.com/paper-design/shaders), as a background and as the full icon with `stars.svg` on top. The grain's speckle changes a little between renders, but the colors and layout stay the same. To render them again:
 

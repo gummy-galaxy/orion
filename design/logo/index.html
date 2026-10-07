@@ -50,9 +50,9 @@ for (const v of variants) {
   await frame(); await frame()
   const out = document.createElement('canvas'); out.width = out.height = SIZE; out.className = 'out'
   const ctx = out.getContext('2d')
-  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 28; ctx.shadowOffsetY = 12
-  squircle(ctx); ctx.fillStyle = v.back; ctx.fill(); ctx.restore()
+  // No drop shadow: macOS adds its own, and Figma can add one as an effect.
   ctx.save(); squircle(ctx); ctx.clip()
+  ctx.fillStyle = v.back; ctx.fillRect(INSET, INSET, BOX, BOX)
   ctx.drawImage(mount.canvasElement, INSET, INSET, BOX, BOX)
   // A soft vignette keeps the stars readable on the brightest part of the gradient.
   const shade = ctx.createRadialGradient(SIZE / 2, SIZE / 2, BOX * 0.2, SIZE / 2, SIZE / 2, BOX * 0.75)
