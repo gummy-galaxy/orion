@@ -77,7 +77,7 @@
   .side-head { height: 52px; flex: none; display: flex; align-items: center; gap: 4px; padding: 0 8px 0 10px; border-bottom: 1px solid var(--line); }
   .ws-switch {
     flex: 1; min-width: 0; height: 32px; display: flex; align-items: center; gap: 9px; padding: 0 8px;
-    border: 0; border-radius: var(--r-sm); background: none; cursor: pointer; font-weight: 700; font-size: 13.5px; text-align: left;
+    border: 0; border-radius: var(--r-sm); background: none; cursor: pointer; font-weight: 700; font-size: 14px; text-align: left;
   }
   .ws-switch:hover, .icon-btn:hover { background: rgb(255 255 255 / 0.06); }
   .ws-switch img { width: 22px; height: 22px; border-radius: var(--r-xs); image-rendering: pixelated; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.12); }
@@ -100,7 +100,7 @@
   .row .meta { font: 500 11px var(--font-data); color: var(--faint); }
   .row .meta.hot { color: var(--st-you); }
   kbd {
-    font: 500 10.5px var(--font-data); color: var(--faint); padding: 1px 5px; border-radius: var(--r-xs);
+    font: 500 11px var(--font-data); color: var(--faint); padding: 1px 5px; border-radius: var(--r-xs);
     border: 1px solid var(--line-2); background: rgb(255 255 255 / 0.03);
   }
   .row.primary {
@@ -114,7 +114,7 @@
 
   .section-head {
     height: 26px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 6px; margin-top: 4px;
-    font: 700 10.5px var(--font-ui); letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint);
+    font: 700 11px var(--font-ui); letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint);
   }
   .section-head .spacer { flex: 1; }
   .section-head .icon-btn { width: 22px; height: 22px; }
@@ -140,15 +140,15 @@
   .notice > *:not(.bg) { position: relative; }
   .notice svg { width: 16px; height: 16px; color: var(--teal); flex: none; }
   .notice-text { flex: 1; min-width: 0; }
-  .notice b { display: block; font-size: 12.5px; }
-  .notice small { color: var(--muted); font-size: 11.5px; }
+  .notice b { display: block; font-size: 13px; }
+  .notice small { color: var(--muted); font-size: 12px; }
   .notice button { border: 0; border-radius: var(--r-sm); padding: 4px 8px; background: rgb(255 255 255 / 0.1); font: 600 12px var(--font-ui); cursor: pointer; }
   .me { flex: none; height: 48px; display: flex; align-items: center; gap: 9px; padding: 0 8px 0 12px; border-top: 1px solid var(--line); }
   .me .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; }
   .me .avatar img { width: 100%; height: 100%; image-rendering: pixelated; }
   .me-text { flex: 1; min-width: 0; line-height: 1.2; }
   .me b { display: block; font-size: 13px; }
-  .me small { color: var(--muted); font-size: 11.5px; display: flex; align-items: center; gap: 5px; }
+  .me small { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 5px; }
   .me small i { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 6px var(--teal); }
 
   /* ── Main ───────────────────────────────────────── */
@@ -226,7 +226,7 @@
 
   /* ── Canvas ─────────────────────────────────────── */
   .canvas {
-    position: relative; margin: 0 28px 44px; border-radius: var(--r-lg); overflow: auto; height: 1000px;
+    position: relative; margin: 0 28px 44px; border-radius: var(--r-lg); overflow: auto; height: 1236px;
     background:
       radial-gradient(60% 50% at 20% 10%, rgb(180 92 255 / 0.16), transparent 70%),
       radial-gradient(50% 40% at 85% 80%, rgb(24 214 192 / 0.10), transparent 70%),
@@ -234,7 +234,7 @@
     border: 1px solid var(--line);
   }
   .canvas-fx { position: absolute; inset: 0; opacity: 0.5; pointer-events: none; }
-  .world { position: relative; width: 1288px; height: 1028px; margin: 24px; zoom: 0.88; }
+  .world { position: relative; width: 1464px; height: 1184px; margin: 24px; }
   .world::before {
     content: ''; position: absolute; inset: -26px;
     background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1.4px);
@@ -261,18 +261,20 @@
   .group-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(10 7 25 / 0.85) 15%, rgb(10 7 25 / 0.2) 60%, rgb(10 7 25 / 0.6)), linear-gradient(transparent 40%, rgb(10 7 25 / 0.9)); }
   .group-head { position: absolute; left: 28px; right: 28px; top: 18px; z-index: 1; display: flex; align-items: center; gap: 18px; }
   .group-head h3 { margin: 0; font: 800 20px var(--font-display); font-style: italic; letter-spacing: 0.01em; }
-  .group-head p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+  .group-head p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
   .group-head .prog { margin-left: auto; text-align: right; font: 600 12px var(--font-data); color: var(--muted); }
   .group-head .prog .bar { width: 160px; margin-top: 6px; }
 
   /* Cards share one size, like a hand of trading cards, and differ in art, color, and frame. */
   .card {
-    position: absolute; width: 240px; height: 336px; z-index: 2;
-    transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px));
-    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: absolute; width: 288px; height: 400px; z-index: 2;
+    /* Flat at rest so text renders sharp; it tilts only while the pointer moves and eases back once it stops. */
+    transform: translateY(var(--lift, 0px));
+    transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
     cursor: grab;
   }
-  .card:hover { --lift: -6px; transition-duration: 0.12s; z-index: 5; }
+  .card:hover { --lift: -6px; z-index: 5; }
+  .card.tilting { transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px)); transition-duration: 0.12s; }
   .glow {
     position: absolute; inset: -5px; border-radius: 13px; z-index: -1; opacity: 0;
     background: conic-gradient(from var(--spin), var(--violet), var(--pink), var(--teal), var(--blue), var(--violet));
@@ -290,51 +292,51 @@
     background:
       radial-gradient(120% 60% at 50% 0%, color-mix(in oklab, var(--c1) 26%, transparent), transparent 70%),
       linear-gradient(180deg, #1a1344, #120d30 65%);
-    padding: 10px; display: flex; flex-direction: column; gap: 8px;
+    padding: 12px; display: flex; flex-direction: column; gap: 8px;
   }
-  .card-title { display: flex; align-items: flex-start; gap: 8px; min-height: 38px; padding: 2px 2px 0; }
+  .card-title { display: flex; align-items: flex-start; gap: 8px; min-height: 44px; padding: 2px 2px 0; }
   .card-title h3 {
-    margin: 0; flex: 1; font: 700 15px/1.22 var(--font-ui); letter-spacing: -0.005em;
+    margin: 0; flex: 1; font: 700 17px/1.3 var(--font-ui); letter-spacing: -0.01em;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
   .cost {
-    flex: none; font: 600 11px/1 var(--font-data); padding: 5px 7px; border-radius: var(--r-xs);
+    flex: none; font: 600 12px/1 var(--font-data); padding: 5px 7px; border-radius: var(--r-xs);
     background: rgb(255 255 255 / 0.08); color: var(--body); border: 1px solid var(--line);
   }
   .art {
-    position: relative; flex: none; width: 216px; height: 130px; border-radius: var(--r-xs); overflow: hidden;
+    position: relative; flex: none; width: 260px; height: 156px; border-radius: var(--r-xs); overflow: hidden;
     background: #0d0a22; box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
   }
   .art img, .art .live { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; transition: opacity 0.35s; }
   .art::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: radial-gradient(120% 95% at 50% 35%, transparent 55%, rgb(5 3 18 / 0.55)); }
   .art-status {
     position: absolute; top: 8px; right: 8px; z-index: 3; padding: 4px 7px; border-radius: var(--r-xs);
-    background: var(--st); color: #140a2b; font: 800 10px/1 var(--font-ui); letter-spacing: 0.07em; text-transform: uppercase;
+    background: var(--st); color: #140a2b; font: 800 12px/1 var(--font-ui); letter-spacing: 0.05em; text-transform: uppercase;
     box-shadow: 0 2px 10px rgb(0 0 0 / 0.4);
   }
   .emblem {
     position: absolute; left: 8px; bottom: 8px; z-index: 3; display: flex; align-items: center; gap: 6px;
     padding: 3px 8px 3px 3px; border-radius: var(--r-sm); background: rgb(8 6 26 / 0.72); backdrop-filter: blur(6px);
-    font: 600 11.5px var(--font-ui); color: var(--ink);
+    font: 600 12px var(--font-ui); color: var(--ink);
   }
   .emblem i {
-    width: 20px; height: 20px; border-radius: var(--r-xs); display: grid; place-items: center;
-    background: linear-gradient(135deg, var(--c1), var(--c2)); color: #140a2b; font: 800 10px var(--font-display); font-style: normal;
+    width: 22px; height: 22px; border-radius: var(--r-xs); display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--c1), var(--c2)); color: #140a2b; font: 800 12px var(--font-display); font-style: normal;
   }
   .typeline {
     display: flex; align-items: center; gap: 6px; padding: 7px 2px; border-block: 1px solid var(--line);
-    font: 700 10px var(--font-ui); letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted);
+    font: 700 12px var(--font-ui); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
   }
-  .typeline svg { width: 13px; height: 13px; flex: none; }
+  .typeline svg { width: 14px; height: 14px; flex: none; }
   .typeline .gem { margin-left: auto; width: 9px; height: 9px; transform: rotate(45deg); border-radius: 2px; background: linear-gradient(135deg, var(--c1), var(--c2)); box-shadow: 0 0 8px var(--c1); }
-  .text { margin: 0; flex: 1; font: 400 12.5px/1.45 var(--font-ui); color: var(--body); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; padding: 0 2px; }
+  .text { margin: 0; flex: 1; font: 400 14px/1.45 var(--font-ui); color: var(--body); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; padding: 0 2px; }
   .text.flavor { font-style: italic; color: var(--faint); }
-  .card footer { display: flex; align-items: center; gap: 8px; font: 600 11px var(--font-data); color: var(--muted); padding: 0 2px; }
+  .card footer { display: flex; align-items: center; gap: 8px; font: 600 12px var(--font-data); color: var(--muted); padding: 0 2px; }
   .add { color: var(--teal); } .del { color: var(--pink); }
   .ci { display: inline-flex; align-items: center; gap: 4px; }
   .ci i { width: 7px; height: 7px; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px var(--c); }
   .pt {
-    margin-left: auto; padding: 6px 9px; border-radius: var(--r-xs); font: 800 11.5px/1 var(--font-ui); letter-spacing: 0.01em;
+    margin-left: auto; padding: 7px 10px; border-radius: var(--r-xs); font: 800 12px/1 var(--font-ui); letter-spacing: 0.01em;
     color: var(--st); background: color-mix(in oklab, var(--st) 16%, #120d30); border: 1px solid color-mix(in oklab, var(--st) 45%, transparent);
   }
   /* The holo lives on the art and the frame only, so the text box stays flat and readable while a card tilts. */
@@ -361,7 +363,7 @@
   .stamp {
     position: absolute; z-index: 3; left: 50%; top: 50%; translate: -50% -50%; rotate: -12deg;
     padding: 6px 14px; border: 2.5px solid var(--teal); border-radius: var(--r-xs); color: var(--teal);
-    font: 800 16px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; background: rgb(8 6 26 / 0.5);
+    font: 800 18px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; background: rgb(8 6 26 / 0.5);
   }
   .card.expected .frame { background: none; border: 2px dashed color-mix(in oklab, var(--st) 60%, transparent); padding: 0; box-shadow: none; }
   .card.expected .card-inner { background: rgb(27 20 66 / 0.55); }
@@ -372,17 +374,17 @@
   .card.gate .card-inner { background: radial-gradient(120% 70% at 50% 0%, rgb(255 209 102 / 0.18), transparent 70%), linear-gradient(180deg, #1d1342, #120d30 65%); }
 
   .note {
-    position: absolute; width: 240px; z-index: 2; rotate: -2.5deg; border-radius: var(--r-md); overflow: hidden;
+    position: absolute; width: 288px; z-index: 2; rotate: -1.5deg; border-radius: var(--r-md); overflow: hidden;
     background: linear-gradient(180deg, #2b1f5c, #20174a); border: 1px solid var(--line-2);
     box-shadow: 0 18px 36px -14px rgb(0 0 0 / 0.7);
   }
   .note .tape { height: 30px; position: relative; }
   .note .tape img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
   .note .body { padding: 12px 16px 16px; }
-  .note .label { font: 800 10px var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--pink); display: flex; gap: 6px; align-items: center; }
-  .note p { margin: 8px 0 0; font: 500 14px/1.45 var(--font-ui); color: var(--ink); }
+  .note .label { font: 800 12px var(--font-ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--pink); display: flex; gap: 6px; align-items: center; }
+  .note p { margin: 8px 0 0; font: 500 15px/1.45 var(--font-ui); color: var(--ink); }
 
-  .park { position: fixed; left: -9999px; top: 0; width: 216px; height: 130px; }
+  .park { position: fixed; left: -9999px; top: 0; width: 260px; height: 156px; }
   .painter { position: fixed; left: 0; top: 0; opacity: 0; pointer-events: none; z-index: -1; }
 </style>
 </head>
@@ -460,12 +462,12 @@
   </section>
 
   <section class="block" style="padding-bottom: 0">
-    <h2>Canvas <small>Flipbook release · zoomed to 88%</small></h2>
+    <h2>Canvas <small>Flipbook release · zoomed to 100%</small></h2>
   </section>
   <div class="canvas" id="canvas">
     <div class="canvas-fx" id="canvasFx"></div>
     <div class="world" id="world">
-      <svg class="edges" id="edges" width="1288" height="1028">
+      <svg class="edges" id="edges" width="1464" height="1184">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="context-stroke"/></marker>
         </defs>
@@ -525,11 +527,11 @@ const TREE = {
 }
 const TILE_TAGS = { ws0: 'Next up', ws4p: '2 blocked', ws6: '3 your move' }
 
-const COL = [56, 368, 680, 992]
-const ROW_A = 132, ROW_B = 660
+const COL = [48, 408, 768, 1128]
+const ROW_A = 120, ROW_B = 720
 const FRAMES = [
-  { id: 'ws1', x: 0, y: 0, w: 1288, h: 500 },
-  { id: 'ws0', x: 0, y: 528, w: 1288, h: 500 },
+  { id: 'ws1', x: 0, y: 0, w: 1464, h: 560 },
+  { id: 'ws0', x: 0, y: 600, w: 1464, h: 560 },
 ]
 const CARDS = [
   { id: 'posthog-secrets', x: COL[0], y: ROW_A, kind: 'step', st: 'ready', title: '1Password item + PostHog environment', type: 'Step', text: 'Item flipbook-posthog-ci in the Flipbook vault: project token and personal API key.' },
@@ -540,7 +542,7 @@ const CARDS = [
   { id: 'fb-category-order', x: COL[1], y: ROW_B, kind: 'pr', st: 'review', repo: 'flipbook', pr: 660, title: 'Order changelog categories', text: 'Features, Changes, Fixes, Dependencies, Internal.', diff: [24, 6], ci: 'success' },
   { id: 'ship-260', x: COL[2], y: ROW_B, kind: 'gate', st: 'gate', title: 'v2.6.0 ready to ship', type: 'Gate', text: 'Opens once QA, the changelog order, and the check cleanup are in.' },
 ]
-const NOTES = [{ id: 'hold-631', x: COL[3], y: ROW_B + 70, text: 'Hold #631, the 0.738 upgrade, until after v2.6.0 ships.' }]
+const NOTES = [{ id: 'hold-631', x: COL[3], y: ROW_B + 100, text: 'Hold #631, the 0.738 upgrade, until after v2.6.0 ships.' }]
 const EDGES = [
   { from: 'posthog-secrets', to: 'ci-events-pr', cls: 'hot' },
   { from: 'ci-events-pr', to: 'fb-641', cls: 'blocked' },
@@ -671,7 +673,7 @@ function makePainter(w, h) {
   }
 }
 
-const cardPainter = makePainter(216, 130)
+const cardPainter = makePainter(260, 156)
 const bannerPainter = makePainter(640, 280)
 const squarePainter = makePainter(160, 160)
 
@@ -882,6 +884,7 @@ function leave(card) {
   hover.setSpeed(0)
   $('.art-top', card).style.opacity = ''
   $('#park').append(liveHost)
+  card.classList.remove('tilting')
   card.style.removeProperty('--rx'); card.style.removeProperty('--ry')
   hovered = null
 }
@@ -895,6 +898,7 @@ world.addEventListener('pointerout', (e) => {
   const card = e.target.closest('.card')
   if (card && !card.contains(e.relatedTarget)) leave(card)
 })
+let settle = 0
 world.addEventListener('pointermove', (e) => {
   const card = e.target.closest('.card')
   if (!card) return
@@ -904,6 +908,9 @@ world.addEventListener('pointermove', (e) => {
   card.style.setProperty('--rx', `${(0.5 - py) * 5}deg`)
   card.style.setProperty('--mx', `${px * 100}%`)
   card.style.setProperty('--my', `${py * 100}%`)
+  card.classList.add('tilting')
+  clearTimeout(settle)
+  settle = setTimeout(() => card.classList.remove('tilting'), 220)
 })
 
 paintAll(render())
