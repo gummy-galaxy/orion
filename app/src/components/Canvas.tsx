@@ -83,6 +83,8 @@ import {
 } from '../persist'
 import { seedLinks, seedNodes } from '../seed'
 import { Sidebar } from './Sidebar'
+import { SnapGuides } from './SnapGuides'
+import { useNodeSnapping } from '../useNodeSnapping'
 import {
   attentionAtom,
   collapsedAtom,
@@ -1219,6 +1221,8 @@ export function Canvas() {
     setFocusedShown(focus !== null)
   }, [collapsed, attention, focus, setCollapsedShown, setAttentionShown, setFocusedShown])
 
+  const getCurrentNodes = useCallback(() => latest.current.nodes, [])
+  const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
       let own = changes.filter((change) => !('id' in change) || !change.id.startsWith('ghost:')) as NodeChange<AppNode>[]
@@ -1227,9 +1231,12 @@ export function Canvas() {
         own = own.filter((change) => change.type !== 'select')
         if (picks.length) afterClick(() => setNodes((currentNodes) => applyNodeChanges(picks, currentNodes)))
       }
-      if (own.length) setNodes((currentNodes) => applyNodeChanges(own, currentNodes))
+      if (own.length) {
+        const snapChangedNodes = snapChanges(own)
+        setNodes((currentNodes) => snapChangedNodes(applyNodeChanges(own, currentNodes)))
+      }
     },
-    [afterClick, setNodes],
+    [afterClick, setNodes, snapChanges],
   )
 
   // ---- Focus on one card ----
@@ -1318,22 +1325,6 @@ export function Canvas() {
     }
   }, [focus, links, map, work])
 
-  const dragOrigins = useRef(new Map<string, AppNode['position']>())
-  const onDragStart = useCallback((dragged: ViewNode[]) => {
-    const nodeMap = byId(latest.current.nodes)
-    dragOrigins.current = new Map()
-    for (const draggedNode of dragged) {
-      const node = nodeMap.get(draggedNode.id)
-      const parent = node?.parentId ? nodeMap.get(node.parentId) : undefined
-      if (node && parent && isCluster(parent) && parent.data.arrange !== 'custom') dragOrigins.current.set(node.id, node.position)
-    }
-  }, [])
-  const onDragStop = useCallback(() => {
-    const origins = dragOrigins.current
-    dragOrigins.current = new Map()
-    if (!origins.size) return setNodes((currentNodes) => normalize(currentNodes))
-    tweenTo(normalize(latest.current.nodes.map((node) => (origins.has(node.id) ? { ...node, position: origins.get(node.id)! } : node))))
-  }, [tweenTo, setNodes])
   const onConnect = useCallback(
     (connection: Connection) => {
       if (!connection.source || !connection.target || connection.source === connection.target) return
@@ -1928,10 +1919,11 @@ export function Canvas() {
                 if (peeking && !inFocus(node.id)) leaveRoot()
                 actions.open(node.id)
               }}
-              onNodeDragStart={(_, node, dragged) => {
+              onNodeDragStart={(event, node, dragged) => {
                 if (peeking && !inFocus(node.id)) leaveRoot()
-                onDragStart(dragged)
+                onDragStart(event, dragged)
               }}
+              onNodeDrag={onDrag}
               onPaneClick={(event) => {
                 if (focus) return exitFocus()
                 setPinned(null)
@@ -1978,6 +1970,7 @@ export function Canvas() {
                 />
               )}
               <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
+              {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
               <Controls showInteractive={false} />
               {mergeNotice !== null && (
                 <Panel
@@ -2131,7 +2124,7 @@ export function Canvas() {
                       V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
                       ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
                       double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a
-                      card's edge to link{' '}
+                      card's edge to link · hold Ctrl while dragging to skip snapping{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>

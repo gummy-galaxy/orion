@@ -20,6 +20,7 @@
   --note: #fbf3d5;
   --note-edge: #d9b94a;
   --note-ink: #7a6418;
+  --snap: #e0457b;
   --shadow: 0 1px 2px rgb(23 36 43 / 0.06), 0 4px 14px rgb(23 36 43 / 0.06);
   --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -67,6 +68,7 @@
     --note: #2e2a17;
     --note-edge: #8a7428;
     --note-ink: #d9c272;
+    --snap: #ff6f9c;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
     color-scheme: dark;
   }
@@ -1383,6 +1385,20 @@ kbd {
   color: var(--muted);
   max-width: min(980px, calc(100vw - 420px));
   text-align: center;
+}
+.snap-guides {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 2000;
+}
+.snap-guides line {
+  stroke: var(--snap);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 .zoom-exit-hint {
   position: absolute;
