@@ -155,8 +155,7 @@ local function createParsers(): Parsers
 	set:add("id", "positional", { help = "Item or group id" })
 	set:add("label", "option", { help = "New label" })
 	set:add("blurb", "option", { help = "Group description" })
-	set:add("arrange", "option", { help = "How reflow arranges a group: auto, grid, or custom" })
-	set:add("columns", "option", { help = "Columns across for a grid group" })
+	set:add("arrange", "option", { help = "How reflow arranges a group: auto or custom" })
 	addFieldOptions(set)
 	addJsonFlag(set)
 
@@ -241,9 +240,6 @@ local function fields(parser: batteriesCli.Parser): graph.ItemFields
 	local pr = parser:get("pr")
 	local number = if pr then tonumber((pr:gsub("^#", ""))) else nil
 	assert(pr == nil or number, "pr must be a number")
-	local columns = parser:get("columns")
-	local count = if columns then tonumber(columns) else nil
-	assert(columns == nil or count, "columns must be a number")
 	return {
 		label = if parser:has("label") then parser:get("label") else nil,
 		blurb = parser:get("blurb"),
@@ -253,7 +249,6 @@ local function fields(parser: batteriesCli.Parser): graph.ItemFields
 		who = parser:get("who"),
 		note = parser:get("note"),
 		arrange = parser:get("arrange"),
-		columns = count,
 	}
 end
 
@@ -285,10 +280,10 @@ local function sortedTasks(doc: Doc, derived: graph.Derived, keep: (Item) -> boo
 	end
 
 	table.sort(items, function(a, b)
-		local la, lb = derived.leverage[a.id] or 0, derived.leverage[b.id] or 0
+		local firstLeverage, secondLeverage = derived.leverage[a.id] or 0, derived.leverage[b.id] or 0
 
-		if la ~= lb then
-			return la > lb
+		if firstLeverage ~= secondLeverage then
+			return firstLeverage > secondLeverage
 		end
 
 		return a.id < b.id
@@ -391,10 +386,12 @@ local function execute(args: { string }, options: Dependencies?)
 		return
 	end
 
-	local subName, subparser = parser:selected()
+	local subcommandName, subparser = parser:selected()
 
-	if subName and subparser and subparser:has("help") then
-		deps.write(`{command} {subName}\n\n{subparser:usage(`orion {command} {subName}`)}\n\n{subparser:help()}`)
+	if subcommandName and subparser and subparser:has("help") then
+		deps.write(
+			`{command} {subcommandName}\n\n{subparser:usage(`orion {command} {subcommandName}`)}\n\n{subparser:help()}`
+		)
 		return
 	end
 
@@ -610,9 +607,9 @@ end
 
 -- Lute passes the program path as the first argument.
 local function run(argv: { string })
-	local ok, message = pcall(execute, { table.unpack(argv, 2) }, nil)
+	local succeeded, message = pcall(execute, { table.unpack(argv, 2) }, nil)
 
-	if not ok then
+	if not succeeded then
 		local text = tostring(message):gsub("^[^\n]-:%d+: ", "", 1)
 		print(`Error: {text}`)
 		process.exit(1)

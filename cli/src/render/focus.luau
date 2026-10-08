@@ -31,14 +31,14 @@ end
 
 -- The open group's ancestors, outermost first.
 local function findAncestorTrail(doc: Doc, group: Item): { Item }
-	local out = {}
+	local ancestors = {}
 	for _, id in graph.ancestors(doc, group.id) do
 		local parent = graph.find(doc, id)
 		if parent then
-			table.insert(out, 1, parent)
+			table.insert(ancestors, 1, parent)
 		end
 	end
-	return out
+	return ancestors
 end
 
 function focus.serialize(doc: Doc, derived: graph.Derived, report: Focus?): json.Object

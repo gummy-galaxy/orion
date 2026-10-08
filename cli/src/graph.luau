@@ -8,15 +8,15 @@ type Link = types.Link
 type Position = types.Position
 
 -- Card and group sizes match the app so CLI placements line up with its layout.
-local TASK_W = 216
-local TASK_H = 72
-local PAD = 32
-local HEAD = 78
-local GAP = 48
+local TASK_WIDTH = 216
+local TASK_HEIGHT = 72
+local GROUP_PADDING = 32
+local GROUP_HEADER_HEIGHT = 78
+local ITEM_GAP = 48
 
 local STATUSES = { todo = true, active = true, review = true, blocked = true, deferred = true, done = true }
 local WHO = { you = true, review = true, ci = true }
-local ARRANGE = { auto = true, grid = true, custom = true }
+local ARRANGE = { auto = true, custom = true }
 
 export type Derived = {
 	status: { [string]: string },
@@ -32,7 +32,6 @@ export type ItemFields = {
 	note: string?,
 	blurb: string?,
 	arrange: string?,
-	columns: number?,
 }
 
 local graph = {}
@@ -75,36 +74,36 @@ function graph.group(doc: Doc, id: string): Item
 end
 
 function graph.ancestors(doc: Doc, id: string): { string }
-	local out = {}
+	local ancestors = {}
 	local current = graph.find(doc, id)
 
 	while current and current.parentId do
-		table.insert(out, current.parentId)
+		table.insert(ancestors, current.parentId)
 		current = graph.find(doc, current.parentId)
 	end
 
-	return out
+	return ancestors
 end
 
 export type Progress = { total: number, done: number, ready: number }
 
 -- Counts the work anywhere inside a group, leaving out notes.
 function graph.countProgress(doc: Doc, derived: Derived, groupId: string): Progress
-	local out = { total = 0, done = 0, ready = 0 }
+	local progress = { total = 0, done = 0, ready = 0 }
 	for _, item in doc.nodes do
 		if item.type == "task" and not graph.isNote(item) and table.find(graph.ancestors(doc, item.id), groupId) then
-			out.total += 1
+			progress.total += 1
 			local status = derived.status[item.id]
-			out.done += if status == "done" then 1 else 0
-			out.ready += if status == "ready" then 1 else 0
+			progress.done += if status == "done" then 1 else 0
+			progress.ready += if status == "ready" then 1 else 0
 		end
 	end
-	return out
+	return progress
 end
 
 local function sizeOf(item: Item): (number, number)
 	if item.type == "task" then
-		return TASK_W, TASK_H
+		return TASK_WIDTH, TASK_HEIGHT
 	end
 
 	return item.width or 320, item.height or 200
@@ -120,15 +119,15 @@ function graph.derive(doc: Doc): Derived
 		end
 	end
 
-	local preds: { [string]: { string } } = {}
-	local succs: { [string]: { string } } = {}
+	local predecessors: { [string]: { string } } = {}
+	local successors: { [string]: { string } } = {}
 
 	for _, link in doc.links do
 		if link.kind == "blocks" then
-			preds[link.to] = preds[link.to] or {}
-			succs[link.from] = succs[link.from] or {}
-			table.insert(preds[link.to], link.from)
-			table.insert(succs[link.from], link.to)
+			predecessors[link.to] = predecessors[link.to] or {}
+			successors[link.from] = successors[link.from] or {}
+			table.insert(predecessors[link.to], link.from)
+			table.insert(successors[link.from], link.to)
 		end
 	end
 
@@ -158,8 +157,8 @@ function graph.derive(doc: Doc): Derived
 		visited[id] = true
 		local result = false
 
-		for _, p in preds[id] or {} do
-			if isOpen(p, visited) then
+		for _, predecessor in predecessors[id] or {} do
+			if isOpen(predecessor, visited) then
 				result = true
 				break
 			end
@@ -175,8 +174,8 @@ function graph.derive(doc: Doc): Derived
 		local recorded = field(item, "status") or "todo"
 		local blockedByDeps = false
 
-		for _, p in preds[id] or {} do
-			if isOpen(p) then
+		for _, predecessor in predecessors[id] or {} do
+			if isOpen(predecessor) then
 				blockedByDeps = true
 				break
 			end
@@ -207,7 +206,7 @@ function graph.derive(doc: Doc): Derived
 		while #stack > 0 do
 			local current = table.remove(stack) :: string
 
-			for _, next in succs[current] or {} do
+			for _, next in successors[current] or {} do
 				local nextItem = tasks[next]
 
 				if seen[next] or not nextItem or not isOpen(next) or field(nextItem, "status") == "deferred" then
@@ -241,13 +240,13 @@ local function uniqueId(doc: Doc, base: string): string
 		return base
 	end
 
-	local n = 2
+	local suffix = 2
 
-	while graph.find(doc, `{base}-{n}`) do
-		n += 1
+	while graph.find(doc, `{base}-{suffix}`) do
+		suffix += 1
 	end
 
-	return `{base}-{n}`
+	return `{base}-{suffix}`
 end
 
 -- The next free spot to the right of a parent's children, or of the top level.
@@ -257,17 +256,17 @@ function graph.nextSlot(doc: Doc, parentId: string?): Position
 
 	for _, item in doc.nodes do
 		if item.parentId == parentId then
-			local w = sizeOf(item)
-			right = math.max(right or -math.huge, item.position.x + w)
+			local width = sizeOf(item)
+			right = math.max(right or -math.huge, item.position.x + width)
 			top = math.min(top or math.huge, item.position.y)
 		end
 	end
 
 	if right == nil or top == nil then
-		return if parentId then { x = PAD, y = HEAD } else { x = 0, y = 0 }
+		return if parentId then { x = GROUP_PADDING, y = GROUP_HEADER_HEIGHT } else { x = 0, y = 0 }
 	end
 
-	return { x = (right :: number) + (if parentId then GAP else GAP * 2), y = top :: number }
+	return { x = (right :: number) + (if parentId then ITEM_GAP else ITEM_GAP * 2), y = top :: number }
 end
 
 local function itemKindFor(repo: string?, pr: number?): string
@@ -285,11 +284,7 @@ local function checkFields(fields: ItemFields)
 	)
 	assert(fields.who == nil or fields.who == "" or WHO[fields.who], `who must be one of you, review, ci`)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
-	assert(fields.arrange == nil or ARRANGE[fields.arrange], "arrange must be one of auto, grid, custom")
-	assert(
-		fields.columns == nil or (fields.columns > 0 and fields.columns % 1 == 0),
-		"columns must be a positive whole number"
-	)
+	assert(fields.arrange == nil or ARRANGE[fields.arrange], "arrange must be one of auto, custom")
 end
 
 export type AddOptions = ItemFields & { group: string? }
@@ -331,7 +326,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	if graph.isGroup(item) then
 		assert(
 			fields.status == nil and fields.repo == nil and fields.pr == nil and fields.who == nil,
-			"groups only take a label, blurb, arrange, and columns"
+			"groups only take a label, blurb, and arrange"
 		)
 
 		if fields.label then
@@ -342,16 +337,9 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 			item.data.blurb = if fields.blurb == "" then nil else fields.blurb
 		end
 
-		if fields.arrange or fields.columns then
-			local arrange = fields.arrange or field(item, "arrange") or "auto"
-			assert(fields.columns == nil or arrange == "grid", "columns only apply to a grid; pass --arrange grid")
-			item.data.arrange = if arrange == "auto" then nil else arrange
-			if arrange ~= "grid" then
-				item.data.columns = nil
-			elseif fields.columns then
-				item.data.columns = fields.columns
-			end
-			if arrange ~= "custom" and item.data.layout == nil then
+		if fields.arrange then
+			item.data.arrange = if fields.arrange == "auto" then nil else fields.arrange
+			if fields.arrange ~= "custom" and item.data.layout == nil then
 				item.data.layout = "refit"
 			end
 		end
@@ -359,7 +347,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 		return item
 	end
 
-	assert(fields.arrange == nil and fields.columns == nil, `"{id}" is an item; only groups take arrange and columns`)
+	assert(fields.arrange == nil, `"{id}" is an item; only groups take an arrangement`)
 	if fields.label then
 		item.data.label = fields.label
 	end
@@ -489,7 +477,7 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	local position = graph.nextSlot(doc, parent)
 
 	if after and after.parentId == parent then
-		position = { x = after.position.x + TASK_W + GAP, y = after.position.y + TASK_H + PAD }
+		position = { x = after.position.x + TASK_WIDTH + ITEM_GAP, y = after.position.y + TASK_HEIGHT + GROUP_PADDING }
 	end
 
 	local note: Item = {
@@ -516,25 +504,30 @@ end
 function graph.remove(doc: Doc, id: string)
 	local item = graph.get(doc, id)
 	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup instead`)
-	local ins: { Link } = {}
-	local outs: { Link } = {}
+	local incomingLinks: { Link } = {}
+	local outgoingLinks: { Link } = {}
 
 	for index = #doc.links, 1, -1 do
 		local link = doc.links[index]
 
 		if link.to == id then
-			table.insert(ins, link)
+			table.insert(incomingLinks, link)
 			table.remove(doc.links, index)
 		elseif link.from == id then
-			table.insert(outs, link)
+			table.insert(outgoingLinks, link)
 			table.remove(doc.links, index)
 		end
 	end
 
 	if graph.isNote(item) then
-		for _, i in ins do
-			for _, o in outs do
-				graph.link(doc, i.from, o.to, if i.kind == "blocks" and o.kind == "blocks" then "blocks" else "related")
+		for _, incomingLink in incomingLinks do
+			for _, outgoingLink in outgoingLinks do
+				graph.link(
+					doc,
+					incomingLink.from,
+					outgoingLink.to,
+					if incomingLink.kind == "blocks" and outgoingLink.kind == "blocks" then "blocks" else "related"
+				)
 			end
 		end
 	end
@@ -565,24 +558,24 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 		assert(member.parentId == parent, "grouped items must share a parent; move them first")
 	end
 
-	local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+	local minimumX, minimumY, maximumX, maximumY = math.huge, math.huge, -math.huge, -math.huge
 
 	for _, member in members do
-		local w, h = sizeOf(member)
-		minX = math.min(minX, member.position.x)
-		minY = math.min(minY, member.position.y)
-		maxX = math.max(maxX, member.position.x + w)
-		maxY = math.max(maxY, member.position.y + h)
+		local width, height = sizeOf(member)
+		minimumX = math.min(minimumX, member.position.x)
+		minimumY = math.min(minimumY, member.position.y)
+		maximumX = math.max(maximumX, member.position.x + width)
+		maximumY = math.max(maximumY, member.position.y + height)
 	end
 
-	local origin = { x = minX - PAD, y = minY - HEAD }
+	local origin = { x = minimumX - GROUP_PADDING, y = minimumY - GROUP_HEADER_HEIGHT }
 	local group: Item = {
 		id = uniqueId(doc, slug(label)),
 		type = "cluster",
 		position = origin,
 		parentId = parent,
-		width = maxX - minX + PAD * 2,
-		height = maxY - minY + HEAD + PAD,
+		width = maximumX - minimumX + GROUP_PADDING * 2,
+		height = maximumY - minimumY + GROUP_HEADER_HEIGHT + GROUP_PADDING,
 		data = json.object({ kind = "cluster", label = label }),
 	}
 

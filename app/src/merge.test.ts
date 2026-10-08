@@ -16,14 +16,14 @@ const makeDoc = (nodes: AppNode[], links: Link[] = []): Saved => ({ nodes, links
 describe('mergeDocs', () => {
   it('keeps nodes added on either side', () => {
     const merged = mergeDocs(makeDoc([makeNode('a')]), makeDoc([makeNode('a'), makeNode('local')]), makeDoc([makeNode('a'), makeNode('remote')]))
-    expect(merged.nodes.map((n) => n.id)).toEqual(['a', 'remote', 'local'])
+    expect(merged.nodes.map((node) => node.id)).toEqual(['a', 'remote', 'local'])
     expect(merged.conflicts).toEqual([])
   })
 
   it('deletes a node when the other side left it unchanged', () => {
     const base = makeDoc([makeNode('a'), makeNode('b')])
-    expect(mergeDocs(base, makeDoc([makeNode('b')]), base).nodes.map((n) => n.id)).toEqual(['b'])
-    expect(mergeDocs(base, base, makeDoc([makeNode('b')])).nodes.map((n) => n.id)).toEqual(['b'])
+    expect(mergeDocs(base, makeDoc([makeNode('b')]), base).nodes.map((node) => node.id)).toEqual(['b'])
+    expect(mergeDocs(base, base, makeDoc([makeNode('b')])).nodes.map((node) => node.id)).toEqual(['b'])
   })
 
   it('keeps an edit against a deletion in either direction', () => {
@@ -97,7 +97,7 @@ describe('mergeDocs', () => {
       makeLink('remote', 'b', 'a'),
     ])
     const merged = mergeDocs(base, local, remote)
-    expect(merged.links.map((l) => l.id)).toEqual(['edited', 'remote', 'local'])
+    expect(merged.links.map((link) => link.id)).toEqual(['edited', 'remote', 'local'])
     expect(merged.conflicts).toEqual([])
   })
 

@@ -26,10 +26,11 @@ export type Actions = {
 export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
 
-function sourceOf(task: TaskNode, githubOwner?: string): SourceRef {
+/** Where a card's work comes from, or null for a card that only lives in Orion. */
+function sourceOf(task: TaskNode, githubOwner?: string): SourceRef | null {
   const repo = task.data.repo?.trim()
   const href = getTaskUrl(task.data, githubOwner) ?? undefined
-  if (!repo && !task.data.external) return { domain: 'orion', label: 'Orion' }
+  if (!repo && !task.data.external) return null
   if (href) {
     try {
       const url = new URL(href)
@@ -45,27 +46,27 @@ function sourceOf(task: TaskNode, githubOwner?: string): SourceRef {
 }
 
 function graph(links: Link[]) {
-  const preds = new Map<string, string[]>()
-  const succs = new Map<string, string[]>()
-  for (const l of links) {
-    if (l.kind !== 'blocks') continue
-    if (!succs.has(l.from)) succs.set(l.from, [])
-    if (!preds.has(l.to)) preds.set(l.to, [])
-    succs.get(l.from)!.push(l.to)
-    preds.get(l.to)!.push(l.from)
+  const predecessors = new Map<string, string[]>()
+  const successors = new Map<string, string[]>()
+  for (const link of links) {
+    if (link.kind !== 'blocks') continue
+    if (!successors.has(link.from)) successors.set(link.from, [])
+    if (!predecessors.has(link.to)) predecessors.set(link.to, [])
+    successors.get(link.from)!.push(link.to)
+    predecessors.get(link.to)!.push(link.from)
   }
-  return { preds, succs }
+  return { preds: predecessors, succs: successors }
 }
 
 function walk(start: string, next: Map<string, string[]>, keep: (id: string) => boolean): Set<string> {
   const seen = new Set<string>()
   const stack = [start]
   while (stack.length) {
-    const cur = stack.pop()!
-    for (const n of next.get(cur) ?? []) {
-      if (!seen.has(n) && keep(n)) {
-        seen.add(n)
-        stack.push(n)
+    const current = stack.pop()!
+    for (const node of next.get(current) ?? []) {
+      if (!seen.has(node) && keep(node)) {
+        seen.add(node)
+        stack.push(node)
       }
     }
   }
@@ -74,32 +75,35 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 
 /** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
 export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string) {
-  const tasks = new Map(nodes.filter(isTask).map((n) => [n.id, n as TaskNode]))
+  const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
-  for (const task of tasks.values()) sources.set(task.id, [sourceOf(task, githubOwner)])
-  const { preds, succs } = graph(links)
+  for (const task of tasks.values()) {
+    const source = sourceOf(task, githubOwner)
+    sources.set(task.id, source ? [source] : [])
+  }
+  const { preds: predecessors, succs: successors } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
   // A note is open while anything feeding into it is, so blocking passes through notes.
   const noteOpen = new Map<string, boolean>()
   const open = (id: string, seen = new Set<string>()): boolean => {
-    const t = tasks.get(id)
-    if (!t) return false
-    if (!isNote(id)) return t.data.status !== 'done'
+    const task = tasks.get(id)
+    if (!task) return false
+    if (!isNote(id)) return task.data.status !== 'done'
     if (noteOpen.has(id)) return noteOpen.get(id)!
     if (seen.has(id)) return false
     seen.add(id)
-    const r = (preds.get(id) ?? []).some((p) => open(p, seen))
-    noteOpen.set(id, r)
-    return r
+    const result = (predecessors.get(id) ?? []).some((predecessor) => open(predecessor, seen))
+    noteOpen.set(id, result)
+    return result
   }
 
   const status = new Map<string, ViewStatus>()
-  for (const t of tasks.values()) {
-    const s = t.data.status
-    if (isNote(t.id)) status.set(t.id, open(t.id) ? 'blocked' : 'done')
-    else if (s === 'done' || s === 'deferred' || s === 'blocked') status.set(t.id, s)
-    else if ((preds.get(t.id) ?? []).some((p) => open(p))) status.set(t.id, 'blocked')
-    else status.set(t.id, s === 'todo' ? 'ready' : s)
+  for (const task of tasks.values()) {
+    const statusValue = task.data.status
+    if (isNote(task.id)) status.set(task.id, open(task.id) ? 'blocked' : 'done')
+    else if (statusValue === 'done' || statusValue === 'deferred' || statusValue === 'blocked') status.set(task.id, statusValue)
+    else if ((predecessors.get(task.id) ?? []).some((predecessor) => open(predecessor))) status.set(task.id, 'blocked')
+    else status.set(task.id, statusValue === 'todo' ? 'ready' : statusValue)
   }
 
   // Links move unless they come out of work that's stuck. Notes pass on whatever reaches them.
@@ -109,64 +113,64 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
     if (known) return known
     if (seen.has(id)) return 'held'
     seen.add(id)
-    const s = status.get(id)
-    let f: Flow
-    if (s === 'done') f = 'live'
-    else if (isNote(id)) f = (preds.get(id) ?? []).some((p) => flowOf(p, seen) === 'live') ? 'live' : 'held'
-    else f = s === 'blocked' || s === 'deferred' ? 'held' : 'live'
-    flow.set(id, f)
-    return f
+    const statusValue = status.get(id)
+    let flowValue: Flow
+    if (statusValue === 'done') flowValue = 'live'
+    else if (isNote(id)) flowValue = (predecessors.get(id) ?? []).some((predecessor) => flowOf(predecessor, seen) === 'live') ? 'live' : 'held'
+    else flowValue = statusValue === 'blocked' || statusValue === 'deferred' ? 'held' : 'live'
+    flow.set(id, flowValue)
+    return flowValue
   }
   for (const id of tasks.keys()) flowOf(id)
 
   const leverage = new Map<string, number>()
   const downstream = new Map<string, Set<string>>()
-  for (const t of tasks.values()) {
-    if (isNote(t.id) || !open(t.id)) continue
+  for (const task of tasks.values()) {
+    if (isNote(task.id) || !open(task.id)) continue
     // Parked work doesn't count toward what finishing something unlocks, and notes aren't work.
-    const reach = walk(t.id, succs, (id) => open(id) && tasks.get(id)?.data.status !== 'deferred')
-    const d = new Set([...reach].filter((id) => !isNote(id)))
-    downstream.set(t.id, d)
-    leverage.set(t.id, d.size)
+    const reach = walk(task.id, successors, (id) => open(id) && tasks.get(id)?.data.status !== 'deferred')
+    const downstreamNodes = new Set([...reach].filter((id) => !isNote(id)))
+    downstream.set(task.id, downstreamNodes)
+    leverage.set(task.id, downstreamNodes.size)
   }
 
   const groups = new Map<string, GroupStats>()
-  for (const g of nodes.filter(isCluster)) {
-    const inside = descendants(g.id, nodes)
-    const s: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
+  for (const group of nodes.filter(isCluster)) {
+    const inside = descendants(group.id, nodes)
+    const stats: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
     const groupSources = new Map<string, SourceRef>()
     const reach = new Set<string>()
     for (const id of inside) {
       const task = tasks.get(id)
       if (task) {
         const source = sourceOf(task, githubOwner)
-        const key = `${source.domain}:${source.label}`
-        if (!groupSources.get(key)?.href) groupSources.set(key, source)
+        const key = source && `${source.domain}:${source.label}`
+        if (source && key && !groupSources.get(key)?.href) groupSources.set(key, source)
       }
-      const st = status.get(id)
-      if (!st || isNote(id)) continue
-      s.total++
-      if (st === 'done') s.done++
-      if (st === 'ready') s.ready++
-      if (st === 'blocked') s.blocked++
-      for (const d of downstream.get(id) ?? []) if (!inside.has(d)) reach.add(d)
+      const statusValue = status.get(id)
+      if (!statusValue || isNote(id)) continue
+      stats.total++
+      if (statusValue === 'done') stats.done++
+      if (statusValue === 'ready') stats.ready++
+      if (statusValue === 'blocked') stats.blocked++
+      for (const downstreamNodes of downstream.get(id) ?? []) if (!inside.has(downstreamNodes)) reach.add(downstreamNodes)
     }
-    s.outside = reach.size
-    groups.set(g.id, s)
+    stats.outside = reach.size
+    groups.set(group.id, stats)
     sources.set(
-      g.id,
+      group.id,
       [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label)),
     )
   }
 
-  return { status, flow, leverage, groups, sources, preds, succs }
+  return { status, flow, leverage, groups, sources, preds: predecessors, succs: successors }
 }
 
-export function traceFrom(id: string, preds: Map<string, string[]>, succs: Map<string, string[]>, ids: string[]) {
-  const up = walk(id, preds, () => true)
-  const down = walk(id, succs, () => true)
+export function traceFrom(id: string, predecessors: Map<string, string[]>, successors: Map<string, string[]>, ids: string[]) {
+  const up = walk(id, predecessors, () => true)
+  const down = walk(id, successors, () => true)
   const roles = new Map<string, TraceRole>()
-  for (const n of ids) roles.set(n, n === id ? 'self' : up.has(n) ? 'up' : down.has(n) ? 'down' : 'dim')
+  for (const node of ids) roles.set(node, node === id ? 'self' : up.has(node) ? 'up' : down.has(node) ? 'down' : 'dim')
   return roles
 }
 
@@ -175,11 +179,11 @@ export type AttentionMark = { ids: string[] }
 
 /** Open work where it's your move. Blocked work can't move, so it waits. */
 export function needsAttention(nodes: AppNode[], status: Map<string, ViewStatus>) {
-  const out: string[] = []
-  for (const n of nodes) {
-    if (!isTask(n) || isNote(n) || n.data.who !== 'you') continue
-    const st = status.get(n.id)
-    if (st && st !== 'done' && st !== 'deferred' && st !== 'blocked') out.push(n.id)
+  const result: string[] = []
+  for (const node of nodes) {
+    if (!isTask(node) || isNote(node) || node.data.who !== 'you') continue
+    const statusValue = status.get(node.id)
+    if (statusValue && statusValue !== 'done' && statusValue !== 'deferred' && statusValue !== 'blocked') result.push(node.id)
   }
-  return out
+  return result
 }
