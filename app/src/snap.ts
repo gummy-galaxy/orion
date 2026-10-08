@@ -34,14 +34,19 @@ type Scene = { moving: Box; others: Box[]; gaps: Record<Axis, number[]> }
 /** Spacing neighbors already keep along `axis`, most common first. */
 function spacing(boxes: Box[], axis: Axis): number[] {
   const counts = new Map<number, number>()
+
   for (const box of boxes) {
     let nearest = Infinity
+
     for (const otherBox of boxes) {
       const gap = start(otherBox, axis) - end(box, axis)
+
       if (otherBox !== box && sharesSpan(box, otherBox, otherAxis(axis)) && gap > 0 && gap < nearest) nearest = gap
     }
+
     if (nearest <= MAX_GAP) counts.set(Math.round(nearest), (counts.get(Math.round(nearest)) ?? 0) + 1)
   }
+
   return [...counts].sort((a, b) => b[1] - a[1]).map(([gap]) => gap)
 }
 
@@ -49,7 +54,9 @@ function spacing(boxes: Box[], axis: Axis): number[] {
 function scene(nodes: AppNode[], ids: string[]): Scene | null {
   const nodeMap = byId(nodes)
   const movedNodes = ids.map((id) => nodeMap.get(id)).filter((node) => !!node)
+
   if (!movedNodes.length) return null
+
   const boxOf = (node: AppNode): Box => ({ ...absolutePosition(node, nodeMap), ...sizeOf(node) })
   const boxes = movedNodes.map(boxOf)
   const x = Math.min(...boxes.map((box) => box.x))
@@ -65,6 +72,7 @@ function scene(nodes: AppNode[], ids: string[]): Scene | null {
   const others = nodes.filter((node) => node.parentId === parent && !movedIds.has(node.id)).map(boxOf)
   const fallback = parent ? GAP.inner : GAP.top
   const gapsForAxis = (axis: Axis) => [...new Set([...spacing(others, axis).slice(0, 2), fallback[axis]])]
+
   return { moving, others, gaps: { x: gapsForAxis('x'), y: gapsForAxis('y') } }
 }
 
@@ -73,6 +81,7 @@ function hits({ moving, others, gaps }: Scene, axis: Axis, tolerance: number): H
   const perpendicular = otherAxis(axis)
   const matches: Hit[] = []
   const addHit = (offset: number, guide: Guide) => Math.abs(offset) <= tolerance && matches.push({ offset, guide })
+
   for (const otherBox of others) {
     const beside = sharesSpan(moving, otherBox, perpendicular)
     const from = Math.min(start(moving, perpendicular), start(otherBox, perpendicular))
@@ -82,11 +91,16 @@ function hits({ moving, others, gaps }: Scene, axis: Axis, tolerance: number): H
       [end(moving, axis), end(otherBox, axis)],
       [center(moving, axis), center(otherBox, axis)],
     ]
+
     // Side by side, meeting edges would mean touching; elsewhere they make a column.
     if (!beside) pairs.push([start(moving, axis), end(otherBox, axis)], [end(moving, axis), start(otherBox, axis)])
+
     for (const [edge, at] of pairs) addHit(at - edge, { kind: 'line', axis, at, from, to })
+
     if (!beside) continue
+
     const at = Math.max(start(moving, perpendicular), start(otherBox, perpendicular)) + overlap(moving, otherBox, perpendicular) / 2
+
     for (const gap of gaps[axis]) {
       addHit(end(otherBox, axis) + gap - start(moving, axis), {
         kind: 'gap',
@@ -104,11 +118,13 @@ function hits({ moving, others, gaps }: Scene, axis: Axis, tolerance: number): H
       })
     }
   }
+
   return matches
 }
 
 function shift(nodes: AppNode[], ids: string[], deltaX: number, deltaY: number): AppNode[] {
   const movedIds = new Set(ids)
+
   return nodes.map((node) => (movedIds.has(node.id) ? { ...node, position: { x: node.position.x + deltaX, y: node.position.y + deltaY } } : node))
 }
 
@@ -118,7 +134,9 @@ function shift(nodes: AppNode[], ids: string[], deltaX: number, deltaY: number):
  */
 export function snapDrag(nodes: AppNode[], ids: string[], tolerance: number): AppNode[] {
   const currentScene = scene(nodes, ids)
+
   if (!currentScene) return nodes
+
   const pull = (axis: Axis) =>
     hits(currentScene, axis, tolerance).reduce<Hit | null>(
       (best, candidate) => (!best || Math.abs(candidate.offset) < Math.abs(best.offset) ? candidate : best),
@@ -126,6 +144,7 @@ export function snapDrag(nodes: AppNode[], ids: string[], tolerance: number): Ap
     )?.offset ?? 0
   const deltaX = pull('x')
   const deltaY = pull('y')
+
   return deltaX || deltaY ? shift(nodes, ids, deltaX, deltaY) : nodes
 }
 
@@ -133,14 +152,19 @@ export function snapDrag(nodes: AppNode[], ids: string[], tolerance: number): Ap
 export function snapGuides(nodes: AppNode[]): Guide[] {
   const ids = nodes.filter((node) => node.dragging).map((node) => node.id)
   const currentScene = ids.length ? scene(nodes, ids) : null
+
   if (!currentScene) return []
+
   const lines = new Map<string, Guide>()
+
   for (const axis of ['x', 'y'] as const)
     for (const { guide } of hits(currentScene, axis, 0.5)) {
       const key = guide.kind === 'line' ? `${axis}:${Math.round(guide.at)}` : `${axis}:${guide.from}:${guide.to}:${guide.at}`
       const previous = lines.get(key)
+
       lines.set(key, previous ? { ...previous, from: Math.min(previous.from, guide.from), to: Math.max(previous.to, guide.to) } : guide)
     }
+
   return [...lines.values()]
 }
 
@@ -150,7 +174,9 @@ export function snapGuides(nodes: AppNode[]): Guide[] {
  */
 export function settleDrop(nodes: AppNode[], ids: string[], thrown: boolean): AppNode[] | null {
   const currentScene = scene(nodes, ids)
+
   if (!currentScene) return null
+
   const { moving, others } = currentScene
   const gap = { x: currentScene.gaps.x[0], y: currentScene.gaps.y[0] }
   const reach = Math.max(gap.x, gap.y) * 2
@@ -159,25 +185,34 @@ export function settleDrop(nodes: AppNode[], ids: string[], thrown: boolean): Ap
   const landed = others.filter((otherBox) => intersects(moving, otherBox)).sort((a, b) => intersectionArea(b) - intersectionArea(a))[0]
   const anchor =
     landed ?? (thrown ? others.filter((otherBox) => distance(otherBox) <= reach).sort((a, b) => distance(a) - distance(b))[0] : undefined)
+
   if (!anchor) return null
 
   // The anchor's columns and rows, lined up by either edge so different sizes still fit.
   const xPositions: number[] = []
   const yPositions: number[] = []
+
   for (let i = -RINGS; i <= RINGS; i++) {
     xPositions.push(anchor.x + i * (anchor.width + gap.x), anchor.x + anchor.width - moving.width + i * (anchor.width + gap.x))
     yPositions.push(anchor.y + i * (anchor.height + gap.y), anchor.y + anchor.height - moving.height + i * (anchor.height + gap.y))
   }
+
   const clearance = Math.min(gap.x, gap.y) / 2
   let best: { x: number; y: number; distance: number } | null = null
+
   for (const x of xPositions)
     for (const y of yPositions) {
       const room = { x: x - clearance, y: y - clearance, width: moving.width + clearance * 2, height: moving.height + clearance * 2 }
+
       if (others.some((otherBox) => intersects(room, otherBox))) continue
+
       const distance = Math.hypot(x - moving.x, y - moving.y)
+
       if (!best || distance < best.distance) best = { x, y, distance }
     }
+
   if (!best || best.distance < 0.5 || (!landed && best.distance > reach)) return null
+
   return shift(nodes, ids, best.x - moving.x, best.y - moving.y)
 }
 
@@ -191,5 +226,6 @@ export function finishDrag(
 ): AppNode[] {
   const restored = origins.size ? nodes.map((node) => (origins.has(node.id) ? { ...node, position: origins.get(node.id)! } : node)) : nodes
   const movableIds = ids.filter((id) => !origins.has(id))
+
   return free || !movableIds.length ? restored : (settleDrop(restored, movableIds, thrown) ?? restored)
 }

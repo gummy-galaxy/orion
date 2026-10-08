@@ -14,6 +14,7 @@ export function NoteInspector({
   remove: () => void
 }) {
   const data = node.data as TaskData
+
   return (
     <div className="insp">
       <label htmlFor="n-text">Note</label>

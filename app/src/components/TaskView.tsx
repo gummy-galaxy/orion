@@ -18,6 +18,7 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const sources = useSources(id)
+
   if (data.itemKind === 'note') {
     const className = `card note${trace ? ' tr-' + trace : ''}`
     const body = (
@@ -29,6 +30,7 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
         <SourceBadges sources={sources} />
       </>
     )
+
     return (
       <div className={className}>
         <Handle type="target" position={Position.Left} />
@@ -37,6 +39,7 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
       </div>
     )
   }
+
   const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${data.itemKind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
   const body = (
     <>
@@ -59,6 +62,7 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
       <SourceBadges sources={sources} />
     </>
   )
+
   return (
     <div className={className}>
       <Handle type="target" position={Position.Left} />

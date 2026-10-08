@@ -21,14 +21,17 @@ export function StoryGraph({
 }) {
   const [store] = useState(() => {
     const next = createStore()
+
     next.set(
       nodesAtom,
       nodes.filter((node): node is AppNode => node.type !== 'ghost'),
     )
     next.set(linksAtom, links)
     next.set(githubOwnerAtom, 'vocksel')
+
     return next
   })
+
   return (
     <Provider store={store}>
       <ActionsContext.Provider value={{ open: () => {}, reflow: () => {} }}>

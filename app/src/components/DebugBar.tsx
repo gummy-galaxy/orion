@@ -30,13 +30,17 @@ export function DebugBar({
     let raf = 0
     let last = performance.now()
     let windowStart = last
+
     const tick = (now: number) => {
       frames.current.push(now - last)
       last = now
+
       if (now - windowStart >= SAMPLE_MS) {
         const deltas = frames.current
+
         frames.current = []
         const root = canvas.current
+
         setSample({
           fps: Math.round((deltas.length * 1000) / (now - windowStart)),
           worst: Math.round(Math.max(0, ...deltas)),
@@ -49,9 +53,12 @@ export function DebugBar({
         })
         windowStart = now
       }
+
       raf = requestAnimationFrame(tick)
     }
+
     raf = requestAnimationFrame(tick)
+
     return () => cancelAnimationFrame(raf)
   }, [canvas])
 

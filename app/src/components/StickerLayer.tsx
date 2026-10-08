@@ -59,8 +59,10 @@ type Hold = { id: string; pointerId: number; startX: number; startY: number; off
 
 function homeAt(point: StickerPoint, bounds: StickerBounds[]) {
   let best: StickerBounds | null = null
+
   for (const body of bounds)
     if (point.x >= body.x0 && point.x <= body.x1 && point.y >= body.y0 && point.y <= body.y1 && (!best || body.depth > best.depth)) best = body
+
   return best?.id ?? null
 }
 
@@ -75,64 +77,92 @@ const obstacles = (home: string | null, bounds: Map<string, StickerBounds>) =>
  */
 function chaseTarget(body: Body, point: StickerPoint, bounds: Map<string, StickerBounds>, pop: number): StickerPoint {
   const home = body.home ? bounds.get(body.home) : undefined
+
   if (home) {
     const outsideDistance = Math.hypot(Math.max(home.x0 - point.x, 0, point.x - home.x1), Math.max(home.y0 - point.y, 0, point.y - home.y1))
+
     if (outsideDistance > pop) {
       body.home = home.parent
+
       return chaseTarget(body, point, bounds, pop)
     }
+
     const inside = { x: clamp(point.x, home.x0 + RADIUS, home.x1 - RADIUS), y: clamp(point.y, home.y0 + RADIUS, home.y1 - RADIUS) }
     const pull = Math.hypot(point.x - inside.x, point.y - inside.y)
+
     if (outsideDistance > 0 && pull > 0) {
       const strain = Math.min(RADIUS, outsideDistance * STRAIN) / pull
+
       return { x: inside.x + (point.x - inside.x) * strain, y: inside.y + (point.y - inside.y) * strain }
     }
+
     point = inside
   }
+
   for (const obstacle of obstacles(body.home, bounds)) {
     if (point.x < obstacle.x0 - RADIUS || point.x > obstacle.x1 + RADIUS || point.y < obstacle.y0 - RADIUS || point.y > obstacle.y1 + RADIUS) continue
+
     // The side the sticker is on is the edge it presses against.
     const gaps = [obstacle.x0 - body.x, body.x - obstacle.x1, obstacle.y0 - body.y, body.y - obstacle.y1]
     const side = gaps.indexOf(Math.max(...gaps))
     const depth = [point.x - obstacle.x0, obstacle.x1 - point.x, point.y - obstacle.y0, obstacle.y1 - point.y][side]
+
     if (depth > pop) {
       body.home = obstacle.id
+
       return chaseTarget(body, point, bounds, pop)
     }
+
     const strain = Math.min(RADIUS, (depth + RADIUS) * STRAIN)
+
     if (side === 0) return { x: obstacle.x0 - RADIUS + strain, y: point.y }
+
     if (side === 1) return { x: obstacle.x1 + RADIUS - strain, y: point.y }
+
     if (side === 2) return { x: point.x, y: obstacle.y0 - RADIUS + strain }
+
     return { x: point.x, y: obstacle.y1 + RADIUS - strain }
   }
+
   return point
 }
 
 function bounceOffWalls(body: Body, bounds: Map<string, StickerBounds>) {
   const home = body.home ? bounds.get(body.home) : undefined
+
   if (home) {
     const wall = (normalX: number, normalY: number) => {
       const normalVelocity = body.velocityX * normalX + body.velocityY * normalY
+
       if (normalVelocity >= 0) return
+
       body.velocityX -= (1 + WALL_BOUNCE) * normalVelocity * normalX
       body.velocityY -= (1 + WALL_BOUNCE) * normalVelocity * normalY
       body.spin += (normalX ? body.velocityY : -body.velocityX) * HIT_WOBBLE * 0.5
     }
+
     const x = clamp(body.x, home.x0 + RADIUS, home.x1 - RADIUS)
     const y = clamp(body.y, home.y0 + RADIUS, home.y1 - RADIUS)
+
     if (x !== body.x) wall(Math.sign(x - body.x), 0)
+
     if (y !== body.y) wall(0, Math.sign(y - body.y))
+
     body.x = x
     body.y = y
   }
+
   for (const obstacle of obstacles(body.home, bounds)) {
     const deltaX = body.x - clamp(body.x, obstacle.x0, obstacle.x1)
     const deltaY = body.y - clamp(body.y, obstacle.y0, obstacle.y1)
     const distance = Math.hypot(deltaX, deltaY)
+
     if (distance >= RADIUS) continue
+
     let normalX: number
     let normalY: number
     let depth: number
+
     if (distance > 0) {
       normalX = deltaX / distance
       normalY = deltaY / distance
@@ -140,6 +170,7 @@ function bounceOffWalls(body: Body, bounds: Map<string, StickerBounds>) {
     } else {
       const sides = [body.x - obstacle.x0, obstacle.x1 - body.x, body.y - obstacle.y0, obstacle.y1 - body.y]
       const side = sides.indexOf(Math.min(...sides))
+
       ;[normalX, normalY] = [
         [-1, 0],
         [1, 0],
@@ -148,9 +179,11 @@ function bounceOffWalls(body: Body, bounds: Map<string, StickerBounds>) {
       ][side]
       depth = sides[side] + RADIUS
     }
+
     body.x += normalX * depth
     body.y += normalY * depth
     const normalVelocity = body.velocityX * normalX + body.velocityY * normalY
+
     if (normalVelocity < 0) {
       body.velocityX -= (1 + WALL_BOUNCE) * normalVelocity * normalX
       body.velocityY -= (1 + WALL_BOUNCE) * normalVelocity * normalY
@@ -161,18 +194,23 @@ function bounceOffWalls(body: Body, bounds: Map<string, StickerBounds>) {
 /** Two stickers bump like pucks. A held one is the mallet: it pushes and never gets pushed. */
 function collide(a: Body, b: Body, held: Body | undefined) {
   if (a.home !== b.home || (a.resting && b.resting)) return
+
   const deltaX = b.x - a.x
   const deltaY = b.y - a.y
   const distance = Math.hypot(deltaX, deltaY)
+
   if (distance >= RADIUS * 2) return
+
   const [normalX, normalY] = distance > 1e-6 ? [deltaX / distance, deltaY / distance] : [1, 0]
   const overlap = RADIUS * 2 - distance
   const relativeVelocityX = b.velocityX - a.velocityX
   const relativeVelocityY = b.velocityY - a.velocityY
   const normalVelocity = relativeVelocityX * normalX + relativeVelocityY * normalY
+
   if (a === held) {
     b.x += normalX * overlap
     b.y += normalY * overlap
+
     if (normalVelocity < 0) {
       b.velocityX -= (1 + BOUNCE) * normalVelocity * normalX
       b.velocityY -= (1 + BOUNCE) * normalVelocity * normalY
@@ -180,6 +218,7 @@ function collide(a: Body, b: Body, held: Body | undefined) {
   } else if (b === held) {
     a.x -= normalX * overlap
     a.y -= normalY * overlap
+
     if (normalVelocity < 0) {
       a.velocityX += (1 + BOUNCE) * normalVelocity * normalX
       a.velocityY += (1 + BOUNCE) * normalVelocity * normalY
@@ -189,19 +228,24 @@ function collide(a: Body, b: Body, held: Body | undefined) {
     a.y -= (normalY * overlap) / 2
     b.x += (normalX * overlap) / 2
     b.y += (normalY * overlap) / 2
+
     if (normalVelocity < 0) {
       const impulse = ((1 + BOUNCE) * normalVelocity) / 2
+
       a.velocityX += impulse * normalX
       a.velocityY += impulse * normalY
       b.velocityX -= impulse * normalX
       b.velocityY -= impulse * normalY
     }
   }
+
   if (normalVelocity < 0) {
     const tangentialVelocity = relativeVelocityY * normalX - relativeVelocityX * normalY
+
     a.spin -= tangentialVelocity * HIT_WOBBLE
     b.spin += tangentialVelocity * HIT_WOBBLE
   }
+
   a.resting = false
   b.resting = false
 }
@@ -229,6 +273,7 @@ class StickerWorld {
     this.bounds = new Map(bounds.map((body) => [body.id, body]))
     this.settle = settle
     this.reactFlow = reactFlow
+
     // Asleep, the stickers' own positions have caught up with where the bodies landed.
     if (!this.frame && !this.hold) this.bodies.clear()
   }
@@ -240,6 +285,7 @@ class StickerWorld {
 
   position(sticker: PlacedSticker) {
     const body = this.bodies.get(sticker.id)
+
     return body ? { x: body.x, y: body.y, lean: body.lean } : { x: sticker.x, y: sticker.y, lean: 0 }
   }
 
@@ -261,7 +307,9 @@ class StickerWorld {
 
   private wake() {
     if (this.frame) return
+
     if (!this.bodies.size) for (const sticker of this.stickers) this.bodies.set(sticker.id, this.newBody(sticker))
+
     this.at = performance.now()
     this.frame = requestAnimationFrame(this.step)
   }
@@ -269,15 +317,21 @@ class StickerWorld {
   /** A fresh stamp knocks aside whatever it lands on. */
   stamped(id: string) {
     if (reducedMotion()) return
+
     this.wake()
     const sticker = this.bodies.get(id)
+
     if (!sticker) return
+
     for (const body of this.bodies.values()) {
       const distance = Math.hypot(body.x - sticker.x, body.y - sticker.y)
+
       if (body === sticker || body.home !== sticker.home || distance >= RADIUS * 2) continue
+
       const angle = Math.random() * 2 * Math.PI
       const [normalX, normalY] =
         distance > 1e-6 ? [(body.x - sticker.x) / distance, (body.y - sticker.y) / distance] : [Math.cos(angle), Math.sin(angle)]
+
       body.velocityX += normalX * STAMP_KNOCK
       body.velocityY += normalY * STAMP_KNOCK
       body.resting = false
@@ -291,7 +345,9 @@ class StickerWorld {
   grab(id: string, event: React.PointerEvent) {
     const at = this.flow(event)
     const sticker = this.bodies.get(id) ?? this.stickers.find((candidate) => candidate.id === id)
+
     if (!sticker) return
+
     this.hold = {
       id,
       pointerId: event.pointerId,
@@ -305,30 +361,42 @@ class StickerWorld {
 
   drag(event: React.PointerEvent) {
     const hold = this.hold
+
     if (!hold || hold.pointerId !== event.pointerId) return
+
     if (!hold.active && Math.hypot(event.clientX - hold.startX, event.clientY - hold.startY) < DRAG_SLOP) return
+
     const at = this.flow(event)
+
     hold.at = { x: at.x + hold.offset.x, y: at.y + hold.offset.y }
+
     if (hold.active) return
+
     hold.active = true
     this.wake()
     const body = this.bodies.get(hold.id)
+
     if (body) body.resting = false
   }
 
   release(event: React.PointerEvent) {
     if (this.hold?.pointerId !== event.pointerId) return
+
     this.hold = null
   }
 
   private step = (now: number) => {
     const elapsed = Math.min(MAX_FRAME_MS, now - this.at)
+
     this.at = now
     const still = reducedMotion()
     const ids = new Set(this.stickers.map((sticker) => sticker.id))
+
     for (const id of this.bodies.keys()) if (!ids.has(id)) this.bodies.delete(id)
+
     for (const sticker of this.stickers) {
       const body = this.bodies.get(sticker.id)
+
       if (!body) this.bodies.set(sticker.id, this.newBody(sticker))
       // Untouched stickers keep riding along with the card under them.
       else if (body.resting && body.x === body.fromX && body.y === body.fromY) {
@@ -336,15 +404,18 @@ class StickerWorld {
         body.y = body.fromY = sticker.y
       }
     }
+
     const all = [...this.bodies.values()]
     const held = this.hold?.active ? this.bodies.get(this.hold.id) : undefined
     const pop = POP_DISTANCE / (this.reactFlow?.getZoom() ?? 1)
     const steps = Math.max(1, Math.ceil(elapsed / STEP_MS))
     const stepDuration = elapsed / steps
     const keep = Math.pow(FRICTION, stepDuration)
+
     for (let i = 0; i < steps; i++) {
       if (held && this.hold) {
         const targetPosition = chaseTarget(held, this.hold.at, this.bounds, pop)
+
         if (still) Object.assign(held, { x: targetPosition.x, y: targetPosition.y, velocityX: 0, velocityY: 0 })
         else {
           held.velocityX += (CHASE * (targetPosition.x - held.x) - CHASE_DAMPING * held.velocityX) * stepDuration
@@ -353,45 +424,62 @@ class StickerWorld {
           held.y += held.velocityY * stepDuration
         }
       }
+
       if (still) break
+
       for (const body of all) {
         if (body === held || body.resting) continue
+
         const speed = Math.hypot(body.velocityX, body.velocityY)
+
         if (speed > MAX_SPEED) {
           body.velocityX *= MAX_SPEED / speed
           body.velocityY *= MAX_SPEED / speed
         }
+
         body.x += body.velocityX * stepDuration
         body.y += body.velocityY * stepDuration
         body.velocityX *= keep
         body.velocityY *= keep
         bounceOffWalls(body, this.bounds)
       }
+
       for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) collide(all[i], all[j], held)
     }
+
     let awake = !!this.hold
+
     for (const body of all) {
       const target = body === held && !still ? clamp(body.velocityX * LEAN, -MAX_LEAN, MAX_LEAN) : 0
+
       body.spin = (body.spin + (target - body.lean) * SPRING) * DAMPING
       body.lean += body.spin
+
       if (body === held) continue
+
       if (!body.resting && Math.hypot(body.velocityX, body.velocityY) < REST_SPEED && Math.abs(body.lean) < 0.2 && Math.abs(body.spin) < 0.05) {
         body.velocityX = 0
         body.velocityY = 0
         body.lean = 0
         body.resting = true
       }
+
       if (!body.resting || Math.abs(body.lean) > 0.2) awake = true
     }
+
     this.draw()
+
     if (awake) {
       this.frame = requestAnimationFrame(this.step)
+
       return
     }
+
     this.frame = 0
     const moves = all
       .filter((body) => Math.hypot(body.x - body.fromX, body.y - body.fromY) > 0.5)
       .map((body) => ({ id: body.id, x: body.x, y: body.y }))
+
     if (moves.length) this.settle(moves)
     else this.bodies.clear()
   }
@@ -414,13 +502,17 @@ export function StickerLayer({
   const reactFlow = useReactFlow()
   const [, redraw] = useState(0)
   const [world] = useState(() => new StickerWorld(() => redraw((count) => count + 1)))
+
   useLayoutEffect(() => world.update(stickers, bounds, settle, reactFlow))
   useEffect(() => () => world.stop(), [world])
 
   const seen = useRef<Set<string> | null>(null)
+
   useEffect(() => {
     const before = seen.current
+
     seen.current = new Set(stickers.map((sticker) => sticker.id))
+
     if (before) for (const sticker of stickers) if (sticker.fresh && !before.has(sticker.id)) world.stamped(sticker.id)
   }, [stickers, world])
 
@@ -429,6 +521,7 @@ export function StickerLayer({
       {stickers.map((sticker) => {
         const at = world.position(sticker)
         const held = world.hold?.active && world.hold.id === sticker.id
+
         return (
           <div
             key={sticker.id}
@@ -436,6 +529,7 @@ export function StickerLayer({
             style={{ transform: `translate(${at.x}px, ${at.y}px)`, '--tilt': `${sticker.tilt + at.lean}deg` } as CSSProperties}
             onPointerDown={(event) => {
               if (event.button !== 0 || !interactive) return
+
               event.stopPropagation()
               event.currentTarget.setPointerCapture(event.pointerId)
               world.grab(sticker.id, event)

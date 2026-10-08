@@ -5,11 +5,13 @@ import type { TaskData } from '../model'
 import { note } from './storySupport/data'
 
 const meta = { title: 'Details/Inspectors/NoteInspector' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 
 function NoteDemo() {
   const [node, setNode] = useState(note)
+
   return (
     <div className="panel" style={{ width: 420, padding: 20 }}>
       <NoteInspector

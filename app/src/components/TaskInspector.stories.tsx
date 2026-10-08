@@ -5,6 +5,7 @@ import { deriveWork } from '../derive'
 import { blocker, links, nodeMap, task } from './storySupport/data'
 
 const meta = { title: 'Details/Inspectors/TaskInspector' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 
@@ -12,6 +13,7 @@ function TaskDemo() {
   const [node, setNode] = useState(task)
   const currentWork = deriveWork([node, blocker], links)
   const currentMap = new Map(nodeMap).set(node.id, node)
+
   return (
     <div className="panel" style={{ width: 420, padding: 20 }}>
       <TaskInspector

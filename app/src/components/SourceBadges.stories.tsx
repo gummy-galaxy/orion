@@ -3,6 +3,7 @@ import { SourceBadges } from './SourceBadges'
 import { source } from './storySupport/data'
 
 const meta = { title: 'Interface/Chrome/SourceBadges' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

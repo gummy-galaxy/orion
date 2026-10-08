@@ -106,20 +106,26 @@ const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
 /** A card's kind from its repository and pull request. Gates and notes keep their kind. */
 export function getItemKind(data: Pick<TaskData, 'itemKind' | 'repo' | 'pr'>): ItemKind {
   if (data.itemKind === 'gate' || data.itemKind === 'note') return data.itemKind
+
   return data.pr && data.repo ? 'pr' : data.repo ? 'placeholder' : 'step'
 }
 
 export function getTaskTag(data: TaskData): string {
   if (data.external) return data.external.key
+
   if (data.repo && data.issue) return `${data.repo}#${data.issue}`
+
   if (data.repo && data.pr) return `${data.repo}#${data.pr}`
+
   return data.repo ?? (data.itemKind === 'gate' ? 'gate' : 'step')
 }
 
 export function getTaskUrl(data: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
   if (data.github?.url) return data.github.url
+
   if (data.repo && data.pr)
     return `https://${data.host ?? 'github.com'}/${data.repo.includes('/') ? data.repo : `${githubOwner}/${data.repo}`}/pull/${data.pr}`
+
   return data.external?.url ?? null
 }
 
@@ -136,41 +142,50 @@ export function byId(nodes: AppNode[]): Map<string, AppNode> {
 export function ancestors(id: string, nodeMap: Map<string, AppNode>): string[] {
   const result: string[] = []
   let current = nodeMap.get(id)?.parentId
+
   while (current) {
     result.push(current)
     current = nodeMap.get(current)?.parentId
   }
+
   return result
 }
 
 export function sizeOf(node: AppNode): { width: number; height: number } {
   if (isTask(node)) return { width: TASK_WIDTH, height: TASK_HEIGHT }
+
   return { width: node.width ?? 320, height: node.height ?? 200 }
 }
 
 export function absolutePosition(node: AppNode, nodeMap: Map<string, AppNode>): { x: number; y: number } {
   let x = node.position.x
   let y = node.position.y
+
   for (const ancestor of ancestors(node.id, nodeMap)) {
     const parentNode = nodeMap.get(ancestor)
+
     if (parentNode) {
       x += parentNode.position.x
       y += parentNode.position.y
     }
   }
+
   return { x, y }
 }
 
 /** Fills in the React Flow fields every node needs, so saved data stays minimal. */
 function hydrate(node: AppNode): AppNode {
   if (isTask(node)) return { ...node, width: TASK_WIDTH, height: TASK_HEIGHT, expandParent: !!node.parentId }
+
   if (isImage(node)) return { ...node, width: node.width ?? 256, height: node.height ?? 256, expandParent: !!node.parentId }
+
   return { ...node, dragHandle: '.drag', expandParent: !!node.parentId }
 }
 
 /** React Flow needs parents before children. */
 function sortNodes(nodes: AppNode[]): AppNode[] {
   const nodeMap = byId(nodes)
+
   return [...nodes].sort((a, b) => ancestors(a.id, nodeMap).length - ancestors(b.id, nodeMap).length)
 }
 
@@ -182,30 +197,39 @@ function fitGroups(nodes: AppNode[]): AppNode[] {
   const nodeMap = new Map(nodes.map((node) => [node.id, { ...node } as AppNode]))
   const depth = (id: string) => ancestors(id, nodeMap).length
   const clusters = [...nodeMap.values()].filter(isCluster).sort((a, b) => depth(b.id) - depth(a.id))
+
   for (const group of clusters) {
     const children = [...nodeMap.values()].filter((node) => node.parentId === group.id)
+
     if (!children.length) {
       nodeMap.delete(group.id)
       continue
     }
+
     let minX = Infinity
     let minY = Infinity
     let maxX = -Infinity
     let maxY = -Infinity
+
     for (const child of children) {
       const size = sizeOf(child)
+
       minX = Math.min(minX, child.position.x)
       minY = Math.min(minY, child.position.y)
       maxX = Math.max(maxX, child.position.x + size.width)
       maxY = Math.max(maxY, child.position.y + size.height)
     }
+
     const deltaX = minX - GROUP_PADDING
     const deltaY = minY - GROUP_HEADER_HEIGHT
+
     for (const child of children) child.position = { x: child.position.x - deltaX, y: child.position.y - deltaY }
+
     group.position = { x: group.position.x + deltaX, y: group.position.y + deltaY }
     group.width = maxX - minX + GROUP_PADDING * 2
     group.height = maxY - minY + GROUP_HEADER_HEIGHT + GROUP_PADDING
   }
+
   return [...nodeMap.values()]
 }
 
@@ -219,7 +243,9 @@ export function groupSelection(nodes: AppNode[]): { nodes: AppNode[]; groupId: s
   const selection = nodes.filter(
     (node) => node.selected && !node.hidden && !ancestors(node.id, nodeMap).some((ancestor) => nodeMap.get(ancestor)?.selected),
   )
+
   if (!selection.length) return null
+
   const chains = selection.map((node) => ancestors(node.id, nodeMap))
   const parent = chains[0].find((ancestor) => chains.every((chain) => chain.includes(ancestor)))
   const parentNode = parent ? nodeMap.get(parent) : undefined
@@ -239,6 +265,7 @@ export function groupSelection(nodes: AppNode[]): { nodes: AppNode[]; groupId: s
   }
   const next = nodes.map((node): AppNode => {
     const position = absolutePositions.get(node.id)
+
     if (position)
       return {
         ...node,
@@ -246,17 +273,22 @@ export function groupSelection(nodes: AppNode[]): { nodes: AppNode[]; groupId: s
         selected: false,
         position: { x: position.x - origin.x - groupPosition.x, y: position.y - origin.y - groupPosition.y },
       }
+
     return node.selected ? { ...node, selected: false } : node
   })
+
   return { nodes: normalize([...next, group]), groupId }
 }
 
 /** Dissolves the given groups, handing their children to the group's parent in place. */
 export function ungroup(nodes: AppNode[], ids: string[]): AppNode[] {
   let next = nodes
+
   for (const id of ids) {
     const group = next.find((node) => node.id === id)
+
     if (!group || !isCluster(group)) continue
+
     next = next
       .filter((node) => node.id !== id)
       .map((node): AppNode =>
@@ -270,11 +302,13 @@ export function ungroup(nodes: AppNode[], ids: string[]): AppNode[] {
           : node,
       )
   }
+
   return normalize(next)
 }
 
 export function descendants(id: string, nodes: AppNode[]): Set<string> {
   const result = new Set<string>()
+
   const walk = (parentId: string) => {
     for (const node of nodes)
       if (node.parentId === parentId && !result.has(node.id)) {
@@ -282,7 +316,9 @@ export function descendants(id: string, nodes: AppNode[]): Set<string> {
         walk(node.id)
       }
   }
+
   walk(id)
+
   return result
 }
 
@@ -294,6 +330,7 @@ export function githubSummary(github: GithubState, now = Date.now()) {
         ? 'Draft'
         : (REVIEW_LABEL[github.reviewDecision ?? ''] ?? 'Open')
       : github.state.charAt(0) + github.state.slice(1).toLowerCase()
+
   return `${state} on GitHub · checked ${relativeTime(github.checkedAt, now)}`
 }
 
@@ -307,6 +344,7 @@ export function relativeTime(timestamp: string, now = Date.now()) {
         : minutes < 1440
           ? `${Math.round(minutes / 60)}h ago`
           : `${Math.round(minutes / 1440)}d ago`
+
   return ago
 }
 

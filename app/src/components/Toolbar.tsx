@@ -50,12 +50,17 @@ export function Toolbar({ tool, sticker, setTool }: { tool: Tool; sticker: strin
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.repeat || event.metaKey || event.ctrlKey || event.altKey || (event.target as HTMLElement).closest('input, textarea, select')) return
+
       const picked = TOOLS.find((toolSpec) => toolSpec.key.toLowerCase() === event.key.toLowerCase())
+
       if (picked) setTool(picked.id)
     }
+
     window.addEventListener('keydown', onKey)
+
     return () => window.removeEventListener('keydown', onKey)
   }, [setTool])
+
   return (
     <div className="panel toolbar" role="toolbar" aria-label="Canvas tools">
       {TOOLS.map((toolSpec) => (

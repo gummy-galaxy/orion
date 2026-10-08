@@ -4,6 +4,7 @@ import { StoryGraph } from './storySupport/StoryGraph'
 import { note, task } from './storySupport/data'
 
 const meta = { title: 'Canvas/Cards and edges/TaskView' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

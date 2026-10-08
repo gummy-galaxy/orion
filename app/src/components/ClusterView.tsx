@@ -15,6 +15,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const sources = useSources(id)
+
   return (
     <div className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} />

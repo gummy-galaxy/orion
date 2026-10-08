@@ -41,11 +41,15 @@ export function StickerWheel({
 
   const choose = (slot: number) => {
     const emoji = loadout[slot]
+
     if (emoji) return pick(emoji)
+
     setHolding(false)
     setFilling(slot)
   }
+
   const latest = useRef({ hover, holding, filling, choose, assign, close })
+
   useLayoutEffect(() => {
     latest.current = { hover, holding, filling, choose, assign, close }
   })
@@ -56,9 +60,11 @@ export function StickerWheel({
 
   useEffect(() => {
     const opened = performance.now()
+
     const down = (event: KeyboardEvent) => {
       const { hover, filling, choose, assign, close } = latest.current
       const digit = Number(event.key)
+
       if (event.key === 'Escape') {
         if (filling !== null) setFilling(null)
         else close()
@@ -68,18 +74,24 @@ export function StickerWheel({
         assign(filling, null)
         setFilling(null)
       } else if (event.key.toLowerCase() !== 's' || event.target === field.current) return
+
       event.preventDefault()
       event.stopImmediatePropagation()
     }
+
     const up = (event: KeyboardEvent) => {
       const { hover, holding, choose, close } = latest.current
+
       if (!holding || event.key.toLowerCase() !== 's') return
+
       if (hover !== null) choose(hover)
       else if (performance.now() - opened > 350) close()
       else setHolding(false)
     }
+
     window.addEventListener('keydown', down, { capture: true })
     window.addEventListener('keyup', up)
+
     return () => {
       window.removeEventListener('keydown', down, { capture: true })
       window.removeEventListener('keyup', up)
@@ -90,15 +102,21 @@ export function StickerWheel({
     const deltaX = event.clientX - center.x
     const deltaY = event.clientY - center.y
     const distance = Math.hypot(deltaX, deltaY)
+
     if (distance < HUB_RADIUS || distance > WHEEL_EDGE * 1.6) return setHover(null)
+
     const turn = (Math.atan2(deltaX, -deltaY) / (2 * Math.PI) + 1) % 1
+
     setHover(Math.round(turn * WHEEL_SLOTS) % WHEEL_SLOTS)
   }
 
   const typed = (text: string) => {
     const emoji = firstEmoji(text)
+
     if (!emoji) return
+
     if (filling === null) return pick(emoji)
+
     assign(filling, emoji)
     setFilling(null)
   }
@@ -123,6 +141,7 @@ export function StickerWheel({
             emoji === current ? 'current' : '',
             filling === i ? 'filling' : '',
           ]
+
           return (
             <button
               key={i}

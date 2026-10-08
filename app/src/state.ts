@@ -19,11 +19,14 @@ export const traceAtom = atom((get) => {
   const from = get(focusedAtom) ? null : (get(pinnedAtom) ?? get(hoverAtom))
   const nodes = get(nodesAtom)
   const tracedNode = from ? nodes.find((node) => node.id === from) : undefined
+
   if (!tracedNode || !isTask(tracedNode)) return null
+
   const { preds: predecessors, succs: successors } = get(workAtom)
   const related = get(linksAtom)
     .filter((link) => link.kind === 'related' && (link.from === tracedNode.id || link.to === tracedNode.id))
     .map((link) => (link.from === tracedNode.id ? link.to : link.from))
+
   return traceFrom(
     tracedNode.id,
     predecessors,
@@ -66,6 +69,7 @@ export const useTraceRole = (id: string) =>
       () =>
         selectAtom(traceAtom, (trace) => {
           const role = trace?.get(id)
+
           return role === 'dim' ? undefined : role
         }),
       [id],

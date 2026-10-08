@@ -62,6 +62,7 @@ export function TaskInspector({
           pullRequest.matches.filter((match) => match.id === node.id).map((match) => ({ pr: pullRequest, score: match.score })),
         )
         .sort((a, b) => b.score - a.score)
+
   return (
     <div className="insp">
       <label htmlFor="t-label">Title</label>
@@ -113,6 +114,7 @@ export function TaskInspector({
             placeholder="None"
             onChange={(event) => {
               const repo = event.target.value.trim() || undefined
+
               update(node.id, { repo, itemKind: getItemKind({ ...data, repo }) })
             }}
           />
@@ -127,6 +129,7 @@ export function TaskInspector({
             onChange={(event) => {
               const number = Number(event.target.value.replace(/^#/, ''))
               const pullRequest = Number.isInteger(number) && number > 0 ? number : undefined
+
               update(node.id, { pr: pullRequest, itemKind: getItemKind({ ...data, pr: pullRequest }) })
             }}
           />

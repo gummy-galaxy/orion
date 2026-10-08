@@ -3,6 +3,7 @@ import { StickerWheel } from './StickerWheel'
 import { loadoutOf } from '../sticker'
 
 const meta = { title: 'Interaction/Overlays/StickerWheel', parameters: { layout: 'fullscreen' } } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

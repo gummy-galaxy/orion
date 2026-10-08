@@ -3,6 +3,7 @@ import { SourceLink } from './SourceLink'
 import { source } from './storySupport/data'
 
 const meta = { title: 'Interface/Chrome/SourceLink' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

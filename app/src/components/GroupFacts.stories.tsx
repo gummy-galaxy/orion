@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { GroupFacts } from './GroupFacts'
 
 const meta = { title: 'Details/Inspectors/GroupFacts' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

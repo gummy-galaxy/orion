@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 export function Favicon({ domain }: { domain: string }) {
   const [failed, setFailed] = useState(false)
+
   return (
     <span className="source-favicon">
       <svg viewBox="0 0 20 20" aria-hidden="true">

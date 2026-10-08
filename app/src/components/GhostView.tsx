@@ -7,6 +7,7 @@ import { useSources, useTraceRole } from '../state'
 export const GhostView = memo(function GhostView({ data }: NodeProps<GhostNode>) {
   const trace = useTraceRole(data.taskId)
   const sources = useSources(data.taskId)
+
   return (
     <div className={`ghost st-${data.status} side-${data.side}${trace ? ' tr-' + trace : ''}`} title={`Jump to ${data.label}`}>
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}

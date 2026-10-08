@@ -33,6 +33,7 @@ const clamp = (value: number, minimum: number, maximum: number) => Math.max(mini
 
 function curve(start: { x: number; y: number }, end: { x: number; y: number }) {
   const deltaX = Math.max(40, Math.abs(end.x - start.x) / 2)
+
   return `M${start.x},${start.y} C${start.x + deltaX},${start.y} ${end.x - deltaX},${end.y} ${end.x},${end.y}`
 }
 
@@ -66,15 +67,20 @@ export function FocusView({
 
   const measure = useCallback(() => {
     const element = root.current
+
     if (!element) return
+
     const box = element.getBoundingClientRect()
     const next = new Map<string, Anchor>()
+
     for (const list of element.querySelectorAll<HTMLElement>('.focus-list')) {
       const bounds = list.getBoundingClientRect()
+
       for (const item of list.querySelectorAll<HTMLElement>('[data-key]')) {
         const rectangle = item.getBoundingClientRect()
         const middle = rectangle.top + rectangle.height / 2
         const y = clamp(middle, bounds.top + CLIP_INSET, bounds.bottom - CLIP_INSET)
+
         next.set(item.dataset.key!, {
           x: (item.dataset.side === 'in' ? rectangle.right : rectangle.left) - box.left,
           y: y - box.top,
@@ -82,6 +88,7 @@ export function FocusView({
         })
       }
     }
+
     setSize({ width: box.width, height: box.height })
     setAnchors(next)
   }, [])
@@ -89,9 +96,13 @@ export function FocusView({
   useLayoutEffect(measure, [measure, incoming, outgoing])
   useLayoutEffect(() => {
     const element = root.current
+
     if (!element) return
+
     const observer = new ResizeObserver(measure)
+
     observer.observe(element)
+
     return () => observer.disconnect()
   }, [measure])
 
@@ -100,10 +111,13 @@ export function FocusView({
     ...outgoing.map((item) => ({ item, key: `out:${item.id}`, side: 'out' as const })),
   ].flatMap(({ item, key, side }) => {
     const start = anchors.get(key)
+
     if (!start) return []
+
     const middle = card.y + card.height / 2
     const pathData = side === 'in' ? curve(start, { x: card.x, y: middle }) : curve({ x: card.x + card.width, y: middle }, start)
     const classNames = ['focus-line', item.related ? 'related' : item.flow, start.clipped ? 'clipped' : '', hot === key ? 'hot' : '']
+
     return [{ key, d: pathData, cls: classNames.filter(Boolean).join(' '), arrow: item.related ? undefined : `url(#focus-arrow-${item.flow})` }]
   })
 
@@ -116,6 +130,7 @@ export function FocusView({
         {items.length ? (
           items.map((item) => {
             const key = `${side}:${item.id}`
+
             return (
               <button
                 key={key}

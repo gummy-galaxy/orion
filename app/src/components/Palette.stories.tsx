@@ -3,6 +3,7 @@ import { Palette } from './Palette'
 import { group, task } from './storySupport/data'
 
 const meta = { title: 'Interaction/Overlays/Palette', parameters: { layout: 'fullscreen' } } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

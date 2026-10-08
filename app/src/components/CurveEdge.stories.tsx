@@ -5,6 +5,7 @@ import { StoryGraph } from './storySupport/StoryGraph'
 import { blocker, task } from './storySupport/data'
 
 const meta = { title: 'Canvas/Cards and edges/CurveEdge' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

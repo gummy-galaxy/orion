@@ -3,6 +3,7 @@ import { SourceMenu } from './SourceMenu'
 import { source } from './storySupport/data'
 
 const meta = { title: 'Interaction/Overlays/SourceMenu', parameters: { layout: 'fullscreen' } } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

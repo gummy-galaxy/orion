@@ -12,8 +12,10 @@ const percent = (cpu: number | null) => (cpu === null ? '…' : `${cpu < 10 ? cp
 /** CPU and memory summed over the app and the WebKit processes drawing it, with each one in the tooltip. */
 export function ProcessUsage() {
   const [usage, setUsage] = useState<ProcessSample[] | null>(null)
+
   useEffect(() => {
     if (!inDesktop()) return
+
     let stopped = false
     const poll = () =>
       void import('@tauri-apps/api/core')
@@ -24,17 +26,22 @@ export function ProcessUsage() {
         .catch(() => {
           // An older shell without the command; the rest of the bar still works.
         })
+
     poll()
     const timer = setInterval(poll, USAGE_MS)
+
     return () => {
       stopped = true
       clearInterval(timer)
     }
   }, [])
+
   if (!usage?.length) return null
+
   const cpu = usage.some((entry) => entry.cpu === null) ? null : usage.reduce((sum, entry) => sum + (entry.cpu ?? 0), 0)
   const memory = usage.reduce((sum, entry) => sum + entry.memory, 0)
   const detail = usage.map((entry) => `${entry.name}: ${percent(entry.cpu)} CPU, ${megabytes(entry.memory)}`).join('\n')
+
   return (
     <span title={detail}>
       cpu {percent(cpu)} · mem {megabytes(memory)}

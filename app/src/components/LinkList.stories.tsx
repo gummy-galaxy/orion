@@ -3,6 +3,7 @@ import { LinkList } from './LinkList'
 import { links, nodeMap, task, work } from './storySupport/data'
 
 const meta = { title: 'Details/Inspectors/LinkList' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

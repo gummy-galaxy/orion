@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Ring } from './Ring'
 
 const meta = { title: 'Interface/Chrome/Ring' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

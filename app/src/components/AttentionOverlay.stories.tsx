@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { AttentionOverlay } from './AttentionOverlay'
 
 const meta = { title: 'Interaction/Overlays/AttentionOverlay', parameters: { layout: 'fullscreen' } } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

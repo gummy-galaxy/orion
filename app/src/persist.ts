@@ -54,39 +54,52 @@ let retryDelay = 250
 
 function connectEvents() {
   if (typeof WebSocket === 'undefined' || socket || listeners.size === 0) return
+
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
   const current = new WebSocket(`${protocol}//${location.host}/api/events`)
+
   socket = current
+
   current.onopen = () => {
     retryDelay = 250
   }
+
   current.onmessage = (message) => {
     try {
       const event = JSON.parse(message.data) as { event: EventName; data: never }
+
       listeners.get(event.event)?.forEach((callback) => callback(event.data))
     } catch {
       // Ignore malformed messages from a restarting server.
     }
   }
+
   current.onclose = () => {
     if (socket !== current) return
+
     socket = undefined
+
     if (listeners.size > 0) {
       retryTimer = setTimeout(connectEvents, retryDelay)
       retryDelay = Math.min(retryDelay * 2, 10000)
     }
   }
+
   current.onerror = () => current.close()
 }
 
 function subscribe<T>(event: EventName, callback: (data: T) => void) {
   const callbacks = listeners.get(event) ?? new Set<(data: never) => void>()
+
   callbacks.add(callback as (data: never) => void)
   listeners.set(event, callbacks)
   connectEvents()
+
   return () => {
     callbacks.delete(callback as (data: never) => void)
+
     if (callbacks.size === 0) listeners.delete(event)
+
     if (listeners.size === 0) {
       clearTimeout(retryTimer)
       socket?.close()
@@ -98,17 +111,21 @@ function subscribe<T>(event: EventName, callback: (data: T) => void) {
 export async function getWorkspaces(): Promise<Workspaces> {
   try {
     const response = await fetch('/api/workspaces')
+
     if (response.ok) return (await response.json()) as Workspaces
   } catch {
     // A static build has only browser storage for the default workspace.
   }
+
   return { active: 'default', workspaces: [{ name: 'default', label: 'Default' }] }
 }
 
 async function workspaceRequest(url: string, value: object): Promise<Workspaces> {
   const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) })
   const result = await response.json()
+
   if (!response.ok) throw new Error(result.error || `Workspace request failed (${response.status})`)
+
   return result as Workspaces
 }
 
@@ -127,6 +144,7 @@ export function onWorkspaceListChange(callback: (list: Workspaces) => void) {
 export async function getSyncStatus(): Promise<SyncStatus | null> {
   try {
     const response = await fetch('/api/sync')
+
     return response.ok ? ((await response.json()) as SyncStatus) : null
   } catch {
     return null
@@ -136,6 +154,7 @@ export async function getSyncStatus(): Promise<SyncStatus | null> {
 export async function requestSync(force = false): Promise<SyncStatus | null> {
   try {
     const response = await fetch(force ? '/api/sync?force=1' : '/api/sync', { method: 'POST' })
+
     return response.ok ? ((await response.json()) as SyncStatus) : null
   } catch {
     return null
@@ -165,6 +184,7 @@ export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) =
 
 function isSaved(value: unknown): value is Saved {
   const saved = value as Saved | null
+
   return !!saved && Array.isArray(saved.nodes) && Array.isArray(saved.links)
 }
 
@@ -172,6 +192,7 @@ export function readBrowser(): Saved | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     const saved = raw ? JSON.parse(raw) : null
+
     return isSaved(saved) ? saved : null
   } catch {
     return null
@@ -189,22 +210,28 @@ function writeBrowser({ nodes, links, stickers, stickerLoadout }: Saved) {
 export async function load(workspace = 'default'): Promise<Loaded> {
   try {
     const response = await fetch(API, { headers: { 'x-orion-workspace': workspace } })
+
     if (response.status === 404) {
       const body = (await response.json()) as { workspace?: string }
+
       return { source: 'missing', workspace: body.workspace ?? 'default' }
     }
+
     if (response.ok && response.headers.get('content-type')?.includes('json')) {
       const doc = await response.json()
+
       if (isSaved(doc) && typeof (doc as Remote).revision === 'number') return { source: 'file', doc: doc as Remote }
     }
   } catch {
     // No dev server.
   }
+
   return workspace === 'default' ? { source: 'browser', saved: readBrowser() } : { source: 'missing', workspace }
 }
 
 export async function fetchRemote(workspace = 'default'): Promise<Remote | null> {
   const loaded = await load(workspace)
+
   return loaded.source === 'file' ? loaded.doc : null
 }
 
@@ -212,8 +239,10 @@ export async function fetchRemote(workspace = 'default'): Promise<Remote | null>
 export async function save(source: 'file' | 'browser', baseRevision: number | null, saved: Saved, workspace = 'default'): Promise<SaveResult> {
   if (source === 'browser') {
     writeBrowser(saved)
+
     return { ok: true, revision: 0 }
   }
+
   try {
     const response = await fetch(API, {
       method: 'PUT',
@@ -226,7 +255,9 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
         stickerLoadout: saved.stickerLoadout,
       }),
     })
+
     if (response.ok) return { ok: true, revision: (await response.json()).revision }
+
     return { ok: false, conflict: response.status === 409 }
   } catch {
     return { ok: false, conflict: false }

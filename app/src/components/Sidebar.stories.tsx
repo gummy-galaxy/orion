@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar'
 import { group } from './storySupport/data'
 
 const meta = { title: 'Interface/Chrome/Sidebar' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

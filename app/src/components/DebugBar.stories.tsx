@@ -4,6 +4,7 @@ import { DebugBar } from './DebugBar'
 import { StoryGraph } from './storySupport/StoryGraph'
 
 const meta = { title: 'Interface/Chrome/DebugBar' } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

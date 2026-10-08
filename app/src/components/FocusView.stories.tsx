@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { FocusView } from './FocusView'
 
 const meta = { title: 'Interaction/Overlays/FocusView', parameters: { layout: 'fullscreen' } } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 

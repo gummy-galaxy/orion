@@ -8,6 +8,7 @@ const meta = {
   loaders: [resetComposition],
   decorators: [compositionDecorator],
 } satisfies Meta
+
 export default meta
 type Story = StoryObj<typeof meta>
 
