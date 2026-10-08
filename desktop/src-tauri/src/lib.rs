@@ -71,6 +71,7 @@ pub fn run() {
     let server_for_setup = Arc::clone(&server);
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(move |app| {
             let url = if cfg!(debug_assertions) {

@@ -26,7 +26,13 @@ local function hasStampChanged(previous: Stamp?, current: Stamp?): boolean
 	return previous.size ~= current.size or previous.modified ~= current.modified
 end
 
-function watcher.create(root: string, active: () -> string, switchTo: (string) -> (), changed: (number) -> ())
+function watcher.create(
+	root: string,
+	active: () -> string,
+	switchTo: (string) -> (),
+	changed: (number) -> (),
+	workspacesChanged: (store.WorkspaceList) -> ()
+)
 	local isClosed = false
 	local dataFile = store.filePath(store.getWorkspaceDir(root, active()))
 	local manifestFile = tostring(path.join(root, "workspaces.json"))
@@ -115,6 +121,7 @@ function watcher.create(root: string, active: () -> string, switchTo: (string) -
 		end
 
 		lastManifestStamp = current
+		workspacesChanged(list)
 
 		if list.active ~= lastManifestActive then
 			lastManifestActive = list.active

@@ -1,11 +1,11 @@
 import { createContext } from 'react'
-import { descendants, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
+import { descendants, getTaskUrl, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'dim'
 /** How a link out of a card reads: moving, or held behind work that's stuck. */
 export type Flow = 'live' | 'held'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
-export type SourceRef = { domain: string; label: string }
+export type SourceRef = { domain: string; label: string; href?: string }
 
 export type Derived = {
   status: Map<string, ViewStatus>
@@ -26,22 +26,23 @@ export type Actions = {
 export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
 
-function hostOf(url: string | undefined): string | null {
-  if (!url) return null
-  try {
-    const parsed = new URL(url)
-    return parsed.protocol === 'https:' ? parsed.hostname.toLowerCase() : null
-  } catch {
-    return null
-  }
-}
-
-function sourceOf(task: TaskNode): SourceRef {
+/** Where a card's work comes from, or null for a card that only lives in Orion. */
+function sourceOf(task: TaskNode, githubOwner?: string): SourceRef | null {
   const repo = task.data.repo?.trim()
-  const external = task.data.external
-  if (!repo && external) return { domain: hostOf(external.url) ?? external.source, label: external.key }
-  if (!repo) return { domain: 'orion', label: 'Orion' }
-  return { domain: hostOf(task.data.github?.url) ?? 'github.com', label: repo }
+  const href = getTaskUrl(task.data, githubOwner) ?? undefined
+  if (!repo && !task.data.external) return null
+  if (href) {
+    try {
+      const url = new URL(href)
+      if (url.protocol === 'https:' || url.protocol === 'http:') {
+        return { domain: url.hostname.toLowerCase(), label: repo ?? task.data.external!.key, href }
+      }
+    } catch {
+      // Fall back to the repository host used by the CLI.
+    }
+  }
+  if (repo) return { domain: task.data.host ?? 'github.com', label: repo }
+  return { domain: task.data.external!.source, label: task.data.external!.key }
 }
 
 function graph(links: Link[]) {
@@ -73,10 +74,13 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 }
 
 /** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
-export function deriveWork(nodes: AppNode[], links: Link[]) {
+export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string) {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
-  for (const task of tasks.values()) sources.set(task.id, [sourceOf(task)])
+  for (const task of tasks.values()) {
+    const source = sourceOf(task, githubOwner)
+    sources.set(task.id, source ? [source] : [])
+  }
   const { preds: predecessors, succs: successors } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
   // A note is open while anything feeding into it is, so blocking passes through notes.
@@ -139,8 +143,9 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     for (const id of inside) {
       const task = tasks.get(id)
       if (task) {
-        const source = sourceOf(task)
-        groupSources.set(`${source.domain}:${source.label}`, source)
+        const source = sourceOf(task, githubOwner)
+        const key = source && `${source.domain}:${source.label}`
+        if (source && key && !groupSources.get(key)?.href) groupSources.set(key, source)
       }
       const statusValue = status.get(id)
       if (!statusValue || isNote(id)) continue

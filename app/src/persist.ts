@@ -19,8 +19,9 @@ const STORAGE_KEY = 'orion:v2'
 const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:workspace'
+const WORKSPACES_EVENT = 'orion:workspaces'
 
-type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT
+type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT
 const listeners = new Map<EventName, Set<(data: never) => void>>()
 let socket: WebSocket | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
@@ -91,6 +92,11 @@ export const createWorkspace = (name: string, label: string) => workspaceRequest
 
 export function onWorkspaceChange(callback: (active: string) => void) {
   return subscribe<{ active: string }>(WORKSPACE_EVENT, (data) => callback(data.active))
+}
+
+/** Updates the list when another client creates or edits a workspace. */
+export function onWorkspaceListChange(callback: (list: Workspaces) => void) {
+  return subscribe<Workspaces>(WORKSPACES_EVENT, callback)
 }
 
 export async function getSyncStatus(): Promise<SyncStatus | null> {

@@ -1,7 +1,8 @@
-import { useContext, useState, type ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import { ActionsContext, DerivedContext, type SourceRef } from './derive'
+import { ActionsContext, DerivedContext } from './derive'
 import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { SourceBadges } from './SourceBadges'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
@@ -29,62 +30,6 @@ function Ring({ done, total, size = 22 }: { done: number; total: number; size?: 
         transform="rotate(-90 10 10)"
       />
     </svg>
-  )
-}
-
-function Favicon({ domain }: { domain: string }) {
-  const [failed, setFailed] = useState(false)
-  return (
-    <span className="source-favicon">
-      <svg viewBox="0 0 20 20" aria-hidden="true">
-        <circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M3 10h14M10 3c-4 4-4 10 0 14 4-4 4-10 0-14Z" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      </svg>
-      {!failed && (domain === 'orion' || domain.includes('.')) && (
-        <img src={domain === 'orion' ? '/favicon.svg' : `https://${domain}/favicon.ico`} alt="" onError={() => setFailed(true)} />
-      )}
-    </span>
-  )
-}
-
-function SourceBadges({ sources, inBubble = false }: { sources: SourceRef[]; inBubble?: boolean }) {
-  const domains = new Map<string, string[]>()
-  for (const { domain, label } of sources.length ? sources : [{ domain: 'orion', label: 'Orion' }]) {
-    const labels = domains.get(domain) ?? []
-    if (!labels.includes(label)) labels.push(label)
-    domains.set(domain, labels)
-  }
-  return (
-    <div className={`source-badges${inBubble ? ' in-bubble' : ''}`}>
-      {[...domains].map(([domain, labels]) => {
-        const name = domain === 'orion' ? 'Orion' : domain
-        return labels.length === 1 ? (
-          <span key={domain} className="source-domain" role="img" aria-label={`${name}: ${labels[0]}`} title={`${name}: ${labels[0]}`}>
-            <Favicon domain={domain} />
-          </span>
-        ) : (
-          <details
-            key={domain}
-            className="source-domain source-domain-many nodrag"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <summary aria-label={`${name}: ${labels.length} sources`} title={`${name}: ${labels.length} sources. Click to show them.`}>
-              <Favicon domain={domain} />
-              <span className="source-count">{labels.length}</span>
-            </summary>
-            <div className="source-menu">
-              <strong>{name}</strong>
-              <ul>
-                {labels.map((label) => (
-                  <li key={label}>{label}</li>
-                ))}
-              </ul>
-            </div>
-          </details>
-        )
-      })}
-    </div>
   )
 }
 

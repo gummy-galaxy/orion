@@ -43,6 +43,8 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	end, staticDir)
 	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number)
 		hub.publish("orion:changed", json.object({ revision = revision }))
+	end, function(list: store.WorkspaceList)
+		hub.publish("orion:workspaces", json.object({ active = list.active, workspaces = list.workspaces }))
 	end)
 
 	local running = net.serve({
