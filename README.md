@@ -99,14 +99,16 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
 - However far you zoom out, folded groups, cards, and notes keep their full details at a readable size, and open groups' headers grow to stay legible. Hover one to bring it above its neighbors.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
-- Hover a card to trace what it needs (amber) and what it unlocks (teal).
+- Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it (dark dots).
 - Double-click a card to focus on it. The canvas zooms onto it with its details above, what it waits on in a scrolling column on the left, and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. ⌘ or ⇧ click adds to the selection.
-- Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks.
+- Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks; they stay faint until you hover, hold, or select one of their cards.
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
 - Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.
 - A group's inspector picks its arrangement: Automatic flows by dependency, and Custom keeps cards where you put them. `orion set <group> --arrange custom` does the same from the CLI.
 - Drag from the edge of a card to another card to add a dependency.
+- Arrows to a card well behind their source loop around instead of doubling back.
+- A card's inspector lists what it waits on, what it unblocks, and related cards, with controls to remove or flip each link. **Add link** searches for another card to connect.
 
 Reset to seed restores the snapshot.
 
@@ -124,6 +126,8 @@ In `app/`:
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
+- `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
+- `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.

@@ -15,12 +15,14 @@ import {
   useStoreApi,
   type Connection,
   type Edge,
+  type EdgeTypes,
   type NodeChange,
   type NodeTypes,
   type Viewport,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
+import { LinkList } from './LinkList'
 import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import {
@@ -67,6 +69,7 @@ import {
   type Who,
 } from './model'
 import { DebugBar, type MotionSettings } from './DebugBar'
+import { CurveEdge } from './CurveEdge'
 import { openExternal } from './external'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
@@ -102,6 +105,7 @@ import { readViewport, writeViewport } from './viewport'
 type ViewNode = AppNode | GhostNode
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
+const edgeTypes: EdgeTypes = { default: CurveEdge }
 const SIDEBAR_KEY = 'orion:sidebar'
 const COLOR_MODE_KEY = 'orion:color-mode'
 type ColorMode = 'light' | 'dark' | 'system'
@@ -957,9 +961,19 @@ function Canvas() {
           work.preds,
           work.succs,
           nodes.filter(isTask).map((node) => node.id),
+          links
+            .filter((link) => link.kind === 'related' && (link.from === tracedNode.id || link.to === tracedNode.id))
+            .map((link) => (link.from === tracedNode.id ? link.to : link.from)),
         )
       : null
-  }, [focus, pinned, hover, map, work, nodes])
+  }, [focus, pinned, hover, map, work, nodes, links])
+
+  const selectedKey = nodes
+    .filter((node) => node.selected)
+    .map((node) => node.id)
+    .join(',')
+  /** Related links never block, so they stay faint except around the cards being looked at. */
+  const relatedFocus = useMemo(() => new Set([pinned, hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
 
   const edges = useMemo(() => {
     const resultEdges: Edge[] = []
@@ -975,12 +989,14 @@ function Canvas() {
       const direct = (source === link.from || source.startsWith('ghost:')) && (target === link.to || target.startsWith('ghost:'))
       if (direct) {
         let className = link.kind === 'related' ? 'e-rel' : `e-${flow}`
+        if (link.kind === 'related' && !relatedFocus.has(link.from) && !relatedFocus.has(link.to)) className += ' e-rel-quiet'
         if (trace) {
           const sourceRole = trace.get(link.from)
           const targetRole = trace.get(link.to)
           const up = link.kind === 'blocks' && sourceRole === 'up' && (targetRole === 'up' || targetRole === 'self')
           const down = link.kind === 'blocks' && (sourceRole === 'down' || sourceRole === 'self') && targetRole === 'down'
-          className += up ? ' tr-e-up' : down ? ' tr-e-down' : ' tr-e-dim'
+          const near = link.kind === 'related' && (sourceRole === 'self' || targetRole === 'self')
+          className += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
         }
         if (peeking && !inFocus(source) && !inFocus(target)) className += ' e-peek'
         resultEdges.push({
@@ -1012,7 +1028,7 @@ function Canvas() {
       })
     }
     return resultEdges
-  }, [links, view, work, trace, root, peeking, inFocus])
+  }, [links, view, work, trace, root, peeking, inFocus, relatedFocus])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1607,6 +1623,12 @@ function Canvas() {
   }
 
   const removeLink = (id: string) => setLinks((currentLinks) => currentLinks.filter((link) => link.id !== id))
+  /** One link per pair of cards: adding a link replaces whatever already joined them. */
+  const addLink = (from: string, to: string, kind: Link['kind']) =>
+    setLinks((currentLinks) => [
+      ...currentLinks.filter((link) => !((link.from === from && link.to === to) || (link.from === to && link.to === from))),
+      { id: `${from}>${to}`, from, to, kind },
+    ])
   const flipLink = (id: string) =>
     setLinks((currentLinks) => currentLinks.map((link) => (link.id === id ? { ...link, kind: link.kind === 'blocks' ? 'related' : 'blocks' } : link)))
 
@@ -1865,6 +1887,7 @@ function Canvas() {
                 nodes={viewNodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 onNodesChange={onNodesChange}
                 onMove={onViewportMove}
                 onNodeDragStop={onDragStop}
@@ -2043,6 +2066,10 @@ function Canvas() {
                         githubOwner={githubOwner}
                         update={updateData}
                         jumpTo={jumpTo}
+                        links={links}
+                        addLink={addLink}
+                        removeLink={removeLink}
+                        flipLink={flipLink}
                       />
                     ) : (
                       <div className="insp" key={one.id}>
@@ -2156,6 +2183,10 @@ function Canvas() {
                     update={updateData}
                     jumpTo={focusOn}
                     connections={false}
+                    links={links}
+                    addLink={addLink}
+                    removeLink={removeLink}
+                    flipLink={flipLink}
                   />
                 )}
               </FocusView>
@@ -2253,6 +2284,10 @@ function TaskInspector({
   update,
   jumpTo,
   connections = true,
+  links,
+  addLink,
+  removeLink,
+  flipLink,
 }: {
   node: AppNode
   work: ReturnType<typeof deriveWork>
@@ -2261,8 +2296,12 @@ function TaskInspector({
   githubOwner: string
   update: (id: string, patch: Partial<TaskData>) => void
   jumpTo: (id: string) => void
-  /** Lists what the card waits on and unblocks. */
+  /** Focus view draws connections beside the inspector. */
   connections?: boolean
+  links: Link[]
+  addLink: (from: string, to: string, kind: Link['kind']) => void
+  removeLink: (id: string) => void
+  flipLink: (id: string) => void
 }) {
   const data = node.data as TaskData
   const status = work.status.get(node.id) ?? 'ready'
@@ -2282,25 +2321,6 @@ function TaskInspector({
           pullRequest.matches.filter((match) => match.id === node.id).map((match) => ({ pr: pullRequest, score: match.score })),
         )
         .sort((a, b) => b.score - a.score)
-  const list = (ids: string[]) =>
-    ids.length ? (
-      <ul>
-        {ids.map((id) => {
-          const other = map.get(id)
-          const parent = other?.parentId ? map.get(other.parentId) : undefined
-          return (
-            <li key={id}>
-              <button type="button" className="link" onClick={() => jumpTo(id)}>
-                {(other?.data as TaskData | undefined)?.label || 'Note'} <span>({STATUS_LABEL[work.status.get(id) ?? 'ready']})</span>
-              </button>
-              {parent && parent.id !== node.parentId && <span className="link-where">in {(parent.data as ClusterData).label}</span>}
-            </li>
-          )
-        })}
-      </ul>
-    ) : (
-      <p className="facts">Nothing</p>
-    )
   return (
     <div className="insp">
       <label htmlFor="t-label">Title</label>
@@ -2418,12 +2438,7 @@ function TaskInspector({
         {leverage > 0 && <> · unblocks {leverage}</>}
       </p>
       {connections && (
-        <>
-          <span className="label-text">Waits on</span>
-          {list(work.preds.get(node.id) ?? [])}
-          <span className="label-text">Unblocks</span>
-          {list(work.succs.get(node.id) ?? [])}
-        </>
+        <LinkList node={node} work={work} nodeMap={map} links={links} jumpTo={jumpTo} addLink={addLink} removeLink={removeLink} flipLink={flipLink} />
       )}
     </div>
   )
