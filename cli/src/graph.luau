@@ -32,6 +32,7 @@ export type ItemFields = {
 	note: string?,
 	blurb: string?,
 	arrange: string?,
+	kind: string?,
 }
 
 local graph = {}
@@ -51,6 +52,10 @@ end
 
 function graph.isNote(item: Item): boolean
 	return item.type == "task" and field(item, "itemKind") == "note"
+end
+
+function graph.isGate(item: Item): boolean
+	return item.type == "task" and field(item, "itemKind") == "gate"
 end
 
 function graph.find(doc: Doc, id: string): Item?
@@ -109,7 +114,8 @@ local function sizeOf(item: Item): (number, number)
 	return item.width or 320, item.height or 200
 end
 
--- Status and leverage, matching app/src/derive.ts. Notes pass blocking through and never count as work.
+-- Status and leverage, matching app/src/derive.ts. Notes pass blocking through and never count as work. Gates
+-- also pass blocking through, but count as work: one is done once everything it waits on is.
 function graph.derive(doc: Doc): Derived
 	local tasks: { [string]: Item } = {}
 
@@ -140,7 +146,8 @@ function graph.derive(doc: Doc): Derived
 			return false
 		end
 
-		if not graph.isNote(item) then
+		local passesThrough = graph.isNote(item) or (graph.isGate(item) and predecessors[id] ~= nil)
+		if not passesThrough then
 			return field(item, "status") ~= "done"
 		end
 
@@ -181,7 +188,7 @@ function graph.derive(doc: Doc): Derived
 			end
 		end
 
-		if graph.isNote(item) then
+		if graph.isNote(item) or (graph.isGate(item) and predecessors[id] and recorded ~= "deferred") then
 			status[id] = if isOpen(id) then "blocked" else "done"
 		elseif recorded == "done" or recorded == "deferred" or recorded == "blocked" then
 			status[id] = recorded
@@ -269,7 +276,43 @@ function graph.nextSlot(doc: Doc, parentId: string?): Position
 	return { x = (right :: number) + (if parentId then ITEM_GAP else ITEM_GAP * 2), y = top :: number }
 end
 
-local function itemKindFor(repo: string?, pr: number?): string
+local function overlapsSibling(doc: Doc, parentId: string?, position: Position, width: number, height: number): boolean
+	local margin = ITEM_GAP / 2
+
+	for _, item in doc.nodes do
+		if item.parentId == parentId then
+			local itemWidth, itemHeight = sizeOf(item)
+
+			if
+				position.x < item.position.x + itemWidth + margin
+				and item.position.x < position.x + width + margin
+				and position.y < item.position.y + itemHeight + margin
+				and item.position.y < position.y + height + margin
+			then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+-- The first spot at or below a preferred one that no sibling covers.
+local function freeSpotBelow(doc: Doc, parentId: string?, preferred: Position): Position
+	local position = { x = preferred.x, y = preferred.y }
+
+	while overlapsSibling(doc, parentId, position, TASK_WIDTH, TASK_HEIGHT) do
+		position.y += TASK_HEIGHT + ITEM_GAP
+	end
+
+	return position
+end
+
+local function itemKindFor(repo: string?, pr: number?, kind: string?): string
+	if kind == "gate" then
+		return "gate"
+	end
+
 	if repo and pr then
 		return "pr"
 	end
@@ -284,6 +327,7 @@ local function checkFields(fields: ItemFields)
 	)
 	assert(fields.who == nil or fields.who == "" or WHO[fields.who], `who must be one of you, review, ci`)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
+	assert(fields.kind == nil or fields.kind == "step" or fields.kind == "gate", "kind must be step or gate")
 	assert(fields.arrange == nil or ARRANGE[fields.arrange], "arrange must be one of auto, custom")
 end
 
@@ -301,7 +345,7 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
-		itemKind = itemKindFor(options.repo, options.pr),
+		itemKind = itemKindFor(options.repo, options.pr, options.kind),
 		status = options.status or "todo",
 	})
 	data.repo = options.repo
@@ -319,13 +363,36 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	return item
 end
 
+function graph.addImage(doc: Doc, label: string, extension: string, workspace: string, group: string?): Item
+	assert(label ~= "", "an image needs a label")
+	if group then
+		graph.group(doc, group)
+	end
+	local id = uniqueId(doc, `image-{slug(label)}`)
+	local item: Item = {
+		id = id,
+		type = "image",
+		position = graph.nextSlot(doc, group),
+		parentId = group,
+		width = 256,
+		height = 256,
+		data = json.object({ kind = "image", label = label, asset = `{id}.{extension}`, workspace = workspace }),
+	}
+	table.insert(doc.nodes, item)
+	return item
+end
+
 function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	local item = graph.get(doc, id)
 	checkFields(fields)
 
 	if graph.isGroup(item) then
 		assert(
-			fields.status == nil and fields.repo == nil and fields.pr == nil and fields.who == nil,
+			fields.status == nil
+				and fields.repo == nil
+				and fields.pr == nil
+				and fields.who == nil
+				and fields.kind == nil,
 			"groups only take a label, blurb, and arrange"
 		)
 
@@ -372,10 +439,15 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 		item.data.pr = fields.pr
 	end
 
-	if not graph.isNote(item) and (fields.repo or fields.pr) then
+	if fields.kind then
+		assert(not graph.isNote(item), "notes don't take a kind; make it a work item first")
+	end
+
+	if not graph.isNote(item) and (fields.repo or fields.pr or fields.kind) then
 		local repo = field(item, "repo")
 		local pr = item.data.pr
-		item.data.itemKind = itemKindFor(repo, if type(pr) == "number" then pr else nil)
+		local kind = fields.kind or (if graph.isGate(item) then "gate" else nil)
+		item.data.itemKind = itemKindFor(repo, if type(pr) == "number" then pr else nil, kind)
 	end
 
 	return item
@@ -477,7 +549,10 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	local position = graph.nextSlot(doc, parent)
 
 	if after and after.parentId == parent then
-		position = { x = after.position.x + TASK_WIDTH + ITEM_GAP, y = after.position.y + TASK_HEIGHT + GROUP_PADDING }
+		position = freeSpotBelow(doc, parent, {
+			x = after.position.x + TASK_WIDTH + ITEM_GAP,
+			y = after.position.y + TASK_HEIGHT + GROUP_PADDING,
+		})
 	end
 
 	local note: Item = {

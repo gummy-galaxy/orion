@@ -9,6 +9,7 @@ local focus = require("@root/cli/focus")
 local github = require("@root/github")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
+local media = require("@root/cli/media")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
@@ -48,6 +49,7 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
 	focus = focus,
+	media = media,
 	restore = restore,
 	serve = serve,
 	suggest = suggest,
@@ -105,6 +107,7 @@ local function addFieldOptions(parser: batteriesCli.Parser)
 	parser:add("pr", "option", { help = "Pull request number" })
 	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
 	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
+	parser:add("kind", "option", { help = "step, or gate for one that's done once everything it waits on is" })
 end
 
 type Parsers = {
@@ -198,6 +201,7 @@ local function createParsers(): Parsers
 
 	addJsonFlag(command("matches"))
 	registeredCommand("backups")
+	registeredCommand("media")
 	registeredCommand("restore")
 	registeredCommand("serve")
 	registeredCommand("source")
@@ -249,6 +253,7 @@ local function fields(parser: batteriesCli.Parser): graph.ItemFields
 		who = parser:get("who"),
 		note = parser:get("note"),
 		arrange = parser:get("arrange"),
+		kind = parser:get("kind"),
 	}
 end
 

@@ -28,6 +28,38 @@ test.case("derive passes blocking through notes without counting them", function
 	assert.eq(derived.leverage.n, nil)
 end)
 
+test.case("derive finishes a gate once everything it waits on is done", function(assert)
+	local gate = task("g", "Ready to ship", "todo", nil, { itemKind = "gate" })
+	local doc = testing.createDoc(
+		{ task("a", "A", "done"), task("b", "B", "active"), gate, task("c", "C", "todo") },
+		{ { "a", "g" }, { "b", "g" }, { "g", "c" } }
+	)
+	local derived = graph.derive(doc)
+	assert.eq(derived.status.g, "blocked")
+	assert.eq(derived.status.c, "blocked")
+	assert.eq(derived.leverage.b, 2)
+	doc.nodes[2].data.status = "done"
+	derived = graph.derive(doc)
+	assert.eq(derived.status.g, "done")
+	assert.eq(derived.status.c, "ready")
+
+	local lone = testing.createDoc({ task("g", "Lone gate", "todo", nil, { itemKind = "gate" }) })
+	assert.eq(graph.derive(lone).status.g, "ready")
+end)
+
+test.case("add and set take a gate kind, and a gate stays one when its repository changes", function(assert)
+	local doc = testing.createDoc({})
+	local item = graph.addItem(doc, "Closure audit", { kind = "gate" })
+	assert.eq(item.data.itemKind, "gate")
+	graph.setFields(doc, item.id, { repo = "orion" })
+	assert.eq(item.data.itemKind, "gate")
+	graph.setFields(doc, item.id, { kind = "step" })
+	assert.eq(item.data.itemKind, "placeholder")
+	assert.throwsWith("kind must be step or gate", function()
+		graph.setFields(doc, item.id, { kind = "milestone" })
+	end)
+end)
+
 test.case("derive keeps hand-set blocked and deferred, and skips deferred work in leverage", function(assert)
 	local doc = testing.createDoc(
 		{ task("a", "A", "todo"), task("b", "B", "deferred"), task("c", "C", "blocked") },
@@ -87,6 +119,14 @@ test.case("addNote splices into an existing link and remove reconnects it", func
 	assert.eq(#doc.links, 1)
 	assert.eq(doc.links[1].from, "a")
 	assert.eq(doc.links[1].to, "b")
+end)
+
+test.case("addNote after the same item finds a free spot for each note", function(assert)
+	local doc = testing.createDoc({ task("a", "A", "todo") })
+	local first = graph.addNote(doc, "First", { after = "a" })
+	local second = graph.addNote(doc, "Second", { after = "a" })
+	assert.eq(first.position.x, second.position.x)
+	assert.eq(second.position.y > first.position.y, true)
 end)
 
 test.case("makeGroup and ungroup keep items in place", function(assert)

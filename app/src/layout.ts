@@ -14,8 +14,11 @@ type Size = { width: number; height: number }
 type Box = Point & Size
 type Edge = [string, string]
 
-const INNER_GAP: Gap = { node: 24, layer: 56, component: 32 }
-const TOP_GAP: Gap = { node: 72, layer: 120, component: 96 }
+/** Space between neighbors inside groups and at the top level. */
+export const GAP = { inner: { x: 56, y: 24 }, top: { x: 120, y: 72 } }
+
+const INNER_GAP: Gap = { node: GAP.inner.y, layer: GAP.inner.x, component: 32 }
+const TOP_GAP: Gap = { node: GAP.top.y, layer: GAP.top.x, component: 96 }
 
 const elkOptions = (gap: Gap) => ({
   'elk.algorithm': 'layered',

@@ -1,0 +1,78 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Orion icon</title>
+<style>
+  body { margin: 0; background: #1b1d22; color: #ccc; font: 13px system-ui; display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; }
+  figure { margin: 0; text-align: center; }
+  canvas.out { width: 256px; height: 256px; }
+  #host { position: fixed; left: 0; top: 0; width: 1024px; height: 1024px; opacity: 0; pointer-events: none; }
+</style>
+<div id="host"></div>
+<script type="importmap">{ "imports": { "@paper-design/shaders": "/node_modules/@paper-design/shaders/dist/index.js" } }</script>
+<script type="module">
+import { GrainGradientShapes, ShaderFitOptions, ShaderMount, defaultObjectSizing, getShaderColorFromString, getShaderNoiseTexture, grainGradientFragmentShader } from '@paper-design/shaders'
+
+const SIZE = 1024
+const noise = getShaderNoiseTexture()
+if (!noise.complete) await new Promise((r) => (noise.onload = r))
+const variants = [
+  { name: 'dusk', back: '#120d24', colors: ['#ff5e7e', '#7b5cff', '#21c7d9', '#ffb347'], shape: 'blob', rotation: 210, softness: 0.7, intensity: 0.45, noise: 0.32, frame: 9000 },
+  { name: 'nebula', back: '#0b1020', colors: ['#3a7bff', '#c04dff', '#ff7a59', '#35e0b0'], shape: 'ripple', rotation: 40, softness: 0.6, intensity: 0.5, noise: 0.3, frame: 23000 },
+  { name: 'ember', back: '#1a0c12', colors: ['#ff9248', '#ff3d6e', '#8f4dff', '#ffd166'], shape: 'wave', rotation: 300, softness: 0.65, intensity: 0.4, noise: 0.34, frame: 41000 },
+  { name: 'tide', back: '#071a1f', colors: ['#18d6c0', '#3b6cff', '#b45cff', '#ff8fa3'], shape: 'corners', rotation: 120, softness: 0.75, intensity: 0.42, noise: 0.3, frame: 15000 },
+]
+const host = document.getElementById('host')
+const uniforms = (v) => ({
+  u_colorBack: getShaderColorFromString(v.back),
+  u_colors: v.colors.map((c) => getShaderColorFromString(c)),
+  u_colorsCount: v.colors.length,
+  u_softness: v.softness, u_intensity: v.intensity, u_noise: v.noise,
+  u_shape: GrainGradientShapes[v.shape], u_noiseTexture: noise,
+  u_fit: ShaderFitOptions.cover, u_scale: 1, u_rotation: v.rotation, u_offsetX: 0, u_offsetY: 0,
+  u_worldWidth: defaultObjectSizing.worldWidth, u_worldHeight: defaultObjectSizing.worldHeight,
+})
+const mount = new ShaderMount(host, grainGradientFragmentShader, uniforms(variants[0]), { preserveDrawingBuffer: true }, 0, 0, 1)
+const frame = () => new Promise((r) => requestAnimationFrame(r))
+for (let i = 0; i < 60 && mount.canvasElement.width !== SIZE; i++) await frame()
+
+// macOS icon grid: an 824px rounded square centered on a 1024 canvas.
+const INSET = 100, BOX = SIZE - INSET * 2, RADIUS = 185
+function squircle(ctx) {
+  ctx.beginPath(); ctx.roundRect(INSET, INSET, BOX, BOX, RADIUS)
+}
+// The star motif lives in stars.svg so it can be edited in Figma; it's drawn over the background as is.
+const stars = new Image()
+stars.src = '/stars.svg'
+await stars.decode()
+
+for (const v of variants) {
+  mount.setUniforms(uniforms(v)); mount.setFrame(v.frame)
+  await frame(); await frame()
+  const out = document.createElement('canvas'); out.width = out.height = SIZE; out.className = 'out'
+  const ctx = out.getContext('2d')
+  // No drop shadow: macOS adds its own, and Figma can add one as an effect.
+  ctx.save(); squircle(ctx); ctx.clip()
+  ctx.fillStyle = v.back; ctx.fillRect(INSET, INSET, BOX, BOX)
+  ctx.drawImage(mount.canvasElement, INSET, INSET, BOX, BOX)
+  // A soft vignette keeps the stars readable on the brightest part of the gradient.
+  const shade = ctx.createRadialGradient(SIZE / 2, SIZE / 2, BOX * 0.2, SIZE / 2, SIZE / 2, BOX * 0.75)
+  shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, 'rgba(0,0,0,0.35)')
+  ctx.fillStyle = shade; ctx.fillRect(INSET, INSET, BOX, BOX)
+  ctx.restore()
+  // The background layer on its own, then the full icon with the stars on top.
+  const background = document.createElement('canvas'); background.width = background.height = SIZE; background.className = 'out'
+  background.getContext('2d').drawImage(out, 0, 0)
+  ctx.save(); squircle(ctx); ctx.clip(); ctx.drawImage(stars, 0, 0, SIZE, SIZE); ctx.restore()
+  for (const [id, canvas] of [[v.name, out], [`${v.name}-background`, background]]) {
+    const fig = document.createElement('figure'); fig.id = id
+    const cap = document.createElement('figcaption'); cap.textContent = id
+    fig.append(canvas, cap); document.body.append(fig)
+  }
+}
+window.saveIcon = async (name) => {
+  const out = document.querySelector(`#${name} canvas`)
+  await fetch(`/save?name=${name}`, { method: 'POST', body: out.toDataURL('image/png') })
+  return 'saved'
+}
+document.title = 'ready'
+</script>

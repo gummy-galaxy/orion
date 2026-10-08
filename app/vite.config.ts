@@ -49,7 +49,7 @@ function orionServer(port: number): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig(async ({ command }) => {
-  if (command !== 'serve') return { plugins: [react()] }
+  if (command !== 'serve' || process.env.ORION_STORYBOOK === '1') return { plugins: [react()] }
 
   const port = await freePort()
 
