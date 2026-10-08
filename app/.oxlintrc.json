@@ -1,8 +1,17 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript", "oxc"],
+  "jsPlugins": ["@stylistic/eslint-plugin"],
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "@stylistic/padding-line-between-statements": [
+      "error",
+      { "blankLine": "always", "prev": "*", "next": "return" },
+      { "blankLine": "always", "prev": ["const", "let"], "next": "*" },
+      { "blankLine": "any", "prev": ["const", "let"], "next": ["const", "let"] },
+      { "blankLine": "always", "prev": "*", "next": ["block-like", "if", "for", "while", "switch", "try"] },
+      { "blankLine": "always", "prev": ["block-like", "if", "for", "while", "switch", "try"], "next": "*" }
+    ]
   }
 }

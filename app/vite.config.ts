@@ -10,10 +10,12 @@ const binary = process.env.ORION_BIN || fileURLToPath(new URL('../cli/build/orio
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const probe = createServer()
+
     probe.once('error', reject)
     probe.listen(0, '127.0.0.1', () => {
       const address = probe.address()
       const port = typeof address === 'object' && address ? address.port : 5198
+
       probe.close(() => resolve(port))
     })
   })
@@ -26,12 +28,15 @@ function orionServer(port: number): Plugin {
     configureServer(server) {
       if (!existsSync(binary)) {
         server.config.logger.warn('Build the CLI: cd cli && lute run build')
+
         return
       }
+
       let child: ChildProcess | undefined = spawn(binary, ['serve', '--host', '127.0.0.1', '--port', String(port)], {
         env: process.env,
         stdio: ['ignore', 'pipe', 'pipe'],
       })
+
       child.stderr?.on('data', (chunk: Buffer) => server.config.logger.error(`[orion] ${chunk.toString().trim()}`))
       child.on('error', (error) => server.config.logger.error(`[orion] ${error.message}`))
       server.httpServer?.once('close', () => {
@@ -45,7 +50,9 @@ function orionServer(port: number): Plugin {
 // https://vite.dev/config/
 export default defineConfig(async ({ command }) => {
   if (command !== 'serve') return { plugins: [react()] }
+
   const port = await freePort()
+
   return {
     plugins: [react(), orionServer(port)],
     server: {

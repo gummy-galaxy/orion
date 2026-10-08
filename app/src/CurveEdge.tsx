@@ -9,6 +9,7 @@ export function CurveEdge(props: EdgeProps) {
   if (targetX >= sourceX - 24) {
     const bend = Math.max(Math.abs(targetX - sourceX) / 2, reach)
     const path = `M${sourceX},${sourceY} C${sourceX + bend},${sourceY} ${targetX - bend},${targetY} ${targetX},${targetY}`
+
     return (
       <BaseEdge
         path={path}
@@ -31,5 +32,6 @@ export function CurveEdge(props: EdgeProps) {
     `C${sourceX + reach},${sourceY} ${sourceX + reach},${midY} ${midX},${midY}`,
     `C${targetX - approach * 2},${midY} ${targetX - approach},${targetY} ${targetX},${targetY}`,
   ].join(' ')
+
   return <BaseEdge path={path} markerEnd={markerEnd} style={style} label={label} labelStyle={labelStyle} labelX={midX} labelY={midY} />
 }

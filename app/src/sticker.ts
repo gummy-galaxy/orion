@@ -21,6 +21,7 @@ const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
 /** The first emoji in some typed or pasted text. */
 export function firstEmoji(text: string): string | null {
   for (const { segment } of graphemes.segment(text)) if (EMOJI_PATTERN.test(segment)) return segment
+
   return null
 }
 

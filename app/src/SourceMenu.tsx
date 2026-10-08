@@ -11,10 +11,13 @@ export function SourceMenu({ domain, sources }: { domain: string; sources: Sourc
 
   useEffect(() => {
     if (!open) return
+
     const dismiss = (event: PointerEvent) => {
       if (!ref.current?.contains(event.target as Node)) setOpen(false)
     }
+
     document.addEventListener('pointerdown', dismiss, true)
+
     return () => document.removeEventListener('pointerdown', dismiss, true)
   }, [open])
 

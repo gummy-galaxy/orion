@@ -18,6 +18,7 @@ function Lock() {
 function Ring({ done, total, size = 22 }: { done: number; total: number; size?: number }) {
   const radius = 8
   const circumference = 2 * Math.PI * radius
+
   return (
     <svg viewBox="0 0 20 20" width={size} height={size} className="ring" aria-hidden="true">
       <circle cx="10" cy="10" r={radius} className="ring-bg" />
@@ -51,6 +52,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
   const leverage = derived.leverage.get(id) ?? 0
   const trace = derived.trace?.get(id)
   const attention = derived.attention?.get(id)
+
   if (data.itemKind === 'note') {
     const className = `card note${trace ? ' tr-' + trace : ''}`
     const body = (
@@ -62,6 +64,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
         <SourceBadges sources={derived.sources.get(id) ?? []} />
       </>
     )
+
     return (
       <div className={className}>
         <Handle type="target" position={Position.Left} />
@@ -70,6 +73,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       </div>
     )
   }
+
   const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
   const body = (
     <>
@@ -91,6 +95,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       <SourceBadges sources={derived.sources.get(id) ?? []} />
     </>
   )
+
   return (
     <div className={className}>
       <Handle type="target" position={Position.Left} />
@@ -103,6 +108,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
 export function GhostView({ data }: NodeProps<GhostNode>) {
   const derived = useContext(DerivedContext)!
   const trace = derived.trace?.get(data.taskId)
+
   return (
     <div className={`ghost st-${data.status} side-${data.side}${trace ? ' tr-' + trace : ''}`} title={`Jump to ${data.label}`}>
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
@@ -124,6 +130,7 @@ export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
   const collapsed = derived.collapsed.has(id)
   const trace = derived.trace?.get(id)
   const attention = derived.attention?.get(id)
+
   return (
     <div className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} />

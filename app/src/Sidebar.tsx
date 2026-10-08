@@ -33,11 +33,16 @@ export function Sidebar({
   const clusters = nodes.filter(isCluster)
   const children = (parent: string | undefined) => clusters.filter((cluster) => cluster.parentId === parent)
   const current = workspaces.workspaces.find((item) => item.name === workspaces.active)
+
   const create = async () => {
     const name = window.prompt('Workspace name (lowercase letters, digits, hyphens)')?.trim()
+
     if (!name) return
+
     const label = window.prompt('Workspace label', name)?.trim()
+
     if (label === undefined) return
+
     try {
       await newWorkspace(name, label || name)
     } catch (error) {
@@ -48,6 +53,7 @@ export function Sidebar({
   const row = (cluster: AppNode, depth: number) => {
     const stats = groups.get(cluster.id)
     const percent = stats && stats.total ? Math.round((stats.done / stats.total) * 100) : 0
+
     return (
       <li key={cluster.id}>
         <button

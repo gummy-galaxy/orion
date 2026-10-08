@@ -20,11 +20,15 @@ const ids = (count: number, prefix = 't') => Array.from({ length: count }, (_, i
 
 const placed = async (nodes: AppNode[], links: Link[] = []) => {
   const laidOut = await reflow(nodes, links, 'g')
+
   return new Map(laidOut.filter((node) => node.parentId === 'g').map((node) => [node.id, node.position]))
 }
+
 const distinct = (values: number[]) => new Set(values.map(Math.round)).size
+
 const overlaps = (positions: Map<string, { x: number; y: number }>) => {
   const all = [...positions.values()]
+
   return all.some((first, i) =>
     all.slice(i + 1).some((second) => Math.abs(first.x - second.x) < TASK_WIDTH && Math.abs(first.y - second.y) < TASK_HEIGHT),
   )
@@ -33,6 +37,7 @@ const overlaps = (positions: Map<string, { x: number; y: number }>) => {
 describe('reflow', () => {
   it('wraps unlinked siblings at the default width', async () => {
     const positions = await placed([group(), ...ids(32).map((id, i) => task(id, 'g', i * 300))])
+
     expect(distinct([...positions.values()].map((position) => position.x))).toBeLessThanOrEqual(WRAP)
     expect(overlaps(positions)).toBe(false)
   })
@@ -43,6 +48,7 @@ describe('reflow', () => {
     const links = [...fleet.map((id) => blocks('start', id)), ...fleet.map((id) => blocks(id, 'gate'))]
     const positions = await placed(nodes, links)
     const fleetXs = fleet.map((id) => positions.get(id)!.x)
+
     expect(distinct(fleetXs)).toBeLessThanOrEqual(WRAP)
     expect(distinct(fleet.map((id) => positions.get(id)!.y))).toBeLessThanOrEqual(WRAP)
     expect(positions.get('start')!.x).toBeLessThan(Math.min(...fleetXs))
@@ -56,13 +62,18 @@ describe('reflow', () => {
       [group(), ...chain.map((id) => task(id))],
       chain.slice(1).map((id, i) => blocks(chain[i], id)),
     )
+
     expect(distinct(chain.map((id) => positions.get(id)!.x))).toBe(WRAP)
     const rows = [...new Set(chain.map((id) => Math.round(positions.get(id)!.y)))]
+
     expect(rows).toHaveLength(Math.ceil(chain.length / WRAP))
+
     for (let i = 1; i < chain.length; i++) {
       const [previous, current] = [positions.get(chain[i - 1])!, positions.get(chain[i])!]
+
       expect(i % WRAP === 0 ? current.y > previous.y : current.x > previous.x && current.y === previous.y).toBe(true)
     }
+
     expect(overlaps(positions)).toBe(false)
   })
 
@@ -79,17 +90,20 @@ describe('reflow', () => {
       undefined,
     )
     const tops = laidOut.filter((node) => sections.includes(node.id)).map((node) => node.position)
+
     expect(distinct(tops.map((position) => position.y))).toBeGreaterThan(1)
     expect(Math.max(...tops.map((position) => position.x))).toBeLessThan(ROW_WIDTH)
   })
 
   it('keeps short chains on one row', async () => {
     const positions = await placed([group(), task('a'), task('b'), task('c')], [blocks('a', 'b'), blocks('b', 'c')])
+
     expect(distinct([...positions.values()].map((position) => position.y))).toBe(1)
   })
 
   it('leaves a custom group alone', async () => {
     const nodes = [group({ arrange: 'custom' }), task('a', 'g', 500, 40), task('b', 'g', 3, 900)]
+
     expect(await reflow(nodes, [blocks('a', 'b')], 'g')).toBe(nodes)
   })
 })

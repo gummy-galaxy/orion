@@ -22,11 +22,17 @@ function exitPoint(from: Point, to: Point, width: number, height: number): Point
   const deltaX = to.x - from.x
   const deltaY = to.y - from.y
   let target = 1
+
   if (deltaX > 0) target = Math.min(target, (width - EDGE_INSET - from.x) / deltaX)
+
   if (deltaX < 0) target = Math.min(target, (EDGE_INSET - from.x) / deltaX)
+
   if (deltaY > 0) target = Math.min(target, (height - EDGE_INSET - from.y) / deltaY)
+
   if (deltaY < 0) target = Math.min(target, (EDGE_INSET - from.y) / deltaY)
+
   target = Math.max(0, target)
+
   return { x: from.x + deltaX * target, y: from.y + deltaY * target }
 }
 
@@ -50,10 +56,14 @@ export function AttentionOverlay({
   const lines = targets.map((target) => {
     const rectangle = target.rect
     const onScreen = rectangle.x + rectangle.width > 0 && rectangle.y + rectangle.height > 0 && rectangle.x < width && rectangle.y < height
+
     if (onScreen) return { t: target, end: nearest(cursor, rectangle), chip: null }
+
     const end = exitPoint(cursor, { x: rectangle.x + rectangle.width / 2, y: rectangle.y + rectangle.height / 2 }, width, height)
+
     return { t: target, end, chip: end }
   })
+
   return (
     <div className="attention" aria-hidden="true">
       <svg width={width} height={height}>

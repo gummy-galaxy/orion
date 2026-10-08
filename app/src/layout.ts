@@ -33,14 +33,17 @@ export function grid(sizes: Size[], columns: number, gap: number): { at: Point[]
   const columnCount = Math.max(1, Math.min(Math.floor(columns), sizes.length))
   const widths = Array<number>(columnCount).fill(0)
   const heights: number[] = []
+
   sizes.forEach((size, i) => {
     const row = Math.floor(i / columnCount)
+
     widths[i % columnCount] = Math.max(widths[i % columnCount], size.width)
     heights[row] = Math.max(heights[row] ?? 0, size.height)
   })
   const offsets = (spans: number[]) => spans.map((_, i) => spans.slice(0, i).reduce((sum, span) => sum + span + gap, 0))
   const columnOffsets = offsets(widths)
   const rowOffsets = offsets(heights)
+
   return {
     at: sizes.map((_, i) => ({ x: columnOffsets[i % columnCount], y: rowOffsets[Math.floor(i / columnCount)] })),
     width: columnOffsets[columnCount - 1] + widths[columnCount - 1],
@@ -55,40 +58,53 @@ export function grid(sizes: Size[], columns: number, gap: number): { at: Point[]
  */
 export function wrapLayers(boxes: Map<string, Box>, gap: number): Map<string, Box> | null {
   const layers: { x: number; right: number; ids: string[] }[] = []
+
   for (const [id, box] of [...boxes].sort(([, a], [, b]) => a.x - b.x)) {
     const last = layers[layers.length - 1]
+
     if (last && box.x < last.right) {
       last.ids.push(id)
       last.right = Math.max(last.right, box.x + box.width)
     } else layers.push({ x: box.x, right: box.x + box.width, ids: [id] })
   }
+
   const strips: (typeof layers)[] = []
+
   for (const layer of layers) {
     const strip = strips[strips.length - 1]
+
     if (strip && strip.length < WRAP && layer.right - strip[0].x <= ROW_WIDTH) strip.push(layer)
     else strips.push([layer])
   }
+
   if (strips.length <= 1) return null
+
   const wrapped = new Map<string, Box>()
   let top = 0
+
   for (const strip of strips) {
     const inStrip = strip.flatMap((layer) => layer.ids.map((id) => boxes.get(id)!))
     const stripTop = Math.min(...inStrip.map((box) => box.y))
     const stripBottom = Math.max(...inStrip.map((box) => box.y + box.height))
     const shiftX = strip[0].x - layers[0].x
+
     for (const layer of strip)
       for (const id of layer.ids) {
         const box = boxes.get(id)!
+
         wrapped.set(id, { ...box, x: box.x - shiftX, y: box.y - stripTop + top })
       }
+
     top += stripBottom - stripTop + gap
   }
+
   return wrapped
 }
 
 const bounds = (boxes: Box[]): Box => {
   const x = Math.min(...boxes.map((box) => box.x))
   const y = Math.min(...boxes.map((box) => box.y))
+
   return {
     x,
     y,
@@ -104,6 +120,7 @@ async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Ga
     children: units.map((unit) => ({ id: unit.id, width: unit.width, height: unit.height })),
     edges: edges.map(([source, target]) => ({ id: source + '>' + target, sources: [source], targets: [target] })),
   })
+
   return new Map(
     (result.children ?? []).map((child) => [child.id, { x: child.x ?? 0, y: child.y ?? 0, width: child.width ?? 0, height: child.height ?? 0 }]),
   )
@@ -116,42 +133,57 @@ async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Ga
  */
 async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<string, Point>> {
   const ends = new Map(children.map((child) => [child.id, { in: [] as string[], out: [] as string[] }]))
+
   for (const [source, target] of edges) {
     ends.get(source)!.out.push(target)
     ends.get(target)!.in.push(source)
   }
+
   const runs = new Map<string, AppNode[]>()
   const runOf = new Map<string, AppNode[]>()
+
   for (const child of [...children].sort(reading)) {
     const childEnds = ends.get(child.id)!
     const key = childEnds.in.sort().join(',') + '|' + childEnds.out.sort().join(',')
     const run = runs.get(key) ?? []
+
     run.push(child)
     runs.set(key, run)
     runOf.set(child.id, run)
   }
+
   const unitOf = new Map<string, string>()
   const blocks = new Map<string, { members: AppNode[]; at: Point[] }>()
   const units: ({ id: string } & Size)[] = []
+
   for (const child of children) {
     if (unitOf.has(child.id)) continue
+
     const run = runOf.get(child.id)!
+
     if (run.length <= WRAP) {
       unitOf.set(child.id, child.id)
       units.push({ id: child.id, ...sizeOf(child) })
       continue
     }
+
     const id = '\0run:' + child.id
     const runGrid = grid(run.map(sizeOf), Math.min(WRAP, Math.ceil(Math.sqrt(run.length))), gap.node)
+
     for (const member of run) unitOf.set(member.id, id)
+
     blocks.set(id, { members: run, at: runGrid.at })
     units.push({ id, width: runGrid.width, height: runGrid.height })
   }
+
   const seen = new Set<string>()
   const unitEdges: Edge[] = []
+
   for (const [source, target] of edges) {
     const edge: Edge = [unitOf.get(source)!, unitOf.get(target)!]
+
     if (edge[0] === edge[1] || seen.has(edge.join('>'))) continue
+
     seen.add(edge.join('>'))
     unitEdges.push(edge)
   }
@@ -159,17 +191,24 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<s
   let placed = await elkBoxes(units, unitEdges, gap)
   const root = new Map(units.map((unit) => [unit.id, unit.id]))
   const findRoot = (id: string): string => (root.get(id) === id ? id : findRoot(root.get(id)!))
+
   for (const [source, target] of unitEdges) root.set(findRoot(source), findRoot(target))
+
   const parts = new Map<string, Map<string, Box>>()
+
   for (const unit of units) {
     const part = parts.get(findRoot(unit.id)) ?? new Map<string, Box>()
+
     part.set(unit.id, placed.get(unit.id)!)
     parts.set(findRoot(unit.id), part)
   }
+
   const wrapped = new Map([...parts].map(([id, part]) => [id, wrapLayers(part, gap.layer)]))
+
   if ([...wrapped.values()].some((boxes) => boxes)) {
     const shapes = [...parts].map(([id, part]) => {
       const boxes = wrapped.get(id) ?? part
+
       return { id, boxes, frame: bounds([...boxes.values()]) }
     })
     const packed = await elkBoxes(
@@ -177,20 +216,26 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<s
       [],
       gap,
     )
+
     placed = new Map()
+
     for (const shape of shapes) {
       const at = packed.get(shape.id)!
+
       for (const [id, box] of shape.boxes) placed.set(id, { ...box, x: box.x - shape.frame.x + at.x, y: box.y - shape.frame.y + at.y })
     }
   }
 
   const positions = new Map<string, Point>()
+
   for (const child of children) {
     const unit = placed.get(unitOf.get(child.id)!)!
     const block = blocks.get(unitOf.get(child.id)!)
     const offset = block ? block.at[block.members.indexOf(child)] : { x: 0, y: 0 }
+
     positions.set(child.id, { x: unit.x + offset.x, y: unit.y + offset.y })
   }
+
   return positions
 }
 
@@ -203,34 +248,51 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
   const nodeMap = byId(nodes)
   const group = groupId ? nodeMap.get(groupId) : undefined
   const arrange = group && isCluster(group) ? (group.data.arrange ?? 'auto') : 'auto'
+
   if (arrange === 'custom') return nodes
+
   const children = nodes.filter((node) => node.parentId === groupId)
+
   if (!children.length) return nodes
+
   const lift = (id: string): string | null => {
     let current: string | undefined = id
+
     while (current) {
       const node = nodeMap.get(current)
+
       if (!node) return null
+
       if (node.parentId === groupId) return current
+
       current = node.parentId
     }
+
     return null
   }
+
   const seen = new Set<string>()
   const edges: Edge[] = []
+
   for (const link of links) {
     if (link.kind !== 'blocks') continue
+
     const source = lift(link.from)
     const target = lift(link.to)
+
     if (!source || !target || source === target || seen.has(source + '>' + target)) continue
+
     seen.add(source + '>' + target)
     edges.push([source, target])
   }
+
   const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP)
   const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
+
   return normalize(
     nodes.map((node) => {
       const position = positions.get(node.id)
+
       return position ? { ...node, position: { x: position.x + offset.x, y: position.y + offset.y } } : node
     }),
   )
@@ -241,6 +303,8 @@ export async function reflowAll(nodes: AppNode[], links: Link[]): Promise<AppNod
   const nodeMap = byId(nodes)
   const groups = nodes.filter(isCluster).sort((a, b) => ancestors(b.id, nodeMap).length - ancestors(a.id, nodeMap).length)
   let next = normalize(nodes)
+
   for (const group of groups) next = await reflow(next, links, group.id)
+
   return reflow(next, links, undefined)
 }

@@ -43,11 +43,14 @@ export function LinkList({
         .filter((card) => card.id !== node.id && !joined.has(card.id) && labelOf(card).toLowerCase().includes(needle))
         .slice(0, 6)
     : []
+
   const connect = (other: string) => {
     if (direction === 'unblocks') addLink(node.id, other, 'blocks')
     else addLink(other, node.id, direction === 'waits' ? 'blocks' : 'related')
+
     setQuery('')
   }
+
   return (
     <div className="links">
       {(Object.keys(groups) as Direction[]).map((key) => (
@@ -59,6 +62,7 @@ export function LinkList({
                 const id = link.from === node.id ? link.to : link.from
                 const other = nodeMap.get(id)!
                 const parent = other.parentId ? nodeMap.get(other.parentId) : undefined
+
                 return (
                   <li key={link.id}>
                     <button type="button" className="link" onClick={() => jumpTo(id)}>
@@ -115,6 +119,7 @@ export function LinkList({
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && matches[0]) connect(matches[0].id)
+
             if (event.key === 'Escape') setQuery('')
           }}
         />
@@ -124,6 +129,7 @@ export function LinkList({
           <ul className="link-matches">
             {matches.map((card) => {
               const parent = card.parentId ? nodeMap.get(card.parentId) : undefined
+
               return (
                 <li key={card.id}>
                   <button type="button" className="link" onClick={() => connect(card.id)}>
