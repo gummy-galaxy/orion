@@ -1,8 +1,8 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { STATUS_LABEL, type GhostNode } from './model'
+import { STATUS_LABEL, type GhostNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useSources, useTraceRole } from './state'
+import { useSources, useTraceRole } from '../state'
 
 export const GhostView = memo(function GhostView({ data }: NodeProps<GhostNode>) {
   const trace = useTraceRole(data.taskId)

@@ -1,9 +1,9 @@
 import { memo, useContext } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { ActionsContext } from './derive'
-import type { ClusterNode } from './model'
+import { ActionsContext } from '../derive'
+import type { ClusterNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useCollapsed, useGroupStats, useMarked, useSources, useTraceRole } from './state'
+import { useCollapsed, useGroupStats, useMarked, useSources, useTraceRole } from '../state'
 import { Ring } from './Ring'
 
 export const ClusterView = memo(function ClusterView({ id, data }: NodeProps<ClusterNode>) {

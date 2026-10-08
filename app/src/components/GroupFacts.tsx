@@ -1,4 +1,4 @@
-import type { GroupStats } from './derive'
+import type { GroupStats } from '../derive'
 
 export function GroupFacts({ stats }: { stats?: GroupStats }) {
   if (!stats) return null

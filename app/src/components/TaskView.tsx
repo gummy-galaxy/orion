@@ -1,8 +1,8 @@
 import { memo } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import { STATUS_LABEL, getTaskTag, type TaskNode } from './model'
+import { STATUS_LABEL, getTaskTag, type TaskNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useLeverage, useMarked, useSources, useStatus, useTraceRole } from './state'
+import { useLeverage, useMarked, useSources, useStatus, useTraceRole } from '../state'
 import { FarTag } from './FarTag'
 import { Lock } from './Lock'
 
