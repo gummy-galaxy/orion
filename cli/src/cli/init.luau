@@ -2,11 +2,13 @@ local batteriesCli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local applyPulls = require("@root/github/applyPulls")
 local backups = require("@root/cli/backups")
+local collectPulls = require("@root/github/collectPulls")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local focus = require("@root/cli/focus")
-local github = require("@root/github")
+local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
 local media = require("@root/cli/media")
@@ -330,7 +332,7 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
 end
 
-local function syncReport(report: github.Report, dryRun: boolean): string
+local function syncReport(report: githubTypes.Report, dryRun: boolean): string
 	local lines = { `{if dryRun then "Would update" else "Checked"} {report.checked} pull requests on GitHub.` }
 
 	for _, change in report.changes do
@@ -591,14 +593,14 @@ local function execute(args: { string }, options: Dependencies?)
 		deps.write(`Moved {id} to {to or "the top level"}`)
 	elseif command == "sync" then
 		local dryRun = parser:has("dry-run")
-		local fetched = github.collect(store.load(dir), deps.runner, parser:has("discover"))
-		local report: github.Report
+		local fetched = collectPulls(store.load(dir), deps.runner, parser:has("discover"))
+		local report: githubTypes.Report
 
 		if dryRun then
-			report = github.apply(store.load(dir), fetched, deps.now())
+			report = applyPulls(store.load(dir), fetched, deps.now())
 		else
 			store.transaction(dir, function(doc)
-				report = github.apply(doc, fetched, deps.now())
+				report = applyPulls(doc, fetched, deps.now())
 			end)
 		end
 
