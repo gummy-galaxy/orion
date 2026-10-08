@@ -8,9 +8,8 @@ local defaultRun = require("@root/command")
 local focus = require("@root/cli/focus")
 local github = require("@root/github")
 local graph = require("@root/graph")
-local image = require("@root/cli/image")
 local ingest = require("@root/cli/ingest")
-local insert = require("@root/cli/insert")
+local media = require("@root/cli/media")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
@@ -50,8 +49,7 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
 	focus = focus,
-	image = image,
-	insert = insert,
+	media = media,
 	restore = restore,
 	serve = serve,
 	suggest = suggest,
@@ -203,8 +201,7 @@ local function createParsers(): Parsers
 
 	addJsonFlag(command("matches"))
 	registeredCommand("backups")
-	registeredCommand("image")
-	registeredCommand("insert")
+	registeredCommand("media")
 	registeredCommand("restore")
 	registeredCommand("serve")
 	registeredCommand("source")

@@ -7,13 +7,13 @@ local graph = require("@root/graph")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
-test.case("insert imports validated media and image list uses the selected workspace", function(assert)
+test.case("media commands insert validated images and list the selected workspace", function(assert)
 	local root, run = testing.createHarness("insert-image")
 	local source = path.join(root, "sample.bin")
 	local bytes = string.char(137, 80, 78, 71, 13, 10, 26, 10) .. "image bytes"
 	fs.writeStringToFile(source, bytes)
 	local value = json.asObject(
-		json.deserialize(run({ "insert", tostring(source), "--label", "Concept", "--group", "ws", "--json" })) :: json.Value
+		json.deserialize(run({ "media", "insert", tostring(source), "--label", "Concept", "--group", "ws", "--json" })) :: json.Value
 	)
 	local id = if value then value.id else nil
 	assert.eq(value and value.label, "Concept")
@@ -26,14 +26,20 @@ test.case("insert imports validated media and image list uses the selected works
 	local asset = if item then item.data.asset else nil
 	assert.eq(type(asset), "string")
 	assert.eq(fs.readFileToString(path.join(root, "assets", asset :: string)), bytes)
-	assert.strContains(run({ "image", "list" }), "Concept")
+	assert.strContains(run({ "media", "list" }), "Concept")
 	assert.strContains(run({ "show", id :: string }), "kind     image")
 	local invalid = path.join(root, "invalid.png")
 	fs.writeStringToFile(invalid, "not an image")
 	assert.throwsWith("image must be PNG, JPEG, GIF, or WebP", function()
-		run({ "insert", tostring(invalid) })
+		run({ "media", "insert", tostring(invalid) })
 	end)
 	assert.eq(store.load(root).revision, doc.revision)
 	run({ "workspace", "create", "other" })
-	assert.eq(run({ "image", "list", "--workspace", "other" }), "No images.")
+	assert.eq(run({ "media", "list", "--workspace", "other" }), "No media.")
+	assert.throws(function()
+		run({ "image", "list" })
+	end)
+	assert.throws(function()
+		run({ "insert", tostring(source) })
+	end)
 end)

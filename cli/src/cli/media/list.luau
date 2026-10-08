@@ -8,7 +8,7 @@ local store = require("@root/store")
 type Context = context.Context
 
 return table.freeze({
-	help = "List image nodes",
+	help = "List media nodes",
 	define = function(parser: batteriesCli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
@@ -24,7 +24,7 @@ return table.freeze({
 		options.write(
 			if parser:has("json")
 				then json.serialize(items, true)
-				else if #lines > 0 then table.concat(lines, "\n") else "No images."
+				else if #lines > 0 then table.concat(lines, "\n") else "No media."
 		)
 	end,
 })
