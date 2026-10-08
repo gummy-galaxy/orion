@@ -71,12 +71,14 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
   }
   const { preds: predecessors, succs: successors } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
-  // A note is open while anything feeding into it is, so blocking passes through notes.
+  const isGate = (id: string) => tasks.get(id)?.data.itemKind === 'gate' && predecessors.has(id)
+  // A note is open while anything feeding into it is, so blocking passes through notes. Gates pass it
+  // through the same way but count as work: one is done once everything it waits on is.
   const noteOpen = new Map<string, boolean>()
   const open = (id: string, seen = new Set<string>()): boolean => {
     const task = tasks.get(id)
     if (!task) return false
-    if (!isNote(id)) return task.data.status !== 'done'
+    if (!isNote(id) && !isGate(id)) return task.data.status !== 'done'
     if (noteOpen.has(id)) return noteOpen.get(id)!
     if (seen.has(id)) return false
     seen.add(id)
@@ -88,7 +90,7 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
   const status = new Map<string, ViewStatus>()
   for (const task of tasks.values()) {
     const statusValue = task.data.status
-    if (isNote(task.id)) status.set(task.id, open(task.id) ? 'blocked' : 'done')
+    if (isNote(task.id) || (isGate(task.id) && statusValue !== 'deferred')) status.set(task.id, open(task.id) ? 'blocked' : 'done')
     else if (statusValue === 'done' || statusValue === 'deferred' || statusValue === 'blocked') status.set(task.id, statusValue)
     else if ((predecessors.get(task.id) ?? []).some((predecessor) => open(predecessor))) status.set(task.id, 'blocked')
     else status.set(task.id, statusValue === 'todo' ? 'ready' : statusValue)
