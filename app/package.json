@@ -8,8 +8,8 @@
     "build": "tsc -b && vite build",
     "test": "vitest run --root src",
     "lint": "oxlint",
-    "storybook": "STORYBOOK_DISABLE_TELEMETRY=1 storybook dev -p 6006",
-    "build-storybook": "STORYBOOK_DISABLE_TELEMETRY=1 storybook build",
+    "storybook": "ORION_STORYBOOK=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook dev -p 6006",
+    "build-storybook": "ORION_STORYBOOK=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook build",
     "preview": "vite preview",
     "format": "prettier --write src"
   },

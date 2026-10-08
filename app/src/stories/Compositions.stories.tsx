@@ -4,7 +4,24 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import App from '../components/App'
 import { Canvas } from '../components/Canvas'
 
-const meta = { title: 'App/Compositions', parameters: { layout: 'fullscreen' } } satisfies Meta
+const meta = {
+  title: 'App/Compositions',
+  parameters: { layout: 'fullscreen' },
+  loaders: [
+    () => {
+      localStorage.removeItem('orion:v2')
+      localStorage.removeItem('orion:viewport:default')
+      return {}
+    },
+  ],
+  decorators: [
+    (Story) => (
+      <div style={{ width: '100vw', height: '100vh' }}>
+        <Story />
+      </div>
+    ),
+  ],
+} satisfies Meta
 export default meta
 type Story = StoryObj<typeof meta>
 
