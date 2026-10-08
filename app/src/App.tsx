@@ -304,7 +304,7 @@ function Canvas() {
   // Where focus started, and whether it has since walked to another card or level.
   const focusEntry = useRef<{ viewport: Viewport; moved: boolean } | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
-  const [showHelp, setShowHelp] = useState(true)
+  const [showHelp, setShowHelp] = useState(false)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [colorMode, setColorMode] = useState(readColorMode)
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
