@@ -1,5 +1,5 @@
 import { LinkList } from './LinkList'
-import type { Work } from './derive'
+import type { Work } from '../derive'
 import {
   STATUS_LABEL,
   getItemKind,
@@ -14,7 +14,7 @@ import {
   type Status,
   type TaskData,
   type Who,
-} from './model'
+} from '../model'
 
 export function TaskInspector({
   node,

@@ -1,4 +1,4 @@
-import type { AppNode, TaskData } from './model'
+import type { AppNode, TaskData } from '../model'
 
 export function NoteInspector({
   node,

@@ -23,11 +23,11 @@ import {
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { Palette, type Command } from './Palette'
-import { AttentionOverlay, type AttentionTarget } from './attention'
-import { ActionsContext, needsAttention, type AttentionMark, type Flow } from './derive'
-import { FocusView, type FocusItem } from './focus'
-import { reflow, reflowAll } from './layout'
-import { mergeDocs } from './merge'
+import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
+import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { FocusView, type FocusItem } from './FocusView'
+import { reflow, reflowAll } from '../layout'
+import { mergeDocs } from '../merge'
 import {
   TASK_HEIGHT,
   TASK_WIDTH,
@@ -51,10 +51,10 @@ import {
   type GithubSnapshot,
   type Link,
   type TaskData,
-} from './model'
+} from '../model'
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { CurveEdge } from './CurveEdge'
-import { openExternal } from './external'
+import { openExternal } from '../external'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
 import { TaskView } from './TaskView'
@@ -80,15 +80,26 @@ import {
   type Saved,
   type SyncStatus,
   type Workspaces,
-} from './persist'
-import { seedLinks, seedNodes } from './seed'
+} from '../persist'
+import { seedLinks, seedNodes } from '../seed'
 import { Sidebar } from './Sidebar'
-import { attentionAtom, collapsedAtom, focusedAtom, githubOwnerAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from './state'
+import {
+  attentionAtom,
+  collapsedAtom,
+  focusedAtom,
+  githubOwnerAtom,
+  hoverAtom,
+  linksAtom,
+  nodesAtom,
+  pinnedAtom,
+  traceAtom,
+  workAtom,
+} from '../state'
 import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
-import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from './sticker'
+import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { Toolbar, type Tool } from './Toolbar'
-import { readViewport, writeViewport } from './viewport'
+import { readViewport, writeViewport } from '../viewport'
 import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'

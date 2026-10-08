@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { ViewportPortal, useReactFlow, type ReactFlowInstance } from '@xyflow/react'
-import type { Sticker } from './sticker'
+import type { Sticker } from '../sticker'
 
 type StickerPoint = { x: number; y: number }
 export type PlacedSticker = Sticker & { fresh: boolean }

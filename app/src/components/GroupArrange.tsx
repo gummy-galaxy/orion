@@ -1,4 +1,4 @@
-import type { Arrange, ClusterData } from './model'
+import type { Arrange, ClusterData } from '../model'
 
 export function GroupArrange({ data, change }: { data: ClusterData; change: (patch: Pick<ClusterData, 'arrange'>) => void }) {
   const pick = (next: Arrange) => change({ arrange: next === 'auto' ? undefined : next })

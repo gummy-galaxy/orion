@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
-import { WHEEL_SLOTS, firstEmoji, type Loadout } from './sticker'
+import { WHEEL_SLOTS, firstEmoji, type Loadout } from '../sticker'
 
 type StickerPoint = { x: number; y: number }
 
