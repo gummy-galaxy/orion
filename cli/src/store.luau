@@ -5,6 +5,7 @@ local process = require("@std/process")
 local task = require("@std/task")
 
 local fileNames = require("@root/fileNames")
+local platformDirs = require("@root/platformDirs")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -36,7 +37,7 @@ function store.defaultDir(): string
 		return tostring(path.resolve(configured))
 	end
 
-	return tostring(path.join(process.homedir(), "Library", "Application Support", "Orion"))
+	return platformDirs.defaultDataDir()
 end
 
 function store.isValidWorkspace(name: string): boolean

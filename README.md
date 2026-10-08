@@ -12,7 +12,7 @@ This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs 
 
 ## Data
 
-The default canvas lives in `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another data root. `orion serve` owns the app's data API, and all file access goes through the Luau CLI store. The app talks to that API over HTTP and receives changes over WebSocket. The CLI takes the same lock for every write, so the app and other commands can be open at once.
+The default canvas lives in `orion.json` inside Orion's user data folder: `~/Library/Application Support/Orion` on macOS, `%APPDATA%\Orion` on Windows, and `$XDG_DATA_HOME/orion` (or `~/.local/share/orion`) on Linux. Set `ORION_DATA_DIR` to use another data root. `orion serve` owns the app's data API, and all file access goes through the Luau CLI store. The app talks to that API over HTTP and receives changes over WebSocket. The CLI takes the same lock for every write, so the app and other commands can be open at once.
 
 ### Workspaces
 
