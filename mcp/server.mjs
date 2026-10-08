@@ -91,7 +91,7 @@ export function createServer() {
       label: z.string().min(1).optional(), workspace, group: id.optional(),
     },
   }, ({ path, label, workspace, group }) =>
-    ['image', 'add', path, ...option('label', label), ...option('group', group),
+    ['insert', path, ...option('label', label), ...option('group', group),
       ...workspaceOption(workspace), '--json']);
 
   register(server, 'orion_link', {
