@@ -130,7 +130,7 @@ function readMotion(): MotionSettings {
  * Zoom below which a group reads as one body. Nested groups fold first as you
  * zoom out, so detail drops away from the inside.
  */
-const COLLAPSE_ZOOM = 0.3
+const COLLAPSE_ZOOM = 0.4
 const COLLAPSE_STEP = 0.12
 /** Zoom below which cards are too small for motion to read, so animations pause. */
 const STILL_ZOOM = 0.45
