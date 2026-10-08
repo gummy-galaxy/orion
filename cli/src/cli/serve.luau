@@ -6,18 +6,28 @@ local context = require("@root/cli/context")
 local getParentPid = require("@root/server/getParentPid")
 local isProcessAlive = require("@root/server/isProcessAlive")
 local server = require("@root/server")
+local status = require("@root/cli/serve/status")
 
 type Context = context.Context
 
 return table.freeze({
-	help = "Serve the Orion API and optionally a built app",
+	help = "Serve the Orion API or report its status",
 	define = function(parser: batteriesCli.Parser)
 		parser:add("port", "option", { help = "HTTP port (default 5198)" })
 		parser:add("host", "option", { help = "HTTP host (default 127.0.0.1)" })
 		parser:add("static", "option", { help = "Built app directory" })
+		local subcommand = parser:subcommand("status", { help = status.help })
+		subcommand:add("help", "flag", { help = "Show this help", aliases = { "h" } })
+		status.define(subcommand)
 	end,
 
 	run = function(parser: batteriesCli.Parser, options: Context)
+		local name, subcommand = parser:selected()
+		if name == "status" and subcommand then
+			status.run(subcommand, options)
+			return
+		end
+
 		local port = tonumber(parser:get("port") or "5198")
 		assert(port and port >= 0 and port <= 65535 and port % 1 == 0, "port must be an integer from 0 to 65535")
 		-- Exit once whatever started the server is gone, so a crashed app or dev server can't leave it running.
@@ -26,12 +36,38 @@ return table.freeze({
 		local host = parser:get("host") or "127.0.0.1"
 		local running = server.start(options.root, options.workspace, host, port, parser:get("static"))
 		options.write(`Orion serving on http://{running.hostname}:{running.port}`)
+		local isClosing = false
+		local signalHandles: { process.SignalHandle } = {}
+		local function close()
+			if isClosing then
+				return
+			end
+			isClosing = true
+			for _, handle in signalHandles do
+				handle:close()
+			end
+			running.close()
+		end
+		table.insert(
+			signalHandles,
+			process.onSignal("SIGINT", function()
+				close()
+				process.exit(0)
+			end)
+		)
+		table.insert(
+			signalHandles,
+			process.onSignal("SIGTERM", function()
+				close()
+				process.exit(0)
+			end)
+		)
 
 		while true do
 			task.wait(if isWatchingParent then 2 else 3600)
 
 			if isWatchingParent and not isProcessAlive(parentProcessId :: number, options.runner) then
-				running.close()
+				close()
 				process.exit(0)
 			end
 		end
