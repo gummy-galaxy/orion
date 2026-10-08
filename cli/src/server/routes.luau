@@ -2,6 +2,7 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 
 local focus = require("@root/server/routes/focus")
+local imageRoutes = require("@root/server/routes/images")
 local orion = require("@root/server/routes/orion")
 local shared = require("@root/server/routes/shared")
 local static = require("@root/server/routes/static")
@@ -45,6 +46,9 @@ function routes.create(
 
 	function router.handle(request: Request): Response
 		local route = request.path
+		if imageRoutes.matches(route) then
+			return imageRoutes.handle(request, root)
+		end
 		if route == "/api/orion" then
 			return orion.handle(request, root, active)
 		end

@@ -20,6 +20,31 @@ const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:workspace'
 const WORKSPACES_EVENT = 'orion:workspaces'
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+export type ImageAsset = { asset: string; mime: string }
+
+export async function importImage(file: File, workspace: string): Promise<ImageAsset> {
+  if (file.size === 0 || file.size > MAX_IMAGE_BYTES) throw new Error('Choose an image smaller than 5 MB.')
+
+  const response = await fetch(`/api/images?workspace=${encodeURIComponent(workspace)}`, { method: 'POST', body: file })
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string }
+
+    throw new Error(body.error ?? 'Could not add the image.')
+  }
+
+  return (await response.json()) as ImageAsset
+}
+
+export async function imageSource(workspace: string, asset: string): Promise<string> {
+  const response = await fetch(`/api/images/${encodeURIComponent(asset)}?workspace=${encodeURIComponent(workspace)}`)
+
+  if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Image unavailable')
+
+  return URL.createObjectURL(await response.blob())
+}
 
 type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT
 const listeners = new Map<EventName, Set<(data: never) => void>>()

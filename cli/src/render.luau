@@ -34,6 +34,16 @@ local function groupLabel(doc: Doc, item: Item): string?
 end
 
 function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Object
+	if item.type == "image" then
+		return json.object({
+			id = item.id,
+			label = graph.label(item),
+			kind = "image",
+			asset = item.data.asset,
+			workspace = item.data.workspace,
+			group = item.parentId,
+		})
+	end
 	local object: json.Object = json.object({
 		id = item.id,
 		label = graph.label(item),
@@ -105,13 +115,28 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 
 		for _, child in doc.nodes do
 			if child.parentId == item.id then
-				table.insert(lines, `  {pad(derived.status[child.id] or "group", 9)}{child.id}  {graph.label(child)}`)
+				table.insert(
+					lines,
+					`  {pad(derived.status[child.id] or child.type, 9)}{child.id}  {graph.label(child)}`
+				)
 			end
 		end
 
 		return table.concat(lines, "\n")
 	end
-
+	if item.type == "image" then
+		local lines = {
+			graph.label(item),
+			`  id       {item.id}`,
+			"  kind     image",
+			`  asset    {asString(item.data.asset) or ""}`,
+		}
+		local where = groupLabel(doc, item)
+		if where then
+			table.insert(lines, `  group    {where} ({item.parentId})`)
+		end
+		return table.concat(lines, "\n")
+	end
 	local lines = {
 		`{graph.label(item)}`,
 		`  id       {item.id}`,

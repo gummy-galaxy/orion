@@ -17,6 +17,8 @@ The default canvas lives in `~/Library/Application Support/Orion/orion.json`. Se
 
 The original canvas is the `default` workspace in the data root. Other workspaces keep separate `orion.json` files under `<data root>/workspaces/<name>/`. The root's `workspaces.json` records their names, labels, and the active workspace. Workspace names use lowercase letters, digits, and hyphens.
 
+Images are canvas nodes with workspace-local files in `assets/`. The app's **Add image** control accepts PNG, JPEG, GIF, and WebP files up to 5 MB. Agents can insert one with `orion media insert ./concept.png --workspace orion --label "Concept"`; the command identifies supported images from their contents and can accommodate other media types later. `orion media list --workspace orion` lists media nodes. `orion serve` accepts raw bytes at `POST /api/images?workspace=<name>` and serves them at `GET /api/images/<asset>?workspace=<name>`. Both routes use the same asset storage as the CLI.
+
 Use `orion workspace list`, `orion workspace create <name> [--label <label>] [--owner <github owner>]`, and `orion workspace use <name>` to manage them. `orion workspace current` shows the selected workspace, and `orion path` prints its folder. The app's sidebar can also create and switch workspaces. Pass `--workspace <name>` to a CLI command to use one without changing the active workspace; `ORION_WORKSPACE` provides the same choice for the environment. The command option takes precedence, followed by the environment, `workspaces.json`, and `default`.
 
 Before replacing an existing data file, the CLI store copies it to `backups/orion-r<revision>-<UTC timestamp>.json` in that workspace's folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list the selected workspace's backups newest first, and `orion restore <revision>` to recover one in that workspace as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
@@ -128,6 +130,7 @@ In `app/`:
 - `src/snap.ts`, `src/useNodeSnapping.ts`, and `src/components/SnapGuides.tsx`: drag geometry, interaction state, and alignment guides.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
+- `src/components/ImageView.tsx`: image nodes and their workspace-local previews.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.

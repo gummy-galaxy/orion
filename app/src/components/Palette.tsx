@@ -205,7 +205,9 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => pick(result)}
               >
-                <span className="palette-kind">{isCluster(node) ? 'Group' : node.data.itemKind === 'note' ? 'Note' : 'Card'}</span>
+                <span className="palette-kind">
+                  {isCluster(node) ? 'Group' : node.type === 'image' ? 'Image' : node.data.itemKind === 'note' ? 'Note' : 'Card'}
+                </span>
                 <span className="palette-details">
                   <span className="palette-label">
                     {highlighted(

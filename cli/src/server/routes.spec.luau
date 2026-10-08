@@ -4,6 +4,7 @@ local net = require("@lute/net/server")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local insertFile = require("@root/media/insertFile")
 local routes = require("@root/server/routes")
 local store = require("@root/store")
 local testing = require("@root/testing")
@@ -48,6 +49,53 @@ local function createRouter(name: string)
 	}, function() end)
 	return root, router
 end
+
+test.case("image routes import and serve workspace-local bytes", function(assert)
+	local root, router = createRouter("routes-images")
+	store.createWorkspace(root, "ideas")
+	local bytes = string.char(137, 80, 78, 71, 13, 10, 26, 10) .. "image bytes"
+	local function request(method: string, route: string, workspace: string, body: string?): net.ReceivedRequest
+		local req = createRequest(method, route)
+		req.query.workspace = workspace
+		req.body = body or ""
+		return req
+	end
+	local imported = router.handle(request("POST", "/api/images", "ideas", bytes))
+	assert.eq(imported.status, 201)
+	local asset = decodeResponse(imported).asset :: string
+	assert.eq(type(asset), "string")
+	assert.eq(decodeResponse(imported).mime, "image/png")
+	local served = router.handle(request("GET", `/api/images/{asset}`, "ideas"))
+	assert.eq(served.status, 200)
+	assert.eq(served.body, bytes)
+	assert.eq(served.headers["content-type"], "image/png")
+	assert.eq(router.handle(request("GET", `/api/images/{asset}`, "default")).status, 404)
+	assert.eq(router.handle(request("POST", "/api/images", "missing", bytes)).status, 404)
+	assert.eq(router.handle(request("POST", "/api/images", "ideas", "not an image")).status, 400)
+	assert.eq(router.handle(request("POST", "/api/images", "ideas", string.rep("x", 5 * 1024 * 1024 + 1))).status, 400)
+	assert.eq(router.handle(request("GET", "/api/images/../orion.json", "ideas")).status, 400)
+	assert.eq(router.handle(request("GET", "/api/images/missing.png", "ideas")).status, 404)
+	assert.eq(router.handle(request("POST", `/api/images/{asset}`, "ideas")).status, 405)
+	assert.eq(fs.readFileToString(path.join(store.getWorkspaceDir(root, "ideas"), "assets", asset)), bytes)
+	local formats = {
+		{ bytes = string.char(255, 216, 255) .. "jpeg", mime = "image/jpeg", extension = "jpg" },
+		{ bytes = "GIF89a" .. "gif", mime = "image/gif", extension = "gif" },
+		{ bytes = "RIFF0000WEBP" .. "webp", mime = "image/webp", extension = "webp" },
+	}
+	for _, format in formats do
+		local response = router.handle(request("POST", "/api/images", "ideas", format.bytes))
+		assert.eq(response.status, 201)
+		local name = decodeResponse(response).asset :: string
+		assert.eq(name:sub(-#format.extension - 1), `.{format.extension}`)
+		assert.eq(decodeResponse(response).mime, format.mime)
+		assert.eq(router.handle(request("GET", `/api/images/{name}`, "ideas")).body, format.bytes)
+	end
+	local source = path.join(root, "from-cli.png")
+	fs.writeStringToFile(source, bytes)
+	local cliItem = insertFile(store.getWorkspaceDir(root, "ideas"), "ideas", tostring(source), "From CLI")
+	local cliAsset = cliItem.data.asset :: string
+	assert.eq(router.handle(request("GET", `/api/images/{cliAsset}`, "ideas")).body, bytes)
+end)
 
 test.case("GET reports a missing file and PUT creates it with a guarded revision", function(assert)
 	local root, router = createRouter("routes-missing")

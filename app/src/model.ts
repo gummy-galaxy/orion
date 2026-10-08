@@ -80,12 +80,14 @@ export type ClusterData = {
   layout?: 'pending' | 'refit'
   arrange?: Arrange
 }
+export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. */
 export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status: ViewStatus; side: 'in' | 'out' }
 export type GhostNode = Node<GhostData, 'ghost'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
-export type AppNode = TaskNode | ClusterNode
+export type ImageNode = Node<ImageData, 'image'>
+export type AppNode = TaskNode | ClusterNode | ImageNode
 
 /** `origin` marks links Orion derived itself: stacked pull requests, or a reference in a title, body or branch. */
 export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related'; origin?: 'stack' | 'mention' }
@@ -123,6 +125,7 @@ export function getTaskUrl(data: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): 
 
 export const isCluster = (node: AppNode): node is ClusterNode => node.type === 'cluster'
 export const isTask = (node: AppNode): node is TaskNode => node.type === 'task'
+export const isImage = (node: AppNode): node is ImageNode => node.type === 'image'
 export const isNote = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.itemKind === 'note'
 
 export function byId(nodes: AppNode[]): Map<string, AppNode> {
@@ -161,6 +164,7 @@ export function absolutePosition(node: AppNode, nodeMap: Map<string, AppNode>): 
 /** Fills in the React Flow fields every node needs, so saved data stays minimal. */
 function hydrate(node: AppNode): AppNode {
   if (isTask(node)) return { ...node, width: TASK_WIDTH, height: TASK_HEIGHT, expandParent: !!node.parentId }
+  if (isImage(node)) return { ...node, width: node.width ?? 256, height: node.height ?? 256, expandParent: !!node.parentId }
   return { ...node, dragHandle: '.drag', expandParent: !!node.parentId }
 }
 
