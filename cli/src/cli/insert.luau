@@ -3,20 +3,20 @@ local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local graph = require("@root/graph")
-local images = require("@root/images")
+local insertFile = require("@root/media/insertFile")
 
 type Context = context.Context
 
 return table.freeze({
-	help = "Add an image node from a file",
+	help = "Insert a media node from a file",
 	define = function(parser: batteriesCli.Parser)
-		parser:add("file", "positional", { help = "PNG, JPEG, GIF, or WebP file" })
-		parser:add("label", "option", { help = "Image label" })
-		parser:add("group", "option", { help = "Group to put the image in" })
+		parser:add("file", "positional", { help = "Media file (PNG, JPEG, GIF, or WebP supported)" })
+		parser:add("label", "option", { help = "Node label" })
+		parser:add("group", "option", { help = "Group to put the node in" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 	run = function(parser: batteriesCli.Parser, options: Context)
-		local item = images.add(
+		local item = insertFile(
 			options.dir,
 			options.workspace,
 			assert(parser:get("file"), "file is required"),
@@ -34,7 +34,7 @@ return table.freeze({
 				true
 			))
 		else
-			options.write(`Added image {item.id} · {graph.label(item)}`)
+			options.write(`Inserted image {item.id} · {graph.label(item)}`)
 		end
 	end,
 })

@@ -7,13 +7,13 @@ local graph = require("@root/graph")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
-test.case("image commands import validated files and list nodes in the selected workspace", function(assert)
-	local root, run = testing.createHarness("image-add")
-	local source = path.join(root, "sample.png")
+test.case("insert imports validated media and image list uses the selected workspace", function(assert)
+	local root, run = testing.createHarness("insert-image")
+	local source = path.join(root, "sample.bin")
 	local bytes = string.char(137, 80, 78, 71, 13, 10, 26, 10) .. "image bytes"
 	fs.writeStringToFile(source, bytes)
 	local value = json.asObject(
-		json.deserialize(run({ "image", "add", tostring(source), "--label", "Concept", "--group", "ws", "--json" })) :: json.Value
+		json.deserialize(run({ "insert", tostring(source), "--label", "Concept", "--group", "ws", "--json" })) :: json.Value
 	)
 	local id = if value then value.id else nil
 	assert.eq(value and value.label, "Concept")
@@ -31,7 +31,7 @@ test.case("image commands import validated files and list nodes in the selected 
 	local invalid = path.join(root, "invalid.png")
 	fs.writeStringToFile(invalid, "not an image")
 	assert.throwsWith("image must be PNG, JPEG, GIF, or WebP", function()
-		run({ "image", "add", tostring(invalid) })
+		run({ "insert", tostring(invalid) })
 	end)
 	assert.eq(store.load(root).revision, doc.revision)
 	run({ "workspace", "create", "other" })

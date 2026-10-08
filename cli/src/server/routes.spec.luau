@@ -4,7 +4,7 @@ local net = require("@lute/net/server")
 local path = require("@std/path")
 local test = require("@std/test")
 
-local images = require("@root/images")
+local insertFile = require("@root/media/insertFile")
 local routes = require("@root/server/routes")
 local store = require("@root/store")
 local testing = require("@root/testing")
@@ -92,7 +92,7 @@ test.case("image routes import and serve workspace-local bytes", function(assert
 	end
 	local source = path.join(root, "from-cli.png")
 	fs.writeStringToFile(source, bytes)
-	local cliItem = images.add(store.getWorkspaceDir(root, "ideas"), "ideas", tostring(source), "From CLI")
+	local cliItem = insertFile(store.getWorkspaceDir(root, "ideas"), "ideas", tostring(source), "From CLI")
 	local cliAsset = cliItem.data.asset :: string
 	assert.eq(router.handle(request("GET", `/api/images/{cliAsset}`, "ideas")).body, bytes)
 end)

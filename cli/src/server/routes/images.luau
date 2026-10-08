@@ -1,7 +1,7 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local images = require("@root/images")
+local imageAssets = require("@root/media/imageAssets")
 local shared = require("@root/server/routes/shared")
 local store = require("@root/store")
 
@@ -27,7 +27,7 @@ function imageRoutes.handle(request: net.ReceivedRequest, root: string): Respons
 			return shared.reply(405, json.object({ error = "method not allowed" }))
 		end
 
-		local didSucceed, result = pcall(images.importBytes, dir, request.body)
+		local didSucceed, result = pcall(imageAssets.importBytes, dir, request.body)
 		return if didSucceed
 			then shared.reply(201, json.object({ asset = result.asset, mime = result.mime }))
 			else shared.reply(400, json.object({ error = tostring(result) }))
@@ -38,7 +38,7 @@ function imageRoutes.handle(request: net.ReceivedRequest, root: string): Respons
 	end
 
 	local asset = route:sub(13)
-	local didSucceed, bytes, mime = pcall(images.readBytes, dir, asset)
+	local didSucceed, bytes, mime = pcall(imageAssets.readBytes, dir, asset)
 	if not didSucceed then
 		return shared.reply(400, json.object({ error = tostring(bytes) }))
 	end

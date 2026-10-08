@@ -10,6 +10,7 @@ local github = require("@root/github")
 local graph = require("@root/graph")
 local image = require("@root/cli/image")
 local ingest = require("@root/cli/ingest")
+local insert = require("@root/cli/insert")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
@@ -50,6 +51,7 @@ local COMMANDS: { [string]: Command } = {
 	backups = backups,
 	focus = focus,
 	image = image,
+	insert = insert,
 	restore = restore,
 	serve = serve,
 	suggest = suggest,
@@ -202,6 +204,7 @@ local function createParsers(): Parsers
 	addJsonFlag(command("matches"))
 	registeredCommand("backups")
 	registeredCommand("image")
+	registeredCommand("insert")
 	registeredCommand("restore")
 	registeredCommand("serve")
 	registeredCommand("source")
