@@ -8,10 +8,10 @@ export function ContextMenu({ x, y, items, close }: Props) {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const away = (e: Event) => {
-      if (!ref.current?.contains(e.target as Node)) close()
+    const away = (event: Event) => {
+      if (!ref.current?.contains(event.target as Node)) close()
     }
-    const key = (e: KeyboardEvent) => e.key === 'Escape' && close()
+    const key = (event: KeyboardEvent) => event.key === 'Escape' && close()
     window.addEventListener('pointerdown', away, true)
     window.addEventListener('wheel', close, { passive: true })
     window.addEventListener('keydown', key)

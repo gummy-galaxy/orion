@@ -50,7 +50,11 @@ function static.serve(folder: string, requestPath: string): shared.Response
 	if not fs.exists(file) then
 		return shared.reply(404, json.object({ error = "not found" }))
 	end
-	return { status = 200, body = fs.readFileToString(file), headers = { ["content-type"] = getContentType(file) } }
+	return {
+		status = 200,
+		body = fs.readFileToString(file),
+		headers = { ["content-type"] = getContentType(file) },
+	}
 end
 
 return table.freeze(static)

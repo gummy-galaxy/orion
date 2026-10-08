@@ -52,7 +52,7 @@ local function stringField(item: Item, key: string): string?
 end
 
 function match.candidates(doc: Doc, title: string, owner: string, name: string): { Candidate }
-	local out: { Candidate } = {}
+	local candidates: { Candidate } = {}
 
 	for _, item in doc.nodes do
 		if item.type ~= "task" or graph.isNote(item) or item.data.pr ~= nil or item.data.status == "done" then
@@ -70,19 +70,19 @@ function match.candidates(doc: Doc, title: string, owner: string, name: string):
 		local score = 0.65 * overlap(title, `{graph.label(item)} {stringField(item, "note") or ""}`) + 0.35 * agreement
 
 		if score >= 0.2 then
-			table.insert(out, { id = item.id, score = math.floor(score * 100 + 0.5) / 100 })
+			table.insert(candidates, { id = item.id, score = math.floor(score * 100 + 0.5) / 100 })
 		end
 	end
 
-	table.sort(out, function(a: Candidate, b: Candidate)
+	table.sort(candidates, function(a: Candidate, b: Candidate)
 		return if a.score == b.score then a.id < b.id else a.score > b.score
 	end)
 
-	while #out > 3 do
-		table.remove(out)
+	while #candidates > 3 do
+		table.remove(candidates)
 	end
 
-	return out
+	return candidates
 end
 
 return table.freeze(match)

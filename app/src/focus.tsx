@@ -12,9 +12,9 @@ const CLIP_INSET = 6
 const DETAILS_GAP = 24
 /** Room kept clear at the top for the bar with the way back. */
 const DETAILS_TOP = 64
-const DETAILS_MIN_W = 300
-const DETAILS_MAX_W = 440
-const DETAILS_MIN_H = 160
+const DETAILS_MIN_WIDTH = 300
+const DETAILS_MAX_WIDTH = 440
+const DETAILS_MIN_HEIGHT = 160
 
 export type FocusItem = {
   id: string
@@ -29,11 +29,11 @@ export type FocusItem = {
 
 type Anchor = { x: number; y: number; clipped: boolean }
 
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+const clamp = (value: number, minimum: number, maximum: number) => Math.max(minimum, Math.min(maximum, value))
 
-function curve(a: { x: number; y: number }, b: { x: number; y: number }) {
-  const dx = Math.max(40, Math.abs(b.x - a.x) / 2)
-  return `M${a.x},${a.y} C${a.x + dx},${a.y} ${b.x - dx},${b.y} ${b.x},${b.y}`
+function curve(start: { x: number; y: number }, end: { x: number; y: number }) {
+  const deltaX = Math.max(40, Math.abs(end.x - start.x) / 2)
+  return `M${start.x},${start.y} C${start.x + deltaX},${start.y} ${end.x - deltaX},${end.y} ${end.x},${end.y}`
 }
 
 export function FocusView({
@@ -60,34 +60,38 @@ export function FocusView({
   children?: ReactNode
 }) {
   const root = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState({ w: 0, h: 0 })
+  const [size, setSize] = useState({ width: 0, height: 0 })
   const [anchors, setAnchors] = useState<Map<string, Anchor>>(() => new Map())
   const [hot, setHot] = useState<string | null>(null)
 
   const measure = useCallback(() => {
-    const el = root.current
-    if (!el) return
-    const box = el.getBoundingClientRect()
+    const element = root.current
+    if (!element) return
+    const box = element.getBoundingClientRect()
     const next = new Map<string, Anchor>()
-    for (const list of el.querySelectorAll<HTMLElement>('.focus-list')) {
+    for (const list of element.querySelectorAll<HTMLElement>('.focus-list')) {
       const bounds = list.getBoundingClientRect()
       for (const item of list.querySelectorAll<HTMLElement>('[data-key]')) {
-        const r = item.getBoundingClientRect()
-        const mid = r.top + r.height / 2
-        const y = clamp(mid, bounds.top + CLIP_INSET, bounds.bottom - CLIP_INSET)
-        next.set(item.dataset.key!, { x: (item.dataset.side === 'in' ? r.right : r.left) - box.left, y: y - box.top, clipped: y !== mid })
+        const rectangle = item.getBoundingClientRect()
+        const middle = rectangle.top + rectangle.height / 2
+        const y = clamp(middle, bounds.top + CLIP_INSET, bounds.bottom - CLIP_INSET)
+        next.set(item.dataset.key!, {
+          x: (item.dataset.side === 'in' ? rectangle.right : rectangle.left) - box.left,
+          y: y - box.top,
+          clipped: y !== middle,
+        })
       }
     }
-    setSize({ w: box.width, h: box.height })
+    setSize({ width: box.width, height: box.height })
     setAnchors(next)
   }, [])
 
   useLayoutEffect(measure, [measure, incoming, outgoing])
   useLayoutEffect(() => {
-    const el = root.current
-    if (!el) return
+    const element = root.current
+    if (!element) return
     const observer = new ResizeObserver(measure)
-    observer.observe(el)
+    observer.observe(element)
     return () => observer.disconnect()
   }, [measure])
 
@@ -95,12 +99,12 @@ export function FocusView({
     ...incoming.map((item) => ({ item, key: `in:${item.id}`, side: 'in' as const })),
     ...outgoing.map((item) => ({ item, key: `out:${item.id}`, side: 'out' as const })),
   ].flatMap(({ item, key, side }) => {
-    const a = anchors.get(key)
-    if (!a) return []
-    const mid = card.y + card.h / 2
-    const d = side === 'in' ? curve(a, { x: card.x, y: mid }) : curve({ x: card.x + card.w, y: mid }, a)
-    const cls = ['focus-line', item.related ? 'related' : item.flow, a.clipped ? 'clipped' : '', hot === key ? 'hot' : '']
-    return [{ key, d, cls: cls.filter(Boolean).join(' '), arrow: item.related ? undefined : `url(#focus-arrow-${item.flow})` }]
+    const start = anchors.get(key)
+    if (!start) return []
+    const middle = card.y + card.height / 2
+    const pathData = side === 'in' ? curve(start, { x: card.x, y: middle }) : curve({ x: card.x + card.width, y: middle }, start)
+    const classNames = ['focus-line', item.related ? 'related' : item.flow, start.clipped ? 'clipped' : '', hot === key ? 'hot' : '']
+    return [{ key, d: pathData, cls: classNames.filter(Boolean).join(' '), arrow: item.related ? undefined : `url(#focus-arrow-${item.flow})` }]
   })
 
   const column = (side: 'in' | 'out', items: FocusItem[]) => (
@@ -145,7 +149,7 @@ export function FocusView({
 
   return (
     <div className="focus" ref={root} onAnimationEnd={measure}>
-      <svg width={size.w} height={size.h} aria-hidden="true">
+      <svg width={size.width} height={size.height} aria-hidden="true">
         <defs>
           {['live', 'held'].map((kind) => (
             <marker
@@ -163,8 +167,8 @@ export function FocusView({
             </marker>
           ))}
         </defs>
-        {lines.map((l) => (
-          <path key={l.key} d={l.d} className={l.cls} markerEnd={l.arrow} />
+        {lines.map((line) => (
+          <path key={line.key} d={line.d} className={line.cls} markerEnd={line.arrow} />
         ))}
       </svg>
       {column('in', incoming)}
@@ -173,10 +177,10 @@ export function FocusView({
         <div
           className="focus-details panel"
           style={{
-            left: card.x + card.w / 2,
+            left: card.x + card.width / 2,
             top: card.y - DETAILS_GAP,
-            width: clamp(card.w, DETAILS_MIN_W, DETAILS_MAX_W),
-            maxHeight: Math.max(DETAILS_MIN_H, card.y - DETAILS_GAP - DETAILS_TOP),
+            width: clamp(card.width, DETAILS_MIN_WIDTH, DETAILS_MAX_WIDTH),
+            maxHeight: Math.max(DETAILS_MIN_HEIGHT, card.y - DETAILS_GAP - DETAILS_TOP),
           }}
         >
           {children}
