@@ -140,7 +140,7 @@ function readMotion(): MotionSettings {
  * Zoom below which a group reads as one body. Nested groups fold first as you
  * zoom out, so detail drops away from the inside.
  */
-const COLLAPSE_ZOOM = 0.3
+const COLLAPSE_ZOOM = 0.4
 const COLLAPSE_STEP = 0.12
 /** Zoom below which cards are too small for motion to read, so animations pause. */
 const STILL_ZOOM = 0.45
@@ -1198,16 +1198,12 @@ export function Canvas() {
       if (!node) continue
       const position = absolutePosition(node, map)
       const size = sizeOf(node)
-      // A folded group's bubble rises from its center, so lines meet it there.
-      const folded = isCluster(node)
       targets.push({
         id,
         jump: nodeMap.ids[0],
         count: nodeMap.ids.length,
         label: nodeMap.ids.length === 1 ? (map.get(nodeMap.ids[0])?.data.label ?? '') : node.data.label,
-        rect: folded
-          ? { x: (position.x + size.width / 2) * zoom + panX, y: (position.y + size.height / 2) * zoom + panY, width: 0, height: 0 }
-          : { x: position.x * zoom + panX, y: position.y * zoom + panY, width: size.width * zoom, height: size.height * zoom },
+        rect: { x: position.x * zoom + panX, y: position.y * zoom + panY, width: size.width * zoom, height: size.height * zoom },
       })
     }
     return targets
