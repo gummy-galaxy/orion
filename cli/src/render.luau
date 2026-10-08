@@ -60,6 +60,9 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 
 	object.waitsOn = waitsOn
 	object.leadsTo = unblocks
+	if graph.isGroup(item) then
+		object.arrange = asString(item.data.arrange) or "auto"
+	end
 	return object
 end
 
@@ -91,6 +94,11 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 
 		if blurb then
 			table.insert(lines, blurb)
+		end
+
+		local arrange = asString(item.data.arrange)
+		if arrange then
+			table.insert(lines, `  arrange  {arrange}`)
 		end
 
 		for _, child in doc.nodes do

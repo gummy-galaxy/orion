@@ -8,14 +8,15 @@ type Link = types.Link
 type Position = types.Position
 
 -- Card and group sizes match the app so CLI placements line up with its layout.
-local TASK_WIDTH = 208
-local TASK_HEIGHT = 66
-local GROUP_PADDING = 24
-local GROUP_HEADER_HEIGHT = 52
+local TASK_WIDTH = 216
+local TASK_HEIGHT = 72
+local GROUP_PADDING = 32
+local GROUP_HEADER_HEIGHT = 78
 local ITEM_GAP = 48
 
 local STATUSES = { todo = true, active = true, review = true, blocked = true, deferred = true, done = true }
 local WHO = { you = true, review = true, ci = true }
+local ARRANGE = { auto = true, custom = true }
 
 export type Derived = {
 	status: { [string]: string },
@@ -30,6 +31,7 @@ export type ItemFields = {
 	who: string?,
 	note: string?,
 	blurb: string?,
+	arrange: string?,
 }
 
 local graph = {}
@@ -282,6 +284,7 @@ local function checkFields(fields: ItemFields)
 	)
 	assert(fields.who == nil or fields.who == "" or WHO[fields.who], `who must be one of you, review, ci`)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
+	assert(fields.arrange == nil or ARRANGE[fields.arrange], "arrange must be one of auto, custom")
 end
 
 export type AddOptions = ItemFields & { group: string? }
@@ -323,7 +326,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	if graph.isGroup(item) then
 		assert(
 			fields.status == nil and fields.repo == nil and fields.pr == nil and fields.who == nil,
-			"groups only take a label and blurb"
+			"groups only take a label, blurb, and arrange"
 		)
 
 		if fields.label then
@@ -334,9 +337,17 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 			item.data.blurb = if fields.blurb == "" then nil else fields.blurb
 		end
 
+		if fields.arrange then
+			item.data.arrange = if fields.arrange == "auto" then nil else fields.arrange
+			if fields.arrange ~= "custom" and item.data.layout == nil then
+				item.data.layout = "refit"
+			end
+		end
+
 		return item
 	end
 
+	assert(fields.arrange == nil, `"{id}" is an item; only groups take an arrangement`)
 	if fields.label then
 		item.data.label = fields.label
 	end

@@ -57,6 +57,7 @@ import {
   relativeTime,
   ungroup,
   type AppNode,
+  type Arrange,
   type ClusterData,
   type GhostNode,
   type GithubSnapshot,
@@ -1270,7 +1271,22 @@ function Canvas() {
     }
   }, [focus, links, map, work])
 
-  const onDragStop = useCallback(() => setNodes((currentNodes) => normalize(currentNodes)), [])
+  const dragOrigins = useRef(new Map<string, AppNode['position']>())
+  const onDragStart = useCallback((dragged: ViewNode[]) => {
+    const nodeMap = byId(latest.current.nodes)
+    dragOrigins.current = new Map()
+    for (const draggedNode of dragged) {
+      const node = nodeMap.get(draggedNode.id)
+      const parent = node?.parentId ? nodeMap.get(node.parentId) : undefined
+      if (node && parent && isCluster(parent) && parent.data.arrange !== 'custom') dragOrigins.current.set(node.id, node.position)
+    }
+  }, [])
+  const onDragStop = useCallback(() => {
+    const origins = dragOrigins.current
+    dragOrigins.current = new Map()
+    if (!origins.size) return setNodes((currentNodes) => normalize(currentNodes))
+    tweenTo(normalize(latest.current.nodes.map((node) => (origins.has(node.id) ? { ...node, position: origins.get(node.id)! } : node))))
+  }, [tweenTo])
   const onConnect = useCallback((connection: Connection) => {
     if (!connection.source || !connection.target || connection.source === connection.target) return
     setLinks((currentLinks) =>
@@ -1333,6 +1349,15 @@ function Canvas() {
       },
     }),
     [tweenTo, openRoot],
+  )
+
+  const arrangeGroup = useCallback(
+    (groupId: string, patch: Pick<ClusterData, 'arrange'>) => {
+      const { nodes: currentNodes, links: currentLinks } = latest.current
+      const next = currentNodes.map((node) => (node.id === groupId && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node))
+      reflow(next, currentLinks, groupId).then(tweenTo)
+    },
+    [tweenTo],
   )
 
   const updateData = useCallback(
@@ -1562,6 +1587,7 @@ function Canvas() {
     setLinks((currentLinks) => currentLinks.map((link) => (link.id === id ? { ...link, kind: link.kind === 'blocks' ? 'related' : 'blocks' } : link)))
 
   const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
+  const rootCustom = !!root && (map.get(root)?.data as ClusterData | undefined)?.arrange === 'custom'
   const reset = () => {
     openRoot(null)
     seeded().then((saved) => {
@@ -1606,7 +1632,7 @@ function Canvas() {
           ...many,
           { label: 'Open', hint: '↵', run: () => actions.open(node.id) },
           { label: 'Rename', run: () => (selectOnly(node.id), setEditing(node.id)) },
-          { label: 'Reflow', run: () => actions.reflow(node.id) },
+          ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
           { label: 'Ungroup', hint: '⇧⌘G', run: () => doUngroup([node.id]) },
         ]
       const position = absolutePosition(node, map)
@@ -1635,7 +1661,7 @@ function Canvas() {
       { label: 'Add a note here', hint: 'N', run: () => addNote(menu.flow) },
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }] : []),
       'divider',
-      { label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy },
+      ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
       { label: 'Fit to screen', hint: '⇧1', run: () => fitTo(root) },
       ...(root ? [{ label: 'Go up a level', hint: 'Esc', run: () => (peeking ? leaveRoot() : openRoot(map.get(root)?.parentId ?? null)) }] : []),
     ]
@@ -1806,8 +1832,9 @@ function Canvas() {
                   if (peeking && !inFocus(node.id)) leaveRoot()
                   actions.open(node.id)
                 }}
-                onNodeDragStart={(_, node) => {
+                onNodeDragStart={(_, node, dragged) => {
                   if (peeking && !inFocus(node.id)) leaveRoot()
+                  onDragStart(dragged)
                 }}
                 onPaneClick={(event) => {
                   if (focus) return exitFocus()
@@ -1897,9 +1924,11 @@ function Canvas() {
                     <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                       Add note
                     </button>
-                    <button type="button" className="btn" onClick={tidy}>
-                      Tidy {root ? 'group' : 'canvas'}
-                    </button>
+                    {!rootCustom && (
+                      <button type="button" className="btn" onClick={tidy}>
+                        Tidy {root ? 'group' : 'canvas'}
+                      </button>
+                    )}
                     <button type="button" className="btn" onClick={reset}>
                       Reset to seed
                     </button>
@@ -1967,13 +1996,16 @@ function Canvas() {
                         />
                         {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
                         <GroupFacts stats={work.groups.get(one.id)} />
+                        <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
                         <div className="row">
                           <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
                             Open
                           </button>
-                          <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
-                            Reflow
-                          </button>
+                          {(one.data as ClusterData).arrange !== 'custom' && (
+                            <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
+                              Reflow
+                            </button>
+                          )}
                           <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
                             Ungroup <kbd>⇧⌘G</kbd>
                           </button>
@@ -2094,6 +2126,19 @@ function GroupFacts({ stats }: { stats?: GroupStats }) {
       {stats.done}/{stats.total} done · {stats.ready} ready · {stats.blocked} blocked
       {stats.outside > 0 && <> · unblocks {stats.outside} outside</>}
     </p>
+  )
+}
+
+function GroupArrange({ data, change }: { data: ClusterData; change: (patch: Pick<ClusterData, 'arrange'>) => void }) {
+  const pick = (next: Arrange) => change({ arrange: next === 'auto' ? undefined : next })
+  return (
+    <div>
+      <label htmlFor="g-arrange">Arrange</label>
+      <select id="g-arrange" value={data.arrange ?? 'auto'} onChange={(event) => pick(event.target.value as Arrange)}>
+        <option value="auto">Automatic</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
   )
 }
 

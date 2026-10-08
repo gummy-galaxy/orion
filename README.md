@@ -104,7 +104,8 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks.
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
-- Reflow lays out the inside of a group. Tidy lays out the current level.
+- Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.
+- A group's inspector picks its arrangement: Automatic flows by dependency, and Custom keeps cards where you put them. `orion set <group> --arrange custom` does the same from the CLI.
 - Drag from the edge of a card to another card to add a dependency.
 
 Reset to seed restores the snapshot.
@@ -119,7 +120,7 @@ In `app/`:
 - `vite.config.ts`: starts `orion serve` for development and proxies its API.
 - `src/persist.ts`: loading, saving, reacting to changes from other writers, and reporting focus.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
-- `src/layout.ts`: ELK layout for one group or the top level.
+- `src/layout.ts`: laying out one group or the top level: ELK with wrapping, and custom groups left alone.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.

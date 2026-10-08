@@ -155,6 +155,7 @@ local function createParsers(): Parsers
 	set:add("id", "positional", { help = "Item or group id" })
 	set:add("label", "option", { help = "New label" })
 	set:add("blurb", "option", { help = "Group description" })
+	set:add("arrange", "option", { help = "How reflow arranges a group: auto or custom" })
 	addFieldOptions(set)
 	addJsonFlag(set)
 
@@ -247,6 +248,7 @@ local function fields(parser: batteriesCli.Parser): graph.ItemFields
 		pr = number,
 		who = parser:get("who"),
 		note = parser:get("note"),
+		arrange = parser:get("arrange"),
 	}
 end
 
