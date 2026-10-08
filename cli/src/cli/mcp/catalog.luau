@@ -449,8 +449,63 @@ local function schema(): json.Object
 	return json.object({ tools = tools })
 end
 
+local function checkValue(field: Field, value: json.Value)
+	local name = field.name
+
+	if field.kind == "boolean" then
+		assert(type(value) == "boolean", `{name} must be a boolean`)
+	elseif field.kind == "int" then
+		assert(
+			type(value) == "number" and value >= 1 and value == math.floor(value),
+			`{name} must be a positive integer`
+		)
+	elseif field.kind == "strings" then
+		local list = json.asArray(value)
+		assert(list, `{name} must be a list of strings`)
+
+		for _, entry in list do
+			assert(type(entry) == "string" and entry ~= "", `{name} must be a list of strings`)
+		end
+	elseif field.kind == "enum" then
+		local values = field.values or {}
+		assert(
+			type(value) == "string" and table.find(values, value),
+			`{name} must be one of: {table.concat(values, ", ")}`
+		)
+	else
+		assert(type(value) == "string", `{name} must be a string`)
+		assert(#value >= (field.minLength or if field.kind == "id" then 1 else 0), `{name} must not be empty`)
+	end
+end
+
+local function check(tool: Tool, args: json.Object)
+	local fields: { [string]: Field } = {}
+
+	for _, field in tool.fields do
+		fields[field.name] = field
+	end
+
+	for key, value in args do
+		if type(key) ~= "string" then
+			continue
+		end
+
+		local field = fields[key]
+		assert(field, `unknown argument: {key}`)
+
+		if not absent(value) then
+			checkValue(field, value)
+		end
+	end
+end
+
+local function has(name: string): boolean
+	return BY_NAME[name] ~= nil
+end
+
 local function argv(name: string, args: json.Object): { string }
 	local tool = assert(BY_NAME[name], `unknown tool: {name}`)
+	check(tool, args)
 
 	if tool.build then
 		return tool.build(args)
@@ -461,5 +516,6 @@ end
 
 return table.freeze({
 	argv = argv,
+	has = has,
 	schema = schema,
 })

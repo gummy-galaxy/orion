@@ -1,7 +1,6 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
-local process = require("@std/process")
 
 local platformDirs = require("@root/platformDirs")
 local types = require("@root/types")
@@ -9,17 +8,8 @@ local types = require("@root/types")
 type CommandRunner = types.CommandRunner
 type Platform = platformDirs.Platform
 
-export type Location = {
-	source: string,
-	cliBin: string,
-	installDir: string,
-	home: string,
-}
-
 export type Request = {
-	source: string,
 	cliBin: string,
-	installDir: string,
 	home: string,
 	clients: { string },
 	write: (string) -> (),
@@ -29,10 +19,7 @@ export type Request = {
 }
 
 local CLIENTS = { "codex", "claude", "cursor" }
-
-local function samePath(left: string, right: string): boolean
-	return tostring(path.normalize(left)) == tostring(path.normalize(right))
-end
+local SERVE_ARGS = { "mcp", "serve" }
 
 local function envValue(env: { [string]: string }, name: string): string?
 	if env[name] then
@@ -113,36 +100,6 @@ local function command(
 	return argv
 end
 
-local function copyTree(source: string, destination: string)
-	if fs.type(source) == "dir" then
-		if not fs.exists(destination) then
-			fs.createDirectory(destination, { makeParents = true })
-		end
-
-		for _, entry in fs.listDirectory(source) do
-			copyTree(tostring(path.join(source, entry.name)), tostring(path.join(destination, entry.name)))
-		end
-
-		return
-	end
-
-	local parent = path.dirname(destination)
-
-	if not fs.exists(parent) then
-		fs.createDirectory(parent, { makeParents = true })
-	end
-
-	if fs.exists(destination) then
-		fs.remove(destination)
-	end
-
-	fs.copy(source, destination)
-end
-
-local function serverReady(directory: string): boolean
-	return fs.exists(path.join(directory, "server.mjs")) and fs.exists(path.join(directory, "node_modules"))
-end
-
 local function clients(name: string?): { string }
 	if name == nil or name == "all" then
 		return table.clone(CLIENTS)
@@ -152,104 +109,19 @@ local function clients(name: string?): { string }
 	return { name }
 end
 
-local function locate(
-	execPath: string,
-	cwd: string,
-	home: string,
-	env: { [string]: string },
-	platform: Platform
-): Location
-	local environment = env
-	local installDir = tostring(path.join(platformDirs.dataDir(platform, home, env), "mcp"))
-	local binName = platformDirs.executableName(platform, "orion")
-	local candidates = {
-		tostring(path.join(path.dirname(execPath), "..", "..", "mcp")),
-		tostring(path.join(path.dirname(execPath), "..", "mcp")),
-		tostring(path.join(cwd, "mcp")),
-		tostring(path.join(cwd, "..", "mcp")),
-		installDir,
-	}
-	local source: string? = nil
-	local sawServer = false
-
-	for _, candidate in candidates do
-		if fs.exists(path.join(candidate, "server.mjs")) then
-			sawServer = true
-
-			if fs.exists(path.join(candidate, "node_modules")) then
-				source = candidate
-				break
-			end
-		end
-	end
-
-	local found = assert(
-		source,
-		if sawServer
-			then "Install MCP dependencies first: npm ci --prefix mcp"
-			else "Could not find the MCP server. Run this from an Orion checkout."
+local function checkBinary(request: Request)
+	local cliBin = request.cliBin
+	assert(
+		path.basename(cliBin) == platformDirs.executableName(request.platform, "orion")
+			and fs.exists(cliBin)
+			and fs.type(cliBin) == "file",
+		"Run register from the built orion binary, such as cli/build/orion"
 	)
-
-	local cliBin = environment.ORION_BIN
-
-	if cliBin == nil or not fs.exists(cliBin) then
-		local built = {
-			tostring(path.join(cwd, "build", binName)),
-			tostring(path.join(cwd, "cli", "build", binName)),
-			tostring(path.join(path.dirname(found), "cli", "build", binName)),
-			tostring(path.join(installDir, binName)),
-		}
-		cliBin = nil
-
-		if path.basename(execPath) == binName then
-			table.insert(built, 1, execPath)
-		end
-
-		for _, candidate in built do
-			if fs.exists(candidate) then
-				cliBin = candidate
-				break
-			end
-		end
-	end
-
-	assert(cliBin ~= nil and fs.exists(cliBin), "Build the Orion CLI first: (cd cli && lute run build)")
-
-	return {
-		source = tostring(path.normalize(found)),
-		cliBin = tostring(path.normalize(cliBin)),
-		installDir = tostring(path.normalize(installDir)),
-		home = home,
-	}
 end
 
-local function installedBinary(request: Request): string
-	return tostring(path.join(request.installDir, platformDirs.executableName(request.platform, "orion")))
-end
-
-local function prepare(request: Request)
-	local source, cliBin, installDir = request.source, request.cliBin, request.installDir
-	assert(fs.exists(cliBin) and fs.type(cliBin) == "file", "Build the Orion CLI first: (cd cli && lute run build)")
-	assert(serverReady(source), "Install MCP dependencies first: npm ci --prefix mcp")
-
-	if not samePath(source, installDir) then
-		if fs.exists(installDir) then
-			fs.removeDirectory(installDir, { recursive = true })
-		end
-
-		copyTree(source, installDir)
-	end
-
-	local installedBin = installedBinary(request)
-
-	if not samePath(cliBin, installedBin) then
-		fs.copy(cliBin, installedBin)
-	end
-
-	if request.platform ~= "windows" then
-		local chmod = process.run({ "chmod", "+x", installedBin })
-		assert(chmod.ok, `chmod failed: {chmod.stderr}`)
-	end
+local function dataDir(request: Request): string?
+	local configured = request.env.ORION_DATA_DIR
+	return if configured and configured ~= "" then tostring(path.resolve(configured)) else nil
 end
 
 local function cursorFile(home: string): string
@@ -275,21 +147,24 @@ local function readCursorConfig(file: string): json.Object
 	return parsed
 end
 
-local function writeCursor(home: string, node: string, server: string, bin: string)
-	local directory = tostring(path.join(home, ".cursor"))
+local function writeCursor(request: Request)
+	local directory = tostring(path.join(request.home, ".cursor"))
 
 	if not fs.exists(directory) then
 		fs.createDirectory(directory, { makeParents = true })
 	end
 
-	local file = cursorFile(home)
+	local file = cursorFile(request.home)
 	local config = readCursorConfig(file)
 	local servers = assert(json.asObject(config.mcpServers))
-	servers.orion = json.object({
-		command = node,
-		args = { server },
-		env = json.object({ ORION_BIN = bin }),
-	})
+	local entry = json.object({ command = request.cliBin, args = table.clone(SERVE_ARGS) })
+	local configured = dataDir(request)
+
+	if configured then
+		entry.env = json.object({ ORION_DATA_DIR = configured })
+	end
+
+	servers.orion = entry
 	config.mcpServers = servers
 	fs.writeStringToFile(file, json.serialize(config, true))
 end
@@ -333,38 +208,41 @@ local function removeArgs(client: string): { string }
 	return argv
 end
 
-local function addArgs(client: string, bin: string, node: string, server: string): { string }
+local function addArgs(client: string, request: Request): { string }
 	local argv = { "mcp", "add", "orion" }
 
 	if client == "claude" then
 		table.insert(argv, "-s")
 		table.insert(argv, "user")
-		table.insert(argv, "-e")
-	else
-		table.insert(argv, "--env")
 	end
 
-	table.insert(argv, `ORION_BIN={bin}`)
+	local configured = dataDir(request)
+
+	if configured then
+		table.insert(argv, if client == "claude" then "-e" else "--env")
+		table.insert(argv, `ORION_DATA_DIR={configured}`)
+	end
+
 	table.insert(argv, "--")
-	table.insert(argv, node)
-	table.insert(argv, server)
+	table.insert(argv, request.cliBin)
+
+	for _, arg in SERVE_ARGS do
+		table.insert(argv, arg)
+	end
+
 	return argv
 end
 
 local function register(request: Request)
-	prepare(request)
+	checkBinary(request)
 
-	local node = findCommand("node", request.env, request.platform)
-	assert(node, "node is not on PATH")
-	local server = tostring(path.join(request.installDir, "server.mjs"))
-	local bin = installedBinary(request)
 	local runner = request.runner
 	local registered = 0
 
 	for _, client in request.clients do
 		if client == "cursor" then
 			if cursorAvailable(request) or #request.clients == 1 then
-				writeCursor(request.home, node, server, bin)
+				writeCursor(request)
 				request.write(
 					`Registered orion in {cursorFile(request.home)}. Restart Cursor or toggle the server in Settings.`
 				)
@@ -382,7 +260,7 @@ local function register(request: Request)
 				runClient(runner, command(program, client, removeArgs(client), request.env, request.platform), false)
 				runClient(
 					runner,
-					command(program, client, addArgs(client, bin, node, server), request.env, request.platform),
+					command(program, client, addArgs(client, request), request.env, request.platform),
 					true
 				)
 				request.write(`Registered orion with {client}.`)
@@ -395,7 +273,7 @@ local function register(request: Request)
 		assert(registered > 0, "No MCP clients were registered.")
 	end
 
-	request.write(`Installed the MCP server at {request.installDir}.`)
+	request.write(`Clients will run {request.cliBin} mcp serve.`)
 end
 
 local function unregister(request: Request)
@@ -424,9 +302,6 @@ end
 
 return table.freeze({
 	clients = clients,
-	command = command,
-	findCommand = findCommand,
-	locate = locate,
 	register = register,
 	unregister = unregister,
 })

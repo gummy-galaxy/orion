@@ -6,8 +6,7 @@ This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs 
 
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
-- `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people.
-- `mcp/`: a local MCP server exposing CLI canvas and workspace actions to agents.
+- `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people. `orion mcp serve` exposes its canvas and workspace actions to agents over MCP.
 - `orion suggest` proposes groups for ungrouped cards (or every card with `--scope all`). It joins cards by links, Jira epics, shared branches, and references, then `--agent codex` or `--agent claude` names and splits the result into groups by outcome. The agent's CLI must already be signed in. Review with `orion suggestions`, then use `orion suggestions apply <id...> | --all` or `orion suggestions dismiss <id...> | --all`. These commands use the selected workspace. The app places new groups to the right of existing ones and refits groups whose cards moved.
 
 ## Data
@@ -67,6 +66,18 @@ That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. S
 
 Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute project.luau loom.config.luau` from `cli/` to format all Luau sources, including the Lute scripts. CI checks the same paths.
+
+### Connect agents over MCP
+
+`orion mcp serve` runs an MCP server over stdin and stdout, so AI clients can discover Orion's canvas and workspace tools and call them directly. Each tool maps its arguments onto an existing CLI command in the same process, so the CLI stays the only writer and never runs a shell command built from tool input.
+
+```sh
+cli/build/orion mcp register
+```
+
+The desktop app bundles the same binary, so `/Applications/Orion.app/Contents/MacOS/orion mcp register` registers the installed app's copy. `register` connects whichever of Codex, Claude, and Cursor are installed. Pass `codex`, `claude`, or `cursor` to connect one of them. Clients launch the binary you ran `register` from, so run it from where `orion` will stay, and run it again if you move it. Claude is registered for your user. Cursor reads `~/.cursor/mcp.json`; restart Cursor or toggle the server after registering. If `ORION_DATA_DIR` is set, `register` passes it to the server. Run `orion mcp unregister` to remove those entries.
+
+Registration does not grant write approval. In a Codex session with approval policy `never`, reads work but Codex rejects write tool calls before they reach Orion. For unattended local edits, a saved approval rule for the Orion CLI is currently the working route.
 
 ### Sources
 
@@ -144,6 +155,7 @@ In `cli/src/`:
 
 - `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
 - `cli/focus.luau`: reads and renders the app's reported open group and selection.
+- `cli/mcp/`: the MCP server, its tool catalog, and client registration.
 - `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.
 - `server/`: HTTP routes, WebSocket events, file watching, and sync scheduling for `orion serve`.
 - `graph.luau`: derived status and leverage, and every edit the commands make.

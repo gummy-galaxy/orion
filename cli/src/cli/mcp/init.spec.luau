@@ -5,10 +5,8 @@ local catalog = require("@root/cli/mcp/catalog")
 local cli = require("@root/cli")
 local testing = require("@root/testing")
 
-test.case("mcp tools prints the agent catalog", function(assert)
-	local _, run = testing.createHarness("mcp-tools")
-	local printed = json.asObject(json.deserialize(run({ "mcp", "tools" })) :: json.Value)
-	local tools = if printed then json.asArray(printed.tools) else nil
+test.case("the catalog describes each tool and maps arguments to commands", function(assert)
+	local tools = json.asArray(catalog.schema().tools)
 	local names: { [string]: boolean } = {}
 
 	for _, tool in tools or {} do
@@ -29,6 +27,21 @@ test.case("mcp tools prints the agent catalog", function(assert)
 	assert.eq(table.concat(catalog.argv("orion_move", json.object({ id = "ci" })), " "), "move ci --top")
 	assert.throwsWith("missing id", function()
 		catalog.argv("orion_inspect", json.object({ view = "show" }))
+	end)
+end)
+
+test.case("the catalog rejects arguments its schema does not allow", function(assert)
+	assert.throwsWith("unknown argument: colour", function()
+		catalog.argv("orion_add_item", json.object({ title = "A", colour = "red" }))
+	end)
+	assert.throwsWith("status must be one of: todo, active, review, blocked, deferred, done", function()
+		catalog.argv("orion_add_item", json.object({ title = "A", status = "later" }))
+	end)
+	assert.throwsWith("pr must be a positive integer", function()
+		catalog.argv("orion_add_item", json.object({ title = "A", pr = 1.5 }))
+	end)
+	assert.throwsWith("items must be a list of strings", function()
+		catalog.argv("orion_group", json.object({ label = "G", items = { 1 } }))
 	end)
 end)
 
