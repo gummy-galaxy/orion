@@ -1,7 +1,8 @@
+import { memo } from 'react'
 import { BaseEdge, type EdgeProps } from '@xyflow/react'
 
 /** Route arrows behind their source around the cards while keeping nearby arrows gently curved. */
-export function CurveEdge(props: EdgeProps) {
+export const CurveEdge = memo(function CurveEdge(props: EdgeProps) {
   const { sourceX, sourceY, targetX, targetY, markerEnd, style, label, labelStyle } = props
   const reach = Math.min(80, Math.max(36, Math.abs(targetY - sourceY) / 3))
 
@@ -32,4 +33,4 @@ export function CurveEdge(props: EdgeProps) {
     `C${targetX - approach * 2},${midY} ${targetX - approach},${targetY} ${targetX},${targetY}`,
   ].join(' ')
   return <BaseEdge path={path} markerEnd={markerEnd} style={style} label={label} labelStyle={labelStyle} labelX={midX} labelY={midY} />
-}
+})

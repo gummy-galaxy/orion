@@ -1,8 +1,9 @@
-import { useContext, type ReactNode } from 'react'
+import { memo, useContext, type ReactNode } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import { ActionsContext, DerivedContext } from './derive'
+import { ActionsContext } from './derive'
 import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
 import { SourceBadges } from './SourceBadges'
+import { useCollapsed, useGroupStats, useLeverage, useMarked, useSources, useStatus, useTraceRole } from './state'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
@@ -44,13 +45,14 @@ function FarTag({ className, children }: { className: string; children: ReactNod
   )
 }
 
-export function TaskView({ id, data }: NodeProps<TaskNode>) {
-  const derived = useContext(DerivedContext)!
+// Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
+export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>) {
   const far = useStore((state) => state.transform[2] < FAR_ZOOM)
-  const status = derived.status.get(id) ?? 'ready'
-  const leverage = derived.leverage.get(id) ?? 0
-  const trace = derived.trace?.get(id)
-  const attention = derived.attention?.get(id)
+  const status = useStatus(id)
+  const leverage = useLeverage(id)
+  const trace = useTraceRole(id)
+  const attention = useMarked(id)
+  const sources = useSources(id)
   if (data.itemKind === 'note') {
     const className = `card note${trace ? ' tr-' + trace : ''}`
     const body = (
@@ -59,7 +61,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
           <span>Note</span>
         </div>
         <div className="note-text">{data.label || 'Empty note'}</div>
-        <SourceBadges sources={derived.sources.get(id) ?? []} />
+        <SourceBadges sources={sources} />
       </>
     )
     return (
@@ -88,7 +90,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       <div className="label">{data.label}</div>
       {status !== 'done' && status !== 'deferred' && leverage > 0 && <span className={`lev${leverage >= 4 ? ' big' : ''}`}>unblocks {leverage}</span>}
       {status !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
-      <SourceBadges sources={derived.sources.get(id) ?? []} />
+      <SourceBadges sources={sources} />
     </>
   )
   return (
@@ -98,11 +100,11 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       <Handle type="source" position={Position.Right} />
     </div>
   )
-}
+})
 
-export function GhostView({ data }: NodeProps<GhostNode>) {
-  const derived = useContext(DerivedContext)!
-  const trace = derived.trace?.get(data.taskId)
+export const GhostView = memo(function GhostView({ data }: NodeProps<GhostNode>) {
+  const trace = useTraceRole(data.taskId)
+  const sources = useSources(data.taskId)
   return (
     <div className={`ghost st-${data.status} side-${data.side}${trace ? ' tr-' + trace : ''}`} title={`Jump to ${data.label}`}>
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
@@ -111,19 +113,19 @@ export function GhostView({ data }: NodeProps<GhostNode>) {
       </span>
       <span className="label">{data.label}</span>
       <span className="ghost-status">{STATUS_LABEL[data.status]}</span>
-      <SourceBadges sources={derived.sources.get(data.taskId) ?? []} />
+      <SourceBadges sources={sources} />
       {data.side === 'in' && <Handle type="source" position={Position.Right} isConnectable={false} />}
     </div>
   )
-}
+})
 
-export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
-  const derived = useContext(DerivedContext)!
+export const ClusterView = memo(function ClusterView({ id, data }: NodeProps<ClusterNode>) {
   const actions = useContext(ActionsContext)!
-  const stats = derived.groups.get(id) ?? { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
-  const collapsed = derived.collapsed.has(id)
-  const trace = derived.trace?.get(id)
-  const attention = derived.attention?.get(id)
+  const stats = useGroupStats(id)
+  const collapsed = useCollapsed(id)
+  const trace = useTraceRole(id)
+  const attention = useMarked(id)
+  const sources = useSources(id)
   return (
     <div className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} />
@@ -140,7 +142,7 @@ export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
                 {stats.done}/{stats.total} done · {stats.ready} ready · {stats.blocked} blocked
               </span>
               {stats.outside > 0 && <span className="bubble-lev">unblocks {stats.outside} outside</span>}
-              <SourceBadges sources={derived.sources.get(id) ?? []} inBubble />
+              <SourceBadges sources={sources} inBubble />
             </div>
           </div>
         </div>
@@ -164,8 +166,8 @@ export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
           </span>
         </div>
       )}
-      {!collapsed && <SourceBadges sources={derived.sources.get(id) ?? []} />}
+      {!collapsed && <SourceBadges sources={sources} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
   )
-}
+})
