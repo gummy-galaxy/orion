@@ -1,9 +1,9 @@
-import type { SourceRef } from './derive'
+import type { SourceRef } from '../derive'
 import { Favicon } from './Favicon'
 import { SourceLink } from './SourceLink'
 import { SourceMenu } from './SourceMenu'
 
-export function SourceBadges({ sources, inBubble = false }: { sources: SourceRef[]; inBubble?: boolean }) {
+export function SourceBadges({ sources }: { sources: SourceRef[] }) {
   const domains = new Map<string, SourceRef[]>()
   if (!sources.length) return null
   for (const source of sources) {
@@ -12,7 +12,7 @@ export function SourceBadges({ sources, inBubble = false }: { sources: SourceRef
     domains.set(source.domain, entries)
   }
   return (
-    <div className={`source-badges${inBubble ? ' in-bubble' : ''}`}>
+    <div className="source-badges">
       {[...domains].map(([domain, entries]) => {
         return entries.length === 1 ? (
           <span key={domain} className="source-domain nodrag" title={`${domain}: ${entries[0].label}`}>

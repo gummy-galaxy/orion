@@ -7,23 +7,11 @@ export type Flow = 'live' | 'held'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
 export type SourceRef = { domain: string; label: string; href?: string }
 
-export type Derived = {
-  status: Map<string, ViewStatus>
-  leverage: Map<string, number>
-  groups: Map<string, GroupStats>
-  sources: Map<string, SourceRef[]>
-  trace: Map<string, TraceRole> | null
-  collapsed: Set<string>
-  /** While ⌘ is held: what needs you, keyed by the card or folded group that shows it. */
-  attention: Map<string, AttentionMark> | null
-}
-
 export type Actions = {
   reflow: (groupId: string) => void
   open: (groupId: string) => void
 }
 
-export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
 
 /** Where a card's work comes from, or null for a card that only lives in Orion. */
@@ -83,12 +71,14 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
   }
   const { preds: predecessors, succs: successors } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
-  // A note is open while anything feeding into it is, so blocking passes through notes.
+  const isGate = (id: string) => tasks.get(id)?.data.itemKind === 'gate' && predecessors.has(id)
+  // A note is open while anything feeding into it is, so blocking passes through notes. Gates pass it
+  // through the same way but count as work: one is done once everything it waits on is.
   const noteOpen = new Map<string, boolean>()
   const open = (id: string, seen = new Set<string>()): boolean => {
     const task = tasks.get(id)
     if (!task) return false
-    if (!isNote(id)) return task.data.status !== 'done'
+    if (!isNote(id) && !isGate(id)) return task.data.status !== 'done'
     if (noteOpen.has(id)) return noteOpen.get(id)!
     if (seen.has(id)) return false
     seen.add(id)
@@ -100,7 +90,7 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
   const status = new Map<string, ViewStatus>()
   for (const task of tasks.values()) {
     const statusValue = task.data.status
-    if (isNote(task.id)) status.set(task.id, open(task.id) ? 'blocked' : 'done')
+    if (isNote(task.id) || (isGate(task.id) && statusValue !== 'deferred')) status.set(task.id, open(task.id) ? 'blocked' : 'done')
     else if (statusValue === 'done' || statusValue === 'deferred' || statusValue === 'blocked') status.set(task.id, statusValue)
     else if ((predecessors.get(task.id) ?? []).some((predecessor) => open(predecessor))) status.set(task.id, 'blocked')
     else status.set(task.id, statusValue === 'todo' ? 'ready' : statusValue)
@@ -165,6 +155,8 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
 
   return { status, flow, leverage, groups, sources, preds: predecessors, succs: successors }
 }
+
+export type Work = ReturnType<typeof deriveWork>
 
 /** What `id` needs, what it unlocks, and the cards related to it directly; everything else dims. */
 export function traceFrom(id: string, predecessors: Map<string, string[]>, successors: Map<string, string[]>, ids: string[], related: string[] = []) {

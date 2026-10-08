@@ -9,6 +9,8 @@ use std::{
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
+mod usage;
+
 fn get_free_port() -> std::io::Result<u16> {
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
     Ok(listener.local_addr()?.port())
@@ -73,6 +75,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .manage(usage::UsageSamples::default())
+        .invoke_handler(tauri::generate_handler![usage::process_usage])
         .setup(move |app| {
             let url = if cfg!(debug_assertions) {
                 WebviewUrl::App("index.html".into())

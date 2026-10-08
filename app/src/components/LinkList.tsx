@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import type { deriveWork } from './derive'
-import { STATUS_LABEL, isTask, type AppNode, type ClusterData, type Link, type TaskData } from './model'
+import type { deriveWork } from '../derive'
+import { STATUS_LABEL, isTask, type AppNode, type ClusterData, type Link, type TaskData } from '../model'
 
 type Direction = 'waits' | 'unblocks' | 'related'
 const DIRECTION_LABEL: Record<Direction, string> = { waits: 'Waits on', unblocks: 'Unblocks', related: 'Related' }
