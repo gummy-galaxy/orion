@@ -1,4 +1,4 @@
-import type { SourceRef } from './derive'
+import type { SourceRef } from '../derive'
 import { Favicon } from './Favicon'
 import { SourceLink } from './SourceLink'
 import { SourceMenu } from './SourceMenu'

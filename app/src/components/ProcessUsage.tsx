@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { inDesktop } from './external'
+import { inDesktop } from '../external'
 
 /** One of the app's processes as the desktop shell reports it: CPU in percent of a core, memory in bytes. */
 type ProcessSample = { name: string; cpu: number | null; memory: number }
