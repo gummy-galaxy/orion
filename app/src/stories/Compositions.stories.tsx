@@ -1,8 +1,8 @@
 import { Provider } from 'jotai'
 import { ReactFlowProvider } from '@xyflow/react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import App from '../App'
-import { Canvas } from '../Canvas'
+import App from '../components/App'
+import { Canvas } from '../components/Canvas'
 
 const meta = { title: 'App/Compositions', parameters: { layout: 'fullscreen' } } satisfies Meta
 export default meta
