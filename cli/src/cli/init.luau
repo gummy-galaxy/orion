@@ -9,6 +9,7 @@ local focus = require("@root/cli/focus")
 local github = require("@root/github")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
+local initCommand = require("@root/cli/initCommand")
 local media = require("@root/cli/media")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
@@ -57,6 +58,7 @@ local COMMANDS: { [string]: Command } = {
 	workspace = workspace,
 	source = source,
 	ingest = ingest,
+	init = initCommand,
 }
 
 local COMMAND_HELP: { [string]: string } = {
@@ -206,6 +208,7 @@ local function createParsers(): Parsers
 	registeredCommand("serve")
 	registeredCommand("source")
 	registeredCommand("ingest")
+	registeredCommand("init")
 
 	registeredCommand("suggest")
 	registeredCommand("suggestions")

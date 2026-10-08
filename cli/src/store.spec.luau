@@ -7,7 +7,7 @@ local store = require("@root/store")
 local testing = require("@root/testing")
 
 test.case("load explains how to create data when none exists", function(assert)
-	assert.throwsWith("Open the Orion app once to create it.", function()
+	assert.throwsWith("Run orion init or open the Orion app once to create it.", function()
 		store.load(testing.directory("missing"))
 	end)
 end)
