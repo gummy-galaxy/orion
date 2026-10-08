@@ -8,7 +8,6 @@ local getClients = require("@root/cli/mcp/clients/getClients")
 local getPlatform = require("@root/platform/getPlatform")
 local mcpTypes = require("@root/cli/mcp/types")
 local registerClients = require("@root/cli/mcp/clients/registerClients")
-local runtime = require("@root/cli/mcp/runtime")
 local serve = require("@root/cli/mcp/server/serve")
 local unregisterClients = require("@root/cli/mcp/clients/unregisterClients")
 
@@ -34,7 +33,7 @@ return table.freeze({
 
 		if name == "serve" then
 			serve(luteIo.read, luteIo.write, function(argv, write)
-				runtime.run(argv, {
+				options.execute(argv, {
 					dataDir = options.root,
 					-- Resolved on every call so orion_select_workspace applies to later calls.
 					workspace = nil,

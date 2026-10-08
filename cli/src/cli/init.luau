@@ -10,7 +10,6 @@ local github = require("@root/github")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
 local mcp = require("@root/cli/mcp")
-local mcpRuntime = require("@root/cli/mcp/runtime")
 local media = require("@root/cli/media")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
@@ -30,13 +29,7 @@ type Context = context.Context
 
 type Command = context.Command
 
-export type Dependencies = {
-	runner: types.CommandRunner?,
-	write: ((string) -> ())?,
-	dataDir: string?,
-	workspace: string?,
-	now: (() -> string)?,
-}
+export type Dependencies = context.Dependencies
 
 type Resolved = {
 	runner: types.CommandRunner,
@@ -425,6 +418,7 @@ local function execute(args: { string }, options: Dependencies?)
 			asJson = asJson,
 			runner = deps.runner,
 			now = deps.now,
+			execute = execute,
 		})
 		return
 	end
@@ -624,10 +618,6 @@ local function run(argv: { string })
 		process.exit(1)
 	end
 end
-
-mcpRuntime.bind(function(argv, options)
-	execute(argv, options :: Dependencies)
-end)
 
 return table.freeze({
 	execute = execute,

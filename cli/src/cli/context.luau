@@ -1,6 +1,14 @@
 local batteriesCli = require("@batteries/cli")
 local types = require("@root/types")
 
+export type Dependencies = {
+	runner: types.CommandRunner?,
+	write: ((string) -> ())?,
+	dataDir: string?,
+	workspace: string?,
+	now: (() -> string)?,
+}
+
 export type Context = {
 	dir: string,
 	root: string,
@@ -9,6 +17,8 @@ export type Context = {
 	asJson: boolean,
 	runner: types.CommandRunner,
 	now: () -> string,
+	-- Runs another CLI command in this process, for commands such as mcp serve that relay to the CLI.
+	execute: (argv: { string }, options: Dependencies?) -> (),
 }
 
 export type Command = {
