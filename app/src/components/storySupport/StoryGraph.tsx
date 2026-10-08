@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Provider, createStore } from 'jotai'
 import { ReactFlow, ReactFlowProvider, type Edge, type EdgeTypes, type NodeTypes } from '@xyflow/react'
-import { ActionsContext } from '../derive'
-import type { AppNode, GhostNode } from '../model'
-import { githubOwnerAtom, linksAtom, nodesAtom } from '../state'
+import { ActionsContext } from '../../derive'
+import type { AppNode, GhostNode } from '../../model'
+import { githubOwnerAtom, linksAtom, nodesAtom } from '../../state'
 import { blocker, links, task } from './data'
 
 export function StoryGraph({

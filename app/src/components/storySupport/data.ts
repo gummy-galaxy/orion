@@ -1,5 +1,5 @@
-import { deriveWork, type SourceRef } from '../derive'
-import type { AppNode, ClusterNode, GhostNode, Link, TaskNode } from '../model'
+import { deriveWork, type SourceRef } from '../../derive'
+import type { AppNode, ClusterNode, GhostNode, Link, TaskNode } from '../../model'
 
 export const task: TaskNode = {
   id: 'task',
