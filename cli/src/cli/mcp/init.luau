@@ -4,11 +4,15 @@ local path = require("@std/path")
 local process = require("@std/process")
 
 local context = require("@root/cli/context")
-local install = require("@root/cli/mcp/install")
+local getClients = require("@root/cli/mcp/clients/getClients")
+local mcpTypes = require("@root/cli/mcp/types")
 local platformDirs = require("@root/platformDirs")
+local registerClients = require("@root/cli/mcp/clients/registerClients")
 local runtime = require("@root/cli/mcp/runtime")
-local server = require("@root/cli/mcp/server")
+local serve = require("@root/cli/mcp/server/serve")
+local unregisterClients = require("@root/cli/mcp/clients/unregisterClients")
 
+type ClientRequest = mcpTypes.ClientRequest
 type Context = context.Context
 
 local function addClient(parser: batteriesCli.Parser, help: string)
@@ -32,7 +36,7 @@ return table.freeze({
 		assert(name and subcommand, "choose serve, register, or unregister")
 
 		if name == "serve" then
-			server.serve(luteIo.read, luteIo.write, function(argv, write)
+			serve(luteIo.read, luteIo.write, function(argv, write)
 				runtime.run(argv, {
 					dataDir = options.root,
 					-- Resolved on every call so orion_select_workspace applies to later calls.
@@ -45,20 +49,20 @@ return table.freeze({
 			return
 		end
 
-		local request: install.Request = {
-			cliBin = tostring(path.normalize(process.execPath())),
+		local request: ClientRequest = {
+			binary = tostring(path.normalize(process.execPath())),
 			home = tostring(process.homedir()),
-			clients = install.clients(subcommand:get("client")),
+			clients = getClients(subcommand:get("client")),
 			write = options.write,
 			runner = options.runner,
-			env = process.env,
+			environment = process.env,
 			platform = platformDirs.current(),
 		}
 
 		if name == "register" then
-			install.register(request)
+			registerClients(request)
 		else
-			install.unregister(request)
+			unregisterClients(request)
 		end
 	end,
 })

@@ -1,5 +1,6 @@
 local json = require("@std/json")
 
+local fieldValues = require("@root/fieldValues")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -13,10 +14,6 @@ local TASK_HEIGHT = 72
 local GROUP_PADDING = 32
 local GROUP_HEADER_HEIGHT = 78
 local ITEM_GAP = 48
-
-local STATUSES = { todo = true, active = true, review = true, blocked = true, deferred = true, done = true }
-local WHO = { you = true, review = true, ci = true }
-local ARRANGE = { auto = true, custom = true }
 
 export type Derived = {
 	status: { [string]: string },
@@ -322,13 +319,22 @@ end
 
 local function checkFields(fields: ItemFields)
 	assert(
-		fields.status == nil or STATUSES[fields.status],
-		`status must be one of todo, active, review, blocked, deferred, done`
+		fields.status == nil or table.find(fieldValues.statuses, fields.status),
+		`status must be one of {table.concat(fieldValues.statuses, ", ")}`
 	)
-	assert(fields.who == nil or fields.who == "" or WHO[fields.who], `who must be one of you, review, ci`)
+	assert(
+		fields.who == nil or fields.who == "" or table.find(fieldValues.who, fields.who),
+		`who must be one of {table.concat(fieldValues.who, ", ")}`
+	)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
-	assert(fields.kind == nil or fields.kind == "step" or fields.kind == "gate", "kind must be step or gate")
-	assert(fields.arrange == nil or ARRANGE[fields.arrange], "arrange must be one of auto, custom")
+	assert(
+		fields.kind == nil or table.find(fieldValues.kinds, fields.kind),
+		`kind must be {table.concat(fieldValues.kinds, " or ")}`
+	)
+	assert(
+		fields.arrange == nil or table.find(fieldValues.arrangements, fields.arrange),
+		`arrange must be one of {table.concat(fieldValues.arrangements, ", ")}`
+	)
 end
 
 export type AddOptions = ItemFields & { group: string? }

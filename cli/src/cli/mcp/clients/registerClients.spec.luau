@@ -3,10 +3,13 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
-local install = require("@root/cli/mcp/install")
+local getClients = require("@root/cli/mcp/clients/getClients")
+local mcpTypes = require("@root/cli/mcp/types")
 local platformDirs = require("@root/platformDirs")
+local registerClients = require("@root/cli/mcp/clients/registerClients")
 local testing = require("@root/testing")
 local types = require("@root/types")
+local unregisterClients = require("@root/cli/mcp/clients/unregisterClients")
 
 type CommandResult = types.CommandResult
 type Platform = platformDirs.Platform
@@ -26,9 +29,9 @@ end
 
 local function fixture(name: string, platform: Platform?)
 	local root = testing.directory(name)
-	local bin = path.join(root, "cli", "build", platformDirs.executableName(platform or "macos", "orion"))
-	fs.createDirectory(path.dirname(bin), { makeParents = true })
-	fs.writeStringToFile(bin, "binary\n")
+	local binary = path.join(root, "cli", "build", platformDirs.executableName(platform or "macos", "orion"))
+	fs.createDirectory(path.dirname(binary), { makeParents = true })
+	fs.writeStringToFile(binary, "binary\n")
 	local home = path.join(root, "home")
 	fs.createDirectory(path.join(home, ".cursor"), { makeParents = true })
 	fs.writeStringToFile(
@@ -42,7 +45,7 @@ local function fixture(name: string, platform: Platform?)
 	)
 	return {
 		root = root,
-		bin = tostring(bin),
+		binary = tostring(binary),
 		home = tostring(home),
 		path = tostring(path.join(root, "tools")),
 	}
@@ -65,14 +68,14 @@ test.case("register points Cursor at orion mcp serve without dropping other serv
 	local setup = fixture("mcp-register")
 	local output: { string } = {}
 
-	install.register({
-		cliBin = setup.bin,
+	registerClients({
+		binary = setup.binary,
 		home = setup.home,
-		clients = install.clients(nil),
+		clients = getClients(nil),
 		write = function(line: string)
 			table.insert(output, line)
 		end,
-		env = { PATH = setup.path },
+		environment = { PATH = setup.path },
 		platform = "macos",
 		runner = function(_argv: { string }, _stdin: string?): CommandResult
 			error("no CLI client should be spawned")
@@ -87,10 +90,10 @@ test.case("register points Cursor at orion mcp serve without dropping other serv
 	local servers = cursorServers(setup.home)
 	local other = if servers then json.asObject(servers.other) else nil
 	local orion = if servers then json.asObject(servers.orion) else nil
-	local args = if orion then json.asArray(orion.args) else nil
+	local arguments = if orion then json.asArray(orion.args) else nil
 	assert.eq(other and other.command, "other")
-	assert.eq(orion and orion.command, setup.bin)
-	assert.eq(args and table.concat(args :: { any }, " "), "mcp serve")
+	assert.eq(orion and orion.command, setup.binary)
+	assert.eq(arguments and table.concat(arguments :: { any }, " "), "mcp serve")
 	assert.eq(orion and orion.env, nil)
 end)
 
@@ -101,25 +104,25 @@ test.case("register calls Codex and Claude and forwards ORION_DATA_DIR", functio
 	local calls: { string } = {}
 	local dataDir = tostring(path.join(setup.root, "data"))
 
-	install.register({
-		cliBin = setup.bin,
+	registerClients({
+		binary = setup.binary,
 		home = setup.home,
-		clients = install.clients("all"),
+		clients = getClients("all"),
 		write = quiet,
-		env = { PATH = setup.path, ORION_DATA_DIR = dataDir },
+		environment = { PATH = setup.path, ORION_DATA_DIR = dataDir },
 		platform = "macos",
 		runner = recorder(calls),
 	})
 
 	local text = table.concat(calls, "\n")
-	assert.strContains(text, `mcp add orion --env ORION_DATA_DIR={dataDir} -- {setup.bin} mcp serve`)
-	assert.strContains(text, `mcp add orion -s user -e ORION_DATA_DIR={dataDir} -- {setup.bin} mcp serve`)
+	assert.strContains(text, `mcp add orion --env ORION_DATA_DIR={dataDir} -- {setup.binary} mcp serve`)
+	assert.strContains(text, `mcp add orion -s user -e ORION_DATA_DIR={dataDir} -- {setup.binary} mcp serve`)
 	assert.strContains(text, "mcp remove orion -s user")
 
 	local servers = cursorServers(setup.home)
 	local orion = if servers then json.asObject(servers.orion) else nil
-	local env = if orion then json.asObject(orion.env) else nil
-	assert.eq(env and env.ORION_DATA_DIR, dataDir)
+	local environment = if orion then json.asObject(orion.env) else nil
+	assert.eq(environment and environment.ORION_DATA_DIR, dataDir)
 end)
 
 test.case("register runs Windows npm shims through cmd.exe and serves from orion.exe", function(assert)
@@ -128,37 +131,37 @@ test.case("register runs Windows npm shims through cmd.exe and serves from orion
 	command(setup.root, "claude.exe")
 	local calls: { string } = {}
 
-	install.register({
-		cliBin = setup.bin,
+	registerClients({
+		binary = setup.binary,
 		home = setup.home,
-		clients = install.clients("all"),
+		clients = getClients("all"),
 		write = quiet,
-		env = { Path = `{setup.path};C:\\Windows`, PATHEXT = ".COM;.EXE;.BAT;.CMD", ComSpec = "C:\\cmd.exe" },
+		environment = { Path = `{setup.path};C:\\Windows`, PATHEXT = ".COM;.EXE;.BAT;.CMD", ComSpec = "C:\\cmd.exe" },
 		platform = "windows",
 		runner = recorder(calls),
 	})
 
 	local text = table.concat(calls, "\n")
-	assert.strContains(text, `C:\\cmd.exe /d /c codex mcp add orion -- {setup.bin} mcp serve`)
-	assert.strContains(text, `{command(setup.root, "claude.exe")} mcp add orion -s user -- {setup.bin} mcp serve`)
-	assert.eq(path.basename(setup.bin), "orion.exe")
+	assert.strContains(text, `C:\\cmd.exe /d /c codex mcp add orion -- {setup.binary} mcp serve`)
+	assert.strContains(text, `{command(setup.root, "claude.exe")} mcp add orion -s user -- {setup.binary} mcp serve`)
+	assert.eq(path.basename(setup.binary), "orion.exe")
 end)
 
 test.case("unregister removes the clients it registered", function(assert)
 	local setup = fixture("mcp-unregister")
 	command(setup.root, "codex")
 	local calls: { string } = {}
-	local request: install.Request = {
-		cliBin = setup.bin,
+	local request: mcpTypes.ClientRequest = {
+		binary = setup.binary,
 		home = setup.home,
-		clients = install.clients("all"),
+		clients = getClients("all"),
 		write = quiet,
-		env = { PATH = setup.path },
+		environment = { PATH = setup.path },
 		platform = "macos",
 		runner = recorder(calls),
 	}
-	install.register(request)
-	install.unregister(request)
+	registerClients(request)
+	unregisterClients(request)
 
 	local servers = cursorServers(setup.home)
 	local other = if servers then json.asObject(servers.other) else nil
@@ -172,12 +175,12 @@ test.case("register asks to run from the built orion binary", function(assert)
 	local lute = command(setup.root, "lute")
 
 	assert.throwsWith("Run register from the built orion binary, such as cli/build/orion", function()
-		install.register({
-			cliBin = lute,
+		registerClients({
+			binary = lute,
 			home = setup.home,
 			clients = { "cursor" },
 			write = quiet,
-			env = { PATH = setup.path },
+			environment = { PATH = setup.path },
 			platform = "macos",
 			runner = succeeded,
 		})
