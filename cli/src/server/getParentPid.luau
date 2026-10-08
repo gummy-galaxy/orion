@@ -6,7 +6,7 @@ local types = require("@root/types")
 type CommandRunner = types.CommandRunner
 
 -- Lute has no parent pid API, so ask ps.
-local function getParentProcessId(runner: CommandRunner?, processId: number?): number?
+local function getParentPid(runner: CommandRunner?, processId: number?): number?
 	local run = runner or runCommand
 	local result = run({ "ps", "-o", "ppid=", "-p", tostring(processId or process.pid()) })
 
@@ -17,4 +17,4 @@ local function getParentProcessId(runner: CommandRunner?, processId: number?): n
 	return tonumber((result.stdout:gsub("%s", "")))
 end
 
-return getParentProcessId
+return getParentPid

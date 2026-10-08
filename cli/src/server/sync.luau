@@ -60,9 +60,9 @@ function sync.create(
 		running.message = nil
 		setStatus(running)
 		local didSucceed, failure = pcall(function()
-			local directory = store.getWorkspaceDirectory(root, target)
-			local fetched = github.collect(store.load(directory), command, false)
-			store.transaction(directory, function(doc)
+			local dir = store.getWorkspaceDir(root, target)
+			local fetched = github.collect(store.load(dir), command, false)
+			store.transaction(dir, function(doc)
 				github.apply(doc, fetched, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
 			end)
 		end)

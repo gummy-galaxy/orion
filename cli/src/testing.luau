@@ -1,4 +1,4 @@
-local filesystem = require("@std/fs")
+local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
@@ -18,13 +18,13 @@ local sequence = 0
 
 function testing.directory(name: string): string
 	sequence += 1
-	local directory = tostring(path.join(system.tmpdir(), `orion-spec-{process.pid()}-{sequence}-{name}`))
+	local dir = tostring(path.join(system.tmpdir(), `orion-spec-{process.pid()}-{sequence}-{name}`))
 
-	if filesystem.exists(directory) then
-		filesystem.removeDirectory(directory, { recursive = true })
+	if fs.exists(dir) then
+		fs.removeDirectory(dir, { recursive = true })
 	end
 
-	return directory
+	return dir
 end
 
 function testing.task(id: string, label: string, status: string, parentId: string?, extra: json.Object?): Item
@@ -70,7 +70,7 @@ function testing.result(succeeded: boolean, stdout: string): types.CommandResult
 end
 
 function testing.run(
-	directory: string,
+	dir: string,
 	args: { string },
 	runner: types.CommandRunner?,
 	now: string?,
@@ -78,7 +78,7 @@ function testing.run(
 ): string
 	local output: { string } = {}
 	cli.execute(args, {
-		dataDirectory = directory,
+		dataDir = dir,
 		workspace = workspace,
 		write = function(line)
 			table.insert(output, line)
@@ -93,9 +93,9 @@ function testing.run(
 end
 
 function testing.createHarness(name: string)
-	local directory = testing.directory(name)
+	local dir = testing.directory(name)
 	store.write(
-		directory,
+		dir,
 		testing.createDoc({
 			testing.group("ws", "Release"),
 			testing.task("ci", "Report release health", "active", "ws", { repo = "flipbook", pr = 658 }),
@@ -109,10 +109,10 @@ function testing.createHarness(name: string)
 	end
 
 	local function run(args: { string }, runner: types.CommandRunner?)
-		return testing.run(directory, args, runner, nil, workspace)
+		return testing.run(dir, args, runner, nil, workspace)
 	end
 
-	return directory, run, setWorkspace
+	return dir, run, setWorkspace
 end
 
 return testing

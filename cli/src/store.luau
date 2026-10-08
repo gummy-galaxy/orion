@@ -1,4 +1,4 @@
-local filesystem = require("@std/fs")
+local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
@@ -29,7 +29,7 @@ local function asString(value: json.Value): string?
 	return if type(value) == "string" then value else nil
 end
 
-function store.defaultDirectory(): string
+function store.defaultDir(): string
 	local configured = process.env.ORION_DATA_DIR
 
 	if configured and configured ~= "" then
@@ -43,7 +43,7 @@ function store.isValidWorkspace(name: string): boolean
 	return name ~= "" and name:match("^[a-z0-9%-]+$") ~= nil
 end
 
-function store.getWorkspaceDirectory(root: string, name: string): string
+function store.getWorkspaceDir(root: string, name: string): string
 	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
 	return if name == "default" then root else tostring(path.join(root, "workspaces", name))
 end
@@ -52,11 +52,11 @@ function store.getWorkspaces(root: string): WorkspaceList
 	local file = tostring(path.join(root, fileNames.workspaces))
 	local result: WorkspaceList = { active = "default", workspaces = { { name = "default", label = "Default" } } }
 
-	if not filesystem.exists(file) then
+	if not fs.exists(file) then
 		return result
 	end
 
-	local raw = json.asObject(json.deserialize(filesystem.readFileToString(file)) :: json.Value)
+	local raw = json.asObject(json.deserialize(fs.readFileToString(file)) :: json.Value)
 	assert(raw, `invalid workspace list at {file}`)
 	local names: { [string]: boolean } = { default = true }
 
@@ -83,8 +83,8 @@ end
 local workspaceWriteSequence = 0
 
 local function writeWorkspaces(root: string, list: WorkspaceList)
-	if not filesystem.exists(root) then
-		filesystem.createDirectory(root, { makeParents = true })
+	if not fs.exists(root) then
+		fs.createDirectory(root, { makeParents = true })
 	end
 
 	local entries: json.Array = {}
@@ -95,11 +95,8 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 	local file = tostring(path.join(root, fileNames.workspaces))
 	workspaceWriteSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{workspaceWriteSequence}`
-	filesystem.writeStringToFile(
-		temporary,
-		json.serialize(json.object({ active = list.active, workspaces = entries }), true)
-	)
-	filesystem.move(temporary, file)
+	fs.writeStringToFile(temporary, json.serialize(json.object({ active = list.active, workspaces = entries }), true))
+	fs.move(temporary, file)
 end
 
 function store.getActiveWorkspace(root: string, requested: string?, configured: string?): string
@@ -126,9 +123,9 @@ function store.createWorkspace(root: string, name: string, label: string?, owner
 		assert(workspace.name ~= name, `workspace already exists: {name}`)
 	end
 
-	local directory = store.getWorkspaceDirectory(root, name)
-	assert(not filesystem.exists(directory), `workspace folder already exists: {directory}`)
-	store.write(directory, {
+	local dir = store.getWorkspaceDir(root, name)
+	assert(not fs.exists(dir), `workspace folder already exists: {dir}`)
+	store.write(dir, {
 		version = 1,
 		revision = 0,
 		settings = { githubOwner = owner or DEFAULT_OWNER, sources = {} },
@@ -155,23 +152,23 @@ function store.useWorkspace(root: string, name: string): WorkspaceList
 	return list
 end
 
-function store.filePath(directory: string): string
-	return tostring(path.join(directory, fileNames.document))
+function store.filePath(dir: string): string
+	return tostring(path.join(dir, fileNames.document))
 end
 
 function store.getBackupName(revision: number, now: number): string
 	return `orion-r{revision}-{os.date("!%Y%m%dT%H%M%SZ", now)}.json`
 end
 
-function store.getBackups(directory: string): { Backup }
-	local folder = path.join(directory, fileNames.backups)
+function store.getBackups(dir: string): { Backup }
+	local folder = path.join(dir, fileNames.backups)
 	local found: { Backup } = {}
 
-	if not filesystem.exists(folder) then
+	if not fs.exists(folder) then
 		return found
 	end
 
-	for _, entry in filesystem.listDirectory(folder) do
+	for _, entry in fs.listDirectory(folder) do
 		local revision, time = entry.name:match("^orion%-r(%d+)%-(%d%d%d%d%d%d%d%dT%d%d%d%d%d%dZ)%.json$")
 
 		if entry.type == "file" and revision and time then
@@ -179,29 +176,27 @@ function store.getBackups(directory: string): { Backup }
 			table.insert(found, {
 				revision = tonumber(revision) :: number,
 				time = time,
-				size = filesystem.metadata(file).size,
+				size = fs.metadata(file).size,
 				file = file,
 			})
 		end
 	end
 
-	table.sort(found, function(firstBackup: Backup, secondBackup: Backup)
-		return if firstBackup.time == secondBackup.time
-			then firstBackup.file > secondBackup.file
-			else firstBackup.time > secondBackup.time
+	table.sort(found, function(a: Backup, b: Backup)
+		return if a.time == b.time then a.file > b.file else a.time > b.time
 	end)
 
 	return found
 end
 
-function store.pruneBackups(directory: string, now: number)
+function store.pruneBackups(dir: string, now: number)
 	local hourCutoff = os.date("!%Y%m%dT%H%M%SZ", now - DAY_SECONDS) :: string
 	local dayCutoff = os.date("!%Y%m%d", now - (DAILY_DAYS - 1) * DAY_SECONDS) :: string
 	local today = os.date("!%Y%m%d", now) :: string
 	local current = os.date("!%Y%m%dT%H%M%SZ", now) :: string
 	local keptDays: { [string]: boolean } = {}
 
-	for _, backup in store.getBackups(directory) do
+	for _, backup in store.getBackups(dir) do
 		local day = backup.time:sub(1, 8)
 		local isInDailyRange = day >= dayCutoff and day <= today and backup.time <= current
 
@@ -218,7 +213,7 @@ function store.pruneBackups(directory: string, now: number)
 			continue
 		end
 
-		filesystem.remove(backup.file)
+		fs.remove(backup.file)
 	end
 end
 
@@ -384,14 +379,14 @@ function store.encode(doc: Doc): string
 	return json.serialize(root, true)
 end
 
-function store.read(directory: string): Doc?
-	local file = store.filePath(directory)
+function store.read(dir: string): Doc?
+	local file = store.filePath(dir)
 
-	if not filesystem.exists(file) then
+	if not fs.exists(file) then
 		return nil
 	end
 
-	return store.decode(filesystem.readFileToString(file))
+	return store.decode(fs.readFileToString(file))
 end
 
 function store.decodeFocus(text: string): Focus
@@ -407,41 +402,41 @@ function store.decodeFocus(text: string): Focus
 end
 
 -- Nil when the app isn't open, or caught the file mid-replace.
-function store.readFocus(directory: string): Focus?
-	local file = path.join(directory, fileNames.focus)
-	if not filesystem.exists(file) then
+function store.readFocus(dir: string): Focus?
+	local file = path.join(dir, fileNames.focus)
+	if not fs.exists(file) then
 		return nil
 	end
 	local succeeded, focus = pcall(function()
-		return store.decodeFocus(filesystem.readFileToString(file))
+		return store.decodeFocus(fs.readFileToString(file))
 	end)
 	return if succeeded then focus else nil
 end
 
-function store.clearFocus(directory: string)
-	local file = tostring(path.join(directory, fileNames.focus))
-	if filesystem.exists(file) then
-		filesystem.remove(file)
+function store.clearFocus(dir: string)
+	local file = tostring(path.join(dir, fileNames.focus))
+	if fs.exists(file) then
+		fs.remove(file)
 	end
 end
 
 local focusWriteSequence = 0
 
-function store.putFocus(directory: string, tab: string, open: string?, selected: json.Array?, isClosed: boolean?)
-	local file = tostring(path.join(directory, fileNames.focus))
+function store.putFocus(dir: string, tab: string, open: string?, selected: json.Array?, isClosed: boolean?)
+	local file = tostring(path.join(dir, fileNames.focus))
 	if isClosed then
-		if filesystem.exists(file) then
+		if fs.exists(file) then
 			local didRead, value = pcall(function()
-				return json.asObject(json.deserialize(filesystem.readFileToString(file)) :: json.Value)
+				return json.asObject(json.deserialize(fs.readFileToString(file)) :: json.Value)
 			end)
 			if didRead and value and value.tab == tab then
-				store.clearFocus(directory)
+				store.clearFocus(dir)
 			end
 		end
 		return
 	end
-	if not filesystem.exists(directory) then
-		filesystem.createDirectory(directory, { makeParents = true })
+	if not fs.exists(dir) then
+		fs.createDirectory(dir, { makeParents = true })
 	end
 	focusWriteSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{focusWriteSequence}`
@@ -452,41 +447,41 @@ function store.putFocus(directory: string, tab: string, open: string?, selected:
 		updatedAt = os.date("!%Y-%m-%dT%H:%M:%SZ"),
 	})
 	local didWrite, message = pcall(function()
-		filesystem.writeStringToFile(temporary, json.serialize(value, true))
-		filesystem.move(temporary, file)
+		fs.writeStringToFile(temporary, json.serialize(value, true))
+		fs.move(temporary, file)
 	end)
 	if not didWrite then
-		pcall(filesystem.remove, temporary)
+		pcall(fs.remove, temporary)
 		error(message, 0)
 	end
 end
 
 -- Fails with a pointer to the app when there is nothing to work with yet.
-function store.load(directory: string): Doc
-	local doc = store.read(directory)
-	assert(doc, `no Orion data at {store.filePath(directory)}. Open the Orion app once to create it.`)
+function store.load(dir: string): Doc
+	local doc = store.read(dir)
+	assert(doc, `no Orion data at {store.filePath(dir)}. Open the Orion app once to create it.`)
 	return doc
 end
 
 local function release(lockPath: string)
 	pcall(function()
-		filesystem.removeDirectory(lockPath, { recursive = true })
+		fs.removeDirectory(lockPath, { recursive = true })
 	end)
 end
 
-local function acquire(directory: string): string
-	local lockPath = tostring(path.join(directory, fileNames.lock))
+local function acquire(dir: string): string
+	local lockPath = tostring(path.join(dir, fileNames.lock))
 	local ownerPath = path.join(lockPath, "owner")
 	local deadline = os.time() + LOCK_TIMEOUT_SECONDS
 
 	while true do
 		if process.run({ "mkdir", lockPath }).ok then
-			filesystem.writeStringToFile(ownerPath, `{process.pid()} {os.time()}`)
+			fs.writeStringToFile(ownerPath, `{process.pid()} {os.time()}`)
 			return lockPath
 		end
 
 		-- Reclaim a lock left behind by a writer that crashed.
-		local succeeded, owner = pcall(filesystem.readFileToString, ownerPath)
+		local succeeded, owner = pcall(fs.readFileToString, ownerPath)
 		local stamp = if succeeded then tonumber(owner:match("%s(%d+)")) else nil
 
 		if stamp and os.time() - stamp > STALE_LOCK_SECONDS then
@@ -504,48 +499,48 @@ local writeSequence = 0
 local function atomicWrite(file: string, contents: string)
 	writeSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{writeSequence}`
-	filesystem.writeStringToFile(temporary, contents)
+	fs.writeStringToFile(temporary, contents)
 	-- Backups are best-effort: a failed backup never blocks the write itself.
 	pcall(function()
-		if filesystem.exists(file) then
+		if fs.exists(file) then
 			local now = os.time()
-			local directory = path.dirname(file)
-			local folder = path.join(directory, fileNames.backups)
-			if not filesystem.exists(folder) then
-				filesystem.createDirectory(folder)
+			local dir = path.dirname(file)
+			local folder = path.join(dir, fileNames.backups)
+			if not fs.exists(folder) then
+				fs.createDirectory(folder)
 			end
 
-			local previous = store.decode(filesystem.readFileToString(file))
+			local previous = store.decode(fs.readFileToString(file))
 			local backup = path.join(folder, store.getBackupName(previous.revision, now))
 
-			if not filesystem.exists(backup) then
-				filesystem.copy(file, backup)
+			if not fs.exists(backup) then
+				fs.copy(file, backup)
 			end
 
-			store.pruneBackups(directory, now)
+			store.pruneBackups(dir, now)
 		end
 	end)
 
-	local succeeded, failureMessage = pcall(filesystem.move, temporary, file)
+	local succeeded, failureMessage = pcall(fs.move, temporary, file)
 
 	if not succeeded then
-		pcall(filesystem.remove, temporary)
+		pcall(fs.remove, temporary)
 		error(failureMessage, 0)
 	end
 end
 
 -- Reads the latest data under the lock, applies `mutate`, and writes the next revision.
-function store.transaction(directory: string, mutate: (Doc) -> ()): Doc
-	if not filesystem.exists(directory) then
-		filesystem.createDirectory(directory, { makeParents = true })
+function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
+	if not fs.exists(dir) then
+		fs.createDirectory(dir, { makeParents = true })
 	end
 
-	local lockPath = acquire(directory)
+	local lockPath = acquire(dir)
 	local succeeded, result = pcall(function(): Doc
-		local doc = store.load(directory)
+		local doc = store.load(dir)
 		mutate(doc)
 		doc.revision += 1
-		atomicWrite(store.filePath(directory), store.encode(doc))
+		atomicWrite(store.filePath(dir), store.encode(doc))
 		return doc
 	end)
 
@@ -559,13 +554,13 @@ function store.transaction(directory: string, mutate: (Doc) -> ()): Doc
 end
 
 -- Writes a whole document, used to seed data and in tests.
-function store.write(directory: string, doc: Doc)
-	if not filesystem.exists(directory) then
-		filesystem.createDirectory(directory, { makeParents = true })
+function store.write(dir: string, doc: Doc)
+	if not fs.exists(dir) then
+		fs.createDirectory(dir, { makeParents = true })
 	end
 
-	local lockPath = acquire(directory)
-	local succeeded, failureMessage = pcall(atomicWrite, store.filePath(directory), store.encode(doc))
+	local lockPath = acquire(dir)
+	local succeeded, failureMessage = pcall(atomicWrite, store.filePath(dir), store.encode(doc))
 	release(lockPath)
 
 	if not succeeded then
@@ -576,20 +571,20 @@ end
 -- Saves app edits only if the latest file still has the revision the app read.
 -- Work directly with the JSON object so fields owned by other writers survive.
 function store.put(
-	directory: string,
+	dir: string,
 	baseRevision: number?,
 	nodes: json.Array,
 	links: json.Array,
 	stickers: json.Array?,
 	stickerLoadout: json.Array?
 ): (boolean, number?)
-	if not filesystem.exists(directory) then
-		filesystem.createDirectory(directory, { makeParents = true })
+	if not fs.exists(dir) then
+		fs.createDirectory(dir, { makeParents = true })
 	end
 
-	local lockPath = acquire(directory)
+	local lockPath = acquire(dir)
 	local didSucceed, isSaved, revision = pcall(function(): (boolean, number?)
-		local current = store.read(directory)
+		local current = store.read(dir)
 		local previous = if current then current.revision else nil
 
 		if baseRevision ~= previous then
@@ -615,7 +610,7 @@ function store.put(
 			root.stickerLoadout = stickerLoadout
 		end
 
-		atomicWrite(store.filePath(directory), json.serialize(root, true))
+		atomicWrite(store.filePath(dir), json.serialize(root, true))
 		return true, nextRevision
 	end)
 

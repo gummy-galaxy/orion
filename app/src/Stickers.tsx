@@ -11,8 +11,8 @@ export type StickerMove = { id: string; x: number; y: number }
 /** Drag below this many screen pixels is a click. */
 const DRAG_SLOP = 3
 const RADIUS = 20
-const STEP_MILLISECONDS = 4
-const MAX_FRAME_MILLISECONDS = 48
+const STEP_MS = 4
+const MAX_FRAME_MS = 48
 /** Canvas pixels per millisecond. Keeps a hard throw from tunneling through anything. */
 const MAX_SPEED = 3
 /** Speed kept per millisecond, low like an air hockey table. */
@@ -159,51 +159,51 @@ function bounceOffWalls(body: Body, bounds: Map<string, StickerBounds>) {
 }
 
 /** Two stickers bump like pucks. A held one is the mallet: it pushes and never gets pushed. */
-function collide(firstBody: Body, secondBody: Body, held: Body | undefined) {
-  if (firstBody.home !== secondBody.home || (firstBody.resting && secondBody.resting)) return
-  const deltaX = secondBody.x - firstBody.x
-  const deltaY = secondBody.y - firstBody.y
+function collide(a: Body, b: Body, held: Body | undefined) {
+  if (a.home !== b.home || (a.resting && b.resting)) return
+  const deltaX = b.x - a.x
+  const deltaY = b.y - a.y
   const distance = Math.hypot(deltaX, deltaY)
   if (distance >= RADIUS * 2) return
   const [normalX, normalY] = distance > 1e-6 ? [deltaX / distance, deltaY / distance] : [1, 0]
   const overlap = RADIUS * 2 - distance
-  const relativeVelocityX = secondBody.velocityX - firstBody.velocityX
-  const relativeVelocityY = secondBody.velocityY - firstBody.velocityY
+  const relativeVelocityX = b.velocityX - a.velocityX
+  const relativeVelocityY = b.velocityY - a.velocityY
   const normalVelocity = relativeVelocityX * normalX + relativeVelocityY * normalY
-  if (firstBody === held) {
-    secondBody.x += normalX * overlap
-    secondBody.y += normalY * overlap
+  if (a === held) {
+    b.x += normalX * overlap
+    b.y += normalY * overlap
     if (normalVelocity < 0) {
-      secondBody.velocityX -= (1 + BOUNCE) * normalVelocity * normalX
-      secondBody.velocityY -= (1 + BOUNCE) * normalVelocity * normalY
+      b.velocityX -= (1 + BOUNCE) * normalVelocity * normalX
+      b.velocityY -= (1 + BOUNCE) * normalVelocity * normalY
     }
-  } else if (secondBody === held) {
-    firstBody.x -= normalX * overlap
-    firstBody.y -= normalY * overlap
+  } else if (b === held) {
+    a.x -= normalX * overlap
+    a.y -= normalY * overlap
     if (normalVelocity < 0) {
-      firstBody.velocityX += (1 + BOUNCE) * normalVelocity * normalX
-      firstBody.velocityY += (1 + BOUNCE) * normalVelocity * normalY
+      a.velocityX += (1 + BOUNCE) * normalVelocity * normalX
+      a.velocityY += (1 + BOUNCE) * normalVelocity * normalY
     }
   } else {
-    firstBody.x -= (normalX * overlap) / 2
-    firstBody.y -= (normalY * overlap) / 2
-    secondBody.x += (normalX * overlap) / 2
-    secondBody.y += (normalY * overlap) / 2
+    a.x -= (normalX * overlap) / 2
+    a.y -= (normalY * overlap) / 2
+    b.x += (normalX * overlap) / 2
+    b.y += (normalY * overlap) / 2
     if (normalVelocity < 0) {
       const impulse = ((1 + BOUNCE) * normalVelocity) / 2
-      firstBody.velocityX += impulse * normalX
-      firstBody.velocityY += impulse * normalY
-      secondBody.velocityX -= impulse * normalX
-      secondBody.velocityY -= impulse * normalY
+      a.velocityX += impulse * normalX
+      a.velocityY += impulse * normalY
+      b.velocityX -= impulse * normalX
+      b.velocityY -= impulse * normalY
     }
   }
   if (normalVelocity < 0) {
     const tangentialVelocity = relativeVelocityY * normalX - relativeVelocityX * normalY
-    firstBody.spin -= tangentialVelocity * HIT_WOBBLE
-    secondBody.spin += tangentialVelocity * HIT_WOBBLE
+    a.spin -= tangentialVelocity * HIT_WOBBLE
+    b.spin += tangentialVelocity * HIT_WOBBLE
   }
-  firstBody.resting = false
-  secondBody.resting = false
+  a.resting = false
+  b.resting = false
 }
 
 /** Every sticker as a puck on one table. It runs only while something is moving. */
@@ -322,7 +322,7 @@ class StickerWorld {
   }
 
   private step = (now: number) => {
-    const elapsed = Math.min(MAX_FRAME_MILLISECONDS, now - this.at)
+    const elapsed = Math.min(MAX_FRAME_MS, now - this.at)
     this.at = now
     const still = reducedMotion()
     const ids = new Set(this.stickers.map((sticker) => sticker.id))
@@ -339,7 +339,7 @@ class StickerWorld {
     const all = [...this.bodies.values()]
     const held = this.hold?.active ? this.bodies.get(this.hold.id) : undefined
     const pop = POP_DISTANCE / (this.reactFlow?.getZoom() ?? 1)
-    const steps = Math.max(1, Math.ceil(elapsed / STEP_MILLISECONDS))
+    const steps = Math.max(1, Math.ceil(elapsed / STEP_MS))
     const stepDuration = elapsed / steps
     const keep = Math.pow(FRICTION, stepDuration)
     for (let i = 0; i < steps; i++) {

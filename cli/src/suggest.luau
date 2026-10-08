@@ -36,11 +36,9 @@ local function getHost(item: Item): string
 	return getField(item, "host") or "github.com"
 end
 
-local function isSameRepository(firstItem: Item, secondItem: Item): boolean
-	local repository = getField(firstItem, "repo")
-	return repository ~= nil
-		and repository == getField(secondItem, "repo")
-		and getHost(firstItem) == getHost(secondItem)
+local function isSameRepo(a: Item, b: Item): boolean
+	local repo = getField(a, "repo")
+	return repo ~= nil and repo == getField(b, "repo") and getHost(a) == getHost(b)
 end
 
 local function getReferences(item: Item): { [string]: boolean }
@@ -68,11 +66,11 @@ local function getReferences(item: Item): { [string]: boolean }
 	return result
 end
 
-local function hasCommonReference(firstItem: Item, secondItem: Item): boolean
-	local left = getReferences(firstItem)
+local function hasCommonReference(a: Item, b: Item): boolean
+	local left = getReferences(a)
 
-	for reference in getReferences(secondItem) do
-		if left[reference] then
+	for ref in getReferences(b) do
+		if left[ref] then
 			return true
 		end
 	end
@@ -93,8 +91,8 @@ local function getEligible(doc: Doc, scope: string): { Item }
 		end
 	end
 
-	table.sort(cards, function(firstItem: Item, secondItem: Item)
-		return firstItem.id < secondItem.id
+	table.sort(cards, function(a: Item, b: Item)
+		return a.id < b.id
 	end)
 
 	return cards
@@ -104,7 +102,7 @@ local function getComponentTitle(items: { Item }): string
 	local summary: string? = nil
 	local commonEpic: string? = nil
 	local hasMixedEpics = false
-	local sharedRepository: string? = getField(items[1], "repo")
+	local sharedRepo: string? = getField(items[1], "repo")
 	local sharedHost = getHost(items[1])
 	local counts: { [string]: number } = {}
 
@@ -123,8 +121,8 @@ local function getComponentTitle(items: { Item }): string
 			summary = name
 		end
 
-		if getField(item, "repo") ~= sharedRepository or getHost(item) ~= sharedHost then
-			sharedRepository = nil
+		if getField(item, "repo") ~= sharedRepo or getHost(item) ~= sharedHost then
+			sharedRepo = nil
 		end
 
 		for word in match.words(graph.label(item)) do
@@ -144,10 +142,8 @@ local function getComponentTitle(items: { Item }): string
 		end
 	end
 
-	table.sort(words, function(firstWord, secondWord)
-		return if counts[firstWord] == counts[secondWord]
-			then firstWord < secondWord
-			else counts[firstWord] > counts[secondWord]
+	table.sort(words, function(a, b)
+		return if counts[a] == counts[b] then a < b else counts[a] > counts[b]
 	end)
 
 	while #words > 3 do
@@ -155,7 +151,7 @@ local function getComponentTitle(items: { Item }): string
 	end
 
 	local title = if #words > 0 then table.concat(words, " ") else graph.label(items[1])
-	return if sharedRepository and sharedRepository ~= "" then `{sharedRepository}: {title}` else title
+	return if sharedRepo and sharedRepo ~= "" then `{sharedRepo}: {title}` else title
 end
 
 local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
@@ -179,18 +175,18 @@ local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 		return current
 	end
 
-	local function hasConflictingEpics(firstEpic: string, secondEpic: string): boolean
+	local function hasConflictingEpics(a: string, b: string): boolean
 		local left, right = {}, {}
 
 		for _, item in cards do
 			local key = getEpic(item)
 
 			if key then
-				if getRoot(item.id) == firstEpic then
+				if getRoot(item.id) == a then
 					left[key] = true
 				end
 
-				if getRoot(item.id) == secondEpic then
+				if getRoot(item.id) == b then
 					right[key] = true
 				end
 			end
@@ -237,7 +233,7 @@ local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 			if firstEpic and firstEpic == secondEpic then
 				join(firstItem.id, secondItem.id, `Shared epic {firstEpic}`)
 			elseif
-				isSameRepository(firstItem, secondItem)
+				isSameRepo(firstItem, secondItem)
 				and branch
 				and branch ~= ""
 				and branch == getField(secondItem, "branch")
@@ -254,7 +250,7 @@ local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 			local firstItem, secondItem = cards[i], cards[j]
 
 			if
-				isSameRepository(firstItem, secondItem)
+				isSameRepo(firstItem, secondItem)
 				and match.overlap(graph.label(firstItem), graph.label(secondItem)) >= 0.5
 			then
 				join(firstItem.id, secondItem.id, "Strong title overlap", true)
@@ -291,8 +287,8 @@ local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 		end
 	end
 
-	table.sort(groups, function(firstGroup: Group, secondGroup: Group)
-		return firstGroup.members[1] < secondGroup.members[1]
+	table.sort(groups, function(a: Group, b: Group)
+		return a.members[1] < b.members[1]
 	end)
 
 	return groups
@@ -317,22 +313,21 @@ local function getAgentGroups(
 	run: CommandRunner
 ): { Group }?
 	local ordered = table.clone(cards)
-	table.sort(ordered, function(firstItem: Item, secondItem: Item)
-		local firstOpen, secondOpen = firstItem.data.status ~= "done", secondItem.data.status ~= "done"
+	table.sort(ordered, function(a: Item, b: Item)
+		local firstOpen, secondOpen = a.data.status ~= "done", b.data.status ~= "done"
 
 		if firstOpen ~= secondOpen then
 			return firstOpen
 		end
 
-		local firstActivity, secondActivity =
-			json.asObject(firstItem.data.activity), json.asObject(secondItem.data.activity)
+		local firstActivity, secondActivity = json.asObject(a.data.activity), json.asObject(b.data.activity)
 		local firstActiveAt = if firstActivity and type(firstActivity.lastActiveAt) == "string"
 			then firstActivity.lastActiveAt
 			else ""
 		local secondActiveAt = if secondActivity and type(secondActivity.lastActiveAt) == "string"
 			then secondActivity.lastActiveAt
 			else ""
-		return if firstActiveAt == secondActiveAt then firstItem.id < secondItem.id else firstActiveAt > secondActiveAt
+		return if firstActiveAt == secondActiveAt then a.id < b.id else firstActiveAt > secondActiveAt
 	end)
 
 	while #ordered > 400 do

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mergeDocuments } from './merge'
+import { mergeDocs } from './merge'
 import type { AppNode, Link } from './model'
 import type { Saved } from './persist'
 import type { Sticker } from './sticker'
@@ -15,29 +15,29 @@ const makeDoc = (nodes: AppNode[], links: Link[] = []): Saved => ({ nodes, links
 
 describe('mergeDocs', () => {
   it('keeps nodes added on either side', () => {
-    const merged = mergeDocuments(makeDoc([makeNode('a')]), makeDoc([makeNode('a'), makeNode('local')]), makeDoc([makeNode('a'), makeNode('remote')]))
+    const merged = mergeDocs(makeDoc([makeNode('a')]), makeDoc([makeNode('a'), makeNode('local')]), makeDoc([makeNode('a'), makeNode('remote')]))
     expect(merged.nodes.map((node) => node.id)).toEqual(['a', 'remote', 'local'])
     expect(merged.conflicts).toEqual([])
   })
 
   it('deletes a node when the other side left it unchanged', () => {
     const base = makeDoc([makeNode('a'), makeNode('b')])
-    expect(mergeDocuments(base, makeDoc([makeNode('b')]), base).nodes.map((node) => node.id)).toEqual(['b'])
-    expect(mergeDocuments(base, base, makeDoc([makeNode('b')])).nodes.map((node) => node.id)).toEqual(['b'])
+    expect(mergeDocs(base, makeDoc([makeNode('b')]), base).nodes.map((node) => node.id)).toEqual(['b'])
+    expect(mergeDocs(base, base, makeDoc([makeNode('b')])).nodes.map((node) => node.id)).toEqual(['b'])
   })
 
   it('keeps an edit against a deletion in either direction', () => {
     const base = makeDoc([makeNode('a')])
     const edited = makeDoc([makeNode('a', 'edited')])
-    expect(mergeDocuments(base, edited, makeDoc([])).nodes[0].data.label).toBe('edited')
-    expect(mergeDocuments(base, makeDoc([]), edited).nodes[0].data.label).toBe('edited')
+    expect(mergeDocs(base, edited, makeDoc([])).nodes[0].data.label).toBe('edited')
+    expect(mergeDocs(base, makeDoc([]), edited).nodes[0].data.label).toBe('edited')
   })
 
   it('merges independent node fields and data keys', () => {
     const original = makeNode('a')
     const local = { ...original, position: { x: 10, y: 20 }, width: 300, data: { ...original.data, label: 'local' } } as AppNode
     const remote = { ...original, parentId: 'group', height: 200, data: { ...original.data, status: 'active' } } as AppNode
-    const merged = mergeDocuments(makeDoc([original]), makeDoc([local]), makeDoc([remote]))
+    const merged = mergeDocs(makeDoc([original]), makeDoc([local]), makeDoc([remote]))
     expect(merged.nodes[0]).toMatchObject({
       position: { x: 10, y: 20 },
       parentId: 'group',
@@ -52,7 +52,7 @@ describe('mergeDocs', () => {
     const original = makeNode('a')
     const local = { ...original, position: { x: 1, y: 0 }, data: { ...original.data, label: 'ours', note: 'local' } } as AppNode
     const remote = { ...original, position: { x: 2, y: 0 }, data: { ...original.data, label: 'theirs', note: 'remote' } } as AppNode
-    const merged = mergeDocuments(makeDoc([original]), makeDoc([local]), makeDoc([remote]))
+    const merged = mergeDocs(makeDoc([original]), makeDoc([local]), makeDoc([remote]))
     expect(merged.nodes[0]).toMatchObject({ position: { x: 1, y: 0 }, data: { label: 'ours', note: 'local' } })
     expect(merged.conflicts).toEqual([
       { id: 'a', field: 'position' },
@@ -65,12 +65,12 @@ describe('mergeDocs', () => {
     const original = { ...makeNode('a'), data: { ...makeNode('a').data, note: 'before' } } as AppNode
     const local = { ...original, data: { kind: 'task', label: 'a', itemKind: 'step', status: 'todo' } } as AppNode
     const remote = { ...original, data: { ...original.data, label: 'remote' } } as AppNode
-    const independent = mergeDocuments(makeDoc([original]), makeDoc([local]), makeDoc([remote]))
+    const independent = mergeDocs(makeDoc([original]), makeDoc([local]), makeDoc([remote]))
     expect(independent.nodes[0].data).toMatchObject({ label: 'remote' })
     expect('note' in independent.nodes[0].data).toBe(false)
     expect(independent.conflicts).toEqual([])
 
-    const competing = mergeDocuments(
+    const competing = mergeDocs(
       makeDoc([original]),
       makeDoc([local]),
       makeDoc([{ ...original, data: { ...original.data, note: 'theirs' } } as AppNode]),
@@ -83,7 +83,7 @@ describe('mergeDocs', () => {
     const original = makeNode('a')
     const local = { ...original, position: { x: 0, y: 0 }, data: { ...original.data, github: { state: 'OPEN', draft: false } } } as AppNode
     const remote = { ...original, position: { y: 0, x: 0 }, data: { ...original.data, github: { draft: false, state: 'OPEN' } } } as AppNode
-    expect(mergeDocuments(makeDoc([original]), makeDoc([local]), makeDoc([remote])).conflicts).toEqual([])
+    expect(mergeDocs(makeDoc([original]), makeDoc([local]), makeDoc([remote])).conflicts).toEqual([])
   })
 
   it('merges links by id and removes links with missing endpoints', () => {
@@ -96,7 +96,7 @@ describe('mergeDocs', () => {
       makeLink('orphan', 'a', 'c'),
       makeLink('remote', 'b', 'a'),
     ])
-    const merged = mergeDocuments(base, local, remote)
+    const merged = mergeDocs(base, local, remote)
     expect(merged.links.map((link) => link.id)).toEqual(['edited', 'remote', 'local'])
     expect(merged.conflicts).toEqual([])
   })
@@ -105,9 +105,9 @@ describe('mergeDocs', () => {
     const nodes = [makeNode('a'), makeNode('b'), makeNode('c')]
     const base = makeDoc(nodes, [makeLink('edge', 'a', 'b')])
     const changed = makeDoc(nodes, [{ ...makeLink('edge', 'a', 'b'), kind: 'related' }])
-    expect(mergeDocuments(base, changed, makeDoc(nodes)).links[0].kind).toBe('related')
-    expect(mergeDocuments(base, makeDoc(nodes), changed).links[0].kind).toBe('related')
-    const merged = mergeDocuments(base, makeDoc(nodes, [makeLink('edge', 'b', 'b')]), makeDoc(nodes, [makeLink('edge', 'c', 'b')]))
+    expect(mergeDocs(base, changed, makeDoc(nodes)).links[0].kind).toBe('related')
+    expect(mergeDocs(base, makeDoc(nodes), changed).links[0].kind).toBe('related')
+    const merged = mergeDocs(base, makeDoc(nodes, [makeLink('edge', 'b', 'b')]), makeDoc(nodes, [makeLink('edge', 'c', 'b')]))
     expect(merged.links[0].from).toBe('b')
     expect(merged.conflicts).toEqual([{ id: 'edge', field: 'from' }])
   })
@@ -115,7 +115,7 @@ describe('mergeDocs', () => {
   it('keeps stacked-link provenance alongside an independent link edit', () => {
     const nodes = [makeNode('a'), makeNode('b')]
     const original = makeLink('edge', 'a', 'b')
-    const merged = mergeDocuments(
+    const merged = mergeDocs(
       makeDoc(nodes, [original]),
       makeDoc(nodes, [{ ...original, origin: 'stack' }]),
       makeDoc(nodes, [{ ...original, kind: 'related' }]),
@@ -144,7 +144,7 @@ describe('mergeDocs', () => {
       ],
       stickerLoadout: ['🎉', '👀'],
     }
-    const merged = mergeDocuments(base, local, remote)
+    const merged = mergeDocs(base, local, remote)
     expect(merged.nodes[0].data.label).toBe('remote')
     expect(merged.stickers).toEqual([{ ...original, x: 20, y: 30 }, remote.stickers![1], local.stickers![1]])
     expect(merged.stickerLoadout?.slice(0, 2)).toEqual(['🚀', '👀'])
@@ -154,10 +154,10 @@ describe('mergeDocs', () => {
   it('keeps a local sticker position on collision and drops stickers whose anchor was removed', () => {
     const original: Sticker = { id: 'one', kind: '🎉', x: 0, y: 0, tilt: 0, on: 'a' }
     const base: Saved = { ...makeDoc([makeNode('a')]), stickers: [original] }
-    const competing = mergeDocuments(base, { ...base, stickers: [{ ...original, x: 10 }] }, { ...base, stickers: [{ ...original, x: 20 }] })
+    const competing = mergeDocs(base, { ...base, stickers: [{ ...original, x: 10 }] }, { ...base, stickers: [{ ...original, x: 20 }] })
     expect(competing.stickers?.[0].x).toBe(10)
     expect(competing.conflicts).toContainEqual({ id: 'one', field: 'x' })
-    const deleted = mergeDocuments(base, base, { ...makeDoc([]), stickers: [original] })
+    const deleted = mergeDocs(base, base, { ...makeDoc([]), stickers: [original] })
     expect(deleted.stickers).toEqual([])
   })
 })

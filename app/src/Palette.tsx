@@ -55,7 +55,7 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
     if (!term) {
       const nodeResults = nodes
         .filter((node) => isCluster(node) || (node.type === 'task' && node.data.who === 'you'))
-        .sort((first, second) => Number(isCluster(second)) - Number(isCluster(first)))
+        .sort((a, b) => Number(isCluster(b)) - Number(isCluster(a)))
         .slice(0, 50)
         .map((node): NodeResult => ({
           kind: 'node',
@@ -101,12 +101,7 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
         }
       })
       .filter((result): result is NodeResult => result !== null)
-      .sort(
-        (first, second) =>
-          second.score - first.score ||
-          first.node.data.label.length - second.node.data.label.length ||
-          first.node.data.label.localeCompare(second.node.data.label),
-      )
+      .sort((a, b) => b.score - a.score || a.node.data.label.length - b.node.data.label.length || a.node.data.label.localeCompare(b.node.data.label))
       .slice(0, 50)
     return [...commandResults, ...nodeResults]
   }, [nodes, query, commands])

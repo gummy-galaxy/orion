@@ -41,7 +41,7 @@ return table.freeze({
 		end
 
 		local source = sources.createSource(kind, values)
-		store.transaction(options.directory, function(doc)
+		store.transaction(options.dir, function(doc)
 			for _, existing in doc.settings.sources do
 				assert(existing.id ~= source.id, `source id "{source.id}" already exists`)
 			end

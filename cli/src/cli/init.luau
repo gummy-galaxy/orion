@@ -30,7 +30,7 @@ type Command = context.Command
 export type Dependencies = {
 	runner: types.CommandRunner?,
 	write: ((string) -> ())?,
-	dataDirectory: string?,
+	dataDir: string?,
 	workspace: string?,
 	now: (() -> string)?,
 }
@@ -38,7 +38,7 @@ export type Dependencies = {
 type Resolved = {
 	runner: types.CommandRunner,
 	write: (string) -> (),
-	dataDirectory: string,
+	dataDir: string,
 	workspace: string?,
 	now: () -> string,
 }
@@ -227,7 +227,7 @@ local function dependencies(options: Dependencies?): Resolved
 	return {
 		runner = given.runner or defaultRun,
 		write = given.write or print,
-		dataDirectory = given.dataDirectory or store.defaultDirectory(),
+		dataDir = given.dataDir or store.defaultDir(),
 		workspace = if given.workspace == nil then process.env.ORION_WORKSPACE else given.workspace,
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
@@ -260,11 +260,11 @@ local function required(parser: batteriesCli.Parser, name: string): string
 	return assert(parser:get(name), `missing <{name}>`)
 end
 
-local function emitItem(resolvedDependencies: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
+local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
 	if asJson then
-		resolvedDependencies.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
+		deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
 	else
-		resolvedDependencies.write(`{verb} {item.id} · {graph.label(item)}`)
+		deps.write(`{verb} {item.id} · {graph.label(item)}`)
 	end
 end
 
@@ -277,26 +277,20 @@ local function sortedTasks(doc: Doc, derived: graph.Derived, keep: (Item) -> boo
 		end
 	end
 
-	table.sort(items, function(firstItem, secondItem)
-		local firstLeverage, secondLeverage = derived.leverage[firstItem.id] or 0, derived.leverage[secondItem.id] or 0
+	table.sort(items, function(a, b)
+		local firstLeverage, secondLeverage = derived.leverage[a.id] or 0, derived.leverage[b.id] or 0
 
 		if firstLeverage ~= secondLeverage then
 			return firstLeverage > secondLeverage
 		end
 
-		return firstItem.id < secondItem.id
+		return a.id < b.id
 	end)
 
 	return items
 end
 
-local function printItems(
-	resolvedDependencies: Resolved,
-	doc: Doc,
-	derived: graph.Derived,
-	items: { Item },
-	asJson: boolean
-)
+local function printItems(deps: Resolved, doc: Doc, derived: graph.Derived, items: { Item }, asJson: boolean)
 	if asJson then
 		local values: json.Array = {}
 
@@ -304,9 +298,9 @@ local function printItems(
 			table.insert(values, render.itemJson(doc, derived, item))
 		end
 
-		resolvedDependencies.write(json.serialize(values, true))
+		deps.write(json.serialize(values, true))
 	else
-		resolvedDependencies.write(render.table(doc, derived, items))
+		deps.write(render.table(doc, derived, items))
 	end
 end
 
@@ -314,7 +308,7 @@ local function insideGroup(doc: Doc, item: Item, groupId: string): boolean
 	return table.find(graph.ancestors(doc, item.id), groupId) ~= nil
 end
 
-local function groupsReport(resolvedDependencies: Resolved, doc: Doc, asJson: boolean)
+local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	local derived = graph.derive(doc)
 	local values: json.Array = {}
 	local lines = {}
@@ -326,7 +320,7 @@ local function groupsReport(resolvedDependencies: Resolved, doc: Doc, asJson: bo
 		end
 	end
 
-	resolvedDependencies.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
+	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
 end
 
 local function syncReport(report: github.Report, dryRun: boolean): string
@@ -366,7 +360,7 @@ end
 local function execute(args: { string }, options: Dependencies?)
 	local parsers = createParsers()
 	parsers.root:parse(args)
-	local resolvedDependencies = dependencies(options)
+	local deps = dependencies(options)
 
 	local command, parser = parsers.root:selected()
 
@@ -375,59 +369,59 @@ local function execute(args: { string }, options: Dependencies?)
 
 		if topic then
 			local topicParser = assert(parsers.commands[topic], `unknown command: {topic}`)
-			resolvedDependencies.write(commandHelp(topic, topicParser))
+			deps.write(commandHelp(topic, topicParser))
 			return
 		end
 	end
 
 	if command == nil or parser == nil or command == "help" or parsers.root:has("help") then
-		resolvedDependencies.write(rootHelp(parsers.root))
+		deps.write(rootHelp(parsers.root))
 		return
 	end
 
 	if parser:has("help") then
-		resolvedDependencies.write(commandHelp(command, parser))
+		deps.write(commandHelp(command, parser))
 		return
 	end
 
 	local subcommandName, subparser = parser:selected()
 
 	if subcommandName and subparser and subparser:has("help") then
-		resolvedDependencies.write(
+		deps.write(
 			`{command} {subcommandName}\n\n{subparser:usage(`orion {command} {subcommandName}`)}\n\n{subparser:help()}`
 		)
 		return
 	end
 
-	local root = resolvedDependencies.dataDirectory
+	local root = deps.dataDir
 	local selected = parser:get("workspace") or parsers.root:get("workspace")
 
 	if subparser then
 		selected = subparser:get("workspace") or selected
 	end
 
-	local active = store.getActiveWorkspace(root, selected, resolvedDependencies.workspace)
-	local directory = store.getWorkspaceDirectory(root, active)
+	local active = store.getActiveWorkspace(root, selected, deps.workspace)
+	local dir = store.getWorkspaceDir(root, active)
 	local asJson = parser:has("json")
 	local registered = COMMANDS[command]
 
 	if registered then
 		registered.run(parser, {
-			directory = directory,
+			dir = dir,
 			root = root,
 			workspace = active,
-			write = resolvedDependencies.write,
+			write = deps.write,
 			asJson = asJson,
-			runner = resolvedDependencies.runner,
-			now = resolvedDependencies.now,
+			runner = deps.runner,
+			now = deps.now,
 		})
 		return
 	end
 
 	if command == "path" then
-		resolvedDependencies.write(directory)
+		deps.write(dir)
 	elseif command == "list" then
-		local doc = store.load(directory)
+		local doc = store.load(dir)
 		local derived = graph.derive(doc)
 		local groupId = parser:get("group")
 
@@ -437,7 +431,7 @@ local function execute(args: { string }, options: Dependencies?)
 
 		local all = parser:has("all")
 		printItems(
-			resolvedDependencies,
+			deps,
 			doc,
 			derived,
 			sortedTasks(doc, derived, function(item)
@@ -447,10 +441,10 @@ local function execute(args: { string }, options: Dependencies?)
 			asJson
 		)
 	elseif command == "ready" then
-		local doc = store.load(directory)
+		local doc = store.load(dir)
 		local derived = graph.derive(doc)
 		printItems(
-			resolvedDependencies,
+			deps,
 			doc,
 			derived,
 			sortedTasks(doc, derived, function(item)
@@ -460,14 +454,14 @@ local function execute(args: { string }, options: Dependencies?)
 			asJson
 		)
 	elseif command == "groups" then
-		groupsReport(resolvedDependencies, store.load(directory), asJson)
+		groupsReport(deps, store.load(dir), asJson)
 	elseif command == "matches" then
-		local doc = store.load(directory)
+		local doc = store.load(dir)
 		local unplaced = if doc.github then json.asArray(doc.github.unplaced) else nil
 		local values: json.Array = unplaced or {}
 
 		if asJson then
-			resolvedDependencies.write(json.serialize(values, true))
+			deps.write(json.serialize(values, true))
 		else
 			local lines: { string } = {}
 
@@ -493,63 +487,61 @@ local function execute(args: { string }, options: Dependencies?)
 				end
 			end
 
-			resolvedDependencies.write(if #lines > 0 then table.concat(lines, "\n") else "No unplaced pull requests.")
+			deps.write(if #lines > 0 then table.concat(lines, "\n") else "No unplaced pull requests.")
 		end
 	elseif command == "show" then
-		local doc = store.load(directory)
+		local doc = store.load(dir)
 		local item = graph.get(doc, required(parser, "id"))
 
 		if asJson then
-			resolvedDependencies.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
+			deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
 		else
-			resolvedDependencies.write(render.show(doc, graph.derive(doc), item))
+			deps.write(render.show(doc, graph.derive(doc), item))
 		end
 	elseif command == "add" then
 		local label = joined(parser:variadics(), "<label>")
 		local added: Item
 		local options = fields(parser) :: graph.AddOptions
 		options.group = parser:get("group")
-		local doc = store.transaction(directory, function(doc)
+		local doc = store.transaction(dir, function(doc)
 			added = graph.addItem(doc, label, options)
 		end)
 
-		emitItem(resolvedDependencies, doc, added, asJson, "Added")
+		emitItem(deps, doc, added, asJson, "Added")
 	elseif command == "set" then
 		local id = required(parser, "id")
 		local changed: Item
-		local doc = store.transaction(directory, function(doc)
+		local doc = store.transaction(dir, function(doc)
 			changed = graph.setFields(doc, id, fields(parser))
 		end)
 
-		emitItem(resolvedDependencies, doc, changed, asJson, "Updated")
+		emitItem(deps, doc, changed, asJson, "Updated")
 	elseif command == "done" then
 		local id = required(parser, "id")
-		local doc = store.transaction(directory, function(doc)
+		local doc = store.transaction(dir, function(doc)
 			graph.setFields(doc, id, { status = "done" })
 		end)
 
-		resolvedDependencies.write(`Done: {id} · {graph.label(graph.get(doc, id))}`)
+		deps.write(`Done: {id} · {graph.label(graph.get(doc, id))}`)
 	elseif command == "link" then
 		local from, to = required(parser, "from"), required(parser, "to")
 		local kind = if parser:has("related") then "related" else "blocks"
-		store.transaction(directory, function(doc)
+		store.transaction(dir, function(doc)
 			graph.link(doc, from, to, kind)
 		end)
 
-		resolvedDependencies.write(
-			if kind == "blocks" then `{to} now waits on {from}` else `{from} and {to} are related`
-		)
+		deps.write(if kind == "blocks" then `{to} now waits on {from}` else `{from} and {to} are related`)
 	elseif command == "unlink" then
 		local from, to = required(parser, "from"), required(parser, "to")
-		store.transaction(directory, function(doc)
+		store.transaction(dir, function(doc)
 			graph.unlink(doc, from, to)
 		end)
 
-		resolvedDependencies.write(`Removed the link from {from} to {to}`)
+		deps.write(`Removed the link from {from} to {to}`)
 	elseif command == "note" then
 		local text = joined(parser:variadics(), "<text>")
 		local added: Item
-		local doc = store.transaction(directory, function(doc)
+		local doc = store.transaction(dir, function(doc)
 			added = graph.addNote(
 				doc,
 				text,
@@ -557,56 +549,56 @@ local function execute(args: { string }, options: Dependencies?)
 			)
 		end)
 
-		emitItem(resolvedDependencies, doc, added, asJson, "Added note")
+		emitItem(deps, doc, added, asJson, "Added note")
 	elseif command == "remove" then
 		local id = required(parser, "id")
-		store.transaction(directory, function(doc)
+		store.transaction(dir, function(doc)
 			graph.remove(doc, id)
 		end)
 
-		resolvedDependencies.write(`Removed {id}`)
+		deps.write(`Removed {id}`)
 	elseif command == "group" then
 		local label = joined(parser:variadics(), "<label>")
 		local ids = parseCommaList(parser:get("items") or "")
 		local made: Item
-		local doc = store.transaction(directory, function(doc)
+		local doc = store.transaction(dir, function(doc)
 			made = graph.makeGroup(doc, label, ids)
 		end)
 
-		emitItem(resolvedDependencies, doc, made, asJson, "Grouped into")
+		emitItem(deps, doc, made, asJson, "Grouped into")
 	elseif command == "ungroup" then
 		local id = required(parser, "id")
-		store.transaction(directory, function(doc)
+		store.transaction(dir, function(doc)
 			graph.ungroup(doc, id)
 		end)
 
-		resolvedDependencies.write(`Ungrouped {id}`)
+		deps.write(`Ungrouped {id}`)
 	elseif command == "move" then
 		local id = required(parser, "id")
 		local to = parser:get("to")
 		assert(to or parser:has("top"), "say where with --to <group> or --top")
-		store.transaction(directory, function(doc)
+		store.transaction(dir, function(doc)
 			graph.move(doc, id, if parser:has("top") then nil else to)
 		end)
 
-		resolvedDependencies.write(`Moved {id} to {to or "the top level"}`)
+		deps.write(`Moved {id} to {to or "the top level"}`)
 	elseif command == "sync" then
 		local dryRun = parser:has("dry-run")
-		local fetched = github.collect(store.load(directory), resolvedDependencies.runner, parser:has("discover"))
+		local fetched = github.collect(store.load(dir), deps.runner, parser:has("discover"))
 		local report: github.Report
 
 		if dryRun then
-			report = github.apply(store.load(directory), fetched, resolvedDependencies.now())
+			report = github.apply(store.load(dir), fetched, deps.now())
 		else
-			store.transaction(directory, function(doc)
-				report = github.apply(doc, fetched, resolvedDependencies.now())
+			store.transaction(dir, function(doc)
+				report = github.apply(doc, fetched, deps.now())
 			end)
 		end
 
 		if asJson then
-			resolvedDependencies.write(json.serialize(report :: any, true))
+			deps.write(json.serialize(report :: any, true))
 		else
-			resolvedDependencies.write(syncReport(report, dryRun))
+			deps.write(syncReport(report, dryRun))
 		end
 	end
 end

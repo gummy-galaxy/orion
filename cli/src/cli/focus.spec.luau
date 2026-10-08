@@ -1,4 +1,4 @@
-local filesystem = require("@std/fs")
+local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
@@ -14,13 +14,13 @@ test.case("focus says when the app isn't reporting", function(assert)
 end)
 
 test.case("focus shows the open group and the selection the app reported", function(assert)
-	local directory, run = testing.createHarness("focus")
-	store.transaction(directory, function(doc)
+	local dir, run = testing.createHarness("focus")
+	store.transaction(dir, function(doc)
 		table.insert(doc.nodes, testing.group("top", "Roadmap"))
 		doc.nodes[1].parentId = "top"
 	end)
-	filesystem.writeStringToFile(
-		path.join(directory, "focus.json"),
+	fs.writeStringToFile(
+		path.join(dir, "focus.json"),
 		[[{"tab":"t","open":"ws","selected":["pub","gone"],"updatedAt":"2026-10-05T00:00:00Z"}]]
 	)
 	local text = run({ "focus" })
@@ -40,8 +40,8 @@ test.case("focus shows the open group and the selection the app reported", funct
 end)
 
 test.case("focus at the top level can select a group", function(assert)
-	local directory, run = testing.createHarness("focus-top")
-	filesystem.writeStringToFile(path.join(directory, "focus.json"), [[{"tab":"t","open":null,"selected":["ws"]}]])
+	local dir, run = testing.createHarness("focus-top")
+	fs.writeStringToFile(path.join(dir, "focus.json"), [[{"tab":"t","open":null,"selected":["ws"]}]])
 	local text = run({ "focus" })
 	assert.strContains(text, "Open: the top level")
 	assert.strContains(text, "Release  0/2 done, 0 ready")
@@ -55,7 +55,7 @@ end)
 test.case("focus reads the requested workspace", function(assert)
 	local root, run = testing.createHarness("focus-workspace")
 	run({ "workspace", "create", "planning" })
-	local planning = store.getWorkspaceDirectory(root, "planning")
+	local planning = store.getWorkspaceDir(root, "planning")
 	store.putFocus(root, "default-tab", nil, { "ws" })
 	store.putFocus(planning, "planning-tab", nil, {})
 

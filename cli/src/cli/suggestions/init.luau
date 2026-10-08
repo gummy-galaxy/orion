@@ -33,7 +33,7 @@ return table.freeze({
 			return
 		end
 
-		local result = suggest.getStored(store.load(options.directory))
+		local result = suggest.getStored(store.load(options.dir))
 
 		if options.asJson then
 			options.write(json.serialize(suggest.convertToJson(result), true))

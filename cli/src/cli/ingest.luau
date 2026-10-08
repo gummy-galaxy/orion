@@ -33,13 +33,13 @@ return table.freeze({
 	run = function(parser: batteriesCli.Parser, options: Context)
 		local isDryRun = parser:has("dry-run")
 		local now = options.now()
-		local fetched = ingest.collect(store.load(options.directory), options.runner, now, parser:get("source"))
+		local fetched = ingest.collect(store.load(options.dir), options.runner, now, parser:get("source"))
 		local report: ingest.Report
 
 		if isDryRun then
-			report = ingest.apply(store.load(options.directory), fetched, now)
+			report = ingest.apply(store.load(options.dir), fetched, now)
 		else
-			store.transaction(options.directory, function(doc)
+			store.transaction(options.dir, function(doc)
 				report = ingest.apply(doc, fetched, now)
 			end)
 		end

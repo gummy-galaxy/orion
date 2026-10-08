@@ -1,6 +1,6 @@
 import { useContext, useState, type ReactNode } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import { ActionsContext, DerivedContext, type SourceReference } from './derive'
+import { ActionsContext, DerivedContext, type SourceRef } from './derive'
 import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
@@ -47,7 +47,7 @@ function Favicon({ domain }: { domain: string }) {
   )
 }
 
-function SourceBadges({ sources, inBubble = false }: { sources: SourceReference[]; inBubble?: boolean }) {
+function SourceBadges({ sources, inBubble = false }: { sources: SourceRef[]; inBubble?: boolean }) {
   const domains = new Map<string, string[]>()
   for (const { domain, label } of sources.length ? sources : [{ domain: 'orion', label: 'Orion' }]) {
     const labels = domains.get(domain) ?? []

@@ -14,16 +14,16 @@ local function asString(value: json.Value): string?
 end
 
 function render.tag(item: Item): string
-	local repository = asString(item.data.repo)
+	local repo = asString(item.data.repo)
 	local pr = item.data.pr
 
 	if graph.isNote(item) then
 		return "note"
-	elseif repository and type(pr) == "number" then
-		return `{repository}#{pr}`
+	elseif repo and type(pr) == "number" then
+		return `{repo}#{pr}`
 	end
 
-	return repository or "step"
+	return repo or "step"
 end
 
 local function groupLabel(doc: Doc, item: Item): string?

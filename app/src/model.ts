@@ -152,7 +152,7 @@ function hydrate(node: AppNode): AppNode {
 /** React Flow needs parents before children. */
 function sortNodes(nodes: AppNode[]): AppNode[] {
   const nodeMap = byId(nodes)
-  return [...nodes].sort((firstNode, secondNode) => ancestors(firstNode.id, nodeMap).length - ancestors(secondNode.id, nodeMap).length)
+  return [...nodes].sort((a, b) => ancestors(a.id, nodeMap).length - ancestors(b.id, nodeMap).length)
 }
 
 /**
@@ -162,7 +162,7 @@ function sortNodes(nodes: AppNode[]): AppNode[] {
 function fitGroups(nodes: AppNode[]): AppNode[] {
   const nodeMap = new Map(nodes.map((node) => [node.id, { ...node } as AppNode]))
   const depth = (id: string) => ancestors(id, nodeMap).length
-  const clusters = [...nodeMap.values()].filter(isCluster).sort((firstNode, secondNode) => depth(secondNode.id) - depth(firstNode.id))
+  const clusters = [...nodeMap.values()].filter(isCluster).sort((a, b) => depth(b.id) - depth(a.id))
   for (const group of clusters) {
     const children = [...nodeMap.values()].filter((node) => node.parentId === group.id)
     if (!children.length) {

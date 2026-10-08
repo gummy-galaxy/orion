@@ -10,7 +10,7 @@ import type { Loadout, Sticker } from './sticker'
 export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
 export type Remote = Saved & { revision: number; settings: { githubOwner: string }; github?: GithubSnapshot }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
-export type Loaded = { source: 'file'; savedDocument: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
+export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
 export type SaveResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
 export type Workspaces = { active: string; workspaces: { name: string; label: string }[] }
 
@@ -163,9 +163,8 @@ export async function load(workspace = 'default'): Promise<Loaded> {
       return { source: 'missing', workspace: body.workspace ?? 'default' }
     }
     if (response.ok && response.headers.get('content-type')?.includes('json')) {
-      const savedDocument = await response.json()
-      if (isSaved(savedDocument) && typeof (savedDocument as Remote).revision === 'number')
-        return { source: 'file', savedDocument: savedDocument as Remote }
+      const doc = await response.json()
+      if (isSaved(doc) && typeof (doc as Remote).revision === 'number') return { source: 'file', doc: doc as Remote }
     }
   } catch {
     // No dev server.
@@ -175,7 +174,7 @@ export async function load(workspace = 'default'): Promise<Loaded> {
 
 export async function fetchRemote(workspace = 'default'): Promise<Remote | null> {
   const loaded = await load(workspace)
-  return loaded.source === 'file' ? loaded.savedDocument : null
+  return loaded.source === 'file' ? loaded.doc : null
 }
 
 /** `baseRevision` is null when creating the file. */

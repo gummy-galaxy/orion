@@ -36,7 +36,7 @@ import {
 } from './derive'
 import { FocusView, type FocusItem } from './focus'
 import { reflow, reflowAll } from './layout'
-import { mergeDocuments } from './merge'
+import { mergeDocs } from './merge'
 import {
   STATUS_LABEL,
   TASK_HEIGHT,
@@ -131,9 +131,9 @@ const EXIT_RATIO_PER_DOUBLING = 0.1
 const HINT_SPAN = 0.6
 const PEEK_SPAN = 0.8
 const PEEK_KEEP_VISIBLE = 0.4
-const ATTEND_DELAY_MILLISECONDS = 150
+const ATTEND_DELAY_MS = 150
 /** A click on a group waits this long for a second one before it selects. */
-const DOUBLE_CLICK_MILLISECONDS = 280
+const DOUBLE_CLICK_MS = 280
 const FOCUS_SIDE_WIDTH = 248
 const FOCUS_INSET = 20
 const FOCUS_ZOOM = 1.2
@@ -145,7 +145,7 @@ const FOCUS_MOVE = { duration: 260, ease: (progress: number) => 1 - Math.pow(1 -
 const PLACE_GAP = 80
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
-const STICKER_FRESH_MILLISECONDS = 700
+const STICKER_FRESH_MS = 700
 /** How far above the toolbar the sticker wheel opens. */
 const WHEEL_LIFT = 140
 const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held' }
@@ -197,10 +197,8 @@ function writeColorMode(mode: ColorMode) {
 }
 
 /** The stored shape of a document, for comparing and merging. */
-const getCompactDocument = (savedDocument: Saved): Saved =>
-  JSON.parse(
-    fingerprint({ ...savedDocument, stickers: savedDocument.stickers ?? [], stickerLoadout: loadoutOf(savedDocument.stickerLoadout) }),
-  ) as Saved
+const getCompactDoc = (doc: Saved): Saved =>
+  JSON.parse(fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) })) as Saved
 
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
@@ -321,7 +319,7 @@ function Canvas() {
       const queued = clickQueue.current
       clickQueue.current = []
       for (const callback of queued) callback()
-    }, DOUBLE_CLICK_MILLISECONDS)
+    }, DOUBLE_CLICK_MS)
   }, [])
   const cancelClick = useCallback(() => {
     clearTimeout(clickTimer.current)
@@ -367,29 +365,29 @@ function Canvas() {
   // The workspace the canvas is showing, so moves while switching aren't remembered for the next one.
   const viewFor = useRef<string | null>(null)
 
-  const adopt = useCallback((savedDocument: Remote, serverDoc: Remote = savedDocument, preserveSelection = true): Saved => {
-    const next = normalize(savedDocument.nodes)
-    const server = getCompactDocument({
+  const adopt = useCallback((doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
+    const next = normalize(doc.nodes)
+    const server = getCompactDoc({
       nodes: normalize(serverDoc.nodes),
       links: serverDoc.links,
       stickers: serverDoc.stickers,
       stickerLoadout: serverDoc.stickerLoadout,
     })
-    revision.current = savedDocument.revision
+    revision.current = doc.revision
     base.current = server
     savedPrint.current = fingerprint(server)
-    const stickerLoadout = loadoutOf(savedDocument.stickerLoadout)
-    latest.current = { nodes: next, links: savedDocument.links, stickers: savedDocument.stickers ?? [], stickerLoadout }
+    const stickerLoadout = loadoutOf(doc.stickerLoadout)
+    latest.current = { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
     setNodes((currentNodes) => {
       const picked = new Set(preserveSelection ? currentNodes.filter((node) => node.selected).map((node) => node.id) : [])
       return picked.size ? next.map((node) => (picked.has(node.id) ? { ...node, selected: true } : node)) : next
     })
-    setLinks(savedDocument.links)
-    setStickers(savedDocument.stickers ?? [])
+    setLinks(doc.links)
+    setStickers(doc.stickers ?? [])
     setLoadout(stickerLoadout)
-    setGithub(savedDocument.github ?? null)
-    setGithubOwner(savedDocument.settings.githubOwner)
-    return { nodes: next, links: savedDocument.links, stickers: savedDocument.stickers ?? [], stickerLoadout }
+    setGithub(doc.github ?? null)
+    setGithubOwner(doc.settings.githubOwner)
+    return { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
   }, [])
 
   useEffect(
@@ -402,14 +400,14 @@ function Canvas() {
   const reload = useCallback(
     async (name: string, epoch: number) => {
       if (epoch !== workspaceEpoch.current) return
-      const savedDocument = await fetchRemote(name)
+      const doc = await fetchRemote(name)
       if (epoch !== workspaceEpoch.current) return
-      if (!savedDocument || savedDocument.revision === revision.current) return
-      const local = getCompactDocument(latest.current)
-      if (fingerprint(local) === savedPrint.current) adopt(savedDocument)
+      if (!doc || doc.revision === revision.current) return
+      const local = getCompactDoc(latest.current)
+      if (fingerprint(local) === savedPrint.current) adopt(doc)
       else {
-        const merged = mergeDocuments(base.current, local, getCompactDocument(savedDocument))
-        adopt({ ...savedDocument, ...merged }, savedDocument)
+        const merged = mergeDocs(base.current, local, getCompactDoc(doc))
+        adopt({ ...doc, ...merged }, doc)
       }
     },
     [adopt],
@@ -421,7 +419,7 @@ function Canvas() {
       if (epoch !== workspaceEpoch.current) return
       if (loaded.source === 'file') {
         source.current = 'file'
-        adopt(loaded.savedDocument, loaded.savedDocument, !switched)
+        adopt(loaded.doc, loaded.doc, !switched)
       } else {
         source.current = loaded.source === 'missing' ? 'file' : 'browser'
         const isDefault = name === 'default'
@@ -510,7 +508,7 @@ function Canvas() {
           if (epoch !== workspaceEpoch.current) return
           if (result.ok) {
             revision.current = result.revision
-            base.current = getCompactDocument(pending)
+            base.current = getCompactDoc(pending)
             savedPrint.current = fingerprint(pending)
             return
           }
@@ -518,7 +516,7 @@ function Canvas() {
           const remote = await fetchRemote(name)
           if (epoch !== workspaceEpoch.current) return
           if (!remote) break
-          const merged = mergeDocuments(base.current, getCompactDocument(latest.current), getCompactDocument(remote))
+          const merged = mergeDocs(base.current, getCompactDoc(latest.current), getCompactDoc(remote))
           pending = adopt({ ...remote, ...merged }, remote)
           if (merged.conflicts.length) {
             setMergeNotice(merged.conflicts.length)
@@ -1012,7 +1010,7 @@ function Canvas() {
         if (rectangle) setCanvasSize({ width: rectangle.width, height: rectangle.height })
         setCursor(pointer.current ?? (rectangle ? { x: rectangle.width / 2, y: rectangle.height / 2 } : null))
         setAttending(true)
-      }, ATTEND_DELAY_MILLISECONDS)
+      }, ATTEND_DELAY_MS)
     }
     const up = (event: KeyboardEvent) => event.key === 'Alt' && stop()
     window.addEventListener('keydown', down)
@@ -1267,8 +1265,8 @@ function Canvas() {
     }
     const settled = (item: FocusItem) => (item.status === 'done' || item.status === 'deferred' ? 1 : 0)
     return {
-      incoming: incoming.sort((first, second) => settled(first) - settled(second)),
-      outgoing: outgoing.sort((first, second) => settled(first) - settled(second)),
+      incoming: incoming.sort((a, b) => settled(a) - settled(b)),
+      outgoing: outgoing.sort((a, b) => settled(a) - settled(b)),
     }
   }, [focus, links, map, work])
 
@@ -1445,7 +1443,7 @@ function Canvas() {
             next.delete(id)
             return next
           }),
-        STICKER_FRESH_MILLISECONDS,
+        STICKER_FRESH_MS,
       )
     },
     [reactFlow, sticker, anchorAt],
@@ -2175,7 +2173,7 @@ function TaskInspector({
         .flatMap((pullRequest) =>
           pullRequest.matches.filter((match) => match.id === node.id).map((match) => ({ pr: pullRequest, score: match.score })),
         )
-        .sort((first, second) => second.score - first.score)
+        .sort((a, b) => b.score - a.score)
   const list = (ids: string[]) =>
     ids.length ? (
       <ul>
@@ -2237,8 +2235,8 @@ function TaskInspector({
             value={data.repo ?? ''}
             placeholder="None"
             onChange={(event) => {
-              const repository = event.target.value.trim() || undefined
-              update(node.id, { repo: repository, itemKind: data.pr && repository ? 'pr' : repository ? 'placeholder' : 'step' })
+              const repo = event.target.value.trim() || undefined
+              update(node.id, { repo: repo, itemKind: data.pr && repo ? 'pr' : repo ? 'placeholder' : 'step' })
             }}
           />
         </div>

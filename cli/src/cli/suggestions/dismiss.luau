@@ -15,7 +15,7 @@ return table.freeze({
 
 	run = function(parser: batteriesCli.Parser, options: Context)
 		local changed: { string } = {}
-		store.transaction(options.directory, function(doc)
+		store.transaction(options.dir, function(doc)
 			changed = suggest.change(doc, "dismiss", parser:variadics(), parser:has("all"))
 		end)
 

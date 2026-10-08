@@ -1,5 +1,5 @@
 local batteriesCli = require("@batteries/cli")
-local filesystem = require("@std/fs")
+local fs = require("@std/fs")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
@@ -17,10 +17,10 @@ return table.freeze({
 		local value = assert(parser:get("revision"), "missing <revision>")
 		assert(value:match("^%d+$"), "revision must be a nonnegative integer")
 		local revision = tonumber(value)
-		local restored = store.transaction(options.directory, function(doc)
+		local restored = store.transaction(options.dir, function(doc)
 			local selected: store.Backup?
 
-			for _, backup in store.getBackups(options.directory) do
+			for _, backup in store.getBackups(options.dir) do
 				if backup.revision == revision then
 					selected = backup
 					break
@@ -28,7 +28,7 @@ return table.freeze({
 			end
 
 			assert(selected, `no backup for revision {revision}`)
-			local snapshot = store.decode(filesystem.readFileToString(selected.file))
+			local snapshot = store.decode(fs.readFileToString(selected.file))
 			doc.nodes = snapshot.nodes
 			doc.links = snapshot.links
 			doc.settings = snapshot.settings

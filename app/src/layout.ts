@@ -61,9 +61,7 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
 /** Lays out every group from the deepest up, then the top level. */
 export async function reflowAll(nodes: AppNode[], links: Link[]): Promise<AppNode[]> {
   const nodeMap = byId(nodes)
-  const groups = nodes
-    .filter(isCluster)
-    .sort((firstGroup, secondGroup) => ancestors(secondGroup.id, nodeMap).length - ancestors(firstGroup.id, nodeMap).length)
+  const groups = nodes.filter(isCluster).sort((a, b) => ancestors(b.id, nodeMap).length - ancestors(a.id, nodeMap).length)
   let next = normalize(nodes)
   for (const group of groups) next = await reflow(next, links, group.id)
   return reflow(next, links, undefined)

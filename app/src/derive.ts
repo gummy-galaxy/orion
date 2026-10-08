@@ -5,13 +5,13 @@ export type TraceRole = 'self' | 'up' | 'down' | 'dim'
 /** How a link out of a card reads: moving, or held behind work that's stuck. */
 export type Flow = 'live' | 'held'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
-export type SourceReference = { domain: string; label: string }
+export type SourceRef = { domain: string; label: string }
 
 export type Derived = {
   status: Map<string, ViewStatus>
   leverage: Map<string, number>
   groups: Map<string, GroupStats>
-  sources: Map<string, SourceReference[]>
+  sources: Map<string, SourceRef[]>
   trace: Map<string, TraceRole> | null
   collapsed: Set<string>
   /** While ⌘ is held: what needs you, keyed by the card or folded group that shows it. */
@@ -36,7 +36,7 @@ function hostOf(url: string | undefined): string | null {
   }
 }
 
-function sourceOf(task: TaskNode): SourceReference {
+function sourceOf(task: TaskNode): SourceRef {
   const repo = task.data.repo?.trim()
   const external = task.data.external
   if (!repo && external) return { domain: hostOf(external.url) ?? external.source, label: external.key }
@@ -75,7 +75,7 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 /** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
 export function deriveWork(nodes: AppNode[], links: Link[]) {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
-  const sources = new Map<string, SourceReference[]>()
+  const sources = new Map<string, SourceRef[]>()
   for (const task of tasks.values()) sources.set(task.id, [sourceOf(task)])
   const { preds: predecessors, succs: successors } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
@@ -134,7 +134,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   for (const group of nodes.filter(isCluster)) {
     const inside = descendants(group.id, nodes)
     const stats: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
-    const groupSources = new Map<string, SourceReference>()
+    const groupSources = new Map<string, SourceRef>()
     const reach = new Set<string>()
     for (const id of inside) {
       const task = tasks.get(id)
@@ -154,7 +154,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     groups.set(group.id, stats)
     sources.set(
       group.id,
-      [...groupSources.values()].sort((first, second) => first.domain.localeCompare(second.domain) || first.label.localeCompare(second.label)),
+      [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label)),
     )
   }
 

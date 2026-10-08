@@ -170,11 +170,11 @@ function graph.derive(doc: Doc): Derived
 
 	for id, item in tasks do
 		local recorded = field(item, "status") or "todo"
-		local blockedByDependencies = false
+		local blockedByDeps = false
 
 		for _, predecessor in predecessors[id] or {} do
 			if isOpen(predecessor) then
-				blockedByDependencies = true
+				blockedByDeps = true
 				break
 			end
 		end
@@ -183,7 +183,7 @@ function graph.derive(doc: Doc): Derived
 			status[id] = if isOpen(id) then "blocked" else "done"
 		elseif recorded == "done" or recorded == "deferred" or recorded == "blocked" then
 			status[id] = recorded
-		elseif blockedByDependencies then
+		elseif blockedByDeps then
 			status[id] = "blocked"
 		else
 			status[id] = if recorded == "todo" then "ready" else recorded
@@ -267,12 +267,12 @@ function graph.nextSlot(doc: Doc, parentId: string?): Position
 	return { x = (right :: number) + (if parentId then ITEM_GAP else ITEM_GAP * 2), y = top :: number }
 end
 
-local function itemKindFor(repository: string?, pr: number?): string
-	if repository and pr then
+local function itemKindFor(repo: string?, pr: number?): string
+	if repo and pr then
 		return "pr"
 	end
 
-	return if repository then "placeholder" else "step"
+	return if repo then "placeholder" else "step"
 end
 
 local function checkFields(fields: ItemFields)
@@ -362,9 +362,9 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	end
 
 	if not graph.isNote(item) and (fields.repo or fields.pr) then
-		local repository = field(item, "repo")
+		local repo = field(item, "repo")
 		local pr = item.data.pr
-		item.data.itemKind = itemKindFor(repository, if type(pr) == "number" then pr else nil)
+		item.data.itemKind = itemKindFor(repo, if type(pr) == "number" then pr else nil)
 	end
 
 	return item

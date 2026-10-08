@@ -60,9 +60,9 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 	assert.eq(first.sources[2].added, 1)
 	assert.eq(#doc.links, 2)
 	assert.eq(doc.links[1].origin, "mention")
-	local directory = testing.directory("mention-links")
-	store.write(directory, doc)
-	assert.eq(store.load(directory).links[1].origin, "mention")
+	local dir = testing.directory("mention-links")
+	store.write(dir, doc)
+	assert.eq(store.load(dir).links[1].origin, "mention")
 	assert.eq(doc.nodes[1].id, "unsorted")
 	assert.eq(doc.nodes[1].data.layout, "refit")
 	local count = #doc.nodes

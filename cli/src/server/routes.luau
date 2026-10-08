@@ -1,5 +1,5 @@
 local json = require("@std/json")
-local network = require("@lute/net/server")
+local net = require("@lute/net/server")
 
 local focus = require("@root/server/routes/focus")
 local orion = require("@root/server/routes/orion")
@@ -9,7 +9,7 @@ local store = require("@root/store")
 local sync = require("@root/server/routes/sync")
 local workspaces = require("@root/server/routes/workspaces")
 
-type Request = network.ReceivedRequest
+type Request = net.ReceivedRequest
 type Response = shared.Response
 type SyncLoop = sync.SyncLoop
 
@@ -24,7 +24,7 @@ function routes.create(
 	initialWorkspace: string,
 	syncLoop: SyncLoop,
 	onSwitch: (string) -> (),
-	staticDirectory: string?
+	staticDir: string?
 )
 	local active = initialWorkspace
 	local router = {}
@@ -37,8 +37,8 @@ function routes.create(
 		if name == active then
 			return
 		end
-		store.clearFocus(store.getWorkspaceDirectory(root, active))
-		store.clearFocus(store.getWorkspaceDirectory(root, name))
+		store.clearFocus(store.getWorkspaceDir(root, active))
+		store.clearFocus(store.getWorkspaceDir(root, name))
 		active = name
 		onSwitch(name)
 	end
@@ -63,8 +63,8 @@ function routes.create(
 		if route:sub(1, 5) == "/api/" or route == "/api" then
 			return shared.reply(404, json.object({ error = "not found" }))
 		end
-		if staticDirectory and request.method == "GET" then
-			return routes.serveStatic(staticDirectory, route)
+		if staticDir and request.method == "GET" then
+			return routes.serveStatic(staticDir, route)
 		end
 		return shared.reply(404, json.object({ error = "not found" }))
 	end

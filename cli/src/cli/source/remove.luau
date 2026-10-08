@@ -13,7 +13,7 @@ return table.freeze({
 
 	run = function(parser: batteriesCli.Parser, options: Context)
 		local id = assert(parser:get("id"), "missing <id>")
-		store.transaction(options.directory, function(doc)
+		store.transaction(options.dir, function(doc)
 			local found = false
 
 			for index = #doc.settings.sources, 1, -1 do

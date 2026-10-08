@@ -22,8 +22,8 @@ local function words(value: string): { [string]: boolean }
 	return result
 end
 
-local function overlap(firstText: string, secondText: string): number
-	local left, right = words(firstText), words(secondText)
+local function overlap(a: string, b: string): number
+	local left, right = words(a), words(b)
 	local intersection, union = 0, 0
 
 	for word in left do
@@ -59,12 +59,12 @@ function match.candidates(doc: Doc, title: string, owner: string, name: string):
 			continue
 		end
 
-		local repository = stringField(item, "repo")
-		local agreement = if repository == nil
+		local repo = stringField(item, "repo")
+		local agreement = if repo == nil
 			then 0.3
 			elseif
-				(repository:lower() == name:lower() and owner:lower() == doc.settings.githubOwner:lower())
-				or repository:lower() == string.lower(`{owner}/{name}`)
+				(repo:lower() == name:lower() and owner:lower() == doc.settings.githubOwner:lower())
+				or repo:lower() == string.lower(`{owner}/{name}`)
 			then 1
 			else 0
 		local score = 0.65 * overlap(title, `{graph.label(item)} {stringField(item, "note") or ""}`) + 0.35 * agreement
@@ -74,10 +74,8 @@ function match.candidates(doc: Doc, title: string, owner: string, name: string):
 		end
 	end
 
-	table.sort(candidates, function(firstCandidate: Candidate, secondCandidate: Candidate)
-		return if firstCandidate.score == secondCandidate.score
-			then firstCandidate.id < secondCandidate.id
-			else firstCandidate.score > secondCandidate.score
+	table.sort(candidates, function(a: Candidate, b: Candidate)
+		return if a.score == b.score then a.id < b.id else a.score > b.score
 	end)
 
 	while #candidates > 3 do

@@ -61,8 +61,8 @@ function sources.createSource(kind: string, options: { [string]: { string } }): 
 		source.host, source.owners = host, owners
 
 		for _, key in { "include", "exclude" } do
-			for _, repository in options[key] or {} do
-				assert(repository:match(NAME), `invalid repository {repository}`)
+			for _, repo in options[key] or {} do
+				assert(repo:match(NAME), `invalid repository {repo}`)
 			end
 		end
 
