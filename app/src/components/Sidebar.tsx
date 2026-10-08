@@ -1,6 +1,6 @@
-import type { GroupStats } from './derive'
-import { isCluster, type AppNode, type ClusterData } from './model'
-import type { Workspaces } from './persist'
+import type { GroupStats } from '../derive'
+import { isCluster, type AppNode, type ClusterData } from '../model'
+import type { Workspaces } from '../persist'
 
 type Props = {
   nodes: AppNode[]
