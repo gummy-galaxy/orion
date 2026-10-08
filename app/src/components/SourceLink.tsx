@@ -1,5 +1,5 @@
 import type { ReactNode, SyntheticEvent } from 'react'
-import type { SourceRef } from './derive'
+import type { SourceRef } from '../derive'
 
 /** Keeps a click on a link from also selecting, dragging, or opening the node it sits on. */
 const stopPropagation = (event: SyntheticEvent) => event.stopPropagation()

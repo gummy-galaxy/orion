@@ -35,6 +35,8 @@ npm run dev
 
 Build the CLI first with `cd cli && lute run build`. Vite starts `orion serve` and proxies `/api` to it. Set `ORION_BIN` to use another CLI binary. If the binary is missing, Vite still runs and the app falls back to browser storage.
 
+To browse the component stories without starting `orion serve`, run `npm run storybook` from `app/`. Each component's story lives beside it in `app/src/components/`, with shared sample data in `storySupport/`. Run `npm run build-storybook` to check the static Storybook build. The stories use sample graph data and render the app composition against Storybook's own browser storage. The normal app build does not import the stories, so they are absent from the packaged app.
+
 `orion serve` reads and writes the active workspace's data file. Run it directly with `orion serve [--host 127.0.0.1] [--port 5198] [--static app/dist]`; `--static` serves a built app with an `index.html` fallback. When the default workspace has no file, the app carries over what the browser had saved, or starts from the seed. Other new workspaces start empty. The server syncs five seconds after startup and every five minutes. Returning to the window also requests a sync, with a one-minute throttle.
 
 ## Desktop app
@@ -127,7 +129,7 @@ In `app/`:
 - `src/layout.ts`: laying out one group or the top level: ELK with wrapping, and custom groups left alone.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
-- `src/ImageView.tsx`: image nodes and their workspace-local previews.
+- `src/components/ImageView.tsx`: image nodes and their workspace-local previews.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.

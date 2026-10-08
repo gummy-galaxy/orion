@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ancestors, byId, isCluster, getTaskTag, type AppNode } from './model'
+import { ancestors, byId, isCluster, getTaskTag, type AppNode } from '../model'
 
 export type Command = { id: string; label: string; detail: string; hint?: string; run: () => void }
 type Props = { nodes: AppNode[]; commands: Command[]; jumpTo: (id: string) => void; open: (id: string) => void; close: () => void }

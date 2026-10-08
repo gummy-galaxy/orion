@@ -1,7 +1,7 @@
 import { memo, useEffect, useState } from 'react'
 import type { NodeProps } from '@xyflow/react'
-import type { ImageNode } from './model'
-import { imageSource } from './persist'
+import type { ImageNode } from '../model'
+import { imageSource } from '../persist'
 
 export const ImageView = memo(function ImageView({ data }: NodeProps<ImageNode>) {
   const [loaded, setLoaded] = useState<{ key: string; source: string } | null>(null)

@@ -3,9 +3,9 @@
  * leads to lines up in scrolling columns on either side, wired into its edges.
  */
 import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import type { Rect } from './attention'
-import type { Flow } from './derive'
-import { STATUS_LABEL, type ViewStatus } from './model'
+import type { Rect } from './AttentionOverlay'
+import type { Flow } from '../derive'
+import { STATUS_LABEL, type ViewStatus } from '../model'
 
 /** Lines from cards scrolled out of a column stop this far inside its edge. */
 const CLIP_INSET = 6
