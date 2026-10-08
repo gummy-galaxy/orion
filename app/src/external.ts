@@ -3,7 +3,7 @@
  * external links go to the system browser through the opener plugin.
  */
 
-const inDesktop = () => '__TAURI_INTERNALS__' in window
+export const inDesktop = () => '__TAURI_INTERNALS__' in window
 
 export function openExternal(url: string) {
   if (!inDesktop()) {
