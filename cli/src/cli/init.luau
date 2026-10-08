@@ -9,6 +9,8 @@ local focus = require("@root/cli/focus")
 local github = require("@root/github")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
+local mcp = require("@root/cli/mcp")
+local mcpRuntime = require("@root/cli/mcp/runtime")
 local media = require("@root/cli/media")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
@@ -49,6 +51,7 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
 	focus = focus,
+	mcp = mcp,
 	media = media,
 	restore = restore,
 	serve = serve,
@@ -85,7 +88,7 @@ Statuses: todo, active, review, blocked, deferred, done.
   Listed statuses are derived: todo shows as ready once nothing it waits on is open,
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
-Data lives in ~/Library/Application Support/Orion/orion.json; set ORION_DATA_DIR to change it.
+Data lives in Orion's user data folder (run orion path to see it); set ORION_DATA_DIR to change it.
 The Orion app talks to orion serve, which watches the data files.
 While the app is open, orion focus shows its open group and selection.]]
 
@@ -211,6 +214,7 @@ local function createParsers(): Parsers
 	registeredCommand("suggestions")
 
 	command("path")
+	registeredCommand("mcp")
 	registeredCommand("workspace")
 	command("help"):add("command", "positional", { help = "Command to describe" })
 
@@ -620,6 +624,10 @@ local function run(argv: { string })
 		process.exit(1)
 	end
 end
+
+mcpRuntime.bind(function(argv, options)
+	execute(argv, options :: Dependencies)
+end)
 
 return table.freeze({
 	execute = execute,

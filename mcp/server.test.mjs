@@ -18,10 +18,13 @@ test('MCP tools round-trip through the Orion CLI and workspace storage', { skip:
   });
   try {
     await client.connect(transport);
-    const names = (await client.listTools()).tools.map((tool) => tool.name);
+    const tools = (await client.listTools()).tools;
+    const names = tools.map((tool) => tool.name);
     assert.ok(names.includes('orion_inspect'));
     assert.ok(names.includes('orion_create_workspace'));
     assert.ok(names.includes('orion_add_image'));
+    const addItem = tools.find((tool) => tool.name === 'orion_add_item');
+    assert.ok(addItem.inputSchema.required.includes('title'));
 
     let response = await client.callTool({ name: 'orion_create_workspace', arguments: {
       name: 'sample', label: 'Sample', owner: 'vocksel',
