@@ -82,7 +82,7 @@ export function createServer() {
     description: 'List image nodes in an Orion workspace.',
     inputSchema: { workspace },
     annotations: { readOnlyHint: true },
-  }, ({ workspace }) => ['image', 'list', ...workspaceOption(workspace), '--json']);
+  }, ({ workspace }) => ['media', 'list', ...workspaceOption(workspace), '--json']);
 
   register(server, 'orion_add_image', {
     description: 'Import a local PNG, JPEG, GIF, or WebP file as an image node. The CLI copies it into the workspace assets folder.',
@@ -91,7 +91,7 @@ export function createServer() {
       label: z.string().min(1).optional(), workspace, group: id.optional(),
     },
   }, ({ path, label, workspace, group }) =>
-    ['insert', path, ...option('label', label), ...option('group', group),
+    ['media', 'insert', path, ...option('label', label), ...option('group', group),
       ...workspaceOption(workspace), '--json']);
 
   register(server, 'orion_link', {
