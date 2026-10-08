@@ -1,5 +1,5 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
-import { HEAD, PAD, byId, isCluster, ancestors, normalize, sizeOf, type AppNode, type Link } from './model'
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING, byId, isCluster, ancestors, normalize, sizeOf, type AppNode, type Link } from './model'
 
 const elk = new ELK()
 
@@ -10,12 +10,12 @@ export const ROW_WIDTH = 2400
 
 type Gap = { node: number; layer: number; component: number }
 type Point = { x: number; y: number }
-type Size = { w: number; h: number }
+type Size = { width: number; height: number }
 type Box = Point & Size
 type Edge = [string, string]
 
-const INNER: Gap = { node: 24, layer: 56, component: 32 }
-const TOP: Gap = { node: 72, layer: 120, component: 96 }
+const INNER_GAP: Gap = { node: 24, layer: 56, component: 32 }
+const TOP_GAP: Gap = { node: 72, layer: 120, component: 96 }
 
 const elkOptions = (gap: Gap) => ({
   'elk.algorithm': 'layered',
@@ -30,21 +30,21 @@ const reading = (a: AppNode, b: AppNode) => a.position.y - b.position.y || a.pos
 
 /** Places sizes row by row, `columns` across. Each column is as wide as its widest box and each row as tall as its tallest. */
 export function grid(sizes: Size[], columns: number, gap: number): { at: Point[] } & Size {
-  const cols = Math.max(1, Math.min(Math.floor(columns), sizes.length))
-  const widths = Array<number>(cols).fill(0)
+  const columnCount = Math.max(1, Math.min(Math.floor(columns), sizes.length))
+  const widths = Array<number>(columnCount).fill(0)
   const heights: number[] = []
-  sizes.forEach((s, i) => {
-    const row = Math.floor(i / cols)
-    widths[i % cols] = Math.max(widths[i % cols], s.w)
-    heights[row] = Math.max(heights[row] ?? 0, s.h)
+  sizes.forEach((size, i) => {
+    const row = Math.floor(i / columnCount)
+    widths[i % columnCount] = Math.max(widths[i % columnCount], size.width)
+    heights[row] = Math.max(heights[row] ?? 0, size.height)
   })
-  const offsets = (spans: number[]) => spans.map((_, i) => spans.slice(0, i).reduce((sum, s) => sum + s + gap, 0))
-  const xs = offsets(widths)
-  const ys = offsets(heights)
+  const offsets = (spans: number[]) => spans.map((_, i) => spans.slice(0, i).reduce((sum, span) => sum + span + gap, 0))
+  const columnOffsets = offsets(widths)
+  const rowOffsets = offsets(heights)
   return {
-    at: sizes.map((_, i) => ({ x: xs[i % cols], y: ys[Math.floor(i / cols)] })),
-    w: xs[cols - 1] + widths[cols - 1],
-    h: (ys[ys.length - 1] ?? 0) + (heights[heights.length - 1] ?? 0),
+    at: sizes.map((_, i) => ({ x: columnOffsets[i % columnCount], y: rowOffsets[Math.floor(i / columnCount)] })),
+    width: columnOffsets[columnCount - 1] + widths[columnCount - 1],
+    height: (rowOffsets[rowOffsets.length - 1] ?? 0) + (heights[heights.length - 1] ?? 0),
   }
 }
 
@@ -55,51 +55,58 @@ export function grid(sizes: Size[], columns: number, gap: number): { at: Point[]
  */
 export function wrapLayers(boxes: Map<string, Box>, gap: number): Map<string, Box> | null {
   const layers: { x: number; right: number; ids: string[] }[] = []
-  for (const [id, b] of [...boxes].sort(([, a], [, b]) => a.x - b.x)) {
+  for (const [id, box] of [...boxes].sort(([, a], [, b]) => a.x - b.x)) {
     const last = layers[layers.length - 1]
-    if (last && b.x < last.right) {
+    if (last && box.x < last.right) {
       last.ids.push(id)
-      last.right = Math.max(last.right, b.x + b.w)
-    } else layers.push({ x: b.x, right: b.x + b.w, ids: [id] })
+      last.right = Math.max(last.right, box.x + box.width)
+    } else layers.push({ x: box.x, right: box.x + box.width, ids: [id] })
   }
   const strips: (typeof layers)[] = []
-  for (const l of layers) {
+  for (const layer of layers) {
     const strip = strips[strips.length - 1]
-    if (strip && strip.length < WRAP && l.right - strip[0].x <= ROW_WIDTH) strip.push(l)
-    else strips.push([l])
+    if (strip && strip.length < WRAP && layer.right - strip[0].x <= ROW_WIDTH) strip.push(layer)
+    else strips.push([layer])
   }
   if (strips.length <= 1) return null
-  const out = new Map<string, Box>()
+  const wrapped = new Map<string, Box>()
   let top = 0
   for (const strip of strips) {
-    const inStrip = strip.flatMap((l) => l.ids.map((id) => boxes.get(id)!))
-    const y0 = Math.min(...inStrip.map((b) => b.y))
-    const y1 = Math.max(...inStrip.map((b) => b.y + b.h))
-    const dx = strip[0].x - layers[0].x
-    for (const l of strip)
-      for (const id of l.ids) {
-        const b = boxes.get(id)!
-        out.set(id, { ...b, x: b.x - dx, y: b.y - y0 + top })
+    const inStrip = strip.flatMap((layer) => layer.ids.map((id) => boxes.get(id)!))
+    const stripTop = Math.min(...inStrip.map((box) => box.y))
+    const stripBottom = Math.max(...inStrip.map((box) => box.y + box.height))
+    const shiftX = strip[0].x - layers[0].x
+    for (const layer of strip)
+      for (const id of layer.ids) {
+        const box = boxes.get(id)!
+        wrapped.set(id, { ...box, x: box.x - shiftX, y: box.y - stripTop + top })
       }
-    top += y1 - y0 + gap
+    top += stripBottom - stripTop + gap
   }
-  return out
+  return wrapped
 }
 
 const bounds = (boxes: Box[]): Box => {
-  const x = Math.min(...boxes.map((b) => b.x))
-  const y = Math.min(...boxes.map((b) => b.y))
-  return { x, y, w: Math.max(...boxes.map((b) => b.x + b.w)) - x, h: Math.max(...boxes.map((b) => b.y + b.h)) - y }
+  const x = Math.min(...boxes.map((box) => box.x))
+  const y = Math.min(...boxes.map((box) => box.y))
+  return {
+    x,
+    y,
+    width: Math.max(...boxes.map((box) => box.x + box.width)) - x,
+    height: Math.max(...boxes.map((box) => box.y + box.height)) - y,
+  }
 }
 
-async function elkBoxes(units: { id: string; w: number; h: number }[], edges: Edge[], gap: Gap): Promise<Map<string, Box>> {
-  const res = await elk.layout({
+async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Gap): Promise<Map<string, Box>> {
+  const result = await elk.layout({
     id: 'root',
     layoutOptions: elkOptions(gap),
-    children: units.map((u) => ({ id: u.id, width: u.w, height: u.h })),
-    edges: edges.map(([a, b]) => ({ id: a + '>' + b, sources: [a], targets: [b] })),
+    children: units.map((unit) => ({ id: unit.id, width: unit.width, height: unit.height })),
+    edges: edges.map(([source, target]) => ({ id: source + '>' + target, sources: [source], targets: [target] })),
   })
-  return new Map((res.children ?? []).map((c) => [c.id, { x: c.x ?? 0, y: c.y ?? 0, w: c.width ?? 0, h: c.height ?? 0 }]))
+  return new Map(
+    (result.children ?? []).map((child) => [child.id, { x: child.x ?? 0, y: child.y ?? 0, width: child.width ?? 0, height: child.height ?? 0 }]),
+  )
 }
 
 /**
@@ -107,84 +114,84 @@ async function elkBoxes(units: { id: string; w: number; h: number }[], edges: Ed
  * same things are interchangeable, so a run of more than `WRAP` of them is laid out as one grid. Chains longer than
  * `WRAP` steps wrap onto further rows, and the pieces are packed again.
  */
-async function flow(kids: AppNode[], edges: Edge[], gap: Gap): Promise<Map<string, Point>> {
-  const ends = new Map(kids.map((k) => [k.id, { in: [] as string[], out: [] as string[] }]))
-  for (const [a, b] of edges) {
-    ends.get(a)!.out.push(b)
-    ends.get(b)!.in.push(a)
+async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<string, Point>> {
+  const ends = new Map(children.map((child) => [child.id, { in: [] as string[], out: [] as string[] }]))
+  for (const [source, target] of edges) {
+    ends.get(source)!.out.push(target)
+    ends.get(target)!.in.push(source)
   }
   const runs = new Map<string, AppNode[]>()
   const runOf = new Map<string, AppNode[]>()
-  for (const k of [...kids].sort(reading)) {
-    const e = ends.get(k.id)!
-    const key = e.in.sort().join(',') + '|' + e.out.sort().join(',')
+  for (const child of [...children].sort(reading)) {
+    const childEnds = ends.get(child.id)!
+    const key = childEnds.in.sort().join(',') + '|' + childEnds.out.sort().join(',')
     const run = runs.get(key) ?? []
-    run.push(k)
+    run.push(child)
     runs.set(key, run)
-    runOf.set(k.id, run)
+    runOf.set(child.id, run)
   }
   const unitOf = new Map<string, string>()
   const blocks = new Map<string, { members: AppNode[]; at: Point[] }>()
-  const units: { id: string; w: number; h: number }[] = []
-  for (const k of kids) {
-    if (unitOf.has(k.id)) continue
-    const run = runOf.get(k.id)!
+  const units: ({ id: string } & Size)[] = []
+  for (const child of children) {
+    if (unitOf.has(child.id)) continue
+    const run = runOf.get(child.id)!
     if (run.length <= WRAP) {
-      unitOf.set(k.id, k.id)
-      units.push({ id: k.id, ...sizeOf(k) })
+      unitOf.set(child.id, child.id)
+      units.push({ id: child.id, ...sizeOf(child) })
       continue
     }
-    const id = '\0run:' + k.id
-    const g = grid(run.map(sizeOf), Math.min(WRAP, Math.ceil(Math.sqrt(run.length))), gap.node)
-    for (const m of run) unitOf.set(m.id, id)
-    blocks.set(id, { members: run, at: g.at })
-    units.push({ id, w: g.w, h: g.h })
+    const id = '\0run:' + child.id
+    const runGrid = grid(run.map(sizeOf), Math.min(WRAP, Math.ceil(Math.sqrt(run.length))), gap.node)
+    for (const member of run) unitOf.set(member.id, id)
+    blocks.set(id, { members: run, at: runGrid.at })
+    units.push({ id, width: runGrid.width, height: runGrid.height })
   }
   const seen = new Set<string>()
   const unitEdges: Edge[] = []
-  for (const [a, b] of edges) {
-    const e: Edge = [unitOf.get(a)!, unitOf.get(b)!]
-    if (e[0] === e[1] || seen.has(e.join('>'))) continue
-    seen.add(e.join('>'))
-    unitEdges.push(e)
+  for (const [source, target] of edges) {
+    const edge: Edge = [unitOf.get(source)!, unitOf.get(target)!]
+    if (edge[0] === edge[1] || seen.has(edge.join('>'))) continue
+    seen.add(edge.join('>'))
+    unitEdges.push(edge)
   }
 
   let placed = await elkBoxes(units, unitEdges, gap)
-  const root = new Map(units.map((u) => [u.id, u.id]))
-  const find = (id: string): string => (root.get(id) === id ? id : find(root.get(id)!))
-  for (const [a, b] of unitEdges) root.set(find(a), find(b))
+  const root = new Map(units.map((unit) => [unit.id, unit.id]))
+  const findRoot = (id: string): string => (root.get(id) === id ? id : findRoot(root.get(id)!))
+  for (const [source, target] of unitEdges) root.set(findRoot(source), findRoot(target))
   const parts = new Map<string, Map<string, Box>>()
-  for (const u of units) {
-    const part = parts.get(find(u.id)) ?? new Map<string, Box>()
-    part.set(u.id, placed.get(u.id)!)
-    parts.set(find(u.id), part)
+  for (const unit of units) {
+    const part = parts.get(findRoot(unit.id)) ?? new Map<string, Box>()
+    part.set(unit.id, placed.get(unit.id)!)
+    parts.set(findRoot(unit.id), part)
   }
   const wrapped = new Map([...parts].map(([id, part]) => [id, wrapLayers(part, gap.layer)]))
-  if ([...wrapped.values()].some((w) => w)) {
+  if ([...wrapped.values()].some((boxes) => boxes)) {
     const shapes = [...parts].map(([id, part]) => {
       const boxes = wrapped.get(id) ?? part
       return { id, boxes, frame: bounds([...boxes.values()]) }
     })
     const packed = await elkBoxes(
-      shapes.map((s) => ({ id: s.id, w: s.frame.w, h: s.frame.h })),
+      shapes.map((shape) => ({ id: shape.id, width: shape.frame.width, height: shape.frame.height })),
       [],
       gap,
     )
     placed = new Map()
-    for (const s of shapes) {
-      const at = packed.get(s.id)!
-      for (const [id, b] of s.boxes) placed.set(id, { ...b, x: b.x - s.frame.x + at.x, y: b.y - s.frame.y + at.y })
+    for (const shape of shapes) {
+      const at = packed.get(shape.id)!
+      for (const [id, box] of shape.boxes) placed.set(id, { ...box, x: box.x - shape.frame.x + at.x, y: box.y - shape.frame.y + at.y })
     }
   }
 
-  const pos = new Map<string, Point>()
-  for (const k of kids) {
-    const unit = placed.get(unitOf.get(k.id)!)!
-    const block = blocks.get(unitOf.get(k.id)!)
-    const offset = block ? block.at[block.members.indexOf(k)] : { x: 0, y: 0 }
-    pos.set(k.id, { x: unit.x + offset.x, y: unit.y + offset.y })
+  const positions = new Map<string, Point>()
+  for (const child of children) {
+    const unit = placed.get(unitOf.get(child.id)!)!
+    const block = blocks.get(unitOf.get(child.id)!)
+    const offset = block ? block.at[block.members.indexOf(child)] : { x: 0, y: 0 }
+    positions.set(child.id, { x: unit.x + offset.x, y: unit.y + offset.y })
   }
-  return pos
+  return positions
 }
 
 /**
@@ -193,43 +200,47 @@ async function flow(kids: AppNode[], edges: Edge[], gap: Gap): Promise<Map<strin
  * placed as single boxes.
  */
 export async function reflow(nodes: AppNode[], links: Link[], groupId: string | undefined): Promise<AppNode[]> {
-  const map = byId(nodes)
-  const group = groupId ? map.get(groupId) : undefined
+  const nodeMap = byId(nodes)
+  const group = groupId ? nodeMap.get(groupId) : undefined
   const arrange = group && isCluster(group) ? (group.data.arrange ?? 'auto') : 'auto'
   if (arrange === 'custom') return nodes
-  const kids = nodes.filter((n) => n.parentId === groupId)
-  if (!kids.length) return nodes
+  const children = nodes.filter((node) => node.parentId === groupId)
+  if (!children.length) return nodes
   const lift = (id: string): string | null => {
-    let cur: string | undefined = id
-    while (cur) {
-      const n = map.get(cur)
-      if (!n) return null
-      if (n.parentId === groupId) return cur
-      cur = n.parentId
+    let current: string | undefined = id
+    while (current) {
+      const node = nodeMap.get(current)
+      if (!node) return null
+      if (node.parentId === groupId) return current
+      current = node.parentId
     }
     return null
   }
   const seen = new Set<string>()
   const edges: Edge[] = []
-  for (const l of links) {
-    if (l.kind !== 'blocks') continue
-    const a = lift(l.from)
-    const b = lift(l.to)
-    if (!a || !b || a === b || seen.has(a + '>' + b)) continue
-    seen.add(a + '>' + b)
-    edges.push([a, b])
+  for (const link of links) {
+    if (link.kind !== 'blocks') continue
+    const source = lift(link.from)
+    const target = lift(link.to)
+    if (!source || !target || source === target || seen.has(source + '>' + target)) continue
+    seen.add(source + '>' + target)
+    edges.push([source, target])
   }
-  const gap = groupId ? INNER : TOP
-  const pos = await flow(kids, edges, gap)
-  const offset = groupId ? { x: PAD, y: HEAD } : { x: 0, y: 0 }
-  return normalize(nodes.map((n) => (pos.has(n.id) ? { ...n, position: { x: pos.get(n.id)!.x + offset.x, y: pos.get(n.id)!.y + offset.y } } : n)))
+  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP)
+  const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
+  return normalize(
+    nodes.map((node) => {
+      const position = positions.get(node.id)
+      return position ? { ...node, position: { x: position.x + offset.x, y: position.y + offset.y } } : node
+    }),
+  )
 }
 
 /** Lays out every group from the deepest up, then the top level. */
 export async function reflowAll(nodes: AppNode[], links: Link[]): Promise<AppNode[]> {
-  const map = byId(nodes)
-  const groups = nodes.filter(isCluster).sort((a, b) => ancestors(b.id, map).length - ancestors(a.id, map).length)
+  const nodeMap = byId(nodes)
+  const groups = nodes.filter(isCluster).sort((a, b) => ancestors(b.id, nodeMap).length - ancestors(a.id, nodeMap).length)
   let next = normalize(nodes)
-  for (const g of groups) next = await reflow(next, links, g.id)
+  for (const group of groups) next = await reflow(next, links, group.id)
   return reflow(next, links, undefined)
 }

@@ -16,31 +16,31 @@ type SeedTask = {
 
 export function seedNodes(): AppNode[] {
   return [
-    ...seed.groups.map((g): AppNode => ({
-      id: g.id,
+    ...seed.groups.map((group): AppNode => ({
+      id: group.id,
       type: 'cluster',
       position: { x: 0, y: 0 },
-      data: { kind: 'cluster', label: g.label, blurb: g.blurb ?? undefined },
+      data: { kind: 'cluster', label: group.label, blurb: group.blurb ?? undefined },
     })),
-    ...(seed.tasks as SeedTask[]).map((t): AppNode => ({
-      id: t.id,
+    ...(seed.tasks as SeedTask[]).map((task): AppNode => ({
+      id: task.id,
       type: 'task',
       position: { x: 0, y: 0 },
-      parentId: t.group,
+      parentId: task.group,
       data: {
         kind: 'task',
-        label: t.label,
-        itemKind: t.kind as ItemKind,
-        status: t.status as Status,
-        repo: t.repo,
-        pr: t.pr,
-        note: t.note,
-        who: t.who as Who | undefined,
+        label: task.label,
+        itemKind: task.kind as ItemKind,
+        status: task.status as Status,
+        repo: task.repo,
+        pr: task.pr,
+        note: task.note,
+        who: task.who as Who | undefined,
       },
     })),
   ]
 }
 
 export function seedLinks(): Link[] {
-  return seed.links.map((l): Link => ({ id: `${l.from}>${l.to}`, from: l.from, to: l.to, kind: 'blocks' }))
+  return seed.links.map((link): Link => ({ id: `${link.from}>${link.to}`, from: link.from, to: link.to, kind: 'blocks' }))
 }

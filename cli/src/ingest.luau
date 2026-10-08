@@ -43,8 +43,8 @@ end
 local function getCommandJson(run: CommandRunner, argv: { string }): json.Value
 	local result = run(argv)
 	assert(result.ok, `{argv[1]} failed: {result.stderr}`)
-	local ok, value = pcall(json.deserialize, result.stdout)
-	assert(ok, `{argv[1]} returned invalid JSON`)
+	local succeeded, value = pcall(json.deserialize, result.stdout)
+	assert(succeeded, `{argv[1]} returned invalid JSON`)
 	return value :: json.Value
 end
 
@@ -52,7 +52,7 @@ local function getJiraIssues(value: json.Value): { JiraIssue }
 	local root = json.asObject(value)
 	local array = if root then json.asArray(root.issues) else json.asArray(value)
 	assert(array, "Jira response must be an array or contain issues")
-	local out = {}
+	local result = {}
 
 	for _, raw in array do
 		local issue = json.asObject(raw)
@@ -72,7 +72,7 @@ local function getJiraIssues(value: json.Value): { JiraIssue }
 
 		local epic = if fields then json.asObject(fields.epic) or json.asObject(fields.parent) else nil
 		local epicFields = if epic then json.asObject(epic.fields) else nil
-		table.insert(out, {
+		table.insert(result, {
 			key = key,
 			summary = summary,
 			status = (if issue then getString(issue.status) else nil) or (if status
@@ -93,7 +93,7 @@ local function getJiraIssues(value: json.Value): { JiraIssue }
 		})
 	end
 
-	return out
+	return result
 end
 
 local function getHopData(run: CommandRunner, source: Source): ({ Worktree }, { Session })
@@ -146,8 +146,8 @@ local function getHopData(run: CommandRunner, source: Source): ({ Worktree }, { 
 	return worktrees, sessions
 end
 
-local function getUnix(iso: string): number
-	local year, month, day, hour, minute, second = iso:match("^(%d+)%-(%d+)%-(%d+)T(%d+):(%d+):(%d+)")
+local function getUnix(timestamp: string): number
+	local year, month, day, hour, minute, second = timestamp:match("^(%d+)%-(%d+)%-(%d+)T(%d+):(%d+):(%d+)")
 
 	if not year then
 		return os.time()
@@ -161,11 +161,18 @@ local function getUnix(iso: string): number
 		min = tonumber(minute) :: number,
 		sec = tonumber(second) :: number,
 	})
-	local utc = os.date("!*t", localTime)
+	local utcDate = os.date("!*t", localTime)
 	return localTime
 		+ os.difftime(
 			localTime,
-			os.time({ year = utc.year, month = utc.month, day = utc.day, hour = utc.hour, min = utc.min, sec = utc.sec })
+			os.time({
+				year = utcDate.year,
+				month = utcDate.month,
+				day = utcDate.day,
+				hour = utcDate.hour,
+				min = utcDate.min,
+				sec = utcDate.sec,
+			})
 		)
 end
 
@@ -181,7 +188,7 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 
 		found = true
 		local result: Result = { source = source, report = { id = source.id, added = 0, updated = 0, linked = 0 } }
-		local ok, err = pcall(function()
+		local succeeded, failureMessage = pcall(function()
 			if source.kind == "github" then
 				result.pulls, result.issues, result.viewer = github.getInvolved(
 					run,
@@ -200,8 +207,8 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 			end
 		end)
 
-		if not ok then
-			result.report.failed = tostring(err)
+		if not succeeded then
+			result.report.failed = tostring(failureMessage)
 		end
 
 		table.insert(results, result)

@@ -14,8 +14,8 @@ const browserStore = (): ViewStore | null => {
 }
 
 function isViewport(value: unknown): value is Viewport {
-  const v = value as Viewport | null
-  return !!v && Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.zoom) && v.zoom > 0
+  const viewport = value as Viewport | null
+  return !!viewport && Number.isFinite(viewport.x) && Number.isFinite(viewport.y) && Number.isFinite(viewport.zoom) && viewport.zoom > 0
 }
 
 export function readViewport(workspace: string, store = browserStore()): Viewport | null {

@@ -16,12 +16,19 @@ function Lock() {
 }
 
 function Ring({ done, total, size = 22 }: { done: number; total: number; size?: number }) {
-  const r = 8
-  const c = 2 * Math.PI * r
+  const radius = 8
+  const circumference = 2 * Math.PI * radius
   return (
     <svg viewBox="0 0 20 20" width={size} height={size} className="ring" aria-hidden="true">
-      <circle cx="10" cy="10" r={r} className="ring-bg" />
-      <circle cx="10" cy="10" r={r} className="ring-fg" strokeDasharray={`${total ? (done / total) * c : 0} ${c}`} transform="rotate(-90 10 10)" />
+      <circle cx="10" cy="10" r={radius} className="ring-bg" />
+      <circle
+        cx="10"
+        cy="10"
+        r={radius}
+        className="ring-fg"
+        strokeDasharray={`${total ? (done / total) * circumference : 0} ${circumference}`}
+        transform="rotate(-90 10 10)"
+      />
     </svg>
   )
 }
@@ -38,21 +45,21 @@ function FarTag({ className, children }: { className: string; children: ReactNod
 }
 
 export function TaskView({ id, data }: NodeProps<TaskNode>) {
-  const d = useContext(DerivedContext)!
-  const far = useStore((s) => s.transform[2] < FAR_ZOOM)
-  const st = d.status.get(id) ?? 'ready'
-  const lev = d.leverage.get(id) ?? 0
-  const tr = d.trace?.get(id)
-  const attn = d.attention?.get(id)
+  const derived = useContext(DerivedContext)!
+  const far = useStore((state) => state.transform[2] < FAR_ZOOM)
+  const status = derived.status.get(id) ?? 'ready'
+  const leverage = derived.leverage.get(id) ?? 0
+  const trace = derived.trace?.get(id)
+  const attention = derived.attention?.get(id)
   if (data.itemKind === 'note') {
-    const className = `card note${tr ? ' tr-' + tr : ''}`
+    const className = `card note${trace ? ' tr-' + trace : ''}`
     const body = (
       <>
         <div className="meta">
           <span>Note</span>
         </div>
         <div className="note-text">{data.label || 'Empty note'}</div>
-        <SourceBadges sources={d.sources.get(id) ?? []} />
+        <SourceBadges sources={derived.sources.get(id) ?? []} />
       </>
     )
     return (
@@ -63,7 +70,7 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
       </div>
     )
   }
-  const className = `card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn' : ''}`
+  const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
   const body = (
     <>
       <div className="meta">
@@ -73,15 +80,15 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
         {data.github?.checks && (
           <span className={`check-dot check-${data.github.checks.toLowerCase()}`} title={`Checks: ${data.github.checks.toLowerCase()}`} />
         )}
-        <span className="st" title={STATUS_LABEL[st]}>
-          {st === 'blocked' && <Lock />}
-          <span className="st-label">{STATUS_LABEL[st]}</span>
+        <span className="st" title={STATUS_LABEL[status]}>
+          {status === 'blocked' && <Lock />}
+          <span className="st-label">{STATUS_LABEL[status]}</span>
         </span>
       </div>
       <div className="label">{data.label}</div>
-      {st !== 'done' && st !== 'deferred' && lev > 0 && <span className={`lev${lev >= 4 ? ' big' : ''}`}>unblocks {lev}</span>}
-      {st !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
-      <SourceBadges sources={d.sources.get(id) ?? []} />
+      {status !== 'done' && status !== 'deferred' && leverage > 0 && <span className={`lev${leverage >= 4 ? ' big' : ''}`}>unblocks {leverage}</span>}
+      {status !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
+      <SourceBadges sources={derived.sources.get(id) ?? []} />
     </>
   )
   return (
@@ -94,57 +101,57 @@ export function TaskView({ id, data }: NodeProps<TaskNode>) {
 }
 
 export function GhostView({ data }: NodeProps<GhostNode>) {
-  const d = useContext(DerivedContext)!
-  const tr = d.trace?.get(data.taskId)
+  const derived = useContext(DerivedContext)!
+  const trace = derived.trace?.get(data.taskId)
   return (
-    <div className={`ghost st-${data.status} side-${data.side}${tr ? ' tr-' + tr : ''}`} title={`Jump to ${data.label}`}>
+    <div className={`ghost st-${data.status} side-${data.side}${trace ? ' tr-' + trace : ''}`} title={`Jump to ${data.label}`}>
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
       <span className="ghost-where">
         {data.side === 'in' ? 'from' : 'to'} {data.where}
       </span>
       <span className="label">{data.label}</span>
       <span className="ghost-status">{STATUS_LABEL[data.status]}</span>
-      <SourceBadges sources={d.sources.get(data.taskId) ?? []} />
+      <SourceBadges sources={derived.sources.get(data.taskId) ?? []} />
       {data.side === 'in' && <Handle type="source" position={Position.Right} isConnectable={false} />}
     </div>
   )
 }
 
 export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
-  const d = useContext(DerivedContext)!
+  const derived = useContext(DerivedContext)!
   const actions = useContext(ActionsContext)!
-  const s = d.groups.get(id) ?? { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
-  const collapsed = d.collapsed.has(id)
-  const tr = d.trace?.get(id)
-  const attn = d.attention?.get(id)
+  const stats = derived.groups.get(id) ?? { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
+  const collapsed = derived.collapsed.has(id)
+  const trace = derived.trace?.get(id)
+  const attention = derived.attention?.get(id)
   return (
-    <div className={`cluster${collapsed ? ' is-collapsed' : ''}${tr ? ' tr-' + tr : ''}`}>
+    <div className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} />
       {collapsed ? (
         <div className="pop drag">
           <span className="pop-anchor" />
           <div className="pop-place">
-            <div className={`bubble${attn ? ' attn' : ''}`}>
+            <div className={`bubble${attention ? ' attn' : ''}`}>
               <div className="bubble-title">
-                <Ring done={s.done} total={s.total} size={16} />
+                <Ring done={stats.done} total={stats.total} size={16} />
                 <strong>{data.label}</strong>
               </div>
               <span className="bubble-stats">
-                {s.done}/{s.total} done · {s.ready} ready · {s.blocked} blocked
+                {stats.done}/{stats.total} done · {stats.ready} ready · {stats.blocked} blocked
               </span>
-              {s.outside > 0 && <span className="bubble-lev">unblocks {s.outside} outside</span>}
-              <SourceBadges sources={d.sources.get(id) ?? []} inBubble />
+              {stats.outside > 0 && <span className="bubble-lev">unblocks {stats.outside} outside</span>}
+              <SourceBadges sources={derived.sources.get(id) ?? []} inBubble />
             </div>
           </div>
         </div>
       ) : (
         <div className="cluster-head drag" title="Double-click to open">
-          <Ring done={s.done} total={s.total} />
+          <Ring done={stats.done} total={stats.total} />
           <strong>{data.label}</strong>
           <span className="count">
-            {s.done}/{s.total}
+            {stats.done}/{stats.total}
           </span>
-          {s.outside > 0 && <span className="lev-inline">unblocks {s.outside} outside</span>}
+          {stats.outside > 0 && <span className="lev-inline">unblocks {stats.outside} outside</span>}
           <span className="head-actions">
             {data.arrange !== 'custom' && (
               <button type="button" className="nodrag" onClick={() => actions.reflow(id)}>
@@ -157,7 +164,7 @@ export function ClusterView({ id, data }: NodeProps<ClusterNode>) {
           </span>
         </div>
       )}
-      {!collapsed && <SourceBadges sources={d.sources.get(id) ?? []} />}
+      {!collapsed && <SourceBadges sources={derived.sources.get(id) ?? []} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
   )
