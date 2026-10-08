@@ -1,3 +1,5 @@
+local path = require("@std/path")
+
 local getEnvironmentValue = require("@root/cli/mcp/clients/getEnvironmentValue")
 local isShellScript = require("@root/cli/mcp/clients/isShellScript")
 local platformTypes = require("@root/platform/types")
@@ -5,7 +7,7 @@ local platformTypes = require("@root/platform/types")
 type Platform = platformTypes.Platform
 
 local function getClientCommand(
-	program: string,
+	program: path.Path,
 	name: string,
 	arguments: { string },
 	environment: { [string]: string },
@@ -18,7 +20,7 @@ local function getClientCommand(
 	if platform == "windows" and isShellScript(program) then
 		argv = { getEnvironmentValue(environment, "ComSpec") or "cmd.exe", "/d", "/c", name }
 	else
-		argv = { program }
+		argv = { tostring(program) }
 	end
 
 	for _, argument in arguments do

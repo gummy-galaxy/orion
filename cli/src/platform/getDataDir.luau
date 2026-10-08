@@ -5,16 +5,16 @@ local platformTypes = require("@root/platform/types")
 
 type Platform = platformTypes.Platform
 
-local function getDataDir(platform: Platform, home: string, environment: { [string]: string }): string
+local function getDataDir(platform: Platform, home: path.Pathlike, environment: { [string]: string }): path.Path
 	if platform == "macos" then
-		return tostring(path.join(home, "Library", "Application Support", "Orion"))
+		return path.join(home, "Library", "Application Support", "Orion")
 	elseif platform == "windows" then
-		local base = getAbsolutePath(environment.APPDATA) or tostring(path.join(home, "AppData", "Roaming"))
-		return tostring(path.join(base, "Orion"))
+		local base = getAbsolutePath(environment.APPDATA) or path.join(home, "AppData", "Roaming")
+		return path.join(base, "Orion")
 	end
 
-	local base = getAbsolutePath(environment.XDG_DATA_HOME) or tostring(path.join(home, ".local", "share"))
-	return tostring(path.join(base, "orion"))
+	local base = getAbsolutePath(environment.XDG_DATA_HOME) or path.join(home, ".local", "share")
+	return path.join(base, "orion")
 end
 
 return getDataDir

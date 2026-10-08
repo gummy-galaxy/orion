@@ -1,11 +1,12 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
+local path = require("@std/path")
 
 local getCursorConfigPath = require("@root/cli/mcp/clients/getCursorConfigPath")
 local readCursorConfig = require("@root/cli/mcp/clients/readCursorConfig")
 
 -- Returns whether Cursor's config had an orion server to remove.
-local function removeCursorServer(home: string): boolean
+local function removeCursorServer(home: path.Path): boolean
 	local file = getCursorConfigPath(home)
 
 	if not fs.exists(file) then

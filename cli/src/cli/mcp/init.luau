@@ -47,8 +47,8 @@ return table.freeze({
 		end
 
 		local request: ClientRequest = {
-			binary = tostring(path.normalize(process.execPath())),
-			home = tostring(process.homedir()),
+			binary = path.normalize(process.execPath()),
+			home = process.homedir(),
 			clients = getClients(subcommand:get("client")),
 			write = options.write,
 			runner = options.runner,

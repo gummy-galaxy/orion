@@ -21,11 +21,11 @@ end
 
 local function quiet(_line: string) end
 
-local function command(root: string, name: string): string
+local function command(root: path.Pathlike, name: string): path.Path
 	local file = path.join(root, "tools", name)
 	fs.createDirectory(path.dirname(file), { makeParents = true })
 	fs.writeStringToFile(file, "")
-	return tostring(file)
+	return file
 end
 
 local function fixture(name: string, platform: Platform?)
@@ -46,13 +46,13 @@ local function fixture(name: string, platform: Platform?)
 	)
 	return {
 		root = root,
-		binary = tostring(binary),
-		home = tostring(home),
+		binary = binary,
+		home = home,
 		path = tostring(path.join(root, "tools")),
 	}
 end
 
-local function cursorServers(home: string): json.Object?
+local function cursorServers(home: path.Path): json.Object?
 	local config =
 		json.asObject(json.deserialize(fs.readFileToString(path.join(home, ".cursor", "mcp.json"))) :: json.Value)
 	return if config then json.asObject(config.mcpServers) else nil
@@ -93,7 +93,7 @@ test.case("register points Cursor at orion mcp serve without dropping other serv
 	local orion = if servers then json.asObject(servers.orion) else nil
 	local arguments = if orion then json.asArray(orion.args) else nil
 	assert.eq(other and other.command, "other")
-	assert.eq(orion and orion.command, setup.binary)
+	assert.eq(orion and orion.command, tostring(setup.binary))
 	assert.eq(arguments and table.concat(arguments :: { any }, " "), "mcp serve")
 	assert.eq(orion and orion.env, nil)
 end)

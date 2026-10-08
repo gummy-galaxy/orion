@@ -20,7 +20,7 @@ local function getAddArguments(client: string, request: ClientRequest): { string
 	end
 
 	table.insert(arguments, "--")
-	table.insert(arguments, request.binary)
+	table.insert(arguments, tostring(request.binary))
 
 	for _, argument in constants.serveArguments do
 		table.insert(arguments, argument)

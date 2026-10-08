@@ -7,7 +7,7 @@ local platformTypes = require("@root/platform/types")
 
 type Platform = platformTypes.Platform
 
-local function findCommand(name: string, environment: { [string]: string }, platform: Platform): string?
+local function findCommand(name: string, environment: { [string]: string }, platform: Platform): path.Path?
 	local separator = if platform == "windows" then "[^;]+" else "[^:]+"
 
 	for directory in string.gmatch(getEnvironmentValue(environment, "PATH") or "", separator) do
@@ -18,7 +18,7 @@ local function findCommand(name: string, environment: { [string]: string }, plat
 				local kind = fs.type(candidate)
 
 				if kind == "file" or kind == "link" then
-					return tostring(candidate)
+					return candidate
 				end
 			end
 		end

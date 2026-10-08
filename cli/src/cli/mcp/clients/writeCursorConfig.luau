@@ -12,7 +12,7 @@ type ClientRequest = mcpTypes.ClientRequest
 
 -- Cursor has no command to add a server, so edit its config and keep the other servers.
 local function writeCursorConfig(request: ClientRequest)
-	local directory = tostring(path.join(request.home, ".cursor"))
+	local directory = path.join(request.home, ".cursor")
 
 	if not fs.exists(directory) then
 		fs.createDirectory(directory, { makeParents = true })
@@ -21,11 +21,11 @@ local function writeCursorConfig(request: ClientRequest)
 	local file = getCursorConfigPath(request.home)
 	local config = readCursorConfig(file)
 	local servers = assert(json.asObject(config.mcpServers))
-	local entry = json.object({ command = request.binary, args = table.clone(constants.serveArguments) })
+	local entry = json.object({ command = tostring(request.binary), args = table.clone(constants.serveArguments) })
 	local dataDir = getDataDirOverride(request.environment)
 
 	if dataDir then
-		entry.env = json.object({ ORION_DATA_DIR = dataDir })
+		entry.env = json.object({ ORION_DATA_DIR = tostring(dataDir) })
 	end
 
 	servers.orion = entry

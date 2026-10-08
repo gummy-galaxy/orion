@@ -1,4 +1,5 @@
 local json = require("@std/json")
+local path = require("@std/path")
 
 local platformTypes = require("@root/platform/types")
 local types = require("@root/types")
@@ -32,8 +33,8 @@ export type Tool = {
 export type Run = (argv: { string }, write: (string) -> ()) -> ()
 
 export type ClientRequest = {
-	binary: string,
-	home: string,
+	binary: path.Path,
+	home: path.Path,
 	clients: { string },
 	write: (string) -> (),
 	runner: types.CommandRunner,

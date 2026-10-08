@@ -37,7 +37,7 @@ function store.defaultDir(): string
 		return tostring(path.resolve(configured))
 	end
 
-	return getDefaultDataDir()
+	return tostring(getDefaultDataDir())
 end
 
 function store.isValidWorkspace(name: string): boolean

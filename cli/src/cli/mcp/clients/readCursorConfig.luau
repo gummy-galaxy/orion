@@ -1,7 +1,8 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
+local path = require("@std/path")
 
-local function readCursorConfig(file: string): json.Object
+local function readCursorConfig(file: path.Path): json.Object
 	if not fs.exists(file) then
 		return json.object({ mcpServers = json.object({}) })
 	end
