@@ -4,15 +4,16 @@ local path = require("@std/path")
 local test = require("@std/test")
 
 local getClients = require("@root/cli/mcp/clients/getClients")
+local getExecutableName = require("@root/platform/getExecutableName")
 local mcpTypes = require("@root/cli/mcp/types")
-local platformDirs = require("@root/platformDirs")
+local platformTypes = require("@root/platform/types")
 local registerClients = require("@root/cli/mcp/clients/registerClients")
 local testing = require("@root/testing")
 local types = require("@root/types")
 local unregisterClients = require("@root/cli/mcp/clients/unregisterClients")
 
 type CommandResult = types.CommandResult
-type Platform = platformDirs.Platform
+type Platform = platformTypes.Platform
 
 local function succeeded(_argv: { string }, _stdin: string?): CommandResult
 	return { ok = true, exitCode = 0, stdout = "", stderr = "" }
@@ -29,7 +30,7 @@ end
 
 local function fixture(name: string, platform: Platform?)
 	local root = testing.directory(name)
-	local binary = path.join(root, "cli", "build", platformDirs.executableName(platform or "macos", "orion"))
+	local binary = path.join(root, "cli", "build", getExecutableName(platform or "macos", "orion"))
 	fs.createDirectory(path.dirname(binary), { makeParents = true })
 	fs.writeStringToFile(binary, "binary\n")
 	local home = path.join(root, "home")

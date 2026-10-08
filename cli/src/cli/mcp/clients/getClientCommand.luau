@@ -1,8 +1,8 @@
 local getEnvironmentValue = require("@root/cli/mcp/clients/getEnvironmentValue")
 local isShellScript = require("@root/cli/mcp/clients/isShellScript")
-local platformDirs = require("@root/platformDirs")
+local platformTypes = require("@root/platform/types")
 
-type Platform = platformDirs.Platform
+type Platform = platformTypes.Platform
 
 local function getClientCommand(
 	program: string,

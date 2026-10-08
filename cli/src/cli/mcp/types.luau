@@ -1,6 +1,6 @@
 local json = require("@std/json")
 
-local platformDirs = require("@root/platformDirs")
+local platformTypes = require("@root/platform/types")
 local types = require("@root/types")
 
 export type FieldKind = "string" | "id" | "workspace" | "enum" | "boolean" | "strings" | "int"
@@ -38,7 +38,7 @@ export type ClientRequest = {
 	write: (string) -> (),
 	runner: types.CommandRunner,
 	environment: { [string]: string },
-	platform: platformDirs.Platform,
+	platform: platformTypes.Platform,
 }
 
 return nil

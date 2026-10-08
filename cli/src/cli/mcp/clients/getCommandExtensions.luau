@@ -1,7 +1,7 @@
 local getEnvironmentValue = require("@root/cli/mcp/clients/getEnvironmentValue")
-local platformDirs = require("@root/platformDirs")
+local platformTypes = require("@root/platform/types")
 
-type Platform = platformDirs.Platform
+type Platform = platformTypes.Platform
 
 local function getCommandExtensions(platform: Platform, environment: { [string]: string }): { string }
 	if platform ~= "windows" then
