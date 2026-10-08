@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { useStore } from '@xyflow/react'
+import { ProcessUsage } from './ProcessUsage'
 
 export type MotionSettings = { arrows: boolean; glow: boolean; pauseWhileMoving: boolean }
 
@@ -67,6 +68,7 @@ export function DebugBar({
   return (
     <div className="debug-bar" role="status">
       <span className={`debug-fps ${fpsClass}`}>{sample ? `${sample.fps} fps` : '… fps'}</span>
+      <ProcessUsage />
       {sample && (
         <>
           <span title="Slowest frame in the last half second">worst {sample.worst} ms</span>

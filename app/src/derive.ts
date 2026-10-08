@@ -7,23 +7,11 @@ export type Flow = 'live' | 'held'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
 export type SourceRef = { domain: string; label: string; href?: string }
 
-export type Derived = {
-  status: Map<string, ViewStatus>
-  leverage: Map<string, number>
-  groups: Map<string, GroupStats>
-  sources: Map<string, SourceRef[]>
-  trace: Map<string, TraceRole> | null
-  collapsed: Set<string>
-  /** While ⌘ is held: what needs you, keyed by the card or folded group that shows it. */
-  attention: Map<string, AttentionMark> | null
-}
-
 export type Actions = {
   reflow: (groupId: string) => void
   open: (groupId: string) => void
 }
 
-export const DerivedContext = createContext<Derived | null>(null)
 export const ActionsContext = createContext<Actions | null>(null)
 
 /** Where a card's work comes from, or null for a card that only lives in Orion. */
@@ -214,6 +202,8 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
 
   return { status, flow, leverage, groups, sources, preds: predecessors, succs: successors }
 }
+
+export type Work = ReturnType<typeof deriveWork>
 
 /** What `id` needs, what it unlocks, and the cards related to it directly; everything else dims. */
 export function traceFrom(id: string, predecessors: Map<string, string[]>, successors: Map<string, string[]>, ids: string[], related: string[] = []) {
