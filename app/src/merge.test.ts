@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { mergeDocs } from './merge'
 import type { AppNode, Link } from './model'
 import type { Saved } from './persist'
+import type { Sticker } from './sticker'
 
 const makeNode = (id: string, label = id): AppNode => ({
   id,
@@ -15,14 +16,14 @@ const makeDoc = (nodes: AppNode[], links: Link[] = []): Saved => ({ nodes, links
 describe('mergeDocs', () => {
   it('keeps nodes added on either side', () => {
     const merged = mergeDocs(makeDoc([makeNode('a')]), makeDoc([makeNode('a'), makeNode('local')]), makeDoc([makeNode('a'), makeNode('remote')]))
-    expect(merged.nodes.map((n) => n.id)).toEqual(['a', 'remote', 'local'])
+    expect(merged.nodes.map((node) => node.id)).toEqual(['a', 'remote', 'local'])
     expect(merged.conflicts).toEqual([])
   })
 
   it('deletes a node when the other side left it unchanged', () => {
     const base = makeDoc([makeNode('a'), makeNode('b')])
-    expect(mergeDocs(base, makeDoc([makeNode('b')]), base).nodes.map((n) => n.id)).toEqual(['b'])
-    expect(mergeDocs(base, base, makeDoc([makeNode('b')])).nodes.map((n) => n.id)).toEqual(['b'])
+    expect(mergeDocs(base, makeDoc([makeNode('b')]), base).nodes.map((node) => node.id)).toEqual(['b'])
+    expect(mergeDocs(base, base, makeDoc([makeNode('b')])).nodes.map((node) => node.id)).toEqual(['b'])
   })
 
   it('keeps an edit against a deletion in either direction', () => {
@@ -96,7 +97,7 @@ describe('mergeDocs', () => {
       makeLink('remote', 'b', 'a'),
     ])
     const merged = mergeDocs(base, local, remote)
-    expect(merged.links.map((l) => l.id)).toEqual(['edited', 'remote', 'local'])
+    expect(merged.links.map((link) => link.id)).toEqual(['edited', 'remote', 'local'])
     expect(merged.conflicts).toEqual([])
   })
 
@@ -121,5 +122,42 @@ describe('mergeDocs', () => {
     )
     expect(merged.links).toEqual([{ ...original, kind: 'related', origin: 'stack' }])
     expect(merged.conflicts).toEqual([])
+  })
+
+  it('merges stickers and loadout edits with concurrent canvas changes', () => {
+    const original: Sticker = { id: 'one', kind: '🎉', x: 0, y: 0, tilt: 0, on: 'a' }
+    const base: Saved = { ...makeDoc([makeNode('a')]), stickers: [original], stickerLoadout: ['🎉', '🔥'] }
+    const local: Saved = {
+      ...base,
+      stickers: [
+        { ...original, x: 20 },
+        { id: 'local', kind: '⭐', x: 4, y: 5, tilt: 0 },
+      ],
+      stickerLoadout: ['🚀', '🔥'],
+    }
+    const remote: Saved = {
+      ...base,
+      nodes: [makeNode('a', 'remote')],
+      stickers: [
+        { ...original, y: 30 },
+        { id: 'remote', kind: '❤️', x: 8, y: 9, tilt: 0 },
+      ],
+      stickerLoadout: ['🎉', '👀'],
+    }
+    const merged = mergeDocs(base, local, remote)
+    expect(merged.nodes[0].data.label).toBe('remote')
+    expect(merged.stickers).toEqual([{ ...original, x: 20, y: 30 }, remote.stickers![1], local.stickers![1]])
+    expect(merged.stickerLoadout?.slice(0, 2)).toEqual(['🚀', '👀'])
+    expect(merged.conflicts).toEqual([])
+  })
+
+  it('keeps a local sticker position on collision and drops stickers whose anchor was removed', () => {
+    const original: Sticker = { id: 'one', kind: '🎉', x: 0, y: 0, tilt: 0, on: 'a' }
+    const base: Saved = { ...makeDoc([makeNode('a')]), stickers: [original] }
+    const competing = mergeDocs(base, { ...base, stickers: [{ ...original, x: 10 }] }, { ...base, stickers: [{ ...original, x: 20 }] })
+    expect(competing.stickers?.[0].x).toBe(10)
+    expect(competing.conflicts).toContainEqual({ id: 'one', field: 'x' })
+    const deleted = mergeDocs(base, base, { ...makeDoc([]), stickers: [original] })
+    expect(deleted.stickers).toEqual([])
   })
 })

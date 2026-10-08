@@ -20,15 +20,16 @@ return table.freeze({
 	help = "List, create, and choose workspaces",
 	define = function(parser: batteriesCli.Parser)
 		for _, name in { "list", "create", "use", "current" } do
-			local sub = parser:subcommand(name, { help = COMMANDS[name].help })
-			sub:add("help", "flag", { help = "Show this help", aliases = { "h" } })
-			sub:add("workspace", "option", { help = "Use this workspace for this command" })
-			COMMANDS[name].define(sub)
+			local subcommand = parser:subcommand(name, { help = COMMANDS[name].help })
+			subcommand:add("help", "flag", { help = "Show this help", aliases = { "h" } })
+			subcommand:add("workspace", "option", { help = "Use this workspace for this command" })
+			COMMANDS[name].define(subcommand)
 		end
 	end,
+
 	run = function(parser: batteriesCli.Parser, options: Context)
-		local name, sub = parser:selected()
-		assert(name and sub, "choose list, create, use, or current")
-		COMMANDS[name].run(sub, options)
+		local name, subcommand = parser:selected()
+		assert(name and subcommand, "choose list, create, use, or current")
+		COMMANDS[name].run(subcommand, options)
 	end,
 })

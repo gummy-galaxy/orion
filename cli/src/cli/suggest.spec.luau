@@ -19,6 +19,7 @@ test.case("configured agent command receives bounded context on stdin", function
 		write = function(value)
 			output = value
 		end,
+
 		runner = function(argv, stdin)
 			assert.eq(table.concat(argv, " "), "custom-agent --json")
 			assert.strContains(stdin or "", "singletons")

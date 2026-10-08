@@ -14,6 +14,7 @@ test.case("sync throttles repeated requests and force bypasses the throttle", fu
 	end, function()
 		return now
 	end)
+
 	loop.run()
 	local first = calls
 	assert.that(first > 0)

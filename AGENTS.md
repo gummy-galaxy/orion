@@ -15,10 +15,21 @@ Pass `--workspace <name>` to work in a specific workspace, or rely on the active
 
 `orion backups [--json]` lists saved revisions for the selected workspace. If a change was a mistake, `orion restore <revision>` restores the newest backup with that revision in the selected workspace as a new revision and backs up the current file first.
 
+## What the person is looking at
+
+The app reports its open group and selection to `orion serve`. `orion focus` shows that report for the selected workspace, including the open group's ancestors. Run it before answering a question about the canvas.
+
+- Read the question as being about the selection first, then the open group, then work linked to either. Widen to the whole canvas only when the question names something else or the focus doesn't fit it.
+- "This", "these", "here", and unnamed items most likely mean the selection, or the open group when nothing is selected.
+- `orion list --group <id>` and `orion show <id>` fill in the details for whatever is in focus.
+- Say which focus you assumed when it shaped the answer, so a wrong guess is easy to correct.
+- At the top level with nothing selected, or with the app closed, there's no focus to lean on.
+
 ## Changing it
 
 - `orion add <title> [--group <id>] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item.
 - `orion set <id> [--label …] [--status …] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
+- `orion set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
 - `orion done <id>` marks an item done.
 - `orion link <first> <then>` makes `<then>` wait on `<first>`. Add `--related` for a link that never blocks. `orion unlink` removes one.
 - `orion note <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it goes inside that existing link.
@@ -35,7 +46,7 @@ Run `orion suggest` to find related ungrouped cards, then review `orion suggesti
 
 Cards with a repository and pull request number stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. Run `orion sync --dry-run` first when unsure.
 
-`orion sync` adds pending review requests without cards to the Review requests group. It also records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. Link one to an existing card with `orion set <id> --repo <repo> --pr <n>`.
+`orion sync` records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. When the workspace has GitHub sources, only pull requests in their repositories count. Link one to an existing card with `orion set <id> --repo <repo> --pr <n>`.
 
 `orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
 
@@ -52,3 +63,9 @@ Cards ingested from Jira use `data.external` with the source ID and issue key as
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
 - Look up ids with `orion list --all` or `orion show` rather than guessing them.
 - Group by outcome, not by repository.
+
+## Luau style
+
+- Keep related requires, type aliases, constants, and short assignments together. Separate those groups and adjacent functions with blank lines.
+- Within functions, use blank lines between logical steps: setup, guards, loops and branches, state changes, and the final result. Keep statements that form one step together.
+- Run StyLua after editing Luau, then review the spacing yourself. StyLua sorts requires and formats statements, but does not add these logical blank lines.

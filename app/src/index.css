@@ -10,6 +10,8 @@
   --accent-soft: #d8eeee;
   --edge: #9aa9b0;
   --edge-hot: #0d6f74;
+  /* Mixed from the theme's own edges, so every color mode gets it. */
+  --edge-held: color-mix(in srgb, var(--edge-hot) 25%, var(--edge));
   --st-todo: #5d6d75;
   --st-active: #1f62c9;
   --st-review: #a56300;
@@ -24,8 +26,30 @@
   --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   color-scheme: light;
 }
+:root[data-theme='dark'] {
+  --bg: #0f1619;
+  --surface: #172227;
+  --ink: #e3eaed;
+  --muted: #92a3aa;
+  --line: #2b3a41;
+  --dots: #26343a;
+  --accent: #4fc1c4;
+  --accent-soft: #163a3c;
+  --edge: #4c5d65;
+  --edge-hot: #4fc1c4;
+  --st-todo: #92a3aa;
+  --st-active: #6ea2f2;
+  --st-review: #e2a34a;
+  --st-blocked: #f07a6f;
+  --st-done: #6cc28a;
+  --note: #2e2a17;
+  --note-edge: #8a7428;
+  --note-ink: #d9c272;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
+  color-scheme: dark;
+}
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #0f1619;
     --surface: #172227;
     --ink: #e3eaed;
@@ -135,7 +159,7 @@ select {
   position: relative;
   width: 100%;
   height: 100%;
-  padding: 8px 10px 8px 13px;
+  padding: 10px 12px 10px 15px;
   border-radius: 7px;
   border: 1px solid var(--line);
   background: var(--surface);
@@ -158,15 +182,15 @@ select {
   color: var(--muted);
   white-space: nowrap;
   min-width: 0;
+  overflow: hidden;
 }
 .card .meta-tag {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
   margin-right: auto;
 }
-.card .meta-lines,
-.card .meta .st,
 .card .meta .check-dot {
   flex: none;
 }
@@ -190,6 +214,20 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  /* The status gives up its space long before the tag does; the lock always stays. */
+  flex: 0 1000 auto;
+  min-width: 0;
+}
+.card .meta .st:has(.lock) {
+  min-width: 8px;
+}
+.card .meta .lock {
+  flex: none;
+}
+.card .meta .st-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 .card .label {
   font-size: 12.5px;
@@ -199,31 +237,172 @@ select {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+  padding-right: 22px;
+}
+.source-badges {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px;
+  max-width: calc(100% - 10px);
+  pointer-events: auto;
+  z-index: 1;
+}
+.source-domain,
+.source-domain summary {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 1px solid color-mix(in srgb, var(--surface) 65%, transparent);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow);
+}
+.source-domain-many {
+  cursor: pointer;
+}
+.source-domain-many summary {
+  border: 0;
+  list-style: none;
+}
+.source-domain-many summary::-webkit-details-marker {
+  display: none;
+}
+.source-domain-many summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.source-favicon,
+.source-favicon svg,
+.source-favicon img {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+.source-favicon {
+  position: relative;
+}
+.source-favicon img {
+  position: absolute;
+  inset: 0;
+  object-fit: contain;
+}
+.source-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 11px;
+  height: 11px;
+  padding: 0 2px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--surface);
+  font: 700 8px/1 var(--font-data);
+}
+.source-menu {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  z-index: 1;
+  min-width: 140px;
+  max-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  font: 11px/1.4 var(--font-ui);
+  white-space: nowrap;
+}
+.source-menu strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.source-menu ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.source-menu li {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.source-link {
+  display: grid;
+  place-items: center;
+  color: inherit;
+}
+.source-domain:has(> a.source-link:hover) {
+  border-color: var(--accent);
+}
+.source-menu a {
+  color: inherit;
+  text-decoration: none;
+}
+.source-menu a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.bubble .source-badges.in-bubble {
+  position: static;
+  justify-self: end;
+  margin-top: 2px;
 }
 .st-ready {
   --c: var(--accent);
-  border-color: var(--accent);
-  background: var(--accent-soft);
 }
 .st-active {
   --c: var(--st-active);
-  border-color: color-mix(in srgb, var(--st-active) 45%, var(--line));
 }
 .st-review {
   --c: var(--st-review);
 }
 .st-blocked {
   --c: var(--st-blocked);
-  --fade: 0.62;
 }
 .st-done {
   --c: var(--st-done);
+}
+/* Work that can move stands out; done, blocked, and parked work recede alike. */
+.card:is(.st-ready, .st-active, .st-review) {
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 8%, var(--surface));
+  box-shadow:
+    inset 4px 0 0 var(--c),
+    var(--shadow);
+}
+.card.st-ready {
+  background: var(--accent-soft);
+}
+.st-blocked,
+.st-done,
+.st-deferred {
+  --fade: 0.75;
+}
+.card:is(.st-blocked, .st-done, .st-deferred) {
   background: var(--bg);
   color: var(--muted);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 65%, var(--bg));
+}
+.react-flow__node-task.selected {
+  border-radius: 7px;
+  box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent) 26%, transparent);
 }
 .react-flow__node-task.selected .card {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
 }
 .lev {
   position: absolute;
@@ -295,8 +474,8 @@ select {
   --fade: 0.35;
 }
 
-/* Hover trace */
-.card.tr-dim {
+/* Hover trace. Everything outside it dims through the canvas, so only cards whose role changes redraw. */
+:where(.canvas.is-tracing) .card:not(.tr-self, .tr-up, .tr-down, .tr-related) {
   --fade: 0.25;
   border-color: var(--line);
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 25%, var(--surface));
@@ -313,47 +492,50 @@ select {
     inset 3px 0 0 var(--c),
     0 0 0 1px var(--accent);
 }
-.card.tr-self {
+.card.tr-related {
+  border-color: var(--ink);
   box-shadow:
     inset 3px 0 0 var(--c),
-    0 0 0 2px var(--ink);
+    0 0 0 1px color-mix(in srgb, var(--ink) 40%, transparent);
 }
 
-/* Edges: motion only where work is waiting */
+/* Edges: motion everywhere but behind stuck work */
 .react-flow__edge .react-flow__edge-path {
   stroke: var(--edge);
   stroke-width: 1.3;
   transition: opacity 0.2s;
 }
-.react-flow__edge.e-live .react-flow__edge-path {
+.react-flow__edge.e-live .react-flow__edge-path,
+.react-flow__edge.e-held .react-flow__edge-path {
   stroke: var(--edge-hot);
   stroke-width: 1.7;
   stroke-dasharray: 5 5;
 }
-.react-flow__edge.e-done .react-flow__edge-path {
-  opacity: 0.75;
+.react-flow__edge.e-held .react-flow__edge-path {
+  stroke: var(--edge-held);
+  opacity: 0.7;
 }
 .react-flow__edge.e-rel .react-flow__edge-path {
   stroke: var(--muted);
-  stroke-width: 1.6;
-  stroke-dasharray: 0.5 6;
+  stroke-width: 2.2;
+  stroke-dasharray: 0.5 5;
   stroke-linecap: round;
 }
-.react-flow__edge.e-agg.e-live .react-flow__edge-path {
+.react-flow__edge.e-rel-quiet .react-flow__edge-path {
+  opacity: 0.3;
+}
+.react-flow__edge.e-agg.e-live .react-flow__edge-path,
+.react-flow__edge.e-agg.e-held .react-flow__edge-path {
   stroke-dasharray: 12 9;
 }
-.react-flow__edge.tr-e-up .react-flow__edge-path {
-  stroke: var(--st-review);
-  stroke-width: 2.4;
-  stroke-dasharray: none;
-  animation: none;
+/* Traced links keep their own look and stand out by weight while every other link fades. */
+.react-flow__edge:is(.tr-e-up, .tr-e-down) .react-flow__edge-path {
+  stroke-width: 2.6;
   opacity: 1;
 }
-.react-flow__edge.tr-e-down .react-flow__edge-path {
-  stroke: var(--accent);
-  stroke-width: 2.4;
-  stroke-dasharray: none;
-  animation: none;
+.react-flow__edge.tr-e-rel .react-flow__edge-path {
+  stroke: var(--ink);
+  stroke-width: 2.6;
   opacity: 1;
 }
 .react-flow__edge.tr-e-dim {
@@ -373,6 +555,24 @@ select {
     animation: pulse 1.8s ease-out infinite;
   }
 }
+/* Zoomed far out, motion can't be read, so loops and fades stop. Moving the canvas pauses them too. */
+.canvas.is-still .react-flow__edge-path,
+.canvas.is-still .st-active {
+  animation: none !important;
+}
+.canvas[data-moving] .react-flow__edge-path,
+.canvas.no-arrow-motion .react-flow__edge-path,
+.canvas[data-moving] .st-active {
+  animation-play-state: paused !important;
+}
+.canvas.no-glow .card.st-active {
+  animation: none !important;
+}
+.canvas.is-still .react-flow__node,
+.canvas.is-still .react-flow__node *,
+.canvas.is-still .react-flow__edge-path {
+  transition: none !important;
+}
 @keyframes flow {
   to {
     stroke-dashoffset: -10;
@@ -386,12 +586,14 @@ select {
 @keyframes pulse {
   0% {
     box-shadow:
-      inset 3px 0 0 var(--c),
+      inset 4px 0 0 var(--c),
+      var(--shadow),
       0 0 0 0 color-mix(in srgb, var(--st-active) 45%, transparent);
   }
   100% {
     box-shadow:
-      inset 3px 0 0 var(--c),
+      inset 4px 0 0 var(--c),
+      var(--shadow),
       0 0 0 8px color-mix(in srgb, var(--st-active) 0%, transparent);
   }
 }
@@ -418,11 +620,15 @@ select {
 .react-flow__node-cluster.selected .cluster {
   border: 1.5px solid var(--accent);
 }
+.cluster > .source-badges {
+  right: 8px;
+  bottom: 8px;
+}
 .cluster-head {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  right: 6px;
+  top: 8px;
+  left: 8px;
+  right: 8px;
   height: 38px;
   display: flex;
   align-items: center;
@@ -473,10 +679,15 @@ select {
 .head-actions button:hover {
   background: var(--accent-soft);
 }
+/* Folded frames keep a visible outline however far out you zoom, so regions still read. */
 .cluster.is-collapsed {
-  border: 1.5px solid var(--line);
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  border: max(1.5px, calc(1.5px * var(--inv, 1))) solid var(--edge);
+  border-radius: max(12px, calc(8px * var(--inv, 1)));
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+/* Folded groups paint above expanded frames; transparent bodies cannot cover neighboring bubbles. */
+.react-flow__node-cluster:has(.cluster.is-collapsed) {
+  z-index: 2000 !important;
 }
 .react-flow__node-cluster.selected .cluster.is-collapsed {
   border-color: var(--accent);
@@ -513,11 +724,11 @@ select {
   translate: -50% 0;
   transform-origin: 50% 100%;
   width: max-content;
-  max-width: 230px;
+  max-width: 260px;
   display: grid;
   justify-items: start;
-  gap: 4px;
-  padding: 8px 11px 9px;
+  gap: 5px;
+  padding: 9px 12px 10px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--surface);
@@ -553,41 +764,27 @@ select {
   flex: none;
 }
 .bubble-title strong {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.25;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
 }
 .bubble-stats {
   font-family: var(--font-data);
-  font-size: 10.5px;
+  font-size: 11.5px;
   color: var(--muted);
 }
 .bubble-lev {
   font-family: var(--font-data);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1;
-  padding: 3px 6px;
+  padding: 3px 7px;
   border-radius: 999px;
   background: var(--accent);
   color: var(--surface);
 }
-.bubble.is-compact {
-  max-width: 170px;
-  padding: 6px 9px;
-}
-.bubble.is-compact .bubble-stats,
-.bubble.is-compact .bubble-lev {
-  display: none;
-}
 .react-flow__node-cluster.selected .bubble {
   border-color: var(--accent);
-}
-.cluster.tr-dim .bubble {
-  --fade: 0.3;
 }
 .cluster.tr-up .bubble {
   border-color: var(--st-review);
@@ -598,10 +795,68 @@ select {
 /* Hovered or selected bubbles sit above their neighbors. */
 .react-flow__node-cluster:has(.is-collapsed):hover,
 .react-flow__node-cluster.selected:has(.is-collapsed) {
-  z-index: 1000 !important;
+  z-index: 2500 !important;
+}
+/* An open group's header grows as zoom shrinks so its text remains legible. */
+.cluster > .cluster-head {
+  --grow: max(1, calc(var(--inv, 1) * 0.8));
+  right: auto;
+  width: calc((100% - 16px) / var(--grow));
+  scale: var(--grow);
+  transform-origin: 0 100%;
+}
+/* Card details sit in a tag at one on-screen size beyond the final fold. */
+.card > .pop-place {
+  opacity: 1;
+}
+.far-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: -50% -50%;
+  width: max-content;
+  min-width: 150px;
+  max-width: 240px;
+  height: auto;
+  gap: 4px;
+  box-shadow:
+    inset 3px 0 0 var(--c),
+    var(--shadow);
+}
+.far-card .meta {
+  flex-wrap: wrap;
+  white-space: normal;
+  font-size: 11px;
+}
+.far-card .meta-tag {
+  overflow-wrap: anywhere;
+}
+.far-card .label,
+.far-card .note-text {
+  display: block;
+  -webkit-line-clamp: none;
+  overflow: visible;
+  padding-right: 0;
+  font-size: 13.5px;
+}
+.far-card .source-badges {
+  position: static;
+  justify-self: end;
+  max-width: none;
+}
+.react-flow__node-task:has(.far-card) {
+  z-index: 2000 !important;
+}
+.react-flow__node-task:has(.far-card):hover,
+.react-flow__node-task.selected:has(.far-card) {
+  z-index: 2500 !important;
+}
+.react-flow__node:has(.source-domain-many[open]) {
+  z-index: 3000 !important;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .bubble {
+  .bubble,
+  .far-card {
     animation: pop-up 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
   }
 }
@@ -797,6 +1052,28 @@ kbd {
 .review-requested {
   color: var(--st-review);
 }
+.links {
+  display: grid;
+  gap: 6px;
+}
+.links li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  column-gap: 6px;
+}
+.links li .link-where {
+  grid-column: 1 / -1;
+}
+.links :is(.link-flip, .link-remove) {
+  text-decoration: none;
+  color: var(--muted);
+}
+.link-add {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 6px;
+}
 .suggestions {
   display: grid;
   gap: 7px;
@@ -819,6 +1096,278 @@ kbd {
 .suggestion-copy span {
   color: var(--muted);
   font: 10.5px var(--font-data);
+}
+.dock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+}
+.tool {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.tool:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+.tool.current {
+  background: var(--accent);
+  color: var(--surface);
+}
+.tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.marquee {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.tool-hand .react-flow__pane,
+.tool-hand .react-flow__node {
+  cursor: grab;
+}
+.tool-hand .react-flow__pane.dragging,
+.tool-hand .react-flow__pane.dragging .react-flow__node {
+  cursor: grabbing;
+}
+.tool-comment .react-flow__pane:not(.draggable) {
+  cursor: crosshair;
+}
+.canvas.tool-sticker .react-flow__pane:not(.draggable),
+.canvas.tool-sticker .react-flow__node,
+.canvas.tool-sticker .react-flow__node * {
+  cursor: var(--sticker-cursor);
+}
+.tool-emoji {
+  font-size: 17px;
+  line-height: 1;
+}
+
+/* Stickers */
+.sticker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  /* Above every card, including selected ones raised by React Flow. */
+  z-index: 5000;
+}
+.sticker-art {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 40px;
+  line-height: 1;
+  transform: translate(-50%, -50%) rotate(var(--tilt));
+  /* A die-cut white edge and a little lift off the canvas. */
+  filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+    drop-shadow(0 2px 2px rgb(23 36 43 / 0.25));
+  pointer-events: none;
+  transition: scale 140ms ease;
+}
+.sticker.is-interactive .sticker-art {
+  pointer-events: auto;
+  cursor: grab;
+}
+.sticker.is-interactive:hover .sticker-art {
+  scale: 1.08;
+}
+.sticker.is-held .sticker-art {
+  scale: 1.16;
+  cursor: grabbing;
+  filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff) drop-shadow(0 -1.5px 0 #fff)
+    drop-shadow(0 9px 7px rgb(23 36 43 / 0.22));
+}
+.sticker::after {
+  content: '';
+  position: absolute;
+  left: -30px;
+  top: -30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sticker.is-fresh .sticker-art {
+    animation: sticker-stamp 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  }
+  .sticker.is-fresh::after {
+    animation: sticker-ring 480ms ease-out 140ms;
+  }
+}
+@keyframes sticker-stamp {
+  0% {
+    opacity: 0;
+    scale: 1.9;
+    transform: translate(-50%, -50%) rotate(calc(var(--tilt) - 18deg));
+  }
+  45% {
+    opacity: 1;
+    scale: 0.86;
+    transform: translate(-50%, -50%) rotate(var(--tilt));
+  }
+  70% {
+    scale: 1.06;
+  }
+  100% {
+    scale: 1;
+  }
+}
+@keyframes sticker-ring {
+  from {
+    opacity: 0.55;
+    scale: 0.5;
+  }
+  to {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+.wheel-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+.wheel {
+  position: fixed;
+  width: 0;
+  height: 0;
+}
+.wheel::before {
+  content: '';
+  position: absolute;
+  left: -108px;
+  top: -108px;
+  width: 216px;
+  height: 216px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+.wheel-item {
+  position: absolute;
+  left: -24px;
+  top: -24px;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  transform: translate(var(--x), var(--y));
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+.wheel-item.current {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.wheel-item.hover {
+  background: var(--accent-soft);
+  transform: translate(var(--x), var(--y)) scale(1.2);
+}
+.wheel-item:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.wheel-item.empty::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border: 1.5px dashed var(--line);
+  border-radius: 50%;
+}
+.wheel-item.empty.hover::after {
+  border-color: var(--accent);
+}
+.wheel-item.filling {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.wheel-item.filling::after {
+  border-color: var(--accent);
+}
+.wheel-hub {
+  position: absolute;
+  left: -32px;
+  top: -14px;
+  width: 64px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--ink);
+  font: 500 11px var(--font-data);
+  text-align: center;
+  caret-color: var(--accent);
+}
+.wheel-hub::placeholder {
+  color: var(--muted);
+}
+.wheel-hub:focus {
+  outline: none;
+  background: var(--accent-soft);
+}
+.wheel-tip {
+  position: absolute;
+  left: 0;
+  top: 118px;
+  margin: 0;
+  padding: 4px 10px;
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  width: max-content;
+  max-width: 220px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--muted);
+  font: 500 11px/1.4 var(--font-data);
+  text-align: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wheel::before {
+    animation: wheel-open 160ms ease-out both;
+  }
+  .wheel-item {
+    animation: wheel-item-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+    animation-delay: calc(var(--i) * 16ms);
+  }
+}
+@keyframes wheel-open {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+@keyframes wheel-item-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
 }
 .help {
   padding: 6px 12px;
@@ -890,8 +1439,6 @@ kbd {
 }
 .st-deferred {
   --c: var(--st-todo);
-  --fade: 0.5;
-  background: var(--bg);
 }
 .react-flow__minimap-node.mm-deferred {
   fill: var(--line) !important;
@@ -931,6 +1478,63 @@ kbd {
   flex: 1;
   min-width: 0;
   height: 100%;
+}
+.canvas.has-debug .react-flow__panel.bottom {
+  margin-bottom: 39px;
+}
+.debug-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 24px;
+  padding: 0 10px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font: 10.5px var(--font-data);
+  white-space: nowrap;
+}
+.debug-fps {
+  min-width: 48px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.debug-fps.good {
+  color: var(--st-done);
+}
+.debug-fps.fair {
+  color: var(--st-review);
+}
+.debug-fps.poor {
+  color: var(--st-blocked);
+}
+.debug-moving {
+  color: var(--accent);
+}
+.debug-toggles {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+.debug-toggles label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.debug-close {
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
 }
 
 /* Group list */
@@ -1044,6 +1648,43 @@ kbd {
   font-size: 11.5px;
   color: var(--muted);
 }
+.side-settings {
+  padding: 12px 8px 0;
+  border-top: 1px solid var(--line);
+}
+.side-settings-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.color-mode-options {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.color-mode-options button {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 2px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.color-mode-options button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.color-mode-options button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 
 /* Connections outside an opened group */
 .ghost {
@@ -1061,7 +1702,7 @@ kbd {
     border-color 0.15s,
     opacity 0.2s;
 }
-.ghost.tr-dim {
+:where(.canvas.is-tracing) .ghost:not(.tr-self, .tr-up, .tr-down, .tr-related) {
   --fade: 0.25;
 }
 .ghost.tr-up,
@@ -1077,9 +1718,6 @@ kbd {
 .ghost.tr-down {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
-}
-.ghost.tr-self {
-  box-shadow: 0 0 0 2px var(--ink);
 }
 .ghost:hover {
   border-color: var(--accent);
@@ -1099,11 +1737,13 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-right: 22px;
 }
 .ghost-status {
   font-family: var(--font-data);
   font-size: 10px;
   color: var(--c, var(--muted));
+  padding-right: 22px;
 }
 .ghost.st-ready {
   --c: var(--accent);
@@ -1119,7 +1759,6 @@ kbd {
 }
 .ghost.st-done {
   --c: var(--st-done);
-  --fade: 0.7;
 }
 .ghost .react-flow__handle {
   opacity: 0;
@@ -1142,9 +1781,11 @@ kbd {
   line-height: 1.3;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding-right: 22px;
 }
 
 /* Context menu */
@@ -1156,12 +1797,12 @@ kbd {
   justify-content: center;
   align-items: flex-start;
   padding: min(12vh, 90px) 16px 16px;
-  background: rgb(0 0 0 / 0.35);
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
 }
 .palette {
   width: min(600px, 100%);
   overflow: hidden;
-  box-shadow: 0 14px 50px rgb(0 0 0 / 0.2);
+  box-shadow: 0 14px 50px color-mix(in srgb, var(--ink) 20%, transparent);
 }
 .palette input {
   display: block;
@@ -1347,4 +1988,244 @@ kbd {
   color: var(--surface);
   font: 500 11px var(--font-data);
   white-space: nowrap;
+}
+
+/* Focus on one card */
+.react-flow__node {
+  transition: opacity 0.18s;
+}
+.canvas.is-focus .react-flow__node.is-unfocused {
+  opacity: 0;
+  pointer-events: none !important;
+}
+.canvas .react-flow__edge,
+.canvas .react-flow__edgelabel-renderer,
+.canvas .react-flow__panel {
+  transition:
+    opacity 0.18s,
+    visibility 0.18s;
+}
+.canvas.is-focus .react-flow__edge,
+.canvas.is-focus .react-flow__edgelabel-renderer,
+.canvas.is-focus .react-flow__panel {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.canvas.is-focus .react-flow__node.is-focused .card {
+  box-shadow:
+    inset 3px 0 0 var(--c),
+    var(--shadow);
+}
+.focus {
+  position: absolute;
+  inset: 0;
+  z-index: 14;
+  pointer-events: none;
+}
+.focus svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.focus-line {
+  fill: none;
+  stroke: var(--edge);
+  stroke-width: 1.5;
+  transition:
+    opacity 0.15s,
+    stroke-width 0.15s;
+}
+.focus-line.live,
+.focus-line.held {
+  stroke: var(--edge-hot);
+  stroke-width: 1.8;
+  stroke-dasharray: 5 5;
+}
+.focus-line.held {
+  stroke: var(--edge-held);
+  opacity: 0.7;
+}
+.focus-line.related {
+  stroke: var(--muted);
+  stroke-width: 1.6;
+  stroke-dasharray: 0.5 6;
+  stroke-linecap: round;
+}
+.focus-line.clipped {
+  opacity: 0.25;
+}
+.focus-line.hot {
+  stroke-width: 2.6;
+  opacity: 1;
+}
+.focus-arrow {
+  fill: var(--edge-hot);
+}
+/* Short columns sit level with the card; long ones fill the height and scroll. */
+.focus-side {
+  position: absolute;
+  top: 64px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.focus-head {
+  padding: 0 8px;
+  font: 500 11px var(--font-data);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.side-out .focus-head {
+  text-align: right;
+}
+.focus-head span {
+  color: var(--ink);
+}
+.focus-list {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 4px;
+  pointer-events: auto;
+  scrollbar-width: thin;
+  mask-image: linear-gradient(transparent, #000 16px, #000 calc(100% - 16px), transparent);
+}
+.focus-card {
+  --c: var(--st-todo);
+  flex: none;
+  display: grid;
+  gap: 3px;
+  padding: 9px 11px 9px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  box-shadow:
+    inset 3px 0 0 var(--c),
+    var(--shadow);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
+}
+.focus-card:hover,
+.focus-card.is-hot,
+.focus-card:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+.side-in .focus-card:hover {
+  transform: translateX(3px);
+}
+.side-out .focus-card:hover {
+  transform: translateX(-3px);
+}
+.focus-card > * {
+  opacity: var(--fade, 1);
+}
+.focus-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font: 10.5px var(--font-data);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.focus-card-tag {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.focus-card-meta .st {
+  flex: none;
+  color: var(--c);
+}
+.focus-card .label {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.focus-card-where {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.focus-related {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px dotted var(--muted);
+  font: 10px var(--font-data);
+}
+.focus-empty {
+  margin: 0;
+  padding: 0 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.side-out .focus-empty {
+  text-align: right;
+}
+.focus-bar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  translate: -50% 0;
+  max-width: min(560px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 14px;
+  pointer-events: auto;
+}
+.focus-bar strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .focus-line.live {
+    animation: flow 0.8s linear infinite;
+  }
+  .focus-side,
+  .focus-bar,
+  .focus-details,
+  .focus svg {
+    animation: focus-in 0.2s ease-out both;
+  }
+}
+@keyframes focus-in {
+  from {
+    opacity: 0;
+  }
+}
+.focus-arrow.held {
+  fill: var(--edge-held);
+}
+.focus-details {
+  position: absolute;
+  translate: -50% -100%;
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
 }

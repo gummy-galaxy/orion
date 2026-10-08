@@ -31,6 +31,7 @@ test.case("workspace create and list use a temporary data root", function(assert
 	assert.throwsWith("workspace already exists: roblox", function()
 		run({ "workspace", "create", "roblox" })
 	end)
+
 	assert.throwsWith("invalid workspace name: Bad/Name", function()
 		run({ "workspace", "create", "Bad/Name" })
 	end)
@@ -56,6 +57,7 @@ test.case("workspace selection follows option, environment, manifest, default", 
 	assert.throwsWith("unknown workspace: missing", function()
 		run({ "workspace", "use", "missing" })
 	end)
+
 	assert.throwsWith("unknown workspace: missing", function()
 		run({ "path", "--workspace", "missing" })
 	end)

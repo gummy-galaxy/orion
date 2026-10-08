@@ -19,10 +19,12 @@ function events.create()
 
 	function hub.publish(name: string, data: json.Object)
 		local message = json.serialize(json.object({ type = "custom", event = name, data = data }))
+
 		for socket in clients do
 			local didSucceed = pcall(function()
 				socket:send(message)
 			end)
+
 			if not didSucceed then
 				clients[socket] = nil
 			end

@@ -1,7 +1,9 @@
-import { useContext, type CSSProperties } from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { ActionsContext, DerivedContext } from './derive'
+import { memo, useContext, type ReactNode } from 'react'
+import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
+import { ActionsContext } from './derive'
 import { STATUS_LABEL, getTaskTag, type ClusterNode, type GhostNode, type TaskNode } from './model'
+import { SourceBadges } from './SourceBadges'
+import { useCollapsed, useGroupStats, useLeverage, useMarked, useSources, useStatus, useTraceRole } from './state'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
@@ -14,124 +16,158 @@ function Lock() {
   )
 }
 
-/** Below this on-screen width, a folded group's bubble shows only its name. */
-const BUBBLE_DETAIL_WIDTH = 150
-
 function Ring({ done, total, size = 22 }: { done: number; total: number; size?: number }) {
-  const r = 8
-  const c = 2 * Math.PI * r
+  const radius = 8
+  const circumference = 2 * Math.PI * radius
   return (
     <svg viewBox="0 0 20 20" width={size} height={size} className="ring" aria-hidden="true">
-      <circle cx="10" cy="10" r={r} className="ring-bg" />
-      <circle cx="10" cy="10" r={r} className="ring-fg" strokeDasharray={`${total ? (done / total) * c : 0} ${c}`} transform="rotate(-90 10 10)" />
+      <circle cx="10" cy="10" r={radius} className="ring-bg" />
+      <circle
+        cx="10"
+        cy="10"
+        r={radius}
+        className="ring-fg"
+        strokeDasharray={`${total ? (done / total) * circumference : 0} ${circumference}`}
+        transform="rotate(-90 10 10)"
+      />
     </svg>
   )
 }
 
-export function TaskView({ id, data }: NodeProps<TaskNode>) {
-  const d = useContext(DerivedContext)!
-  const st = d.status.get(id) ?? 'ready'
-  const lev = d.leverage.get(id) ?? 0
-  const tr = d.trace?.get(id)
-  const attn = d.attention?.get(id)
-  if (data.itemKind === 'note') {
-    return (
-      <div className={`card note${tr ? ' tr-' + tr : ''}`}>
-        <Handle type="target" position={Position.Left} />
-        <div className="meta">
-          <span>Note</span>
-        </div>
-        <div className="note-text">{data.label || 'Empty note'}</div>
-        <Handle type="source" position={Position.Right} />
-      </div>
-    )
-  }
+/** Zoom below which a card's details sit in a tag over its body that keeps one on-screen size. */
+const FAR_ZOOM = 0.3
+
+function FarTag({ className, children }: { className: string; children: ReactNode }) {
   return (
-    <div className={`card st-${st}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${tr ? ' tr-' + tr : ''}${attn ? ' attn' : ''}`}>
-      <Handle type="target" position={Position.Left} />
-      <div className="meta">
-        <span className="meta-tag" title={getTaskTag(data)}>
-          {getTaskTag(data)}
-        </span>
-        {typeof data.github?.additions === 'number' && <span className="meta-lines">{data.github.additions + data.github.deletions} lines</span>}
-        {data.github?.checks && (
-          <span className={`check-dot check-${data.github.checks.toLowerCase()}`} title={`Checks: ${data.github.checks.toLowerCase()}`} />
-        )}
-        <span className="st">
-          {st === 'blocked' && <Lock />}
-          {STATUS_LABEL[st]}
-        </span>
-      </div>
-      <div className="label">{data.label}</div>
-      {st !== 'done' && st !== 'deferred' && lev > 0 && <span className={`lev${lev >= 4 ? ' big' : ''}`}>unblocks {lev}</span>}
-      {st !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
-      <Handle type="source" position={Position.Right} />
+    <div className="pop-place">
+      <div className={`${className} far-card`}>{children}</div>
     </div>
   )
 }
 
-export function GhostView({ data }: NodeProps<GhostNode>) {
-  const tr = useContext(DerivedContext)!.trace?.get(data.taskId)
+// Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
+export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>) {
+  const far = useStore((state) => state.transform[2] < FAR_ZOOM)
+  const status = useStatus(id)
+  const leverage = useLeverage(id)
+  const trace = useTraceRole(id)
+  const attention = useMarked(id)
+  const sources = useSources(id)
+  if (data.itemKind === 'note') {
+    const className = `card note${trace ? ' tr-' + trace : ''}`
+    const body = (
+      <>
+        <div className="meta">
+          <span>Note</span>
+        </div>
+        <div className="note-text">{data.label || 'Empty note'}</div>
+        <SourceBadges sources={sources} />
+      </>
+    )
+    return (
+      <div className={className}>
+        <Handle type="target" position={Position.Left} />
+        {far ? <FarTag className={className}>{body}</FarTag> : body}
+        <Handle type="source" position={Position.Right} />
+      </div>
+    )
+  }
+  const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
+  const body = (
+    <>
+      <div className="meta">
+        <span className="meta-tag" title={getTaskTag(data)}>
+          {getTaskTag(data)}
+        </span>
+        {data.github?.checks && (
+          <span className={`check-dot check-${data.github.checks.toLowerCase()}`} title={`Checks: ${data.github.checks.toLowerCase()}`} />
+        )}
+        <span className="st" title={STATUS_LABEL[status]}>
+          {status === 'blocked' && <Lock />}
+          <span className="st-label">{STATUS_LABEL[status]}</span>
+        </span>
+      </div>
+      <div className="label">{data.label}</div>
+      {status !== 'done' && status !== 'deferred' && leverage > 0 && <span className={`lev${leverage >= 4 ? ' big' : ''}`}>unblocks {leverage}</span>}
+      {status !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
+      <SourceBadges sources={sources} />
+    </>
+  )
   return (
-    <div className={`ghost st-${data.status} side-${data.side}${tr ? ' tr-' + tr : ''}`} title={`Jump to ${data.label}`}>
+    <div className={className}>
+      <Handle type="target" position={Position.Left} />
+      {far ? <FarTag className={className}>{body}</FarTag> : body}
+      <Handle type="source" position={Position.Right} />
+    </div>
+  )
+})
+
+export const GhostView = memo(function GhostView({ data }: NodeProps<GhostNode>) {
+  const trace = useTraceRole(data.taskId)
+  const sources = useSources(data.taskId)
+  return (
+    <div className={`ghost st-${data.status} side-${data.side}${trace ? ' tr-' + trace : ''}`} title={`Jump to ${data.label}`}>
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
       <span className="ghost-where">
         {data.side === 'in' ? 'from' : 'to'} {data.where}
       </span>
       <span className="label">{data.label}</span>
       <span className="ghost-status">{STATUS_LABEL[data.status]}</span>
+      <SourceBadges sources={sources} />
       {data.side === 'in' && <Handle type="source" position={Position.Right} isConnectable={false} />}
     </div>
   )
-}
+})
 
-export function ClusterView({ id, data, width }: NodeProps<ClusterNode>) {
-  const d = useContext(DerivedContext)!
+export const ClusterView = memo(function ClusterView({ id, data }: NodeProps<ClusterNode>) {
   const actions = useContext(ActionsContext)!
-  const s = d.groups.get(id) ?? { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
-  const collapsed = d.collapsed.has(id)
-  const tr = d.trace?.get(id)
-  // A folded group raises a bubble from its center. The bubble keeps one on-screen size at every zoom.
-  const screenWidth = (width ?? 300) * d.zoom
-  const attn = d.attention?.get(id)
+  const stats = useGroupStats(id)
+  const collapsed = useCollapsed(id)
+  const trace = useTraceRole(id)
+  const attention = useMarked(id)
+  const sources = useSources(id)
   return (
-    <div className={`cluster${collapsed ? ' is-collapsed' : ''}${tr ? ' tr-' + tr : ''}`}>
+    <div className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}`}>
       <Handle type="target" position={Position.Left} isConnectable={false} />
       {collapsed ? (
-        <div className="pop drag" style={{ '--inv': 1 / d.zoom } as CSSProperties}>
+        <div className="pop drag">
           <span className="pop-anchor" />
           <div className="pop-place">
-            <div className={`bubble${screenWidth < BUBBLE_DETAIL_WIDTH ? ' is-compact' : ''}${attn ? ' attn' : ''}`}>
+            <div className={`bubble${attention ? ' attn' : ''}`}>
               <div className="bubble-title">
-                <Ring done={s.done} total={s.total} size={16} />
+                <Ring done={stats.done} total={stats.total} size={16} />
                 <strong>{data.label}</strong>
               </div>
               <span className="bubble-stats">
-                {s.done}/{s.total} done · {s.ready} ready · {s.blocked} blocked
+                {stats.done}/{stats.total} done · {stats.ready} ready · {stats.blocked} blocked
               </span>
-              {s.outside > 0 && <span className="bubble-lev">unblocks {s.outside} outside</span>}
+              {stats.outside > 0 && <span className="bubble-lev">unblocks {stats.outside} outside</span>}
+              <SourceBadges sources={sources} inBubble />
             </div>
           </div>
         </div>
       ) : (
         <div className="cluster-head drag" title="Double-click to open">
-          <Ring done={s.done} total={s.total} />
+          <Ring done={stats.done} total={stats.total} />
           <strong>{data.label}</strong>
           <span className="count">
-            {s.done}/{s.total}
+            {stats.done}/{stats.total}
           </span>
-          {s.outside > 0 && <span className="lev-inline">unblocks {s.outside} outside</span>}
+          {stats.outside > 0 && <span className="lev-inline">unblocks {stats.outside} outside</span>}
           <span className="head-actions">
-            <button type="button" className="nodrag" onClick={() => actions.reflow(id)}>
-              Reflow
-            </button>
+            {data.arrange !== 'custom' && (
+              <button type="button" className="nodrag" onClick={() => actions.reflow(id)}>
+                Reflow
+              </button>
+            )}
             <button type="button" className="nodrag" onClick={() => actions.open(id)}>
               Open
             </button>
           </span>
         </div>
       )}
+      {!collapsed && <SourceBadges sources={sources} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
   )
-}
+})

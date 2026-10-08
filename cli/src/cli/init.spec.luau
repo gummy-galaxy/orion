@@ -32,6 +32,23 @@ test.case("group parses comma-separated ids with spaces and empty entries", func
 	assert.eq(doc.nodes[2].parentId == "ws", false)
 end)
 
+test.case("set arranges a group and show reports it", function(assert)
+	local dir, run = testing.createHarness("arrange")
+	local shown = json.asObject(json.deserialize(run({ "show", "ws", "--json" })) :: json.Value)
+	assert.eq(shown and shown.arrange, "auto")
+	run({ "set", "ws", "--arrange", "custom" })
+	shown = json.asObject(json.deserialize(run({ "show", "ws", "--json" })) :: json.Value)
+	assert.eq(shown and shown.arrange, "custom")
+	assert.strContains(run({ "show", "ws" }), "arrange  custom")
+	run({ "set", "ws", "--arrange", "auto" })
+	assert.eq(store.load(dir).nodes[1].data.layout, "refit")
+	assert.throwsWith("only groups take an arrangement", function()
+		run({ "set", "pub", "--arrange", "custom" })
+	end)
+	local item = json.asObject(json.deserialize(run({ "show", "pub", "--json" })) :: json.Value)
+	assert.eq(item and item.arrange, nil)
+end)
+
 test.case("sync writes GitHub state through the command runner", function(assert)
 	local dir, run = testing.createHarness("sync")
 	local text = run({ "sync" }, function(argv)
@@ -40,11 +57,13 @@ test.case("sync writes GitHub state through the command runner", function(assert
 		elseif argv[5]:find("search(", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
+
 		return testing.result(
 			true,
 			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health to PostHog","url":"u","state":"MERGED","isDraft":false,"reviewDecision":null,"reviewRequests":{"totalCount":0},"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"SUCCESS"}}}]}}}}}]]
 		)
 	end)
+
 	assert.strContains(text, "ci: active → done")
 	local item = store.load(dir).nodes[2]
 	assert.eq(item.data.status, "done")
@@ -63,11 +82,13 @@ test.case("sync --dry-run leaves the data alone", function(assert)
 		elseif argv[5]:find("search(", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
+
 		return testing.result(
 			true,
 			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,"reviewRequests":{"totalCount":0}}}}}]]
 		)
 	end)
+
 	assert.eq(store.load(dir).revision, 0)
 end)
 
@@ -87,32 +108,34 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 			},
 		})
 	end)
+
 	assert.strContains(run({ "matches" }), "flipbook#670")
 	assert.strContains(run({ "matches" }), "pub")
 	local values = json.asArray(json.deserialize(run({ "matches", "--json" })) :: json.Value)
 	assert.eq(values and #values, 1)
 end)
 
-test.case("sync creates review requests and unplaced authored pulls", function(assert)
+test.case("sync records unplaced authored pulls without adding review request cards", function(assert)
 	local dir, run = testing.createHarness("review")
+	local isSearched = false
 	local output = run({ "sync" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
 				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
 			)
-		elseif argv[5]:find("search(", 1, true) then
-			return testing.result(
-				true,
-				[[{"data":{"search":{"nodes":[{"number":4,"title":"Review the release","url":"u4","state":"OPEN","isDraft":false,"author":{"login":"colleague"},"updatedAt":"2026-10-04T17:00:00Z","additions":3,"deletions":2,"reviewRequests":{"totalCount":1,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"repository":{"name":"storyteller","owner":{"login":"flipbook-labs"}}}]}}}]]
-			)
+		elseif argv[5]:find("review-requested", 1, true) then
+			isSearched = true
 		end
+
 		return testing.result(true, [[{"data":{"p1":{"pullRequest":null}}}]])
 	end)
-	assert.strContains(output, "Review requests")
+	assert.eq(isSearched, false)
+	assert.eq(output:find("Review requests", 1, true), nil)
 	local doc = store.load(dir)
-	assert.eq(doc.nodes[5].parentId, "reviews")
-	assert.eq(doc.nodes[5].data.who, "you")
+	for _, item in doc.nodes do
+		assert.neq(item.id, "reviews")
+	end
 	local top = doc.github
 	local unplaced = if top then json.asArray(top.unplaced) else nil
 	assert.eq(unplaced and #unplaced, 1)

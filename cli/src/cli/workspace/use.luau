@@ -10,6 +10,7 @@ return table.freeze({
 	define = function(parser: batteriesCli.Parser)
 		parser:add("name", "positional", { help = "Workspace name" })
 	end,
+
 	run = function(parser: batteriesCli.Parser, options: Context)
 		local name = assert(parser:get("name"), "missing <name>")
 		store.useWorkspace(options.root, name)
