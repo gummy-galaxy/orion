@@ -203,8 +203,8 @@ local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 		return false
 	end
 
-	local function join(a: string, b: string, reason: string, shouldCheckEpics: boolean?)
-		local left, right = getRoot(a), getRoot(b)
+	local function join(firstId: string, secondId: string, reason: string, shouldCheckEpics: boolean?)
+		local left, right = getRoot(firstId), getRoot(secondId)
 
 		if left == right or (shouldCheckEpics and hasConflictingEpics(left, right)) then
 			return
@@ -226,26 +226,34 @@ local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 
 	for i = 1, #cards do
 		for j = i + 1, #cards do
-			local a, b = cards[i], cards[j]
-			local ae, be = getEpic(a), getEpic(b)
-			local branch = getField(a, "branch")
+			local firstItem, secondItem = cards[i], cards[j]
+			local firstEpic, secondEpic = getEpic(firstItem), getEpic(secondItem)
+			local branch = getField(firstItem, "branch")
 
-			if ae and ae == be then
-				join(a.id, b.id, `Shared epic {ae}`)
-			elseif isSameRepo(a, b) and branch and branch ~= "" and branch == getField(b, "branch") then
-				join(a.id, b.id, `Shared branch {branch}`)
-			elseif hasCommonReference(a, b) then
-				join(a.id, b.id, "Shared Jira or issue reference")
+			if firstEpic and firstEpic == secondEpic then
+				join(firstItem.id, secondItem.id, `Shared epic {firstEpic}`)
+			elseif
+				isSameRepo(firstItem, secondItem)
+				and branch
+				and branch ~= ""
+				and branch == getField(secondItem, "branch")
+			then
+				join(firstItem.id, secondItem.id, `Shared branch {branch}`)
+			elseif hasCommonReference(firstItem, secondItem) then
+				join(firstItem.id, secondItem.id, "Shared Jira or issue reference")
 			end
 		end
 	end
 
 	for i = 1, #cards do
 		for j = i + 1, #cards do
-			local a, b = cards[i], cards[j]
+			local firstItem, secondItem = cards[i], cards[j]
 
-			if isSameRepo(a, b) and match.overlap(graph.label(a), graph.label(b)) >= 0.5 then
-				join(a.id, b.id, "Strong title overlap", true)
+			if
+				isSameRepo(firstItem, secondItem)
+				and match.overlap(graph.label(firstItem), graph.label(secondItem)) >= 0.5
+			then
+				join(firstItem.id, secondItem.id, "Strong title overlap", true)
 			end
 		end
 	end
@@ -306,16 +314,20 @@ local function getAgentGroups(
 ): { Group }?
 	local ordered = table.clone(cards)
 	table.sort(ordered, function(a: Item, b: Item)
-		local ao, bo = a.data.status ~= "done", b.data.status ~= "done"
+		local firstOpen, secondOpen = a.data.status ~= "done", b.data.status ~= "done"
 
-		if ao ~= bo then
-			return ao
+		if firstOpen ~= secondOpen then
+			return firstOpen
 		end
 
-		local aa, ba = json.asObject(a.data.activity), json.asObject(b.data.activity)
-		local at = if aa and type(aa.lastActiveAt) == "string" then aa.lastActiveAt else ""
-		local bt = if ba and type(ba.lastActiveAt) == "string" then ba.lastActiveAt else ""
-		return if at == bt then a.id < b.id else at > bt
+		local firstActivity, secondActivity = json.asObject(a.data.activity), json.asObject(b.data.activity)
+		local firstActiveAt = if firstActivity and type(firstActivity.lastActiveAt) == "string"
+			then firstActivity.lastActiveAt
+			else ""
+		local secondActiveAt = if secondActivity and type(secondActivity.lastActiveAt) == "string"
+			then secondActivity.lastActiveAt
+			else ""
+		return if firstActiveAt == secondActiveAt then a.id < b.id else firstActiveAt > secondActiveAt
 	end)
 
 	while #ordered > 400 do

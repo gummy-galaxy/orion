@@ -1,9 +1,9 @@
 import type { Node } from '@xyflow/react'
 
-export const TASK_W = 208
-export const TASK_H = 66
-export const PAD = 24
-export const HEAD = 52
+export const TASK_WIDTH = 208
+export const TASK_HEIGHT = 66
+export const GROUP_PADDING = 24
+export const GROUP_HEADER_HEIGHT = 52
 
 /** `blocked` is set by hand for blockers outside the graph; dependency blocking is derived. */
 export type Status = 'todo' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
@@ -57,7 +57,7 @@ export type GithubState = {
   checks?: 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED'
   checkedAt: string
 }
-export type UnplacedPr = {
+export type UnplacedPullRequest = {
   repo: string
   number: number
   title: string
@@ -68,7 +68,7 @@ export type UnplacedPr = {
   deletions: number
   matches: { id: string; score: number }[]
 }
-export type GithubSnapshot = { viewer: string; checkedAt: string; unplaced: UnplacedPr[] }
+export type GithubSnapshot = { viewer: string; checkedAt: string; unplaced: UnplacedPullRequest[] }
 /** `layout` asks the app to lay out a group the CLI changed: `pending` for a new group, `refit` to tidy one in place. */
 export type ClusterData = { kind: 'cluster'; label: string; blurb?: string; layout?: 'pending' | 'refit' }
 export type TaskNode = Node<TaskData, 'task'>
@@ -92,66 +92,67 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
 
 const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
 
-export function getTaskTag(d: TaskData): string {
-  if (d.external) return d.external.key
-  if (d.repo && d.issue) return `${d.repo}#${d.issue}`
-  if (d.repo && d.pr) return `${d.repo}#${d.pr}`
-  return d.repo ?? 'step'
+export function getTaskTag(data: TaskData): string {
+  if (data.external) return data.external.key
+  if (data.repo && data.issue) return `${data.repo}#${data.issue}`
+  if (data.repo && data.pr) return `${data.repo}#${data.pr}`
+  return data.repo ?? 'step'
 }
 
-export function getTaskUrl(d: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
-  if (d.github?.url) return d.github.url
-  if (d.repo && d.pr) return `https://${d.host ?? 'github.com'}/${d.repo.includes('/') ? d.repo : `${githubOwner}/${d.repo}`}/pull/${d.pr}`
-  return d.external?.url ?? null
+export function getTaskUrl(data: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
+  if (data.github?.url) return data.github.url
+  if (data.repo && data.pr)
+    return `https://${data.host ?? 'github.com'}/${data.repo.includes('/') ? data.repo : `${githubOwner}/${data.repo}`}/pull/${data.pr}`
+  return data.external?.url ?? null
 }
 
-export const isCluster = (n: AppNode): n is ClusterNode => n.type === 'cluster'
-export const isTask = (n: AppNode): n is TaskNode => n.type === 'task'
-export const isNote = (n: AppNode | undefined): boolean => !!n && isTask(n) && n.data.itemKind === 'note'
+export const isCluster = (node: AppNode): node is ClusterNode => node.type === 'cluster'
+export const isTask = (node: AppNode): node is TaskNode => node.type === 'task'
+export const isNote = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.itemKind === 'note'
 
 export function byId(nodes: AppNode[]): Map<string, AppNode> {
-  return new Map(nodes.map((n) => [n.id, n]))
+  return new Map(nodes.map((node) => [node.id, node]))
 }
 
 /** Parent chain from the nearest parent up to the top level. */
-export function ancestors(id: string, map: Map<string, AppNode>): string[] {
-  const out: string[] = []
-  let cur = map.get(id)?.parentId
-  while (cur) {
-    out.push(cur)
-    cur = map.get(cur)?.parentId
+export function ancestors(id: string, nodeMap: Map<string, AppNode>): string[] {
+  const result: string[] = []
+  let current = nodeMap.get(id)?.parentId
+  while (current) {
+    result.push(current)
+    current = nodeMap.get(current)?.parentId
   }
-  return out
+  return result
 }
 
-export function sizeOf(n: AppNode): { w: number; h: number } {
-  if (isTask(n)) return { w: TASK_W, h: TASK_H }
-  return { w: n.width ?? 320, h: n.height ?? 200 }
+export function sizeOf(node: AppNode): { width: number; height: number } {
+  if (isTask(node)) return { width: TASK_WIDTH, height: TASK_HEIGHT }
+  return { width: node.width ?? 320, height: node.height ?? 200 }
 }
 
-export function absPos(n: AppNode, map: Map<string, AppNode>): { x: number; y: number } {
-  let x = n.position.x
-  let y = n.position.y
-  for (const a of ancestors(n.id, map)) {
-    const p = map.get(a)
-    if (p) {
-      x += p.position.x
-      y += p.position.y
+export function absolutePosition(node: AppNode, nodeMap: Map<string, AppNode>): { x: number; y: number } {
+  let x = node.position.x
+  let y = node.position.y
+  for (const ancestor of ancestors(node.id, nodeMap)) {
+    const parentNode = nodeMap.get(ancestor)
+    if (parentNode) {
+      x += parentNode.position.x
+      y += parentNode.position.y
     }
   }
   return { x, y }
 }
 
 /** Fills in the React Flow fields every node needs, so saved data stays minimal. */
-function hydrate(n: AppNode): AppNode {
-  if (isTask(n)) return { ...n, width: TASK_W, height: TASK_H, expandParent: !!n.parentId }
-  return { ...n, dragHandle: '.drag', expandParent: !!n.parentId }
+function hydrate(node: AppNode): AppNode {
+  if (isTask(node)) return { ...node, width: TASK_WIDTH, height: TASK_HEIGHT, expandParent: !!node.parentId }
+  return { ...node, dragHandle: '.drag', expandParent: !!node.parentId }
 }
 
 /** React Flow needs parents before children. */
 function sortNodes(nodes: AppNode[]): AppNode[] {
-  const map = byId(nodes)
-  return [...nodes].sort((a, b) => ancestors(a.id, map).length - ancestors(b.id, map).length)
+  const nodeMap = byId(nodes)
+  return [...nodes].sort((a, b) => ancestors(a.id, nodeMap).length - ancestors(b.id, nodeMap).length)
 }
 
 /**
@@ -159,34 +160,34 @@ function sortNodes(nodes: AppNode[]): AppNode[] {
  * groups left empty. Children keep their place on screen.
  */
 function fitGroups(nodes: AppNode[]): AppNode[] {
-  const map = new Map(nodes.map((n) => [n.id, { ...n } as AppNode]))
-  const depth = (id: string) => ancestors(id, map).length
-  const clusters = [...map.values()].filter(isCluster).sort((a, b) => depth(b.id) - depth(a.id))
-  for (const g of clusters) {
-    const kids = [...map.values()].filter((n) => n.parentId === g.id)
-    if (!kids.length) {
-      map.delete(g.id)
+  const nodeMap = new Map(nodes.map((node) => [node.id, { ...node } as AppNode]))
+  const depth = (id: string) => ancestors(id, nodeMap).length
+  const clusters = [...nodeMap.values()].filter(isCluster).sort((a, b) => depth(b.id) - depth(a.id))
+  for (const group of clusters) {
+    const children = [...nodeMap.values()].filter((node) => node.parentId === group.id)
+    if (!children.length) {
+      nodeMap.delete(group.id)
       continue
     }
     let minX = Infinity
     let minY = Infinity
     let maxX = -Infinity
     let maxY = -Infinity
-    for (const k of kids) {
-      const s = sizeOf(k)
-      minX = Math.min(minX, k.position.x)
-      minY = Math.min(minY, k.position.y)
-      maxX = Math.max(maxX, k.position.x + s.w)
-      maxY = Math.max(maxY, k.position.y + s.h)
+    for (const child of children) {
+      const size = sizeOf(child)
+      minX = Math.min(minX, child.position.x)
+      minY = Math.min(minY, child.position.y)
+      maxX = Math.max(maxX, child.position.x + size.width)
+      maxY = Math.max(maxY, child.position.y + size.height)
     }
-    const dx = minX - PAD
-    const dy = minY - HEAD
-    for (const k of kids) k.position = { x: k.position.x - dx, y: k.position.y - dy }
-    g.position = { x: g.position.x + dx, y: g.position.y + dy }
-    g.width = maxX - minX + PAD * 2
-    g.height = maxY - minY + HEAD + PAD
+    const deltaX = minX - GROUP_PADDING
+    const deltaY = minY - GROUP_HEADER_HEIGHT
+    for (const child of children) child.position = { x: child.position.x - deltaX, y: child.position.y - deltaY }
+    group.position = { x: group.position.x + deltaX, y: group.position.y + deltaY }
+    group.width = maxX - minX + GROUP_PADDING * 2
+    group.height = maxY - minY + GROUP_HEADER_HEIGHT + GROUP_PADDING
   }
-  return [...map.values()]
+  return [...nodeMap.values()]
 }
 
 export function normalize(nodes: AppNode[]): AppNode[] {
@@ -195,30 +196,38 @@ export function normalize(nodes: AppNode[]): AppNode[] {
 
 /** Wraps the selection in a new group under the selection's nearest shared parent. */
 export function groupSelection(nodes: AppNode[]): { nodes: AppNode[]; groupId: string } | null {
-  const map = byId(nodes)
-  const sel = nodes.filter((n) => n.selected && !n.hidden && !ancestors(n.id, map).some((a) => map.get(a)?.selected))
-  if (!sel.length) return null
-  const chains = sel.map((n) => ancestors(n.id, map))
-  const parent = chains[0].find((a) => chains.every((c) => c.includes(a)))
-  const parentNode = parent ? map.get(parent) : undefined
-  const origin = parentNode ? absPos(parentNode, map) : { x: 0, y: 0 }
-  const abs = new Map(sel.map((n) => [n.id, absPos(n, map)]))
-  const minX = Math.min(...[...abs.values()].map((p) => p.x))
-  const minY = Math.min(...[...abs.values()].map((p) => p.y))
-  const gpos = { x: minX - origin.x - PAD, y: minY - origin.y - HEAD }
+  const nodeMap = byId(nodes)
+  const selection = nodes.filter(
+    (node) => node.selected && !node.hidden && !ancestors(node.id, nodeMap).some((ancestor) => nodeMap.get(ancestor)?.selected),
+  )
+  if (!selection.length) return null
+  const chains = selection.map((node) => ancestors(node.id, nodeMap))
+  const parent = chains[0].find((ancestor) => chains.every((chain) => chain.includes(ancestor)))
+  const parentNode = parent ? nodeMap.get(parent) : undefined
+  const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
+  const absolutePositions = new Map(selection.map((node) => [node.id, absolutePosition(node, nodeMap)]))
+  const minX = Math.min(...[...absolutePositions.values()].map((position) => position.x))
+  const minY = Math.min(...[...absolutePositions.values()].map((position) => position.y))
+  const groupPosition = { x: minX - origin.x - GROUP_PADDING, y: minY - origin.y - GROUP_HEADER_HEIGHT }
   const groupId = 'g-' + Date.now().toString(36)
   const group: ClusterNode = {
     id: groupId,
     type: 'cluster',
-    position: gpos,
+    position: groupPosition,
     parentId: parent,
     data: { kind: 'cluster', label: 'New group' },
     selected: true,
   }
-  const next = nodes.map((n): AppNode => {
-    const p = abs.get(n.id)
-    if (p) return { ...n, parentId: groupId, selected: false, position: { x: p.x - origin.x - gpos.x, y: p.y - origin.y - gpos.y } }
-    return n.selected ? { ...n, selected: false } : n
+  const next = nodes.map((node): AppNode => {
+    const position = absolutePositions.get(node.id)
+    if (position)
+      return {
+        ...node,
+        parentId: groupId,
+        selected: false,
+        position: { x: position.x - origin.x - groupPosition.x, y: position.y - origin.y - groupPosition.y },
+      }
+    return node.selected ? { ...node, selected: false } : node
   })
   return { nodes: normalize([...next, group]), groupId }
 }
@@ -227,30 +236,35 @@ export function groupSelection(nodes: AppNode[]): { nodes: AppNode[]; groupId: s
 export function ungroup(nodes: AppNode[], ids: string[]): AppNode[] {
   let next = nodes
   for (const id of ids) {
-    const g = next.find((n) => n.id === id)
-    if (!g || !isCluster(g)) continue
+    const group = next.find((node) => node.id === id)
+    if (!group || !isCluster(group)) continue
     next = next
-      .filter((n) => n.id !== id)
-      .map((n): AppNode =>
-        n.parentId === id
-          ? { ...n, parentId: g.parentId, selected: true, position: { x: n.position.x + g.position.x, y: n.position.y + g.position.y } }
-          : n,
+      .filter((node) => node.id !== id)
+      .map((node): AppNode =>
+        node.parentId === id
+          ? {
+              ...node,
+              parentId: group.parentId,
+              selected: true,
+              position: { x: node.position.x + group.position.x, y: node.position.y + group.position.y },
+            }
+          : node,
       )
   }
   return normalize(next)
 }
 
 export function descendants(id: string, nodes: AppNode[]): Set<string> {
-  const out = new Set<string>()
-  const walk = (pid: string) => {
-    for (const n of nodes)
-      if (n.parentId === pid && !out.has(n.id)) {
-        out.add(n.id)
-        walk(n.id)
+  const result = new Set<string>()
+  const walk = (parentId: string) => {
+    for (const node of nodes)
+      if (node.parentId === parentId && !result.has(node.id)) {
+        result.add(node.id)
+        walk(node.id)
       }
   }
   walk(id)
-  return out
+  return result
 }
 
 /** "Merged · checked 2h ago" for a synced pull request. */
@@ -264,8 +278,8 @@ export function githubSummary(github: GithubState, now = Date.now()) {
   return `${state} on GitHub · checked ${relativeTime(github.checkedAt, now)}`
 }
 
-export function relativeTime(iso: string, now = Date.now()) {
-  const minutes = Math.max(0, Math.round((now - Date.parse(iso)) / 60000))
+export function relativeTime(timestamp: string, now = Date.now()) {
+  const minutes = Math.max(0, Math.round((now - Date.parse(timestamp)) / 60000))
   const ago =
     minutes < 1
       ? 'just now'

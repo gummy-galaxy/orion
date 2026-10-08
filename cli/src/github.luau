@@ -152,9 +152,9 @@ function github.query(run: CommandRunner, source: string, host: string?): json.O
 	table.insert(argv, "graphql")
 	table.insert(argv, "-f")
 	table.insert(argv, `query={source}`)
-	local ok, response = pcall(run, argv, nil)
+	local succeeded, response = pcall(run, argv, nil)
 
-	if not ok then
+	if not succeeded then
 		return nil
 	end
 
@@ -220,7 +220,7 @@ function github.fetchPulls(run: CommandRunner, refs: { Ref }): { [string]: PullS
 end
 
 local function getPullList(nodes: json.Array?): { PullState }
-	local out: { PullState } = {}
+	local pulls: { PullState } = {}
 
 	for _, raw in nodes or {} do
 		local object = json.asObject(raw)
@@ -233,12 +233,12 @@ local function getPullList(nodes: json.Array?): { PullState }
 			local parsed = getPullFromObject(object, login, name)
 
 			if parsed then
-				table.insert(out, parsed)
+				table.insert(pulls, parsed)
 			end
 		end
 	end
 
-	return out
+	return pulls
 end
 
 export type IssueState = { owner: string, name: string, number: number, title: string, url: string, host: string? }

@@ -1,9 +1,9 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
-import { HEAD, PAD, byId, isCluster, ancestors, normalize, sizeOf, type AppNode, type Link } from './model'
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING, byId, isCluster, ancestors, normalize, sizeOf, type AppNode, type Link } from './model'
 
 const elk = new ELK()
 
-const INNER = {
+const INNER_LAYOUT_OPTIONS = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.spacing.nodeNode': '24',
@@ -11,8 +11,8 @@ const INNER = {
   'elk.spacing.componentComponent': '32',
 }
 
-const TOP = {
-  ...INNER,
+const TOP_LAYOUT_OPTIONS = {
+  ...INNER_LAYOUT_OPTIONS,
   'elk.spacing.nodeNode': '72',
   'elk.layered.spacing.nodeNodeBetweenLayers': '120',
   'elk.spacing.componentComponent': '96',
@@ -24,45 +24,45 @@ const TOP = {
  * contains them, so nested groups are placed as single boxes.
  */
 export async function reflow(nodes: AppNode[], links: Link[], groupId: string | undefined): Promise<AppNode[]> {
-  const map = byId(nodes)
-  const kids = nodes.filter((n) => n.parentId === groupId)
-  if (!kids.length) return nodes
+  const nodeMap = byId(nodes)
+  const children = nodes.filter((node) => node.parentId === groupId)
+  if (!children.length) return nodes
   const lift = (id: string): string | null => {
-    let cur: string | undefined = id
-    while (cur) {
-      const n = map.get(cur)
-      if (!n) return null
-      if (n.parentId === groupId) return cur
-      cur = n.parentId
+    let current: string | undefined = id
+    while (current) {
+      const node = nodeMap.get(current)
+      if (!node) return null
+      if (node.parentId === groupId) return current
+      current = node.parentId
     }
     return null
   }
   const seen = new Set<string>()
   const edges = []
-  for (const l of links) {
-    if (l.kind !== 'blocks') continue
-    const a = lift(l.from)
-    const b = lift(l.to)
-    if (!a || !b || a === b || seen.has(a + '>' + b)) continue
-    seen.add(a + '>' + b)
-    edges.push({ id: a + '>' + b, sources: [a], targets: [b] })
+  for (const link of links) {
+    if (link.kind !== 'blocks') continue
+    const source = lift(link.from)
+    const target = lift(link.to)
+    if (!source || !target || source === target || seen.has(source + '>' + target)) continue
+    seen.add(source + '>' + target)
+    edges.push({ id: source + '>' + target, sources: [source], targets: [target] })
   }
-  const res = await elk.layout({
+  const result = await elk.layout({
     id: 'root',
-    layoutOptions: groupId ? INNER : TOP,
-    children: kids.map((k) => ({ id: k.id, width: sizeOf(k).w, height: sizeOf(k).h })),
+    layoutOptions: groupId ? INNER_LAYOUT_OPTIONS : TOP_LAYOUT_OPTIONS,
+    children: children.map((child) => ({ id: child.id, width: sizeOf(child).width, height: sizeOf(child).height })),
     edges,
   })
-  const offset = groupId ? { x: PAD, y: HEAD } : { x: 0, y: 0 }
-  const pos = new Map((res.children ?? []).map((c) => [c.id, { x: (c.x ?? 0) + offset.x, y: (c.y ?? 0) + offset.y }]))
-  return normalize(nodes.map((n) => (pos.has(n.id) ? { ...n, position: pos.get(n.id)! } : n)))
+  const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
+  const positions = new Map((result.children ?? []).map((child) => [child.id, { x: (child.x ?? 0) + offset.x, y: (child.y ?? 0) + offset.y }]))
+  return normalize(nodes.map((node) => (positions.has(node.id) ? { ...node, position: positions.get(node.id)! } : node)))
 }
 
 /** Lays out every group from the deepest up, then the top level. */
 export async function reflowAll(nodes: AppNode[], links: Link[]): Promise<AppNode[]> {
-  const map = byId(nodes)
-  const groups = nodes.filter(isCluster).sort((a, b) => ancestors(b.id, map).length - ancestors(a.id, map).length)
+  const nodeMap = byId(nodes)
+  const groups = nodes.filter(isCluster).sort((a, b) => ancestors(b.id, nodeMap).length - ancestors(a.id, nodeMap).length)
   let next = normalize(nodes)
-  for (const g of groups) next = await reflow(next, links, g.id)
+  for (const group of groups) next = await reflow(next, links, group.id)
   return reflow(next, links, undefined)
 }

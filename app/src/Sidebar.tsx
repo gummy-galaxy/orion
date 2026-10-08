@@ -31,7 +31,7 @@ export function Sidebar({
   chooseColorMode,
 }: Props) {
   const clusters = nodes.filter(isCluster)
-  const children = (parent: string | undefined) => clusters.filter((c) => c.parentId === parent)
+  const children = (parent: string | undefined) => clusters.filter((cluster) => cluster.parentId === parent)
   const current = workspaces.workspaces.find((item) => item.name === workspaces.active)
   const create = async () => {
     const name = window.prompt('Workspace name (lowercase letters, digits, hyphens)')?.trim()
@@ -45,28 +45,28 @@ export function Sidebar({
     }
   }
 
-  const row = (c: AppNode, depth: number) => {
-    const s = groups.get(c.id)
-    const pct = s && s.total ? Math.round((s.done / s.total) * 100) : 0
+  const row = (cluster: AppNode, depth: number) => {
+    const stats = groups.get(cluster.id)
+    const percent = stats && stats.total ? Math.round((stats.done / stats.total) * 100) : 0
     return (
-      <li key={c.id}>
+      <li key={cluster.id}>
         <button
           type="button"
-          className={`side-row${c.id === root ? ' current' : ''}`}
+          className={`side-row${cluster.id === root ? ' current' : ''}`}
           style={{ paddingLeft: 10 + depth * 14 }}
-          onClick={() => open(c.id)}
-          title={(c.data as ClusterData).blurb}
+          onClick={() => open(cluster.id)}
+          title={(cluster.data as ClusterData).blurb}
         >
           <span className="side-bar" aria-hidden="true">
-            <span style={{ width: `${pct}%` }} />
+            <span style={{ width: `${percent}%` }} />
           </span>
-          <span className="side-label">{(c.data as ClusterData).label}</span>
+          <span className="side-label">{(cluster.data as ClusterData).label}</span>
           <span className="side-meta">
-            {s && s.ready > 0 && <span className="side-ready">{s.ready} ready</span>}
-            {s && s.outside > 0 && <span className="side-lev">↗{s.outside}</span>}
+            {stats && stats.ready > 0 && <span className="side-ready">{stats.ready} ready</span>}
+            {stats && stats.outside > 0 && <span className="side-lev">↗{stats.outside}</span>}
           </span>
         </button>
-        {children(c.id).length > 0 && <ul>{children(c.id).map((k) => row(k, depth + 1))}</ul>}
+        {children(cluster.id).length > 0 && <ul>{children(cluster.id).map((child) => row(child, depth + 1))}</ul>}
       </li>
     )
   }
@@ -108,7 +108,7 @@ export function Sidebar({
           <span className="side-ready">{readyTotal} ready</span>
         </span>
       </button>
-      <ul className="side-list">{children(undefined).map((c) => row(c, 0))}</ul>
+      <ul className="side-list">{children(undefined).map((cluster) => row(cluster, 0))}</ul>
       <p className="side-foot">The bar shows how much of each group is done. ↗ counts open work outside the group that waits on it.</p>
       <div className="side-settings" role="group" aria-label="Color mode">
         <span className="side-settings-label">Color mode</span>
