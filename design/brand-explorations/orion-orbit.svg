@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Orion Orbit icon study</title>
+  <desc id="desc">Orion's three belt stars cut across an orbital ring of connected work.</desc>
+  <defs>
+    <linearGradient id="night" x1="60" y1="20" x2="478" y2="505" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#153148"/>
+      <stop offset=".6" stop-color="#184A53"/>
+      <stop offset="1" stop-color="#101F35"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="121" y1="95" x2="380" y2="408" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A8F5D4"/>
+      <stop offset=".55" stop-color="#62BEC3"/>
+      <stop offset="1" stop-color="#DCEFC5"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="111" fill="url(#night)"/>
+  <rect x="17" y="17" width="478" height="478" rx="110" stroke="#B9F8E5" stroke-opacity=".27" stroke-width="2"/>
+  <circle cx="256" cy="256" r="148" stroke="url(#ring)" stroke-opacity=".8" stroke-width="15"/>
+  <circle cx="256" cy="256" r="120" stroke="#91DBD8" stroke-opacity=".17" stroke-width="4"/>
+  <path d="M105 285c46-25 92-43 146-52 52-9 103-9 159-2" stroke="#0C2D40" stroke-width="25" stroke-linecap="round"/>
+  <path d="M105 285c46-25 92-43 146-52 52-9 103-9 159-2" stroke="#C2F6E5" stroke-width="10" stroke-linecap="round"/>
+  <g fill="#E2FFE6" stroke="#164954" stroke-width="8">
+    <path d="m176 233 10 31 31 10-31 10-10 31-10-31-31-10 31-10 10-31Z"/>
+    <path d="m255 195 11 32 32 11-32 11-11 32-11-32-32-11 32-11 11-32Z"/>
+    <path d="m337 195 10 31 31 10-31 10-10 31-10-31-31-10 31-10 10-31Z"/>
+  </g>
+  <circle cx="133" cy="168" r="14" fill="#D7F8E8"/>
+  <circle cx="365" cy="365" r="14" fill="#D7F8E8"/>
+  <path d="m400 113 6 15 15 6-15 6-6 15-6-15-15-6 15-6 6-15ZM110 374l5 12 12 5-12 5-5 12-5-12-12-5 12-5 5-12Z" fill="#F7CF8A"/>
+</svg>

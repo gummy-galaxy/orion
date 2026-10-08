@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Star Charter Compass icon study</title>
+  <desc id="desc">A navigational compass rose whose points are linked like a work map.</desc>
+  <defs>
+    <linearGradient id="sky" x1="45" y1="24" x2="481" y2="487" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#25254E"/>
+      <stop offset=".52" stop-color="#3E477D"/>
+      <stop offset="1" stop-color="#22264D"/>
+    </linearGradient>
+    <linearGradient id="rose" x1="132" y1="117" x2="366" y2="385" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FAE8B9"/>
+      <stop offset="1" stop-color="#F3A878"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="111" fill="url(#sky)"/>
+  <rect x="17" y="17" width="478" height="478" rx="110" stroke="#DAE2FA" stroke-opacity=".26" stroke-width="2"/>
+  <circle cx="256" cy="256" r="155" stroke="#C6D8F6" stroke-opacity=".64" stroke-width="10"/>
+  <circle cx="256" cy="256" r="128" stroke="#C6D8F6" stroke-opacity=".2" stroke-width="3"/>
+  <path d="M256 74v32m0 300v32M74 256h32m300 0h32" stroke="#F9D8A4" stroke-width="9" stroke-linecap="round"/>
+  <path d="M159 365c37-39 52-66 97-109s71-57 112-110" stroke="#EF9B81" stroke-width="15" stroke-linecap="round" stroke-dasharray="5 23"/>
+  <path d="m256 130 30 96 96 30-96 30-30 96-30-96-96-30 96-30 30-96Z" fill="url(#rose)"/>
+  <path d="m256 173 20 63 63 20-63 20-20 63-20-63-63-20 63-20 20-63Z" fill="#FDF9EA"/>
+  <circle cx="256" cy="256" r="22" fill="#424F82"/>
+  <circle cx="157" cy="361" r="15" fill="#FFD6A2"/>
+  <circle cx="367" cy="147" r="15" fill="#FFD6A2"/>
+  <path d="m93 143 5 12 12 5-12 5-5 12-5-12-12-5 12-5 5-12ZM418 343l5 12 12 5-12 5-5 12-5-12-12-5 12-5 5-12Z" fill="#B9CCF5"/>
+</svg>

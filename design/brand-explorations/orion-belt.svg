@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Orion Belt icon study</title>
+  <desc id="desc">Three bright stars join a constellation shaped like a network of work.</desc>
+  <defs>
+    <linearGradient id="night" x1="45" y1="35" x2="458" y2="489" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#102D3F"/>
+      <stop offset=".56" stop-color="#123B48"/>
+      <stop offset="1" stop-color="#0C202E"/>
+    </linearGradient>
+    <linearGradient id="belt" x1="158" y1="289" x2="351" y2="207" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6DE0D0"/>
+      <stop offset="1" stop-color="#C5FFF0"/>
+    </linearGradient>
+    <radialGradient id="haze" cx="0" cy="0" r="1" gradientTransform="translate(254 250) rotate(90) scale(181)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#55BDB6" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#55BDB6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="111" fill="url(#night)"/>
+  <rect x="17" y="17" width="478" height="478" rx="110" stroke="#B4F6EC" stroke-opacity=".25" stroke-width="2"/>
+  <circle cx="254" cy="250" r="181" fill="url(#haze)"/>
+  <path d="M132 142 184 270 140 376M377 131 326 239 374 369M132 142 377 131M140 376 374 369" stroke="#80CFC8" stroke-opacity=".48" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m184 270 72-16 70-15" stroke="url(#belt)" stroke-width="13" stroke-linecap="round"/>
+  <path d="m184 270 72-16 70-15" stroke="#E6FFF9" stroke-opacity=".72" stroke-width="3" stroke-linecap="round"/>
+  <g fill="#B1E8DC">
+    <circle cx="132" cy="142" r="10"/><circle cx="377" cy="131" r="10"/>
+    <circle cx="140" cy="376" r="10"/><circle cx="374" cy="369" r="10"/>
+  </g>
+  <g fill="#0E3340" stroke="#85D8CF" stroke-width="5">
+    <circle cx="132" cy="142" r="17"/><circle cx="377" cy="131" r="17"/>
+    <circle cx="140" cy="376" r="17"/><circle cx="374" cy="369" r="17"/>
+  </g>
+  <g fill="#B6FFF0">
+    <path d="m184 231 8 31 31 8-31 8-8 31-8-31-31-8 31-8 8-31Z"/>
+    <path d="m256 214 8 32 32 8-32 8-8 32-8-32-32-8 32-8 8-32Z"/>
+    <path d="m326 200 8 31 31 8-31 8-8 31-8-31-31-8 31-8 8-31Z"/>
+  </g>
+  <g fill="#F6FFF9">
+    <circle cx="184" cy="270" r="8"/><circle cx="256" cy="254" r="8"/><circle cx="326" cy="239" r="8"/>
+  </g>
+  <path d="m92 231 5 12 12 5-12 5-5 12-5-12-12-5 12-5 5-12ZM417 285l4 10 10 4-10 4-4 10-4-10-10-4 10-4 4-10Z" fill="#F6DC99"/>
+</svg>

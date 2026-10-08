@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Star Charter icon study</title>
+  <desc id="desc">A folded star chart with a route between distinctive waypoints.</desc>
+  <defs>
+    <linearGradient id="sky" x1="40" y1="27" x2="463" y2="488" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#202952"/>
+      <stop offset=".53" stop-color="#324577"/>
+      <stop offset="1" stop-color="#1B254E"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="113" y1="110" x2="400" y2="389" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FCF8EF"/>
+      <stop offset="1" stop-color="#DFECF5"/>
+    </linearGradient>
+    <linearGradient id="path" x1="146" y1="336" x2="355" y2="170" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E95E6E"/>
+      <stop offset="1" stop-color="#EF9F67"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="111" fill="url(#sky)"/>
+  <rect x="17" y="17" width="478" height="478" rx="110" stroke="#CEDAFB" stroke-opacity=".28" stroke-width="2"/>
+  <path d="M112 149c0-13 9-24 22-27l75-18 95 23 75-19c17-4 33 9 33 26v224c0 13-9 24-22 27l-85 21-96-23-64 16c-17 4-33-9-33-26V149Z" fill="#0E183B" fill-opacity=".33" transform="translate(0 12)"/>
+  <path d="M112 149c0-13 9-24 22-27l75-18 95 23 75-19c17-4 33 9 33 26v224c0 13-9 24-22 27l-85 21-96-23-64 16c-17 4-33-9-33-26V149Z" fill="url(#paper)"/>
+  <path d="m209 104 0 279m95-256 1 279" stroke="#94AFC4" stroke-width="5" stroke-opacity=".48"/>
+  <path d="m134 231 75-17 95 24 84-20M135 324l74-18 95 23 84-20" stroke="#B4C9D8" stroke-width="3" stroke-opacity=".65" stroke-dasharray="3 12"/>
+  <path d="M155 337c30-28 46-17 61-51 12-28 21-47 49-44 38 4 35-36 83-68" stroke="url(#path)" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="154" cy="338" r="22" fill="#FFFFFF" stroke="#E76375" stroke-width="10"/>
+  <path d="m264 222 21 21-21 21-21-21 21-21Z" fill="#284873" stroke="#F3B470" stroke-width="8"/>
+  <path d="m350 128 11 33 33 11-33 11-11 33-11-33-33-11 33-11 11-33Z" fill="#F8B16F"/>
+  <circle cx="350" cy="172" r="8" fill="#FFF7DE"/>
+  <path d="m97 89 5 14 14 5-14 5-5 14-5-14-14-5 14-5 5-14ZM427 402l5 13 13 5-13 5-5 13-5-13-13-5 13-5 5-13Z" fill="#A9C5F9"/>
+</svg>
