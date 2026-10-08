@@ -19,6 +19,8 @@ function render.tag(item: Item): string
 
 	if graph.isNote(item) then
 		return "note"
+	elseif graph.isGate(item) then
+		return "gate"
 	elseif repo and type(pr) == "number" then
 		return `{repo}#{pr}`
 	end
