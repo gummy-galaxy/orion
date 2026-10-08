@@ -28,7 +28,9 @@ export const Ghost: Story = {
 
 export const Cluster: Story = {
   name: 'ClusterView',
-  render: () => <StoryGraph nodes={[group]} nodeTypes={{ cluster: ClusterView }} />,
+  render: () => (
+    <StoryGraph nodes={[group, { ...task, parentId: group.id, position: { x: 60, y: 120 } }]} nodeTypes={{ cluster: ClusterView, task: TaskView }} />
+  ),
 }
 
 export const Edge: Story = {

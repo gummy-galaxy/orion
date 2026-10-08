@@ -48,6 +48,10 @@ export const Focus: Story = {
   name: 'FocusView',
   render: () => (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+      <div className="card st-active" style={{ position: 'absolute', left: 500, top: 300, width: 216, height: 72, padding: 12 }}>
+        <span className="meta-tag">orion</span>
+        <div className="label">Make the canvas welcoming</div>
+      </div>
       <FocusView
         label="Make the canvas welcoming"
         card={{ x: 500, y: 300, width: 216, height: 72 }}
