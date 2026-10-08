@@ -2218,7 +2218,7 @@ function GroupFacts({ stats }: { stats?: GroupStats }) {
   return (
     <p className="facts">
       {stats.done}/{stats.total} done · {stats.ready} ready · {stats.blocked} blocked
-      {stats.outside > 0 && <> · unblocks {stats.outside} outside</>}
+      {stats.outside > 0 && <> · unblocks {stats.outside}</>}
     </p>
   )
 }

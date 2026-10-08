@@ -145,7 +145,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
             <span>{stats.ready} ready</span>
             <span>{stats.blocked} blocked</span>
           </span>
-          {stats.outside > 0 && <span className="cluster-card-lev">unblocks {stats.outside} outside</span>}
+          {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
           <SourceBadges sources={sources} />
         </div>
       ) : (
@@ -155,7 +155,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
           <span className="count">
             {stats.done}/{stats.total}
           </span>
-          {stats.outside > 0 && <span className="lev-inline">unblocks {stats.outside} outside</span>}
+          {stats.outside > 0 && <span className="lev-inline">unblocks {stats.outside}</span>}
           <span className="head-actions">
             {data.arrange !== 'custom' && (
               <button type="button" className="nodrag" onClick={() => actions.reflow(id)}>

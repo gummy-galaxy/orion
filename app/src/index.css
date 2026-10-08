@@ -723,7 +723,7 @@ select {
   align-items: center;
   gap: calc(7px * var(--inv, 1));
   min-width: 0;
-  max-width: calc(100% - 28px * var(--inv, 1));
+  max-width: 100%;
 }
 .cluster-card-title .ring {
   flex: none;
@@ -750,16 +750,11 @@ select {
   color: var(--muted);
 }
 .cluster-card-lev {
-  font-family: var(--font-data);
-  font-size: calc(11px * var(--inv, 1));
-  line-height: 1;
+  top: calc(-9px * var(--inv, 1));
+  right: calc(8px * var(--inv, 1));
+  font-size: calc(10px * var(--inv, 1));
   padding: calc(3px * var(--inv, 1)) calc(7px * var(--inv, 1));
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--surface);
-}
-.cluster-card.is-compact .cluster-card-lev {
-  display: none;
+  border-width: calc(1px * var(--inv, 1));
 }
 .cluster-card.is-compact {
   gap: calc(3px * var(--inv, 1));
@@ -769,9 +764,7 @@ select {
 }
 .cluster-card.is-tiny {
   padding: calc(6px * var(--inv, 1));
-}
-.cluster-card.is-tiny .cluster-card-title {
-  max-width: 100%;
+  padding-top: calc(11px * var(--inv, 1));
 }
 .cluster-card.is-tiny .ring,
 .cluster-card.is-tiny .source-badges,
@@ -783,10 +776,10 @@ select {
 }
 .cluster-card .source-badges {
   right: calc(10px * var(--inv, 1));
-  top: calc(9px * var(--inv, 1));
-  bottom: auto;
+  top: auto;
+  bottom: calc(9px * var(--inv, 1));
   transform: scale(var(--inv, 1));
-  transform-origin: right top;
+  transform-origin: right bottom;
 }
 .cluster.is-collapsed.tr-dim {
   --fade: 0.3;
