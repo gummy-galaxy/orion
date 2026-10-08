@@ -1,9 +1,7 @@
-local imageFormat = {}
+local validateImageSize = require("@root/media/validateImageSize")
 
-imageFormat.maxBytes = 5 * 1024 * 1024
-
-function imageFormat.detect(bytes: string): (string, string)
-	assert(#bytes > 0 and #bytes <= imageFormat.maxBytes, "image must be 5 MB or smaller")
+return function(bytes: string): (string, string)
+	validateImageSize(#bytes)
 	if bytes:sub(1, 8) == string.char(137, 80, 78, 71, 13, 10, 26, 10) then
 		return "png", "image/png"
 	elseif bytes:sub(1, 3) == string.char(255, 216, 255) then
@@ -15,5 +13,3 @@ function imageFormat.detect(bytes: string): (string, string)
 	end
 	error("image must be PNG, JPEG, GIF, or WebP")
 end
-
-return table.freeze(imageFormat)
