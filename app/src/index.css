@@ -539,9 +539,17 @@ select {
     animation: pulse 1.8s ease-out infinite;
   }
 }
-/* Zoomed far out, motion can't be read, so loops and fades stop. */
+/* Zoomed far out, motion can't be read, so loops and fades stop. Moving the canvas pauses them too. */
 .canvas.is-still .react-flow__edge-path,
 .canvas.is-still .st-active {
+  animation: none !important;
+}
+.canvas[data-moving] .react-flow__edge-path,
+.canvas.no-arrow-motion .react-flow__edge-path,
+.canvas[data-moving] .st-active {
+  animation-play-state: paused !important;
+}
+.canvas.no-glow .card.st-active {
   animation: none !important;
 }
 .canvas.is-still .react-flow__node,
@@ -1421,6 +1429,63 @@ kbd {
   flex: 1;
   min-width: 0;
   height: 100%;
+}
+.canvas.has-debug .react-flow__panel.bottom {
+  margin-bottom: 39px;
+}
+.debug-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 24px;
+  padding: 0 10px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font: 10.5px var(--font-data);
+  white-space: nowrap;
+}
+.debug-fps {
+  min-width: 48px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.debug-fps.good {
+  color: var(--st-done);
+}
+.debug-fps.fair {
+  color: var(--st-review);
+}
+.debug-fps.poor {
+  color: var(--st-blocked);
+}
+.debug-moving {
+  color: var(--accent);
+}
+.debug-toggles {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+.debug-toggles label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.debug-close {
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
 }
 
 /* Group list */
