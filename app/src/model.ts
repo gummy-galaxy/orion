@@ -13,7 +13,8 @@ export type ViewStatus = 'ready' | 'active' | 'review' | 'blocked' | 'deferred' 
  * A pull request that exists, one that is expected but not opened yet, a step with no
  * pull request, or a note. Notes are annotations, not work: they pass blocking through.
  */
-export type ItemKind = 'pr' | 'placeholder' | 'step' | 'note'
+/** A gate is done once everything it waits on is, like a milestone or sign-off. */
+export type ItemKind = 'pr' | 'placeholder' | 'step' | 'gate' | 'note'
 
 export type TaskData = {
   kind: 'task'
@@ -100,11 +101,17 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
 
 const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
 
+/** A card's kind from its repository and pull request. Gates and notes keep their kind. */
+export function getItemKind(data: Pick<TaskData, 'itemKind' | 'repo' | 'pr'>): ItemKind {
+  if (data.itemKind === 'gate' || data.itemKind === 'note') return data.itemKind
+  return data.pr && data.repo ? 'pr' : data.repo ? 'placeholder' : 'step'
+}
+
 export function getTaskTag(data: TaskData): string {
   if (data.external) return data.external.key
   if (data.repo && data.issue) return `${data.repo}#${data.issue}`
   if (data.repo && data.pr) return `${data.repo}#${data.pr}`
-  return data.repo ?? 'step'
+  return data.repo ?? (data.itemKind === 'gate' ? 'gate' : 'step')
 }
 
 export function getTaskUrl(data: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {

@@ -105,6 +105,7 @@ local function addFieldOptions(parser: batteriesCli.Parser)
 	parser:add("pr", "option", { help = "Pull request number" })
 	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
 	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
+	parser:add("kind", "option", { help = "step, or gate for one that's done once everything it waits on is" })
 end
 
 type Parsers = {
@@ -249,6 +250,7 @@ local function fields(parser: batteriesCli.Parser): graph.ItemFields
 		who = parser:get("who"),
 		note = parser:get("note"),
 		arrange = parser:get("arrange"),
+		kind = parser:get("kind"),
 	}
 end
 

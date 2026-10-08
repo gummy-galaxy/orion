@@ -29,6 +29,24 @@ describe('deriveWork sources', () => {
   })
 })
 
+describe('deriveWork gates', () => {
+  it('finishes a gate once everything it waits on is done', () => {
+    const links = [link('a', 'g'), link('b', 'g'), link('g', 'c')]
+    const waiting = deriveWork([task('a', 'done'), task('b', 'active'), task('g', 'todo', 'gate'), task('c', 'todo')], links)
+    expect(waiting.status.get('g')).toBe('blocked')
+    expect(waiting.status.get('c')).toBe('blocked')
+    expect(waiting.leverage.get('b')).toBe(2)
+
+    const finished = deriveWork([task('a', 'done'), task('b', 'done'), task('g', 'todo', 'gate'), task('c', 'todo')], links)
+    expect(finished.status.get('g')).toBe('done')
+    expect(finished.status.get('c')).toBe('ready')
+  })
+
+  it('treats a gate with nothing to wait on as ordinary work', () => {
+    expect(deriveWork([task('g', 'todo', 'gate')], []).status.get('g')).toBe('ready')
+  })
+})
+
 describe('deriveWork flow', () => {
   it('moves out of work that can start and holds after work that waits', () => {
     const { flow } = deriveWork([task('a'), task('b'), task('c')], [link('a', 'b'), link('b', 'c')])

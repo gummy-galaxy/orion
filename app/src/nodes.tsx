@@ -72,10 +72,11 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
       </div>
     )
   }
-  const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
+  const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${data.itemKind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
   const body = (
     <>
       <div className="meta">
+        {data.itemKind === 'gate' && <span className="gate-mark" title="Gate: done once everything it waits on is" />}
         <span className="meta-tag" title={getTaskTag(data)}>
           {getTaskTag(data)}
         </span>

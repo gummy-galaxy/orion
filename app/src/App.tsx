@@ -43,6 +43,7 @@ import {
   isNote,
   isTask,
   normalize,
+  getItemKind,
   getTaskUrl,
   sizeOf,
   getTaskTag,
@@ -2409,6 +2410,14 @@ function TaskInspector({
           {data.github.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
         </div>
       )}
+      <label className="gate-toggle">
+        <input
+          type="checkbox"
+          checked={data.itemKind === 'gate'}
+          onChange={(event) => update(node.id, { itemKind: event.target.checked ? 'gate' : getItemKind({ ...data, itemKind: 'step' }) })}
+        />
+        Gate: done once everything it waits on is
+      </label>
       <div className="grid2">
         <div>
           <label htmlFor="t-repo">Repository</label>
@@ -2418,7 +2427,7 @@ function TaskInspector({
             placeholder="None"
             onChange={(event) => {
               const repo = event.target.value.trim() || undefined
-              update(node.id, { repo: repo, itemKind: data.pr && repo ? 'pr' : repo ? 'placeholder' : 'step' })
+              update(node.id, { repo, itemKind: getItemKind({ ...data, repo }) })
             }}
           />
         </div>
@@ -2432,7 +2441,7 @@ function TaskInspector({
             onChange={(event) => {
               const number = Number(event.target.value.replace(/^#/, ''))
               const pullRequest = Number.isInteger(number) && number > 0 ? number : undefined
-              update(node.id, { pr: pullRequest, itemKind: pullRequest && data.repo ? 'pr' : data.repo ? 'placeholder' : 'step' })
+              update(node.id, { pr: pullRequest, itemKind: getItemKind({ ...data, pr: pullRequest }) })
             }}
           />
         </div>
@@ -2477,7 +2486,13 @@ function TaskInspector({
               <button
                 type="button"
                 className="btn"
-                onClick={() => update(node.id, { repo: pullRequest.repo, pr: pullRequest.number, itemKind: 'pr' })}
+                onClick={() =>
+                  update(node.id, {
+                    repo: pullRequest.repo,
+                    pr: pullRequest.number,
+                    itemKind: getItemKind({ ...data, repo: pullRequest.repo, pr: pullRequest.number }),
+                  })
+                }
               >
                 Link
               </button>

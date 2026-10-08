@@ -112,7 +112,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 
 Reset to seed restores the snapshot.
 
-Dashed cards are pull requests that aren't opened yet. Click a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
+Dashed cards are pull requests that aren't opened yet. Cards with a diamond are gates: they finish on their own once everything they wait on is done, so they suit milestones like a release. Check "Gate" in a card's inspector to make one. Click a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
 The toolbar shows when GitHub was last synced, or a sync error; click the status to force a sync. Linked cards show a checks dot (green passing, red failing, amber pending) and changed line count. The inspector shows checks, additions and deletions, update time, author, and review requests. An unlinked work item may show possible pull requests in its inspector; use **Link** to attach one to the card.
 
 ## Layout of the code
