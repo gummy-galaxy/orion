@@ -331,6 +331,25 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	return item
 end
 
+function graph.addImage(doc: Doc, label: string, extension: string, workspace: string, group: string?): Item
+	assert(label ~= "", "an image needs a label")
+	if group then
+		graph.group(doc, group)
+	end
+	local id = uniqueId(doc, `image-{slug(label)}`)
+	local item: Item = {
+		id = id,
+		type = "image",
+		position = graph.nextSlot(doc, group),
+		parentId = group,
+		width = 256,
+		height = 256,
+		data = json.object({ kind = "image", label = label, asset = `{id}.{extension}`, workspace = workspace }),
+	}
+	table.insert(doc.nodes, item)
+	return item
+end
+
 function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	local item = graph.get(doc, id)
 	checkFields(fields)

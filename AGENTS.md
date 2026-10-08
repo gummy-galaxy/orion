@@ -33,6 +33,7 @@ The app reports its open group and selection to `orion serve`. `orion focus` sho
 - `orion done <id>` marks an item done.
 - `orion link <first> <then>` makes `<then>` wait on `<first>`. Add `--related` for a link that never blocks. `orion unlink` removes one.
 - `orion note <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it goes inside that existing link.
+- `orion image add <file> [--label <text>] [--group <id>]` imports a PNG, JPEG, GIF, or WebP image as a movable canvas node. `orion image list` lists images in the selected workspace. `orion serve` accepts raw bytes at `POST /api/images?workspace=<name>` and returns them at `GET /api/images/<asset>?workspace=<name>`.
 - `orion group <label> --items <id,id,…>`, `orion ungroup <id>`, and `orion move <id> --to <group>` (or `--top`) organize work.
 - `orion remove <id>` deletes an item. Removing a note reconnects the links that ran through it.
 

@@ -1,0 +1,39 @@
+local fs = require("@std/fs")
+local json = require("@std/json")
+local path = require("@std/path")
+local test = require("@std/test")
+
+local graph = require("@root/graph")
+local store = require("@root/store")
+local testing = require("@root/testing")
+
+test.case("image commands import validated files and list nodes in the selected workspace", function(assert)
+	local root, run = testing.createHarness("image-add")
+	local source = path.join(root, "sample.png")
+	local bytes = string.char(137, 80, 78, 71, 13, 10, 26, 10) .. "image bytes"
+	fs.writeStringToFile(source, bytes)
+	local value = json.asObject(
+		json.deserialize(run({ "image", "add", tostring(source), "--label", "Concept", "--group", "ws", "--json" })) :: json.Value
+	)
+	local id = if value then value.id else nil
+	assert.eq(value and value.label, "Concept")
+	local doc = store.load(root)
+	local item = if type(id) == "string" then graph.find(doc, id) else nil
+	assert.eq(item and item.type, "image")
+	assert.eq(item and item.parentId, "ws")
+	assert.eq(item and item.data.workspace, "default")
+	assert.eq(item and item.width, 256)
+	local asset = if item then item.data.asset else nil
+	assert.eq(type(asset), "string")
+	assert.eq(fs.readFileToString(path.join(root, "assets", asset :: string)), bytes)
+	assert.strContains(run({ "image", "list" }), "Concept")
+	assert.strContains(run({ "show", id :: string }), "kind     image")
+	local invalid = path.join(root, "invalid.png")
+	fs.writeStringToFile(invalid, "not an image")
+	assert.throwsWith("image must be PNG, JPEG, GIF, or WebP", function()
+		run({ "image", "add", tostring(invalid) })
+	end)
+	assert.eq(store.load(root).revision, doc.revision)
+	run({ "workspace", "create", "other" })
+	assert.eq(run({ "image", "list", "--workspace", "other" }), "No images.")
+end)

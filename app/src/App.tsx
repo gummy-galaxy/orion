@@ -40,6 +40,7 @@ import {
   descendants,
   groupSelection,
   isCluster,
+  isImage,
   isNote,
   isTask,
   normalize,
@@ -55,6 +56,7 @@ import {
   type ClusterData,
   type GhostNode,
   type GithubSnapshot,
+  type ImageNode,
   type Link,
   type Status,
   type TaskData,
@@ -63,6 +65,7 @@ import {
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from './external'
+import { ImageView } from './ImageView'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
   createWorkspace,
@@ -71,6 +74,7 @@ import {
   fingerprint,
   getSyncStatus,
   getWorkspaces,
+  importImage,
   load,
   onRemoteChange,
   onSyncStatus,
@@ -97,7 +101,7 @@ import { readViewport, writeViewport } from './viewport'
 
 type ViewNode = AppNode | GhostNode
 
-const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, ghost: GhostView }
+const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, image: ImageView, ghost: GhostView }
 const edgeTypes: EdgeTypes = { default: CurveEdge }
 const SIDEBAR_KEY = 'orion:sidebar'
 const COLOR_MODE_KEY = 'orion:color-mode'
@@ -382,6 +386,7 @@ function Canvas() {
   const savedPrint = useRef('')
   const base = useRef<Saved>({ nodes: [], links: [] })
   const [mergeNotice, setMergeNotice] = useState<number | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Saves and reloads run one at a time so a reload never lands on a half-finished save.
   const queue = useRef<Promise<void>>(Promise.resolve())
@@ -1405,7 +1410,7 @@ function Canvas() {
   )
 
   const updateData = useCallback(
-    (id: string, patch: Partial<TaskData> | Partial<ClusterData>) =>
+    (id: string, patch: Partial<TaskData> | Partial<ClusterData> | Partial<ImageNode['data']>) =>
       setNodes((currentNodes) => currentNodes.map((node) => (node.id === id ? ({ ...node, data: { ...node.data, ...patch } } as AppNode) : node))),
     [setNodes],
   )
@@ -1446,6 +1451,45 @@ function Canvas() {
     const center = reactFlow.screenToFlowPosition({ x: rectangle.left + rectangle.width / 2, y: rectangle.top + rectangle.height / 2 })
     return { x: center.x - TASK_WIDTH / 2, y: center.y - TASK_HEIGHT / 2 }
   }, [reactFlow])
+
+  const addImage = useCallback(
+    async (file: File) => {
+      const workspaceEpochAtStart = workspaceEpoch.current
+      const workspaceName = workspace.current
+      const parentId = root
+
+      setImageError(null)
+
+      try {
+        const { asset } = await importImage(file, workspaceName)
+
+        if (workspaceEpochAtStart !== workspaceEpoch.current) return
+
+        const position = viewportCenter()
+
+        setNodes((currentNodes) => {
+          const nodeMap = byId(currentNodes)
+          const parentNode = parentId ? nodeMap.get(parentId) : undefined
+          const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
+          const image: ImageNode = {
+            id: newId('image'),
+            type: 'image',
+            parentId: parentNode?.id,
+            position: { x: position.x - 20 - origin.x, y: position.y - 92 - origin.y },
+            width: 256,
+            height: 256,
+            data: { kind: 'image', label: file.name.replace(/\.[^.]+$/, ''), asset, workspace: workspaceName },
+            selected: true,
+          }
+
+          return normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image])
+        })
+      } catch (error) {
+        setImageError(error instanceof Error ? error.message : 'Could not add the image.')
+      }
+    },
+    [root, viewportCenter, setNodes],
+  )
 
   /** The innermost visible card or group under a canvas point that `accept` allows. */
   const nodeAt = useCallback(
@@ -1694,6 +1738,17 @@ function Canvas() {
           { label: 'Turn into a work item', run: () => updateData(node.id, { itemKind: 'step', status: 'todo' }) },
           'divider',
           { label: 'Delete note', danger: true, run: () => deleteNote(node.id) },
+        ]
+      if (isImage(node))
+        return [
+          ...many,
+          { label: 'Rename image', run: () => (selectOnly(node.id), setEditing(node.id)) },
+          'divider',
+          {
+            label: 'Remove image',
+            danger: true,
+            run: () => setNodes((currentNodes) => normalize(currentNodes.filter((item) => item.id !== node.id))),
+          },
         ]
       const data = node.data as TaskData
       const url = getTaskUrl(data, githubOwner)
@@ -1982,11 +2037,25 @@ function Canvas() {
                   Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
                 </Panel>
               )}
+              {imageError && (
+                <Panel position="bottom-left" style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300 }} role="alert">
+                  {imageError}
+                  <button type="button" className="link" onClick={() => setImageError(null)} aria-label="Dismiss image error">
+                    ×
+                  </button>
+                </Panel>
+              )}
               <MiniMap
                 pannable
                 zoomable
                 nodeClassName={(node) =>
-                  node.type === 'cluster' ? 'mm-cluster' : node.type === 'ghost' ? 'mm-ghost' : 'mm-' + (work.status.get(node.id) ?? 'ready')
+                  node.type === 'cluster'
+                    ? 'mm-cluster'
+                    : node.type === 'image'
+                      ? 'mm-image'
+                      : node.type === 'ghost'
+                        ? 'mm-ghost'
+                        : 'mm-' + (work.status.get(node.id) ?? 'ready')
                 }
               />
 
@@ -2014,6 +2083,20 @@ function Canvas() {
                   <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                     Add note
                   </button>
+                  <label className="btn image-upload">
+                    Add image
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/gif,image/webp"
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0]
+
+                        if (file) void addImage(file)
+
+                        event.currentTarget.value = ''
+                      }}
+                    />
+                  </label>
                   {!rootCustom && (
                     <button type="button" className="btn" onClick={tidy}>
                       Tidy {root ? 'group' : 'canvas'}
@@ -2076,6 +2159,22 @@ function Canvas() {
                       removeLink={removeLink}
                       flipLink={flipLink}
                     />
+                  ) : isImage(one) ? (
+                    <div className="insp" key={one.id}>
+                      <label htmlFor="image-label">Image label</label>
+                      <input
+                        id="image-label"
+                        value={one.data.label}
+                        autoFocus={editing === one.id}
+                        onFocus={(event) => editing === one.id && event.target.select()}
+                        onBlur={() => setEditing(null)}
+                        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+                        onChange={(event) => updateData(one.id, { label: event.target.value })}
+                      />
+                      <button type="button" className="btn" onClick={() => setNodes((ns) => normalize(ns.filter((n) => n.id !== one.id)))}>
+                        Remove image
+                      </button>
+                    </div>
                   ) : (
                     <div className="insp" key={one.id}>
                       <label htmlFor="g-label">Group name</label>

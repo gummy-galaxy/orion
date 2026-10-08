@@ -152,6 +152,56 @@ select {
 }
 
 /* Task cards */
+.image-node {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px #0002;
+}
+.react-flow__node-image.selected .image-node {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.image-node img {
+  min-height: 0;
+  width: 100%;
+  flex: 1;
+  object-fit: contain;
+  pointer-events: none;
+}
+.image-missing {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.image-label {
+  padding: 6px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.image-upload {
+  cursor: pointer;
+}
+.image-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.lens-image {
+  width: 300px;
+  height: 300px;
+  padding: 0;
+}
 .card {
   --c: var(--st-todo);
   position: relative;
