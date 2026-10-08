@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { Provider, useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom } from 'jotai'
 import {
   Background,
   BackgroundVariant,
@@ -9,7 +9,6 @@ import {
   Panel,
   Position,
   ReactFlow,
-  ReactFlowProvider,
   applyNodeChanges,
   useReactFlow,
   useStore,
@@ -23,15 +22,13 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { LinkList } from './LinkList'
 import { Palette, type Command } from './Palette'
-import { AttentionOverlay, type AttentionTarget } from './attention'
-import { ActionsContext, needsAttention, type AttentionMark, type Work, type Flow, type GroupStats } from './derive'
-import { FocusView, type FocusItem } from './focus'
-import { reflow, reflowAll } from './layout'
-import { mergeDocs } from './merge'
+import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
+import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { FocusView, type FocusItem } from './FocusView'
+import { reflow, reflowAll } from '../layout'
+import { mergeDocs } from '../merge'
 import {
-  STATUS_LABEL,
   TASK_HEIGHT,
   TASK_WIDTH,
   absolutePosition,
@@ -43,27 +40,24 @@ import {
   isNote,
   isTask,
   normalize,
-  getItemKind,
   getTaskUrl,
   sizeOf,
   getTaskTag,
-  githubSummary,
   relativeTime,
   ungroup,
   type AppNode,
-  type Arrange,
   type ClusterData,
   type GhostNode,
   type GithubSnapshot,
   type Link,
-  type Status,
   type TaskData,
-  type Who,
-} from './model'
+} from '../model'
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { CurveEdge } from './CurveEdge'
-import { openExternal } from './external'
-import { ClusterView, GhostView, TaskView } from './nodes'
+import { openExternal } from '../external'
+import { ClusterView } from './ClusterView'
+import { GhostView } from './GhostView'
+import { TaskView } from './TaskView'
 import {
   createWorkspace,
   clearFocus,
@@ -86,16 +80,32 @@ import {
   type Saved,
   type SyncStatus,
   type Workspaces,
-} from './persist'
-import { seedLinks, seedNodes } from './seed'
+} from '../persist'
+import { seedLinks, seedNodes } from '../seed'
 import { Sidebar } from './Sidebar'
 import { SnapGuides } from './SnapGuides'
-import { useNodeSnapping } from './useNodeSnapping'
-import { attentionAtom, collapsedAtom, focusedAtom, githubOwnerAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from './state'
-import { StickerLayer, StickerWheel, type PlacedSticker, type StickerBounds, type StickerMove } from './Stickers'
-import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from './sticker'
+import { useNodeSnapping } from '../useNodeSnapping'
+import {
+  attentionAtom,
+  collapsedAtom,
+  focusedAtom,
+  githubOwnerAtom,
+  hoverAtom,
+  linksAtom,
+  nodesAtom,
+  pinnedAtom,
+  traceAtom,
+  workAtom,
+} from '../state'
+import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
+import { StickerWheel } from './StickerWheel'
+import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { Toolbar, type Tool } from './Toolbar'
-import { readViewport, writeViewport } from './viewport'
+import { readViewport, writeViewport } from '../viewport'
+import { GroupFacts } from './GroupFacts'
+import { GroupArrange } from './GroupArrange'
+import { NoteInspector } from './NoteInspector'
+import { TaskInspector } from './TaskInspector'
 
 type ViewNode = AppNode | GhostNode
 
@@ -280,7 +290,7 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
   return nodes.map((node) => (placed.has(node.id) ? { ...node, position: placed.get(node.id)! } : node))
 }
 
-function Canvas() {
+export function Canvas() {
   const reactFlow = useReactFlow<ViewNode, Edge>()
   const store = useStoreApi<ViewNode, Edge>()
   // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
@@ -2207,260 +2217,5 @@ function Canvas() {
         {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
       </div>
     </ActionsContext.Provider>
-  )
-}
-
-function GroupFacts({ stats }: { stats?: GroupStats }) {
-  if (!stats) return null
-  return (
-    <p className="facts">
-      {stats.done}/{stats.total} done · {stats.ready} ready · {stats.blocked} blocked
-      {stats.outside > 0 && <> · unblocks {stats.outside} outside</>}
-    </p>
-  )
-}
-
-function GroupArrange({ data, change }: { data: ClusterData; change: (patch: Pick<ClusterData, 'arrange'>) => void }) {
-  const pick = (next: Arrange) => change({ arrange: next === 'auto' ? undefined : next })
-  return (
-    <div>
-      <label htmlFor="g-arrange">Arrange</label>
-      <select id="g-arrange" value={data.arrange ?? 'auto'} onChange={(event) => pick(event.target.value as Arrange)}>
-        <option value="auto">Automatic</option>
-        <option value="custom">Custom</option>
-      </select>
-    </div>
-  )
-}
-
-function NoteInspector({
-  node,
-  focus,
-  doneEditing,
-  update,
-  remove,
-}: {
-  node: AppNode
-  focus: boolean
-  doneEditing: () => void
-  update: (id: string, patch: Partial<TaskData>) => void
-  remove: () => void
-}) {
-  const data = node.data as TaskData
-  return (
-    <div className="insp">
-      <label htmlFor="n-text">Note</label>
-      <textarea
-        id="n-text"
-        rows={5}
-        value={data.label}
-        autoFocus={focus}
-        placeholder="A detail to remember, or a plan that might become a pull request"
-        onBlur={doneEditing}
-        onChange={(event) => update(node.id, { label: event.target.value })}
-      />
-      <p className="facts">Notes pass blocking through but never count as work.</p>
-      <div className="row">
-        <button type="button" className="btn" onClick={() => update(node.id, { itemKind: 'step', status: 'todo' })}>
-          Turn into a work item
-        </button>
-        <button type="button" className="btn danger" onClick={remove}>
-          Delete
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function TaskInspector({
-  node,
-  work,
-  map,
-  github,
-  githubOwner,
-  update,
-  jumpTo,
-  connections = true,
-  links,
-  addLink,
-  removeLink,
-  flipLink,
-}: {
-  node: AppNode
-  work: Work
-  map: Map<string, AppNode>
-  github: GithubSnapshot | null
-  githubOwner: string
-  update: (id: string, patch: Partial<TaskData>) => void
-  jumpTo: (id: string) => void
-  /** Focus view draws connections beside the inspector. */
-  connections?: boolean
-  links: Link[]
-  addLink: (from: string, to: string, kind: Link['kind']) => void
-  removeLink: (id: string) => void
-  flipLink: (id: string) => void
-}) {
-  const data = node.data as TaskData
-  const status = work.status.get(node.id) ?? 'ready'
-  const leverage = work.leverage.get(node.id) ?? 0
-  const url = getTaskUrl(data, githubOwner)
-  const linked = new Set(
-    [...map.values()]
-      .filter(isTask)
-      .filter((node) => node.data.repo && node.data.pr)
-      .map((node) => `${node.data.repo}#${node.data.pr}`),
-  )
-  const suggestions = data.pr
-    ? []
-    : (github?.unplaced ?? [])
-        .filter((pullRequest) => !linked.has(`${pullRequest.repo}#${pullRequest.number}`))
-        .flatMap((pullRequest) =>
-          pullRequest.matches.filter((match) => match.id === node.id).map((match) => ({ pr: pullRequest, score: match.score })),
-        )
-        .sort((a, b) => b.score - a.score)
-  return (
-    <div className="insp">
-      <label htmlFor="t-label">Title</label>
-      <input id="t-label" value={data.label} onChange={(event) => update(node.id, { label: event.target.value })} />
-      {url && (
-        <a className="pr-link" href={url} target="_blank" rel="noreferrer">
-          Open {getTaskTag(data)} ↗
-        </a>
-      )}
-      {data.github && (
-        <div className="github-details">
-          <p className="facts">{githubSummary(data.github)}</p>
-          <p className="facts">
-            {data.github.checks && (
-              <>
-                <span className={`check-dot check-${data.github.checks.toLowerCase()}`} />
-                {data.github.checks === 'SUCCESS'
-                  ? 'Checks passing'
-                  : ['FAILURE', 'ERROR'].includes(data.github.checks)
-                    ? 'Checks failing'
-                    : 'Checks pending'}{' '}
-                ·{' '}
-              </>
-            )}
-            {typeof data.github.additions === 'number' && (
-              <>
-                +{data.github.additions} −{data.github.deletions} · updated {relativeTime(data.github.updatedAt)}
-              </>
-            )}
-          </p>
-          {data.github.author && !data.github.mine && <p className="facts">By {data.github.author}</p>}
-          {data.github.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
-        </div>
-      )}
-      <label className="gate-toggle">
-        <input
-          type="checkbox"
-          checked={data.itemKind === 'gate'}
-          onChange={(event) => update(node.id, { itemKind: event.target.checked ? 'gate' : getItemKind({ ...data, itemKind: 'step' }) })}
-        />
-        Gate: done once everything it waits on is
-      </label>
-      <div className="grid2">
-        <div>
-          <label htmlFor="t-repo">Repository</label>
-          <input
-            id="t-repo"
-            value={data.repo ?? ''}
-            placeholder="None"
-            onChange={(event) => {
-              const repo = event.target.value.trim() || undefined
-              update(node.id, { repo, itemKind: getItemKind({ ...data, repo }) })
-            }}
-          />
-        </div>
-        <div>
-          <label htmlFor="t-pr">Pull request</label>
-          <input
-            id="t-pr"
-            inputMode="numeric"
-            value={data.pr ?? ''}
-            placeholder="Not opened"
-            onChange={(event) => {
-              const number = Number(event.target.value.replace(/^#/, ''))
-              const pullRequest = Number.isInteger(number) && number > 0 ? number : undefined
-              update(node.id, { pr: pullRequest, itemKind: getItemKind({ ...data, pr: pullRequest }) })
-            }}
-          />
-        </div>
-        <div>
-          <label htmlFor="t-status">Status</label>
-          <select id="t-status" value={data.status} onChange={(event) => update(node.id, { status: event.target.value as Status })}>
-            <option value="todo">To do</option>
-            <option value="active">In progress</option>
-            <option value="review">In review</option>
-            <option value="blocked">Blocked</option>
-            <option value="deferred">Deferred</option>
-            <option value="done">Done</option>
-          </select>
-        </div>
-        <div>
-          <label htmlFor="t-who">Whose move</label>
-          <select
-            id="t-who"
-            value={data.who ?? ''}
-            onChange={(event) => update(node.id, { who: (event.target.value || undefined) as Who | undefined })}
-          >
-            <option value="">Not set</option>
-            <option value="you">You</option>
-            <option value="review">Reviewer</option>
-            <option value="ci">CI</option>
-          </select>
-        </div>
-      </div>
-      {suggestions.length > 0 && (
-        <div className="suggestions">
-          <span className="label-text">Possible pull requests</span>
-          {suggestions.map(({ pr: pullRequest, score }) => (
-            <div className="suggestion" key={`${pullRequest.repo}#${pullRequest.number}`}>
-              <div className="suggestion-copy">
-                <a href={pullRequest.url} target="_blank" rel="noreferrer">
-                  {pullRequest.title}
-                </a>
-                <span>
-                  {pullRequest.repo}#{pullRequest.number} · {score >= 0.6 ? 'High' : score >= 0.35 ? 'Medium' : 'Low'} confidence
-                </span>
-              </div>
-              <button
-                type="button"
-                className="btn"
-                onClick={() =>
-                  update(node.id, {
-                    repo: pullRequest.repo,
-                    pr: pullRequest.number,
-                    itemKind: getItemKind({ ...data, repo: pullRequest.repo, pr: pullRequest.number }),
-                  })
-                }
-              >
-                Link
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-      <label htmlFor="t-note">Notes</label>
-      <textarea id="t-note" rows={3} value={data.note ?? ''} onChange={(event) => update(node.id, { note: event.target.value || undefined })} />
-      <p className="facts">
-        Shown as <b>{STATUS_LABEL[status]}</b>
-        {leverage > 0 && <> · unblocks {leverage}</>}
-      </p>
-      {connections && (
-        <LinkList node={node} work={work} nodeMap={map} links={links} jumpTo={jumpTo} addLink={addLink} removeLink={removeLink} flipLink={flipLink} />
-      )}
-    </div>
-  )
-}
-
-export default function App() {
-  return (
-    <Provider>
-      <ReactFlowProvider>
-        <Canvas />
-      </ReactFlowProvider>
-    </Provider>
   )
 }

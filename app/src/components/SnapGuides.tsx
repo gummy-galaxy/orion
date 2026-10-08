@@ -1,5 +1,5 @@
 import { ViewportPortal } from '@xyflow/react'
-import type { Guide } from './snap'
+import type { Guide } from '../snap'
 
 export function SnapGuides({ guides, zoom }: { guides: Guide[]; zoom: number }) {
   const tick = 4 / zoom

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from 'react'
-import type { SourceRef } from './derive'
+import type { SourceRef } from '../derive'
 import { Favicon } from './Favicon'
 import { SourceLink } from './SourceLink'
 
