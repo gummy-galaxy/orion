@@ -89,6 +89,14 @@ test.case("addNote splices into an existing link and remove reconnects it", func
 	assert.eq(doc.links[1].to, "b")
 end)
 
+test.case("addNote after the same item finds a free spot for each note", function(assert)
+	local doc = testing.createDoc({ task("a", "A", "todo") })
+	local first = graph.addNote(doc, "First", { after = "a" })
+	local second = graph.addNote(doc, "Second", { after = "a" })
+	assert.eq(first.position.x, second.position.x)
+	assert.eq(second.position.y > first.position.y, true)
+end)
+
 test.case("makeGroup and ungroup keep items in place", function(assert)
 	local firstTask = task("a", "A", "todo")
 	firstTask.position = { x = 100, y = 50 }
