@@ -703,7 +703,7 @@ select {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
   gap: calc(5px * var(--inv, 1));
   padding: calc(12px * var(--inv, 1));
   cursor: grab;
