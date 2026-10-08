@@ -128,6 +128,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - "Unblocks N" counts every open task downstream, directly or not.
 - N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
 - Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.
+- The Layered and Weave toggle picks how Tidy and Reflow work. Layered lays the level out again from scratch. Weave keeps your arrangement and moves cards the shortest way off lines that run through them, shoving neighbors along when they're in the way. It moves nothing when the level is too tangled for that.
 - A group's inspector picks its arrangement: Automatic flows by dependency, and Custom keeps cards where you put them. `orion set <group> --arrange custom` does the same from the CLI.
 - Drag from the edge of a card to another card to add a dependency.
 - Arrows to a card well behind their source loop around instead of doubling back.
@@ -144,6 +145,7 @@ In `app/`:
 - `src/persist.ts`: loading, saving, reacting to changes from other writers, and reporting focus.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: laying out one group or the top level: ELK with wrapping, and custom groups left alone.
+- `src/weave.ts`: the Weave layout, which nudges cards off the lines that cross them.
 - `src/snap.ts`, `src/useNodeSnapping.ts`, and `src/components/SnapGuides.tsx`: drag geometry, interaction state, and alignment guides.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
