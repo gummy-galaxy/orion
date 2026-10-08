@@ -90,7 +90,7 @@ import {
 import { seedLinks, seedNodes } from './seed'
 import { Sidebar } from './Sidebar'
 import { SnapGuides } from './SnapGuides'
-import { finishDrag, snapDrag, snapGuides } from './snap'
+import { useNodeSnapping } from './useNodeSnapping'
 import { attentionAtom, collapsedAtom, focusedAtom, githubOwnerAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from './state'
 import { StickerLayer, StickerWheel, type PlacedSticker, type StickerBounds, type StickerMove } from './Stickers'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from './sticker'
@@ -170,9 +170,6 @@ const FOCUS_BOTTOM_GAP = 24
 /** Focus moves head straight for the card and start fast. */
 const FOCUS_MOVE = { duration: 260, ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' } as const
 const PLACE_GAP = 80
-const SNAP_PX = 8
-const THROW_SPEED = 0.8
-const THROW_WINDOW_MS = 90
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
 const STICKER_FRESH_MS = 700
@@ -1218,9 +1215,8 @@ function Canvas() {
     setFocusedShown(focus !== null)
   }, [collapsed, attention, focus, setCollapsedShown, setAttentionShown, setFocusedShown])
 
-  const dragOrigins = useRef(new Map<string, AppNode['position']>())
-  const drag = useRef<{ ids: Set<string>; free: boolean; samples: { x: number; y: number; time: number }[] } | null>(null)
-  const [skipSnapGuides, setSkipSnapGuides] = useState(false)
+  const getCurrentNodes = useCallback(() => latest.current.nodes, [])
+  const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
       let own = changes.filter((change) => !('id' in change) || !change.id.startsWith('ghost:')) as NodeChange<AppNode>[]
@@ -1230,17 +1226,11 @@ function Canvas() {
         if (picks.length) afterClick(() => setNodes((currentNodes) => applyNodeChanges(picks, currentNodes)))
       }
       if (own.length) {
-        const session = drag.current
-        const movedIds =
-          session && !session.free ? own.flatMap((change) => (change.type === 'position' && session.ids.has(change.id) ? [change.id] : [])) : []
-        const tolerance = SNAP_PX / reactFlow.getZoom()
-        setNodes((currentNodes) => {
-          const changed = applyNodeChanges(own, currentNodes)
-          return movedIds.length ? snapDrag(changed, movedIds, tolerance) : changed
-        })
+        const snapChangedNodes = snapChanges(own)
+        setNodes((currentNodes) => snapChangedNodes(applyNodeChanges(own, currentNodes)))
       }
     },
-    [afterClick, reactFlow, setNodes],
+    [afterClick, setNodes, snapChanges],
   )
 
   // ---- Focus on one card ----
@@ -1329,54 +1319,6 @@ function Canvas() {
     }
   }, [focus, links, map, work])
 
-  const onDragStart = useCallback((event: MouseEvent | TouchEvent, dragged: ViewNode[]) => {
-    drag.current = { ids: new Set(dragged.map((node) => node.id)), free: event.ctrlKey, samples: [] }
-    setSkipSnapGuides(event.ctrlKey)
-    const nodeMap = byId(latest.current.nodes)
-    dragOrigins.current = new Map()
-    for (const draggedNode of dragged) {
-      const node = nodeMap.get(draggedNode.id)
-      const parent = node?.parentId ? nodeMap.get(node.parentId) : undefined
-      if (node && parent && isCluster(parent) && parent.data.arrange !== 'custom') dragOrigins.current.set(node.id, node.position)
-    }
-  }, [])
-  const onDrag = useCallback((event: MouseEvent | TouchEvent) => {
-    const session = drag.current
-    if (!session) return
-    session.free = event.ctrlKey
-    setSkipSnapGuides(event.ctrlKey)
-    const point = 'touches' in event ? event.touches[0] : event
-    if (point) session.samples = [...session.samples.slice(-7), { x: point.clientX, y: point.clientY, time: performance.now() }]
-  }, [])
-  const onDragStop = useCallback(
-    (event: MouseEvent | TouchEvent) => {
-      const session = drag.current
-      drag.current = null
-      setSkipSnapGuides(false)
-      const origins = dragOrigins.current
-      dragOrigins.current = new Map()
-      if (!session) return setNodes((currentNodes) => normalize(currentNodes))
-      const now = performance.now()
-      const recentSamples = session.samples.filter((sample) => now - sample.time <= THROW_WINDOW_MS)
-      const firstSample = recentSamples[0]
-      const lastSample = recentSamples[recentSamples.length - 1]
-      const thrown =
-        !!firstSample &&
-        lastSample.time > firstSample.time &&
-        Math.hypot(lastSample.x - firstSample.x, lastSample.y - firstSample.y) / (lastSample.time - firstSample.time) >= THROW_SPEED
-      const draggedIds = [...session.ids]
-      if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes((currentNodes) => normalize(currentNodes))
-      requestAnimationFrame(() => {
-        const currentNodes = latest.current.nodes
-        const finished = finishDrag(currentNodes, origins, draggedIds, session.free || event.ctrlKey, thrown)
-        const result = normalize(finished)
-        if (finished !== currentNodes) tweenTo(result)
-        else setNodes(result)
-      })
-    },
-    [tweenTo, setNodes],
-  )
-  const guides = useMemo(() => (skipSnapGuides ? [] : snapGuides(nodes)), [nodes, skipSnapGuides])
   const onConnect = useCallback(
     (connection: Connection) => {
       if (!connection.source || !connection.target || connection.source === connection.target) return
