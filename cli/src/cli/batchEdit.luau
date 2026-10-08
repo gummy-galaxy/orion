@@ -17,6 +17,7 @@ export type Options = {
 	asJson: boolean,
 	ifRevision: number?,
 	destination: string?,
+	reconnect: boolean?,
 	write: (string) -> (),
 }
 
@@ -54,12 +55,17 @@ local function batchEdit(options: Options)
 		end
 
 		assert(#targets > 0, "no items match")
+		if options.action == "remove" and options.reconnect then
+			for _, item in targets do
+				graph.checkReconnect(doc, item.id)
+			end
+		end
 
 		for _, item in targets do
 			if options.action == "done" then
 				graph.setFields(doc, item.id, { status = "done" })
 			elseif options.action == "remove" then
-				graph.remove(doc, item.id)
+				graph.remove(doc, item.id, options.reconnect)
 			elseif options.action == "ungroup" then
 				graph.ungroup(doc, item.id)
 			else

@@ -487,6 +487,26 @@ function graph.unlink(doc: Doc, from: string, to: string)
 	assert(#doc.links < before, `no link from "{from}" to "{to}"`)
 end
 
+function graph.insertBetween(doc: Doc, id: string, from: string, to: string)
+	assert(id ~= from and id ~= to, "an item can't link to itself")
+	for _, itemId in { from, id, to } do
+		assert(not graph.isGroup(graph.get(doc, itemId)), `"{itemId}" is a group; link the items inside it`)
+	end
+
+	local existing: Link?
+	for _, link in doc.links do
+		if link.from == from and link.to == to then
+			existing = link
+			break
+		end
+	end
+	assert(existing, `no link from "{from}" to "{to}"`)
+
+	graph.unlink(doc, from, to)
+	graph.link(doc, from, id, existing.kind)
+	graph.link(doc, id, to, existing.kind)
+end
+
 -- Groups left with nothing inside disappear, as they do in the app.
 local function pruneEmptyGroups(doc: Doc)
 	local changed = true
@@ -518,7 +538,7 @@ end
 
 export type NoteOptions = { group: string?, after: string?, before: string? }
 
--- Adds a note. With both `after` and `before` it splices into the link between them.
+-- Adds a note. An existing link keeps its kind when the note splits it.
 function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	assert(text ~= "", "a note needs text")
 	local after = if options.after then graph.get(doc, options.after) else nil
@@ -533,15 +553,12 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 		parent = before.parentId
 	end
 
-	local kind = "blocks"
-
+	local hasExistingLink = false
 	if after and before then
-		for index = #doc.links, 1, -1 do
-			local link = doc.links[index]
-
+		for _, link in doc.links do
 			if link.from == after.id and link.to == before.id then
-				kind = link.kind
-				table.remove(doc.links, index)
+				hasExistingLink = true
+				break
 			end
 		end
 	end
@@ -564,21 +581,39 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	}
 	table.insert(doc.nodes, note)
 
-	if after then
-		graph.link(doc, after.id, note.id, kind)
-	end
-
-	if before then
-		graph.link(doc, note.id, before.id, kind)
+	if after and before and hasExistingLink then
+		graph.insertBetween(doc, note.id, after.id, before.id)
+	else
+		if after then
+			graph.link(doc, after.id, note.id, "blocks")
+		end
+		if before then
+			graph.link(doc, note.id, before.id, "blocks")
+		end
 	end
 
 	return note
 end
 
--- Removes an item. A note's incoming and outgoing links are reconnected so nothing loses its blocker.
-function graph.remove(doc: Doc, id: string)
+function graph.checkReconnect(doc: Doc, id: string)
+	local incoming, outgoing = 0, 0
+	for _, link in doc.links do
+		if link.to == id then
+			incoming += 1
+		elseif link.from == id then
+			outgoing += 1
+		end
+	end
+	assert(incoming <= 1 and outgoing <= 1, `"{id}" needs at most one incoming and one outgoing link to reconnect`)
+end
+
+-- A note's incoming and outgoing links are reconnected so nothing loses its blocker.
+function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	local item = graph.get(doc, id)
 	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup instead`)
+	if reconnect then
+		graph.checkReconnect(doc, id)
+	end
 	local incomingLinks: { Link } = {}
 	local outgoingLinks: { Link } = {}
 
@@ -594,7 +629,7 @@ function graph.remove(doc: Doc, id: string)
 		end
 	end
 
-	if graph.isNote(item) then
+	if graph.isNote(item) or reconnect then
 		for _, incomingLink in incomingLinks do
 			for _, outgoingLink in outgoingLinks do
 				graph.link(
