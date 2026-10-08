@@ -21,7 +21,7 @@ export function DebugBar({
   setMotion: (next: MotionSettings) => void
   close: () => void
 }) {
-  const zoom = useStore((s) => s.transform[2])
+  const zoom = useStore((state) => state.transform[2])
   const [sample, setSample] = useState<Sample | null>(null)
   const frames = useRef<number[]>([])
 
@@ -39,7 +39,7 @@ export function DebugBar({
         setSample({
           fps: Math.round((deltas.length * 1000) / (now - windowStart)),
           worst: Math.round(Math.max(0, ...deltas)),
-          slow: deltas.filter((d) => d > SLOW_FRAME_MS).length,
+          slow: deltas.filter((delta) => delta > SLOW_FRAME_MS).length,
           nodes: root?.querySelectorAll('.react-flow__node').length ?? 0,
           edges: root?.querySelectorAll('.react-flow__edge').length ?? 0,
           live: root?.querySelectorAll('.react-flow__edge.e-live').length ?? 0,

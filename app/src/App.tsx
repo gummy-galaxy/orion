@@ -22,7 +22,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { Lens } from './Lens'
+import { LinkList } from './LinkList'
 import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './attention'
 import {
@@ -37,13 +37,13 @@ import {
   type GroupStats,
 } from './derive'
 import { FocusView, type FocusItem } from './focus'
-import { WRAP, reflow, reflowAll } from './layout'
+import { reflow, reflowAll } from './layout'
 import { mergeDocs } from './merge'
 import {
   STATUS_LABEL,
-  TASK_H,
-  TASK_W,
-  absPos,
+  TASK_HEIGHT,
+  TASK_WIDTH,
+  absolutePosition,
   ancestors,
   byId,
   descendants,
@@ -69,7 +69,7 @@ import {
   type Who,
 } from './model'
 import { DebugBar, type MotionSettings } from './DebugBar'
-import { CurveEdge } from './edges'
+import { CurveEdge } from './CurveEdge'
 import { openExternal } from './external'
 import { ClusterView, GhostView, TaskView } from './nodes'
 import {
@@ -129,12 +129,12 @@ const COLLAPSE_ZOOM = 0.3
 const COLLAPSE_STEP = 0.12
 /** Zoom below which cards are too small for motion to read, so animations pause. */
 const STILL_ZOOM = 0.45
-const GHOST_W = 200
-const GHOST_H = 62
+const GHOST_WIDTH = 200
+const GHOST_HEIGHT = 62
 const GHOST_GAP = 90
 /** How much of the outside connections shows when a group opens. */
 const GHOST_PEEK = 0.4
-const FIT_MARGIN_Y = 90
+const FIT_VERTICAL_MARGIN = 90
 const FIT_MAX_ZOOM = 1.25
 /** How far across a card, on each side, the selection box has to reach to pick it up. */
 const MARQUEE_REACH = 0.25
@@ -154,14 +154,14 @@ const PEEK_KEEP_VISIBLE = 0.4
 const ATTEND_DELAY_MS = 150
 /** A click on a group waits this long for a second one before it selects. */
 const DOUBLE_CLICK_MS = 280
-const FOCUS_SIDE_W = 248
+const FOCUS_SIDE_WIDTH = 248
 const FOCUS_INSET = 20
 const FOCUS_ZOOM = 1.2
 /** The focused card sits this far down the canvas, leaving room for its details above. */
 const FOCUS_CARD_Y = 0.7
 const FOCUS_BOTTOM_GAP = 24
 /** Focus moves head straight for the card and start fast. */
-const FOCUS_MOVE = { duration: 260, ease: (t: number) => 1 - Math.pow(1 - t, 3), interpolate: 'linear' } as const
+const FOCUS_MOVE = { duration: 260, ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' } as const
 const PLACE_GAP = 80
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
@@ -184,8 +184,8 @@ async function seeded() {
 
 function readFlag(key: string, fallback: boolean) {
   try {
-    const v = localStorage.getItem(key)
-    return v === null ? fallback : v === '1'
+    const value = localStorage.getItem(key)
+    return value === null ? fallback : value === '1'
   } catch {
     return fallback
   }
@@ -220,7 +220,7 @@ function writeColorMode(mode: ColorMode) {
 const getCompactDoc = (doc: Saved): Saved =>
   JSON.parse(fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) })) as Saved
 
-const ease = (t: number) => 1 - Math.pow(1 - t, 3)
+const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
 function exitRatio(count: number) {
@@ -228,21 +228,21 @@ function exitRatio(count: number) {
 }
 
 function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
-  const p = absPos(group, map)
+  const position = absolutePosition(group, map)
   const size = sizeOf(group)
-  const width = size.w + 2 * (GHOST_GAP + GHOST_W * GHOST_PEEK)
-  const height = size.h + FIT_MARGIN_Y * 2
+  const width = size.width + 2 * (GHOST_GAP + GHOST_WIDTH * GHOST_PEEK)
+  const height = size.height + FIT_VERTICAL_MARGIN * 2
   const zoom = Math.min(box.width / width, box.height / height, FIT_MAX_ZOOM)
-  return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: box.height / 2 - (p.y + size.h / 2) * zoom, zoom }
+  return { x: box.width / 2 - (position.x + size.width / 2) * zoom, y: box.height / 2 - (position.y + size.height / 2) * zoom, zoom }
 }
 
 /** Puts a card between the focus columns, a little larger than life. */
 function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
-  const p = absPos(card, map)
+  const position = absolutePosition(card, map)
   const size = sizeOf(card)
   const zoom = FOCUS_ZOOM
-  const centerY = Math.min(box.height * FOCUS_CARD_Y, box.height - FOCUS_BOTTOM_GAP - (size.h * zoom) / 2)
-  return { x: box.width / 2 - (p.x + size.w / 2) * zoom, y: centerY - (p.y + size.h / 2) * zoom, zoom }
+  const centerY = Math.min(box.height * FOCUS_CARD_Y, box.height - FOCUS_BOTTOM_GAP - (size.height * zoom) / 2)
+  return { x: box.width / 2 - (position.x + size.width / 2) * zoom, y: centerY - (position.y + size.height / 2) * zoom, zoom }
 }
 
 /**
@@ -250,35 +250,35 @@ function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: n
  * level, so laying them out never moves groups that were already placed.
  */
 function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
-  const top = nodes.filter((n) => !n.parentId)
-  const settled = top.filter((n) => !fresh.has(n.id))
-  const right = settled.length ? Math.max(...settled.map((n) => n.position.x + sizeOf(n).w)) : 0
-  const topY = settled.length ? Math.min(...settled.map((n) => n.position.y)) : 0
-  const columnHeight = Math.max(1600, ...settled.map((n) => n.position.y + sizeOf(n).h - topY))
+  const top = nodes.filter((node) => !node.parentId)
+  const settled = top.filter((node) => !fresh.has(node.id))
+  const right = settled.length ? Math.max(...settled.map((node) => node.position.x + sizeOf(node).width)) : 0
+  const topY = settled.length ? Math.min(...settled.map((node) => node.position.y)) : 0
+  const columnHeight = Math.max(1600, ...settled.map((node) => node.position.y + sizeOf(node).height - topY))
   const placed = new Map<string, { x: number; y: number }>()
   let x = right + PLACE_GAP * 2
   let y = topY
   let columnWidth = 0
-  for (const group of top.filter((n) => fresh.has(n.id))) {
+  for (const group of top.filter((node) => fresh.has(node.id))) {
     const size = sizeOf(group)
-    if (y > topY && y + size.h > topY + columnHeight) {
+    if (y > topY && y + size.height > topY + columnHeight) {
       x += columnWidth + PLACE_GAP
       y = topY
       columnWidth = 0
     }
     placed.set(group.id, { x, y })
-    y += size.h + PLACE_GAP
-    columnWidth = Math.max(columnWidth, size.w)
+    y += size.height + PLACE_GAP
+    columnWidth = Math.max(columnWidth, size.width)
   }
-  return nodes.map((n) => (placed.has(n.id) ? { ...n, position: placed.get(n.id)! } : n))
+  return nodes.map((node) => (placed.has(node.id) ? { ...node, position: placed.get(node.id)! } : node))
 }
 
 function Canvas() {
-  const rf = useReactFlow<ViewNode, Edge>()
+  const reactFlow = useReactFlow<ViewNode, Edge>()
   const store = useStoreApi<ViewNode, Edge>()
   // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
-  const foldFrom = useStore((s) => Math.floor((s.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
-  const still = useStore((s) => s.transform[2] < STILL_ZOOM)
+  const foldFrom = useStore((state) => Math.floor((state.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
+  const still = useStore((state) => state.transform[2] < STILL_ZOOM)
   const [nodes, setNodes] = useState<AppNode[]>([])
   const [links, setLinks] = useState<Link[]>([])
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
@@ -310,13 +310,13 @@ function Canvas() {
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
   const [chosenSticker, setSticker] = useState<string | null>(null)
-  const sticker = chosenSticker ?? loadout.find((s) => s !== null) ?? FALLBACK_STICKER
+  const sticker = chosenSticker ?? loadout.find((sticker) => sticker !== null) ?? FALLBACK_STICKER
   const [wheel, setWheel] = useState<{ x: number; y: number; held: boolean } | null>(null)
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set())
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef<Saved>({ nodes, links, stickers, stickerLoadout: loadout })
   const fitZoom = useRef(new Map<string, number>())
-  const shownExtent = useRef<{ root: string; w: number; h: number } | null>(null)
+  const shownExtent = useRef<{ root: string; width: number; height: number } | null>(null)
   const fitting = useRef(false)
   const fitSequence = useRef(0)
   const previousZoom = useRef(store.getState().transform[2])
@@ -340,7 +340,7 @@ function Canvas() {
     clickTimer.current = setTimeout(() => {
       const queued = clickQueue.current
       clickQueue.current = []
-      for (const f of queued) f()
+      for (const callback of queued) callback()
     }, DOUBLE_CLICK_MS)
   }, [])
   const cancelClick = useCallback(() => {
@@ -349,10 +349,10 @@ function Canvas() {
   }, [])
   useEffect(() => cancelClick, [cancelClick])
   // Runs before React Flow's own click handling, which selects the node as it goes.
-  const claimNodeClick = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement
+  const claimNodeClick = (event: React.MouseEvent) => {
+    const target = event.target as HTMLElement
     const node = target.closest('.react-flow__node')
-    if (e.metaKey || e.shiftKey || e.ctrlKey || !node || target.closest('button, input, textarea, select')) return
+    if (event.metaKey || event.shiftKey || event.ctrlKey || !node || target.closest('button, input, textarea, select')) return
     plainClick.current = node.classList.contains('react-flow__node-cluster') ? 'defer' : null
     setTimeout(() => (plainClick.current = null))
   }
@@ -368,7 +368,7 @@ function Canvas() {
       canvasRef.current?.style.setProperty('--inv', String(1 / zoom))
     }
     apply(store.getState().transform[2])
-    return store.subscribe((s) => apply(s.transform[2]))
+    return store.subscribe((state) => apply(state.transform[2]))
   }, [store])
 
   // ---- Persistence ----
@@ -400,9 +400,9 @@ function Canvas() {
     savedPrint.current = fingerprint(server)
     const stickerLoadout = loadoutOf(doc.stickerLoadout)
     latest.current = { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
-    setNodes((ns) => {
-      const picked = new Set(preserveSelection ? ns.filter((n) => n.selected).map((n) => n.id) : [])
-      return picked.size ? next.map((n) => (picked.has(n.id) ? { ...n, selected: true } : n)) : next
+    setNodes((currentNodes) => {
+      const picked = new Set(preserveSelection ? currentNodes.filter((node) => node.selected).map((node) => node.id) : [])
+      return picked.size ? next.map((node) => (picked.has(node.id) ? { ...node, selected: true } : node)) : next
     })
     setLinks(doc.links)
     setStickers(doc.stickers ?? [])
@@ -514,10 +514,10 @@ function Canvas() {
 
   useEffect(() => {
     if (!ready) return
-    const t = setTimeout(() => {
+    const saveTimer = setTimeout(() => {
       // Stickers on cards or groups that are gone go with them.
-      const ids = new Set(nodes.map((n) => n.id))
-      const snapshot = { nodes, links, stickers: stickers.filter((s) => !s.on || ids.has(s.on)), stickerLoadout: loadout }
+      const ids = new Set(nodes.map((node) => node.id))
+      const snapshot = { nodes, links, stickers: stickers.filter((sticker) => !sticker.on || ids.has(sticker.on)), stickerLoadout: loadout }
       const print = fingerprint(snapshot)
       const epoch = workspaceEpoch.current
       const name = workspace.current
@@ -549,16 +549,16 @@ function Canvas() {
         await reload(name, epoch)
       })
     }, 400)
-    return () => clearTimeout(t)
+    return () => clearTimeout(saveTimer)
   }, [nodes, links, stickers, loadout, ready, reload, adopt])
 
   const pendingLayoutEpoch = useRef<number | null>(null)
   useEffect(() => {
     const epoch = workspaceEpoch.current
     if (!ready || pendingLayoutEpoch.current === epoch) return
-    const marked = nodes.filter((n) => isCluster(n) && n.data.layout)
+    const marked = nodes.filter((node) => isCluster(node) && node.data.layout)
     if (!marked.length) return
-    const pending = marked.filter((n) => isCluster(n) && n.data.layout === 'pending')
+    const pending = marked.filter((node) => isCluster(node) && node.data.layout === 'pending')
     pendingLayoutEpoch.current = epoch
     void (async () => {
       let next = nodes
@@ -570,12 +570,12 @@ function Canvas() {
             console.error('Could not lay out group', group.id, error)
           }
         }
-        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((g) => g.id)))
+        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((group) => group.id)))
       } catch (error) {
         console.error('Could not lay out canvas', error)
       } finally {
         if (epoch === workspaceEpoch.current) {
-          setNodes(next.map((n) => (isCluster(n) && n.data.layout ? { ...n, data: { ...n.data, layout: undefined } } : n)))
+          setNodes(next.map((node) => (isCluster(node) && node.data.layout ? { ...node, data: { ...node.data, layout: undefined } } : node)))
         }
         if (pendingLayoutEpoch.current === epoch) pendingLayoutEpoch.current = null
       }
@@ -619,11 +619,11 @@ function Canvas() {
     const frame = requestAnimationFrame(() => {
       if (pendingWorkspaceFit.current !== epoch) return
       pendingWorkspaceFit.current = null
-      if (nodes.length) void rf.fitView({ padding: 0.08, duration: 450 })
-      else void rf.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 450 })
+      if (nodes.length) void reactFlow.fitView({ padding: 0.08, duration: 450 })
+      else void reactFlow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 450 })
     })
     return () => cancelAnimationFrame(frame)
-  }, [ready, nodes, rf])
+  }, [ready, nodes, reactFlow])
 
   const rememberView = useCallback((_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
     canvasRef.current?.removeAttribute('data-moving')
@@ -653,56 +653,59 @@ function Canvas() {
   const fitTo = useCallback(
     (target: string | null) => {
       setPeek(null)
-      const ns = latest.current.nodes
-      const m = byId(ns)
-      const items = target ? [m.get(target)].filter((n) => !!n) : ns.filter((n) => !n.parentId)
+      const currentNodes = latest.current.nodes
+      const nodeMap = byId(currentNodes)
+      const items = target ? [nodeMap.get(target)].filter((node) => !!node) : currentNodes.filter((node) => !node.parentId)
       if (!items.length) return
       let x0 = Infinity
       let y0 = Infinity
       let x1 = -Infinity
       let y1 = -Infinity
-      for (const n of items) {
-        const p = absPos(n, m)
-        const s = sizeOf(n)
-        x0 = Math.min(x0, p.x)
-        y0 = Math.min(y0, p.y)
-        x1 = Math.max(x1, p.x + s.w)
-        y1 = Math.max(y1, p.y + s.h)
+      for (const node of items) {
+        const position = absolutePosition(node, nodeMap)
+        const size = sizeOf(node)
+        x0 = Math.min(x0, position.x)
+        y0 = Math.min(y0, position.y)
+        x1 = Math.max(x1, position.x + size.width)
+        y1 = Math.max(y1, position.y + size.height)
       }
       const box = canvasRef.current?.getBoundingClientRect()
       if (!target || !box) {
-        rf.fitBounds({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, { padding: 0.08, duration: 450 })
+        reactFlow.fitBounds({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, { padding: 0.08, duration: 450 })
         return
       }
       // An opened group fills the view, with the connections outside it peeking in from the edges.
-      const viewport = groupFitViewport(items[0], m, box)
+      const viewport = groupFitViewport(items[0], nodeMap, box)
       fitZoom.current.set(target, viewport.zoom)
       fitting.current = true
       setExitHint(null)
       const sequence = ++fitSequence.current
-      void rf.setViewport(viewport, { duration: 450 }).then(() => {
+      void reactFlow.setViewport(viewport, { duration: 450 }).then(() => {
         if (fitSequence.current === sequence) fitting.current = false
       })
     },
-    [rf],
+    [reactFlow],
   )
 
   const selectOnly = useCallback(
-    (id: string) => setNodes((ns) => ns.map((n) => (n.id === id ? { ...n, selected: true } : n.selected ? { ...n, selected: false } : n))),
+    (id: string) =>
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => (node.id === id ? { ...node, selected: true } : node.selected ? { ...node, selected: false } : node)),
+      ),
     [],
   )
 
   const focusNode = useCallback(
     (id: string) => {
-      const m = byId(latest.current.nodes)
-      const n = m.get(id)
-      if (!n) return
+      const nodeMap = byId(latest.current.nodes)
+      const node = nodeMap.get(id)
+      if (!node) return
       selectOnly(id)
-      const p = absPos(n, m)
-      const s = sizeOf(n)
-      rf.setCenter(p.x + s.w / 2, p.y + s.h / 2, { zoom: Math.max(rf.getZoom(), 0.9), duration: 450 })
+      const position = absolutePosition(node, nodeMap)
+      const size = sizeOf(node)
+      reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom: Math.max(reactFlow.getZoom(), 0.9), duration: 450 })
     },
-    [rf, selectOnly],
+    [reactFlow, selectOnly],
   )
 
   // Opening or closing a group fits it, unless a jump asked to land on one card.
@@ -715,18 +718,18 @@ function Canvas() {
     const skipFit = skipNextFit.current
     skipNextFit.current = false
     if (skipFit) return
-    const f = pendingFocus.current
+    const frame = pendingFocus.current
     pendingFocus.current = null
-    if (f) setTimeout(() => focusNode(f), 30)
+    if (frame) setTimeout(() => focusNode(frame), 30)
     else fitTo(root)
   }, [root, fitTo, focusNode])
 
   /** Opens the group a card lives in and lands on the card. */
   const jumpTo = useCallback(
     (id: string) => {
-      const n = byId(latest.current.nodes).get(id)
-      if (!n) return
-      const target = n.parentId ?? null
+      const node = byId(latest.current.nodes).get(id)
+      if (!node) return
+      const target = node.parentId ?? null
       setHover(null)
       if (target === root) {
         setPeek(null)
@@ -745,20 +748,22 @@ function Canvas() {
     const from = byId(latest.current.nodes)
     const start = performance.now()
     const step = (now: number) => {
-      const t = ease(Math.min(1, (now - start) / 380))
+      const progress = ease(Math.min(1, (now - start) / 380))
       setNodes(
-        target.map((n) => {
-          const f = from.get(n.id)
-          if (!f || f.parentId !== n.parentId || t === 1) return n
-          const lerp = (a: number, b: number) => a + (b - a) * t
+        target.map((node) => {
+          const sourceNode = from.get(node.id)
+          if (!sourceNode || sourceNode.parentId !== node.parentId || progress === 1) return node
+          const lerp = (startValue: number, endValue: number) => startValue + (endValue - startValue) * progress
           return {
-            ...n,
-            position: { x: lerp(f.position.x, n.position.x), y: lerp(f.position.y, n.position.y) },
-            ...(isCluster(n) && f.width && n.width ? { width: lerp(f.width, n.width), height: lerp(f.height ?? 0, n.height ?? 0) } : {}),
+            ...node,
+            position: { x: lerp(sourceNode.position.x, node.position.x), y: lerp(sourceNode.position.y, node.position.y) },
+            ...(isCluster(node) && sourceNode.width && node.width
+              ? { width: lerp(sourceNode.width, node.width), height: lerp(sourceNode.height ?? 0, node.height ?? 0) }
+              : {}),
           }
         }),
       )
-      if (t < 1) requestAnimationFrame(step)
+      if (progress < 1) requestAnimationFrame(step)
     }
     requestAnimationFrame(step)
   }, [])
@@ -769,10 +774,10 @@ function Canvas() {
   const rootWorkCount = useMemo(() => {
     if (!root) return 0
     const inside = descendants(root, nodes)
-    return nodes.filter((n) => inside.has(n.id) && isTask(n) && !isNote(n)).length
+    return nodes.filter((node) => inside.has(node.id) && isTask(node) && !isNote(node)).length
   }, [root, nodes])
   const leaveRoot = useCallback(
-    (atZoom = rf.getZoom()) => {
+    (atZoom = reactFlow.getZoom()) => {
       if (!root) return
       const parent = map.get(root)?.parentId ?? null
       // Where you arrive becomes the parent's home zoom, so one gesture leaves one level.
@@ -782,7 +787,7 @@ function Canvas() {
       setExitHint(null)
       setRoot(parent)
     },
-    [root, map, rf],
+    [root, map, reactFlow],
   )
   const onViewportMove = useCallback(
     (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
@@ -795,14 +800,15 @@ function Canvas() {
         const group = map.get(root)
         const box = canvasRef.current?.getBoundingClientRect()
         if (group && box) {
-          const p = absPos(group, map)
-          const s = sizeOf(group)
-          const x = p.x * viewport.zoom + viewport.x
-          const y = p.y * viewport.zoom + viewport.y
-          const w = s.w * viewport.zoom
-          const h = s.h * viewport.zoom
-          const visible = Math.max(0, Math.min(box.width, x + w) - Math.max(0, x)) * Math.max(0, Math.min(box.height, y + h) - Math.max(0, y))
-          if (visible < w * h * PEEK_KEEP_VISIBLE) leaveRoot(viewport.zoom)
+          const position = absolutePosition(group, map)
+          const size = sizeOf(group)
+          const x = position.x * viewport.zoom + viewport.x
+          const y = position.y * viewport.zoom + viewport.y
+          const width = size.width * viewport.zoom
+          const height = size.height * viewport.zoom
+          const visible =
+            Math.max(0, Math.min(box.width, x + width) - Math.max(0, x)) * Math.max(0, Math.min(box.height, y + height) - Math.max(0, y))
+          if (visible < width * height * PEEK_KEEP_VISIBLE) leaveRoot(viewport.zoom)
         }
         return
       }
@@ -812,7 +818,7 @@ function Canvas() {
       // Leaving waits until everything the open view shows, outside connections included, fits on screen.
       const box = canvasRef.current?.getBoundingClientRect()
       const extent = shownExtent.current
-      const fit = extent?.root === root && box?.width ? Math.min(home, box.width / extent.w, box.height / extent.h) : home
+      const fit = extent?.root === root && box?.width ? Math.min(home, box.width / extent.width, box.height / extent.height) : home
       const exit = exitRatio(rootWorkCount)
       const hint = exit + (1 - exit) * HINT_SPAN
       const progress = Math.min(1, Math.max(0, (hint - viewport.zoom / fit) / (hint - exit * PEEK_SPAN)))
@@ -840,58 +846,58 @@ function Canvas() {
   }
   const small = nodes
     // The open group stays open while peeking; only its surroundings fold.
-    .filter((n) => isCluster(n) && n.id !== levelRoot && n.id !== root && inView(n.id) && depthInView(n.id) >= foldFrom)
-    .map((n) => n.id)
+    .filter((node) => isCluster(node) && node.id !== levelRoot && node.id !== root && inView(node.id) && depthInView(node.id) >= foldFrom)
+    .map((node) => node.id)
   const smallSet = new Set(small)
-  const collapsedKey = small.filter((id) => !ancestors(id, map).some((a) => smallSet.has(a))).join(',')
+  const collapsedKey = small.filter((id) => !ancestors(id, map).some((ancestor) => smallSet.has(ancestor))).join(',')
   const collapsed = useMemo(() => new Set(collapsedKey ? collapsedKey.split(',') : []), [collapsedKey])
 
   const view = useMemo(() => {
-    const rep = (id: string): string | null => {
+    const representative = (id: string): string | null => {
       if (!inView(id)) return null
       const outer = ancestors(id, map)
         .reverse()
-        .find((a) => collapsed.has(a))
+        .find((ancestor) => collapsed.has(ancestor))
       return outer ?? id
     }
-    const hidden = new Set(nodes.filter((n) => rep(n.id) !== n.id).map((n) => n.id))
-    return { rep, hidden }
+    const hidden = new Set(nodes.filter((node) => representative(node.id) !== node.id).map((node) => node.id))
+    return { rep: representative, hidden }
   }, [nodes, map, collapsed, inView])
 
   // With a group open, work outside it that links in or out is drawn along its sides.
   const ghosts = useMemo(() => {
-    const out: GhostNode[] = []
+    const ghostNodes: GhostNode[] = []
     const rootNode = root ? map.get(root) : undefined
-    if (!rootNode || peeking) return out
+    if (!rootNode || peeking) return ghostNodes
     const incoming: string[] = []
     const outgoing: string[] = []
-    for (const l of links) {
-      const a = inView(l.from)
-      const b = inView(l.to)
-      if (a && !b && !outgoing.includes(l.to)) outgoing.push(l.to)
-      if (!a && b && !incoming.includes(l.from)) incoming.push(l.from)
+    for (const link of links) {
+      const source = inView(link.from)
+      const target = inView(link.to)
+      if (source && !target && !outgoing.includes(link.to)) outgoing.push(link.to)
+      if (!source && target && !incoming.includes(link.from)) incoming.push(link.from)
     }
-    const p = absPos(rootNode, map)
-    const s = sizeOf(rootNode)
+    const position = absolutePosition(rootNode, map)
+    const size = sizeOf(rootNode)
     const place = (ids: string[], side: 'in' | 'out') =>
       ids.forEach((id, i) => {
-        const n = map.get(id)
-        if (!n || !isTask(n)) return
-        const parent = n.parentId ? map.get(n.parentId) : undefined
-        out.push({
+        const node = map.get(id)
+        if (!node || !isTask(node)) return
+        const parent = node.parentId ? map.get(node.parentId) : undefined
+        ghostNodes.push({
           id: `ghost:${side}:${id}`,
           type: 'ghost',
           position: {
-            x: side === 'in' ? p.x - GHOST_W - GHOST_GAP : p.x + s.w + GHOST_GAP,
-            y: p.y + s.h / 2 + (i - (ids.length - 1) / 2) * (GHOST_H + 18) - GHOST_H / 2,
+            x: side === 'in' ? position.x - GHOST_WIDTH - GHOST_GAP : position.x + size.width + GHOST_GAP,
+            y: position.y + size.height / 2 + (i - (ids.length - 1) / 2) * (GHOST_HEIGHT + 18) - GHOST_HEIGHT / 2,
           },
-          width: GHOST_W,
-          height: GHOST_H,
+          width: GHOST_WIDTH,
+          height: GHOST_HEIGHT,
           // Ghosts are rebuilt every render, so declare their handles instead of waiting on a measure.
           handles: [
             side === 'in'
-              ? { type: 'source', position: Position.Right, x: GHOST_W - 4, y: GHOST_H / 2 - 4, width: 8, height: 8 }
-              : { type: 'target', position: Position.Left, x: -4, y: GHOST_H / 2 - 4, width: 8, height: 8 },
+              ? { type: 'source', position: Position.Right, x: GHOST_WIDTH - 4, y: GHOST_HEIGHT / 2 - 4, width: 8, height: 8 }
+              : { type: 'target', position: Position.Left, x: -4, y: GHOST_HEIGHT / 2 - 4, width: 8, height: 8 },
           ],
           selectable: false,
           draggable: false,
@@ -900,7 +906,7 @@ function Canvas() {
           data: {
             kind: 'ghost',
             taskId: id,
-            label: n.data.label || 'Note',
+            label: node.data.label || 'Note',
             where: parent ? (parent.data as ClusterData).label : 'loose work',
             status: work.status.get(id) ?? 'ready',
             side,
@@ -909,118 +915,126 @@ function Canvas() {
       })
     place(incoming, 'in')
     place(outgoing, 'out')
-    return out
+    return ghostNodes
   }, [root, peeking, map, links, inView, work])
 
   // Peeking hides the ghosts, so the extent is only measured while they show.
   useEffect(() => {
     const rootNode = root ? map.get(root) : undefined
     if (!root || !rootNode || peeking) return
-    const p = absPos(rootNode, map)
-    const s = sizeOf(rootNode)
-    let x0 = p.x
-    let y0 = p.y
-    let x1 = p.x + s.w
-    let y1 = p.y + s.h
-    for (const g of ghosts) {
-      x0 = Math.min(x0, g.position.x)
-      y0 = Math.min(y0, g.position.y)
-      x1 = Math.max(x1, g.position.x + GHOST_W)
-      y1 = Math.max(y1, g.position.y + GHOST_H)
+    const position = absolutePosition(rootNode, map)
+    const size = sizeOf(rootNode)
+    let x0 = position.x
+    let y0 = position.y
+    let x1 = position.x + size.width
+    let y1 = position.y + size.height
+    for (const group of ghosts) {
+      x0 = Math.min(x0, group.position.x)
+      y0 = Math.min(y0, group.position.y)
+      x1 = Math.max(x1, group.position.x + GHOST_WIDTH)
+      y1 = Math.max(y1, group.position.y + GHOST_HEIGHT)
     }
-    shownExtent.current = { root, w: x1 - x0 + FIT_MARGIN_Y * 2, h: y1 - y0 + FIT_MARGIN_Y * 2 }
+    shownExtent.current = { root, width: x1 - x0 + FIT_VERTICAL_MARGIN * 2, height: y1 - y0 + FIT_VERTICAL_MARGIN * 2 }
   }, [root, peeking, map, ghosts])
 
   const viewNodes = useMemo<ViewNode[]>(
     () => [
-      ...nodes.map((n) => ({
-        ...n,
-        hidden: view.hidden.has(n.id),
+      ...nodes.map((node) => ({
+        ...node,
+        hidden: view.hidden.has(node.id),
         className:
-          [n.className, peeking && !inFocus(n.id) ? 'is-peek' : '', focus ? (n.id === focus ? 'is-focused' : 'is-unfocused') : '']
+          [node.className, peeking && !inFocus(node.id) ? 'is-peek' : '', focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : '']
             .filter(Boolean)
             .join(' ') || undefined,
       })),
-      ...(focus ? ghosts.map((g) => ({ ...g, className: 'is-unfocused' })) : ghosts),
+      ...(focus ? ghosts.map((group) => ({ ...group, className: 'is-unfocused' })) : ghosts),
     ],
     [nodes, view, ghosts, peeking, inFocus, focus],
   )
 
   const trace = useMemo(() => {
     const from = focus ? null : (pinned ?? hover)
-    const h = from ? map.get(from) : undefined
-    return h && isTask(h)
+    const tracedNode = from ? map.get(from) : undefined
+    return tracedNode && isTask(tracedNode)
       ? traceFrom(
-          h.id,
+          tracedNode.id,
           work.preds,
           work.succs,
-          nodes.filter(isTask).map((n) => n.id),
-          links.filter((l) => l.kind === 'related' && (l.from === h.id || l.to === h.id)).map((l) => (l.from === h.id ? l.to : l.from)),
+          nodes.filter(isTask).map((node) => node.id),
+          links
+            .filter((link) => link.kind === 'related' && (link.from === tracedNode.id || link.to === tracedNode.id))
+            .map((link) => (link.from === tracedNode.id ? link.to : link.from)),
         )
       : null
   }, [focus, pinned, hover, map, work, nodes, links])
 
   const selectedKey = nodes
-    .filter((n) => n.selected)
-    .map((n) => n.id)
+    .filter((node) => node.selected)
+    .map((node) => node.id)
     .join(',')
   /** Related links never block, so they stay faint except around the cards being looked at. */
   const relatedFocus = useMemo(() => new Set([pinned, hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
 
   const edges = useMemo(() => {
-    const out: Edge[] = []
+    const resultEdges: Edge[] = []
     const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
-    const agg = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
-    for (const l of links) {
-      let a = view.rep(l.from)
-      let b = view.rep(l.to)
-      if (root && !peeking && !a && b) a = `ghost:in:${l.from}`
-      if (root && !peeking && a && !b && !a.startsWith('ghost:')) b = `ghost:out:${l.to}`
-      if (!a || !b || a === b) continue
-      const flow = work.flow.get(l.from) ?? 'live'
-      const direct = (a === l.from || a.startsWith('ghost:')) && (b === l.to || b.startsWith('ghost:'))
+    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
+    for (const link of links) {
+      let source = view.rep(link.from)
+      let target = view.rep(link.to)
+      if (root && !peeking && !source && target) source = `ghost:in:${link.from}`
+      if (root && !peeking && source && !target && !source.startsWith('ghost:')) target = `ghost:out:${link.to}`
+      if (!source || !target || source === target) continue
+      const flow = work.flow.get(link.from) ?? 'live'
+      const direct = (source === link.from || source.startsWith('ghost:')) && (target === link.to || target.startsWith('ghost:'))
       if (direct) {
-        let cls = l.kind === 'related' ? 'e-rel' : `e-${flow}`
-        if (l.kind === 'related' && !relatedFocus.has(l.from) && !relatedFocus.has(l.to)) cls += ' e-rel-quiet'
+        let className = link.kind === 'related' ? 'e-rel' : `e-${flow}`
+        if (link.kind === 'related' && !relatedFocus.has(link.from) && !relatedFocus.has(link.to)) className += ' e-rel-quiet'
         if (trace) {
-          const ra = trace.get(l.from)
-          const rb = trace.get(l.to)
-          const up = l.kind === 'blocks' && ra === 'up' && (rb === 'up' || rb === 'self')
-          const down = l.kind === 'blocks' && (ra === 'down' || ra === 'self') && rb === 'down'
-          const near = l.kind === 'related' && (ra === 'self' || rb === 'self')
-          cls += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
+          const sourceRole = trace.get(link.from)
+          const targetRole = trace.get(link.to)
+          const up = link.kind === 'blocks' && sourceRole === 'up' && (targetRole === 'up' || targetRole === 'self')
+          const down = link.kind === 'blocks' && (sourceRole === 'down' || sourceRole === 'self') && targetRole === 'down'
+          const near = link.kind === 'related' && (sourceRole === 'self' || targetRole === 'self')
+          className += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
         }
-        if (peeking && !inFocus(a) && !inFocus(b)) cls += ' e-peek'
-        out.push({ id: l.id, source: a, target: b, className: cls, markerEnd: l.kind === 'blocks' ? marker(flow) : undefined })
-      } else if (l.kind === 'blocks') {
-        const k = a + '>' + b
-        const e = agg.get(k) ?? { a, b, count: 0, flow: 'held' }
-        e.count++
+        if (peeking && !inFocus(source) && !inFocus(target)) className += ' e-peek'
+        resultEdges.push({
+          id: link.id,
+          source: source,
+          target: target,
+          className: className,
+          markerEnd: link.kind === 'blocks' ? marker(flow) : undefined,
+        })
+      } else if (link.kind === 'blocks') {
+        const key = source + '>' + target
+        const aggregate = aggregates.get(key) ?? { a: source, b: target, count: 0, flow: 'held' }
+        aggregate.count++
         // A bundle moves if any of its links do.
-        if (flow === 'live') e.flow = 'live'
-        agg.set(k, e)
+        if (flow === 'live') aggregate.flow = 'live'
+        aggregates.set(key, aggregate)
       }
     }
-    for (const [k, e] of agg) {
-      out.push({
-        id: 'agg:' + k,
-        source: e.a,
-        target: e.b,
-        className: `e-agg e-${e.flow}` + (peeking && !inFocus(e.a) && !inFocus(e.b) ? ' e-peek' : ''),
+    for (const [key, aggregate] of aggregates) {
+      resultEdges.push({
+        id: 'agg:' + key,
+        source: aggregate.a,
+        target: aggregate.b,
+        className: `e-agg e-${aggregate.flow}` + (peeking && !inFocus(aggregate.a) && !inFocus(aggregate.b) ? ' e-peek' : ''),
         selectable: false,
-        label: e.count > 1 ? `${e.count} links` : undefined,
-        markerEnd: marker(e.flow),
-        style: { strokeWidth: Math.min(6, 1.5 + e.count * 0.8) },
+        label: aggregate.count > 1 ? `${aggregate.count} links` : undefined,
+        markerEnd: marker(aggregate.flow),
+        style: { strokeWidth: Math.min(6, 1.5 + aggregate.count * 0.8) },
       })
     }
-    return out
+    return resultEdges
   }, [links, view, work, trace, root, peeking, inFocus, relatedFocus])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
   const pointer = useRef<{ x: number; y: number } | null>(null)
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
-  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 })
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 })
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -1029,17 +1043,17 @@ function Canvas() {
       setAttending(false)
     }
     // A short delay keeps ⌥ shortcuts from flashing the overlay.
-    const down = (e: KeyboardEvent) => {
-      if (e.key !== 'Alt') return stop()
-      if (e.repeat) return
+    const down = (event: KeyboardEvent) => {
+      if (event.key !== 'Alt') return stop()
+      if (event.repeat) return
       timer = setTimeout(() => {
-        const r = canvasRef.current?.getBoundingClientRect()
-        if (r) setCanvasSize({ w: r.width, h: r.height })
-        setCursor(pointer.current ?? (r ? { x: r.width / 2, y: r.height / 2 } : null))
+        const rectangle = canvasRef.current?.getBoundingClientRect()
+        if (rectangle) setCanvasSize({ width: rectangle.width, height: rectangle.height })
+        setCursor(pointer.current ?? (rectangle ? { x: rectangle.width / 2, y: rectangle.height / 2 } : null))
         setAttending(true)
       }, ATTEND_DELAY_MS)
     }
-    const up = (e: KeyboardEvent) => e.key === 'Alt' && stop()
+    const up = (event: KeyboardEvent) => event.key === 'Alt' && stop()
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
     window.addEventListener('blur', stop)
@@ -1054,57 +1068,66 @@ function Canvas() {
   }, [])
 
   // ---- Selection box ----
-  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+  const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
 
   /**
    * Drags a selection box from empty canvas. Anything it touches is selected, but an open
    * group needs to be fully inside, since you drag across its body to reach what's in it.
    * ⇧ or ⌘ adds to the selection, and ⌘ draws the box in Pan too.
    */
-  const startMarquee = (e: React.PointerEvent) => {
-    const target = e.target as HTMLElement
+  const startMarquee = (event: React.PointerEvent) => {
+    const target = event.target as HTMLElement
     const box = canvasRef.current?.getBoundingClientRect()
-    if (focus || e.button !== 0 || !box || !target.classList.contains('react-flow__pane')) return
+    if (focus || event.button !== 0 || !box || !target.classList.contains('react-flow__pane')) return
     // In Select, a draggable pane means Space is held to pan.
-    if (tool === 'select' ? target.classList.contains('draggable') : !(tool === 'hand' && e.metaKey)) return
+    if (tool === 'select' ? target.classList.contains('draggable') : !(tool === 'hand' && event.metaKey)) return
     // Keeps the drag from also panning in Pan.
-    e.preventDefault()
-    const start = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
-    const base = e.shiftKey || e.metaKey ? nodes.filter((n) => n.selected).map((n) => n.id) : []
+    event.preventDefault()
+    const start = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+    const base = event.shiftKey || event.metaKey ? nodes.filter((node) => node.selected).map((node) => node.id) : []
     const things = nodes
-      .filter((n) => n.id !== root && !view.hidden.has(n.id) && inView(n.id))
-      .map((n) => {
-        const p = absPos(n, map)
-        const s = sizeOf(n)
-        return { id: n.id, x0: p.x, y0: p.y, x1: p.x + s.w, y1: p.y + s.h, whole: isCluster(n) && !collapsed.has(n.id) }
+      .filter((node) => node.id !== root && !view.hidden.has(node.id) && inView(node.id))
+      .map((node) => {
+        const position = absolutePosition(node, map)
+        const size = sizeOf(node)
+        return {
+          id: node.id,
+          x0: position.x,
+          y0: position.y,
+          x1: position.x + size.width,
+          y1: position.y + size.height,
+          whole: isCluster(node) && !collapsed.has(node.id),
+        }
       })
     let moved = false
     let last = ''
-    const move = (ev: PointerEvent) => {
-      if (!moved && Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) < 3) return
+    const move = (moveEvent: PointerEvent) => {
+      if (!moved && Math.hypot(moveEvent.clientX - event.clientX, moveEvent.clientY - event.clientY) < 3) return
       moved = true
-      const end = rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY })
+      const end = reactFlow.screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY })
       const [x0, x1] = [Math.min(start.x, end.x), Math.max(start.x, end.x)]
       const [y0, y1] = [Math.min(start.y, end.y), Math.max(start.y, end.y)]
-      const from = rf.flowToScreenPosition(start)
+      const from = reactFlow.flowToScreenPosition(start)
       setMarquee({
-        x: Math.min(from.x, ev.clientX) - box.left,
-        y: Math.min(from.y, ev.clientY) - box.top,
-        w: Math.abs(ev.clientX - from.x),
-        h: Math.abs(ev.clientY - from.y),
+        x: Math.min(from.x, moveEvent.clientX) - box.left,
+        y: Math.min(from.y, moveEvent.clientY) - box.top,
+        width: Math.abs(moveEvent.clientX - from.x),
+        height: Math.abs(moveEvent.clientY - from.y),
       })
-      const covered = (t: (typeof things)[number]) => {
-        const w = Math.min(t.x1, x1) - Math.max(t.x0, x0)
-        const h = Math.min(t.y1, y1) - Math.max(t.y0, y0)
-        const need = t.whole ? 1 : MARQUEE_REACH
-        return w >= (t.x1 - t.x0) * need - 0.5 && h >= (t.y1 - t.y0) * need - 0.5
+      const covered = (target: (typeof things)[number]) => {
+        const width = Math.min(target.x1, x1) - Math.max(target.x0, x0)
+        const height = Math.min(target.y1, y1) - Math.max(target.y0, y0)
+        const need = target.whole ? 1 : MARQUEE_REACH
+        return width >= (target.x1 - target.x0) * need - 0.5 && height >= (target.y1 - target.y0) * need - 0.5
       }
-      const hit = things.filter(covered).map((t) => t.id)
+      const hit = things.filter(covered).map((target) => target.id)
       const key = hit.join(',')
       if (key === last) return
       last = key
       const want = new Set([...base, ...hit])
-      setNodes((ns) => ns.map((n) => (!!n.selected === want.has(n.id) ? n : { ...n, selected: want.has(n.id) })))
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => (!!node.selected === want.has(node.id) ? node : { ...node, selected: want.has(node.id) })),
+      )
     }
     const end = () => {
       window.removeEventListener('pointermove', move)
@@ -1113,7 +1136,7 @@ function Canvas() {
       setMarquee(null)
       if (!moved) return
       // The click that ends a drag would otherwise clear the selection.
-      const swallow = (ev: MouseEvent) => ev.stopPropagation()
+      const swallow = (event: MouseEvent) => event.stopPropagation()
       window.addEventListener('click', swallow, { capture: true, once: true })
       setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0)
     }
@@ -1122,10 +1145,10 @@ function Canvas() {
     window.addEventListener('pointercancel', end)
   }
 
-  const trackPointer = (e: React.PointerEvent) => {
-    const r = canvasRef.current?.getBoundingClientRect()
-    if (!r) return
-    pointer.current = { x: e.clientX - r.left, y: e.clientY - r.top }
+  const trackPointer = (event: React.PointerEvent) => {
+    const rectangle = canvasRef.current?.getBoundingClientRect()
+    if (!rectangle) return
+    pointer.current = { x: event.clientX - rectangle.left, y: event.clientY - rectangle.top }
     if (attending) setCursor(pointer.current)
   }
 
@@ -1142,38 +1165,38 @@ function Canvas() {
         elsewhere++
         continue
       }
-      const m = marks.get(shown) ?? { ids: [] }
-      m.ids.push(id)
-      marks.set(shown, m)
+      const nodeMap = marks.get(shown) ?? { ids: [] }
+      nodeMap.ids.push(id)
+      marks.set(shown, nodeMap)
     }
     return { marks, count: needs.length - elsewhere, elsewhere }
   }, [attending, needs, view])
 
-  const transform = useStore((s) => (attending ? s.transform : null))
+  const transform = useStore((state) => (attending ? state.transform : null))
   // The focus view tracks the viewport only while open, so zooming elsewhere doesn't re-render the canvas.
-  const focusTransform = useStore((s) => (focus ? s.transform : null))
+  const focusTransform = useStore((state) => (focus ? state.transform : null))
   const attentionTargets = useMemo<AttentionTarget[]>(() => {
     if (!attention || !transform) return []
     const [panX, panY, zoom] = transform
-    const out: AttentionTarget[] = []
-    for (const [id, m] of attention.marks) {
-      const n = map.get(id)
-      if (!n) continue
-      const p = absPos(n, map)
-      const s = sizeOf(n)
+    const targets: AttentionTarget[] = []
+    for (const [id, nodeMap] of attention.marks) {
+      const node = map.get(id)
+      if (!node) continue
+      const position = absolutePosition(node, map)
+      const size = sizeOf(node)
       // A folded group's bubble rises from its center, so lines meet it there.
-      const folded = isCluster(n)
-      out.push({
+      const folded = isCluster(node)
+      targets.push({
         id,
-        jump: m.ids[0],
-        count: m.ids.length,
-        label: m.ids.length === 1 ? (map.get(m.ids[0])?.data.label ?? '') : n.data.label,
+        jump: nodeMap.ids[0],
+        count: nodeMap.ids.length,
+        label: nodeMap.ids.length === 1 ? (map.get(nodeMap.ids[0])?.data.label ?? '') : node.data.label,
         rect: folded
-          ? { x: (p.x + s.w / 2) * zoom + panX, y: (p.y + s.h / 2) * zoom + panY, w: 0, h: 0 }
-          : { x: p.x * zoom + panX, y: p.y * zoom + panY, w: s.w * zoom, h: s.h * zoom },
+          ? { x: (position.x + size.width / 2) * zoom + panX, y: (position.y + size.height / 2) * zoom + panY, width: 0, height: 0 }
+          : { x: position.x * zoom + panX, y: position.y * zoom + panY, width: size.width * zoom, height: size.height * zoom },
       })
     }
-    return out
+    return targets
   }, [attention, map, transform])
 
   const derived = useMemo<Derived>(
@@ -1191,13 +1214,13 @@ function Canvas() {
 
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
-      let own = changes.filter((c) => !('id' in c) || !c.id.startsWith('ghost:')) as NodeChange<AppNode>[]
+      let own = changes.filter((change) => !('id' in change) || !change.id.startsWith('ghost:')) as NodeChange<AppNode>[]
       if (plainClick.current) {
-        const picks = own.filter((c) => c.type === 'select')
-        own = own.filter((c) => c.type !== 'select')
-        if (picks.length) afterClick(() => setNodes((ns) => applyNodeChanges(picks, ns)))
+        const picks = own.filter((change) => change.type === 'select')
+        own = own.filter((change) => change.type !== 'select')
+        if (picks.length) afterClick(() => setNodes((currentNodes) => applyNodeChanges(picks, currentNodes)))
       }
-      if (own.length) setNodes((ns) => applyNodeChanges(own, ns))
+      if (own.length) setNodes((currentNodes) => applyNodeChanges(own, currentNodes))
     },
     [afterClick],
   )
@@ -1206,17 +1229,17 @@ function Canvas() {
 
   const focusOn = useCallback(
     (id: string) => {
-      const m = byId(latest.current.nodes)
-      const n = m.get(id)
+      const nodeMap = byId(latest.current.nodes)
+      const node = nodeMap.get(id)
       const box = canvasRef.current?.getBoundingClientRect()
-      if (!n || !isTask(n) || !box) return
-      if (!focus || !focusEntry.current) focusEntry.current = { viewport: rf.getViewport(), moved: false }
+      if (!node || !isTask(node) || !box) return
+      if (!focus || !focusEntry.current) focusEntry.current = { viewport: reactFlow.getViewport(), moved: false }
       else if (id !== focus) focusEntry.current.moved = true
       if (peeking && !inFocus(id)) leaveRoot()
       // Work outside the open level opens its own group underneath, so leaving focus lands there.
       if (!inView(id)) {
-        const parent = n.parentId ? m.get(n.parentId) : undefined
-        if (parent) fitZoom.current.set(parent.id, groupFitViewport(parent, m, box).zoom)
+        const parent = node.parentId ? nodeMap.get(node.parentId) : undefined
+        if (parent) fitZoom.current.set(parent.id, groupFitViewport(parent, nodeMap, box).zoom)
         skipNextFit.current = true
         setPeek(null)
         setExitHint(null)
@@ -1225,41 +1248,43 @@ function Canvas() {
       }
       setHover(null)
       setPinned(null)
-      setNodes((ns) => (ns.some((x) => x.selected) ? ns.map((x) => (x.selected ? { ...x, selected: false } : x)) : ns))
+      setNodes((currentNodes) =>
+        currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
+      )
       setFocus(id)
-      void rf.setViewport(focusViewport(n, m, box), FOCUS_MOVE)
+      void reactFlow.setViewport(focusViewport(node, nodeMap, box), FOCUS_MOVE)
     },
-    [rf, focus, peeking, inFocus, inView, leaveRoot],
+    [reactFlow, focus, peeking, inFocus, inView, leaveRoot],
   )
 
   const exitFocus = useCallback(() => {
     const entry = focusEntry.current
-    const m = byId(latest.current.nodes)
-    const n = focus ? m.get(focus) : undefined
+    const nodeMap = byId(latest.current.nodes)
+    const node = focus ? nodeMap.get(focus) : undefined
     setFocus(null)
     focusEntry.current = null
     if (!entry) return
-    if (!entry.moved || !n) {
-      void rf.setViewport(entry.viewport, FOCUS_MOVE)
+    if (!entry.moved || !node) {
+      void reactFlow.setViewport(entry.viewport, FOCUS_MOVE)
       return
     }
-    const p = absPos(n, m)
-    const s = sizeOf(n)
+    const position = absolutePosition(node, nodeMap)
+    const size = sizeOf(node)
     const zoom = (root ? fitZoom.current.get(root) : undefined) ?? entry.viewport.zoom
-    void rf.setCenter(p.x + s.w / 2, p.y + s.h / 2, { zoom, ...FOCUS_MOVE })
-  }, [focus, root, rf])
+    void reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom, ...FOCUS_MOVE })
+  }, [focus, root, reactFlow])
 
   const focusItems = useMemo(() => {
     if (!focus) return null
     const item = (id: string, related: boolean): FocusItem | null => {
-      const n = map.get(id)
-      if (!n || !isTask(n)) return null
-      const parent = n.parentId ? map.get(n.parentId) : undefined
+      const node = map.get(id)
+      if (!node || !isTask(node)) return null
+      const parent = node.parentId ? map.get(node.parentId) : undefined
       const status = work.status.get(id) ?? 'ready'
       return {
         id,
-        label: n.data.label || (isNote(n) ? 'Empty note' : 'Untitled'),
-        tag: isNote(n) ? 'Note' : getTaskTag(n.data),
+        label: node.data.label || (isNote(node) ? 'Empty note' : 'Untitled'),
+        tag: isNote(node) ? 'Note' : getTaskTag(node.data),
         status,
         where: parent ? (parent.data as ClusterData).label : 'Loose work',
         related,
@@ -1268,59 +1293,62 @@ function Canvas() {
     }
     const incoming: FocusItem[] = []
     const outgoing: FocusItem[] = []
-    for (const l of links) {
-      if (l.to === focus && !incoming.some((i) => i.id === l.from)) {
-        const i = item(l.from, l.kind === 'related')
-        if (i) incoming.push(i)
+    for (const link of links) {
+      if (link.to === focus && !incoming.some((incomingItem) => incomingItem.id === link.from)) {
+        const incomingItem = item(link.from, link.kind === 'related')
+        if (incomingItem) incoming.push(incomingItem)
       }
-      if (l.from === focus && !outgoing.some((i) => i.id === l.to)) {
-        const o = item(l.to, l.kind === 'related')
+      if (link.from === focus && !outgoing.some((incomingItem) => incomingItem.id === link.to)) {
+        const outgoingItem = item(link.to, link.kind === 'related')
         // A link reads by its source, and here the source is the focused card.
-        if (o) outgoing.push({ ...o, flow: work.flow.get(focus) ?? 'live' })
+        if (outgoingItem) outgoing.push({ ...outgoingItem, flow: work.flow.get(focus) ?? 'live' })
       }
     }
-    const settled = (i: FocusItem) => (i.status === 'done' || i.status === 'deferred' ? 1 : 0)
-    return { incoming: incoming.sort((a, b) => settled(a) - settled(b)), outgoing: outgoing.sort((a, b) => settled(a) - settled(b)) }
+    const settled = (item: FocusItem) => (item.status === 'done' || item.status === 'deferred' ? 1 : 0)
+    return {
+      incoming: incoming.sort((a, b) => settled(a) - settled(b)),
+      outgoing: outgoing.sort((a, b) => settled(a) - settled(b)),
+    }
   }, [focus, links, map, work])
 
   const dragOrigins = useRef(new Map<string, AppNode['position']>())
   const onDragStart = useCallback((dragged: ViewNode[]) => {
-    const map = byId(latest.current.nodes)
+    const nodeMap = byId(latest.current.nodes)
     dragOrigins.current = new Map()
-    for (const d of dragged) {
-      const n = map.get(d.id)
-      const parent = n?.parentId ? map.get(n.parentId) : undefined
-      if (n && parent && isCluster(parent) && parent.data.arrange !== 'custom') dragOrigins.current.set(n.id, n.position)
+    for (const draggedNode of dragged) {
+      const node = nodeMap.get(draggedNode.id)
+      const parent = node?.parentId ? nodeMap.get(node.parentId) : undefined
+      if (node && parent && isCluster(parent) && parent.data.arrange !== 'custom') dragOrigins.current.set(node.id, node.position)
     }
   }, [])
   const onDragStop = useCallback(() => {
     const origins = dragOrigins.current
     dragOrigins.current = new Map()
-    if (!origins.size) return setNodes((ns) => normalize(ns))
-    tweenTo(normalize(latest.current.nodes.map((n) => (origins.has(n.id) ? { ...n, position: origins.get(n.id)! } : n))))
+    if (!origins.size) return setNodes((currentNodes) => normalize(currentNodes))
+    tweenTo(normalize(latest.current.nodes.map((node) => (origins.has(node.id) ? { ...node, position: origins.get(node.id)! } : node))))
   }, [tweenTo])
-  const onConnect = useCallback((c: Connection) => {
-    if (!c.source || !c.target || c.source === c.target) return
-    setLinks((ls) =>
-      ls.some((l) => l.from === c.source && l.to === c.target)
-        ? ls
-        : [...ls, { id: `${c.source}>${c.target}`, from: c.source, to: c.target, kind: 'blocks' }],
+  const onConnect = useCallback((connection: Connection) => {
+    if (!connection.source || !connection.target || connection.source === connection.target) return
+    setLinks((currentLinks) =>
+      currentLinks.some((link) => link.from === connection.source && link.to === connection.target)
+        ? currentLinks
+        : [...currentLinks, { id: `${connection.source}>${connection.target}`, from: connection.source, to: connection.target, kind: 'blocks' }],
     )
   }, [])
 
-  const selected = nodes.filter((n) => n.selected && !view.hidden.has(n.id))
+  const selected = nodes.filter((node) => node.selected && !view.hidden.has(node.id))
 
   // Reported again on focus so the page the person is using wins over other open pages.
-  const focusReportKey = JSON.stringify({ open: root, selected: selected.map((n) => n.id) } satisfies FocusReport)
+  const focusReportKey = JSON.stringify({ open: root, selected: selected.map((node) => node.id) } satisfies FocusReport)
   useEffect(() => {
     if (!ready) return
     const workspaceName = workspace.current
     const report = () => reportFocus(JSON.parse(focusReportKey) as FocusReport, workspaceName)
-    const t = setTimeout(report, 150)
+    const reportTimer = setTimeout(report, 150)
     window.addEventListener('focus', report)
     window.addEventListener('pageshow', report)
     return () => {
-      clearTimeout(t)
+      clearTimeout(reportTimer)
       window.removeEventListener('focus', report)
       window.removeEventListener('pageshow', report)
     }
@@ -1332,16 +1360,16 @@ function Canvas() {
   }, [])
 
   const doGroup = useCallback(() => {
-    const visibleSel = nodes.map((n) => (n.selected && view.hidden.has(n.id) ? { ...n, selected: false } : n))
-    const r = groupSelection(visibleSel)
-    if (!r) return
-    setNodes(r.nodes)
-    setEditing(r.groupId)
+    const visibleSel = nodes.map((node) => (node.selected && view.hidden.has(node.id) ? { ...node, selected: false } : node))
+    const result = groupSelection(visibleSel)
+    if (!result) return
+    setNodes(result.nodes)
+    setEditing(result.groupId)
   }, [nodes, view])
 
   const doUngroup = useCallback(
     (ids?: string[]) => {
-      const targets = ids ?? selected.filter(isCluster).map((n) => n.id)
+      const targets = ids ?? selected.filter(isCluster).map((node) => node.id)
       if (!targets.length) return
       if (root && targets.includes(root)) openRoot(map.get(root)?.parentId ?? null)
       setNodes(ungroup(nodes, targets))
@@ -1351,12 +1379,12 @@ function Canvas() {
 
   const actions = useMemo(
     () => ({
-      reflow: (gid: string) => {
-        const { nodes: ns, links: ls } = latest.current
-        reflow(ns, ls, gid).then(tweenTo)
+      reflow: (groupId: string) => {
+        const { nodes: currentNodes, links: currentLinks } = latest.current
+        reflow(currentNodes, currentLinks, groupId).then(tweenTo)
       },
-      open: (gid: string) => {
-        openRoot(gid)
+      open: (groupId: string) => {
+        openRoot(groupId)
         setHover(null)
       },
     }),
@@ -1364,17 +1392,17 @@ function Canvas() {
   )
 
   const arrangeGroup = useCallback(
-    (gid: string, patch: Pick<ClusterData, 'arrange' | 'columns'>) => {
-      const { nodes: ns, links: ls } = latest.current
-      const next = ns.map((n) => (n.id === gid && isCluster(n) ? { ...n, data: { ...n.data, ...patch } } : n))
-      reflow(next, ls, gid).then(tweenTo)
+    (groupId: string, patch: Pick<ClusterData, 'arrange'>) => {
+      const { nodes: currentNodes, links: currentLinks } = latest.current
+      const next = currentNodes.map((node) => (node.id === groupId && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node))
+      reflow(next, currentLinks, groupId).then(tweenTo)
     },
     [tweenTo],
   )
 
   const updateData = useCallback(
     (id: string, patch: Partial<TaskData> | Partial<ClusterData>) =>
-      setNodes((ns) => ns.map((n) => (n.id === id ? ({ ...n, data: { ...n.data, ...patch } } as AppNode) : n))),
+      setNodes((currentNodes) => currentNodes.map((node) => (node.id === id ? ({ ...node, data: { ...node.data, ...patch } } as AppNode) : node))),
     [],
   )
 
@@ -1382,12 +1410,12 @@ function Canvas() {
 
   /** Adds a note with its top-left at `at` (flow coordinates), optionally spliced into links. */
   const addNote = useCallback(
-    (at: { x: number; y: number }, opts: { parent?: string | null; from?: string; to?: string; replace?: string } = {}) => {
-      const { nodes: ns, links: ls } = latest.current
-      const m = byId(ns)
-      const parent = opts.parent === undefined ? root : opts.parent
-      const parentNode = parent ? m.get(parent) : undefined
-      const origin = parentNode ? absPos(parentNode, m) : { x: 0, y: 0 }
+    (at: { x: number; y: number }, options: { parent?: string | null; from?: string; to?: string; replace?: string } = {}) => {
+      const { nodes: currentNodes, links: currentLinks } = latest.current
+      const nodeMap = byId(currentNodes)
+      const parent = options.parent === undefined ? root : options.parent
+      const parentNode = parent ? nodeMap.get(parent) : undefined
+      const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const id = newId('note')
       const note: AppNode = {
         id,
@@ -1397,11 +1425,11 @@ function Canvas() {
         data: { kind: 'task', label: '', itemKind: 'note', status: 'todo' },
         selected: true,
       }
-      const kind = ls.find((l) => l.id === opts.replace)?.kind ?? 'blocks'
-      const next = ls.filter((l) => l.id !== opts.replace)
-      if (opts.from) next.push({ id: `${opts.from}>${id}`, from: opts.from, to: id, kind })
-      if (opts.to) next.push({ id: `${id}>${opts.to}`, from: id, to: opts.to, kind })
-      setNodes(normalize([...ns.map((n) => (n.selected ? { ...n, selected: false } : n)), note]))
+      const kind = currentLinks.find((link) => link.id === options.replace)?.kind ?? 'blocks'
+      const next = currentLinks.filter((link) => link.id !== options.replace)
+      if (options.from) next.push({ id: `${options.from}>${id}`, from: options.from, to: id, kind })
+      if (options.to) next.push({ id: `${id}>${options.to}`, from: id, to: options.to, kind })
+      setNodes(normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note]))
       setLinks(next)
       setEditing(id)
     },
@@ -1409,25 +1437,31 @@ function Canvas() {
   )
 
   const viewportCenter = useCallback(() => {
-    const r = canvasRef.current?.getBoundingClientRect()
-    if (!r) return { x: 0, y: 0 }
-    const c = rf.screenToFlowPosition({ x: r.left + r.width / 2, y: r.top + r.height / 2 })
-    return { x: c.x - TASK_W / 2, y: c.y - TASK_H / 2 }
-  }, [rf])
+    const rectangle = canvasRef.current?.getBoundingClientRect()
+    if (!rectangle) return { x: 0, y: 0 }
+    const center = reactFlow.screenToFlowPosition({ x: rectangle.left + rectangle.width / 2, y: rectangle.top + rectangle.height / 2 })
+    return { x: center.x - TASK_WIDTH / 2, y: center.y - TASK_HEIGHT / 2 }
+  }, [reactFlow])
 
   /** The innermost visible card or group under a canvas point that `accept` allows. */
   const nodeAt = useCallback(
-    (point: { x: number; y: number }, accept: (n: AppNode) => boolean) => {
+    (point: { x: number; y: number }, accept: (node: AppNode) => boolean) => {
       let found: string | null = null
       let depth = -1
-      for (const n of nodes) {
-        if (view.hidden.has(n.id) || !inView(n.id) || !accept(n)) continue
-        const p = absPos(n, map)
-        const s = sizeOf(n)
-        const d = ancestors(n.id, map).length
-        if (point.x >= p.x && point.x <= p.x + s.w && point.y >= p.y && point.y <= p.y + s.h && d > depth) {
-          found = n.id
-          depth = d
+      for (const node of nodes) {
+        if (view.hidden.has(node.id) || !inView(node.id) || !accept(node)) continue
+        const position = absolutePosition(node, map)
+        const size = sizeOf(node)
+        const nodeDepth = ancestors(node.id, map).length
+        if (
+          point.x >= position.x &&
+          point.x <= position.x + size.width &&
+          point.y >= position.y &&
+          point.y <= position.y + size.height &&
+          nodeDepth > depth
+        ) {
+          found = node.id
+          depth = nodeDepth
         }
       }
       return found
@@ -1437,14 +1471,14 @@ function Canvas() {
 
   /** Drops a note centered on a click, inside the innermost open group under it. */
   const placeComment = useCallback(
-    (e: React.MouseEvent) => {
-      const point = rf.screenToFlowPosition({ x: e.clientX, y: e.clientY })
-      const parent = nodeAt(point, (n) => isCluster(n) && !collapsed.has(n.id)) ?? levelRoot
+    (event: React.MouseEvent) => {
+      const point = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      const parent = nodeAt(point, (node) => isCluster(node) && !collapsed.has(node.id)) ?? levelRoot
       if (peeking && !(parent && inFocus(parent))) leaveRoot()
-      addNote({ x: point.x - TASK_W / 2, y: point.y - TASK_H / 2 }, { parent })
+      addNote({ x: point.x - TASK_WIDTH / 2, y: point.y - TASK_HEIGHT / 2 }, { parent })
       setTool('select')
     },
-    [rf, nodeAt, collapsed, levelRoot, peeking, inFocus, leaveRoot, addNote],
+    [reactFlow, nodeAt, collapsed, levelRoot, peeking, inFocus, leaveRoot, addNote],
   )
 
   // ---- Stickers ----
@@ -1453,40 +1487,40 @@ function Canvas() {
   const anchorAt = useCallback(
     (point: { x: number; y: number }) => {
       const on = nodeAt(point, () => true)
-      const n = on ? map.get(on) : undefined
-      if (!n) return { x: Math.round(point.x), y: Math.round(point.y) }
-      const p = absPos(n, map)
-      return { x: Math.round(point.x - p.x), y: Math.round(point.y - p.y), on: n.id }
+      const node = on ? map.get(on) : undefined
+      if (!node) return { x: Math.round(point.x), y: Math.round(point.y) }
+      const position = absolutePosition(node, map)
+      return { x: Math.round(point.x - position.x), y: Math.round(point.y - position.y), on: node.id }
     },
     [nodeAt, map],
   )
 
   const stamp = useCallback(
-    (e: React.MouseEvent) => {
+    (event: React.MouseEvent) => {
       const id = newId('sticker')
-      const at = anchorAt(rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }))
-      setStickers((ss) => [...ss, { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at }])
-      setFresh((f) => new Set(f).add(id))
+      const at = anchorAt(reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }))
+      setStickers((stickers) => [...stickers, { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at }])
+      setFresh((freshStickers) => new Set(freshStickers).add(id))
       setTimeout(
         () =>
-          setFresh((f) => {
-            const next = new Set(f)
+          setFresh((freshStickers) => {
+            const next = new Set(freshStickers)
             next.delete(id)
             return next
           }),
         STICKER_FRESH_MS,
       )
     },
-    [rf, sticker, anchorAt],
+    [reactFlow, sticker, anchorAt],
   )
 
   const settleStickers = useCallback(
     (moves: StickerMove[]) => {
-      const landed = new Map(moves.map((m) => [m.id, m]))
-      setStickers((ss) =>
-        ss.map((s) => {
-          const at = landed.get(s.id)
-          return at ? { id: s.id, kind: s.kind, tilt: s.tilt, ...anchorAt(at) } : s
+      const landed = new Map(moves.map((move) => [move.id, move]))
+      setStickers((stickers) =>
+        stickers.map((sticker) => {
+          const at = landed.get(sticker.id)
+          return at ? { id: sticker.id, kind: sticker.kind, tilt: sticker.tilt, ...anchorAt(at) } : sticker
         }),
       )
     },
@@ -1495,24 +1529,32 @@ function Canvas() {
 
   /** Every group frame on screen, which stickers bounce inside and off of. */
   const stickerBounds = useMemo<StickerBounds[]>(() => {
-    const shown = nodes.filter((n) => isCluster(n) && !view.hidden.has(n.id) && inView(n.id))
-    const ids = new Set(shown.map((n) => n.id))
-    return shown.map((n) => {
-      const p = absPos(n, map)
-      const s = sizeOf(n)
-      const chain = ancestors(n.id, map)
-      return { id: n.id, x0: p.x, y0: p.y, x1: p.x + s.w, y1: p.y + s.h, parent: chain.find((a) => ids.has(a)) ?? null, depth: chain.length }
+    const shown = nodes.filter((node) => isCluster(node) && !view.hidden.has(node.id) && inView(node.id))
+    const ids = new Set(shown.map((node) => node.id))
+    return shown.map((node) => {
+      const position = absolutePosition(node, map)
+      const size = sizeOf(node)
+      const chain = ancestors(node.id, map)
+      return {
+        id: node.id,
+        x0: position.x,
+        y0: position.y,
+        x1: position.x + size.width,
+        y1: position.y + size.height,
+        parent: chain.find((ancestor) => ids.has(ancestor)) ?? null,
+        depth: chain.length,
+      }
     })
   }, [nodes, map, view, inView])
 
   const placedStickers = useMemo<PlacedSticker[]>(
     () =>
-      stickers.flatMap((s) => {
-        if (!s.on) return [{ ...s, fresh: fresh.has(s.id) }]
-        const n = map.get(s.on)
-        if (!n || view.hidden.has(n.id)) return []
-        const p = absPos(n, map)
-        return [{ ...s, x: p.x + s.x, y: p.y + s.y, fresh: fresh.has(s.id) }]
+      stickers.flatMap((sticker) => {
+        if (!sticker.on) return [{ ...sticker, fresh: fresh.has(sticker.id) }]
+        const node = map.get(sticker.on)
+        if (!node || view.hidden.has(node.id)) return []
+        const position = absolutePosition(node, map)
+        return [{ ...sticker, x: position.x + sticker.x, y: position.y + sticker.y, fresh: fresh.has(sticker.id) }]
       }),
     [stickers, map, view, fresh],
   )
@@ -1528,12 +1570,16 @@ function Canvas() {
       setWheel({ x: from.left + from.width / 2, y: from.top - WHEEL_LIFT, held: false })
       return
     }
-    const r = canvasRef.current?.getBoundingClientRect()
-    const p = pointer.current
-    if (r) setWheel({ x: r.left + (p?.x ?? r.width / 2), y: r.top + (p?.y ?? r.height / 2), held: true })
+    const rectangle = canvasRef.current?.getBoundingClientRect()
+    const position = pointer.current
+    if (rectangle)
+      setWheel({ x: rectangle.left + (position?.x ?? rectangle.width / 2), y: rectangle.top + (position?.y ?? rectangle.height / 2), held: true })
   }, [])
 
-  const assignSlot = useCallback((slot: number, emoji: string | null) => setLoadout((l) => l.map((s, i) => (i === slot ? emoji : s))), [])
+  const assignSlot = useCallback(
+    (slot: number, emoji: string | null) => setLoadout((loadout) => loadout.map((sticker, i) => (i === slot ? emoji : sticker))),
+    [],
+  )
 
   const pickSticker = useCallback((id: string) => {
     setSticker(id)
@@ -1542,48 +1588,57 @@ function Canvas() {
   }, [])
 
   const insertNoteOnLink = (linkId: string) => {
-    const l = links.find((x) => x.id === linkId)
-    const a = l && map.get(l.from)
-    const b = l && map.get(l.to)
-    if (!l || !a || !b) return
-    const pa = absPos(a, map)
-    const pb = absPos(b, map)
-    const chainB = [b.parentId, ...ancestors(b.id, map)]
-    const parent = [a.parentId, ...ancestors(a.id, map)].find((p) => p && chainB.includes(p)) ?? null
-    addNote({ x: (pa.x + pb.x) / 2, y: (pa.y + pb.y) / 2 + TASK_H }, { parent, from: l.from, to: l.to, replace: l.id })
+    const link = links.find((candidate) => candidate.id === linkId)
+    const sourceNode = link && map.get(link.from)
+    const targetNode = link && map.get(link.to)
+    if (!link || !sourceNode || !targetNode) return
+    const sourcePosition = absolutePosition(sourceNode, map)
+    const targetPosition = absolutePosition(targetNode, map)
+    const chainB = [targetNode.parentId, ...ancestors(targetNode.id, map)]
+    const parent = [sourceNode.parentId, ...ancestors(sourceNode.id, map)].find((position) => position && chainB.includes(position)) ?? null
+    addNote(
+      { x: (sourcePosition.x + targetPosition.x) / 2, y: (sourcePosition.y + targetPosition.y) / 2 + TASK_HEIGHT },
+      { parent, from: link.from, to: link.to, replace: link.id },
+    )
   }
 
   /** Removes a note and reconnects whatever ran through it. */
   const deleteNote = (id: string) => {
-    setLinks((ls) => {
-      const ins = ls.filter((l) => l.to === id)
-      const outs = ls.filter((l) => l.from === id)
-      const next = ls.filter((l) => l.from !== id && l.to !== id)
-      for (const i of ins)
-        for (const o of outs)
-          if (!next.some((l) => l.from === i.from && l.to === o.to))
-            next.push({ id: `${i.from}>${o.to}`, from: i.from, to: o.to, kind: i.kind === 'blocks' && o.kind === 'blocks' ? 'blocks' : 'related' })
+    setLinks((currentLinks) => {
+      const incomingLinks = currentLinks.filter((link) => link.to === id)
+      const outgoingLinks = currentLinks.filter((link) => link.from === id)
+      const next = currentLinks.filter((link) => link.from !== id && link.to !== id)
+      for (const incomingLink of incomingLinks)
+        for (const outgoingLink of outgoingLinks)
+          if (!next.some((link) => link.from === incomingLink.from && link.to === outgoingLink.to))
+            next.push({
+              id: `${incomingLink.from}>${outgoingLink.to}`,
+              from: incomingLink.from,
+              to: outgoingLink.to,
+              kind: incomingLink.kind === 'blocks' && outgoingLink.kind === 'blocks' ? 'blocks' : 'related',
+            })
       return next
     })
-    setNodes((ns) => normalize(ns.filter((n) => n.id !== id)))
+    setNodes((currentNodes) => normalize(currentNodes.filter((node) => node.id !== id)))
   }
 
-  const removeLink = (id: string) => setLinks((ls) => ls.filter((l) => l.id !== id))
+  const removeLink = (id: string) => setLinks((currentLinks) => currentLinks.filter((link) => link.id !== id))
   /** One link per pair of cards: adding a link replaces whatever already joined them. */
   const addLink = (from: string, to: string, kind: Link['kind']) =>
-    setLinks((ls) => [
-      ...ls.filter((l) => !((l.from === from && l.to === to) || (l.from === to && l.to === from))),
+    setLinks((currentLinks) => [
+      ...currentLinks.filter((link) => !((link.from === from && link.to === to) || (link.from === to && link.to === from))),
       { id: `${from}>${to}`, from, to, kind },
     ])
-  const flipLink = (id: string) => setLinks((ls) => ls.map((l) => (l.id === id ? { ...l, kind: l.kind === 'blocks' ? 'related' : 'blocks' } : l)))
+  const flipLink = (id: string) =>
+    setLinks((currentLinks) => currentLinks.map((link) => (link.id === id ? { ...link, kind: link.kind === 'blocks' ? 'related' : 'blocks' } : link)))
 
   const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
   const rootCustom = !!root && (map.get(root)?.data as ClusterData | undefined)?.arrange === 'custom'
   const reset = () => {
     openRoot(null)
-    seeded().then((s) => {
-      setNodes(s.nodes)
-      setLinks(s.links)
+    seeded().then((saved) => {
+      setNodes(saved.nodes)
+      setLinks(saved.links)
       setStickers([])
       setTimeout(() => fitTo(null), 40)
     })
@@ -1591,64 +1646,65 @@ function Canvas() {
 
   // ---- Context menu ----
 
-  const openMenu = (e: MouseEvent | React.MouseEvent, target: Menu['target']) => {
-    e.preventDefault()
-    setMenu({ x: e.clientX, y: e.clientY, flow: rf.screenToFlowPosition({ x: e.clientX, y: e.clientY }), target })
+  const openMenu = (event: MouseEvent | React.MouseEvent, target: Menu['target']) => {
+    event.preventDefault()
+    setMenu({ x: event.clientX, y: event.clientY, flow: reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }), target })
   }
 
-  const menuItems = (m: Menu): MenuItem[] => {
-    const t = m.target
-    if (t.kind === 'sticker') return [{ label: 'Remove sticker', danger: true, run: () => setStickers((ss) => ss.filter((s) => s.id !== t.id)) }]
-    if (t.kind === 'edge') {
-      const l = links.find((x) => x.id === t.id)
-      if (!l) return []
+  const menuItems = (menu: Menu): MenuItem[] => {
+    const target = menu.target
+    if (target.kind === 'sticker')
+      return [{ label: 'Remove sticker', danger: true, run: () => setStickers((stickers) => stickers.filter((sticker) => sticker.id !== target.id)) }]
+    if (target.kind === 'edge') {
+      const link = links.find((candidate) => candidate.id === target.id)
+      if (!link) return []
       return [
-        { label: 'Insert a note here', run: () => insertNoteOnLink(l.id) },
-        { label: l.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link', run: () => flipLink(l.id) },
+        { label: 'Insert a note here', run: () => insertNoteOnLink(link.id) },
+        { label: link.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link', run: () => flipLink(link.id) },
         'divider',
-        { label: 'Remove link', danger: true, run: () => removeLink(l.id) },
+        { label: 'Remove link', danger: true, run: () => removeLink(link.id) },
       ]
     }
-    if (t.kind === 'node') {
-      if (t.id.startsWith('ghost:')) {
-        const taskId = t.id.split(':')[2]
+    if (target.kind === 'node') {
+      if (target.id.startsWith('ghost:')) {
+        const taskId = target.id.split(':')[2]
         return [{ label: 'Jump to it', run: () => jumpTo(taskId) }]
       }
-      const n = map.get(t.id)
-      if (!n) return []
+      const node = map.get(target.id)
+      if (!node) return []
       const many: MenuItem[] = selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }, 'divider'] : []
-      if (isCluster(n))
+      if (isCluster(node))
         return [
           ...many,
-          { label: 'Open', hint: '↵', run: () => actions.open(n.id) },
-          { label: 'Rename', run: () => (selectOnly(n.id), setEditing(n.id)) },
-          ...(n.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(n.id) }]),
-          { label: 'Ungroup', hint: '⇧⌘G', run: () => doUngroup([n.id]) },
+          { label: 'Open', hint: '↵', run: () => actions.open(node.id) },
+          { label: 'Rename', run: () => (selectOnly(node.id), setEditing(node.id)) },
+          ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
+          { label: 'Ungroup', hint: '⇧⌘G', run: () => doUngroup([node.id]) },
         ]
-      const p = absPos(n, map)
-      const after = { x: p.x + TASK_W + 48, y: p.y + TASK_H + 24 }
-      if (isNote(n))
+      const position = absolutePosition(node, map)
+      const after = { x: position.x + TASK_WIDTH + 48, y: position.y + TASK_HEIGHT + 24 }
+      if (isNote(node))
         return [
           ...many,
-          { label: 'Edit note', run: () => (selectOnly(n.id), setEditing(n.id)) },
-          { label: 'Turn into a work item', run: () => updateData(n.id, { itemKind: 'step', status: 'todo' }) },
+          { label: 'Edit note', run: () => (selectOnly(node.id), setEditing(node.id)) },
+          { label: 'Turn into a work item', run: () => updateData(node.id, { itemKind: 'step', status: 'todo' }) },
           'divider',
-          { label: 'Delete note', danger: true, run: () => deleteNote(n.id) },
+          { label: 'Delete note', danger: true, run: () => deleteNote(node.id) },
         ]
-      const data = n.data as TaskData
+      const data = node.data as TaskData
       const url = getTaskUrl(data, githubOwner)
       return [
         ...many,
         ...(url ? [{ label: `Open ${getTaskTag(data)}`, hint: '↗', run: () => openExternal(url) }] : []),
         data.status === 'done'
-          ? { label: 'Mark not done', run: () => updateData(n.id, { status: 'todo' }) }
-          : { label: 'Mark done', run: () => updateData(n.id, { status: 'done' }) },
-        { label: 'Add a note after this', run: () => addNote(after, { parent: n.parentId ?? null, from: n.id }) },
-        ...(n.parentId !== root ? [{ label: 'Open its group', run: () => jumpTo(n.id) }] : []),
+          ? { label: 'Mark not done', run: () => updateData(node.id, { status: 'todo' }) }
+          : { label: 'Mark done', run: () => updateData(node.id, { status: 'done' }) },
+        { label: 'Add a note after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id }) },
+        ...(node.parentId !== root ? [{ label: 'Open its group', run: () => jumpTo(node.id) }] : []),
       ]
     }
     return [
-      { label: 'Add a note here', hint: 'N', run: () => addNote(m.flow) },
+      { label: 'Add a note here', hint: 'N', run: () => addNote(menu.flow) },
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }] : []),
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
@@ -1658,34 +1714,34 @@ function Canvas() {
   }
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
         setPaletteOpen(true)
         return
       }
       if (paletteOpen) return
       if (focus) {
-        if (e.key === 'Escape') exitFocus()
+        if (event.key === 'Escape') exitFocus()
         return
       }
-      if (e.metaKey && e.key.toLowerCase() === 'g') {
-        e.preventDefault()
-        if (e.shiftKey) doUngroup()
+      if (event.metaKey && event.key.toLowerCase() === 'g') {
+        event.preventDefault()
+        if (event.shiftKey) doUngroup()
         else doGroup()
-      } else if (e.key === 'Enter' && selected.length === 1 && isCluster(selected[0])) {
+      } else if (event.key === 'Enter' && selected.length === 1 && isCluster(selected[0])) {
         actions.open(selected[0].id)
-      } else if (e.key === 'Escape') {
+      } else if (event.key === 'Escape') {
         if (tool !== 'select') setTool('select')
         else if (peeking) leaveRoot()
         else if (pinned) setPinned(null)
         else if (root) openRoot(map.get(root)?.parentId ?? null)
-        else setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n)))
-      } else if (e.shiftKey && e.code === 'Digit1') {
+        else setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
+      } else if (event.shiftKey && event.code === 'Digit1') {
         fitTo(root)
-      } else if (!e.metaKey && !e.ctrlKey && e.key.toLowerCase() === 'n') {
-        e.preventDefault()
+      } else if (!event.metaKey && !event.ctrlKey && event.key.toLowerCase() === 'n') {
+        event.preventDefault()
         addNote(viewportCenter())
       }
     }
@@ -1714,9 +1770,9 @@ function Canvas() {
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
   const focused = focus ? map.get(focus) : undefined
-  const focusPos = focused && absPos(focused, map)
+  const focusPos = focused && absolutePosition(focused, map)
   const focusSize = focused && sizeOf(focused)
-  const readyTotal = [...work.status.values()].filter((s) => s === 'ready').length
+  const readyTotal = [...work.status.values()].filter((status) => status === 'ready').length
 
   const commands: Command[] = [
     {
@@ -1732,7 +1788,8 @@ function Canvas() {
             id: 'fit-selection',
             label: 'Fit selection',
             detail: `Show ${selected.length} selected`,
-            run: () => void rf.fitView({ nodes: selected.map((n) => ({ id: n.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: 450 }),
+            run: () =>
+              void reactFlow.fitView({ nodes: selected.map((node) => ({ id: node.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: 450 }),
           },
         ]
       : []),
@@ -1768,9 +1825,9 @@ function Canvas() {
     },
   ]
 
-  const toggleSidebar = (v: boolean) => {
-    setSidebar(v)
-    writeFlag(SIDEBAR_KEY, v)
+  const toggleSidebar = (value: boolean) => {
+    setSidebar(value)
+    writeFlag(SIDEBAR_KEY, value)
   }
   const toggleDebug = (v: boolean) => {
     setDebug(v)
@@ -1835,51 +1892,51 @@ function Canvas() {
                 onMove={onViewportMove}
                 onNodeDragStop={onDragStop}
                 onConnect={onConnect}
-                onNodeMouseEnter={(_, n) => !focus && setHover(n.type === 'task' ? n.id : n.type === 'ghost' ? n.data.taskId : null)}
+                onNodeMouseEnter={(_, node) => !focus && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)}
                 onNodeMouseLeave={() => setHover(null)}
-                onNodeClick={(e, n) => {
-                  if (tool === 'sticker') return stamp(e)
+                onNodeClick={(event, node) => {
+                  if (tool === 'sticker') return stamp(event)
                   if (focus) return
                   setPinned(null)
-                  if (n.type === 'ghost') {
-                    afterClick(() => jumpTo(n.data.taskId))
+                  if (node.type === 'ghost') {
+                    afterClick(() => jumpTo(node.data.taskId))
                     return
                   }
-                  if (peeking && !inFocus(n.id)) afterClick(() => leaveRoot())
+                  if (peeking && !inFocus(node.id)) afterClick(() => leaveRoot())
                 }}
-                onNodeDoubleClick={(e, n) => {
+                onNodeDoubleClick={(event, node) => {
                   cancelClick()
                   if (tool === 'sticker' || focus) return
-                  if (e.shiftKey && n.type === 'task') {
-                    if (isNote(n)) setEditing(n.id)
-                    else setPinned(n.id)
+                  if (event.shiftKey && node.type === 'task') {
+                    if (isNote(node)) setEditing(node.id)
+                    else setPinned(node.id)
                     return
                   }
-                  if (n.type === 'task' || n.type === 'ghost') return focusOn(n.type === 'ghost' ? n.data.taskId : n.id)
-                  if (n.type !== 'cluster') return
-                  if (peeking && !inFocus(n.id)) leaveRoot()
-                  actions.open(n.id)
+                  if (node.type === 'task' || node.type === 'ghost') return focusOn(node.type === 'ghost' ? node.data.taskId : node.id)
+                  if (node.type !== 'cluster') return
+                  if (peeking && !inFocus(node.id)) leaveRoot()
+                  actions.open(node.id)
                 }}
-                onNodeDragStart={(_, n, dragged) => {
-                  if (peeking && !inFocus(n.id)) leaveRoot()
+                onNodeDragStart={(_, node, dragged) => {
+                  if (peeking && !inFocus(node.id)) leaveRoot()
                   onDragStart(dragged)
                 }}
-                onPaneClick={(e) => {
+                onPaneClick={(event) => {
                   if (focus) return exitFocus()
                   setPinned(null)
-                  if (tool === 'comment') placeComment(e)
-                  else if (tool === 'sticker') stamp(e)
+                  if (tool === 'comment') placeComment(event)
+                  else if (tool === 'sticker') stamp(event)
                 }}
                 onEdgeClick={() => setPinned(null)}
-                onPaneContextMenu={(e) => (focus ? e.preventDefault() : openMenu(e, { kind: 'pane' }))}
-                onNodeContextMenu={(e, n) => {
-                  if (focus) return e.preventDefault()
-                  if (peeking && !inFocus(n.id)) leaveRoot()
-                  if (n.type !== 'ghost' && !n.selected) selectOnly(n.id)
-                  openMenu(e, { kind: 'node', id: n.id })
+                onPaneContextMenu={(event) => (focus ? event.preventDefault() : openMenu(event, { kind: 'pane' }))}
+                onNodeContextMenu={(event, node) => {
+                  if (focus) return event.preventDefault()
+                  if (peeking && !inFocus(node.id)) leaveRoot()
+                  if (node.type !== 'ghost' && !node.selected) selectOnly(node.id)
+                  openMenu(event, { kind: 'node', id: node.id })
                 }}
-                onSelectionContextMenu={(e, ns) => openMenu(e, { kind: 'node', id: ns[0]?.id ?? '' })}
-                onEdgeContextMenu={(e, edge) => !edge.id.startsWith('agg:') && openMenu(e, { kind: 'edge', id: edge.id })}
+                onSelectionContextMenu={(event, currentNodes) => openMenu(event, { kind: 'node', id: currentNodes[0]?.id ?? '' })}
+                onEdgeContextMenu={(event, edge) => !edge.id.startsWith('agg:') && openMenu(event, { kind: 'edge', id: edge.id })}
                 panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
                 selectionKeyCode={null}
                 selectionOnDrag={false}
@@ -1901,12 +1958,12 @@ function Canvas() {
                   interactive={!focus && tool === 'select'}
                   bounds={stickerBounds}
                   settle={settleStickers}
-                  menu={(e, id) => openMenu(e, { kind: 'sticker', id })}
+                  menu={(event, id) => openMenu(event, { kind: 'sticker', id })}
                 />
                 {marquee && (
                   <div
                     className="react-flow__selection marquee"
-                    style={{ transform: `translate(${marquee.x}px, ${marquee.y}px)`, width: marquee.w, height: marquee.h }}
+                    style={{ transform: `translate(${marquee.x}px, ${marquee.y}px)`, width: marquee.width, height: marquee.height }}
                   />
                 )}
                 <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
@@ -1923,8 +1980,8 @@ function Canvas() {
                 <MiniMap
                   pannable
                   zoomable
-                  nodeClassName={(n) =>
-                    n.type === 'cluster' ? 'mm-cluster' : n.type === 'ghost' ? 'mm-ghost' : 'mm-' + (work.status.get(n.id) ?? 'ready')
+                  nodeClassName={(node) =>
+                    node.type === 'cluster' ? 'mm-cluster' : node.type === 'ghost' ? 'mm-ghost' : 'mm-' + (work.status.get(node.id) ?? 'ready')
                   }
                 />
 
@@ -2021,18 +2078,14 @@ function Canvas() {
                           id="g-label"
                           value={(one.data as ClusterData).label}
                           autoFocus={editing === one.id}
-                          onFocus={(e) => editing === one.id && e.target.select()}
+                          onFocus={(event) => editing === one.id && event.target.select()}
                           onBlur={() => setEditing(null)}
-                          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                          onChange={(e) => updateData(one.id, { label: e.target.value })}
+                          onKeyDown={(event) => event.key === 'Enter' && (event.target as HTMLInputElement).blur()}
+                          onChange={(event) => updateData(one.id, { label: event.target.value })}
                         />
                         {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
                         <GroupFacts stats={work.groups.get(one.id)} />
-                        <GroupArrange
-                          key={(one.data as ClusterData).columns}
-                          data={one.data as ClusterData}
-                          change={(patch) => arrangeGroup(one.id, patch)}
-                        />
+                        <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
                         <div className="row">
                           <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
                             Open
@@ -2065,9 +2118,9 @@ function Canvas() {
                     {showHelp ? (
                       <>
                         V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
-                        ⌘-scroll to zoom · hold Space over a node to read it up close · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G
-                        ungroup · double-click a group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc
-                        to go up · N note · ⇧1 fit · drag from a card's edge to link{' '}
+                        ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
+                        double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a
+                        card's edge to link{' '}
                         <button type="button" className="link" onClick={() => setShowHelp(false)}>
                           Hide
                         </button>
@@ -2079,7 +2132,6 @@ function Canvas() {
                     )}
                   </div>
                 </Panel>
-                <Lens />
               </ReactFlow>
             )}
             {attending && cursor && (
@@ -2088,8 +2140,8 @@ function Canvas() {
                 count={attention?.count ?? 0}
                 elsewhere={attention?.elsewhere ?? 0}
                 cursor={cursor}
-                width={canvasSize.w}
-                height={canvasSize.h}
+                width={canvasSize.width}
+                height={canvasSize.height}
                 onJump={jumpTo}
               />
             )}
@@ -2100,10 +2152,10 @@ function Canvas() {
                 card={{
                   x: focusPos.x * focusTransform[2] + focusTransform[0],
                   y: focusPos.y * focusTransform[2] + focusTransform[1],
-                  w: focusSize.w * focusTransform[2],
-                  h: focusSize.h * focusTransform[2],
+                  width: focusSize.width * focusTransform[2],
+                  height: focusSize.height * focusTransform[2],
                 }}
-                sideWidth={FOCUS_SIDE_W}
+                sideWidth={FOCUS_SIDE_WIDTH}
                 inset={FOCUS_INSET}
                 incoming={focusItems.incoming}
                 outgoing={focusItems.outgoing}
@@ -2171,39 +2223,15 @@ function GroupFacts({ stats }: { stats?: GroupStats }) {
   )
 }
 
-function GroupArrange({ data, change }: { data: ClusterData; change: (patch: Pick<ClusterData, 'arrange' | 'columns'>) => void }) {
-  const arrange = data.arrange ?? 'auto'
-  const [columns, setColumns] = useState(String(data.columns ?? WRAP))
-  const pick = (next: Arrange) => change({ arrange: next === 'auto' ? undefined : next, columns: next === 'grid' ? data.columns : undefined })
-  const commitColumns = () => {
-    const n = Math.round(Number(columns))
-    if (Number.isFinite(n) && n >= 1 && n !== (data.columns ?? WRAP)) change({ arrange: 'grid', columns: n })
-    else setColumns(String(data.columns ?? WRAP))
-  }
+function GroupArrange({ data, change }: { data: ClusterData; change: (patch: Pick<ClusterData, 'arrange'>) => void }) {
+  const pick = (next: Arrange) => change({ arrange: next === 'auto' ? undefined : next })
   return (
-    <div className="grid2">
-      <div>
-        <label htmlFor="g-arrange">Arrange</label>
-        <select id="g-arrange" value={arrange} onChange={(e) => pick(e.target.value as Arrange)}>
-          <option value="auto">Automatic</option>
-          <option value="grid">Grid</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      {arrange === 'grid' && (
-        <div>
-          <label htmlFor="g-columns">Columns</label>
-          <input
-            id="g-columns"
-            type="number"
-            min={1}
-            value={columns}
-            onChange={(e) => setColumns(e.target.value)}
-            onBlur={commitColumns}
-            onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-          />
-        </div>
-      )}
+    <div>
+      <label htmlFor="g-arrange">Arrange</label>
+      <select id="g-arrange" value={data.arrange ?? 'auto'} onChange={(event) => pick(event.target.value as Arrange)}>
+        <option value="auto">Automatic</option>
+        <option value="custom">Custom</option>
+      </select>
     </div>
   )
 }
@@ -2232,7 +2260,7 @@ function NoteInspector({
         autoFocus={focus}
         placeholder="A detail to remember, or a plan that might become a pull request"
         onBlur={doneEditing}
-        onChange={(e) => update(node.id, { label: e.target.value })}
+        onChange={(event) => update(node.id, { label: event.target.value })}
       />
       <p className="facts">Notes pass blocking through but never count as work.</p>
       <div className="row">
@@ -2276,25 +2304,27 @@ function TaskInspector({
   flipLink: (id: string) => void
 }) {
   const data = node.data as TaskData
-  const st = work.status.get(node.id) ?? 'ready'
-  const lev = work.leverage.get(node.id) ?? 0
+  const status = work.status.get(node.id) ?? 'ready'
+  const leverage = work.leverage.get(node.id) ?? 0
   const url = getTaskUrl(data, githubOwner)
   const linked = new Set(
     [...map.values()]
       .filter(isTask)
-      .filter((n) => n.data.repo && n.data.pr)
-      .map((n) => `${n.data.repo}#${n.data.pr}`),
+      .filter((node) => node.data.repo && node.data.pr)
+      .map((node) => `${node.data.repo}#${node.data.pr}`),
   )
   const suggestions = data.pr
     ? []
     : (github?.unplaced ?? [])
-        .filter((pr) => !linked.has(`${pr.repo}#${pr.number}`))
-        .flatMap((pr) => pr.matches.filter((match) => match.id === node.id).map((match) => ({ pr, score: match.score })))
+        .filter((pullRequest) => !linked.has(`${pullRequest.repo}#${pullRequest.number}`))
+        .flatMap((pullRequest) =>
+          pullRequest.matches.filter((match) => match.id === node.id).map((match) => ({ pr: pullRequest, score: match.score })),
+        )
         .sort((a, b) => b.score - a.score)
   return (
     <div className="insp">
       <label htmlFor="t-label">Title</label>
-      <input id="t-label" value={data.label} onChange={(e) => update(node.id, { label: e.target.value })} />
+      <input id="t-label" value={data.label} onChange={(event) => update(node.id, { label: event.target.value })} />
       {url && (
         <a className="pr-link" href={url} target="_blank" rel="noreferrer">
           Open {getTaskTag(data)} ↗
@@ -2332,9 +2362,9 @@ function TaskInspector({
             id="t-repo"
             value={data.repo ?? ''}
             placeholder="None"
-            onChange={(e) => {
-              const repo = e.target.value.trim() || undefined
-              update(node.id, { repo, itemKind: data.pr && repo ? 'pr' : repo ? 'placeholder' : 'step' })
+            onChange={(event) => {
+              const repo = event.target.value.trim() || undefined
+              update(node.id, { repo: repo, itemKind: data.pr && repo ? 'pr' : repo ? 'placeholder' : 'step' })
             }}
           />
         </div>
@@ -2345,16 +2375,16 @@ function TaskInspector({
             inputMode="numeric"
             value={data.pr ?? ''}
             placeholder="Not opened"
-            onChange={(e) => {
-              const n = Number(e.target.value.replace(/^#/, ''))
-              const pr = Number.isInteger(n) && n > 0 ? n : undefined
-              update(node.id, { pr, itemKind: pr && data.repo ? 'pr' : data.repo ? 'placeholder' : 'step' })
+            onChange={(event) => {
+              const number = Number(event.target.value.replace(/^#/, ''))
+              const pullRequest = Number.isInteger(number) && number > 0 ? number : undefined
+              update(node.id, { pr: pullRequest, itemKind: pullRequest && data.repo ? 'pr' : data.repo ? 'placeholder' : 'step' })
             }}
           />
         </div>
         <div>
           <label htmlFor="t-status">Status</label>
-          <select id="t-status" value={data.status} onChange={(e) => update(node.id, { status: e.target.value as Status })}>
+          <select id="t-status" value={data.status} onChange={(event) => update(node.id, { status: event.target.value as Status })}>
             <option value="todo">To do</option>
             <option value="active">In progress</option>
             <option value="review">In review</option>
@@ -2365,7 +2395,11 @@ function TaskInspector({
         </div>
         <div>
           <label htmlFor="t-who">Whose move</label>
-          <select id="t-who" value={data.who ?? ''} onChange={(e) => update(node.id, { who: (e.target.value || undefined) as Who | undefined })}>
+          <select
+            id="t-who"
+            value={data.who ?? ''}
+            onChange={(event) => update(node.id, { who: (event.target.value || undefined) as Who | undefined })}
+          >
             <option value="">Not set</option>
             <option value="you">You</option>
             <option value="review">Reviewer</option>
@@ -2376,17 +2410,21 @@ function TaskInspector({
       {suggestions.length > 0 && (
         <div className="suggestions">
           <span className="label-text">Possible pull requests</span>
-          {suggestions.map(({ pr, score }) => (
-            <div className="suggestion" key={`${pr.repo}#${pr.number}`}>
+          {suggestions.map(({ pr: pullRequest, score }) => (
+            <div className="suggestion" key={`${pullRequest.repo}#${pullRequest.number}`}>
               <div className="suggestion-copy">
-                <a href={pr.url} target="_blank" rel="noreferrer">
-                  {pr.title}
+                <a href={pullRequest.url} target="_blank" rel="noreferrer">
+                  {pullRequest.title}
                 </a>
                 <span>
-                  {pr.repo}#{pr.number} · {score >= 0.6 ? 'High' : score >= 0.35 ? 'Medium' : 'Low'} confidence
+                  {pullRequest.repo}#{pullRequest.number} · {score >= 0.6 ? 'High' : score >= 0.35 ? 'Medium' : 'Low'} confidence
                 </span>
               </div>
-              <button type="button" className="btn" onClick={() => update(node.id, { repo: pr.repo, pr: pr.number, itemKind: 'pr' })}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => update(node.id, { repo: pullRequest.repo, pr: pullRequest.number, itemKind: 'pr' })}
+              >
                 Link
               </button>
             </div>
@@ -2394,150 +2432,14 @@ function TaskInspector({
         </div>
       )}
       <label htmlFor="t-note">Notes</label>
-      <textarea id="t-note" rows={3} value={data.note ?? ''} onChange={(e) => update(node.id, { note: e.target.value || undefined })} />
+      <textarea id="t-note" rows={3} value={data.note ?? ''} onChange={(event) => update(node.id, { note: event.target.value || undefined })} />
       <p className="facts">
-        Shown as <b>{STATUS_LABEL[st]}</b>
-        {lev > 0 && <> · unblocks {lev}</>}
+        Shown as <b>{STATUS_LABEL[status]}</b>
+        {leverage > 0 && <> · unblocks {leverage}</>}
       </p>
       {connections && (
-        <LinkList node={node} work={work} map={map} links={links} jumpTo={jumpTo} addLink={addLink} removeLink={removeLink} flipLink={flipLink} />
+        <LinkList node={node} work={work} nodeMap={map} links={links} jumpTo={jumpTo} addLink={addLink} removeLink={removeLink} flipLink={flipLink} />
       )}
-    </div>
-  )
-}
-
-type Direction = 'waits' | 'unblocks' | 'related'
-const DIRECTION_LABEL: Record<Direction, string> = { waits: 'Waits on', unblocks: 'Unblocks', related: 'Related' }
-const ORIGIN_LABEL = { stack: 'stacked', mention: 'mentioned' }
-
-/** The card's own links, not the chains derived through notes, so each one can be removed where it is listed. */
-function LinkList({
-  node,
-  work,
-  map,
-  links,
-  jumpTo,
-  addLink,
-  removeLink,
-  flipLink,
-}: {
-  node: AppNode
-  work: ReturnType<typeof deriveWork>
-  map: Map<string, AppNode>
-  links: Link[]
-  jumpTo: (id: string) => void
-  addLink: (from: string, to: string, kind: Link['kind']) => void
-  removeLink: (id: string) => void
-  flipLink: (id: string) => void
-}) {
-  const [direction, setDirection] = useState<Direction>('waits')
-  const [query, setQuery] = useState('')
-  const own = links.filter((l) => (l.from === node.id || l.to === node.id) && map.has(l.from) && map.has(l.to))
-  const groups: Record<Direction, Link[]> = {
-    waits: own.filter((l) => l.kind === 'blocks' && l.to === node.id),
-    unblocks: own.filter((l) => l.kind === 'blocks' && l.from === node.id),
-    related: own.filter((l) => l.kind === 'related'),
-  }
-  const labelOf = (n: AppNode) => (n.data as TaskData).label || 'Note'
-  const joined = new Set(own.map((l) => (l.from === node.id ? l.to : l.from)))
-  const needle = query.trim().toLowerCase()
-  const matches = needle
-    ? [...map.values()]
-        .filter(isTask)
-        .filter((n) => n.id !== node.id && !joined.has(n.id) && labelOf(n).toLowerCase().includes(needle))
-        .slice(0, 6)
-    : []
-  const connect = (other: string) => {
-    if (direction === 'unblocks') addLink(node.id, other, 'blocks')
-    else addLink(other, node.id, direction === 'waits' ? 'blocks' : 'related')
-    setQuery('')
-  }
-  return (
-    <div className="links">
-      {(Object.keys(groups) as Direction[]).map((key) => (
-        <div key={key}>
-          <span className="label-text">{DIRECTION_LABEL[key]}</span>
-          {groups[key].length ? (
-            <ul>
-              {groups[key].map((l) => {
-                const id = l.from === node.id ? l.to : l.from
-                const other = map.get(id)!
-                const parent = other.parentId ? map.get(other.parentId) : undefined
-                return (
-                  <li key={l.id}>
-                    <button type="button" className="link" onClick={() => jumpTo(id)}>
-                      {labelOf(other)} <span>({STATUS_LABEL[work.status.get(id) ?? 'ready']})</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="link link-flip"
-                      aria-label={`${l.kind === 'blocks' ? 'Make related' : 'Make blocking'} link to ${labelOf(other)}`}
-                      onClick={() => flipLink(l.id)}
-                    >
-                      {l.kind === 'blocks' ? 'Related' : 'Blocking'}
-                    </button>
-                    <button
-                      type="button"
-                      className="link link-remove"
-                      aria-label={`Remove link to ${labelOf(other)}`}
-                      onClick={() => removeLink(l.id)}
-                    >
-                      ×
-                    </button>
-                    {(parent && parent.id !== node.parentId) || l.origin ? (
-                      <span className="link-where">
-                        {[parent && parent.id !== node.parentId && `in ${(parent.data as ClusterData).label}`, l.origin && ORIGIN_LABEL[l.origin]]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </span>
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ul>
-          ) : (
-            <p className="facts">Nothing</p>
-          )}
-        </div>
-      ))}
-      <span className="label-text">Add link</span>
-      <div className="link-add">
-        <select aria-label="Link kind" value={direction} onChange={(e) => setDirection(e.target.value as Direction)}>
-          {(Object.keys(DIRECTION_LABEL) as Direction[]).map((key) => (
-            <option key={key} value={key}>
-              {DIRECTION_LABEL[key]}
-            </option>
-          ))}
-        </select>
-        <input
-          aria-label="Card to link"
-          value={query}
-          placeholder="Search cards"
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && matches[0]) connect(matches[0].id)
-            if (e.key === 'Escape') setQuery('')
-          }}
-        />
-      </div>
-      {needle &&
-        (matches.length ? (
-          <ul className="link-matches">
-            {matches.map((n) => {
-              const parent = n.parentId ? map.get(n.parentId) : undefined
-              return (
-                <li key={n.id}>
-                  <button type="button" className="link" onClick={() => connect(n.id)}>
-                    {labelOf(n)}
-                  </button>
-                  {parent && <span className="link-where">in {(parent.data as ClusterData).label}</span>}
-                </li>
-              )
-            })}
-          </ul>
-        ) : (
-          <p className="facts">No cards match</p>
-        ))}
     </div>
   )
 }

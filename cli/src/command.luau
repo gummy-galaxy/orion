@@ -18,13 +18,13 @@ local function run(argv: { string }, stdin: string?): types.CommandResult
 		command = { "sh", "-c", 'input="$1"; shift; exec "$@" < "$input"', "sh", inputPath, table.unpack(argv) }
 	end
 
-	local ok, result = pcall(process.run, command, nil)
+	local succeeded, result = pcall(process.run, command, nil)
 
 	if inputPath then
 		fs.remove(inputPath)
 	end
 
-	if not ok then
+	if not succeeded then
 		error(result, 0)
 	end
 

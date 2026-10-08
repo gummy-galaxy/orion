@@ -25,7 +25,7 @@ export type Backup = { revision: number, time: string, size: number, file: strin
 
 local store = {}
 
-local function str(value: json.Value): string?
+local function asString(value: json.Value): string?
 	return if type(value) == "string" then value else nil
 end
 
@@ -62,8 +62,8 @@ function store.getWorkspaces(root: string): WorkspaceList
 
 	for _, entry in json.asArray(raw.workspaces) or {} do
 		local item = json.asObject(entry)
-		local name = if item then str(item.name) else nil
-		local label = if item then str(item.label) else nil
+		local name = if item then asString(item.name) else nil
+		local label = if item then asString(item.label) else nil
 		assert(name and store.isValidWorkspace(name) and label and label ~= "", `invalid workspace in {file}`)
 
 		if name == "default" then
@@ -74,7 +74,7 @@ function store.getWorkspaces(root: string): WorkspaceList
 		end
 	end
 
-	local active = str(raw.active) or "default"
+	local active = asString(raw.active) or "default"
 	assert(names[active], `unknown workspace: {active}`)
 	result.active = active
 	return result
@@ -173,10 +173,12 @@ function store.getBackups(dir: string): { Backup }
 
 		if entry.type == "file" and revision and time then
 			local file = tostring(path.join(folder, entry.name))
-			table.insert(
-				found,
-				{ revision = tonumber(revision) :: number, time = time, size = fs.metadata(file).size, file = file }
-			)
+			table.insert(found, {
+				revision = tonumber(revision) :: number,
+				time = time,
+				size = fs.metadata(file).size,
+				file = file,
+			})
 		end
 	end
 
@@ -215,7 +217,7 @@ function store.pruneBackups(dir: string, now: number)
 	end
 end
 
-local function num(value: json.Value): number?
+local function asNumber(value: json.Value): number?
 	return if type(value) == "number" then value else nil
 end
 
@@ -227,18 +229,18 @@ function store.decode(text: string): Doc
 
 	for _, raw in json.asArray(root.nodes) or {} do
 		local object = json.asObject(raw)
-		local id = if object then str(object.id) else nil
-		local kind = if object then str(object.type) else nil
+		local id = if object then asString(object.id) else nil
+		local kind = if object then asString(object.type) else nil
 
 		if object and id and kind then
 			local position = json.asObject(object.position) or json.object({})
 			table.insert(nodes, {
 				id = id,
 				type = kind,
-				position = { x = num(position.x) or 0, y = num(position.y) or 0 },
-				parentId = str(object.parentId),
-				width = num(object.width),
-				height = num(object.height),
+				position = { x = asNumber(position.x) or 0, y = asNumber(position.y) or 0 },
+				parentId = asString(object.parentId),
+				width = asNumber(object.width),
+				height = asNumber(object.height),
 				data = json.asObject(object.data) or json.object({}),
 			})
 		end
@@ -248,16 +250,16 @@ function store.decode(text: string): Doc
 
 	for _, raw in json.asArray(root.links) or {} do
 		local object = json.asObject(raw)
-		local from = if object then str(object.from) else nil
-		local to = if object then str(object.to) else nil
+		local from = if object then asString(object.from) else nil
+		local to = if object then asString(object.to) else nil
 
 		if object and from and to then
 			table.insert(links, {
-				id = str(object.id) or `{from}>{to}`,
+				id = asString(object.id) or `{from}>{to}`,
 				from = from,
 				to = to,
-				kind = str(object.kind) or "blocks",
-				origin = str(object.origin),
+				kind = asString(object.kind) or "blocks",
+				origin = asString(object.origin),
 			})
 		end
 	end
@@ -290,20 +292,20 @@ function store.decode(text: string): Doc
 			table.insert(sources, {
 				id = source.id,
 				kind = source.kind,
-				host = str(source.host),
+				host = asString(source.host),
 				owners = getStrings(source.owners),
 				include = getStrings(source.include),
 				exclude = getStrings(source.exclude),
 				command = getStrings(source.command),
-				browse = str(source.browse),
+				browse = asString(source.browse),
 			})
 		end
 	end
 
 	return {
-		version = num(root.version) or 1,
-		revision = num(root.revision) or 0,
-		settings = { githubOwner = str(settings.githubOwner) or DEFAULT_OWNER, sources = sources },
+		version = asNumber(root.version) or 1,
+		revision = asNumber(root.revision) or 0,
+		settings = { githubOwner = asString(settings.githubOwner) or DEFAULT_OWNER, sources = sources },
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
@@ -396,7 +398,7 @@ function store.decodeFocus(text: string): Focus
 			table.insert(selected, id)
 		end
 	end
-	return { open = str(root.open), selected = selected, updatedAt = str(root.updatedAt) }
+	return { open = asString(root.open), selected = selected, updatedAt = asString(root.updatedAt) }
 end
 
 -- Nil when the app isn't open, or caught the file mid-replace.
@@ -405,10 +407,10 @@ function store.readFocus(dir: string): Focus?
 	if not fs.exists(file) then
 		return nil
 	end
-	local ok, focus = pcall(function()
+	local succeeded, focus = pcall(function()
 		return store.decodeFocus(fs.readFileToString(file))
 	end)
-	return if ok then focus else nil
+	return if succeeded then focus else nil
 end
 
 function store.clearFocus(dir: string)
@@ -479,8 +481,8 @@ local function acquire(dir: string): string
 		end
 
 		-- Reclaim a lock left behind by a writer that crashed.
-		local ok, owner = pcall(fs.readFileToString, ownerPath)
-		local stamp = if ok then tonumber(owner:match("%s(%d+)")) else nil
+		local succeeded, owner = pcall(fs.readFileToString, ownerPath)
+		local stamp = if succeeded then tonumber(owner:match("%s(%d+)")) else nil
 
 		if stamp and os.time() - stamp > STALE_LOCK_SECONDS then
 			release(lockPath)
@@ -519,11 +521,11 @@ local function atomicWrite(file: string, contents: string)
 		end
 	end)
 
-	local ok, err = pcall(fs.move, temporary, file)
+	local succeeded, failureMessage = pcall(fs.move, temporary, file)
 
-	if not ok then
+	if not succeeded then
 		pcall(fs.remove, temporary)
-		error(err, 0)
+		error(failureMessage, 0)
 	end
 end
 
@@ -534,7 +536,7 @@ function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
 	end
 
 	local lockPath = acquire(dir)
-	local ok, result = pcall(function(): Doc
+	local succeeded, result = pcall(function(): Doc
 		local doc = store.load(dir)
 		mutate(doc)
 		doc.revision += 1
@@ -544,7 +546,7 @@ function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
 
 	release(lockPath)
 
-	if not ok then
+	if not succeeded then
 		error(result, 0)
 	end
 
@@ -558,11 +560,11 @@ function store.write(dir: string, doc: Doc)
 	end
 
 	local lockPath = acquire(dir)
-	local ok, err = pcall(atomicWrite, store.filePath(dir), store.encode(doc))
+	local succeeded, failureMessage = pcall(atomicWrite, store.filePath(dir), store.encode(doc))
 	release(lockPath)
 
-	if not ok then
-		error(err, 0)
+	if not succeeded then
+		error(failureMessage, 0)
 	end
 end
 

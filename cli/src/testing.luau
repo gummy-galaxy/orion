@@ -50,10 +50,10 @@ function testing.group(id: string, label: string, parentId: string?): Item
 end
 
 function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
-	local out = {}
+	local output = {}
 
 	for _, pair in links or {} do
-		table.insert(out, { id = `{pair[1]}>{pair[2]}`, from = pair[1], to = pair[2], kind = pair[3] or "blocks" })
+		table.insert(output, { id = `{pair[1]}>{pair[2]}`, from = pair[1], to = pair[2], kind = pair[3] or "blocks" })
 	end
 
 	return {
@@ -61,12 +61,12 @@ function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 		revision = 0,
 		settings = { githubOwner = "flipbook-labs", sources = {} },
 		nodes = nodes,
-		links = out,
+		links = output,
 	}
 end
 
-function testing.result(ok: boolean, stdout: string): types.CommandResult
-	return { ok = ok, exitCode = if ok then 0 else 1, stdout = stdout, stderr = "" }
+function testing.result(succeeded: boolean, stdout: string): types.CommandResult
+	return { ok = succeeded, exitCode = if succeeded then 0 else 1, stdout = stdout, stderr = "" }
 end
 
 function testing.run(

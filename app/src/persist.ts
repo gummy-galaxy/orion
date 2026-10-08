@@ -123,14 +123,14 @@ export function onSyncStatus(callback: (status: SyncStatus) => void) {
 
 /** Only what's worth keeping; selection, measurements and handles are view state. */
 export function slim(nodes: AppNode[]) {
-  return nodes.map((n) => ({
-    id: n.id,
-    type: n.type,
-    position: n.position,
-    parentId: n.parentId,
-    data: n.data,
-    width: n.width,
-    height: n.height,
+  return nodes.map((node) => ({
+    id: node.id,
+    type: node.type,
+    position: node.position,
+    parentId: node.parentId,
+    data: node.data,
+    width: node.width,
+    height: node.height,
   }))
 }
 
@@ -139,15 +139,15 @@ export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) =
   JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout })
 
 function isSaved(value: unknown): value is Saved {
-  const s = value as Saved | null
-  return !!s && Array.isArray(s.nodes) && Array.isArray(s.links)
+  const saved = value as Saved | null
+  return !!saved && Array.isArray(saved.nodes) && Array.isArray(saved.links)
 }
 
 export function readBrowser(): Saved | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    const s = raw ? JSON.parse(raw) : null
-    return isSaved(s) ? s : null
+    const saved = raw ? JSON.parse(raw) : null
+    return isSaved(saved) ? saved : null
   } catch {
     return null
   }
@@ -163,13 +163,13 @@ function writeBrowser({ nodes, links, stickers, stickerLoadout }: Saved) {
 
 export async function load(workspace = 'default'): Promise<Loaded> {
   try {
-    const res = await fetch(API, { headers: { 'x-orion-workspace': workspace } })
-    if (res.status === 404) {
-      const body = (await res.json()) as { workspace?: string }
+    const response = await fetch(API, { headers: { 'x-orion-workspace': workspace } })
+    if (response.status === 404) {
+      const body = (await response.json()) as { workspace?: string }
       return { source: 'missing', workspace: body.workspace ?? 'default' }
     }
-    if (res.ok && res.headers.get('content-type')?.includes('json')) {
-      const doc = await res.json()
+    if (response.ok && response.headers.get('content-type')?.includes('json')) {
+      const doc = await response.json()
       if (isSaved(doc) && typeof (doc as Remote).revision === 'number') return { source: 'file', doc: doc as Remote }
     }
   } catch {
@@ -190,7 +190,7 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
     return { ok: true, revision: 0 }
   }
   try {
-    const res = await fetch(API, {
+    const response = await fetch(API, {
       method: 'PUT',
       headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
       body: JSON.stringify({
@@ -201,8 +201,8 @@ export async function save(source: 'file' | 'browser', baseRevision: number | nu
         stickerLoadout: saved.stickerLoadout,
       }),
     })
-    if (res.ok) return { ok: true, revision: (await res.json()).revision }
-    return { ok: false, conflict: res.status === 409 }
+    if (response.ok) return { ok: true, revision: (await response.json()).revision }
+    return { ok: false, conflict: response.status === 409 }
   } catch {
     return { ok: false, conflict: false }
   }
@@ -212,14 +212,14 @@ export type FocusReport = { open: string | null; selected: string[] }
 
 const FOCUS_API = '/api/focus'
 // Each page reports under its own id, so closing one page leaves another's focus alone.
-const TAB = crypto.randomUUID()
+const TAB_ID = crypto.randomUUID()
 
 /** Tells agents, through `orion focus`, what this page has open and selected. */
 export function reportFocus(report: FocusReport, workspace: string) {
   void fetch(FOCUS_API, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ tab: TAB, workspace, ...report }),
+    body: JSON.stringify({ tab: TAB_ID, workspace, ...report }),
   }).catch(() => {
     // No server is available to record this page.
   })
@@ -227,7 +227,7 @@ export function reportFocus(report: FocusReport, workspace: string) {
 
 /** Withdraws this page's focus as it goes away. */
 export function clearFocus(workspace: string) {
-  navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB, workspace, closed: true })], { type: 'application/json' }))
+  navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB_ID, workspace, closed: true })], { type: 'application/json' }))
 }
 
 /** Calls back when another writer (the CLI, an agent, another window) changes the file. */
