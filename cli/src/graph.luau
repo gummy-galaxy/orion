@@ -276,6 +276,38 @@ function graph.nextSlot(doc: Doc, parentId: string?): Position
 	return { x = (right :: number) + (if parentId then ITEM_GAP else ITEM_GAP * 2), y = top :: number }
 end
 
+local function overlapsSibling(doc: Doc, parentId: string?, position: Position, width: number, height: number): boolean
+	local margin = ITEM_GAP / 2
+
+	for _, item in doc.nodes do
+		if item.parentId == parentId then
+			local itemWidth, itemHeight = sizeOf(item)
+
+			if
+				position.x < item.position.x + itemWidth + margin
+				and item.position.x < position.x + width + margin
+				and position.y < item.position.y + itemHeight + margin
+				and item.position.y < position.y + height + margin
+			then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+-- The first spot at or below a preferred one that no sibling covers.
+local function freeSpotBelow(doc: Doc, parentId: string?, preferred: Position): Position
+	local position = { x = preferred.x, y = preferred.y }
+
+	while overlapsSibling(doc, parentId, position, TASK_WIDTH, TASK_HEIGHT) do
+		position.y += TASK_HEIGHT + ITEM_GAP
+	end
+
+	return position
+end
+
 local function itemKindFor(repo: string?, pr: number?, kind: string?): string
 	if kind == "gate" then
 		return "gate"
@@ -498,7 +530,10 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	local position = graph.nextSlot(doc, parent)
 
 	if after and after.parentId == parent then
-		position = { x = after.position.x + TASK_WIDTH + ITEM_GAP, y = after.position.y + TASK_HEIGHT + GROUP_PADDING }
+		position = freeSpotBelow(doc, parent, {
+			x = after.position.x + TASK_WIDTH + ITEM_GAP,
+			y = after.position.y + TASK_HEIGHT + GROUP_PADDING,
+		})
 	end
 
 	local note: Item = {
