@@ -301,6 +301,45 @@ select {
   overflow-wrap: anywhere;
   padding-right: 22px;
 }
+.card:has(.vscode-open) .label {
+  padding-right: 71px;
+}
+.card-actions {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 1;
+}
+.card-actions .source-badges {
+  position: static;
+  max-width: none;
+}
+.vscode-open {
+  display: grid;
+  place-items: center;
+  min-width: 42px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid color-mix(in srgb, var(--surface) 65%, transparent);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+  font: 700 9px/1 var(--font-data);
+  cursor: pointer;
+}
+.vscode-open:hover,
+.vscode-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.vscode-open:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
 .source-badges {
   position: absolute;
   right: 6px;
@@ -893,6 +932,13 @@ select {
   position: static;
   justify-self: end;
   max-width: none;
+}
+.far-card .card-actions {
+  position: static;
+  justify-self: end;
+}
+.far-card:has(.vscode-open) .label {
+  padding-right: 0;
 }
 .react-flow__node-task:has(.far-card) {
   z-index: 2000 !important;
