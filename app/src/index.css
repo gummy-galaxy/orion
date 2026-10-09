@@ -2,6 +2,7 @@
 @import './themes/classic.css';
 @import './themes/vibrant.css';
 @import './skins/plain.css';
+@import './skins/trading.css';
 
 * {
   box-sizing: border-box;

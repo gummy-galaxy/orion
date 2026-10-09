@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { ROW_WIDTH, WRAP, reflow } from './layout'
 import { TASK_HEIGHT, TASK_WIDTH, type AppNode, type ClusterData, type Link } from './model'
 import { toDisplayed } from './skinSpace'
+import { skinOf } from './skins'
 
-const largeSize = { width: 288, height: 400 }
+const largeSize = skinOf('trading').size
 
 const task = (id: string, parentId = 'g', x = 0, y = 0): AppNode => ({
   id,
@@ -38,7 +39,7 @@ const overlaps = (positions: Map<string, { x: number; y: number }>, size = { wid
 }
 
 describe('reflow', () => {
-  it('keeps a mapped fan apart and reflows it at a larger card size', async () => {
+  it('keeps a mapped fan apart and reflows it at the trading card size', async () => {
     const fleet = ids(24)
     const nodes = [group(), task('start'), ...fleet.map((id) => task(id)), task('gate')]
     const links = [...fleet.map((id) => blocks('start', id)), ...fleet.map((id) => blocks(id, 'gate'))]

@@ -1,0 +1,382 @@
+.card.skin-trading {
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  display: block;
+  font-family: var(--font-ui);
+}
+
+.card.skin-trading:is(.st-ready, .st-active, .st-review, .st-blocked, .st-done, .st-deferred, .tr-up, .tr-down, .tr-related, .tr-self, .attn) {
+  background: transparent;
+}
+
+.card.skin-trading .trading-frame {
+  --trading-hue: var(--accent);
+  --trading-hue-two: var(--st-active);
+  --trading-art-base: color-mix(in srgb, var(--trading-hue) 22%, var(--surface));
+  --trading-art-line: color-mix(in srgb, var(--trading-hue-two) 75%, var(--ink));
+  --trading-art-ink: color-mix(in srgb, var(--trading-hue) 70%, var(--ink));
+  --trading-art-accent: color-mix(in srgb, var(--trading-hue-two) 55%, var(--surface));
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--trading-hue) 72%, var(--line));
+  border-radius: 6px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--trading-hue) 58%, var(--surface)),
+    color-mix(in srgb, var(--trading-hue-two) 32%, var(--surface))
+  );
+  display: grid;
+  grid-template-rows: 34px auto 27px minmax(0, 1fr) 26px;
+  gap: 6px;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--surface) 52%, transparent);
+}
+
+.card.skin-trading .palette-1 {
+  --trading-hue: var(--st-active);
+  --trading-hue-two: var(--st-review);
+}
+
+.card.skin-trading .palette-2 {
+  --trading-hue: var(--st-review);
+  --trading-hue-two: var(--accent);
+}
+
+.card.skin-trading .palette-3 {
+  --trading-hue: var(--st-done);
+  --trading-hue-two: var(--st-active);
+}
+
+.card.skin-trading .palette-4 {
+  --trading-hue: var(--st-blocked);
+  --trading-hue-two: var(--st-review);
+}
+
+.card.skin-trading .palette-5 {
+  --trading-hue: var(--edge-hot);
+  --trading-hue-two: var(--st-done);
+}
+
+.card.skin-trading .trading-title,
+.card.skin-trading .trading-type {
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--trading-hue) 45%, var(--line));
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--trading-hue) 8%, var(--surface));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card.skin-trading .trading-title {
+  padding: 0 7px;
+}
+
+.card.skin-trading .trading-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.card.skin-trading .trading-gate {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--trading-hue);
+  rotate: 45deg;
+}
+
+.card.skin-trading .trading-cost {
+  flex: none;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  border: 2px solid var(--trading-hue);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  font: 700 12px/1 var(--font-data);
+}
+
+.card.skin-trading .trading-art {
+  position: relative;
+  min-height: 0;
+  width: 216px;
+  max-width: 100%;
+  aspect-ratio: 4 / 3;
+  justify-self: center;
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--trading-hue) 70%, var(--ink));
+  border-radius: 2px;
+  background: var(--trading-art-base);
+}
+
+.card.skin-trading .trading-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.card.skin-trading .art-palette-1 {
+  --trading-art-base: color-mix(in srgb, var(--trading-hue-two) 26%, var(--surface));
+  --trading-art-line: color-mix(in srgb, var(--trading-hue) 82%, var(--ink));
+  --trading-art-ink: color-mix(in srgb, var(--trading-hue-two) 78%, var(--ink));
+  --trading-art-accent: color-mix(in srgb, var(--trading-hue) 65%, var(--surface));
+}
+
+.card.skin-trading .art-palette-2 {
+  --trading-art-base: color-mix(in srgb, var(--trading-hue) 32%, var(--surface));
+  --trading-art-line: color-mix(in srgb, var(--trading-hue-two) 62%, var(--ink));
+  --trading-art-ink: color-mix(in srgb, var(--trading-hue) 85%, var(--ink));
+  --trading-art-accent: color-mix(in srgb, var(--trading-hue-two) 70%, var(--surface));
+}
+
+.card.skin-trading .trading-type {
+  position: relative;
+  padding: 0 5px 0 10px;
+  font: 600 12px/1.2 var(--font-ui);
+}
+
+.card.skin-trading .trading-type::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--c);
+}
+
+.card.skin-trading .trading-type-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card.skin-trading .trading-status {
+  flex: none;
+  color: var(--c);
+}
+
+.card.skin-trading .trading-set-symbol {
+  flex: none;
+  width: 18px;
+  text-align: center;
+  color: var(--trading-hue);
+  font-size: 16px;
+}
+
+.card.skin-trading .trading-type .source-badges {
+  position: static;
+  flex: none;
+  max-width: 54px;
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+.card.skin-trading .source-count {
+  min-width: 16px;
+  height: 16px;
+  font-size: 12px;
+}
+
+.card.skin-trading .source-menu {
+  font-size: 12px;
+}
+
+.card.skin-trading .trading-text {
+  min-height: 0;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in srgb, var(--trading-hue) 34%, var(--line));
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--trading-hue) 4%, var(--surface));
+  font-size: 13px;
+  line-height: 1.4;
+  overflow: hidden;
+}
+
+.card.skin-trading .trading-text > span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.card.skin-trading .trading-flavor {
+  font-family: 'Iowan Old Style', Palatino, Georgia, serif;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.card.skin-trading .trading-bottom {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font: 600 12px/1.2 var(--font-data);
+}
+
+.card.skin-trading .trading-who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card.skin-trading .trading-pt {
+  flex: none;
+  min-width: 55px;
+  padding: 3px 6px;
+  border: 1px solid color-mix(in srgb, var(--trading-hue) 45%, var(--line));
+  border-radius: 3px;
+  background: var(--surface);
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.card.skin-trading.placeholder .trading-frame {
+  border-style: dashed;
+  box-shadow: inset 0 0 0 2px var(--surface);
+}
+
+.card.skin-trading.placeholder .trading-art {
+  opacity: 0.55;
+}
+
+.card.skin-trading .trading-frame.trading-note {
+  grid-template-rows: 26px minmax(0, 1fr);
+  background: linear-gradient(160deg, var(--note), color-mix(in srgb, var(--note-edge) 18%, var(--note)));
+  border-color: var(--note-edge);
+  color: var(--note-ink);
+}
+
+.card.skin-trading .trading-note-label {
+  font: 700 13px/1.2 var(--font-ui);
+  border-bottom: 1px solid var(--note-edge);
+}
+
+.card.skin-trading .trading-note-text {
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  font: 14px/1.5 var(--font-ui);
+}
+
+.card.skin-trading .trading-note .source-badges {
+  right: 10px;
+  bottom: 10px;
+}
+
+.card.skin-trading .trading-foil {
+  background-image:
+    linear-gradient(
+      115deg,
+      transparent 18%,
+      color-mix(in srgb, var(--st-review) 16%, transparent) 32%,
+      color-mix(in srgb, var(--accent) 16%, transparent) 46%,
+      transparent 60%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--trading-hue) 58%, var(--surface)),
+      color-mix(in srgb, var(--trading-hue-two) 32%, var(--surface))
+    );
+  background-size:
+    250% 100%,
+    100% 100%;
+}
+
+.card.skin-trading .trading-foil .trading-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 25%,
+    color-mix(in srgb, var(--st-review) 18%, transparent) 45%,
+    color-mix(in srgb, var(--accent) 18%, transparent) 55%,
+    transparent 75%
+  );
+  background-size: 250% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card.skin-trading:hover .trading-foil,
+  .card.skin-trading:hover .trading-foil .trading-art::after {
+    animation: trading-foil-sweep 1.8s ease-in-out infinite alternate;
+  }
+
+  .canvas:is(.is-still, .no-glow) .card.skin-trading:hover .trading-foil,
+  .canvas:is(.is-still, .no-glow) .card.skin-trading:hover .trading-foil .trading-art::after,
+  .canvas[data-moving] .card.skin-trading:hover .trading-foil,
+  .canvas[data-moving] .card.skin-trading:hover .trading-foil .trading-art::after {
+    animation: none;
+  }
+}
+
+@keyframes trading-foil-sweep {
+  to {
+    background-position:
+      100% 0,
+      0 0;
+  }
+}
+
+.card.skin-trading.far-card {
+  width: max-content;
+  min-width: 190px;
+  max-width: 260px;
+  height: auto;
+}
+
+.card.skin-trading.far-card .trading-frame {
+  height: auto;
+  grid-template-rows: auto auto auto;
+  gap: 4px;
+}
+
+.card.skin-trading.far-card .trading-title {
+  min-height: 30px;
+}
+
+.card.skin-trading.far-card .trading-name {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.card.skin-trading.far-card .trading-art,
+.card.skin-trading.far-card .trading-text,
+.card.skin-trading.far-card .trading-bottom {
+  display: none;
+}
+
+.card.skin-trading.far-card .trading-note-text {
+  max-height: 110px;
+}
+
+.card.skin-trading.far-card .trading-note .source-badges {
+  position: static;
+  justify-content: flex-end;
+}
