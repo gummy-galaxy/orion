@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orion · Card variety study</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#0c0920; --panel:#120d2b; --surface:#1b1442; --surface-2:#251c57; --ink:#f4f0ff; --body:#d4cdf3; --muted:#a39bcc; --faint:#786fa3; --line:rgb(255 255 255 / .12); --teal:#18d6c0; --blue:#3b6cff; --violet:#b45cff; --pink:#ff8fa3; --amber:#ffb347; --red:#ff5e7e; --font-display:'Unbounded',system-ui,sans-serif; --font-ui:'Schibsted Grotesk',system-ui,sans-serif; --font-data:'JetBrains Mono',ui-monospace,monospace; --zoom:1; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:radial-gradient(circle at 15% -2%,#29174d 0,transparent 32rem),var(--bg); font:14px/1.5 var(--font-ui); -webkit-font-smoothing:antialiased; }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; opacity:.24; background-image:radial-gradient(#8174ba 1px,transparent 1px); background-size:28px 28px; mask-image:linear-gradient(#0008,transparent 85%); }
+    button,select { font:inherit; }
+    a { color:var(--teal); }
+    .page { width:min(1512px,calc(100% - 64px)); margin:auto; position:relative; }
+    header { padding:70px 0 48px; border-bottom:1px solid var(--line); }
+    .eyebrow { color:var(--teal); font:700 12px var(--font-data); text-transform:uppercase; letter-spacing:.17em; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { max-width:1000px; margin:14px 0 18px; font:800 clamp(36px,5vw,68px)/1.08 var(--font-display); letter-spacing:-.055em; }
+    .gradient { background:linear-gradient(100deg,#f4f0ff 4%,#c99bff 54%,#ffbf93); color:transparent; background-clip:text; }
+    header .intro { max-width:780px; color:var(--body); font-size:18px; line-height:1.55; }
+    .controls { display:flex; gap:12px; flex-wrap:wrap; align-items:end; margin-top:28px; }
+    .control { min-width:175px; display:grid; gap:7px; color:var(--muted); font:700 12px var(--font-data); text-transform:uppercase; letter-spacing:.07em; }
+    .control select,.toggle { height:42px; padding:0 13px; color:var(--ink); background:var(--surface); border:1px solid #6b5e9d; border-radius:7px; }
+    .control select { cursor:pointer; }
+    .toggle { display:flex; gap:10px; align-items:center; cursor:pointer; text-transform:none; font:600 14px var(--font-ui); letter-spacing:0; }
+    .toggle input { accent-color:var(--violet); width:17px; height:17px; }
+    .hint { align-self:center; color:var(--muted); max-width:450px; font-size:13px; }
+    .status-line { color:var(--muted); font-size:13px; min-height:18px; margin:8px 0 0; }
+    section { padding:58px 0 54px; border-bottom:1px solid var(--line); }
+    .section-kicker { display:block; margin-bottom:8px; color:var(--violet); font:700 12px var(--font-data); letter-spacing:.12em; text-transform:uppercase; }
+    h2 { margin:0 0 13px; font:800 clamp(25px,3vw,38px)/1.18 var(--font-display); letter-spacing:-.035em; }
+    .section-copy { color:var(--body); max-width:880px; font-size:16px; margin:0 0 26px; }
+    .section-copy small { color:var(--muted); }
+    .identity-grid { display:grid; grid-template-columns:repeat(5,minmax(170px,1fr)); gap:14px; }
+    .identity { min-height:266px; padding:18px; background:linear-gradient(160deg,#211846,#15102f); border:1px solid var(--line); border-radius:12px; position:relative; overflow:hidden; }
+    .identity::before { content:""; position:absolute; width:140px; height:140px; right:-42px; top:-44px; border-radius:50%; background:var(--kind-color); filter:blur(65px); opacity:.23; }
+    .identity .mini { width:82px; height:108px; border:3px solid var(--kind-color); display:grid; place-items:center; margin-bottom:20px; background:#100d28; box-shadow:0 8px 28px #0005; }
+    .identity .mini svg { width:45px; height:45px; }
+    .identity h3 { margin:0 0 9px; font:700 18px var(--font-ui); text-transform:capitalize; }
+    .identity p { margin:0; color:var(--muted); font-size:13px; }
+    .identity .recipe { margin-top:12px; color:var(--body); font:600 12px var(--font-data); }
+    .identity.step .mini { border-radius:2px; }
+    .identity.pr .mini { clip-path:polygon(16% 0,84% 0,100% 13%,100% 100%,0 100%,0 13%); }
+    .identity.placeholder .mini { border-style:dashed; border-radius:16px; }
+    .identity.gate .mini { border-radius:45px 45px 5px 5px; }
+    .identity.note .mini { border-radius:17px 2px 17px 17px; }
+    .callout { margin:20px 0 0; padding:14px 18px; border-left:3px solid var(--teal); background:#1a1539; color:var(--body); }
+    .grammar { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:24px 0 30px; }
+    .rule { background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:14px; }
+    .rule b { display:block; font:700 13px var(--font-data); color:var(--ink); margin-bottom:5px; }
+    .rule span { font-size:13px; color:var(--muted); }
+    .demo-row { margin-top:26px; }
+    .demo-row h3 { font:700 16px var(--font-ui); margin:0 0 10px; }
+    .demo-row p { color:var(--muted); font-size:13px; margin:0 0 12px; }
+    .demo-strip { display:flex; gap:13px; overflow-x:auto; padding:3px 0 12px; }
+    .demo-item { flex:0 0 215px; padding:12px; background:#181235; border:1px solid var(--line); border-radius:9px; }
+    .demo-item .art { width:100%; height:125px; position:relative; overflow:hidden; }
+    .demo-label { margin-top:9px; font:700 12px var(--font-data); color:var(--body); }
+    .demo-meta { font:500 12px var(--font-ui); color:var(--muted); margin-top:2px; }
+    .rarity-list { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin-bottom:24px; }
+    .tier-brief { padding:15px; background:var(--panel); border:1px solid var(--line); border-radius:10px; }
+    .tier-brief b { display:block; margin-bottom:3px; text-transform:capitalize; }
+    .tier-brief span { color:var(--muted); font:600 12px var(--font-data); }
+    .distribution { margin-top:18px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+    .distribution .bar { display:flex; height:30px; width:min(580px,100%); border-radius:5px; overflow:hidden; border:1px solid #6b5e9d; }
+    .distribution .bar i { display:grid; place-items:center; color:#140e28; font:800 12px var(--font-data); min-width:31px; }
+    .distribution code { color:var(--body); font:600 12px var(--font-data); }
+    .variant { padding-top:46px; }
+    .variant-head { display:flex; gap:20px; flex-wrap:wrap; align-items:baseline; }
+    .variant-head h3 { margin:0; font:800 24px var(--font-display); letter-spacing:-.035em; }
+    .variant-head span { color:var(--violet); font:700 12px var(--font-data); }
+    .variant .section-copy { margin:9px 0 20px; font-size:14px; max-width:800px; }
+    .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(calc(288px * var(--zoom)),1fr)); gap:24px 14px; justify-items:start; }
+    #rarity-cards { display:flex; gap:14px; overflow-x:auto; padding:4px 0 16px; }
+    #rarity-cards .card-slot { flex:none; }
+    .card-slot { width:calc(288px * var(--zoom)); height:calc(400px * var(--zoom)); position:relative; }
+    .card { width:288px; height:400px; position:absolute; top:0; left:0; transform:scale(var(--zoom)); transform-origin:top left; --kind-color:#9ee2d3; --rare-color:#827aa6; background:#110c2b; border:3px solid var(--rare-color); border-radius:9px; box-shadow:0 16px 38px #0008, inset 0 0 0 2px #382b6e; overflow:hidden; padding:10px 11px 13px; display:flex; flex-direction:column; isolation:isolate; }
+    .card::before { content:""; position:absolute; inset:4px; border:1px solid #ffffff20; border-radius:inherit; pointer-events:none; z-index:8; }
+    .card.kind-step { border-radius:2px; }
+    .card.kind-pr { clip-path:polygon(6% 0,94% 0,100% 5%,100% 100%,0 100%,0 5%); }
+    .card.kind-placeholder { border-style:dashed; border-radius:14px; }
+    .card.kind-gate { border-radius:48px 48px 8px 8px / 42px 42px 8px 8px; }
+    .card.kind-note { border-radius:17px 3px 17px 17px; }
+    .card.rarity-uncommon { box-shadow:0 16px 38px #0008,inset 0 0 0 3px #8b83b2; }
+    .card.rarity-rare { box-shadow:0 16px 38px #0008,inset 0 0 0 3px #c8b9ed,0 0 22px #b45cff20; }
+    .card.rarity-mythic { border-width:4px; box-shadow:0 16px 38px #0008,inset 0 0 0 3px #ffc7a2,0 0 26px #ff8fa342; }
+    .card.rarity-keystone { border-width:4px; box-shadow:0 16px 38px #0008,inset 0 0 0 3px #f9e9be,0 0 32px #ffcf7359; }
+    .card.rarity-keystone::after { content:""; position:absolute; inset:-60%; z-index:7; pointer-events:none; background:linear-gradient(105deg,transparent 42%,#fff4 49%,transparent 56%); transform:translateX(-95%); }
+    .card.rarity-keystone:hover::after { animation:shine 1.5s ease-out both; }
+    @keyframes shine { to { transform:translateX(95%); } }
+    .card-head { display:flex; align-items:center; gap:8px; position:relative; z-index:2; min-height:24px; }
+    .kind-chip { display:flex; gap:6px; align-items:center; font:800 12px var(--font-ui); text-transform:uppercase; letter-spacing:.04em; color:var(--kind-color); }
+    .kind-chip svg { width:18px; height:18px; }
+    .rarity-chip { margin-left:auto; display:flex; gap:5px; align-items:center; color:#f5e7c7; font:700 12px var(--font-data); }
+    .rarity-chip svg { width:17px; height:17px; }
+    .card-title { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; flex:0 0 40px; height:40px; min-height:0; max-height:40px; margin:8px 0 9px; overflow:hidden; font:700 16px/20px var(--font-ui); letter-spacing:-.014em; }
+    .card .art { height:159px; flex:none; border:1px solid #6b5f96; background:#0d0a24; position:relative; overflow:hidden; }
+    .art-image { position:absolute; inset:0; }
+    .art-image svg,.art-image img { display:block; width:100%; height:100%; object-fit:cover; }
+    .art-image img { image-rendering:pixelated; }
+    .art-count { position:absolute; right:7px; bottom:32px; padding:2px 4px; background:#0b0828d9; color:#fff; font:700 12px var(--font-data); }
+    .type-line { display:flex; align-items:center; gap:6px; min-height:27px; border-bottom:1px solid #50456e; color:var(--muted); font:700 12px var(--font-data); overflow:hidden; white-space:nowrap; }
+    .type-line strong { color:var(--body); overflow:hidden; text-overflow:ellipsis; }
+    .card-note { color:var(--body); font-size:12px; line-height:1.35; margin:9px 0; max-height:49px; overflow:hidden; }
+    .card-foot { display:flex; flex:0 0 26px; align-items:center; gap:6px; margin-top:auto; min-height:26px; color:var(--body); font:700 12px var(--font-data); white-space:nowrap; overflow:hidden; }
+    .card-foot .grow { flex:1; }
+    .status-chip { padding:4px 6px; border:1px solid currentColor; border-radius:3px; color:var(--status-color); font:800 12px var(--font-ui); line-height:1; text-transform:capitalize; }
+    .study-flag { position:absolute; z-index:9; bottom:42px; right:10px; padding:3px 5px; background:#35264d; color:#ffdab7; border:1px dashed #e0b887; font:700 12px var(--font-data); }
+    .card .mini-stats { font:700 12px var(--font-data); color:#d7cef6; }
+    .variant-land .art { height:192px; border:0; }
+    .variant-land .card-title { margin:8px 0 7px; }
+    .variant-land .land-caption { margin-top:7px; display:flex; align-items:center; justify-content:space-between; color:var(--body); font:700 12px var(--font-data); }
+    .variant-land .card-note { max-height:32px; margin:6px 0; }
+    .variant-snap { background:linear-gradient(155deg,#1c1444,#0e0b27); padding:13px; }
+    .snap-top { display:flex; justify-content:space-between; align-items:start; }
+    .snap-number { display:flex; flex-direction:column; align-items:center; font:800 46px/.95 var(--font-display); }
+    .snap-number small { font:700 12px var(--font-data); text-transform:uppercase; color:var(--muted); margin-top:8px; }
+    .snap-symbol { flex:1; margin:32px auto 20px; width:132px; height:132px; display:grid; place-items:center; border:2px solid var(--kind-color); border-radius:50%; color:var(--kind-color); background:radial-gradient(circle,#ffffff14,transparent 75%); }
+    .snap-symbol svg { width:78px; height:78px; }
+    .variant-snap .card-title { margin:0; height:48px; max-height:48px; flex-basis:48px; background:#e5dcff; color:#17102d; padding:4px 8px; font-size:15px; line-height:20px; }
+    .snap-bottom { display:flex; justify-content:space-between; align-items:center; margin-top:12px; color:var(--body); font:700 12px var(--font-data); }
+    .crest-panel { height:135px; flex:none; background:radial-gradient(circle at 50% 42%,#52386b,#191134 65%); border:1px solid #9b86aa; display:grid; place-items:center; position:relative; overflow:hidden; }
+    .crest-panel .crest { width:101px; height:101px; border:3px double var(--kind-color); border-radius:50%; display:grid; place-items:center; color:var(--kind-color); transform:rotate(-8deg); box-shadow:0 0 0 8px #ffffff0b; }
+    .crest-panel .crest svg { width:61px; height:61px; }
+    .crest-panel small { position:absolute; top:9px; right:10px; font:800 12px var(--font-data); color:var(--body); }
+    .variant-crest .art { height:106px; margin-top:7px; }
+    .group-banner { margin-top:auto; min-height:35px; display:flex; align-items:center; padding:7px; background:var(--kind-color); color:#1a1232; font:800 12px var(--font-ui); text-transform:uppercase; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .variant-corners { padding:13px; }
+    .corner-top,.corner-bottom { display:flex; justify-content:space-between; align-items:start; }
+    .corner-stat { min-width:63px; text-align:center; font:800 30px/1 var(--font-display); color:var(--ink); }
+    .corner-stat small { display:block; font:700 12px var(--font-data); color:var(--muted); margin-top:5px; }
+    .variant-corners .art { height:188px; margin:8px 0 0; }
+    .diamond-row { height:26px; display:flex; align-items:center; justify-content:center; gap:4px; }
+    .diamond-row i { width:10px; height:10px; transform:rotate(45deg); border:1px solid #f6dca2; background:#f6dca2; }
+    .variant-corners .card-title { margin:3px 0; }
+    .corner-bottom { margin-top:auto; color:var(--body); font:700 12px var(--font-data); }
+    .variant-evolved { background:radial-gradient(circle at 50% -12%,color-mix(in srgb,var(--kind-color) 20%,transparent),transparent 56%),linear-gradient(#1a1344,#100b2a); }
+    .evolved-title-row { display:flex; align-items:flex-start; gap:5px; margin:8px 0 9px; flex:0 0 40px; min-height:40px; }
+    .evolved-title-row .card-title { flex:1 1 auto; margin:0; min-width:0; }
+    .number-chip { flex:none; padding:4px 5px; background:#ffffff18; color:#e0d7f5; border:1px solid #ffffff2b; border-radius:3px; font:700 12px var(--font-data); }
+    .variant-evolved .art { box-shadow:0 0 0 2px #ffffff12,0 10px 22px #0005; }
+    .art-status { position:absolute; z-index:2; top:7px; right:7px; padding:4px 6px; color:#190d2d; background:var(--status-color); border-radius:2px; font:800 12px/1 var(--font-ui); text-transform:uppercase; }
+    .art-repo { position:absolute; z-index:2; left:7px; top:7px; display:flex; gap:4px; align-items:center; padding:3px 5px; color:#f5efff; background:#0c092bd9; border:1px solid #ffffff55; border-radius:2px; font:700 12px var(--font-data); }
+    .art-repo svg { width:14px; height:14px; }
+    .variant-evolved .kind-bar { display:flex; align-items:center; gap:7px; min-height:27px; color:var(--kind-color); border-bottom:1px solid #5d5183; font:800 12px var(--font-ui); text-transform:uppercase; }
+    .variant-evolved .kind-bar svg { width:16px; height:16px; }
+    .variant-evolved .kind-bar span:last-child { margin-left:auto; font:700 12px var(--font-data); color:var(--body); text-transform:none; }
+    .variant-evolved .card-note { max-height:34px; margin:7px 0 2px; }
+    .evolved-meta { display:flex; gap:8px; align-items:center; min-height:18px; color:var(--muted); font:700 12px var(--font-data); white-space:nowrap; overflow:hidden; }
+    .evolved-meta span { overflow:hidden; text-overflow:ellipsis; }
+    .variant-evolved .card-foot { border-top:1px solid #ffffff1b; padding-top:5px; }
+    .card-foot .add { color:var(--teal); }
+    .card-foot .del { color:var(--pink); }
+    .ci-chip { display:flex; align-items:center; gap:4px; color:var(--muted); }
+    .ci-chip i { width:6px; height:6px; flex:none; border-radius:50%; background:var(--ci-color,#a39bcc); }
+    .frame-keyline { height:3px; position:absolute; inset:auto 14px 3px; background:linear-gradient(90deg,transparent,var(--rare-color),transparent); opacity:.8; }
+    .canvas-wrap { overflow:auto; border:1px solid #5e5187; border-radius:12px; background:radial-gradient(circle at 10% 16%,#3b20545e,transparent 29%),radial-gradient(circle at 80% 80%,#15676422,transparent 32%),#0a0719; padding:22px; }
+    .mixed-world { position:relative; width:calc(1860px * var(--zoom)); height:calc(2550px * var(--zoom)); background-image:radial-gradient(#a69bcc42 1px,transparent 1px); background-size:calc(28px * var(--zoom)) calc(28px * var(--zoom)); }
+    .mixed-world svg.wires { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+    .mixed-world svg.wires path { fill:none; stroke:#8d79bf; stroke-width:2; stroke-dasharray:4 5; opacity:.55; }
+    .mixed-world .card-slot { position:absolute; }
+    .notes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+    .note-box { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:19px; }
+    .note-box b { display:block; font-size:15px; margin-bottom:5px; }
+    .note-box p { margin:0; color:var(--body); font-size:14px; }
+    footer.page-foot { padding:35px 0 70px; color:var(--faint); font:600 12px var(--font-data); }
+    @media(max-width:1050px) { .identity-grid,.rarity-list { grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); } .grammar { grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); } }
+    @media(max-width:700px) { .page { width:min(100% - 28px,1512px); } header { padding-top:44px; } section { padding:42px 0; } .notes { grid-template-columns:1fr; } .card-grid { gap:14px 6px; } }
+    @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .card.rarity-keystone:hover::after { animation:none; } }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
+    <filter id="vision-protanopia" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".567 .433 0 0 0 .558 .442 0 0 0 0 .242 .758 0 0 0 0 0 1 0"/></filter>
+    <filter id="vision-deuteranopia" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".625 .375 0 0 0 .7 .3 0 0 0 0 .3 .7 0 0 0 0 0 1 0"/></filter>
+    <filter id="vision-tritanopia" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".95 .05 0 0 0 0 .433 .567 0 0 0 .475 .525 0 0 0 0 0 1 0"/></filter>
+    <filter id="vision-achromatopsia" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".2126 .7152 .0722 0 0 .2126 .7152 .0722 0 0 .2126 .7152 .0722 0 0 0 0 0 1 0"/></filter>
+  </defs></svg>
+  <div class="page">
+    <header>
+      <span class="eyebrow">Orion / Design study 04 / 288 × 400</span>
+      <h1>Cards with a <span class="gradient">shape of their own.</span></h1>
+      <p class="intro">A card’s silhouette tells you what it is. Its geometric scene is built from its place in the work graph. Its finish tells you how much work flows into it. Color adds atmosphere, never the only clue.</p>
+      <div class="controls">
+        <label class="control">Vision simulation<select id="vision"><option value="none">Unfiltered</option><option value="protanopia">Protanopia</option><option value="deuteranopia">Deuteranopia</option><option value="tritanopia">Tritanopia</option><option value="achromatopsia">Achromatopsia</option></select></label>
+        <label class="control">Art finish<span class="toggle"><input id="dither" type="checkbox" checked> Dither geometric art</span></label>
+        <label class="control">Canvas zoom<select id="zoom"><option value="1">100%</option><option value="0.6">60%</option><option value="0.35">35%</option></select></label>
+        <span class="hint">Zoom changes card size, including text. The card’s design coordinates and type remain 288 × 400 and at least 12 px.</span>
+      </div>
+      <p id="render-status" class="status-line" role="status"></p>
+    </header>
+    <main id="vision-area">
+      <section id="identity"><span class="section-kicker">01 / Visual taxonomy</span><h2>Kind identity</h2><p class="section-copy">Five different silhouettes, repeated in the type glyph and art. The card can be recognized from its outer edge at far zoom.</p><div id="identity-grid" class="identity-grid"></div><p class="callout">Square tile · forked crown · dashed open portal · tall arch · folded corner. These remain distinct in grayscale; palette is a second cue.</p></section>
+      <section id="geometry"><span class="section-kicker">02 / Picture grammar</span><h2>Geometric art system</h2><p class="section-copy">Each scene starts with a card ID seed, then the work graph chooses its structure. The dominant figure follows kind; the repeated shapes follow upstream work. The comparison strips hold all but one input constant.</p><div class="grammar"><div class="rule"><b>01 · Kind</b><span>Dominant square, branching fork, open ring, arch, or ribbon.</span></div><div class="rule"><b>02 · Upstream</b><span>One small tile per ancestor, capped at twelve; excess shown as +N.</span></div><div class="rule"><b>03 · Direct inputs</b><span>Converging paths into the central form.</span></div><div class="rule"><b>04 · Leverage</b><span>Rays leaving the form toward unfinished descendants.</span></div><div class="rule"><b>05 · State + repo</b><span>Center fill follows status; repo hash picks a motif family.</span></div></div><div id="art-demos"></div></section>
+      <section id="rarity"><span class="section-kicker">03 / Weight of accumulated work</span><h2>Rarity ladder</h2><p class="section-copy">Rarity counts all upstream work, including completed cards. It never resets when a dependency ships. Badge shape, pip count, and frame finish rise together. Only Keystone shines on hover.</p><div id="rarity-brief" class="rarity-list"></div><div id="rarity-cards" class="card-grid"></div><div id="distribution" class="distribution"></div></section>
+      <section id="variants"><span class="section-kicker">04 / Five directions</span><h2>One deck, five visual readings</h2><p class="section-copy">The 17-card study deck spans every available kind, status, and upstream tier. “Study state” labels mark the gate and review examples absent from this snapshot. All live cards come from the Orion workspace copy.</p><div id="variants-content"></div></section>
+      <section id="mixed"><span class="section-kicker">05 / Context test</span><h2>Mixed canvas</h2><p class="section-copy">Twenty-four Evolved cards in a loose dependency field. The repeated Orion repository is intentional: kind, graph art, and rarity still need to separate the cards without repo colors.</p><div class="canvas-wrap"><div id="mixed-world" class="mixed-world"></div></div></section>
+      <section id="notes"><span class="section-kicker">06 / Decision notes</span><h2>What to take forward</h2><div class="notes"><div class="note-box"><b>Recommend: Evolved trading card</b><p>It keeps the current art-first reading and improves kind, graph identity, and rarity with the least disruption to the 288 × 400 layout.</p></div><div class="note-box"><b>Keep five tiers for this distribution</b><p>0 / 1–2 / 3–5 / 6–11 / 12+ yields 64 / 20 / 24 / 9 / 8 cards. “Keystone” describes accumulated input, not priority.</p></div><div class="note-box"><b>At 35% zoom</b><p>Keep silhouette, kind emblem, status, and rarity seal. Hide note text, change counts, and internal art details before they become visual grit.</p></div><div class="note-box"><b>Open questions</b><p>Should gates be real card kinds or group milestones? Does the product want “Keystone” as the fifth name? Test repository motifs on a multi-repo workspace.</p></div></div><p class="callout">Departures from the research brief: this study replaces a color-coded kind system with more assertive silhouettes; makes the fifth tier visible because the real tail has eight cards; and uses the requested Evolved direction in place of the brief’s set-symbol variant. The snapshot contains no native gates, review turns, or second repository, so those comparisons are clearly marked design projections.</p></section>
+    </main>
+    <footer class="page-foot">Orion card variety · standalone design study · source snapshot: workspaces/orion/orion.json</footer>
+  </div>
+  <script type="module">
+    /* Data: generated by scratchpad/deck_builder.py from the read-only Orion snapshot. */
+    const DECK = [
+  {
+    "id": "orion-27",
+    "kind": "pr",
+    "status": "done",
+    "recorded": "done",
+    "who": null,
+    "title": "Redraw only the cards and arrows that change",
+    "note": "",
+    "group": "Performance",
+    "repo": "vocksel/orion",
+    "pr": 124,
+    "additions": 609,
+    "deletions": 514,
+    "checks": "SUCCESS",
+    "upstream": 26,
+    "direct": 4,
+    "leverage": 0,
+    "inputs": [
+      "orion-33",
+      "split-out-direct-reference-links",
+      "split-out-the-debug-bar",
+      "split-out-the-lens-and-far-zoom"
+    ],
+    "source": "github-pr"
+  },
+  {
+    "id": "orion-33",
+    "kind": "pr",
+    "status": "done",
+    "recorded": "done",
+    "who": null,
+    "title": "Let agents see the app's open group and selection with orion focus",
+    "note": "Caught up with main",
+    "group": "Review sequence",
+    "repo": "vocksel/orion",
+    "pr": 33,
+    "additions": 806,
+    "deletions": 229,
+    "checks": "SUCCESS",
+    "upstream": 18,
+    "direct": 1,
+    "leverage": 0,
+    "inputs": [
+      "orion-62"
+    ],
+    "source": "github-pr"
+  },
+  {
+    "id": "orion-37",
+    "kind": "pr",
+    "status": "done",
+    "recorded": "done",
+    "who": null,
+    "title": "Add a sticker wheel and stamp stickers that can be tossed around",
+    "note": "",
+    "group": "Review sequence",
+    "repo": "vocksel/orion",
+    "pr": 37,
+    "additions": 1190,
+    "deletions": 47,
+    "checks": null,
+    "upstream": 12,
+    "direct": 1,
+    "leverage": 0,
+    "inputs": [
+      "orion-36"
+    ],
+    "source": "github-pr"
+  },
+  {
+    "id": "orion-72",
+    "kind": "placeholder",
+    "status": "blocked",
+    "recorded": "todo",
+    "who": null,
+    "title": "Make everyday edits trivial: reconnect, move, resize, and batch edit",
+    "note": "",
+    "group": "Editing",
+    "repo": "vocksel/orion",
+    "pr": null,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 6,
+    "direct": 2,
+    "leverage": 0,
+    "inputs": [
+      "orion-1",
+      "orion-65"
+    ],
+    "source": "github-issue"
+  },
+  {
+    "id": "add-a-trading-card-skin",
+    "kind": "pr",
+    "status": "active",
+    "recorded": "active",
+    "who": "you",
+    "title": "Add a trading card skin",
+    "note": "Ports the #31 spike and the #95 study onto the registry.",
+    "group": "Card skins",
+    "repo": "vocksel/orion",
+    "pr": 159,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 5,
+    "direct": 1,
+    "leverage": 0,
+    "inputs": [
+      "lay-out-cards-at-the-active-skin"
+    ],
+    "source": null
+  },
+  {
+    "id": "add-a-trello-style-skin",
+    "kind": "pr",
+    "status": "review",
+    "recorded": "active",
+    "who": "you",
+    "title": "Add a Trello-style skin",
+    "note": "",
+    "group": "Card skins",
+    "repo": "vocksel/orion",
+    "pr": 157,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 4,
+    "direct": 1,
+    "leverage": 0,
+    "inputs": [
+      "add-a-card-skin-registry-with-cl"
+    ],
+    "source": null,
+    "studyState": "review preview from active card"
+  },
+  {
+    "id": "add-a-card-skin-registry-with-cl",
+    "kind": "pr",
+    "status": "active",
+    "recorded": "active",
+    "who": "you",
+    "title": "Add a card skin registry with Classic and Plain skins",
+    "note": "A skin is a component plus its card size",
+    "group": "Card skins",
+    "repo": "vocksel/orion",
+    "pr": 154,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 3,
+    "direct": 2,
+    "leverage": 4,
+    "inputs": [
+      "render-cards-from-one-card-view",
+      "vocksel-orion-149"
+    ],
+    "source": null
+  },
+  {
+    "id": "orion-54",
+    "kind": "placeholder",
+    "status": "active",
+    "recorded": "active",
+    "who": null,
+    "title": "Refactor Orion's Luau core around source adapters and shared conventions",
+    "note": "",
+    "group": "Sources",
+    "repo": "vocksel/orion",
+    "pr": null,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 2,
+    "direct": 1,
+    "leverage": 10,
+    "inputs": [
+      "route-ingest-and-sync-through-so"
+    ],
+    "source": "github-issue"
+  },
+  {
+    "id": "orion-46",
+    "kind": "pr",
+    "status": "deferred",
+    "recorded": "deferred",
+    "who": null,
+    "title": "Share Orion workspaces with the desktop app",
+    "note": "Replaced by #53, which runs orion serve in the desktop app instead of a Rust store",
+    "group": "Workspaces and sharing",
+    "repo": "vocksel/orion",
+    "pr": 46,
+    "additions": 631,
+    "deletions": 6,
+    "checks": null,
+    "upstream": 1,
+    "direct": 1,
+    "leverage": 3,
+    "inputs": [
+      "orion-45"
+    ],
+    "source": "github-pr"
+  },
+  {
+    "id": "orion-50",
+    "kind": "pr",
+    "status": "deferred",
+    "recorded": "deferred",
+    "who": null,
+    "title": "Expose Orion actions through a local MCP server",
+    "note": "",
+    "group": "Agent operations",
+    "repo": "vocksel/orion",
+    "pr": 50,
+    "additions": 1461,
+    "deletions": 0,
+    "checks": null,
+    "upstream": 4,
+    "direct": 1,
+    "leverage": 0,
+    "inputs": [
+      "orion-49"
+    ],
+    "source": "github-pr"
+  },
+  {
+    "id": "orion-79",
+    "kind": "pr",
+    "status": "done",
+    "recorded": "done",
+    "who": null,
+    "title": "Remove the default seed data",
+    "note": "",
+    "group": "Workspaces and sharing",
+    "repo": "vocksel/orion",
+    "pr": 143,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 0,
+    "direct": 0,
+    "leverage": 0,
+    "inputs": [],
+    "source": "github-issue"
+  },
+  {
+    "id": "browse-and-edit-orion-data-in-da",
+    "kind": "step",
+    "status": "ready",
+    "recorded": "todo",
+    "who": null,
+    "title": "Browse and edit Orion data in database views",
+    "note": "GitHub issue #102.",
+    "group": "Sources",
+    "repo": "vocksel/orion",
+    "pr": null,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 0,
+    "direct": 0,
+    "leverage": 0,
+    "inputs": [],
+    "source": null
+  },
+  {
+    "id": "note-brand-design-brief-make-",
+    "kind": "note",
+    "status": "ready",
+    "recorded": "todo",
+    "who": null,
+    "title": "Brand design brief: Make the work map feel clear, playful, and gummy. Compare Orion Belt and constellation, Star Charter route and compass, and Artemis bow and arrow directions. Keep icons legible at 64 px and distinguish node types by shape as well as color. Brief and six icon studies: https://github.com/vocksel/orion/tree/agent/brand-icon-study/design/brand-explorations",
+    "note": "",
+    "group": "Play and identity",
+    "repo": "vocksel/orion",
+    "pr": null,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 0,
+    "direct": 0,
+    "leverage": 0,
+    "inputs": [],
+    "source": null
+  },
+  {
+    "id": "orion-40",
+    "kind": "placeholder",
+    "status": "ready",
+    "recorded": "todo",
+    "who": null,
+    "title": "Distinguish canvas objects and states with shape as well as color",
+    "note": "",
+    "group": "Play and identity",
+    "repo": "vocksel/orion",
+    "pr": null,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 0,
+    "direct": 0,
+    "leverage": 0,
+    "inputs": [],
+    "source": "github-issue"
+  },
+  {
+    "id": "orion-88",
+    "kind": "placeholder",
+    "status": "blocked",
+    "recorded": "todo",
+    "who": null,
+    "title": "Add `orion tidy` and `orion check` for layout",
+    "note": "",
+    "group": "Agent operations",
+    "repo": "vocksel/orion",
+    "pr": null,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 2,
+    "direct": 2,
+    "leverage": 0,
+    "inputs": [
+      "orion-84",
+      "orion-90"
+    ],
+    "source": "github-issue"
+  },
+  {
+    "id": "orion-128",
+    "kind": "pr",
+    "status": "done",
+    "recorded": "done",
+    "who": null,
+    "title": "Add Storybook and component stories",
+    "note": "",
+    "group": "App development",
+    "repo": "vocksel/orion",
+    "pr": 128,
+    "additions": 3693,
+    "deletions": 45,
+    "checks": "SUCCESS",
+    "upstream": 1,
+    "direct": 1,
+    "leverage": 0,
+    "inputs": [
+      "orion-127"
+    ],
+    "source": "github-pr"
+  },
+  {
+    "id": "study-gate-card-skins",
+    "kind": "gate",
+    "status": "blocked",
+    "recorded": "study",
+    "who": null,
+    "title": "Card skins",
+    "note": "Outcome group shown as a proposed milestone card.",
+    "group": "Card skins",
+    "repo": "vocksel/orion",
+    "pr": null,
+    "additions": null,
+    "deletions": null,
+    "checks": null,
+    "upstream": 5,
+    "direct": 2,
+    "leverage": 0,
+    "inputs": [],
+    "source": null,
+    "studyState": "gate projection from real group"
+  }
+];
+    const DISTRIBUTION = {0:64,1:14,2:6,3:12,4:9,5:3,6:4,7:1,8:1,9:1,10:1,11:1,12:1,13:1,14:1,15:1,16:1,17:1,18:1,26:1};
+    const TIERS = [
+      {id:'common',label:'Common',range:'0 upstream',count:64,color:'#817aa5',pips:1},
+      {id:'uncommon',label:'Uncommon',range:'1–2 upstream',count:20,color:'#9fc4cc',pips:2},
+      {id:'rare',label:'Rare',range:'3–5 upstream',count:24,color:'#d5b7f8',pips:3},
+      {id:'mythic',label:'Mythic',range:'6–11 upstream',count:9,color:'#ffadad',pips:4},
+      {id:'keystone',label:'Keystone',range:'12+ upstream',count:8,color:'#ffe1a1',pips:5},
+    ];
+    const KIND = {
+      step:{label:'Step',color:'#9ee2d3',motif:'Tile field',frame:'Square edge'},
+      pr:{label:'Pull request',color:'#8eb2ff',motif:'Branching paths',frame:'Chamfered crown'},
+      placeholder:{label:'Expected PR',color:'#a8d5ff',motif:'Open hatching',frame:'Dashed portal'},
+      gate:{label:'Gate',color:'#ffcb82',motif:'Nested arches',frame:'Tall arch'},
+      note:{label:'Note',color:'#ffddaf',motif:'Flowing ribbons',frame:'Folded corner'},
+    };
+    const STATUS = {ready:['Ready','#18d6c0'],active:['Active','#c98bff'],review:['Review','#ffb347'],blocked:['Blocked','#ff5e7e'],deferred:['Deferred','#b6a9d2'],done:['Done','#b8d6cb']};
+    const ICON_PATH = {
+      step:'<rect x="13" y="13" width="38" height="38" rx="2"/><path d="m21 32 8 8 15-18"/>',
+      pr:'<circle cx="18" cy="15" r="5"/><circle cx="45" cy="25" r="5"/><circle cx="18" cy="49" r="5"/><path d="M18 20v24M23 38c15 0 8-13 17-13"/>',
+      placeholder:'<circle cx="32" cy="32" r="23" stroke-dasharray="7 6"/><path d="M32 17v30M17 32h30"/>',
+      gate:'<path d="M10 55V28a22 22 0 0 1 44 0v27H10Z"/><path d="M22 55V31a10 10 0 0 1 20 0v24"/>',
+      note:'<path d="M12 10h31l10 10v34H12V10Z"/><path d="M43 10v10h10M22 32h20M22 41h15"/>',
+    };
+    const icon = kind => `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON_PATH[kind]}</svg>`;
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const hash = value => { let h=2166136261; for (const c of String(value)) h=Math.imul(h^c.charCodeAt(0),16777619); return h>>>0; };
+    const randFor = value => { let h=hash(value); return () => { h=Math.imul(h^(h>>>15),2246822507); h=Math.imul(h^(h>>>13),3266489909); return ((h^=h>>>16)>>>0)/4294967296; }; };
+    const rarity = n => TIERS[n===0?0:n<=2?1:n<=5?2:n<=11?3:4];
+    const compact = value => value==null?'—':String(value);
+    const sourceText = card => card.pr?`#${card.pr} · ${card.repo.split('/').pop()}`:card.repo.split('/').pop();
+    const noteText = card => card.note || (card.kind==='note'?'Free text on the canvas.':`${card.group || 'Orion'} · ${card.direct} direct inputs · ${card.leverage} open downstream`);
+
+    /* Art generator: deterministic card data → filled poster shapes. */
+    const INK = ['#18d6c0','#3b6cff','#b45cff','#ff8fa3','#ffb347','#ff5e7e','#d94dff'];
+    const BACK = '#0d0a24';
+    const S = (tag,attrs,options={}) => ({tag,attrs,...options});
+    const R = (x,y,width,height,fill,options={}) => S('rect',{x,y,width,height,fill},options);
+    const A = (cx,cy,r,fill,options={}) => S('circle',{cx,cy,r,fill},options);
+    const P = (points,fill,options={}) => S('polygon',{points,fill},options);
+    const D = (d,fill,options={}) => S('path',{d,fill},options);
+    const outline = (shape,color,width=8) => ({...shape,attrs:{...shape.attrs,fill:'none',stroke:color,'stroke-width':Math.max(3,width)}});
+    const mix = (a,b,t) => {
+      const channel = (hex,i) => parseInt(hex.slice(i,i+2),16);
+      return '#'+[1,3,5].map(i=>Math.round(channel(a,i)*(1-t)+channel(b,i)*t).toString(16).padStart(2,'0')).join('');
+    };
+    const round = n => Math.round(n*10)/10;
+    const pt = (x,y) => `${round(x)},${round(y)}`;
+    const paletteFor = card => {
+      const base=KIND[card.kind].color;
+      const accent=INK[hash(card.id+'|ink')%INK.length];
+      return {base,light:mix(base,'#ffffff',.37),deep:mix(base,'#28204f',.63),accent,back:BACK};
+    };
+    const rotated = (shapes,degrees,x,y) => shapes.map(shape=>({...shape,rotate:[round(degrees),round(x),round(y)]}));
+
+    /* Six layouts: monument, horizon, cascade, rhythm, orbit, cluster. */
+    function composition(card,rand,pal) {
+      const template=card.pr!=null ? card.pr%6 : hash(card.id+'|poster')%6;
+      const jitter=()=>round((rand()-.5)*24);
+      const scale=()=>.84+rand()*.36;
+      const turn=()=>round((rand()-.5)*(card.kind==='gate'?14:30));
+      const placements=[];
+      const field=[];
+      if(template===0) {
+        field.push(R(0,0,83,160,pal.deep),P('0,0 256,0 256,44 0,122',mix(pal.deep,BACK,.65)));
+        placements.push([167+jitter(),72+jitter(),181*scale(),turn(),true],[24+jitter(),126,86*scale(),turn(),false]);
+      } else if(template===1) {
+        field.push(R(0,95,256,65,pal.deep),P('0,102 256,57 256,101 0,146',pal.accent,{alpha:.42,blend:'screen'}));
+        placements.push([77+jitter(),64+jitter(),154*scale(),turn(),true],[211+jitter(),105,112*scale(),turn(),false]);
+      } else if(template===2) {
+        field.push(P('0,0 156,0 256,123 256,160 212,160',pal.deep));
+        placements.push([-8+jitter(),-8+jitter(),134*scale(),turn(),false],[85+jitter(),51+jitter(),132*scale(),turn(),true],[189+jitter(),108+jitter(),93*scale(),turn(),false]);
+      } else if(template===3) {
+        field.push(R(0,0,256,160,mix(pal.deep,BACK,.6)));
+        for(let row=0;row<2;row++)for(let col=0;col<3;col++)placements.push([36+col*92+jitter()*.4,29+row*89+jitter()*.4,(row===1&&col===1?119:74)*scale(),turn(),row===1&&col===1]);
+      } else if(template===4) {
+        field.push(A(130+jitter(),77,133,pal.deep),A(130,77,86,BACK));
+        placements.push([128+jitter(),78+jitter(),143*scale(),turn(),true],[16+jitter(),128,79*scale(),turn(),false],[241+jitter(),12,91*scale(),turn(),false]);
+      } else {
+        field.push(P('0,0 128,0 58,160 0,160',pal.deep),P('172,0 256,0 256,160 211,160',mix(pal.accent,BACK,.6)));
+        placements.push([52+jitter(),91+jitter(),147*scale(),turn(),false],[131+jitter(),55+jitter(),141*scale(),turn(),true],[221+jitter(),103+jitter(),116*scale(),turn(),false]);
+      }
+      return {template,field,placements};
+    }
+
+    /* Shape families use large filled areas; the small header glyph is deliberately absent. */
+    function kindForms(kind,x,y,size,pal,fill,accent,rotation) {
+      const s=size, forms=[];
+      if(kind==='step') {
+        forms.push(R(x-s*.52,y-s*.5,s*.9,s*.9,fill));
+        forms.push(R(x-s*.29,y-s*.29,s*.56,s*.56,pal.deep,{alpha:.72,blend:'multiply'}));
+        forms.push(R(x+s*.11,y+s*.05,s*.47,s*.47,accent,{alpha:.84,blend:'screen'}));
+      } else if(kind==='pr') {
+        forms.push(P([pt(x-s*.7,y-s*.67),pt(x-s*.46,y-s*.67),pt(x+s*.04,y-s*.13),pt(x+s*.04,y+s*.17),pt(x-s*.11,y+s*.17)].join(' '),fill));
+        forms.push(P([pt(x-s*.7,y+s*.67),pt(x-s*.46,y+s*.67),pt(x+s*.04,y+s*.13),pt(x+s*.04,y-s*.17),pt(x-s*.11,y-s*.17)].join(' '),fill));
+        forms.push(P([pt(x-s*.06,y-s*.18),pt(x+s*.72,y-s*.18),pt(x+s*.72,y+s*.18),pt(x-s*.06,y+s*.18)].join(' '),accent,{alpha:.9,blend:'screen'}));
+      } else if(kind==='placeholder') {
+        const square=R(x-s*.53,y-s*.46,s*1.06,s*.92,'none');
+        forms.push(outline(square,fill,Math.max(8,s*.105)));
+        forms.push(outline(A(x+s*.14,y-s*.06,s*.31,'none'),accent,Math.max(7,s*.08)));
+        for(let i=-2;i<=2;i++)forms.push(D(`M${round(x-s*.42+i*s*.17)} ${round(y+s*.37)}l${round(s*.34)} ${round(-s*.74)}`,'none',{stroke:pal.light,width:Math.max(4,s*.045),alpha:.37}));
+      } else if(kind==='gate') {
+        const arch=(w,h)=>`M${round(x-w/2)} ${round(y+h*.5)}V${round(y-h*.06)}A${round(w/2)} ${round(h*.48)} 0 0 1 ${round(x+w/2)} ${round(y-h*.06)}V${round(y+h*.5)}Z`;
+        forms.push(D(arch(s*1.02,s),fill));
+        forms.push(D(arch(s*.68,s*.76),pal.deep,{alpha:.82,blend:'multiply'}));
+        forms.push(D(arch(s*.37,s*.57),accent,{alpha:.83,blend:'screen'}));
+      } else {
+        const band=(offset,w)=>`M${round(x-s*.74)} ${round(y-s*.24+offset)}C${round(x-s*.34)} ${round(y-s*.95+offset)} ${round(x+s*.01)} ${round(y+s*.74+offset)} ${round(x+s*.75)} ${round(y-s*.36+offset)}L${round(x+s*.75)} ${round(y-s*.36+offset+w)}C${round(x+s*.01)} ${round(y+s*.74+offset+w)} ${round(x-s*.34)} ${round(y-s*.95+offset+w)} ${round(x-s*.74)} ${round(y-s*.24+offset+w)}Z`;
+        forms.push(D(band(0,s*.3),fill));
+        forms.push(D(band(s*.36,s*.15),accent,{alpha:.82,blend:'screen'}));
+      }
+      return rotated(forms,rotation,x,y);
+    }
+
+    function statusTreatment(card,placement,pal) {
+      const [x,y,s,turn]=placement;
+      const status=card.status, extra=[];
+      if(status==='review') {
+        extra.push(outline(A(x,y,s*.58,'none'),pal.light,7));
+        extra.push(outline(A(x,y,s*.66,'none'),pal.accent,4));
+      }
+      if(status==='blocked')extra.push(P([pt(x-s*.64,y+s*.54),pt(x-s*.54,y+s*.64),pt(x+s*.64,y-s*.54),pt(x+s*.54,y-s*.64)].join(' '),'#ff5e7e'));
+      if(status==='deferred') {
+        extra.push(R(x-s*.19,y-s*.32,s*.12,s*.64,pal.light),R(x+s*.07,y-s*.32,s*.12,s*.64,pal.light));
+      }
+      if(status==='active')extra.push(P([pt(x,y-s*.52),pt(x+s*.52,y),pt(x,y+s*.52)].join(' '),pal.accent,{alpha:.46,blend:'screen'}));
+      if(status==='ready')extra.push(outline(A(x,y,s*.34,'none'),pal.light,8));
+      return rotated(extra,turn,x,y);
+    }
+
+    function artShapes(card) {
+      const rand=randFor(card.id),pal=paletteFor(card),shapes=[R(0,0,256,160,BACK)];
+      const {field,placements}=composition(card,rand,pal);
+      shapes.push(...field);
+      const motif=hash(card.repo)%4;
+      if(motif===0)for(let i=0;i<4;i++)shapes.push(R(-7+i*68,0,33,35,pal.accent,{alpha:.44,blend:'screen'}));
+      if(motif===1)for(let i=0;i<3;i++)shapes.push(R(8+i*111,0,23,160,pal.accent,{alpha:.28,blend:'screen'}));
+      if(motif===2)for(let i=0;i<3;i++)shapes.push(P(`${-58+i*112},0 ${-12+i*112},0 ${77+i*112},160 ${31+i*112},160`,pal.accent,{alpha:.28,blend:'screen'}));
+      if(motif===3)for(let i=0;i<3;i++)shapes.push(outline(A(256,0,45+i*47,'none'),pal.accent,8));
+      const hero=placements.find(p=>p[4])||placements[0];
+      for(let i=0;i<Math.min(card.direct,4);i++) {
+        const y=17+i*27, hx=hero[0]-hero[2]*.2;
+        shapes.push(P([pt(-17,y),pt(15,y+2),pt(hx,hero[1]-13+i*8),pt(hx,hero[1]+1+i*8)].join(' '),pal.light,{alpha:.52,blend:'screen'}));
+      }
+      placements.forEach(([x,y,s,rotation,isHero],i)=>{
+        let fill=isHero?pal.base:(i%2?pal.deep:pal.light);
+        if(isHero&&card.status==='ready')fill=pal.deep;
+        if(isHero&&card.status==='deferred')fill=mix(pal.base,BACK,.55);
+        const accent=isHero?pal.accent:(i%2?pal.base:pal.deep);
+        shapes.push(...kindForms(card.kind,x,y,s,pal,fill,accent,rotation));
+        if(isHero)shapes.push(...statusTreatment(card,[x,y,s,rotation],pal));
+      });
+      for(let i=0;i<Math.min(card.leverage,6);i++) {
+        const y=15+i*22, hx=hero[0]+hero[2]*.25;
+        shapes.push(P([pt(hx,hero[1]-4+i*2),pt(256,y-8),pt(256,y+9),pt(hx,hero[1]+8+i*2)].join(' '),pal.accent,{alpha:.64,blend:'screen'}));
+      }
+      shapes.push(R(0,137,256,23,'#09071b',{alpha:.89}));
+      const visible=Math.min(card.upstream,12);
+      for(let i=0;i<visible;i++) {
+        const x=8+i*20;
+        const tone=i%3===0?pal.accent:i%2===0?pal.light:pal.base;
+        if(card.kind==='placeholder')shapes.push(outline(R(x,143,13,11,'none'),tone,3));
+        else if(card.kind==='gate')shapes.push(D(`M${x} 154v-5a6.5 6.5 0 0 1 13 0v5Z`,tone));
+        else if(card.kind==='note')shapes.push(P(`${x},154 ${x+5},143 ${x+13},143 ${x+8},154`,tone));
+        else shapes.push(R(x,143,13,11,tone));
+      }
+      return shapes;
+    }
+
+    function shapeSvg(shape) {
+      const attrs={...shape.attrs};
+      if(shape.stroke){attrs.stroke=shape.stroke;attrs['stroke-width']=Math.max(3,shape.width||3);}
+      if(shape.alpha!=null)attrs.opacity=shape.alpha;
+      if(shape.blend)attrs.style=`mix-blend-mode:${shape.blend}`;
+      if(shape.rotate)attrs.transform=`rotate(${shape.rotate.join(' ')})`;
+      return `<${shape.tag} ${Object.entries(attrs).map(([key,value])=>`${key}="${esc(value)}"`).join(' ')}/>`;
+    }
+    const ART_CACHE=new Map();
+    function artData(card) {
+      const key=JSON.stringify([card.id,card.kind,card.status,card.repo,card.upstream,card.direct,card.leverage]);
+      if(!ART_CACHE.has(key)) {
+        const shapes=artShapes(card);
+        ART_CACHE.set(key,{shapes,svg:`<svg viewBox="0 0 256 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Geometric poster for ${esc(card.title)}">${shapes.map(shapeSvg).join('')}</svg>`});
+      }
+      return {key,...ART_CACHE.get(key)};
+    }
+    function art(card,overlays='') {
+      const {key,svg}=artData(card),excess=Math.max(0,card.upstream-12);
+      return `<div class="art"><div class="art-image" data-art-key="${esc(key)}">${svg}</div>${excess?`<span class="art-count">+${excess}</span>`:''}${overlays}</div>`;
+    }
+    function rarityIcon(tier) {
+      const shapes={common:'<circle cx="9" cy="9" r="5"/>',uncommon:'<path d="M9 2 16 9 9 16 2 9Z"/>',rare:'<path d="m9 1 2.3 5.7L17 9l-5.7 2.3L9 17l-2.3-5.7L1 9l5.7-2.3Z"/>',mythic:'<path d="M5 1h8l4 8-4 8H5L1 9Z"/>',keystone:'<circle cx="9" cy="9" r="7"/><circle cx="9" cy="9" r="4"/>'};
+      return `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">${shapes[tier.id]}</svg>`;
+    }
+    function rarityMark(tier) { return `<span class="rarity-chip" title="${tier.label}: ${tier.range}">${rarityIcon(tier)}${'•'.repeat(tier.pips)}</span>`; }
+    function shell(card,variant,inside,forcedTier) {
+      const tier=forcedTier||rarity(card.upstream), status=STATUS[card.status]||STATUS.ready;
+      return `<div class="card-slot"><article class="card kind-${card.kind} rarity-${tier.id} variant-${variant}" style="--kind-color:${KIND[card.kind].color};--rare-color:${tier.color};--status-color:${status[1]}" aria-label="${esc(card.title)}: ${esc(KIND[card.kind].label)}, ${tier.label}, ${status[0]}">${inside}<i class="frame-keyline"></i>${card.studyState?`<span class="study-flag" title="${esc(card.studyState)}">Study state</span>`:''}</article></div>`;
+    }
+    const head=(card,tier)=>`<div class="card-head"><span class="kind-chip">${icon(card.kind)}${KIND[card.kind].label}</span>${rarityMark(tier)}</div>`;
+    const foot=card=>`<div class="card-foot"><span>${card.pr?'#'+card.pr:'No PR'}</span><span class="grow"></span><span class="status-chip">${STATUS[card.status][0]}</span></div>`;
+    const diff=card=>card.additions!=null?`+${card.additions} / −${card.deletions??0}`:'No diff';
+    function crestSymbol(repo) {
+      const family=hash(repo)%4;
+      const mark=[
+        '<path d="M10 54V10h44v44H10Zm13-31h18v18H23Z"/>',
+        '<circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="10"/><path d="M32 4v18M32 42v18"/>',
+        '<path d="M32 5 59 53H5L32 5Zm0 17 11 20H21l11-20Z"/>',
+        '<path d="M10 11h44L32 54 10 11Zm0 14h44M20 40h24"/>',
+      ][family];
+      return `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" aria-label="Repository crest for ${esc(repo)}">${mark}</svg>`;
+    }
+    function renderLand(card,tier=rarity(card.upstream)) { return shell(card,'land',`${head(card,tier)}<h3 class="card-title">${esc(card.title)}</h3>${art(card)}<div class="land-caption"><span>${esc(KIND[card.kind].label)} · ${card.upstream} upstream</span><span>${tier.label}</span></div><p class="card-note">${esc(noteText(card))}</p>${foot(card)}`,tier); }
+    function renderSnap(card,tier=rarity(card.upstream)) { return shell(card,'snap',`<div class="snap-top"><div class="snap-number">${card.direct}<small>inputs</small></div>${rarityMark(tier)}<div class="snap-number">${card.leverage}<small>opens</small></div></div><div class="snap-symbol">${icon(card.kind)}</div><h3 class="card-title" title="${esc(card.title)}">${esc(card.title)}</h3><div class="snap-bottom"><span>${esc(KIND[card.kind].label)}</span><span class="status-chip">${STATUS[card.status][0]}</span></div>`,tier); }
+    function renderCrest(card,tier=rarity(card.upstream)) { return shell(card,'crest',`${head(card,tier)}<h3 class="card-title">${esc(card.title)}</h3><div class="crest-panel"><small>${esc(card.repo.split('/').pop())}</small><div class="crest">${crestSymbol(card.repo)}</div></div>${art(card)}<div class="group-banner" title="${esc(card.group)}">${esc(card.group)}</div>`,tier); }
+    function renderCorners(card,tier=rarity(card.upstream)) { return shell(card,'corners',`<div class="corner-top"><div class="corner-stat">${card.upstream}<small>upstream</small></div>${rarityMark(tier)}<div class="corner-stat">${card.leverage}<small>opens</small></div></div>${art(card)}<div class="diamond-row" title="${tier.label}">${'<i></i>'.repeat(tier.pips)}</div><h3 class="card-title">${esc(card.title)}</h3><div class="corner-bottom"><span>${STATUS[card.status][0]}</span><span>${esc(diff(card))}</span></div>`,tier); }
+    function renderEvolved(card,tier=rarity(card.upstream)) {
+      const artLabels=`<span class="art-status">${STATUS[card.status][0]}</span><span class="art-repo">${crestSymbol(card.repo)}${esc(card.repo.split('/').pop())}</span>`;
+      const ciColor=card.checks==='SUCCESS'?'#18d6c0':card.checks==='FAILURE'?'#ff5e7e':'#a39bcc';
+      const metrics=card.additions!=null?`<span class="add">+${card.additions}</span><span class="del">−${card.deletions??0}</span>`:'<span>Changes —</span>';
+      return shell(card,'evolved',`${head(card,tier)}<div class="evolved-title-row"><h3 class="card-title">${esc(card.title)}</h3>${card.pr?`<span class="number-chip">#${card.pr}</span>`:''}</div>${art(card,artLabels)}<div class="kind-bar">${icon(card.kind)}<span>${esc(KIND[card.kind].label)} · ${esc(card.repo.split('/').pop())}</span><span>↑${card.upstream} ↗${card.leverage}</span></div><p class="card-note">${esc(noteText(card))}</p><div class="evolved-meta"><span>${esc(card.group)}</span>${card.who?`<span>Move: ${esc(card.who)}</span>`:''}</div><div class="card-foot">${metrics}<span class="ci-chip" style="--ci-color:${ciColor}"><i></i>CI ${card.checks?esc(card.checks.toLowerCase()):'—'}</span><span class="grow"></span><span class="status-chip">${STATUS[card.status][0]}</span></div>`,tier);
+    }
+    const RENDERERS={land:renderLand,snap:renderSnap,crest:renderCrest,corners:renderCorners,evolved:renderEvolved};
+
+    /* Page wiring */
+    document.querySelector('#identity-grid').innerHTML=Object.entries(KIND).map(([id,k])=>`<div class="identity ${id}" style="--kind-color:${k.color}"><div class="mini">${icon(id)}</div><h3>${k.label}</h3><p>${k.frame}</p><p class="recipe">${k.motif}<br>Palette ${k.color}</p></div>`).join('');
+    const base=DECK.find(c=>c.id==='add-a-trading-card-skin');
+    function demoRow(title,detail,cards,labels) { return `<div class="demo-row"><h3>${title}</h3><p>${detail}</p><div class="demo-strip">${cards.map((c,i)=>`<div class="demo-item">${art(c)}<div class="demo-label">${esc(labels[i])}</div><div class="demo-meta">${esc(KIND[c.kind].label)} · ${esc(c.status)}</div></div>`).join('')}</div></div>`; }
+    const clone=(extra,seed)=>({...base,...extra,id:seed??base.id});
+    const upstream=[0,1,3,6,12], leverage=[0,1,3,6,9], states=['ready','active','review','blocked','deferred','done'];
+    const repos=['vocksel/orion','flipbook-labs/flipbook','vocksel/agent-config','flipbook-labs/storyteller'];
+    document.querySelector('#art-demos').innerHTML=[
+      demoRow('Accumulation / upstream','Same PR and seed; small bottom shapes grow with transitive ancestors.',upstream.map(upstream=>clone({upstream,direct:0,leverage:0})),upstream.map(n=>`${n} upstream`)),
+      demoRow('Reach / leverage','Outgoing rays rise with open downstream work; cap the visible spokes at eight.',leverage.map(leverage=>clone({upstream:3,direct:2,leverage})),leverage.map(n=>`${n} open downstream`)),
+      demoRow('State / central fill','Outlined, half-filled, double ring, slashed, paused, then solid. These are independent of hue.',states.map(status=>clone({status,upstream:3,direct:2,leverage:2})),states),
+      demoRow('Repository / motif family','Only Orion occurs in the snapshot. The remaining repo names are illustrative motif tests.',repos.map(repo=>clone({repo,upstream:3,direct:2,leverage:1},base.id)),repos),
+    ].join('');
+    document.querySelector('#rarity-brief').innerHTML=TIERS.map(t=>`<div class="tier-brief"><b>${rarityIcon(t)} ${t.label}</b><span>${t.range} · ${t.count} cards · ${t.pips} ${t.pips===1?'pip':'pips'}</span></div>`).join('');
+    document.querySelector('#rarity-cards').innerHTML=TIERS.map(t=>renderEvolved({...base,upstream:[0,1,3,6,12][TIERS.indexOf(t)],direct:2,leverage:2,status:'active'},t)).join('');
+    document.querySelector('#distribution').innerHTML=`<div class="bar" aria-label="Rarity distribution">${TIERS.map(t=>`<i style="width:${t.count/125*100}%;background:${t.color}" title="${t.label}: ${t.count}">${t.count}</i>`).join('')}</div><code>n = 125 · min 0 · max 26 · exact: ${Object.entries(DISTRIBUTION).map(([n,c])=>`${n}:${c}`).join('  ')}</code>`;
+    const directions=[
+      ['land','01 · Land frame','Kind behaves like a land type: a full-height geometric scene carries identity. The shaped frame and calm information strip stay legible in grayscale.'],
+      ['snap','02 · Snap minimal','Direct inputs and open downstream work claim opposite corners. A single kind emblem replaces detailed art; rarity lives in the border and seal.'],
+      ['crest','03 · Crest and banner','The frame speaks kind, a seeded repository seal gives provenance, and the group becomes a solid outcome banner. The crest treatment is intentionally ceremonial.'],
+      ['corners','04 · Stat corners','Upstream and leverage hold fixed corners. Status and file changes hold the bottom corners; diamond pips sit under the picture for rapid rarity scanning.'],
+      ['evolved','05 · Evolved trading card','The current title / art / type / detail / footer rhythm survives. Kind-shaped frames, graph-composed art, and a restrained rarity seal make it useful on the live canvas.'],
+    ];
+    document.querySelector('#variants-content').innerHTML=directions.map(([id,title,copy])=>`<div class="variant" id="variant-${id}"><div class="variant-head"><h3>${title}</h3><span>17 cards · 288 × 400</span></div><p class="section-copy">${copy}</p><div class="card-grid">${DECK.map(c=>RENDERERS[id](c)).join('')}</div></div>`).join('');
+    const mixed=Array.from({length:24},(_,i)=>DECK[[4,6,3,11,12,5,7,0,9,2,14,13,1,8,15,10,16,4,6,3,11,5,0,13][i]]);
+    const pos=mixed.map((_,i)=>({x:22+(i%6)*306+((i%3)-1)*7,y:20+Math.floor(i/6)*626+(i%2)*24}));
+    const wires=[[0,1],[1,2],[3,4],[5,6],[6,7],[8,9],[10,11],[12,13],[14,15],[17,18],[20,21],[22,23]];
+    const wireSvg=`<svg class="wires" viewBox="0 0 1860 2550" preserveAspectRatio="none" aria-hidden="true">${wires.map(([a,b])=>{const p=pos[a],q=pos[b];return `<path d="M${p.x+288} ${p.y+190} C${p.x+310} ${p.y+190} ${q.x-20} ${q.y+190} ${q.x} ${q.y+190}"/>`;}).join('')}</svg>`;
+    document.querySelector('#mixed-world').innerHTML=wireSvg+mixed.map((c,i)=>{const p=pos[i];return `<div class="mixed-position" style="position:absolute;left:calc(${p.x}px * var(--zoom));top:calc(${p.y}px * var(--zoom))">${renderEvolved(c)}</div>`;}).join('');
+    document.querySelector('#vision').addEventListener('change',e=>{ document.querySelector('#vision-area').style.filter=e.target.value==='none'?'none':`url(#vision-${e.target.value})`; });
+    document.querySelector('#zoom').addEventListener('change',e=>document.documentElement.style.setProperty('--zoom',e.target.value));
+
+    /* Eager 2D stills: ordered Bayer dither over the exact vector composition. */
+    const statusEl=document.querySelector('#render-status');
+    const DITHER_CACHE=new Map();
+    const BAYER4=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+    function drawShape(ctx,shape) {
+      const a=shape.attrs;
+      ctx.save();
+      ctx.globalAlpha=shape.alpha??1;
+      ctx.globalCompositeOperation=shape.blend||'source-over';
+      if(shape.rotate) {const [angle,x,y]=shape.rotate;ctx.translate(x,y);ctx.rotate(angle*Math.PI/180);ctx.translate(-x,-y);}
+      let path;
+      if(shape.tag==='rect') {path=new Path2D();path.rect(a.x,a.y,a.width,a.height);}
+      else if(shape.tag==='circle') {path=new Path2D();path.arc(a.cx,a.cy,a.r,0,Math.PI*2);}
+      else if(shape.tag==='polygon') {
+        const points=a.points.trim().split(/\s+/).map(pair=>pair.split(',').map(Number));
+        path=new Path2D();path.moveTo(...points[0]);for(const point of points.slice(1))path.lineTo(...point);path.closePath();
+      } else path=new Path2D(a.d);
+      if(a.fill&&a.fill!=='none'){ctx.fillStyle=a.fill;ctx.fill(path);}
+      const stroke=shape.stroke||a.stroke;
+      if(stroke&&stroke!=='none'){ctx.strokeStyle=stroke;ctx.lineWidth=Math.max(3,shape.width||a['stroke-width']||3);ctx.lineJoin='round';ctx.stroke(path);}
+      ctx.restore();
+    }
+    function orderedDither(ctx) {
+      const image=ctx.getImageData(0,0,256,160),pixels=image.data;
+      for(let y=0;y<160;y+=2)for(let x=0;x<256;x+=2) {
+        const source=((y+1)*256+x+1)*4;
+        const rgb=[pixels[source],pixels[source+1],pixels[source+2]];
+        const threshold=(BAYER4[((y/2)%4)*4+(x/2)%4]+.5)/16;
+        const dark=.2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2]<35;
+        const result=rgb.map(value=>{
+          if(dark)return value;
+          const low=Math.floor(value/64)*64;
+          return Math.min(255,(value-low)/64>threshold?low+64:low);
+        });
+        for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++) {
+          const at=((y+dy)*256+x+dx)*4;
+          pixels[at]=result[0];pixels[at+1]=result[1];pixels[at+2]=result[2];pixels[at+3]=255;
+        }
+      }
+      ctx.putImageData(image,0,0);
+    }
+    function applyArtFinish(dither) {
+      const targets=[...document.querySelectorAll('[data-art-key]')];
+      if(!dither) {
+        for(const el of targets)el.innerHTML=ART_CACHE.get(el.dataset.artKey).svg;
+        statusEl.textContent='Crisp vector posters.';
+        return;
+      }
+      try {
+        const canvas=document.createElement('canvas');canvas.width=256;canvas.height=160;
+        const ctx=canvas.getContext('2d',{willReadFrequently:true});
+        if(!ctx||typeof Path2D==='undefined')throw new Error('2D canvas paths unavailable');
+        const keys=[...new Set(targets.map(el=>el.dataset.artKey))];
+        for(const key of keys) {
+          if(DITHER_CACHE.has(key))continue;
+          ctx.clearRect(0,0,256,160);
+          for(const shape of ART_CACHE.get(key).shapes)drawShape(ctx,shape);
+          orderedDither(ctx);
+          DITHER_CACHE.set(key,canvas.toDataURL('image/png'));
+        }
+        for(const el of targets)el.innerHTML=`<img src="${DITHER_CACHE.get(el.dataset.artKey)}" alt="">`;
+        statusEl.textContent=`Ordered-dither posters · ${keys.length} unique scenes · rendered eagerly`;
+      } catch {
+        document.querySelector('#dither').checked=false;
+        for(const el of targets)el.innerHTML=ART_CACHE.get(el.dataset.artKey).svg;
+        statusEl.textContent='2D canvas unavailable; crisp vector posters remain visible.';
+      }
+    }
+    document.querySelector('#dither').addEventListener('change',e=>applyArtFinish(e.target.checked));
+    applyArtFinish(document.querySelector('#dither').checked);
+  </script>
+</body>
+</html>
