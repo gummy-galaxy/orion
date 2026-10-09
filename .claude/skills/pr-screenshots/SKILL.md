@@ -76,10 +76,10 @@ Name files `before-<view>.png` and `after-<view>.png`. Open every image and chec
 
 ## 5. Attach
 
-Upload from inside the repository. The script commits the images to `pr-<number>/` on the `agent/pr-media` branch without checking it out, then prints a Markdown link for each:
+Upload from inside the repository with Lute, which `cli/rokit.toml` installs. The script commits the images to `pr-<number>/` on the `agent/pr-media` branch without checking it out, then prints a Markdown link for each:
 
 ```sh
-sh .claude/skills/pr-screenshots/scripts/upload.sh <pr number> "$SCRATCH"/before-*.png "$SCRATCH"/after-*.png
+lute run .claude/skills/pr-screenshots/scripts/upload.luau <pr number> "$SCRATCH"/before-*.png "$SCRATCH"/after-*.png
 ```
 
 The links load for anyone signed in with access to the repository. Never merge or open a pull request for `agent/pr-media`.
