@@ -242,7 +242,7 @@ local function fields(parser: cli.Parser): graph.ItemFields
 	local number = if pr then tonumber((pr:gsub("^#", ""))) else nil
 	assert(pr == nil or number, "pr must be a number")
 	return {
-		label = if parser:has("label") then parser:get("label") else nil,
+		label = parser:get("label"),
 		blurb = parser:get("blurb"),
 		status = parser:get("status"),
 		repo = parser:get("repo"),
