@@ -6,12 +6,12 @@ This is a prototype. It runs in the browser or in a desktop shell.
 
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
-- `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people.
+- `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people. `orion mcp` exposes its canvas and workspace actions to agents over MCP.
 - `orion suggest` proposes groups for ungrouped cards (or every card with `--scope all`). It joins cards by links, Jira epics, shared branches, and references, then `--agent codex` or `--agent claude` names and splits the result into groups by outcome. The agent's CLI must already be signed in. Review with `orion suggestions`, then use `orion suggestions apply <id...> | --all` or `orion suggestions dismiss <id...> | --all`. These commands use the selected workspace. The app places new groups to the right of existing ones and refits groups whose cards moved.
 
 ## Data
 
-The default canvas lives in `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another data root. `orion serve` owns the app's data API, and all file access goes through the Luau CLI store. The app talks to that API over HTTP and receives changes over WebSocket. The CLI takes the same lock for every write, so the app and other commands can be open at once.
+The default canvas lives in `orion.json` inside Orion's user data folder: `~/Library/Application Support/Orion` on macOS, `%APPDATA%\Orion` on Windows, and `$XDG_DATA_HOME/orion` (or `~/.local/share/orion`) on Linux. Set `ORION_DATA_DIR` to use another data root. `orion serve` owns the app's data API, and all file access goes through the Luau CLI store. The app talks to that API over HTTP and receives changes over WebSocket. The CLI takes the same lock for every write, so the app and other commands can be open at once.
 
 ### Workspaces
 
@@ -66,6 +66,25 @@ That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. S
 
 Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute project.luau loom.config.luau` from `cli/` to format all Luau sources, including the Lute scripts. CI checks the same paths.
+
+### Connect agents over MCP
+
+`orion mcp` runs an MCP server over stdin and stdout, so AI clients can discover Orion's canvas and workspace tools and call them directly. Each tool maps its arguments onto an existing CLI command in the same process, so the CLI stays the only writer and never runs a shell command built from tool input.
+
+Add Orion to any MCP client as a stdio server that runs `orion mcp`, using the full path to the binary. Most clients accept a config entry like this one or an equivalent `mcp add` command:
+
+```json
+{
+  "mcpServers": {
+    "orion": {
+      "command": "/Applications/Orion.app/Contents/MacOS/orion",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+The desktop app bundles the binary at that path; use `cli/build/orion` for a local build. Add `ORION_DATA_DIR` to the server's environment to use another data root. Pass `--workspace <name>` to keep the server on one workspace; otherwise each call uses the selected workspace unless the tool call names one.
 
 ### Sources
 
@@ -140,6 +159,7 @@ In `cli/src/`:
 
 - `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
 - `cli/focus.luau`: reads and renders the app's reported open group and selection.
+- `cli/mcp/`: the MCP server and its tool catalog. `cli/mcp/tools.luau` lists every tool.
 - `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.
 - `server/`: HTTP routes, WebSocket events, file watching, and sync scheduling for `orion serve`.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
