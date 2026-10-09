@@ -26,7 +26,7 @@ import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { FocusView, type FocusItem } from './FocusView'
-import { reflow, reflowAll } from '../layout'
+import { reflow } from '../layout'
 import { mergeDocs } from '../merge'
 import {
   TASK_HEIGHT,
@@ -85,7 +85,6 @@ import {
   type SyncStatus,
   type Workspaces,
 } from '../persist'
-import { seedLinks, seedNodes } from '../seed'
 import { Sidebar } from './Sidebar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
@@ -201,12 +200,6 @@ type Menu = {
   y: number
   flow: { x: number; y: number }
   target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string } | { kind: 'sticker'; id: string }
-}
-
-async function seeded() {
-  const links = seedLinks()
-
-  return { nodes: await reflowAll(seedNodes(), links), links }
 }
 
 function readFlag(key: string, fallback: boolean) {
@@ -508,7 +501,7 @@ export function Canvas() {
         source.current = loaded.source === 'missing' ? 'file' : 'browser'
         const isDefault = name === 'default'
         const kept = isDefault ? (loaded.source === 'browser' ? loaded.saved : readBrowser()) : null
-        const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : isDefault ? await seeded() : { nodes: [], links: [] }
+        const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : { nodes: [], links: [] }
         const initialStickers = kept?.stickers ?? []
         const initialLoadout = loadoutOf(kept?.stickerLoadout)
 
@@ -1984,16 +1977,6 @@ export function Canvas() {
   const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
   const rootCustom = !!root && (map.get(root)?.data as ClusterData | undefined)?.arrange === 'custom'
 
-  const reset = () => {
-    openRoot(null)
-    seeded().then((saved) => {
-      setNodes(saved.nodes)
-      setLinks(saved.links)
-      setStickers([])
-      setTimeout(() => fitTo(null), 40)
-    })
-  }
-
   // ---- Context menu ----
 
   const openMenu = (event: MouseEvent | React.MouseEvent, target: Menu['target']) => {
@@ -2455,9 +2438,6 @@ export function Canvas() {
                       Tidy {root ? 'group' : 'canvas'}
                     </button>
                   )}
-                  <button type="button" className="btn" onClick={reset}>
-                    Reset to seed
-                  </button>
                   {syncStatus && (
                     <button
                       type="button"
