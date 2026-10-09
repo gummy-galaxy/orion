@@ -16,6 +16,7 @@ import {
   type Connection,
   type Edge,
   type EdgeTypes,
+  type FinalConnectionState,
   type NodeChange,
   type NodeTypes,
   type Viewport,
@@ -1577,17 +1578,39 @@ export function Canvas() {
     }
   }, [focus, links, map, work])
 
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      if (!connection.source || !connection.target || connection.source === connection.target) return
+  // ---- Drawing links ----
+
+  /** A drawn link never replaces one that already joins the pair, whichever way it runs. */
+  const connect = useCallback(
+    (from: string, to: string) => {
+      if (from === to) return
 
       setLinks((currentLinks) =>
-        currentLinks.some((link) => link.from === connection.source && link.to === connection.target)
+        currentLinks.some((link) => (link.from === from && link.to === to) || (link.from === to && link.to === from))
           ? currentLinks
-          : [...currentLinks, { id: `${connection.source}>${connection.target}`, from: connection.source, to: connection.target, kind: 'blocks' }],
+          : [...currentLinks, { id: `${from}>${to}`, from, to, kind: 'blocks' }],
       )
     },
     [setLinks],
+  )
+  const onConnect = useCallback((connection: Connection) => connect(connection.source, connection.target), [connect])
+  const [linking, setLinking] = useState(false)
+  /** Dropping a link anywhere on a card joins it, not only on the card's small handle. */
+  const onConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+      setLinking(false)
+
+      if (state.isValid || !state.fromNode || !state.fromHandle) return
+
+      const point = 'changedTouches' in event ? event.changedTouches[0] : event
+      const dropped = document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node-task')?.dataset.id
+
+      if (!dropped) return
+
+      if (state.fromHandle.type === 'source') connect(state.fromNode.id, dropped)
+      else connect(dropped, state.fromNode.id)
+    },
+    [connect],
   )
 
   const selected = nodes.filter((node) => node.selected && !view.hidden.has(node.id))
@@ -2246,7 +2269,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
           style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
           ref={canvasRef}
           onPointerDown={startMarquee}
@@ -2268,7 +2291,14 @@ export function Canvas() {
               onMove={onViewportMove}
               onNodeDragStop={onDragStop}
               onConnect={onConnect}
-              onNodeMouseEnter={(_, node) => !focus && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)}
+              onConnectStart={() => {
+                setLinking(true)
+                setHover(null)
+              }}
+              onConnectEnd={onConnectEnd}
+              onNodeMouseEnter={(_, node) =>
+                !focus && !linking && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)
+              }
               onNodeMouseLeave={() => setHover(null)}
               onNodeClick={(event, node) => {
                 if (tool === 'sticker') return stamp(event)
