@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
 local insert = require("@root/cli/media/insert")
@@ -11,7 +11,7 @@ local COMMANDS: { [string]: Command } = { insert = insert, list = list }
 
 return table.freeze({
 	help = "Insert or list media nodes",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		for _, name in { "insert", "list" } do
 			local sub = parser:subcommand(name, { help = COMMANDS[name].help })
 			sub:add("help", "flag", { help = "Show this help", aliases = { "h" } })
@@ -19,7 +19,7 @@ return table.freeze({
 			COMMANDS[name].define(sub)
 		end
 	end,
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local name, sub = parser:selected()
 		assert(name and sub, "choose media insert or list")
 		COMMANDS[name].run(sub, options)
