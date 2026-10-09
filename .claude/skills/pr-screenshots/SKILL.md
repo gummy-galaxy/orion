@@ -84,15 +84,21 @@ lute run .claude/skills/pr-screenshots/scripts/upload.luau <pr number> "$SCRATCH
 
 The links load for anyone signed in with access to the repository. Never merge or open a pull request for `agent/pr-media`.
 
-Add a Screenshots section to the pull request description above Testing, with one row per view and alt text that says what each image shows:
+Add a Screenshots section to the pull request description above Testing. Put before and after images under their own headings, each image on its own line in the same view order, with alt text that says what it shows:
 
 ```md
 ## Screenshots
 
-| Before | After |
-| --- | --- |
-| ![Before: the Editing group with cards overlapping](…) | ![After: the Editing group in tidy rows](…) |
+### Before
+
+![Before: the Editing group with cards overlapping](…)
+
+### After
+
+![After: the Editing group in tidy rows](…)
 ```
+
+When there's no before image, keep the Before heading with `<!-- Add screenshots of the previous behavior, if applicable. -->` beneath it.
 
 Reread the live description first and change only this section. If it already holds screenshots or media someone else added, propose the change in chat instead. When later pushes change what the images show, recapture and replace the links in the same section.
 
