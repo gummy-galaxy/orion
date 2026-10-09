@@ -120,6 +120,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result. Type `>` first, or press ⇧⌘P (or Ctrl+Shift+P), to list actions instead; deleting the `>` goes back to searching.
 - Choose Light, Dark, or System color mode in the sidebar footer, or through ⇧⌘P; the choice is saved on this device.
+- Card skins are listed in `app/src/skins.ts`, with a component and CSS file for each skin.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
 - Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.

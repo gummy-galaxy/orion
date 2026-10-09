@@ -1,3 +1,5 @@
+import { SKINS, skinOf } from './skins'
+
 export type ColorMode = 'light' | 'dark' | 'system'
 
 export type Theme = {
@@ -15,10 +17,11 @@ export const THEMES: readonly Theme[] = [
 
 export const COLOR_MODES: readonly ColorMode[] = ['light', 'dark', 'system']
 
-export type Appearance = { theme: string; colorMode: ColorMode }
+export type Appearance = { theme: string; skin: string; colorMode: ColorMode }
 
-// index.html reads these keys before the first paint, so keep the two in step.
+// index.html reads these keys before the first paint, so keep them in step.
 const THEME_KEY = 'orion:theme'
+const SKIN_KEY = 'orion:skin'
 const COLOR_MODE_KEY = 'orion:color-mode'
 
 export function themeOf(id: string): Theme {
@@ -38,16 +41,18 @@ export function readAppearance(): Appearance {
 
     return {
       theme: themeOf(localStorage.getItem(THEME_KEY) ?? '').id,
+      skin: skinOf(localStorage.getItem(SKIN_KEY) ?? '').id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
     }
   } catch {
-    return { theme: THEMES[0].id, colorMode: 'system' }
+    return { theme: THEMES[0].id, skin: SKINS[0].id, colorMode: 'system' }
   }
 }
 
 export function writeAppearance(appearance: Appearance) {
   try {
     localStorage.setItem(THEME_KEY, appearance.theme)
+    localStorage.setItem(SKIN_KEY, appearance.skin)
     localStorage.setItem(COLOR_MODE_KEY, appearance.colorMode)
   } catch {
     // Only a remembered preference.
@@ -57,6 +62,9 @@ export function writeAppearance(appearance: Appearance) {
 export function applyAppearance(appearance: Appearance, root = document.documentElement) {
   if (appearance.theme === THEMES[0].id) delete root.dataset.theme
   else root.dataset.theme = appearance.theme
+
+  if (appearance.skin === SKINS[0].id) delete root.dataset.skin
+  else root.dataset.skin = appearance.skin
 
   if (appearance.colorMode === 'system') delete root.dataset.colorMode
   else root.dataset.colorMode = appearance.colorMode

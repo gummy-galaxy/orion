@@ -1,0 +1,133 @@
+.card.skin-plain {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: none;
+  display: block;
+  font-family: var(--font-ui);
+  animation: none;
+}
+
+.card.skin-plain:is(.st-ready, .st-active, .st-review, .st-blocked, .st-done, .st-deferred),
+.card.skin-plain:is(.tr-up, .tr-down, .tr-related, .attn) {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.card.skin-plain.placeholder {
+  border-style: dashed;
+}
+
+.card.skin-plain.note {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--note) 35%, var(--surface));
+}
+
+.card.skin-plain .plain-title,
+.card.skin-plain .plain-note-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  padding-right: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.card.skin-plain.st-done .plain-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.card.skin-plain .plain-meta,
+.card.skin-plain .plain-details,
+.card.skin-plain .plain-note-kind {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.card.skin-plain .plain-meta {
+  margin-top: 3px;
+  padding-right: 16px;
+}
+
+.card.skin-plain .plain-tag {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card.skin-plain .plain-status {
+  flex: none;
+  margin-left: auto;
+}
+
+.card.skin-plain .plain-gate {
+  flex: none;
+  font-size: 14px;
+  line-height: 10px;
+}
+
+.card.skin-plain .plain-details {
+  position: absolute;
+  left: 10px;
+  right: 28px;
+  bottom: 7px;
+  gap: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.card.skin-plain .plain-check {
+  font: 700 12px/1 var(--font-ui);
+}
+
+.card.skin-plain .plain-note-kind {
+  margin-bottom: 3px;
+}
+
+.card.skin-plain .plain-note-text {
+  white-space: pre-wrap;
+}
+
+.card.skin-plain.far-card {
+  height: auto;
+  padding: 8px 10px;
+  box-shadow: none;
+}
+
+.card.skin-plain.far-card .plain-title,
+.card.skin-plain.far-card .plain-note-text {
+  display: block;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.card.skin-plain.far-card .plain-details {
+  position: static;
+  margin-top: 4px;
+}
+
+.card.skin-plain.far-card .source-badges {
+  position: static;
+  justify-content: flex-end;
+  max-width: none;
+}
+
+.canvas.is-focus .react-flow__node.is-focused .card.skin-plain {
+  box-shadow: none;
+}
+
+.canvas.is-tracing .card.skin-plain:not(.tr-self, .tr-up, .tr-down, .tr-related) {
+  box-shadow: none;
+}

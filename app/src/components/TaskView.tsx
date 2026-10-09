@@ -1,8 +1,9 @@
 import { memo } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import type { TaskNode } from '../model'
-import { useCardView, useMarked, useTraceRole } from '../state'
-import { ClassicCard } from './ClassicCard'
+import { useAtomValue } from 'jotai'
+import { useCardView, useMarked, useTraceRole, skinAtom, skinStore } from '../state'
+import { CardBody } from './CardBody'
 import { FarTag } from './FarTag'
 
 /** Zoom below which a card's details sit in a tag over its body that keeps one on-screen size. */
@@ -14,11 +15,12 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   const view = useCardView(id, data)
   const trace = useTraceRole(id)
   const attention = useMarked(id)
+  const skin = useAtomValue(skinAtom, { store: skinStore })
   const className =
     view.kind === 'note'
-      ? `card note${trace ? ' tr-' + trace : ''}`
-      : `card st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
-  const body = <ClassicCard view={view} />
+      ? `card skin-${skin} note${trace ? ' tr-' + trace : ''}`
+      : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
+  const body = <CardBody view={view} />
 
   return (
     <div className={className}>

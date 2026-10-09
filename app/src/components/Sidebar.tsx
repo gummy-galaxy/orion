@@ -2,6 +2,7 @@ import type { GroupStats } from '../derive'
 import { isCluster, type AppNode, type ClusterData } from '../model'
 import type { Workspaces } from '../persist'
 import { COLOR_MODES, THEMES, themeOf, type Appearance } from '../appearance'
+import { SKINS } from '../skins'
 
 type Props = {
   nodes: AppNode[]
@@ -128,6 +129,21 @@ export function Sidebar({
                 onClick={() => chooseAppearance({ ...appearance, theme: theme.id })}
               >
                 {theme.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div role="group" aria-label="Cards">
+          <span className="side-settings-label">Cards</span>
+          <div className="side-options">
+            {SKINS.map((skin) => (
+              <button
+                key={skin.id}
+                type="button"
+                aria-pressed={appearance.skin === skin.id}
+                onClick={() => chooseAppearance({ ...appearance, skin: skin.id })}
+              >
+                {skin.label}
               </button>
             ))}
           </div>

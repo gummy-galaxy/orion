@@ -60,6 +60,7 @@ import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
 import { COLOR_MODES, THEMES, applyAppearance, colorModeOf, readAppearance, writeAppearance, type Appearance } from '../appearance'
+import { SKINS } from '../skins'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
 import { ImageView } from './ImageView'
@@ -95,7 +96,19 @@ import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
-import { attentionAtom, collapsedAtom, focusedAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from '../state'
+import {
+  attentionAtom,
+  collapsedAtom,
+  focusedAtom,
+  hoverAtom,
+  linksAtom,
+  nodesAtom,
+  pinnedAtom,
+  skinAtom,
+  skinStore,
+  traceAtom,
+  workAtom,
+} from '../state'
 import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
@@ -327,6 +340,7 @@ export function Canvas() {
   const [showHelp, setShowHelp] = useState(false)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
+  const setSkin = useSetAtom(skinAtom, { store: skinStore })
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
@@ -2447,6 +2461,12 @@ export function Canvas() {
       detail: 'Saved on this device',
       run: () => chooseAppearance({ ...appearance, theme: theme.id }),
     })),
+    ...SKINS.map((skin) => ({
+      id: `skin-${skin.id}`,
+      label: `Cards: ${skin.label}`,
+      detail: 'Saved on this device',
+      run: () => chooseAppearance({ ...appearance, skin: skin.id }),
+    })),
     ...COLOR_MODES.map((mode) => ({
       id: `color-mode-${mode}`,
       label: `Color mode: ${mode[0].toUpperCase()}${mode.slice(1)}`,
@@ -2503,6 +2523,7 @@ export function Canvas() {
 
   const chooseAppearance = (next: Appearance) => {
     setAppearance(next)
+    setSkin(next.skin)
     applyAppearance(next)
     writeAppearance(next)
   }
