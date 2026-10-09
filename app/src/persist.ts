@@ -1,5 +1,5 @@
 import type { AppNode, GithubSnapshot, Link } from './model'
-import type { Loadout, Sticker } from './sticker'
+import { loadoutOf, type Loadout, type Sticker } from './sticker'
 
 /**
  * The canvas lives in orion.json, served by the Orion CLI so the CLI and the
@@ -181,6 +181,10 @@ export function slim(nodes: AppNode[]) {
 /** A stable fingerprint, so view-only changes don't cause writes. */
 export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) =>
   JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout })
+
+/** The stored shape of a document, for comparing and merging. */
+export const compactDoc = (doc: Saved): Saved =>
+  JSON.parse(fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) })) as Saved
 
 function isSaved(value: unknown): value is Saved {
   const saved = value as Saved | null
