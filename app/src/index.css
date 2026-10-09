@@ -302,7 +302,7 @@ select {
   padding-right: 22px;
 }
 .card:has(.vscode-open) .label {
-  padding-right: 71px;
+  padding-right: 45px;
 }
 .card-actions {
   position: absolute;
@@ -320,16 +320,20 @@ select {
 .vscode-open {
   display: grid;
   place-items: center;
-  min-width: 42px;
+  width: 18px;
   height: 18px;
-  padding: 0 4px;
+  padding: 0;
   border: 1px solid color-mix(in srgb, var(--surface) 65%, transparent);
   border-radius: 4px;
   background: var(--surface);
   color: var(--accent);
   box-shadow: var(--shadow);
-  font: 700 9px/1 var(--font-data);
   cursor: pointer;
+}
+.vscode-open img {
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 .vscode-open:hover,
 .vscode-open:focus-visible {

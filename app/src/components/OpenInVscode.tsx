@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import vscodeIcon from '../assets/vscode.svg'
 
 const API = '/api/editor'
 let availability: Promise<boolean> | undefined
@@ -55,7 +56,7 @@ export function OpenInVscode({ url }: { url: string }) {
           .finally(() => setOpening(false))
       }}
     >
-      VS Code
+      <img src={vscodeIcon} alt="" draggable={false} />
     </button>
   )
 }
