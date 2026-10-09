@@ -97,6 +97,7 @@ import {
   linksAtom,
   nodesAtom,
   pinnedAtom,
+  tiltAtom,
   traceAtom,
   workAtom,
 } from '../state'
@@ -273,6 +274,38 @@ function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: n
  * Stacks newly created groups in columns to the right of everything else at the top
  * level, so laying them out never moves groups that were already placed.
  */
+/** Whether any two cards that share a group, and are meant to sit apart, overlap. */
+function cardsOverlap(nodes: AppNode[]): boolean {
+  const nodeMap = byId(nodes)
+  const siblings = new Map<string, AppNode[]>()
+
+  for (const node of nodes) {
+    if (!isTask(node)) continue
+
+    const parent = node.parentId ? nodeMap.get(node.parentId) : undefined
+
+    if (parent && isCluster(parent) && (parent.data.arrange === 'custom' || parent.data.arrange === 'hand')) continue
+
+    const list = siblings.get(node.parentId ?? '') ?? []
+
+    list.push(node)
+    siblings.set(node.parentId ?? '', list)
+  }
+
+  for (const list of siblings.values())
+    for (const [index, first] of list.entries())
+      if (
+        list
+          .slice(index + 1)
+          .some(
+            (second) => Math.abs(first.position.x - second.position.x) < TASK_WIDTH && Math.abs(first.position.y - second.position.y) < TASK_HEIGHT,
+          )
+      )
+        return true
+
+  return false
+}
+
 function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
   const top = nodes.filter((node) => !node.parentId)
   const settled = top.filter((node) => !fresh.has(node.id))
@@ -637,6 +670,32 @@ export function Canvas() {
 
     return () => clearTimeout(saveTimer)
   }, [nodes, links, stickers, loadout, ready, reload, adopt])
+
+  // Cards laid out at another size pile on top of each other, so a canvas that loads that way is dealt out again.
+  const dealtFor = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!ready || dealtFor.current === workspaceEpoch.current) return
+
+    dealtFor.current = workspaceEpoch.current
+
+    if (!cardsOverlap(nodes)) return
+
+    const epoch = workspaceEpoch.current
+
+    void (async () => {
+      const nodeMap = byId(nodes)
+      // Inner groups first, so each outer group is laid out around its children's new sizes.
+      const groups = nodes.filter(isCluster).sort((a, b) => ancestors(b.id, nodeMap).length - ancestors(a.id, nodeMap).length)
+      let next = nodes
+
+      for (const group of groups) next = await reflow(next, links, group.id)
+
+      next = await reflow(next, links, undefined)
+
+      if (epoch === workspaceEpoch.current) setNodes(next)
+    })()
+  }, [nodes, links, ready, setNodes])
 
   const pendingLayoutEpoch = useRef<number | null>(null)
 
@@ -1122,19 +1181,22 @@ export function Canvas() {
 
   // React Flow redraws a node whenever its object changes, so unchanged nodes keep last render's object.
   const [shownNodes] = useState(() => new WeakMap<AppNode, AppNode>())
+  const tilts = useAtomValue(tiltAtom)
   const viewNodes = useMemo<ViewNode[]>(
     () => [
       ...nodes.map((node) => {
         const hidden = view.hidden.has(node.id)
+        // Cards to the right in a hand lie on top of the ones to their left.
+        const zIndex = tilts.has(node.id) ? Math.round(node.position.x / 10) : node.zIndex
         const className =
           [node.className, peeking && !inFocus(node.id) ? 'is-peek' : '', focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : '']
             .filter(Boolean)
             .join(' ') || undefined
         const shown = shownNodes.get(node)
 
-        if (shown && shown.hidden === hidden && shown.className === className) return shown
+        if (shown && shown.hidden === hidden && shown.className === className && shown.zIndex === zIndex) return shown
 
-        const next = { ...node, hidden, className }
+        const next = { ...node, hidden, className, zIndex }
 
         shownNodes.set(node, next)
 
@@ -1142,7 +1204,7 @@ export function Canvas() {
       }),
       ...(focus ? ghosts.map((group) => ({ ...group, className: 'is-unfocused' })) : ghosts),
     ],
-    [nodes, view, ghosts, peeking, inFocus, focus, shownNodes],
+    [nodes, view, ghosts, peeking, inFocus, focus, shownNodes, tilts],
   )
 
   const trace = useAtomValue(traceAtom)
@@ -1190,6 +1252,8 @@ export function Canvas() {
 
         if (peeking && !inFocus(source) && !inFocus(target)) className += ' e-peek'
 
+        if (tilts.has(source) && tilts.has(target) && map.get(source)?.parentId === map.get(target)?.parentId) className += ' e-in-hand'
+
         resultEdges.push({
           id: link.id,
           source: source,
@@ -1224,7 +1288,7 @@ export function Canvas() {
     }
 
     return keepDrawn(drawnEdges, resultEdges)
-  }, [links, view, work, trace, root, peeking, inFocus, relatedFocus, drawnEdges])
+  }, [links, view, work, trace, root, peeking, inFocus, relatedFocus, drawnEdges, tilts, map])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -2022,6 +2086,9 @@ export function Canvas() {
           { label: 'Open', hint: '↵', run: () => actions.open(node.id) },
           { label: 'Rename', run: () => (selectOnly(node.id), setEditing(node.id)) },
           ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
+          node.data.arrange === 'hand'
+            ? { label: 'Lay the hand out', run: () => arrangeGroup(node.id, { arrange: undefined }) }
+            : { label: 'Hold as a hand', run: () => arrangeGroup(node.id, { arrange: 'hand' }) },
           { label: 'Ungroup', hint: '⇧⌘G', run: () => doUngroup([node.id]) },
         ]
 

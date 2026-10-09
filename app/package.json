@@ -14,10 +14,12 @@
     "format": "prettier --write src"
   },
   "dependencies": {
+    "@paper-design/shaders": "0.0.81",
     "@tauri-apps/api": "^2.12.1",
     "@tauri-apps/plugin-opener": "^2.7.0",
     "@xyflow/react": "^12.12.0",
     "elkjs": "^0.12.0",
+    "hover-tilt": "1.0.0",
     "jotai": "^3.0.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

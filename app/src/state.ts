@@ -1,6 +1,7 @@
 import { atom, useAtomValue } from 'jotai'
 import { selectAtom } from 'jotai/utils'
 import { useMemo } from 'react'
+import { handTilts } from './layout'
 import { deriveWork, traceFrom, type AttentionMark, type GroupStats, type SourceRef } from './derive'
 import { isTask, type AppNode, type Link } from './model'
 
@@ -14,6 +15,9 @@ export const pinnedAtom = atom<string | null>(null)
 export const focusedAtom = atom(false)
 
 export const workAtom = atom((get) => deriveWork(get(nodesAtom), get(linksAtom), get(githubOwnerAtom)))
+
+/** Cards held in a fanned hand, and how many degrees each one turns. */
+export const tiltAtom = atom((get) => handTilts(get(nodesAtom)))
 
 export const traceAtom = atom((get) => {
   const from = get(focusedAtom) ? null : (get(pinnedAtom) ?? get(hoverAtom))
@@ -53,6 +57,8 @@ const sameSources = (a: SourceRef[], b: SourceRef[]) =>
 // Each hook below reads one card's part, so a card redraws only when its own part changes.
 
 export const useStatus = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.status.get(id) ?? 'ready'), [id]))
+
+export const useTilt = (id: string) => useAtomValue(useMemo(() => selectAtom(tiltAtom, (tilts) => tilts.get(id)), [id]))
 
 export const useLeverage = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.leverage.get(id) ?? 0), [id]))
 

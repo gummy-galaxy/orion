@@ -2289,3 +2289,424 @@ kbd {
   overscroll-behavior: contain;
   pointer-events: auto;
 }
+
+/* Trading cards: a title bar, an art box, a type line, a text box, and the details along the bottom. */
+.card.tcg {
+  --frame: color-mix(in srgb, var(--c) 32%, var(--surface));
+  --bar: color-mix(in srgb, var(--c) 7%, var(--surface));
+  --bar-edge: color-mix(in srgb, var(--c) 45%, var(--line));
+  padding: 7px;
+  gap: 5px;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  align-content: stretch;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--c) 60%, var(--line));
+  background: linear-gradient(165deg, var(--frame), color-mix(in srgb, var(--c) 14%, var(--surface)));
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  transition:
+    opacity 0.2s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    translate 0.18s ease-out,
+    rotate 0.18s ease-out;
+}
+.card.tcg.st-done {
+  --c: var(--edge);
+}
+.card.tcg.st-done .st {
+  color: var(--st-done);
+}
+.card.tcg.st-done .art {
+  filter: grayscale(0.75);
+}
+.tcg-title,
+.tcg-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--bar-edge);
+  background: linear-gradient(180deg, var(--surface), var(--bar));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 60%, transparent);
+}
+.tcg-title {
+  min-height: 34px;
+  padding: 4px 5px 4px 9px;
+  border-radius: 8px / 50%;
+}
+.tcg-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.005em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+/* What finishing it unlocks reads as its cost, like generic mana. */
+.tcg-cost {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 21px;
+  height: 21px;
+  padding: 0 4px;
+  border-radius: 999px;
+  border: 1.5px solid var(--accent);
+  background: var(--surface);
+  color: var(--accent);
+  font: 700 11px/1 var(--font-data);
+}
+.tcg-cost.big {
+  background: var(--accent);
+  color: var(--surface);
+}
+.art {
+  position: relative;
+  height: 92px;
+  display: grid;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--c) 55%, var(--ink));
+  background: color-mix(in srgb, var(--c) 55%, var(--ink));
+}
+.art-2 {
+  grid-template-columns: 1fr 1fr;
+}
+.art-3 {
+  grid-template-columns: 3fr 2fr;
+  grid-template-rows: 1fr 1fr;
+}
+.art-3 > :first-child {
+  grid-row: span 2;
+}
+.art-tile {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--c) 35%, var(--surface));
+}
+.art-grain {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.art-emblem {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  max-width: calc(100% - 8px);
+  padding: 4px 7px 3px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  box-shadow: var(--shadow);
+  font: 600 9.5px/1.2 var(--font-data);
+  white-space: nowrap;
+}
+.art-emblem > span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.art-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--surface);
+}
+.art-emblem .source-favicon,
+.art-emblem .source-favicon svg,
+.art-emblem .source-favicon img {
+  width: 18px;
+  height: 18px;
+}
+.art-more {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--surface);
+  font: 700 9.5px/1 var(--font-data);
+}
+.tcg-type {
+  min-height: 22px;
+  padding: 2px 8px;
+  border-radius: 6px / 50%;
+  font-size: 10.5px;
+}
+.tcg-type-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tcg-type .st {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--c);
+  font: 500 10px var(--font-data);
+}
+.tcg-type .st.stage-approved {
+  color: var(--st-done);
+}
+.tcg-type .st.stage-merge-blocked {
+  color: var(--st-blocked);
+}
+.tcg-text {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 6px 8px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--c) 25%, var(--line));
+  background: color-mix(in srgb, var(--c) 4%, var(--surface));
+  font-size: 11px;
+  line-height: 1.35;
+}
+.tcg-text p {
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+.tcg-flavor {
+  font-family: 'Iowan Old Style', Palatino, Georgia, serif;
+  font-style: italic;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.tcg-text p + .tcg-flavor {
+  padding-top: 5px;
+  border-top: 1px solid color-mix(in srgb, var(--c) 20%, var(--line));
+}
+.tcg-foot {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 20px;
+  padding: 0 1px 0 3px;
+  font: 10px var(--font-data);
+  color: color-mix(in srgb, var(--c) 40%, var(--ink));
+}
+.tcg-foot .meta-tag {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tcg-foot .check-dot {
+  flex: none;
+}
+.tcg-foot .source-badges {
+  position: static;
+  flex: none;
+  max-width: none;
+}
+/* Lines added and removed, where a creature's power and toughness would be. */
+.tcg-pt {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: 5px;
+  border: 1px solid var(--bar-edge);
+  background: linear-gradient(180deg, var(--surface), var(--bar));
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font: 700 10.5px/1.2 var(--font-data);
+  white-space: nowrap;
+}
+.card.tcg .who {
+  top: -6px;
+  left: -6px;
+  width: 14px;
+  height: 14px;
+}
+.card.note.tcg {
+  --frame: var(--note);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: linear-gradient(165deg, var(--note), color-mix(in srgb, var(--note-edge) 25%, var(--note)));
+}
+.card.note.tcg .tcg-text {
+  display: block;
+  -webkit-line-clamp: 15;
+  padding-right: 8px;
+  font-size: 12px;
+  background: color-mix(in srgb, var(--note) 50%, var(--surface));
+}
+.card.note.tcg .tcg-foot {
+  color: var(--note-ink);
+}
+
+/* Hovering picks a card up and tips it toward the pointer. Resting cards lie flat, since a tilted layer blurs on the zoomed canvas. */
+hover-tilt.tilt {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 11px;
+}
+hover-tilt.tilt::part(container),
+hover-tilt.tilt::part(tilt) {
+  height: 100%;
+  border-radius: inherit;
+}
+hover-tilt.tilt:not(:hover, .settling)::part(tilt) {
+  transform: none;
+  will-change: auto;
+}
+hover-tilt.tilt:not(:hover, .settling)::part(tilt)::before {
+  will-change: auto;
+}
+.react-flow__node-task:hover .card.tcg {
+  box-shadow:
+    0 2px 4px rgb(23 36 43 / 0.08),
+    0 12px 26px rgb(23 36 43 / 0.14);
+}
+.card.tcg.tr-dim {
+  box-shadow: var(--shadow);
+  border-color: var(--line);
+}
+.card.tcg.tr-up {
+  box-shadow:
+    0 0 0 2px var(--st-review),
+    var(--shadow);
+}
+.card.tcg.tr-down {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    var(--shadow);
+}
+.card.tcg.tr-related {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--ink) 40%, transparent),
+    var(--shadow);
+}
+.card.tcg.tr-self {
+  box-shadow:
+    0 0 0 3px var(--ink),
+    var(--shadow);
+}
+.card.tcg.attn {
+  box-shadow:
+    0 0 0 3px var(--st-active),
+    var(--shadow);
+}
+
+/* Light catches whichever card is held. */
+.tcg-shine {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    farthest-corner circle at var(--gradient-x, 50%) var(--gradient-y, 50%),
+    rgb(255 255 255 / 0.5) 0%,
+    rgb(255 255 255 / 0.14) 30%,
+    rgb(0 0 0 / 0.12) 95%
+  );
+  mix-blend-mode: overlay;
+  opacity: var(--hover-tilt-opacity, 0);
+}
+
+/* Your move: the card is a foil. At rest it carries a faint rainbow; held, the rainbow and its sparkle slide with the tilt. */
+.card.tcg.foil::before,
+.card.tcg.foil .tcg-shine::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgb(255 255 255 / 0.9) 0 0.6px, transparent 1.2px),
+    radial-gradient(circle at 50% 50%, rgb(255 255 255 / 0.7) 0 0.5px, transparent 1px),
+    repeating-linear-gradient(
+      115deg,
+      hsl(330 100% 74%) 0%,
+      hsl(40 100% 68%) 7%,
+      hsl(140 85% 66%) 14%,
+      hsl(195 100% 68%) 21%,
+      hsl(265 100% 76%) 28%,
+      hsl(330 100% 74%) 35%
+    );
+  background-size:
+    11px 13px,
+    7px 5px,
+    400% 400%;
+}
+.card.tcg.foil::before {
+  z-index: 1;
+  background-position:
+    0 0,
+    3px 2px,
+    30% 30%;
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+}
+.card.tcg.foil .tcg-shine::before {
+  background-position:
+    calc(var(--hover-tilt-x, 0.5) * 22px) calc(var(--hover-tilt-y, 0.5) * 26px),
+    calc(var(--hover-tilt-x, 0.5) * -14px) calc(var(--hover-tilt-y, 0.5) * -10px),
+    calc(var(--hover-tilt-x, 0.5) * 100%) calc(var(--hover-tilt-y, 0.5) * 100%);
+  mix-blend-mode: color-dodge;
+  opacity: calc(var(--hover-tilt-opacity, 0) * 0.4);
+}
+
+/* A hand: cards overlap and fan out; hovering one lifts it out and straightens it. */
+.card.tcg.in-hand {
+  rotate: var(--tilt);
+  transform-origin: 50% 140%;
+}
+.react-flow__node-task:hover .card.tcg.in-hand {
+  rotate: 0deg;
+  translate: 0 -34px;
+}
+.react-flow__node-task:has(.in-hand):hover {
+  z-index: 3000 !important;
+}
+.react-flow__edge.e-in-hand:not(.tr-e-up, .tr-e-down, .tr-e-rel) {
+  opacity: 0;
+}
+.cluster.hand {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--st-done) 35%, var(--line));
+  background: radial-gradient(
+    ellipse at 50% 120%,
+    color-mix(in srgb, var(--st-done) 16%, transparent),
+    color-mix(in srgb, var(--st-done) 5%, transparent)
+  );
+}
+
+/* A folded group is a deck: its card sits on a short stack of cards. */
+.cluster-card.deck {
+  box-shadow:
+    3px 3px 0 -1px var(--surface),
+    3px 3px 0 0 var(--line),
+    6px 6px 0 -1px var(--surface),
+    6px 6px 0 0 var(--line),
+    var(--shadow);
+}

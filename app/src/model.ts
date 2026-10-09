@@ -1,7 +1,8 @@
 import type { Node } from '@xyflow/react'
 
-export const TASK_WIDTH = 216
-export const TASK_HEIGHT = 72
+/** A trading card's 63:88 proportions. */
+export const TASK_WIDTH = 200
+export const TASK_HEIGHT = 280
 export const GROUP_PADDING = 32
 export const GROUP_HEADER_HEIGHT = 78
 
@@ -70,8 +71,11 @@ export type UnplacedPullRequest = {
   matches: { id: string; score: number }[]
 }
 export type GithubSnapshot = { viewer: string; checkedAt: string; unplaced: UnplacedPullRequest[] }
-/** How reflow arranges a group's children: `auto` flows them by dependency and wraps long rows, and `custom` keeps them where they were put. */
-export type Arrange = 'auto' | 'custom'
+/**
+ * How reflow arranges a group's children: `auto` flows them by dependency and wraps long rows, `hand` fans them out
+ * overlapping like cards held in a hand, and `custom` keeps them where they were put.
+ */
+export type Arrange = 'auto' | 'hand' | 'custom'
 /** `layout` asks the app to lay out a group the CLI changed: `pending` for a new group, `refit` to tidy one in place. */
 export type ClusterData = {
   kind: 'cluster'

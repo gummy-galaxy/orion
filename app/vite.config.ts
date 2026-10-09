@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
+import { orionMedia } from './server/media.ts'
 
 const binary = process.env.ORION_BIN || fileURLToPath(new URL('../cli/build/orion', import.meta.url))
 
@@ -54,7 +55,7 @@ export default defineConfig(async ({ command }) => {
   const port = await freePort()
 
   return {
-    plugins: [react(), orionServer(port)],
+    plugins: [react(), orionMedia(), orionServer(port)],
     server: {
       proxy: { '/api': { target: `http://127.0.0.1:${port}`, ws: true } },
     },

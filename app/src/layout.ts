@@ -31,6 +31,49 @@ const elkOptions = (gap: Gap) => ({
 /** Top to bottom, then left to right. */
 const reading = (a: AppNode, b: AppNode) => a.position.y - b.position.y || a.position.x - b.position.x
 
+/** Where a card sits across a fanned hand, from -1 at the left end to 1 at the right. */
+const handSpot = (index: number, count: number) => (count > 1 ? (index / (count - 1)) * 2 - 1 : 0)
+
+/** How far a card in a hand turns, in degrees: the ends lean out and the middle stands up. */
+export function handTilt(index: number, count: number): number {
+  return handSpot(index, count) * Math.min(14, 3.5 * (count - 1))
+}
+
+/** A fanned hand: each card overlaps the last, and the ends dip below the middle along an arc. */
+export function hand(sizes: Size[]): Point[] {
+  const drop = Math.min(40, 8 * sizes.length)
+  let x = 0
+
+  return sizes.map((size, index) => {
+    const spot = handSpot(index, sizes.length)
+    const at = { x, y: drop * spot * spot }
+
+    x += size.width * 0.58
+
+    return at
+  })
+}
+
+/** Each card held in a hand, and how far it turns. */
+export function handTilts(nodes: AppNode[]): Map<string, number> {
+  const tilts = new Map<string, number>()
+  const hands = new Set(nodes.filter((node) => isCluster(node) && node.data.arrange === 'hand').map((node) => node.id))
+
+  if (!hands.size) return tilts
+
+  const held = new Map<string, AppNode[]>()
+
+  for (const node of nodes)
+    if (node.type === 'task' && node.parentId && hands.has(node.parentId)) held.set(node.parentId, [...(held.get(node.parentId) ?? []), node])
+
+  for (const cards of held.values()) {
+    cards.sort((a, b) => a.position.x - b.position.x)
+    cards.forEach((node, index) => tilts.set(node.id, handTilt(index, cards.length)))
+  }
+
+  return tilts
+}
+
 /** Places sizes row by row, `columns` across. Each column is as wide as its widest box and each row as tall as its tallest. */
 export function grid(sizes: Size[], columns: number, gap: number): { at: Point[] } & Size {
   const columnCount = Math.max(1, Math.min(Math.floor(columns), sizes.length))
@@ -289,7 +332,15 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
     edges.push([source, target])
   }
 
-  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP)
+  let positions: Map<string, Point>
+
+  if (arrange === 'hand') {
+    const order = [...children].sort((a, b) => a.position.x - b.position.x)
+    const at = hand(order.map(sizeOf))
+
+    positions = new Map(order.map((child, index) => [child.id, at[index]]))
+  } else positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP)
+
   const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
 
   return normalize(
