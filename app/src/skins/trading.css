@@ -299,17 +299,10 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.card.skin-trading .trading-type .trading-rarity {
-  margin-left: auto;
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  overflow: visible;
-}
 .card.skin-trading .trading-type .trading-rarity-symbol {
   width: 18px;
   height: 18px;
+  margin-left: auto;
   flex: none;
   stroke-width: 1.2px;
   stroke-linejoin: round;
