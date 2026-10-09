@@ -68,7 +68,7 @@ export function TradingCard({ view }: { view: CardView }) {
               <h3 title={view.title}>{view.title}</h3>
               {number && <span className="trading-number">#{number}</span>}
             </header>
-            <TradingArtwork view={view} kind={view.kind} inks={inks} status={status} />
+            <TradingArtwork view={view} kind={view.kind} status={status} />
             <div className="trading-type">
               <TradingKindIcon kind={view.kind} />
               <span>

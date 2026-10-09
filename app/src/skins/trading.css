@@ -626,3 +626,14 @@
 .canvas[data-moving] .card.skin-trading .trading-holo {
   opacity: 0;
 }
+
+.card.skin-trading .trading-art-count {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 4;
+  padding: 2px 4px;
+  background: rgb(var(--trading-deep) / 0.8);
+  color: #f4f0ff;
+  font: 700 12px var(--font-data);
+}
