@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
@@ -9,11 +9,11 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List configured sources",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local values = sources.getJson(store.load(options.dir).settings.sources)
 
 		if parser:has("json") then

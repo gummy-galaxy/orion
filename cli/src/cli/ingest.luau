@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
@@ -24,13 +24,13 @@ end
 
 return table.freeze({
 	help = "Import work from configured sources",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("dry-run", "flag", { help = "Show changes without writing" })
 		parser:add("source", "option", { help = "Only ingest this source id" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local isDryRun = parser:has("dry-run")
 		local now = options.now()
 		local fetched = ingest.collect(store.load(options.dir), options.runner, now, parser:get("source"))

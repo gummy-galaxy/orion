@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
@@ -9,14 +9,14 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Compute group suggestions",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("agent", "option", { help = "claude, codex, or none" })
 		parser:add("scope", "option", { help = "unsorted or all" })
 		parser:add("dry-run", "flag", { help = "Show suggestions without writing" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local current = store.load(options.dir)
 		local settings = if current.raw then json.asObject(current.raw.settings) else nil
 		local configured = if settings and type(settings.agent) == "string" then settings.agent else nil

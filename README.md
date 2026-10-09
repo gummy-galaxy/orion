@@ -2,16 +2,16 @@
 
 A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with zoom levels that go from single cards out to whole bodies of work.
 
-This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs in the browser or in a desktop shell.
+This is a prototype. It runs in the browser or in a desktop shell.
 
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
-- `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people.
+- `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people. `orion mcp` exposes its canvas and workspace actions to agents over MCP.
 - `orion suggest` proposes groups for ungrouped cards (or every card with `--scope all`). It joins cards by links, Jira epics, shared branches, and references, then `--agent codex` or `--agent claude` names and splits the result into groups by outcome. The agent's CLI must already be signed in. Review with `orion suggestions`, then use `orion suggestions apply <id...> | --all` or `orion suggestions dismiss <id...> | --all`. These commands use the selected workspace. The app places new groups to the right of existing ones and refits groups whose cards moved.
 
 ## Data
 
-The default canvas lives in `~/Library/Application Support/Orion/orion.json`. Set `ORION_DATA_DIR` to use another data root. `orion serve` owns the app's data API, and all file access goes through the Luau CLI store. The app talks to that API over HTTP and receives changes over WebSocket. The CLI takes the same lock for every write, so the app and other commands can be open at once.
+The default canvas lives in `orion.json` inside Orion's user data folder: `~/Library/Application Support/Orion` on macOS, `%APPDATA%\Orion` on Windows, and `$XDG_DATA_HOME/orion` (or `~/.local/share/orion`) on Linux. Set `ORION_DATA_DIR` to use another data root. `orion serve` owns the app's data API, and all file access goes through the Luau CLI store. The app talks to that API over HTTP and receives changes over WebSocket. The CLI takes the same lock for every write, so the app and other commands can be open at once.
 
 ### Workspaces
 
@@ -37,7 +37,7 @@ Build the CLI first with `cd cli && lute run build`. Vite starts `orion serve` a
 
 To browse the component stories without starting `orion serve`, run `npm run storybook` from `app/`. Each component's story lives beside it in `app/src/components/`, with shared sample data in `storySupport/`. Run `npm run build-storybook` to check the static Storybook build. The stories use sample graph data and render the app composition against Storybook's own browser storage. The normal app build does not import the stories, so they are absent from the packaged app.
 
-`orion serve` reads and writes the active workspace's data file. Run it directly with `orion serve [--host 127.0.0.1] [--port 5198] [--static app/dist]`; `--static` serves a built app with an `index.html` fallback. When the default workspace has no file, the app carries over what the browser had saved, or starts from the seed. Other new workspaces start empty. The server syncs five seconds after startup and every five minutes. Returning to the window also requests a sync, with a one-minute throttle.
+`orion serve` reads and writes the active workspace's data file. Run it directly with `orion serve [--host 127.0.0.1] [--port 5198] [--static app/dist]`; `--static` serves a built app with an `index.html` fallback. When the default workspace has no file, the app carries over what the browser had saved. Otherwise a new workspace starts empty. The server syncs five seconds after startup and every five minutes. Returning to the window also requests a sync, with a one-minute throttle.
 
 ## Desktop app
 
@@ -66,6 +66,25 @@ That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. S
 
 Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
 StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute project.luau loom.config.luau` from `cli/` to format all Luau sources, including the Lute scripts. CI checks the same paths.
+
+### Connect agents over MCP
+
+`orion mcp` runs an MCP server over stdin and stdout, so AI clients can discover Orion's canvas and workspace tools and call them directly. Each tool maps its arguments onto an existing CLI command in the same process, so the CLI stays the only writer and never runs a shell command built from tool input.
+
+Add Orion to any MCP client as a stdio server that runs `orion mcp`, using the full path to the binary. Most clients accept a config entry like this one or an equivalent `mcp add` command:
+
+```json
+{
+  "mcpServers": {
+    "orion": {
+      "command": "/Applications/Orion.app/Contents/MacOS/orion",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+The desktop app bundles the binary at that path; use `cli/build/orion` for a local build. Add `ORION_DATA_DIR` to the server's environment to use another data root. Pass `--workspace <name>` to keep the server on one workspace; otherwise each call uses the selected workspace unless the tool call names one.
 
 ### Sources
 
@@ -114,8 +133,6 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Arrows to a card well behind their source loop around instead of doubling back.
 - A card's inspector lists what it waits on, what it unblocks, and related cards, with controls to remove or flip each link. **Add link** searches for another card to connect.
 
-Reset to seed restores the snapshot.
-
 Dashed cards are pull requests that aren't opened yet. Cards with a diamond are gates: they finish on their own once everything they wait on is done, so they suit milestones like a release. Check "Gate" in a card's inspector to make one. Click a card to edit it, add notes, or open its pull request. Cards with a repository and pull request number show what GitHub reported the last time `orion sync` ran.
 The toolbar shows when GitHub was last synced, or a sync error; click the status to force a sync. Linked cards show a checks dot (green passing, red failing, amber pending) and changed line count. The inspector shows checks, additions and deletions, update time, author, and review requests. An unlinked work item may show possible pull requests in its inspector; use **Link** to attach one to the card.
 
@@ -137,12 +154,12 @@ In `app/`:
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
-- `src/seed.json` and `src/seed.ts`: the Flipbook snapshot and its loader.
 
 In `cli/src/`:
 
 - `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
 - `cli/focus.luau`: reads and renders the app's reported open group and selection.
+- `cli/mcp/`: the MCP server and its tool catalog. `cli/mcp/tools.luau` lists every tool.
 - `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.
 - `server/`: HTTP routes, WebSocket events, file watching, and sync scheduling for `orion serve`.
 - `graph.luau`: derived status and leverage, and every edit the commands make.

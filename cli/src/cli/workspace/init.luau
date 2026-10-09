@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
 local create = require("@root/cli/workspace/create")
@@ -18,7 +18,7 @@ local COMMANDS: { [string]: Command } = {
 
 return table.freeze({
 	help = "List, create, and choose workspaces",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		for _, name in { "list", "create", "use", "current" } do
 			local subcommand = parser:subcommand(name, { help = COMMANDS[name].help })
 			subcommand:add("help", "flag", { help = "Show this help", aliases = { "h" } })
@@ -27,7 +27,7 @@ return table.freeze({
 		end
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local name, subcommand = parser:selected()
 		assert(name and subcommand, "choose list, create, use, or current")
 		COMMANDS[name].run(subcommand, options)

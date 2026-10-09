@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
@@ -8,11 +8,11 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List workspaces and mark the active one",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local list = store.getWorkspaces(options.root)
 		list.active = options.workspace
 
