@@ -1,6 +1,7 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
+local getStringField = require("@root/getStringField")
 local shared = require("@root/server/routes/shared")
 local store = require("@root/store")
 
@@ -15,8 +16,8 @@ function focus.handle(request: net.ReceivedRequest, root: string, active: string
 
 	local didSucceed, response = pcall(function(): Response
 		local report = shared.parseBody(request)
-		local tab = shared.getStringField(report.tab)
-		local workspace = shared.getStringField(report.workspace)
+		local tab = getStringField(report.tab)
+		local workspace = getStringField(report.workspace)
 		assert(tab and tab ~= "", "tab must be a nonempty string")
 		assert(workspace, "workspace must be a string")
 
@@ -29,7 +30,7 @@ function focus.handle(request: net.ReceivedRequest, root: string, active: string
 			return shared.reply(409, json.object({ error = "workspace changed" }))
 		end
 
-		local open = if report.open == json.null then nil else shared.getStringField(report.open)
+		local open = if report.open == json.null then nil else getStringField(report.open)
 		local selected = if isClosed then nil else json.asArray(report.selected)
 		if not isClosed then
 			assert(report.open == json.null or open, "open must be a string or null")

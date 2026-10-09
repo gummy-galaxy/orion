@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
@@ -8,11 +8,11 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List saved Orion data revisions",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
-	run = function(_parser: batteriesCli.Parser, options: Context)
+	run = function(_parser: cli.Parser, options: Context)
 		local backups = store.getBackups(options.dir)
 
 		if options.asJson then

@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local apply = require("@root/cli/suggestions/apply")
@@ -14,7 +14,7 @@ local COMMANDS: { [string]: Command } = { apply = apply, dismiss = dismiss }
 
 return table.freeze({
 	help = "List, apply, or dismiss group suggestions",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 
 		for _, name in { "apply", "dismiss" } do
@@ -25,7 +25,7 @@ return table.freeze({
 		end
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local name, subcommand = parser:selected()
 
 		if name and subcommand then
