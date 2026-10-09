@@ -14,8 +14,9 @@ return table.freeze({
 		serve(luteIo.read, luteIo.write, function(argv, write)
 			options.execute(argv, {
 				dataDir = options.root,
-				-- Resolved on every call so orion_select_workspace applies to later calls.
-				workspace = nil,
+				-- Without --workspace, each call resolves the selected workspace again, so
+				-- orion_select_workspace applies to later calls.
+				workspace = options.requestedWorkspace,
 				write = write,
 				runner = options.runner,
 				now = options.now,

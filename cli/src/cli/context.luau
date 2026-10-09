@@ -13,6 +13,8 @@ export type Context = {
 	dir: string,
 	root: string,
 	workspace: string,
+	-- The workspace named with --workspace, if any, before falling back to the selected one.
+	requestedWorkspace: string?,
 	write: (string) -> (),
 	asJson: boolean,
 	runner: types.CommandRunner,

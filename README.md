@@ -84,7 +84,7 @@ Add Orion to any MCP client as a stdio server that runs `orion mcp`, using the f
 }
 ```
 
-The desktop app bundles the binary at that path; use `cli/build/orion` for a local build. Add `ORION_DATA_DIR` to the server's environment to use another data root.
+The desktop app bundles the binary at that path; use `cli/build/orion` for a local build. Add `ORION_DATA_DIR` to the server's environment to use another data root. Pass `--workspace <name>` to keep the server on one workspace; otherwise each call uses the selected workspace unless the tool call names one.
 
 ### Sources
 

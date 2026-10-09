@@ -414,6 +414,7 @@ local function execute(args: { string }, options: Dependencies?)
 			dir = dir,
 			root = root,
 			workspace = active,
+			requestedWorkspace = selected,
 			write = deps.write,
 			asJson = asJson,
 			runner = deps.runner,
