@@ -210,7 +210,7 @@
   overflow: hidden;
   background: rgb(var(--trading-deep) / 0.72);
   backdrop-filter: blur(6px);
-  color: var(--ink);
+  color: #f4f0ff;
   font: 600 12px var(--font-ui);
 }
 
