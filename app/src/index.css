@@ -1,7 +1,9 @@
 @import './tokens.css';
 @import './themes/classic.css';
+@import './themes/conventional.css';
 @import './themes/vibrant.css';
 @import './skins/plain.css';
+@import './skins/conventional.css';
 
 * {
   box-sizing: border-box;

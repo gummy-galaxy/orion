@@ -1,0 +1,23 @@
+:root[data-theme='conventional'] {
+  --bg: light-dark(#f7f5f0, #24221f);
+  --surface: light-dark(#fffdfa, #302d29);
+  --ink: light-dark(#302d29, #f0ece5);
+  --muted: light-dark(#68625c, #b6afa5);
+  --line: light-dark(#ded9d1, #514c45);
+  --dots: light-dark(#e8e3da, #3b3732);
+  --accent: light-dark(#8c4d3e, #d9a290);
+  --accent-soft: light-dark(#f1e4de, #49342f);
+  --edge: light-dark(#bfb8ae, #746d64);
+  --edge-hot: light-dark(#8c4d3e, #d9a290);
+  --edge-held: color-mix(in srgb, var(--edge-hot) 25%, var(--edge));
+  --st-todo: light-dark(#68625c, #b6afa5);
+  --st-active: light-dark(#66547b, #b6a2cf);
+  --st-review: light-dark(#806333, #d5b981);
+  --st-blocked: light-dark(#965047, #e8a8a0);
+  --st-done: light-dark(#506b55, #9fc4a5);
+  --note: light-dark(#f6eedc, #3c3528);
+  --note-edge: light-dark(#c9b995, #746b53);
+  --note-ink: light-dark(#665338, #e6d6b4);
+  --snap: light-dark(#a85e51, #e6a08f);
+  --shadow: 0 1px 2px light-dark(rgb(57 45 36 / 0.04), rgb(0 0 0 / 0.12)), 0 5px 16px light-dark(rgb(57 45 36 / 0.05), rgb(0 0 0 / 0.16));
+}

@@ -12,6 +12,7 @@ export type Theme = {
 /** Each theme's colors live in themes/<id>.css. The first one is the default and needs no attribute. */
 export const THEMES: readonly Theme[] = [
   { id: 'classic', label: 'Classic', schemes: ['light', 'dark'] },
+  { id: 'conventional', label: 'Conventional', schemes: ['light', 'dark'] },
   { id: 'vibrant', label: 'Vibrant', schemes: ['dark'] },
 ]
 

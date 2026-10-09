@@ -1,0 +1,144 @@
+.card.skin-conventional {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 9px 11px;
+  border: 1px solid light-dark(transparent, var(--line));
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 2px 9px color-mix(in srgb, var(--ink) 9%, transparent);
+  animation: none;
+}
+
+.card.skin-conventional:is(.st-ready, .st-active, .st-review, .st-blocked, .st-done, .st-deferred),
+.card.skin-conventional:is(.tr-up, .tr-down, .tr-related, .attn) {
+  border-color: light-dark(transparent, var(--line));
+  background: var(--surface);
+  box-shadow: 0 2px 9px color-mix(in srgb, var(--ink) 9%, transparent);
+}
+
+.card.skin-conventional:is(.st-done, .st-deferred) {
+  --fade: 0.72;
+}
+
+.card.skin-conventional.placeholder {
+  border: 1px dashed var(--line);
+  box-shadow: none;
+}
+
+.card.skin-conventional.note {
+  justify-content: flex-start;
+  gap: 4px;
+  background: color-mix(in srgb, var(--note) 65%, var(--surface));
+  color: var(--note-ink);
+}
+
+.card.skin-conventional .conventional-title,
+.card.skin-conventional .conventional-note-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font: 400 13px/1.25 var(--font-ui);
+}
+
+.card.skin-conventional .conventional-note-text {
+  padding-right: 24px;
+  white-space: pre-wrap;
+}
+
+.card.skin-conventional .conventional-note-kind {
+  color: var(--note-ink);
+  font: 500 10px/1.3 var(--font-ui);
+}
+
+.card.skin-conventional .conventional-gate {
+  margin-right: 4px;
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 0;
+}
+
+.card.skin-conventional .conventional-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding-right: 17px;
+  color: var(--muted);
+  font: 10px/1.3 var(--font-ui);
+  white-space: nowrap;
+}
+
+.card.skin-conventional .conventional-status {
+  flex: none;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 12%, var(--surface));
+  color: var(--c);
+}
+
+.card.skin-conventional .conventional-tag {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card.skin-conventional .conventional-who,
+.card.skin-conventional .conventional-check,
+.card.skin-conventional .conventional-leverage {
+  flex: none;
+}
+
+.card.skin-conventional .conventional-check {
+  font: 700 12px/1 var(--font-ui);
+  color: var(--muted);
+}
+
+.card.skin-conventional .conventional-check-passing {
+  color: var(--st-done);
+}
+
+.card.skin-conventional .conventional-check-failing {
+  color: var(--st-blocked);
+}
+
+.card.skin-conventional .conventional-leverage {
+  color: var(--accent);
+}
+
+.card.skin-conventional.far-card {
+  height: auto;
+  min-height: 0;
+  max-width: 240px;
+  gap: 5px;
+  padding: 9px 11px;
+}
+
+.card.skin-conventional.far-card .conventional-title,
+.card.skin-conventional.far-card .conventional-note-text {
+  display: block;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.card.skin-conventional.far-card .conventional-meta {
+  flex-wrap: wrap;
+  padding-right: 0;
+  white-space: normal;
+}
+
+.card.skin-conventional.far-card .source-badges {
+  position: static;
+  align-self: flex-end;
+  max-width: none;
+}
+
+.canvas.is-focus .react-flow__node.is-focused .card.skin-conventional,
+.canvas.is-tracing .card.skin-conventional:not(.tr-self, .tr-up, .tr-down, .tr-related) {
+  box-shadow: 0 2px 9px color-mix(in srgb, var(--ink) 9%, transparent);
+}
