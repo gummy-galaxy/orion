@@ -5,6 +5,7 @@ local process = require("@std/process")
 local task = require("@std/task")
 
 local fileNames = require("@root/fileNames")
+local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -36,7 +37,7 @@ function store.defaultDir(): string
 		return tostring(path.resolve(configured))
 	end
 
-	return tostring(path.join(process.homedir(), "Library", "Application Support", "Orion"))
+	return tostring(getDefaultDataDir())
 end
 
 function store.isValidWorkspace(name: string): boolean
@@ -116,6 +117,7 @@ end
 function store.createWorkspace(root: string, name: string, label: string?, owner: string?): WorkspaceList
 	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
 	assert(label == nil or label:match("%S"), "label must be nonempty")
+	assert(owner == nil or owner ~= "", "owner must be nonempty")
 	local list = store.getWorkspaces(root)
 
 	for _, workspace in list.workspaces do
@@ -124,7 +126,7 @@ function store.createWorkspace(root: string, name: string, label: string?, owner
 
 	local dir = store.getWorkspaceDir(root, name)
 	assert(not fs.exists(dir), `workspace folder already exists: {dir}`)
-	store.initialize(dir, owner)
+	store.write(dir, store.createEmptyDoc(owner))
 	table.insert(list.workspaces, { name = name, label = label or name })
 	writeWorkspaces(root, list)
 	return list
@@ -449,11 +451,19 @@ function store.putFocus(dir: string, tab: string, open: string?, selected: json.
 	end
 end
 
--- Fails with a way to create data when there is nothing to work with yet.
+function store.createEmptyDoc(owner: string?): Doc
+	return {
+		version = 1,
+		revision = 0,
+		settings = { githubOwner = owner or DEFAULT_OWNER, sources = {} },
+		nodes = {},
+		links = {},
+	}
+end
+
+-- A workspace without a data file reads as empty; the first change writes it.
 function store.load(dir: string): Doc
-	local doc = store.read(dir)
-	assert(doc, `no Orion data at {store.filePath(dir)}. Run orion init or open the Orion app once to create it.`)
-	return doc
+	return store.read(dir) or store.createEmptyDoc()
 end
 
 local function release(lockPath: string)
@@ -518,34 +528,6 @@ local function atomicWrite(file: string, contents: string)
 
 	if not succeeded then
 		pcall(fs.remove, temporary)
-		error(failureMessage, 0)
-	end
-end
-
-function store.initialize(dir: string, owner: string?)
-	assert(owner == nil or owner ~= "", "owner must be nonempty")
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
-
-	local lockPath = acquire(dir)
-	local succeeded, failureMessage = pcall(function()
-		local file = store.filePath(dir)
-		assert(not fs.exists(file), `Orion data already exists at {file}`)
-		atomicWrite(
-			file,
-			store.encode({
-				version = 1,
-				revision = 0,
-				settings = { githubOwner = owner or DEFAULT_OWNER, sources = {} },
-				nodes = {},
-				links = {},
-			})
-		)
-	end)
-	release(lockPath)
-
-	if not succeeded then
 		error(failureMessage, 0)
 	end
 end

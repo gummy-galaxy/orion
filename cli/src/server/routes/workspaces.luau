@@ -1,6 +1,7 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
+local getStringField = require("@root/getStringField")
 local shared = require("@root/server/routes/shared")
 local store = require("@root/store")
 
@@ -20,14 +21,14 @@ function workspaces.handle(
 			return shared.reply(200, json.object({ active = getActive(), workspaces = list.workspaces }))
 		elseif request.path == "/api/workspaces" and request.method == "POST" then
 			local change = shared.parseBody(request)
-			local name = shared.getStringField(change.name)
+			local name = getStringField(change.name)
 			assert(name, `invalid workspace name: {tostring(change.name)}`)
-			local label = shared.getStringField(change.label)
+			local label = getStringField(change.label)
 			assert(change.label == nil or label, "label must be nonempty")
 			local list = store.createWorkspace(root, name, label)
 			return shared.reply(201, json.object({ active = getActive(), workspaces = list.workspaces }))
 		elseif request.path == "/api/workspaces/active" and request.method == "POST" then
-			local name = shared.getStringField(shared.parseBody(request).name)
+			local name = getStringField(shared.parseBody(request).name)
 			assert(name, "invalid workspace name")
 			local list = store.useWorkspace(root, name)
 			switchTo(name)
