@@ -3,34 +3,43 @@ import { describe, expect, it } from 'vitest'
 import type { CardView } from '../cardView'
 import { TradingCard } from './TradingCard'
 
-const plannedWork: CardView = {
-  id: 'planned-26',
-  kind: 'placeholder',
-  title: 'Prepare the layout',
-  tag: 'vocksel/orion#26',
+const pullRequest: CardView = {
+  id: 'pull-658',
+  kind: 'pr',
+  title: 'Report release health to PostHog',
+  tag: 'flipbook-labs/flipbook#658',
   url: null,
-  status: 'ready',
-  statusLabel: 'Ready',
+  status: 'review',
+  statusLabel: 'Review',
+  who: 'you',
+  whoLabel: 'Your move',
   leverage: 0,
+  checks: 'pending',
+  changeSize: { additions: 412, deletions: 38 },
   sources: [],
-  artSeed: 'planned-26',
+  repo: 'flipbook-labs/flipbook',
+  artSeed: 'pull-658',
 }
 
 describe('TradingCard', () => {
-  it('labels planned work and shows its number without an absent check', () => {
-    const markup = renderToStaticMarkup(<TradingCard view={plannedWork} />)
+  it('shows the study structure and neutral pull size', () => {
+    const markup = renderToStaticMarkup(<TradingCard view={pullRequest} />)
 
-    expect(markup).toContain('Planned work')
-    expect(markup).toMatch(/class="trading-pt"[^>]*><span>#26<\/span><\/span>/)
+    expect(markup).toContain('trading-you')
+    expect(markup).toContain('trading-number">#658')
+    expect(markup).toContain('trading-art-status">Your move')
+    expect(markup).toContain('trading-emblem"><i>F</i>flipbook')
+    expect(markup).toContain('Pull request · flipbook')
+    expect(markup).toContain('trading-add">+412')
+    expect(markup).toContain('trading-del">−38')
+    expect(markup).toContain('aria-label="Checks: pending"')
+    expect(markup).toContain('<svg')
   })
 
-  it.each([
-    ['passing', '✓'],
-    ['failing', '×'],
-    ['pending', '…'],
-  ] as const)('shows %s checks beside the number', (checks, glyph) => {
-    const markup = renderToStaticMarkup(<TradingCard view={{ ...plannedWork, checks }} />)
-
-    expect(markup).toContain(`aria-label="Checks: ${checks}">${glyph}</span><span>#26</span>`)
+  it('stamps done cards and gives placeholders a dashed frame', () => {
+    expect(renderToStaticMarkup(<TradingCard view={{ ...pullRequest, status: 'done', who: undefined }} />)).toContain('trading-stamp">Merged')
+    expect(renderToStaticMarkup(<TradingCard view={{ ...pullRequest, kind: 'placeholder', status: 'ready', who: undefined }} />)).toContain(
+      'trading-expected',
+    )
   })
 })

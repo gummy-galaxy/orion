@@ -1,19 +1,31 @@
+import type { CSSProperties } from 'react'
 import type { CardView } from '../cardView'
-import { getCardArt } from '../skins/cardArt'
-import { getFramePalette } from '../skins/frameColor'
+import { getCardInks } from '../skins/frameColor'
 import { SourceBadges } from './SourceBadges'
+import { TradingArtwork } from './TradingArtwork'
+import { TradingKindIcon } from './TradingKindIcon'
 
-const KIND_LABEL: Record<Exclude<CardView['kind'], 'note'>, string> = {
+type ArtKind = Exclude<CardView['kind'], 'note'>
+
+const KIND_LABEL: Record<ArtKind, string> = {
   step: 'Step',
   pr: 'Pull request',
-  placeholder: 'Planned work',
+  placeholder: 'Expected PR',
   gate: 'Gate',
 }
-const KIND_GLYPH: Record<Exclude<CardView['kind'], 'note'>, string> = {
-  step: '✦',
-  pr: '◆',
-  placeholder: '▧',
-  gate: '◇',
+
+function getCardStatus(view: CardView): { label: string; className: string } {
+  if (view.status === 'done') return { label: 'Done', className: 'done' }
+
+  if (view.who === 'you') return { label: 'Your move', className: 'you' }
+
+  if (view.status === 'blocked') return { label: 'Blocked', className: 'blocked' }
+
+  if (view.status === 'review' || view.who === 'review') return { label: 'In review', className: 'review' }
+
+  if (view.status === 'deferred') return { label: 'Deferred', className: 'deferred' }
+
+  return { label: 'Ready', className: 'ready' }
 }
 
 export function TradingCard({ view }: { view: CardView }) {
@@ -29,57 +41,54 @@ export function TradingCard({ view }: { view: CardView }) {
     )
   }
 
-  const art = getCardArt(view.artSeed, view.kind)
-  const isYourMove = view.who === 'you' && view.status !== 'done' && view.status !== 'deferred'
-  const tagNumber = view.tag.match(/#(\d+)\b/)?.[1]
-  const checkGlyph = view.checks === 'passing' ? '✓' : view.checks === 'failing' ? '×' : '…'
+  const inks = getCardInks(view.repo, view.kind)
+  const status = getCardStatus(view)
+  const number = view.tag.match(/#(\d+)$/)?.[1]
+  const repositoryName = view.repo?.split('/').at(-1)
+  const style = { '--trading-ink-one': inks[0], '--trading-ink-two': inks[1] } as CSSProperties
 
   return (
-    <div className={`trading-frame palette-${getFramePalette(view.repo, view.kind)}${isYourMove ? ' trading-foil' : ''}`}>
-      <div className="trading-title">
-        {view.kind === 'gate' && <span className="trading-gate" aria-label="Gate" />}
-        <span className="trading-name" title={view.title}>
-          {view.title}
-        </span>
-        {view.leverage > 0 && (
-          <span className="trading-cost" title={`Unblocks ${view.leverage}`} aria-label={`Unblocks ${view.leverage}`}>
-            {view.leverage}
-          </span>
-        )}
-      </div>
-      <div className={`trading-art art-palette-${art.palettePick}`}>
-        <svg
-          viewBox="0 0 128 96"
-          preserveAspectRatio="xMidYMid slice"
-          aria-hidden="true"
-          style={{ filter: `hue-rotate(${art.hueShift}deg)` }}
-          dangerouslySetInnerHTML={{ __html: art.markup }}
-        />
-      </div>
-      <div className="trading-type">
-        <span className="trading-type-name">{KIND_LABEL[view.kind]}</span>
-        <span className="trading-status">{view.statusLabel}</span>
-        {view.sources.length ? (
-          <SourceBadges sources={view.sources} />
-        ) : (
-          <span className="trading-set-symbol" aria-label={`${KIND_LABEL[view.kind]} symbol`}>
-            {KIND_GLYPH[view.kind]}
-          </span>
-        )}
-      </div>
-      <div className="trading-text" title={view.note || view.tag}>
-        <span className={view.note ? 'trading-note-copy' : 'trading-flavor'}>{view.note || view.tag}</span>
-      </div>
-      <div className="trading-bottom">
-        <span className="trading-who" title={view.whoLabel || view.statusLabel}>
-          {view.whoLabel || view.statusLabel}
-        </span>
-        {(view.checks || tagNumber) && (
-          <span className="trading-pt" title={[view.checks && `Checks: ${view.checks}`, tagNumber && `#${tagNumber}`].filter(Boolean).join(', ')}>
-            {view.checks && <span aria-label={`Checks: ${view.checks}`}>{checkGlyph}</span>}
-            {tagNumber && <span>#{tagNumber}</span>}
-          </span>
-        )}
+    <div
+      className={`trading-frame trading-${status.className}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
+      style={style}
+    >
+      <i className="trading-glow" aria-hidden="true" />
+      <div className="trading-frame-border">
+        <div className="trading-inner">
+          <header className="trading-title">
+            <h3 title={view.title}>{view.title}</h3>
+            {number && <span className="trading-number">#{number}</span>}
+          </header>
+          <TradingArtwork view={view} kind={view.kind} inks={inks} status={status} />
+          <div className="trading-type">
+            <TradingKindIcon kind={view.kind} />
+            <span>
+              {KIND_LABEL[view.kind]}
+              {repositoryName && ` · ${repositoryName}`}
+            </span>
+            <i className="trading-gem" aria-hidden="true" />
+          </div>
+          <p className={`trading-text${view.note ? '' : ' trading-flavor'}`} title={view.note || view.tag}>
+            {view.note || view.tag}
+          </p>
+          <footer className="trading-bottom">
+            {view.changeSize ? (
+              <>
+                <span className="trading-add">+{view.changeSize.additions}</span>
+                <span className="trading-del">−{view.changeSize.deletions}</span>
+              </>
+            ) : (
+              <span>{view.kind === 'pr' || view.kind === 'placeholder' ? 'Not opened' : 'No PR'}</span>
+            )}
+            {view.checks && (
+              <span className={`trading-ci trading-ci-${view.checks}`} aria-label={`Checks: ${view.checks}`}>
+                <i />
+                CI
+              </span>
+            )}
+            <span className="trading-pt">{status.label}</span>
+          </footer>
+        </div>
       </div>
     </div>
   )

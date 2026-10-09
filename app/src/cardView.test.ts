@@ -73,4 +73,13 @@ describe('getCardView', () => {
     expect(getCardView(taskNode, createFacts()).checks).toBeUndefined()
     expect(getCardView(createTaskNode(createTaskData()), createFacts()).checks).toBeUndefined()
   })
+
+  it('copies pull change size without exposing pull details', () => {
+    const taskNode = createTaskNode(
+      createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', details: { additions: 412, deletions: 38 } }] }),
+    )
+
+    expect(getCardView(taskNode, createFacts()).changeSize).toEqual({ additions: 412, deletions: 38 })
+    expect(getCardView(createTaskNode(createTaskData()), createFacts()).changeSize).toBeUndefined()
+  })
 })

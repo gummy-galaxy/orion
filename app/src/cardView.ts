@@ -16,6 +16,7 @@ export type CardView = {
   whoLabel?: string
   leverage: number
   checks?: 'passing' | 'failing' | 'pending'
+  changeSize?: { additions: number; deletions: number }
   sources: SourceRef[]
   note?: string
   repo?: string
@@ -25,9 +26,7 @@ export type CardView = {
 
 const WHO_LABEL: Record<Who, string> = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
-function getChecks(data: TaskNode['data']): CardView['checks'] {
-  const checks = (getPullRef(data)?.details as PullDetails | undefined)?.checks
-
+function getChecks(checks: PullDetails['checks'] | undefined): CardView['checks'] {
   switch (checks) {
     case 'SUCCESS':
       return 'passing'
@@ -45,7 +44,12 @@ function getChecks(data: TaskNode['data']): CardView['checks'] {
 export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverage: number; sources: SourceRef[] }): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
-  const checks = getChecks(data)
+  const pullDetails = getPullRef(data)?.details as PullDetails | undefined
+  const checks = getChecks(pullDetails?.checks)
+  const changeSize =
+    typeof pullDetails?.additions === 'number' && typeof pullDetails.deletions === 'number'
+      ? { additions: pullDetails.additions, deletions: pullDetails.deletions }
+      : undefined
   const pullRequestUrl = data.itemKind === 'pr' ? facts.sources.find((source) => source.href?.startsWith('https://github.com/'))?.href : undefined
 
   return {
@@ -60,6 +64,7 @@ export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverag
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
     ...(checks ? { checks } : {}),
+    ...(changeSize ? { changeSize } : {}),
     sources: facts.sources,
     note: data.note,
     repo: data.repo,
