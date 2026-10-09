@@ -71,13 +71,20 @@ StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute pro
 
 `orion mcp serve` runs an MCP server over stdin and stdout, so AI clients can discover Orion's canvas and workspace tools and call them directly. Each tool maps its arguments onto an existing CLI command in the same process, so the CLI stays the only writer and never runs a shell command built from tool input.
 
-```sh
-cli/build/orion mcp register
+Add Orion to any MCP client as a stdio server that runs `orion mcp serve`, using the full path to the binary. Most clients accept a config entry like this one or an equivalent `mcp add` command:
+
+```json
+{
+  "mcpServers": {
+    "orion": {
+      "command": "/Applications/Orion.app/Contents/MacOS/orion",
+      "args": ["mcp", "serve"]
+    }
+  }
+}
 ```
 
-The desktop app bundles the same binary, so `/Applications/Orion.app/Contents/MacOS/orion mcp register` registers the installed app's copy. `register` connects whichever of Codex, Claude, and Cursor are installed. Pass `codex`, `claude`, or `cursor` to connect one of them. Clients launch the binary you ran `register` from, so run it from where `orion` will stay, and run it again if you move it. Claude is registered for your user. Cursor reads `~/.cursor/mcp.json`; restart Cursor or toggle the server after registering. If `ORION_DATA_DIR` is set, `register` passes it to the server. Run `orion mcp unregister` to remove those entries.
-
-Registration does not grant write approval. In a Codex session with approval policy `never`, reads work but Codex rejects write tool calls before they reach Orion. For unattended local edits, a saved approval rule for the Orion CLI is currently the working route.
+The desktop app bundles the binary at that path; use `cli/build/orion` for a local build. Add `ORION_DATA_DIR` to the server's environment to use another data root.
 
 ### Sources
 
@@ -155,7 +162,7 @@ In `cli/src/`:
 
 - `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
 - `cli/focus.luau`: reads and renders the app's reported open group and selection.
-- `cli/mcp/`: the MCP server, its tool catalog, and client registration.
+- `cli/mcp/`: the MCP server and its tool catalog. Each tool is a module in `cli/mcp/tools/`.
 - `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.
 - `server/`: HTTP routes, WebSocket events, file watching, and sync scheduling for `orion serve`.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
