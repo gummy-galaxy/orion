@@ -59,6 +59,9 @@
     .demo-strip { display:flex; gap:13px; overflow-x:auto; padding:3px 0 12px; }
     .demo-item { flex:0 0 215px; padding:12px; background:#181235; border:1px solid var(--line); border-radius:9px; }
     .demo-item .art { width:100%; height:125px; position:relative; overflow:hidden; }
+    .template-gallery-head { margin:38px 0 0; color:var(--ink); font:800 20px var(--font-display); }
+    .template-row .demo-item { flex-basis:190px; }
+    .template-row .demo-item .art { height:112px; }
     .demo-label { margin-top:9px; font:700 12px var(--font-data); color:var(--body); }
     .demo-meta { font:500 12px var(--font-ui); color:var(--muted); margin-top:2px; }
     .rarity-list { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin-bottom:24px; }
@@ -195,7 +198,7 @@
     </header>
     <main id="vision-area">
       <section id="identity"><span class="section-kicker">01 / Visual taxonomy</span><h2>Kind identity</h2><p class="section-copy">Five different silhouettes, repeated in the type glyph and art. The card can be recognized from its outer edge at far zoom.</p><div id="identity-grid" class="identity-grid"></div><p class="callout">Square tile · forked crown · dashed open portal · tall arch · folded corner. These remain distinct in grayscale; palette is a second cue.</p></section>
-      <section id="geometry"><span class="section-kicker">02 / Picture grammar</span><h2>Geometric art system</h2><p class="section-copy">Each scene starts with a card ID seed, then the work graph chooses its structure. The dominant figure follows kind; the repeated shapes follow upstream work. The comparison strips hold all but one input constant.</p><div class="grammar"><div class="rule"><b>01 · Kind</b><span>Dominant square, branching fork, open ring, arch, or ribbon.</span></div><div class="rule"><b>02 · Upstream</b><span>One small tile per ancestor, capped at twelve; excess shown as +N.</span></div><div class="rule"><b>03 · Direct inputs</b><span>Converging paths into the central form.</span></div><div class="rule"><b>04 · Leverage</b><span>Rays leaving the form toward unfinished descendants.</span></div><div class="rule"><b>05 · State + repo</b><span>Center fill follows status; repo hash picks a motif family.</span></div></div><div id="art-demos"></div></section>
+      <section id="geometry"><span class="section-kicker">02 / Picture grammar</span><h2>Geometric art system</h2><p class="section-copy">Each scene starts with a card ID seed, then the work graph chooses its structure. One large kind-shaped form sits against a quiet field; the repeated strata follow upstream work. The comparison strips hold all but one input constant.</p><div class="grammar"><div class="rule"><b>01 · Kind</b><span>Dominant square, branching fork, open ring, arch, or ribbon.</span></div><div class="rule"><b>02 · Upstream</b><span>One shaped mark per ancestor in the bottom stratum, capped at twelve; excess shown as +N.</span></div><div class="rule"><b>03 · Direct inputs</b><span>Converging wedges into the dominant form.</span></div><div class="rule"><b>04 · Leverage</b><span>Thick wedges leaving the form toward unfinished descendants.</span></div><div class="rule"><b>05 · State + repo</b><span>The hero treatment follows status; the repo hash picks a restrained motif.</span></div></div><div id="art-demos"></div></section>
       <section id="rarity"><span class="section-kicker">03 / Weight of accumulated work</span><h2>Rarity ladder</h2><p class="section-copy">Rarity counts all upstream work, including completed cards. It never resets when a dependency ships. Badge shape, pip count, and frame finish rise together. Only Keystone shines on hover.</p><div id="rarity-brief" class="rarity-list"></div><div id="rarity-cards" class="card-grid"></div><div id="distribution" class="distribution"></div></section>
       <section id="variants"><span class="section-kicker">04 / Five directions</span><h2>One deck, five visual readings</h2><p class="section-copy">The 17-card study deck spans every available kind, status, and upstream tier. “Study state” labels mark the gate and review examples absent from this snapshot. All live cards come from the Orion workspace copy.</p><div id="variants-content"></div></section>
       <section id="mixed"><span class="section-kicker">05 / Context test</span><h2>Mixed canvas</h2><p class="section-copy">Twenty-four Evolved cards in a loose dependency field. The repeated Orion repository is intentional: kind, graph art, and rarity still need to separate the cards without repo colors.</p><div class="canvas-wrap"><div id="mixed-world" class="mixed-world"></div></div></section>
@@ -628,39 +631,48 @@
     const pt = (x,y) => `${round(x)},${round(y)}`;
     const paletteFor = card => {
       const base=KIND[card.kind].color;
-      const accent=INK[hash(card.id+'|ink')%INK.length];
-      return {base,light:mix(base,'#ffffff',.37),deep:mix(base,'#28204f',.63),accent,back:BACK};
+      const accent=INK[hash(card.id+'|ink3')%INK.length];
+      const balance=card.pr!=null?Number(card.pr)%3:hash(card.id+'|balance')%3;
+      const light=mix(base,'#ffffff',.46),deep=mix(base,BACK,.44);
+      return {base,light,deep,accent,balance,hero:[deep,base,light][balance],back:BACK};
     };
     const rotated = (shapes,degrees,x,y) => shapes.map(shape=>({...shape,rotate:[round(degrees),round(x),round(y)]}));
 
     /* Six layouts: monument, horizon, cascade, rhythm, orbit, cluster. */
     function composition(card,rand,pal) {
-      const template=card.pr!=null ? card.pr%6 : hash(card.id+'|poster')%6;
-      const jitter=()=>round((rand()-.5)*24);
-      const scale=()=>.84+rand()*.36;
-      const turn=()=>round((rand()-.5)*(card.kind==='gate'?14:30));
-      const placements=[];
+      const template=Number.isInteger(card.template)?card.template:(card.pr!=null ? card.pr%6 : hash(card.id+'|poster')%6);
+      const jitter=()=>round((rand()-.5)*18);
+      const scale=()=>.91+rand()*.18;
+      const turn=()=>round((rand()-.5)*(card.kind==='gate'?9:18));
+      const support=[];
       const field=[];
+      let hero;
       if(template===0) {
-        field.push(R(0,0,83,160,pal.deep),P('0,0 256,0 256,44 0,122',mix(pal.deep,BACK,.65)));
-        placements.push([167+jitter(),72+jitter(),181*scale(),turn(),true],[24+jitter(),126,86*scale(),turn(),false]);
+        field.push(R(0,0,70,160,mix(pal.deep,BACK,.7)));
+        hero=[181+jitter(),76+jitter(),178*scale(),turn()];
+        support.push([48,130,62,0]);
       } else if(template===1) {
-        field.push(R(0,95,256,65,pal.deep),P('0,102 256,57 256,101 0,146',pal.accent,{alpha:.42,blend:'screen'}));
-        placements.push([77+jitter(),64+jitter(),154*scale(),turn(),true],[211+jitter(),105,112*scale(),turn(),false]);
+        field.push(R(0,99,256,61,mix(pal.deep,BACK,.5)));
+        hero=[80+jitter(),76+jitter(),162*scale(),turn()];
+        support.push([217,114,74,0]);
       } else if(template===2) {
-        field.push(P('0,0 156,0 256,123 256,160 212,160',pal.deep));
-        placements.push([-8+jitter(),-8+jitter(),134*scale(),turn(),false],[85+jitter(),51+jitter(),132*scale(),turn(),true],[189+jitter(),108+jitter(),93*scale(),turn(),false]);
+        field.push(P('0,0 108,0 0,116',mix(pal.deep,BACK,.65)));
+        hero=[41+jitter(),103+jitter(),158*scale(),turn()];
+        support.push([145,59,83,turn()],[223,20,48,turn()]);
       } else if(template===3) {
-        field.push(R(0,0,256,160,mix(pal.deep,BACK,.6)));
-        for(let row=0;row<2;row++)for(let col=0;col<3;col++)placements.push([36+col*92+jitter()*.4,29+row*89+jitter()*.4,(row===1&&col===1?119:74)*scale(),turn(),row===1&&col===1]);
+        field.push(R(0,0,76,160,mix(pal.deep,BACK,.65)));
+        hero=[181+jitter(),77+jitter(),156*scale(),turn()];
+        support.push([39,41,55,0],[39,106,55,0]);
       } else if(template===4) {
-        field.push(A(130+jitter(),77,133,pal.deep),A(130,77,86,BACK));
-        placements.push([128+jitter(),78+jitter(),143*scale(),turn(),true],[16+jitter(),128,79*scale(),turn(),false],[241+jitter(),12,91*scale(),turn(),false]);
+        field.push(outline(A(128,78,111,'none'),mix(pal.deep,BACK,.35),11));
+        hero=[130+jitter(),78+jitter(),146*scale(),turn()];
+        support.push([236,35,54,0]);
       } else {
-        field.push(P('0,0 128,0 58,160 0,160',pal.deep),P('172,0 256,0 256,160 211,160',mix(pal.accent,BACK,.6)));
-        placements.push([52+jitter(),91+jitter(),147*scale(),turn(),false],[131+jitter(),55+jitter(),141*scale(),turn(),true],[221+jitter(),103+jitter(),116*scale(),turn(),false]);
+        field.push(P('188,0 256,0 256,160 229,160',mix(pal.deep,BACK,.58)));
+        hero=[126+jitter(),70+jitter(),161*scale(),turn()];
+        support.push([212,122,77,turn()],[42,20,58,turn()]);
       }
-      return {template,field,placements};
+      return {template,field,hero,support};
     }
 
     /* Shape families use large filled areas; the small header glyph is deliberately absent. */
@@ -678,7 +690,7 @@
         const square=R(x-s*.53,y-s*.46,s*1.06,s*.92,'none');
         forms.push(outline(square,fill,Math.max(8,s*.105)));
         forms.push(outline(A(x+s*.14,y-s*.06,s*.31,'none'),accent,Math.max(7,s*.08)));
-        for(let i=-2;i<=2;i++)forms.push(D(`M${round(x-s*.42+i*s*.17)} ${round(y+s*.37)}l${round(s*.34)} ${round(-s*.74)}`,'none',{stroke:pal.light,width:Math.max(4,s*.045),alpha:.37}));
+        for(let i=-1;i<=0;i++)forms.push(D(`M${round(x-s*.36+i*s*.22)} ${round(y+s*.35)}l${round(s*.34)} ${round(-s*.7)}`,'none',{stroke:pal.light,width:Math.max(5,s*.07),alpha:.34}));
       } else if(kind==='gate') {
         const arch=(w,h)=>`M${round(x-w/2)} ${round(y+h*.5)}V${round(y-h*.06)}A${round(w/2)} ${round(h*.48)} 0 0 1 ${round(x+w/2)} ${round(y-h*.06)}V${round(y+h*.5)}Z`;
         forms.push(D(arch(s*1.02,s),fill));
@@ -690,6 +702,16 @@
         forms.push(D(band(s*.36,s*.15),accent,{alpha:.82,blend:'screen'}));
       }
       return rotated(forms,rotation,x,y);
+    }
+
+    function supportingForm(kind,x,y,s,pal,angle) {
+      let form;
+      if(kind==='step')form=R(x-s*.5,y-s*.5,s,s,pal.accent,{alpha:.82});
+      else if(kind==='pr')form=P([pt(x-s*.55,y-s*.48),pt(x-s*.1,y-s*.48),pt(x+s*.55,y),pt(x-s*.1,y+s*.48),pt(x-s*.55,y+s*.48),pt(x+s*.07,y)].join(' '),pal.accent,{alpha:.88});
+      else if(kind==='placeholder')form=outline(R(x-s*.5,y-s*.5,s,s,'none'),pal.accent,Math.max(6,s*.12));
+      else if(kind==='gate')form=D(`M${round(x-s*.5)} ${round(y+s*.45)}V${round(y)}A${round(s*.5)} ${round(s*.5)} 0 0 1 ${round(x+s*.5)} ${round(y)}V${round(y+s*.45)}Z`,pal.accent,{alpha:.82});
+      else form=D(`M${round(x-s*.6)} ${round(y)}Q${round(x)} ${round(y-s*.75)} ${round(x+s*.6)} ${round(y)}L${round(x+s*.6)} ${round(y+s*.27)}Q${round(x)} ${round(y-s*.48)} ${round(x-s*.6)} ${round(y+s*.27)}Z`,pal.accent,{alpha:.85});
+      return rotated([form],angle,x,y);
     }
 
     function statusTreatment(card,placement,pal) {
@@ -709,40 +731,37 @@
     }
 
     function artShapes(card) {
-      const rand=randFor(card.id),pal=paletteFor(card),shapes=[R(0,0,256,160,BACK)];
-      const {field,placements}=composition(card,rand,pal);
+      const rand=randFor(card.id),pal=paletteFor(card);
+      const shapes=[R(0,0,256,160,pal.balance===2?mix(pal.deep,BACK,.72):BACK)];
+      const {field,hero,support}=composition(card,rand,pal);
       shapes.push(...field);
       const motif=hash(card.repo)%4;
-      if(motif===0)for(let i=0;i<4;i++)shapes.push(R(-7+i*68,0,33,35,pal.accent,{alpha:.44,blend:'screen'}));
-      if(motif===1)for(let i=0;i<3;i++)shapes.push(R(8+i*111,0,23,160,pal.accent,{alpha:.28,blend:'screen'}));
-      if(motif===2)for(let i=0;i<3;i++)shapes.push(P(`${-58+i*112},0 ${-12+i*112},0 ${77+i*112},160 ${31+i*112},160`,pal.accent,{alpha:.28,blend:'screen'}));
-      if(motif===3)for(let i=0;i<3;i++)shapes.push(outline(A(256,0,45+i*47,'none'),pal.accent,8));
-      const hero=placements.find(p=>p[4])||placements[0];
-      for(let i=0;i<Math.min(card.direct,4);i++) {
-        const y=17+i*27, hx=hero[0]-hero[2]*.2;
-        shapes.push(P([pt(-17,y),pt(15,y+2),pt(hx,hero[1]-13+i*8),pt(hx,hero[1]+1+i*8)].join(' '),pal.light,{alpha:.52,blend:'screen'}));
+      if(motif===0)shapes.push(R(0,0,32,21,pal.accent,{alpha:.23}));
+      if(motif===1)shapes.push(R(0,0,13,137,pal.accent,{alpha:.22}));
+      if(motif===2)shapes.push(P('0,0 21,0 75,137 54,137',pal.accent,{alpha:.17}));
+      if(motif===3)shapes.push({...outline(A(256,0,68,'none'),pal.accent,7),alpha:.27});
+      const [hx,hy,hs,rotation]=hero;
+      for(let i=0;i<Math.min(card.direct,3);i++) {
+        const y=24+i*35;
+        shapes.push(P([pt(-8,y),pt(0,y+11),pt(hx-hs*.29,hy-5+i*5),pt(hx-hs*.29,hy-17+i*5)].join(' '),pal.light,{alpha:.22}));
       }
-      placements.forEach(([x,y,s,rotation,isHero],i)=>{
-        let fill=isHero?pal.base:(i%2?pal.deep:pal.light);
-        if(isHero&&card.status==='ready')fill=pal.deep;
-        if(isHero&&card.status==='deferred')fill=mix(pal.base,BACK,.55);
-        const accent=isHero?pal.accent:(i%2?pal.base:pal.deep);
-        shapes.push(...kindForms(card.kind,x,y,s,pal,fill,accent,rotation));
-        if(isHero)shapes.push(...statusTreatment(card,[x,y,s,rotation],pal));
-      });
       for(let i=0;i<Math.min(card.leverage,6);i++) {
-        const y=15+i*22, hx=hero[0]+hero[2]*.25;
-        shapes.push(P([pt(hx,hero[1]-4+i*2),pt(256,y-8),pt(256,y+9),pt(hx,hero[1]+8+i*2)].join(' '),pal.accent,{alpha:.64,blend:'screen'}));
+        const y=23+i*21,from=Math.min(223,hx+hs*.24);
+        shapes.push(P([pt(from,hy-7+i*2),pt(256,y-7),pt(256,y+8),pt(from,hy+8+i*2)].join(' '),pal.accent,{alpha:.4}));
       }
-      shapes.push(R(0,137,256,23,'#09071b',{alpha:.89}));
+      support.forEach(([x,y,s,angle])=>shapes.push(...supportingForm(card.kind,x,y,s,pal,angle)));
+      const heroFill=card.status==='deferred'?mix(pal.hero,BACK,.48):card.status==='ready'?pal.deep:pal.hero;
+      shapes.push(...kindForms(card.kind,hx,hy,hs,pal,heroFill,pal.accent,rotation));
+      shapes.push(...statusTreatment(card,hero,pal));
+      shapes.push(R(0,138,256,22,mix(pal.deep,BACK,.29),{alpha:.96}));
       const visible=Math.min(card.upstream,12);
       for(let i=0;i<visible;i++) {
-        const x=8+i*20;
-        const tone=i%3===0?pal.accent:i%2===0?pal.light:pal.base;
-        if(card.kind==='placeholder')shapes.push(outline(R(x,143,13,11,'none'),tone,3));
-        else if(card.kind==='gate')shapes.push(D(`M${x} 154v-5a6.5 6.5 0 0 1 13 0v5Z`,tone));
-        else if(card.kind==='note')shapes.push(P(`${x},154 ${x+5},143 ${x+13},143 ${x+8},154`,tone));
-        else shapes.push(R(x,143,13,11,tone));
+        const x=8+i*20,tone=i%2===0?pal.hero:pal.light;
+        if(card.kind==='placeholder')shapes.push(outline(R(x,144,13,10,'none'),tone,3));
+        else if(card.kind==='gate')shapes.push(D(`M${x} 154v-4a6.5 6.5 0 0 1 13 0v4Z`,tone));
+        else if(card.kind==='note')shapes.push(P(`${x},154 ${x+5},144 ${x+13},144 ${x+8},154`,tone));
+        else if(card.kind==='pr')shapes.push(P(`${x},144 ${x+8},144 ${x+13},149 ${x+8},154 ${x},154 ${x+5},149`,tone));
+        else shapes.push(R(x,144,13,10,tone));
       }
       return shapes;
     }
@@ -757,7 +776,7 @@
     }
     const ART_CACHE=new Map();
     function artData(card) {
-      const key=JSON.stringify([card.id,card.kind,card.status,card.repo,card.upstream,card.direct,card.leverage]);
+      const key=JSON.stringify([card.id,card.kind,card.status,card.repo,card.upstream,card.direct,card.leverage,card.template??null]);
       if(!ART_CACHE.has(key)) {
         const shapes=artShapes(card);
         ART_CACHE.set(key,{shapes,svg:`<svg viewBox="0 0 256 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Geometric poster for ${esc(card.title)}">${shapes.map(shapeSvg).join('')}</svg>`});
@@ -805,15 +824,22 @@
     /* Page wiring */
     document.querySelector('#identity-grid').innerHTML=Object.entries(KIND).map(([id,k])=>`<div class="identity ${id}" style="--kind-color:${k.color}"><div class="mini">${icon(id)}</div><h3>${k.label}</h3><p>${k.frame}</p><p class="recipe">${k.motif}<br>Palette ${k.color}</p></div>`).join('');
     const base=DECK.find(c=>c.id==='add-a-trading-card-skin');
-    function demoRow(title,detail,cards,labels) { return `<div class="demo-row"><h3>${title}</h3><p>${detail}</p><div class="demo-strip">${cards.map((c,i)=>`<div class="demo-item">${art(c)}<div class="demo-label">${esc(labels[i])}</div><div class="demo-meta">${esc(KIND[c.kind].label)} · ${esc(c.status)}</div></div>`).join('')}</div></div>`; }
+    function demoRow(title,detail,cards,labels,className='') { return `<div class="demo-row ${className}"><h3>${title}</h3><p>${detail}</p><div class="demo-strip">${cards.map((c,i)=>`<div class="demo-item">${art(c)}<div class="demo-label">${esc(labels[i])}</div><div class="demo-meta">${esc(KIND[c.kind].label)} · ${esc(c.status)}</div></div>`).join('')}</div></div>`; }
     const clone=(extra,seed)=>({...base,...extra,id:seed??base.id});
     const upstream=[0,1,3,6,12], leverage=[0,1,3,6,9], states=['ready','active','review','blocked','deferred','done'];
     const repos=['vocksel/orion','flipbook-labs/flipbook','vocksel/agent-config','flipbook-labs/storyteller'];
     document.querySelector('#art-demos').innerHTML=[
       demoRow('Accumulation / upstream','Same PR and seed; small bottom shapes grow with transitive ancestors.',upstream.map(upstream=>clone({upstream,direct:0,leverage:0})),upstream.map(n=>`${n} upstream`)),
-      demoRow('Reach / leverage','Outgoing rays rise with open downstream work; cap the visible spokes at eight.',leverage.map(leverage=>clone({upstream:3,direct:2,leverage})),leverage.map(n=>`${n} open downstream`)),
-      demoRow('State / central fill','Outlined, half-filled, double ring, slashed, paused, then solid. These are independent of hue.',states.map(status=>clone({status,upstream:3,direct:2,leverage:2})),states),
+      demoRow('Reach / leverage','Thick wedges carry open downstream work; the visible marks cap at six.',leverage.map(leverage=>clone({upstream:3,direct:2,leverage})),leverage.map(n=>`${n} open downstream`)),
+      demoRow('State / dominant form','Outlined, split, double-edged, slashed, paused, then solid. These are independent of hue.',states.map(status=>clone({status,upstream:3,direct:2,leverage:2})),states),
       demoRow('Repository / motif family','Only Orion occurs in the snapshot. The remaining repo names are illustrative motif tests.',repos.map(repo=>clone({repo,upstream:3,direct:2,leverage:1},base.id)),repos),
+      '<h3 class="template-gallery-head">Six compositions per kind</h3>',
+      ...Object.keys(KIND).map(kind=>{
+        const sample=DECK.find(card=>card.kind===kind);
+        const names=['Monument','Horizon','Cascade','Rhythm','Orbit','Cluster'];
+        const cards=names.map((_,template)=>({...sample,template,upstream:3,direct:0,leverage:0,status:'done'}));
+        return demoRow(`${KIND[kind].label} · composition set`,'Same seed, kind, and graph data; only the poster layout changes.',cards,names,'template-row');
+      }),
     ].join('');
     document.querySelector('#rarity-brief').innerHTML=TIERS.map(t=>`<div class="tier-brief"><b>${rarityIcon(t)} ${t.label}</b><span>${t.range} · ${t.count} cards · ${t.pips} ${t.pips===1?'pip':'pips'}</span></div>`).join('');
     document.querySelector('#rarity-cards').innerHTML=TIERS.map(t=>renderEvolved({...base,upstream:[0,1,3,6,12][TIERS.indexOf(t)],direct:2,leverage:2,status:'active'},t)).join('');
