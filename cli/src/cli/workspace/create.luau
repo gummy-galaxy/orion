@@ -10,12 +10,11 @@ return table.freeze({
 	define = function(parser: cli.Parser)
 		parser:add("name", "positional", { help = "Workspace name" })
 		parser:add("label", "option", { help = "Display label" })
-		parser:add("owner", "option", { help = "Default GitHub owner" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
 		local name = assert(parser:get("name"), "missing <name>")
-		store.createWorkspace(options.root, name, parser:get("label"), parser:get("owner"))
+		store.createWorkspace(options.root, name, parser:get("label"))
 		options.write(`Created workspace {name}`)
 	end,
 })

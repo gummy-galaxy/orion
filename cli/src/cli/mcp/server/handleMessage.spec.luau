@@ -62,8 +62,7 @@ test.case("tools round-trip through the CLI and workspace storage", function(ass
 	local tools = need(json.asArray(need(json.asObject(listed.result)).tools))
 	assert.eq(#tools > 10, true)
 
-	local created =
-		call(run, "orion_create_workspace", json.object({ name = "sample", label = "Sample", owner = "vocksel" }))
+	local created = call(run, "orion_create_workspace", json.object({ name = "sample", label = "Sample" }))
 	assert.eq(created.isError, nil)
 
 	local added = call(run, "orion_add_item", json.object({ title = "MCP smoke test", workspace = "sample" }))

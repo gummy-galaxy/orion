@@ -8,7 +8,7 @@ import { loadoutOf, type Loadout, type Sticker } from './sticker'
  */
 
 export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
-export type Remote = Saved & { revision: number; settings: { githubOwner: string }; github?: GithubSnapshot }
+export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
 export type SaveResult = { ok: true; revision: number } | { ok: false; conflict: boolean }

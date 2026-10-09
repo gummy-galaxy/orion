@@ -4,7 +4,7 @@ import { clearFocus, fetchRemote, reportFocus } from './persist'
 afterEach(() => vi.unstubAllGlobals())
 
 it('reads the requested workspace during a conflict retry', async () => {
-  const remote = { revision: 3, settings: { githubOwner: 'example' }, nodes: [], links: [] }
+  const remote = { version: 2, revision: 3, settings: {}, nodes: [], links: [] }
   const fetchMock = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({ 'content-type': 'application/json' }),

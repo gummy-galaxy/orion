@@ -8,8 +8,26 @@ local testing = require("@root/testing")
 test.case("configured agent command receives bounded context on stdin", function(assert)
 	local dir = testing.directory("suggest-command")
 	local doc = testing.createDoc({
-		testing.task("a", "First work", "todo", nil, json.object({ repo = "app", branch = "same" })),
-		testing.task("b", "Second work", "todo", nil, json.object({ repo = "app", branch = "same" })),
+		testing.task(
+			"a",
+			"First work",
+			"todo",
+			nil,
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } },
+			})
+		),
+		testing.task(
+			"b",
+			"Second work",
+			"todo",
+			nil,
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } },
+			})
+		),
 	})
 	doc.raw = json.object({ settings = json.object({ agent = "claude", agentCommand = { "custom-agent", "--json" } }) })
 	store.write(dir, doc)
@@ -40,8 +58,26 @@ test.case("suggest reads and saves only the selected workspace", function(assert
 	store.write(
 		dir,
 		testing.createDoc({
-			testing.task("a", "First work", "todo", nil, json.object({ repo = "app", branch = "same" })),
-			testing.task("b", "Second work", "todo", nil, json.object({ repo = "app", branch = "same" })),
+			testing.task(
+				"a",
+				"First work",
+				"todo",
+				nil,
+				json.object({
+					repo = "vocksel/app",
+					refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } },
+				})
+			),
+			testing.task(
+				"b",
+				"Second work",
+				"todo",
+				nil,
+				json.object({
+					repo = "vocksel/app",
+					refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } },
+				})
+			),
 		})
 	)
 	assert.strContains(run({ "suggest", "--dry-run" }), "0 group suggestions")

@@ -1,6 +1,7 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
+local findRef = require("@root/refs/findRef")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -76,7 +77,7 @@ test.case("sync writes GitHub state through the command runner", function(assert
 	assert.strContains(text, "ci: active → done")
 	local item = store.load(dir).nodes[2]
 	assert.eq(item.data.status, "done")
-	local recorded = json.asObject(item.data.github)
+	local recorded = (findRef(item, "pull") :: any).details
 	assert.eq(recorded and recorded.state, "MERGED")
 	assert.eq(recorded and recorded.checks, "SUCCESS")
 	assert.eq(recorded and recorded.additions, 120)
@@ -109,7 +110,7 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 			checkedAt = "now",
 			unplaced = {
 				json.object({
-					repo = "flipbook",
+					repo = "flipbook-labs/flipbook",
 					number = 670,
 					title = "Release health dashboard",
 					matches = { json.object({ id = "pub", score = 0.72 }) },
