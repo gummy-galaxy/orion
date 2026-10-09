@@ -1,6 +1,9 @@
 local json = require("@std/json")
 
-local github = require("@root/github")
+local getDesired = require("@root/github/getDesired")
+local getInvolved = require("@root/github/getInvolved")
+local getRecorded = require("@root/github/getRecorded")
+local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local types = require("@root/types")
 
@@ -26,8 +29,8 @@ type Session = { repo: string, branch: string, title: string, updatedAt: number 
 type Result = {
 	source: Source,
 	report: SourceReport,
-	pulls: { github.PullState }?,
-	issues: { github.IssueState }?,
+	pulls: { githubTypes.PullState }?,
+	issues: { githubTypes.IssueState }?,
 	viewer: string?,
 	jira: { JiraIssue }?,
 	worktrees: { Worktree }?,
@@ -190,14 +193,8 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 		local result: Result = { source = source, report = { id = source.id, added = 0, updated = 0, linked = 0 } }
 		local succeeded, failureMessage = pcall(function()
 			if source.kind == "github" then
-				result.pulls, result.issues, result.viewer = github.getInvolved(
-					run,
-					assert(source.host),
-					assert(source.owners),
-					since,
-					source.include,
-					source.exclude
-				)
+				result.pulls, result.issues, result.viewer =
+					getInvolved(run, assert(source.host), assert(source.owners), since, source.include, source.exclude)
 			elseif source.kind == "jira" then
 				result.jira = getJiraIssues(getCommandJson(run, assert(source.command)))
 			elseif source.kind == "hop" then
@@ -355,7 +352,7 @@ local function linkMention(doc: Doc, from: Item, to: Item, report: SourceReport)
 	report.linked += 1
 end
 
-local function linkMentions(doc: Doc, pull: github.PullState, item: Item, report: SourceReport)
+local function linkMentions(doc: Doc, pull: githubTypes.PullState, item: Item, report: SourceReport)
 	local text = `{pull.title} {pull.branch or ""} {pull.body or ""}`
 
 	for key in text:upper():gmatch("%f[%w][A-Z][A-Z0-9]*%-%d+%f[^%w]") do
@@ -395,7 +392,7 @@ local function linkMentions(doc: Doc, pull: github.PullState, item: Item, report
 end
 
 function ingest.apply(doc: Doc, results: { Result }, now: string): Report
-	local pendingLinks: { { github.PullState | Item | SourceReport } } = {}
+	local pendingLinks: { { githubTypes.PullState | Item | SourceReport } } = {}
 
 	for _, result in results do
 		if result.report.failed or result.source.kind == "hop" then
@@ -418,12 +415,8 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 				or step
 				or createItem(doc, pull.title, getRepoName(doc, pull.owner, pull.name), "todo", nil)
 			markItem(result.report, existing or step)
-			local status, who = github.getDesired(
-				pull,
-				getString(item.data.status) or "todo",
-				getString(item.data.who),
-				assert(result.viewer)
-			)
+			local status, who =
+				getDesired(pull, getString(item.data.status) or "todo", getString(item.data.who), assert(result.viewer))
 			item.data.label = pull.title
 			item.data.itemKind = "pr"
 			item.data.repo = getRepoName(doc, pull.owner, pull.name)
@@ -432,7 +425,7 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			item.data.who = who
 			item.data.branch = pull.branch or item.data.branch
 			item.data.host = if host ~= "github.com" then host else nil
-			item.data.github = github.getRecorded(pull, assert(result.viewer), now)
+			item.data.github = getRecorded(pull, assert(result.viewer), now)
 			markSourceOn(item, id)
 			table.insert(pendingLinks, { pull, item, result.report })
 		end
@@ -600,7 +593,7 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 	end
 
 	for _, entry in pendingLinks do
-		linkMentions(doc, entry[1] :: github.PullState, entry[2] :: Item, entry[3] :: SourceReport)
+		linkMentions(doc, entry[1] :: githubTypes.PullState, entry[2] :: Item, entry[3] :: SourceReport)
 	end
 
 	local reports = {}

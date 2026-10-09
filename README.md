@@ -163,5 +163,5 @@ In `cli/src/`:
 - `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.
 - `server/`: HTTP routes, WebSocket events, file watching, and sync scheduling for `orion serve`.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
-- `github.luau`: looking up pull requests and mapping their state onto cards.
+- `github/`: looking up pull requests and mapping their state onto cards.
 - `render.luau`: text and JSON output.

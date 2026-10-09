@@ -1,7 +1,8 @@
 local json = require("@std/json")
 local task = require("@std/task")
 
-local github = require("@root/github")
+local applyPulls = require("@root/github/applyPulls")
+local collectPulls = require("@root/github/collectPulls")
 local runCommand = require("@root/command")
 local store = require("@root/store")
 local types = require("@root/types")
@@ -61,9 +62,9 @@ function sync.create(
 		setStatus(running)
 		local didSucceed, failure = pcall(function()
 			local dir = store.getWorkspaceDir(root, target)
-			local fetched = github.collect(store.load(dir), command, false)
+			local fetched = collectPulls(store.load(dir), command, false)
 			store.transaction(dir, function(doc)
-				github.apply(doc, fetched, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
+				applyPulls(doc, fetched, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
 			end)
 		end)
 
