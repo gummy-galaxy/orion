@@ -1,9 +1,17 @@
 local path = require("@std/path")
 
-local getAbsolutePath = require("@root/platform/getAbsolutePath")
 local platformTypes = require("@root/platform/types")
 
 type Platform = platformTypes.Platform
+
+-- Returns the value only when it is a non-empty absolute path, so relative environment values are ignored.
+local function getAbsolutePath(value: string?): string?
+	if value and value ~= "" and path.isAbsolute(value) then
+		return value
+	end
+
+	return nil
+end
 
 local function getDataDir(platform: Platform, home: path.Pathlike, environment: { [string]: string }): path.Path
 	if platform == "macos" then

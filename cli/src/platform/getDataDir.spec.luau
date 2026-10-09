@@ -28,4 +28,8 @@ test.case("data folders follow each platform's convention", function(assert)
 		tostring(getDataDir("windows", "/Users/sam", {})),
 		tostring(path.join("/Users/sam", "AppData", "Roaming", "Orion"))
 	)
+	assert.eq(
+		tostring(getDataDir("windows", "/Users/sam", { APPDATA = "" })),
+		tostring(path.join("/Users/sam", "AppData", "Roaming", "Orion"))
+	)
 end)

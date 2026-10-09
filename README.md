@@ -162,7 +162,7 @@ In `cli/src/`:
 
 - `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
 - `cli/focus.luau`: reads and renders the app's reported open group and selection.
-- `cli/mcp/`: the MCP server and its tool catalog. Each tool is a module in `cli/mcp/tools/`.
+- `cli/mcp/`: the MCP server and its tool catalog. `cli/mcp/tools.luau` lists every tool.
 - `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.
 - `server/`: HTTP routes, WebSocket events, file watching, and sync scheduling for `orion serve`.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
