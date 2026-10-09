@@ -85,6 +85,9 @@ export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. */
 export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status: ViewStatus; side: 'in' | 'out' }
 export type GhostNode = Node<GhostData, 'ghost'>
+/** Placed by Orion in front of `taskId` while it waits on work that can start now. Never saved. */
+export type BlockerData = { kind: 'blocker'; taskId: string }
+export type BlockerNode = Node<BlockerData, 'blocker'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
 export type ImageNode = Node<ImageData, 'image'>
 export type AppNode = TaskNode | ClusterNode | ImageNode

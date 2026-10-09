@@ -1,4 +1,5 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
+import { deriveWork, gated } from './derive'
 import { GROUP_HEADER_HEIGHT, GROUP_PADDING, byId, isCluster, normalize, sizeOf, type AppNode, type Link } from './model'
 
 const elk = new ELK()
@@ -16,6 +17,9 @@ type Edge = [string, string]
 
 /** Space between neighbors inside groups and at the top level. */
 export const GAP = { inner: { x: 56, y: 24 }, top: { x: 120, y: 72 } }
+
+/** The gap a column needs in front of it to fit the blocker Orion stands before one of its cards. */
+export const BLOCKER_ROOM = 120
 
 const INNER_GAP: Gap = { node: GAP.inner.y, layer: GAP.inner.x, component: 32 }
 const TOP_GAP: Gap = { node: GAP.top.y, layer: GAP.top.x, component: 96 }
@@ -54,12 +58,8 @@ export function grid(sizes: Size[], columns: number, gap: number): { at: Point[]
   }
 }
 
-/**
- * Cuts a left-to-right layout into strips of at most `WRAP` layers, each no wider than `ROW_WIDTH` unless a single
- * layer is wider on its own, and stacks them top to bottom, so a long chain reads like lines of text. Returns null
- * when the layout already fits.
- */
-export function wrapLayers(boxes: Map<string, Box>, gap: number): Map<string, Box> | null {
+/** Columns of a left-to-right layout: boxes whose spans overlap sideways share one. */
+function layersOf(boxes: Map<string, Box>) {
   const layers: { x: number; right: number; ids: string[] }[] = []
 
   for (const [id, box] of [...boxes].sort(([, a], [, b]) => a.x - b.x)) {
@@ -71,6 +71,35 @@ export function wrapLayers(boxes: Map<string, Box>, gap: number): Map<string, Bo
     } else layers.push({ x: box.x, right: box.x + box.width, ids: [id] })
   }
 
+  return layers
+}
+
+/** Widens the gap before each column holding a box in `guarded` to at least `room`, so the blocker in front of it fits. */
+export function makeRoom(boxes: Map<string, Box>, guarded: Set<string>, room: number): Map<string, Box> {
+  if (!guarded.size) return boxes
+
+  const result = new Map<string, Box>()
+  let shift = 0
+  let right = -Infinity
+
+  for (const layer of layersOf(boxes)) {
+    if (layer.ids.some((id) => guarded.has(id))) shift += Math.max(0, room - (layer.x - right))
+
+    for (const id of layer.ids) result.set(id, { ...boxes.get(id)!, x: boxes.get(id)!.x + shift })
+
+    right = layer.right
+  }
+
+  return result
+}
+
+/**
+ * Cuts a left-to-right layout into strips of at most `WRAP` layers, each no wider than `ROW_WIDTH` unless a single
+ * layer is wider on its own, and stacks them top to bottom, so a long chain reads like lines of text. Returns null
+ * when the layout already fits.
+ */
+export function wrapLayers(boxes: Map<string, Box>, gap: number): Map<string, Box> | null {
+  const layers = layersOf(boxes)
   const strips: (typeof layers)[] = []
 
   for (const layer of layers) {
@@ -134,7 +163,7 @@ async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Ga
  * same things are interchangeable, so a run of more than `WRAP` of them is laid out as one grid. Chains longer than
  * `WRAP` steps wrap onto further rows, and the pieces are packed again.
  */
-async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<string, Point>> {
+async function flow(children: AppNode[], edges: Edge[], gap: Gap, guarded: Set<string>): Promise<Map<string, Point>> {
   const ends = new Map(children.map((child) => [child.id, { in: [] as string[], out: [] as string[] }]))
 
   for (const [source, target] of edges) {
@@ -206,11 +235,19 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<s
     parts.set(findRoot(unit.id), part)
   }
 
+  const guardedUnits = new Set([...guarded].map((id) => unitOf.get(id)!))
   const wrapped = new Map([...parts].map(([id, part]) => [id, wrapLayers(part, gap.layer)]))
+  // Columns only line up within a connected piece, and wrapped rows share them, so widening one keeps them lined up.
+  const roomy = new Map(
+    [...parts].map(([id, part]) => [
+      id,
+      [...part.keys()].some((unit) => guardedUnits.has(unit)) ? makeRoom(wrapped.get(id) ?? part, guardedUnits, BLOCKER_ROOM) : null,
+    ]),
+  )
 
-  if ([...wrapped.values()].some((boxes) => boxes)) {
+  if ([...wrapped.values(), ...roomy.values()].some((boxes) => boxes)) {
     const shapes = [...parts].map(([id, part]) => {
-      const boxes = wrapped.get(id) ?? part
+      const boxes = roomy.get(id) ?? wrapped.get(id) ?? part
 
       return { id, boxes, frame: bounds([...boxes.values()]) }
     })
@@ -276,6 +313,8 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
 
   const seen = new Set<string>()
   const edges: Edge[] = []
+  const { status } = deriveWork(nodes, links)
+  const guarded = new Set<string>()
 
   for (const link of links) {
     if (link.kind !== 'blocks') continue
@@ -283,13 +322,15 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
     const source = lift(link.from)
     const target = lift(link.to)
 
+    if (source && target === link.to && source !== target && gated(status, link.from, link.to)) guarded.add(target)
+
     if (!source || !target || source === target || seen.has(source + '>' + target)) continue
 
     seen.add(source + '>' + target)
     edges.push([source, target])
   }
 
-  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP)
+  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP, guarded)
   const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
 
   return normalize(

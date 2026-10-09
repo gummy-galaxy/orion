@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Provider, createStore } from 'jotai'
 import { ReactFlow, ReactFlowProvider, type Edge, type EdgeTypes, type NodeTypes } from '@xyflow/react'
 import { ActionsContext } from '../../derive'
-import type { AppNode, GhostNode } from '../../model'
+import type { AppNode, BlockerNode, GhostNode } from '../../model'
 import { githubOwnerAtom, linksAtom, nodesAtom } from '../../state'
 import { blocker, links, task } from './data'
 
@@ -13,7 +13,7 @@ export function StoryGraph({
   edgeTypes,
   children,
 }: {
-  nodes?: (AppNode | GhostNode)[]
+  nodes?: (AppNode | GhostNode | BlockerNode)[]
   edges?: Edge[]
   nodeTypes?: NodeTypes
   edgeTypes?: EdgeTypes
@@ -24,7 +24,7 @@ export function StoryGraph({
 
     next.set(
       nodesAtom,
-      nodes.filter((node): node is AppNode => node.type !== 'ghost'),
+      nodes.filter((node): node is AppNode => node.type !== 'ghost' && node.type !== 'blocker'),
     )
     next.set(linksAtom, links)
     next.set(githubOwnerAtom, 'vocksel')

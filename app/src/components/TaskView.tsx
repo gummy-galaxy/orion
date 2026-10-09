@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { STATUS_LABEL, getTaskTag, type TaskNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useLeverage, useMarked, useSources, useStatus, useTraceRole } from '../state'
+import { useBehind, useLeverage, useMarked, useSources, useStatus, useTraceRole } from '../state'
 import { FarTag } from './FarTag'
 import { Lock } from './Lock'
 
@@ -15,6 +15,7 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   const far = useStore((state) => state.transform[2] < FAR_ZOOM)
   const status = useStatus(id)
   const leverage = useLeverage(id)
+  const rounds = useBehind(id)
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const sources = useSources(id)
@@ -40,7 +41,9 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
     )
   }
 
-  const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${data.itemKind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
+  // Waiting on open work shows on the arrows in, so only a block set by hand reads as blocked.
+  const behind = status === 'blocked' && data.status !== 'blocked' ? rounds : 0
+  const className = `card st-${behind ? 'waiting' : status}${behind > 1 ? ' far-behind' : ''}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${data.itemKind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
   const body = (
     <>
       <div className="meta">
@@ -51,10 +54,12 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
         {data.github?.checks && (
           <span className={`check-dot check-${data.github.checks.toLowerCase()}`} title={`Checks: ${data.github.checks.toLowerCase()}`} />
         )}
-        <span className="st" title={STATUS_LABEL[status]}>
-          {status === 'blocked' && <Lock />}
-          <span className="st-label">{STATUS_LABEL[status]}</span>
-        </span>
+        {!behind && (
+          <span className="st" title={STATUS_LABEL[status]}>
+            {status === 'blocked' && <Lock />}
+            <span className="st-label">{STATUS_LABEL[status]}</span>
+          </span>
+        )}
       </div>
       <div className="label">{data.label}</div>
       {status !== 'done' && status !== 'deferred' && leverage > 0 && <span className={`lev${leverage >= 4 ? ' big' : ''}`}>unblocks {leverage}</span>}

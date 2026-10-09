@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROW_WIDTH, WRAP, reflow } from './layout'
+import { BLOCKER_ROOM, ROW_WIDTH, WRAP, reflow } from './layout'
 import { TASK_HEIGHT, TASK_WIDTH, type AppNode, type ClusterData, type Link } from './model'
 
 const task = (id: string, parentId = 'g', x = 0, y = 0): AppNode => ({
@@ -93,6 +93,21 @@ describe('reflow', () => {
 
     expect(distinct(tops.map((position) => position.y))).toBeGreaterThan(1)
     expect(Math.max(...tops.map((position) => position.x))).toBeLessThan(ROW_WIDTH)
+  })
+
+  it('leaves room for the blocker in front of work waiting on work that can start', async () => {
+    const positions = await placed([group(), task('a'), task('b'), task('c')], [blocks('a', 'b'), blocks('b', 'c')])
+    const [a, b, c] = ['a', 'b', 'c'].map((id) => positions.get(id)!.x)
+
+    expect(b - a - TASK_WIDTH).toBeGreaterThanOrEqual(BLOCKER_ROOM)
+    expect(c - b - TASK_WIDTH).toBeLessThan(BLOCKER_ROOM)
+  })
+
+  it('leaves room for the blocker beside a grid of unlinked cards', async () => {
+    const loose = ids(WRAP + 1, 'loose')
+    const positions = await placed([group(), task('a'), task('b'), ...loose.map((id) => task(id))], [blocks('a', 'b')])
+
+    expect(positions.get('b')!.x - positions.get('a')!.x - TASK_WIDTH).toBeGreaterThanOrEqual(BLOCKER_ROOM)
   })
 
   it('keeps short chains on one row', async () => {

@@ -24,9 +24,10 @@ import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
-import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { ActionsContext, gated, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { FocusView, type FocusItem } from './FocusView'
-import { reflow } from '../layout'
+import { BLOCKER_ROOM, reflow } from '../layout'
+import { BLOCKER_HEIGHT, BLOCKER_WIDTH } from '../blocker'
 import { mergeDocs } from '../merge'
 import {
   TASK_HEIGHT,
@@ -48,6 +49,7 @@ import {
   ungroup,
   type AppNode,
   type ClusterData,
+  type BlockerNode,
   type GhostNode,
   type GithubSnapshot,
   type ImageNode,
@@ -57,6 +59,8 @@ import {
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
+import { BlockerDefs } from './BlockerDefs'
+import { BlockerView } from './BlockerView'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
 import { ImageView } from './ImageView'
@@ -110,9 +114,9 @@ import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
 
-type ViewNode = AppNode | GhostNode
+type ViewNode = AppNode | GhostNode | BlockerNode
 
-const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, image: ImageView, ghost: GhostView }
+const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, image: ImageView, ghost: GhostView, blocker: BlockerView }
 const edgeTypes: EdgeTypes = { default: CurveEdge }
 const SIDEBAR_KEY = 'orion:sidebar'
 const COLOR_MODE_KEY = 'orion:color-mode'
@@ -1155,10 +1159,20 @@ export function Canvas() {
   const relatedFocus = useMemo(() => new Set([pinned, hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
 
   const [drawnEdges] = useState(() => new Map<string, { edge: Edge; print: string }>())
-  const edges = useMemo(() => {
+  // Arrows from work that can start now flow into a blocker standing in front of the card that waits on it.
+  const { edges, blockers } = useMemo(() => {
     const resultEdges: Edge[] = []
     const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
-    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
+    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow; moving: boolean }>()
+    const held = new Map<string, { up: boolean; down: boolean }>()
+
+    const hold = (id: string, up = false, down = false) => {
+      const previous = held.get(id) ?? { up: false, down: false }
+
+      held.set(id, { up: previous.up || up, down: previous.down || down })
+
+      return `blocker:${id}`
+    }
 
     for (const link of links) {
       let source = view.rep(link.from)
@@ -1171,6 +1185,7 @@ export function Canvas() {
       if (!source || !target || source === target) continue
 
       const flow = work.flow.get(link.from) ?? 'live'
+      const moving = link.kind === 'blocks' && gated(work.status, link.from, link.to)
       const direct = (source === link.from || source.startsWith('ghost:')) && (target === link.to || target.startsWith('ghost:'))
 
       if (direct) {
@@ -1178,11 +1193,12 @@ export function Canvas() {
 
         if (link.kind === 'related' && !relatedFocus.has(link.from) && !relatedFocus.has(link.to)) className += ' e-rel-quiet'
 
+        const sourceRole = trace?.get(link.from)
+        const targetRole = trace?.get(link.to)
+        const up = link.kind === 'blocks' && sourceRole === 'up' && (targetRole === 'up' || targetRole === 'self')
+        const down = link.kind === 'blocks' && (sourceRole === 'down' || sourceRole === 'self') && targetRole === 'down'
+
         if (trace) {
-          const sourceRole = trace.get(link.from)
-          const targetRole = trace.get(link.to)
-          const up = link.kind === 'blocks' && sourceRole === 'up' && (targetRole === 'up' || targetRole === 'self')
-          const down = link.kind === 'blocks' && (sourceRole === 'down' || sourceRole === 'self') && targetRole === 'down'
           const near = link.kind === 'related' && (sourceRole === 'self' || targetRole === 'self')
 
           className += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
@@ -1193,15 +1209,16 @@ export function Canvas() {
         resultEdges.push({
           id: link.id,
           source: source,
-          target: target,
+          target: moving && target === link.to ? hold(target, up, down) : target,
           className: className,
           markerEnd: link.kind === 'blocks' ? marker(flow) : undefined,
         })
       } else if (link.kind === 'blocks') {
         const key = source + '>' + target
-        const aggregate = aggregates.get(key) ?? { a: source, b: target, count: 0, flow: 'held' }
+        const aggregate = aggregates.get(key) ?? { a: source, b: target, count: 0, flow: 'held', moving: false }
 
         aggregate.count++
+        aggregate.moving ||= moving
 
         // A bundle moves if any of its links do.
         if (flow === 'live') aggregate.flow = 'live'
@@ -1214,7 +1231,7 @@ export function Canvas() {
       resultEdges.push({
         id: 'agg:' + key,
         source: aggregate.a,
-        target: aggregate.b,
+        target: aggregate.moving && map.get(aggregate.b)?.type === 'task' ? hold(aggregate.b) : aggregate.b,
         className: `e-agg e-${aggregate.flow}` + (peeking && !inFocus(aggregate.a) && !inFocus(aggregate.b) ? ' e-peek' : ''),
         selectable: false,
         label: aggregate.count > 1 ? `${aggregate.count} links` : undefined,
@@ -1223,8 +1240,55 @@ export function Canvas() {
       })
     }
 
-    return keepDrawn(drawnEdges, resultEdges)
-  }, [links, view, work, trace, root, peeking, inFocus, relatedFocus, drawnEdges])
+    const blockerNodes: BlockerNode[] = []
+
+    for (const [id, roles] of held) {
+      const node = map.get(id)
+
+      if (!node) continue
+
+      const role = trace?.get(id)
+      const up = roles.up && (role === 'up' || role === 'self')
+      const down = roles.down && role === 'down'
+      const peek = peeking && !inFocus(id)
+      const position = absolutePosition(node, map)
+
+      // Past a blocker nothing moves yet.
+      resultEdges.push({
+        id: `blocker>${id}`,
+        source: `blocker:${id}`,
+        target: id,
+        className: 'e-held' + (trace ? (up ? ' tr-e-up' : down ? ' tr-e-down' : ' tr-e-dim') : '') + (peek ? ' e-peek' : ''),
+        selectable: false,
+        focusable: false,
+        markerEnd: marker('held'),
+      })
+      blockerNodes.push({
+        id: `blocker:${id}`,
+        type: 'blocker',
+        position: { x: position.x - BLOCKER_ROOM / 2 - BLOCKER_WIDTH / 2, y: position.y + TASK_HEIGHT / 2 - BLOCKER_HEIGHT / 2 },
+        width: BLOCKER_WIDTH,
+        height: BLOCKER_HEIGHT,
+        // Blockers are rebuilt every render, so declare their handles instead of waiting on a measure.
+        handles: [
+          { type: 'target', position: Position.Left, x: -4, y: BLOCKER_HEIGHT / 2 - 4, width: 8, height: 8 },
+          { type: 'source', position: Position.Right, x: BLOCKER_WIDTH - 4, y: BLOCKER_HEIGHT / 2 - 4, width: 8, height: 8 },
+        ],
+        selectable: false,
+        draggable: false,
+        connectable: false,
+        focusable: false,
+        deletable: false,
+        zIndex: 5,
+        className: [trace && !up && !down && role !== 'self' ? 'tr-dim' : '', peek ? 'is-peek' : ''].filter(Boolean).join(' ') || undefined,
+        data: { kind: 'blocker', taskId: id },
+      })
+    }
+
+    return { edges: keepDrawn(drawnEdges, resultEdges), blockers: blockerNodes }
+  }, [links, view, work, trace, root, peeking, inFocus, relatedFocus, drawnEdges, map])
+
+  const canvasNodes = useMemo<ViewNode[]>(() => [...viewNodes, ...blockers], [viewNodes, blockers])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1448,7 +1512,7 @@ export function Canvas() {
   const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
-      let own = changes.filter((change) => !('id' in change) || !change.id.startsWith('ghost:')) as NodeChange<AppNode>[]
+      let own = changes.filter((change) => !('id' in change) || !/^(ghost|blocker):/.test(change.id)) as NodeChange<AppNode>[]
 
       if (plainClick.current) {
         const picks = own.filter((change) => change.type === 'select')
@@ -2253,6 +2317,7 @@ export function Canvas() {
           onPointerMove={trackPointer}
           onClickCapture={claimNodeClick}
         >
+          <BlockerDefs />
           {ready && (
             <ReactFlow<ViewNode, Edge>
               fitView={!savedView}
@@ -2260,7 +2325,7 @@ export function Canvas() {
               defaultViewport={savedView ?? undefined}
               onMoveStart={onMoveStart}
               onMoveEnd={rememberView}
-              nodes={viewNodes}
+              nodes={canvasNodes}
               edges={edges}
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
@@ -2389,8 +2454,8 @@ export function Canvas() {
                     ? 'mm-cluster'
                     : node.type === 'image'
                       ? 'mm-image'
-                      : node.type === 'ghost'
-                        ? 'mm-ghost'
+                      : node.type === 'ghost' || node.type === 'blocker'
+                        ? 'mm-' + node.type
                         : 'mm-' + (work.status.get(node.id) ?? 'ready')
                 }
               />

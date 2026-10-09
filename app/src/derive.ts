@@ -122,6 +122,36 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
     else status.set(task.id, statusValue === 'todo' ? 'ready' : statusValue)
   }
 
+  // Notes and gates finish on their own, so they don't add a round of their own.
+  const rounds = new Map<string, number>()
+
+  const roundsBefore = (id: string, seen = new Set<string>()): number => {
+    if (rounds.has(id)) return rounds.get(id)!
+
+    if (seen.has(id)) return 0
+
+    seen.add(id)
+    let result = 0
+
+    for (const predecessor of predecessors.get(id) ?? []) {
+      if (open(predecessor)) result = Math.max(result, roundsBefore(predecessor, seen) + (isNote(predecessor) || isGate(predecessor) ? 0 : 1))
+    }
+
+    rounds.set(id, result)
+
+    return result
+  }
+
+  const behind = new Map<string, number>()
+
+  for (const task of tasks.values()) {
+    if (status.get(task.id) !== 'blocked') continue
+
+    const taskRounds = roundsBefore(task.id)
+
+    if (taskRounds > 0) behind.set(task.id, taskRounds)
+  }
+
   // Links move unless they come out of work that's stuck. Notes pass on whatever reaches them.
   const flow = new Map<string, Flow>()
 
@@ -202,10 +232,23 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
     )
   }
 
-  return { status, flow, leverage, groups, sources, preds: predecessors, succs: successors }
+  return { status, flow, behind, leverage, groups, sources, preds: predecessors, succs: successors }
 }
 
 export type Work = ReturnType<typeof deriveWork>
+
+/** Whether a blocker stands on the link: work that can start now leads to work still waiting on it. */
+export function gated(status: Map<string, ViewStatus>, from: string, to: string) {
+  const sourceStatus = status.get(from)
+  const targetStatus = status.get(to)
+
+  return (
+    (sourceStatus === 'ready' || sourceStatus === 'active' || sourceStatus === 'review') &&
+    targetStatus !== undefined &&
+    targetStatus !== 'done' &&
+    targetStatus !== 'deferred'
+  )
+}
 
 /** What `id` needs, what it unlocks, and the cards related to it directly; everything else dims. */
 export function traceFrom(id: string, predecessors: Map<string, string[]>, successors: Map<string, string[]>, ids: string[], related: string[] = []) {

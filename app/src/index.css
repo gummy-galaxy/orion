@@ -17,6 +17,17 @@
   --st-review: #a56300;
   --st-blocked: #c0362c;
   --st-done: #2f7d4a;
+  /* Warm red stone lit from within: dark enough to read as menacing, light enough to keep its carving */
+  --blocker: #c42a12;
+  --blocker-stone-top: #55241c;
+  --blocker-stone-bottom: #301512;
+  --blocker-trim: #6e3022;
+  --blocker-edge: #2e120c;
+  --blocker-rim: #ef7a33;
+  --blocker-iron: #3a1a14;
+  --blocker-glow-hot: #ffe08a;
+  --blocker-glow: #ff8a2a;
+  --blocker-glow-deep: #b8361a;
   --note: #fbf3d5;
   --note-edge: #d9b94a;
   --note-ink: #7a6418;
@@ -42,6 +53,10 @@
   --st-review: #e2a34a;
   --st-blocked: #f07a6f;
   --st-done: #6cc28a;
+  --blocker: #e0381a;
+  --blocker-stone-top: #612a20;
+  --blocker-stone-bottom: #381916;
+  --blocker-trim: #7c3626;
   --note: #2e2a17;
   --note-edge: #8a7428;
   --note-ink: #d9c272;
@@ -65,6 +80,10 @@
     --st-review: #e2a34a;
     --st-blocked: #f07a6f;
     --st-done: #6cc28a;
+    --blocker: #e0381a;
+    --blocker-stone-top: #612a20;
+    --blocker-stone-bottom: #381916;
+    --blocker-trim: #7c3626;
     --note: #2e2a17;
     --note-edge: #8a7428;
     --note-ink: #d9c272;
@@ -452,6 +471,17 @@ select {
   color: var(--muted);
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 65%, var(--bg));
 }
+/* Can't be reached yet: fainter the more rounds of work stand before it */
+.card.st-waiting {
+  --c: var(--edge);
+  --fade: 0.6;
+  background: var(--bg);
+  color: var(--muted);
+  border-color: color-mix(in srgb, var(--line) 70%, transparent);
+}
+.card.st-waiting.far-behind {
+  --fade: 0.42;
+}
 .react-flow__node-task.selected {
   border-radius: 7px;
   box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent) 26%, transparent);
@@ -570,6 +600,71 @@ select {
 .react-flow__edge.e-held .react-flow__edge-path {
   stroke: var(--edge-held);
   opacity: 0.7;
+}
+.blocker-stone {
+  fill: url(#orion-blocker-stone);
+  stroke: var(--blocker-rim);
+  stroke-width: 0.45;
+  stroke-linejoin: round;
+}
+.blocker-trim {
+  fill: var(--blocker-trim);
+  stroke: var(--blocker-rim);
+  stroke-width: 0.35;
+}
+.blocker-arch {
+  fill: none;
+  stroke: var(--blocker-trim);
+  stroke-width: 1.6;
+}
+.blocker-groove {
+  fill: none;
+  stroke: var(--blocker-edge);
+  stroke-width: 0.35;
+  stroke-opacity: 0.6;
+}
+.blocker-mouth {
+  fill: url(#orion-blocker-mouth);
+}
+.blocker-bars {
+  fill: var(--blocker-iron);
+}
+.blocker-cracks .blocker-crack-glow {
+  stroke: var(--blocker-glow);
+  stroke-width: 1.6;
+  stroke-opacity: 0.3;
+}
+.blocker-cracks {
+  fill: none;
+  stroke: var(--blocker-glow-hot);
+  stroke-width: 0.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.blocker-fire {
+  fill: url(#orion-blocker-flame);
+}
+.blocker-fire-embers {
+  fill: var(--blocker-glow-hot);
+}
+.canvas.is-still .blocker-fire-embers,
+.canvas[data-moving] .blocker-fire-embers,
+.canvas.no-arrow-motion .blocker-fire-embers {
+  display: none;
+}
+.react-flow__node-blocker {
+  pointer-events: none !important;
+}
+.blocker svg {
+  display: block;
+  overflow: visible;
+}
+.blocker .react-flow__handle {
+  opacity: 0;
+}
+.react-flow__node-blocker.tr-dim .blocker,
+.react-flow__node-blocker.is-peek .blocker {
+  opacity: 0.25;
 }
 .react-flow__edge.e-rel .react-flow__edge-path {
   stroke: var(--muted);
@@ -1823,7 +1918,8 @@ kbd {
 .ghost .react-flow__handle {
   opacity: 0;
 }
-.react-flow__minimap-node.mm-ghost {
+.react-flow__minimap-node.mm-ghost,
+.react-flow__minimap-node.mm-blocker {
   display: none;
 }
 

@@ -54,6 +54,8 @@ const sameSources = (a: SourceRef[], b: SourceRef[]) =>
 
 export const useStatus = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.status.get(id) ?? 'ready'), [id]))
 
+export const useBehind = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.behind.get(id) ?? 0), [id]))
+
 export const useLeverage = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.leverage.get(id) ?? 0), [id]))
 
 export const useGroupStats = (id: string) =>

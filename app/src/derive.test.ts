@@ -48,6 +48,15 @@ describe('deriveWork gates', () => {
     expect(finished.status.get('c')).toBe('ready')
   })
 
+  it('counts the rounds of open work before a waiting card can start', () => {
+    const links = [link('a', 'b'), link('b', 'n'), link('n', 'c'), link('done', 'c')]
+    const work = deriveWork([task('a', 'active'), task('b', 'todo'), task('n', 'todo', 'note'), task('c', 'todo'), task('done', 'done')], links)
+
+    expect(work.behind.get('a')).toBeUndefined()
+    expect(work.behind.get('b')).toBe(1)
+    expect(work.behind.get('c')).toBe(2)
+  })
+
   it('treats a gate with nothing to wait on as ordinary work', () => {
     expect(deriveWork([task('g', 'todo', 'gate')], []).status.get('g')).toBe('ready')
   })
