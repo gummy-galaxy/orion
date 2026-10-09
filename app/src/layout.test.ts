@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { ROW_WIDTH, WRAP, reflow } from './layout'
 import { TASK_HEIGHT, TASK_WIDTH, type AppNode, type ClusterData, type Link } from './model'
+import { toDisplayed } from './skinSpace'
+
+const largeSize = { width: 288, height: 400 }
 
 const task = (id: string, parentId = 'g', x = 0, y = 0): AppNode => ({
   id,
@@ -26,15 +29,27 @@ const placed = async (nodes: AppNode[], links: Link[] = []) => {
 
 const distinct = (values: number[]) => new Set(values.map(Math.round)).size
 
-const overlaps = (positions: Map<string, { x: number; y: number }>) => {
+const overlaps = (positions: Map<string, { x: number; y: number }>, size = { width: TASK_WIDTH, height: TASK_HEIGHT }) => {
   const all = [...positions.values()]
 
   return all.some((first, i) =>
-    all.slice(i + 1).some((second) => Math.abs(first.x - second.x) < TASK_WIDTH && Math.abs(first.y - second.y) < TASK_HEIGHT),
+    all.slice(i + 1).some((second) => Math.abs(first.x - second.x) < size.width && Math.abs(first.y - second.y) < size.height),
   )
 }
 
 describe('reflow', () => {
+  it('keeps a mapped fan apart and reflows it at a larger card size', async () => {
+    const fleet = ids(24)
+    const nodes = [group(), task('start'), ...fleet.map((id) => task(id)), task('gate')]
+    const links = [...fleet.map((id) => blocks('start', id)), ...fleet.map((id) => blocks(id, 'gate'))]
+    const classic = await reflow(nodes, links, 'g')
+    const mapped = toDisplayed(classic, largeSize)
+    const positions = (items: AppNode[]) => new Map(items.filter((node) => node.parentId === 'g').map((node) => [node.id, node.position]))
+
+    expect(overlaps(positions(mapped), largeSize)).toBe(false)
+    expect(overlaps(positions(await reflow(mapped, links, 'g', largeSize)), largeSize)).toBe(false)
+  })
+
   it('wraps unlinked siblings at the default width', async () => {
     const positions = await placed([group(), ...ids(32).map((id, i) => task(id, 'g', i * 300))])
 

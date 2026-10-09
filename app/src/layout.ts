@@ -1,5 +1,6 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, byId, isCluster, normalize, sizeOf, type AppNode, type Link } from './model'
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, byId, isCluster, normalize, sizeOf, type AppNode, type Link } from './model'
+import type { CardSize } from './cardSize'
 
 const elk = new ELK()
 
@@ -134,7 +135,7 @@ async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Ga
  * same things are interchangeable, so a run of more than `WRAP` of them is laid out as one grid. Chains longer than
  * `WRAP` steps wrap onto further rows, and the pieces are packed again.
  */
-async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<string, Point>> {
+async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: CardSize): Promise<Map<string, Point>> {
   const ends = new Map(children.map((child) => [child.id, { in: [] as string[], out: [] as string[] }]))
 
   for (const [source, target] of edges) {
@@ -166,12 +167,12 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<s
 
     if (run.length <= WRAP) {
       unitOf.set(child.id, child.id)
-      units.push({ id: child.id, ...sizeOf(child) })
+      units.push({ id: child.id, ...sizeOf(child, cardSize) })
       continue
     }
 
     const id = '\0run:' + child.id
-    const runGrid = grid(run.map(sizeOf), Math.min(WRAP, Math.ceil(Math.sqrt(run.length))), gap.node)
+    const runGrid = grid(run.map((node) => sizeOf(node, cardSize)), Math.min(WRAP, Math.ceil(Math.sqrt(run.length))), gap.node)
 
     for (const member of run) unitOf.set(member.id, id)
 
@@ -247,7 +248,12 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<s
  * to be arranged. Links between deeper descendants are lifted to the child that contains them, so nested groups are
  * placed as single boxes.
  */
-export async function reflow(nodes: AppNode[], links: Link[], groupId: string | undefined): Promise<AppNode[]> {
+export async function reflow(
+  nodes: AppNode[],
+  links: Link[],
+  groupId: string | undefined,
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): Promise<AppNode[]> {
   const nodeMap = byId(nodes)
   const group = groupId ? nodeMap.get(groupId) : undefined
   const arrange = group && isCluster(group) ? (group.data.arrange ?? 'auto') : 'auto'
@@ -289,7 +295,7 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
     edges.push([source, target])
   }
 
-  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP)
+  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize)
   const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
 
   return normalize(
@@ -298,5 +304,6 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
 
       return position ? { ...node, position: { x: position.x + offset.x, y: position.y + offset.y } } : node
     }),
+    cardSize,
   )
 }
