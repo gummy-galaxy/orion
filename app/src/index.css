@@ -1918,8 +1918,7 @@ kbd {
 .ghost .react-flow__handle {
   opacity: 0;
 }
-.react-flow__minimap-node.mm-ghost,
-.react-flow__minimap-node.mm-blocker {
+.react-flow__minimap-node.mm-ghost {
   display: none;
 }
 
