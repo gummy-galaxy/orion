@@ -15,10 +15,6 @@ function shared.parseBody(request: net.ReceivedRequest): json.Object
 	return assert(json.asObject(json.deserialize(request.body) :: json.Value), "body must be an object")
 end
 
-function shared.getStringField(value: unknown): string?
-	return if type(value) == "string" then value else nil
-end
-
 function shared.isKnownWorkspace(root: string, name: string): boolean
 	if not store.isValidWorkspace(name) then
 		return false

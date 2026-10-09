@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
@@ -10,11 +10,11 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Report the running Orion server",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local runtime = getRunningRuntime(options.root, function(pid)
 			return isProcessAlive(pid, options.runner)
 		end)

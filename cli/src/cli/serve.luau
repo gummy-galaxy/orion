@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local process = require("@std/process")
 local task = require("@std/task")
 
@@ -12,7 +12,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Serve the Orion API or report its status",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("port", "option", { help = "HTTP port (default 5198)" })
 		parser:add("host", "option", { help = "HTTP host (default 127.0.0.1)" })
 		parser:add("static", "option", { help = "Built app directory" })
@@ -21,7 +21,7 @@ return table.freeze({
 		status.define(subcommand)
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local name, subcommand = parser:selected()
 		if name == "status" and subcommand then
 			status.run(subcommand, options)

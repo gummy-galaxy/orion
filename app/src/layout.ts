@@ -1,5 +1,5 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, byId, isCluster, ancestors, normalize, sizeOf, type AppNode, type Link } from './model'
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING, byId, isCluster, normalize, sizeOf, type AppNode, type Link } from './model'
 
 const elk = new ELK()
 
@@ -299,15 +299,4 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
       return position ? { ...node, position: { x: position.x + offset.x, y: position.y + offset.y } } : node
     }),
   )
-}
-
-/** Lays out every group from the deepest up, then the top level. */
-export async function reflowAll(nodes: AppNode[], links: Link[]): Promise<AppNode[]> {
-  const nodeMap = byId(nodes)
-  const groups = nodes.filter(isCluster).sort((a, b) => ancestors(b.id, nodeMap).length - ancestors(a.id, nodeMap).length)
-  let next = normalize(nodes)
-
-  for (const group of groups) next = await reflow(next, links, group.id)
-
-  return reflow(next, links, undefined)
 }

@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local fs = require("@std/fs")
 local json = require("@std/json")
 
@@ -9,11 +9,11 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Restore a saved revision as a new revision",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("revision", "positional", { help = "Revision to restore" })
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local value = assert(parser:get("revision"), "missing <revision>")
 		assert(value:match("^%d+$"), "revision must be a nonnegative integer")
 		local revision = tonumber(value)

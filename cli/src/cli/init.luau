@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
@@ -9,6 +9,7 @@ local focus = require("@root/cli/focus")
 local github = require("@root/github")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
+local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
@@ -28,13 +29,7 @@ type Context = context.Context
 
 type Command = context.Command
 
-export type Dependencies = {
-	runner: types.CommandRunner?,
-	write: ((string) -> ())?,
-	dataDir: string?,
-	workspace: string?,
-	now: (() -> string)?,
-}
+export type Dependencies = context.Dependencies
 
 type Resolved = {
 	runner: types.CommandRunner,
@@ -49,6 +44,7 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
 	focus = focus,
+	mcp = mcp,
 	media = media,
 	restore = restore,
 	serve = serve,
@@ -85,24 +81,24 @@ Statuses: todo, active, review, blocked, deferred, done.
   Listed statuses are derived: todo shows as ready once nothing it waits on is open,
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
-Data lives in ~/Library/Application Support/Orion/orion.json; set ORION_DATA_DIR to change it.
+Data lives in Orion's user data folder (run orion path to see it); set ORION_DATA_DIR to change it.
 The Orion app talks to orion serve, which watches the data files.
 Use orion serve status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
 
-local function addHelpFlag(parser: batteriesCli.Parser)
+local function addHelpFlag(parser: cli.Parser)
 	parser:add("help", "flag", { help = "Show this help", aliases = { "h" } })
 end
 
-local function addJsonFlag(parser: batteriesCli.Parser)
+local function addJsonFlag(parser: cli.Parser)
 	parser:add("json", "flag", { help = "Print JSON" })
 end
 
-local function addWorkspaceOption(parser: batteriesCli.Parser)
+local function addWorkspaceOption(parser: cli.Parser)
 	parser:add("workspace", "option", { help = "Use this workspace for this command" })
 end
 
-local function addFieldOptions(parser: batteriesCli.Parser)
+local function addFieldOptions(parser: cli.Parser)
 	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
 	parser:add("repo", "option", { help = "Repository, as name or owner/name" })
 	parser:add("pr", "option", { help = "Pull request number" })
@@ -112,17 +108,17 @@ local function addFieldOptions(parser: batteriesCli.Parser)
 end
 
 type Parsers = {
-	root: batteriesCli.Parser,
-	commands: { [string]: batteriesCli.Parser },
+	root: cli.Parser,
+	commands: { [string]: cli.Parser },
 }
 
 local function createParsers(): Parsers
-	local root = batteriesCli.parser()
+	local root = cli.parser()
 	addHelpFlag(root)
 	addWorkspaceOption(root)
-	local commands: { [string]: batteriesCli.Parser } = {}
+	local commands: { [string]: cli.Parser } = {}
 
-	local function command(name: string): batteriesCli.Parser
+	local function command(name: string): cli.Parser
 		local registered = COMMANDS[name]
 		local parser = root:subcommand(name, { help = if registered then registered.help else COMMAND_HELP[name] })
 		addHelpFlag(parser)
@@ -212,17 +208,18 @@ local function createParsers(): Parsers
 	registeredCommand("suggestions")
 
 	command("path")
+	registeredCommand("mcp")
 	registeredCommand("workspace")
 	command("help"):add("command", "positional", { help = "Command to describe" })
 
 	return { root = root, commands = commands }
 end
 
-local function rootHelp(parser: batteriesCli.Parser): string
+local function rootHelp(parser: cli.Parser): string
 	return table.concat({ SUMMARY, "", parser:usage("orion"), "", parser:help(), "", ABOUT }, "\n")
 end
 
-local function commandHelp(name: string, parser: batteriesCli.Parser): string
+local function commandHelp(name: string, parser: cli.Parser): string
 	local registered = COMMANDS[name]
 	local help = if registered then registered.help else COMMAND_HELP[name]
 	return `{help}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
@@ -241,12 +238,12 @@ local function dependencies(options: Dependencies?): Resolved
 	}
 end
 
-local function fields(parser: batteriesCli.Parser): graph.ItemFields
+local function fields(parser: cli.Parser): graph.ItemFields
 	local pr = parser:get("pr")
 	local number = if pr then tonumber((pr:gsub("^#", ""))) else nil
 	assert(pr == nil or number, "pr must be a number")
 	return {
-		label = if parser:has("label") then parser:get("label") else nil,
+		label = parser:get("label"),
 		blurb = parser:get("blurb"),
 		status = parser:get("status"),
 		repo = parser:get("repo"),
@@ -264,7 +261,7 @@ local function joined(values: { string }, what: string): string
 	return text
 end
 
-local function required(parser: batteriesCli.Parser, name: string): string
+local function required(parser: cli.Parser, name: string): string
 	return assert(parser:get(name), `missing <{name}>`)
 end
 
@@ -418,10 +415,12 @@ local function execute(args: { string }, options: Dependencies?)
 			dir = dir,
 			root = root,
 			workspace = active,
+			requestedWorkspace = selected,
 			write = deps.write,
 			asJson = asJson,
 			runner = deps.runner,
 			now = deps.now,
+			execute = execute,
 		})
 		return
 	end
