@@ -14,7 +14,7 @@ Add `--json` to any of these for structured output. Statuses in the output are d
 
 Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr`, or `ref` (external source key). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
 
-Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces.
+Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces, and `orion workspace rename <name> <label>` to change a workspace's display label.
 
 `orion backups [--json]` lists saved revisions for the selected workspace. If a change was a mistake, `orion restore <revision>` restores the newest backup with that revision in the selected workspace as a new revision and backs up the current file first.
 
