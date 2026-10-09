@@ -75,7 +75,7 @@ Cards ingested from Jira use `data.external` with the source ID and issue key as
 
 ## Pull requests
 
-When a pull request changes what the app shows, attach before and after screenshots to its description. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures both sides the same way and hosts the images on the `agent/pr-media` branch.
+When a pull request changes what the app shows, attach before and after screenshots to its description. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures both sides the same way into `/tmp` and uploads them to GitHub through the description editor.
 
 ## Luau style
 
