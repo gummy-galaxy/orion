@@ -303,7 +303,7 @@ local function required(parser: cli.Parser, name: string): string
 	return assert(parser:get(name), `missing <{name}>`)
 end
 
-local function requestedRevision(parser: batteriesCli.Parser): number?
+local function requestedRevision(parser: cli.Parser): number?
 	local value = parser:get("if-revision")
 	assert(value == nil or value:match("^%d+$"), "--if-revision must be a nonnegative integer")
 	return if value then tonumber(value) else nil
