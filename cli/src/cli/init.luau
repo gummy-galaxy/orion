@@ -17,6 +17,7 @@ local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
 local restore = require("@root/cli/restore")
+local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
 local serve = require("@root/cli/serve")
 local source = require("@root/cli/source")
@@ -67,10 +68,11 @@ local COMMAND_HELP: { [string]: string } = {
 	add = "Add a work item",
 	set = "Change an item's or group's fields",
 	done = "Mark one or more items done",
-	link = "Make one item wait on another",
+	link = "Link each adjacent pair of items",
+	insert = "Insert an item into an existing link",
 	unlink = "Remove the link between two items",
 	note = "Add a note, optionally between two linked items",
-	remove = "Remove items; a note's links are reconnected",
+	remove = "Remove items; optionally reconnect a card's links",
 	group = "Wrap items that share a parent in a new group",
 	ungroup = "Dissolve groups, keeping their items in place",
 	move = "Move items or groups into another group",
@@ -186,7 +188,19 @@ local function createParsers(): Parsers
 	local link = command("link")
 	link:add("from", "positional", { help = "The item that has to happen first" })
 	link:add("to", "positional", { help = "The item that waits on it" })
+	link:add("next", "variadic", { help = "Further items in the chain" })
 	link:add("related", "flag", { help = "Link without blocking" })
+	link:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
+	link:add("if-revision", "option", { help = "Write only if the document has this revision" })
+	addJsonFlag(link)
+
+	local insert = command("insert")
+	insert:add("id", "positional", { help = "Item to place in the link" })
+	insert:add("between", "option", { help = "Source item whose link is replaced", required = true })
+	insert:add("target", "variadic", { help = "Target item whose link is replaced" })
+	insert:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
+	insert:add("if-revision", "option", { help = "Write only if the document has this revision" })
+	addJsonFlag(insert)
 
 	local unlink = command("unlink")
 	unlink:add("from", "positional", { help = "Link source" })
@@ -199,7 +213,9 @@ local function createParsers(): Parsers
 	note:add("before", "option", { help = "Item the note leads into" })
 	addJsonFlag(note)
 
-	addBatchOptions(command("remove"), "Item ids")
+	local remove = command("remove")
+	addBatchOptions(remove, "Item ids")
+	remove:add("reconnect", "flag", { help = "Reconnect at most one incoming and outgoing link per item" })
 
 	local group = command("group")
 	group:add("label", "variadic", { help = "Group name" })
@@ -288,6 +304,12 @@ local function required(parser: cli.Parser, name: string): string
 	return assert(parser:get(name), `missing <{name}>`)
 end
 
+local function requestedRevision(parser: cli.Parser): number?
+	local value = parser:get("if-revision")
+	assert(value == nil or value:match("^%d+$"), "--if-revision must be a nonnegative integer")
+	return if value then tonumber(value) else nil
+end
+
 local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
 	if asJson then
 		deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
@@ -342,12 +364,11 @@ local function isBatchEdit(parser: cli.Parser): boolean
 		or parser:has("dry-run")
 		or parser:has("json")
 		or parser:get("if-revision") ~= nil
+		or parser:has("reconnect")
 end
 
 local function editMany(deps: Resolved, dir: string, command: string, parser: cli.Parser)
 	local ids = parser:variadics()
-	local requestedRevision = parser:get("if-revision")
-	assert(requestedRevision == nil or requestedRevision:match("^%d+$"), "--if-revision must be a nonnegative integer")
 	local destination = parser:get("to")
 	if command == "move" then
 		assert(destination or parser:has("top"), "say where with --to <group> or --top")
@@ -360,8 +381,9 @@ local function editMany(deps: Resolved, dir: string, command: string, parser: cl
 		where = parser:get("where"),
 		dryRun = parser:has("dry-run"),
 		asJson = parser:has("json"),
-		ifRevision = if requestedRevision then tonumber(requestedRevision) else nil,
+		ifRevision = requestedRevision(parser),
 		destination = if parser:has("top") then nil else destination,
+		reconnect = parser:has("reconnect"),
 		write = deps.write,
 	})
 end
@@ -624,11 +646,78 @@ local function execute(args: { string }, options: Dependencies?)
 	elseif command == "link" then
 		local from, to = required(parser, "from"), required(parser, "to")
 		local kind = if parser:has("related") then "related" else "blocks"
-		store.transaction(dir, function(doc)
-			graph.link(doc, from, to, kind)
+		local ids = { from, to }
+		for _, id in parser:variadics() do
+			table.insert(ids, id)
+		end
+		local dryRun = parser:has("dry-run")
+		local doc, baseRevision = runEdit(dir, dryRun, requestedRevision(parser), function(current)
+			for index = 1, #ids - 1 do
+				graph.link(current, ids[index], ids[index + 1], kind)
+			end
 		end)
 
-		deps.write(if kind == "blocks" then `{to} now waits on {from}` else `{from} and {to} are related`)
+		if asJson then
+			local links: json.Array = {}
+			local items: json.Array = {}
+			for _, id in ids do
+				table.insert(items, json.object({ id = id, label = graph.label(graph.get(doc, id)) }))
+			end
+			for index = 1, #ids - 1 do
+				table.insert(links, json.object({ from = ids[index], to = ids[index + 1], kind = kind }))
+			end
+			deps.write(json.serialize(
+				json.object({
+					action = "link",
+					dryRun = dryRun,
+					baseRevision = baseRevision,
+					revision = doc.revision,
+					items = items,
+					links = links,
+				}),
+				true
+			))
+		elseif #ids == 2 and not dryRun then
+			deps.write(if kind == "blocks" then `{to} now waits on {from}` else `{from} and {to} are related`)
+		else
+			local count = #ids - 1
+			local revision = if dryRun then `{baseRevision}` else `{baseRevision} → {doc.revision}`
+			local lines = {
+				`{if dryRun then "Would link" else "Linked"} {count} {if count == 1 then "pair" else "pairs"} at revision {revision}`,
+			}
+			for index = 1, count do
+				table.insert(lines, `  {ids[index]} → {ids[index + 1]} ({kind})`)
+			end
+			deps.write(table.concat(lines, "\n"))
+		end
+	elseif command == "insert" then
+		local id, from = required(parser, "id"), required(parser, "between")
+		local targets = parser:variadics()
+		assert(#targets == 1, "insert needs exactly one target after --between <from>")
+		local to = targets[1]
+		local dryRun = parser:has("dry-run")
+		local doc, baseRevision = runEdit(dir, dryRun, requestedRevision(parser), function(current)
+			graph.insertBetween(current, id, from, to)
+		end)
+		if asJson then
+			deps.write(json.serialize(
+				json.object({
+					action = "insert",
+					dryRun = dryRun,
+					baseRevision = baseRevision,
+					revision = doc.revision,
+					items = { json.object({ id = id, label = graph.label(graph.get(doc, id)) }) },
+					from = from,
+					to = to,
+				}),
+				true
+			))
+		else
+			local revision = if dryRun then `{baseRevision}` else `{baseRevision} → {doc.revision}`
+			deps.write(
+				`{if dryRun then "Would insert" else "Inserted"} {id} between {from} and {to} at revision {revision}`
+			)
+		end
 	elseif command == "unlink" then
 		local from, to = required(parser, "from"), required(parser, "to")
 		store.transaction(dir, function(doc)
