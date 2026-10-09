@@ -17,7 +17,7 @@ export type Context = {
 	asJson: boolean,
 	runner: types.CommandRunner,
 	now: () -> string,
-	-- Runs another CLI command in this process, for commands such as mcp serve that relay to the CLI.
+	-- Runs another CLI command in this process, for commands such as mcp that relay to the CLI.
 	execute: (argv: { string }, options: Dependencies?) -> (),
 }
 

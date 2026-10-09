@@ -6,7 +6,7 @@ This is a prototype seeded from a snapshot of the Flipbook Release Map. It runs 
 
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
-- `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people. `orion mcp serve` exposes its canvas and workspace actions to agents over MCP.
+- `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people. `orion mcp` exposes its canvas and workspace actions to agents over MCP.
 - `orion suggest` proposes groups for ungrouped cards (or every card with `--scope all`). It joins cards by links, Jira epics, shared branches, and references, then `--agent codex` or `--agent claude` names and splits the result into groups by outcome. The agent's CLI must already be signed in. Review with `orion suggestions`, then use `orion suggestions apply <id...> | --all` or `orion suggestions dismiss <id...> | --all`. These commands use the selected workspace. The app places new groups to the right of existing ones and refits groups whose cards moved.
 
 ## Data
@@ -69,16 +69,16 @@ StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute pro
 
 ### Connect agents over MCP
 
-`orion mcp serve` runs an MCP server over stdin and stdout, so AI clients can discover Orion's canvas and workspace tools and call them directly. Each tool maps its arguments onto an existing CLI command in the same process, so the CLI stays the only writer and never runs a shell command built from tool input.
+`orion mcp` runs an MCP server over stdin and stdout, so AI clients can discover Orion's canvas and workspace tools and call them directly. Each tool maps its arguments onto an existing CLI command in the same process, so the CLI stays the only writer and never runs a shell command built from tool input.
 
-Add Orion to any MCP client as a stdio server that runs `orion mcp serve`, using the full path to the binary. Most clients accept a config entry like this one or an equivalent `mcp add` command:
+Add Orion to any MCP client as a stdio server that runs `orion mcp`, using the full path to the binary. Most clients accept a config entry like this one or an equivalent `mcp add` command:
 
 ```json
 {
   "mcpServers": {
     "orion": {
       "command": "/Applications/Orion.app/Contents/MacOS/orion",
-      "args": ["mcp", "serve"]
+      "args": ["mcp"]
     }
   }
 }

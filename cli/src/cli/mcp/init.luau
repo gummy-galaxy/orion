@@ -7,16 +7,10 @@ local serve = require("@root/cli/mcp/server/serve")
 type Context = context.Context
 
 return table.freeze({
-	help = "Serve Orion's agent tools over MCP",
-	define = function(parser: batteriesCli.Parser)
-		local command = parser:subcommand("serve", { help = "Run the MCP server over stdin and stdout" })
-		command:add("help", "flag", { help = "Show this help", aliases = { "h" } })
-	end,
+	help = "Serve Orion's agent tools over MCP on stdin and stdout",
+	define = function(_parser: batteriesCli.Parser) end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
-		local name = parser:selected()
-		assert(name == "serve", "choose mcp serve")
-
+	run = function(_parser: batteriesCli.Parser, options: Context)
 		serve(luteIo.read, luteIo.write, function(argv, write)
 			options.execute(argv, {
 				dataDir = options.root,
