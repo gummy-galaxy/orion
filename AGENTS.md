@@ -73,6 +73,10 @@ Cards ingested from Jira use `data.external` with the source ID and issue key as
 - Look up ids with `orion list --all` or `orion show` rather than guessing them.
 - Group by outcome, not by repository.
 
+## Pull requests
+
+When a pull request changes what the app shows, attach before and after screenshots to its description. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures both sides the same way and hosts the images on the `agent/pr-media` branch.
+
 ## Luau style
 
 - Keep related requires, type aliases, constants, and short assignments together. Separate those groups and adjacent functions with blank lines.
