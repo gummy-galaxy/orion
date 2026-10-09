@@ -83,6 +83,7 @@ Statuses: todo, active, review, blocked, deferred, done.
 Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
 Data lives in Orion's user data folder (run orion path to see it); set ORION_DATA_DIR to change it.
 The Orion app talks to orion serve, which watches the data files.
+Use orion serve status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
 
 local function addHelpFlag(parser: cli.Parser)

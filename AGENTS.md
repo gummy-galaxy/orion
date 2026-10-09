@@ -25,6 +25,8 @@ The app reports its open group and selection to `orion serve`. `orion focus` sho
 - Say which focus you assumed when it shaped the answer, so a wrong guess is easy to correct.
 - At the top level with nothing selected, or with the app closed, there's no focus to lean on.
 
+Run `orion serve status [--json]` to find the running server and its URL. It checks the recorded process and endpoint and clears stale server records.
+
 ## Changing it
 
 - `orion add <title> [--group <id>] [--kind gate] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.

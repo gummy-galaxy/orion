@@ -1,17 +1,25 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
 local net = require("@lute/net/server")
+local process = require("@std/process")
 local task = require("@std/task")
 
 local events = require("@root/server/events")
+local readRuntime = require("@root/server/readRuntime")
+local removeRuntime = require("@root/server/removeRuntime")
 local routes = require("@root/server/routes")
 local store = require("@root/store")
 local sync = require("@root/server/sync")
 local watcher = require("@root/server/watcher")
+local writeRuntime = require("@root/server/writeRuntime")
+
+type Runtime = readRuntime.Runtime
 
 local server = {}
 
 function server.start(root: string, workspace: string, host: string, port: number, staticDir: string?)
+	local startedAt = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+	local runtime: Runtime?
 	if not fs.exists(root) then
 		fs.createDirectory(root, { makeParents = true })
 	end
@@ -36,6 +44,10 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	local router = routes.create(root, workspace, syncLoop, function(name: string)
 		assert(monitor).switchTo(name)
 		syncLoop.switchTo(name)
+		if runtime then
+			runtime.workspace = name
+			writeRuntime(root, runtime)
+		end
 		hub.publish("orion:workspace", json.object({ active = name }))
 		task.spawn(function()
 			syncLoop.run(true)
@@ -69,6 +81,14 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			end,
 		},
 	})
+	runtime = {
+		pid = process.pid(),
+		url = `http://{running.hostname}:{running.port}`,
+		workspace = workspace,
+		dataFolder = root,
+		startedAt = startedAt,
+	}
+	writeRuntime(root, runtime)
 	monitor.start()
 	task.delay(5, function()
 		syncLoop.run()
@@ -87,6 +107,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		close = function()
 			assert(monitor).close()
 			running.close()
+			removeRuntime(root, runtime)
 			clearFocus()
 		end,
 	}
