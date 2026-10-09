@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 
 local add = require("@root/cli/source/add")
 local context = require("@root/cli/context")
@@ -12,7 +12,7 @@ local COMMANDS: { [string]: Command } = { list = list, add = add, remove = remov
 
 return table.freeze({
 	help = "List, add, or remove ingestion sources",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		for _, name in { "list", "add", "remove" } do
 			local subcommand = parser:subcommand(name, { help = COMMANDS[name].help })
 			subcommand:add("help", "flag", { help = "Show this help", aliases = { "h" } })
@@ -21,7 +21,7 @@ return table.freeze({
 		end
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local name, subcommand = parser:selected()
 		assert(name and subcommand, "choose list, add, or remove")
 		COMMANDS[name].run(subcommand, options)

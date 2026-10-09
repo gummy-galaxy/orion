@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
 local store = require("@root/store")
@@ -7,11 +7,11 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Remove an ingestion source",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("id", "positional", { help = "Source id" })
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local id = assert(parser:get("id"), "missing <id>")
 		store.transaction(options.dir, function(doc)
 			local found = false

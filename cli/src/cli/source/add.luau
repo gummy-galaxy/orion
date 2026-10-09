@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
 local parseCommaList = require("@root/cli/parseCommaList")
@@ -9,7 +9,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Add a GitHub, Jira, or hop source",
-	define = function(parser: batteriesCli.Parser)
+	define = function(parser: cli.Parser)
 		parser:add("kind", "positional", { help = "github, jira, or hop" })
 		parser:add("host", "option", { help = "GitHub host" })
 		parser:add("owners", "option", { help = "GitHub owners, comma-separated" })
@@ -20,7 +20,7 @@ return table.freeze({
 		parser:add("id", "option", { help = "Source id" })
 	end,
 
-	run = function(parser: batteriesCli.Parser, options: Context)
+	run = function(parser: cli.Parser, options: Context)
 		local kind = assert(parser:get("kind"), "source add needs a kind")
 		local values: { [string]: { string } } = {}
 
