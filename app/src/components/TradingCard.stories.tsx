@@ -190,3 +190,48 @@ export const RarityLadder: Story = {
     </div>
   ),
 }
+
+const kindLineup: CardView[] = [
+  base,
+  {
+    ...base,
+    id: 'lineup-pr',
+    kind: 'pr',
+    title: 'Review the release change',
+    tag: 'vocksel/orion#158',
+    repo: 'vocksel/orion',
+    upstream: 4,
+    rarity: 'uncommon',
+    artSeed: 'lineup-pr',
+  },
+  {
+    ...base,
+    id: 'lineup-expected',
+    kind: 'placeholder',
+    title: 'Open the follow-up PR',
+    tag: 'vocksel/orion',
+    repo: 'vocksel/orion',
+    upstream: 4,
+    rarity: 'uncommon',
+    artSeed: 'lineup-expected',
+  },
+  { ...base, id: 'lineup-gate', kind: 'gate', title: 'Ready to ship', tag: 'gate', upstream: 8, rarity: 'rare', artSeed: 'lineup-gate' },
+  { ...base, id: 'lineup-note', kind: 'note', title: 'Keep the release intent visible.', tag: 'note', rarity: undefined, artSeed: 'lineup-note' },
+]
+
+export const KindLineup: Story = {
+  render: () => (
+    <div style={{ display: 'grid', gap: 32 }}>
+      {[false, true].map((isGrayscale) => (
+        <div key={String(isGrayscale)}>
+          <p>{isGrayscale ? 'Grayscale' : 'Kind palette'}</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, filter: isGrayscale ? 'grayscale(1)' : undefined }}>
+            {kindLineup.map((view) => (
+              <div key={view.id}>{renderCard(view)}</div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  ),
+}

@@ -33,10 +33,31 @@
   --trading-art-line: var(--trading-ink-two);
   --trading-art-ink: var(--trading-ink-one);
   --trading-art-accent: var(--trading-ink-two);
+  --trading-kind-tint: #57b8a6;
+  --trading-kind-ink: light-dark(#17685e, #9ee2d3);
+  --trading-kind-wash: 16%;
   position: relative;
   width: 100%;
   height: 100%;
   min-width: 0;
+}
+
+.card.skin-trading .trading-kind-pr {
+  --trading-kind-tint: #6c91ed;
+  --trading-kind-ink: light-dark(#315bb3, #a7bdff);
+}
+.card.skin-trading .trading-kind-placeholder {
+  --trading-kind-tint: #a8d5ff;
+  --trading-kind-ink: light-dark(#456b8c, #bad5ff);
+  --trading-kind-wash: 12%;
+}
+.card.skin-trading .trading-kind-gate {
+  --trading-kind-tint: #e8ad50;
+  --trading-kind-ink: light-dark(#805312, #ffcb82);
+}
+.card.skin-trading .trading-note {
+  --trading-kind-tint: #f0dc9b;
+  --trading-kind-ink: light-dark(#68531b, #f5dfa1);
 }
 
 :root[data-theme='vibrant'] .card.skin-trading .trading-frame {
@@ -88,8 +109,46 @@
   filter: blur(16px);
 }
 
+.card.skin-trading .trading-kind-step .trading-glow,
+.card.skin-trading .trading-kind-step .trading-frame-border,
+.card.skin-trading .trading-kind-step .trading-foil,
+.card.skin-trading .trading-kind-step .trading-inner {
+  border-radius: 2px;
+}
+
+.card.skin-trading .trading-kind-pr .trading-glow,
+.card.skin-trading .trading-kind-pr .trading-frame-border,
+.card.skin-trading .trading-kind-pr .trading-foil,
+.card.skin-trading .trading-kind-pr .trading-inner {
+  border-radius: 0 0 8px 8px;
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%, 0 14px);
+}
+
+.card.skin-trading .trading-kind-placeholder .trading-glow,
+.card.skin-trading .trading-kind-placeholder .trading-frame-border,
+.card.skin-trading .trading-kind-placeholder .trading-foil,
+.card.skin-trading .trading-kind-placeholder .trading-inner {
+  border-radius: 20px;
+}
+
+.card.skin-trading .trading-kind-gate .trading-glow,
+.card.skin-trading .trading-kind-gate .trading-frame-border,
+.card.skin-trading .trading-kind-gate .trading-foil,
+.card.skin-trading .trading-kind-gate .trading-inner {
+  border-radius: 50% 50% 2px 2px / 56px 56px 2px 2px;
+}
+
+.card.skin-trading .trading-note .trading-frame-border,
+.card.skin-trading .trading-note .trading-inner {
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+}
+
 .card.skin-trading .trading-you .trading-glow {
   opacity: 0.55;
+}
+
+.card.skin-trading .trading-you .trading-frame-border {
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--trading-status) 75%, transparent));
 }
 
 .card.skin-trading .trading-frame-border {
@@ -107,23 +166,14 @@
   box-shadow: 0 22px 44px -14px rgb(0 0 0 / 0.6);
 }
 
-.card.skin-trading .trading-mythic .trading-frame-border::before {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  z-index: 2;
-  padding: 1px;
+.card.skin-trading .trading-foil {
+  height: 100%;
   border-radius: 6px;
-  pointer-events: none;
+}
+
+.card.skin-trading .trading-mythic .trading-foil {
+  padding: 1px;
   background: linear-gradient(135deg, #f2bd72, #dc6743 34%, #eecb8f 58%, #9d3e47 82%, #f2bd72);
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
 }
 
 .card.skin-trading .trading-inner {
@@ -136,8 +186,16 @@
   flex-direction: column;
   gap: 8px;
   background:
-    radial-gradient(120% 60% at 50% 0%, color-mix(in oklab, var(--trading-ink-one) 26%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--trading-top), var(--trading-bottom) 65%);
+    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--trading-kind-tint) 18%, transparent), transparent 70%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--trading-kind-tint) var(--trading-kind-wash), var(--trading-top)),
+      color-mix(in srgb, var(--trading-kind-tint) var(--trading-kind-wash), var(--trading-bottom)) 65%
+    );
+}
+
+.card.skin-trading .trading-kind-gate .trading-inner {
+  padding-top: 50px;
 }
 
 .card.skin-trading .trading-title {
@@ -282,7 +340,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--muted);
+  color: var(--trading-kind-ink);
   font: 700 12px var(--font-ui);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -328,8 +386,8 @@
   opacity: 0.7;
 }
 
-.card.skin-trading .trading-done.trading-mythic .trading-frame-border::before {
-  opacity: 0.35;
+.card.skin-trading .trading-done.trading-mythic .trading-foil {
+  background: linear-gradient(135deg, #75664e, #6b4845 34%, #796b56 58%, #583b45 82%, #75664e);
 }
 
 .card.skin-trading .trading-done .trading-title::after {
@@ -445,21 +503,16 @@
   box-shadow: none;
 }
 .card.skin-trading .trading-expected .trading-inner {
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--trading-kind-tint) var(--trading-kind-wash), var(--trading-top)),
+    color-mix(in srgb, var(--trading-kind-tint) var(--trading-kind-wash), var(--trading-bottom))
+  );
 }
 .card.skin-trading .trading-expected .trading-art img,
 .card.skin-trading .trading-expected .trading-art svg {
   opacity: 0.55;
 }
-.card.skin-trading .trading-gate .trading-frame-border {
-  background: conic-gradient(from 210deg, #ffd166, #ff8fa3, #b45cff, #3b6cff, #18d6c0, #ffd166);
-}
-.card.skin-trading .trading-gate .trading-inner {
-  background:
-    radial-gradient(120% 70% at 50% 0%, rgb(255 209 102 / 0.18), transparent 70%),
-    linear-gradient(180deg, var(--trading-top), var(--trading-bottom) 65%);
-}
-
 .card.skin-trading .trading-holo {
   position: absolute;
   inset: 0;
@@ -487,17 +540,45 @@
 }
 
 .card.skin-trading .trading-frame.trading-note {
+  color: var(--note-ink);
+}
+.card.skin-trading .trading-note .trading-frame-border {
+  height: 100%;
+  padding: 2px;
+  background: var(--note-edge);
+}
+.card.skin-trading .trading-note .trading-inner {
   padding: 12px;
-  border: 1px solid var(--note-edge);
-  border-radius: 8px;
   display: grid;
   grid-template-rows: 26px minmax(0, 1fr);
-  background: linear-gradient(160deg, var(--note), color-mix(in srgb, var(--note-edge) 18%, var(--note)));
-  color: var(--note-ink);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--trading-kind-tint) 12%, var(--note)),
+    color-mix(in srgb, var(--trading-kind-tint) 12%, color-mix(in srgb, var(--note-edge) 18%, var(--note)))
+  );
+}
+.card.skin-trading .trading-note .trading-inner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  background: color-mix(in srgb, var(--note) 65%, white);
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+  filter: drop-shadow(-2px 2px 2px rgb(0 0 0 / 0.2));
 }
 .card.skin-trading .trading-note-label {
   border-bottom: 1px solid var(--note-edge);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--trading-kind-ink);
   font: 700 14px var(--font-ui);
+}
+.card.skin-trading .trading-note-label svg {
+  width: 16px;
+  height: 16px;
 }
 .card.skin-trading .trading-note-text {
   overflow: hidden;

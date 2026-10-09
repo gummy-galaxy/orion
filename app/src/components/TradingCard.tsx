@@ -33,11 +33,18 @@ export function TradingCard({ view }: { view: CardView }) {
   if (view.kind === 'note') {
     return (
       <div className="trading-frame trading-note">
-        <div className="trading-note-label">Note</div>
-        <div className="trading-note-text" title={view.title}>
-          {view.title || 'Empty note'}
+        <div className="trading-frame-border">
+          <div className="trading-inner">
+            <div className="trading-note-label">
+              <TradingKindIcon kind="note" />
+              <span>Note</span>
+            </div>
+            <div className="trading-note-text" title={view.title}>
+              {view.title || 'Empty note'}
+            </div>
+            <SourceBadges sources={view.sources} />
+          </div>
         </div>
-        <SourceBadges sources={view.sources} />
       </div>
     )
   }
@@ -50,45 +57,47 @@ export function TradingCard({ view }: { view: CardView }) {
 
   return (
     <div
-      className={`trading-frame trading-${status.className}${view.rarity ? ` trading-${view.rarity}` : ''}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
+      className={`trading-frame trading-kind-${view.kind} trading-${status.className}${view.rarity ? ` trading-${view.rarity}` : ''}${view.kind === 'placeholder' ? ' trading-expected' : ''}`}
       style={style}
     >
       <i className="trading-glow" aria-hidden="true" />
       <div className="trading-frame-border">
-        <div className="trading-inner">
-          <header className="trading-title">
-            <h3 title={view.title}>{view.title}</h3>
-            {number && <span className="trading-number">#{number}</span>}
-          </header>
-          <TradingArtwork view={view} kind={view.kind} inks={inks} status={status} />
-          <div className="trading-type">
-            <TradingKindIcon kind={view.kind} />
-            <span>
-              {KIND_LABEL[view.kind]}
-              {repositoryName && ` · ${repositoryName}`}
-            </span>
-            {view.rarity && <TradingRaritySymbol rarity={view.rarity} upstream={view.upstream} />}
-          </div>
-          <p className={`trading-text${view.note ? '' : ' trading-flavor'}`} title={view.note || view.tag}>
-            {view.note || view.tag}
-          </p>
-          <footer className="trading-bottom">
-            {view.changeSize ? (
-              <>
-                <span className="trading-add">+{view.changeSize.additions}</span>
-                <span className="trading-del">−{view.changeSize.deletions}</span>
-              </>
-            ) : (
-              <span>{view.kind === 'pr' || view.kind === 'placeholder' ? 'Not opened' : 'No PR'}</span>
-            )}
-            {view.checks && (
-              <span className={`trading-ci trading-ci-${view.checks}`} aria-label={`Checks: ${view.checks}`}>
-                <i />
-                CI
+        <div className="trading-foil">
+          <div className="trading-inner">
+            <header className="trading-title">
+              <h3 title={view.title}>{view.title}</h3>
+              {number && <span className="trading-number">#{number}</span>}
+            </header>
+            <TradingArtwork view={view} kind={view.kind} inks={inks} status={status} />
+            <div className="trading-type">
+              <TradingKindIcon kind={view.kind} />
+              <span>
+                {KIND_LABEL[view.kind]}
+                {repositoryName && ` · ${repositoryName}`}
               </span>
-            )}
-            <span className="trading-pt">{status.label}</span>
-          </footer>
+              {view.rarity && <TradingRaritySymbol rarity={view.rarity} upstream={view.upstream} />}
+            </div>
+            <p className={`trading-text${view.note ? '' : ' trading-flavor'}`} title={view.note || view.tag}>
+              {view.note || view.tag}
+            </p>
+            <footer className="trading-bottom">
+              {view.changeSize ? (
+                <>
+                  <span className="trading-add">+{view.changeSize.additions}</span>
+                  <span className="trading-del">−{view.changeSize.deletions}</span>
+                </>
+              ) : (
+                <span>{view.kind === 'pr' || view.kind === 'placeholder' ? 'Not opened' : 'No PR'}</span>
+              )}
+              {view.checks && (
+                <span className={`trading-ci trading-ci-${view.checks}`} aria-label={`Checks: ${view.checks}`}>
+                  <i />
+                  CI
+                </span>
+              )}
+              <span className="trading-pt">{status.label}</span>
+            </footer>
+          </div>
         </div>
       </div>
     </div>

@@ -53,5 +53,18 @@ describe('TradingCard', () => {
 
     expect(done).toContain('trading-rarity-symbol-rare')
     expect(note).not.toContain('trading-rarity-symbol')
+    expect(note).toContain('trading-note-label"><svg')
+    expect(note).toContain('trading-frame-border"><div class="trading-inner"')
+  })
+
+  it('gives each work kind its own frame while retaining status and rarity layers', () => {
+    for (const kind of ['step', 'pr', 'placeholder', 'gate'] as const) {
+      const markup = renderToStaticMarkup(<TradingCard view={{ ...pullRequest, kind }} />)
+
+      expect(markup).toContain(`trading-kind-${kind}`)
+      expect(markup).toContain('trading-you')
+      expect(markup).toContain('trading-foil')
+      expect(markup).toContain('trading-rare')
+    }
   })
 })
