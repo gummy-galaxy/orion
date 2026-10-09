@@ -57,6 +57,25 @@ export const ActivePullRequest: Story = {
     }),
 }
 
+export const CrowdedPullRequest: Story = {
+  render: () =>
+    renderCard({
+      ...ready,
+      id: 'crowded-pr',
+      kind: 'pr',
+      title: 'Make the canvas welcoming for every team',
+      tag: 'vocksel/orion#127',
+      status: 'active',
+      statusLabel: 'In progress',
+      who: 'you',
+      whoLabel: 'Your move',
+      checks: 'passing',
+      leverage: 4,
+      sources: [{ domain: 'github.com', label: 'vocksel/orion#127', href: 'https://github.com/vocksel/orion/pull/127' }],
+      artSeed: 'crowded-pr',
+    }),
+}
+
 export const BlockedPlaceholder: Story = {
   render: () =>
     renderCard({

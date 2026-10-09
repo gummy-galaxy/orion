@@ -1,4 +1,5 @@
 import type { CardView } from '../cardView'
+import { Lock } from './Lock'
 import { SourceBadges } from './SourceBadges'
 
 export function PlainCard({ view }: { view: CardView }) {
@@ -27,19 +28,22 @@ export function PlainCard({ view }: { view: CardView }) {
         <span className="plain-tag" title={view.tag}>
           {view.tag}
         </span>
-        <span className="plain-status">{view.statusLabel}</span>
+        {(view.who || view.checks || (view.status !== 'done' && view.status !== 'deferred' && view.leverage > 0)) && (
+          <span className="plain-details">
+            {view.who && <span title={view.whoLabel}>{view.whoLabel}</span>}
+            {view.checks && (
+              <span className="plain-check" aria-label={`Checks: ${checkLabel}`} title={`Checks: ${checkLabel}`}>
+                {checkGlyph}
+              </span>
+            )}
+            {view.status !== 'done' && view.status !== 'deferred' && view.leverage > 0 && <span>unblocks {view.leverage}</span>}
+          </span>
+        )}
+        <span className="plain-status" title={view.statusLabel}>
+          {view.status === 'blocked' && <Lock />}
+          {view.statusLabel}
+        </span>
       </div>
-      {(view.who || view.checks || (view.status !== 'done' && view.status !== 'deferred' && view.leverage > 0)) && (
-        <div className="plain-details">
-          {view.who && <span title={view.whoLabel}>{view.whoLabel}</span>}
-          {view.checks && (
-            <span className="plain-check" aria-label={`Checks: ${checkLabel}`} title={`Checks: ${checkLabel}`}>
-              {checkGlyph}
-            </span>
-          )}
-          {view.status !== 'done' && view.status !== 'deferred' && view.leverage > 0 && <span>unblocks {view.leverage}</span>}
-        </div>
-      )}
       <SourceBadges sources={view.sources} />
     </>
   )
