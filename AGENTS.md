@@ -30,6 +30,8 @@ The app reports its open group and selection to `orion serve`. `orion focus` sho
 
 Run `orion serve status [--json]` to find the running server and its URL. It checks the recorded process and endpoint and clears stale server records.
 
+To show the person the app, or anything else served locally such as a dev server or Storybook, open its URL in the browser built into the tool you're running in. Fall back to an external browser only when that tool has none. Headless captures, such as PR screenshots, are unaffected.
+
 ## Changing it
 
 - `orion add <title> [--group <id>] [--kind gate] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
