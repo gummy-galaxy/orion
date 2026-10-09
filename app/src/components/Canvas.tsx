@@ -105,12 +105,14 @@ import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { Toolbar, type Tool } from './Toolbar'
 import { readViewport, writeViewport } from '../viewport'
+import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
 
 type ViewNode = AppNode | GhostNode
+type FocusEntry = { viewport: Viewport; moved: boolean }
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, image: ImageView, ghost: GhostView }
 const edgeTypes: EdgeTypes = { default: CurveEdge }
@@ -325,7 +327,7 @@ export function Canvas() {
   // A double-clicked card fills the view with what it waits on and leads to beside it.
   const [focusPick, setFocus] = useState<string | null>(null)
   // Where focus started, and whether it has since walked to another card or level.
-  const focusEntry = useRef<{ viewport: Viewport; moved: boolean } | null>(null)
+  const focusEntry = useRef<FocusEntry | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
@@ -349,14 +351,49 @@ export function Canvas() {
   const fitSequence = useRef(0)
   const previousZoom = useRef(store.getState().transform[2])
   const skipNextFit = useRef(false)
-  const openRoot = useCallback((target: string | null) => {
-    setPeek(null)
-    setExitHint(null)
-    setFocus(null)
-    focusEntry.current = null
-    skipNextFit.current = false
-    setRoot(target)
+
+  // ---- Navigation history ----
+  const trail = useRef<Trail<FocusEntry>>(emptyTrail())
+  const [trailSize, setTrailSize] = useState({ back: 0, forward: 0 })
+  const gestureStart = useRef<Viewport | null>(null)
+  // Read through a ref so the callbacks below, which cards get through the actions context, stay stable.
+  const shownPlace = useRef({ root, focus: focusPick })
+
+  useLayoutEffect(() => {
+    shownPlace.current = { root, focus: focusPick }
+  }, [root, focusPick])
+
+  const updateTrail = useCallback((next: Trail<FocusEntry>) => {
+    trail.current = next
+    setTrailSize({ back: next.back.length, forward: next.forward.length })
   }, [])
+
+  const here = useCallback(
+    (viewport = reactFlow.getViewport()): Place<FocusEntry> => ({
+      ...shownPlace.current,
+      selected: latest.current.nodes.filter((node) => node.selected).map((node) => node.id),
+      viewport,
+      extra: focusEntry.current ? { ...focusEntry.current } : undefined,
+    }),
+    [reactFlow],
+  )
+
+  /** Records where the canvas is before it navigates somewhere else. */
+  const remember = useCallback((viewport?: Viewport) => updateTrail(leave(trail.current, here(viewport))), [here, updateTrail])
+
+  const openRoot = useCallback(
+    (target: string | null) => {
+      if (target !== shownPlace.current.root || shownPlace.current.focus) remember()
+
+      setPeek(null)
+      setExitHint(null)
+      setFocus(null)
+      focusEntry.current = null
+      skipNextFit.current = false
+      setRoot(target)
+    },
+    [remember],
+  )
 
   // A group's selection waits until a second click, which would open it, can no longer arrive.
   const plainClick = useRef<'defer' | null>(null)
@@ -692,6 +729,7 @@ export function Canvas() {
       setPeek(null)
       setFocus(null)
       focusEntry.current = null
+      updateTrail(emptyTrail())
       setPinned(null)
       setHover(null)
       setEditing(null)
@@ -708,7 +746,7 @@ export function Canvas() {
         await loadWorkspace(name, epoch, true)
       })
     },
-    [loadWorkspace, setHover, setPinned],
+    [loadWorkspace, updateTrail, setHover, setPinned],
   )
 
   useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
@@ -737,9 +775,14 @@ export function Canvas() {
     if (viewFor.current === workspace.current) writeViewport(workspace.current, viewport)
   }, [])
   // An attribute rather than a class, so re-renders mid-move don't clear it.
-  const onMoveStart = useCallback(() => {
-    if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
-  }, [motion.pauseWhileMoving])
+  const onMoveStart = useCallback(
+    (_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+      gestureStart.current = viewport
+
+      if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
+    },
+    [motion.pauseWhileMoving],
+  )
 
   const switchWorkspace = async (name: string) => {
     const list = await setActiveWorkspace(name)
@@ -862,6 +905,7 @@ export function Canvas() {
 
       const target = node.parentId ?? null
 
+      remember()
       setHover(null)
 
       if (target === root) {
@@ -873,7 +917,7 @@ export function Canvas() {
         openRoot(target)
       }
     },
-    [root, focusNode, openRoot, setHover],
+    [root, focusNode, openRoot, remember, setHover],
   )
 
   /** Moves nodes to new positions over a few frames so edges follow along. */
@@ -922,10 +966,12 @@ export function Canvas() {
     return nodes.filter((node) => inside.has(node.id) && isTask(node) && !isNote(node)).length
   }, [root, nodes])
   const leaveRoot = useCallback(
-    (atZoom = reactFlow.getZoom()) => {
+    (atZoom = reactFlow.getZoom(), from?: Viewport) => {
       if (!root) return
 
       const parent = map.get(root)?.parentId ?? null
+
+      remember(from)
 
       // Where you arrive becomes the parent's home zoom, so one gesture leaves one level.
       if (parent) fitZoom.current.set(parent, atZoom)
@@ -935,7 +981,7 @@ export function Canvas() {
       setExitHint(null)
       setRoot(parent)
     },
-    [root, map, reactFlow],
+    [root, map, reactFlow, remember],
   )
   const onViewportMove = useCallback(
     (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
@@ -962,7 +1008,7 @@ export function Canvas() {
           const visible =
             Math.max(0, Math.min(box.width, x + width) - Math.max(0, x)) * Math.max(0, Math.min(box.height, y + height) - Math.max(0, y))
 
-          if (visible < width * height * PEEK_KEEP_VISIBLE) leaveRoot(viewport.zoom)
+          if (visible < width * height * PEEK_KEEP_VISIBLE) leaveRoot(viewport.zoom, gestureStart.current ?? undefined)
         }
 
         return
@@ -983,7 +1029,8 @@ export function Canvas() {
       const progress = Math.min(1, Math.max(0, (hint - viewport.zoom / fit) / (hint - exit * PEEK_SPAN)))
 
       if (viewport.zoom < wasZoom && viewport.zoom < fit * exit * PEEK_SPAN) {
-        leaveRoot(viewport.zoom)
+        // Going back returns to the view from before the zoom out, not the point it left at.
+        leaveRoot(viewport.zoom, gestureStart.current ?? undefined)
       } else if (viewport.zoom <= fit * exit) {
         setPeek(root)
         setExitHint({ root, progress })
@@ -1477,6 +1524,8 @@ export function Canvas() {
 
       if (!node || !isTask(node) || !box) return
 
+      remember()
+
       if (!focus || !focusEntry.current) focusEntry.current = { viewport: reactFlow.getViewport(), moved: false }
       else if (id !== focus) focusEntry.current.moved = true
 
@@ -1503,7 +1552,7 @@ export function Canvas() {
       setFocus(id)
       void reactFlow.setViewport(focusViewport(node, nodeMap, box), FOCUS_MOVE)
     },
-    [reactFlow, focus, peeking, inFocus, inView, leaveRoot, setHover, setNodes, setPinned],
+    [reactFlow, focus, peeking, inFocus, inView, leaveRoot, remember, setHover, setNodes, setPinned],
   )
 
   const exitFocus = useCallback(() => {
@@ -1511,6 +1560,7 @@ export function Canvas() {
     const nodeMap = byId(latest.current.nodes)
     const node = focus ? nodeMap.get(focus) : undefined
 
+    remember()
     setFocus(null)
     focusEntry.current = null
 
@@ -1527,7 +1577,90 @@ export function Canvas() {
     const zoom = (root ? fitZoom.current.get(root) : undefined) ?? entry.viewport.zoom
 
     void reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom, ...FOCUS_MOVE })
-  }, [focus, root, reactFlow])
+  }, [focus, root, reactFlow, remember])
+
+  /** Puts the canvas back at a place from its history. */
+  const goTo = useCallback(
+    (place: Place<FocusEntry>) => {
+      const nodeMap = byId(latest.current.nodes)
+      const group = place.root ? nodeMap.get(place.root) : undefined
+      const box = canvasRef.current?.getBoundingClientRect()
+      const picked = new Set(place.selected)
+
+      pendingFocus.current = null
+      setPeek(null)
+      setExitHint(null)
+      setHover(null)
+      setPinned(null)
+
+      // Zooming out of a group measures from its fitted zoom, which a group reopened from history may not have yet.
+      if (group && box && !fitZoom.current.has(group.id)) fitZoom.current.set(group.id, groupFitViewport(group, nodeMap, box).zoom)
+
+      if (place.root !== root) {
+        skipNextFit.current = true
+        setRoot(place.root)
+      }
+
+      setFocus(place.focus)
+      focusEntry.current = place.focus && place.extra ? { ...place.extra } : null
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => (!!node.selected === picked.has(node.id) ? node : { ...node, selected: picked.has(node.id) })),
+      )
+      void reactFlow.setViewport(place.viewport, place.focus || focus ? FOCUS_MOVE : { duration: 450 })
+    },
+    [root, focus, reactFlow, setHover, setNodes, setPinned],
+  )
+
+  const travelTo = useCallback(
+    (direction: 'back' | 'forward') => {
+      const nodeMap = byId(latest.current.nodes)
+
+      const exists = (place: Place<FocusEntry>) => {
+        const group = place.root ? nodeMap.get(place.root) : undefined
+        const card = place.focus ? nodeMap.get(place.focus) : undefined
+
+        return (!place.root || (!!group && isCluster(group))) && (!place.focus || (!!card && isTask(card)))
+      }
+
+      const result = travel(trail.current, here(), direction, exists)
+
+      if (!result) return
+
+      updateTrail(result.trail)
+      goTo(result.place)
+    },
+    [here, goTo, updateTrail],
+  )
+
+  useEffect(() => {
+    const isSide = (event: MouseEvent) => event.button === 3 || event.button === 4
+
+    // Handled on release, and the press is swallowed too, so the browser doesn't navigate the page.
+    const press = (event: MouseEvent) => isSide(event) && event.preventDefault()
+
+    const release = (event: MouseEvent) => {
+      if (!isSide(event)) return
+
+      event.preventDefault()
+      travelTo(event.button === 3 ? 'back' : 'forward')
+    }
+
+    const fromShell = (event: Event) => {
+      const direction = (event as CustomEvent<unknown>).detail
+
+      if (direction === 'back' || direction === 'forward') travelTo(direction)
+    }
+
+    window.addEventListener('mousedown', press, true)
+    window.addEventListener('mouseup', release, true)
+    window.addEventListener(NAVIGATE_EVENT, fromShell)
+
+    return () => {
+      window.removeEventListener('mousedown', press, true)
+      window.removeEventListener('mouseup', release, true)
+      window.removeEventListener(NAVIGATE_EVENT, fromShell)
+    }
+  }, [travelTo])
 
   const focusItems = useMemo(() => {
     if (!focus) return null
@@ -2086,6 +2219,13 @@ export function Canvas() {
 
       if (paletteOpen) return
 
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && (event.code === 'BracketLeft' || event.code === 'BracketRight')) {
+        event.preventDefault()
+        travelTo(event.code === 'BracketLeft' ? 'back' : 'forward')
+
+        return
+      }
+
       if (focus) {
         if (event.key === 'Escape') exitFocus()
 
@@ -2134,6 +2274,7 @@ export function Canvas() {
     paletteOpen,
     focus,
     exitFocus,
+    travelTo,
     setNodes,
     setPinned,
   ])
@@ -2146,6 +2287,10 @@ export function Canvas() {
   const readyTotal = [...work.status.values()].filter((status) => status === 'ready').length
 
   const commands: Command[] = [
+    ...(trailSize.back ? [{ id: 'go-back', label: 'Go back', detail: 'Return to the previous view', hint: '⌘[', run: () => travelTo('back') }] : []),
+    ...(trailSize.forward
+      ? [{ id: 'go-forward', label: 'Go forward', detail: 'Return to the view you went back from', hint: '⌘]', run: () => travelTo('forward') }]
+      : []),
     {
       id: 'fit-board',
       label: 'Fit entire board',
@@ -2556,8 +2701,8 @@ export function Canvas() {
                     <>
                       V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
                       ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
-                      double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a
-                      card's edge to link · hold Ctrl while dragging to skip snapping{' '}
+                      double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · mouse back and forward or ⌘[ and
+                      ⌘] to retrace views · N note · ⇧1 fit · drag from a card's edge to link · hold Ctrl while dragging to skip snapping{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>

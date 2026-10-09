@@ -9,6 +9,7 @@ use std::{
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
+mod mouse_navigation;
 mod usage;
 
 fn get_free_port() -> std::io::Result<u16> {
@@ -87,11 +88,12 @@ pub fn run() {
                 WebviewUrl::App("index.html".into())
             };
 
-            WebviewWindowBuilder::new(app, "main", url)
+            let window = WebviewWindowBuilder::new(app, "main", url)
                 .title("Orion")
                 .inner_size(1440.0, 900.0)
                 .min_inner_size(960.0, 640.0)
                 .build()?;
+            mouse_navigation::forward(window);
             Ok(())
         })
         .build(tauri::generate_context!())
