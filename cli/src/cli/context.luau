@@ -1,4 +1,4 @@
-local batteriesCli = require("@batteries/cli")
+local cli = require("@batteries/cli")
 local types = require("@root/types")
 
 export type Dependencies = {
@@ -25,8 +25,8 @@ export type Context = {
 
 export type Command = {
 	read help: string,
-	read define: (batteriesCli.Parser) -> (),
-	read run: (batteriesCli.Parser, Context) -> (),
+	read define: (cli.Parser) -> (),
+	read run: (cli.Parser, Context) -> (),
 }
 
 return nil
