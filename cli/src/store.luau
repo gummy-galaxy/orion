@@ -126,13 +126,7 @@ function store.createWorkspace(root: string, name: string, label: string?, owner
 
 	local dir = store.getWorkspaceDir(root, name)
 	assert(not fs.exists(dir), `workspace folder already exists: {dir}`)
-	store.write(dir, {
-		version = 1,
-		revision = 0,
-		settings = { githubOwner = owner or DEFAULT_OWNER, sources = {} },
-		nodes = {},
-		links = {},
-	})
+	store.write(dir, store.createEmptyDoc(owner))
 	table.insert(list.workspaces, { name = name, label = label or name })
 	writeWorkspaces(root, list)
 	return list
@@ -457,11 +451,19 @@ function store.putFocus(dir: string, tab: string, open: string?, selected: json.
 	end
 end
 
--- Fails with a pointer to the app when there is nothing to work with yet.
+function store.createEmptyDoc(owner: string?): Doc
+	return {
+		version = 1,
+		revision = 0,
+		settings = { githubOwner = owner or DEFAULT_OWNER, sources = {} },
+		nodes = {},
+		links = {},
+	}
+end
+
+-- A workspace without a data file reads as empty; the first change writes it.
 function store.load(dir: string): Doc
-	local doc = store.read(dir)
-	assert(doc, `no Orion data at {store.filePath(dir)}. Open the Orion app once to create it.`)
-	return doc
+	return store.read(dir) or store.createEmptyDoc()
 end
 
 local function release(lockPath: string)
