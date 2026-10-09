@@ -4,11 +4,14 @@ import type { CardSize } from './cardSize'
 
 const CLASSIC_SIZE = { width: TASK_WIDTH, height: TASK_HEIGHT }
 
+export function cardPitchOf(size: CardSize): { x: number; y: number } {
+  return { x: (size.width + GAP.inner.x) / (TASK_WIDTH + GAP.inner.x), y: (size.height + GAP.inner.y) / (TASK_HEIGHT + GAP.inner.y) }
+}
+
 function mapPositions(nodes: AppNode[], size: CardSize, isInverse: boolean): AppNode[] {
   if (size.width === TASK_WIDTH && size.height === TASK_HEIGHT) return nodes
 
-  const pitchX = (size.width + GAP.inner.x) / (TASK_WIDTH + GAP.inner.x)
-  const pitchY = (size.height + GAP.inner.y) / (TASK_HEIGHT + GAP.inner.y)
+  const { x: pitchX, y: pitchY } = cardPitchOf(size)
 
   return normalize(
     nodes.map((node) => {

@@ -113,7 +113,7 @@ import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove 
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { Toolbar, type Tool } from './Toolbar'
-import { readViewport, writeViewport } from '../viewport'
+import { MAX_ZOOM, MIN_ZOOM, mapViewportForCardSize, readViewport, writeViewport } from '../viewport'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
@@ -531,6 +531,34 @@ export function Canvas() {
     const currentStored = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, previousSize) })
     const wasSaved = fingerprint(currentStored) === savedPrint.current
     const mapped = toDisplayed(toStored(latest.current.nodes, previousSize), cardSize)
+    const box = canvasRef.current?.getBoundingClientRect()
+
+    if (box?.width && box.height) {
+      const previousViewport = reactFlow.getViewport()
+      const nodeMap = byId(mapped)
+      const focusedNode = focusPick ? nodeMap.get(focusPick) : undefined
+      const openGroup = root ? nodeMap.get(root) : undefined
+      const groupViewport = openGroup && isCluster(openGroup) ? groupFitViewport(openGroup, nodeMap, box, cardSize) : undefined
+
+      if (root && groupViewport) {
+        fitZoom.current.set(root, groupViewport.zoom)
+        setPeek(null)
+        setExitHint(null)
+      }
+
+      if (focusEntry.current)
+        focusEntry.current.viewport = groupViewport ?? mapViewportForCardSize(focusEntry.current.viewport, box, previousSize, cardSize)
+
+      const viewport =
+        focusedNode && isTask(focusedNode)
+          ? focusViewport(focusedNode, nodeMap, box, cardSize)
+          : (groupViewport ?? mapViewportForCardSize(previousViewport, box, previousSize, cardSize))
+
+      fitSequence.current++
+      fitting.current = false
+      previousZoom.current = viewport.zoom
+      void reactFlow.setViewport(viewport)
+    }
 
     latest.current = { ...latest.current, nodes: mapped }
     displayedCardSize.current = cardSize
@@ -540,7 +568,7 @@ export function Canvas() {
       base.current = compactDoc({ ...latest.current, nodes: toStored(mapped, cardSize) })
       savedPrint.current = fingerprint(base.current)
     }
-  }, [cardSize, setNodes])
+  }, [cardSize, setNodes, reactFlow, focusPick, root])
 
   const adopt = useCallback(
     (doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
@@ -2687,8 +2715,8 @@ export function Canvas() {
               multiSelectionKeyCode={['Meta', 'Shift']}
               deleteKeyCode={null}
               zoomOnDoubleClick={false}
-              minZoom={0.06}
-              maxZoom={2}
+              minZoom={MIN_ZOOM}
+              maxZoom={MAX_ZOOM}
               colorMode={colorModeOf(appearance)}
             >
               <StickerLayer
