@@ -7,9 +7,12 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 - `orion ready` lists work that can start now, the items that unblock the most first.
 - `orion groups` lists groups with their progress.
 - `orion list [--group <id>] [--all]` lists open items, or everything with `--all`.
+- `orion query --where '<expr>' [--all] [--json]` finds matching cards and groups. Done cards are omitted unless `--all` is set.
 - `orion show <id>` shows one item with what it waits on and leads to, or a group with its contents.
 
 Add `--json` to any of these for structured output. Statuses in the output are derived: `ready` means nothing the item waits on is still open.
+
+Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr`, or `ref` (external source key). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
 
 Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces.
 
@@ -32,12 +35,14 @@ Run `orion serve status [--json]` to find the running server and its URL. It che
 - `orion add <title> [--group <id>] [--kind gate] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
 - `orion set <id> [--label …] [--status …] [--kind step|gate] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
 - `orion set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
-- `orion done <id>` marks an item done.
+- `orion done <id...> | --where '<expr>'` marks items done.
 - `orion link <first> <then>` makes `<then>` wait on `<first>`. Add `--related` for a link that never blocks. `orion unlink` removes one.
 - `orion note <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it goes inside that existing link.
 - `orion media insert <file> [--label <text>] [--group <id>]` inserts a media node. It currently accepts PNG, JPEG, GIF, and WebP images, identified from their contents. `orion media list` lists media nodes in the selected workspace. `orion serve` accepts raw bytes at `POST /api/images?workspace=<name>` and returns them at `GET /api/images/<asset>?workspace=<name>`.
-- `orion group <label> --items <id,id,…>`, `orion ungroup <id>`, and `orion move <id> --to <group>` (or `--top`) organize work.
-- `orion remove <id>` deletes an item. Removing a note reconnects the links that ran through it.
+- `orion group <label> --items <id,id,…>`, `orion ungroup <id...> | --where '<expr>'`, and `orion move <id...> | --where '<expr>' --to <group>` (or `--top`) organize work.
+- `orion remove <id...> | --where '<expr>'` deletes items. Removing a note reconnects the links that ran through it.
+
+`done`, `remove`, `move`, and `ungroup` accept `--dry-run`, `--json`, and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion remove --where 'repo = "unrelated"' --dry-run`, then run `orion remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
 
 Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set `blocked` or `deferred` only for reasons the graph can't show, since waiting on open work already reads as blocked.
 
