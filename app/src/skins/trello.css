@@ -1,0 +1,219 @@
+.card.skin-trello {
+  --board-shadow: 0 1px 1px color-mix(in srgb, var(--ink) 12%, transparent), 0 3px 7px color-mix(in srgb, var(--ink) 8%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 7px 8px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--board-shadow);
+  font-family: var(--font-ui);
+  animation: none;
+}
+
+.card.skin-trello:is(.st-ready, .st-active, .st-review, .st-blocked, .st-done, .st-deferred, .tr-up, .tr-down, .tr-related, .attn) {
+  border-color: var(--line);
+  background: var(--surface);
+  box-shadow: var(--board-shadow);
+}
+
+.canvas.is-focus .react-flow__node.is-focused .card.skin-trello,
+.canvas.is-tracing .card.skin-trello:not(.tr-self, .tr-up, .tr-down, .tr-related) {
+  box-shadow: var(--board-shadow);
+}
+
+.card.skin-trello:is(.st-done, .st-deferred) {
+  --fade: 0.72;
+}
+
+.card.skin-trello.placeholder {
+  border-style: dashed;
+}
+
+.card.skin-trello.note {
+  border-color: var(--note-edge);
+  background: var(--note);
+  color: var(--note-ink);
+}
+
+.card.skin-trello .board-chips {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  height: 6px;
+}
+
+.card.skin-trello .board-chip {
+  flex: none;
+  width: 32px;
+  height: 6px;
+  border: 1px solid var(--board-chip-color);
+  border-radius: 999px;
+  background: var(--board-chip-color);
+}
+
+.card.skin-trello.placeholder .board-chip {
+  background: transparent;
+}
+
+.card.skin-trello .board-status-chip {
+  --board-chip-color: var(--st-todo);
+}
+
+.card.skin-trello.st-ready .board-status-chip {
+  --board-chip-color: var(--accent);
+}
+
+.card.skin-trello.st-active .board-status-chip {
+  --board-chip-color: var(--st-active);
+}
+
+.card.skin-trello.st-review .board-status-chip {
+  --board-chip-color: var(--st-review);
+}
+
+.card.skin-trello.st-blocked .board-status-chip {
+  --board-chip-color: var(--st-blocked);
+}
+
+.card.skin-trello.st-done .board-status-chip {
+  --board-chip-color: var(--st-done);
+}
+
+.card.skin-trello .board-repo-0 {
+  --board-chip-color: var(--accent);
+}
+
+.card.skin-trello .board-repo-1 {
+  --board-chip-color: var(--st-active);
+}
+
+.card.skin-trello .board-repo-2 {
+  --board-chip-color: var(--st-review);
+}
+
+.card.skin-trello .board-repo-3 {
+  --board-chip-color: var(--st-done);
+}
+
+.card.skin-trello .board-gate-chip {
+  --board-chip-color: var(--ink);
+  width: 16px;
+}
+
+.card.skin-trello .board-title,
+.card.skin-trello .board-note-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 14px;
+}
+
+.card.skin-trello .board-footer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 18px;
+  margin-top: auto;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 12px;
+  white-space: nowrap;
+}
+
+.card.skin-trello .board-status,
+.card.skin-trello .board-checks,
+.card.skin-trello .board-leverage,
+.card.skin-trello .board-gate-mark {
+  flex: none;
+}
+
+.card.skin-trello .board-gate-mark {
+  font-size: 13px;
+}
+
+.card.skin-trello .board-move {
+  flex: none;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+}
+
+.card.skin-trello .board-tag {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-data);
+}
+
+.card.skin-trello .board-footer .source-badges {
+  position: static;
+  flex: none;
+  flex-wrap: nowrap;
+  max-width: none;
+  margin-left: auto;
+}
+
+.card.skin-trello .board-footer .source-domain,
+.card.skin-trello .board-footer .source-domain summary {
+  box-shadow: none;
+}
+
+.card.skin-trello .board-note-kind {
+  color: var(--note-ink);
+  font-size: 10px;
+  line-height: 13px;
+}
+
+.card.skin-trello .board-note-text {
+  margin-top: 3px;
+  padding-right: 20px;
+  white-space: pre-wrap;
+}
+
+.card.skin-trello.far-card {
+  height: auto;
+  padding: 8px 10px;
+}
+
+.card.skin-trello.far-card .board-title,
+.card.skin-trello.far-card .board-note-text {
+  display: block;
+  overflow: visible;
+}
+
+.card.skin-trello.far-card .board-footer {
+  margin-top: 5px;
+}
+
+.card.skin-trello.far-card > .source-badges {
+  position: static;
+  align-self: flex-end;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card.skin-trello {
+    transition:
+      transform 140ms ease,
+      opacity 0.2s;
+  }
+
+  .card.skin-trello:hover {
+    transform: translateY(-2px);
+  }
+
+  .canvas.is-still .card.skin-trello:hover,
+  .canvas[data-moving] .card.skin-trello:hover {
+    transform: none;
+  }
+}

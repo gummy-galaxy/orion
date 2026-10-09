@@ -16,9 +16,10 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('card skins', () => {
-  it('keeps Classic first and both skins at the current card size', () => {
-    expect(SKINS.map((skin) => skin.id)).toEqual(['classic', 'plain'])
+  it('keeps Classic first and all skins at the current card size', () => {
+    expect(SKINS.map((skin) => skin.id)).toEqual(['classic', 'plain', 'trello'])
     expect(SKINS.map((skin) => skin.size)).toEqual([
+      { width: TASK_WIDTH, height: TASK_HEIGHT },
       { width: TASK_WIDTH, height: TASK_HEIGHT },
       { width: TASK_WIDTH, height: TASK_HEIGHT },
     ])

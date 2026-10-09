@@ -5,10 +5,12 @@ import { skinOf, type SkinId } from '../skins'
 import { skinAtom, skinStore } from '../state'
 import { ClassicCard } from './ClassicCard'
 import { PlainCard } from './PlainCard'
+import { BoardCard } from './BoardCard'
 
 const CARDS: Record<SkinId, ComponentType<{ view: CardView }>> = {
   classic: ClassicCard,
   plain: PlainCard,
+  trello: BoardCard,
 }
 
 export function CardBody({ view }: { view: CardView }) {
