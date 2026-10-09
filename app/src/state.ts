@@ -60,6 +60,8 @@ export const useStatus = (id: string) => useAtomValue(useMemo(() => selectAtom(w
 
 export const useLeverage = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.leverage.get(id) ?? 0), [id]))
 
+export const useUpstream = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.upstream.get(id) ?? 0), [id]))
+
 export const useGroupStats = (id: string) =>
   useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.groups.get(id) ?? NO_STATS, sameStats), [id]))
 
@@ -69,11 +71,12 @@ export const useSources = (id: string) =>
 export function useCardView(id: string, data: TaskNode['data']) {
   const status = useStatus(id)
   const leverage = useLeverage(id)
+  const upstream = useUpstream(id)
   const sources = useSources(id)
 
   return useMemo(
-    () => getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, sources }),
-    [id, data, status, leverage, sources],
+    () => getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, sources }),
+    [id, data, status, leverage, upstream, sources],
   )
 }
 

@@ -12,6 +12,7 @@ const view: CardView = {
   status: 'review',
   statusLabel: 'Review',
   leverage: 0,
+  upstream: 0,
   sources: [],
   repo: 'flipbook-labs/flipbook',
   artSeed: 'artwork',

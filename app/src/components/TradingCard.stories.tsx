@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import type { CardView } from '../cardView'
+import type { Rarity } from '../rarity'
 import { TradingCard } from './TradingCard'
 
 const meta = { title: 'Canvas/Cards and edges/TradingCard' } satisfies Meta
@@ -16,6 +17,8 @@ const base: CardView = {
   status: 'ready',
   statusLabel: 'Ready',
   leverage: 0,
+  upstream: 0,
+  rarity: 'common',
   sources: [],
   note: 'Create the shared account and configure the release checks.',
   artSeed: 'ready-step',
@@ -46,6 +49,8 @@ export const YourMove: Story = {
       status: 'review',
       statusLabel: 'Review',
       who: 'you',
+      upstream: 4,
+      rarity: 'uncommon',
       whoLabel: 'Your move',
       checks: 'pending',
       changeSize: { additions: 412, deletions: 38 },
@@ -64,6 +69,8 @@ export const Blocked: Story = {
       repo: 'flipbook-labs/flipbook',
       status: 'blocked',
       statusLabel: 'Blocked',
+      upstream: 8,
+      rarity: 'rare',
       checks: 'failing',
       changeSize: { additions: 96, deletions: 12 },
       note: 'The publish check needs the cleanup first.',
@@ -82,6 +89,8 @@ export const InReview: Story = {
       status: 'review',
       statusLabel: 'In review',
       who: 'review',
+      upstream: 14,
+      rarity: 'mythic',
       whoLabel: 'Waiting on review',
       checks: 'passing',
       changeSize: { additions: 68, deletions: 14 },
@@ -99,6 +108,8 @@ export const Done: Story = {
       repo: 'vocksel/orion',
       status: 'done',
       statusLabel: 'Done',
+      upstream: 8,
+      rarity: 'rare',
       artSeed: 'done',
     }),
 }
@@ -108,6 +119,8 @@ export const Placeholder: Story = {
       ...base,
       id: 'placeholder',
       kind: 'placeholder',
+      upstream: 4,
+      rarity: 'uncommon',
       title: 'Prepare the next PR',
       tag: 'vocksel/orion',
       repo: 'vocksel/orion',
@@ -121,6 +134,8 @@ export const Gate: Story = {
       ...base,
       id: 'gate',
       kind: 'gate',
+      upstream: 14,
+      rarity: 'mythic',
       title: 'v2.6.0 ready to ship',
       tag: 'gate',
       note: 'Publish after all release checks pass.',
@@ -142,5 +157,36 @@ export const LongNote: Story = {
 }
 export const Note: Story = {
   render: () =>
-    renderCard({ ...base, id: 'note', kind: 'note', title: 'Keep the intent visible', status: 'done', statusLabel: 'Done', artSeed: 'note' }),
+    renderCard({
+      ...base,
+      id: 'note',
+      kind: 'note',
+      title: 'Keep the intent visible',
+      status: 'done',
+      statusLabel: 'Done',
+      rarity: undefined,
+      artSeed: 'note',
+    }),
+}
+
+export const RarityLadder: Story = {
+  render: () => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+      {(
+        [
+          ['common', 0],
+          ['uncommon', 4],
+          ['rare', 8],
+          ['mythic', 14],
+        ] as [Rarity, number][]
+      ).map(([rarity, upstream]) => (
+        <div key={rarity}>
+          <p style={{ textTransform: 'capitalize' }}>
+            {rarity} · {upstream} upstream
+          </p>
+          {renderCard({ ...base, rarity, upstream })}
+        </div>
+      ))}
+    </div>
+  ),
 }

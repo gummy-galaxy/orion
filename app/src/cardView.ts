@@ -1,5 +1,6 @@
 import type { SourceRef } from './derive'
 import { getPullRef, getTaskTag, getTaskUrl, STATUS_LABEL, type ItemKind, type PullDetails, type TaskNode, type ViewStatus, type Who } from './model'
+import { getRarity, type Rarity } from './rarity'
 
 export type CardView = {
   id: string
@@ -15,6 +16,8 @@ export type CardView = {
   who?: Who
   whoLabel?: string
   leverage: number
+  upstream: number
+  rarity?: Rarity
   checks?: 'passing' | 'failing' | 'pending'
   changeSize?: { additions: number; deletions: number }
   sources: SourceRef[]
@@ -41,7 +44,7 @@ function getChecks(checks: PullDetails['checks'] | undefined): CardView['checks'
   }
 }
 
-export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverage: number; sources: SourceRef[] }): CardView {
+export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverage: number; upstream: number; sources: SourceRef[] }): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
   const pullDetails = getPullRef(data)?.details as PullDetails | undefined
@@ -63,6 +66,8 @@ export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverag
     statusLabel: STATUS_LABEL[facts.status],
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
+    upstream: facts.upstream,
+    ...(data.itemKind === 'note' ? {} : { rarity: getRarity(facts.upstream) }),
     ...(checks ? { checks } : {}),
     ...(changeSize ? { changeSize } : {}),
     sources: facts.sources,

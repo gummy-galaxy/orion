@@ -1,11 +1,15 @@
 import type { CSSProperties } from 'react'
 import type { CardView } from '../cardView'
+import type { Rarity } from '../rarity'
 import { getCardInks } from '../skins/frameColor'
 import { SourceBadges } from './SourceBadges'
 import { TradingArtwork } from './TradingArtwork'
 import { TradingKindIcon } from './TradingKindIcon'
+import { TradingRaritySymbol } from './TradingRaritySymbol'
 
 type ArtKind = Exclude<CardView['kind'], 'note'>
+
+const RARITY_LABEL: Record<Rarity, string> = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', mythic: 'Mythic' }
 
 const KIND_LABEL: Record<ArtKind, string> = {
   step: 'Step',
@@ -49,7 +53,7 @@ export function TradingCard({ view }: { view: CardView }) {
 
   return (
     <div
-      className={`trading-frame trading-${status.className}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
+      className={`trading-frame trading-${status.className}${view.rarity ? ` trading-${view.rarity}` : ''}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
       style={style}
     >
       <i className="trading-glow" aria-hidden="true" />
@@ -66,7 +70,12 @@ export function TradingCard({ view }: { view: CardView }) {
               {KIND_LABEL[view.kind]}
               {repositoryName && ` · ${repositoryName}`}
             </span>
-            <i className="trading-gem" aria-hidden="true" />
+            {view.rarity && (
+              <span className="trading-rarity">
+                {view.rarity !== 'common' && RARITY_LABEL[view.rarity]}
+                <TradingRaritySymbol rarity={view.rarity} upstream={view.upstream} />
+              </span>
+            )}
           </div>
           <p className={`trading-text${view.note ? '' : ' trading-flavor'}`} title={view.note || view.tag}>
             {view.note || view.tag}
