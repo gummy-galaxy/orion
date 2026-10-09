@@ -2077,7 +2077,7 @@ export function Canvas() {
     const onKey = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
 
-      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k') {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'p') {
         event.preventDefault()
         setPaletteOpen(true)
 
@@ -2414,7 +2414,7 @@ export function Canvas() {
                 ))}
                 <span className="crumb-actions">
                   <button type="button" className="btn" onClick={() => setPaletteOpen(true)}>
-                    Search <kbd>⌘K</kbd>
+                    Search <kbd>⇧⌘P</kbd>
                   </button>
                   <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                     Add note
