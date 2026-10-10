@@ -39,17 +39,19 @@ const MIME: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2',
 }
-/** Rows of the render report, in order, with how to read each one. */
-const METRICS: [key: string, label: string, kind: 'count' | 'ms'][] = [
-  ['commits', 'React commits', 'count'],
-  ['renderMs', 'React render ms', 'ms'],
-  ['frames', 'Frames drawn', 'count'],
-  ['mainMs', 'Main thread busy ms', 'ms'],
-  ['styleMs', 'Style ms', 'ms'],
-  ['layoutMs', 'Layout ms', 'ms'],
-  ['rasterMs', 'Raster ms', 'ms'],
-  ['slowFrames', `Frames over ${SLOW_FRAME_MS} ms`, 'count'],
+/** Rows of the render report, in order, with how to read each one. Paced rows only mean something when the machine keeps up with the display. */
+const METRICS: [key: string, label: string, kind: 'count' | 'ms', paced: boolean][] = [
+  ['commits', 'React commits', 'count', false],
+  ['renderMs', 'React render ms', 'ms', false],
+  ['frames', 'Frames drawn', 'count', true],
+  ['mainMs', 'Main thread busy ms', 'ms', false],
+  ['styleMs', 'Style ms', 'ms', false],
+  ['layoutMs', 'Layout ms', 'ms', false],
+  ['rasterMs', 'Raster ms', 'ms', true],
+  ['slowFrames', `Frames over ${SLOW_FRAME_MS} ms`, 'count', true],
 ]
+/** Frames a machine that keeps up draws while idle, at 60 Hz. */
+const IDLE_FRAMES = (IDLE_MS / 1000) * 60
 /** A change smaller than this reads as noise in the report. */
 const NOISE = { count: 0.1, ms: 0.1 }
 
@@ -365,13 +367,30 @@ function benchTable(base: Map<string, BenchResult>, head: Map<string, BenchResul
 function renderTable(story: string, base: Record<string, Sample>, head: Record<string, Sample>): string {
   const scenarios = Object.keys(head).filter((scenario) => scenario !== 'load')
   const load = `Load: first cards ${compare(base.load?.firstCardsMs, head.load?.firstCardsMs, 'ms')} ms, ${compare(base.load?.commits, head.load?.commits, 'count')} commits, ${compare(base.load?.renderMs, head.load?.renderMs, 'ms')} render ms.`
-  const rows = METRICS.map(
+  // A machine that can't keep up with the display drops frames instead of doing more work, so frame and raster
+  // counts measure how far behind it fell rather than what changed.
+  const idleFrames = Math.min(base.idle?.frames ?? IDLE_FRAMES, head.idle?.frames ?? IDLE_FRAMES)
+  const saturated = idleFrames < IDLE_FRAMES * 0.9
+  const rows = METRICS.filter(([, , , paced]) => !saturated || !paced).map(
     ([key, label, kind]) => `| ${label} | ${scenarios.map((scenario) => compare(base[scenario]?.[key], head[scenario]?.[key], kind)).join(' | ')} |`,
   )
+  const note = saturated
+    ? [
+        '',
+        `This machine drew ${Math.round(idleFrames)} of ${IDLE_FRAMES} frames while idle, so frames drawn, raster time, and slow frames are left out. Run \`npm run perf\` locally to compare them.`,
+      ]
+    : []
 
-  return [`### ${story}`, '', load, '', `| Metric | ${scenarios.join(' | ')} |`, `| --- |${scenarios.map(() => ' --- |').join('')}`, ...rows].join(
-    '\n',
-  )
+  return [
+    `### ${story}`,
+    '',
+    load,
+    '',
+    `| Metric | ${scenarios.join(' | ')} |`,
+    `| --- |${scenarios.map(() => ' --- |').join('')}`,
+    ...rows,
+    ...note,
+  ].join('\n')
 }
 
 async function main() {
