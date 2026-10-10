@@ -56,6 +56,7 @@ import {
   type TaskData,
 } from '../model'
 import { DebugBar, type MotionSettings } from './DebugBar'
+import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
 import { ClusterView } from './ClusterView'
@@ -2529,6 +2530,7 @@ export function Canvas() {
                 />
               )}
               <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
+              {nodes.length === 0 && <EmptyCanvas addNote={() => addNote(viewportCenter())} />}
               {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
               <Controls showInteractive={false} />
               {mergeNotice !== null && (
