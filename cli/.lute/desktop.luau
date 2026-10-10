@@ -11,11 +11,12 @@ local root = path.resolve("..")
 local app = path.join(root, "app")
 local desktop = path.join(root, "desktop")
 local shell = path.join(desktop, "src-tauri")
+local cliDir = path.join(root, "cli")
 
 run("cargo", { "fmt", "--check" }, { cwd = shell })
 
 run("npm", { "run", "build" }, { cwd = app })
-run("sh", { "scripts/prepare-sidecar.sh" }, { cwd = desktop })
+run("lute", { "run", "prepare-sidecar" }, { cwd = cliDir })
 
 run("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = shell })
 run("npx", { "tauri", "build", "--no-bundle" }, { cwd = desktop })
