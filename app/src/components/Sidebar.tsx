@@ -1,7 +1,6 @@
 import type { GroupStats } from '../derive'
 import { isCluster, type AppNode, type ClusterData } from '../model'
 import type { Workspaces } from '../persist'
-import { COLOR_MODES, THEMES, themeOf, type Appearance } from '../appearance'
 
 type Props = {
   nodes: AppNode[]
@@ -13,8 +12,9 @@ type Props = {
   workspaces: Workspaces
   switchWorkspace: (name: string) => Promise<void>
   newWorkspace: (name: string, label: string) => Promise<void>
-  appearance: Appearance
-  chooseAppearance: (appearance: Appearance) => void
+  openSettings: () => void
+  /** The shortcut that opens settings, shown beside its button. */
+  settingsHint: string
 }
 
 /** A stable list of every group, in canvas order, for jumping between bodies of work. */
@@ -28,8 +28,8 @@ export function Sidebar({
   workspaces,
   switchWorkspace,
   newWorkspace,
-  appearance,
-  chooseAppearance,
+  openSettings,
+  settingsHint,
 }: Props) {
   const clusters = nodes.filter(isCluster)
   const children = (parent: string | undefined) => clusters.filter((cluster) => cluster.parentId === parent)
@@ -116,40 +116,10 @@ export function Sidebar({
       </button>
       <ul className="side-list">{children(undefined).map((cluster) => row(cluster, 0))}</ul>
       <p className="side-foot">The bar shows how much of each group is done. ↗ counts open work outside the group that waits on it.</p>
-      <div className="side-settings">
-        <div role="group" aria-label="Theme">
-          <span className="side-settings-label">Theme</span>
-          <div className="side-options">
-            {THEMES.map((theme) => (
-              <button
-                key={theme.id}
-                type="button"
-                aria-pressed={appearance.theme === theme.id}
-                onClick={() => chooseAppearance({ ...appearance, theme: theme.id })}
-              >
-                {theme.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        {themeOf(appearance.theme).schemes.length > 1 && (
-          <div role="group" aria-label="Color mode">
-            <span className="side-settings-label">Color mode</span>
-            <div className="side-options">
-              {COLOR_MODES.map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  aria-pressed={appearance.colorMode === mode}
-                  onClick={() => chooseAppearance({ ...appearance, colorMode: mode })}
-                >
-                  {mode[0].toUpperCase() + mode.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      <button type="button" className="side-row side-settings" onClick={openSettings}>
+        <span className="side-label">Settings</span>
+        {settingsHint && <kbd>{settingsHint}</kbd>}
+      </button>
     </aside>
   )
 }

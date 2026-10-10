@@ -119,7 +119,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result. Type `>` first, or press ⇧⌘P (or Ctrl+Shift+P), to list actions instead; deleting the `>` goes back to searching.
-- Choose Light, Dark, or System color mode in the sidebar footer, or through ⇧⌘P; the choice is saved on this device.
+- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. Both are saved on this device. The shortcuts in this section are the defaults.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
 - Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
@@ -158,6 +158,7 @@ In `app/`:
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
+- `src/Settings.tsx`, `src/AppearanceSettings.tsx`, and `src/ShortcutSettings.tsx`: the settings dialog. `app/src/keybindings.ts` lists each shortcut with its default and saves rebound ones.
 
 In `cli/src/`:
 
