@@ -1668,32 +1668,29 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 8px;
+  padding: 0 8px 12px;
   border-right: 1px solid var(--line);
   background: var(--surface);
   overflow-y: auto;
 }
 .side-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2px 8px 10px;
-}
-/* The macOS shell draws its traffic lights over the top-left corner, centered in the title bar. */
-:root[data-titlebar='overlay'] .sidebar {
-  padding-top: 0;
-}
-:root[data-titlebar='overlay'] .side-head {
   position: sticky;
   top: 0;
   z-index: 1;
-  height: 44px;
   flex: none;
-  background: var(--surface);
-  padding: 0 0 0 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
   margin-bottom: 8px;
+  padding: 0 0 0 8px;
+  background: var(--surface);
   user-select: none;
   -webkit-user-select: none;
+}
+/* The macOS shell draws its traffic lights over the top-left corner, centered in the title bar. */
+:root[data-titlebar='overlay'] .side-head {
+  padding-left: 72px;
 }
 :root[data-titlebar='overlay'] .app > .main:first-child .titlebar {
   padding-left: 80px;
