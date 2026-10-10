@@ -35,7 +35,7 @@ end
 
 local sha = string.sub(env.SHA or "", 1, 7)
 local footer =
-	`<sub>Measured {sha} on \`{env.RUNNER_NAME}\` in [run {env.GITHUB_RUN_NUMBER}]({env.RUN_URL}). Changes under 10% are treated as noise.</sub>`
+	`<sub>Measured {sha} on \`{env.RUNNER_NAME}\` in [run {env.GITHUB_RUN_NUMBER}]({env.RUN_URL}). Changes under 10%, or within how far each side's runs disagree, are treated as noise.</sub>`
 
 if not fs.exists(perfDir) then
 	fs.createDirectory(perfDir, { makeParents = true })
