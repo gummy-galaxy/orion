@@ -1805,9 +1805,27 @@ export function Canvas() {
 
       if (options.to) next.push({ id: `${id}>${options.to}`, from: id, to: options.to, kind })
 
-      setNodes(normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note]))
+      const nextNodes = normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note])
+
+      setNodes(nextNodes)
       setLinks(next)
       setEditing(id)
+
+      // An automatic group lays out its new item in line. Only positions and sizes come back, so text typed meanwhile stays.
+      if (options.replace && parentNode && isCluster(parentNode) && parentNode.data.arrange !== 'custom')
+        void reflow(nextNodes, next, parentNode.id).then((laidOut) => {
+          const placed = byId(laidOut)
+
+          setNodes((latestNodes) =>
+            latestNodes.map((node) => {
+              const placedNode = placed.get(node.id)
+
+              if (!placedNode) return node
+
+              return { ...node, position: placedNode.position, width: placedNode.width, height: placedNode.height }
+            }),
+          )
+        })
     },
     [root, setLinks, setNodes],
   )
