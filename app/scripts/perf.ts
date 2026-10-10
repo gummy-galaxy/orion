@@ -16,10 +16,9 @@ import { dirname, extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { chromium, type Browser, type Page } from 'playwright'
+import { buildReport, IDLE_MS, SLOW_FRAME_MS, type BenchResult, type ReportInput, type Sample } from './perfReport.ts'
 
 type Side = 'base' | 'head'
-type Sample = Record<string, number>
-type BenchResult = { p50: number; rme: number }
 /** What the perf stories expose on the page, plus the frame gaps this script records there. */
 type PerfWindow = Window & { orionPerf?: { commits: number; renderMs: number; reset: () => void }; perfFrames?: number[] }
 
@@ -27,9 +26,7 @@ const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(APP, '.perf')
 const HARNESS = ['src/perf', '.storybook']
 const VIEWPORT = { width: 1440, height: 900 }
-const IDLE_MS = 3000
 const SETTLE_MS = 800
-const SLOW_FRAME_MS = 33
 const TRACE_CATEGORIES = ['devtools.timeline', 'disabled-by-default-devtools.timeline']
 const MIME: Record<string, string> = {
   '.html': 'text/html',
@@ -39,20 +36,6 @@ const MIME: Record<string, string> = {
   '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2',
 }
-/** Rows of the render report, in order, with how to read each one. */
-const METRICS: [key: string, label: string, kind: 'count' | 'ms'][] = [
-  ['commits', 'React commits', 'count'],
-  ['renderMs', 'React render ms', 'ms'],
-  ['frames', 'Frames drawn', 'count'],
-  ['mainMs', 'Main thread busy ms', 'ms'],
-  ['styleMs', 'Style ms', 'ms'],
-  ['layoutMs', 'Layout ms', 'ms'],
-  ['rasterMs', 'Raster ms', 'ms'],
-  ['slowFrames', `Frames over ${SLOW_FRAME_MS} ms`, 'count'],
-]
-/** A change smaller than this reads as noise in the report. */
-const NOISE = { count: 0.1, ms: 0.1 }
-
 const { values: options } = parseArgs({
   options: {
     base: { type: 'string', default: 'origin/main' },
@@ -329,59 +312,15 @@ function medianSamples(runs: Record<string, Sample>[]): Record<string, Sample> {
   return result
 }
 
-const format = (value: number | undefined, kind: 'count' | 'ms') =>
-  value === undefined ? '–' : kind === 'count' ? String(Math.round(value)) : value < 10 ? value.toFixed(2) : value.toFixed(0)
-
-/** "base → head", with the change when it's bigger than noise. A ⚠ marks a change for the worse. */
-function compare(base: number | undefined, head: number | undefined, kind: 'count' | 'ms'): string {
-  const text = `${format(base, kind)} → ${format(head, kind)}`
-
-  if (base === undefined || head === undefined || base === head) return text
-
-  const change = base === 0 ? Infinity : (head - base) / base
-
-  if (Math.abs(change) < NOISE[kind] || (kind === 'count' && Math.abs(head - base) < 2) || (kind === 'ms' && Math.abs(head - base) < 0.5)) return text
-
-  const percent = change === Infinity ? 'new' : `${change > 0 ? '+' : ''}${Math.round(change * 100)}%`
-
-  return `${text} (${percent}${change > 0 ? ' ⚠' : ''})`
-}
-
-function benchTable(base: Map<string, BenchResult>, head: Map<string, BenchResult>): string {
-  const rows = [...new Set([...base.keys(), ...head.keys()])].map((name) => {
-    const before = base.get(name)
-    const after = head.get(name)
-    const noise = Math.max(NOISE.ms, ((before?.rme ?? 0) + (after?.rme ?? 0)) / 100)
-    const change = before && after ? (after.p50 - before.p50) / before.p50 : undefined
-    const verdict =
-      change === undefined ? '' : change > noise ? `+${Math.round(change * 100)}% ⚠` : change < -noise ? `${Math.round(change * 100)}%` : ''
-
-    return `| ${name} | ${format(before?.p50, 'ms')} | ${format(after?.p50, 'ms')} | ${verdict} |`
-  })
-
-  return ['| Benchmark (median ms) | Base | Head | Change |', '| --- | ---: | ---: | --- |', ...rows].join('\n')
-}
-
-function renderTable(story: string, base: Record<string, Sample>, head: Record<string, Sample>): string {
-  const scenarios = Object.keys(head).filter((scenario) => scenario !== 'load')
-  const load = `Load: first cards ${compare(base.load?.firstCardsMs, head.load?.firstCardsMs, 'ms')} ms, ${compare(base.load?.commits, head.load?.commits, 'count')} commits, ${compare(base.load?.renderMs, head.load?.renderMs, 'ms')} render ms.`
-  const rows = METRICS.map(
-    ([key, label, kind]) => `| ${label} | ${scenarios.map((scenario) => compare(base[scenario]?.[key], head[scenario]?.[key], kind)).join(' | ')} |`,
-  )
-
-  return [`### ${story}`, '', load, '', `| Metric | ${scenarios.join(' | ')} |`, `| --- |${scenarios.map(() => ' --- |').join('')}`, ...rows].join(
-    '\n',
-  )
-}
-
 async function main() {
   const runs = Number(options.runs)
   const stories = options.stories.split(',').filter(Boolean)
   const base = prepareBase(options.base)
   const dirs: Record<Side, string> = { base: base.dir, head: APP }
-  const sections = [
-    `# Performance: ${options.base} (${base.sha.slice(0, 7)}) → ${git('rev-parse', '--abbrev-ref', 'HEAD')} (${git('rev-parse', '--short', 'HEAD')})`,
-  ]
+  const input: ReportInput = {
+    base: { ref: options.base, sha: base.sha },
+    head: { ref: process.env.GITHUB_HEAD_REF || git('rev-parse', '--abbrev-ref', 'HEAD'), sha: git('rev-parse', 'HEAD') },
+  }
   const raw: Record<string, unknown> = {}
 
   mkdirSync(OUT, { recursive: true })
@@ -389,8 +328,8 @@ async function main() {
   if (!options['skip-bench']) {
     const results = { base: runBenchmarks(dirs.base, 'base'), head: runBenchmarks(dirs.head, 'head') }
 
-    raw.bench = { base: Object.fromEntries(results.base), head: Object.fromEntries(results.head) }
-    sections.push('## Data benchmarks', benchTable(results.base, results.head))
+    input.bench = { base: Object.fromEntries(results.base), head: Object.fromEntries(results.head) }
+    raw.bench = input.bench
   }
 
   if (!options['skip-render']) {
@@ -418,14 +357,15 @@ async function main() {
     }
 
     raw.render = collected
-    sections.push(
-      '## Rendering',
-      `Medians of ${runs} runs in headless Chromium at 2x scale. Idle waits ${IDLE_MS / 1000} s with motion on; the others pan, pinch-zoom, hover across cards, and drag one card.`,
-      ...stories.map((story) => renderTable(story, medianSamples(collected.base[story]), medianSamples(collected.head[story]))),
-    )
+    input.render = {
+      runs,
+      stories: Object.fromEntries(
+        stories.map((story) => [story, { base: medianSamples(collected.base[story]), head: medianSamples(collected.head[story]) }]),
+      ),
+    }
   }
 
-  const report = sections.join('\n\n') + '\n'
+  const report = buildReport(input)
 
   writeFileSync(join(OUT, 'report.md'), report)
   writeFileSync(join(OUT, 'raw.json'), JSON.stringify(raw, null, 2))
