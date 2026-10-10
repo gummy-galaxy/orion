@@ -38,10 +38,13 @@ import {
   descendants,
   groupSelection,
   isCluster,
+  isComponent,
   isImage,
   isNote,
   isTask,
+  isWork,
   normalize,
+  getItemKind,
   getTaskUrl,
   sizeOf,
   getTaskTag,
@@ -57,7 +60,9 @@ import {
 } from '../model'
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { EmptyCanvas } from './EmptyCanvas'
+import { ComponentInspector } from './ComponentInspector'
 import { CurveEdge } from './CurveEdge'
+import { LinkInspector } from './LinkInspector'
 import { openExternal } from '../external'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
@@ -190,7 +195,21 @@ const STICKER_TILT = 14
 const STICKER_FRESH_MS = 700
 /** How far above the toolbar the sticker wheel opens. */
 const WHEEL_LIFT = 140
-const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held' }
+const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held', still: '--edge-still' }
+/** Space around a link's label, so it reads as a tag sitting on the line. */
+const EDGE_LABEL = { labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 4 }
+
+/** Links between the same two drawn ends, drawn as one thicker arrow. */
+type Bundle = { a: string; b: string; count: number; flow: Flow; labels: (string | undefined)[] }
+
+/** A bundle whose links all say the same thing keeps saying it; otherwise it counts them. */
+function bundleLabel({ count, labels }: Bundle): string | undefined {
+  const [first] = labels
+
+  if (first && labels.every((label) => label === first)) return count > 1 ? `${first} ×${count}` : first
+
+  return count > 1 ? `${count} links` : undefined
+}
 
 type Menu = {
   x: number
@@ -342,6 +361,8 @@ export function Canvas() {
   // Where focus started, and whether it has since walked to another card or level.
   const focusEntry = useRef<{ viewport: Viewport; moved: boolean } | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+  /** The link whose inspector is showing, picked by clicking it. */
+  const [pickedLink, setPickedLink] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [colorMode, setColorMode] = useState(readColorMode)
@@ -980,7 +1001,7 @@ export function Canvas() {
 
     const inside = descendants(root, nodes)
 
-    return nodes.filter((node) => inside.has(node.id) && isTask(node) && !isNote(node)).length
+    return nodes.filter((node) => inside.has(node.id) && isWork(node)).length
   }, [root, nodes])
   const leaveRoot = useCallback(
     (atZoom = reactFlow.getZoom()) => {
@@ -1144,9 +1165,9 @@ export function Canvas() {
           data: {
             kind: 'ghost',
             taskId: id,
-            label: node.data.label || 'Note',
+            label: node.data.label || (isComponent(node) ? 'Untitled component' : 'Note'),
             where: parent ? (parent.data as ClusterData).label : 'loose work',
-            status: work.status.get(id) ?? 'ready',
+            status: isComponent(node) ? undefined : (work.status.get(id) ?? 'ready'),
             side,
           },
         })
@@ -1236,7 +1257,7 @@ export function Canvas() {
   const edges = useMemo(() => {
     const resultEdges: Edge[] = []
     const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
-    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
+    const aggregates = new Map<string, Bundle>()
 
     for (const link of links) {
       const ends = drawnEnds(link)
@@ -1264,21 +1285,26 @@ export function Canvas() {
 
         if (peeking && !inFocus(source) && !inFocus(target)) className += ' e-peek'
 
+        if (link.id === pickedLink && !selectedKey) className += ' is-picked'
+
         resultEdges.push({
           id: link.id,
           source: source,
           target: target,
           className: className,
           markerEnd: link.kind === 'blocks' ? marker(flow) : undefined,
+          ...(link.label ? { label: link.label, ...EDGE_LABEL } : {}),
         })
       } else if (link.kind === 'blocks') {
         const key = source + '>' + target
-        const aggregate = aggregates.get(key) ?? { a: source, b: target, count: 0, flow: 'held' }
+        const aggregate = aggregates.get(key) ?? { a: source, b: target, count: 0, flow: 'still', labels: [] }
 
         aggregate.count++
+        aggregate.labels.push(link.label)
 
-        // A bundle moves if any of its links do.
+        // A bundle moves if any of its links do, and stays still only when all of them do.
         if (flow === 'live') aggregate.flow = 'live'
+        else if (flow === 'held' && aggregate.flow === 'still') aggregate.flow = 'held'
 
         aggregates.set(key, aggregate)
       }
@@ -1291,14 +1317,15 @@ export function Canvas() {
         target: aggregate.b,
         className: `e-agg e-${aggregate.flow}` + (peeking && !inFocus(aggregate.a) && !inFocus(aggregate.b) ? ' e-peek' : ''),
         selectable: false,
-        label: aggregate.count > 1 ? `${aggregate.count} links` : undefined,
+        label: bundleLabel(aggregate),
+        ...EDGE_LABEL,
         markerEnd: marker(aggregate.flow),
         style: { strokeWidth: Math.min(6, 1.5 + aggregate.count * 0.8) },
       })
     }
 
     return keepDrawn(drawnEdges, resultEdges)
-  }, [links, drawnEnds, work, trace, peeking, inFocus, relatedFocus, drawnEdges])
+  }, [links, drawnEnds, work, trace, peeking, inFocus, relatedFocus, drawnEdges, pickedLink, selectedKey])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1612,7 +1639,7 @@ export function Canvas() {
       if (!node || !isTask(node)) return null
 
       const parent = node.parentId ? map.get(node.parentId) : undefined
-      const status = work.status.get(id) ?? 'ready'
+      const status = isComponent(node) ? undefined : (work.status.get(id) ?? 'ready')
 
       return {
         id,
@@ -1771,11 +1798,14 @@ export function Canvas() {
 
   // ---- Notes and links ----
 
-  /** Adds a note, or a work item with `itemKind: 'step'`, with its top-left at `at` (flow coordinates), optionally spliced into links. */
+  /**
+   * Adds a note, or a work item with `itemKind: 'step'` or a component with `itemKind: 'component'`, with its top-left at
+   * `at` (flow coordinates), optionally spliced into links.
+   */
   const addNote = useCallback(
     (
       at: { x: number; y: number },
-      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' } = {},
+      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' | 'component' } = {},
     ) => {
       const { nodes: currentNodes, links: currentLinks } = latest.current
       const nodeMap = byId(currentNodes)
@@ -1783,7 +1813,7 @@ export function Canvas() {
       const parentNode = parent ? nodeMap.get(parent) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const itemKind = options.itemKind ?? 'note'
-      const id = newId(itemKind === 'note' ? 'note' : 'card')
+      const id = newId(itemKind === 'step' ? 'card' : itemKind)
       const note: AppNode = {
         id,
         type: 'task',
@@ -2083,7 +2113,23 @@ export function Canvas() {
     setNodes((currentNodes) => normalize(currentNodes.filter((node) => node.id !== id)))
   }
 
+  /** Removes a component and its links. Unlike a note, nothing flows through it once it's gone. */
+  const deleteComponent = (id: string) => {
+    setLinks((currentLinks) => currentLinks.filter((link) => link.from !== id && link.to !== id))
+    setNodes((currentNodes) => normalize(currentNodes.filter((node) => node.id !== id)))
+  }
+
   const removeLink = (id: string) => setLinks((currentLinks) => currentLinks.filter((link) => link.id !== id))
+  const updateLink = (id: string, patch: Partial<Pick<Link, 'label'>>) =>
+    setLinks((currentLinks) => currentLinks.map((link) => (link.id === id ? { ...link, ...patch } : link)))
+
+  /** Shows a link's inspector with its label ready to type into. */
+  const editLink = (id: string) => {
+    setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
+    setPickedLink(id)
+    setEditing(`link:${id}`)
+  }
+
   /** One link per pair of cards: adding a link replaces whatever already joined them. */
   const addLink = (from: string, to: string, kind: Link['kind']) =>
     setLinks((currentLinks) => [
@@ -2129,6 +2175,7 @@ export function Canvas() {
       return [
         { label: 'Add card here', run: () => insertOnLink(link.id, 'step') },
         { label: 'Insert a note here', run: () => insertOnLink(link.id, 'note') },
+        { label: link.label ? 'Edit label' : 'Add a label', run: () => editLink(link.id) },
         { label: link.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link', run: () => flipLink(link.id) },
         'divider',
         { label: 'Remove link', danger: true, run: () => removeLink(link.id) },
@@ -2169,6 +2216,19 @@ export function Canvas() {
           { label: 'Delete note', danger: true, run: () => deleteNote(node.id) },
         ]
 
+      if (isComponent(node))
+        return [
+          ...many,
+          { label: 'Rename component', run: () => (selectOnly(node.id), setEditing(node.id)) },
+          { label: 'Add a component after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id, itemKind: 'component' }) },
+          {
+            label: 'Turn into a work item',
+            run: () => updateData(node.id, { itemKind: getItemKind({ ...node.data, itemKind: 'step' }), status: 'todo' }),
+          },
+          'divider',
+          { label: 'Delete component', danger: true, run: () => deleteComponent(node.id) },
+        ]
+
       if (isImage(node))
         return [
           ...many,
@@ -2191,12 +2251,14 @@ export function Canvas() {
           ? { label: 'Mark not done', run: () => updateData(node.id, { status: 'todo' }) }
           : { label: 'Mark done', run: () => updateData(node.id, { status: 'done' }) },
         { label: 'Add a note after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id }) },
+        { label: 'Turn into a component', run: () => updateData(node.id, { itemKind: 'component' }) },
         ...(node.parentId !== root ? [{ label: 'Open its group', run: () => jumpTo(node.id) }] : []),
       ]
     }
 
     return [
       { label: 'Add a note here', hint: 'N', run: () => addNote(menu.flow) },
+      { label: 'Add a component here', run: () => addNote(menu.flow, { itemKind: 'component' }) },
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }] : []),
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
@@ -2290,6 +2352,7 @@ export function Canvas() {
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
+  const pickedLinkData = pickedLink ? links.find((link) => link.id === pickedLink) : undefined
   const focused = focus ? map.get(focus) : undefined
   const focusPos = focused && absolutePosition(focused, map)
   const focusSize = focused && sizeOf(focused)
@@ -2474,11 +2537,16 @@ export function Canvas() {
                 if (focus) return exitFocus()
 
                 setPinned(null)
+                setPickedLink(null)
 
                 if (tool === 'comment') placeComment(event)
                 else if (tool === 'sticker') stamp(event)
               }}
-              onEdgeClick={() => setPinned(null)}
+              onEdgeClick={(_event, edge) => {
+                setPinned(null)
+                setPickedLink(edge.id.startsWith('agg:') ? null : edge.id)
+              }}
+              onEdgeDoubleClick={(_event, edge) => !edge.id.startsWith('agg:') && editLink(edge.id)}
               onPaneContextMenu={(event) => (focus ? event.preventDefault() : openMenu(event, { kind: 'pane' }))}
               onNodeContextMenu={(event, node) => {
                 if (focus) return event.preventDefault()
@@ -2620,6 +2688,22 @@ export function Canvas() {
                       update={updateData}
                       remove={() => deleteNote(one.id)}
                     />
+                  ) : isComponent(one) ? (
+                    <ComponentInspector
+                      key={one.id}
+                      node={one}
+                      focus={editing === one.id}
+                      doneEditing={() => setEditing(null)}
+                      work={work}
+                      map={map}
+                      update={updateData}
+                      remove={() => deleteComponent(one.id)}
+                      jumpTo={jumpTo}
+                      links={links}
+                      addLink={addLink}
+                      removeLink={removeLink}
+                      flipLink={flipLink}
+                    />
                   ) : isTask(one) ? (
                     <TaskInspector
                       key={one.id}
@@ -2684,6 +2768,24 @@ export function Canvas() {
                   )}
                 </Panel>
               )}
+              {selected.length === 0 && pickedLinkData && (
+                <Panel position="top-right" className="panel inspector">
+                  <LinkInspector
+                    key={pickedLinkData.id}
+                    link={pickedLinkData}
+                    map={map}
+                    focus={editing === `link:${pickedLinkData.id}`}
+                    doneEditing={() => setEditing(null)}
+                    update={updateLink}
+                    flip={flipLink}
+                    remove={() => {
+                      removeLink(pickedLinkData.id)
+                      setPickedLink(null)
+                    }}
+                    jumpTo={jumpTo}
+                  />
+                </Panel>
+              )}
 
               <Panel position="bottom-center" className="dock">
                 {root && exitHint?.root === root && (
@@ -2701,7 +2803,8 @@ export function Canvas() {
                       V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
                       ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘K search · ⇧⌘P actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G
                       ungroup · double-click a group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to
-                      go up · N note · ⇧1 fit · drag from a card's edge to link · hold Ctrl while dragging to skip snapping{' '}
+                      go up · N note · ⇧1 fit · drag from a card's edge to link · double-click a link to label it · hold Ctrl while dragging to skip
+                      snapping{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>
@@ -2753,6 +2856,25 @@ export function Canvas() {
                     exitFocus()
                     deleteNote(focused.id)
                   }}
+                />
+              ) : isComponent(focused) ? (
+                <ComponentInspector
+                  node={focused}
+                  focus={false}
+                  doneEditing={() => setEditing(null)}
+                  work={work}
+                  map={map}
+                  update={updateData}
+                  remove={() => {
+                    exitFocus()
+                    deleteComponent(focused.id)
+                  }}
+                  jumpTo={focusOn}
+                  connections={false}
+                  links={links}
+                  addLink={addLink}
+                  removeLink={removeLink}
+                  flipLink={flipLink}
                 />
               ) : (
                 <TaskInspector

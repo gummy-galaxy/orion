@@ -34,11 +34,11 @@ To show the person the app, or anything else served locally such as a dev server
 
 ## Changing it
 
-- `orion add <title> [--group <id>] [--kind gate] [--repo <owner/name>] [--pr <number>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
-- `orion set <id> [--label …] [--status …] [--kind step|gate] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
+- `orion add <title> [--group <id>] [--kind gate|component] [--repo <owner/name>] [--pr <number>] [--status <status>] [--note …]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off. A component is a part of a system diagram rather than work; see below.
+- `orion set <id> [--label …] [--status …] [--kind step|gate|component] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
 - `orion set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
 - `orion done <id...> | --where '<expr>'` marks items done.
-- `orion link <first> <second> [next…]` links each adjacent pair in one transaction. Add `--related` for links that never block. `orion unlink` removes one link.
+- `orion link <first> <second> [next…] [--label <text>]` links each adjacent pair in one transaction. Add `--related` for links that never block. A label names what the link carries; linking an already linked pair updates it, and `--label ""` clears it. `orion unlink` removes one link.
 - `orion insert <id> --between <from> <to>` replaces an existing link with two links through the item, keeping its kind.
 - `orion note <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it splits their existing link or adds two blocking links if they are unlinked.
 - `orion media insert <file> [--label <text>] [--group <id>]` inserts a media node. It currently accepts PNG, JPEG, GIF, and WebP images, identified from their contents. `orion media list` lists media nodes in the selected workspace. `orion serve` accepts raw bytes at `POST /api/images?workspace=<name>` and returns them at `GET /api/images/<asset>?workspace=<name>`.
@@ -52,6 +52,12 @@ Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set 
 ## Organizing work
 
 Run `orion suggest` to find related ungrouped cards, then review `orion suggestions`. Apply only suggestions that clearly fit with `orion suggestions apply <id...>`; use `orion suggestions dismiss <id...>` for the rest.
+
+## System diagrams
+
+A workspace can also draw a system: services, apps, files, and outside tools, linked by what flows between them. Make each part a component with `orion add <name> --kind component [--repo <owner/name>] [--note <what it does>]`. Components have no status, never count as work, and show their note under their name. Link them with `orion link <caller> <callee> --label <what travels>`, pointing from what starts a call to what it calls, and group them by boundary, such as an app, a process, or everything outside the system.
+
+Create the links before the groups, then run `orion set <group> --arrange auto` on each group so the app lays it out by its links and leaves room for their labels. Opening a group in the app shows the components outside it that it talks to.
 
 ## Keeping pull requests current
 

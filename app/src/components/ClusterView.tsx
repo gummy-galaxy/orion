@@ -15,6 +15,8 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const sources = useSources(id)
+  // Groups that hold no work, like the boundaries of a system diagram, have no progress to show.
+  const hasWork = stats.total > 0
 
   return (
     <div className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`}>
@@ -22,26 +24,32 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
       {collapsed ? (
         <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">
           <div className="cluster-card-title">
-            <Ring done={stats.done} total={stats.total} size={16} />
+            {hasWork && <Ring done={stats.done} total={stats.total} size={16} />}
             <strong>{data.label}</strong>
           </div>
-          <span className="cluster-card-stats">
-            <span>
-              {stats.done}/{stats.total} done
+          {hasWork ? (
+            <span className="cluster-card-stats">
+              <span>
+                {stats.done}/{stats.total} done
+              </span>
+              <span>{stats.ready} ready</span>
+              <span>{stats.blocked} blocked</span>
             </span>
-            <span>{stats.ready} ready</span>
-            <span>{stats.blocked} blocked</span>
-          </span>
+          ) : (
+            data.blurb && <span className="cluster-card-stats">{data.blurb}</span>
+          )}
           {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
           <SourceBadges sources={sources} />
         </div>
       ) : (
         <div className="cluster-head drag" title="Double-click to open">
-          <Ring done={stats.done} total={stats.total} />
+          {hasWork && <Ring done={stats.done} total={stats.total} />}
           <strong>{data.label}</strong>
-          <span className="count">
-            {stats.done}/{stats.total}
-          </span>
+          {hasWork && (
+            <span className="count">
+              {stats.done}/{stats.total}
+            </span>
+          )}
           {stats.outside > 0 && <span className="lev-inline">unblocks {stats.outside}</span>}
           <span className="head-actions">
             {data.arrange !== 'custom' && (

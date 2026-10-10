@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROW_WIDTH, WRAP, reflow } from './layout'
+import { ROW_WIDTH, WRAP, labelWidth, reflow } from './layout'
 import { TASK_HEIGHT, TASK_WIDTH, type AppNode, type ClusterData, type Link } from './model'
 
 const task = (id: string, parentId = 'g', x = 0, y = 0): AppNode => ({
@@ -35,6 +35,17 @@ const overlaps = (positions: Map<string, { x: number; y: number }>) => {
 }
 
 describe('reflow', () => {
+  it('leaves room between linked cards for the label on their link', async () => {
+    const nodes = [group(), task('a'), task('b', 'g', 300)]
+    const plain = await placed(nodes, [blocks('a', 'b')])
+    const label = 'HTTP /api and WebSocket'
+    const labeled = await placed(nodes, [{ ...blocks('a', 'b'), label }])
+    const gap = (positions: Map<string, { x: number }>) => positions.get('b')!.x - positions.get('a')!.x - TASK_WIDTH
+
+    expect(gap(labeled)).toBeGreaterThanOrEqual(labelWidth(label))
+    expect(gap(labeled)).toBeGreaterThan(gap(plain))
+  })
+
   it('wraps unlinked siblings at the default width', async () => {
     const positions = await placed([group(), ...ids(32).map((id, i) => task(id, 'g', i * 300))])
 

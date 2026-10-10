@@ -15,6 +15,14 @@ local VIEWS = { "list", "ready", "groups", "matches", "show" }
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
 
+local kindField: Field = {
+	name = "kind",
+	kind = "enum",
+	values = fieldValues.kinds,
+	description = "step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work.",
+	at = "option",
+}
+
 local workspaceField: Field = {
 	name = "workspace",
 	kind = "workspace",
@@ -104,16 +112,18 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_add_item",
-		description = "Add a work item to the canvas.",
+		description = "Add a work item, or a component for a system diagram, to the canvas.",
 		command = { "add" },
 		json = true,
 		fields = {
 			{ name = "title", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
 			{ name = "group", kind = "id", at = "option" },
+			kindField,
 			{ name = "repo", kind = "string", at = "option" },
 			{ name = "pr", kind = "int", at = "option" },
 			{ name = "status", kind = "enum", values = fieldValues.statuses, at = "option" },
+			{ name = "note", kind = "string", at = "option" },
 		},
 	},
 	{
@@ -134,6 +144,7 @@ local tools: { Tool } = {
 				at = "option",
 			},
 			{ name = "note", kind = "string", at = "option" },
+			kindField,
 			{ name = "repo", kind = "string", at = "option" },
 			{ name = "pr", kind = "int", at = "option" },
 		},
@@ -180,13 +191,19 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_link",
-		description = "Connect two items, optionally as a related link that does not block work.",
+		description = "Connect two items, optionally as a related link that does not block work. Linking an already linked pair updates that link.",
 		command = { "link" },
 		fields = {
 			{ name = "from", kind = "id", required = true, at = "positional" },
 			{ name = "to", kind = "id", required = true, at = "positional" },
 			workspaceField,
 			{ name = "related", kind = "boolean", at = "flag", flag = "related" },
+			{
+				name = "label",
+				kind = "string",
+				description = "What the link carries, such as HTTP or WebSocket. Empty clears it.",
+				at = "option",
+			},
 		},
 	},
 	{

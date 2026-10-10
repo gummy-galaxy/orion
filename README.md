@@ -1,6 +1,6 @@
 # Orion
 
-A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with zoom levels that go from single cards out to whole bodies of work.
+A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with zoom levels that go from single cards out to whole bodies of work. The same canvas draws system diagrams: components that aren't work, linked by labeled arrows and grouped by boundary.
 
 This is a prototype. It runs in the browser or in a desktop shell.
 

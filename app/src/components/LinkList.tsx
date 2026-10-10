@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import type { deriveWork } from '../derive'
-import { STATUS_LABEL, isTask, type AppNode, type ClusterData, type Link, type TaskData } from '../model'
+import { STATUS_LABEL, isComponent, isTask, type AppNode, type ClusterData, type Link, type TaskData } from '../model'
 
 type Direction = 'waits' | 'unblocks' | 'related'
 const DIRECTION_LABEL: Record<Direction, string> = { waits: 'Waits on', unblocks: 'Unblocks', related: 'Related' }
+/** Components aren't work, so their links read as what comes in and goes out. */
+const COMPONENT_DIRECTION_LABEL: Record<Direction, string> = { waits: 'Incoming', unblocks: 'Outgoing', related: 'Related' }
 const ORIGIN_LABEL = { stack: 'stacked', mention: 'mentioned' }
 
 /** The card's own links, not the chains derived through notes, so each one can be removed where it is listed. */
@@ -34,7 +36,8 @@ export function LinkList({
     unblocks: ownLinks.filter((link) => link.kind === 'blocks' && link.from === node.id),
     related: ownLinks.filter((link) => link.kind === 'related'),
   }
-  const labelOf = (card: AppNode) => (card.data as TaskData).label || 'Note'
+  const directionLabel = isComponent(node) ? COMPONENT_DIRECTION_LABEL : DIRECTION_LABEL
+  const labelOf = (card: AppNode) => (card.data as TaskData).label || (isComponent(card) ? 'Untitled component' : 'Note')
   const joined = new Set(ownLinks.map((link) => (link.from === node.id ? link.to : link.from)))
   const needle = query.trim().toLowerCase()
   const matches = needle
@@ -55,7 +58,7 @@ export function LinkList({
     <div className="links">
       {(Object.keys(groups) as Direction[]).map((key) => (
         <div key={key}>
-          <span className="label-text">{DIRECTION_LABEL[key]}</span>
+          <span className="label-text">{directionLabel[key]}</span>
           {groups[key].length ? (
             <ul>
               {groups[key].map((link) => {
@@ -66,7 +69,7 @@ export function LinkList({
                 return (
                   <li key={link.id}>
                     <button type="button" className="link" onClick={() => jumpTo(id)}>
-                      {labelOf(other)} <span>({STATUS_LABEL[work.status.get(id) ?? 'ready']})</span>
+                      {labelOf(other)} {!isComponent(other) && <span>({STATUS_LABEL[work.status.get(id) ?? 'ready']})</span>}
                     </button>
                     <button
                       type="button"
@@ -84,9 +87,10 @@ export function LinkList({
                     >
                       ×
                     </button>
-                    {(parent && parent.id !== node.parentId) || link.origin ? (
+                    {(parent && parent.id !== node.parentId) || link.origin || link.label ? (
                       <span className="link-where">
                         {[
+                          link.label && `“${link.label}”`,
                           parent && parent.id !== node.parentId && `in ${(parent.data as ClusterData).label}`,
                           link.origin && ORIGIN_LABEL[link.origin],
                         ]
@@ -108,7 +112,7 @@ export function LinkList({
         <select aria-label="Link kind" value={direction} onChange={(event) => setDirection(event.target.value as Direction)}>
           {(Object.keys(DIRECTION_LABEL) as Direction[]).map((key) => (
             <option key={key} value={key}>
-              {DIRECTION_LABEL[key]}
+              {directionLabel[key]}
             </option>
           ))}
         </select>

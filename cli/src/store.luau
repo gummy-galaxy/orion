@@ -270,6 +270,7 @@ function store.decode(text: string): Doc
 				to = to,
 				kind = asString(object.kind) or "blocks",
 				origin = asString(object.origin),
+				label = asString(object.label),
 			})
 		end
 	end
@@ -392,6 +393,7 @@ function store.toObject(doc: Doc): json.Object
 	for _, link in doc.links do
 		local object = json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind })
 		object.origin = link.origin
+		object.label = link.label
 		table.insert(links, object)
 	end
 

@@ -44,6 +44,20 @@ test.case("store round-trips stack origins without adding one to hand-made links
 	assert.eq(manual and manual.origin, nil)
 end)
 
+test.case("store round-trips link labels", function(assert)
+	local doc = store.decode(
+		[[{"nodes":[],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks","label":"HTTP"},{"id":"b>c","from":"b","to":"c","kind":"blocks"}]}]]
+	)
+	assert.eq(doc.links[1].label, "HTTP")
+	assert.eq(doc.links[2].label, nil)
+	local encoded = json.asObject(json.deserialize(store.encode(doc)) :: json.Value)
+	local links = if encoded then json.asArray(encoded.links) else nil
+	local labeled = if links then json.asObject(links[1]) else nil
+	local plain = if links then json.asObject(links[2]) else nil
+	assert.eq(labeled and labeled.label, "HTTP")
+	assert.eq(plain and plain.label, nil)
+end)
+
 test.case("store round-trips top-level GitHub data and unknown fields", function(assert)
 	local doc = store.decode(
 		[[{"version":1,"revision":0,"settings":{"githubOwner":"flipbook-labs","futureSetting":{"kept":true}},"nodes":[],"links":[],"github":{"viewer":"vocksel","checkedAt":"now","unplaced":[]},"future":{"kept":true}}]]

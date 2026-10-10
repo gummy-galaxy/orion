@@ -59,6 +59,16 @@ function graph.isGate(item: Item): boolean
 	return item.type == "task" and field(item, "itemKind") == "gate"
 end
 
+-- A component is a part of a system drawn on the canvas, like a service or a data store, rather than work.
+function graph.isComponent(item: Item): boolean
+	return item.type == "task" and field(item, "itemKind") == "component"
+end
+
+-- Cards that count as work. Notes and components pass blocking through and never do.
+function graph.isWork(item: Item): boolean
+	return item.type == "task" and not graph.isNote(item) and not graph.isComponent(item)
+end
+
 function graph.find(doc: Doc, id: string): Item?
 	for _, item in doc.nodes do
 		if item.id == id then
@@ -91,13 +101,17 @@ function graph.ancestors(doc: Doc, id: string): { string }
 	return ancestors
 end
 
-export type Progress = { total: number, done: number, ready: number }
+export type Progress = { total: number, done: number, ready: number, components: number }
 
--- Counts the work anywhere inside a group, leaving out notes.
+-- Counts the work anywhere inside a group, leaving out notes. Components are counted on their own.
 function graph.countProgress(doc: Doc, derived: Derived, groupId: string): Progress
-	local progress = { total = 0, done = 0, ready = 0 }
+	local progress = { total = 0, done = 0, ready = 0, components = 0 }
 	for _, item in doc.nodes do
-		if item.type == "task" and not graph.isNote(item) and table.find(graph.ancestors(doc, item.id), groupId) then
+		local inside = item.type == "task" and table.find(graph.ancestors(doc, item.id), groupId) ~= nil
+
+		if inside and graph.isComponent(item) then
+			progress.components += 1
+		elseif inside and graph.isWork(item) then
 			progress.total += 1
 			local status = derived.status[item.id]
 			progress.done += if status == "done" then 1 else 0
@@ -115,8 +129,9 @@ local function sizeOf(item: Item): (number, number)
 	return item.width or 320, item.height or 200
 end
 
--- Status and leverage, matching app/src/derive.ts. Notes pass blocking through and never count as work. Gates
--- also pass blocking through, but count as work: one is done once everything it waits on is.
+-- Status and leverage, matching app/src/derive.ts. Notes and components pass blocking through and never count as
+-- work, and components have no status. Gates also pass blocking through, but count as work: one is done once
+-- everything it waits on is.
 function graph.derive(doc: Doc): Derived
 	local tasks: { [string]: Item } = {}
 
@@ -147,7 +162,7 @@ function graph.derive(doc: Doc): Derived
 			return false
 		end
 
-		local passesThrough = graph.isNote(item) or (graph.isGate(item) and predecessors[id] ~= nil)
+		local passesThrough = not graph.isWork(item) or (graph.isGate(item) and predecessors[id] ~= nil)
 		if not passesThrough then
 			return field(item, "status") ~= "done"
 		end
@@ -179,6 +194,10 @@ function graph.derive(doc: Doc): Derived
 	local status: { [string]: string } = {}
 
 	for id, item in tasks do
+		if graph.isComponent(item) then
+			continue
+		end
+
 		local recorded = field(item, "status") or "todo"
 		local blockedByDeps = false
 
@@ -203,7 +222,7 @@ function graph.derive(doc: Doc): Derived
 	local leverage: { [string]: number } = {}
 
 	for id, item in tasks do
-		if graph.isNote(item) or not isOpen(id) then
+		if not graph.isWork(item) or not isOpen(id) then
 			continue
 		end
 
@@ -223,7 +242,7 @@ function graph.derive(doc: Doc): Derived
 
 				seen[next] = true
 
-				if not graph.isNote(nextItem) then
+				if graph.isWork(nextItem) then
 					count += 1
 				end
 
@@ -310,8 +329,8 @@ local function freeSpotBelow(doc: Doc, parentId: string?, preferred: Position): 
 end
 
 local function itemKindFor(repo: string?, pr: number?, kind: string?): string
-	if kind == "gate" then
-		return "gate"
+	if kind == "gate" or kind == "component" then
+		return kind
 	end
 
 	if repo and pr then
@@ -338,7 +357,7 @@ local function checkFields(fields: ItemFields)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
 	assert(
 		fields.kind == nil or table.find(fieldValues.kinds, fields.kind),
-		`kind must be {table.concat(fieldValues.kinds, " or ")}`
+		`kind must be one of {table.concat(fieldValues.kinds, ", ")}`
 	)
 	assert(
 		fields.arrange == nil or table.find(fieldValues.arrangements, fields.arrange),
@@ -482,29 +501,44 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	if not graph.isNote(item) and (fields.repo or fields.pr or fields.kind) then
 		local repo = field(item, "repo")
 		local pr = findRef(item, "pull")
-		local kind = fields.kind or (if graph.isGate(item) then "gate" else nil)
+		local kind = fields.kind
+			or (if graph.isGate(item) or graph.isComponent(item) then field(item, "itemKind") else nil)
 		item.data.itemKind = itemKindFor(repo, if pr then 1 else nil, kind)
 	end
 
 	return item
 end
 
-function graph.link(doc: Doc, from: string, to: string, kind: string): Link
+-- Links two items. A label names what the link carries, like "HTTP" in a system diagram; an empty one clears it,
+-- and leaving it out keeps the label an existing link already has.
+function graph.link(doc: Doc, from: string, to: string, kind: string, label: string?): Link
 	assert(from ~= to, "an item can't link to itself")
 
 	for _, id in { from, to } do
 		assert(not graph.isGroup(graph.get(doc, id)), `"{id}" is a group; link the items inside it`)
 	end
 
+	local text = if label then label:match("^%s*(.-)%s*$") else nil
+
 	for _, link in doc.links do
 		if link.from == from and link.to == to then
 			link.kind = kind
+
+			if text then
+				link.label = if text == "" then nil else text
+			end
+
 			return link
 		end
 	end
 
 	local link: Link =
 		{ id = if kind == "blocks" then `{from}>{to}` else `{from}~{to}`, from = from, to = to, kind = kind }
+
+	if text and text ~= "" then
+		link.label = text
+	end
+
 	table.insert(doc.links, link)
 	return link
 end
@@ -538,8 +572,9 @@ function graph.insertBetween(doc: Doc, id: string, from: string, to: string)
 	end
 	assert(existing, `no link from "{from}" to "{to}"`)
 
+	-- The label stays with the half that leaves the original source.
 	graph.unlink(doc, from, to)
-	graph.link(doc, from, id, existing.kind)
+	graph.link(doc, from, id, existing.kind, existing.label)
 	graph.link(doc, id, to, existing.kind)
 end
 

@@ -43,6 +43,37 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
     )
   }
 
+  if (data.itemKind === 'component') {
+    const className = `card component${data.note ? ' has-note' : ''}${trace ? ' tr-' + trace : ''}`
+    const body = (
+      <>
+        <div className="meta">
+          <span className="component-mark" title="Component: a part of the system, not work" />
+          <span className="meta-tag" title={getTaskTag(data)}>
+            {data.repo ?? 'Component'}
+          </span>
+        </div>
+        <div className="label">{data.label || 'Untitled component'}</div>
+        {data.note && (
+          <div className="component-note" title={data.note}>
+            {data.note}
+          </div>
+        )}
+        <div className="card-actions">
+          <SourceBadges sources={sources} />
+        </div>
+      </>
+    )
+
+    return (
+      <div className={className}>
+        <Handle type="target" position={Position.Left} />
+        {far ? <FarTag className={className}>{body}</FarTag> : body}
+        <Handle type="source" position={Position.Right} />
+      </div>
+    )
+  }
+
   const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${data.itemKind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
   const body = (
     <>

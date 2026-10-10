@@ -11,10 +11,11 @@ export type Who = 'you' | 'review' | 'ci'
 export type ViewStatus = 'ready' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
 /**
  * A pull request that exists, one that is expected but not opened yet, a step with no
- * pull request, or a note. Notes are annotations, not work: they pass blocking through.
+ * pull request, a gate, a note, or a component. A gate is done once everything it waits on is,
+ * like a milestone or sign-off. Notes and components aren't work: they pass blocking through.
+ * A component is a part of a system diagram, like a service or a data store, and has no status.
  */
-/** A gate is done once everything it waits on is, like a milestone or sign-off. */
-export type ItemKind = 'pr' | 'placeholder' | 'step' | 'gate' | 'note'
+export type ItemKind = 'pr' | 'placeholder' | 'step' | 'gate' | 'note' | 'component'
 
 export type TaskData = {
   kind: 'task'
@@ -76,15 +77,18 @@ export type ClusterData = {
 }
 export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
 export type TaskNode = Node<TaskData, 'task'>
-/** Stand-in for work outside the opened group that links into it. Never stored. */
-export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status: ViewStatus; side: 'in' | 'out' }
+/** Stand-in for work outside the opened group that links into it. Never stored. Components have no status. */
+export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status?: ViewStatus; side: 'in' | 'out' }
 export type GhostNode = Node<GhostData, 'ghost'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
 export type ImageNode = Node<ImageData, 'image'>
 export type AppNode = TaskNode | ClusterNode | ImageNode
 
-/** `origin` marks links Orion derived itself: stacked pull requests, or a reference in a title, body or branch. */
-export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related'; origin?: 'stack' | 'mention' }
+/**
+ * `origin` marks links Orion derived itself: stacked pull requests, or a reference in a title, body or branch.
+ * `label` names what the link carries, like "HTTP" between two components.
+ */
+export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related'; origin?: 'stack' | 'mention'; label?: string }
 
 export const STATUS_LABEL: Record<ViewStatus, string> = {
   ready: 'Ready',
@@ -126,15 +130,15 @@ export function editPullRef(data: TaskData, repo: string | undefined, number: nu
   return { repo, refs: refs.length ? refs : undefined, itemKind: getItemKind({ ...data, repo, refs }) }
 }
 
-/** A card's kind from its repository and pull request. Gates and notes keep their kind. */
+/** A card's kind from its repository and pull request. Gates, notes, and components keep their kind. */
 export function getItemKind(data: Pick<TaskData, 'itemKind' | 'repo' | 'refs'>): ItemKind {
-  if (data.itemKind === 'gate' || data.itemKind === 'note') return data.itemKind
+  if (data.itemKind === 'gate' || data.itemKind === 'note' || data.itemKind === 'component') return data.itemKind
 
   return getPullRef(data) ? 'pr' : data.repo ? 'placeholder' : 'step'
 }
 
 export function getTaskTag(data: TaskData): string {
-  return getPrimaryRef(data)?.key ?? data.repo ?? (data.itemKind === 'gate' ? 'gate' : 'step')
+  return getPrimaryRef(data)?.key ?? data.repo ?? (data.itemKind === 'gate' || data.itemKind === 'component' ? data.itemKind : 'step')
 }
 
 export function getTaskUrl(data: TaskData): string | null {
@@ -145,6 +149,9 @@ export const isCluster = (node: AppNode): node is ClusterNode => node.type === '
 export const isTask = (node: AppNode): node is TaskNode => node.type === 'task'
 export const isImage = (node: AppNode): node is ImageNode => node.type === 'image'
 export const isNote = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.itemKind === 'note'
+export const isComponent = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.itemKind === 'component'
+/** Cards that count as work. Notes and components pass blocking through and never do. */
+export const isWork = (node: AppNode | undefined): boolean => !!node && isTask(node) && !isNote(node) && !isComponent(node)
 
 export function byId(nodes: AppNode[]): Map<string, AppNode> {
   return new Map(nodes.map((node) => [node.id, node]))

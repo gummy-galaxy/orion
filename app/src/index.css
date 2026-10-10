@@ -12,6 +12,8 @@
   --edge-hot: #0d6f74;
   /* Mixed from the theme's own edges, so every color mode gets it. */
   --edge-held: color-mix(in srgb, var(--edge-hot) 25%, var(--edge));
+  /* Links out of components carry no work, so they read as plain wiring. */
+  --edge-still: color-mix(in srgb, var(--ink) 45%, var(--edge));
   --st-todo: #5d6d75;
   --st-active: #1f62c9;
   --st-review: #a56300;
@@ -146,6 +148,7 @@ select {
 }
 .react-flow__edge-textbg {
   fill: var(--surface);
+  stroke: var(--line);
 }
 .react-flow__edge-text {
   font-family: var(--font-data);
@@ -627,6 +630,13 @@ select {
   stroke: var(--edge-held);
   opacity: 0.7;
 }
+.react-flow__edge.e-still .react-flow__edge-path {
+  stroke: var(--edge-still);
+  stroke-width: 1.6;
+}
+.react-flow__edge.e-still .react-flow__edge-text {
+  fill: var(--ink);
+}
 .react-flow__edge.e-rel .react-flow__edge-path {
   stroke: var(--muted);
   stroke-width: 2.2;
@@ -655,6 +665,12 @@ select {
 }
 .react-flow__edge.e-peek .react-flow__edge-path {
   opacity: 0.35;
+}
+/* The link whose inspector is open. */
+.react-flow__edge.is-picked .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 2.8;
+  opacity: 1;
 }
 /* A link under the pointer firms up so it reads as something to right-click. */
 .react-flow__edge:not(.e-agg):hover .react-flow__edge-path {
@@ -1130,6 +1146,14 @@ kbd {
   font-size: 11.5px;
   color: var(--muted);
   margin-top: 4px;
+}
+.insp .link-ends {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 12.5px;
 }
 .insp .gate-toggle {
   display: flex;
@@ -2007,6 +2031,44 @@ kbd {
   display: none;
 }
 
+/* Components: parts of a system, drawn without the status bar work carries. */
+.card.component {
+  --c: var(--ink);
+  padding-left: 12px;
+  border-color: color-mix(in srgb, var(--ink) 28%, var(--line));
+  box-shadow: none;
+}
+.far-card.component {
+  box-shadow: var(--shadow);
+}
+.card.component .meta {
+  justify-content: flex-start;
+}
+.component-mark {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--accent);
+  border-radius: 2px;
+  background: var(--accent-soft);
+}
+.card.component.has-note .label {
+  -webkit-line-clamp: 1;
+}
+.component-note {
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-right: 22px;
+}
+.far-card .component-note {
+  white-space: normal;
+  padding-right: 0;
+}
+
 /* Notes */
 .card.note {
   --c: var(--note-edge);
@@ -2286,6 +2348,10 @@ kbd {
   stroke: var(--edge-held);
   opacity: 0.7;
 }
+.focus-line.still {
+  stroke: var(--edge-still);
+  stroke-width: 1.8;
+}
 .focus-line.related {
   stroke: var(--muted);
   stroke-width: 1.6;
@@ -2460,6 +2526,9 @@ kbd {
 }
 .focus-arrow.held {
   fill: var(--edge-held);
+}
+.focus-arrow.still {
+  fill: var(--edge-still);
 }
 .focus-details {
   position: absolute;

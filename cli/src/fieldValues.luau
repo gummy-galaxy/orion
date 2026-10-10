@@ -2,6 +2,6 @@
 return table.freeze({
 	statuses = table.freeze({ "todo", "active", "review", "blocked", "deferred", "done" }),
 	who = table.freeze({ "you", "review", "ci" }),
-	kinds = table.freeze({ "step", "gate" }),
+	kinds = table.freeze({ "step", "gate", "component" }),
 	arrangements = table.freeze({ "auto", "custom" }),
 })
