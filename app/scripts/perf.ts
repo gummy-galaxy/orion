@@ -25,7 +25,8 @@ type PerfWindow = Window & { orionPerf?: { commits: number; renderMs: number; re
 
 const APP = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT = join(APP, '.perf')
-const HARNESS = ['src/perf', '.storybook']
+// Storybook's main.ts finds the perf stories and swaps in the profiling renderer. Each side keeps its own preview, which loads that side's app styles.
+const HARNESS = ['src/perf', '.storybook/main.ts']
 const VIEWPORT = { width: 1440, height: 900 }
 const SETTLE_MS = 800
 const TRACE_CATEGORIES = ['devtools.timeline', 'disabled-by-default-devtools.timeline']
