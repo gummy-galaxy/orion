@@ -147,6 +147,22 @@ function store.useWorkspace(root: string, name: string): WorkspaceList
 	return list
 end
 
+function store.renameWorkspace(root: string, name: string, label: string): WorkspaceList
+	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
+	assert(label:match("%S"), "label must be nonempty")
+	local list = store.getWorkspaces(root)
+
+	for _, workspace in list.workspaces do
+		if workspace.name == name then
+			workspace.label = label
+			writeWorkspaces(root, list)
+			return list
+		end
+	end
+
+	error(`unknown workspace: {name}`)
+end
+
 function store.filePath(dir: string): string
 	return tostring(path.join(dir, fileNames.document))
 end

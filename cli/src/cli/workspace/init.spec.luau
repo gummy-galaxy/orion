@@ -37,6 +37,35 @@ test.case("workspace create and list use a temporary data root", function(assert
 	end)
 end)
 
+test.case("workspace rename changes only the label", function(assert)
+	local root, run = testing.createHarness("workspace-rename")
+	run({ "workspace", "create", "focus", "--label", "Focus areas" })
+	run({ "workspace", "use", "focus" })
+	assert.eq(
+		run({ "workspace", "rename", "focus", "Foundation components" }),
+		"Renamed workspace focus to Foundation components"
+	)
+	local listed = json.asObject(json.deserialize(run({ "workspace", "list", "--json" })) :: json.Value)
+	local entries = if listed then json.asArray(listed.workspaces) else nil
+	local second = if entries then json.asObject(entries[2]) else nil
+	assert.eq(listed and listed.active, "focus")
+	assert.eq(second and second.name, "focus")
+	assert.eq(second and second.label, "Foundation components")
+	assert.eq(run({ "path" }), tostring(path.join(root, "workspaces", "focus")))
+	run({ "workspace", "rename", "default", "Personal" })
+	local relisted = json.asObject(json.deserialize(run({ "workspace", "list", "--json" })) :: json.Value)
+	local first = if relisted then json.asObject((json.asArray(relisted.workspaces) or {})[1]) else nil
+	assert.eq(first and first.label, "Personal")
+
+	assert.throwsWith("unknown workspace: missing", function()
+		run({ "workspace", "rename", "missing", "Missing" })
+	end)
+
+	assert.throwsWith("label must be nonempty", function()
+		run({ "workspace", "rename", "focus", "  " })
+	end)
+end)
+
 test.case("workspace selection follows option, environment, manifest, default", function(assert)
 	local root, run, setWorkspace = testing.createHarness("workspace-use")
 	assert.eq(run({ "workspace", "current" }), "default")
