@@ -1901,7 +1901,7 @@ kbd {
   padding: 0;
   border: 0;
   border-radius: var(--radius-sm);
-  background: none;
+  background: var(--surface);
   color: var(--muted);
   font-size: 20px;
   line-height: 1;
@@ -2077,7 +2077,6 @@ kbd {
   width: 120px;
   padding-left: 12px;
   white-space: nowrap;
-  text-align: right;
 }
 .shortcut-actions .link + .link {
   margin-left: 10px;
