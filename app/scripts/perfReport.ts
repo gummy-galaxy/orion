@@ -3,13 +3,13 @@
  * lists only the changes beyond noise, and the full measurements sit in collapsed sections below.
  */
 export type Sample = Record<string, number>
-export type BenchResult = { p50: number; rme: number }
 export type ReportInput = {
   base: { ref: string; sha: string }
   head: { ref: string; sha: string }
-  bench?: { base: Record<string, BenchResult>; head: Record<string, BenchResult> }
-  /** Medians per story and scenario, from `runs` runs on each side. */
-  render?: { runs: number; stories: Record<string, { base: Record<string, Sample>; head: Record<string, Sample> }> }
+  /** Median time per call for each benchmark, one per round on each side. */
+  bench?: { rounds: number; base: Record<string, number[]>; head: Record<string, number[]> }
+  /** Samples per story and scenario, one per run on each side. */
+  render?: { runs: number; stories: Record<string, { base: Record<string, Sample>[]; head: Record<string, Sample>[] }> }
 }
 
 type Kind = 'count' | 'ms'
@@ -22,7 +22,7 @@ export const SLOW_FRAME_MS = 33
 
 /** Frames a machine that keeps up draws while idle, at 60 Hz. */
 const IDLE_FRAMES = (IDLE_MS / 1000) * 60
-/** A change smaller than this reads as noise. */
+/** A change smaller than this reads as noise, even when every run agrees. */
 const NOISE = 0.1
 /** A change for the worse at least this large gets the louder mark. */
 const LARGE = 0.25
@@ -60,6 +60,20 @@ const format = (value: number | undefined, kind: Kind) =>
 
 const unit = (kind: Kind) => (kind === 'ms' ? ' ms' : '')
 
+const median = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b)
+  const middle = Math.floor(sorted.length / 2)
+
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
+}
+
+/** How far a side's runs stray from each other, as a fraction of their median. */
+const spread = (values: number[]) => {
+  const middle = median(values)
+
+  return middle === 0 ? 0 : (Math.max(...values) - Math.min(...values)) / middle
+}
+
 const scenarioName = (scenario: string) => SCENARIOS[scenario] ?? scenario
 
 const percent = (change: number) => (change === Infinity ? 'new' : `${change > 0 ? '+' : '−'}${Math.abs(Math.round(change * 100))}%`)
@@ -68,19 +82,27 @@ const percent = (change: number) => (change === Infinity ? 'new' : `${change > 0
 const mark = (row: Row) => (row.verdict === 'worse' ? ((row.change ?? 0) >= LARGE ? '🔴' : '🟠') : row.verdict === 'better' ? '🟢' : '')
 
 /**
- * Whether a change is beyond noise, and which way. Rendering totals also ignore differences of a frame or two or under
- * half a millisecond; benchmarks skip that floor because many of them take well under a millisecond per call.
+ * Compares the medians of each side's runs. A change reads as noise unless it's larger than both `NOISE` and how far
+ * the runs on each side disagree, so a measurement that swings from run to run needs a bigger change to count.
+ * Rendering totals also ignore differences of a frame or two or under half a millisecond; benchmarks skip that floor
+ * because many of them take well under a millisecond per call.
  */
-function judge(base: number | undefined, head: number | undefined, kind: Kind, { noise = NOISE, neutral = false, floor = true } = {}) {
-  if (base === undefined || head === undefined || base === head) return { verdict: 'same' as const }
+function judge(baseRuns: number[], headRuns: number[], kind: Kind, { neutral = false, floor = true } = {}) {
+  if (!baseRuns.length || !headRuns.length) return { base: undefined, head: undefined, verdict: 'same' as const }
+
+  const base = median(baseRuns)
+  const head = median(headRuns)
+
+  if (base === head) return { base, head, verdict: 'same' as const }
 
   const change = base === 0 ? Infinity : (head - base) / base
+  const noise = Math.max(NOISE, spread(baseRuns) + spread(headRuns))
   const tiny = floor && ((kind === 'count' && Math.abs(head - base) < 2) || (kind === 'ms' && Math.abs(head - base) < 0.5))
   const small = Math.abs(change) < noise || tiny
 
-  if (neutral || small) return { change, verdict: 'same' as const }
+  if (neutral || small) return { base, head, change, verdict: 'same' as const }
 
-  return { change, verdict: change > 0 ? ('worse' as const) : ('better' as const) }
+  return { base, head, change, verdict: change > 0 ? ('worse' as const) : ('better' as const) }
 }
 
 /** "base → head", followed by the mark and change when it's beyond noise. */
@@ -118,21 +140,11 @@ function benchSection(bench: NonNullable<ReportInput['bench']>): { rows: Row[]; 
   const rows = names.map((full): Row => {
     const [canvas, name] = full.includes(' › ') ? full.split(' › ') : ['', full]
     const where = canvas.replace(/\d{4,}/, (count) => Number(count).toLocaleString('en-US'))
-    const before = bench.base[full]
-    const after = bench.head[full]
-    const noise = Math.max(NOISE, ((before?.rme ?? 0) + (after?.rme ?? 0)) / 100)
 
-    return {
-      name: `\`${name}\``,
-      where,
-      base: before?.p50,
-      head: after?.p50,
-      kind: 'ms',
-      ...judge(before?.p50, after?.p50, 'ms', { noise, floor: false }),
-    }
+    return { name: `\`${name}\``, where, kind: 'ms', ...judge(bench.base[full] ?? [], bench.head[full] ?? [], 'ms', { floor: false }) }
   })
   const text = details(`<b>Data benchmarks</b> · ${tally(rows)}`, [
-    'Median time per call over generated canvases.',
+    `Median time per call over generated canvases, then the median of ${bench.rounds} rounds on each side.`,
     '',
     table(
       ['Benchmark', 'Canvas', 'Base → head (ms)'],
@@ -144,27 +156,21 @@ function benchSection(bench: NonNullable<ReportInput['bench']>): { rows: Row[]; 
   return { rows, text }
 }
 
-function storySection(story: string, runs: number, base: Record<string, Sample>, head: Record<string, Sample>, label: string) {
-  const scenarios = Object.keys(head).filter((scenario) => scenario !== 'load')
+function storySection(story: string, runs: number, base: Record<string, Sample>[], head: Record<string, Sample>[], label: string) {
+  const scenarios = Object.keys(head[0] ?? {}).filter((scenario) => scenario !== 'load')
+  const values = (samples: Record<string, Sample>[], scenario: string, key: string) => samples.flatMap((sample) => sample[scenario]?.[key] ?? [])
   // A machine that can't keep up with the display drops frames instead of doing more work, so paced rows would
   // measure how far behind it fell rather than what changed.
-  const idleFrames = Math.min(base.idle?.frames ?? IDLE_FRAMES, head.idle?.frames ?? IDLE_FRAMES)
+  const idleFrames = Math.min(...[base, head].map((samples) => median(values(samples, 'idle', 'frames')) || IDLE_FRAMES))
   const saturated = idleFrames < IDLE_FRAMES * 0.9
   const metrics = METRICS.filter((metric) => !saturated || !metric.paced)
 
-  const row = (metric: Metric, scenario: string): Row => {
-    const before = base[scenario]?.[metric.key]
-    const after = head[scenario]?.[metric.key]
-
-    return {
-      name: metric.label,
-      where: label ? `${scenarioName(scenario)} · ${label}` : scenarioName(scenario),
-      base: before,
-      head: after,
-      kind: metric.kind,
-      ...judge(before, after, metric.kind, { neutral: metric.neutral }),
-    }
-  }
+  const row = (metric: Metric, scenario: string): Row => ({
+    name: metric.label,
+    where: label ? `${scenarioName(scenario)} · ${label}` : scenarioName(scenario),
+    kind: metric.kind,
+    ...judge(values(base, scenario, metric.key), values(head, scenario, metric.key), metric.kind, { neutral: metric.neutral }),
+  })
 
   const load = LOAD_METRICS.map((metric) => row(metric, 'load'))
   const grid = metrics.map((metric) => scenarios.map((scenario) => row(metric, scenario)))
