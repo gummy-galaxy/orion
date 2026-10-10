@@ -6,7 +6,7 @@
 const API = '/api/settings'
 const PREFIX = 'orion:'
 /** Storage keys, without the prefix, that are kept in the data folder. */
-const SAVED = ['theme', 'color-mode', 'sidebar', 'debug', 'motion'] as const
+const SAVED = ['theme', 'color-mode', 'sidebar', 'debug', 'motion', 'keybindings'] as const
 /** Long enough for a local server, short enough not to hold up the first render when there's none. */
 const RESTORE_TIMEOUT_MS = 1500
 
