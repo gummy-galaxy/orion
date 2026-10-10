@@ -79,6 +79,8 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 
 When a pull request changes what the app shows, attach before and after screenshots to its description. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures both sides the same way into `/tmp` and uploads them to GitHub through the description editor.
 
+When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, run `npm run perf` from `app/` before marking it ready. It takes several minutes and measures this machine, so run one at a time with no other heavy work going. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable.
+
 ## Luau style
 
 - Keep related requires, type aliases, constants, and short assignments together. Separate those groups and adjacent functions with blank lines.
