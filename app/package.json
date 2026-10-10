@@ -11,7 +11,8 @@
     "storybook": "ORION_STORYBOOK=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook dev -p 6006",
     "build-storybook": "ORION_STORYBOOK=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook build",
     "preview": "vite preview",
-    "format": "prettier --write src"
+    "format": "prettier --write src scripts",
+    "perf": "node scripts/perf.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.1",
@@ -30,6 +31,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "playwright": "^1.64.0",
     "prettier": "^3.9.9",
     "storybook": "^10.6.1",
     "typescript": "~6.0.2",
