@@ -9,6 +9,7 @@ use std::{
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
+mod about;
 mod usage;
 
 fn get_free_port() -> std::io::Result<u16> {
@@ -75,6 +76,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .menu(about::menu)
         .manage(usage::UsageSamples::default())
         .invoke_handler(tauri::generate_handler![usage::process_usage])
         .setup(move |app| {
