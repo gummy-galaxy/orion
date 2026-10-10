@@ -235,6 +235,10 @@ const wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms))
 async function profileStory(browser: Browser, url: string, story: string): Promise<Record<string, Sample>> {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 })
   const page = await context.newPage()
+
+  // Scrolling zooms by default; the pan pass needs scrolling to pan on either side.
+  await context.addInitScript(() => localStorage.setItem('orion:scrolling', 'pan'))
+
   const samples: Record<string, Sample> = {}
   const center = { x: VIEWPORT.width / 2, y: VIEWPORT.height / 2 }
 
