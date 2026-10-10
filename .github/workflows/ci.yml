@@ -22,16 +22,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install Luau tools with Rokit
+      - name: Install Luau Tools with Rokit
         uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
         with:
           version: 1.2.0
           path: cli
 
-      - name: Set up Lute type definitions
+      - name: Set Up Lute Type Definitions
         run: lute setup
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: lute run install
 
       - name: Analyze
@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: lute run build
 
-      - name: Smoke test the binary
+      - name: Smoke Test the Binary
         run: ./build/orion --help
 
   app:
@@ -61,7 +61,7 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm ci
 
       - name: Lint
@@ -82,7 +82,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install Luau tools with Rokit
+      - name: Install Luau Tools with Rokit
         uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
         with:
           version: 1.2.0
@@ -105,31 +105,21 @@ jobs:
         with:
           workspaces: desktop/src-tauri
 
-      - name: Install Tauri system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+      - name: Install Tauri System Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
-      - name: Install dependencies
-        run: |
-          (cd cli && lute run install)
-          npm ci --prefix app
-          npm ci --prefix desktop
+      - name: Install Luau Dependencies
+        working-directory: cli
+        run: lute run install
 
-      - name: Check formatting
-        working-directory: desktop/src-tauri
-        run: cargo fmt --check
+      - name: Install App Dependencies
+        working-directory: app
+        run: npm ci
 
-      # Clippy compiles the shell, which needs the built canvas and the CLI sidecar in place.
-      - name: Prepare the canvas and sidecar
-        run: |
-          npm --prefix app run build
-          desktop/scripts/prepare-sidecar.sh
-
-      - name: Clippy
-        working-directory: desktop/src-tauri
-        run: cargo clippy --all-targets -- -D warnings
-
-      - name: Build
+      - name: Install Desktop Dependencies
         working-directory: desktop
-        run: npx tauri build --no-bundle
+        run: npm ci
+
+      - name: Check and Build
+        working-directory: cli
+        run: lute run desktop
