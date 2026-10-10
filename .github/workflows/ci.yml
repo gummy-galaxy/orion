@@ -41,12 +41,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, macos-latest, windows-latest]
-        # macOS and Windows runners cost more minutes than Linux, so they stay off for now. Delete an entry here to
-        # turn that platform on. #142 tracks what Windows needs first.
-        exclude:
-          - runner: macos-latest
-          - runner: windows-latest
+        # Enable other runners when the repo is public. We don't want macOS and Windows runners eating through private minutes right now
+        runner: [ubuntu-latest] # [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 5
     defaults:
@@ -126,11 +122,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, macos-latest, windows-latest]
-        # Off for the same reason as the CLI's macOS and Windows entries.
-        exclude:
-          - runner: macos-latest
-          - runner: windows-latest
+        # Enable other runners when the repo is public. We don't want macOS and Windows runners eating through private minutes right now
+        runner: [ubuntu-latest] # [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
     steps:
