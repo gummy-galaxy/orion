@@ -853,16 +853,15 @@ select {
   font-size: 10.5px;
   color: var(--accent);
 }
+/* The actions take room only while they show, so the label has the whole header otherwise. */
 .head-actions {
   margin-left: auto;
-  display: flex;
+  display: none;
   gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
 }
 .cluster-head:hover .head-actions,
 .react-flow__node-cluster.selected .head-actions {
-  opacity: 1;
+  display: flex;
 }
 .head-actions button {
   border: 0;
