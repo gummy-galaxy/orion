@@ -5,12 +5,13 @@
 //   node capture.mjs --url http://localhost:5302 --out after-canvas.png \
 //     [--width 1440] [--height 900] [--scale 2] [--theme light|dark] \
 //     [--wait-for <selector>] [--click <selector>] [--click-text <text>] [--eval <js>] \
-//     [--delay <ms>] [--selector <selector>] [--chrome <path>]
+//     [--delay <ms>] [--selector <selector>] [--padding <px>] [--chrome <path>]
 //
 // --click, --click-text, and --eval can repeat and run in the order given, after the
 // page loads and --wait-for matches. --click-text clicks the innermost visible
 // element whose text starts with the given text. --selector crops the image to one
-// element.
+// element with --padding CSS pixels of the page around it, 32 by default, so shadows
+// and nearby context stay in the frame.
 
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -27,6 +28,7 @@ function parseArguments(argv) {
     height: 900,
     scale: 2,
     delay: 500,
+    padding: 32,
     steps: [],
     chrome: process.env.CHROME_PATH || DEFAULT_CHROME,
   };
@@ -43,7 +45,9 @@ function parseArguments(argv) {
     else if (name === "--click-text") options.steps.push({ clickText: value });
     else if (name === "--eval") options.steps.push({ evaluate: value });
     else if (name === "--wait-for") options.waitFor = value;
-    else if (["--width", "--height", "--scale", "--delay"].includes(name))
+    else if (
+      ["--width", "--height", "--scale", "--delay", "--padding"].includes(name)
+    )
       options[name.slice(2)] = Number(value);
     else if (
       ["--url", "--out", "--theme", "--selector", "--chrome"].includes(name)
@@ -196,6 +200,23 @@ async function bounds(session, selector) {
   );
 }
 
+async function paddedBounds(session, selector, padding) {
+  const rect = await bounds(session, selector);
+  const page = await evaluate(
+    session,
+    `({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight })`,
+  );
+  const x = Math.max(0, rect.x - padding);
+  const y = Math.max(0, rect.y - padding);
+
+  return {
+    x,
+    y,
+    width: Math.min(page.width, rect.x + rect.width + padding) - x,
+    height: Math.min(page.height, rect.y + rect.height + padding) - y,
+  };
+}
+
 async function click(session, selector) {
   const rect = await bounds(session, selector);
   const position = {
@@ -282,7 +303,10 @@ async function capture(options) {
     await new Promise((resolve) => setTimeout(resolve, options.delay));
 
     const clip = options.selector
-      ? { ...(await bounds(session, options.selector)), scale: 1 }
+      ? {
+          ...(await paddedBounds(session, options.selector, options.padding)),
+          scale: 1,
+        }
       : undefined;
     const { data } = await session.send("Page.captureScreenshot", {
       format: "png",

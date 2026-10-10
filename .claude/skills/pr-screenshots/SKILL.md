@@ -68,7 +68,7 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
 ```
 
 - `--click-text <text>` clicks the innermost visible element whose text starts with it. `--click <selector>` clicks an element, and `--eval <js>` runs code in the page. They repeat and run in order.
-- `--selector <css>` crops to one element, which suits menus, cards, and panels.
+- `--selector <css>` crops to one element, which suits menus, cards, and panels. The crop keeps 32 px of the page around the element so shadows, borders, and nearby context stay in the frame. Raise `--padding` when the surroundings help explain the change, and never set it to 0: a crop flush with the element's edges reads as cut off.
 - `--theme light|dark` sets the color scheme. Defaults are 1440×900 at 2× scale.
 - Raise `--delay` when the canvas is still animating or measuring groups.
 
