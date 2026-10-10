@@ -50,6 +50,27 @@ local function createRouter(name: string)
 	return root, router
 end
 
+test.case("GET returns migrated document with unknown root data", function(assert)
+	local root, router = createRouter("routes-migration")
+	fs.createDirectory(root, { makeParents = true })
+	fs.writeStringToFile(
+		store.filePath(root),
+		[[{"version":1,"settings":{"githubOwner":"Vocksel","theme":"dark"},"nodes":[{"id":"a","type":"task","data":{"repo":"orion","pr":12}}],"links":[],"extra":"kept"}]]
+	)
+	local response = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
+	local settings = json.asObject(response.settings)
+	local nodes = json.asArray(response.nodes)
+	local item = if nodes then json.asObject(nodes[1]) else nil
+	local data = if item then json.asObject(item.data) else nil
+	assert.eq(response.version, 2)
+	assert.eq(response.extra, "kept")
+	assert.eq(settings and settings.theme, "dark")
+	assert.eq(settings and settings.githubOwner, nil)
+	assert.eq(data and data.repo, "Vocksel/orion")
+	assert.eq(data and data.pr, nil)
+	assert.eq(data and #(json.asArray(data.refs) or {}), 1)
+end)
+
 test.case("image routes import and serve workspace-local bytes", function(assert)
 	local root, router = createRouter("routes-images")
 	store.createWorkspace(root, "ideas")

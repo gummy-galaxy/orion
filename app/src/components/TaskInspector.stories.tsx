@@ -21,7 +21,6 @@ function TaskDemo() {
         work={currentWork}
         map={currentMap}
         github={null}
-        githubOwner="vocksel"
         update={(_id, patch) => setNode({ ...node, data: { ...node.data, ...patch } })}
         jumpTo={() => {}}
         links={links}

@@ -16,6 +16,7 @@ import {
   type Connection,
   type Edge,
   type EdgeTypes,
+  type FinalConnectionState,
   type NodeChange,
   type NodeTypes,
   type Viewport,
@@ -64,6 +65,7 @@ import { TaskView } from './TaskView'
 import {
   createWorkspace,
   clearFocus,
+  compactDoc,
   fetchRemote,
   fingerprint,
   getSyncStatus,
@@ -79,6 +81,7 @@ import {
   requestSync,
   save,
   setActiveWorkspace,
+  slim,
   type FocusReport,
   type Remote,
   type Saved,
@@ -88,11 +91,11 @@ import {
 import { Sidebar } from './Sidebar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
+import { useUndo } from '../useUndo'
 import {
   attentionAtom,
   collapsedAtom,
   focusedAtom,
-  githubOwnerAtom,
   hoverAtom,
   linksAtom,
   nodesAtom,
@@ -238,10 +241,6 @@ function writeColorMode(mode: ColorMode) {
   }
 }
 
-/** The stored shape of a document, for comparing and merging. */
-const getCompactDoc = (doc: Saved): Saved =>
-  JSON.parse(fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) })) as Saved
-
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
@@ -310,7 +309,6 @@ export function Canvas() {
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
-  const [githubOwner, setGithubOwner] = useAtom(githubOwnerAtom)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
   const [clock, setClock] = useState(() => Date.now())
@@ -357,6 +355,45 @@ export function Canvas() {
     skipNextFit.current = false
     setRoot(target)
   }, [])
+
+  // ---- Undo ----
+
+  /** Shows an undone or redone document, keeping the selection and every node the step left alone. */
+  const showStep = useCallback(
+    (doc: Saved): Saved => {
+      const shown = byId(latest.current.nodes)
+      const nodes = normalize(doc.nodes).map((node) => {
+        const previous = shown.get(node.id)
+
+        if (!previous) return node
+
+        return JSON.stringify(slim([previous])) === JSON.stringify(slim([node])) ? previous : { ...node, selected: previous.selected }
+      })
+      const ids = new Set(nodes.map((node) => node.id))
+      const next = { nodes, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) }
+
+      latest.current = next
+      setNodes(nodes)
+      setLinks(next.links)
+      setStickers(next.stickers)
+      setLoadout(next.stickerLoadout)
+
+      // The open group can go with the step, such as when undoing its creation from inside it.
+      if (root && !ids.has(root)) openRoot(ancestors(root, shown).find((id) => ids.has(id)) ?? null)
+
+      return next
+    },
+    [root, openRoot, setLinks, setNodes],
+  )
+  const getDoc = useCallback(() => latest.current, [])
+  const {
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    rebase: rebaseHistory,
+    reset: resetHistory,
+  } = useUndo({ doc: { nodes, links, stickers, stickerLoadout: loadout }, busy: nodes.some((node) => node.dragging), getDoc, apply: showStep })
 
   // A group's selection waits until a second click, which would open it, can no longer arrive.
   const plainClick = useRef<'defer' | null>(null)
@@ -430,7 +467,7 @@ export function Canvas() {
   const adopt = useCallback(
     (doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
       const next = normalize(doc.nodes)
-      const server = getCompactDoc({
+      const server = compactDoc({
         nodes: normalize(serverDoc.nodes),
         links: serverDoc.links,
         stickers: serverDoc.stickers,
@@ -441,8 +478,10 @@ export function Canvas() {
       base.current = server
       savedPrint.current = fingerprint(server)
       const stickerLoadout = loadoutOf(doc.stickerLoadout)
+      const adopted = { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
 
-      latest.current = { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
+      rebaseHistory(adopted)
+      latest.current = adopted
       setNodes((currentNodes) => {
         const picked = new Set(preserveSelection ? currentNodes.filter((node) => node.selected).map((node) => node.id) : [])
 
@@ -452,11 +491,10 @@ export function Canvas() {
       setStickers(doc.stickers ?? [])
       setLoadout(stickerLoadout)
       setGithub(doc.github ?? null)
-      setGithubOwner(doc.settings.githubOwner)
 
-      return { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
+      return adopted
     },
-    [setGithubOwner, setLinks, setNodes],
+    [rebaseHistory, setLinks, setNodes],
   )
 
   useEffect(
@@ -476,11 +514,11 @@ export function Canvas() {
 
       if (!doc || doc.revision === revision.current) return
 
-      const local = getCompactDoc(latest.current)
+      const local = compactDoc(latest.current)
 
       if (fingerprint(local) === savedPrint.current) adopt(doc)
       else {
-        const merged = mergeDocs(base.current, local, getCompactDoc(doc))
+        const merged = mergeDocs(base.current, local, compactDoc(doc))
 
         adopt({ ...doc, ...merged }, doc)
       }
@@ -496,7 +534,7 @@ export function Canvas() {
 
       if (loaded.source === 'file') {
         source.current = 'file'
-        adopt(loaded.doc, loaded.doc, !switched)
+        resetHistory(adopt(loaded.doc, loaded.doc, !switched))
       } else {
         source.current = loaded.source === 'missing' ? 'file' : 'browser'
         const isDefault = name === 'default'
@@ -511,12 +549,12 @@ export function Canvas() {
         savedPrint.current = ''
         base.current = { nodes: [], links: [] }
         latest.current = { ...start, stickers: initialStickers, stickerLoadout: initialLoadout }
+        resetHistory(latest.current)
         setNodes(start.nodes)
         setLinks(start.links)
         setStickers(initialStickers)
         setLoadout(initialLoadout)
         setGithub(null)
-        setGithubOwner('flipbook-labs')
       }
 
       const view = readViewport(workspace.current)
@@ -527,7 +565,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, setGithubOwner, setLinks, setNodes],
+    [adopt, resetHistory, setLinks, setNodes],
   )
 
   useEffect(() => {
@@ -604,7 +642,7 @@ export function Canvas() {
 
           if (result.ok) {
             revision.current = result.revision
-            base.current = getCompactDoc(pending)
+            base.current = compactDoc(pending)
             savedPrint.current = fingerprint(pending)
 
             return
@@ -618,7 +656,7 @@ export function Canvas() {
 
           if (!remote) break
 
-          const merged = mergeDocs(base.current, getCompactDoc(latest.current), getCompactDoc(remote))
+          const merged = mergeDocs(base.current, compactDoc(latest.current), compactDoc(remote))
 
           pending = adopt({ ...remote, ...merged }, remote)
 
@@ -670,13 +708,17 @@ export function Canvas() {
         console.error('Could not lay out canvas', error)
       } finally {
         if (epoch === workspaceEpoch.current) {
-          setNodes(next.map((node) => (isCluster(node) && node.data.layout ? { ...node, data: { ...node.data, layout: undefined } } : node)))
+          const laidOut = next.map((node) => (isCluster(node) && node.data.layout ? { ...node, data: { ...node.data, layout: undefined } } : node))
+
+          // Laying out groups another writer added finishes their write, so it isn't a step to undo.
+          rebaseHistory({ ...latest.current, nodes: laidOut })
+          setNodes(laidOut)
         }
 
         if (pendingLayoutEpoch.current === epoch) pendingLayoutEpoch.current = null
       }
     })()
-  }, [nodes, links, ready, setNodes])
+  }, [nodes, links, ready, rebaseHistory, setNodes])
   const changeWorkspace = useCallback(
     (name: string) => {
       if (name === workspace.current) return
@@ -1577,17 +1619,39 @@ export function Canvas() {
     }
   }, [focus, links, map, work])
 
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      if (!connection.source || !connection.target || connection.source === connection.target) return
+  // ---- Drawing links ----
+
+  /** A drawn link never replaces one that already joins the pair, whichever way it runs. */
+  const connect = useCallback(
+    (from: string, to: string) => {
+      if (from === to) return
 
       setLinks((currentLinks) =>
-        currentLinks.some((link) => link.from === connection.source && link.to === connection.target)
+        currentLinks.some((link) => (link.from === from && link.to === to) || (link.from === to && link.to === from))
           ? currentLinks
-          : [...currentLinks, { id: `${connection.source}>${connection.target}`, from: connection.source, to: connection.target, kind: 'blocks' }],
+          : [...currentLinks, { id: `${from}>${to}`, from, to, kind: 'blocks' }],
       )
     },
     [setLinks],
+  )
+  const onConnect = useCallback((connection: Connection) => connect(connection.source, connection.target), [connect])
+  const [linking, setLinking] = useState(false)
+  /** Dropping a link anywhere on a card joins it, not only on the card's small handle. */
+  const onConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+      setLinking(false)
+
+      if (state.isValid || !state.fromNode || !state.fromHandle) return
+
+      const point = 'changedTouches' in event ? event.changedTouches[0] : event
+      const dropped = document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node-task')?.dataset.id
+
+      if (!dropped) return
+
+      if (state.fromHandle.type === 'source') connect(state.fromNode.id, dropped)
+      else connect(dropped, state.fromNode.id)
+    },
+    [connect],
   )
 
   const selected = nodes.filter((node) => node.selected && !view.hidden.has(node.id))
@@ -2050,7 +2114,7 @@ export function Canvas() {
         ]
 
       const data = node.data as TaskData
-      const url = getTaskUrl(data, githubOwner)
+      const url = getTaskUrl(data)
 
       return [
         ...many,
@@ -2085,6 +2149,15 @@ export function Canvas() {
       }
 
       if (paletteOpen) return
+
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+
+        if (event.shiftKey) redo()
+        else undo()
+
+        return
+      }
 
       if (focus) {
         if (event.key === 'Escape') exitFocus()
@@ -2134,6 +2207,8 @@ export function Canvas() {
     paletteOpen,
     focus,
     exitFocus,
+    undo,
+    redo,
     setNodes,
     setPinned,
   ])
@@ -2146,6 +2221,8 @@ export function Canvas() {
   const readyTotal = [...work.status.values()].filter((status) => status === 'ready').length
 
   const commands: Command[] = [
+    ...(canUndo ? [{ id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', hint: '⌘Z', run: undo }] : []),
+    ...(canRedo ? [{ id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', hint: '⇧⌘Z', run: redo }] : []),
     {
       id: 'fit-board',
       label: 'Fit entire board',
@@ -2246,7 +2323,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
           style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
           ref={canvasRef}
           onPointerDown={startMarquee}
@@ -2268,7 +2345,14 @@ export function Canvas() {
               onMove={onViewportMove}
               onNodeDragStop={onDragStop}
               onConnect={onConnect}
-              onNodeMouseEnter={(_, node) => !focus && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)}
+              onConnectStart={() => {
+                setLinking(true)
+                setHover(null)
+              }}
+              onConnectEnd={onConnectEnd}
+              onNodeMouseEnter={(_, node) =>
+                !focus && !linking && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)
+              }
               onNodeMouseLeave={() => setHover(null)}
               onNodeClick={(event, node) => {
                 if (tool === 'sticker') return stamp(event)
@@ -2484,7 +2568,6 @@ export function Canvas() {
                       work={work}
                       map={map}
                       github={github}
-                      githubOwner={githubOwner}
                       update={updateData}
                       jumpTo={jumpTo}
                       links={links}
@@ -2555,9 +2638,9 @@ export function Canvas() {
                   {showHelp ? (
                     <>
                       V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
-                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
-                      double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a
-                      card's edge to link · hold Ctrl while dragging to skip snapping{' '}
+                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G ungroup · double-click a
+                      group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit
+                      · drag from a card's edge to link · hold Ctrl while dragging to skip snapping{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>
@@ -2616,7 +2699,6 @@ export function Canvas() {
                   work={work}
                   map={map}
                   github={github}
-                  githubOwner={githubOwner}
                   update={updateData}
                   jumpTo={focusOn}
                   connections={false}

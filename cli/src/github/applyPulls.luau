@@ -1,6 +1,5 @@
 local getDesired = require("@root/github/getDesired")
 local getKey = require("@root/github/getKey")
-local getRecorded = require("@root/github/getRecorded")
 local getRefFor = require("@root/github/getRefFor")
 local getString = require("@root/github/getString")
 local githubTypes = require("@root/github/types")
@@ -8,6 +7,7 @@ local graph = require("@root/graph")
 local isListed = require("@root/github/isListed")
 local json = require("@std/json")
 local match = require("@root/match")
+local setPullRef = require("@root/github/setPullRef")
 local types = require("@root/types")
 
 type PullState = githubTypes.PullState
@@ -16,10 +16,6 @@ type Report = githubTypes.Report
 type Doc = types.Doc
 
 local INBOX_ID = "inbox"
-
-local function getRepoName(doc: Doc, pull: PullState): string
-	return if pull.owner:lower() == doc.settings.githubOwner:lower() then pull.name else `{pull.owner}/{pull.name}`
-end
 
 local function ensureGroup(doc: Doc, id: string, label: string, blurb: string)
 	if not graph.find(doc, id) then
@@ -53,7 +49,7 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	local byId: { [string]: PullState } = {}
 
 	for _, item in doc.nodes do
-		local ref = getRefFor(item, doc.settings.githubOwner)
+		local ref = getRefFor(item)
 		local pull = if ref then pulls[getKey(ref)] else nil
 
 		if pull then
@@ -127,7 +123,7 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 	local onCanvas: { [string]: boolean } = {}
 
 	for _, item in doc.nodes do
-		local ref = getRefFor(item, doc.settings.githubOwner)
+		local ref = getRefFor(item)
 
 		if not ref then
 			continue
@@ -159,8 +155,7 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			item.data.status, item.data.who = nextStatus, nextWho
 		end
 
-		item.data.github = getRecorded(pull, fetched.viewer, checkedAt)
-		item.data.branch = pull.branch or item.data.branch
+		setPullRef(item, pull, "github", fetched.viewer, checkedAt)
 	end
 
 	local unplaced: json.Array = {}
@@ -171,7 +166,7 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			continue
 		end
 
-		local repo = getRepoName(doc, pull)
+		local repo = `{pull.owner}/{pull.name}`
 
 		if fetched.discover then
 			ensureGroup(doc, INBOX_ID, "Inbox", "Open pull requests found on GitHub that aren't placed yet.")
@@ -183,8 +178,7 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 				status = status,
 				who = who,
 			})
-			item.data.github = getRecorded(pull, fetched.viewer, checkedAt)
-			item.data.branch = pull.branch
+			setPullRef(item, pull, "github", fetched.viewer, checkedAt)
 			onCanvas[key] = true
 			table.insert(report.added, item.id)
 		else

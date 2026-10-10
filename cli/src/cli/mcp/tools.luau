@@ -238,7 +238,6 @@ local tools: { Tool } = {
 		fields = {
 			{ name = "name", kind = "workspace", required = true, at = "positional" },
 			{ name = "label", kind = "string", at = "option" },
-			{ name = "owner", kind = "string", at = "option" },
 		},
 	},
 	{
