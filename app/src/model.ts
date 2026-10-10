@@ -21,34 +21,27 @@ export type TaskData = {
   label: string
   itemKind: ItemKind
   status: Status
+  /** Full owner/name of the repository this work belongs to. */
   repo?: string
-  pr?: number
-  host?: string
-  branch?: string
-  issue?: number
-  /** An item from an ingested source other than a GitHub pull request, such as a Jira issue. */
-  external?: {
-    source: string
-    key: string
-    url?: string
-    status?: string
-    isDone?: boolean
-    updatedAt?: string
-    details?: Record<string, string>
-  }
-  activity?: { lastActiveAt: string; sessions: string[] }
-  sources?: string[]
+  refs?: SourceRef[]
   note?: string
   who?: Who
-  /** Written by `orion sync`; read-only here. */
-  github?: GithubState
 }
-export type GithubState = {
+export type SourceRef = {
+  source: string
+  kind: string
+  key: string
+  url?: string
+  status?: string
+  isDone?: boolean
+  updatedAt?: string
+  details?: Record<string, unknown>
+}
+export type PullDetails = {
   state: 'OPEN' | 'MERGED' | 'CLOSED'
   draft: boolean
   reviewDecision?: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED'
   title: string
-  url: string
   author: string
   mine: boolean
   requestedFromYou: boolean
@@ -57,6 +50,7 @@ export type GithubState = {
   deletions: number
   checks?: 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED'
   checkedAt: string
+  branch?: string
 }
 export type UnplacedPullRequest = {
   repo: string
@@ -101,32 +95,50 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   done: 'Done',
 }
 
-const DEFAULT_GITHUB_OWNER = 'flipbook-labs'
+export function getPrimaryRef(data: Pick<TaskData, 'refs'>): SourceRef | undefined {
+  return data.refs?.find((ref) => ref.url) ?? data.refs?.[0]
+}
+
+export function getPullRef(data: Pick<TaskData, 'refs'>): SourceRef | undefined {
+  return data.refs?.find((ref) => ref.kind === 'pull')
+}
+
+export function getPullRequestNumber(ref: SourceRef | undefined): number | undefined {
+  if (ref?.kind !== 'pull') return undefined
+
+  const number = Number(ref.key.match(/#([1-9]\d*)$/)?.[1])
+
+  return Number.isSafeInteger(number) && number > 0 ? number : undefined
+}
+
+export function editPullRef(data: TaskData, repo: string | undefined, number: number | undefined): Pick<TaskData, 'repo' | 'refs' | 'itemKind'> {
+  const repository = repo?.trim()
+  const key = repository && number ? `${repository}#${number}` : undefined
+  const existingPullRef = getPullRef(data)
+  const remainingRefs = data.refs?.filter((ref) => ref.kind !== 'pull') ?? []
+  const pullRef: SourceRef | undefined = key
+    ? existingPullRef?.key.toLowerCase() === key.toLowerCase()
+      ? existingPullRef
+      : { source: 'github', kind: 'pull', key, url: `https://github.com/${repository}/pull/${number}` }
+    : undefined
+  const refs = [...(pullRef ? [pullRef] : []), ...remainingRefs]
+
+  return { repo, refs: refs.length ? refs : undefined, itemKind: getItemKind({ ...data, repo, refs }) }
+}
 
 /** A card's kind from its repository and pull request. Gates and notes keep their kind. */
-export function getItemKind(data: Pick<TaskData, 'itemKind' | 'repo' | 'pr'>): ItemKind {
+export function getItemKind(data: Pick<TaskData, 'itemKind' | 'repo' | 'refs'>): ItemKind {
   if (data.itemKind === 'gate' || data.itemKind === 'note') return data.itemKind
 
-  return data.pr && data.repo ? 'pr' : data.repo ? 'placeholder' : 'step'
+  return getPullRef(data) ? 'pr' : data.repo ? 'placeholder' : 'step'
 }
 
 export function getTaskTag(data: TaskData): string {
-  if (data.external) return data.external.key
-
-  if (data.repo && data.issue) return `${data.repo}#${data.issue}`
-
-  if (data.repo && data.pr) return `${data.repo}#${data.pr}`
-
-  return data.repo ?? (data.itemKind === 'gate' ? 'gate' : 'step')
+  return getPrimaryRef(data)?.key ?? data.repo ?? (data.itemKind === 'gate' ? 'gate' : 'step')
 }
 
-export function getTaskUrl(data: TaskData, githubOwner = DEFAULT_GITHUB_OWNER): string | null {
-  if (data.github?.url) return data.github.url
-
-  if (data.repo && data.pr)
-    return `https://${data.host ?? 'github.com'}/${data.repo.includes('/') ? data.repo : `${githubOwner}/${data.repo}`}/pull/${data.pr}`
-
-  return data.external?.url ?? null
+export function getTaskUrl(data: TaskData): string | null {
+  return getPrimaryRef(data)?.url ?? null
 }
 
 export const isCluster = (node: AppNode): node is ClusterNode => node.type === 'cluster'
@@ -323,7 +335,7 @@ export function descendants(id: string, nodes: AppNode[]): Set<string> {
 }
 
 /** "Merged · checked 2h ago" for a synced pull request. */
-export function githubSummary(github: GithubState, now = Date.now()) {
+export function githubSummary(github: PullDetails, now = Date.now()) {
   const state =
     github.state === 'OPEN'
       ? github.draft

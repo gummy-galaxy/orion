@@ -20,7 +20,7 @@ A new feature has nothing to show before it. Attach the after image alone, or a 
 Use the branch's worktree for after. Build before from where the branch left main:
 
 ```sh
-SCRATCH=<your scratch directory>
+SCRATCH=$(mktemp -d /tmp/orion-screenshots.XXXXXX)
 git fetch origin
 git worktree add --detach "$SCRATCH/before" "$(git merge-base origin/main HEAD)"
 ```
@@ -76,26 +76,28 @@ Name files `before-<view>.png` and `after-<view>.png`. Open every image and chec
 
 ## 5. Attach
 
-Upload from inside the repository with Lute, which `cli/rokit.toml` installs. The script commits the images to `pr-<number>/` on the `agent/pr-media` branch without checking it out, then prints a Markdown link for each:
+GitHub hosts the images. Upload them through the pull request's description editor on github.com, which turns each file into a `https://github.com/user-attachments/assets/…` link. Never commit screenshots to the repository or any branch.
 
-```sh
-lute run .claude/skills/pr-screenshots/scripts/upload.luau <pr number> "$SCRATCH"/before-*.png "$SCRATCH"/after-*.png
-```
+With a browser tool that can set files on an input, such as Claude in Chrome's `file_upload`, open the description's edit form, attach the files to its file input, and copy the links GitHub inserts. Otherwise give the person the image paths and the section below with empty links so they can drop the images in.
 
-The links load for anyone signed in with access to the repository. Never merge or open a pull request for `agent/pr-media`.
-
-Add a Screenshots section to the pull request description above Testing, with one row per view and alt text that says what each image shows:
+Add a Screenshots section to the pull request description above Testing. Put before and after images under their own headings, each image on its own line in the same view order, with alt text that says what it shows:
 
 ```md
 ## Screenshots
 
-| Before | After |
-| --- | --- |
-| ![Before: the Editing group with cards overlapping](…) | ![After: the Editing group in tidy rows](…) |
+### Before
+
+![Before: the Editing group with cards overlapping](…)
+
+### After
+
+![After: the Editing group in tidy rows](…)
 ```
+
+When there's no before image, keep the Before heading with `<!-- Add screenshots of the previous behavior, if applicable. -->` beneath it.
 
 Reread the live description first and change only this section. If it already holds screenshots or media someone else added, propose the change in chat instead. When later pushes change what the images show, recapture and replace the links in the same section.
 
 ## 6. Clean up
 
-Stop both servers and remove the before tree with `git worktree remove "$SCRATCH/before"`.
+Stop both servers and remove the before tree with `git worktree remove "$SCRATCH/before"`. Leave the images in `/tmp` once they're attached.

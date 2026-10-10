@@ -10,9 +10,9 @@ test.case("restore takes the newest matching backup and backs up the current rev
 	local dir, run = testing.createHarness("restore")
 	local folder = path.join(dir, "backups")
 	fs.createDirectory(folder)
-	local older = store.decode([[{"version":1,"revision":7,"settings":{"githubOwner":"older"},"nodes":[],"links":[]}]])
+	local older = store.decode([[{"version":2,"revision":7,"settings":{},"nodes":[],"links":[]}]])
 	local newest = store.decode(
-		[[{"version":1,"revision":7,"settings":{"githubOwner":"restored","future":"kept"},"nodes":[{"id":"saved","type":"task","position":{"x":1,"y":2},"data":{"label":"Saved","status":"todo"}}],"links":[{"id":"saved>saved","from":"saved","to":"saved","kind":"related"}],"github":{"viewer":"saved"}}]]
+		[[{"version":2,"revision":7,"settings":{"future":"kept"},"nodes":[{"id":"saved","type":"task","position":{"x":1,"y":2},"data":{"label":"Saved","status":"todo"}}],"links":[{"id":"saved>saved","from":"saved","to":"saved","kind":"related"}],"github":{"viewer":"saved"}}]]
 	)
 	fs.writeStringToFile(path.join(folder, "orion-r7-20261001T000000Z.json"), store.encode(older))
 	fs.writeStringToFile(path.join(folder, "orion-r7-20261002T000000Z.json"), store.encode(newest))
@@ -21,7 +21,7 @@ test.case("restore takes the newest matching backup and backs up the current rev
 	assert.eq(restored.revision, 1)
 	assert.eq(restored.nodes[1].id, "saved")
 	assert.eq(restored.links[1].kind, "related")
-	assert.eq(restored.settings.githubOwner, "restored")
+	assert.eq(restored.version, 2)
 	assert.eq(restored.github and restored.github.viewer, "saved")
 	local settings = if restored.raw then json.asObject(restored.raw.settings) else nil
 	assert.eq(settings and settings.future, "kept")
@@ -42,12 +42,14 @@ test.case("restore changes only the selected workspace", function(assert)
 	run({ "workspace", "create", "roblox" })
 	local roblox = store.getWorkspaceDir(root, "roblox")
 	store.transaction(roblox, function(doc)
-		doc.settings.githubOwner = "changed"
+		doc.raw = json.object({ settings = json.object({ theme = "changed" }) })
 	end)
 
 	assert.eq(store.load(roblox).revision, 1)
 	assert.strContains(run({ "restore", "0", "--workspace", "roblox" }), "as revision 2")
-	assert.eq(store.load(roblox).settings.githubOwner, "flipbook-labs")
+	local raw = store.load(roblox).raw
+	local settings = if raw then json.asObject(raw.settings) else nil
+	assert.eq(settings and settings.theme, nil)
 	assert.eq(store.load(root).revision, 0)
 	assert.eq(#store.getBackups(root), 0)
 	assert.eq(#store.getBackups(roblox), 2)

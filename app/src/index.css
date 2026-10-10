@@ -504,10 +504,22 @@ select {
   opacity: 0;
   transition: opacity 0.15s;
 }
+.react-flow__node-task .react-flow__handle::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+}
 .react-flow__node-task:hover .react-flow__handle,
 .react-flow__handle.connectingfrom,
 .react-flow__handle.connectingto {
   opacity: 1;
+}
+/* While a link is being drawn, the card it would join lights up wherever the pointer is on it. */
+.canvas.is-linking .react-flow__node-task:hover:not(:has(.connectingfrom)) .card {
+  border-color: var(--accent);
+  box-shadow:
+    inset 3px 0 0 var(--c),
+    0 0 0 2px var(--accent);
 }
 
 /*
@@ -599,6 +611,11 @@ select {
 }
 .react-flow__edge.e-peek .react-flow__edge-path {
   opacity: 0.35;
+}
+/* A link under the pointer firms up so it reads as something to right-click. */
+.react-flow__edge:not(.e-agg):hover .react-flow__edge-path {
+  stroke-width: 2.6;
+  opacity: 1;
 }
 /* Each frame these loops change repaints the canvas under them, so steps() holds them to 15 a second (one step
    per 1/15 s of duration) rather than the display's 120. WebKit skips the frames between steps. */

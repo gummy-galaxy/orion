@@ -1,6 +1,7 @@
 local test = require("@std/test")
 
 local applyPulls = require("@root/github/applyPulls")
+local findRef = require("@root/refs/findRef")
 local getKey = require("@root/github/getKey")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
@@ -44,8 +45,14 @@ local function stackFixture(): (Doc, Fetched)
 	child.baseRefName = parent.headRefName
 	child.headRefName = "feature/b"
 	local doc = testing.createDoc({
-		testing.task("a", "Parent", "todo", nil, { repo = "flipbook", pr = 1 }),
-		testing.task("b", "Child", "todo", nil, { repo = "flipbook", pr = 2 }),
+		testing.task("a", "Parent", "todo", nil, {
+			repo = "flipbook-labs/flipbook",
+			refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#1" } },
+		}),
+		testing.task("b", "Child", "todo", nil, {
+			repo = "flipbook-labs/flipbook",
+			refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#2" } },
+		}),
 	})
 	return doc,
 		{
@@ -108,7 +115,7 @@ end)
 
 test.case("apply stores unplaced authored pull requests with matches", function(assert)
 	local doc = testing.createDoc({
-		testing.task("dashboard", "Release health dashboard", "todo", nil, { repo = "flipbook" }),
+		testing.task("dashboard", "Release health dashboard", "todo", nil, { repo = "flipbook-labs/flipbook" }),
 	})
 	local authored = pull("OPEN")
 	authored.number = 670
@@ -148,7 +155,7 @@ test.case("apply keeps authored pull requests to the workspace's GitHub sources"
 	}, "2026-10-04T18:05:00Z")
 	assert.eq(#report.added, 1)
 	local added = graph.find(doc, report.added[1])
-	assert.eq(added and added.data.pr, 1)
+	assert.eq(added and (findRef(added, "pull") :: types.Ref).key, "vocksel/orion#1")
 end)
 
 test.case("discover files authored pulls in Inbox and clears unplaced", function(assert)
@@ -160,7 +167,7 @@ test.case("discover files authored pulls in Inbox and clears unplaced", function
 		viewer = "vocksel",
 		discover = true,
 	}, "2026-10-04T18:05:00Z")
-	assert.eq(report.added[1], "flipbook-1")
+	assert.eq(report.added[1], "flipbook-labs-flipbook-1")
 	assert.eq(doc.nodes[2].data.itemKind, "pr")
 	assert.eq(doc.nodes[2].data.status, "active")
 	local top = doc.github
@@ -170,8 +177,15 @@ end)
 
 test.case("apply updates statuses, reports what's missing, and files new pull requests in an Inbox", function(assert)
 	local doc = testing.createDoc({
-		testing.task("a", "Mine", "active", nil, { repo = "flipbook", pr = 1, who = "you" }),
-		testing.task("b", "Gone", "todo", nil, { repo = "flipbook", pr = 2 }),
+		testing.task("a", "Mine", "active", nil, {
+			repo = "flipbook-labs/flipbook",
+			refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#1" } },
+			who = "you",
+		}),
+		testing.task("b", "Gone", "todo", nil, {
+			repo = "flipbook-labs/flipbook",
+			refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#2" } },
+		}),
 	})
 	local merged = pull("MERGED")
 	local report = applyPulls(doc, {
@@ -184,7 +198,7 @@ test.case("apply updates statuses, reports what's missing, and files new pull re
 	assert.eq(report.changes[1].toStatus, "done")
 	assert.eq(report.missing[1], "b")
 	assert.eq(#report.added, 0)
-	local recorded = require("@std/json").asObject(doc.nodes[1].data.github)
+	local recorded = (findRef(doc.nodes[1], "pull") :: types.Ref).details
 	assert.eq(recorded and recorded.checks, "SUCCESS")
 	assert.eq(recorded and recorded.additions, 12)
 end)
