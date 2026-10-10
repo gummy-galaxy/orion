@@ -90,6 +90,7 @@ import {
   type Workspaces,
 } from '../persist'
 import { Sidebar } from './Sidebar'
+import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
@@ -2668,6 +2669,8 @@ export function Canvas() {
               {nodes.length === 0 && <EmptyCanvas addNote={() => addNote(viewportCenter())} />}
               {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
               <Controls showInteractive={false} />
+              {/* The desktop shell hides the native title bar, so this strip along the top drags the window. */}
+              <div className="window-drag" data-tauri-drag-region aria-hidden="true" onPointerDown={(event) => event.stopPropagation()} />
               {mergeNotice !== null && (
                 <Panel
                   position="bottom-left"
@@ -2699,7 +2702,7 @@ export function Canvas() {
                 }
               />
 
-              <Panel position="top-left" className="panel crumbs">
+              <Panel position="top-left" className="panel crumbs" data-tauri-drag-region="deep">
                 {!sidebar && (
                   <button type="button" className="crumb" onClick={() => toggleSidebar(true)} title="Show the group list">
                     ☰
@@ -2716,51 +2719,32 @@ export function Canvas() {
                     </button>
                   </span>
                 ))}
-                <span className="crumb-actions">
-                  <button type="button" className="btn" onClick={() => setPaletteQuery('')}>
-                    Search <kbd>⌘K</kbd>
-                  </button>
-                  <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
-                    Add note
-                  </button>
-                  <label className="btn image-upload">
-                    Add image
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/gif,image/webp"
-                      onChange={(event) => {
-                        const file = event.currentTarget.files?.[0]
-
-                        if (file) void addImage(file)
-
-                        event.currentTarget.value = ''
-                      }}
-                    />
-                  </label>
-                  {!rootCustom && (
-                    <button type="button" className="btn" onClick={tidy}>
-                      Tidy {root ? 'group' : 'canvas'}
-                    </button>
-                  )}
-                  {syncStatus && (
-                    <button
-                      type="button"
-                      className="sync-status"
-                      title={syncStatus.message ?? 'Sync with GitHub now'}
-                      onClick={() => void requestSync(true).then((status) => status && setSyncStatus(status))}
-                    >
-                      {syncStatus.state === 'running'
-                        ? 'Syncing…'
-                        : syncStatus.state === 'error'
-                          ? 'Sync failed'
-                          : syncStatus.state === 'unavailable'
-                            ? 'Sync unavailable'
-                            : syncStatus.lastRun
-                              ? `Synced ${relativeTime(syncStatus.lastRun, clock)}`
-                              : 'Sync now'}
-                    </button>
-                  )}
-                </span>
+              </Panel>
+              <Panel position="center-left">
+                <ActionBar
+                  search={() => setPaletteQuery('')}
+                  addNote={() => addNote(viewportCenter())}
+                  addImage={(file) => void addImage(file)}
+                  tidy={rootCustom ? undefined : { label: `Tidy ${root ? 'group' : 'canvas'}`, run: tidy }}
+                  sync={
+                    syncStatus
+                      ? {
+                          status: syncStatus,
+                          label:
+                            syncStatus.state === 'running'
+                              ? 'Syncing…'
+                              : syncStatus.state === 'error'
+                                ? 'Sync failed'
+                                : syncStatus.state === 'unavailable'
+                                  ? 'Sync unavailable'
+                                  : syncStatus.lastRun
+                                    ? `Synced ${relativeTime(syncStatus.lastRun, clock)}`
+                                    : 'Sync now',
+                          run: () => void requestSync(true).then((status) => status && setSyncStatus(status)),
+                        }
+                      : undefined
+                  }
+                />
               </Panel>
 
               {selected.length > 0 && (
