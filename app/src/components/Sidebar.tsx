@@ -79,8 +79,7 @@ export function Sidebar({
 
   return (
     <aside className="sidebar">
-      <div className="side-head">
-        <strong>Orion</strong>
+      <div className="side-head" data-tauri-drag-region="deep">
         <button type="button" className="side-hide" onClick={hide} title="Hide the group list">
           ‹
         </button>

@@ -87,11 +87,22 @@ pub fn run() {
                 WebviewUrl::App("index.html".into())
             };
 
-            WebviewWindowBuilder::new(app, "main", url)
+            let window = WebviewWindowBuilder::new(app, "main", url)
                 .title("Orion")
                 .inner_size(1440.0, 900.0)
-                .min_inner_size(960.0, 640.0)
-                .build()?;
+                .min_inner_size(960.0, 640.0);
+
+            // The app draws its own window chrome. macOS keeps the traffic lights, centered in the
+            // sidebar header; elsewhere the app draws minimize, maximize, and close itself.
+            #[cfg(target_os = "macos")]
+            let window = window
+                .title_bar_style(tauri::TitleBarStyle::Overlay)
+                .hidden_title(true)
+                .traffic_light_position(tauri::LogicalPosition::new(16.0, 15.0));
+            #[cfg(not(target_os = "macos"))]
+            let window = window.decorations(false);
+
+            window.build()?;
             Ok(())
         })
         .build(tauri::generate_context!())
