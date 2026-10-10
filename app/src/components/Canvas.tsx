@@ -59,6 +59,7 @@ import { DebugBar, type MotionSettings } from './DebugBar'
 import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
+import { COLOR_MODES, THEMES, applyAppearance, colorModeOf, readAppearance, writeAppearance, type Appearance } from '../appearance'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
 import { ImageView } from './ImageView'
@@ -112,9 +113,6 @@ type FocusEntry = { viewport: Viewport; moved: boolean }
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, image: ImageView, ghost: GhostView }
 const edgeTypes: EdgeTypes = { default: CurveEdge }
 const SIDEBAR_KEY = 'orion:sidebar'
-const COLOR_MODE_KEY = 'orion:color-mode'
-
-type ColorMode = 'light' | 'dark' | 'system'
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
 const DEFAULT_MOTION: MotionSettings = { arrows: true, glow: true, pauseWhileMoving: true }
@@ -240,24 +238,6 @@ function writeFlag(key: string, value: boolean) {
   }
 }
 
-function readColorMode(): ColorMode {
-  try {
-    const mode = localStorage.getItem(COLOR_MODE_KEY)
-
-    return mode === 'light' || mode === 'dark' ? mode : 'system'
-  } catch {
-    return 'system'
-  }
-}
-
-function writeColorMode(mode: ColorMode) {
-  try {
-    localStorage.setItem(COLOR_MODE_KEY, mode)
-  } catch {
-    // Only a remembered preference.
-  }
-}
-
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
@@ -346,7 +326,7 @@ export function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
-  const [colorMode, setColorMode] = useState(readColorMode)
+  const [appearance, setAppearance] = useState(readAppearance)
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
@@ -2461,11 +2441,17 @@ export function Canvas() {
           },
         ]
       : []),
-    ...(['light', 'dark', 'system'] as const).map((mode) => ({
+    ...THEMES.map((theme) => ({
+      id: `theme-${theme.id}`,
+      label: `Theme: ${theme.label}`,
+      detail: 'Saved on this device',
+      run: () => chooseAppearance({ ...appearance, theme: theme.id }),
+    })),
+    ...COLOR_MODES.map((mode) => ({
       id: `color-mode-${mode}`,
       label: `Color mode: ${mode[0].toUpperCase()}${mode.slice(1)}`,
       detail: 'Saved on this device',
-      run: () => chooseColorMode(mode),
+      run: () => chooseAppearance({ ...appearance, colorMode: mode }),
     })),
     {
       id: 'sidebar',
@@ -2515,13 +2501,10 @@ export function Canvas() {
     }
   }
 
-  const chooseColorMode = (mode: ColorMode) => {
-    setColorMode(mode)
-
-    if (mode === 'system') document.documentElement.removeAttribute('data-theme')
-    else document.documentElement.dataset.theme = mode
-
-    writeColorMode(mode)
+  const chooseAppearance = (next: Appearance) => {
+    setAppearance(next)
+    applyAppearance(next)
+    writeAppearance(next)
   }
 
   return (
@@ -2538,8 +2521,8 @@ export function Canvas() {
             workspaces={workspaces}
             switchWorkspace={switchWorkspace}
             newWorkspace={newWorkspace}
-            colorMode={colorMode}
-            chooseColorMode={chooseColorMode}
+            appearance={appearance}
+            chooseAppearance={chooseAppearance}
           />
         )}
         <div
@@ -2650,7 +2633,7 @@ export function Canvas() {
               zoomOnDoubleClick={false}
               minZoom={0.06}
               maxZoom={2}
-              colorMode={colorMode}
+              colorMode={colorModeOf(appearance)}
             >
               <StickerLayer
                 stickers={placedStickers}
