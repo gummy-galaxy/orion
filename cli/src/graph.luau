@@ -1,6 +1,10 @@
 local json = require("@std/json")
 
 local fieldValues = require("@root/fieldValues")
+local findRef = require("@root/refs/findRef")
+local getGithubKey = require("@root/refs/getGithubKey")
+local removeRef = require("@root/refs/removeRef")
+local setRef = require("@root/refs/setRef")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -319,6 +323,11 @@ end
 
 local function checkFields(fields: ItemFields)
 	assert(
+		fields.repo == nil or fields.repo == "" or fields.repo:match("^[%w_.%-]+/[%w_.%-]+$"),
+		"repo must be owner/name"
+	)
+	assert(fields.pr == nil or fields.repo ~= "", "pr needs a repository as owner/name")
+	assert(
 		fields.status == nil or table.find(fieldValues.statuses, fields.status),
 		`status must be one of {table.concat(fieldValues.statuses, ", ")}`
 	)
@@ -342,12 +351,13 @@ export type AddOptions = ItemFields & { group: string? }
 function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	assert(label ~= "", "an item needs a label")
 	checkFields(options)
+	assert(options.pr == nil or options.repo ~= nil, "pr needs a repository as owner/name")
 
 	if options.group then
 		graph.group(doc, options.group)
 	end
 
-	local base = if options.repo and options.pr then `{slug(options.repo)}-{options.pr}` else slug(label)
+	local base = if options.repo and options.pr then `{slug(options.repo :: string)}-{options.pr}` else slug(label)
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
@@ -355,7 +365,6 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 		status = options.status or "todo",
 	})
 	data.repo = options.repo
-	data.pr = options.pr
 	data.note = options.note
 	data.who = if options.who == "" then nil else options.who
 	local item: Item = {
@@ -365,6 +374,15 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 		parentId = options.group,
 		data = data,
 	}
+	if options.pr and options.repo then
+		local owner, name = options.repo:match("^([^/]+)/([^/]+)$")
+		setRef(item, {
+			source = "github",
+			kind = "pull",
+			key = getGithubKey(assert(owner), assert(name), `#{options.pr}`),
+			url = `https://github.com/{options.repo}/pull/{options.pr}`,
+		})
+	end
 	table.insert(doc.nodes, item)
 	return item
 end
@@ -439,10 +457,22 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	if fields.repo then
 		item.data.repo = if fields.repo == "" then nil else fields.repo
+		if fields.repo == "" then
+			removeRef(item, "pull")
+		end
 	end
 
 	if fields.pr then
-		item.data.pr = fields.pr
+		local repo = field(item, "repo")
+		assert(repo, "pr needs a repository as owner/name")
+		local owner, name = repo:match("^([^/]+)/([^/]+)$")
+		removeRef(item, "pull")
+		setRef(item, {
+			source = "github",
+			kind = "pull",
+			key = getGithubKey(assert(owner), assert(name), `#{fields.pr}`),
+			url = `https://github.com/{repo}/pull/{fields.pr}`,
+		})
 	end
 
 	if fields.kind then
@@ -451,9 +481,9 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	if not graph.isNote(item) and (fields.repo or fields.pr or fields.kind) then
 		local repo = field(item, "repo")
-		local pr = item.data.pr
+		local pr = findRef(item, "pull")
 		local kind = fields.kind or (if graph.isGate(item) then "gate" else nil)
-		item.data.itemKind = itemKindFor(repo, if type(pr) == "number" then pr else nil, kind)
+		item.data.itemKind = itemKindFor(repo, if pr then 1 else nil, kind)
 	end
 
 	return item
@@ -493,6 +523,26 @@ function graph.unlink(doc: Doc, from: string, to: string)
 	assert(#doc.links < before, `no link from "{from}" to "{to}"`)
 end
 
+function graph.insertBetween(doc: Doc, id: string, from: string, to: string)
+	assert(id ~= from and id ~= to, "an item can't link to itself")
+	for _, itemId in { from, id, to } do
+		assert(not graph.isGroup(graph.get(doc, itemId)), `"{itemId}" is a group; link the items inside it`)
+	end
+
+	local existing: Link?
+	for _, link in doc.links do
+		if link.from == from and link.to == to then
+			existing = link
+			break
+		end
+	end
+	assert(existing, `no link from "{from}" to "{to}"`)
+
+	graph.unlink(doc, from, to)
+	graph.link(doc, from, id, existing.kind)
+	graph.link(doc, id, to, existing.kind)
+end
+
 -- Groups left with nothing inside disappear, as they do in the app.
 local function pruneEmptyGroups(doc: Doc)
 	local changed = true
@@ -524,7 +574,7 @@ end
 
 export type NoteOptions = { group: string?, after: string?, before: string? }
 
--- Adds a note. With both `after` and `before` it splices into the link between them.
+-- Adds a note. An existing link keeps its kind when the note splits it.
 function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	assert(text ~= "", "a note needs text")
 	local after = if options.after then graph.get(doc, options.after) else nil
@@ -539,15 +589,12 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 		parent = before.parentId
 	end
 
-	local kind = "blocks"
-
+	local hasExistingLink = false
 	if after and before then
-		for index = #doc.links, 1, -1 do
-			local link = doc.links[index]
-
+		for _, link in doc.links do
 			if link.from == after.id and link.to == before.id then
-				kind = link.kind
-				table.remove(doc.links, index)
+				hasExistingLink = true
+				break
 			end
 		end
 	end
@@ -570,21 +617,39 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	}
 	table.insert(doc.nodes, note)
 
-	if after then
-		graph.link(doc, after.id, note.id, kind)
-	end
-
-	if before then
-		graph.link(doc, note.id, before.id, kind)
+	if after and before and hasExistingLink then
+		graph.insertBetween(doc, note.id, after.id, before.id)
+	else
+		if after then
+			graph.link(doc, after.id, note.id, "blocks")
+		end
+		if before then
+			graph.link(doc, note.id, before.id, "blocks")
+		end
 	end
 
 	return note
 end
 
--- Removes an item. A note's incoming and outgoing links are reconnected so nothing loses its blocker.
-function graph.remove(doc: Doc, id: string)
+function graph.checkReconnect(doc: Doc, id: string)
+	local incoming, outgoing = 0, 0
+	for _, link in doc.links do
+		if link.to == id then
+			incoming += 1
+		elseif link.from == id then
+			outgoing += 1
+		end
+	end
+	assert(incoming <= 1 and outgoing <= 1, `"{id}" needs at most one incoming and one outgoing link to reconnect`)
+end
+
+-- A note's incoming and outgoing links are reconnected so nothing loses its blocker.
+function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	local item = graph.get(doc, id)
 	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup instead`)
+	if reconnect then
+		graph.checkReconnect(doc, id)
+	end
 	local incomingLinks: { Link } = {}
 	local outgoingLinks: { Link } = {}
 
@@ -600,7 +665,7 @@ function graph.remove(doc: Doc, id: string)
 		end
 	end
 
-	if graph.isNote(item) then
+	if graph.isNote(item) or reconnect then
 		for _, incomingLink in incomingLinks do
 			for _, outgoingLink in outgoingLinks do
 				graph.link(

@@ -1,0 +1,255 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Luau Tools with Rokit
+        uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
+        with:
+          version: 1.2.0
+          path: cli
+
+      - name: Set Up Lute Type Definitions
+        run: lute setup
+
+      - name: Install Dependencies
+        run: lute run install
+
+      - name: Analyze
+        run: lute run analyze
+
+  cli:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Enable other runners when the repo is public. We don't want macOS and Windows runners eating through private minutes right now
+        runner: [ubuntu-latest] # [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Luau Tools with Rokit
+        uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
+        with:
+          version: 1.2.0
+          path: cli
+
+      - name: Install Dependencies
+        run: lute run install
+
+      - name: Test
+        run: lute test
+
+      - name: Build
+        run: lute run build
+
+      - name: Smoke Test the Binary
+        run: ./build/orion --help
+
+      - name: Package
+        run: lute run package
+
+      - name: Upload CLI
+        uses: actions/upload-artifact@v7
+        with:
+          path: cli/build/orion-*.zip
+          archive: false
+          retention-days: 14
+
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Build Storybook
+        run: npm run build-storybook
+
+      - name: Upload App
+        uses: actions/upload-artifact@v7
+        with:
+          name: orion-app
+          path: app/dist
+          retention-days: 14
+
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        # Enable other runners when the repo is public. We don't want macOS and Windows runners eating through private minutes right now
+        runner: [ubuntu-latest] # [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Luau Tools with Rokit
+        uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
+        with:
+          version: 1.2.0
+          path: cli
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            app/package-lock.json
+            desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: Install Tauri System Dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Install Luau Dependencies
+        working-directory: cli
+        run: lute run install
+
+      - name: Install App Dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Install Desktop Dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Check and Build
+        working-directory: cli
+        run: lute run desktop
+
+      - name: Upload Desktop Installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: orion-desktop-${{ runner.os }}
+          path: |
+            desktop/src-tauri/target/release/bundle/deb/*.deb
+            desktop/src-tauri/target/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/release/bundle/nsis/*.exe
+          retention-days: 14
+
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+    steps:
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        id: filter
+        with:
+          filters: |
+            app:
+              - app/**
+              - cli/.lute/perf-report.luau
+
+  perf:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install Luau Tools with Rokit
+        uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
+        with:
+          version: 1.2.0
+          path: cli
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps --only-shell chromium
+
+      - name: Compare Against the Base Branch
+        run: npm run perf -- --base origin/${{ github.event.pull_request.base.ref }}
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: perf
+          path: |
+            app/.perf/report.md
+            app/.perf/raw.json
+          if-no-files-found: ignore
+
+      - name: Publish Report
+        if: always() && job.status != 'cancelled'
+        working-directory: cli
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          STATUS: ${{ job.status }}
+        run: lute run perf-report

@@ -32,14 +32,24 @@ end)
 test.case("heuristics join a shared Jira epic", function(assert)
 	local doc = getPair(
 		json.object({
-			external = json.object({
-				source = "jira",
-				key = "ITEM-1",
-				details = json.object({ epicKey = "ABC-1", epicSummary = "Avatar loading" }),
-			}),
+			refs = {
+				json.object({
+					source = "jira",
+					kind = "issue",
+					key = "ITEM-1",
+					details = json.object({ epicKey = "ABC-1", epicSummary = "Avatar loading" }),
+				}),
+			},
 		}),
 		json.object({
-			external = json.object({ source = "jira", key = "ITEM-2", details = json.object({ epicKey = "ABC-1" }) }),
+			refs = {
+				json.object({
+					source = "jira",
+					kind = "issue",
+					key = "ITEM-2",
+					details = json.object({ epicKey = "ABC-1" }),
+				}),
+			},
 		})
 	)
 	local result = compute(doc)
@@ -49,8 +59,14 @@ end)
 
 test.case("heuristics join the same repository branch", function(assert)
 	local doc = getPair(
-		json.object({ repo = "app", branch = "agent/avatar" }),
-		json.object({ repo = "app", branch = "agent/avatar" })
+		json.object({
+			repo = "vocksel/app",
+			refs = { { source = "hop", kind = "branch", key = "vocksel/app@agent/avatar" } },
+		}),
+		json.object({
+			repo = "vocksel/app",
+			refs = { { source = "hop", kind = "branch", key = "vocksel/app@agent/avatar" } },
+		})
 	)
 	table.insert(
 		doc.nodes,
@@ -59,7 +75,10 @@ test.case("heuristics join the same repository branch", function(assert)
 			"Other work",
 			"todo",
 			nil,
-			json.object({ host = "github.example.com", repo = "app", branch = "agent/avatar" })
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "github.example.com/vocksel/app@agent/avatar" } },
+			})
 		)
 	)
 	local result = compute(doc)
@@ -70,10 +89,37 @@ end)
 
 test.case("heuristics join issue references in titles and branches", function(assert)
 	local doc = testing.createDoc({
-		testing.task("a", "Issue #123", "todo", nil, json.object({ repo = "app", issue = 123 })),
-		testing.task("b", "Build view", "todo", nil, json.object({ repo = "app", branch = "fix-#123" })),
+		testing.task(
+			"a",
+			"Issue #123",
+			"todo",
+			nil,
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "github", kind = "issue", key = "vocksel/app#123" } },
+			})
+		),
+		testing.task(
+			"b",
+			"Build view",
+			"todo",
+			nil,
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/app@fix-#123" } },
+			})
+		),
 		testing.task("c", "ABC-9 migration", "todo"),
-		testing.task("d", "Migrate data", "todo", nil, json.object({ branch = "work/ABC-9" })),
+		testing.task(
+			"d",
+			"Migrate data",
+			"todo",
+			nil,
+			json.object({
+				repo = "vocksel/other",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/other@work/ABC-9" } },
+			})
+		),
 	})
 	local result = compute(doc)
 	assert.eq(#result.groups, 2)
@@ -83,9 +129,9 @@ end)
 
 test.case("title overlap joins only a matching repository without epic conflict", function(assert)
 	local doc = testing.createDoc({
-		testing.task("a", "Improve avatar loading", "todo", nil, json.object({ repo = "app" })),
-		testing.task("b", "Fix avatar loading", "todo", nil, json.object({ repo = "app" })),
-		testing.task("c", "Fix avatar loading", "todo", nil, json.object({ repo = "other" })),
+		testing.task("a", "Improve avatar loading", "todo", nil, json.object({ repo = "vocksel/app" })),
+		testing.task("b", "Fix avatar loading", "todo", nil, json.object({ repo = "vocksel/app" })),
+		testing.task("c", "Fix avatar loading", "todo", nil, json.object({ repo = "vocksel/other" })),
 	})
 	local result = compute(doc)
 	assert.eq(#result.groups, 1)
@@ -99,12 +145,15 @@ test.case("title overlap joins only a matching repository without epic conflict"
 			"todo",
 			nil,
 			json.object({
-				repo = "app",
-				external = json.object({
-					source = "jira",
-					key = "ITEM-3",
-					details = json.object({ epicKey = "ABC-1" }),
-				}),
+				repo = "vocksel/app",
+				refs = {
+					json.object({
+						source = "jira",
+						kind = "issue",
+						key = "ITEM-3",
+						details = json.object({ epicKey = "ABC-1" }),
+					}),
+				},
 			})
 		),
 		testing.task(
@@ -113,12 +162,15 @@ test.case("title overlap joins only a matching repository without epic conflict"
 			"todo",
 			nil,
 			json.object({
-				repo = "app",
-				external = json.object({
-					source = "jira",
-					key = "ITEM-4",
-					details = json.object({ epicKey = "ABC-2" }),
-				}),
+				repo = "vocksel/app",
+				refs = {
+					json.object({
+						source = "jira",
+						kind = "issue",
+						key = "ITEM-4",
+						details = json.object({ epicKey = "ABC-2" }),
+					}),
+				},
 			})
 		),
 	})
@@ -129,10 +181,10 @@ test.case("default scope includes unsorted and top-level cards, ignoring notes",
 	local doc = testing.createDoc({
 		testing.group("unsorted", "Unsorted"),
 		testing.group("placed", "Placed"),
-		testing.task("a", "Alpha loading", "todo", "unsorted", json.object({ repo = "app" })),
-		testing.task("b", "Alpha loading", "todo", nil, json.object({ repo = "app" })),
-		testing.task("c", "Alpha loading", "todo", "placed", json.object({ repo = "app" })),
-		testing.task("note", "Alpha loading", "todo", nil, json.object({ itemKind = "note", repo = "app" })),
+		testing.task("a", "Alpha loading", "todo", "unsorted", json.object({ repo = "vocksel/app" })),
+		testing.task("b", "Alpha loading", "todo", nil, json.object({ repo = "vocksel/app" })),
+		testing.task("c", "Alpha loading", "todo", "placed", json.object({ repo = "vocksel/app" })),
+		testing.task("note", "Alpha loading", "todo", nil, json.object({ itemKind = "note", repo = "vocksel/app" })),
 	})
 	assert.eq(table.concat(compute(doc).groups[1].members, ","), "a,b")
 	assert.eq(table.concat(compute(doc, nil, nil, "all").groups[1].members, ","), "a,b,c")
@@ -140,10 +192,46 @@ end)
 
 test.case("agent reply drops unknown and duplicate ids while retaining ignored heuristics", function(assert)
 	local doc = testing.createDoc({
-		testing.task("a", "Avatar one", "todo", nil, json.object({ repo = "app", branch = "avatar" })),
-		testing.task("b", "Avatar two", "todo", nil, json.object({ repo = "app", branch = "avatar" })),
-		testing.task("c", "Color one", "todo", nil, json.object({ repo = "app", branch = "color" })),
-		testing.task("d", "Color two", "todo", nil, json.object({ repo = "app", branch = "color" })),
+		testing.task(
+			"a",
+			"Avatar one",
+			"todo",
+			nil,
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/app@avatar" } },
+			})
+		),
+		testing.task(
+			"b",
+			"Avatar two",
+			"todo",
+			nil,
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/app@avatar" } },
+			})
+		),
+		testing.task(
+			"c",
+			"Color one",
+			"todo",
+			nil,
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/app@color" } },
+			})
+		),
+		testing.task(
+			"d",
+			"Color two",
+			"todo",
+			nil,
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/app@color" } },
+			})
+		),
 	})
 	local prompt = ""
 	local result, didFallback = compute(doc, "claude", function(argv, stdin)
@@ -165,7 +253,10 @@ test.case("agent reply drops unknown and duplicate ids while retaining ignored h
 end)
 
 test.case("garbage agent reply keeps heuristic suggestions", function(assert)
-	local doc = getPair(json.object({ repo = "app", branch = "same" }), json.object({ repo = "app", branch = "same" }))
+	local doc = getPair(
+		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } }),
+		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } })
+	)
 	local result, didFallback = compute(doc, "codex", function(argv, stdin)
 		assert.eq(argv[1], "codex")
 		assert.strContains(stdin or "", "cards")
@@ -194,7 +285,10 @@ test.case("suggestions apply asks the app to tidy groups that lost cards", funct
 end)
 
 test.case("suggestions dismiss removes chosen suggestions without moving cards", function(assert)
-	local doc = getPair(json.object({ repo = "app", branch = "same" }), json.object({ repo = "app", branch = "same" }))
+	local doc = getPair(
+		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } }),
+		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } })
+	)
 	suggest.save(doc, compute(doc))
 	local changed = suggest.change(doc, "dismiss", { "s1" }, false)
 	assert.eq(changed[1], "s1")

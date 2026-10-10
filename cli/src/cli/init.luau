@@ -2,19 +2,25 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local applyPulls = require("@root/github/applyPulls")
 local backups = require("@root/cli/backups")
+local batchEdit = require("@root/cli/batchEdit")
+local collectPulls = require("@root/github/collectPulls")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local focus = require("@root/cli/focus")
-local github = require("@root/github")
+local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
+local pad = require("@root/render/pad")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
 local restore = require("@root/cli/restore")
+local runEdit = require("@root/cli/runEdit")
+local selectItems = require("@root/query/selectItems")
 local serve = require("@root/cli/serve")
 local source = require("@root/cli/source")
 local store = require("@root/store")
@@ -57,19 +63,21 @@ local COMMANDS: { [string]: Command } = {
 
 local COMMAND_HELP: { [string]: string } = {
 	list = "List work items with their derived status",
+	query = "Find cards and groups with an expression",
 	ready = "List items that can start now, most unblocking first",
 	groups = "List groups with their progress",
 	show = "Show one item or group",
 	add = "Add a work item",
 	set = "Change an item's or group's fields",
-	done = "Mark an item done",
-	link = "Make one item wait on another",
+	done = "Mark one or more items done",
+	link = "Link each adjacent pair of items",
+	insert = "Insert an item into an existing link",
 	unlink = "Remove the link between two items",
 	note = "Add a note, optionally between two linked items",
-	remove = "Remove an item; a note's links are reconnected",
+	remove = "Remove items; optionally reconnect a card's links",
 	group = "Wrap items that share a parent in a new group",
-	ungroup = "Dissolve a group, keeping its items in place",
-	move = "Move an item or group into another group",
+	ungroup = "Dissolve groups, keeping their items in place",
+	move = "Move items or groups into another group",
 	sync = "Update pull request items from GitHub",
 	matches = "List unplaced pull requests and likely cards",
 	path = "Print where Orion keeps its data",
@@ -80,11 +88,16 @@ local ABOUT = [[
 Statuses: todo, active, review, blocked, deferred, done.
   Listed statuses are derived: todo shows as ready once nothing it waits on is open,
   and as blocked while something is. Notes pass blocking through and never count as work.
-Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
+Repositories are "owner/name".
 Data lives in Orion's user data folder (run orion path to see it); set ORION_DATA_DIR to change it.
 The Orion app talks to orion serve, which watches the data files.
 Use orion serve status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
+
+local QUERY_HELP = [[
+Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref.
+Compare quoted values with = or !=; label and ref also support ~ for case-insensitive text.
+Combine with and, or, not, and parentheses. Missing fields never match.]]
 
 local function addHelpFlag(parser: cli.Parser)
 	parser:add("help", "flag", { help = "Show this help", aliases = { "h" } })
@@ -100,7 +113,7 @@ end
 
 local function addFieldOptions(parser: cli.Parser)
 	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
-	parser:add("repo", "option", { help = "Repository, as name or owner/name" })
+	parser:add("repo", "option", { help = "Repository, as owner/name" })
 	parser:add("pr", "option", { help = "Pull request number" })
 	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
 	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
@@ -136,6 +149,11 @@ local function createParsers(): Parsers
 	list:add("all", "flag", { help = "Include done items" })
 	addJsonFlag(list)
 
+	local query = command("query")
+	query:add("where", "option", { help = "Expression selecting cards or groups", required = true })
+	query:add("all", "flag", { help = "Include done items" })
+	addJsonFlag(query)
+
 	addJsonFlag(command("ready"))
 	addJsonFlag(command("groups"))
 
@@ -159,12 +177,32 @@ local function createParsers(): Parsers
 	addFieldOptions(set)
 	addJsonFlag(set)
 
-	command("done"):add("id", "positional", { help = "Item id" })
+	local function addBatchOptions(parser: cli.Parser, help: string)
+		parser:add("ids", "variadic", { help = help })
+		parser:add("where", "option", { help = "Select targets with an expression instead of ids" })
+		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
+		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
+		addJsonFlag(parser)
+	end
+
+	addBatchOptions(command("done"), "Item ids")
 
 	local link = command("link")
 	link:add("from", "positional", { help = "The item that has to happen first" })
 	link:add("to", "positional", { help = "The item that waits on it" })
+	link:add("next", "variadic", { help = "Further items in the chain" })
 	link:add("related", "flag", { help = "Link without blocking" })
+	link:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
+	link:add("if-revision", "option", { help = "Write only if the document has this revision" })
+	addJsonFlag(link)
+
+	local insert = command("insert")
+	insert:add("id", "positional", { help = "Item to place in the link" })
+	insert:add("between", "option", { help = "Source item whose link is replaced", required = true })
+	insert:add("target", "variadic", { help = "Target item whose link is replaced" })
+	insert:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
+	insert:add("if-revision", "option", { help = "Write only if the document has this revision" })
+	addJsonFlag(insert)
 
 	local unlink = command("unlink")
 	unlink:add("from", "positional", { help = "Link source" })
@@ -177,17 +215,19 @@ local function createParsers(): Parsers
 	note:add("before", "option", { help = "Item the note leads into" })
 	addJsonFlag(note)
 
-	command("remove"):add("id", "positional", { help = "Item id" })
+	local remove = command("remove")
+	addBatchOptions(remove, "Item ids")
+	remove:add("reconnect", "flag", { help = "Reconnect at most one incoming and outgoing link per item" })
 
 	local group = command("group")
 	group:add("label", "variadic", { help = "Group name" })
 	group:add("items", "option", { help = "Comma-separated ids to put in it", required = true })
 	addJsonFlag(group)
 
-	command("ungroup"):add("id", "positional", { help = "Group id" })
+	addBatchOptions(command("ungroup"), "Group ids")
 
 	local move = command("move")
-	move:add("id", "positional", { help = "Item or group id" })
+	addBatchOptions(move, "Item or group ids")
 	move:add("to", "option", { help = "Destination group" })
 	move:add("top", "flag", { help = "Move to the top level" })
 
@@ -222,7 +262,8 @@ end
 local function commandHelp(name: string, parser: cli.Parser): string
 	local registered = COMMANDS[name]
 	local help = if registered then registered.help else COMMAND_HELP[name]
-	return `{help}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}`
+	local syntax = if name == "query" then `\n\n{QUERY_HELP}` else ""
+	return `{help}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}{syntax}`
 end
 
 local function dependencies(options: Dependencies?): Resolved
@@ -263,6 +304,12 @@ end
 
 local function required(parser: cli.Parser, name: string): string
 	return assert(parser:get(name), `missing <{name}>`)
+end
+
+local function requestedRevision(parser: cli.Parser): number?
+	local value = parser:get("if-revision")
+	assert(value == nil or value:match("^%d+$"), "--if-revision must be a nonnegative integer")
+	return if value then tonumber(value) else nil
 end
 
 local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
@@ -313,6 +360,36 @@ local function insideGroup(doc: Doc, item: Item, groupId: string): boolean
 	return table.find(graph.ancestors(doc, item.id), groupId) ~= nil
 end
 
+local function isBatchEdit(parser: cli.Parser): boolean
+	return #parser:variadics() ~= 1
+		or parser:get("where") ~= nil
+		or parser:has("dry-run")
+		or parser:has("json")
+		or parser:get("if-revision") ~= nil
+		or parser:has("reconnect")
+end
+
+local function editMany(deps: Resolved, dir: string, command: string, parser: cli.Parser)
+	local ids = parser:variadics()
+	local destination = parser:get("to")
+	if command == "move" then
+		assert(destination or parser:has("top"), "say where with --to <group> or --top")
+		assert(not (destination and parser:has("top")), "use --to or --top, not both")
+	end
+	batchEdit({
+		dir = dir,
+		action = command,
+		ids = ids,
+		where = parser:get("where"),
+		dryRun = parser:has("dry-run"),
+		asJson = parser:has("json"),
+		ifRevision = requestedRevision(parser),
+		destination = if parser:has("top") then nil else destination,
+		reconnect = parser:has("reconnect"),
+		write = deps.write,
+	})
+end
+
 local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	local derived = graph.derive(doc)
 	local values: json.Array = {}
@@ -328,7 +405,7 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
 end
 
-local function syncReport(report: github.Report, dryRun: boolean): string
+local function syncReport(report: githubTypes.Report, dryRun: boolean): string
 	local lines = { `{if dryRun then "Would update" else "Checked"} {report.checked} pull requests on GitHub.` }
 
 	for _, change in report.changes do
@@ -447,6 +524,39 @@ local function execute(args: { string }, options: Dependencies?)
 			end),
 			asJson
 		)
+	elseif command == "query" then
+		local doc = store.load(dir)
+		local items = selectItems(doc, required(parser, "where"), parser:has("all"))
+		local derived = graph.derive(doc)
+		if asJson then
+			local values: json.Array = {}
+			for _, item in items do
+				local value = render.itemJson(doc, derived, item)
+				if graph.isGroup(item) then
+					value.kind = "group"
+					value.status = nil
+					value.recordedStatus = nil
+				end
+				table.insert(values, value)
+			end
+			deps.write(json.serialize(values, true))
+		else
+			local lines: { string } = {}
+			for _, item in items do
+				if graph.isGroup(item) or item.type == "image" then
+					local kind = if graph.isGroup(item) then "group" else "image"
+					local parent = if item.parentId then graph.find(doc, item.parentId) else nil
+					local where = if parent then graph.label(parent) else ""
+					table.insert(
+						lines,
+						`{pad(kind, 9)}{pad(item.id, 24)}{pad(graph.label(item), 44)}{pad(kind, 20)}{where}`
+					)
+				else
+					table.insert(lines, render.table(doc, derived, { item }))
+				end
+			end
+			deps.write(if #lines > 0 then table.concat(lines, "\n") else "Nothing matches.")
+		end
 	elseif command == "ready" then
 		local doc = store.load(dir)
 		local derived = graph.derive(doc)
@@ -524,20 +634,92 @@ local function execute(args: { string }, options: Dependencies?)
 
 		emitItem(deps, doc, changed, asJson, "Updated")
 	elseif command == "done" then
-		local id = required(parser, "id")
-		local doc = store.transaction(dir, function(doc)
-			graph.setFields(doc, id, { status = "done" })
-		end)
+		local ids = parser:variadics()
+		if isBatchEdit(parser) then
+			editMany(deps, dir, command, parser)
+		else
+			local id = ids[1]
+			local doc = store.transaction(dir, function(doc)
+				graph.setFields(doc, id, { status = "done" })
+			end)
 
-		deps.write(`Done: {id} · {graph.label(graph.get(doc, id))}`)
+			deps.write(`Done: {id} · {graph.label(graph.get(doc, id))}`)
+		end
 	elseif command == "link" then
 		local from, to = required(parser, "from"), required(parser, "to")
 		local kind = if parser:has("related") then "related" else "blocks"
-		store.transaction(dir, function(doc)
-			graph.link(doc, from, to, kind)
+		local ids = { from, to }
+		for _, id in parser:variadics() do
+			table.insert(ids, id)
+		end
+		local dryRun = parser:has("dry-run")
+		local doc, baseRevision = runEdit(dir, dryRun, requestedRevision(parser), function(current)
+			for index = 1, #ids - 1 do
+				graph.link(current, ids[index], ids[index + 1], kind)
+			end
 		end)
 
-		deps.write(if kind == "blocks" then `{to} now waits on {from}` else `{from} and {to} are related`)
+		if asJson then
+			local links: json.Array = {}
+			local items: json.Array = {}
+			for _, id in ids do
+				table.insert(items, json.object({ id = id, label = graph.label(graph.get(doc, id)) }))
+			end
+			for index = 1, #ids - 1 do
+				table.insert(links, json.object({ from = ids[index], to = ids[index + 1], kind = kind }))
+			end
+			deps.write(json.serialize(
+				json.object({
+					action = "link",
+					dryRun = dryRun,
+					baseRevision = baseRevision,
+					revision = doc.revision,
+					items = items,
+					links = links,
+				}),
+				true
+			))
+		elseif #ids == 2 and not dryRun then
+			deps.write(if kind == "blocks" then `{to} now waits on {from}` else `{from} and {to} are related`)
+		else
+			local count = #ids - 1
+			local revision = if dryRun then `{baseRevision}` else `{baseRevision} → {doc.revision}`
+			local lines = {
+				`{if dryRun then "Would link" else "Linked"} {count} {if count == 1 then "pair" else "pairs"} at revision {revision}`,
+			}
+			for index = 1, count do
+				table.insert(lines, `  {ids[index]} → {ids[index + 1]} ({kind})`)
+			end
+			deps.write(table.concat(lines, "\n"))
+		end
+	elseif command == "insert" then
+		local id, from = required(parser, "id"), required(parser, "between")
+		local targets = parser:variadics()
+		assert(#targets == 1, "insert needs exactly one target after --between <from>")
+		local to = targets[1]
+		local dryRun = parser:has("dry-run")
+		local doc, baseRevision = runEdit(dir, dryRun, requestedRevision(parser), function(current)
+			graph.insertBetween(current, id, from, to)
+		end)
+		if asJson then
+			deps.write(json.serialize(
+				json.object({
+					action = "insert",
+					dryRun = dryRun,
+					baseRevision = baseRevision,
+					revision = doc.revision,
+					items = { json.object({ id = id, label = graph.label(graph.get(doc, id)) }) },
+					from = from,
+					to = to,
+				}),
+				true
+			))
+		else
+			local revision = if dryRun then `{baseRevision}` else `{baseRevision} → {doc.revision}`
+			deps.write(
+				`{if dryRun then "Would insert" else "Inserted"} {id} between {from} and {to} at revision {revision}`
+			)
+		end
 	elseif command == "unlink" then
 		local from, to = required(parser, "from"), required(parser, "to")
 		store.transaction(dir, function(doc)
@@ -558,12 +740,17 @@ local function execute(args: { string }, options: Dependencies?)
 
 		emitItem(deps, doc, added, asJson, "Added note")
 	elseif command == "remove" then
-		local id = required(parser, "id")
-		store.transaction(dir, function(doc)
-			graph.remove(doc, id)
-		end)
+		local ids = parser:variadics()
+		if isBatchEdit(parser) then
+			editMany(deps, dir, command, parser)
+		else
+			local id = ids[1]
+			store.transaction(dir, function(doc)
+				graph.remove(doc, id)
+			end)
 
-		deps.write(`Removed {id}`)
+			deps.write(`Removed {id}`)
+		end
 	elseif command == "group" then
 		local label = joined(parser:variadics(), "<label>")
 		local ids = parseCommaList(parser:get("items") or "")
@@ -574,31 +761,41 @@ local function execute(args: { string }, options: Dependencies?)
 
 		emitItem(deps, doc, made, asJson, "Grouped into")
 	elseif command == "ungroup" then
-		local id = required(parser, "id")
-		store.transaction(dir, function(doc)
-			graph.ungroup(doc, id)
-		end)
+		local ids = parser:variadics()
+		if isBatchEdit(parser) then
+			editMany(deps, dir, command, parser)
+		else
+			local id = ids[1]
+			store.transaction(dir, function(doc)
+				graph.ungroup(doc, id)
+			end)
 
-		deps.write(`Ungrouped {id}`)
+			deps.write(`Ungrouped {id}`)
+		end
 	elseif command == "move" then
-		local id = required(parser, "id")
-		local to = parser:get("to")
-		assert(to or parser:has("top"), "say where with --to <group> or --top")
-		store.transaction(dir, function(doc)
-			graph.move(doc, id, if parser:has("top") then nil else to)
-		end)
+		local ids = parser:variadics()
+		if isBatchEdit(parser) then
+			editMany(deps, dir, command, parser)
+		else
+			local id = ids[1]
+			local to = parser:get("to")
+			assert(to or parser:has("top"), "say where with --to <group> or --top")
+			store.transaction(dir, function(doc)
+				graph.move(doc, id, if parser:has("top") then nil else to)
+			end)
 
-		deps.write(`Moved {id} to {to or "the top level"}`)
+			deps.write(`Moved {id} to {to or "the top level"}`)
+		end
 	elseif command == "sync" then
 		local dryRun = parser:has("dry-run")
-		local fetched = github.collect(store.load(dir), deps.runner, parser:has("discover"))
-		local report: github.Report
+		local fetched = collectPulls(store.load(dir), deps.runner, parser:has("discover"))
+		local report: githubTypes.Report
 
 		if dryRun then
-			report = github.apply(store.load(dir), fetched, deps.now())
+			report = applyPulls(store.load(dir), fetched, deps.now())
 		else
 			store.transaction(dir, function(doc)
-				report = github.apply(doc, fetched, deps.now())
+				report = applyPulls(doc, fetched, deps.now())
 			end)
 		end
 

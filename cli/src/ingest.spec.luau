@@ -1,6 +1,6 @@
-local json = require("@std/json")
 local test = require("@std/test")
 
+local findRef = require("@root/refs/findRef")
 local ingest = require("@root/ingest")
 local store = require("@root/store")
 local testing = require("@root/testing")
@@ -70,8 +70,8 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 	assert.eq(#doc.nodes, count)
 	assert.eq(#doc.links, 2)
 	assert.eq(second.sources[1].updated, 2)
-	local external = json.asObject(doc.nodes[4].data.external)
-	local details = if external then json.asObject(external.details) else nil
+	local external = findRef(doc.nodes[4], "issue", "ABC-123")
+	local details = if external then external.details else nil
 	assert.eq(external and external.source, "jira")
 	assert.eq(external and external.key, "ABC-123")
 	assert.eq(external and external.url, "https://jira.example.com/browse/ABC-123")
@@ -84,7 +84,7 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 	assert.eq(doc.nodes[4].data.status, "active")
 end)
 
-test.case("external cards with the same key in different sources stay separate", function(assert)
+test.case("issue refs with the same key across sources identify one card", function(assert)
 	local doc = testing.createDoc({})
 	doc.settings.sources = {
 		{ id = "jira-one", kind = "jira", command = { "acli", "one" } },
@@ -106,20 +106,17 @@ test.case("external cards with the same key in different sources stay separate",
 
 	local first = ingest.apply(doc, ingest.collect(doc, runCommand, NOW), NOW)
 	assert.eq(first.sources[1].added, 1)
-	assert.eq(first.sources[2].added, 1)
-	assert.eq(#doc.nodes, 3)
-	local one = json.asObject(doc.nodes[2].data.external)
-	local two = json.asObject(doc.nodes[3].data.external)
-	assert.eq(one and one.source, "jira-one")
-	assert.eq(two and two.source, "jira-two")
-	assert.eq(two and two.isDone, true)
-	assert.eq(doc.nodes[3].data.status, "done")
+	assert.eq(first.sources[2].updated, 1)
+	assert.eq(#doc.nodes, 2)
+	local issue = findRef(doc.nodes[2], "issue", "ABC-123")
+	assert.eq(issue and issue.source, "jira-two")
+	assert.eq(issue and issue.isDone, true)
+	assert.eq(doc.nodes[2].data.status, "done")
 	local second = ingest.apply(doc, ingest.collect(doc, runCommand, NOW), NOW)
 	assert.eq(second.sources[1].updated, 1)
 	assert.eq(second.sources[2].updated, 1)
-	assert.eq(#doc.nodes, 3)
-	assert.eq(doc.nodes[2].data.label, "First issue")
-	assert.eq(doc.nodes[3].data.label, "Second issue")
+	assert.eq(#doc.nodes, 2)
+	assert.eq(doc.nodes[2].data.label, "Second issue")
 end)
 
 test.case("hop step converts to a pull request without changing placement or note", function(assert)
@@ -168,6 +165,51 @@ test.case("hop step converts to a pull request without changing placement or not
 	assert.eq(doc.nodes[2].data.itemKind, "pr")
 	assert.eq(doc.nodes[2].data.note, "Keep this note")
 	assert.eq(doc.nodes[2].parentId, "unsorted")
+end)
+
+test.case("hop resolves bare repository names without changing case and matches later worktrees", function(assert)
+	local doc = testing.createDoc({
+		testing.task("pull", "Existing pull", "active", nil, {
+			repo = "Roblox/Avatar",
+			refs = { { source = "github", kind = "pull", key = "Roblox/Avatar#20" } },
+		}),
+	})
+	doc.settings.sources = { { id = "hop-local", kind = "hop", command = { "hop" } } }
+
+	local function runHop(argv: { string })
+		if argv[2] == "list" then
+			return testing.result(
+				true,
+				[[{"worktrees":[{"branch":"feature/new","onDefaultBranch":false,"lastActivity":1791072000,"repository":{"name":"Avatar"}}]}]]
+			)
+		end
+
+		return testing.result(true, "[]")
+	end
+
+	local first = ingest.apply(doc, ingest.collect(doc, runHop, NOW), NOW)
+	assert.eq(first.sources[1].added, 1)
+	local step = doc.nodes[3]
+	assert.eq(step.data.repo, "Roblox/Avatar")
+	assert.eq(step.data.itemKind, "step")
+	assert.eq((findRef(step, "branch") :: any).key, "Roblox/Avatar@feature/new")
+
+	local function runLowercaseHop(argv: { string })
+		if argv[2] == "list" then
+			return testing.result(
+				true,
+				[[{"worktrees":[{"branch":"feature/new","onDefaultBranch":false,"lastActivity":1791072000,"repository":{"name":"roblox/avatar"}}]}]]
+			)
+		end
+
+		return testing.result(true, "[]")
+	end
+
+	local count = #doc.nodes
+	local second = ingest.apply(doc, ingest.collect(doc, runLowercaseHop, NOW), NOW)
+	assert.eq(second.sources[1].updated, 1)
+	assert.eq(#doc.nodes, count)
+	assert.eq(step.data.repo, "Roblox/Avatar")
 end)
 
 test.case("one failed source does not stop other sources", function(assert)

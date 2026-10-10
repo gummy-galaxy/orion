@@ -7,11 +7,14 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 - `orion ready` lists work that can start now, the items that unblock the most first.
 - `orion groups` lists groups with their progress.
 - `orion list [--group <id>] [--all]` lists open items, or everything with `--all`.
+- `orion query --where '<expr>' [--all] [--json]` finds matching cards and groups. Done cards are omitted unless `--all` is set.
 - `orion show <id>` shows one item with what it waits on and leads to, or a group with its contents.
 
 Add `--json` to any of these for structured output. Statuses in the output are derived: `ready` means nothing the item waits on is still open.
 
-Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces.
+Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr` (pull request number), or `ref` (any ref key). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"` or `ref ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
+
+Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces, and `orion workspace rename <name> <label>` to change a workspace's display label.
 
 `orion backups [--json]` lists saved revisions for the selected workspace. If a change was a mistake, `orion restore <revision>` restores the newest backup with that revision in the selected workspace as a new revision and backs up the current file first.
 
@@ -27,17 +30,22 @@ The app reports its open group and selection to `orion serve`. `orion focus` sho
 
 Run `orion serve status [--json]` to find the running server and its URL. It checks the recorded process and endpoint and clears stale server records.
 
+To show the person the app, or anything else served locally such as a dev server or Storybook, open its URL in the browser built into the tool you're running in. Fall back to an external browser only when that tool has none. Headless captures, such as PR screenshots, are unaffected.
+
 ## Changing it
 
-- `orion add <title> [--group <id>] [--kind gate] [--repo <name>] [--pr <number>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
+- `orion add <title> [--group <id>] [--kind gate] [--repo <owner/name>] [--pr <number>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
 - `orion set <id> [--label …] [--status …] [--kind step|gate] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
 - `orion set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
-- `orion done <id>` marks an item done.
-- `orion link <first> <then>` makes `<then>` wait on `<first>`. Add `--related` for a link that never blocks. `orion unlink` removes one.
-- `orion note <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it goes inside that existing link.
+- `orion done <id...> | --where '<expr>'` marks items done.
+- `orion link <first> <second> [next…]` links each adjacent pair in one transaction. Add `--related` for links that never block. `orion unlink` removes one link.
+- `orion insert <id> --between <from> <to>` replaces an existing link with two links through the item, keeping its kind.
+- `orion note <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it splits their existing link or adds two blocking links if they are unlinked.
 - `orion media insert <file> [--label <text>] [--group <id>]` inserts a media node. It currently accepts PNG, JPEG, GIF, and WebP images, identified from their contents. `orion media list` lists media nodes in the selected workspace. `orion serve` accepts raw bytes at `POST /api/images?workspace=<name>` and returns them at `GET /api/images/<asset>?workspace=<name>`.
-- `orion group <label> --items <id,id,…>`, `orion ungroup <id>`, and `orion move <id> --to <group>` (or `--top`) organize work.
-- `orion remove <id>` deletes an item. Removing a note reconnects the links that ran through it.
+- `orion group <label> --items <id,id,…>`, `orion ungroup <id...> | --where '<expr>'`, and `orion move <id...> | --where '<expr>' --to <group>` (or `--top`) organize work.
+- `orion remove <id...> | --where '<expr>'` deletes items. Removing a note reconnects the links that ran through it. Add `--reconnect` to reconnect cards with at most one incoming and one outgoing link; every selected card must qualify.
+
+`done`, `link`, `insert`, `remove`, `move`, and `ungroup` accept `--dry-run`, `--json`, and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion remove --where 'repo = "unrelated"' --dry-run`, then run `orion remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
 
 Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set `blocked` or `deferred` only for reasons the graph can't show, since waiting on open work already reads as blocked.
 
@@ -59,13 +67,19 @@ Use `orion source list` to inspect configured GitHub, Jira, and hop sources. Add
 
 Run `orion ingest --dry-run` before `orion ingest`; add `--json` for structured counts or `--source <id>` to limit the run. Ingestion files new cards in Unsorted, updates existing cards in place, and leaves cards that are no longer returned alone. Place cards into outcome groups after reviewing them.
 
-Cards ingested from Jira use `data.external` with the source ID and issue key as their identity. It also holds the source URL, status, completion state, update time, and source-specific details. GitHub pull request fields and hop activity remain separate.
+Cards keep pull requests, issues, and local branches in `data.refs`. Each ref records its source, kind, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests.
 
 ## Habits
 
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
 - Look up ids with `orion list --all` or `orion show` rather than guessing them.
 - Group by outcome, not by repository.
+
+## Pull requests
+
+When a pull request changes what the app shows, attach before and after screenshots to its description. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures both sides the same way into `/tmp` and uploads them to GitHub through the description editor.
+
+CI's perf job compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment before marking it ready. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
 
 ## Luau style
 
