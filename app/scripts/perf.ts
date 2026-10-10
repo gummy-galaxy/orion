@@ -380,7 +380,7 @@ async function main() {
   const base = prepareBase(options.base)
   const dirs: Record<Side, string> = { base: base.dir, head: APP }
   const sections = [
-    `# Performance: ${options.base} (${base.sha.slice(0, 7)}) → ${git('rev-parse', '--abbrev-ref', 'HEAD')} (${git('rev-parse', '--short', 'HEAD')})`,
+    `# Performance: ${options.base} (${base.sha.slice(0, 7)}) → ${process.env.GITHUB_HEAD_REF || git('rev-parse', '--abbrev-ref', 'HEAD')} (${git('rev-parse', '--short', 'HEAD')})`,
   ]
   const raw: Record<string, unknown> = {}
 
