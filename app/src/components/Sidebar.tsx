@@ -63,9 +63,12 @@ export function Sidebar({
           onClick={() => open(cluster.id)}
           title={(cluster.data as ClusterData).blurb}
         >
-          <span className="side-bar" aria-hidden="true">
-            <span style={{ width: `${percent}%` }} />
-          </span>
+          {/* Groups that hold no work have no progress to show. */}
+          {!!stats?.total && (
+            <span className="side-bar" aria-hidden="true">
+              <span style={{ width: `${percent}%` }} />
+            </span>
+          )}
           <span className="side-label">{(cluster.data as ClusterData).label}</span>
           <span className="side-meta">
             {stats && stats.ready > 0 && <span className="side-ready">{stats.ready} ready</span>}
