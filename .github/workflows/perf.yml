@@ -4,23 +4,19 @@ on:
   pull_request:
     paths:
       - app/**
+      - cli/.lute/perf-report.luau
       - .github/workflows/perf.yml
-  workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: write
 
 concurrency:
-  group: perf-${{ github.event.pull_request.number || github.ref }}
+  group: perf-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-env:
-  BASE: origin/${{ github.event.pull_request.base.ref || 'main' }}
-  MARKER: <!-- orion-perf -->
-
 jobs:
-  compare:
+  perf:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     defaults:
@@ -31,25 +27,26 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Luau Tools with Rokit
+        uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
+        with:
+          version: 1.2.0
+          path: cli
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: app/package-lock.json
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: npm ci
 
       - name: Install Chromium
         run: npx playwright install --with-deps --only-shell chromium
 
-      - name: Compare against the base branch
-        run: npm run perf -- --base "$BASE"
-
-      - name: Write the job summary
-        if: always()
-        run: |
-          if [ -f .perf/report.md ]; then cat .perf/report.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: Compare Against the Base Branch
+        run: npm run perf -- --base origin/${{ github.event.pull_request.base.ref }}
 
       - uses: actions/upload-artifact@v7
         if: always()
@@ -60,29 +57,13 @@ jobs:
             app/.perf/raw.json
           if-no-files-found: ignore
 
-      # One comment per pull request, replaced on every run.
-      - name: Comment on the pull request
-        if: always() && github.event_name == 'pull_request' && job.status != 'cancelled'
+      - name: Publish Report
+        if: always() && job.status != 'cancelled'
+        working-directory: cli
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SHA: ${{ github.event.pull_request.head.sha }}
           STATUS: ${{ job.status }}
-        run: |
-          if [ "$STATUS" = success ] && [ -f .perf/report.md ]; then
-            report=$(cat .perf/report.md)
-          else
-            report="The perf comparison failed. See the run for details."
-          fi
-
-          body=$(printf '%s\n%s\n\n<sub>Measured %s on `%s` in [run %s](%s). Changes under 10%% are treated as noise.</sub>\n' \
-            "$MARKER" "$report" "${SHA:0:7}" "$RUNNER_NAME" "$GITHUB_RUN_NUMBER" "$RUN_URL")
-          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
-            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$MARKER\"))) | .id" | head -n 1)
-
-          if [ -n "$id" ]; then
-            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -f body="$body" > /dev/null
-          else
-            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" > /dev/null
-          fi
+        run: lute run perf-report
