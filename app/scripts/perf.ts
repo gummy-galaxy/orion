@@ -47,6 +47,22 @@ const { values: options } = parseArgs({
   },
 })
 
+const formatDuration = (ms: number) =>
+  ms < 60_000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.floor(ms / 60_000)} min ${Math.round((ms % 60_000) / 1000)} s`
+
+/** Logs a step of the comparison and how long it took, so a slow step stands out in CI logs. */
+async function timed<T>(label: string, work: () => T | Promise<T>): Promise<T> {
+  const started = performance.now()
+
+  console.log(`${label}…`)
+
+  const result = await work()
+
+  console.log(`  done in ${formatDuration(performance.now() - started)}`)
+
+  return result
+}
+
 const git = (...args: string[]) => execFileSync('git', args, { cwd: APP, encoding: 'utf8' }).trim()
 
 function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv = {}) {
@@ -92,7 +108,6 @@ function prepareBase(ref: string): { dir: string; sha: string } {
 function runBenchmarks(dir: string, side: Side): Map<string, BenchResult> {
   const file = join(OUT, side, 'bench.json')
 
-  console.log(`Benchmarking ${side}…`)
   mkdirSync(dirname(file), { recursive: true })
   run(join(dir, 'node_modules/.bin/vitest'), ['bench', '--root', 'src', '--run', '--reporter=json', `--outputFile=${file}`], dir)
 
@@ -114,7 +129,6 @@ function runBenchmarks(dir: string, side: Side): Map<string, BenchResult> {
 function buildStorybook(dir: string, side: Side): string {
   const out = join(OUT, side, 'storybook')
 
-  console.log(`Building ${side} Storybook…`)
   run(join(dir, 'node_modules/.bin/storybook'), ['build', '-o', out, '--quiet'], dir, {
     ORION_PERF: '1',
     ORION_STORYBOOK: '1',
@@ -315,7 +329,8 @@ function medianSamples(runs: Record<string, Sample>[]): Record<string, Sample> {
 async function main() {
   const runs = Number(options.runs)
   const stories = options.stories.split(',').filter(Boolean)
-  const base = prepareBase(options.base)
+  const started = performance.now()
+  const base = await timed(`Preparing ${options.base}`, () => prepareBase(options.base))
   const dirs: Record<Side, string> = { base: base.dir, head: APP }
   const input: ReportInput = {
     base: { ref: options.base, sha: base.sha },
@@ -326,14 +341,20 @@ async function main() {
   mkdirSync(OUT, { recursive: true })
 
   if (!options['skip-bench']) {
-    const results = { base: runBenchmarks(dirs.base, 'base'), head: runBenchmarks(dirs.head, 'head') }
+    const results = {
+      base: await timed('Benchmarking base', () => runBenchmarks(dirs.base, 'base')),
+      head: await timed('Benchmarking head', () => runBenchmarks(dirs.head, 'head')),
+    }
 
     input.bench = { base: Object.fromEntries(results.base), head: Object.fromEntries(results.head) }
     raw.bench = input.bench
   }
 
   if (!options['skip-render']) {
-    const builds = { base: buildStorybook(dirs.base, 'base'), head: buildStorybook(dirs.head, 'head') }
+    const builds = {
+      base: await timed('Building base Storybook', () => buildStorybook(dirs.base, 'base')),
+      head: await timed('Building head Storybook', () => buildStorybook(dirs.head, 'head')),
+    }
     const servers = { base: await serve(builds.base), head: await serve(builds.head) }
     const browser = await chromium.launch()
     const collected: Record<Side, Record<string, Record<string, Sample>[]>> = { base: {}, head: {} }
@@ -345,8 +366,11 @@ async function main() {
 
         for (const side of order) {
           for (const story of stories) {
-            console.log(`Profiling ${side} ${story} (run ${index + 1} of ${runs})…`)
-            ;(collected[side][story] ??= []).push(await profileStory(browser, servers[side].url, story))
+            const samples = await timed(`Profiling ${side} ${story} (run ${index + 1} of ${runs})`, () =>
+              profileStory(browser, servers[side].url, story),
+            )
+
+            ;(collected[side][story] ??= []).push(samples)
           }
         }
       }
@@ -370,7 +394,7 @@ async function main() {
   writeFileSync(join(OUT, 'report.md'), report)
   writeFileSync(join(OUT, 'raw.json'), JSON.stringify(raw, null, 2))
   console.log('\n' + report)
-  console.log(`Saved to ${join(OUT, 'report.md')}`)
+  console.log(`Saved to ${join(OUT, 'report.md')} after ${formatDuration(performance.now() - started)}`)
 }
 
 await main()
