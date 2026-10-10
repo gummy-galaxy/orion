@@ -1,14 +1,9 @@
 import { useEffect, type ReactNode } from 'react'
+import { ToolIcon } from './ToolIcon'
 
 export type Tool = 'select' | 'hand' | 'comment' | 'sticker'
 
 type ToolSpec = { id: Tool; label: string; key: string; hint: string; icon?: ReactNode }
-
-const icon = (pathData: string) => (
-  <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true">
-    <path d={pathData} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
-  </svg>
-)
 
 const TOOLS: ToolSpec[] = [
   {
@@ -16,15 +11,15 @@ const TOOLS: ToolSpec[] = [
     label: 'Select',
     key: 'V',
     hint: 'Drag to select, middle-drag or hold Space to pan',
-    icon: icon('M5 3l10 6.5-4.6 1.1L13 16l-2 1-2.6-5.4L5 15z'),
+    icon: <ToolIcon path="M5 3l10 6.5-4.6 1.1L13 16l-2 1-2.6-5.4L5 15z" />,
   },
   {
     id: 'hand',
     label: 'Pan',
     key: 'H',
     hint: 'Drag anywhere to pan, ⌘-drag to select',
-    icon: icon(
-      'M7 10V4.8a1.2 1.2 0 0 1 2.4 0V9m0-.5V3.6a1.2 1.2 0 0 1 2.4 0V9m0-.5V4.6a1.2 1.2 0 0 1 2.4 0V11m0-4a1.2 1.2 0 0 1 2.4 0v5c0 3-2.2 5-5 5h-1.2c-1.8 0-3-.8-4-2.2L3.4 11a1.2 1.2 0 0 1 2-1.4L7 11.5',
+    icon: (
+      <ToolIcon path="M7 10V4.8a1.2 1.2 0 0 1 2.4 0V9m0-.5V3.6a1.2 1.2 0 0 1 2.4 0V9m0-.5V4.6a1.2 1.2 0 0 1 2.4 0V11m0-4a1.2 1.2 0 0 1 2.4 0v5c0 3-2.2 5-5 5h-1.2c-1.8 0-3-.8-4-2.2L3.4 11a1.2 1.2 0 0 1 2-1.4L7 11.5" />
     ),
   },
   {
@@ -32,7 +27,7 @@ const TOOLS: ToolSpec[] = [
     label: 'Comment',
     key: 'C',
     hint: 'Click to leave a note',
-    icon: icon('M4 4h12v9h-6l-4 3.5V13H4z'),
+    icon: <ToolIcon path="M4 4h12v9h-6l-4 3.5V13H4z" />,
   },
   {
     id: 'sticker',

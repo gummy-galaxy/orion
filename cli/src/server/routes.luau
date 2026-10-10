@@ -1,6 +1,7 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
+local editor = require("@root/server/routes/editor")
 local focus = require("@root/server/routes/focus")
 local imageRoutes = require("@root/server/routes/images")
 local orion = require("@root/server/routes/orion")
@@ -54,6 +55,9 @@ function routes.create(
 		end
 		if route == "/api/focus" then
 			return focus.handle(request, root, active)
+		end
+		if route == "/api/editor" then
+			return editor.handle(request)
 		end
 
 		if route == "/api/workspaces" or route == "/api/workspaces/active" then

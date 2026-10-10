@@ -18,5 +18,7 @@ tauri-plugin-window-state = "2"
 serde = { version = "1", features = ["derive"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+block2 = "0.6"
 libc = "0.2"
 objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "block2", "NSEvent"] }
