@@ -21,9 +21,7 @@ env:
 
 jobs:
   compare:
-    # Set the PERF_RUNS_ON repository variable to a JSON label list, such as ["self-hosted","perf"], to move this
-    # job onto a dedicated machine. Pull requests from forks stay on GitHub's runners.
-    runs-on: ${{ fromJSON((github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request') && vars.PERF_RUNS_ON || '"ubuntu-latest"') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     defaults:
       run:
