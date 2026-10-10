@@ -47,7 +47,7 @@ export function DebugBar({
           slow: deltas.filter((delta) => delta > SLOW_FRAME_MS).length,
           nodes: root?.querySelectorAll('.react-flow__node').length ?? 0,
           edges: root?.querySelectorAll('.react-flow__edge').length ?? 0,
-          live: root?.querySelectorAll('.react-flow__edge.e-live').length ?? 0,
+          live: root?.querySelectorAll('.react-flow__edge.e-live:not(.tr-e-dim) .react-flow__edge-path:not(.is-offscreen)').length ?? 0,
           glowing: root?.querySelectorAll('.card.st-active:not(.lens)').length ?? 0,
           moving: root?.hasAttribute('data-moving') ?? false,
         })
