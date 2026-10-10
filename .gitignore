@@ -24,3 +24,6 @@ desktop/src-tauri/binaries/
 *.njsproj
 *.sln
 *.sw?
+
+# Performance reports and builds from npm run perf
+.perf

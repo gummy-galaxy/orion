@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import { descendants, getTaskUrl, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
+import { descendants, getPrimaryRef, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
 /** How a link out of a card reads: moving, or held behind work that's stuck. */
@@ -15,27 +15,25 @@ export type Actions = {
 export const ActionsContext = createContext<Actions | null>(null)
 
 /** Where a card's work comes from, or null for a card that only lives in Orion. */
-function sourceOf(task: TaskNode, githubOwner?: string): SourceRef | null {
-  const repo = task.data.repo?.trim()
-  const href = getTaskUrl(task.data, githubOwner) ?? undefined
+function sourceOf(task: TaskNode): SourceRef | null {
+  const ref = getPrimaryRef(task.data)
+  const href = ref?.url
 
-  if (!repo && !task.data.external) return null
+  if (!ref) return null
 
   if (href) {
     try {
       const url = new URL(href)
 
-      if (url.protocol === 'https:' || url.protocol === 'http:') {
-        return { domain: url.hostname.toLowerCase(), label: repo ?? task.data.external!.key, href }
+      if (url.hostname) {
+        return { domain: url.hostname.toLowerCase(), label: ref.key, href }
       }
     } catch {
-      // Fall back to the repository host used by the CLI.
+      // Fall back to the source when the URL is invalid.
     }
   }
 
-  if (repo) return { domain: task.data.host ?? 'github.com', label: repo }
-
-  return { domain: task.data.external!.source, label: task.data.external!.key }
+  return { domain: ref.source, label: ref.key }
 }
 
 function graph(links: Link[]) {
@@ -75,12 +73,12 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 }
 
 /** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
-export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string) {
+export function deriveWork(nodes: AppNode[], links: Link[]) {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
 
   for (const task of tasks.values()) {
-    const source = sourceOf(task, githubOwner)
+    const source = sourceOf(task)
 
     sources.set(task.id, source ? [source] : [])
   }
@@ -173,7 +171,7 @@ export function deriveWork(nodes: AppNode[], links: Link[], githubOwner?: string
       const task = tasks.get(id)
 
       if (task) {
-        const source = sourceOf(task, githubOwner)
+        const source = sourceOf(task)
         const key = source && `${source.domain}:${source.label}`
 
         if (source && key && !groupSources.get(key)?.href) groupSources.set(key, source)

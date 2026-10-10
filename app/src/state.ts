@@ -6,14 +6,13 @@ import { isTask, type AppNode, type Link } from './model'
 
 export const nodesAtom = atom<AppNode[]>([])
 export const linksAtom = atom<Link[]>([])
-export const githubOwnerAtom = atom('flipbook-labs')
 export const hoverAtom = atom<string | null>(null)
 /** A double-clicked card keeps its trace while you pan around; any click lets it go. */
 export const pinnedAtom = atom<string | null>(null)
 /** While a card is in focus, nothing traces from the cursor. */
 export const focusedAtom = atom(false)
 
-export const workAtom = atom((get) => deriveWork(get(nodesAtom), get(linksAtom), get(githubOwnerAtom)))
+export const workAtom = atom((get) => deriveWork(get(nodesAtom), get(linksAtom)))
 
 export const traceAtom = atom((get) => {
   const from = get(focusedAtom) ? null : (get(pinnedAtom) ?? get(hoverAtom))

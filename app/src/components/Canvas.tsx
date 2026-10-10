@@ -16,13 +16,14 @@ import {
   type Connection,
   type Edge,
   type EdgeTypes,
+  type FinalConnectionState,
   type NodeChange,
   type NodeTypes,
   type Viewport,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { Palette, type Command } from './Palette'
+import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { FocusView, type FocusItem } from './FocusView'
@@ -55,6 +56,7 @@ import {
   type TaskData,
 } from '../model'
 import { DebugBar, type MotionSettings } from './DebugBar'
+import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
 import { COLOR_MODES, THEMES, applyAppearance, colorModeOf, readAppearance, writeAppearance, type Appearance } from '../appearance'
@@ -65,6 +67,7 @@ import { TaskView } from './TaskView'
 import {
   createWorkspace,
   clearFocus,
+  compactDoc,
   fetchRemote,
   fingerprint,
   getSyncStatus,
@@ -80,6 +83,7 @@ import {
   requestSync,
   save,
   setActiveWorkspace,
+  slim,
   type FocusReport,
   type Remote,
   type Saved,
@@ -87,31 +91,24 @@ import {
   type Workspaces,
 } from '../persist'
 import { Sidebar } from './Sidebar'
+import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
-import {
-  attentionAtom,
-  collapsedAtom,
-  focusedAtom,
-  githubOwnerAtom,
-  hoverAtom,
-  linksAtom,
-  nodesAtom,
-  pinnedAtom,
-  traceAtom,
-  workAtom,
-} from '../state'
+import { useUndo } from '../useUndo'
+import { attentionAtom, collapsedAtom, focusedAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from '../state'
 import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { Toolbar, type Tool } from './Toolbar'
 import { readViewport, writeViewport } from '../viewport'
+import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
 
 type ViewNode = AppNode | GhostNode
+type FocusEntry = { viewport: Viewport; moved: boolean }
 
 const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, image: ImageView, ghost: GhostView }
 const edgeTypes: EdgeTypes = { default: CurveEdge }
@@ -150,8 +147,10 @@ function readMotion(): MotionSettings {
  */
 const COLLAPSE_ZOOM = 0.4
 const COLLAPSE_STEP = 0.12
-/** Zoom below which cards are too small for motion to read, so animations pause. */
+/** Zoom below which cards are too small for transitions to read, so they're skipped. */
 const STILL_ZOOM = 0.45
+/** Zoom below which marching arrows and the active glow are too subtle to read, so they stop. */
+const QUIET_ZOOM = 0.6
 const GHOST_WIDTH = 200
 const GHOST_HEIGHT = 62
 const GHOST_GAP = 90
@@ -200,6 +199,27 @@ type Menu = {
   target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string } | { kind: 'sticker'; id: string }
 }
 
+/** Whether the window is in the background, where looping motion only costs power. */
+function useAway() {
+  const [away, setAway] = useState(() => document.hidden || !document.hasFocus())
+
+  useEffect(() => {
+    const update = () => setAway(document.hidden || !document.hasFocus())
+
+    window.addEventListener('focus', update)
+    window.addEventListener('blur', update)
+    document.addEventListener('visibilitychange', update)
+
+    return () => {
+      window.removeEventListener('focus', update)
+      window.removeEventListener('blur', update)
+      document.removeEventListener('visibilitychange', update)
+    }
+  }, [])
+
+  return away
+}
+
 function readFlag(key: string, fallback: boolean) {
   try {
     const value = localStorage.getItem(key)
@@ -217,10 +237,6 @@ function writeFlag(key: string, value: boolean) {
     // Only a remembered preference.
   }
 }
-
-/** The stored shape of a document, for comparing and merging. */
-const getCompactDoc = (doc: Saved): Saved =>
-  JSON.parse(fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) })) as Saved
 
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
@@ -287,10 +303,11 @@ export function Canvas() {
   // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
   const foldFrom = useStore((state) => Math.floor((state.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
   const still = useStore((state) => state.transform[2] < STILL_ZOOM)
+  const quietZoom = useStore((state) => state.transform[2] < QUIET_ZOOM)
+  const away = useAway()
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
-  const [githubOwner, setGithubOwner] = useAtom(githubOwnerAtom)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
   const [clock, setClock] = useState(() => Date.now())
@@ -305,7 +322,7 @@ export function Canvas() {
   // A double-clicked card fills the view with what it waits on and leads to beside it.
   const [focusPick, setFocus] = useState<string | null>(null)
   // Where focus started, and whether it has since walked to another card or level.
-  const focusEntry = useRef<{ viewport: Viewport; moved: boolean } | null>(null)
+  const focusEntry = useRef<FocusEntry | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
@@ -314,7 +331,9 @@ export function Canvas() {
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
   const [tool, setTool] = useState<Tool>('select')
-  const [paletteOpen, setPaletteOpen] = useState(false)
+  /** The text the palette opened with, or null while it's closed. */
+  const [paletteQuery, setPaletteQuery] = useState<string | null>(null)
+  const paletteOpen = paletteQuery !== null
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
   const [chosenSticker, setSticker] = useState<string | null>(null)
@@ -329,14 +348,88 @@ export function Canvas() {
   const fitSequence = useRef(0)
   const previousZoom = useRef(store.getState().transform[2])
   const skipNextFit = useRef(false)
-  const openRoot = useCallback((target: string | null) => {
-    setPeek(null)
-    setExitHint(null)
-    setFocus(null)
-    focusEntry.current = null
-    skipNextFit.current = false
-    setRoot(target)
+
+  // ---- Navigation history ----
+  const trail = useRef<Trail<FocusEntry>>(emptyTrail())
+  const [trailSize, setTrailSize] = useState({ back: 0, forward: 0 })
+  const gestureStart = useRef<Viewport | null>(null)
+  // Read through a ref so the callbacks below, which cards get through the actions context, stay stable.
+  const shownPlace = useRef({ root, focus: focusPick })
+
+  useLayoutEffect(() => {
+    shownPlace.current = { root, focus: focusPick }
+  }, [root, focusPick])
+
+  const updateTrail = useCallback((next: Trail<FocusEntry>) => {
+    trail.current = next
+    setTrailSize({ back: next.back.length, forward: next.forward.length })
   }, [])
+
+  const here = useCallback(
+    (viewport = reactFlow.getViewport()): Place<FocusEntry> => ({
+      ...shownPlace.current,
+      selected: latest.current.nodes.filter((node) => node.selected).map((node) => node.id),
+      viewport,
+      extra: focusEntry.current ? { ...focusEntry.current } : undefined,
+    }),
+    [reactFlow],
+  )
+
+  /** Records where the canvas is before it navigates somewhere else. */
+  const remember = useCallback((viewport?: Viewport) => updateTrail(leave(trail.current, here(viewport))), [here, updateTrail])
+
+  const openRoot = useCallback(
+    (target: string | null) => {
+      if (target !== shownPlace.current.root || shownPlace.current.focus) remember()
+
+      setPeek(null)
+      setExitHint(null)
+      setFocus(null)
+      focusEntry.current = null
+      skipNextFit.current = false
+      setRoot(target)
+    },
+    [remember],
+  )
+
+  // ---- Undo ----
+
+  /** Shows an undone or redone document, keeping the selection and every node the step left alone. */
+  const showStep = useCallback(
+    (doc: Saved): Saved => {
+      const shown = byId(latest.current.nodes)
+      const nodes = normalize(doc.nodes).map((node) => {
+        const previous = shown.get(node.id)
+
+        if (!previous) return node
+
+        return JSON.stringify(slim([previous])) === JSON.stringify(slim([node])) ? previous : { ...node, selected: previous.selected }
+      })
+      const ids = new Set(nodes.map((node) => node.id))
+      const next = { nodes, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) }
+
+      latest.current = next
+      setNodes(nodes)
+      setLinks(next.links)
+      setStickers(next.stickers)
+      setLoadout(next.stickerLoadout)
+
+      // The open group can go with the step, such as when undoing its creation from inside it.
+      if (root && !ids.has(root)) openRoot(ancestors(root, shown).find((id) => ids.has(id)) ?? null)
+
+      return next
+    },
+    [root, openRoot, setLinks, setNodes],
+  )
+  const getDoc = useCallback(() => latest.current, [])
+  const {
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    rebase: rebaseHistory,
+    reset: resetHistory,
+  } = useUndo({ doc: { nodes, links, stickers, stickerLoadout: loadout }, busy: nodes.some((node) => node.dragging), getDoc, apply: showStep })
 
   // A group's selection waits until a second click, which would open it, can no longer arrive.
   const plainClick = useRef<'defer' | null>(null)
@@ -410,7 +503,7 @@ export function Canvas() {
   const adopt = useCallback(
     (doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
       const next = normalize(doc.nodes)
-      const server = getCompactDoc({
+      const server = compactDoc({
         nodes: normalize(serverDoc.nodes),
         links: serverDoc.links,
         stickers: serverDoc.stickers,
@@ -421,8 +514,10 @@ export function Canvas() {
       base.current = server
       savedPrint.current = fingerprint(server)
       const stickerLoadout = loadoutOf(doc.stickerLoadout)
+      const adopted = { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
 
-      latest.current = { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
+      rebaseHistory(adopted)
+      latest.current = adopted
       setNodes((currentNodes) => {
         const picked = new Set(preserveSelection ? currentNodes.filter((node) => node.selected).map((node) => node.id) : [])
 
@@ -432,11 +527,10 @@ export function Canvas() {
       setStickers(doc.stickers ?? [])
       setLoadout(stickerLoadout)
       setGithub(doc.github ?? null)
-      setGithubOwner(doc.settings.githubOwner)
 
-      return { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
+      return adopted
     },
-    [setGithubOwner, setLinks, setNodes],
+    [rebaseHistory, setLinks, setNodes],
   )
 
   useEffect(
@@ -456,11 +550,11 @@ export function Canvas() {
 
       if (!doc || doc.revision === revision.current) return
 
-      const local = getCompactDoc(latest.current)
+      const local = compactDoc(latest.current)
 
       if (fingerprint(local) === savedPrint.current) adopt(doc)
       else {
-        const merged = mergeDocs(base.current, local, getCompactDoc(doc))
+        const merged = mergeDocs(base.current, local, compactDoc(doc))
 
         adopt({ ...doc, ...merged }, doc)
       }
@@ -476,7 +570,7 @@ export function Canvas() {
 
       if (loaded.source === 'file') {
         source.current = 'file'
-        adopt(loaded.doc, loaded.doc, !switched)
+        resetHistory(adopt(loaded.doc, loaded.doc, !switched))
       } else {
         source.current = loaded.source === 'missing' ? 'file' : 'browser'
         const isDefault = name === 'default'
@@ -491,12 +585,12 @@ export function Canvas() {
         savedPrint.current = ''
         base.current = { nodes: [], links: [] }
         latest.current = { ...start, stickers: initialStickers, stickerLoadout: initialLoadout }
+        resetHistory(latest.current)
         setNodes(start.nodes)
         setLinks(start.links)
         setStickers(initialStickers)
         setLoadout(initialLoadout)
         setGithub(null)
-        setGithubOwner('flipbook-labs')
       }
 
       const view = readViewport(workspace.current)
@@ -507,7 +601,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, setGithubOwner, setLinks, setNodes],
+    [adopt, resetHistory, setLinks, setNodes],
   )
 
   useEffect(() => {
@@ -584,7 +678,7 @@ export function Canvas() {
 
           if (result.ok) {
             revision.current = result.revision
-            base.current = getCompactDoc(pending)
+            base.current = compactDoc(pending)
             savedPrint.current = fingerprint(pending)
 
             return
@@ -598,7 +692,7 @@ export function Canvas() {
 
           if (!remote) break
 
-          const merged = mergeDocs(base.current, getCompactDoc(latest.current), getCompactDoc(remote))
+          const merged = mergeDocs(base.current, compactDoc(latest.current), compactDoc(remote))
 
           pending = adopt({ ...remote, ...merged }, remote)
 
@@ -650,13 +744,17 @@ export function Canvas() {
         console.error('Could not lay out canvas', error)
       } finally {
         if (epoch === workspaceEpoch.current) {
-          setNodes(next.map((node) => (isCluster(node) && node.data.layout ? { ...node, data: { ...node.data, layout: undefined } } : node)))
+          const laidOut = next.map((node) => (isCluster(node) && node.data.layout ? { ...node, data: { ...node.data, layout: undefined } } : node))
+
+          // Laying out groups another writer added finishes their write, so it isn't a step to undo.
+          rebaseHistory({ ...latest.current, nodes: laidOut })
+          setNodes(laidOut)
         }
 
         if (pendingLayoutEpoch.current === epoch) pendingLayoutEpoch.current = null
       }
     })()
-  }, [nodes, links, ready, setNodes])
+  }, [nodes, links, ready, rebaseHistory, setNodes])
   const changeWorkspace = useCallback(
     (name: string) => {
       if (name === workspace.current) return
@@ -672,6 +770,7 @@ export function Canvas() {
       setPeek(null)
       setFocus(null)
       focusEntry.current = null
+      updateTrail(emptyTrail())
       setPinned(null)
       setHover(null)
       setEditing(null)
@@ -688,7 +787,7 @@ export function Canvas() {
         await loadWorkspace(name, epoch, true)
       })
     },
-    [loadWorkspace, setHover, setPinned],
+    [loadWorkspace, updateTrail, setHover, setPinned],
   )
 
   useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
@@ -717,9 +816,14 @@ export function Canvas() {
     if (viewFor.current === workspace.current) writeViewport(workspace.current, viewport)
   }, [])
   // An attribute rather than a class, so re-renders mid-move don't clear it.
-  const onMoveStart = useCallback(() => {
-    if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
-  }, [motion.pauseWhileMoving])
+  const onMoveStart = useCallback(
+    (_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
+      gestureStart.current = viewport
+
+      if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
+    },
+    [motion.pauseWhileMoving],
+  )
 
   const switchWorkspace = async (name: string) => {
     const list = await setActiveWorkspace(name)
@@ -842,6 +946,7 @@ export function Canvas() {
 
       const target = node.parentId ?? null
 
+      remember()
       setHover(null)
 
       if (target === root) {
@@ -853,7 +958,7 @@ export function Canvas() {
         openRoot(target)
       }
     },
-    [root, focusNode, openRoot, setHover],
+    [root, focusNode, openRoot, remember, setHover],
   )
 
   /** Moves nodes to new positions over a few frames so edges follow along. */
@@ -902,10 +1007,12 @@ export function Canvas() {
     return nodes.filter((node) => inside.has(node.id) && isTask(node) && !isNote(node)).length
   }, [root, nodes])
   const leaveRoot = useCallback(
-    (atZoom = reactFlow.getZoom()) => {
+    (atZoom = reactFlow.getZoom(), from?: Viewport) => {
       if (!root) return
 
       const parent = map.get(root)?.parentId ?? null
+
+      remember(from)
 
       // Where you arrive becomes the parent's home zoom, so one gesture leaves one level.
       if (parent) fitZoom.current.set(parent, atZoom)
@@ -915,7 +1022,7 @@ export function Canvas() {
       setExitHint(null)
       setRoot(parent)
     },
-    [root, map, reactFlow],
+    [root, map, reactFlow, remember],
   )
   const onViewportMove = useCallback(
     (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
@@ -942,7 +1049,7 @@ export function Canvas() {
           const visible =
             Math.max(0, Math.min(box.width, x + width) - Math.max(0, x)) * Math.max(0, Math.min(box.height, y + height) - Math.max(0, y))
 
-          if (visible < width * height * PEEK_KEEP_VISIBLE) leaveRoot(viewport.zoom)
+          if (visible < width * height * PEEK_KEEP_VISIBLE) leaveRoot(viewport.zoom, gestureStart.current ?? undefined)
         }
 
         return
@@ -963,7 +1070,8 @@ export function Canvas() {
       const progress = Math.min(1, Math.max(0, (hint - viewport.zoom / fit) / (hint - exit * PEEK_SPAN)))
 
       if (viewport.zoom < wasZoom && viewport.zoom < fit * exit * PEEK_SPAN) {
-        leaveRoot(viewport.zoom)
+        // Going back returns to the view from before the zoom out, not the point it left at.
+        leaveRoot(viewport.zoom, gestureStart.current ?? undefined)
       } else if (viewport.zoom <= fit * exit) {
         setPeek(root)
         setExitHint({ root, progress })
@@ -1134,13 +1242,9 @@ export function Canvas() {
   /** Related links never block, so they stay faint except around the cards being looked at. */
   const relatedFocus = useMemo(() => new Set([pinned, hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
 
-  const [drawnEdges] = useState(() => new Map<string, { edge: Edge; print: string }>())
-  const edges = useMemo(() => {
-    const resultEdges: Edge[] = []
-    const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
-    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
-
-    for (const link of links) {
+  /** Where a link is drawn: the nodes standing in for its ends, ghosts for ends outside the open group, or null when it isn't drawn. */
+  const drawnEnds = useCallback(
+    (link: Link) => {
       let source = view.rep(link.from)
       let target = view.rep(link.to)
 
@@ -1148,8 +1252,25 @@ export function Canvas() {
 
       if (root && !peeking && source && !target && !source.startsWith('ghost:')) target = `ghost:out:${link.to}`
 
-      if (!source || !target || source === target) continue
+      if (!source || !target || source === target) return null
 
+      return { source, target }
+    },
+    [view, root, peeking],
+  )
+
+  const [drawnEdges] = useState(() => new Map<string, { edge: Edge; print: string }>())
+  const edges = useMemo(() => {
+    const resultEdges: Edge[] = []
+    const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
+    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
+
+    for (const link of links) {
+      const ends = drawnEnds(link)
+
+      if (!ends) continue
+
+      const { source, target } = ends
       const flow = work.flow.get(link.from) ?? 'live'
       const direct = (source === link.from || source.startsWith('ghost:')) && (target === link.to || target.startsWith('ghost:'))
 
@@ -1204,7 +1325,7 @@ export function Canvas() {
     }
 
     return keepDrawn(drawnEdges, resultEdges)
-  }, [links, view, work, trace, root, peeking, inFocus, relatedFocus, drawnEdges])
+  }, [links, drawnEnds, work, trace, peeking, inFocus, relatedFocus, drawnEdges])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1457,6 +1578,8 @@ export function Canvas() {
 
       if (!node || !isTask(node) || !box) return
 
+      remember()
+
       if (!focus || !focusEntry.current) focusEntry.current = { viewport: reactFlow.getViewport(), moved: false }
       else if (id !== focus) focusEntry.current.moved = true
 
@@ -1483,7 +1606,7 @@ export function Canvas() {
       setFocus(id)
       void reactFlow.setViewport(focusViewport(node, nodeMap, box), FOCUS_MOVE)
     },
-    [reactFlow, focus, peeking, inFocus, inView, leaveRoot, setHover, setNodes, setPinned],
+    [reactFlow, focus, peeking, inFocus, inView, leaveRoot, remember, setHover, setNodes, setPinned],
   )
 
   const exitFocus = useCallback(() => {
@@ -1491,6 +1614,7 @@ export function Canvas() {
     const nodeMap = byId(latest.current.nodes)
     const node = focus ? nodeMap.get(focus) : undefined
 
+    remember()
     setFocus(null)
     focusEntry.current = null
 
@@ -1507,7 +1631,90 @@ export function Canvas() {
     const zoom = (root ? fitZoom.current.get(root) : undefined) ?? entry.viewport.zoom
 
     void reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom, ...FOCUS_MOVE })
-  }, [focus, root, reactFlow])
+  }, [focus, root, reactFlow, remember])
+
+  /** Puts the canvas back at a place from its history. */
+  const goTo = useCallback(
+    (place: Place<FocusEntry>) => {
+      const nodeMap = byId(latest.current.nodes)
+      const group = place.root ? nodeMap.get(place.root) : undefined
+      const box = canvasRef.current?.getBoundingClientRect()
+      const picked = new Set(place.selected)
+
+      pendingFocus.current = null
+      setPeek(null)
+      setExitHint(null)
+      setHover(null)
+      setPinned(null)
+
+      // Zooming out of a group measures from its fitted zoom, which a group reopened from history may not have yet.
+      if (group && box && !fitZoom.current.has(group.id)) fitZoom.current.set(group.id, groupFitViewport(group, nodeMap, box).zoom)
+
+      if (place.root !== root) {
+        skipNextFit.current = true
+        setRoot(place.root)
+      }
+
+      setFocus(place.focus)
+      focusEntry.current = place.focus && place.extra ? { ...place.extra } : null
+      setNodes((currentNodes) =>
+        currentNodes.map((node) => (!!node.selected === picked.has(node.id) ? node : { ...node, selected: picked.has(node.id) })),
+      )
+      void reactFlow.setViewport(place.viewport, place.focus || focus ? FOCUS_MOVE : { duration: 450 })
+    },
+    [root, focus, reactFlow, setHover, setNodes, setPinned],
+  )
+
+  const travelTo = useCallback(
+    (direction: 'back' | 'forward') => {
+      const nodeMap = byId(latest.current.nodes)
+
+      const exists = (place: Place<FocusEntry>) => {
+        const group = place.root ? nodeMap.get(place.root) : undefined
+        const card = place.focus ? nodeMap.get(place.focus) : undefined
+
+        return (!place.root || (!!group && isCluster(group))) && (!place.focus || (!!card && isTask(card)))
+      }
+
+      const result = travel(trail.current, here(), direction, exists)
+
+      if (!result) return
+
+      updateTrail(result.trail)
+      goTo(result.place)
+    },
+    [here, goTo, updateTrail],
+  )
+
+  useEffect(() => {
+    const isSide = (event: MouseEvent) => event.button === 3 || event.button === 4
+
+    // Handled on release, and the press is swallowed too, so the browser doesn't navigate the page.
+    const press = (event: MouseEvent) => isSide(event) && event.preventDefault()
+
+    const release = (event: MouseEvent) => {
+      if (!isSide(event)) return
+
+      event.preventDefault()
+      travelTo(event.button === 3 ? 'back' : 'forward')
+    }
+
+    const fromShell = (event: Event) => {
+      const direction = (event as CustomEvent<unknown>).detail
+
+      if (direction === 'back' || direction === 'forward') travelTo(direction)
+    }
+
+    window.addEventListener('mousedown', press, true)
+    window.addEventListener('mouseup', release, true)
+    window.addEventListener(NAVIGATE_EVENT, fromShell)
+
+    return () => {
+      window.removeEventListener('mousedown', press, true)
+      window.removeEventListener('mouseup', release, true)
+      window.removeEventListener(NAVIGATE_EVENT, fromShell)
+    }
+  }, [travelTo])
 
   const focusItems = useMemo(() => {
     if (!focus) return null
@@ -1557,17 +1764,39 @@ export function Canvas() {
     }
   }, [focus, links, map, work])
 
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      if (!connection.source || !connection.target || connection.source === connection.target) return
+  // ---- Drawing links ----
+
+  /** A drawn link never replaces one that already joins the pair, whichever way it runs. */
+  const connect = useCallback(
+    (from: string, to: string) => {
+      if (from === to) return
 
       setLinks((currentLinks) =>
-        currentLinks.some((link) => link.from === connection.source && link.to === connection.target)
+        currentLinks.some((link) => (link.from === from && link.to === to) || (link.from === to && link.to === from))
           ? currentLinks
-          : [...currentLinks, { id: `${connection.source}>${connection.target}`, from: connection.source, to: connection.target, kind: 'blocks' }],
+          : [...currentLinks, { id: `${from}>${to}`, from, to, kind: 'blocks' }],
       )
     },
     [setLinks],
+  )
+  const onConnect = useCallback((connection: Connection) => connect(connection.source, connection.target), [connect])
+  const [linking, setLinking] = useState(false)
+  /** Dropping a link anywhere on a card joins it, not only on the card's small handle. */
+  const onConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent, state: FinalConnectionState) => {
+      setLinking(false)
+
+      if (state.isValid || !state.fromNode || !state.fromHandle) return
+
+      const point = 'changedTouches' in event ? event.changedTouches[0] : event
+      const dropped = document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node-task')?.dataset.id
+
+      if (!dropped) return
+
+      if (state.fromHandle.type === 'source') connect(state.fromNode.id, dropped)
+      else connect(dropped, state.fromNode.id)
+    },
+    [connect],
   )
 
   const selected = nodes.filter((node) => node.selected && !view.hidden.has(node.id))
@@ -1655,21 +1884,25 @@ export function Canvas() {
 
   // ---- Notes and links ----
 
-  /** Adds a note with its top-left at `at` (flow coordinates), optionally spliced into links. */
+  /** Adds a note, or a work item with `itemKind: 'step'`, with its top-left at `at` (flow coordinates), optionally spliced into links. */
   const addNote = useCallback(
-    (at: { x: number; y: number }, options: { parent?: string | null; from?: string; to?: string; replace?: string } = {}) => {
+    (
+      at: { x: number; y: number },
+      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' } = {},
+    ) => {
       const { nodes: currentNodes, links: currentLinks } = latest.current
       const nodeMap = byId(currentNodes)
       const parent = options.parent === undefined ? root : options.parent
       const parentNode = parent ? nodeMap.get(parent) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
-      const id = newId('note')
+      const itemKind = options.itemKind ?? 'note'
+      const id = newId(itemKind === 'note' ? 'note' : 'card')
       const note: AppNode = {
         id,
         type: 'task',
         parentId: parentNode?.id,
         position: { x: at.x - origin.x, y: at.y - origin.y },
-        data: { kind: 'task', label: '', itemKind: 'note', status: 'todo' },
+        data: { kind: 'task', label: '', itemKind, status: 'todo' },
         selected: true,
       }
       const kind = currentLinks.find((link) => link.id === options.replace)?.kind ?? 'blocks'
@@ -1679,9 +1912,27 @@ export function Canvas() {
 
       if (options.to) next.push({ id: `${id}>${options.to}`, from: id, to: options.to, kind })
 
-      setNodes(normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note]))
+      const nextNodes = normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note])
+
+      setNodes(nextNodes)
       setLinks(next)
       setEditing(id)
+
+      // An automatic group lays out its new item in line. Only positions and sizes come back, so text typed meanwhile stays.
+      if (options.replace && parentNode && isCluster(parentNode) && parentNode.data.arrange !== 'custom')
+        void reflow(nextNodes, next, parentNode.id).then((laidOut) => {
+          const placed = byId(laidOut)
+
+          setNodes((latestNodes) =>
+            latestNodes.map((node) => {
+              const placedNode = placed.get(node.id)
+
+              if (!placedNode) return node
+
+              return { ...node, position: placedNode.position, width: placedNode.width, height: placedNode.height }
+            }),
+          )
+        })
     },
     [root, setLinks, setNodes],
   )
@@ -1904,7 +2155,8 @@ export function Canvas() {
     setWheel(null)
   }, [])
 
-  const insertNoteOnLink = (linkId: string) => {
+  /** Splits a link with a new note or work item placed between its ends. */
+  const insertOnLink = (linkId: string, itemKind: 'note' | 'step') => {
     const link = links.find((candidate) => candidate.id === linkId)
     const sourceNode = link && map.get(link.from)
     const targetNode = link && map.get(link.to)
@@ -1918,7 +2170,7 @@ export function Canvas() {
 
     addNote(
       { x: (sourcePosition.x + targetPosition.x) / 2, y: (sourcePosition.y + targetPosition.y) / 2 + TASK_HEIGHT },
-      { parent, from: link.from, to: link.to, replace: link.id },
+      { parent, from: link.from, to: link.to, replace: link.id, itemKind },
     )
   }
 
@@ -1970,13 +2222,26 @@ export function Canvas() {
     if (target.kind === 'sticker')
       return [{ label: 'Remove sticker', danger: true, run: () => setStickers((stickers) => stickers.filter((sticker) => sticker.id !== target.id)) }]
 
+    if (target.kind === 'edge' && target.id.startsWith('agg:')) {
+      const key = target.id.slice('agg:'.length)
+      const bundled = links.filter((link) => {
+        const ends = link.kind === 'blocks' && drawnEnds(link)
+
+        return ends && `${ends.source}>${ends.target}` === key
+      })
+      const labelOf = (id: string) => map.get(id)?.data.label || 'Untitled'
+
+      return bundled.map((link) => ({ label: `Remove ${labelOf(link.from)} → ${labelOf(link.to)}`, danger: true, run: () => removeLink(link.id) }))
+    }
+
     if (target.kind === 'edge') {
       const link = links.find((candidate) => candidate.id === target.id)
 
       if (!link) return []
 
       return [
-        { label: 'Insert a note here', run: () => insertNoteOnLink(link.id) },
+        { label: 'Add card here', run: () => insertOnLink(link.id, 'step') },
+        { label: 'Insert a note here', run: () => insertOnLink(link.id, 'note') },
         { label: link.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link', run: () => flipLink(link.id) },
         'divider',
         { label: 'Remove link', danger: true, run: () => removeLink(link.id) },
@@ -2030,7 +2295,7 @@ export function Canvas() {
         ]
 
       const data = node.data as TaskData
-      const url = getTaskUrl(data, githubOwner)
+      const url = getTaskUrl(data)
 
       return [
         ...many,
@@ -2057,14 +2322,37 @@ export function Canvas() {
     const onKey = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
 
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'p') {
+        event.preventDefault()
+        setPaletteQuery(COMMAND_PREFIX)
+
+        return
+      }
+
       if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        setPaletteOpen(true)
+        setPaletteQuery('')
 
         return
       }
 
       if (paletteOpen) return
+
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && (event.code === 'BracketLeft' || event.code === 'BracketRight')) {
+        event.preventDefault()
+        travelTo(event.code === 'BracketLeft' ? 'back' : 'forward')
+
+        return
+      }
+
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+
+        if (event.shiftKey) redo()
+        else undo()
+
+        return
+      }
 
       if (focus) {
         if (event.key === 'Escape') exitFocus()
@@ -2114,6 +2402,9 @@ export function Canvas() {
     paletteOpen,
     focus,
     exitFocus,
+    travelTo,
+    undo,
+    redo,
     setNodes,
     setPinned,
   ])
@@ -2126,6 +2417,12 @@ export function Canvas() {
   const readyTotal = [...work.status.values()].filter((status) => status === 'ready').length
 
   const commands: Command[] = [
+    ...(trailSize.back ? [{ id: 'go-back', label: 'Go back', detail: 'Return to the previous view', hint: '⌘[', run: () => travelTo('back') }] : []),
+    ...(trailSize.forward
+      ? [{ id: 'go-forward', label: 'Go forward', detail: 'Return to the view you went back from', hint: '⌘]', run: () => travelTo('forward') }]
+      : []),
+    ...(canUndo ? [{ id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', hint: '⌘Z', run: undo }] : []),
+    ...(canRedo ? [{ id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', hint: '⇧⌘Z', run: redo }] : []),
     {
       id: 'fit-board',
       label: 'Fit entire board',
@@ -2229,7 +2526,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
           style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
           ref={canvasRef}
           onPointerDown={startMarquee}
@@ -2251,7 +2548,14 @@ export function Canvas() {
               onMove={onViewportMove}
               onNodeDragStop={onDragStop}
               onConnect={onConnect}
-              onNodeMouseEnter={(_, node) => !focus && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)}
+              onConnectStart={() => {
+                setLinking(true)
+                setHover(null)
+              }}
+              onConnectEnd={onConnectEnd}
+              onNodeMouseEnter={(_, node) =>
+                !focus && !linking && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)
+              }
               onNodeMouseLeave={() => setHover(null)}
               onNodeClick={(event, node) => {
                 if (tool === 'sticker') return stamp(event)
@@ -2314,7 +2618,7 @@ export function Canvas() {
                 openMenu(event, { kind: 'node', id: node.id })
               }}
               onSelectionContextMenu={(event, currentNodes) => openMenu(event, { kind: 'node', id: currentNodes[0]?.id ?? '' })}
-              onEdgeContextMenu={(event, edge) => !edge.id.startsWith('agg:') && openMenu(event, { kind: 'edge', id: edge.id })}
+              onEdgeContextMenu={(event, edge) => openMenu(event, { kind: 'edge', id: edge.id })}
               panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
               selectionKeyCode={null}
               selectionOnDrag={false}
@@ -2345,8 +2649,11 @@ export function Canvas() {
                 />
               )}
               <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
+              {nodes.length === 0 && <EmptyCanvas addNote={() => addNote(viewportCenter())} />}
               {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
               <Controls showInteractive={false} />
+              {/* The desktop shell hides the native title bar, so this strip along the top drags the window. */}
+              <div className="window-drag" data-tauri-drag-region aria-hidden="true" onPointerDown={(event) => event.stopPropagation()} />
               {mergeNotice !== null && (
                 <Panel
                   position="bottom-left"
@@ -2378,7 +2685,7 @@ export function Canvas() {
                 }
               />
 
-              <Panel position="top-left" className="panel crumbs">
+              <Panel position="top-left" className="panel crumbs" data-tauri-drag-region="deep">
                 {!sidebar && (
                   <button type="button" className="crumb" onClick={() => toggleSidebar(true)} title="Show the group list">
                     ☰
@@ -2395,51 +2702,32 @@ export function Canvas() {
                     </button>
                   </span>
                 ))}
-                <span className="crumb-actions">
-                  <button type="button" className="btn" onClick={() => setPaletteOpen(true)}>
-                    Search <kbd>⌘K</kbd>
-                  </button>
-                  <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
-                    Add note
-                  </button>
-                  <label className="btn image-upload">
-                    Add image
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/gif,image/webp"
-                      onChange={(event) => {
-                        const file = event.currentTarget.files?.[0]
-
-                        if (file) void addImage(file)
-
-                        event.currentTarget.value = ''
-                      }}
-                    />
-                  </label>
-                  {!rootCustom && (
-                    <button type="button" className="btn" onClick={tidy}>
-                      Tidy {root ? 'group' : 'canvas'}
-                    </button>
-                  )}
-                  {syncStatus && (
-                    <button
-                      type="button"
-                      className="sync-status"
-                      title={syncStatus.message ?? 'Sync with GitHub now'}
-                      onClick={() => void requestSync(true).then((status) => status && setSyncStatus(status))}
-                    >
-                      {syncStatus.state === 'running'
-                        ? 'Syncing…'
-                        : syncStatus.state === 'error'
-                          ? 'Sync failed'
-                          : syncStatus.state === 'unavailable'
-                            ? 'Sync unavailable'
-                            : syncStatus.lastRun
-                              ? `Synced ${relativeTime(syncStatus.lastRun, clock)}`
-                              : 'Sync now'}
-                    </button>
-                  )}
-                </span>
+              </Panel>
+              <Panel position="center-left">
+                <ActionBar
+                  search={() => setPaletteQuery('')}
+                  addNote={() => addNote(viewportCenter())}
+                  addImage={(file) => void addImage(file)}
+                  tidy={rootCustom ? undefined : { label: `Tidy ${root ? 'group' : 'canvas'}`, run: tidy }}
+                  sync={
+                    syncStatus
+                      ? {
+                          status: syncStatus,
+                          label:
+                            syncStatus.state === 'running'
+                              ? 'Syncing…'
+                              : syncStatus.state === 'error'
+                                ? 'Sync failed'
+                                : syncStatus.state === 'unavailable'
+                                  ? 'Sync unavailable'
+                                  : syncStatus.lastRun
+                                    ? `Synced ${relativeTime(syncStatus.lastRun, clock)}`
+                                    : 'Sync now',
+                          run: () => void requestSync(true).then((status) => status && setSyncStatus(status)),
+                        }
+                      : undefined
+                  }
+                />
               </Panel>
 
               {selected.length > 0 && (
@@ -2464,10 +2752,11 @@ export function Canvas() {
                     <TaskInspector
                       key={one.id}
                       node={one}
+                      focus={editing === one.id}
+                      doneEditing={() => setEditing(null)}
                       work={work}
                       map={map}
                       github={github}
-                      githubOwner={githubOwner}
                       update={updateData}
                       jumpTo={jumpTo}
                       links={links}
@@ -2538,9 +2827,10 @@ export function Canvas() {
                   {showHelp ? (
                     <>
                       V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
-                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘G group · ⇧⌘G ungroup · double-click a group to open ·
-                      double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit · drag from a
-                      card's edge to link · hold Ctrl while dragging to skip snapping{' '}
+                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘K search · ⇧⌘P actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G
+                      ungroup · double-click a group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to
+                      go up · mouse back and forward or ⌘[ and ⌘] to retrace views · N note · ⇧1 fit · drag from a card's edge to link · hold Ctrl
+                      while dragging to skip snapping{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>
@@ -2599,7 +2889,6 @@ export function Canvas() {
                   work={work}
                   map={map}
                   github={github}
-                  githubOwner={githubOwner}
                   update={updateData}
                   jumpTo={focusOn}
                   connections={false}
@@ -2626,7 +2915,16 @@ export function Canvas() {
             />
           )}
         </div>
-        {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
+        {paletteQuery !== null && (
+          <Palette
+            nodes={nodes}
+            commands={commands}
+            jumpTo={jumpTo}
+            open={actions.open}
+            close={() => setPaletteQuery(null)}
+            initialQuery={paletteQuery}
+          />
+        )}
       </div>
     </ActionsContext.Provider>
   )

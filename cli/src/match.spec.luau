@@ -7,11 +7,20 @@ test.case(
 	"candidates rank words and repository agreement, excluding notes, linked cards, and done work",
 	function(assert)
 		local doc = testing.createDoc({
-			testing.task("best", "Release dashboard", "todo", nil, { repo = "flipbook", note = "health" }),
+			testing.task(
+				"best",
+				"Release dashboard",
+				"todo",
+				nil,
+				{ repo = "flipbook-labs/flipbook", note = "health" }
+			),
 			testing.task("generic", "Release health", "active"),
 			testing.task("other", "Release health dashboard", "todo", nil, { repo = "storyteller" }),
-			testing.task("linked", "Release health dashboard", "todo", nil, { repo = "flipbook", pr = 1 }),
-			testing.task("done", "Release health dashboard", "done", nil, { repo = "flipbook" }),
+			testing.task("linked", "Release health dashboard", "todo", nil, {
+				repo = "flipbook-labs/flipbook",
+				refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#1" } },
+			}),
+			testing.task("done", "Release health dashboard", "done", nil, { repo = "flipbook-labs/flipbook" }),
 			testing.task("note", "Release health dashboard", "todo", nil, { itemKind = "note" }),
 		})
 		local candidates = match.candidates(doc, "Add release health dashboard", "flipbook-labs", "flipbook")

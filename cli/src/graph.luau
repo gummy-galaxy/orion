@@ -1,6 +1,10 @@
 local json = require("@std/json")
 
 local fieldValues = require("@root/fieldValues")
+local findRef = require("@root/refs/findRef")
+local getGithubKey = require("@root/refs/getGithubKey")
+local removeRef = require("@root/refs/removeRef")
+local setRef = require("@root/refs/setRef")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -319,6 +323,11 @@ end
 
 local function checkFields(fields: ItemFields)
 	assert(
+		fields.repo == nil or fields.repo == "" or fields.repo:match("^[%w_.%-]+/[%w_.%-]+$"),
+		"repo must be owner/name"
+	)
+	assert(fields.pr == nil or fields.repo ~= "", "pr needs a repository as owner/name")
+	assert(
 		fields.status == nil or table.find(fieldValues.statuses, fields.status),
 		`status must be one of {table.concat(fieldValues.statuses, ", ")}`
 	)
@@ -342,12 +351,13 @@ export type AddOptions = ItemFields & { group: string? }
 function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	assert(label ~= "", "an item needs a label")
 	checkFields(options)
+	assert(options.pr == nil or options.repo ~= nil, "pr needs a repository as owner/name")
 
 	if options.group then
 		graph.group(doc, options.group)
 	end
 
-	local base = if options.repo and options.pr then `{slug(options.repo)}-{options.pr}` else slug(label)
+	local base = if options.repo and options.pr then `{slug(options.repo :: string)}-{options.pr}` else slug(label)
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
@@ -355,7 +365,6 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 		status = options.status or "todo",
 	})
 	data.repo = options.repo
-	data.pr = options.pr
 	data.note = options.note
 	data.who = if options.who == "" then nil else options.who
 	local item: Item = {
@@ -365,6 +374,15 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 		parentId = options.group,
 		data = data,
 	}
+	if options.pr and options.repo then
+		local owner, name = options.repo:match("^([^/]+)/([^/]+)$")
+		setRef(item, {
+			source = "github",
+			kind = "pull",
+			key = getGithubKey(assert(owner), assert(name), `#{options.pr}`),
+			url = `https://github.com/{options.repo}/pull/{options.pr}`,
+		})
+	end
 	table.insert(doc.nodes, item)
 	return item
 end
@@ -439,10 +457,22 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	if fields.repo then
 		item.data.repo = if fields.repo == "" then nil else fields.repo
+		if fields.repo == "" then
+			removeRef(item, "pull")
+		end
 	end
 
 	if fields.pr then
-		item.data.pr = fields.pr
+		local repo = field(item, "repo")
+		assert(repo, "pr needs a repository as owner/name")
+		local owner, name = repo:match("^([^/]+)/([^/]+)$")
+		removeRef(item, "pull")
+		setRef(item, {
+			source = "github",
+			kind = "pull",
+			key = getGithubKey(assert(owner), assert(name), `#{fields.pr}`),
+			url = `https://github.com/{repo}/pull/{fields.pr}`,
+		})
 	end
 
 	if fields.kind then
@@ -451,9 +481,9 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	if not graph.isNote(item) and (fields.repo or fields.pr or fields.kind) then
 		local repo = field(item, "repo")
-		local pr = item.data.pr
+		local pr = findRef(item, "pull")
 		local kind = fields.kind or (if graph.isGate(item) then "gate" else nil)
-		item.data.itemKind = itemKindFor(repo, if type(pr) == "number" then pr else nil, kind)
+		item.data.itemKind = itemKindFor(repo, if pr then 1 else nil, kind)
 	end
 
 	return item

@@ -2,7 +2,10 @@ import { LinkList } from './LinkList'
 import type { Work } from '../derive'
 import {
   STATUS_LABEL,
+  editPullRef,
   getItemKind,
+  getPullRef,
+  getPullRequestNumber,
   getTaskUrl,
   getTaskTag,
   githubSummary,
@@ -11,6 +14,7 @@ import {
   type AppNode,
   type GithubSnapshot,
   type Link,
+  type PullDetails,
   type Status,
   type TaskData,
   type Who,
@@ -21,10 +25,11 @@ export function TaskInspector({
   work,
   map,
   github,
-  githubOwner,
   update,
   jumpTo,
   connections = true,
+  focus = false,
+  doneEditing,
   links,
   addLink,
   removeLink,
@@ -34,11 +39,13 @@ export function TaskInspector({
   work: Work
   map: Map<string, AppNode>
   github: GithubSnapshot | null
-  githubOwner: string
   update: (id: string, patch: Partial<TaskData>) => void
   jumpTo: (id: string) => void
   /** Focus view draws connections beside the inspector. */
   connections?: boolean
+  /** Focuses the title, for a card that was just added. */
+  focus?: boolean
+  doneEditing?: () => void
   links: Link[]
   addLink: (from: string, to: string, kind: Link['kind']) => void
   removeLink: (id: string) => void
@@ -47,17 +54,20 @@ export function TaskInspector({
   const data = node.data as TaskData
   const status = work.status.get(node.id) ?? 'ready'
   const leverage = work.leverage.get(node.id) ?? 0
-  const url = getTaskUrl(data, githubOwner)
+  const url = getTaskUrl(data)
+  const pullRef = getPullRef(data)
+  const pullDetails = pullRef?.details as PullDetails | undefined
   const linked = new Set(
-    [...map.values()]
-      .filter(isTask)
-      .filter((node) => node.data.repo && node.data.pr)
-      .map((node) => `${node.data.repo}#${node.data.pr}`),
+    [...map.values()].filter(isTask).flatMap((node) => {
+      const ref = getPullRef(node.data)
+
+      return ref ? [ref.key.toLowerCase()] : []
+    }),
   )
-  const suggestions = data.pr
+  const suggestions = pullRef
     ? []
     : (github?.unplaced ?? [])
-        .filter((pullRequest) => !linked.has(`${pullRequest.repo}#${pullRequest.number}`))
+        .filter((pullRequest) => !linked.has(`${pullRequest.repo}#${pullRequest.number}`.toLowerCase()))
         .flatMap((pullRequest) =>
           pullRequest.matches.filter((match) => match.id === node.id).map((match) => ({ pr: pullRequest, score: match.score })),
         )
@@ -66,35 +76,42 @@ export function TaskInspector({
   return (
     <div className="insp">
       <label htmlFor="t-label">Title</label>
-      <input id="t-label" value={data.label} onChange={(event) => update(node.id, { label: event.target.value })} />
+      <input
+        id="t-label"
+        value={data.label}
+        autoFocus={focus}
+        onBlur={doneEditing}
+        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+        onChange={(event) => update(node.id, { label: event.target.value })}
+      />
       {url && (
         <a className="pr-link" href={url} target="_blank" rel="noreferrer">
           Open {getTaskTag(data)} ↗
         </a>
       )}
-      {data.github && (
+      {pullDetails && (
         <div className="github-details">
-          <p className="facts">{githubSummary(data.github)}</p>
+          <p className="facts">{githubSummary(pullDetails)}</p>
           <p className="facts">
-            {data.github.checks && (
+            {pullDetails.checks && (
               <>
-                <span className={`check-dot check-${data.github.checks.toLowerCase()}`} />
-                {data.github.checks === 'SUCCESS'
+                <span className={`check-dot check-${pullDetails.checks.toLowerCase()}`} />
+                {pullDetails.checks === 'SUCCESS'
                   ? 'Checks passing'
-                  : ['FAILURE', 'ERROR'].includes(data.github.checks)
+                  : ['FAILURE', 'ERROR'].includes(pullDetails.checks)
                     ? 'Checks failing'
                     : 'Checks pending'}{' '}
                 ·{' '}
               </>
             )}
-            {typeof data.github.additions === 'number' && (
+            {typeof pullDetails.additions === 'number' && (
               <>
-                +{data.github.additions} −{data.github.deletions} · updated {relativeTime(data.github.updatedAt)}
+                +{pullDetails.additions} −{pullDetails.deletions} · updated {relativeTime(pullDetails.updatedAt)}
               </>
             )}
           </p>
-          {data.github.author && !data.github.mine && <p className="facts">By {data.github.author}</p>}
-          {data.github.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
+          {pullDetails.author && !pullDetails.mine && <p className="facts">By {pullDetails.author}</p>}
+          {pullDetails.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
         </div>
       )}
       <label className="gate-toggle">
@@ -111,11 +128,11 @@ export function TaskInspector({
           <input
             id="t-repo"
             value={data.repo ?? ''}
-            placeholder="None"
+            placeholder="owner/name"
             onChange={(event) => {
-              const repo = event.target.value.trim() || undefined
+              const repo = event.target.value || undefined
 
-              update(node.id, { repo, itemKind: getItemKind({ ...data, repo }) })
+              update(node.id, editPullRef(data, repo, getPullRequestNumber(pullRef)))
             }}
           />
         </div>
@@ -124,13 +141,14 @@ export function TaskInspector({
           <input
             id="t-pr"
             inputMode="numeric"
-            value={data.pr ?? ''}
+            value={getPullRequestNumber(pullRef) ?? ''}
             placeholder="Not opened"
+            disabled={!data.repo?.trim()}
             onChange={(event) => {
               const number = Number(event.target.value.replace(/^#/, ''))
               const pullRequest = Number.isInteger(number) && number > 0 ? number : undefined
 
-              update(node.id, { pr: pullRequest, itemKind: getItemKind({ ...data, pr: pullRequest }) })
+              update(node.id, editPullRef(data, data.repo, pullRequest))
             }}
           />
         </div>
@@ -172,17 +190,7 @@ export function TaskInspector({
                   {pullRequest.repo}#{pullRequest.number} · {score >= 0.6 ? 'High' : score >= 0.35 ? 'Medium' : 'Low'} confidence
                 </span>
               </div>
-              <button
-                type="button"
-                className="btn"
-                onClick={() =>
-                  update(node.id, {
-                    repo: pullRequest.repo,
-                    pr: pullRequest.number,
-                    itemKind: getItemKind({ ...data, repo: pullRequest.repo, pr: pullRequest.number }),
-                  })
-                }
-              >
+              <button type="button" className="btn" onClick={() => update(node.id, editPullRef(data, pullRequest.repo, pullRequest.number))}>
                 Link
               </button>
             </div>

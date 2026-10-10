@@ -1,10 +1,11 @@
 import { memo } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import { STATUS_LABEL, getTaskTag, type TaskNode } from '../model'
+import { STATUS_LABEL, getPullRef, getTaskTag, type PullDetails, type TaskNode } from '../model'
 import { SourceBadges } from './SourceBadges'
 import { useLeverage, useMarked, useSources, useStatus, useTraceRole } from '../state'
 import { FarTag } from './FarTag'
 import { Lock } from './Lock'
+import { OpenInVscode } from './OpenInVscode'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 /** Zoom below which a card's details sit in a tag over its body that keeps one on-screen size. */
@@ -18,6 +19,8 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const sources = useSources(id)
+  const pullRequestUrl = data.itemKind === 'pr' ? sources.find((source) => source.href?.startsWith('https://github.com/'))?.href : undefined
+  const checks = (getPullRef(data)?.details as PullDetails | undefined)?.checks
 
   if (data.itemKind === 'note') {
     const className = `card note${trace ? ' tr-' + trace : ''}`
@@ -48,9 +51,7 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
         <span className="meta-tag" title={getTaskTag(data)}>
           {getTaskTag(data)}
         </span>
-        {data.github?.checks && (
-          <span className={`check-dot check-${data.github.checks.toLowerCase()}`} title={`Checks: ${data.github.checks.toLowerCase()}`} />
-        )}
+        {checks && <span className={`check-dot check-${checks.toLowerCase()}`} title={`Checks: ${checks.toLowerCase()}`} />}
         <span className="st" title={STATUS_LABEL[status]}>
           {status === 'blocked' && <Lock />}
           <span className="st-label">{STATUS_LABEL[status]}</span>
@@ -59,7 +60,10 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
       <div className="label">{data.label}</div>
       {status !== 'done' && status !== 'deferred' && leverage > 0 && <span className={`lev${leverage >= 4 ? ' big' : ''}`}>unblocks {leverage}</span>}
       {status !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
-      <SourceBadges sources={sources} />
+      <div className="card-actions">
+        {pullRequestUrl && <OpenInVscode url={pullRequestUrl} />}
+        <SourceBadges sources={sources} />
+      </div>
     </>
   )
 

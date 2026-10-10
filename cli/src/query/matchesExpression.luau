@@ -1,5 +1,7 @@
 local json = require("@std/json")
 
+local findRef = require("@root/refs/findRef")
+local getRefs = require("@root/refs/getRefs")
 local graph = require("@root/graph")
 local parseExpression = require("@root/query/parseExpression")
 local types = require("@root/types")
@@ -21,11 +23,11 @@ local function getField(item: Item, derived: graph.Derived, field: string): stri
 	elseif field == "group" then
 		value = item.parentId
 	elseif field == "draft" then
-		local github = json.asObject(item.data.github)
-		value = if github then github.draft else nil
-	elseif field == "ref" then
-		local external = json.asObject(item.data.external)
-		value = if external then external.key else nil
+		local pull = findRef(item, "pull")
+		value = if pull and pull.details then pull.details.draft else nil
+	elseif field == "pr" then
+		local pull = findRef(item, "pull")
+		value = if pull then pull.key:match("#(%d+)$") else nil
 	else
 		value = item.data[field]
 	end
@@ -39,11 +41,30 @@ local function matchesExpression(derived: graph.Derived, item: Item, expression:
 	local function evaluate(node: Expression): boolean?
 		if node.kind == "comparison" then
 			local field = node.field :: string
+			local value = node.value :: string
+
+			if field == "ref" then
+				local refs = getRefs(item)
+
+				if #refs == 0 then
+					return nil
+				end
+
+				for _, ref in refs do
+					if node.operator == "~" and ref.key:lower():find(value:lower(), 1, true) then
+						return true
+					elseif ref.key:lower() == value:lower() then
+						return node.operator == "="
+					end
+				end
+
+				return node.operator == "!="
+			end
+
 			local actual = getField(item, derived, field)
 			if actual == nil then
 				return nil
 			end
-			local value = node.value :: string
 			if node.operator == "~" then
 				return actual:lower():find(value:lower(), 1, true) ~= nil
 			end

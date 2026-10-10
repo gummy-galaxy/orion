@@ -1,5 +1,6 @@
 local json = require("@std/json")
 
+local getPrimaryRef = require("@root/refs/getPrimaryRef")
 local graph = require("@root/graph")
 local pad = require("@root/render/pad")
 local types = require("@root/types")
@@ -15,17 +16,19 @@ end
 
 function render.tag(item: Item): string
 	local repo = asString(item.data.repo)
-	local pr = item.data.pr
+	local primary = getPrimaryRef(item)
 
-	if graph.isNote(item) then
+	if primary then
+		return primary.key
+	elseif repo then
+		return repo
+	elseif graph.isNote(item) then
 		return "note"
 	elseif graph.isGate(item) then
 		return "gate"
-	elseif repo and type(pr) == "number" then
-		return `{repo}#{pr}`
 	end
 
-	return repo or "step"
+	return "step"
 end
 
 local function groupLabel(doc: Doc, item: Item): string?
@@ -55,10 +58,9 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 	object.group = item.parentId
 	object.groupLabel = groupLabel(doc, item)
 	object.repo = item.data.repo
-	object.pr = item.data.pr
+	object.refs = item.data.refs
 	object.who = item.data.who
 	object.note = item.data.note
-	object.github = item.data.github
 	local waitsOn: json.Array = {}
 	local unblocks: json.Array = {}
 

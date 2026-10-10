@@ -2,12 +2,14 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local applyPulls = require("@root/github/applyPulls")
 local backups = require("@root/cli/backups")
 local batchEdit = require("@root/cli/batchEdit")
+local collectPulls = require("@root/github/collectPulls")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local focus = require("@root/cli/focus")
-local github = require("@root/github")
+local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
 local mcp = require("@root/cli/mcp")
@@ -86,7 +88,7 @@ local ABOUT = [[
 Statuses: todo, active, review, blocked, deferred, done.
   Listed statuses are derived: todo shows as ready once nothing it waits on is open,
   and as blocked while something is. Notes pass blocking through and never count as work.
-Repositories are "name" under the default owner (flipbook-labs) or "owner/name".
+Repositories are "owner/name".
 Data lives in Orion's user data folder (run orion path to see it); set ORION_DATA_DIR to change it.
 The Orion app talks to orion serve, which watches the data files.
 Use orion serve status [--json] to find the running server.
@@ -94,7 +96,7 @@ While the app is open, orion focus shows its open group and selection.]]
 
 local QUERY_HELP = [[
 Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref.
-Compare quoted values with = or !=; label also supports ~ for case-insensitive text.
+Compare quoted values with = or !=; label and ref also support ~ for case-insensitive text.
 Combine with and, or, not, and parentheses. Missing fields never match.]]
 
 local function addHelpFlag(parser: cli.Parser)
@@ -111,7 +113,7 @@ end
 
 local function addFieldOptions(parser: cli.Parser)
 	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
-	parser:add("repo", "option", { help = "Repository, as name or owner/name" })
+	parser:add("repo", "option", { help = "Repository, as owner/name" })
 	parser:add("pr", "option", { help = "Pull request number" })
 	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
 	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
@@ -403,7 +405,7 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
 end
 
-local function syncReport(report: github.Report, dryRun: boolean): string
+local function syncReport(report: githubTypes.Report, dryRun: boolean): string
 	local lines = { `{if dryRun then "Would update" else "Checked"} {report.checked} pull requests on GitHub.` }
 
 	for _, change in report.changes do
@@ -786,14 +788,14 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif command == "sync" then
 		local dryRun = parser:has("dry-run")
-		local fetched = github.collect(store.load(dir), deps.runner, parser:has("discover"))
-		local report: github.Report
+		local fetched = collectPulls(store.load(dir), deps.runner, parser:has("discover"))
+		local report: githubTypes.Report
 
 		if dryRun then
-			report = github.apply(store.load(dir), fetched, deps.now())
+			report = applyPulls(store.load(dir), fetched, deps.now())
 		else
 			store.transaction(dir, function(doc)
-				report = github.apply(doc, fetched, deps.now())
+				report = applyPulls(doc, fetched, deps.now())
 			end)
 		end
 

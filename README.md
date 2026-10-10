@@ -19,7 +19,7 @@ The original canvas is the `default` workspace in the data root. Other workspace
 
 Images are canvas nodes with workspace-local files in `assets/`. The app's **Add image** control accepts PNG, JPEG, GIF, and WebP files up to 5 MB. Agents can insert one with `orion media insert ./concept.png --workspace orion --label "Concept"`; the command identifies supported images from their contents and can accommodate other media types later. `orion media list --workspace orion` lists media nodes. `orion serve` accepts raw bytes at `POST /api/images?workspace=<name>` and serves them at `GET /api/images/<asset>?workspace=<name>`. Both routes use the same asset storage as the CLI.
 
-Use `orion workspace list`, `orion workspace create <name> [--label <label>] [--owner <github owner>]`, and `orion workspace use <name>` to manage them. `orion workspace current` shows the selected workspace, and `orion path` prints its folder. The app's sidebar can also create and switch workspaces. Pass `--workspace <name>` to a CLI command to use one without changing the active workspace; `ORION_WORKSPACE` provides the same choice for the environment. The command option takes precedence, followed by the environment, `workspaces.json`, and `default`.
+Use `orion workspace list`, `orion workspace create <name> [--label <label>]`, `orion workspace rename <name> <label>`, and `orion workspace use <name>` to manage them. Renaming changes only the label; the name and folder stay the same. `orion workspace current` shows the selected workspace, and `orion path` prints its folder. The app's sidebar can also create and switch workspaces. Pass `--workspace <name>` to a CLI command to use one without changing the active workspace; `ORION_WORKSPACE` provides the same choice for the environment. The command option takes precedence, followed by the environment, `workspaces.json`, and `default`.
 
 Before replacing an existing data file, the CLI store copies it to `backups/orion-r<revision>-<UTC timestamp>.json` in that workspace's folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list the selected workspace's backups newest first, and `orion restore <revision>` to recover one in that workspace as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
 
@@ -35,7 +35,11 @@ npm run dev
 
 Build the CLI first with `cd cli && lute run build`. Vite starts `orion serve` and proxies `/api` to it. Set `ORION_BIN` to use another CLI binary. If the binary is missing, Vite still runs and the app falls back to browser storage.
 
-To browse the component stories without starting `orion serve`, run `npm run storybook` from `app/`. Each component's story lives beside it in `app/src/components/`, with shared sample data in `storySupport/`. Run `npm run build-storybook` to check the static Storybook build. The stories use sample graph data and render the app composition against Storybook's own browser storage. The normal app build does not import the stories, so they are absent from the packaged app.
+PR cards show a **VS Code** button when the `code` and `hop` launchers are on the server's `PATH`. Clicking it runs `hop to <PR URL>`, which reuses or checks out the PR's worktree and opens it in VS Code.
+
+To browse the component stories without starting `orion serve`, run `npm run storybook` from `app/`. Each component's story lives beside it in `app/src/components/`, with shared sample data in `storySupport/`. Pick Light or Dark from the Theme menu in Storybook's toolbar to check a story in each color mode. Run `npm run build-storybook` to check the static Storybook build. The stories use sample graph data and render the app composition against Storybook's own browser storage. The normal app build does not import the stories, so they are absent from the packaged app.
+
+To check a change for performance regressions, run `npm run perf` from `app/`. It compares this checkout against `origin/main` (pass `-- --base <ref>` for another revision) and writes the report to `app/.perf/report.md`. Both sides run this checkout's harness in `app/src/perf/`: data benchmarks over generated canvases of 1,000 and 5,000 cards, and a 1,000-card perf story that Playwright drives in headless Chromium to count React commits, frames drawn, and main-thread and raster time while idle, panning, zooming, hovering, and dragging. Add `-- --stories perf-canvas--cards-1000,perf-canvas--cards-5000` to profile the larger canvas too, which is slow enough today to take several minutes. Install the browser once with `npx playwright install chromium`. Run `npx vitest bench --root src` for the benchmarks alone. Close other heavy work while it runs, since it measures this machine. On pull requests that touch `app/`, CI's perf job runs the same comparison against the base branch and posts the report as a comment, replacing it on each run.
 
 `orion serve` reads and writes the active workspace's data file. Run it directly with `orion serve [--host 127.0.0.1] [--port 5198] [--static app/dist]`; `--static` serves a built app with an `index.html` fallback. When the default workspace has no file, the app carries over what the browser had saved. Otherwise a new workspace starts empty. The server syncs five seconds after startup and every five minutes. Returning to the window also requests a sync, with a one-minute throttle.
 
@@ -92,7 +96,7 @@ Configure sources once, then run `orion ingest --dry-run` to preview work involv
 
 For GitHub sources, `--owners`, `--include`, and `--exclude` accept comma-separated lists. Spaces around entries are ignored, so `--owners vocksel,flipbook-labs --include "orion, hop"` works.
 
-Ingested Jira cards store their source ID, issue key, URL, status, completion state, update time, and Jira-specific details in `data.external`. The source ID and key identify a card across ingests.
+Cards store pull requests, issues, and local branches in `data.refs`, including each source ID, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests.
 
 For a Roblox setup:
 
@@ -114,8 +118,8 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Scroll to pan; pinch or ⌘-scroll to zoom. ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
-- Press ⌘K (or Ctrl+K) to search groups, cards, PRs, notes, and actions, then press Enter to jump to a result or run an action.
-- Choose Light, Dark, or System color mode in the sidebar footer, or through ⌘K; the choice is saved on this device.
+- Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result. Type `>` first, or press ⇧⌘P (or Ctrl+Shift+P), to list actions instead; deleting the `>` goes back to searching.
+- Choose Light, Dark, or System color mode in the sidebar footer, or through ⇧⌘P; the choice is saved on this device.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
 - Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
@@ -126,7 +130,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Double-click a card to focus on it. The canvas zooms onto it with its details above, what it waits on in a scrolling column on the left, and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. ⌘ or ⇧ click adds to the selection.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks; they stay faint until you hover, hold, or select one of their cards.
 - "Unblocks N" counts every open task downstream, directly or not.
-- N adds a note. Right-click a link to insert a note into it. Notes pass blocking through but never count as work, and can be turned into work items later.
+- N adds a note. Right-click a link to add a card or a note into it, or a bundled link between folded groups to remove one of its links. Notes pass blocking through but never count as work, and can be turned into work items later.
 - Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.
 - A group's inspector picks its arrangement: Automatic flows by dependency, and Custom keeps cards where you put them. `orion set <group> --arrange custom` does the same from the CLI.
 - Drag from the edge of a card to another card to add a dependency.
@@ -163,5 +167,5 @@ In `cli/src/`:
 - `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.
 - `server/`: HTTP routes, WebSocket events, file watching, and sync scheduling for `orion serve`.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
-- `github.luau`: looking up pull requests and mapping their state onto cards.
+- `github/`: looking up pull requests and mapping their state onto cards.
 - `render.luau`: text and JSON output.

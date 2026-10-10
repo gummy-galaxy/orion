@@ -88,10 +88,28 @@ describe('mergeDocs', () => {
 
   it('compares values structurally, including property order', () => {
     const original = makeNode('a')
-    const local = { ...original, position: { x: 0, y: 0 }, data: { ...original.data, github: { state: 'OPEN', draft: false } } } as AppNode
-    const remote = { ...original, position: { y: 0, x: 0 }, data: { ...original.data, github: { draft: false, state: 'OPEN' } } } as AppNode
+    const local = {
+      ...original,
+      position: { x: 0, y: 0 },
+      data: { ...original.data, refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#42' }] },
+    } as AppNode
+    const remote = {
+      ...original,
+      position: { y: 0, x: 0 },
+      data: { ...original.data, refs: [{ key: 'vocksel/orion#42', kind: 'pull', source: 'github' }] },
+    } as AppNode
 
     expect(mergeDocs(makeDoc([original]), makeDoc([local]), makeDoc([remote])).conflicts).toEqual([])
+  })
+
+  it('merges refs as one data field', () => {
+    const original = makeNode('a')
+    const local = { ...original, data: { ...original.data, refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#42' }] } } as AppNode
+    const remote = { ...original, data: { ...original.data, refs: [{ source: 'jira', kind: 'issue', key: 'ORN-12' }] } } as AppNode
+    const merged = mergeDocs(makeDoc([original]), makeDoc([local]), makeDoc([remote]))
+
+    expect(merged.nodes[0].data).toMatchObject({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#42' }] })
+    expect(merged.conflicts).toEqual([{ id: 'a', field: 'data.refs' }])
   })
 
   it('merges links by id and removes links with missing endpoints', () => {

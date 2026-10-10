@@ -113,8 +113,8 @@ local function parseExpression(input: string): Expression
 			end
 			cursor += 1
 		end
-		if operator == "~" and field ~= "label" then
-			fail("'~' is only supported for label")
+		if operator == "~" and field ~= "label" and field ~= "ref" then
+			fail("'~' is only supported for label and ref")
 		end
 		local value = readValue()
 		if field == "draft" and value ~= "true" and value ~= "false" then
