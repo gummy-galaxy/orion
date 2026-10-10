@@ -155,8 +155,10 @@ function readMotion(): MotionSettings {
  */
 const COLLAPSE_ZOOM = 0.4
 const COLLAPSE_STEP = 0.12
-/** Zoom below which cards are too small for motion to read, so animations pause. */
+/** Zoom below which cards are too small for transitions to read, so they're skipped. */
 const STILL_ZOOM = 0.45
+/** Zoom below which marching arrows and the active glow are too subtle to read, so they stop. */
+const QUIET_ZOOM = 0.6
 const GHOST_WIDTH = 200
 const GHOST_HEIGHT = 62
 const GHOST_GAP = 90
@@ -203,6 +205,27 @@ type Menu = {
   y: number
   flow: { x: number; y: number }
   target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string } | { kind: 'sticker'; id: string }
+}
+
+/** Whether the window is in the background, where looping motion only costs power. */
+function useAway() {
+  const [away, setAway] = useState(() => document.hidden || !document.hasFocus())
+
+  useEffect(() => {
+    const update = () => setAway(document.hidden || !document.hasFocus())
+
+    window.addEventListener('focus', update)
+    window.addEventListener('blur', update)
+    document.addEventListener('visibilitychange', update)
+
+    return () => {
+      window.removeEventListener('focus', update)
+      window.removeEventListener('blur', update)
+      document.removeEventListener('visibilitychange', update)
+    }
+  }, [])
+
+  return away
 }
 
 function readFlag(key: string, fallback: boolean) {
@@ -306,6 +329,8 @@ export function Canvas() {
   // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
   const foldFrom = useStore((state) => Math.floor((state.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
   const still = useStore((state) => state.transform[2] < STILL_ZOOM)
+  const quietZoom = useStore((state) => state.transform[2] < QUIET_ZOOM)
+  const away = useAway()
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
@@ -2323,7 +2348,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
           style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
           ref={canvasRef}
           onPointerDown={startMarquee}
