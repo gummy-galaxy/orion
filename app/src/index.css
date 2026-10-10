@@ -301,6 +301,49 @@ select {
   overflow-wrap: anywhere;
   padding-right: 22px;
 }
+.card:has(.vscode-open) .label {
+  padding-right: 45px;
+}
+.card-actions {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 1;
+}
+.card-actions .source-badges {
+  position: static;
+  max-width: none;
+}
+.vscode-open {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--surface) 65%, transparent);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.vscode-open img {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+.vscode-open:hover,
+.vscode-open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.vscode-open:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
 .source-badges {
   position: absolute;
   right: 6px;
@@ -308,7 +351,7 @@ select {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 2px;
+  gap: 4px;
   max-width: calc(100% - 10px);
   pointer-events: auto;
   z-index: 1;
@@ -360,6 +403,7 @@ select {
   position: absolute;
   top: -5px;
   right: -5px;
+  z-index: 1;
   display: grid;
   place-items: center;
   min-width: 11px;
@@ -941,6 +985,13 @@ select {
   justify-self: end;
   max-width: none;
 }
+.far-card .card-actions {
+  position: static;
+  justify-self: end;
+}
+.far-card:has(.vscode-open) .label {
+  padding-right: 0;
+}
 .react-flow__node-task:has(.far-card) {
   z-index: 2000 !important;
 }
@@ -988,6 +1039,24 @@ select {
   border: 1px solid var(--line);
   border-radius: 10px;
   box-shadow: var(--shadow);
+}
+.empty-canvas {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 5;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  max-width: min(360px, calc(100% - 32px));
+  padding: 18px 20px;
+  text-align: center;
+  font: 13px/1.45 var(--font-ui);
+}
+.empty-canvas p {
+  margin: 0;
+  color: var(--muted);
 }
 .crumbs {
   display: flex;

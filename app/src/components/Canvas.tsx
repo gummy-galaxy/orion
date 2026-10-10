@@ -23,7 +23,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { Palette, type Command } from './Palette'
+import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { FocusView, type FocusItem } from './FocusView'
@@ -56,6 +56,7 @@ import {
   type TaskData,
 } from '../model'
 import { DebugBar, type MotionSettings } from './DebugBar'
+import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
 import { ClusterView } from './ClusterView'
@@ -349,7 +350,9 @@ export function Canvas() {
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
   const [tool, setTool] = useState<Tool>('select')
-  const [paletteOpen, setPaletteOpen] = useState(false)
+  /** The text the palette opened with, or null while it's closed. */
+  const [paletteQuery, setPaletteQuery] = useState<string | null>(null)
+  const paletteOpen = paletteQuery !== null
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
   const [chosenSticker, setSticker] = useState<string | null>(null)
@@ -1258,13 +1261,9 @@ export function Canvas() {
   /** Related links never block, so they stay faint except around the cards being looked at. */
   const relatedFocus = useMemo(() => new Set([pinned, hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
 
-  const [drawnEdges] = useState(() => new Map<string, { edge: Edge; print: string }>())
-  const edges = useMemo(() => {
-    const resultEdges: Edge[] = []
-    const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
-    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
-
-    for (const link of links) {
+  /** Where a link is drawn: the nodes standing in for its ends, ghosts for ends outside the open group, or null when it isn't drawn. */
+  const drawnEnds = useCallback(
+    (link: Link) => {
       let source = view.rep(link.from)
       let target = view.rep(link.to)
 
@@ -1272,8 +1271,25 @@ export function Canvas() {
 
       if (root && !peeking && source && !target && !source.startsWith('ghost:')) target = `ghost:out:${link.to}`
 
-      if (!source || !target || source === target) continue
+      if (!source || !target || source === target) return null
 
+      return { source, target }
+    },
+    [view, root, peeking],
+  )
+
+  const [drawnEdges] = useState(() => new Map<string, { edge: Edge; print: string }>())
+  const edges = useMemo(() => {
+    const resultEdges: Edge[] = []
+    const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
+    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
+
+    for (const link of links) {
+      const ends = drawnEnds(link)
+
+      if (!ends) continue
+
+      const { source, target } = ends
       const flow = work.flow.get(link.from) ?? 'live'
       const direct = (source === link.from || source.startsWith('ghost:')) && (target === link.to || target.startsWith('ghost:'))
 
@@ -1328,7 +1344,7 @@ export function Canvas() {
     }
 
     return keepDrawn(drawnEdges, resultEdges)
-  }, [links, view, work, trace, root, peeking, inFocus, relatedFocus, drawnEdges])
+  }, [links, drawnEnds, work, trace, peeking, inFocus, relatedFocus, drawnEdges])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1887,21 +1903,25 @@ export function Canvas() {
 
   // ---- Notes and links ----
 
-  /** Adds a note with its top-left at `at` (flow coordinates), optionally spliced into links. */
+  /** Adds a note, or a work item with `itemKind: 'step'`, with its top-left at `at` (flow coordinates), optionally spliced into links. */
   const addNote = useCallback(
-    (at: { x: number; y: number }, options: { parent?: string | null; from?: string; to?: string; replace?: string } = {}) => {
+    (
+      at: { x: number; y: number },
+      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' } = {},
+    ) => {
       const { nodes: currentNodes, links: currentLinks } = latest.current
       const nodeMap = byId(currentNodes)
       const parent = options.parent === undefined ? root : options.parent
       const parentNode = parent ? nodeMap.get(parent) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
-      const id = newId('note')
+      const itemKind = options.itemKind ?? 'note'
+      const id = newId(itemKind === 'note' ? 'note' : 'card')
       const note: AppNode = {
         id,
         type: 'task',
         parentId: parentNode?.id,
         position: { x: at.x - origin.x, y: at.y - origin.y },
-        data: { kind: 'task', label: '', itemKind: 'note', status: 'todo' },
+        data: { kind: 'task', label: '', itemKind, status: 'todo' },
         selected: true,
       }
       const kind = currentLinks.find((link) => link.id === options.replace)?.kind ?? 'blocks'
@@ -1911,9 +1931,27 @@ export function Canvas() {
 
       if (options.to) next.push({ id: `${id}>${options.to}`, from: id, to: options.to, kind })
 
-      setNodes(normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note]))
+      const nextNodes = normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note])
+
+      setNodes(nextNodes)
       setLinks(next)
       setEditing(id)
+
+      // An automatic group lays out its new item in line. Only positions and sizes come back, so text typed meanwhile stays.
+      if (options.replace && parentNode && isCluster(parentNode) && parentNode.data.arrange !== 'custom')
+        void reflow(nextNodes, next, parentNode.id).then((laidOut) => {
+          const placed = byId(laidOut)
+
+          setNodes((latestNodes) =>
+            latestNodes.map((node) => {
+              const placedNode = placed.get(node.id)
+
+              if (!placedNode) return node
+
+              return { ...node, position: placedNode.position, width: placedNode.width, height: placedNode.height }
+            }),
+          )
+        })
     },
     [root, setLinks, setNodes],
   )
@@ -2136,7 +2174,8 @@ export function Canvas() {
     setWheel(null)
   }, [])
 
-  const insertNoteOnLink = (linkId: string) => {
+  /** Splits a link with a new note or work item placed between its ends. */
+  const insertOnLink = (linkId: string, itemKind: 'note' | 'step') => {
     const link = links.find((candidate) => candidate.id === linkId)
     const sourceNode = link && map.get(link.from)
     const targetNode = link && map.get(link.to)
@@ -2150,7 +2189,7 @@ export function Canvas() {
 
     addNote(
       { x: (sourcePosition.x + targetPosition.x) / 2, y: (sourcePosition.y + targetPosition.y) / 2 + TASK_HEIGHT },
-      { parent, from: link.from, to: link.to, replace: link.id },
+      { parent, from: link.from, to: link.to, replace: link.id, itemKind },
     )
   }
 
@@ -2202,13 +2241,26 @@ export function Canvas() {
     if (target.kind === 'sticker')
       return [{ label: 'Remove sticker', danger: true, run: () => setStickers((stickers) => stickers.filter((sticker) => sticker.id !== target.id)) }]
 
+    if (target.kind === 'edge' && target.id.startsWith('agg:')) {
+      const key = target.id.slice('agg:'.length)
+      const bundled = links.filter((link) => {
+        const ends = link.kind === 'blocks' && drawnEnds(link)
+
+        return ends && `${ends.source}>${ends.target}` === key
+      })
+      const labelOf = (id: string) => map.get(id)?.data.label || 'Untitled'
+
+      return bundled.map((link) => ({ label: `Remove ${labelOf(link.from)} → ${labelOf(link.to)}`, danger: true, run: () => removeLink(link.id) }))
+    }
+
     if (target.kind === 'edge') {
       const link = links.find((candidate) => candidate.id === target.id)
 
       if (!link) return []
 
       return [
-        { label: 'Insert a note here', run: () => insertNoteOnLink(link.id) },
+        { label: 'Add card here', run: () => insertOnLink(link.id, 'step') },
+        { label: 'Insert a note here', run: () => insertOnLink(link.id, 'note') },
         { label: link.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link', run: () => flipLink(link.id) },
         'divider',
         { label: 'Remove link', danger: true, run: () => removeLink(link.id) },
@@ -2291,7 +2343,14 @@ export function Canvas() {
 
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'p') {
         event.preventDefault()
-        setPaletteOpen(true)
+        setPaletteQuery(COMMAND_PREFIX)
+
+        return
+      }
+
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setPaletteQuery('')
 
         return
       }
@@ -2575,7 +2634,7 @@ export function Canvas() {
                 openMenu(event, { kind: 'node', id: node.id })
               }}
               onSelectionContextMenu={(event, currentNodes) => openMenu(event, { kind: 'node', id: currentNodes[0]?.id ?? '' })}
-              onEdgeContextMenu={(event, edge) => !edge.id.startsWith('agg:') && openMenu(event, { kind: 'edge', id: edge.id })}
+              onEdgeContextMenu={(event, edge) => openMenu(event, { kind: 'edge', id: edge.id })}
               panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
               selectionKeyCode={null}
               selectionOnDrag={false}
@@ -2606,6 +2665,7 @@ export function Canvas() {
                 />
               )}
               <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
+              {nodes.length === 0 && <EmptyCanvas addNote={() => addNote(viewportCenter())} />}
               {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
               <Controls showInteractive={false} />
               {mergeNotice !== null && (
@@ -2657,8 +2717,8 @@ export function Canvas() {
                   </span>
                 ))}
                 <span className="crumb-actions">
-                  <button type="button" className="btn" onClick={() => setPaletteOpen(true)}>
-                    Search <kbd>⇧⌘P</kbd>
+                  <button type="button" className="btn" onClick={() => setPaletteQuery('')}>
+                    Search <kbd>⌘K</kbd>
                   </button>
                   <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                     Add note
@@ -2725,6 +2785,8 @@ export function Canvas() {
                     <TaskInspector
                       key={one.id}
                       node={one}
+                      focus={editing === one.id}
+                      doneEditing={() => setEditing(null)}
                       work={work}
                       map={map}
                       github={github}
@@ -2798,10 +2860,10 @@ export function Canvas() {
                   {showHelp ? (
                     <>
                       V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
-                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G ungroup · double-click a
-                      group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · mouse back and
-                      forward or ⌘[ and ⌘] to retrace views · N note · ⇧1 fit · drag from a card's edge to link · hold Ctrl while dragging to skip
-                      snapping{' '}
+                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘K search · ⇧⌘P actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G
+                      ungroup · double-click a group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to
+                      go up · mouse back and forward or ⌘[ and ⌘] to retrace views · N note · ⇧1 fit · drag from a card's edge to link · hold Ctrl
+                      while dragging to skip snapping{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
                         Hide
                       </button>
@@ -2886,7 +2948,16 @@ export function Canvas() {
             />
           )}
         </div>
-        {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
+        {paletteQuery !== null && (
+          <Palette
+            nodes={nodes}
+            commands={commands}
+            jumpTo={jumpTo}
+            open={actions.open}
+            close={() => setPaletteQuery(null)}
+            initialQuery={paletteQuery}
+          />
+        )}
       </div>
     </ActionsContext.Provider>
   )
