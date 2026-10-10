@@ -5,7 +5,8 @@
  *   npm run perf -- [--base <ref>] [--runs <n>] [--stories <id,id>] [--skip-bench] [--skip-render]
  *
  * Both sides run the harness from this checkout: the data benchmarks in src/perf, and the perf stories driven in
- * Chromium through Playwright. The report lands in .perf/report.md.
+ * Chromium through Playwright. Each side runs `--runs` times, alternating which goes first. The report lands in
+ * .perf/report.md.
  */
 import { execFileSync, spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
@@ -16,7 +17,7 @@ import { dirname, extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { chromium, type Browser, type Page } from 'playwright'
-import { buildReport, IDLE_MS, SLOW_FRAME_MS, type BenchResult, type ReportInput, type Sample } from './perfReport.ts'
+import { buildReport, IDLE_MS, SLOW_FRAME_MS, type ReportInput, type Sample } from './perfReport.ts'
 
 type Side = 'base' | 'head'
 /** What the perf stories expose on the page, plus the frame gaps this script records there. */
@@ -105,22 +106,21 @@ function prepareBase(ref: string): { dir: string; sha: string } {
   return { dir, sha }
 }
 
-function runBenchmarks(dir: string, side: Side): Map<string, BenchResult> {
-  const file = join(OUT, side, 'bench.json')
+/** Median time per call for each benchmark, from one vitest process. */
+function runBenchmarks(dir: string, side: Side, round: number): Map<string, number> {
+  const file = join(OUT, side, `bench-${round}.json`)
 
   mkdirSync(dirname(file), { recursive: true })
   run(join(dir, 'node_modules/.bin/vitest'), ['bench', '--root', 'src', '--run', '--reporter=json', `--outputFile=${file}`], dir)
 
   type Report = {
-    testResults: { assertionResults: { title: string; benchmarks?: { tasks: { name: string; latency: { p50: number; rme: number } }[] }[] }[] }[]
+    testResults: { assertionResults: { title: string; benchmarks?: { tasks: { name: string; latency: { p50: number } }[] }[] }[] }[]
   }
   const report = JSON.parse(readFileSync(file, 'utf8')) as Report
-  const results = new Map<string, BenchResult>()
+  const results = new Map<string, number>()
 
   for (const test of report.testResults.flatMap((file) => file.assertionResults)) {
-    for (const task of (test.benchmarks ?? []).flatMap((group) => group.tasks)) {
-      results.set(`${test.title} › ${task.name}`, { p50: task.latency.p50, rme: task.latency.rme })
-    }
+    for (const task of (test.benchmarks ?? []).flatMap((group) => group.tasks)) results.set(`${test.title} › ${task.name}`, task.latency.p50)
   }
 
   return results
@@ -307,24 +307,8 @@ async function profileStory(browser: Browser, url: string, story: string): Promi
   return samples
 }
 
-const median = (values: number[]) => {
-  const sorted = [...values].sort((a, b) => a - b)
-  const middle = Math.floor(sorted.length / 2)
-
-  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2
-}
-
-function medianSamples(runs: Record<string, Sample>[]): Record<string, Sample> {
-  const result: Record<string, Sample> = {}
-
-  for (const scenario of Object.keys(runs[0] ?? {})) {
-    result[scenario] = {}
-
-    for (const key of Object.keys(runs[0][scenario])) result[scenario][key] = median(runs.map((sample) => sample[scenario]?.[key] ?? 0))
-  }
-
-  return result
-}
+/** Sides in the order a run measures them. Alternating keeps a warming or throttling machine from favoring one side. */
+const sideOrder = (index: number): Side[] => (index % 2 ? ['head', 'base'] : ['base', 'head'])
 
 async function main() {
   const runs = Number(options.runs)
@@ -341,13 +325,18 @@ async function main() {
   mkdirSync(OUT, { recursive: true })
 
   if (!options['skip-bench']) {
-    const results = {
-      base: await timed('Benchmarking base', () => runBenchmarks(dirs.base, 'base')),
-      head: await timed('Benchmarking head', () => runBenchmarks(dirs.head, 'head')),
+    const bench: NonNullable<ReportInput['bench']> = { rounds: runs, base: {}, head: {} }
+
+    for (let index = 0; index < runs; index++) {
+      for (const side of sideOrder(index)) {
+        const results = await timed(`Benchmarking ${side} (round ${index + 1} of ${runs})`, () => runBenchmarks(dirs[side], side, index))
+
+        for (const [name, p50] of results) (bench[side][name] ??= []).push(p50)
+      }
     }
 
-    input.bench = { base: Object.fromEntries(results.base), head: Object.fromEntries(results.head) }
-    raw.bench = input.bench
+    input.bench = bench
+    raw.bench = bench
   }
 
   if (!options['skip-render']) {
@@ -361,10 +350,7 @@ async function main() {
 
     try {
       for (let index = 0; index < runs; index++) {
-        // Alternating the order keeps a warming or throttling machine from favoring one side.
-        const order: Side[] = index % 2 ? ['head', 'base'] : ['base', 'head']
-
-        for (const side of order) {
+        for (const side of sideOrder(index)) {
           for (const story of stories) {
             const samples = await timed(`Profiling ${side} ${story} (run ${index + 1} of ${runs})`, () =>
               profileStory(browser, servers[side].url, story),
@@ -380,13 +366,11 @@ async function main() {
       servers.head.server.close()
     }
 
-    raw.render = collected
     input.render = {
       runs,
-      stories: Object.fromEntries(
-        stories.map((story) => [story, { base: medianSamples(collected.base[story]), head: medianSamples(collected.head[story]) }]),
-      ),
+      stories: Object.fromEntries(stories.map((story) => [story, { base: collected.base[story], head: collected.head[story] }])),
     }
+    raw.render = collected
   }
 
   const report = buildReport(input)
