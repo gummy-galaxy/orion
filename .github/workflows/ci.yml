@@ -15,7 +15,7 @@ concurrency:
 jobs:
   cli:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     defaults:
       run:
         working-directory: cli
@@ -48,7 +48,7 @@ jobs:
 
   app:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     defaults:
       run:
         working-directory: app
@@ -78,7 +78,7 @@ jobs:
 
   desktop:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
