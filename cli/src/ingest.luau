@@ -1,10 +1,13 @@
 local json = require("@std/json")
 
+local findRef = require("@root/refs/findRef")
 local getDesired = require("@root/github/getDesired")
+local getGithubKey = require("@root/refs/getGithubKey")
 local getInvolved = require("@root/github/getInvolved")
-local getRecorded = require("@root/github/getRecorded")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
+local setPullRef = require("@root/github/setPullRef")
+local setRef = require("@root/refs/setRef")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -215,31 +218,21 @@ function ingest.collect(doc: Doc, run: CommandRunner, now: string, selected: str
 	return results
 end
 
-local function getRepoName(doc: Doc, owner: string, name: string): string
-	return if owner:lower() == doc.settings.githubOwner:lower() then name else `{owner}/{name}`
+local function getItemRepo(item: Item): string?
+	return getString(item.data.repo)
 end
 
-local function getFullRepo(doc: Doc, repo: string): string
-	return (if repo:find("/", 1, true) then repo else `{doc.settings.githubOwner}/{repo}`):lower()
-end
-
-local function getItemRepo(doc: Doc, item: Item): string?
-	local repo = getString(item.data.repo)
-	return if repo then getFullRepo(doc, repo) else nil
-end
-
-local function getItemHost(item: Item): string
-	return getString(item.data.host) or "github.com"
+local function getItemHost(item: Item): string?
+	local pull = findRef(item, "pull")
+	return if pull then pull.key:match("^([^/]+)/[^/]+/[^/]+#") else nil
 end
 
 local function findPull(doc: Doc, repo: string, number: number, host: string): Item?
+	local owner, name = repo:match("^([^/]+)/([^/]+)$")
+	local key = getGithubKey(assert(owner), assert(name), `#{number}`, host)
+
 	for _, item in doc.nodes do
-		if
-			item.type == "task"
-			and item.data.pr == number
-			and getItemRepo(doc, item) == repo
-			and getItemHost(item) == host
-		then
+		if item.type == "task" and findRef(item, "pull", key) then
 			return item
 		end
 	end
@@ -248,13 +241,11 @@ local function findPull(doc: Doc, repo: string, number: number, host: string): I
 end
 
 local function findIssue(doc: Doc, repo: string, number: number, host: string): Item?
+	local owner, name = repo:match("^([^/]+)/([^/]+)$")
+	local key = getGithubKey(assert(owner), assert(name), `#{number}`, host)
+
 	for _, item in doc.nodes do
-		if
-			item.type == "task"
-			and item.data.issue == number
-			and getItemRepo(doc, item) == repo
-			and getItemHost(item) == host
-		then
+		if item.type == "task" and findRef(item, "issue", key) then
 			return item
 		end
 	end
@@ -264,49 +255,30 @@ end
 
 local function findBranch(doc: Doc, repo: string, branch: string): Item?
 	for _, item in doc.nodes do
-		if
-			item.type == "task"
-			and getItemRepo(doc, item) == repo
-			and item.data.branch == branch
-			and item.data.issue == nil
-		then
-			return item
+		local itemRepo = getItemRepo(item)
+
+		if item.type == "task" and itemRepo and itemRepo:lower() == repo:lower() then
+			local branchRef = findRef(item, "branch")
+			local pull = findRef(item, "pull")
+			local details = if pull then pull.details else nil
+
+			if (branchRef and branchRef.key:match("@(.+)$") == branch) or (details and details.branch == branch) then
+				return item
+			end
 		end
 	end
 
 	return nil
 end
 
-local function findExternal(doc: Doc, sourceId: string, key: string): Item?
+local function findExternal(doc: Doc, key: string): Item?
 	for _, item in doc.nodes do
-		local external = json.asObject(item.data.external)
-		if
-			item.type == "task"
-			and external
-			and getString(external.source) == sourceId
-			and getString(external.key) == key
-		then
+		if item.type == "task" and findRef(item, "issue", key) then
 			return item
 		end
 	end
 
 	return nil
-end
-
-local function markSourceOn(item: Item, id: string)
-	local sources = json.asArray(item.data.sources) or {}
-
-	if not table.find(sources, id) then
-		table.insert(sources, id)
-	end
-
-	item.data.sources = sources
-end
-
-local function applyExternal(item: Item, sourceId: string, fields: json.Object)
-	fields.source = sourceId
-	item.data.external = fields
-	markSourceOn(item, sourceId)
 end
 
 local function createItem(doc: Doc, label: string, repo: string?, status: string, who: string?): Item
@@ -358,7 +330,7 @@ local function linkMentions(doc: Doc, pull: githubTypes.PullState, item: Item, r
 	for key in text:upper():gmatch("%f[%w][A-Z][A-Z0-9]*%-%d+%f[^%w]") do
 		for _, source in doc.settings.sources do
 			if source.kind == "jira" then
-				local other = findExternal(doc, source.id, key)
+				local other = findExternal(doc, key)
 
 				if other then
 					linkMention(doc, other, item, report)
@@ -407,26 +379,20 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			local existing = findPull(doc, repo, pull.number, host)
 			local step = if not existing and pull.branch then findBranch(doc, repo, pull.branch) else nil
 
-			if step and step.data.pr then
+			if step and findRef(step, "pull") then
 				step = nil
 			end
 
-			local item = existing
-				or step
-				or createItem(doc, pull.title, getRepoName(doc, pull.owner, pull.name), "todo", nil)
+			local item = existing or step or createItem(doc, pull.title, `{pull.owner}/{pull.name}`, "todo", nil)
 			markItem(result.report, existing or step)
 			local status, who =
 				getDesired(pull, getString(item.data.status) or "todo", getString(item.data.who), assert(result.viewer))
 			item.data.label = pull.title
 			item.data.itemKind = "pr"
-			item.data.repo = getRepoName(doc, pull.owner, pull.name)
-			item.data.pr = pull.number
+			item.data.repo = `{pull.owner}/{pull.name}`
 			item.data.status = status
 			item.data.who = who
-			item.data.branch = pull.branch or item.data.branch
-			item.data.host = if host ~= "github.com" then host else nil
-			item.data.github = getRecorded(pull, assert(result.viewer), now)
-			markSourceOn(item, id)
+			setPullRef(item, pull, id, assert(result.viewer), now)
 			table.insert(pendingLinks, { pull, item, result.report })
 		end
 
@@ -434,17 +400,20 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			local repo = string.lower(`{issue.owner}/{issue.name}`)
 			local item = findIssue(doc, repo, issue.number, issue.host or "github.com")
 			markItem(result.report, item)
-			item = item or createItem(doc, issue.title, getRepoName(doc, issue.owner, issue.name), "todo", "you")
+			item = item or createItem(doc, issue.title, `{issue.owner}/{issue.name}`, "todo", "you")
 			item.data.label = issue.title
 			item.data.itemKind = "placeholder"
-			item.data.repo = getRepoName(doc, issue.owner, issue.name)
-			item.data.issue = issue.number
-			item.data.host = if issue.host ~= "github.com" then issue.host else nil
-			markSourceOn(item, id)
+			item.data.repo = `{issue.owner}/{issue.name}`
+			setRef(item, {
+				source = id,
+				kind = "issue",
+				key = getGithubKey(issue.owner, issue.name, `#{issue.number}`, issue.host),
+				url = issue.url,
+			})
 		end
 
 		for _, jira in result.jira or {} do
-			local item = findExternal(doc, id, jira.key)
+			local item = findExternal(doc, jira.key)
 			markItem(result.report, item)
 			item = item or createItem(doc, jira.summary, nil, "todo", "you")
 			local status = if jira.category == "done"
@@ -466,7 +435,16 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			})
 			fields.url = if result.source.browse then `{result.source.browse}/{jira.key}` else nil
 			fields.updatedAt = jira.updated
-			applyExternal(item, id, fields)
+			setRef(item, {
+				source = id,
+				kind = "issue",
+				key = jira.key,
+				url = getString(fields.url),
+				status = jira.status,
+				isDone = jira.category == "done",
+				updatedAt = jira.updated,
+				details = details,
+			})
 		end
 	end
 
@@ -482,29 +460,23 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 		end
 	end
 
-	local knownRepos: { [string]: boolean } = {}
-
-	for _, item in doc.nodes do
-		local known = getString(item.data.repo)
-
-		if known and item.data.github ~= nil then
-			knownRepos[(known:match("([^/]+)$") or known):lower()] = true
-		end
-	end
-
-	local function isInScope(name: string): boolean
-		if next(owners) == nil then
-			return true
-		end
-
+	local function resolveRepo(name: string): string?
 		local owner = name:match("^([^/]+)/")
 
 		if owner then
-			return owners[owner:lower()] == true
+			return if next(owners) == nil or owners[owner:lower()] then name else nil
 		end
 
 		-- Without an owner, only trust repositories GitHub already put on the canvas.
-		return knownRepos[name:lower()] == true
+		for _, item in doc.nodes do
+			local repo = getItemRepo(item)
+
+			if repo and (repo:match("/([^/]+)$") or ""):lower() == name:lower() and findRef(item, "pull") then
+				return repo
+			end
+		end
+
+		return nil
 	end
 
 	for _, result in results do
@@ -515,38 +487,28 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 		local cleared: { [string]: boolean } = {}
 
 		for _, tree in result.worktrees or {} do
-			if tree.onDefault or tree.lastActivity < cutoff or not isInScope(tree.repo) then
+			local repo = resolveRepo(tree.repo)
+
+			if tree.onDefault or tree.lastActivity < cutoff or not repo then
 				continue
 			end
 
-			local repo = getFullRepo(doc, tree.repo)
 			local item = findBranch(doc, repo, tree.branch)
 			markItem(result.report, item)
 
 			if not item then
 				local label = tree.branch:gsub("([A-Z][A-Z0-9]*)%-(%d+)", "%1\1%2"):gsub("[-/]", " "):gsub("\1", "-")
-				item = createItem(
-					doc,
-					label,
-
-					if tree.repo:find("/", 1, true)
-						then (if repo:match("^([^/]+)/") == doc.settings.githubOwner:lower()
-							then repo:match("/([^/]+)$")
-							else tree.repo)
-						else tree.repo,
-					"active",
-					"you"
-				)
+				item = createItem(doc, label, repo, "active", "you")
 			end
 
 			local card = assert(item)
 
-			if not card.data.pr then
+			if not findRef(card, "pull") then
 				card.data.itemKind = "step"
 			end
 
-			card.data.branch = tree.branch
-			local activity = json.asObject(card.data.activity) or json.object({})
+			local branchRef = findRef(card, "branch")
+			local activity = if branchRef then json.object(branchRef.details or {}) else json.object({})
 			local stamp = os.date("!%Y-%m-%dT%H:%M:%SZ", tree.lastActivity)
 
 			if stamp > (getString(activity.lastActiveAt) or "") then
@@ -555,18 +517,25 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 
 			activity.sessions = {}
 			cleared[card.id] = true
-			card.data.activity = activity
-			markSourceOn(card, result.source.id)
+			local repoOwner, repoName = repo:match("^([^/]+)/([^/]+)$")
+			setRef(card, {
+				source = result.source.id,
+				kind = "branch",
+				key = getGithubKey(assert(repoOwner), assert(repoName), `@{tree.branch}`, getItemHost(card)),
+				details = activity,
+			})
 		end
 
 		for _, session in result.sessions or {} do
-			local item = findBranch(doc, getFullRepo(doc, session.repo), session.branch)
+			local repo = resolveRepo(session.repo)
+			local item = if repo then findBranch(doc, repo, session.branch) else nil
 
 			if not item then
 				continue
 			end
 
-			local activity = json.asObject(item.data.activity) or json.object({})
+			local branchRef = findRef(item, "branch")
+			local activity = if branchRef then json.object(branchRef.details or {}) else json.object({})
 
 			if not cleared[item.id] then
 				activity.sessions = {}
@@ -587,8 +556,13 @@ function ingest.apply(doc: Doc, results: { Result }, now: string): Report
 			end
 
 			activity.sessions = titles
-			item.data.activity = activity
-			markSourceOn(item, result.source.id)
+			local repoOwner, repoName = (repo :: string):match("^([^/]+)/([^/]+)$")
+			setRef(item, {
+				source = result.source.id,
+				kind = "branch",
+				key = getGithubKey(assert(repoOwner), assert(repoName), `@{session.branch}`, getItemHost(item)),
+				details = activity,
+			})
 		end
 	end
 

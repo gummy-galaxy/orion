@@ -11,6 +11,17 @@ export type CommandRunner = ({ string }, string?) -> CommandResult
 
 export type Position = { x: number, y: number }
 
+export type Ref = {
+	source: string,
+	kind: string,
+	key: string,
+	url: string?,
+	status: string?,
+	isDone: boolean?,
+	updatedAt: string?,
+	details: json.Object?,
+}
+
 -- Mirrors a node as the app saves it. `data` stays raw JSON so fields the app adds survive a CLI write.
 export type Item = {
 	id: string,
@@ -44,7 +55,7 @@ export type Source = {
 export type Doc = {
 	version: number,
 	revision: number,
-	settings: { githubOwner: string, sources: { Source } },
+	settings: { sources: { Source } },
 	nodes: { Item },
 	links: { Link },
 	github: json.Object?,

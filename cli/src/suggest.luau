@@ -1,5 +1,7 @@
 local json = require("@std/json")
 
+local findRef = require("@root/refs/findRef")
+local getRefs = require("@root/refs/getRefs")
 local graph = require("@root/graph")
 local match = require("@root/match")
 local types = require("@root/types")
@@ -22,9 +24,24 @@ local function getField(item: Item, key: string): string?
 	return if type(value) == "string" then value else nil
 end
 
-local function getExternal(item: Item): (json.Object?, json.Object?)
-	local external = json.asObject(item.data.external)
-	return external, if external then json.asObject(external.details) else nil
+local function getExternal(item: Item): (types.Ref?, json.Object?)
+	for _, ref in getRefs(item) do
+		if ref.kind == "issue" and not ref.key:find("#", 1, true) then
+			return ref, ref.details
+		end
+	end
+
+	return nil, nil
+end
+
+local function getBranch(item: Item): string?
+	local branch = findRef(item, "branch")
+	if branch then
+		return branch.key:match("@(.+)$")
+	end
+	local pull = findRef(item, "pull")
+	local value = if pull and pull.details then pull.details.branch else nil
+	return if type(value) == "string" then value else nil
 end
 
 local function getEpic(item: Item): (string?, string?)
@@ -33,27 +50,38 @@ local function getEpic(item: Item): (string?, string?)
 end
 
 local function getHost(item: Item): string
-	return getField(item, "host") or "github.com"
+	for _, ref in getRefs(item) do
+		local host = ref.key:match("^([^/]+)/[^/]+/[^/]+[#@]")
+
+		if host then
+			return host
+		end
+	end
+
+	return "github.com"
 end
 
 local function isSameRepo(a: Item, b: Item): boolean
 	local repo = getField(a, "repo")
-	return repo ~= nil and repo == getField(b, "repo") and getHost(a) == getHost(b)
+	local other = getField(b, "repo")
+	return repo ~= nil and other ~= nil and repo:lower() == other:lower() and getHost(a):lower() == getHost(b):lower()
 end
 
 local function getReferences(item: Item): { [string]: boolean }
 	local result: { [string]: boolean } = {}
-	local external = getExternal(item)
+	for _, ref in getRefs(item) do
+		if ref.kind == "issue" then
+			local number = ref.key:match("#(%d+)$")
 
-	if external and type(external.key) == "string" then
-		result[`key:{external.key:upper()}`] = true
+			if number then
+				result[`issue:{getHost(item)}:{getField(item, "repo") or ""}:{number}`] = true
+			else
+				result[`key:{ref.key:upper()}`] = true
+			end
+		end
 	end
 
-	if type(item.data.issue) == "number" then
-		result[`issue:{getHost(item)}:{getField(item, "repo") or ""}:{item.data.issue}`] = true
-	end
-
-	for _, value in { graph.label(item), getField(item, "branch") or "" } do
+	for _, value in { graph.label(item), getBranch(item) or "" } do
 		for key in value:upper():gmatch("[A-Z][A-Z0-9]+%-%d+") do
 			result[`key:{key}`] = true
 		end
@@ -228,7 +256,7 @@ local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 		for j = i + 1, #cards do
 			local firstItem, secondItem = cards[i], cards[j]
 			local firstEpic, secondEpic = getEpic(firstItem), getEpic(secondItem)
-			local branch = getField(firstItem, "branch")
+			local branch = getBranch(firstItem)
 
 			if firstEpic and firstEpic == secondEpic then
 				join(firstItem.id, secondItem.id, `Shared epic {firstEpic}`)
@@ -236,7 +264,7 @@ local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 				isSameRepo(firstItem, secondItem)
 				and branch
 				and branch ~= ""
-				and branch == getField(secondItem, "branch")
+				and branch == getBranch(secondItem)
 			then
 				join(firstItem.id, secondItem.id, `Shared branch {branch}`)
 			elseif hasCommonReference(firstItem, secondItem) then
@@ -320,7 +348,9 @@ local function getAgentGroups(
 			return firstOpen
 		end
 
-		local firstActivity, secondActivity = json.asObject(a.data.activity), json.asObject(b.data.activity)
+		local firstBranch, secondBranch = findRef(a, "branch"), findRef(b, "branch")
+		local firstActivity, secondActivity =
+			if firstBranch then firstBranch.details else nil, if secondBranch then secondBranch.details else nil
 		local firstActiveAt = if firstActivity and type(firstActivity.lastActiveAt) == "string"
 			then firstActivity.lastActiveAt
 			else ""
@@ -348,7 +378,7 @@ local function getAgentGroups(
 				id = item.id,
 				label = getBounded(graph.label(item), 160),
 				repo = getBounded(getField(item, "repo"), 100),
-				branch = getBounded(getField(item, "branch"), 120),
+				branch = getBounded(getBranch(item), 120),
 				key = getBounded(if type(key) == "string" then key else nil, 50),
 				epic = getBounded(if type(epicKey) == "string" then epicKey else nil, 120),
 				status = getBounded(getField(item, "status"), 20),

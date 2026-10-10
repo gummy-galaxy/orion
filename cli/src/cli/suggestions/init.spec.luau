@@ -11,8 +11,26 @@ test.case("suggestions apply keeps links, marks layout pending, and prunes empty
 	local dir = testing.directory("suggest-apply")
 	local doc = testing.createDoc({
 		testing.group("unsorted", "Unsorted"),
-		testing.task("a", "Avatar one", "todo", "unsorted", json.object({ repo = "app", branch = "same" })),
-		testing.task("b", "Avatar two", "todo", "unsorted", json.object({ repo = "app", branch = "same" })),
+		testing.task(
+			"a",
+			"Avatar one",
+			"todo",
+			"unsorted",
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } },
+			})
+		),
+		testing.task(
+			"b",
+			"Avatar two",
+			"todo",
+			"unsorted",
+			json.object({
+				repo = "vocksel/app",
+				refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } },
+			})
+		),
 	}, { { "a", "b" } })
 	doc.links[1].origin = "mention"
 	store.write(dir, doc)

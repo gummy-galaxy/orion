@@ -96,7 +96,6 @@ import {
   attentionAtom,
   collapsedAtom,
   focusedAtom,
-  githubOwnerAtom,
   hoverAtom,
   linksAtom,
   nodesAtom,
@@ -310,7 +309,6 @@ export function Canvas() {
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
-  const [githubOwner, setGithubOwner] = useAtom(githubOwnerAtom)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
   const [clock, setClock] = useState(() => Date.now())
@@ -493,11 +491,10 @@ export function Canvas() {
       setStickers(doc.stickers ?? [])
       setLoadout(stickerLoadout)
       setGithub(doc.github ?? null)
-      setGithubOwner(doc.settings.githubOwner)
 
       return adopted
     },
-    [rebaseHistory, setGithubOwner, setLinks, setNodes],
+    [rebaseHistory, setLinks, setNodes],
   )
 
   useEffect(
@@ -558,7 +555,6 @@ export function Canvas() {
         setStickers(initialStickers)
         setLoadout(initialLoadout)
         setGithub(null)
-        setGithubOwner('flipbook-labs')
       }
 
       const view = readViewport(workspace.current)
@@ -569,7 +565,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, resetHistory, setGithubOwner, setLinks, setNodes],
+    [adopt, resetHistory, setLinks, setNodes],
   )
 
   useEffect(() => {
@@ -2118,7 +2114,7 @@ export function Canvas() {
         ]
 
       const data = node.data as TaskData
-      const url = getTaskUrl(data, githubOwner)
+      const url = getTaskUrl(data)
 
       return [
         ...many,
@@ -2572,7 +2568,6 @@ export function Canvas() {
                       work={work}
                       map={map}
                       github={github}
-                      githubOwner={githubOwner}
                       update={updateData}
                       jumpTo={jumpTo}
                       links={links}
@@ -2704,7 +2699,6 @@ export function Canvas() {
                   work={work}
                   map={map}
                   github={github}
-                  githubOwner={githubOwner}
                   update={updateData}
                   jumpTo={focusOn}
                   connections={false}

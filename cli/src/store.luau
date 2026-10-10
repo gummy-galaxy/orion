@@ -6,6 +6,7 @@ local task = require("@std/task")
 
 local fileNames = require("@root/fileNames")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
+local migrateItem = require("@root/refs/migrateItem")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -18,7 +19,6 @@ local DAY_SECONDS = 24 * 60 * 60
 local DAILY_DAYS = 30
 local LOCK_TIMEOUT_SECONDS = 5
 local STALE_LOCK_SECONDS = 30
-local DEFAULT_OWNER = "flipbook-labs"
 
 export type Workspace = { name: string, label: string }
 export type WorkspaceList = { active: string, workspaces: { Workspace } }
@@ -114,10 +114,9 @@ function store.getActiveWorkspace(root: string, requested: string?, configured: 
 	error(`unknown workspace: {name}`)
 end
 
-function store.createWorkspace(root: string, name: string, label: string?, owner: string?): WorkspaceList
+function store.createWorkspace(root: string, name: string, label: string?): WorkspaceList
 	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
 	assert(label == nil or label:match("%S"), "label must be nonempty")
-	assert(owner == nil or owner ~= "", "owner must be nonempty")
 	local list = store.getWorkspaces(root)
 
 	for _, workspace in list.workspaces do
@@ -126,7 +125,7 @@ function store.createWorkspace(root: string, name: string, label: string?, owner
 
 	local dir = store.getWorkspaceDir(root, name)
 	assert(not fs.exists(dir), `workspace folder already exists: {dir}`)
-	store.write(dir, store.createEmptyDoc(owner))
+	store.write(dir, store.createEmptyDoc())
 	table.insert(list.workspaces, { name = name, label = label or name })
 	writeWorkspaces(root, list)
 	return list
@@ -313,10 +312,43 @@ function store.decode(text: string): Doc
 		end
 	end
 
+	local version = asNumber(root.version) or 1
+	local owner = asString(settings.githubOwner)
+
+	if not owner then
+		for _, source in sources do
+			if source.kind == "github" then
+				owner = if source.owners then source.owners[1] else nil
+				break
+			end
+		end
+	end
+
+	owner = owner or "flipbook-labs"
+
+	for _, item in nodes do
+		if
+			item.type == "task"
+			and (
+				version < 2
+				or item.data.pr ~= nil
+				or item.data.external ~= nil
+				or item.data.github ~= nil
+				or item.data.activity ~= nil
+				or item.data.sources ~= nil
+				or item.data.issue ~= nil
+				or item.data.branch ~= nil
+				or item.data.host ~= nil
+			)
+		then
+			migrateItem(item, owner, sources)
+		end
+	end
+
 	return {
-		version = asNumber(root.version) or 1,
+		version = 2,
 		revision = asNumber(root.revision) or 0,
-		settings = { githubOwner = asString(settings.githubOwner) or DEFAULT_OWNER, sources = sources },
+		settings = { sources = sources },
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
@@ -325,7 +357,7 @@ function store.decode(text: string): Doc
 	}
 end
 
-function store.encode(doc: Doc): string
+function store.toObject(doc: Doc): json.Object
 	local function getStringArray(values: { string }?): json.Array?
 		if not values then
 			return nil
@@ -364,10 +396,10 @@ function store.encode(doc: Doc): string
 	end
 
 	local root = json.object(doc.raw or {})
-	root.version = doc.version
+	root.version = 2
 	root.revision = doc.revision
 	local settings = json.object(json.asObject(root.settings) or {})
-	settings.githubOwner = doc.settings.githubOwner
+	settings.githubOwner = nil
 	local sources: json.Array = {}
 
 	for _, source in doc.settings.sources do
@@ -387,7 +419,11 @@ function store.encode(doc: Doc): string
 	root.links = links
 	root.github = doc.github
 	root.suggestions = doc.suggestions
-	return json.serialize(root, true)
+	return root
+end
+
+function store.encode(doc: Doc): string
+	return json.serialize(store.toObject(doc), true)
 end
 
 function store.read(dir: string): Doc?
@@ -467,11 +503,11 @@ function store.putFocus(dir: string, tab: string, open: string?, selected: json.
 	end
 end
 
-function store.createEmptyDoc(owner: string?): Doc
+function store.createEmptyDoc(): Doc
 	return {
-		version = 1,
+		version = 2,
 		revision = 0,
-		settings = { githubOwner = owner or DEFAULT_OWNER, sources = {} },
+		settings = { sources = {} },
 		nodes = {},
 		links = {},
 	}
@@ -611,10 +647,10 @@ function store.put(
 		end
 
 		local root = json.object(if current
-			then (current.raw or {})
+			then store.toObject(current)
 			else {
-				version = 1,
-				settings = json.object({ githubOwner = DEFAULT_OWNER, sources = {} :: json.Array }),
+				version = 2,
+				settings = json.object({ sources = {} :: json.Array }),
 			})
 		local nextRevision = if previous then previous + 1 else 0
 		root.revision = nextRevision
@@ -629,7 +665,7 @@ function store.put(
 			root.stickerLoadout = stickerLoadout
 		end
 
-		atomicWrite(store.filePath(dir), json.serialize(root, true))
+		atomicWrite(store.filePath(dir), store.encode(store.decode(json.serialize(root, true))))
 		return true, nextRevision
 	end)
 

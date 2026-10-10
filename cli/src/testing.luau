@@ -57,9 +57,9 @@ function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 	end
 
 	return {
-		version = 1,
+		version = 2,
 		revision = 0,
-		settings = { githubOwner = "flipbook-labs", sources = {} },
+		settings = { sources = {} },
 		nodes = nodes,
 		links = output,
 	}
@@ -98,7 +98,10 @@ function testing.createHarness(name: string)
 		dir,
 		testing.createDoc({
 			testing.group("ws", "Release"),
-			testing.task("ci", "Report release health", "active", "ws", { repo = "flipbook", pr = 658 }),
+			testing.task("ci", "Report release health", "active", "ws", {
+				repo = "flipbook-labs/flipbook",
+				refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#658" } },
+			}),
 			testing.task("pub", "Publish v2.6.0", "todo", "ws"),
 		}, { { "ci", "pub" } })
 	)
