@@ -2,7 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ancestors, byId, isCluster, getTaskTag, type AppNode } from '../model'
 
 export type Command = { id: string; label: string; detail: string; hint?: string; run: () => void }
-type Props = { nodes: AppNode[]; commands: Command[]; jumpTo: (id: string) => void; open: (id: string) => void; close: () => void }
+type Props = {
+  nodes: AppNode[]
+  commands: Command[]
+  jumpTo: (id: string) => void
+  open: (id: string) => void
+  close: () => void
+  /** Text the search starts with. A leading `>` lists actions instead of groups and cards. */
+  initialQuery?: string
+}
 type Match = { score: number; indices: number[] }
 type NodeResult = { kind: 'node'; node: AppNode; path: string; score: number; labelMatch: number[]; tagMatch: number[]; idMatch: boolean }
 type CommandResult = { kind: 'command'; command: Command; score: number; labelMatch: number[] }
@@ -48,8 +56,11 @@ function highlighted(value: string, indices: number[]) {
   return [...value].map((character, i) => (picked.has(i) ? <mark key={i}>{character}</mark> : character))
 }
 
-export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
-  const [query, setQuery] = useState('')
+/** Typing this first lists actions, as in VS Code's command palette. */
+export const COMMAND_PREFIX = '>'
+
+export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '' }: Props) {
+  const [query, setQuery] = useState(initialQuery)
   const [selected, setSelected] = useState(0)
   const input = useRef<HTMLInputElement>(null)
   const list = useRef<HTMLDivElement>(null)
@@ -64,7 +75,23 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
 
   const results = useMemo(() => {
     const map = byId(nodes)
-    const term = query.trim()
+    const isCommandMode = query.startsWith(COMMAND_PREFIX)
+    const term = (isCommandMode ? query.slice(COMMAND_PREFIX.length) : query).trim()
+
+    if (isCommandMode) {
+      if (!term) return commands.map((command): CommandResult => ({ kind: 'command', command, score: 0, labelMatch: [] }))
+
+      return commands
+        .map((command): CommandResult | null => {
+          const labelMatch = match(term, command.label)
+
+          if (!labelMatch) return null
+
+          return { kind: 'command', command, score: labelMatch.score, labelMatch: labelMatch.indices }
+        })
+        .filter((result): result is CommandResult => result !== null)
+        .sort((a, b) => b.score - a.score)
+    }
 
     if (!term) {
       const nodeResults = nodes
@@ -88,16 +115,7 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
       return nodeResults
     }
 
-    const commandResults = commands
-      .map((command): CommandResult | null => {
-        const labelMatch = match(term, command.label)
-
-        if (!labelMatch) return null
-
-        return { kind: 'command', command, score: labelMatch.score, labelMatch: labelMatch.indices }
-      })
-      .filter((result): result is CommandResult => result !== null)
-    const nodeResults = nodes
+    return nodes
       .map((node): NodeResult | null => {
         const labelMatch = match(term, node.data.label)
         const tagMatch = node.type === 'task' ? match(term, getTaskTag(node.data)) : null
@@ -123,8 +141,6 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
       .filter((result): result is NodeResult => result !== null)
       .sort((a, b) => b.score - a.score || a.node.data.label.length - b.node.data.label.length || a.node.data.label.localeCompare(b.node.data.label))
       .slice(0, 50)
-
-    return [...commandResults, ...nodeResults]
   }, [nodes, query, commands])
 
   useEffect(() => {
@@ -182,11 +198,11 @@ export function Palette({ nodes, commands, jumpTo, open, close }: Props) {
           ref={input}
           type="search"
           role="combobox"
-          aria-label="Search groups, cards, and actions"
+          aria-label={query.startsWith(COMMAND_PREFIX) ? 'Search actions' : 'Search groups and cards'}
           aria-expanded="true"
           aria-controls="palette-results"
           aria-activedescendant={results[selected] ? `palette-result-${selected}` : undefined}
-          placeholder="Search groups, cards, PRs, actions…"
+          placeholder={query.startsWith(COMMAND_PREFIX) ? 'Run an action…' : 'Search groups, cards, and PRs, or type > for actions'}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value)
