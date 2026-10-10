@@ -4,14 +4,23 @@
 //
 //   node capture.mjs --url http://localhost:5302 --out after-canvas.png \
 //     [--width 1440] [--height 900] [--scale 2] [--theme light|dark] \
-//     [--wait-for <selector>] [--click <selector>] [--click-text <text>] [--eval <js>] \
+//     [--wait-for <selector>] [--click <selector>] [--click-text <text>] \
+//     [--right-click <selector>] [--middle-click <selector>] [--hover <selector>] \
+//     [--pointer <x>,<y>[,idle|left|right|middle]] [--eval <js>] [--cursor on|off] \
 //     [--delay <ms>] [--selector <selector>] [--padding <px>] [--chrome <path>]
 //
-// --click, --click-text, and --eval can repeat and run in the order given, after the
-// page loads and --wait-for matches. --click-text clicks the innermost visible
-// element whose text starts with the given text. --selector crops the image to one
-// element with --padding CSS pixels of the page around it, 32 by default, so shadows
-// and nearby context stay in the frame.
+// Steps (--click, --click-text, --right-click, --middle-click, --hover, --pointer, and
+// --eval) can repeat and run in the order given, after the page loads and --wait-for
+// matches. --click-text clicks the innermost visible element whose text starts with
+// the given text. --pointer marks where an --eval step acted, without sending input.
+//
+// The last pointer step leaves a cursor in the image: an arrow, with a ring and a
+// mouse showing the pressed button for a click. It's drawn just before the capture
+// and removed after. --cursor off leaves it out.
+//
+// --selector crops the image to one element with --padding CSS pixels of the page
+// around it, 32 by default, so shadows and nearby context stay in the frame. The crop
+// grows to keep the cursor in it.
 
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -29,6 +38,7 @@ function parseArguments(argv) {
     scale: 2,
     delay: 500,
     padding: 32,
+    cursor: "on",
     steps: [],
     chrome: process.env.CHROME_PATH || DEFAULT_CHROME,
   };
@@ -41,7 +51,15 @@ function parseArguments(argv) {
 
     index += 1;
 
-    if (name === "--click") options.steps.push({ click: value });
+    if (name === "--click")
+      options.steps.push({ pointer: value, button: "left" });
+    else if (name === "--right-click")
+      options.steps.push({ pointer: value, button: "right" });
+    else if (name === "--middle-click")
+      options.steps.push({ pointer: value, button: "middle" });
+    else if (name === "--hover")
+      options.steps.push({ pointer: value, button: "idle" });
+    else if (name === "--pointer") options.steps.push({ mark: value });
     else if (name === "--click-text") options.steps.push({ clickText: value });
     else if (name === "--eval") options.steps.push({ evaluate: value });
     else if (name === "--wait-for") options.waitFor = value;
@@ -50,7 +68,14 @@ function parseArguments(argv) {
     )
       options[name.slice(2)] = Number(value);
     else if (
-      ["--url", "--out", "--theme", "--selector", "--chrome"].includes(name)
+      [
+        "--url",
+        "--out",
+        "--theme",
+        "--selector",
+        "--chrome",
+        "--cursor",
+      ].includes(name)
     )
       options[name.slice(2)] = value;
     else throw new Error(`Unknown option ${name}`);
@@ -217,27 +242,111 @@ async function paddedBounds(session, selector, padding) {
   };
 }
 
-async function click(session, selector) {
+// Moves to the center of an element and presses `button` there, or only hovers for
+// "idle". Returns where the pointer ended up and what it did.
+async function point(session, selector, button) {
   const rect = await bounds(session, selector);
-  const position = {
-    x: rect.x + rect.width / 2,
-    y: rect.y + rect.height / 2,
-    button: "left",
-    clickCount: 1,
-  };
+  const position = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
 
   await session.send("Input.dispatchMouseEvent", {
     ...position,
     type: "mouseMoved",
   });
-  await session.send("Input.dispatchMouseEvent", {
-    ...position,
-    type: "mousePressed",
-  });
-  await session.send("Input.dispatchMouseEvent", {
-    ...position,
-    type: "mouseReleased",
-  });
+
+  if (button !== "idle") {
+    const press = { ...position, button, clickCount: 1 };
+
+    await session.send("Input.dispatchMouseEvent", {
+      ...press,
+      type: "mousePressed",
+    });
+    await session.send("Input.dispatchMouseEvent", {
+      ...press,
+      type: "mouseReleased",
+    });
+  }
+
+  return { ...position, button };
+}
+
+function parseMark(value) {
+  const [x, y, button = "idle"] = value.split(",");
+
+  if (!["idle", "left", "right", "middle"].includes(button))
+    throw new Error(`Unknown pointer button ${button}`);
+
+  return { x: Number(x), y: Number(y), button };
+}
+
+// The cursor box, in CSS pixels, with the arrow's tip CURSOR_TIP in from its corner.
+// The mouse sits up and to the left of the tip, clear of menus that open below it.
+const CURSOR_SIZE = 64;
+const CURSOR_TIP = 30;
+const CURSOR_ACCENT = "#2f6fec";
+
+function cursorSvg(button) {
+  const pressed = {
+    left: '<rect x="4" y="2" width="7" height="8" />',
+    right: '<rect x="11" y="2" width="7" height="8" />',
+    middle: '<rect x="9.5" y="3.5" width="3" height="6" rx="1.5" />',
+  }[button];
+  const ring = pressed
+    ? `<circle cx="30" cy="30" r="12" fill="${CURSOR_ACCENT}" fill-opacity="0.18" stroke="${CURSOR_ACCENT}" stroke-width="2" />`
+    : "";
+  const mouse = pressed
+    ? `<defs><clipPath id="capture-mouse"><rect x="4" y="2" width="14" height="20" rx="7" /></clipPath></defs>
+      <rect x="4" y="2" width="14" height="20" rx="7" fill="white" />
+      <g clip-path="url(#capture-mouse)" fill="${CURSOR_ACCENT}">${pressed}</g>
+      <path d="M11 2V10M4 10H18" stroke="#1b1f24" stroke-width="1" />
+      <rect x="4" y="2" width="14" height="20" rx="7" fill="none" stroke="#1b1f24" stroke-width="1.5" />`
+    : "";
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${CURSOR_SIZE}" height="${CURSOR_SIZE}" viewBox="0 0 ${CURSOR_SIZE} ${CURSOR_SIZE}">
+    ${ring}
+    <path d="M30 30V49L34.5 44.5L38 52.5L41.5 51L38 43H44.5Z" fill="white" stroke="#1b1f24" stroke-width="1.5" stroke-linejoin="round" />
+    ${mouse}
+  </svg>`;
+}
+
+async function showCursor(session, pointer) {
+  await evaluate(
+    session,
+    `(() => {
+      const cursor = document.createElement('div')
+      cursor.id = 'capture-cursor'
+      cursor.innerHTML = ${JSON.stringify(cursorSvg(pointer.button))}
+      Object.assign(cursor.style, {
+        position: 'fixed',
+        left: '${pointer.x - CURSOR_TIP}px',
+        top: '${pointer.y - CURSOR_TIP}px',
+        width: '${CURSOR_SIZE}px',
+        height: '${CURSOR_SIZE}px',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+      })
+      document.body.append(cursor)
+    })()`,
+  );
+}
+
+async function hideCursor(session) {
+  await evaluate(
+    session,
+    `document.getElementById('capture-cursor')?.remove()`,
+  );
+}
+
+// Grows a clip to cover the cursor drawn at `pointer`, with `margin` to spare.
+function withCursor(clip, pointer, margin) {
+  const cursorLeft = pointer.x - CURSOR_TIP - margin;
+  const cursorTop = pointer.y - CURSOR_TIP - margin;
+  const cursorEnd = CURSOR_SIZE + margin * 2;
+  const left = Math.max(0, Math.min(clip.x, cursorLeft));
+  const top = Math.max(0, Math.min(clip.y, cursorTop));
+  const right = Math.max(clip.x + clip.width, cursorLeft + cursorEnd);
+  const bottom = Math.max(clip.y + clip.height, cursorTop + cursorEnd);
+
+  return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
 async function clickText(session, text) {
@@ -257,11 +366,14 @@ async function clickText(session, text) {
   if (!found)
     throw new Error(`No visible element starts with ${JSON.stringify(text)}`);
 
-  await click(session, "[data-capture-target]");
+  const pointer = await point(session, "[data-capture-target]", "left");
+
   await evaluate(
     session,
     `document.querySelector('[data-capture-target]')?.removeAttribute('data-capture-target')`,
   );
+
+  return pointer;
 }
 
 async function capture(options) {
@@ -292,9 +404,14 @@ async function capture(options) {
 
     if (options.waitFor) await waitFor(session, options.waitFor);
 
+    let pointer;
+
     for (const step of options.steps) {
-      if (step.click) await click(session, step.click);
-      else if (step.clickText) await clickText(session, step.clickText);
+      if (step.pointer)
+        pointer = await point(session, step.pointer, step.button);
+      else if (step.mark) pointer = parseMark(step.mark);
+      else if (step.clickText)
+        pointer = await clickText(session, step.clickText);
       else await evaluate(session, step.evaluate);
 
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -302,16 +419,32 @@ async function capture(options) {
 
     await new Promise((resolve) => setTimeout(resolve, options.delay));
 
-    const clip = options.selector
-      ? {
-          ...(await paddedBounds(session, options.selector, options.padding)),
-          scale: 1,
-        }
-      : undefined;
+    const drawsCursor = pointer && options.cursor !== "off";
+    let clip;
+
+    if (options.selector) {
+      const padded = await paddedBounds(
+        session,
+        options.selector,
+        options.padding,
+      );
+
+      clip = {
+        ...(drawsCursor
+          ? withCursor(padded, pointer, Math.min(options.padding, 12))
+          : padded),
+        scale: 1,
+      };
+    }
+
+    if (drawsCursor) await showCursor(session, pointer);
+
     const { data } = await session.send("Page.captureScreenshot", {
       format: "png",
       ...(clip ? { clip } : {}),
     });
+
+    if (drawsCursor) await hideCursor(session);
 
     writeFileSync(options.out, Buffer.from(data, "base64"));
     session.close();

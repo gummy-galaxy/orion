@@ -67,7 +67,8 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
   --wait-for .react-flow__node --click-text Editing --delay 1200
 ```
 
-- `--click-text <text>` clicks the innermost visible element whose text starts with it. `--click <selector>` clicks an element, and `--eval <js>` runs code in the page. They repeat and run in order.
+- `--click-text <text>` clicks the innermost visible element whose text starts with it. `--click`, `--right-click`, and `--middle-click` press that button at an element's center, `--hover` moves there without pressing, and `--eval <js>` runs code in the page. They repeat and run in order.
+- The image shows a cursor where the last pointer step acted: a plain arrow for `--hover`, and an arrow with a ring and a mouse marking the pressed button for a click. It's drawn just before the capture and removed after. Prefer real pointer steps over `--eval` for clicks so the cursor shows what happened. When an `--eval` step does the clicking, add `--pointer <x>,<y>,<idle|left|right|middle>` after it to place the cursor. Use `--cursor off` only when the cursor would hide the change.
 - `--selector <css>` crops to one element, which suits menus, cards, and panels. The crop keeps 32 px of the page around the element so shadows, borders, and nearby context stay in the frame. Raise `--padding` when the surroundings help explain the change, and never set it to 0: a crop flush with the element's edges reads as cut off.
 - `--theme light|dark` sets the color scheme. Defaults are 1440×900 at 2× scale.
 - Raise `--delay` when the canvas is still animating or measuring groups.
