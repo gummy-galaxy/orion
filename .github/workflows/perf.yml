@@ -22,7 +22,7 @@ env:
 jobs:
   compare:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: app
