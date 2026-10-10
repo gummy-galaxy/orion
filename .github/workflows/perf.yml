@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BASE: origin/${{ github.base_ref || 'main' }}
+  BASE: origin/${{ github.event.pull_request.base.ref || 'main' }}
   MARKER: <!-- orion-perf -->
 
 jobs:
