@@ -308,7 +308,7 @@ select {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 2px;
+  gap: 7px 8px;
   max-width: calc(100% - 10px);
   pointer-events: auto;
   z-index: 1;
@@ -360,6 +360,7 @@ select {
   position: absolute;
   top: -5px;
   right: -5px;
+  z-index: 1;
   display: grid;
   place-items: center;
   min-width: 11px;
