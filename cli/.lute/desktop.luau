@@ -13,12 +13,13 @@ local root = path.resolve("..")
 local app = path.join(root, "app")
 local desktop = path.join(root, "desktop")
 local shell = path.join(desktop, "src-tauri")
+local cliDir = path.join(root, "cli")
 local bundle = if system.macos then "dmg" elseif system.win32 then "nsis" else "deb"
 
 run("cargo", { "fmt", "--check" }, { cwd = shell })
 
 run("npm", { "run", "build" }, { cwd = app })
-run("sh", { "scripts/prepare-sidecar.sh" }, { cwd = desktop })
+run("lute", { "run", "prepare-sidecar" }, { cwd = cliDir })
 
 run("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = shell })
 run("npx", { "tauri", "build", "--bundles", bundle }, { cwd = desktop })
