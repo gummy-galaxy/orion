@@ -20,7 +20,7 @@ const SYNC = 'M15.5 8A6 6 0 0 0 4.7 6.3M4.5 3v3.5H8M4.5 12a6 6 0 0 0 10.8 1.7M15
 export function ActionBar({ search, addNote, addImage, tidy, sync }: Props) {
   return (
     <div className="panel toolbar vertical" role="toolbar" aria-label="Canvas actions" aria-orientation="vertical">
-      <button type="button" className="tool" title="Search (⇧⌘P)" aria-label="Search" onClick={search}>
+      <button type="button" className="tool" title="Search (⌘K)" aria-label="Search" onClick={search}>
         <ToolIcon path={SEARCH} />
       </button>
       <button type="button" className="tool" title="Add note (N)" aria-label="Add note" onClick={addNote}>

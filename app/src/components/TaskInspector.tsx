@@ -28,6 +28,8 @@ export function TaskInspector({
   update,
   jumpTo,
   connections = true,
+  focus = false,
+  doneEditing,
   links,
   addLink,
   removeLink,
@@ -41,6 +43,9 @@ export function TaskInspector({
   jumpTo: (id: string) => void
   /** Focus view draws connections beside the inspector. */
   connections?: boolean
+  /** Focuses the title, for a card that was just added. */
+  focus?: boolean
+  doneEditing?: () => void
   links: Link[]
   addLink: (from: string, to: string, kind: Link['kind']) => void
   removeLink: (id: string) => void
@@ -71,7 +76,14 @@ export function TaskInspector({
   return (
     <div className="insp">
       <label htmlFor="t-label">Title</label>
-      <input id="t-label" value={data.label} onChange={(event) => update(node.id, { label: event.target.value })} />
+      <input
+        id="t-label"
+        value={data.label}
+        autoFocus={focus}
+        onBlur={doneEditing}
+        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+        onChange={(event) => update(node.id, { label: event.target.value })}
+      />
       {url && (
         <a className="pr-link" href={url} target="_blank" rel="noreferrer">
           Open {getTaskTag(data)} ↗
