@@ -11,7 +11,7 @@
     "devUrl": "http://localhost:5199",
     "beforeBuildCommand": {
       "cwd": "../",
-      "script": "npm --prefix ../app run build && ./scripts/prepare-sidecar.sh"
+      "script": "npm --prefix ../app run build && cd ../cli && lute run prepare-sidecar"
     },
     "frontendDist": "../../app/dist"
   },

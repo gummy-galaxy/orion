@@ -3,7 +3,7 @@ import { Provider, createStore } from 'jotai'
 import { ReactFlow, ReactFlowProvider, type Edge, type EdgeTypes, type NodeTypes } from '@xyflow/react'
 import { ActionsContext } from '../../derive'
 import type { AppNode, GhostNode } from '../../model'
-import { githubOwnerAtom, linksAtom, nodesAtom } from '../../state'
+import { linksAtom, nodesAtom } from '../../state'
 import { blocker, links, task } from './data'
 
 export function StoryGraph({
@@ -27,7 +27,6 @@ export function StoryGraph({
       nodes.filter((node): node is AppNode => node.type !== 'ghost'),
     )
     next.set(linksAtom, links)
-    next.set(githubOwnerAtom, 'vocksel')
 
     return next
   })
