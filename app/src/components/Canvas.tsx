@@ -23,7 +23,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
-import { Palette, type Command } from './Palette'
+import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { FocusView, type FocusItem } from './FocusView'
@@ -357,7 +357,9 @@ export function Canvas() {
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
   const [tool, setTool] = useState<Tool>('select')
-  const [paletteOpen, setPaletteOpen] = useState(false)
+  /** The text the palette opened with, or null while it's closed. */
+  const [paletteQuery, setPaletteQuery] = useState<string | null>(null)
+  const paletteOpen = paletteQuery !== null
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
   const [chosenSticker, setSticker] = useState<string | null>(null)
@@ -2217,7 +2219,14 @@ export function Canvas() {
 
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'p') {
         event.preventDefault()
-        setPaletteOpen(true)
+        setPaletteQuery(COMMAND_PREFIX)
+
+        return
+      }
+
+      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setPaletteQuery('')
 
         return
       }
@@ -2571,8 +2580,8 @@ export function Canvas() {
                   </span>
                 ))}
                 <span className="crumb-actions">
-                  <button type="button" className="btn" onClick={() => setPaletteOpen(true)}>
-                    Search <kbd>⇧⌘P</kbd>
+                  <button type="button" className="btn" onClick={() => setPaletteQuery('')}>
+                    Search <kbd>⌘K</kbd>
                   </button>
                   <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
                     Add note
@@ -2714,7 +2723,7 @@ export function Canvas() {
                   {showHelp ? (
                     <>
                       V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
-                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G ungroup · double-click a
+                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘K search · ⇧⌘P actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G ungroup · double-click a
                       group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit
                       · drag from a card's edge to link · hold Ctrl while dragging to skip snapping{' '}
                       <button type="button" className="link" onClick={() => setShowHelp(false)}>
@@ -2801,7 +2810,16 @@ export function Canvas() {
             />
           )}
         </div>
-        {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
+        {paletteQuery !== null && (
+          <Palette
+            nodes={nodes}
+            commands={commands}
+            jumpTo={jumpTo}
+            open={actions.open}
+            close={() => setPaletteQuery(null)}
+            initialQuery={paletteQuery}
+          />
+        )}
       </div>
     </ActionsContext.Provider>
   )
