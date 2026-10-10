@@ -14,9 +14,10 @@
 // matches. --click-text clicks the innermost visible element whose text starts with
 // the given text. --pointer marks where an --eval step acted, without sending input.
 //
-// The last pointer step leaves a cursor in the image: an arrow, with a ring and a
-// mouse showing the pressed button for a click. It's drawn just before the capture
-// and removed after. --cursor off leaves it out.
+// The last pointer step leaves a cursor in the image: a ring at the point and a mouse
+// showing the pressed button, colored per button. It's drawn just before the capture
+// and removed after, and skipped when the element it acted on is gone, such as a
+// clicked menu item. --cursor off leaves it out.
 //
 // --selector crops the image to one element with --padding CSS pixels of the page
 // around it, 32 by default, so shadows and nearby context stay in the frame. The crop
@@ -266,7 +267,24 @@ async function point(session, selector, button) {
     });
   }
 
-  return { ...position, button };
+  return { ...position, button, target: { selector } };
+}
+
+// Whether what a pointer step acted on is still on the page. React may swap in a new
+// element for the same thing, so this looks it up again instead of keeping the old one.
+async function hasTarget(session, target) {
+  if (target.text)
+    return evaluate(
+      session,
+      `[...document.querySelectorAll('body *')].some(
+        (element) => element.checkVisibility() && element.innerText?.trim().startsWith(${JSON.stringify(target.text)}),
+      )`,
+    );
+
+  return evaluate(
+    session,
+    `!!document.querySelector(${JSON.stringify(target.selector)})?.checkVisibility()`,
+  );
 }
 
 function parseMark(value) {
@@ -278,33 +296,37 @@ function parseMark(value) {
   return { x: Number(x), y: Number(y), button };
 }
 
-// The cursor box, in CSS pixels, with the arrow's tip CURSOR_TIP in from its corner.
-// The mouse sits up and to the left of the tip, clear of menus that open below it.
+// The cursor box, in CSS pixels, with the point it marks CURSOR_TIP in from its corner.
+// A ring marks the point, and a mouse showing the pressed button sits where an arrow
+// cursor would, down and to the right of it. Each button has its own color.
 const CURSOR_SIZE = 64;
 const CURSOR_TIP = 30;
-const CURSOR_ACCENT = "#2f6fec";
+const CURSOR_COLORS = {
+  idle: "#57606a",
+  left: "#2f6fec",
+  right: "#e8590c",
+  middle: "#8250df",
+};
 
 function cursorSvg(button) {
+  const color = CURSOR_COLORS[button];
   const pressed = {
-    left: '<rect x="4" y="2" width="7" height="8" />',
-    right: '<rect x="11" y="2" width="7" height="8" />',
-    middle: '<rect x="9.5" y="3.5" width="3" height="6" rx="1.5" />',
+    left: '<rect x="31" y="31" width="7" height="8" />',
+    right: '<rect x="38" y="31" width="7" height="8" />',
+    middle: '<rect x="36.5" y="32.5" width="3" height="6" rx="1.5" />',
   }[button];
-  const ring = pressed
-    ? `<circle cx="30" cy="30" r="12" fill="${CURSOR_ACCENT}" fill-opacity="0.18" stroke="${CURSOR_ACCENT}" stroke-width="2" />`
-    : "";
-  const mouse = pressed
-    ? `<defs><clipPath id="capture-mouse"><rect x="4" y="2" width="14" height="20" rx="7" /></clipPath></defs>
-      <rect x="4" y="2" width="14" height="20" rx="7" fill="white" />
-      <g clip-path="url(#capture-mouse)" fill="${CURSOR_ACCENT}">${pressed}</g>
-      <path d="M11 2V10M4 10H18" stroke="#1b1f24" stroke-width="1" />
-      <rect x="4" y="2" width="14" height="20" rx="7" fill="none" stroke="#1b1f24" stroke-width="1.5" />`
-    : "";
+  const ring =
+    button === "idle"
+      ? `<circle cx="30" cy="30" r="8" fill="none" stroke="${color}" stroke-width="2" />`
+      : `<circle cx="30" cy="30" r="12" fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-width="2" />`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${CURSOR_SIZE}" height="${CURSOR_SIZE}" viewBox="0 0 ${CURSOR_SIZE} ${CURSOR_SIZE}">
+    <defs><clipPath id="capture-mouse"><rect x="31" y="31" width="14" height="20" rx="7" /></clipPath></defs>
     ${ring}
-    <path d="M30 30V49L34.5 44.5L38 52.5L41.5 51L38 43H44.5Z" fill="white" stroke="#1b1f24" stroke-width="1.5" stroke-linejoin="round" />
-    ${mouse}
+    <rect x="31" y="31" width="14" height="20" rx="7" fill="white" />
+    <g clip-path="url(#capture-mouse)" fill="${color}">${pressed ?? ""}</g>
+    <path d="M38 31V39M31 39H45" stroke="#1b1f24" stroke-width="1" />
+    <rect x="31" y="31" width="14" height="20" rx="7" fill="none" stroke="#1b1f24" stroke-width="1.5" />
   </svg>`;
 }
 
@@ -366,7 +388,10 @@ async function clickText(session, text) {
   if (!found)
     throw new Error(`No visible element starts with ${JSON.stringify(text)}`);
 
-  const pointer = await point(session, "[data-capture-target]", "left");
+  const pointer = {
+    ...(await point(session, "[data-capture-target]", "left")),
+    target: { text },
+  };
 
   await evaluate(
     session,
@@ -419,7 +444,11 @@ async function capture(options) {
 
     await new Promise((resolve) => setTimeout(resolve, options.delay));
 
-    const drawsCursor = pointer && options.cursor !== "off";
+    // A click that removed its target, such as a menu item, leaves nothing to point at.
+    const drawsCursor =
+      pointer &&
+      options.cursor !== "off" &&
+      (!pointer.target || (await hasTarget(session, pointer.target)));
     let clip;
 
     if (options.selector) {
