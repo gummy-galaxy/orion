@@ -9,6 +9,7 @@ use std::{
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
+mod mouse_navigation;
 mod usage;
 
 fn get_free_port() -> std::io::Result<u16> {
@@ -102,7 +103,8 @@ pub fn run() {
             #[cfg(not(target_os = "macos"))]
             let window = window.decorations(false);
 
-            window.build()?;
+            let window = window.build()?;
+            mouse_navigation::forward(window);
             Ok(())
         })
         .build(tauri::generate_context!())
