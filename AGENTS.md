@@ -34,8 +34,8 @@ To show the person the app, or anything else served locally such as a dev server
 
 ## Changing it
 
-- `orion add <title> [--group <id>] [--kind gate|component] [--repo <owner/name>] [--pr <number>] [--status <status>] [--note …]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off. A component is a part of a system diagram rather than work; see below.
-- `orion set <id> [--label …] [--status …] [--kind step|gate|component] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
+- `orion add <title> [--group <id>] [--kind gate|component] [--shape …] [--color …] [--repo <owner/name>] [--pr <number>] [--status <status>] [--note …]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off. A component is a part of a system diagram rather than work; see below.
+- `orion set <id> [--label …] [--status …] [--kind step|gate|component] [--shape …] [--color …] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who`, `--note`, `--shape`, or `--color`.
 - `orion set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
 - `orion done <id...> | --where '<expr>'` marks items done.
 - `orion link <first> <second> [next…] [--label <text>]` links each adjacent pair in one transaction. Add `--related` for links that never block. A label names what the link carries; linking an already linked pair updates it, and `--label ""` clears it. `orion unlink` removes one link.
@@ -55,9 +55,14 @@ Run `orion suggest` to find related ungrouped cards, then review `orion suggesti
 
 ## System diagrams
 
-A workspace can also draw a system: services, apps, files, and outside tools, linked by what flows between them. Make each part a component with `orion add <name> --kind component [--repo <owner/name>] [--note <what it does>]`. Components have no status, never count as work, and show their note under their name. Link them with `orion link <caller> <callee> --label <what travels>`, pointing from what starts a call to what it calls, and group them by boundary, such as an app, a process, or everything outside the system.
+A workspace can also draw a system: services, apps, files, and outside tools, linked by what flows between them. Make each part a component with `orion add <name> --shape <shape> [--repo <owner/name>] [--note <what it does>]`; a shape makes the card a component. Components have no status, never count as work, and grow to show their whole name and note.
 
-Create the links before the groups, then run `orion set <group> --arrange auto` on each group so the app lays it out by its links and leaves room for their labels. Opening a group in the app shows the components outside it that it talks to.
+- Shapes: `service` (a box, the default), `store` (a cylinder, for files and databases), `actor` (a pill, for people and agents), `external` (a dashed box, for anything outside the system), `interface` (a window, for a UI), `process` (a chevron, for commands and jobs), and `queue` (a stack, for streams of events).
+- Colors: `teal`, `blue`, `purple`, `amber`, `rose`, `green`, and `slate`. Set one on a group with `orion set <group> --color <color>`; the components and groups inside take it unless they set their own.
+
+Link components with `orion link <caller> <callee> --label <what travels>`, pointing from what starts a call to what it calls. Group them by boundary, such as an app, a process, or everything outside the system, and nest smaller groups inside for its parts. `orion group` wraps items that share a parent, so make the inner groups first.
+
+Create the links before the groups, then run `orion set <group> --arrange auto` on each group so the app lays it out by its links and leaves room for their labels; it lays out inner groups first. Run Tidy in the app for the top level. A folded group lists what it holds, and opening one shows the components outside it that it talks to. A note at the top level that explains the shapes and colors helps first-time readers.
 
 ## Keeping pull requests current
 

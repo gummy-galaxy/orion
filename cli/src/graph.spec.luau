@@ -85,6 +85,33 @@ test.case("a component keeps its kind when its repository changes, and step turn
 	assert.eq(item.data.itemKind, "step")
 end)
 
+test.case("a shape makes a component, and components and groups take a color", function(assert)
+	local doc = testing.createDoc({ testing.group("g", "System") })
+	local item = graph.addItem(doc, "orion.json", { shape = "store", color = "amber" })
+	assert.eq(item.data.itemKind, "component")
+	assert.eq(item.data.shape, "store")
+	assert.eq(item.data.color, "amber")
+
+	graph.setFields(doc, item.id, { shape = "", color = "" })
+	assert.eq(item.data.shape, nil)
+	assert.eq(item.data.color, nil)
+
+	local step = graph.addItem(doc, "Write the docs", {})
+	graph.setFields(doc, step.id, { shape = "process" })
+	assert.eq(step.data.itemKind, "component")
+	graph.setFields(doc, step.id, { kind = "step" })
+	assert.eq(step.data.shape, nil)
+
+	graph.setFields(doc, "g", { color = "teal" })
+	assert.eq(graph.get(doc, "g").data.color, "teal")
+	assert.throwsWith("only components and groups take a color", function()
+		graph.setFields(doc, step.id, { color = "rose" })
+	end)
+	assert.throwsWith("shape must be one of service, store, actor, external, interface, process, queue", function()
+		graph.addItem(doc, "Blob", { shape = "blob" })
+	end)
+end)
+
 test.case("link sets, keeps, and clears a label, and insertBetween keeps it on the first half", function(assert)
 	local doc = testing.createDoc({ task("a", "A", "todo"), task("b", "B", "todo"), task("n", "N", "todo") })
 	local link = graph.link(doc, "a", "b", "blocks", "  HTTP  ")

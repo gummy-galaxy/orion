@@ -119,6 +119,12 @@ local function addFieldOptions(parser: cli.Parser)
 	parser:add("pr", "option", { help = "Pull request number" })
 	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
 	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
+	parser:add("shape", "option", {
+		help = "How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)",
+	})
+	parser:add("color", "option", {
+		help = "A component's or group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)",
+	})
 	parser:add("kind", "option", {
 		help = "step; gate for one that's done once everything it waits on is; or component for a part of a system, not work",
 	})
@@ -298,6 +304,8 @@ local function fields(parser: cli.Parser): graph.ItemFields
 		note = parser:get("note"),
 		arrange = parser:get("arrange"),
 		kind = parser:get("kind"),
+		shape = parser:get("shape"),
+		color = parser:get("color"),
 	}
 end
 

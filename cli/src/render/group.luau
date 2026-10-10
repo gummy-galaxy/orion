@@ -19,6 +19,7 @@ function group.serialize(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 		components = progress.components,
 	})
 	object.parent = item.parentId
+	object.color = item.data.color
 	return object
 end
 

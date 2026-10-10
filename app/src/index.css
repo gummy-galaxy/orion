@@ -23,6 +23,14 @@
   --note-edge: #d9b94a;
   --note-ink: #7a6418;
   --snap: #e0457b;
+  /* Tints for groups and components in system diagrams. */
+  --tint-teal: #0d8a8f;
+  --tint-blue: #2f6fd6;
+  --tint-purple: #7a52cc;
+  --tint-amber: #c27a0e;
+  --tint-rose: #cc4a6a;
+  --tint-green: #2f8a4f;
+  --tint-slate: #5f6f7a;
   --shadow: 0 1px 2px rgb(23 36 43 / 0.06), 0 4px 14px rgb(23 36 43 / 0.06);
   --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -47,6 +55,13 @@
   --note: #2e2a17;
   --note-edge: #8a7428;
   --note-ink: #d9c272;
+  --tint-teal: #4fc1c4;
+  --tint-blue: #6ea2f2;
+  --tint-purple: #a98bf0;
+  --tint-amber: #e2a34a;
+  --tint-rose: #f07a95;
+  --tint-green: #6cc28a;
+  --tint-slate: #92a3aa;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
   color-scheme: dark;
 }
@@ -70,6 +85,13 @@
     --note: #2e2a17;
     --note-edge: #8a7428;
     --note-ink: #d9c272;
+    --tint-teal: #4fc1c4;
+    --tint-blue: #6ea2f2;
+    --tint-purple: #a98bf0;
+    --tint-amber: #e2a34a;
+    --tint-rose: #f07a95;
+    --tint-green: #6cc28a;
+    --tint-slate: #92a3aa;
     --snap: #ff6f9c;
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
     color-scheme: dark;
@@ -783,6 +805,18 @@ select {
 .react-flow__node-cluster.selected .cluster {
   border: 1.5px solid var(--accent);
 }
+/* A tinted group reads as one boundary: a tinted frame and wash, and a stripe on its header. */
+.cluster:is(.tint-teal, .tint-blue, .tint-purple, .tint-amber, .tint-rose, .tint-green, .tint-slate) {
+  border: 1.5px solid color-mix(in srgb, var(--tint) 45%, transparent);
+  background: color-mix(in srgb, var(--tint) 6%, transparent);
+}
+.cluster:is(.tint-teal, .tint-blue, .tint-purple, .tint-amber, .tint-rose, .tint-green, .tint-slate) .cluster-head {
+  border-color: color-mix(in srgb, var(--tint) 35%, var(--line));
+  box-shadow: inset 4px 0 0 var(--tint);
+}
+.cluster:is(.tint-teal, .tint-blue, .tint-purple, .tint-amber, .tint-rose, .tint-green, .tint-slate).is-collapsed {
+  background: color-mix(in srgb, var(--tint) 14%, var(--surface));
+}
 .cluster > .source-badges {
   right: 8px;
   bottom: 8px;
@@ -893,11 +927,31 @@ select {
   font-size: calc(14px * var(--inv, 1));
   font-weight: 600;
   line-height: 1.25;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+.cluster-card-parts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: calc(2px * var(--inv, 1));
+  min-width: 0;
+  max-width: 100%;
+  font-size: calc(11.5px * var(--inv, 1));
+  line-height: 1.2;
+  color: var(--muted);
+}
+.cluster-card-parts li {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.cluster-card.is-tiny .cluster-card-parts {
+  display: none;
 }
 .cluster-card-stats {
   display: flex;
@@ -931,7 +985,7 @@ select {
   display: none;
 }
 .cluster-card.is-tiny .cluster-card-title strong {
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
 }
 .cluster-card .source-badges {
   right: calc(10px * var(--inv, 1));
@@ -2031,15 +2085,98 @@ kbd {
   display: none;
 }
 
-/* Components: parts of a system, drawn without the status bar work carries. */
+/* Tints, set on a group or component and passed down to the components inside a group. */
+.tint-teal {
+  --tint: var(--tint-teal);
+}
+.tint-blue {
+  --tint: var(--tint-blue);
+}
+.tint-purple {
+  --tint: var(--tint-purple);
+}
+.tint-amber {
+  --tint: var(--tint-amber);
+}
+.tint-rose {
+  --tint: var(--tint-rose);
+}
+.tint-green {
+  --tint: var(--tint-green);
+}
+.tint-slate {
+  --tint: var(--tint-slate);
+}
+
+/* Components: parts of a system, drawn as a shape rather than the bordered card work uses. They grow to fit their
+   text, so nothing here clamps it; cardSize.ts measures with the same padding. */
 .card.component {
   --c: var(--ink);
+  --shape-stroke: color-mix(in srgb, var(--ink) 35%, var(--line));
+  --shape-fill: var(--surface);
   padding-left: 12px;
-  border-color: color-mix(in srgb, var(--ink) 28%, var(--line));
+  border: none;
+  background: transparent;
   box-shadow: none;
 }
+.card.component:is(.tint-teal, .tint-blue, .tint-purple, .tint-amber, .tint-rose, .tint-green, .tint-slate) {
+  --shape-stroke: var(--tint);
+  --shape-fill: color-mix(in srgb, var(--tint) 12%, var(--surface));
+}
+/* Text sits above the outline; handles and actions keep their own positioning. */
+.card.component > :is(.meta, .label, .component-note) {
+  position: relative;
+}
+.shape-outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.shape-body,
+.shape-line {
+  stroke: var(--shape-stroke);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.shape-body {
+  fill: var(--shape-fill);
+}
+.shape-line {
+  fill: none;
+}
+.shape-dot {
+  fill: var(--shape-stroke);
+}
+.shape-external .shape-body {
+  stroke-dasharray: 6 4;
+  fill: color-mix(in srgb, var(--shape-fill) 55%, transparent);
+}
+.card.component.shape-store {
+  padding-top: 22px;
+}
+.card.component.shape-interface {
+  padding-top: 18px;
+}
+.card.component.shape-actor {
+  padding-inline: 18px;
+}
+.card.component.shape-process {
+  padding-left: 24px;
+  padding-right: 28px;
+}
+.card.component.shape-queue {
+  padding-top: 18px;
+  padding-right: 20px;
+}
+.card.component.shape-queue .card-actions {
+  right: 14px;
+}
 .far-card.component {
-  box-shadow: var(--shadow);
+  box-shadow: none;
+  filter: drop-shadow(0 4px 10px rgb(23 36 43 / 0.12));
 }
 .card.component .meta {
   justify-content: flex-start;
@@ -2048,24 +2185,22 @@ kbd {
   flex: none;
   width: 8px;
   height: 8px;
-  border: 1.5px solid var(--accent);
+  border: 1.5px solid var(--shape-stroke);
   border-radius: 2px;
-  background: var(--accent-soft);
+  background: var(--shape-fill);
 }
-.card.component.has-note .label {
-  -webkit-line-clamp: 1;
+.card.component .label {
+  display: block;
+  -webkit-line-clamp: unset;
 }
 .component-note {
   font-size: 11.5px;
   line-height: 1.25;
   color: var(--muted);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
   padding-right: 22px;
 }
 .far-card .component-note {
-  white-space: normal;
   padding-right: 0;
 }
 
@@ -2078,13 +2213,11 @@ kbd {
 .card.note .meta {
   color: var(--note-ink);
 }
+/* Notes grow to fit their text, which cardSize.ts measures, so it isn't clamped. */
 .note-text {
   font-size: 12px;
   line-height: 1.3;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   padding-right: 22px;

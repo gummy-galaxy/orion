@@ -27,6 +27,7 @@ import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { FocusView, type FocusItem } from './FocusView'
+import { forgetTextWidths } from '../cardSize'
 import { reflow } from '../layout'
 import { mergeDocs } from '../merge'
 import {
@@ -109,6 +110,7 @@ import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
+import { TintSelect } from './TintSelect'
 
 type ViewNode = AppNode | GhostNode
 
@@ -735,7 +737,11 @@ export function Canvas() {
       let next = nodes
 
       try {
-        for (const group of marked) {
+        // Inner groups go first, so a group around them is laid out with their new sizes.
+        const nodeMap = byId(nodes)
+        const depth = (id: string) => ancestors(id, nodeMap).length
+
+        for (const group of [...marked].sort((a, b) => depth(b.id) - depth(a.id))) {
           try {
             next = await reflow(next, links, group.id)
           } catch (error) {
@@ -1792,9 +1798,31 @@ export function Canvas() {
 
   const updateData = useCallback(
     (id: string, patch: Partial<TaskData> | Partial<ClusterData> | Partial<ImageNode['data']>) =>
-      setNodes((currentNodes) => currentNodes.map((node) => (node.id === id ? ({ ...node, data: { ...node.data, ...patch } } as AppNode) : node))),
+      setNodes((currentNodes) => {
+        let resized = false
+        const nextNodes = currentNodes.map((node) => {
+          if (node.id !== id) return node
+
+          const updated = { ...node, data: { ...node.data, ...patch } } as AppNode
+
+          // Notes and components grow with their text, and their group grows with them.
+          if (isTask(updated) && sizeOf(updated).height !== node.height) resized = true
+
+          return updated
+        })
+
+        return resized ? normalize(nextNodes) : nextNodes
+      }),
     [setNodes],
   )
+
+  // Card heights are measured from text, so measure again once the web fonts arrive.
+  useEffect(() => {
+    void document.fonts?.ready.then(() => {
+      forgetTextWidths()
+      setNodes((currentNodes) => normalize(currentNodes))
+    })
+  }, [setNodes])
 
   // ---- Notes and links ----
 
@@ -2223,7 +2251,8 @@ export function Canvas() {
           { label: 'Add a component after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id, itemKind: 'component' }) },
           {
             label: 'Turn into a work item',
-            run: () => updateData(node.id, { itemKind: getItemKind({ ...node.data, itemKind: 'step' }), status: 'todo' }),
+            run: () =>
+              updateData(node.id, { itemKind: getItemKind({ ...node.data, itemKind: 'step' }), status: 'todo', shape: undefined, color: undefined }),
           },
           'divider',
           { label: 'Delete component', danger: true, run: () => deleteComponent(node.id) },
@@ -2750,6 +2779,13 @@ export function Canvas() {
                       />
                       {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
                       <GroupFacts stats={work.groups.get(one.id)} />
+                      <label htmlFor="g-color">Color</label>
+                      <TintSelect
+                        id="g-color"
+                        value={(one.data as ClusterData).color}
+                        inherit={one.parentId ? "Its group's" : 'None'}
+                        change={(color) => updateData(one.id, { color })}
+                      />
                       <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
                       <div className="row">
                         <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>

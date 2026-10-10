@@ -2,7 +2,7 @@ import { atom, useAtomValue } from 'jotai'
 import { selectAtom } from 'jotai/utils'
 import { useMemo } from 'react'
 import { deriveWork, traceFrom, type AttentionMark, type GroupStats, type SourceRef } from './derive'
-import { isTask, type AppNode, type Link } from './model'
+import { byId, isImage, isTask, tintOf, type AppNode, type Link, type Tint } from './model'
 
 export const nodesAtom = atom<AppNode[]>([])
 export const linksAtom = atom<Link[]>([])
@@ -13,6 +13,21 @@ export const pinnedAtom = atom<string | null>(null)
 export const focusedAtom = atom(false)
 
 export const workAtom = atom((get) => deriveWork(get(nodesAtom), get(linksAtom)))
+
+/** Each group's and component's tint, its own or its nearest group's. */
+export const tintsAtom = atom((get) => {
+  const nodes = get(nodesAtom)
+  const nodeMap = byId(nodes)
+  const tints = new Map<string, Tint>()
+
+  for (const node of nodes) {
+    const tint = isImage(node) ? undefined : tintOf(node, nodeMap)
+
+    if (tint) tints.set(node.id, tint)
+  }
+
+  return tints
+})
 
 export const traceAtom = atom((get) => {
   const from = get(focusedAtom) ? null : (get(pinnedAtom) ?? get(hoverAtom))
@@ -78,3 +93,29 @@ export const useTraceRole = (id: string) =>
 export const useMarked = (id: string) => useAtomValue(useMemo(() => selectAtom(attentionAtom, (attention) => !!attention?.has(id)), [id]))
 
 export const useCollapsed = (id: string) => useAtomValue(useMemo(() => selectAtom(collapsedAtom, (collapsed) => collapsed.has(id)), [id]))
+
+export const useTint = (id: string) => useAtomValue(useMemo(() => selectAtom(tintsAtom, (tints) => tints.get(id)), [id]))
+
+const NO_PARTS: string[] = []
+
+/** The names of what's directly inside a group, in reading order, for a folded group that holds no work to list. */
+export const useGroupParts = (id: string) =>
+  useAtomValue(
+    useMemo(
+      () =>
+        selectAtom(
+          nodesAtom,
+          (nodes) => {
+            const parts = nodes
+              .filter((node) => node.parentId === id && !isImage(node))
+              .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
+              .map((node) => (node.data as { label: string }).label)
+              .filter(Boolean)
+
+            return parts.length ? parts : NO_PARTS
+          },
+          (a, b) => a.length === b.length && a.every((label, i) => label === b[i]),
+        ),
+      [id],
+    ),
+  )

@@ -67,6 +67,8 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 	object.refs = item.data.refs
 	object.who = item.data.who
 	object.note = item.data.note
+	object.shape = item.data.shape
+	object.color = item.data.color
 	local waitsOn: json.Array = {}
 	local unblocks: json.Array = {}
 	local labels: json.Array = {}
@@ -136,6 +138,11 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 			table.insert(lines, `  arrange  {arrange}`)
 		end
 
+		local color = asString(item.data.color)
+		if color then
+			table.insert(lines, `  color    {color}`)
+		end
+
 		for _, child in doc.nodes do
 			if child.parentId == item.id then
 				table.insert(
@@ -166,7 +173,14 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 		`  kind     {render.tag(item)}`,
 	}
 
-	if not graph.isComponent(item) then
+	if graph.isComponent(item) then
+		table.insert(lines, `  shape    {asString(item.data.shape) or "service"}`)
+
+		local color = asString(item.data.color)
+		if color then
+			table.insert(lines, `  color    {color}`)
+		end
+	else
 		local status = derived.status[item.id] or "ready"
 		table.insert(lines, `  status   {status} (recorded {asString(item.data.status) or "todo"})`)
 	end

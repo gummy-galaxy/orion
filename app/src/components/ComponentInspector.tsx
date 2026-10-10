@@ -1,5 +1,6 @@
 import type { Work } from '../derive'
-import { getItemKind, type AppNode, type Link, type TaskData } from '../model'
+import { COMPONENT_SHAPES, SHAPE_LABEL, getItemKind, type AppNode, type ComponentShape, type Link, type TaskData } from '../model'
+import { TintSelect } from './TintSelect'
 import { LinkList } from './LinkList'
 
 /** A part of a system diagram: its name, where its code lives, what it does, and what it talks to. */
@@ -48,6 +49,30 @@ export function ComponentInspector({
         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
         onChange={(event) => update(node.id, { label: event.target.value })}
       />
+      <div className="grid2">
+        <div>
+          <label htmlFor="c-shape">Shape</label>
+          <select
+            id="c-shape"
+            value={data.shape ?? 'service'}
+            onChange={(event) => {
+              const shape = event.target.value as ComponentShape
+
+              update(node.id, { shape: shape === 'service' ? undefined : shape })
+            }}
+          >
+            {COMPONENT_SHAPES.map((shape) => (
+              <option key={shape} value={shape}>
+                {SHAPE_LABEL[shape]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="c-color">Color</label>
+          <TintSelect id="c-color" value={data.color} inherit="Its group's" change={(color) => update(node.id, { color })} />
+        </div>
+      </div>
       <label htmlFor="c-repo">Repository</label>
       <input
         id="c-repo"
@@ -71,7 +96,9 @@ export function ComponentInspector({
         <button
           type="button"
           className="btn"
-          onClick={() => update(node.id, { itemKind: getItemKind({ ...data, itemKind: 'step' }), status: 'todo' })}
+          onClick={() =>
+            update(node.id, { itemKind: getItemKind({ ...data, itemKind: 'step' }), status: 'todo', shape: undefined, color: undefined })
+          }
         >
           Turn into a work item
         </button>

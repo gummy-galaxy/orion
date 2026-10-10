@@ -15,6 +15,22 @@ local VIEWS = { "list", "ready", "groups", "matches", "show" }
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
 
+local shapeField: Field = {
+	name = "shape",
+	kind = "enum",
+	values = fieldValues.shapes,
+	description = "How a component is drawn. Giving a shape makes the item a component.",
+	at = "option",
+}
+
+local colorField: Field = {
+	name = "color",
+	kind = "enum",
+	values = fieldValues.colors,
+	description = "A component's or group's tint. Components take their nearest group's tint unless they set their own.",
+	at = "option",
+}
+
 local kindField: Field = {
 	name = "kind",
 	kind = "enum",
@@ -120,6 +136,8 @@ local tools: { Tool } = {
 			workspaceField,
 			{ name = "group", kind = "id", at = "option" },
 			kindField,
+			shapeField,
+			colorField,
 			{ name = "repo", kind = "string", at = "option" },
 			{ name = "pr", kind = "int", at = "option" },
 			{ name = "status", kind = "enum", values = fieldValues.statuses, at = "option" },
@@ -145,6 +163,8 @@ local tools: { Tool } = {
 			},
 			{ name = "note", kind = "string", at = "option" },
 			kindField,
+			shapeField,
+			colorField,
 			{ name = "repo", kind = "string", at = "option" },
 			{ name = "pr", kind = "int", at = "option" },
 		},

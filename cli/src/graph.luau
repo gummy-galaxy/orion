@@ -34,6 +34,8 @@ export type ItemFields = {
 	blurb: string?,
 	arrange: string?,
 	kind: string?,
+	shape: string?,
+	color: string?,
 }
 
 local graph = {}
@@ -363,6 +365,27 @@ local function checkFields(fields: ItemFields)
 		fields.arrange == nil or table.find(fieldValues.arrangements, fields.arrange),
 		`arrange must be one of {table.concat(fieldValues.arrangements, ", ")}`
 	)
+	assert(
+		fields.shape == nil or fields.shape == "" or table.find(fieldValues.shapes, fields.shape),
+		`shape must be one of {table.concat(fieldValues.shapes, ", ")}`
+	)
+	assert(
+		fields.color == nil or fields.color == "" or table.find(fieldValues.colors, fields.color),
+		`color must be one of {table.concat(fieldValues.colors, ", ")}`
+	)
+end
+
+-- Sets or clears (with an empty value) a component's shape and color.
+local function setLook(item: Item, fields: ItemFields)
+	if fields.shape then
+		assert(graph.isComponent(item), "only components take a shape")
+		item.data.shape = if fields.shape == "" then nil else fields.shape
+	end
+
+	if fields.color then
+		assert(graph.isComponent(item), "only components and groups take a color")
+		item.data.color = if fields.color == "" then nil else fields.color
+	end
 end
 
 export type AddOptions = ItemFields & { group: string? }
@@ -370,6 +393,7 @@ export type AddOptions = ItemFields & { group: string? }
 function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	assert(label ~= "", "an item needs a label")
 	checkFields(options)
+	assert(options.shape == nil or options.kind == nil or options.kind == "component", "only components take a shape")
 	assert(options.pr == nil or options.repo ~= nil, "pr needs a repository as owner/name")
 
 	if options.group then
@@ -380,7 +404,8 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
-		itemKind = itemKindFor(options.repo, options.pr, options.kind),
+		-- A shape only fits a component, so giving one makes the item a component.
+		itemKind = itemKindFor(options.repo, options.pr, if options.shape then "component" else options.kind),
 		status = options.status or "todo",
 	})
 	data.repo = options.repo
@@ -402,6 +427,7 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 			url = `https://github.com/{options.repo}/pull/{options.pr}`,
 		})
 	end
+	setLook(item, options)
 	table.insert(doc.nodes, item)
 	return item
 end
@@ -435,9 +461,14 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.repo == nil
 				and fields.pr == nil
 				and fields.who == nil
-				and fields.kind == nil,
-			"groups only take a label, blurb, and arrange"
+				and fields.kind == nil
+				and fields.shape == nil,
+			"groups only take a label, blurb, arrange, and color"
 		)
+
+		if fields.color then
+			item.data.color = if fields.color == "" then nil else fields.color
+		end
 
 		if fields.label then
 			item.data.label = fields.label
@@ -498,14 +529,25 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 		assert(not graph.isNote(item), "notes don't take a kind; make it a work item first")
 	end
 
-	if not graph.isNote(item) and (fields.repo or fields.pr or fields.kind) then
+	-- As with add, giving a card a shape makes it a component.
+	local givenKind = fields.kind
+		or (if fields.shape and fields.shape ~= "" and not graph.isNote(item) then "component" else nil)
+
+	if not graph.isNote(item) and (fields.repo or fields.pr or givenKind) then
 		local repo = field(item, "repo")
 		local pr = findRef(item, "pull")
-		local kind = fields.kind
+		local kind = givenKind
 			or (if graph.isGate(item) or graph.isComponent(item) then field(item, "itemKind") else nil)
 		item.data.itemKind = itemKindFor(repo, if pr then 1 else nil, kind)
 	end
 
+	-- Work isn't drawn with a shape or tint, so a component turned into work drops them.
+	if not graph.isComponent(item) then
+		item.data.shape = nil
+		item.data.color = nil
+	end
+
+	setLook(item, fields)
 	return item
 end
 

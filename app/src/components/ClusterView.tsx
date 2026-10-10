@@ -3,7 +3,7 @@ import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext } from '../derive'
 import type { ClusterNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useCollapsed, useGroupStats, useMarked, useSources, useTraceRole } from '../state'
+import { useCollapsed, useGroupParts, useGroupStats, useMarked, useSources, useTint, useTraceRole } from '../state'
 import { Ring } from './Ring'
 
 export const ClusterView = memo(function ClusterView({ id, data, width, height }: NodeProps<ClusterNode>) {
@@ -15,11 +15,15 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const sources = useSources(id)
+  const tint = useTint(id)
   // Groups that hold no work, like the boundaries of a system diagram, have no progress to show.
   const hasWork = stats.total > 0
+  const parts = useGroupParts(id)
 
   return (
-    <div className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`}>
+    <div
+      className={`cluster${tint ? ' tint-' + tint : ''}${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`}
+    >
       <Handle type="target" position={Position.Left} isConnectable={false} />
       {collapsed ? (
         <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">
@@ -36,7 +40,14 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
               <span>{stats.blocked} blocked</span>
             </span>
           ) : (
-            data.blurb && <span className="cluster-card-stats">{data.blurb}</span>
+            // A folded diagram group lists what it holds, so the system still reads from far out.
+            parts.length > 0 && (
+              <ul className="cluster-card-parts">
+                {parts.map((part, i) => (
+                  <li key={i}>{part}</li>
+                ))}
+              </ul>
+            )
           )}
           {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
           <SourceBadges sources={sources} />

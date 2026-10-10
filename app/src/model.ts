@@ -1,4 +1,5 @@
 import type { Node } from '@xyflow/react'
+import { taskHeight } from './cardSize'
 
 export const TASK_WIDTH = 216
 export const TASK_HEIGHT = 72
@@ -17,6 +18,26 @@ export type ViewStatus = 'ready' | 'active' | 'review' | 'blocked' | 'deferred' 
  */
 export type ItemKind = 'pr' | 'placeholder' | 'step' | 'gate' | 'note' | 'component'
 
+/**
+ * How a component is drawn: a box for a service (the default), a cylinder for a data store, a pill for a person
+ * or agent, a dashed box for something outside the system, a window for a user interface, a chevron for a job or
+ * command, and a stack for a stream of events.
+ */
+export type ComponentShape = 'service' | 'store' | 'actor' | 'external' | 'interface' | 'process' | 'queue'
+export const COMPONENT_SHAPES: ComponentShape[] = ['service', 'store', 'actor', 'external', 'interface', 'process', 'queue']
+export const SHAPE_LABEL: Record<ComponentShape, string> = {
+  service: 'Service',
+  store: 'Store',
+  actor: 'Actor',
+  external: 'External',
+  interface: 'Interface',
+  process: 'Process',
+  queue: 'Queue',
+}
+/** Tints a group's frame and the components inside it that don't set their own. */
+export type Tint = 'teal' | 'blue' | 'purple' | 'amber' | 'rose' | 'green' | 'slate'
+export const TINTS: Tint[] = ['teal', 'blue', 'purple', 'amber', 'rose', 'green', 'slate']
+
 export type TaskData = {
   kind: 'task'
   label: string
@@ -27,6 +48,10 @@ export type TaskData = {
   refs?: SourceRef[]
   note?: string
   who?: Who
+  /** Components only. */
+  shape?: ComponentShape
+  /** Components only; otherwise the nearest group's tint applies. */
+  color?: Tint
 }
 export type SourceRef = {
   source: string
@@ -74,6 +99,7 @@ export type ClusterData = {
   blurb?: string
   layout?: 'pending' | 'refit'
   arrange?: Arrange
+  color?: Tint
 }
 export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
 export type TaskNode = Node<TaskData, 'task'>
@@ -170,8 +196,23 @@ export function ancestors(id: string, nodeMap: Map<string, AppNode>): string[] {
   return result
 }
 
+/** A component's own tint, or else its nearest group's. Work cards and notes have none. */
+export function tintOf(node: AppNode, nodeMap: Map<string, AppNode>): Tint | undefined {
+  if (isTask(node) && node.data.itemKind !== 'component') return undefined
+
+  if (!isImage(node) && node.data.color) return node.data.color
+
+  for (const ancestor of ancestors(node.id, nodeMap)) {
+    const color = (nodeMap.get(ancestor)?.data as ClusterData | undefined)?.color
+
+    if (color) return color
+  }
+
+  return undefined
+}
+
 export function sizeOf(node: AppNode): { width: number; height: number } {
-  if (isTask(node)) return { width: TASK_WIDTH, height: TASK_HEIGHT }
+  if (isTask(node)) return { width: TASK_WIDTH, height: taskHeight(node.data) }
 
   return { width: node.width ?? 320, height: node.height ?? 200 }
 }
@@ -194,7 +235,7 @@ export function absolutePosition(node: AppNode, nodeMap: Map<string, AppNode>): 
 
 /** Fills in the React Flow fields every node needs, so saved data stays minimal. */
 function hydrate(node: AppNode): AppNode {
-  if (isTask(node)) return { ...node, width: TASK_WIDTH, height: TASK_HEIGHT, expandParent: !!node.parentId }
+  if (isTask(node)) return { ...node, width: TASK_WIDTH, height: taskHeight(node.data), expandParent: !!node.parentId }
 
   if (isImage(node)) return { ...node, width: node.width ?? 256, height: node.height ?? 256, expandParent: !!node.parentId }
 
