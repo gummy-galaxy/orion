@@ -1,6 +1,6 @@
 # Orion
 
-A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with zoom levels that go from single cards out to whole bodies of work.
+A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with a detail control that goes from single cards out to whole bodies of work.
 
 This is a prototype. It runs in the browser or in a desktop shell.
 
@@ -120,10 +120,9 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result. Type `>` first, or press ⇧⌘P (or Ctrl+Shift+P), to list actions instead; deleting the `>` goes back to searching.
 - Choose Light, Dark, or System color mode in the sidebar footer, or through ⇧⌘P; the choice is saved on this device.
-- Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
-- Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
+- Double-click a group, or press Enter with one selected, to open it. Esc or a double-click on empty canvas goes back up, and the breadcrumbs jump to any level.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
-- Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
+- The detail stepper beside the zoom buttons, or [ and ], folds groups into single bodies one level of nesting at a time, inner groups first, counting from the open group. Each workspace remembers its level. Links between folded groups are bundled into one line with a count. Zoom only moves the view.
 - However far you zoom out, folded groups, cards, and notes keep their full details at a readable size, and open groups' headers grow to stay legible. Hover one to bring it above its neighbors.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
 - Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it (dark dots).
@@ -155,7 +154,7 @@ In `app/`:
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
-- `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
+- `src/App.tsx`: the canvas, detail levels, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
 

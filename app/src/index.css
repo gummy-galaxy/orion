@@ -144,6 +144,25 @@ select {
   border-radius: 8px;
   overflow: hidden;
 }
+/* The detail stepper sits under the zoom buttons, with the level showing between its own two. */
+.react-flow__controls .detail-step svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+.react-flow__controls .detail-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.react-flow__controls .detail-level {
+  display: grid;
+  place-items: center;
+  height: 22px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font: 500 10px var(--font-data);
+}
 .react-flow__edge-textbg {
   fill: var(--surface);
 }
@@ -580,11 +599,6 @@ select {
   opacity: var(--fade, 1);
   transition: opacity 0.2s;
 }
-.react-flow__node.is-peek .card,
-.react-flow__node.is-peek .cluster.is-collapsed,
-.react-flow__node.is-peek .cluster-head {
-  --fade: 0.35;
-}
 
 /* Hover trace. Everything outside it dims through the canvas, so only cards whose role changes redraw. */
 :where(.canvas.is-tracing) .card:not(.tr-self, .tr-up, .tr-down, .tr-related) {
@@ -652,9 +666,6 @@ select {
 }
 .react-flow__edge.tr-e-dim {
   opacity: 0.1;
-}
-.react-flow__edge.e-peek .react-flow__edge-path {
-  opacity: 0.35;
 }
 /* A link under the pointer firms up so it reads as something to right-click. */
 .react-flow__edge:not(.e-agg):hover .react-flow__edge-path {
@@ -1566,40 +1577,6 @@ kbd {
   stroke: var(--snap);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
-}
-.zoom-exit-hint {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  width: max-content;
-  max-width: min(320px, calc(100vw - 32px));
-  padding: 7px 11px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--ink);
-  font: 500 11px var(--font-data);
-  pointer-events: none;
-}
-.zoom-exit-hint span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.zoom-exit-track {
-  height: 3px;
-  margin-top: 6px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--line);
-}
-.zoom-exit-fill {
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent);
 }
 .loading {
   position: fixed;
