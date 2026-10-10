@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cli:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Luau Tools with Rokit
+        uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
+        with:
+          version: 1.2.0
+          path: cli
+
+      - name: Set Up Lute Type Definitions
+        run: lute setup
+
+      - name: Install Dependencies
+        run: lute run install
+
+      - name: Analyze
+        run: lute run analyze
+
+      - name: Test
+        run: lute test
+
+      - name: Build
+        run: lute run build
+
+      - name: Smoke Test the Binary
+        run: ./build/orion --help
+
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Build Storybook
+        run: npm run build-storybook
+
+  desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Luau Tools with Rokit
+        uses: paradoxum-games/setup-rokit@c6a9749169e3a0146019b899cd0342556f773908 # v3
+        with:
+          version: 1.2.0
+          path: cli
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            app/package-lock.json
+            desktop/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: desktop/src-tauri
+
+      - name: Install Tauri System Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - name: Install Luau Dependencies
+        working-directory: cli
+        run: lute run install
+
+      - name: Install App Dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Install Desktop Dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Check and Build
+        working-directory: cli
+        run: lute run desktop

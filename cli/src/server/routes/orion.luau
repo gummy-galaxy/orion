@@ -21,7 +21,7 @@ function orion.handle(request: net.ReceivedRequest, root: string, active: string
 			if not doc then
 				return shared.reply(404, json.object({ path = store.filePath(requestedDir), workspace = requested }))
 			end
-			return shared.reply(200, assert(doc.raw))
+			return shared.reply(200, store.toObject(doc))
 		elseif request.method == "PUT" then
 			local tagged = request.headers["x-orion-workspace"]
 			if tagged and tagged ~= active then

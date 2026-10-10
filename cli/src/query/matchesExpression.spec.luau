@@ -8,23 +8,31 @@ local testing = require("@root/testing")
 
 test.case("matches derived status and source references", function(assert)
 	local item = testing.task("pr-card", "Fix Query", "todo", "scope", {
-		repo = "orion",
-		pr = 86,
-		github = json.object({ draft = true }),
-		external = json.object({ key = "ORION-86" }),
+		repo = "vocksel/orion",
+		refs = {
+			json.object({
+				source = "github",
+				kind = "pull",
+				key = "vocksel/orion#86",
+				details = json.object({ draft = true }),
+			}),
+			json.object({ source = "jira", kind = "issue", key = "ORION-86" }),
+		},
 	})
 	local doc = testing.createDoc({ testing.group("scope", "Scope"), item })
 	local derived = graph.derive(doc)
 	for _, expression in
 		{
 			[[kind = "step"]],
-			[[repo = "orion"]],
+			[[repo = "vocksel/orion"]],
 			[[status = "ready" and recordedStatus = "todo"]],
 			[[group = "scope"]],
 			[[draft = "true"]],
 			[[label ~ "QUERY"]],
 			[[pr = "86"]],
 			[[ref = "ORION-86"]],
+			[[ref ~ "ORION"]],
+			[[ref != "OTHER-1"]],
 		}
 	do
 		assert.eq(matchesExpression(derived, item, parseExpression(expression)), true)

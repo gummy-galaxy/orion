@@ -12,13 +12,14 @@ end
 
 test.case("query finds cards and groups using one derived snapshot", function(assert)
 	local dir, run = testing.createHarness("query")
-	local cards =
-		json.asArray(json.deserialize(run({ "query", "--where", [[repo = "flipbook"]], "--json" })) :: json.Value)
+	local cards = json.asArray(
+		json.deserialize(run({ "query", "--where", [[repo = "flipbook-labs/flipbook"]], "--json" })) :: json.Value
+	)
 	assert.eq(cards and #cards, 1)
 	local card = if cards then json.asObject(cards[1]) else nil
 	assert.eq(card and card.id, "ci")
 	local doc = store.load(dir)
-	local text = run({ "query", "--where", [[repo = "flipbook"]] })
+	local text = run({ "query", "--where", [[repo = "flipbook-labs/flipbook"]] })
 	local item = graph.get(doc, "ci")
 	assert.eq(text, render.table(doc, graph.derive(doc), { item }))
 	local groups =
@@ -73,13 +74,13 @@ end)
 
 test.case("where selects edits under the lock and respects id exclusivity", function(assert)
 	local dir, run = testing.createHarness("batch-where")
-	local preview = report(run({ "remove", "--where", [[repo = "flipbook"]], "--dry-run", "--json" }))
+	local preview = report(run({ "remove", "--where", [[repo = "flipbook-labs/flipbook"]], "--dry-run", "--json" }))
 	assert.eq(preview.revision, 0)
 	assert.eq(#store.load(dir).nodes, 3)
 	assert.throwsWith("use ids or --where, not both", function()
-		run({ "remove", "ci", "--where", [[repo = "flipbook"]] })
+		run({ "remove", "ci", "--where", [[repo = "flipbook-labs/flipbook"]] })
 	end)
-	local removed = run({ "remove", "--where", [[repo = "flipbook"]], "--if-revision", "0" })
+	local removed = run({ "remove", "--where", [[repo = "flipbook-labs/flipbook"]], "--if-revision", "0" })
 	assert.strContains(removed, "Removed 1 item at revision 0 → 1")
 	assert.eq(store.load(dir).revision, 1)
 	assert.eq(#store.load(dir).nodes, 2)

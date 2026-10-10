@@ -13,7 +13,7 @@ local function collectPulls(doc: Doc, run: CommandRunner, discover: boolean): Fe
 	local refs: { Ref } = {}
 
 	for _, item in doc.nodes do
-		local ref = getRefFor(item, doc.settings.githubOwner)
+		local ref = getRefFor(item)
 
 		if ref then
 			table.insert(refs, ref)

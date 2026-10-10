@@ -5,14 +5,14 @@ local testing = require("@root/testing")
 
 test.case("collect batches pull request lookups by host", function(assert)
 	local doc = testing.createDoc({
-		testing.task("public", "Public", "todo", nil, { repo = "flipbook", pr = 1 }),
-		testing.task(
-			"private",
-			"Private",
-			"todo",
-			nil,
-			{ repo = "Roblox/avatar", pr = 2, host = "github.example.com" }
-		),
+		testing.task("public", "Public", "todo", nil, {
+			repo = "flipbook-labs/flipbook",
+			refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#1" } },
+		}),
+		testing.task("private", "Private", "todo", nil, {
+			repo = "Roblox/avatar",
+			refs = { { source = "github", kind = "pull", key = "github.example.com/Roblox/avatar#2" } },
+		}),
 	})
 	local batches = {}
 	collectPulls(doc, function(argv)
