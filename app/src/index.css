@@ -901,6 +901,15 @@ select {
   padding: calc(12px * var(--inv, 1));
   cursor: grab;
 }
+.cluster-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
 /* Task cards still use this to keep their details legible at the far zoom. */
 .pop-place {
   position: absolute;
@@ -924,14 +933,11 @@ select {
   height: calc(16px * var(--inv, 1));
 }
 .cluster-card-title strong {
+  min-width: 0;
   font-size: calc(14px * var(--inv, 1));
   font-weight: 600;
   line-height: 1.25;
-  overflow-wrap: break-word;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
 }
 .cluster-card-parts {
   margin: 0;
@@ -946,12 +952,7 @@ select {
   color: var(--muted);
 }
 .cluster-card-parts li {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.cluster-card.is-tiny .cluster-card-parts {
-  display: none;
+  overflow-wrap: anywhere;
 }
 .cluster-card-stats {
   display: flex;
@@ -980,12 +981,8 @@ select {
   padding-top: calc(11px * var(--inv, 1));
 }
 .cluster-card.is-tiny .ring,
-.cluster-card.is-tiny .source-badges,
-.cluster-card.is-tiny .cluster-card-stats {
+.cluster-card.is-tiny .source-badges {
   display: none;
-}
-.cluster-card.is-tiny .cluster-card-title strong {
-  -webkit-line-clamp: 2;
 }
 .cluster-card .source-badges {
   right: calc(10px * var(--inv, 1));
