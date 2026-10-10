@@ -1664,7 +1664,7 @@ kbd {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   height: 44px;
   margin-bottom: 8px;
   padding: 0 0 0 8px;
@@ -1729,10 +1729,6 @@ kbd {
 }
 :root[data-titlebar='custom'] .react-flow__panel.top-right {
   margin-top: 44px;
-}
-.side-head strong {
-  font-size: 15px;
-  letter-spacing: -0.01em;
 }
 .side-hide {
   border: 0;
