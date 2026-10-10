@@ -92,12 +92,15 @@ pub fn run() {
                 .inner_size(1440.0, 900.0)
                 .min_inner_size(960.0, 640.0);
 
-            // The app draws its own title bar on macOS, with the traffic lights centered in it.
+            // The app draws its own window chrome. macOS keeps the traffic lights, centered in the
+            // sidebar header; elsewhere the app draws minimize, maximize, and close itself.
             #[cfg(target_os = "macos")]
             let window = window
                 .title_bar_style(tauri::TitleBarStyle::Overlay)
                 .hidden_title(true)
-                .traffic_light_position(tauri::LogicalPosition::new(16.0, 17.0));
+                .traffic_light_position(tauri::LogicalPosition::new(16.0, 15.0));
+            #[cfg(not(target_os = "macos"))]
+            let window = window.decorations(false);
 
             window.build()?;
             Ok(())

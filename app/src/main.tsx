@@ -2,12 +2,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './components/App.tsx'
-import { inDesktop, routeExternalLinks } from './external.ts'
+import { routeExternalLinks, windowFrame } from './external.ts'
 
 routeExternalLinks()
 
-// The macOS shell hides its native title bar, so the app's own bar makes room for the traffic lights.
-if (inDesktop() && navigator.userAgent.includes('Mac')) document.documentElement.dataset.titlebar = 'overlay'
+// The desktop shell hides its native title bar, so the page makes room for the window controls.
+document.documentElement.dataset.titlebar = windowFrame()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

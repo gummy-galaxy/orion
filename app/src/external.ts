@@ -5,6 +5,16 @@
 
 export const inDesktop = () => '__TAURI_INTERNALS__' in window
 
+/**
+ * How the desktop shell frames the window. On macOS it keeps the traffic lights
+ * over the page; elsewhere it drops the frame and the app draws the window controls.
+ */
+export const windowFrame = (): 'browser' | 'overlay' | 'custom' => {
+  if (!inDesktop()) return 'browser'
+
+  return navigator.userAgent.includes('Mac') ? 'overlay' : 'custom'
+}
+
 export function openExternal(url: string) {
   if (!inDesktop()) {
     window.open(url, '_blank', 'noreferrer')

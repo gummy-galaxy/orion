@@ -89,7 +89,7 @@ import {
   type Workspaces,
 } from '../persist'
 import { Sidebar } from './Sidebar'
-import { TitleBar } from './TitleBar'
+import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
@@ -2338,10 +2338,166 @@ export function Canvas() {
             chooseColorMode={chooseColorMode}
           />
         )}
-        <div className="main">
-          <TitleBar
-            crumbs={
-              <>
+        <div
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
+          ref={canvasRef}
+          onPointerDown={startMarquee}
+          onPointerMove={trackPointer}
+          onClickCapture={claimNodeClick}
+        >
+          {ready && (
+            <ReactFlow<ViewNode, Edge>
+              fitView={!savedView}
+              fitViewOptions={INITIAL_FIT}
+              defaultViewport={savedView ?? undefined}
+              onMoveStart={onMoveStart}
+              onMoveEnd={rememberView}
+              nodes={viewNodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              onNodesChange={onNodesChange}
+              onMove={onViewportMove}
+              onNodeDragStop={onDragStop}
+              onConnect={onConnect}
+              onConnectStart={() => {
+                setLinking(true)
+                setHover(null)
+              }}
+              onConnectEnd={onConnectEnd}
+              onNodeMouseEnter={(_, node) =>
+                !focus && !linking && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)
+              }
+              onNodeMouseLeave={() => setHover(null)}
+              onNodeClick={(event, node) => {
+                if (tool === 'sticker') return stamp(event)
+
+                if (focus) return
+
+                setPinned(null)
+
+                if (node.type === 'ghost') {
+                  afterClick(() => jumpTo(node.data.taskId))
+
+                  return
+                }
+
+                if (peeking && !inFocus(node.id)) afterClick(() => leaveRoot())
+              }}
+              onNodeDoubleClick={(event, node) => {
+                cancelClick()
+
+                if (tool === 'sticker' || focus) return
+
+                if (event.shiftKey && node.type === 'task') {
+                  if (isNote(node)) setEditing(node.id)
+                  else setPinned(node.id)
+
+                  return
+                }
+
+                if (node.type === 'task' || node.type === 'ghost') return focusOn(node.type === 'ghost' ? node.data.taskId : node.id)
+
+                if (node.type !== 'cluster') return
+
+                if (peeking && !inFocus(node.id)) leaveRoot()
+
+                actions.open(node.id)
+              }}
+              onNodeDragStart={(event, node, dragged) => {
+                if (peeking && !inFocus(node.id)) leaveRoot()
+
+                onDragStart(event, dragged)
+              }}
+              onNodeDrag={onDrag}
+              onPaneClick={(event) => {
+                if (focus) return exitFocus()
+
+                setPinned(null)
+
+                if (tool === 'comment') placeComment(event)
+                else if (tool === 'sticker') stamp(event)
+              }}
+              onEdgeClick={() => setPinned(null)}
+              onPaneContextMenu={(event) => (focus ? event.preventDefault() : openMenu(event, { kind: 'pane' }))}
+              onNodeContextMenu={(event, node) => {
+                if (focus) return event.preventDefault()
+
+                if (peeking && !inFocus(node.id)) leaveRoot()
+
+                if (node.type !== 'ghost' && !node.selected) selectOnly(node.id)
+
+                openMenu(event, { kind: 'node', id: node.id })
+              }}
+              onSelectionContextMenu={(event, currentNodes) => openMenu(event, { kind: 'node', id: currentNodes[0]?.id ?? '' })}
+              onEdgeContextMenu={(event, edge) => !edge.id.startsWith('agg:') && openMenu(event, { kind: 'edge', id: edge.id })}
+              panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
+              selectionKeyCode={null}
+              selectionOnDrag={false}
+              nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
+              nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
+              elementsSelectable={!focus && tool !== 'sticker'}
+              panOnScroll={!focus}
+              zoomOnScroll={false}
+              zoomOnPinch={!focus}
+              multiSelectionKeyCode={['Meta', 'Shift']}
+              deleteKeyCode={null}
+              zoomOnDoubleClick={false}
+              minZoom={0.06}
+              maxZoom={2}
+              colorMode={colorMode}
+            >
+              <StickerLayer
+                stickers={placedStickers}
+                interactive={!focus && tool === 'select'}
+                bounds={stickerBounds}
+                settle={settleStickers}
+                menu={(event, id) => openMenu(event, { kind: 'sticker', id })}
+              />
+              {marquee && (
+                <div
+                  className="react-flow__selection marquee"
+                  style={{ transform: `translate(${marquee.x}px, ${marquee.y}px)`, width: marquee.width, height: marquee.height }}
+                />
+              )}
+              <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
+              {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
+              <Controls showInteractive={false} />
+              {/* The desktop shell hides the native title bar, so this strip along the top drags the window. */}
+              <div className="window-drag" data-tauri-drag-region aria-hidden="true" onPointerDown={(event) => event.stopPropagation()} />
+              {mergeNotice !== null && (
+                <Panel
+                  position="bottom-left"
+                  style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300, pointerEvents: 'none' }}
+                  role="status"
+                >
+                  Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
+                </Panel>
+              )}
+              {imageError && (
+                <Panel position="bottom-left" style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300 }} role="alert">
+                  {imageError}
+                  <button type="button" className="link" onClick={() => setImageError(null)} aria-label="Dismiss image error">
+                    ×
+                  </button>
+                </Panel>
+              )}
+              <MiniMap
+                pannable
+                zoomable
+                nodeClassName={(node) =>
+                  node.type === 'cluster'
+                    ? 'mm-cluster'
+                    : node.type === 'image'
+                      ? 'mm-image'
+                      : node.type === 'ghost'
+                        ? 'mm-ghost'
+                        : 'mm-' + (work.status.get(node.id) ?? 'ready')
+                }
+              />
+
+              <Panel position="top-left" className="panel crumbs" data-tauri-drag-region="deep">
                 {!sidebar && (
                   <button type="button" className="crumb" onClick={() => toggleSidebar(true)} title="Show the group list">
                     ☰
@@ -2358,395 +2514,215 @@ export function Canvas() {
                     </button>
                   </span>
                 ))}
-              </>
-            }
-            actions={
-              <>
-                <button type="button" className="btn" onClick={() => setPaletteOpen(true)}>
-                  Search <kbd>⇧⌘P</kbd>
-                </button>
-                <button type="button" className="btn" onClick={() => addNote(viewportCenter())}>
-                  Add note
-                </button>
-                <label className="btn image-upload">
-                  Add image
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/gif,image/webp"
-                    onChange={(event) => {
-                      const file = event.currentTarget.files?.[0]
-
-                      if (file) void addImage(file)
-
-                      event.currentTarget.value = ''
-                    }}
-                  />
-                </label>
-                {!rootCustom && (
-                  <button type="button" className="btn" onClick={tidy}>
-                    Tidy {root ? 'group' : 'canvas'}
-                  </button>
-                )}
-                {syncStatus && (
-                  <button
-                    type="button"
-                    className="sync-status"
-                    title={syncStatus.message ?? 'Sync with GitHub now'}
-                    onClick={() => void requestSync(true).then((status) => status && setSyncStatus(status))}
-                  >
-                    {syncStatus.state === 'running'
-                      ? 'Syncing…'
-                      : syncStatus.state === 'error'
-                        ? 'Sync failed'
-                        : syncStatus.state === 'unavailable'
-                          ? 'Sync unavailable'
-                          : syncStatus.lastRun
-                            ? `Synced ${relativeTime(syncStatus.lastRun, clock)}`
-                            : 'Sync now'}
-                  </button>
-                )}
-              </>
-            }
-          />
-          <div
-            className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
-            style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
-            ref={canvasRef}
-            onPointerDown={startMarquee}
-            onPointerMove={trackPointer}
-            onClickCapture={claimNodeClick}
-          >
-            {ready && (
-              <ReactFlow<ViewNode, Edge>
-                fitView={!savedView}
-                fitViewOptions={INITIAL_FIT}
-                defaultViewport={savedView ?? undefined}
-                onMoveStart={onMoveStart}
-                onMoveEnd={rememberView}
-                nodes={viewNodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes}
-                onNodesChange={onNodesChange}
-                onMove={onViewportMove}
-                onNodeDragStop={onDragStop}
-                onConnect={onConnect}
-                onConnectStart={() => {
-                  setLinking(true)
-                  setHover(null)
-                }}
-                onConnectEnd={onConnectEnd}
-                onNodeMouseEnter={(_, node) =>
-                  !focus && !linking && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)
-                }
-                onNodeMouseLeave={() => setHover(null)}
-                onNodeClick={(event, node) => {
-                  if (tool === 'sticker') return stamp(event)
-
-                  if (focus) return
-
-                  setPinned(null)
-
-                  if (node.type === 'ghost') {
-                    afterClick(() => jumpTo(node.data.taskId))
-
-                    return
-                  }
-
-                  if (peeking && !inFocus(node.id)) afterClick(() => leaveRoot())
-                }}
-                onNodeDoubleClick={(event, node) => {
-                  cancelClick()
-
-                  if (tool === 'sticker' || focus) return
-
-                  if (event.shiftKey && node.type === 'task') {
-                    if (isNote(node)) setEditing(node.id)
-                    else setPinned(node.id)
-
-                    return
-                  }
-
-                  if (node.type === 'task' || node.type === 'ghost') return focusOn(node.type === 'ghost' ? node.data.taskId : node.id)
-
-                  if (node.type !== 'cluster') return
-
-                  if (peeking && !inFocus(node.id)) leaveRoot()
-
-                  actions.open(node.id)
-                }}
-                onNodeDragStart={(event, node, dragged) => {
-                  if (peeking && !inFocus(node.id)) leaveRoot()
-
-                  onDragStart(event, dragged)
-                }}
-                onNodeDrag={onDrag}
-                onPaneClick={(event) => {
-                  if (focus) return exitFocus()
-
-                  setPinned(null)
-
-                  if (tool === 'comment') placeComment(event)
-                  else if (tool === 'sticker') stamp(event)
-                }}
-                onEdgeClick={() => setPinned(null)}
-                onPaneContextMenu={(event) => (focus ? event.preventDefault() : openMenu(event, { kind: 'pane' }))}
-                onNodeContextMenu={(event, node) => {
-                  if (focus) return event.preventDefault()
-
-                  if (peeking && !inFocus(node.id)) leaveRoot()
-
-                  if (node.type !== 'ghost' && !node.selected) selectOnly(node.id)
-
-                  openMenu(event, { kind: 'node', id: node.id })
-                }}
-                onSelectionContextMenu={(event, currentNodes) => openMenu(event, { kind: 'node', id: currentNodes[0]?.id ?? '' })}
-                onEdgeContextMenu={(event, edge) => !edge.id.startsWith('agg:') && openMenu(event, { kind: 'edge', id: edge.id })}
-                panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
-                selectionKeyCode={null}
-                selectionOnDrag={false}
-                nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
-                nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
-                elementsSelectable={!focus && tool !== 'sticker'}
-                panOnScroll={!focus}
-                zoomOnScroll={false}
-                zoomOnPinch={!focus}
-                multiSelectionKeyCode={['Meta', 'Shift']}
-                deleteKeyCode={null}
-                zoomOnDoubleClick={false}
-                minZoom={0.06}
-                maxZoom={2}
-                colorMode={colorMode}
-              >
-                <StickerLayer
-                  stickers={placedStickers}
-                  interactive={!focus && tool === 'select'}
-                  bounds={stickerBounds}
-                  settle={settleStickers}
-                  menu={(event, id) => openMenu(event, { kind: 'sticker', id })}
-                />
-                {marquee && (
-                  <div
-                    className="react-flow__selection marquee"
-                    style={{ transform: `translate(${marquee.x}px, ${marquee.y}px)`, width: marquee.width, height: marquee.height }}
-                  />
-                )}
-                <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
-                {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
-                <Controls showInteractive={false} />
-                {mergeNotice !== null && (
-                  <Panel
-                    position="bottom-left"
-                    style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300, pointerEvents: 'none' }}
-                    role="status"
-                  >
-                    Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
-                  </Panel>
-                )}
-                {imageError && (
-                  <Panel position="bottom-left" style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300 }} role="alert">
-                    {imageError}
-                    <button type="button" className="link" onClick={() => setImageError(null)} aria-label="Dismiss image error">
-                      ×
-                    </button>
-                  </Panel>
-                )}
-                <MiniMap
-                  pannable
-                  zoomable
-                  nodeClassName={(node) =>
-                    node.type === 'cluster'
-                      ? 'mm-cluster'
-                      : node.type === 'image'
-                        ? 'mm-image'
-                        : node.type === 'ghost'
-                          ? 'mm-ghost'
-                          : 'mm-' + (work.status.get(node.id) ?? 'ready')
+              </Panel>
+              <Panel position="center-left">
+                <ActionBar
+                  search={() => setPaletteOpen(true)}
+                  addNote={() => addNote(viewportCenter())}
+                  addImage={(file) => void addImage(file)}
+                  tidy={rootCustom ? undefined : { label: `Tidy ${root ? 'group' : 'canvas'}`, run: tidy }}
+                  sync={
+                    syncStatus
+                      ? {
+                          status: syncStatus,
+                          label:
+                            syncStatus.state === 'running'
+                              ? 'Syncing…'
+                              : syncStatus.state === 'error'
+                                ? 'Sync failed'
+                                : syncStatus.state === 'unavailable'
+                                  ? 'Sync unavailable'
+                                  : syncStatus.lastRun
+                                    ? `Synced ${relativeTime(syncStatus.lastRun, clock)}`
+                                    : 'Sync now',
+                          run: () => void requestSync(true).then((status) => status && setSyncStatus(status)),
+                        }
+                      : undefined
                   }
                 />
+              </Panel>
 
-                {selected.length > 0 && (
-                  <Panel position="top-right" className="panel inspector">
-                    {!one ? (
-                      <div className="insp">
-                        <strong>{selected.length} selected</strong>
-                        <button type="button" className="btn primary" onClick={doGroup}>
-                          Group selection <kbd>⌘G</kbd>
-                        </button>
-                      </div>
-                    ) : isNote(one) ? (
-                      <NoteInspector
-                        key={one.id}
-                        node={one}
-                        focus={editing === one.id}
-                        doneEditing={() => setEditing(null)}
-                        update={updateData}
-                        remove={() => deleteNote(one.id)}
+              {selected.length > 0 && (
+                <Panel position="top-right" className="panel inspector">
+                  {!one ? (
+                    <div className="insp">
+                      <strong>{selected.length} selected</strong>
+                      <button type="button" className="btn primary" onClick={doGroup}>
+                        Group selection <kbd>⌘G</kbd>
+                      </button>
+                    </div>
+                  ) : isNote(one) ? (
+                    <NoteInspector
+                      key={one.id}
+                      node={one}
+                      focus={editing === one.id}
+                      doneEditing={() => setEditing(null)}
+                      update={updateData}
+                      remove={() => deleteNote(one.id)}
+                    />
+                  ) : isTask(one) ? (
+                    <TaskInspector
+                      key={one.id}
+                      node={one}
+                      work={work}
+                      map={map}
+                      github={github}
+                      update={updateData}
+                      jumpTo={jumpTo}
+                      links={links}
+                      addLink={addLink}
+                      removeLink={removeLink}
+                      flipLink={flipLink}
+                    />
+                  ) : isImage(one) ? (
+                    <div className="insp" key={one.id}>
+                      <label htmlFor="image-label">Image label</label>
+                      <input
+                        id="image-label"
+                        value={one.data.label}
+                        autoFocus={editing === one.id}
+                        onFocus={(event) => editing === one.id && event.target.select()}
+                        onBlur={() => setEditing(null)}
+                        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+                        onChange={(event) => updateData(one.id, { label: event.target.value })}
                       />
-                    ) : isTask(one) ? (
-                      <TaskInspector
-                        key={one.id}
-                        node={one}
-                        work={work}
-                        map={map}
-                        github={github}
-                        update={updateData}
-                        jumpTo={jumpTo}
-                        links={links}
-                        addLink={addLink}
-                        removeLink={removeLink}
-                        flipLink={flipLink}
+                      <button type="button" className="btn" onClick={() => setNodes((ns) => normalize(ns.filter((n) => n.id !== one.id)))}>
+                        Remove image
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="insp" key={one.id}>
+                      <label htmlFor="g-label">Group name</label>
+                      <input
+                        id="g-label"
+                        value={(one.data as ClusterData).label}
+                        autoFocus={editing === one.id}
+                        onFocus={(event) => editing === one.id && event.target.select()}
+                        onBlur={() => setEditing(null)}
+                        onKeyDown={(event) => event.key === 'Enter' && (event.target as HTMLInputElement).blur()}
+                        onChange={(event) => updateData(one.id, { label: event.target.value })}
                       />
-                    ) : isImage(one) ? (
-                      <div className="insp" key={one.id}>
-                        <label htmlFor="image-label">Image label</label>
-                        <input
-                          id="image-label"
-                          value={one.data.label}
-                          autoFocus={editing === one.id}
-                          onFocus={(event) => editing === one.id && event.target.select()}
-                          onBlur={() => setEditing(null)}
-                          onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-                          onChange={(event) => updateData(one.id, { label: event.target.value })}
-                        />
-                        <button type="button" className="btn" onClick={() => setNodes((ns) => normalize(ns.filter((n) => n.id !== one.id)))}>
-                          Remove image
+                      {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
+                      <GroupFacts stats={work.groups.get(one.id)} />
+                      <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
+                      <div className="row">
+                        <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
+                          Open
                         </button>
-                      </div>
-                    ) : (
-                      <div className="insp" key={one.id}>
-                        <label htmlFor="g-label">Group name</label>
-                        <input
-                          id="g-label"
-                          value={(one.data as ClusterData).label}
-                          autoFocus={editing === one.id}
-                          onFocus={(event) => editing === one.id && event.target.select()}
-                          onBlur={() => setEditing(null)}
-                          onKeyDown={(event) => event.key === 'Enter' && (event.target as HTMLInputElement).blur()}
-                          onChange={(event) => updateData(one.id, { label: event.target.value })}
-                        />
-                        {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
-                        <GroupFacts stats={work.groups.get(one.id)} />
-                        <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
-                        <div className="row">
-                          <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
-                            Open
+                        {(one.data as ClusterData).arrange !== 'custom' && (
+                          <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
+                            Reflow
                           </button>
-                          {(one.data as ClusterData).arrange !== 'custom' && (
-                            <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
-                              Reflow
-                            </button>
-                          )}
-                          <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
-                            Ungroup <kbd>⇧⌘G</kbd>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </Panel>
-                )}
-
-                <Panel position="bottom-center" className="dock">
-                  {root && exitHint?.root === root && (
-                    <div className="zoom-exit-hint">
-                      <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
-                      <div className="zoom-exit-track">
-                        <div className="zoom-exit-fill" style={{ width: `${exitHint.progress * 100}%` }} />
+                        )}
+                        <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
+                          Ungroup <kbd>⇧⌘G</kbd>
+                        </button>
                       </div>
                     </div>
                   )}
-                  <Toolbar tool={tool} sticker={sticker} setTool={chooseTool} />
-                  <div className="panel help">
-                    {showHelp ? (
-                      <>
-                        V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
-                        ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G ungroup · double-click
-                        a group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1
-                        fit · drag from a card's edge to link · hold Ctrl while dragging to skip snapping{' '}
-                        <button type="button" className="link" onClick={() => setShowHelp(false)}>
-                          Hide
-                        </button>
-                      </>
-                    ) : (
-                      <button type="button" className="link" onClick={() => setShowHelp(true)}>
-                        Shortcuts
-                      </button>
-                    )}
-                  </div>
                 </Panel>
-              </ReactFlow>
-            )}
-            {attending && cursor && (
-              <AttentionOverlay
-                targets={attentionTargets}
-                count={attention?.count ?? 0}
-                elsewhere={attention?.elsewhere ?? 0}
-                cursor={cursor}
-                width={canvasSize.width}
-                height={canvasSize.height}
-                onJump={jumpTo}
-              />
-            )}
-            {focused && focusPos && focusSize && focusItems && focusTransform && (
-              <FocusView
-                key={focused.id}
-                label={focused.data.label || 'Note'}
-                card={{
-                  x: focusPos.x * focusTransform[2] + focusTransform[0],
-                  y: focusPos.y * focusTransform[2] + focusTransform[1],
-                  width: focusSize.width * focusTransform[2],
-                  height: focusSize.height * focusTransform[2],
-                }}
-                sideWidth={FOCUS_SIDE_WIDTH}
-                inset={FOCUS_INSET}
-                incoming={focusItems.incoming}
-                outgoing={focusItems.outgoing}
-                onFocus={focusOn}
-                onExit={exitFocus}
-              >
-                {isNote(focused) ? (
-                  <NoteInspector
-                    node={focused}
-                    focus={false}
-                    doneEditing={() => setEditing(null)}
-                    update={updateData}
-                    remove={() => {
-                      exitFocus()
-                      deleteNote(focused.id)
-                    }}
-                  />
-                ) : (
-                  <TaskInspector
-                    node={focused}
-                    work={work}
-                    map={map}
-                    github={github}
-                    update={updateData}
-                    jumpTo={focusOn}
-                    connections={false}
-                    links={links}
-                    addLink={addLink}
-                    removeLink={removeLink}
-                    flipLink={flipLink}
-                  />
+              )}
+
+              <Panel position="bottom-center" className="dock">
+                {root && exitHint?.root === root && (
+                  <div className="zoom-exit-hint">
+                    <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
+                    <div className="zoom-exit-track">
+                      <div className="zoom-exit-fill" style={{ width: `${exitHint.progress * 100}%` }} />
+                    </div>
+                  </div>
                 )}
-              </FocusView>
-            )}
-            {!ready && <div className="loading">Laying out…</div>}
-            {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
-            {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
-            {wheel && (
-              <StickerWheel
-                at={wheel}
-                held={wheel.held}
-                current={sticker}
-                loadout={loadout}
-                pick={pickSticker}
-                assign={assignSlot}
-                close={() => setWheel(null)}
-              />
-            )}
-          </div>
+                <Toolbar tool={tool} sticker={sticker} setTool={chooseTool} />
+                <div className="panel help">
+                  {showHelp ? (
+                    <>
+                      V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
+                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G ungroup · double-click a
+                      group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to go up · N note · ⇧1 fit
+                      · drag from a card's edge to link · hold Ctrl while dragging to skip snapping{' '}
+                      <button type="button" className="link" onClick={() => setShowHelp(false)}>
+                        Hide
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" className="link" onClick={() => setShowHelp(true)}>
+                      Shortcuts
+                    </button>
+                  )}
+                </div>
+              </Panel>
+            </ReactFlow>
+          )}
+          {attending && cursor && (
+            <AttentionOverlay
+              targets={attentionTargets}
+              count={attention?.count ?? 0}
+              elsewhere={attention?.elsewhere ?? 0}
+              cursor={cursor}
+              width={canvasSize.width}
+              height={canvasSize.height}
+              onJump={jumpTo}
+            />
+          )}
+          {focused && focusPos && focusSize && focusItems && focusTransform && (
+            <FocusView
+              key={focused.id}
+              label={focused.data.label || 'Note'}
+              card={{
+                x: focusPos.x * focusTransform[2] + focusTransform[0],
+                y: focusPos.y * focusTransform[2] + focusTransform[1],
+                width: focusSize.width * focusTransform[2],
+                height: focusSize.height * focusTransform[2],
+              }}
+              sideWidth={FOCUS_SIDE_WIDTH}
+              inset={FOCUS_INSET}
+              incoming={focusItems.incoming}
+              outgoing={focusItems.outgoing}
+              onFocus={focusOn}
+              onExit={exitFocus}
+            >
+              {isNote(focused) ? (
+                <NoteInspector
+                  node={focused}
+                  focus={false}
+                  doneEditing={() => setEditing(null)}
+                  update={updateData}
+                  remove={() => {
+                    exitFocus()
+                    deleteNote(focused.id)
+                  }}
+                />
+              ) : (
+                <TaskInspector
+                  node={focused}
+                  work={work}
+                  map={map}
+                  github={github}
+                  update={updateData}
+                  jumpTo={focusOn}
+                  connections={false}
+                  links={links}
+                  addLink={addLink}
+                  removeLink={removeLink}
+                  flipLink={flipLink}
+                />
+              )}
+            </FocusView>
+          )}
+          {!ready && <div className="loading">Laying out…</div>}
+          {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
+          {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
+          {wheel && (
+            <StickerWheel
+              at={wheel}
+              held={wheel.held}
+              current={sticker}
+              loadout={loadout}
+              pick={pickSticker}
+              assign={assignSlot}
+              close={() => setWheel(null)}
+            />
+          )}
         </div>
         {paletteOpen && <Palette nodes={nodes} commands={commands} jumpTo={jumpTo} open={actions.open} close={() => setPaletteOpen(false)} />}
       </div>
