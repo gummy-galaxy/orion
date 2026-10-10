@@ -1,5 +1,5 @@
 --[[
-	Publishes the perf comparison in app/.perf/report.md from the Perf workflow. It adds the report to the job summary
+	Publishes the perf comparison in app/.perf/report.md from CI's perf job. It adds the report to the job summary
 	and keeps it in one pull request comment, replacing the comment an earlier run left. When the comparison fails, the
 	comment says so and links the run.
 ]]

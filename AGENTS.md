@@ -79,7 +79,7 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 
 When a pull request changes what the app shows, attach before and after screenshots to its description. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures both sides the same way into `/tmp` and uploads them to GitHub through the description editor.
 
-The Perf workflow compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment before marking it ready. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
+CI's perf job compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment before marking it ready. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
 
 ## Luau style
 
