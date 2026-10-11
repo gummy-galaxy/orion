@@ -17,7 +17,7 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   const className =
     view.kind === 'note'
       ? `card note${trace ? ' tr-' + trace : ''}`
-      : `card st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
+      : `card st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}`
   const body = <ClassicCard view={view} />
 
   return (
