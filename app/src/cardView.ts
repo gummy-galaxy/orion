@@ -13,6 +13,7 @@ import {
   type ViewStatus,
   type Who,
 } from './model'
+import { getRarity, type Rarity } from './rarity'
 
 export type CardView = {
   id: string
@@ -28,6 +29,8 @@ export type CardView = {
   who?: Who
   whoLabel?: string
   leverage: number
+  upstream: number
+  rarity?: Rarity
   checks?: 'passing' | 'failing' | 'pending'
   /** How close an open pull request is to merging. */
   readiness?: PullReadiness
@@ -76,7 +79,7 @@ function getChecks(checks: PullDetails['checks'] | undefined): CardView['checks'
   }
 }
 
-export type CardFacts = { status: ViewStatus; leverage: number; sources: SourceRef[]; blockers?: number; unblocks?: number; group?: string }
+export type CardFacts = { status: ViewStatus; leverage: number; upstream: number; sources: SourceRef[]; blockers?: number; unblocks?: number; group?: string }
 
 export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const { data } = node
@@ -101,6 +104,8 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     statusLabel: readyToMerge ? READINESS_LABEL.mergeable : STATUS_LABEL[facts.status],
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
+    upstream: facts.upstream,
+    ...(data.itemKind === 'note' ? {} : { rarity: getRarity(facts.upstream) }),
     ...(checks ? { checks } : {}),
     ...(readiness ? { readiness } : {}),
     ...(readyToMerge ? { readyToMerge } : {}),
