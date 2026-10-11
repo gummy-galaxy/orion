@@ -4,6 +4,16 @@ Orion turns everything you're juggling into one graph you can read at a glance. 
 
 In short: one graph, many lenses, least effort to understand, yours to remake.
 
+## What people make
+
+Each of these fills itself from sources rather than by typing (#253):
+
+- A watch list of every movie and show seen and wanted, rated, and linked into lines and groups by genre, series, and favorites.
+- A personal library of books, read and to read.
+- A recipe box, linked by ingredient, cuisine, and occasion.
+- System diagrams and flowcharts.
+- Work: pull requests, issues, and plans across repositories and trackers.
+
 ## Principles
 
 1. **The graph is the product; the canvas is a lens.** The core stores nodes, typed links, and placements. Work tracking is one lens over that graph, not the shape of the schema.
@@ -51,6 +61,8 @@ Orion should feel gummy, sweet, and fair: a charming toy you can poke while you 
 6. **Simple parts, deep combinations.** Script cards, timers, and signal links are small on their own and combine into puzzles, contraptions, and whole computers, the way Minecraft's redstone does (#227, #228, #229).
 7. **Play can't break the machine.** Every script runs on a time and memory budget, so a runaway contraption stops itself instead of freezing the canvas (#224).
 
+Connecting a source is a small ceremony, like dragging an app into Applications on macOS: the source and Orion appear as two cards, and you drag the link between them yourself (#252).
+
 ## Non-goals
 
 - A document editor. Notes stay short and link out to where long writing lives.
@@ -73,7 +85,7 @@ Each phase clears its gate before the next one starts, except theme work, which 
 | 2. Open graph | Nodes split from placements (#122), type registry (#215), typed links (#216, #83), database views and agent queries (#102, #103) | A new source or type ships with no app change |
 | 3. Less to hold in mind | Detail control (#175), saved views (#217), legend (#219, #40), change feed (#218), triage (#195, #197), telegraphed changes (#230), watched cards (#232) | A newcomer passes the five-second test on our own canvases |
 | 4. Readable by others | Links to cards (#176), snapshots and embeds (#114, #177), image and JSON Canvas export (#113, #220), live collaboration (#80) | A teammate reads a shared view without help |
-| 5. Make it yours | Tokens and themes (#233, #221, #222), mod API and sandbox (#223, #224), ink and gestures (#225, #226), script cards, timers, circuits (#227, #228, #229), physics and fidgets (#41, #231), custom cards, dates, and a shop (#234, #235, #236) | A mod written by an agent survives an Orion update |
+| 5. Make it yours | Tokens and themes (#233, #221, #222), mod API and sandbox (#223, #224), ink and gestures (#225, #226), script cards, timers, circuits (#227, #228, #229), physics and fidgets (#41, #231), custom cards, dates, and a shop (#234, #235, #236), the source ceremony (#252), personal canvases (#253) | A mod written by an agent survives an Orion update |
 
 ## How we'll know
 
