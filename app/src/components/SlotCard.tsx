@@ -1,4 +1,4 @@
-import type { CardView } from '../cardView'
+import type { CardSizeLabel, CardView, Priority } from '../cardView'
 import { getSlotFacts, type Motion, type Sticker } from '../skins/slotFacts'
 import { SlotSignalIcon } from './SlotSignalIcon'
 import { SourceBadges } from './SourceBadges'
@@ -17,11 +17,14 @@ const MOTION_HINT: Record<Motion, string> = {
   queued: 'Checks are queued',
 }
 
-function FactChip({ text, name }: { text: string | undefined; name: string }) {
-  if (!text) return null
+type Severity = 'critical' | 'high' | 'medium' | 'low'
 
+const PRIORITY_SEVERITY: Record<Priority, Severity> = { 0: 'critical', 1: 'high', 2: 'medium', 3: 'low' }
+const SIZE_SEVERITY: Record<CardSizeLabel, Severity> = { XL: 'critical', L: 'high', M: 'medium', S: 'low' }
+
+function FactChip({ text, name, severity }: { text: string; name: string; severity: Severity }) {
   return (
-    <span className={`slot-fact slot-fact-${name.toLowerCase()}`} title={`${name}: ${text}`}>
+    <span className={`slot-fact slot-fact-${severity}`} title={`${name}: ${text}`}>
       {text}
     </span>
   )
@@ -57,8 +60,8 @@ export function SlotCard({ view }: { view: CardView }) {
     >
       <div className="slot-art" aria-hidden="true" />
       <div className="slot-facts">
-        <FactChip text={facts.priority !== undefined ? `P${facts.priority}` : undefined} name="Priority" />
-        <FactChip text={facts.size} name="Size" />
+        {facts.priority !== undefined && <FactChip text={`P${facts.priority}`} name="Priority" severity={PRIORITY_SEVERITY[facts.priority]} />}
+        {facts.size && <FactChip text={facts.size} name="Size" severity={SIZE_SEVERITY[facts.size]} />}
       </div>
       {facts.sticker && (
         <span className={`slot-sticker slot-sticker-${facts.sticker}`} title={STICKER_HINT[facts.sticker]}>
