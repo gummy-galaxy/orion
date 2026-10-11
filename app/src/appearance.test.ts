@@ -10,7 +10,10 @@ beforeEach(() => {
   vi.stubGlobal('localStorage', {
     getItem: (key: string) => values.get(key) ?? null,
     setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
   })
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+  vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) })
 })
 
 afterEach(() => vi.unstubAllGlobals())
@@ -28,20 +31,20 @@ describe('card skins', () => {
 
 describe('appearance', () => {
   it('defaults invalid preferences while retaining valid ones', () => {
-    expect(readAppearance()).toEqual({ theme: 'classic', skin: 'classic', colorMode: 'system' })
+    expect(readAppearance()).toEqual({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
 
     values.set('orion:theme', 'vibrant')
     values.set('orion:skin', 'plain')
     values.set('orion:color-mode', 'dark')
-    expect(readAppearance()).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark' })
+    expect(readAppearance()).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', statusColors: 'theme', animations: 'system' })
 
     values.set('orion:skin', 'unknown')
     values.set('orion:color-mode', 'invalid')
-    expect(readAppearance()).toEqual({ theme: 'vibrant', skin: 'classic', colorMode: 'system' })
+    expect(readAppearance()).toEqual({ theme: 'vibrant', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
   })
 
-  it('writes theme, skin, and color mode as separate local preferences', () => {
-    const appearance: Appearance = { theme: 'vibrant', skin: 'plain', colorMode: 'light' }
+  it('writes theme, skin, and color mode as separate preferences', () => {
+    const appearance: Appearance = { theme: 'vibrant', skin: 'plain', colorMode: 'light', statusColors: 'theme', animations: 'system' }
 
     writeAppearance(appearance)
 
@@ -50,6 +53,7 @@ describe('appearance', () => {
         ['orion:theme', 'vibrant'],
         ['orion:skin', 'plain'],
         ['orion:color-mode', 'light'],
+        ['orion:status-colors', 'theme'],
       ]),
     )
     expect(colorModeOf(appearance)).toBe('dark')
@@ -58,11 +62,11 @@ describe('appearance', () => {
   it('applies nondefault attributes and clears them for defaults', () => {
     const root = { dataset: {} as DOMStringMap } as HTMLElement
 
-    applyAppearance({ theme: 'vibrant', skin: 'plain', colorMode: 'dark' }, root)
-    expect(root.dataset).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark' })
+    applyAppearance({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', statusColors: 'theme', animations: 'system' }, root)
+    expect(root.dataset).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', motion: 'on' })
 
-    applyAppearance({ theme: 'classic', skin: 'classic', colorMode: 'system' }, root)
-    expect(root.dataset).toEqual({})
+    applyAppearance({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' }, root)
+    expect(root.dataset).toEqual({ motion: 'on' })
   })
 
   it('falls back when storage is unavailable', () => {
@@ -71,6 +75,6 @@ describe('appearance', () => {
         throw new Error('unavailable')
       },
     })
-    expect(readAppearance()).toEqual({ theme: 'classic', skin: 'classic', colorMode: 'system' })
+    expect(readAppearance()).toEqual({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
   })
 })

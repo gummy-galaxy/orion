@@ -2,13 +2,12 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
-local applyPulls = require("@root/github/applyPulls")
 local backups = require("@root/cli/backups")
 local batchEdit = require("@root/cli/batchEdit")
-local collectPulls = require("@root/github/collectPulls")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local focus = require("@root/cli/focus")
+local getAdapter = require("@root/adapters/getAdapter")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local ingest = require("@root/cli/ingest")
@@ -788,14 +787,21 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif command == "sync" then
 		local dryRun = parser:has("dry-run")
-		local fetched = collectPulls(store.load(dir), deps.runner, parser:has("discover"))
 		local report: githubTypes.Report
 
 		if dryRun then
-			report = applyPulls(store.load(dir), fetched, deps.now())
+			report = assert(getAdapter("github").refresh)(
+				store.load(dir),
+				deps.runner,
+				{ discover = parser:has("discover"), now = deps.now() }
+			)
 		else
 			store.transaction(dir, function(doc)
-				report = applyPulls(doc, fetched, deps.now())
+				report = assert(getAdapter("github").refresh)(
+					doc,
+					deps.runner,
+					{ discover = parser:has("discover"), now = deps.now() }
+				)
 			end)
 		end
 

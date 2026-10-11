@@ -1,13 +1,16 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local collectSources = require("@root/ingest/collectSources")
 local context = require("@root/cli/context")
-local ingest = require("@root/ingest")
+local getReportJson = require("@root/ingest/getReportJson")
+local ingestTypes = require("@root/ingest/types")
+local placeRecords = require("@root/ingest/placeRecords")
 local store = require("@root/store")
 
 type Context = context.Context
 
-local function getReport(report: ingest.Report, isDryRun: boolean): string
+local function getReport(report: ingestTypes.Report, isDryRun: boolean): string
 	local lines = { if isDryRun then "Ingest dry run:" else "Ingested:" }
 
 	for _, source in report.sources do
@@ -33,21 +36,19 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local isDryRun = parser:has("dry-run")
 		local now = options.now()
-		local fetched = ingest.collect(store.load(options.dir), options.runner, now, parser:get("source"))
-		local report: ingest.Report
+		local fetched = collectSources(store.load(options.dir), options.runner, now, parser:get("source"))
+		local report: ingestTypes.Report
 
 		if isDryRun then
-			report = ingest.apply(store.load(options.dir), fetched, now)
+			report = placeRecords(store.load(options.dir), fetched)
 		else
 			store.transaction(options.dir, function(doc)
-				report = ingest.apply(doc, fetched, now)
+				report = placeRecords(doc, fetched)
 			end)
 		end
 
 		options.write(
-			if parser:has("json")
-				then json.serialize(ingest.getReportJson(report), true)
-				else getReport(report, isDryRun)
+			if parser:has("json") then json.serialize(getReportJson(report), true) else getReport(report, isDryRun)
 		)
 	end,
 })
