@@ -99,6 +99,7 @@ import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
+import { useWheelZoom } from '../useWheelZoom'
 import { attentionAtom, collapsedAtom, focusedAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from '../state'
 import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
@@ -964,6 +965,9 @@ export function Canvas() {
   const map = useMemo(() => byId(nodes), [nodes])
   // Focus ends on its own if someone else removes the card.
   const focus = focusPick && map.has(focusPick) ? focusPick : null
+
+  useWheelZoom(canvasRef, !focus && scrolling === 'zoom')
+
   const work = useAtomValue(workAtom)
 
   // Which groups read as single bodies at this level of detail, and which nodes that hides.
@@ -2552,8 +2556,8 @@ export function Canvas() {
               nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
               nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
               elementsSelectable={!focus && tool !== 'sticker'}
-              panOnScroll={!focus && scrolling === 'pan'}
-              zoomOnScroll={!focus && scrolling === 'zoom'}
+              panOnScroll={!focus}
+              zoomOnScroll={false}
               zoomOnPinch={!focus}
               multiSelectionKeyCode={['Meta', 'Shift']}
               deleteKeyCode={null}
