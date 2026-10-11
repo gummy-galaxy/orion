@@ -73,12 +73,14 @@
   background: var(--trading-art);
 }
 
-/* The dithered dot screen over the art. */
+/* The dithered dot screen over the art. An image tile, not a gradient: WebKit draws a repeating gradient
+   one tile at a time, and a canvas of cards overflowed its drawing pipeline. */
 .trading-art::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(rgb(10 7 25 / 0.6) 0.8px, transparent 1.15px) 0 0 / 3px 3px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Ccircle cx='1.5' cy='1.5' r='0.95' fill='%230a0719' fill-opacity='0.6'/%3E%3C/svg%3E")
+    0 0 / 3px 3px;
 }
 
 .trading-expected {
