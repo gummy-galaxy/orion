@@ -688,6 +688,14 @@ function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	pruneEmptyGroups(doc)
 end
 
+-- Asks the app to tidy a group whose members changed. A pending marker already places it, so it is kept, and a
+-- custom group is left as the user arranged it.
+local function markForRefit(group: Item)
+	if group.data.layout == nil and group.data.arrange ~= "custom" then
+		group.data.layout = "refit"
+	end
+end
+
 -- Wraps items that share a parent in a new group, keeping their arrangement.
 function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 	assert(label ~= "", "a group needs a name")
@@ -730,6 +738,7 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 		member.position = { x = member.position.x - origin.x, y = member.position.y - origin.y }
 	end
 
+	markForRefit(group)
 	table.insert(doc.nodes, group)
 	return group
 end
@@ -742,6 +751,10 @@ function graph.ungroup(doc: Doc, id: string)
 			item.parentId = group.parentId
 			item.position = { x = item.position.x + group.position.x, y = item.position.y + group.position.y }
 		end
+	end
+
+	if group.parentId then
+		markForRefit(graph.group(doc, group.parentId))
 	end
 
 	for index, item in doc.nodes do
@@ -768,6 +781,11 @@ function graph.move(doc: Doc, id: string, groupId: string?)
 	-- Node order doesn't matter here; the app sorts parents ahead of children on load.
 	item.position = graph.nextSlot(doc, groupId)
 	item.parentId = groupId
+
+	if groupId then
+		markForRefit(graph.group(doc, groupId))
+	end
+
 	pruneEmptyGroups(doc)
 end
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROW_WIDTH, WRAP, reflow } from './layout'
+import { ROW_WIDTH, WRAP, layoutOrder, reflow } from './layout'
 import { TASK_HEIGHT, TASK_WIDTH, type AppNode, type ClusterData, type Link } from './model'
 
 const task = (id: string, parentId = 'g', x = 0, y = 0): AppNode => ({
@@ -14,6 +14,13 @@ const group = (data: Partial<ClusterData> = {}): AppNode => ({
   type: 'cluster',
   position: { x: 0, y: 0 },
   data: { kind: 'cluster', label: 'G', ...data },
+})
+const cluster = (id: string, parentId: string | undefined, data: Partial<ClusterData> = {}): AppNode => ({
+  id,
+  type: 'cluster',
+  parentId,
+  position: { x: 0, y: 0 },
+  data: { kind: 'cluster', label: id, ...data },
 })
 const blocks = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, to, kind: 'blocks' })
 const ids = (count: number, prefix = 't') => Array.from({ length: count }, (_, i) => prefix + String(i).padStart(2, '0'))
@@ -105,5 +112,92 @@ describe('reflow', () => {
     const nodes = [group({ arrange: 'custom' }), task('a', 'g', 500, 40), task('b', 'g', 3, 900)]
 
     expect(await reflow(nodes, [blocks('a', 'b')], 'g')).toBe(nodes)
+  })
+})
+
+/** Lays out marked groups the way the app's pending-layout effect does: one reflow per group, in `layoutOrder`. */
+const settle = async (nodes: AppNode[], links: Link[] = []) => {
+  let next = nodes
+
+  for (const node of layoutOrder(nodes)) next = await reflow(next, links, node.id)
+
+  return next
+}
+
+const rectangle = (nodes: AppNode[], id: string) => {
+  const node = nodes.find((candidate) => candidate.id === id)!
+
+  return { x: node.position.x, y: node.position.y, width: node.width ?? 0, height: node.height ?? 0 }
+}
+
+const rectanglesOverlap = (first: ReturnType<typeof rectangle>, second: ReturnType<typeof rectangle>) =>
+  first.x < second.x + second.width && second.x < first.x + first.width && first.y < second.y + second.height && second.y < first.y + first.height
+
+describe('layoutOrder', () => {
+  it('lays out deeper groups before the groups that contain them', () => {
+    const nodes = [
+      cluster('outer', undefined, { layout: 'refit' }),
+      cluster('left', 'outer', { layout: 'refit' }),
+      cluster('deep', 'left', { layout: 'refit' }),
+    ]
+
+    expect(layoutOrder(nodes).map((node) => node.id)).toEqual(['deep', 'left', 'outer'])
+  })
+
+  it('keeps node order between groups at the same depth', () => {
+    const nodes = [
+      cluster('b', undefined, { layout: 'pending' }),
+      cluster('a', undefined, { layout: 'refit' }),
+      cluster('c', undefined, { layout: 'refit' }),
+    ]
+
+    expect(layoutOrder(nodes).map((node) => node.id)).toEqual(['b', 'a', 'c'])
+  })
+
+  it('leaves out groups without a layout marker and cards', () => {
+    const nodes = [cluster('outer', undefined), cluster('inner', 'outer', { layout: 'refit' }), task('t', 'inner')]
+
+    expect(layoutOrder(nodes).map((node) => node.id)).toEqual(['inner'])
+  })
+})
+
+describe('nested layout', () => {
+  it('settles a parent with marked subgroups in one pass, so no subgroup covers its sibling', async () => {
+    const outer = cluster('outer', undefined, { layout: 'refit' })
+    const left = cluster('left', 'outer', { layout: 'refit' })
+    const right = cluster('right', 'outer', { layout: 'refit' })
+    const leftIds = ids(12, 'l')
+    const rightIds = ids(12, 'r')
+    const nodes = [
+      outer,
+      left,
+      right,
+      ...leftIds.map((id, i) => task(id, 'left', i * 300, 0)),
+      ...rightIds.map((id, i) => task(id, 'right', i * 300, 0)),
+    ]
+    const laidOut = await settle(nodes)
+    const [leftBox, rightBox] = [rectangle(laidOut, 'left'), rectangle(laidOut, 'right')]
+
+    expect(rectanglesOverlap(leftBox, rightBox)).toBe(false)
+    expect(
+      laidOut
+        .filter((node) => node.parentId === 'outer')
+        .map((node) => node.id)
+        .sort(),
+    ).toEqual(['left', 'right'])
+  })
+
+  it('sizes each parent to its subgroups final size', async () => {
+    const nodes = [
+      cluster('outer', undefined, { layout: 'refit' }),
+      cluster('inner', 'outer', { layout: 'refit' }),
+      ...ids(20).map((id, i) => task(id, 'inner', i * 300, 0)),
+    ]
+    const laidOut = await settle(nodes)
+    const inner = rectangle(laidOut, 'inner')
+    const outer = rectangle(laidOut, 'outer')
+
+    expect(outer.width).toBe(inner.width + 2 * 32)
+    expect(outer.height).toBe(inner.height + 78 + 32)
   })
 })

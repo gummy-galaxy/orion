@@ -27,7 +27,7 @@ import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { FocusView, type FocusItem } from './FocusView'
-import { reflow } from '../layout'
+import { layoutOrder, reflow } from '../layout'
 import { mergeDocs } from '../merge'
 import { glide, motionReduced, useSystemMotion } from '../motion'
 import {
@@ -713,7 +713,7 @@ export function Canvas() {
 
     if (!ready || pendingLayoutEpoch.current === epoch) return
 
-    const marked = nodes.filter((node) => isCluster(node) && node.data.layout)
+    const marked = layoutOrder(nodes)
 
     if (!marked.length) return
 
