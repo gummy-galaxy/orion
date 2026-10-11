@@ -10,6 +10,7 @@ type Response = shared.Response
 local canvasStyle = {}
 
 -- The app writes the canvas's cover and background here. A null value clears one, and an absent one keeps it.
+-- The write is a normal transaction, so it bumps the revision and open windows and `--if-revision` see it.
 local function changeFrom(value: json.Value?): string?
 	if value == nil then
 		return nil
@@ -36,7 +37,7 @@ function canvasStyle.handle(request: net.ReceivedRequest, root: string, active: 
 	local didSucceed, failure = pcall(function()
 		local change = shared.parseBody(request)
 		local dir = store.getWorkspaceDir(root, active)
-		store.putCanvasStyle(dir, function(doc)
+		store.transaction(dir, function(doc)
 			applyCanvasStyle(doc, dir, {
 				cover = changeFrom(change.cover),
 				background = changeFrom(change.background),

@@ -612,27 +612,6 @@ function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
 	return result :: Doc
 end
 
--- Changes the canvas's own cover and background without moving the revision. The app that made the change
--- already holds that revision, so its next save still applies.
-function store.putCanvasStyle(dir: string, mutate: (Doc) -> ())
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
-
-	local lockPath = acquire(dir)
-	local succeeded, failureMessage = pcall(function()
-		local doc = store.load(dir)
-		mutate(doc)
-		atomicWrite(store.filePath(dir), store.encode(doc))
-	end)
-
-	release(lockPath)
-
-	if not succeeded then
-		error(failureMessage, 0)
-	end
-end
-
 -- Writes a whole document, used to seed data and in tests.
 function store.write(dir: string, doc: Doc)
 	if not fs.exists(dir) then

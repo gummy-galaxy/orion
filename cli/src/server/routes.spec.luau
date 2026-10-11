@@ -335,7 +335,7 @@ test.case("settings routes merge preferences beside the workspaces", function(as
 	assert.eq(router.handle(createRequest("DELETE", "/api/settings")).status, 405)
 end)
 
-test.case("PUT /api/orion/style sets and clears the canvas cover without moving the revision", function(assert)
+test.case("PUT /api/orion/style sets and clears the canvas cover and bumps the revision like a save", function(assert)
 	local root, router = createRouter("routes-canvas-style")
 	store.write(root, testing.createDoc({ testing.group("ws", "Workspace", nil) }))
 	fs.createDirectory(path.join(root, "assets"), { makeParents = true })
@@ -346,15 +346,20 @@ test.case("PUT /api/orion/style sets and clears the canvas cover without moving 
 	assert.eq(set.status, 200)
 	assert.eq(store.load(root).settings.cover, "image-logo.png")
 	assert.eq(store.load(root).settings.background, "#1d1b2e")
-	assert.eq(store.load(root).revision, 0)
+	assert.eq(store.load(root).revision, 1)
+	-- A window that read the file before the style change has a stale revision, so its save is refused and it reloads.
+	local stale = json.object({ baseRevision = 0, nodes = {}, links = {} })
+	assert.eq(router.handle(createRequest("PUT", "/api/orion", stale)).status, 409)
 	local cleared = router.handle(createRequest("PUT", "/api/orion/style", json.object({ cover = json.null })))
 	assert.eq(cleared.status, 200)
 	assert.eq(store.load(root).settings.cover, nil)
 	assert.eq(store.load(root).settings.background, "#1d1b2e")
+	assert.eq(store.load(root).revision, 2)
 	assert.eq(
 		router.handle(createRequest("PUT", "/api/orion/style", json.object({ cover = "image-missing.png" }))).status,
 		400
 	)
+	assert.eq(store.load(root).revision, 2)
 	assert.eq(router.handle(createRequest("GET", "/api/orion/style")).status, 405)
 	assert.eq(
 		router.handle(createRequest("PUT", "/api/orion/style", json.object({ cover = "x" }), "ideas")).status,

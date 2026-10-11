@@ -1800,7 +1800,7 @@ export function Canvas() {
     [updateData],
   )
 
-  /** The canvas's cover and background go to the server and show at once. The page keeps its revision, so its own saves still apply. */
+  /** The canvas's cover and background go to the server and show at once. The server bumps the revision, so the page reloads to match it. */
   const changeCanvasStyle = useCallback((change: StyleChange) => {
     setCanvasStyle((current) => applyStyleChange(current, change))
     void saveCanvasStyle(workspace.current, change)
