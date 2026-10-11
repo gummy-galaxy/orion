@@ -92,6 +92,9 @@ import {
   type Workspaces,
 } from '../persist'
 import { Sidebar } from './Sidebar'
+import { Settings, type SettingsSection } from './Settings'
+import { SCROLLINGS, readScrolling, writeScrolling, type Scrolling } from '../scrolling'
+import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
@@ -337,16 +340,20 @@ export function Canvas() {
   // Where focus started, and whether it has since walked to another card or level.
   const focusEntry = useRef<FocusEntry | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
-  const [showHelp, setShowHelp] = useState(false)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
   const setSkin = useSetAtom(skinAtom, { store: skinStore })
+  const [scrolling, setScrolling] = useState(readScrolling)
+  const [keybindings, setKeybindings] = useState(readKeybindings)
+  /** The settings section on show, or null while settings are closed. */
+  const [settings, setSettings] = useState<SettingsSection | null>(null)
   const cardSize = useAtomValue(cardSizeAtom, { store: skinStore })
   const cardSizeRef = useRef(cardSize)
 
   useLayoutEffect(() => {
     cardSizeRef.current = cardSize
   }, [cardSize])
+
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
@@ -2270,7 +2277,12 @@ export function Canvas() {
 
       return next
     })
-    setNodes((currentNodes) => normalize(currentNodes.filter((node) => node.id !== id), cardSize))
+    setNodes((currentNodes) =>
+      normalize(
+        currentNodes.filter((node) => node.id !== id),
+        cardSize,
+      ),
+    )
   }
 
   const removeLink = (id: string) => setLinks((currentLinks) => currentLinks.filter((link) => link.id !== id))
@@ -2292,6 +2304,9 @@ export function Canvas() {
     event.preventDefault()
     setMenu({ x: event.clientX, y: event.clientY, flow: reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }), target })
   }
+
+  /** A shortcut as menus and the palette show it, or nothing when it's unbound. */
+  const hintOf = (id: ShortcutId) => formatChord(keybindings[id]) || undefined
 
   const menuItems = (menu: Menu): MenuItem[] => {
     const target = menu.target
@@ -2336,15 +2351,16 @@ export function Canvas() {
 
       if (!node) return []
 
-      const many: MenuItem[] = selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }, 'divider'] : []
+      const many: MenuItem[] =
+        selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }, 'divider'] : []
 
       if (isCluster(node))
         return [
           ...many,
-          { label: 'Open', hint: '↵', run: () => actions.open(node.id) },
+          { label: 'Open', hint: hintOf('open-group'), run: () => actions.open(node.id) },
           { label: 'Rename', run: () => (selectOnly(node.id), setEditing(node.id)) },
           ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
-          { label: 'Ungroup', hint: '⇧⌘G', run: () => doUngroup([node.id]) },
+          { label: 'Ungroup', hint: hintOf('ungroup'), run: () => doUngroup([node.id]) },
         ]
 
       const position = absolutePosition(node, map)
@@ -2367,7 +2383,13 @@ export function Canvas() {
           {
             label: 'Remove image',
             danger: true,
-            run: () => setNodes((currentNodes) => normalize(currentNodes.filter((item) => item.id !== node.id), cardSize)),
+            run: () =>
+              setNodes((currentNodes) =>
+                normalize(
+                  currentNodes.filter((item) => item.id !== node.id),
+                  cardSize,
+                ),
+              ),
           },
         ]
 
@@ -2386,12 +2408,14 @@ export function Canvas() {
     }
 
     return [
-      { label: 'Add a note here', hint: 'N', run: () => addNote(menu.flow) },
-      ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: '⌘G', run: doGroup }] : []),
+      { label: 'Add a note here', hint: hintOf('add-note'), run: () => addNote(menu.flow) },
+      ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }] : []),
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
-      { label: 'Fit to screen', hint: '⇧1', run: () => fitTo(root) },
-      ...(root ? [{ label: 'Go up a level', hint: 'Esc', run: () => (peeking ? leaveRoot() : openRoot(map.get(root)?.parentId ?? null)) }] : []),
+      { label: 'Fit to screen', hint: hintOf('fit'), run: () => fitTo(root) },
+      ...(root
+        ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => (peeking ? leaveRoot() : openRoot(map.get(root)?.parentId ?? null)) }]
+        : []),
     ]
   }
 
@@ -2399,60 +2423,71 @@ export function Canvas() {
     const onKey = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
 
-      if ((event.metaKey || event.ctrlKey) && event.shiftKey && !event.altKey && event.key.toLowerCase() === 'p') {
+      const pressed = (id: ShortcutId) => matchesChord(event, keybindings[id])
+
+      if (pressed('actions')) {
         event.preventDefault()
         setPaletteQuery(COMMAND_PREFIX)
 
         return
       }
 
-      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'k') {
+      if (pressed('search')) {
         event.preventDefault()
         setPaletteQuery('')
 
         return
       }
 
-      if (paletteOpen) return
-
-      if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && (event.code === 'BracketLeft' || event.code === 'BracketRight')) {
+      if (pressed('settings')) {
         event.preventDefault()
-        travelTo(event.code === 'BracketLeft' ? 'back' : 'forward')
+        setPaletteQuery(null)
+        setSettings('appearance')
 
         return
       }
 
-      if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'z') {
+      if (paletteOpen) return
+
+      if (pressed('go-back') || pressed('go-forward')) {
+        event.preventDefault()
+        travelTo(pressed('go-back') ? 'back' : 'forward')
+
+        return
+      }
+
+      if (pressed('undo') || pressed('redo')) {
         event.preventDefault()
 
-        if (event.shiftKey) redo()
+        if (pressed('redo')) redo()
         else undo()
 
         return
       }
 
       if (focus) {
-        if (event.key === 'Escape') exitFocus()
+        if (pressed('step-back')) exitFocus()
 
         return
       }
 
-      if (event.metaKey && event.key.toLowerCase() === 'g') {
+      if (pressed('group')) {
         event.preventDefault()
-
-        if (event.shiftKey) doUngroup()
-        else doGroup()
-      } else if (event.key === 'Enter' && selected.length === 1 && isCluster(selected[0])) {
+        doGroup()
+      } else if (pressed('ungroup')) {
+        event.preventDefault()
+        doUngroup()
+      } else if (pressed('open-group') && selected.length === 1 && isCluster(selected[0])) {
         actions.open(selected[0].id)
-      } else if (event.key === 'Escape') {
+      } else if (pressed('step-back')) {
         if (tool !== 'select') setTool('select')
         else if (peeking) leaveRoot()
         else if (pinned) setPinned(null)
         else if (root) openRoot(map.get(root)?.parentId ?? null)
         else setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
-      } else if (event.shiftKey && event.code === 'Digit1') {
+      } else if (pressed('fit')) {
         fitTo(root)
-      } else if (!event.metaKey && !event.ctrlKey && event.key.toLowerCase() === 'n') {
+      } else if (pressed('add-note')) {
         event.preventDefault()
         addNote(viewportCenter())
       }
@@ -2462,6 +2497,7 @@ export function Canvas() {
 
     return () => window.removeEventListener('keydown', onKey)
   }, [
+    keybindings,
     doGroup,
     doUngroup,
     selected,
@@ -2494,17 +2530,27 @@ export function Canvas() {
   const readyTotal = [...work.status.values()].filter((status) => status === 'ready').length
 
   const commands: Command[] = [
-    ...(trailSize.back ? [{ id: 'go-back', label: 'Go back', detail: 'Return to the previous view', hint: '⌘[', run: () => travelTo('back') }] : []),
-    ...(trailSize.forward
-      ? [{ id: 'go-forward', label: 'Go forward', detail: 'Return to the view you went back from', hint: '⌘]', run: () => travelTo('forward') }]
+    ...(trailSize.back
+      ? [{ id: 'go-back', label: 'Go back', detail: 'Return to the previous view', hint: hintOf('go-back'), run: () => travelTo('back') }]
       : []),
-    ...(canUndo ? [{ id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', hint: '⌘Z', run: undo }] : []),
-    ...(canRedo ? [{ id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', hint: '⇧⌘Z', run: redo }] : []),
+    ...(trailSize.forward
+      ? [
+          {
+            id: 'go-forward',
+            label: 'Go forward',
+            detail: 'Return to the view you went back from',
+            hint: hintOf('go-forward'),
+            run: () => travelTo('forward'),
+          },
+        ]
+      : []),
+    ...(canUndo ? [{ id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', hint: hintOf('undo'), run: undo }] : []),
+    ...(canRedo ? [{ id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', hint: hintOf('redo'), run: redo }] : []),
     {
       id: 'fit-board',
       label: 'Fit entire board',
       detail: 'Show all work',
-      hint: root ? undefined : '⇧1',
+      hint: root ? undefined : hintOf('fit'),
       run: () => (root ? openRoot(null) : fitTo(null)),
     },
     ...(selected.length
@@ -2536,6 +2582,25 @@ export function Canvas() {
       detail: 'Saved on this device',
       run: () => chooseAppearance({ ...appearance, colorMode: mode }),
     })),
+    ...SCROLLINGS.map((option) => ({
+      id: `scroll-${option.id}`,
+      label: `Scroll to: ${option.label}`,
+      detail: 'Saved on this device',
+      run: () => chooseScrolling(option.id),
+    })),
+    {
+      id: 'settings',
+      label: 'Open settings',
+      detail: 'Theme, cards, color mode, scrolling, and keyboard shortcuts',
+      hint: hintOf('settings'),
+      run: () => setSettings('appearance'),
+    },
+    {
+      id: 'keyboard-shortcuts',
+      label: 'Open keyboard shortcuts',
+      detail: 'See and change shortcuts',
+      run: () => setSettings('shortcuts'),
+    },
     {
       id: 'sidebar',
       label: sidebar ? 'Hide group list' : 'Show group list',
@@ -2591,6 +2656,16 @@ export function Canvas() {
     writeAppearance(next)
   }
 
+  const chooseScrolling = (next: Scrolling) => {
+    setScrolling(next)
+    writeScrolling(next)
+  }
+
+  const chooseKeybindings = (next: Keybindings) => {
+    setKeybindings(next)
+    writeKeybindings(next)
+  }
+
   return (
     <ActionsContext.Provider value={actions}>
       <div className="app">
@@ -2605,8 +2680,8 @@ export function Canvas() {
             workspaces={workspaces}
             switchWorkspace={switchWorkspace}
             newWorkspace={newWorkspace}
-            appearance={appearance}
-            chooseAppearance={chooseAppearance}
+            openSettings={() => setSettings('appearance')}
+            settingsHint={hintOf('settings') ?? ''}
           />
         )}
         <div
@@ -2709,8 +2784,8 @@ export function Canvas() {
               nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
               nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
               elementsSelectable={!focus && tool !== 'sticker'}
-              panOnScroll={!focus}
-              zoomOnScroll={false}
+              panOnScroll={!focus && scrolling === 'pan'}
+              zoomOnScroll={!focus && scrolling === 'zoom'}
               zoomOnPinch={!focus}
               multiSelectionKeyCode={['Meta', 'Shift']}
               deleteKeyCode={null}
@@ -2789,6 +2864,7 @@ export function Canvas() {
               </Panel>
               <Panel position="center-left">
                 <ActionBar
+                  keybindings={keybindings}
                   search={() => setPaletteQuery('')}
                   addNote={() => addNote(viewportCenter())}
                   addImage={(file) => void addImage(file)}
@@ -2860,7 +2936,18 @@ export function Canvas() {
                         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
                         onChange={(event) => updateData(one.id, { label: event.target.value })}
                       />
-                      <button type="button" className="btn" onClick={() => setNodes((ns) => normalize(ns.filter((n) => n.id !== one.id), cardSize))}>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() =>
+                          setNodes((ns) =>
+                            normalize(
+                              ns.filter((n) => n.id !== one.id),
+                              cardSize,
+                            ),
+                          )
+                        }
+                      >
                         Remove image
                       </button>
                     </div>
@@ -2906,25 +2993,7 @@ export function Canvas() {
                     </div>
                   </div>
                 )}
-                <Toolbar tool={tool} sticker={sticker} setTool={chooseTool} />
-                <div className="panel help">
-                  {showHelp ? (
-                    <>
-                      V select · H pan · C comment · hold S for stickers · drag to select · middle-drag, Space-drag, or scroll to pan · pinch or
-                      ⌘-scroll to zoom · ⌘ or ⇧ click to add · right-click for actions · ⌘K search · ⇧⌘P actions · ⌘Z undo · ⇧⌘Z redo · ⌘G group · ⇧⌘G
-                      ungroup · double-click a group to open · double-click a card to focus · ⇧ double-click to hold its trace or edit a note · Esc to
-                      go up · mouse back and forward or ⌘[ and ⌘] to retrace views · N note · ⇧1 fit · drag from a card's edge to link · hold Ctrl
-                      while dragging to skip snapping{' '}
-                      <button type="button" className="link" onClick={() => setShowHelp(false)}>
-                        Hide
-                      </button>
-                    </>
-                  ) : (
-                    <button type="button" className="link" onClick={() => setShowHelp(true)}>
-                      Shortcuts
-                    </button>
-                  )}
-                </div>
+                <Toolbar tool={tool} sticker={sticker} keybindings={keybindings} setTool={chooseTool} />
               </Panel>
             </ReactFlow>
           )}
@@ -2991,6 +3060,7 @@ export function Canvas() {
             <StickerWheel
               at={wheel}
               held={wheel.held}
+              holdKey={keybindings['tool-sticker']}
               current={sticker}
               loadout={loadout}
               pick={pickSticker}
@@ -3007,6 +3077,19 @@ export function Canvas() {
             open={actions.open}
             close={() => setPaletteQuery(null)}
             initialQuery={paletteQuery}
+          />
+        )}
+        {settings && (
+          <Settings
+            section={settings}
+            showSection={setSettings}
+            close={() => setSettings(null)}
+            appearance={appearance}
+            chooseAppearance={chooseAppearance}
+            scrolling={scrolling}
+            chooseScrolling={chooseScrolling}
+            keybindings={keybindings}
+            chooseKeybindings={chooseKeybindings}
           />
         )}
       </div>
