@@ -90,13 +90,13 @@ Generated card art can be produced again from the same card. Later, people shoul
 
 ## Canvas and input
 
-### Mouse wheel zooms, trackpad pans
+### Scrolling pans, for mouse and trackpad alike
 
-A mouse wheel zooms. A two-finger drag on a trackpad pans, and pinch zooms. A regression test with recorded events from real devices in each browser engine guards this.
+Scrolling always pans, whether it comes from a mouse wheel or a trackpad. Pinch and ⌘-scroll zoom. There's no setting and no device detection.
 
-**Why:** zooming with the wheel is the preferred default, and trackpad users still need two-finger panning. The behavior has broken several times while fixing one device or the other, so it needs a test that covers both.
+**Why:** the preference was for the mouse wheel to zoom while a trackpad's two-finger scroll pans. That needs Orion to tell the two devices apart, and on macOS there's no reliable way to do it. WebKit reports a mouse wheel and a trackpad with the same delta ratio, and the only other signal relies on undocumented encoding and misses mice with smooth scrolling. Each attempt fixed one device and broke the other. This replaced zooming on scroll (#208, #240). Before trying wheel zoom again, find a reliable way to tell the devices apart in WebKit.
 
-2026-10-10, 2026-10-11 · #208, #240
+2026-10-11 · #268
 
 ### Pan mode lets clicks pass through links
 
