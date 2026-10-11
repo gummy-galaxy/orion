@@ -12,6 +12,7 @@ export const Default: Story = {
     <StickerWheel
       at={{ x: window.innerWidth / 2, y: window.innerHeight / 2 }}
       held={false}
+      holdKey="S"
       current="🎉"
       loadout={loadoutOf()}
       pick={() => {}}
