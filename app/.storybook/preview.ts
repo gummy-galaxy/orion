@@ -20,9 +20,9 @@ const preview: Preview = {
       },
     },
     statusColors: {
-      description: 'Status colors',
+      description: 'Colorblind colors',
       toolbar: {
-        title: 'Status colors',
+        title: 'Colorblind colors',
         icon: 'eye',
         items: STATUS_COLORS.map((option) => ({ value: option.id, title: option.label })),
         dynamicTitle: true,

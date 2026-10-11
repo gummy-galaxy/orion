@@ -1,10 +1,10 @@
-import { COLOR_MODES, STATUS_COLORS, THEMES, colorModeOf, themeOf, type Appearance } from '../appearance'
+import { COLOR_MODES, THEMES, colorModeOf, themeOf, type Appearance } from '../appearance'
 
 type Props = { appearance: Appearance; chooseAppearance: (appearance: Appearance) => void }
 
 const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1)
 
-/** The theme, color mode, and status colors, saved on this device. */
+/** The theme and color mode, saved on this device. */
 export function AppearanceSettings({ appearance, chooseAppearance }: Props) {
   const theme = themeOf(appearance.theme)
   const fixed = theme.schemes.length === 1
@@ -52,26 +52,6 @@ export function AppearanceSettings({ appearance, chooseAppearance }: Props) {
               onClick={() => chooseAppearance({ ...appearance, colorMode: mode })}
             >
               {capitalize(mode)}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="settings-field">
-        <div>
-          <span className="settings-field-label" id="settings-status-colors">
-            Status colors
-          </span>
-          <p className="settings-field-detail">Colorblind safe keeps statuses apart for red-green and blue-yellow color blindness, in any theme.</p>
-        </div>
-        <div className="options" role="group" aria-labelledby="settings-status-colors">
-          {STATUS_COLORS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              aria-pressed={appearance.statusColors === option.id}
-              onClick={() => chooseAppearance({ ...appearance, statusColors: option.id })}
-            >
-              {option.label}
             </button>
           ))}
         </div>

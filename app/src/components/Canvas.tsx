@@ -2489,7 +2489,7 @@ export function Canvas() {
     })),
     ...STATUS_COLORS.map((option) => ({
       id: `status-colors-${option.id}`,
-      label: `Status colors: ${option.label}`,
+      label: `Colorblind colors: ${option.label}`,
       detail: 'Saved on this device',
       run: () => chooseAppearance({ ...appearance, statusColors: option.id }),
     })),
@@ -2502,7 +2502,7 @@ export function Canvas() {
     {
       id: 'settings',
       label: 'Open settings',
-      detail: 'Theme, color mode, status colors, scrolling, and keyboard shortcuts',
+      detail: 'Theme, color mode, scrolling, accessibility, and keyboard shortcuts',
       hint: hintOf('settings'),
       run: () => setSettings('appearance'),
     },

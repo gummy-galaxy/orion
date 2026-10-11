@@ -2,15 +2,17 @@ import { useEffect, useRef } from 'react'
 import type { Appearance } from '../appearance'
 import type { Keybindings } from '../keybindings'
 import type { Scrolling } from '../scrolling'
+import { AccessibilitySettings } from './AccessibilitySettings'
 import { AppearanceSettings } from './AppearanceSettings'
 import { CanvasSettings } from './CanvasSettings'
 import { ShortcutSettings } from './ShortcutSettings'
 
-export type SettingsSection = 'appearance' | 'canvas' | 'shortcuts'
+export type SettingsSection = 'appearance' | 'canvas' | 'accessibility' | 'shortcuts'
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'canvas', label: 'Canvas' },
+  { id: 'accessibility', label: 'Accessibility' },
   { id: 'shortcuts', label: 'Keyboard Shortcuts' },
 ]
 
@@ -87,6 +89,7 @@ export function Settings({
         <div className="settings-body">
           {section === 'appearance' && <AppearanceSettings appearance={appearance} chooseAppearance={chooseAppearance} />}
           {section === 'canvas' && <CanvasSettings scrolling={scrolling} chooseScrolling={chooseScrolling} />}
+          {section === 'accessibility' && <AccessibilitySettings appearance={appearance} chooseAppearance={chooseAppearance} />}
           {section === 'shortcuts' && <ShortcutSettings scrolling={scrolling} keybindings={keybindings} chooseKeybindings={chooseKeybindings} />}
         </div>
       </div>

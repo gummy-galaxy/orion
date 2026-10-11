@@ -1,14 +1,24 @@
 /*
- * Status colors that stay apart under protanopia, deuteranopia, and tritanopia, layered over any theme.
- * Ready, in progress, and done sit at different lightness on the blue side, and blocked and review differ
- * on the warm side, so no pair relies on red against green. Light values keep 4.5:1 on the light surfaces,
- * and dark values on both Classic dark and Vibrant.
+ * Status colors for color blindness, layered over any theme. Each set is tuned for one kind, keeps 4.5:1
+ * on the light surfaces in light mode, and on both Classic dark and Vibrant in dark mode.
  */
-:root[data-status-colors='colorblind'] {
+
+/* Protanopia and deuteranopia: statuses differ in lightness and along blue to yellow, never red against green. */
+:root[data-status-colors='red-green'] {
   --st-todo: light-dark(#5d6d75, #92a3aa);
-  --st-ready: light-dark(#0574b6, #8ee6fb);
-  --st-active: light-dark(#9124f0, #cb98fd);
-  --st-review: light-dark(#7a4a00, #fb9a26);
-  --st-blocked: light-dark(#d0194c, #f2486a);
-  --st-done: light-dark(#1f4578, #7179fb);
+  --st-ready: light-dark(#014870, #3bc2fc);
+  --st-active: light-dark(#3a1fd0, #507ffe);
+  --st-review: light-dark(#b34903, #f2cf19);
+  --st-blocked: light-dark(#820b0b, #f35726);
+  --st-done: light-dark(#3671be, #3df8d3);
+}
+
+/* Tritanopia: statuses differ along red to cyan, never blue against green or yellow against violet. */
+:root[data-status-colors='blue-yellow'] {
+  --st-todo: light-dark(#5d6d75, #92a3aa);
+  --st-ready: light-dark(#1663fe, #7ed7f1);
+  --st-active: light-dark(#a12dea, #bd54fe);
+  --st-review: light-dark(#733301, #ffd16c);
+  --st-blocked: light-dark(#c5231d, #fd3a33);
+  --st-done: light-dark(#015c2a, #2a9b3f);
 }

@@ -35,6 +35,8 @@ export const AppearanceSection: Story = { render: () => <Interactive section="ap
 
 export const CanvasSection: Story = { render: () => <Interactive section="canvas" /> }
 
+export const AccessibilitySection: Story = { render: () => <Interactive section="accessibility" /> }
+
 export const ShortcutsSection: Story = { render: () => <Interactive section="shortcuts" /> }
 
 /** A changed binding offers a reset, and one that clashes names the other shortcut. */

@@ -15,12 +15,13 @@ export const THEMES: readonly Theme[] = [
 
 export const COLOR_MODES: readonly ColorMode[] = ['light', 'dark', 'system']
 
-export type StatusColors = 'theme' | 'colorblind'
+export type StatusColors = 'theme' | 'red-green' | 'blue-yellow'
 
 /** Colorblind status colors live in themes/colorblind.css and layer over any theme. */
 export const STATUS_COLORS: readonly { id: StatusColors; label: string }[] = [
-  { id: 'theme', label: 'Theme' },
-  { id: 'colorblind', label: 'Colorblind safe' },
+  { id: 'theme', label: 'Off' },
+  { id: 'red-green', label: 'Red-green' },
+  { id: 'blue-yellow', label: 'Blue-yellow' },
 ]
 
 export type Appearance = { theme: string; colorMode: ColorMode; statusColors: StatusColors }
@@ -48,7 +49,7 @@ export function readAppearance(): Appearance {
     return {
       theme: themeOf(localStorage.getItem(THEME_KEY) ?? '').id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
-      statusColors: localStorage.getItem(STATUS_COLORS_KEY) === 'colorblind' ? 'colorblind' : 'theme',
+      statusColors: STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
     }
   } catch {
     return { theme: THEMES[0].id, colorMode: 'system', statusColors: 'theme' }
