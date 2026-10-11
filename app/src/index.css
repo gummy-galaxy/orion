@@ -2724,3 +2724,35 @@ kbd {
   overscroll-behavior: contain;
   pointer-events: auto;
 }
+
+/* Tooltip: drawn above its anchor in the page body, so cards and the canvas zoom leave it alone. */
+.tooltip {
+  position: fixed;
+  z-index: 4000;
+  max-width: 260px;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: var(--shadow);
+  font: 600 12px/1.35 var(--font-ui);
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+}
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+  transform: translateX(-50%);
+}
+:where(:root[data-motion='on']) .tooltip {
+  animation: tooltip-in 0.12s ease-out;
+}
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+  }
+}

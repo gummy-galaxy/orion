@@ -161,6 +161,7 @@ In `app/`:
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
+- `src/components/Tooltip.tsx`: a label shown above an element on hover or focus, drawn outside the canvas so zoom and clipping don't affect it.
 - `src/components/SlotCard.tsx`, `src/components/SlotSignalIcon.tsx`, and `src/skins/slotFacts.ts`: Slot cards, a skin that gives each part of a card one job: what's known at the top left, the one status that needs someone at the top right, the kind in the middle, and open blockers, work in motion, and unblocks along the bottom.
 - `src/App.tsx`: the canvas, detail levels, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.

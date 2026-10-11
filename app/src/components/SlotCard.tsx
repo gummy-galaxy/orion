@@ -2,6 +2,7 @@ import type { CardSizeLabel, CardView, Priority } from '../cardView'
 import { getSlotFacts, type Motion, type Sticker } from '../skins/slotFacts'
 import { SlotSignalIcon } from './SlotSignalIcon'
 import { SourceBadges } from './SourceBadges'
+import { Tooltip } from './Tooltip'
 import { TradingKindIcon } from './TradingKindIcon'
 
 const STICKER_HINT: Record<Sticker, string> = {
@@ -24,9 +25,9 @@ const SIZE_SEVERITY: Record<CardSizeLabel, Severity> = { XL: 'critical', L: 'hig
 
 function FactChip({ text, name, severity }: { text: string; name: string; severity: Severity }) {
   return (
-    <span className={`slot-fact slot-fact-${severity}`} title={`${name}: ${text}`}>
-      {text}
-    </span>
+    <Tooltip label={`${name} ${text}`}>
+      <span className={`slot-fact slot-fact-${severity}`}>{text}</span>
+    </Tooltip>
   )
 }
 
@@ -43,9 +44,7 @@ export function SlotCard({ view }: { view: CardView }) {
   if (view.kind === 'note') {
     return (
       <div className="slot-frame slot-note">
-        <div className="slot-note-text" title={view.title}>
-          {view.title || 'Empty note'}
-        </div>
+        <div className="slot-note-text">{view.title || 'Empty note'}</div>
         <SourceBadges sources={view.sources} />
       </div>
     )
@@ -64,35 +63,41 @@ export function SlotCard({ view }: { view: CardView }) {
         {facts.size && <FactChip text={facts.size} name="Size" severity={SIZE_SEVERITY[facts.size]} />}
       </div>
       {facts.sticker && (
-        <span className={`slot-sticker slot-sticker-${facts.sticker}`} title={STICKER_HINT[facts.sticker]}>
-          <SlotSignalIcon signal={facts.sticker} />
-          {facts.sticker}
-        </span>
+        <Tooltip label={STICKER_HINT[facts.sticker]}>
+          <span className={`slot-sticker slot-sticker-${facts.sticker}`}>
+            <SlotSignalIcon signal={facts.sticker} />
+            {facts.sticker}
+          </span>
+        </Tooltip>
       )}
       <div className="slot-tile">
         <TradingKindIcon kind={view.kind} />
         {facts.locked && (
-          <span className="slot-lock" title="Blocked">
-            <LockIcon />
-          </span>
+          <Tooltip label="Blocked">
+            <span className="slot-lock">
+              <LockIcon />
+            </span>
+          </Tooltip>
         )}
       </div>
       <div className="slot-scrim">
-        <h3 className="slot-title" title={view.title}>
-          {view.title}
-        </h3>
+        <Tooltip label={view.title}>
+          <h3 className="slot-title">{view.title}</h3>
+        </Tooltip>
         <div className="slot-bottom">
-          <span className="slot-blockers" title={`${facts.blockers} open ${facts.blockers === 1 ? 'blocker' : 'blockers'}`}>
-            {facts.blockers}
-          </span>
+          <Tooltip label={`${facts.blockers} open ${facts.blockers === 1 ? 'blocker' : 'blockers'}`}>
+            <span className="slot-blockers">{facts.blockers}</span>
+          </Tooltip>
           {facts.motion && (
-            <span className={`slot-motion slot-motion-${facts.motion}`} title={MOTION_HINT[facts.motion]}>
-              <SlotSignalIcon signal={facts.motion} />
-            </span>
+            <Tooltip label={MOTION_HINT[facts.motion]}>
+              <span className={`slot-motion slot-motion-${facts.motion}`}>
+                <SlotSignalIcon signal={facts.motion} />
+              </span>
+            </Tooltip>
           )}
-          <span className="slot-unblocks" title={`Unblocks ${facts.unblocks}`}>
-            {facts.unblocks}
-          </span>
+          <Tooltip label={`Unblocks ${facts.unblocks}`}>
+            <span className="slot-unblocks">{facts.unblocks}</span>
+          </Tooltip>
         </div>
       </div>
     </div>
