@@ -162,13 +162,15 @@ select {
 }
 .card {
   --c: var(--st-todo);
+  /* The card's fill, which badges layered over its icons cut out of. */
+  --card-fill: var(--surface);
   position: relative;
   width: 100%;
   height: 100%;
   padding: 10px 12px 10px 15px;
   border-radius: var(--radius-md);
   border: 1px solid var(--line);
-  background: var(--surface);
+  background: var(--card-fill);
   display: grid;
   align-content: start;
   gap: 3px;
@@ -214,6 +216,20 @@ select {
 }
 .checks-icon {
   color: var(--st-review);
+}
+/* On a card, the check state sits on the status icon's corner, partly off it, cut out of the card's fill. */
+.status-mark {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.status-mark .checks-icon {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+}
+.checks-knockout {
+  fill: var(--card-fill, var(--surface));
 }
 .check-passing,
 .check-mergeable {
@@ -469,14 +485,14 @@ select {
 }
 /* Work that can move stands out; done, blocked, and parked work recede alike. */
 .card:is(.st-ready, .st-active, .st-review) {
+  --card-fill: color-mix(in srgb, var(--c) 8%, var(--surface));
   border-color: var(--c);
-  background: color-mix(in srgb, var(--c) 8%, var(--surface));
   box-shadow:
     inset 4px 0 0 var(--c),
     var(--shadow);
 }
 .card.st-ready {
-  background: var(--accent-soft);
+  --card-fill: var(--accent-soft);
 }
 .st-blocked,
 .st-done,
@@ -484,15 +500,15 @@ select {
   --fade: 0.75;
 }
 .card:is(.st-blocked, .st-done, .st-deferred) {
-  background: var(--bg);
+  --card-fill: var(--bg);
   color: var(--muted);
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 65%, var(--bg));
 }
 /* Ready to merge: the card turns the success color and glows, so it reads as the next thing to click. */
 .card.ready-to-merge {
   --c: var(--st-done);
+  --card-fill: color-mix(in srgb, var(--c) 12%, var(--surface));
   border-color: var(--c);
-  background: color-mix(in srgb, var(--c) 12%, var(--surface));
   box-shadow:
     inset 4px 0 0 var(--c),
     0 0 0 1px var(--c),

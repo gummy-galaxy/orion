@@ -25,18 +25,22 @@ const SHAPES: Record<PullReadiness, ReactNode> = {
   ),
 }
 
-/** How close a pull request is to merging: a conflict, failing, running or queued checks, passing, or ready. */
-export function ChecksIcon({ readiness, title }: { readiness: PullReadiness; title?: string }) {
+/**
+ * How close a pull request is to merging: a conflict, failing, running or queued checks, passing, or ready.
+ * `badge` adds a cutout of the card's fill around it, to sit on the corner of the status icon.
+ */
+export function ChecksIcon({ readiness, title, badge = false }: { readiness: PullReadiness; title?: string; badge?: boolean }) {
   return (
     <svg
-      viewBox="0 0 10 10"
-      width="8"
-      height="8"
+      viewBox={badge ? '-2 -2 14 14' : '0 0 10 10'}
+      width={badge ? 9 : 8}
+      height={badge ? 9 : 8}
       role={title ? 'img' : undefined}
       aria-hidden={title ? undefined : true}
       className={`checks-icon check-${readiness}`}
     >
       {title && <title>{title}</title>}
+      {badge && <circle className="checks-knockout" cx="5" cy="5" r="7" />}
       {SHAPES[readiness]}
     </svg>
   )
