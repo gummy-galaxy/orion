@@ -59,10 +59,14 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
           {getTaskTag(data)}
         </span>
         <span className="st" title={readiness && !readyToMerge ? `${statusLabel} · ${READINESS_LABEL[readiness]}` : statusLabel}>
-          <span className="status-mark">
-            <StatusIcon status={status} />
-            {readiness && <ChecksIcon readiness={readiness} title={READINESS_LABEL[readiness]} badge />}
-          </span>
+          {readyToMerge ? (
+            <ChecksIcon readiness="mergeable" />
+          ) : (
+            <span className="status-mark">
+              <StatusIcon status={status} />
+              {readiness && <ChecksIcon readiness={readiness} title={READINESS_LABEL[readiness]} badge />}
+            </span>
+          )}
           <span className="st-label">{statusLabel}</span>
         </span>
       </div>

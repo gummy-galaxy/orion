@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { MergeIcon } from './MergeIcon'
 
 const API = '/api/merge'
 /** How long the button waits for the confirming click before it settles back. */
@@ -57,12 +58,7 @@ export function MergePullRequest({ url, head }: { url: string; head: string }) {
           })
       }}
     >
-      <svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
-        <circle cx="4.5" cy="3.5" r="1.75" />
-        <circle cx="4.5" cy="12.5" r="1.75" />
-        <circle cx="11.5" cy="9" r="1.75" />
-        <path d="M4.5 5.25v5.5M4.5 5.25c0 2.5 2.5 3.75 5.25 3.75" />
-      </svg>
+      <MergeIcon size={11} />
       {LABEL[step] && <span>{LABEL[step]}</span>}
     </button>
   )
