@@ -7,7 +7,9 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local MARKER = "<!-- orion-perf -->"
+local command = require("@root/command")
+local findPerfComment = require("@root/perf/findPerfComment")
+local perfComment = require("@root/perf/perfComment")
 
 local env = process.env
 local perfDir = path.resolve("../app/.perf")
@@ -25,7 +27,7 @@ end
 
 local report = if env.STATUS == "success" and fs.exists(reportPath)
 	then fs.readFileToString(reportPath)
-	else "The perf comparison failed. See the run for details.\n"
+	else `{perfComment.FAILURE}\n`
 
 if env.GITHUB_STEP_SUMMARY then
 	local summary = fs.open(env.GITHUB_STEP_SUMMARY, "a")
@@ -41,16 +43,10 @@ if not fs.exists(perfDir) then
 	fs.createDirectory(perfDir, { makeParents = true })
 end
 
-fs.writeStringToFile(commentPath, `{MARKER}\n{report}\n{footer}\n`)
+fs.writeStringToFile(commentPath, `{perfComment.MARKER}\n{report}\n{footer}\n`)
 
-local existing = gh({
-	"api",
-	`repos/{repository}/issues/{pullRequest}/comments`,
-	"--paginate",
-	"--jq",
-	`.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("{MARKER}"))) | .id`,
-})
-local commentId = string.match(existing, "%d+")
+local existing = findPerfComment(command, repository, pullRequest)
+local commentId = if existing then existing.id else nil
 
 if commentId then
 	gh({ "api", "-X", "PATCH", `repos/{repository}/issues/comments/{commentId}`, "-F", `body=@{commentPath}` })
