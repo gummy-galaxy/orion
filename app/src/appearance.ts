@@ -24,12 +24,20 @@ export const STATUS_COLORS: readonly { id: StatusColors; label: string }[] = [
   { id: 'blue-yellow', label: 'Blue-yellow' },
 ]
 
-export type Appearance = { theme: string; colorMode: ColorMode; statusColors: StatusColors }
+export type Animations = 'system' | 'off'
+
+export const ANIMATIONS: readonly { id: Animations; label: string }[] = [
+  { id: 'system', label: 'System' },
+  { id: 'off', label: 'Off' },
+]
+
+export type Appearance = { theme: string; colorMode: ColorMode; statusColors: StatusColors; animations: Animations }
 
 // index.html reads these keys before the first paint, so keep the two in step.
 const THEME_KEY = 'orion:theme'
 const COLOR_MODE_KEY = 'orion:color-mode'
 const STATUS_COLORS_KEY = 'orion:status-colors'
+const ANIMATIONS_KEY = 'orion:animations'
 
 export function themeOf(id: string): Theme {
   return THEMES.find((theme) => theme.id === id) ?? THEMES[0]
@@ -50,9 +58,10 @@ export function readAppearance(): Appearance {
       theme: themeOf(localStorage.getItem(THEME_KEY) ?? '').id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
       statusColors: STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
+      animations: localStorage.getItem(ANIMATIONS_KEY) === 'off' ? 'off' : 'system',
     }
   } catch {
-    return { theme: THEMES[0].id, colorMode: 'system', statusColors: 'theme' }
+    return { theme: THEMES[0].id, colorMode: 'system', statusColors: 'theme', animations: 'system' }
   }
 }
 
@@ -61,6 +70,7 @@ export function writeAppearance(appearance: Appearance) {
     localStorage.setItem(THEME_KEY, appearance.theme)
     localStorage.setItem(COLOR_MODE_KEY, appearance.colorMode)
     localStorage.setItem(STATUS_COLORS_KEY, appearance.statusColors)
+    localStorage.setItem(ANIMATIONS_KEY, appearance.animations)
   } catch {
     // Only a remembered preference.
   }
@@ -75,4 +85,7 @@ export function applyAppearance(appearance: Appearance, root = document.document
 
   if (appearance.statusColors === 'theme') delete root.dataset.statusColors
   else root.dataset.statusColors = appearance.statusColors
+
+  if (appearance.animations === 'system') delete root.dataset.animations
+  else root.dataset.animations = appearance.animations
 }

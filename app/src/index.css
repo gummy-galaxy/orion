@@ -593,6 +593,13 @@ select {
     animation: pulse 3.2s infinite;
   }
 }
+/* Animations off in Accessibility stops every animation and transition, whatever the computer prefers. */
+:root[data-animations='off'] *,
+:root[data-animations='off'] *::before,
+:root[data-animations='off'] *::after {
+  animation: none !important;
+  transition: none !important;
+}
 /* Zoomed out, motion can't be read, so loops stop. */
 .canvas.is-quiet .react-flow__edge-path,
 .canvas.is-quiet .st-active {

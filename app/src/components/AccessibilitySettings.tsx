@@ -1,4 +1,4 @@
-import { STATUS_COLORS, type Appearance } from '../appearance'
+import { ANIMATIONS, STATUS_COLORS, type Appearance } from '../appearance'
 
 type Props = { appearance: Appearance; chooseAppearance: (appearance: Appearance) => void }
 
@@ -24,6 +24,29 @@ export function AccessibilitySettings({ appearance, chooseAppearance }: Props) {
               type="button"
               aria-pressed={appearance.statusColors === option.id}
               onClick={() => chooseAppearance({ ...appearance, statusColors: option.id })}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="settings-field">
+        <div>
+          <span className="settings-field-label" id="settings-animations">
+            Animations
+          </span>
+          <p className="settings-field-detail">
+            System calms motion when your computer asks to reduce it. Off stops every animation, including flowing arrows and the in-progress glow,
+            and the canvas jumps instead of gliding.
+          </p>
+        </div>
+        <div className="options" role="group" aria-labelledby="settings-animations">
+          {ANIMATIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={appearance.animations === option.id}
+              onClick={() => chooseAppearance({ ...appearance, animations: option.id })}
             >
               {option.label}
             </button>
