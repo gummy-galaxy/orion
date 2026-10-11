@@ -114,9 +114,10 @@ import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
 import { useWheelZoom } from '../useWheelZoom'
 import { attentionAtom, collapsedAtom, focusedAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from '../state'
-import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
+import { StickerLayer, type PlacedSticker, type PressModifiers, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
-import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
+import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedStickers, stickerCursor, type Loadout, type Sticker } from '../sticker'
+import { covers, MARQUEE_REACH, type Box } from '../marquee'
 import { Toolbar, type Tool } from './Toolbar'
 import { detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { readViewport, writeViewport } from '../viewport'
@@ -171,8 +172,6 @@ const GHOST_GAP = 90
 const GHOST_PEEK = 0.4
 const FIT_VERTICAL_MARGIN = 90
 const FIT_MAX_ZOOM = 1.25
-/** How far across a card, on each side, the selection box has to reach to pick it up. */
-const MARQUEE_REACH = 0.25
 /** Kept stable: a new object each render would replace the options of any `fitView` call still queued. */
 const INITIAL_FIT = { padding: 0.12 }
 const ATTEND_DELAY_MS = 150
@@ -190,6 +189,7 @@ const PLACE_GAP = 80
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
 const STICKER_FRESH_MS = 700
+
 /** How far above the toolbar the sticker wheel opens. */
 const WHEEL_LIFT = 140
 const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held' }
@@ -331,6 +331,11 @@ export function Canvas() {
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
   const [chosenSticker, setSticker] = useState<string | null>(null)
+  /** The stickers picked on the canvas. Picking and deleting them works like the selected cards. */
+  const [stickerPicks, setStickerPicks] = useState<ReadonlySet<string>>(() => new Set())
+  const clearStickerPicks = useCallback(() => setStickerPicks((picked) => (picked.size ? new Set() : picked)), [])
+  /** Whether the press that's under way held ⇧ or ⌘, which adds to a card selection instead of replacing it. */
+  const pressModifiers = useRef(false)
   const sticker = chosenSticker ?? loadout.find((sticker) => sticker !== null) ?? FALLBACK_STICKER
   const [wheel, setWheel] = useState<{ x: number; y: number; held: boolean } | null>(null)
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set())
@@ -877,11 +882,13 @@ export function Canvas() {
   )
 
   const selectOnly = useCallback(
-    (id: string) =>
+    (id: string) => {
+      clearStickerPicks()
       setNodes((currentNodes) =>
         currentNodes.map((node) => (node.id === id ? { ...node, selected: true } : node.selected ? { ...node, selected: false } : node)),
-      ),
-    [setNodes],
+      )
+    },
+    [setNodes, clearStickerPicks],
   )
 
   const focusNode = useCallback(
@@ -1289,6 +1296,7 @@ export function Canvas() {
     event.preventDefault()
     const start = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
     const base = event.shiftKey || event.metaKey ? nodes.filter((node) => node.selected).map((node) => node.id) : []
+    const stickerBase = event.shiftKey || event.metaKey ? [...stickerPicks] : []
     const things = nodes
       .filter((node) => node.id !== root && !view.hidden.has(node.id) && inView(node.id))
       .map((node) => {
@@ -1304,6 +1312,14 @@ export function Canvas() {
           whole: isCluster(node) && !collapsed.has(node.id),
         }
       })
+    const stickerThings = placeStickers(stickers, map, view.hidden).map((sticker) => ({
+      id: sticker.id,
+      x0: sticker.x - STICKER_HALF_SIZE,
+      y0: sticker.y - STICKER_HALF_SIZE,
+      x1: sticker.x + STICKER_HALF_SIZE,
+      y1: sticker.y + STICKER_HALF_SIZE,
+      whole: false,
+    }))
     let moved = false
     let last = ''
 
@@ -1323,16 +1339,12 @@ export function Canvas() {
         height: Math.abs(moveEvent.clientY - from.y),
       })
 
-      const covered = (target: (typeof things)[number]) => {
-        const width = Math.min(target.x1, x1) - Math.max(target.x0, x0)
-        const height = Math.min(target.y1, y1) - Math.max(target.y0, y0)
-        const need = target.whole ? 1 : MARQUEE_REACH
-
-        return width >= (target.x1 - target.x0) * need - 0.5 && height >= (target.y1 - target.y0) * need - 0.5
-      }
+      const area: Box = { x0, y0, x1, y1 }
+      const covered = (target: Box & { whole: boolean }) => covers(target, area, target.whole ? 1 : MARQUEE_REACH)
 
       const hit = things.filter(covered).map((target) => target.id)
-      const key = hit.join(',')
+      const hitStickers = stickerThings.filter(covered).map((target) => target.id)
+      const key = `${hit.join(',')}|${hitStickers.join(',')}`
 
       if (key === last) return
 
@@ -1342,6 +1354,7 @@ export function Canvas() {
       setNodes((currentNodes) =>
         currentNodes.map((node) => (!!node.selected === want.has(node.id) ? node : { ...node, selected: want.has(node.id) })),
       )
+      setStickerPicks(new Set([...stickerBase, ...hitStickers]))
     }
 
     const end = () => {
@@ -1444,6 +1457,9 @@ export function Canvas() {
   const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
+      // A plain press that selects a card replaces the stickers picked alongside it.
+      if (!pressModifiers.current && changes.some((change) => change.type === 'select' && change.selected)) clearStickerPicks()
+
       let own = changes.filter((change) => !('id' in change) || !change.id.startsWith('ghost:')) as NodeChange<AppNode>[]
 
       if (plainClick.current) {
@@ -1460,7 +1476,7 @@ export function Canvas() {
         setNodes((currentNodes) => snapChangedNodes(applyNodeChanges(own, currentNodes)))
       }
     },
-    [afterClick, setNodes, snapChanges],
+    [afterClick, setNodes, snapChanges, clearStickerPicks],
   )
 
   // ---- Focus on one card ----
@@ -1494,10 +1510,11 @@ export function Canvas() {
       setNodes((currentNodes) =>
         currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
       )
+      clearStickerPicks()
       setFocus(id)
       void reactFlow.setViewport(focusViewport(node, nodeMap, box), focusMove())
     },
-    [reactFlow, focus, inView, remember, setHover, setNodes, setPinned],
+    [reactFlow, focus, inView, remember, setHover, setNodes, setPinned, clearStickerPicks],
   )
 
   const exitFocus = useCallback(() => {
@@ -1971,6 +1988,55 @@ export function Canvas() {
     [anchorAt],
   )
 
+  /** A press on a sticker picks it the way a press on a card selects it: plain replaces the selection, ⇧ or ⌘ adds to it. */
+  const selectSticker = (modifiers: PressModifiers, id: string) => {
+    const additive = modifiers.metaKey || modifiers.shiftKey
+
+    if (!additive && !stickerPicks.has(id))
+      setNodes((currentNodes) =>
+        currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
+      )
+
+    setStickerPicks((picked) => pressedStickers(picked, id, additive))
+  }
+
+  const removeStickers = (ids: ReadonlySet<string>) => {
+    setStickers((current) => current.filter((sticker) => !ids.has(sticker.id)))
+    setStickerPicks((picked) => new Set([...picked].filter((id) => !ids.has(id))))
+  }
+
+  const pickedStickers = stickers.filter((sticker) => stickerPicks.has(sticker.id))
+
+  /** Loose stickers picked along with a dragged card keep their spot from it, so they move with the selection. */
+  const stickerFollow = useRef<{ origin: { x: number; y: number }; stickers: Map<string, { x: number; y: number }> } | null>(null)
+
+  const followStart = (node: ViewNode) => {
+    const picked = stickers.filter((sticker) => !sticker.on && stickerPicks.has(sticker.id))
+
+    if (!picked.length) return null
+
+    return {
+      origin: { x: node.position.x, y: node.position.y },
+      stickers: new Map(picked.map((sticker) => [sticker.id, { x: sticker.x, y: sticker.y }])),
+    }
+  }
+
+  const followDrag = (node: ViewNode) => {
+    const follow = stickerFollow.current
+    const dx = follow ? node.position.x - follow.origin.x : 0
+    const dy = follow ? node.position.y - follow.origin.y : 0
+
+    if (!follow || (!dx && !dy)) return
+
+    setStickers((current) =>
+      current.map((sticker) => {
+        const start = follow.stickers.get(sticker.id)
+
+        return start ? { ...sticker, x: start.x + dx, y: start.y + dy } : sticker
+      }),
+    )
+  }
+
   /** Every group frame on screen, which stickers bounce inside and off of. */
   const stickerBounds = useMemo<StickerBounds[]>(() => {
     const shown = nodes.filter((node) => isCluster(node) && !view.hidden.has(node.id) && inView(node.id))
@@ -1994,18 +2060,7 @@ export function Canvas() {
   }, [nodes, map, view, inView])
 
   const placedStickers = useMemo<PlacedSticker[]>(
-    () =>
-      stickers.flatMap((sticker) => {
-        if (!sticker.on) return [{ ...sticker, fresh: fresh.has(sticker.id) }]
-
-        const node = map.get(sticker.on)
-
-        if (!node || view.hidden.has(node.id)) return []
-
-        const position = absolutePosition(node, map)
-
-        return [{ ...sticker, x: position.x + sticker.x, y: position.y + sticker.y, fresh: fresh.has(sticker.id) }]
-      }),
+    () => placeStickers(stickers, map, view.hidden).map((sticker) => ({ ...sticker, fresh: fresh.has(sticker.id) })),
     [stickers, map, view, fresh],
   )
 
@@ -2109,8 +2164,12 @@ export function Canvas() {
   const menuItems = (menu: Menu): MenuItem[] => {
     const target = menu.target
 
-    if (target.kind === 'sticker')
-      return [{ label: 'Remove sticker', danger: true, run: () => setStickers((stickers) => stickers.filter((sticker) => sticker.id !== target.id)) }]
+    if (target.kind === 'sticker') {
+      const ids = stickerPicks.has(target.id) ? new Set(stickerPicks) : new Set([target.id])
+      const count = stickers.filter((sticker) => ids.has(sticker.id)).length
+
+      return [{ label: count > 1 ? `Remove ${count} stickers` : 'Remove sticker', danger: true, run: () => removeStickers(ids) }]
+    }
 
     if (target.kind === 'edge' && target.id.startsWith('agg:')) {
       const key = target.id.slice('agg:'.length)
@@ -2280,7 +2339,10 @@ export function Canvas() {
         if (tool !== 'select') setTool('select')
         else if (pinned) setPinned(null)
         else if (root) openRoot(map.get(root)?.parentId ?? null)
-        else setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
+        else {
+          clearStickerPicks()
+          setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
+        }
       } else if (pressed('fit')) {
         fitTo(root)
       } else if (pressed('add-note')) {
@@ -2294,6 +2356,7 @@ export function Canvas() {
     return () => window.removeEventListener('keydown', onKey)
   }, [
     keybindings,
+    clearStickerPicks,
     doGroup,
     doUngroup,
     selected,
@@ -2506,6 +2569,9 @@ export function Canvas() {
           style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
           ref={canvasRef}
           onPointerDown={startMarquee}
+          onPointerDownCapture={(event) => {
+            pressModifiers.current = event.metaKey || event.shiftKey
+          }}
           onPointerMove={trackPointer}
           onClickCapture={claimNodeClick}
         >
@@ -2521,7 +2587,10 @@ export function Canvas() {
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               onNodesChange={onNodesChange}
-              onNodeDragStop={onDragStop}
+              onNodeDragStop={(event) => {
+                stickerFollow.current = null
+                onDragStop(event)
+              }}
               onConnect={onConnect}
               onConnectStart={() => {
                 setLinking(true)
@@ -2563,10 +2632,18 @@ export function Canvas() {
 
                 actions.open(node.id)
               }}
-              onNodeDragStart={(event, _node, dragged) => onDragStart(event, dragged)}
-              onNodeDrag={onDrag}
+              onNodeDragStart={(event, node, dragged) => {
+                onDragStart(event, dragged)
+                stickerFollow.current = followStart(node)
+              }}
+              onNodeDrag={(event, node) => {
+                onDrag(event)
+                followDrag(node)
+              }}
               onPaneClick={(event) => {
                 if (focus) return exitFocus()
+
+                if (!event.metaKey && !event.shiftKey) clearStickerPicks()
 
                 setPinned(null)
 
@@ -2605,9 +2682,11 @@ export function Canvas() {
             >
               <StickerLayer
                 stickers={placedStickers}
+                picked={stickerPicks}
                 interactive={!focus && tool === 'select'}
                 bounds={stickerBounds}
                 settle={settleStickers}
+                select={selectSticker}
                 menu={(event, id) => openMenu(event, { kind: 'sticker', id })}
               />
               {marquee && (
@@ -2702,9 +2781,18 @@ export function Canvas() {
                 />
               </Panel>
 
-              {selected.length > 0 && (
+              {(selected.length > 0 || pickedStickers.length > 0) && (
                 <Panel position="top-right" className="panel inspector">
-                  {!one ? (
+                  {!selected.length ? (
+                    <div className="insp">
+                      <strong>
+                        {pickedStickers.length} {pickedStickers.length === 1 ? 'sticker' : 'stickers'} selected
+                      </strong>
+                      <button type="button" className="btn" onClick={() => removeStickers(new Set(pickedStickers.map((sticker) => sticker.id)))}>
+                        Remove {pickedStickers.length === 1 ? 'sticker' : 'stickers'}
+                      </button>
+                    </div>
+                  ) : !one ? (
                     <div className="insp">
                       <strong>{selected.length} selected</strong>
                       <button type="button" className="btn primary" onClick={doGroup}>
