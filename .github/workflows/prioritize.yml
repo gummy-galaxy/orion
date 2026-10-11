@@ -2,7 +2,7 @@ name: Prioritize PR
 
 # Labels a pull request priority-queue so the Beelink supervisor runs its queued perf job ahead of other work, then
 # watches CI until the perf job starts and removes the label. Run it with: gh workflow run prioritize.yml -f pr=<n>
-# The steps call .lute/priority-queue.luau, which needs the Lute batteries that `lute run install` fetches into cli/.
+# The steps call .lute/priority-queue.luau, which loads the Lute batteries from the Loom store that `lute pkg install` fills.
 run-name: "Prioritize #${{ inputs.pr }}"
 
 on:
@@ -41,7 +41,7 @@ jobs:
 
       - name: Install Luau Batteries
         working-directory: cli
-        run: lute run install
+        run: lute pkg install
 
       - name: Add the Priority Label
         id: add
