@@ -1132,13 +1132,11 @@ export function Canvas() {
       ...nodes.map((node) => {
         const hidden = view.hidden.has(node.id)
         const className = [node.className, focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : ''].filter(Boolean).join(' ') || undefined
-        // In Pan, an open group still moves by its header. Its frame lets clicks through, so panning across it still works.
-        const draggable = tool === 'hand' && !focus && isCluster(node) && node.id !== root && !collapsed.has(node.id) ? true : undefined
         const shown = shownNodes.get(node)
 
-        if (shown && shown.hidden === hidden && shown.className === className && shown.draggable === draggable) return shown
+        if (shown && shown.hidden === hidden && shown.className === className) return shown
 
-        const next = { ...node, hidden, className, draggable }
+        const next = { ...node, hidden, className }
 
         shownNodes.set(node, next)
 
@@ -1146,7 +1144,7 @@ export function Canvas() {
       }),
       ...(focus ? ghosts.map((group) => ({ ...group, className: 'is-unfocused' })) : ghosts),
     ],
-    [nodes, view, ghosts, focus, shownNodes, tool, root, collapsed],
+    [nodes, view, ghosts, focus, shownNodes],
   )
 
   const trace = useAtomValue(traceAtom)
@@ -1287,7 +1285,7 @@ export function Canvas() {
     }
   }, [])
 
-  // ---- Pan: hold ⌘ to move cards, as in Select ----
+  // ---- Pan: hold ⌘ to move cards and groups, as in Select ----
   const [commandHeld, setCommandHeld] = useState(false)
 
   useEffect(() => {
