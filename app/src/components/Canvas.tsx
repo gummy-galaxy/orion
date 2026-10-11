@@ -35,7 +35,6 @@ import {
   absolutePosition,
   ancestors,
   byId,
-  descendants,
   groupSelection,
   isCluster,
   isImage,
@@ -56,6 +55,7 @@ import {
   type TaskData,
 } from '../model'
 import { DebugBar, type MotionSettings } from './DebugBar'
+import { DetailStepper } from './DetailStepper'
 import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
@@ -104,6 +104,7 @@ import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove 
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { Toolbar, type Tool } from './Toolbar'
+import { detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { readViewport, writeViewport } from '../viewport'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
@@ -145,12 +146,6 @@ function readMotion(): MotionSettings {
   }
 }
 
-/**
- * Zoom below which a group reads as one body. Nested groups fold first as you
- * zoom out, so detail drops away from the inside.
- */
-const COLLAPSE_ZOOM = 0.4
-const COLLAPSE_STEP = 0.12
 /** Zoom below which cards are too small for transitions to read, so they're skipped. */
 const STILL_ZOOM = 0.45
 /** Zoom below which marching arrows and the active glow are too subtle to read, so they stop. */
@@ -166,17 +161,6 @@ const FIT_MAX_ZOOM = 1.25
 const MARQUEE_REACH = 0.25
 /** Kept stable: a new object each render would replace the options of any `fitView` call still queued. */
 const INITIAL_FIT = { padding: 0.12 }
-/**
- * Leaving a group means zooming out to this share of its opening zoom. Bigger groups
- * get zoomed out more just to look around, so they need more: about 0.64 for 9 items.
- */
-const EXIT_RATIO_BASE = 0.95
-const EXIT_RATIO_MAX = 0.8
-const EXIT_RATIO_MIN = 0.45
-const EXIT_RATIO_PER_DOUBLING = 0.1
-const HINT_SPAN = 0.6
-const PEEK_SPAN = 0.8
-const PEEK_KEEP_VISIBLE = 0.4
 const ATTEND_DELAY_MS = 150
 /** A click on a group waits this long for a second one before it selects. */
 const DOUBLE_CLICK_MS = 280
@@ -241,10 +225,6 @@ function writeFlag(key: SavedSetting, value: boolean) {
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
-function exitRatio(count: number) {
-  return Math.max(EXIT_RATIO_MIN, Math.min(EXIT_RATIO_MAX, EXIT_RATIO_BASE - EXIT_RATIO_PER_DOUBLING * Math.log2(Math.max(count, 1))))
-}
-
 function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
   const position = absolutePosition(group, map)
   const size = sizeOf(group)
@@ -300,8 +280,6 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
 export function Canvas() {
   const reactFlow = useReactFlow<ViewNode, Edge>()
   const store = useStoreApi<ViewNode, Edge>()
-  // Coarse zoom levels, so zooming re-renders the canvas only when one changes.
-  const foldFrom = useStore((state) => Math.floor((state.transform[2] - COLLAPSE_ZOOM) / COLLAPSE_STEP) + 1)
   const still = useStore((state) => state.transform[2] < STILL_ZOOM)
   const quietZoom = useStore((state) => state.transform[2] < QUIET_ZOOM)
   const away = useAway()
@@ -313,10 +291,8 @@ export function Canvas() {
   const [clock, setClock] = useState(() => Date.now())
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
-  const [peek, setPeek] = useState<string | null>(null)
-  // Zoomed out past the leave point: the open group's surroundings show, faded.
-  const peeking = root !== null && peek === root
-  const [exitHint, setExitHint] = useState<{ root: string; progress: number } | null>(null)
+  // How many levels of nesting show below the open group; zoom no longer changes it.
+  const [detail, setDetail] = useState<Detail>(null)
   const [hover, setHover] = useAtom(hoverAtom)
   const [pinned, setPinned] = useAtom(pinnedAtom)
   // A double-clicked card fills the view with what it waits on and leads to beside it.
@@ -346,16 +322,13 @@ export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef<Saved>({ nodes, links, stickers, stickerLoadout: loadout })
   const fitZoom = useRef(new Map<string, number>())
-  const shownExtent = useRef<{ root: string; width: number; height: number } | null>(null)
   const fitting = useRef(false)
   const fitSequence = useRef(0)
-  const previousZoom = useRef(store.getState().transform[2])
   const skipNextFit = useRef(false)
 
   // ---- Navigation history ----
   const trail = useRef<Trail<FocusEntry>>(emptyTrail())
   const [trailSize, setTrailSize] = useState({ back: 0, forward: 0 })
-  const gestureStart = useRef<Viewport | null>(null)
   // Read through a ref so the callbacks below, which cards get through the actions context, stay stable.
   const shownPlace = useRef({ root, focus: focusPick })
 
@@ -385,8 +358,6 @@ export function Canvas() {
     (target: string | null) => {
       if (target !== shownPlace.current.root || shownPlace.current.focus) remember()
 
-      setPeek(null)
-      setExitHint(null)
       setFocus(null)
       focusEntry.current = null
       skipNextFit.current = false
@@ -598,6 +569,8 @@ export function Canvas() {
 
       const view = readViewport(workspace.current)
 
+      setDetail(readDetail(workspace.current))
+
       if (view) pendingWorkspaceFit.current = null
 
       setSavedView(view)
@@ -770,7 +743,6 @@ export function Canvas() {
       pendingWorkspaceFit.current = epoch
       setReady(false)
       setRoot(null)
-      setPeek(null)
       setFocus(null)
       focusEntry.current = null
       updateTrail(emptyTrail())
@@ -819,14 +791,9 @@ export function Canvas() {
     if (viewFor.current === workspace.current) writeViewport(workspace.current, viewport)
   }, [])
   // An attribute rather than a class, so re-renders mid-move don't clear it.
-  const onMoveStart = useCallback(
-    (_: MouseEvent | TouchEvent | null, viewport: Viewport) => {
-      gestureStart.current = viewport
-
-      if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
-    },
-    [motion.pauseWhileMoving],
-  )
+  const onMoveStart = useCallback(() => {
+    if (motion.pauseWhileMoving) canvasRef.current?.setAttribute('data-moving', '')
+  }, [motion.pauseWhileMoving])
 
   const switchWorkspace = async (name: string) => {
     const list = await setActiveWorkspace(name)
@@ -848,7 +815,6 @@ export function Canvas() {
    */
   const fitTo = useCallback(
     (target: string | null) => {
-      setPeek(null)
       const currentNodes = latest.current.nodes
       const nodeMap = byId(currentNodes)
       const items = target ? [nodeMap.get(target)].filter((node) => !!node) : currentNodes.filter((node) => !node.parentId)
@@ -883,7 +849,6 @@ export function Canvas() {
 
       fitZoom.current.set(target, viewport.zoom)
       fitting.current = true
-      setExitHint(null)
       const sequence = ++fitSequence.current
 
       void reactFlow.setViewport(viewport, { duration: 450 }).then(() => {
@@ -925,7 +890,6 @@ export function Canvas() {
     if (fittedFor.current === root) return
 
     fittedFor.current = root
-    setExitHint(null)
     const skipFit = skipNextFit.current
 
     skipNextFit.current = false
@@ -953,8 +917,6 @@ export function Canvas() {
       setHover(null)
 
       if (target === root) {
-        setPeek(null)
-        setExitHint(null)
         focusNode(id)
       } else {
         pendingFocus.current = id
@@ -1002,110 +964,38 @@ export function Canvas() {
   const map = useMemo(() => byId(nodes), [nodes])
   // Focus ends on its own if someone else removes the card.
   const focus = focusPick && map.has(focusPick) ? focusPick : null
-  const rootWorkCount = useMemo(() => {
-    if (!root) return 0
-
-    const inside = descendants(root, nodes)
-
-    return nodes.filter((node) => inside.has(node.id) && isTask(node) && !isNote(node)).length
-  }, [root, nodes])
-  const leaveRoot = useCallback(
-    (atZoom = reactFlow.getZoom(), from?: Viewport) => {
-      if (!root) return
-
-      const parent = map.get(root)?.parentId ?? null
-
-      remember(from)
-
-      // Where you arrive becomes the parent's home zoom, so one gesture leaves one level.
-      if (parent) fitZoom.current.set(parent, atZoom)
-
-      skipNextFit.current = true
-      setPeek(null)
-      setExitHint(null)
-      setRoot(parent)
-    },
-    [root, map, reactFlow, remember],
-  )
-  const onViewportMove = useCallback(
-    (event: MouseEvent | TouchEvent | null, viewport: Viewport) => {
-      const wasZoom = previousZoom.current
-
-      previousZoom.current = viewport.zoom
-
-      if (!event || fitting.current) return
-
-      const userZoom =
-        (event.type === 'wheel' && viewport.zoom !== wasZoom) || (event.type === 'touchmove' && 'touches' in event && event.touches.length > 1)
-
-      if (peeking && !userZoom) {
-        const group = map.get(root)
-        const box = canvasRef.current?.getBoundingClientRect()
-
-        if (group && box) {
-          const position = absolutePosition(group, map)
-          const size = sizeOf(group)
-          const x = position.x * viewport.zoom + viewport.x
-          const y = position.y * viewport.zoom + viewport.y
-          const width = size.width * viewport.zoom
-          const height = size.height * viewport.zoom
-          const visible =
-            Math.max(0, Math.min(box.width, x + width) - Math.max(0, x)) * Math.max(0, Math.min(box.height, y + height) - Math.max(0, y))
-
-          if (visible < width * height * PEEK_KEEP_VISIBLE) leaveRoot(viewport.zoom, gestureStart.current ?? undefined)
-        }
-
-        return
-      }
-
-      if (!userZoom || viewport.zoom === wasZoom) return
-
-      const home = root ? fitZoom.current.get(root) : undefined
-
-      if (!root || home === undefined) return
-
-      // Leaving waits until everything the open view shows, outside connections included, fits on screen.
-      const box = canvasRef.current?.getBoundingClientRect()
-      const extent = shownExtent.current
-      const fit = extent?.root === root && box?.width ? Math.min(home, box.width / extent.width, box.height / extent.height) : home
-      const exit = exitRatio(rootWorkCount)
-      const hint = exit + (1 - exit) * HINT_SPAN
-      const progress = Math.min(1, Math.max(0, (hint - viewport.zoom / fit) / (hint - exit * PEEK_SPAN)))
-
-      if (viewport.zoom < wasZoom && viewport.zoom < fit * exit * PEEK_SPAN) {
-        // Going back returns to the view from before the zoom out, not the point it left at.
-        leaveRoot(viewport.zoom, gestureStart.current ?? undefined)
-      } else if (viewport.zoom <= fit * exit) {
-        setPeek(root)
-        setExitHint({ root, progress })
-      } else {
-        if (peeking) setPeek(null)
-
-        setExitHint(viewport.zoom < fit * hint ? { root, progress } : null)
-      }
-    },
-    [root, peeking, map, rootWorkCount, leaveRoot],
-  )
   const work = useAtomValue(workAtom)
 
-  // Which groups read as single bodies at this zoom, and which nodes that hides.
-  const levelRoot = peeking ? (map.get(root)?.parentId ?? null) : root
-  const inFocus = useCallback((id: string) => !!root && (id === root || ancestors(id, map).includes(root)), [root, map])
-  const inView = useCallback((id: string) => !levelRoot || id === levelRoot || ancestors(id, map).includes(levelRoot), [levelRoot, map])
+  // Which groups read as single bodies at this level of detail, and which nodes that hides.
+  const inView = useCallback((id: string) => !root || id === root || ancestors(id, map).includes(root), [root, map])
 
   const depthInView = (id: string) => {
     const chain = ancestors(id, map)
 
-    return levelRoot ? chain.indexOf(levelRoot) : chain.length
+    return root ? chain.indexOf(root) : chain.length
   }
 
+  const groupDepths = nodes.filter((node) => isCluster(node) && node.id !== root && inView(node.id)).map((node) => depthInView(node.id))
+  const levels = detailLevels(groupDepths)
+  const foldFrom = foldDepth(detail, levels)
   const small = nodes
-    // The open group stays open while peeking; only its surroundings fold.
-    .filter((node) => isCluster(node) && node.id !== levelRoot && node.id !== root && inView(node.id) && depthInView(node.id) >= foldFrom)
+    .filter((node) => isCluster(node) && node.id !== root && inView(node.id) && depthInView(node.id) >= foldFrom)
     .map((node) => node.id)
   const smallSet = new Set(small)
   const collapsedKey = small.filter((id) => !ancestors(id, map).some((ancestor) => smallSet.has(ancestor))).join(',')
   const collapsed = useMemo(() => new Set(collapsedKey ? collapsedKey.split(',') : []), [collapsedKey])
+  const level = shownLevel(detail, levels)
+
+  /** Shows one level less or more of the nesting below the open group, and remembers it for this workspace. */
+  const changeDetail = useCallback(
+    (direction: -1 | 1) => {
+      const next = stepDetail(detail, levels, direction)
+
+      setDetail(next)
+      writeDetail(workspace.current, next)
+    },
+    [detail, levels],
+  )
 
   const view = useMemo(() => {
     const representative = (id: string): string | null => {
@@ -1128,7 +1018,7 @@ export function Canvas() {
     const ghostNodes: GhostNode[] = []
     const rootNode = root ? map.get(root) : undefined
 
-    if (!rootNode || peeking) return ghostNodes
+    if (!rootNode) return ghostNodes
 
     const incoming: string[] = []
     const outgoing: string[] = []
@@ -1186,30 +1076,7 @@ export function Canvas() {
     place(outgoing, 'out')
 
     return ghostNodes
-  }, [root, peeking, map, links, inView, work])
-
-  // Peeking hides the ghosts, so the extent is only measured while they show.
-  useEffect(() => {
-    const rootNode = root ? map.get(root) : undefined
-
-    if (!root || !rootNode || peeking) return
-
-    const position = absolutePosition(rootNode, map)
-    const size = sizeOf(rootNode)
-    let x0 = position.x
-    let y0 = position.y
-    let x1 = position.x + size.width
-    let y1 = position.y + size.height
-
-    for (const group of ghosts) {
-      x0 = Math.min(x0, group.position.x)
-      y0 = Math.min(y0, group.position.y)
-      x1 = Math.max(x1, group.position.x + GHOST_WIDTH)
-      y1 = Math.max(y1, group.position.y + GHOST_HEIGHT)
-    }
-
-    shownExtent.current = { root, width: x1 - x0 + FIT_VERTICAL_MARGIN * 2, height: y1 - y0 + FIT_VERTICAL_MARGIN * 2 }
-  }, [root, peeking, map, ghosts])
+  }, [root, map, links, inView, work])
 
   // React Flow redraws a node whenever its object changes, so unchanged nodes keep last render's object.
   const [shownNodes] = useState(() => new WeakMap<AppNode, AppNode>())
@@ -1217,10 +1084,7 @@ export function Canvas() {
     () => [
       ...nodes.map((node) => {
         const hidden = view.hidden.has(node.id)
-        const className =
-          [node.className, peeking && !inFocus(node.id) ? 'is-peek' : '', focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : '']
-            .filter(Boolean)
-            .join(' ') || undefined
+        const className = [node.className, focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : ''].filter(Boolean).join(' ') || undefined
         const shown = shownNodes.get(node)
 
         if (shown && shown.hidden === hidden && shown.className === className) return shown
@@ -1233,7 +1097,7 @@ export function Canvas() {
       }),
       ...(focus ? ghosts.map((group) => ({ ...group, className: 'is-unfocused' })) : ghosts),
     ],
-    [nodes, view, ghosts, peeking, inFocus, focus, shownNodes],
+    [nodes, view, ghosts, focus, shownNodes],
   )
 
   const trace = useAtomValue(traceAtom)
@@ -1251,15 +1115,15 @@ export function Canvas() {
       let source = view.rep(link.from)
       let target = view.rep(link.to)
 
-      if (root && !peeking && !source && target) source = `ghost:in:${link.from}`
+      if (root && !source && target) source = `ghost:in:${link.from}`
 
-      if (root && !peeking && source && !target && !source.startsWith('ghost:')) target = `ghost:out:${link.to}`
+      if (root && source && !target && !source.startsWith('ghost:')) target = `ghost:out:${link.to}`
 
       if (!source || !target || source === target) return null
 
       return { source, target }
     },
-    [view, root, peeking],
+    [view, root],
   )
 
   const [drawnEdges] = useState(() => new Map<string, { edge: Edge; print: string }>())
@@ -1292,8 +1156,6 @@ export function Canvas() {
           className += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
         }
 
-        if (peeking && !inFocus(source) && !inFocus(target)) className += ' e-peek'
-
         resultEdges.push({
           id: link.id,
           source: source,
@@ -1319,7 +1181,7 @@ export function Canvas() {
         id: 'agg:' + key,
         source: aggregate.a,
         target: aggregate.b,
-        className: `e-agg e-${aggregate.flow}` + (peeking && !inFocus(aggregate.a) && !inFocus(aggregate.b) ? ' e-peek' : ''),
+        className: `e-agg e-${aggregate.flow}`,
         selectable: false,
         label: aggregate.count > 1 ? `${aggregate.count} links` : undefined,
         markerEnd: marker(aggregate.flow),
@@ -1328,7 +1190,7 @@ export function Canvas() {
     }
 
     return keepDrawn(drawnEdges, resultEdges)
-  }, [links, drawnEnds, work, trace, peeking, inFocus, relatedFocus, drawnEdges])
+  }, [links, drawnEnds, work, trace, relatedFocus, drawnEdges])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1586,8 +1448,6 @@ export function Canvas() {
       if (!focus || !focusEntry.current) focusEntry.current = { viewport: reactFlow.getViewport(), moved: false }
       else if (id !== focus) focusEntry.current.moved = true
 
-      if (peeking && !inFocus(id)) leaveRoot()
-
       // Work outside the open level opens its own group underneath, so leaving focus lands there.
       if (!inView(id)) {
         const parent = node.parentId ? nodeMap.get(node.parentId) : undefined
@@ -1595,8 +1455,6 @@ export function Canvas() {
         if (parent) fitZoom.current.set(parent.id, groupFitViewport(parent, nodeMap, box).zoom)
 
         skipNextFit.current = true
-        setPeek(null)
-        setExitHint(null)
         setRoot(parent?.id ?? null)
         focusEntry.current.moved = true
       }
@@ -1609,7 +1467,7 @@ export function Canvas() {
       setFocus(id)
       void reactFlow.setViewport(focusViewport(node, nodeMap, box), FOCUS_MOVE)
     },
-    [reactFlow, focus, peeking, inFocus, inView, leaveRoot, remember, setHover, setNodes, setPinned],
+    [reactFlow, focus, inView, remember, setHover, setNodes, setPinned],
   )
 
   const exitFocus = useCallback(() => {
@@ -1645,8 +1503,6 @@ export function Canvas() {
       const picked = new Set(place.selected)
 
       pendingFocus.current = null
-      setPeek(null)
-      setExitHint(null)
       setHover(null)
       setPinned(null)
 
@@ -2023,14 +1879,12 @@ export function Canvas() {
   const placeComment = useCallback(
     (event: React.MouseEvent) => {
       const point = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
-      const parent = nodeAt(point, (node) => isCluster(node) && !collapsed.has(node.id)) ?? levelRoot
-
-      if (peeking && !(parent && inFocus(parent))) leaveRoot()
+      const parent = nodeAt(point, (node) => isCluster(node) && !collapsed.has(node.id)) ?? root
 
       addNote({ x: point.x - TASK_WIDTH / 2, y: point.y - TASK_HEIGHT / 2 }, { parent })
       setTool('select')
     },
-    [reactFlow, nodeAt, collapsed, levelRoot, peeking, inFocus, leaveRoot, addNote],
+    [reactFlow, nodeAt, collapsed, root, addNote],
   )
 
   // ---- Stickers ----
@@ -2321,9 +2175,7 @@ export function Canvas() {
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
       { label: 'Fit to screen', hint: hintOf('fit'), run: () => fitTo(root) },
-      ...(root
-        ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => (peeking ? leaveRoot() : openRoot(map.get(root)?.parentId ?? null)) }]
-        : []),
+      ...(root ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => openRoot(map.get(root)?.parentId ?? null) }] : []),
     ]
   }
 
@@ -2379,6 +2231,13 @@ export function Canvas() {
         return
       }
 
+      if (pressed('less-detail') || pressed('more-detail')) {
+        event.preventDefault()
+        changeDetail(pressed('less-detail') ? -1 : 1)
+
+        return
+      }
+
       if (pressed('group')) {
         event.preventDefault()
         doGroup()
@@ -2389,7 +2248,6 @@ export function Canvas() {
         actions.open(selected[0].id)
       } else if (pressed('step-back')) {
         if (tool !== 'select') setTool('select')
-        else if (peeking) leaveRoot()
         else if (pinned) setPinned(null)
         else if (root) openRoot(map.get(root)?.parentId ?? null)
         else setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
@@ -2411,19 +2269,18 @@ export function Canvas() {
     selected,
     actions,
     root,
-    peeking,
     map,
     fitTo,
     addNote,
     viewportCenter,
     pinned,
-    leaveRoot,
     openRoot,
     tool,
     paletteOpen,
     focus,
     exitFocus,
     travelTo,
+    changeDetail,
     undo,
     redo,
     setNodes,
@@ -2449,6 +2306,28 @@ export function Canvas() {
             detail: 'Return to the view you went back from',
             hint: hintOf('go-forward'),
             run: () => travelTo('forward'),
+          },
+        ]
+      : []),
+    ...(level > 1
+      ? [
+          {
+            id: 'less-detail',
+            label: 'Show less detail',
+            detail: 'Fold one more level of groups',
+            hint: hintOf('less-detail'),
+            run: () => changeDetail(-1),
+          },
+        ]
+      : []),
+    ...(level < levels
+      ? [
+          {
+            id: 'more-detail',
+            label: 'Show more detail',
+            detail: 'Open one more level of groups',
+            hint: hintOf('more-detail'),
+            run: () => changeDetail(1),
           },
         ]
       : []),
@@ -2601,7 +2480,6 @@ export function Canvas() {
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               onNodesChange={onNodesChange}
-              onMove={onViewportMove}
               onNodeDragStop={onDragStop}
               onConnect={onConnect}
               onConnectStart={() => {
@@ -2625,8 +2503,6 @@ export function Canvas() {
 
                   return
                 }
-
-                if (peeking && !inFocus(node.id)) afterClick(() => leaveRoot())
               }}
               onNodeDoubleClick={(event, node) => {
                 cancelClick()
@@ -2644,20 +2520,17 @@ export function Canvas() {
 
                 if (node.type !== 'cluster') return
 
-                if (peeking && !inFocus(node.id)) leaveRoot()
-
                 actions.open(node.id)
               }}
-              onNodeDragStart={(event, node, dragged) => {
-                if (peeking && !inFocus(node.id)) leaveRoot()
-
-                onDragStart(event, dragged)
-              }}
+              onNodeDragStart={(event, _node, dragged) => onDragStart(event, dragged)}
               onNodeDrag={onDrag}
               onPaneClick={(event) => {
                 if (focus) return exitFocus()
 
                 setPinned(null)
+
+                // A double-click on empty canvas goes up out of the open group.
+                if (event.detail === 2 && root && tool === 'select') return openRoot(map.get(root)?.parentId ?? null)
 
                 if (tool === 'comment') placeComment(event)
                 else if (tool === 'sticker') stamp(event)
@@ -2666,8 +2539,6 @@ export function Canvas() {
               onPaneContextMenu={(event) => (focus ? event.preventDefault() : openMenu(event, { kind: 'pane' }))}
               onNodeContextMenu={(event, node) => {
                 if (focus) return event.preventDefault()
-
-                if (peeking && !inFocus(node.id)) leaveRoot()
 
                 if (node.type !== 'ghost' && !node.selected) selectOnly(node.id)
 
@@ -2707,7 +2578,9 @@ export function Canvas() {
               <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
               {nodes.length === 0 && <EmptyCanvas addNote={() => addNote(viewportCenter())} />}
               {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
-              <Controls showInteractive={false} />
+              <Controls showInteractive={false}>
+                <DetailStepper level={level} levels={levels} keybindings={keybindings} change={changeDetail} />
+              </Controls>
               {/* The desktop shell hides the native title bar, so this strip along the top drags the window. */}
               <div className="window-drag" data-tauri-drag-region aria-hidden="true" onPointerDown={(event) => event.stopPropagation()} />
               {mergeNotice !== null && (
@@ -2871,14 +2744,6 @@ export function Canvas() {
               )}
 
               <Panel position="bottom-center" className="dock">
-                {root && exitHint?.root === root && (
-                  <div className="zoom-exit-hint">
-                    <span>Keep zooming out to leave {(map.get(root)?.data as ClusterData | undefined)?.label}</span>
-                    <div className="zoom-exit-track">
-                      <div className="zoom-exit-fill" style={{ width: `${exitHint.progress * 100}%` }} />
-                    </div>
-                  </div>
-                )}
                 <Toolbar tool={tool} sticker={sticker} keybindings={keybindings} setTool={chooseTool} />
               </Panel>
             </ReactFlow>
