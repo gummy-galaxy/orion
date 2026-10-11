@@ -14,6 +14,7 @@ type TradingArgs = {
   blockers: number
   unblocks: number
   group: string
+  far: boolean
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -56,15 +57,17 @@ function toView(args: TradingArgs): CardView {
   }
 }
 
-function TradingFrame({ view }: { view: CardView }) {
+// Far zoom wraps the card in the canvas's far-card tag, which sizes it on its own.
+function TradingFrame({ view, far }: { view: CardView; far: boolean }) {
   const className =
-    view.kind === 'note'
+    (view.kind === 'note'
       ? 'card skin-trading note'
-      : `card skin-trading st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}`
+      : `card skin-trading st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}`) +
+    (far ? ' far-card' : '')
 
   return (
-    <div style={{ width: 264, height: 380 }}>
-      <div className={className} style={{ width: '100%', height: '100%' }}>
+    <div style={far ? { position: 'relative', width: 240, height: 170 } : { width: 264, height: 380 }}>
+      <div className={className} style={far ? { position: 'relative', translate: 'none' } : { width: '100%', height: '100%' }}>
         <TradingCard view={view} />
       </div>
     </div>
@@ -82,11 +85,12 @@ const defaults: TradingArgs = {
   blockers: 0,
   unblocks: 2,
   group: 'pr-queue',
+  far: false,
 }
 
 const meta = {
   title: 'Canvas/Cards and edges/TradingCard',
-  render: (args) => <TradingFrame view={toView(args)} />,
+  render: (args) => <TradingFrame view={toView(args)} far={args.far} />,
   args: defaults,
   argTypes: {
     kind: { control: 'inline-radio', options: ['pr', 'step', 'placeholder', 'gate', 'note'] },
@@ -101,6 +105,7 @@ const meta = {
     motion: { control: 'inline-radio', options: ['none', 'running', 'queued'] },
     blockers: { control: { type: 'range', min: 0, max: 9 } },
     unblocks: { control: { type: 'range', min: 0, max: 9 } },
+    far: { control: 'boolean', description: 'The compact form the canvas shows when zoomed far out.' },
     group: { control: 'select', options: ['pr-queue', 'navigation', 'workspaces', 'backlog', 'release'], description: 'Picks the art palette.' },
   },
 } satisfies Meta<TradingArgs>
@@ -187,6 +192,18 @@ export const ExpectedPullRequest: Story = {
 
 export const Gate: Story = {
   args: { kind: 'gate', title: 'Card skins ship', status: 'blocked', sticker: 'none', blockers: 2, unblocks: 0 },
+}
+
+export const FarZoom: Story = {
+  args: {
+    far: true,
+    title: 'Draw trading card art as geometric posters built from each card',
+    status: 'blocked',
+    sticker: 'failing',
+    blockers: 1,
+    unblocks: 1,
+    motion: 'none',
+  },
 }
 
 export const Done: Story = {

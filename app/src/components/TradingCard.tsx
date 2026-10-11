@@ -66,7 +66,7 @@ export function TradingCard({ view }: { view: CardView }) {
         <Tooltip label={STICKER_HINT[facts.sticker]}>
           <span className={`trading-sticker trading-sticker-${facts.sticker}`}>
             <TradingSignalIcon signal={facts.sticker} />
-            {facts.sticker}
+            <span className="trading-sticker-word">{facts.sticker}</span>
           </span>
         </Tooltip>
       )}
