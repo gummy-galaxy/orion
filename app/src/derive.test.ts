@@ -26,7 +26,7 @@ describe('deriveWork sources', () => {
     expect(sources.get('external')).toEqual([{ domain: 'jira.example.com', label: 'WORK-7', href: 'https://jira.example.com/browse/WORK-7' }])
   })
 
-  it('uses the first linked ref and falls back to provenance without a URL', () => {
+  it('gives every linked ref its own badge and falls back to provenance without a URL', () => {
     const linked = task('linked') as TaskNode
     const unlinked = task('unlinked') as TaskNode
 
@@ -38,8 +38,40 @@ describe('deriveWork sources', () => {
 
     const { sources } = deriveWork([linked, unlinked], [])
 
-    expect(sources.get('linked')).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
+    expect(sources.get('linked')).toEqual([
+      { domain: 'hop', label: 'vocksel/orion@work' },
+      { domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' },
+    ])
     expect(sources.get('unlinked')).toEqual([{ domain: 'hop', label: 'vocksel/orion@work' }])
+  })
+
+  it('shows both the GitHub issue and the pull request on one card', () => {
+    const planning = task('planning') as TaskNode
+
+    planning.data.refs = [
+      { source: 'github', kind: 'issue', key: 'vocksel/orion#187', url: 'https://github.com/vocksel/orion/issues/187' },
+      { source: 'github', kind: 'pull', key: 'vocksel/orion#153', url: 'https://github.com/vocksel/orion/pull/153' },
+    ]
+
+    expect(deriveWork([planning], []).sources.get('planning')).toEqual([
+      { domain: 'github.com', label: 'vocksel/orion#187', href: 'https://github.com/vocksel/orion/issues/187' },
+      { domain: 'github.com', label: 'vocksel/orion#153', href: 'https://github.com/vocksel/orion/pull/153' },
+    ])
+  })
+
+  it('shows one badge per source, kind, and key, ignoring key case', () => {
+    const card = task('card') as TaskNode
+
+    card.data.refs = [
+      { source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' },
+      { source: 'jira', kind: 'issue', key: 'orn-12', url: 'https://jira.example.com/browse/ORN-12' },
+      { source: 'jira', kind: 'issue', key: 'ORN-13', url: 'https://jira.example.com/browse/ORN-13' },
+    ]
+
+    expect(deriveWork([card], []).sources.get('card')).toEqual([
+      { domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' },
+      { domain: 'jira.example.com', label: 'ORN-13', href: 'https://jira.example.com/browse/ORN-13' },
+    ])
   })
 
   it('does not link a badge with an invalid ref URL', () => {
@@ -67,6 +99,20 @@ describe('deriveWork sources', () => {
     const { sources } = deriveWork([group, first, second], [])
 
     expect(sources.get('group')).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
+  })
+
+  it('collects every ref from cards inside a group', () => {
+    const group: AppNode = { id: 'group', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
+    const planning = { ...task('planning'), parentId: 'group' } as TaskNode
+
+    planning.data.refs = [
+      { source: 'github', kind: 'issue', key: 'vocksel/orion#187', url: 'https://github.com/vocksel/orion/issues/187' },
+      { source: 'github', kind: 'pull', key: 'vocksel/orion#153', url: 'https://github.com/vocksel/orion/pull/153' },
+    ]
+
+    const { sources } = deriveWork([group, planning], [])
+
+    expect(sources.get('group')?.map((source) => source.label)).toEqual(['vocksel/orion#153', 'vocksel/orion#187'])
   })
 })
 

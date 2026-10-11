@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import { descendants, getPrimaryRef, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
+import { descendants, isCluster, isNote, isTask, type AppNode, type Link, type SourceRef as RefData, type TaskNode, type ViewStatus } from './model'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
 /** How a link out of a card reads: moving, or held behind work that's stuck. */
@@ -14,12 +14,9 @@ export type Actions = {
 
 export const ActionsContext = createContext<Actions | null>(null)
 
-/** Where a card's work comes from, or null for a card that only lives in Orion. */
-function sourceOf(task: TaskNode): SourceRef | null {
-  const ref = getPrimaryRef(task.data)
-  const href = ref?.url
-
-  if (!ref) return null
+/** Where one ref comes from: its URL's host when it has a valid one, otherwise the source that recorded it. */
+function sourceOf(ref: RefData): SourceRef {
+  const href = ref.url
 
   if (href) {
     try {
@@ -34,6 +31,19 @@ function sourceOf(task: TaskNode): SourceRef | null {
   }
 
   return { domain: ref.source, label: ref.key }
+}
+
+/** Every ref on a card gets a badge, once per source, kind, and key. A card with no refs gets none. */
+function sourcesOf(task: TaskNode): SourceRef[] {
+  const sources = new Map<string, SourceRef>()
+
+  for (const ref of task.data.refs ?? []) {
+    const key = `${ref.source}:${ref.kind}:${ref.key.toLowerCase()}`
+
+    if (!sources.has(key)) sources.set(key, sourceOf(ref))
+  }
+
+  return [...sources.values()]
 }
 
 function graph(links: Link[]) {
@@ -77,11 +87,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
 
-  for (const task of tasks.values()) {
-    const source = sourceOf(task)
-
-    sources.set(task.id, source ? [source] : [])
-  }
+  for (const task of tasks.values()) sources.set(task.id, sourcesOf(task))
 
   const { preds: predecessors, succs: successors } = graph(links)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
@@ -171,10 +177,11 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
       const task = tasks.get(id)
 
       if (task) {
-        const source = sourceOf(task)
-        const key = source && `${source.domain}:${source.label}`
+        for (const source of sourcesOf(task)) {
+          const key = `${source.domain}:${source.label}`
 
-        if (source && key && !groupSources.get(key)?.href) groupSources.set(key, source)
+          if (!groupSources.get(key)?.href) groupSources.set(key, source)
+        }
       }
 
       const statusValue = status.get(id)
