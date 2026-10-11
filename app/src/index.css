@@ -979,7 +979,7 @@ select {
   scale: var(--grow);
   transform-origin: 0 100%;
 }
-/* Card details sit in a tag at one on-screen size beyond the final fold. */
+/* A hovered or selected card's details sit in a tag at one on-screen size beyond the final fold. */
 .card > .pop-place {
   opacity: 1;
 }
