@@ -1063,6 +1063,9 @@ select {
 .react-flow__node-task:has(.peek-card) {
   z-index: 3000 !important;
 }
+.card:has(> .peek-place) > .react-flow__handle {
+  visibility: hidden;
+}
 :where(:root[data-motion='on']) .far-card {
   animation: pop-up 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
 }
