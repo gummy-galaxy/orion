@@ -4,6 +4,8 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 
 [`CHARTER.md`](CHARTER.md) sets Orion's direction: its principles, what it won't do, and the roadmap. Check new work against it, and call out a change that conflicts with it.
 
+[`DECISIONS.md`](DECISIONS.md) records the specific calls made along the way and why. They're defaults that can be challenged, and the charter outranks them. Follow them, raise a change that goes against one rather than working around it, and add or rewrite an entry when the person settles a new call.
+
 ## Reading the canvas
 
 - `orion ready` lists work that can start now, the items that unblock the most first.
