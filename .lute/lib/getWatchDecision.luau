@@ -1,4 +1,4 @@
-local types = require("@root/prioritize/types")
+local types = require("@lib/types")
 
 type Job = types.Job
 type WatchDecision = types.WatchDecision

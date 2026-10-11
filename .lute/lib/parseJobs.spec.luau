@@ -1,6 +1,6 @@
 local test = require("@std/test")
 
-local parseJobs = require("@root/prioritize/parseJobs")
+local parseJobs = require("@lib/parseJobs")
 
 test.case("parseJobs reads each job's name, status, and conclusion", function(assert)
 	local jobs = parseJobs("perf\tcompleted\tsuccess\nchanges\tqueued\t\n")

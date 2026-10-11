@@ -1,7 +1,7 @@
 local test = require("@std/test")
 
-local getWatchDecision = require("@root/prioritize/getWatchDecision")
-local types = require("@root/prioritize/types")
+local getWatchDecision = require("@lib/getWatchDecision")
+local types = require("@lib/types")
 
 type Job = types.Job
 

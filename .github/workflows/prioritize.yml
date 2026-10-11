@@ -2,6 +2,7 @@ name: Prioritize PR
 
 # Labels a pull request priority-queue so the Beelink supervisor runs its queued perf job ahead of other work, then
 # watches CI until the perf job starts and removes the label. Run it with: gh workflow run prioritize.yml -f pr=<n>
+# The steps call .lute/priority-queue.luau, which needs the Lute batteries that `lute run install` fetches into cli/.
 run-name: "Prioritize #${{ inputs.pr }}"
 
 on:
@@ -25,9 +26,9 @@ jobs:
       actions: read
       issues: write
       pull-requests: write
-    defaults:
-      run:
-        working-directory: cli
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ inputs.pr }}
     steps:
       - uses: actions/checkout@v7
 
@@ -38,22 +39,17 @@ jobs:
           cache: true
           path: cli
 
+      - name: Install Luau Batteries
+        working-directory: cli
+        run: lute run install
+
       - name: Add the Priority Label
-        id: label
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ inputs.pr }}
-        run: lute run prioritize-label-add
+        id: add
+        run: lute run priority-queue add --pr "$PR"
 
       - name: Watch the Perf Job
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ inputs.pr }}
-        run: lute run prioritize-watch
+        run: lute run priority-queue watch --pr "$PR"
 
       - name: Remove the Priority Label
-        if: always() && steps.label.outcome == 'success'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ inputs.pr }}
-        run: lute run prioritize-label-remove
+        if: always() && steps.add.outcome == 'success'
+        run: lute run priority-queue remove --pr "$PR"

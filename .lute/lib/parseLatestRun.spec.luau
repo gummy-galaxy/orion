@@ -1,6 +1,6 @@
 local test = require("@std/test")
 
-local parseLatestRun = require("@root/prioritize/parseLatestRun")
+local parseLatestRun = require("@lib/parseLatestRun")
 
 test.case("parseLatestRun reads the run's id, status, and conclusion", function(assert)
 	local run = parseLatestRun("12345\tcompleted\tsuccess\n")

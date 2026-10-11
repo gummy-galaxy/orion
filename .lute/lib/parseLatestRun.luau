@@ -1,4 +1,4 @@
-local types = require("@root/prioritize/types")
+local types = require("@lib/types")
 
 type Run = types.Run
 

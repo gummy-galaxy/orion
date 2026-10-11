@@ -83,7 +83,7 @@ When a pull request changes what the app shows, attach before and after screensh
 
 CI's perf job compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment before marking it ready. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
 
-The perf job runs on a runner the Beelink supervisor starts in priority order, and it queues behind other perf runs. To move a pull request's perf job ahead of the queue, run `gh workflow run prioritize.yml -f pr=<n>`, or press Run on the Prioritize PR workflow in the Actions tab and enter the number. That labels the pull request `priority-queue`, which the Beelink supervisor (vocksel/home-server#52) runs first, watches CI until the perf job starts or is skipped, and then removes the label. It gives up after an hour.
+The perf job runs on a runner the Beelink supervisor starts in priority order, and it queues behind other perf runs. To move a pull request's perf job ahead of the queue, run `gh workflow run prioritize.yml -f pr=<n>`, or press Run on the Prioritize PR workflow in the Actions tab and enter the number. That labels the pull request `priority-queue`, which the Beelink supervisor (vocksel/home-server#52) runs first, watches CI until the perf job starts or is skipped, and then removes the label. It gives up after an hour. The workflow runs `lute run priority-queue add|watch|remove --pr <n>` from the repo root. That script is `.lute/priority-queue.luau`, with its modules in `.lute/lib/`, and it uses the Lute batteries that `lute run install` fetches into `cli/`. Run `lute test .lute` from the root for its specs.
 
 Put `Closes #<n>` in the description for each issue the pull request finishes, so merging it closes the issue. Mention issues it only advances without the keyword.
 
@@ -101,7 +101,7 @@ To let someone try a change in the desktop app, run `npm run build` in `desktop/
 
 ## Workflows
 
-- Keep each `run:` step to one command, ideally `lute run <script>`. Multi-line shell and multi-step logic go in a Luau script in `cli/.lute/`, run with `working-directory: cli`, so it runs locally the same way. Prefer `@std/*`, and use `process.run` from `@std/process` when an argument may contain spaces. Name steps in Title Case.
+- Keep each `run:` step to one command, ideally `lute run <script>`. Multi-line shell and multi-step logic go in a Luau script in `cli/.lute/`, run with `working-directory: cli`, so it runs locally the same way. The Prioritize PR steps are the exception: their script lives at the repo root in `.lute/`, since it isn't part of the CLI. Prefer `@std/*`, and use `process.run` from `@std/process` when an argument may contain spaces. Name steps in Title Case.
 - Reference actions from the `actions` organization by major tag, such as `actions/checkout@v7`. Pin every other action to a commit SHA with a version comment.
 - Set `timeout-minutes` to about one and a half times a measured run. Raise it only when real runs get close.
 
