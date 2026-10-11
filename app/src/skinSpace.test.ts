@@ -50,7 +50,15 @@ describe('skin space', () => {
     task('nested-a', 'inner', 32, 78),
     task('nested-b', 'inner', 304, 174),
     task('outer-card', 'outer', 32, 78),
-    { id: 'image', type: 'image', parentId: 'outer', position: { x: 720, y: 78 }, width: 320, height: 240, data: { kind: 'image', label: 'Image', asset: 'x', workspace: 'default' } },
+    {
+      id: 'image',
+      type: 'image',
+      parentId: 'outer',
+      position: { x: 720, y: 78 },
+      width: 320,
+      height: 240,
+      data: { kind: 'image', label: 'Image', asset: 'x', workspace: 'default' },
+    },
     task('top-card', undefined, 1200, 200),
   ])
 
@@ -83,8 +91,7 @@ describe('skin space', () => {
     const displayed = toDisplayed(stored, largeSize)
 
     for (const first of displayed)
-      for (const second of displayed)
-        if (first.id < second.id && first.parentId === second.parentId) expect(boxesOverlap(first, second)).toBe(false)
+      for (const second of displayed) if (first.id < second.id && first.parentId === second.parentId) expect(boxesOverlap(first, second)).toBe(false)
 
     expect(toStored(displayed, largeSize)).toEqual(stored)
   })
