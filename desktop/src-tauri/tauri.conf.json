@@ -23,9 +23,11 @@
   },
   "bundle": {
     "active": true,
+    "copyright": "© 2026 Marin Minnerly",
     "externalBin": ["binaries/orion"],
     "resources": {
-      "../../app/dist/": "dist/"
+      "../../app/dist/": "dist/",
+      "Credits.rtf": "Credits.rtf"
     },
     "icon": [
       "icons/32x32.png",
