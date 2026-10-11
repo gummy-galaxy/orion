@@ -27,6 +27,14 @@ describe('getTradingFacts', () => {
     expect(getTradingFacts(createView(), NOW)).not.toHaveProperty('motion')
   })
 
+  it('finishes P0 cards in holo and P1 cards with a foil rim, until they settle', () => {
+    expect(getTradingFacts(createView({ priority: 0 }), NOW).foil).toBe('holo')
+    expect(getTradingFacts(createView({ priority: 1 }), NOW).foil).toBe('edge')
+    expect(getTradingFacts(createView({ priority: 2 }), NOW)).not.toHaveProperty('foil')
+    expect(getTradingFacts(createView(), NOW)).not.toHaveProperty('foil')
+    expect(getTradingFacts(createView({ priority: 0, status: 'done' }), NOW)).not.toHaveProperty('foil')
+  })
+
   it('places the emblem the same way each time, within its range', () => {
     const { shift } = getTradingFacts(createView({ artSeed: 'seed' }), NOW)
 

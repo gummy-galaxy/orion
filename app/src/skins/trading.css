@@ -520,23 +520,6 @@
 /* Identity: how a card shows its kind. `data-identity` switches between the options being compared; see
    `tradingIdentity.ts`. */
 
-.card.skin-trading .trading-frame {
-  --trading-kind-tint: #57b8a6;
-  --trading-status: rgb(255 255 255 / 0.1);
-}
-
-.card.skin-trading .trading-frame[data-kind='pr'] {
-  --trading-kind-tint: #6c91ed;
-}
-
-.card.skin-trading .trading-frame[data-kind='placeholder'] {
-  --trading-kind-tint: #a8d5ff;
-}
-
-.card.skin-trading .trading-frame[data-kind='gate'] {
-  --trading-kind-tint: #e8ad50;
-}
-
 /* The emblem is drawn into the art under the dot screen, so it dithers with it. It's one mask per kind, which
    the browser decodes once and shares across cards. */
 .trading-emblem {
@@ -620,7 +603,7 @@
 }
 
 .trading-kind-mark {
-  color: color-mix(in srgb, var(--trading-kind-tint) 55%, #f4f0ff);
+  color: #d4cdf3;
 }
 
 .trading-kind-mark svg {
@@ -663,63 +646,114 @@
   stroke: #772e25;
 }
 
-/* Frame: the back and scrim take the kind's tint, the emblem leans toward it, and the border carries status. */
-.card.skin-trading .trading-frame:is([data-identity='frame'], [data-identity='shape']) {
-  --trading-back: color-mix(in srgb, var(--trading-kind-tint) 16%, #120d30);
-  box-shadow:
-    0 18px 40px rgb(0 0 0 / 0.45),
-    0 0 0 3px var(--trading-status);
-}
-
-.trading-frame:is([data-identity='frame'], [data-identity='shape']) .trading-scrim {
-  background: linear-gradient(
-    0deg,
-    color-mix(in srgb, var(--trading-kind-tint) 16%, rgb(18 13 48 / 0.98)) 62%,
-    color-mix(in srgb, var(--trading-kind-tint) 16%, rgb(18 13 48 / 0))
-  );
-}
-
-.trading-frame:is([data-identity='frame'], [data-identity='shape']) .trading-emblem {
-  background: color-mix(in srgb, var(--trading-kind-tint) 45%, rgb(244 240 255 / 0.32));
-}
-
-.trading-frame:is([data-identity='frame'], [data-identity='shape']).trading-ready {
+/* Frame: the vibrant study's frame, a rim lit by status at its corners and by the art's inks between them. The
+   back stays clear of the kind, which the emblem already carries. */
+.card.skin-trading .trading-frame {
+  --trading-ink-one: #b45cff;
+  --trading-ink-two: #ff8fa3;
   --trading-status: var(--st-ready);
+  --trading-spectrum: linear-gradient(115deg, #18d6c0, #3b6cff, #b45cff, #ff8fa3, #ffd166, #18d6c0);
 }
 
-.trading-frame:is([data-identity='frame'], [data-identity='shape']).trading-active {
+.card.skin-trading .trading-frame[data-hue='1'] {
+  --trading-ink-one: #3b6cff;
+  --trading-ink-two: #7af0e0;
+}
+
+.card.skin-trading .trading-frame[data-hue='2'] {
+  --trading-ink-one: #ff8f3d;
+  --trading-ink-two: #d94dff;
+}
+
+.card.skin-trading .trading-frame[data-hue='3'] {
+  --trading-ink-one: #18d6c0;
+  --trading-ink-two: #3b6cff;
+}
+
+.card.skin-trading .trading-frame[data-hue='4'] {
+  --trading-ink-one: #d94dff;
+  --trading-ink-two: #ffd166;
+}
+
+.card.skin-trading .trading-frame.trading-active {
   --trading-status: var(--st-active);
 }
 
-.trading-frame:is([data-identity='frame'], [data-identity='shape']).trading-review {
+.card.skin-trading .trading-frame.trading-review {
   --trading-status: var(--st-review);
 }
 
-.trading-frame:is([data-identity='frame'], [data-identity='shape']).trading-blocked {
+.card.skin-trading .trading-frame.trading-blocked {
   --trading-status: var(--st-blocked);
 }
 
-.trading-frame:is([data-identity='frame'], [data-identity='shape']):is(.trading-done, .trading-deferred) {
+.card.skin-trading .trading-frame:is(.trading-done, .trading-deferred) {
   --trading-status: var(--st-done);
 }
 
-/* Shape: corners by kind, from border radii alone, so the border and shadow follow without clip paths. */
-.card.skin-trading .trading-frame[data-identity='shape'][data-kind='step'] {
-  border-radius: 5px;
+/* The rim is a border painted from the border box, so it costs no extra layer or clip. */
+.card.skin-trading .trading-frame:is([data-identity='frame'], .trading-foil-edge, .trading-foil-holo) {
+  box-sizing: border-box;
+  border: 5px solid transparent;
+  background:
+    linear-gradient(var(--trading-back), var(--trading-back)) padding-box,
+    var(--trading-rim) border-box;
+  box-shadow: 0 18px 40px rgb(0 0 0 / 0.45);
 }
 
-.card.skin-trading .trading-frame[data-identity='shape'][data-kind='pr'] {
-  border-radius: 34px 6px;
+.card.skin-trading .trading-frame[data-identity='frame'] {
+  --trading-rim: linear-gradient(
+    155deg,
+    color-mix(in oklab, var(--trading-status) 90%, white),
+    color-mix(in oklab, var(--trading-ink-one) 35%, #1a1240) 40%,
+    color-mix(in oklab, var(--trading-ink-two) 30%, #1a1240) 70%,
+    var(--trading-status)
+  );
 }
 
-.card.skin-trading .trading-frame[data-identity='shape'][data-kind='placeholder'] {
-  border-radius: 40px;
+.card.skin-trading .trading-frame[data-identity='frame']:is(.trading-done, .trading-deferred) {
+  --trading-rim: linear-gradient(
+    155deg,
+    color-mix(in oklab, var(--st-done) 70%, #1a1344),
+    #1b1442 50%,
+    color-mix(in oklab, var(--st-done) 50%, #1a1344)
+  );
 }
 
-.card.skin-trading .trading-frame[data-identity='shape'][data-kind='gate'] {
-  border-radius: 132px 132px 10px 10px / 70px 70px 10px 10px;
+/* Gates get a gold rim rather than the study's full spectrum, which now means priority. */
+.card.skin-trading .trading-frame[data-identity='frame'].trading-gate {
+  --trading-rim: conic-gradient(from 210deg, #ffd166, #ff8f3d, #ffe08a, #e8ad50, #ffd166);
 }
 
-.trading-frame[data-identity='shape'][data-kind='gate'] :is(.trading-facts, .trading-sticker) {
-  top: 30px;
+.card.skin-trading .trading-frame[data-identity='frame'].trading-expected {
+  border: 4px dashed color-mix(in oklab, var(--trading-status) 60%, transparent);
+  background: var(--trading-back);
+  outline: none;
+}
+
+/* Foil is priority: P1 gets a foil rim, P0 a foil rim and holo over the art. It stays off the text. */
+.card.skin-trading .trading-frame:is(.trading-foil-edge, .trading-foil-holo) {
+  --trading-rim: var(--trading-spectrum);
+}
+
+.trading-holo {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(140px circle at 30% 20%, rgb(255 255 255 / 0.25), transparent 60%),
+    repeating-linear-gradient(115deg, #18d6c0 0%, #3b6cff 7%, #b45cff 14%, #ff8fa3 21%, #ffd166 28%, #18d6c0 35%) 0 0 / 300% 300%;
+  opacity: 0.7;
+  mix-blend-mode: color-dodge;
+  transition: background-position 0.6s;
+}
+
+/* Hover slides the foil, which only repaints the card under the pointer. */
+.card.skin-trading:hover .trading-holo {
+  background-position:
+    0 0,
+    100% 100%;
+}
+
+:where(:root[data-motion='off']) .trading-holo {
+  transition: none;
 }

@@ -71,7 +71,7 @@ export function TradingCard({ view }: { view: CardView }) {
 
   return (
     <div
-      className={`trading-frame trading-${view.status}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
+      className={`trading-frame trading-${view.status}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}${facts.foil ? ` trading-foil-${facts.foil}` : ''}`}
       data-hue={facts.hue}
       data-kind={view.kind}
       data-identity={identity}
@@ -80,6 +80,7 @@ export function TradingCard({ view }: { view: CardView }) {
     >
       <div className="trading-art" aria-hidden="true">
         <div className="trading-emblem" />
+        {facts.foil === 'holo' && <div className="trading-holo" />}
       </div>
       <div className="trading-facts">
         {facts.priority !== undefined && <FactChip text={`P${facts.priority}`} name="Priority" severity={PRIORITY_SEVERITY[facts.priority]} />}

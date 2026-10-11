@@ -8,8 +8,12 @@ export const MOTIONS = ['running', 'queued'] as const
 export type Sticker = (typeof STICKERS)[number]
 export type Motion = (typeof MOTIONS)[number]
 
+/** Priority's finish: P0 cards are holo, P1 cards get a foil rim. */
+export type Foil = 'holo' | 'edge'
+
 export type TradingFacts = {
   priority?: Priority
+  foil?: Foil
   size?: CardSizeLabel
   sticker?: Sticker
   motion?: Motion
@@ -25,6 +29,8 @@ export type TradingFacts = {
 export const STALE_DAYS = 14
 /** Art palettes in `trading.css`, picked per group. */
 export const HUES = 5
+
+const FOIL_BY_PRIORITY: Record<Priority, Foil | undefined> = { 0: 'holo', 1: 'edge', 2: undefined, 3: undefined }
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -66,9 +72,11 @@ export function getTradingFacts(view: CardView, now = Date.now()): TradingFacts 
   const settled = view.status === 'done' || view.status === 'deferred'
   const sticker = settled ? undefined : getSticker(view, now)
   const motion = settled ? undefined : getMotion(view)
+  const foil = settled ? undefined : FOIL_BY_PRIORITY[view.priority ?? 3]
 
   return {
     ...(view.priority !== undefined ? { priority: view.priority } : {}),
+    ...(foil ? { foil } : {}),
     ...(view.size ? { size: view.size } : {}),
     ...(sticker ? { sticker } : {}),
     ...(motion ? { motion } : {}),
