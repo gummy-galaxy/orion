@@ -516,3 +516,210 @@
   height: auto;
   max-height: 170px;
 }
+
+/* Identity: how a card shows its kind. `data-identity` switches between the options being compared; see
+   `tradingIdentity.ts`. */
+
+.card.skin-trading .trading-frame {
+  --trading-kind-tint: #57b8a6;
+  --trading-status: rgb(255 255 255 / 0.1);
+}
+
+.card.skin-trading .trading-frame[data-kind='pr'] {
+  --trading-kind-tint: #6c91ed;
+}
+
+.card.skin-trading .trading-frame[data-kind='placeholder'] {
+  --trading-kind-tint: #a8d5ff;
+}
+
+.card.skin-trading .trading-frame[data-kind='gate'] {
+  --trading-kind-tint: #e8ad50;
+}
+
+/* The emblem is drawn into the art under the dot screen, so it dithers with it. It's one mask per kind, which
+   the browser decodes once and shares across cards. */
+.trading-emblem {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 236px;
+  height: 172px;
+  background: rgb(244 240 255 / 0.3);
+  transform: translateX(calc(-50% + var(--emblem-shift, 0) * 16px)) rotate(calc(var(--emblem-shift, 0) * 5deg));
+  -webkit-mask: var(--emblem) center / contain no-repeat;
+  mask: var(--emblem) center / contain no-repeat;
+}
+
+.trading-frame[data-identity='tile'] .trading-emblem,
+.card.skin-trading.far-card .trading-emblem {
+  display: none;
+}
+
+.trading-frame[data-kind='step'] .trading-emblem {
+  --emblem: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 176'%3E%3Crect x='14' y='112' width='62' height='58' rx='8'/%3E%3Crect x='88' y='70' width='62' height='100' rx='8'/%3E%3Crect x='162' y='22' width='64' height='148' rx='8'/%3E%3C/svg%3E");
+}
+
+.trading-frame[data-kind='pr'] .trading-emblem {
+  --emblem: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 176' fill='none' stroke='%23000' stroke-width='18' stroke-linecap='round'%3E%3Cpath d='M70 24v128'/%3E%3Cpath d='M70 132c0-52 100-30 100-84V40'/%3E%3Ccircle cx='70' cy='24' r='20' fill='%23000' stroke='none'/%3E%3Ccircle cx='70' cy='152' r='20' fill='%23000' stroke='none'/%3E%3Ccircle cx='170' cy='34' r='20' fill='%23000' stroke='none'/%3E%3C/svg%3E");
+}
+
+.trading-frame[data-kind='placeholder'] .trading-emblem {
+  --emblem: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 176' fill='none' stroke='%23000'%3E%3Ccircle cx='120' cy='88' r='74' stroke-width='14' stroke-dasharray='22 16'/%3E%3Ccircle cx='120' cy='88' r='42' stroke-width='12' stroke-dasharray='14 12'/%3E%3Cpath d='M120 74v28M106 88h28' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.trading-frame[data-kind='gate'] .trading-emblem {
+  --emblem: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 176' fill='none' stroke='%23000' stroke-width='16'%3E%3Cpath d='M28 176V96a92 92 0 0 1 184 0v80'/%3E%3Cpath d='M64 176V100a56 56 0 0 1 112 0v76'/%3E%3Cpath d='M98 176v-68a22 22 0 0 1 44 0v68Z' fill='%23000' stroke='none'/%3E%3C/svg%3E");
+}
+
+/* Without the tile, a blocked card shows its lock as a tinted lens over the emblem. */
+.trading-frame:not([data-identity='tile']) .trading-tile {
+  display: none;
+}
+
+.card.skin-trading:not(.far-card) .trading-frame:not([data-identity='tile']) .trading-tile-locked {
+  top: 92px;
+  width: 92px;
+  height: 92px;
+  display: flex;
+  border-radius: 50%;
+  background: none;
+  box-shadow: 0 0 0 3px var(--st-blocked);
+}
+
+.card.skin-trading:not(.far-card) .trading-frame:not([data-identity='tile']) .trading-tile-locked > svg {
+  display: none;
+}
+
+.card.skin-trading:not(.far-card) .trading-frame:not([data-identity='tile']) .trading-lock svg {
+  width: 34px;
+  height: 34px;
+}
+
+/* Far out, the tile is the card's kind in every option. */
+.card.skin-trading.far-card .trading-frame .trading-tile {
+  display: flex;
+}
+
+/* The caption row above the title: the kind's mark at one end and the rarity seal at the other. */
+.trading-caption {
+  min-height: 26px;
+  margin-bottom: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.trading-frame[data-seal='left'] .trading-caption {
+  flex-direction: row-reverse;
+}
+
+.trading-kind-mark,
+.trading-seal {
+  display: flex;
+}
+
+.trading-kind-mark {
+  color: color-mix(in srgb, var(--trading-kind-tint) 55%, #f4f0ff);
+}
+
+.trading-kind-mark svg {
+  width: 26px;
+  height: 26px;
+}
+
+.trading-frame[data-identity='tile'] .trading-kind-mark {
+  visibility: hidden;
+}
+
+.card.skin-trading.far-card .trading-caption {
+  display: none;
+}
+
+.trading-seal svg {
+  width: 26px;
+  height: 26px;
+  stroke-width: 1.2px;
+  stroke-linejoin: round;
+}
+
+.trading-rarity-symbol-common {
+  fill: #20252b;
+  stroke: #f1f4f5;
+}
+
+.trading-rarity-symbol-uncommon {
+  fill: #bdc8cf;
+  stroke: #4e5962;
+}
+
+.trading-rarity-symbol-rare {
+  fill: #edc35e;
+  stroke: #765018;
+}
+
+.trading-rarity-symbol-mythic {
+  fill: #ed6744;
+  stroke: #772e25;
+}
+
+/* Frame: the back and scrim take the kind's tint, the emblem leans toward it, and the border carries status. */
+.card.skin-trading .trading-frame:is([data-identity='frame'], [data-identity='shape']) {
+  --trading-back: color-mix(in srgb, var(--trading-kind-tint) 16%, #120d30);
+  box-shadow:
+    0 18px 40px rgb(0 0 0 / 0.45),
+    0 0 0 3px var(--trading-status);
+}
+
+.trading-frame:is([data-identity='frame'], [data-identity='shape']) .trading-scrim {
+  background: linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--trading-kind-tint) 16%, rgb(18 13 48 / 0.98)) 62%,
+    color-mix(in srgb, var(--trading-kind-tint) 16%, rgb(18 13 48 / 0))
+  );
+}
+
+.trading-frame:is([data-identity='frame'], [data-identity='shape']) .trading-emblem {
+  background: color-mix(in srgb, var(--trading-kind-tint) 45%, rgb(244 240 255 / 0.32));
+}
+
+.trading-frame:is([data-identity='frame'], [data-identity='shape']).trading-ready {
+  --trading-status: var(--st-ready);
+}
+
+.trading-frame:is([data-identity='frame'], [data-identity='shape']).trading-active {
+  --trading-status: var(--st-active);
+}
+
+.trading-frame:is([data-identity='frame'], [data-identity='shape']).trading-review {
+  --trading-status: var(--st-review);
+}
+
+.trading-frame:is([data-identity='frame'], [data-identity='shape']).trading-blocked {
+  --trading-status: var(--st-blocked);
+}
+
+.trading-frame:is([data-identity='frame'], [data-identity='shape']):is(.trading-done, .trading-deferred) {
+  --trading-status: var(--st-done);
+}
+
+/* Shape: corners by kind, from border radii alone, so the border and shadow follow without clip paths. */
+.card.skin-trading .trading-frame[data-identity='shape'][data-kind='step'] {
+  border-radius: 5px;
+}
+
+.card.skin-trading .trading-frame[data-identity='shape'][data-kind='pr'] {
+  border-radius: 34px 6px;
+}
+
+.card.skin-trading .trading-frame[data-identity='shape'][data-kind='placeholder'] {
+  border-radius: 40px;
+}
+
+.card.skin-trading .trading-frame[data-identity='shape'][data-kind='gate'] {
+  border-radius: 132px 132px 10px 10px / 70px 70px 10px 10px;
+}
+
+.trading-frame[data-identity='shape'][data-kind='gate'] :is(.trading-facts, .trading-sticker) {
+  top: 30px;
+}

@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
+import { getRarity, MYTHIC_UPSTREAM, RARE_UPSTREAM, UNCOMMON_UPSTREAM } from '../rarity'
 import { STALE_DAYS, type Motion, type Sticker } from '../skins/tradingFacts'
+import { TRADING_IDENTITIES, TradingIdentityContext, type SealSide, type TradingIdentity } from '../skins/tradingIdentity'
 import { skinOf } from '../skins'
 import { TradingCard } from './TradingCard'
 
@@ -15,6 +17,9 @@ type TradingArgs = {
   blockers: number
   unblocks: number
   group: string
+  upstream: number
+  identity: TradingIdentity
+  sealSide: SealSide
   far: boolean
 }
 
@@ -46,9 +51,10 @@ function toView(args: TradingArgs): CardView {
     status: args.status,
     statusLabel: args.status,
     leverage: 0,
-    upstream: 0,
+    upstream: args.upstream,
+    ...(args.kind === 'note' ? {} : { rarity: getRarity(args.upstream) }),
     sources: [],
-    artSeed: 'playground',
+    artSeed: args.title,
     blockers: args.blockers,
     unblocks: args.unblocks,
     group: args.group,
@@ -62,7 +68,7 @@ function toView(args: TradingArgs): CardView {
 }
 
 // Far zoom wraps the card in the canvas's far-card tag, which sizes it on its own.
-function TradingFrame({ view, far }: { view: CardView; far: boolean }) {
+function TradingFrame({ view, far, identity, sealSide }: { view: CardView; far: boolean; identity: TradingIdentity; sealSide: SealSide }) {
   const className =
     (view.kind === 'note'
       ? 'card skin-trading note'
@@ -72,8 +78,45 @@ function TradingFrame({ view, far }: { view: CardView; far: boolean }) {
   return (
     <div style={far ? { position: 'relative', width: 240, height: 170 } : skinOf('trading').size}>
       <div className={className} style={far ? { position: 'relative', translate: 'none' } : { width: '100%', height: '100%' }}>
-        <TradingCard view={view} />
+        <TradingIdentityContext.Provider value={{ identity, sealSide }}>
+          <TradingCard view={view} />
+        </TradingIdentityContext.Provider>
       </div>
+    </div>
+  )
+}
+
+const IDENTITY_LABEL: Record<TradingIdentity, string> = {
+  tile: 'Tile: the icon over the art, as on #275',
+  emblem: 'Emblem: the kind drawn into the art, its mark by the title',
+  frame: 'Frame: emblem, back tinted by kind, border by status',
+  shape: 'Shape: frame, plus corners by kind',
+}
+
+const LINEUP_KINDS: CardView['kind'][] = ['step', 'pr', 'placeholder', 'gate']
+
+const LINEUP_TITLES: Record<CardView['kind'], string> = {
+  step: 'List commands after `>` in the command palette',
+  pr: "Lay out cards at the active skin's size",
+  placeholder: 'Let the scroll setting follow the trackpad',
+  gate: 'Card skins ship',
+  note: '',
+}
+
+// One row of cards per option, at the size the canvas shows them, so the options compare side by side.
+function Lineup({ rows }: { rows: { label: string; cards: { args: TradingArgs; key: string }[] }[] }) {
+  return (
+    <div style={{ display: 'grid', gap: 28 }}>
+      {rows.map((row) => (
+        <section key={row.label} style={{ display: 'grid', gap: 10 }}>
+          <h3 style={{ margin: 0, font: '600 14px var(--font-ui)', color: 'var(--muted)' }}>{row.label}</h3>
+          <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            {row.cards.map(({ args, key }) => (
+              <TradingFrame key={key} view={toView(args)} far={args.far} identity={args.identity} sealSide={args.sealSide} />
+            ))}
+          </div>
+        </section>
+      ))}
     </div>
   )
 }
@@ -89,12 +132,15 @@ const defaults: TradingArgs = {
   blockers: 0,
   unblocks: 2,
   group: 'pr-queue',
+  upstream: 5,
+  identity: 'frame',
+  sealSide: 'right',
   far: false,
 }
 
 const meta = {
   title: 'Canvas/Cards and edges/TradingCard',
-  render: (args) => <TradingFrame view={toView(args)} far={args.far} />,
+  render: (args) => <TradingFrame view={toView(args)} far={args.far} identity={args.identity} sealSide={args.sealSide} />,
   args: defaults,
   argTypes: {
     kind: { control: 'inline-radio', options: ['pr', 'step', 'placeholder', 'gate', 'note'] },
@@ -109,6 +155,16 @@ const meta = {
     motion: { control: 'inline-radio', options: ['none', 'running', 'queued'] },
     blockers: { control: { type: 'range', min: 0, max: 9 } },
     unblocks: { control: { type: 'range', min: 0, max: 9 } },
+    upstream: {
+      control: { type: 'range', min: 0, max: 20 },
+      description: `Cards that feed into this one. Rarity: uncommon from ${UNCOMMON_UPSTREAM}, rare from ${RARE_UPSTREAM}, mythic from ${MYTHIC_UPSTREAM}.`,
+    },
+    identity: {
+      control: 'inline-radio',
+      options: TRADING_IDENTITIES,
+      description: 'How the card shows its kind. Tile is #275; the others are being compared.',
+    },
+    sealSide: { control: 'inline-radio', options: ['left', 'right'], description: 'Which end of the caption row holds the rarity seal.' },
     far: { control: 'boolean', description: 'The compact form the canvas shows when zoomed far out.' },
     group: { control: 'select', options: ['pr-queue', 'navigation', 'workspaces', 'backlog', 'release'], description: 'Picks the art palette.' },
   },
@@ -216,4 +272,49 @@ export const Done: Story = {
 
 export const Note: Story = {
   args: { kind: 'note', title: 'Merge the stack bottom up so each child picks up its parent before review.' },
+}
+
+export const IdentityLineup: Story = {
+  name: 'Identity · every option by kind',
+  render: (args) => (
+    <Lineup
+      rows={TRADING_IDENTITIES.map((identity) => ({
+        label: IDENTITY_LABEL[identity],
+        cards: LINEUP_KINDS.map((kind) => ({ key: kind, args: { ...args, identity, kind, title: LINEUP_TITLES[kind] } })),
+      }))}
+    />
+  ),
+  args: { sticker: 'none', status: 'ready', unblocks: 1 },
+}
+
+export const IdentityStates: Story = {
+  name: 'Identity · states for one option',
+  render: (args) => (
+    <Lineup
+      rows={LINEUP_KINDS.map((kind) => ({
+        label: `${LINEUP_TITLES[kind]} (${kind})`,
+        cards: (['ready', 'review', 'blocked', 'done'] as const).map((status) => ({
+          key: status,
+          args: { ...args, kind, status, title: `${status[0].toUpperCase()}${status.slice(1)}`, blockers: status === 'blocked' ? 2 : 0 },
+        })),
+      }))}
+    />
+  ),
+  args: { sticker: 'none', unblocks: 1 },
+}
+
+export const RarityTiers: Story = {
+  name: 'Rarity · every tier',
+  render: (args) => (
+    <Lineup
+      rows={(['right', 'left'] as const).map((sealSide) => ({
+        label: `Seal on the ${sealSide}`,
+        cards: [0, UNCOMMON_UPSTREAM, RARE_UPSTREAM, MYTHIC_UPSTREAM].map((upstream) => ({
+          key: String(upstream),
+          args: { ...args, sealSide, upstream, title: `${getRarity(upstream)}: ${upstream} cards feed into this` },
+        })),
+      }))}
+    />
+  ),
+  args: { sticker: 'none', status: 'ready' },
 }

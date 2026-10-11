@@ -79,7 +79,15 @@ function getChecks(checks: PullDetails['checks'] | undefined): CardView['checks'
   }
 }
 
-export type CardFacts = { status: ViewStatus; leverage: number; upstream: number; sources: SourceRef[]; blockers?: number; unblocks?: number; group?: string }
+export type CardFacts = {
+  status: ViewStatus
+  leverage: number
+  upstream: number
+  sources: SourceRef[]
+  blockers?: number
+  unblocks?: number
+  group?: string
+}
 
 export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const { data } = node

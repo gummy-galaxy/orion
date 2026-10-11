@@ -22,7 +22,16 @@ const createView = (overrides: Partial<CardView> = {}): CardView => ({
 
 describe('getTradingFacts', () => {
   it('shows nothing on top of a calm card', () => {
-    expect(getTradingFacts(createView(), NOW)).toEqual({ locked: false, blockers: 0, unblocks: 0, hue: 0 })
+    expect(getTradingFacts(createView(), NOW)).toMatchObject({ locked: false, blockers: 0, unblocks: 0, hue: 0 })
+    expect(getTradingFacts(createView(), NOW)).not.toHaveProperty('sticker')
+    expect(getTradingFacts(createView(), NOW)).not.toHaveProperty('motion')
+  })
+
+  it('places the emblem the same way each time, within its range', () => {
+    const { shift } = getTradingFacts(createView({ artSeed: 'seed' }), NOW)
+
+    expect(getTradingFacts(createView({ artSeed: 'seed' }), NOW).shift).toBe(shift)
+    expect(Math.abs(shift)).toBeLessThanOrEqual(1)
   })
 
   it('picks the most urgent sticker', () => {

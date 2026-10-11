@@ -13,3 +13,7 @@ export function getRarity(upstream: number): Rarity {
 
   return 'common'
 }
+
+export function describeRarity(rarity: Rarity, upstream: number): string {
+  return `${rarity[0].toUpperCase()}${rarity.slice(1)}: ${upstream} ${upstream === 1 ? 'card feeds' : 'cards feed'} into this`
+}

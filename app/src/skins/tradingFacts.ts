@@ -17,6 +17,8 @@ export type TradingFacts = {
   blockers: number
   unblocks: number
   hue: number
+  /** Where the kind's emblem sits in the art, from -1 to 1, seeded by the card so neighbors differ. */
+  shift: number
 }
 
 /** A pull request with no change in this long reads as stale. */
@@ -74,5 +76,6 @@ export function getTradingFacts(view: CardView, now = Date.now()): TradingFacts 
     blockers: view.blockers ?? 0,
     unblocks: view.unblocks ?? 0,
     hue: view.group ? hashText(view.group) % HUES : 0,
+    shift: ((hashText(view.artSeed) % 201) - 100) / 100,
   }
 }

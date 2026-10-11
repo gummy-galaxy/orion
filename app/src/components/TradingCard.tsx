@@ -1,4 +1,7 @@
+import { useContext, type CSSProperties } from 'react'
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
+import { describeRarity } from '../rarity'
+import { TradingIdentityContext } from '../skins/tradingIdentity'
 import { getTradingFacts, type Motion, type Sticker } from '../skins/tradingFacts'
 import { TradingSignal } from './TradingSignal'
 import { TradingSignalIcon } from './TradingSignalIcon'
@@ -7,6 +10,7 @@ import { MergePullRequest } from './MergePullRequest'
 import { OpenInVscode } from './OpenInVscode'
 import { Tooltip } from './Tooltip'
 import { TradingKindIcon } from './TradingKindIcon'
+import { TradingRaritySymbol } from './TradingRaritySymbol'
 
 const STICKER_HINT: Record<Sticker, string> = {
   conflict: 'The pull request has merge conflicts',
@@ -14,6 +18,14 @@ const STICKER_HINT: Record<Sticker, string> = {
   changes: 'A review asked for changes',
   stale: 'No change in a while',
   mergeable: 'Ready to merge',
+}
+
+const KIND_HINT: Record<CardView['kind'], string> = {
+  step: 'Step',
+  pr: 'Pull request',
+  placeholder: 'Expected pull request',
+  gate: 'Gate',
+  note: 'Note',
 }
 
 const MOTION_HINT: Record<Motion, string> = {
@@ -44,6 +56,8 @@ function LockIcon() {
 }
 
 export function TradingCard({ view }: { view: CardView }) {
+  const { identity, sealSide } = useContext(TradingIdentityContext)
+
   if (view.kind === 'note') {
     return (
       <div className="trading-frame trading-note">
@@ -59,8 +73,14 @@ export function TradingCard({ view }: { view: CardView }) {
     <div
       className={`trading-frame trading-${view.status}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
       data-hue={facts.hue}
+      data-kind={view.kind}
+      data-identity={identity}
+      data-seal={sealSide}
+      style={{ '--emblem-shift': facts.shift } as CSSProperties}
     >
-      <div className="trading-art" aria-hidden="true" />
+      <div className="trading-art" aria-hidden="true">
+        <div className="trading-emblem" />
+      </div>
       <div className="trading-facts">
         {facts.priority !== undefined && <FactChip text={`P${facts.priority}`} name="Priority" severity={PRIORITY_SEVERITY[facts.priority]} />}
         {facts.size && <FactChip text={facts.size} name="Size" severity={SIZE_SEVERITY[facts.size]} />}
@@ -91,7 +111,7 @@ export function TradingCard({ view }: { view: CardView }) {
           </span>
         </Tooltip>
       )}
-      <div className="trading-tile">
+      <div className={`trading-tile${facts.locked ? ' trading-tile-locked' : ''}`}>
         <TradingKindIcon kind={view.kind} />
         {facts.locked && (
           <Tooltip label="Blocked">
@@ -102,6 +122,20 @@ export function TradingCard({ view }: { view: CardView }) {
         )}
       </div>
       <div className="trading-scrim">
+        <div className="trading-caption">
+          <Tooltip label={KIND_HINT[view.kind]}>
+            <span className="trading-kind-mark">
+              <TradingKindIcon kind={view.kind} />
+            </span>
+          </Tooltip>
+          {view.rarity && (
+            <Tooltip label={describeRarity(view.rarity, view.upstream)}>
+              <span className={`trading-seal trading-seal-${view.rarity}`}>
+                <TradingRaritySymbol rarity={view.rarity} upstream={view.upstream} />
+              </span>
+            </Tooltip>
+          )}
+        </div>
         <Tooltip label={view.title}>
           <h3 className="trading-title">{view.title}</h3>
         </Tooltip>
