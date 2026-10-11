@@ -57,3 +57,33 @@ test.case("update_item passes ref through as --ref and keeps repo and pr as alia
 		{ "add", "Review", "--repo", "Roblox/avatar", "--pr", "4", "--json" }
 	)
 end)
+
+test.case("workspace tools map onto the workspace commands", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_workspace", json.object({ label = "Focus areas" })), " "),
+		"workspace create --label Focus areas"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_workspace", json.object({ name = "focus", label = "Focus" })), " "),
+		"workspace create focus --label Focus"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_rename_workspace", json.object({ name = "focus", label = "Focus" })), " "),
+		"workspace rename focus Focus"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_archive_workspace", json.object({ name = "focus" })), " "),
+		"workspace archive focus"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_restore_workspace", json.object({ name = "focus" })), " "),
+		"workspace restore focus"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_workspaces", json.object({ archived = true })), " "),
+		"workspace list --archived --json"
+	)
+	assert.throwsWith("missing name", function()
+		getToolArgv("orion_archive_workspace", json.object({}))
+	end)
+end)

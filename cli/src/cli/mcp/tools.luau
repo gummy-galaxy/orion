@@ -44,6 +44,19 @@ local function buildInspectArgv(arguments: json.Object): { string }
 	return argv
 end
 
+-- Workspace names are optional when a label is given, so the name is passed only when present.
+local function buildCreateWorkspaceArgv(arguments: json.Object): { string }
+	local argv = { "workspace", "create" }
+	local name = getStringField(arguments.name)
+
+	if name then
+		table.insert(argv, name)
+	end
+
+	appendOption(argv, "label", arguments.label)
+	return argv
+end
+
 -- Without a group, the item moves to the top level.
 local function buildMoveArgv(arguments: json.Object): { string }
 	local argv = { "move", getRequiredString(arguments, "id") }
@@ -65,11 +78,19 @@ end
 local tools: { Tool } = {
 	{
 		name = "orion_workspaces",
-		description = "List Orion workspaces and the active workspace.",
+		description = "List Orion workspaces and the active workspace, or the archived ones.",
 		annotations = { readOnlyHint = true },
 		command = { "workspace", "list" },
 		json = true,
-		fields = {},
+		fields = {
+			{
+				name = "archived",
+				kind = "boolean",
+				description = "List archived workspaces instead.",
+				at = "flag",
+				flag = "archived",
+			},
+		},
 	},
 	{
 		name = "orion_inspect",
@@ -239,11 +260,47 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_create_workspace",
-		description = "Create an Orion workspace.",
+		description = "Create an Orion workspace. Without a name, one is derived from the label.",
 		command = { "workspace", "create" },
 		fields = {
+			{
+				name = "name",
+				kind = "workspace",
+				description = "Workspace name. Omit it to derive one from label.",
+				at = "positional",
+			},
+			{
+				name = "label",
+				kind = "string",
+				description = "Display label. Required when name is omitted.",
+				at = "option",
+			},
+		},
+		build = buildCreateWorkspaceArgv,
+	},
+	{
+		name = "orion_rename_workspace",
+		description = "Change a workspace's display label. The name and folder stay the same.",
+		command = { "workspace", "rename" },
+		fields = {
 			{ name = "name", kind = "workspace", required = true, at = "positional" },
-			{ name = "label", kind = "string", at = "option" },
+			{ name = "label", kind = "string", required = true, minLength = 1, at = "positional" },
+		},
+	},
+	{
+		name = "orion_archive_workspace",
+		description = "Archive a workspace so it leaves the workspace list. Its data stays in place. The active workspace can't be archived.",
+		command = { "workspace", "archive" },
+		fields = {
+			{ name = "name", kind = "workspace", required = true, at = "positional" },
+		},
+	},
+	{
+		name = "orion_restore_workspace",
+		description = "Restore an archived Orion workspace with its data.",
+		command = { "workspace", "restore" },
+		fields = {
+			{ name = "name", kind = "workspace", required = true, at = "positional" },
 		},
 	},
 	{
