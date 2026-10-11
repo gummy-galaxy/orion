@@ -396,8 +396,8 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 
 	for _, group in doc.nodes do
 		if graph.isGroup(group) then
-			table.insert(values, renderGroup.serialize(doc, derived, group))
-			table.insert(lines, `{group.id}  {renderGroup.formatLine(doc, derived, group)}`)
+			table.insert(values, renderGroup.serialize(derived, group))
+			table.insert(lines, `{group.id}  {renderGroup.formatLine(derived, group)}`)
 		end
 	end
 

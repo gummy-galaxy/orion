@@ -1,5 +1,5 @@
 import { test } from 'vitest'
-import { deriveWork, needsAttention, traceFrom } from '../derive'
+import { buildWork, needsAttention, toServerFacts, traceFrom } from '../derive'
 import { reflow } from '../layout'
 import { mergeDocs } from '../merge'
 import { isTask, normalize, type AppNode } from '../model'
@@ -18,7 +18,7 @@ function edit(saved: Saved, step: number, change: (node: AppNode) => AppNode): S
 for (const cards of SIZES) {
   const saved = generateCanvas({ cards })
   const { nodes, links } = saved
-  const work = deriveWork(nodes, links)
+  const work = buildWork(toServerFacts(null), nodes, links)
   const taskIds = nodes.filter(isTask).map((node) => node.id)
   const middle = taskIds[Math.floor(taskIds.length / 2)]
   const dragged = taskIds.slice(0, 1)
@@ -26,7 +26,7 @@ for (const cards of SIZES) {
   const remote = edit(saved, 11, (node) => (isTask(node) ? { ...node, data: { ...node.data, status: 'done' } } : node))
 
   test(`${cards} cards`, async ({ bench }) => {
-    await bench('deriveWork', () => deriveWork(nodes, links)).run(RUN)
+    await bench('buildWork', () => buildWork(toServerFacts(null), nodes, links)).run(RUN)
     await bench('traceFrom', () => traceFrom(middle, work.preds, work.succs, taskIds)).run(RUN)
     await bench('needsAttention', () => needsAttention(nodes, work.status)).run(RUN)
     await bench('normalize', () => normalize(nodes)).run(RUN)

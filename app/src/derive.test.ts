@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { deriveWork } from './derive'
+import { buildWork, deriveSources, toServerFacts, type Derived } from './derive'
 import type { AppNode, ItemKind, Link, Status, TaskNode } from './model'
 
 const task = (id: string, status: Status = 'todo', itemKind: ItemKind = 'step'): AppNode => ({
@@ -10,7 +10,7 @@ const task = (id: string, status: Status = 'todo', itemKind: ItemKind = 'step'):
 })
 const link = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, to, kind: 'blocks' })
 
-describe('deriveWork sources', () => {
+describe('deriveSources', () => {
   it('links pull request and external source badges to their source URLs', () => {
     const pull = task('pull') as TaskNode
 
@@ -20,7 +20,7 @@ describe('deriveWork sources', () => {
 
     external.data.refs = [{ source: 'jira', kind: 'issue', key: 'WORK-7', url: 'https://jira.example.com/browse/WORK-7' }]
 
-    const { sources } = deriveWork([pull, external], [])
+    const sources = deriveSources([pull, external])
 
     expect(sources.get('pull')).toEqual([{ domain: 'github.com', label: 'vocksel/orion#42', href: 'https://github.com/vocksel/orion/pull/42' }])
     expect(sources.get('external')).toEqual([{ domain: 'jira.example.com', label: 'WORK-7', href: 'https://jira.example.com/browse/WORK-7' }])
@@ -36,7 +36,7 @@ describe('deriveWork sources', () => {
     ]
     unlinked.data.refs = [{ source: 'hop', kind: 'branch', key: 'vocksel/orion@work' }]
 
-    const { sources } = deriveWork([linked, unlinked], [])
+    const sources = deriveSources([linked, unlinked])
 
     expect(sources.get('linked')).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
     expect(sources.get('unlinked')).toEqual([{ domain: 'hop', label: 'vocksel/orion@work' }])
@@ -47,11 +47,11 @@ describe('deriveWork sources', () => {
 
     invalid.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'not a URL' }]
 
-    expect(deriveWork([invalid], []).sources.get('invalid')).toEqual([{ domain: 'jira', label: 'ORN-12' }])
+    expect(deriveSources([invalid]).get('invalid')).toEqual([{ domain: 'jira', label: 'ORN-12' }])
   })
 
   it('gives cards without a repository or outside source no badge', () => {
-    const { sources } = deriveWork([task('local')], [])
+    const sources = deriveSources([task('local')])
 
     expect(sources.get('local')).toEqual([])
   })
@@ -64,94 +64,55 @@ describe('deriveWork sources', () => {
     first.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }]
     second.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }]
 
-    const { sources } = deriveWork([group, first, second], [])
+    const sources = deriveSources([group, first, second])
 
     expect(sources.get('group')).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
   })
 })
 
-describe('deriveWork gates', () => {
-  it('finishes a gate once everything it waits on is done', () => {
-    const links = [link('a', 'g'), link('b', 'g'), link('g', 'c')]
-    const waiting = deriveWork([task('a', 'done'), task('b', 'active'), task('g', 'todo', 'gate'), task('c', 'todo')], links)
+describe('buildWork', () => {
+  const derived: Derived = {
+    status: { a: 'blocked', b: 'ready' },
+    flow: { a: 'held', b: 'live' },
+    leverage: { a: 2, b: 0 },
+    upstream: { a: 3, b: 0 },
+    rarity: { a: 'rare', b: 'common' },
+    groups: { g: { total: 2, done: 0, ready: 1, blocked: 1, outside: 0 } },
+  }
 
-    expect(waiting.status.get('g')).toBe('blocked')
-    expect(waiting.status.get('c')).toBe('blocked')
-    expect(waiting.leverage.get('b')).toBe(2)
+  it('reads the server values for each card and group', () => {
+    const group: AppNode = { id: 'g', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
+    const work = buildWork(toServerFacts(derived), [task('a', 'blocked'), task('b'), group], [link('a', 'b')])
 
-    const finished = deriveWork([task('a', 'done'), task('b', 'done'), task('g', 'todo', 'gate'), task('c', 'todo')], links)
-
-    expect(finished.status.get('g')).toBe('done')
-    expect(finished.status.get('c')).toBe('ready')
+    expect(work.status.get('a')).toBe('blocked')
+    expect(work.flow.get('a')).toBe('held')
+    expect(work.leverage.get('a')).toBe(2)
+    expect(work.upstream.get('a')).toBe(3)
+    expect(work.rarity.get('a')).toBe('rare')
+    expect(work.groups.get('g')).toEqual({ total: 2, done: 0, ready: 1, blocked: 1, outside: 0 })
   })
 
-  it('treats a gate with nothing to wait on as ordinary work', () => {
-    expect(deriveWork([task('g', 'todo', 'gate')], []).status.get('g')).toBe('ready')
-  })
-})
+  it('keeps blocking links for hover tracing', () => {
+    const work = buildWork(toServerFacts(derived), [task('a'), task('b')], [link('a', 'b')])
 
-describe('deriveWork flow', () => {
-  it('moves out of work that can start and holds after work that waits', () => {
-    const { flow } = deriveWork([task('a'), task('b'), task('c')], [link('a', 'b'), link('b', 'c')])
-
-    expect(flow.get('a')).toBe('live')
-    expect(flow.get('b')).toBe('held')
+    expect(work.succs.get('a')).toEqual(['b'])
+    expect(work.preds.get('b')).toEqual(['a'])
   })
 
-  it('holds after blocked or deferred work and keeps moving after done work', () => {
-    const { flow } = deriveWork([task('blocked', 'blocked'), task('deferred', 'deferred'), task('done', 'done')], [])
+  it('shows recorded status for cards the server has not derived, without blocking or rarity', () => {
+    const work = buildWork(toServerFacts(null), [task('todo'), task('finished', 'done'), task('waiting')], [link('finished', 'waiting')])
 
-    expect(flow.get('blocked')).toBe('held')
-    expect(flow.get('deferred')).toBe('held')
-    expect(flow.get('done')).toBe('live')
+    expect(work.status.get('todo')).toBe('ready')
+    expect(work.status.get('finished')).toBe('done')
+    expect(work.status.get('waiting')).toBe('ready')
+    expect(work.flow.get('todo')).toBeUndefined()
+    expect(work.rarity.get('todo')).toBeUndefined()
+    expect(work.leverage.get('finished')).toBeUndefined()
   })
 
-  it('passes flow through notes', () => {
-    const nodes = [task('ready'), task('waiting'), task('n1', 'todo', 'note'), task('n2', 'todo', 'note'), task('x'), task('y')]
-    const { flow } = deriveWork(nodes, [link('ready', 'n1'), link('n1', 'x'), link('ready', 'waiting'), link('waiting', 'n2'), link('n2', 'y')])
+  it('prefers the server status over the recorded one', () => {
+    const work = buildWork(toServerFacts({ ...derived, status: { a: 'blocked' } }), [task('a', 'todo')], [])
 
-    expect(flow.get('n1')).toBe('live')
-    expect(flow.get('n2')).toBe('held')
-  })
-})
-
-describe('deriveWork upstream', () => {
-  it('counts a chain including completed work and gates', () => {
-    const { upstream } = deriveWork([task('a', 'done'), task('b'), task('gate', 'todo', 'gate')], [link('a', 'b'), link('b', 'gate')])
-
-    expect([...upstream]).toEqual([
-      ['a', 0],
-      ['b', 1],
-      ['gate', 2],
-    ])
-  })
-
-  it('counts a shared ancestor once in a diamond', () => {
-    const { upstream } = deriveWork([task('a'), task('b'), task('c'), task('d')], [link('a', 'b'), link('a', 'c'), link('b', 'd'), link('c', 'd')])
-
-    expect(upstream.get('d')).toBe(3)
-  })
-
-  it('passes through notes without counting them', () => {
-    const { upstream } = deriveWork([task('a'), task('note', 'todo', 'note'), task('b')], [link('a', 'note'), link('note', 'b')])
-
-    expect(upstream.get('b')).toBe(1)
-  })
-
-  it('ignores related links', () => {
-    const { upstream } = deriveWork([task('a'), task('b')], [{ ...link('a', 'b'), kind: 'related' }])
-
-    expect(upstream.get('b')).toBe(0)
-  })
-
-  it('terminates a cycle and excludes the card itself', () => {
-    const { upstream } = deriveWork(
-      [task('a'), task('b'), task('note', 'todo', 'note'), task('c')],
-      [link('a', 'b'), link('b', 'note'), link('note', 'a'), link('b', 'c')],
-    )
-
-    expect(upstream.get('a')).toBe(1)
-    expect(upstream.get('b')).toBe(1)
-    expect(upstream.get('c')).toBe(2)
+    expect(work.status.get('a')).toBe('blocked')
   })
 })

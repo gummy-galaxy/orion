@@ -117,6 +117,7 @@ import { useWheelZoom } from '../useWheelZoom'
 import {
   attentionAtom,
   collapsedAtom,
+  derivedAtom,
   focusedAtom,
   hoverAtom,
   linksAtom,
@@ -312,6 +313,7 @@ export function Canvas() {
   const away = useAway()
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
+  const setDerived = useSetAtom(derivedAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
@@ -585,13 +587,14 @@ export function Canvas() {
         return picked.size ? next.map((node) => (picked.has(node.id) ? { ...node, selected: true } : node)) : next
       })
       setLinks(doc.links)
+      setDerived(doc.derived ?? null)
       setStickers(doc.stickers ?? [])
       setLoadout(stickerLoadout)
       setGithub(doc.github ?? null)
 
       return adopted
     },
-    [rebaseHistory, setLinks, setNodes],
+    [rebaseHistory, setDerived, setLinks, setNodes],
   )
 
   useEffect(
@@ -649,6 +652,7 @@ export function Canvas() {
         resetHistory(latest.current)
         setNodes(start.nodes)
         setLinks(start.links)
+        setDerived(null)
         setStickers(initialStickers)
         setLoadout(initialLoadout)
         setGithub(null)
@@ -664,7 +668,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, resetHistory, setLinks, setNodes],
+    [adopt, resetHistory, setDerived, setLinks, setNodes],
   )
 
   useEffect(() => {
@@ -686,13 +690,17 @@ export function Canvas() {
 
   useEffect(
     () =>
-      onRemoteChange((next) => {
+      onRemoteChange((next, derived) => {
         const name = workspace.current
         const epoch = workspaceEpoch.current
 
+        // The server's values for this revision, or a newer one, show before the reload lands. Our own saves echo back
+        // here too, so a card's status catches up with an edit a moment after it saves.
+        if (derived && next >= (revision.current ?? -1)) setDerived(derived)
+
         queue.current = queue.current.then(() => (epoch === workspaceEpoch.current && next !== revision.current ? reload(name, epoch) : undefined))
       }),
-    [reload],
+    [reload, setDerived],
   )
 
   useEffect(() => {

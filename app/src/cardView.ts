@@ -13,7 +13,7 @@ import {
   type ViewStatus,
   type Who,
 } from './model'
-import { getRarity, type Rarity } from './rarity'
+import type { Rarity } from './rarity'
 
 export type CardView = {
   id: string
@@ -63,7 +63,10 @@ function getChecks(checks: PullDetails['checks'] | undefined): CardView['checks'
   }
 }
 
-export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverage: number; upstream: number; sources: SourceRef[] }): CardView {
+export function getCardView(
+  node: TaskNode,
+  facts: { status: ViewStatus; leverage: number; upstream: number; rarity?: Rarity; sources: SourceRef[] },
+): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
   const pullRef = getPullRef(data)
@@ -91,7 +94,7 @@ export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverag
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
     upstream: facts.upstream,
-    ...(data.itemKind === 'note' ? {} : { rarity: getRarity(facts.upstream) }),
+    ...(data.itemKind === 'note' ? {} : { rarity: facts.rarity ?? 'common' }),
     ...(checks ? { checks } : {}),
     ...(changeSize ? { changeSize } : {}),
     ...(readiness ? { readiness } : {}),
