@@ -10,9 +10,9 @@ import { FarTag } from './FarTag'
 const FAR_ZOOM = 0.3
 
 // Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
-export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>) {
+export const TaskView = memo(function TaskView({ id, data, parentId }: NodeProps<TaskNode>) {
   const far = useStore((state) => state.transform[2] < FAR_ZOOM)
-  const view = useCardView(id, data)
+  const view = useCardView(id, data, parentId)
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const skin = useAtomValue(skinAtom, { store: skinStore })

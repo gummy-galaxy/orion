@@ -41,7 +41,24 @@ export type CardView = {
   repo?: string
   /** Stable seed for procedural art: the card id. */
   artSeed: string
+  /** Direct predecessors that are still open. */
+  blockers?: number
+  /** Direct successors that are still open. */
+  unblocks?: number
+  /** The group the card sits in. */
+  group?: string
+  /** The pull request's review asks for changes. */
+  changesRequested?: true
+  /** When the pull request last changed. */
+  updatedAt?: string
+  /** Priority set by a source, from 0 (most urgent) to 3. No source sets one yet. */
+  priority?: Priority
+  /** Size set by a source. No source sets one yet. */
+  size?: CardSizeLabel
 }
+
+export type Priority = 0 | 1 | 2 | 3
+export type CardSizeLabel = 'S' | 'M' | 'L' | 'XL'
 
 const WHO_LABEL: Record<Who, string> = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
@@ -60,7 +77,9 @@ function getChecks(checks: PullDetails['checks'] | undefined): CardView['checks'
   }
 }
 
-export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverage: number; sources: SourceRef[] }): CardView {
+export type CardFacts = { status: ViewStatus; leverage: number; sources: SourceRef[]; blockers?: number; unblocks?: number; group?: string }
+
+export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
   const pullRef = getPullRef(data)
@@ -96,5 +115,10 @@ export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverag
     note: data.note,
     repo: data.repo,
     artSeed: node.id,
+    ...(facts.blockers !== undefined ? { blockers: facts.blockers } : {}),
+    ...(facts.unblocks !== undefined ? { unblocks: facts.unblocks } : {}),
+    ...(facts.group ? { group: facts.group } : {}),
+    ...(pullDetails?.reviewDecision === 'CHANGES_REQUESTED' ? { changesRequested: true as const } : {}),
+    ...(pullDetails?.updatedAt ? { updatedAt: pullDetails.updatedAt } : {}),
   }
 }

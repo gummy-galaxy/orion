@@ -20,11 +20,12 @@ afterEach(() => vi.unstubAllGlobals())
 
 describe('card skins', () => {
   it('keeps Classic first and uses each skin size', () => {
-    expect(SKINS.map((skin) => skin.id)).toEqual(['classic', 'plain', 'trading'])
+    expect(SKINS.map((skin) => skin.id)).toEqual(['classic', 'plain', 'trading', 'slots'])
     expect(SKINS.map((skin) => skin.size)).toEqual([
       { width: TASK_WIDTH, height: TASK_HEIGHT },
       { width: TASK_WIDTH, height: TASK_HEIGHT },
       { width: 288, height: 400 },
+      { width: 264, height: 380 },
     ])
     expect(skinOf('unknown')).toBe(SKINS[0])
   })
