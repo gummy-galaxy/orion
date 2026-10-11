@@ -1,8 +1,9 @@
 import { atom, useAtomValue } from 'jotai'
 import { selectAtom } from 'jotai/utils'
 import { useMemo } from 'react'
+import { getCardView } from './cardView'
 import { deriveWork, traceFrom, type AttentionMark, type GroupStats, type SourceRef } from './derive'
-import { isTask, type AppNode, type Link } from './model'
+import { isTask, type AppNode, type Link, type TaskNode } from './model'
 
 export const nodesAtom = atom<AppNode[]>([])
 export const linksAtom = atom<Link[]>([])
@@ -60,6 +61,17 @@ export const useGroupStats = (id: string) =>
 
 export const useSources = (id: string) =>
   useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.sources.get(id) ?? NO_SOURCES, sameSources), [id]))
+
+export function useCardView(id: string, data: TaskNode['data']) {
+  const status = useStatus(id)
+  const leverage = useLeverage(id)
+  const sources = useSources(id)
+
+  return useMemo(
+    () => getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, sources }),
+    [id, data, status, leverage, sources],
+  )
+}
 
 /** Dimming comes from the canvas while a trace shows, so cards outside it don't redraw as the trace moves. */
 export const useTraceRole = (id: string) =>
