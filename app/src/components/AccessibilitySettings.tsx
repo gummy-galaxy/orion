@@ -36,8 +36,8 @@ export function AccessibilitySettings({ appearance, chooseAppearance }: Props) {
             Animations
           </span>
           <p className="settings-field-detail">
-            System calms motion when your computer asks to reduce it. Off stops every animation, including flowing arrows and the in-progress glow,
-            and the canvas jumps instead of gliding.
+            On respects your computer’s reduced motion setting, stopping looping effects and gliding when it’s set. Off stops every animation in
+            Orion, and the canvas jumps instead of gliding.
           </p>
         </div>
         <div className="options" role="group" aria-labelledby="settings-animations">

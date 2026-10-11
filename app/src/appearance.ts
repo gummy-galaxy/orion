@@ -24,11 +24,12 @@ export const STATUS_COLORS: readonly { id: StatusColors; label: string }[] = [
   { id: 'blue-yellow', label: 'Blue-yellow' },
 ]
 
-export type Animations = 'system' | 'off'
+/** On still follows the computer's reduced motion setting; Off stops animation regardless. */
+export type Animations = 'on' | 'off'
 
 export const ANIMATIONS: readonly { id: Animations; label: string }[] = [
-  { id: 'system', label: 'System' },
   { id: 'off', label: 'Off' },
+  { id: 'on', label: 'On' },
 ]
 
 export type Appearance = { theme: string; colorMode: ColorMode; statusColors: StatusColors; animations: Animations }
@@ -58,10 +59,10 @@ export function readAppearance(): Appearance {
       theme: themeOf(localStorage.getItem(THEME_KEY) ?? '').id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
       statusColors: STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
-      animations: localStorage.getItem(ANIMATIONS_KEY) === 'off' ? 'off' : 'system',
+      animations: localStorage.getItem(ANIMATIONS_KEY) === 'off' ? 'off' : 'on',
     }
   } catch {
-    return { theme: THEMES[0].id, colorMode: 'system', statusColors: 'theme', animations: 'system' }
+    return { theme: THEMES[0].id, colorMode: 'system', statusColors: 'theme', animations: 'on' }
   }
 }
 
@@ -86,6 +87,6 @@ export function applyAppearance(appearance: Appearance, root = document.document
   if (appearance.statusColors === 'theme') delete root.dataset.statusColors
   else root.dataset.statusColors = appearance.statusColors
 
-  if (appearance.animations === 'system') delete root.dataset.animations
+  if (appearance.animations === 'on') delete root.dataset.animations
   else root.dataset.animations = appearance.animations
 }

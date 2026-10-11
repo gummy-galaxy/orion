@@ -36,7 +36,7 @@ const preview: Preview = {
         theme: globals.theme as string,
         colorMode: globals.colorMode as ColorMode,
         statusColors: globals.statusColors as StatusColors,
-        animations: 'system',
+        animations: 'on',
       })
 
       return Story()
