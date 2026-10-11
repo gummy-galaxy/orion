@@ -1,5 +1,6 @@
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
 import { getTradingFacts, type Motion, type Sticker } from '../skins/tradingFacts'
+import { TradingSignal } from './TradingSignal'
 import { TradingSignalIcon } from './TradingSignalIcon'
 import { SourceBadges } from './SourceBadges'
 import { MergePullRequest } from './MergePullRequest'
@@ -72,12 +73,15 @@ export function TradingCard({ view }: { view: CardView }) {
         </Tooltip>
       ) : (
         facts.sticker && (
-          <Tooltip label={STICKER_HINT[facts.sticker]}>
-            <span className={`trading-sticker trading-sticker-${facts.sticker}`}>
-              <TradingSignalIcon signal={facts.sticker} />
-              <span className="trading-sticker-word">{facts.sticker}</span>
-            </span>
-          </Tooltip>
+          <TradingSignal
+            signal={facts.sticker}
+            className={`trading-sticker trading-sticker-${facts.sticker}`}
+            hint={STICKER_HINT[facts.sticker]}
+            url={view.pullRequestUrl}
+          >
+            <TradingSignalIcon signal={facts.sticker} />
+            <span className="trading-sticker-word">{facts.sticker}</span>
+          </TradingSignal>
         )
       )}
       {view.pullRequestUrl && (
@@ -106,11 +110,14 @@ export function TradingCard({ view }: { view: CardView }) {
             <span className="trading-blockers">{facts.blockers}</span>
           </Tooltip>
           {facts.motion && (
-            <Tooltip label={MOTION_HINT[facts.motion]}>
-              <span className={`trading-motion trading-motion-${facts.motion}`}>
-                <TradingSignalIcon signal={facts.motion} />
-              </span>
-            </Tooltip>
+            <TradingSignal
+              signal={facts.motion}
+              className={`trading-motion trading-motion-${facts.motion}`}
+              hint={MOTION_HINT[facts.motion]}
+              url={view.pullRequestUrl}
+            >
+              <TradingSignalIcon signal={facts.motion} />
+            </TradingSignal>
           )}
           <Tooltip label={`Unblocks ${facts.unblocks}`}>
             <span className="trading-unblocks">{facts.unblocks}</span>

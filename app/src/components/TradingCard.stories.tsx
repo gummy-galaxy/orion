@@ -53,6 +53,7 @@ function toView(args: TradingArgs): CardView {
     group: args.group,
     updatedAt: new Date(Date.now() - (stale ? STALE_DAYS + 6 : 0) * DAY_MS).toISOString(),
     ...readinessOf(args),
+    ...(args.kind === 'pr' ? { pullRequestUrl: 'https://github.com/vocksel/orion/pull/158' } : {}),
     ...(args.sticker === 'changes' ? { changesRequested: true as const } : {}),
     ...(args.priority !== 'unknown' ? { priority: Number(args.priority) as Priority } : {}),
     ...(args.size !== 'unknown' ? { size: args.size } : {}),
