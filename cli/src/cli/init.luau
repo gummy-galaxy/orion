@@ -112,11 +112,9 @@ local function addWorkspaceOption(parser: cli.Parser)
 end
 
 local function addRefOption(parser: cli.Parser)
-	parser:add(
-		"ref",
-		"option",
-		{ help = "Attach outside work: a GitHub or Jira URL, or source:key such as jira:ABC-1" }
-	)
+	parser:add("ref", "option", {
+		help = "Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch",
+	})
 end
 
 -- Item fields. Set passes a suffix to say that groups don't take them.
@@ -456,8 +454,18 @@ local function syncReport(report: githubTypes.Report, dryRun: boolean): string
 		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
 	end
 
-	if #report.changes == 0 and #report.added == 0 and #report.linked == 0 and #report.unlinked == 0 then
+	if
+		#report.changes == 0
+		and #report.added == 0
+		and #report.attached == 0
+		and #report.linked == 0
+		and #report.unlinked == 0
+	then
 		table.insert(lines, "  Everything already matches.")
+	end
+
+	for _, attachment in report.attached do
+		table.insert(lines, `  attached {attachment.pull} to {attachment.id} (from its branch)`)
 	end
 
 	for _, link in report.linked do
