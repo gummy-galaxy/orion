@@ -122,7 +122,8 @@ function hits({ moving, others, gaps }: Scene, axis: Axis, tolerance: number): H
   return matches
 }
 
-function shift(nodes: AppNode[], ids: string[], deltaX: number, deltaY: number): AppNode[] {
+/** Moves the given nodes by a delta. Children move with a moved parent, since their positions are relative to it. */
+export function shift(nodes: AppNode[], ids: string[], deltaX: number, deltaY: number): AppNode[] {
   const movedIds = new Set(ids)
 
   return nodes.map((node) => (movedIds.has(node.id) ? { ...node, position: { x: node.position.x + deltaX, y: node.position.y + deltaY } } : node))
