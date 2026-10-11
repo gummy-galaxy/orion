@@ -1,7 +1,10 @@
 import type { CSSProperties } from 'react'
 import type { CardView } from '../cardView'
+import { READINESS_LABEL } from '../model'
 import { getCardInks } from '../skins/frameColor'
+import { ChecksIcon } from './ChecksIcon'
 import { SourceBadges } from './SourceBadges'
+import { StatusIcon } from './StatusIcon'
 import { TradingArtwork } from './TradingArtwork'
 import { TradingKindIcon } from './TradingKindIcon'
 import { TradingRaritySymbol } from './TradingRaritySymbol'
@@ -15,18 +18,9 @@ const KIND_LABEL: Record<ArtKind, string> = {
   gate: 'Gate',
 }
 
-function getCardStatus(view: CardView): { label: string; className: string } {
-  if (view.status === 'done') return { label: 'Done', className: 'done' }
-
-  if (view.who === 'you') return { label: 'Your move', className: 'you' }
-
-  if (view.status === 'blocked') return { label: 'Blocked', className: 'blocked' }
-
-  if (view.status === 'review' || view.who === 'review') return { label: 'In review', className: 'review' }
-
-  if (view.status === 'deferred') return { label: 'Deferred', className: 'deferred' }
-
-  return { label: 'Ready', className: 'ready' }
+// Only work you can act on now is your move; a draft still waiting on other open work isn't yet.
+function isYourMove(view: CardView): boolean {
+  return view.who === 'you' && (view.status === 'ready' || view.status === 'active' || view.status === 'review')
 }
 
 export function TradingCard({ view }: { view: CardView }) {
@@ -43,24 +37,26 @@ export function TradingCard({ view }: { view: CardView }) {
   }
 
   const inks = getCardInks(view.repo, view.kind)
-  const status = getCardStatus(view)
+  const yourMove = isYourMove(view)
+  const { readiness } = view
   const number = view.tag.match(/#(\d+)$/)?.[1]
   const repositoryName = view.repo?.split('/').at(-1)
   const style = { '--trading-ink-one': inks[0], '--trading-ink-two': inks[1] } as CSSProperties
 
   return (
     <div
-      className={`trading-frame trading-${status.className}${view.rarity ? ` trading-${view.rarity}` : ''}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
+      className={`trading-frame trading-${yourMove ? 'you' : view.status}${view.rarity ? ` trading-${view.rarity}` : ''}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
       style={style}
     >
       <i className="trading-glow" aria-hidden="true" />
+      {yourMove && <span className="trading-move">Your move</span>}
       <div className="trading-frame-border">
         <div className="trading-inner">
           <header className="trading-title">
             <h3 title={view.title}>{view.title}</h3>
             {number && <span className="trading-number">#{number}</span>}
           </header>
-          <TradingArtwork view={view} kind={view.kind} inks={inks} status={status} />
+          <TradingArtwork view={view} kind={view.kind} inks={inks} />
           <div className="trading-type">
             <TradingKindIcon kind={view.kind} />
             <span>
@@ -81,13 +77,23 @@ export function TradingCard({ view }: { view: CardView }) {
             ) : (
               <span>{view.kind === 'pr' || view.kind === 'placeholder' ? 'Not opened' : 'No PR'}</span>
             )}
-            {view.checks && (
-              <span className={`trading-ci trading-ci-${view.checks}`} aria-label={`Checks: ${view.checks}`}>
-                <i />
-                CI
-              </span>
+            <span
+              className="trading-state"
+              title={readiness && !view.readyToMerge ? `${view.statusLabel} · ${READINESS_LABEL[readiness]}` : view.statusLabel}
+            >
+              {view.readyToMerge ? (
+                <ChecksIcon readiness="mergeable" />
+              ) : (
+                <span className="status-mark">
+                  <StatusIcon status={view.status} />
+                  {readiness && <ChecksIcon readiness={readiness} title={READINESS_LABEL[readiness]} badge />}
+                </span>
+              )}
+              <span>{view.statusLabel}</span>
+            </span>
+            {view.status !== 'done' && view.status !== 'deferred' && view.leverage > 0 && (
+              <span className={`trading-unblocks${view.leverage >= 4 ? ' big' : ''}`}>unblocks {view.leverage}</span>
             )}
-            <span className="trading-pt">{status.label}</span>
           </footer>
         </div>
       </div>
