@@ -9,6 +9,7 @@ See [`CHARTER.md`](CHARTER.md) for where it's headed.
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
 - `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people. `orion mcp` exposes its canvas and workspace actions to agents over MCP.
+- `orion tidy` marks groups for the app to lay out in place, deepest first, and `orion check` reports overlapping cards, items outside their group, dangling links, and groups still waiting for layout. Both work from the stored positions and sizes. `orion tidy` runs the layout in the app, so it takes effect when the app opens or is open and connected to `orion serve`; the CLI never lays out groups itself.
 - `orion suggest` proposes groups for ungrouped cards (or every card with `--scope all`). It joins cards by links, Jira epics, shared branches, and references, then `--agent codex` or `--agent claude` names and splits the result into groups by outcome. The agent's CLI must already be signed in. Review with `orion suggestions`, then use `orion suggestions apply <id...> | --all` or `orion suggestions dismiss <id...> | --all`. These commands use the selected workspace. The app places new groups to the right of existing ones and refits groups whose cards moved.
 
 ## Data
@@ -168,6 +169,7 @@ In `app/`:
 In `cli/src/`:
 
 - `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
+- `cli/tidy.luau` and `cli/check.luau`: `orion tidy` marks groups for layout, and `orion check` reports layout problems; the checks themselves are in `layout/checkLayout.luau`.
 - `cli/focus.luau`: reads and renders the app's reported open group and selection.
 - `cli/mcp/`: the MCP server and its tool catalog. `cli/mcp/tools.luau` lists every tool.
 - `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.

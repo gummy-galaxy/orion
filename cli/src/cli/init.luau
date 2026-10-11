@@ -4,6 +4,7 @@ local process = require("@std/process")
 
 local backups = require("@root/cli/backups")
 local batchEdit = require("@root/cli/batchEdit")
+local check = require("@root/cli/check")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local focus = require("@root/cli/focus")
@@ -17,6 +18,7 @@ local pad = require("@root/render/pad")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
+local requestedRevision = require("@root/cli/requestedRevision")
 local restore = require("@root/cli/restore")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
@@ -25,6 +27,7 @@ local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggest = require("@root/cli/suggest")
 local suggestions = require("@root/cli/suggestions")
+local tidy = require("@root/cli/tidy")
 local types = require("@root/types")
 local workspace = require("@root/cli/workspace")
 
@@ -58,6 +61,8 @@ local COMMANDS: { [string]: Command } = {
 	workspace = workspace,
 	source = source,
 	ingest = ingest,
+	check = check,
+	tidy = tidy,
 }
 
 local COMMAND_HELP: { [string]: string } = {
@@ -245,6 +250,8 @@ local function createParsers(): Parsers
 
 	registeredCommand("suggest")
 	registeredCommand("suggestions")
+	registeredCommand("check")
+	registeredCommand("tidy")
 
 	command("path")
 	registeredCommand("mcp")
@@ -303,12 +310,6 @@ end
 
 local function required(parser: cli.Parser, name: string): string
 	return assert(parser:get(name), `missing <{name}>`)
-end
-
-local function requestedRevision(parser: cli.Parser): number?
-	local value = parser:get("if-revision")
-	assert(value == nil or value:match("^%d+$"), "--if-revision must be a nonnegative integer")
-	return if value then tonumber(value) else nil
 end
 
 local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
