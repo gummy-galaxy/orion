@@ -32,7 +32,7 @@ function renderRow(title: string, views: CardView[]) {
         {views.map((view) => (
           <div key={view.id} className="card skin-trading" style={{ width: 192, height: 185 }}>
             <div className="trading-frame" style={{ width: '100%', height: 156 }}>
-              <TradingArtwork view={view} kind={view.kind} status={{ label: view.statusLabel, className: view.status }} />
+              <TradingArtwork view={view} kind={view.kind} />
             </div>
             <div style={{ font: '12px monospace', marginTop: 4 }}>
               {view.artSeed} · {view.kind} · {view.upstream}↑ · {view.leverage}↗ · {view.status}

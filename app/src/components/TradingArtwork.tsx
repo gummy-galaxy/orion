@@ -7,7 +7,7 @@ type ArtKind = CardView['kind']
 
 type PosterSize = { width: number; height: number }
 
-export function TradingArtwork({ view, kind, status }: { view: CardView; kind: ArtKind; status: { label: string; className: string } }) {
+export function TradingArtwork({ view, kind }: { view: CardView; kind: ArtKind }) {
   const artRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<PosterSize | null>(null)
   const [painted, setPainted] = useState<{ key: string; image: string } | null>(null)
@@ -18,7 +18,6 @@ export function TradingArtwork({ view, kind, status }: { view: CardView; kind: A
   const spec = useMemo(() => getPosterSpec(input), [input])
   const key = size && JSON.stringify([input.artSeed, input.kind, input.status, input.upstream, input.leverage, size.width, size.height])
   const image = size ? (getCachedPoster(input, size.width, size.height) ?? (painted?.key === key ? painted.image : null)) : null
-  const repositoryName = view.repo?.split('/').at(-1)
 
   useEffect(() => {
     const element = artRef.current
@@ -78,17 +77,7 @@ export function TradingArtwork({ view, kind, status }: { view: CardView; kind: A
       )}
       {spec.excessUpstream > 0 && <span className="trading-art-count">+{spec.excessUpstream}</span>}
       <i className="trading-holo" aria-hidden="true" />
-      {view.status === 'done' ? (
-        <span className="trading-stamp">{kind === 'pr' ? 'Merged' : 'Done'}</span>
-      ) : (
-        <span className="trading-art-status">{status.label}</span>
-      )}
-      {repositoryName && (
-        <span className="trading-emblem">
-          <i>{repositoryName[0].toUpperCase()}</i>
-          {repositoryName}
-        </span>
-      )}
+      {view.status === 'done' && <span className="trading-stamp">{kind === 'pr' ? 'Merged' : 'Done'}</span>}
     </div>
   )
 }
