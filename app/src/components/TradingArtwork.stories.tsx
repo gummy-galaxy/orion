@@ -23,13 +23,13 @@ const meta = { title: 'Canvas/Cards and edges/TradingArtwork', component: Tradin
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const YourMove: Story = {
-  args: { view, kind: 'pr', inks: getCardInks(view.repo, 'pr'), status: { label: 'Your move', className: 'you' } },
+export const PullRequest: Story = {
+  args: { view, kind: 'pr', inks: getCardInks(view.repo, 'pr') },
   decorators: [
     (Story) => (
       <div className="card skin-trading" style={{ width: 288, height: 400 }}>
         <div
-          className="trading-frame trading-you"
+          className="trading-frame trading-review"
           style={
             { '--trading-ink-one': getCardInks(view.repo, 'pr')[0], '--trading-ink-two': getCardInks(view.repo, 'pr')[1] } as React.CSSProperties
           }

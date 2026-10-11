@@ -10,13 +10,14 @@ const pullRequest: CardView = {
   tag: 'flipbook-labs/flipbook#658',
   url: null,
   status: 'review',
-  statusLabel: 'Review',
+  statusLabel: 'In review',
   who: 'you',
   whoLabel: 'Your move',
-  leverage: 0,
+  leverage: 3,
   upstream: 8,
   rarity: 'rare',
   checks: 'pending',
+  readiness: 'running',
   changeSize: { additions: 412, deletions: 38 },
   sources: [],
   repo: 'flipbook-labs/flipbook',
@@ -29,15 +30,24 @@ describe('TradingCard', () => {
 
     expect(markup).toContain('trading-you')
     expect(markup).toContain('trading-number">#658')
-    expect(markup).toContain('trading-art-status">Your move')
-    expect(markup).toContain('trading-emblem"><i>F</i>flipbook')
+    expect(markup).toContain('trading-move">Your move')
     expect(markup).toContain('Pull request · flipbook')
+    expect(markup).not.toContain('trading-emblem')
     expect(markup).toContain('trading-rare')
     expect(markup).toContain('aria-label="Rare: 8 cards feed into this"')
     expect(markup).toContain('trading-add">+412')
     expect(markup).toContain('trading-del">−38')
-    expect(markup).toContain('aria-label="Checks: pending"')
-    expect(markup).toContain('<svg')
+    expect(markup).toContain('<title>Checks running</title>')
+    expect(markup).toContain('In review</span>')
+    expect(markup).toContain('trading-unblocks">unblocks 3')
+  })
+
+  it('saves your move for work that can move now', () => {
+    const markup = renderToStaticMarkup(<TradingCard view={{ ...pullRequest, status: 'blocked', statusLabel: 'Blocked' }} />)
+
+    expect(markup).toContain('trading-blocked')
+    expect(markup).not.toContain('Your move')
+    expect(markup).toContain('Blocked</span>')
   })
 
   it('stamps done cards and gives placeholders a dashed frame', () => {
