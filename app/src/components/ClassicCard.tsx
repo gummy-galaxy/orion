@@ -1,5 +1,7 @@
 import type { CardView } from '../cardView'
+import { READINESS_LABEL } from '../model'
 import { ChecksIcon } from './ChecksIcon'
+import { MergePullRequest } from './MergePullRequest'
 import { OpenInVscode } from './OpenInVscode'
 import { SourceBadges } from './SourceBadges'
 import { StatusIcon } from './StatusIcon'
@@ -18,8 +20,7 @@ export function ClassicCard({ view }: { view: CardView }) {
     )
   }
 
-  const checks = view.checks === 'passing' ? 'SUCCESS' : view.checks === 'failing' ? 'FAILURE' : 'PENDING'
-  const checkTitle = view.checks === 'passing' ? 'success' : view.checks === 'failing' ? 'failure' : 'pending'
+  const { readiness } = view
 
   return (
     <>
@@ -28,9 +29,15 @@ export function ClassicCard({ view }: { view: CardView }) {
         <span className="meta-tag" title={view.tag}>
           {view.tag}
         </span>
-        {view.checks && <ChecksIcon checks={checks} title={`Checks: ${checkTitle}`} />}
-        <span className="st" title={view.statusLabel}>
-          <StatusIcon status={view.status} />
+        <span className="st" title={readiness && !view.readyToMerge ? `${view.statusLabel} · ${READINESS_LABEL[readiness]}` : view.statusLabel}>
+          {view.readyToMerge ? (
+            <ChecksIcon readiness="mergeable" />
+          ) : (
+            <span className="status-mark">
+              <StatusIcon status={view.status} />
+              {readiness && <ChecksIcon readiness={readiness} title={READINESS_LABEL[readiness]} badge />}
+            </span>
+          )}
           <span className="st-label">{view.statusLabel}</span>
         </span>
       </div>
@@ -40,6 +47,7 @@ export function ClassicCard({ view }: { view: CardView }) {
       )}
       {view.who && <WhoBadge who={view.who} />}
       <div className="card-actions">
+        {view.merge && <MergePullRequest url={view.merge.url} head={view.merge.head} />}
         {view.pullRequestUrl && <OpenInVscode url={view.pullRequestUrl} />}
         <SourceBadges sources={view.sources} />
       </div>

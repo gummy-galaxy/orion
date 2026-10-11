@@ -23,10 +23,15 @@ test.case("recorded pull includes current review and check state", function(asse
 		deletions = 1,
 		reviewDecision = "APPROVED",
 		checks = "SUCCESS",
+		mergeable = "MERGEABLE",
+		mergeState = "CLEAN",
+		head = "abc123",
 		reviewRequests = 1,
 	}
 	local result = getRecorded(pull, "vocksel", "later")
 	assert.eq(result.mine, true)
 	assert.eq(result.requestedFromYou, true)
 	assert.eq(result.checks, "SUCCESS")
+	assert.eq(result.mergeState, "CLEAN")
+	assert.eq(result.head, "abc123")
 end)

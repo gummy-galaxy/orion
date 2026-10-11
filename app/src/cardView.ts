@@ -1,5 +1,18 @@
 import type { SourceRef } from './derive'
-import { getPullRef, getTaskTag, getTaskUrl, STATUS_LABEL, type ItemKind, type PullDetails, type TaskNode, type ViewStatus, type Who } from './model'
+import {
+  getPullReadiness,
+  getPullRef,
+  getTaskTag,
+  getTaskUrl,
+  READINESS_LABEL,
+  STATUS_LABEL,
+  type ItemKind,
+  type PullDetails,
+  type PullReadiness,
+  type TaskNode,
+  type ViewStatus,
+  type Who,
+} from './model'
 
 export type CardView = {
   id: string
@@ -16,6 +29,12 @@ export type CardView = {
   whoLabel?: string
   leverage: number
   checks?: 'passing' | 'failing' | 'pending'
+  /** How close an open pull request is to merging. */
+  readiness?: PullReadiness
+  /** GitHub would merge the pull request now, and the card isn't parked or blocked by hand. */
+  readyToMerge?: true
+  /** The pull request and head commit a merge from the card must match, while it's ready to merge. */
+  merge?: { url: string; head: string }
   sources: SourceRef[]
   note?: string
   repo?: string
@@ -25,9 +44,7 @@ export type CardView = {
 
 const WHO_LABEL: Record<Who, string> = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
-function getChecks(data: TaskNode['data']): CardView['checks'] {
-  const checks = (getPullRef(data)?.details as PullDetails | undefined)?.checks
-
+function getChecks(checks: PullDetails['checks'] | undefined): CardView['checks'] {
   switch (checks) {
     case 'SUCCESS':
       return 'passing'
@@ -45,7 +62,13 @@ function getChecks(data: TaskNode['data']): CardView['checks'] {
 export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverage: number; sources: SourceRef[] }): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
-  const checks = getChecks(data)
+  const pullRef = getPullRef(data)
+  const pullDetails = pullRef?.details as PullDetails | undefined
+  const checks = getChecks(pullDetails?.checks)
+  const readiness = getPullReadiness(pullDetails)
+  // Work parked or blocked by hand stays that way even when GitHub would merge it.
+  const readyToMerge = readiness === 'mergeable' && (facts.status === 'review' || facts.status === 'ready' || facts.status === 'active')
+  const merge = readyToMerge && pullRef?.url && pullDetails?.head ? { url: pullRef.url, head: pullDetails.head } : undefined
   const pullRequestUrl = data.itemKind === 'pr' ? facts.sources.find((source) => source.href?.startsWith('https://github.com/'))?.href : undefined
 
   return {
@@ -56,10 +79,13 @@ export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverag
     url: getTaskUrl(data),
     ...(pullRequestUrl ? { pullRequestUrl } : {}),
     status: facts.status,
-    statusLabel: STATUS_LABEL[facts.status],
+    statusLabel: readyToMerge ? READINESS_LABEL.mergeable : STATUS_LABEL[facts.status],
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
     ...(checks ? { checks } : {}),
+    ...(readiness ? { readiness } : {}),
+    ...(readyToMerge ? { readyToMerge } : {}),
+    ...(merge ? { merge } : {}),
     sources: facts.sources,
     note: data.note,
     repo: data.repo,
