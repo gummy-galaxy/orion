@@ -50,8 +50,25 @@ export type PullDetails = {
   additions: number
   deletions: number
   checks?: 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED'
+  /** Whether any unfinished check has started, or all of them are still queued. */
+  checkProgress?: 'running' | 'waiting'
+  mergeable?: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN'
+  mergeState?: 'BEHIND' | 'BLOCKED' | 'CLEAN' | 'DIRTY' | 'DRAFT' | 'HAS_HOOKS' | 'UNKNOWN' | 'UNSTABLE'
+  /** The head commit the details describe, which a merge from the card must still match. */
+  head?: string
   checkedAt: string
   branch?: string
+}
+/** How close an open pull request is to merging, from what stops it to nothing at all. */
+export type PullReadiness = 'conflict' | 'failing' | 'running' | 'waiting' | 'passing' | 'mergeable'
+
+export const READINESS_LABEL: Record<PullReadiness, string> = {
+  conflict: 'Merge conflicts',
+  failing: 'Checks failing',
+  running: 'Checks running',
+  waiting: 'Checks queued',
+  passing: 'Checks passing',
+  mergeable: 'Ready to merge',
 }
 export type UnplacedPullRequest = {
   repo: string
@@ -336,6 +353,20 @@ export function descendants(id: string, nodes: AppNode[]): Set<string> {
 }
 
 /** "Merged · checked 2h ago" for a synced pull request. */
+export function getPullReadiness(details: PullDetails | undefined): PullReadiness | undefined {
+  if (details?.state !== 'OPEN') return undefined
+
+  if (details.mergeable === 'CONFLICTING' || details.mergeState === 'DIRTY') return 'conflict'
+
+  if (details.checks === 'FAILURE' || details.checks === 'ERROR') return 'failing'
+
+  if (details.checks === 'PENDING' || details.checks === 'EXPECTED') return details.checkProgress === 'waiting' ? 'waiting' : 'running'
+
+  if (!details.draft && (details.mergeState === 'CLEAN' || details.mergeState === 'HAS_HOOKS')) return 'mergeable'
+
+  return details.checks === 'SUCCESS' ? 'passing' : undefined
+}
+
 export function githubSummary(github: PullDetails, now = Date.now()) {
   const state =
     github.state === 'OPEN'

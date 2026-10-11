@@ -20,6 +20,10 @@ local function getRecorded(pull: PullState, viewer: string, checkedAt: string): 
 	})
 	result.reviewDecision = pull.reviewDecision
 	result.checks = pull.checks
+	result.checkProgress = pull.checkProgress
+	result.mergeable = pull.mergeable
+	result.mergeState = pull.mergeState
+	result.head = pull.head
 	return result
 end
 
