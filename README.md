@@ -98,7 +98,7 @@ The desktop app bundles the binary at that path; use `cli/build/orion` for a loc
 
 Configure sources once, then run `orion ingest --dry-run` to preview work involving you. `orion ingest` adds new cards to Unsorted, updates matching cards in place, and links mentioned Jira issues or GitHub issues to pull requests. `orion source list --json` shows the configuration. Sources and cards live in the selected Orion data file; source commands run through the CLI and keep credentials in their own tools.
 
-Each source kind is an adapter in `cli/src/adapters/<kind>/`. An adapter validates source options and collects records for ingest; GitHub also implements pull request refresh for sync. Adapters also resolve `orion set --ref` and `orion add --ref`: a GitHub or Jira URL, or `source:key` for a Jira source (`jira:ABC-12`), in `cli/src/adapters/resolveRef.luau`.
+Each source kind is an adapter in `cli/src/adapters/<kind>/`. An adapter validates source options and collects records for ingest; GitHub also implements pull request refresh for sync. Adapters also resolve `orion set --ref` and `orion add --ref`: a GitHub or Jira URL, or `source:key` for a Jira source (`jira:ABC-12`), in `cli/src/adapters/resolveRef.luau`. `branch:owner/name@branch` records the branch work started on, and sync attaches a new pull request from that branch to its card.
 
 For GitHub sources, `--owners`, `--include`, and `--exclude` accept comma-separated lists. Spaces around entries are ignored, so `--owners vocksel,flipbook-labs --include "orion, hop"` works.
 

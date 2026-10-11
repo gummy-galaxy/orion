@@ -12,7 +12,8 @@ type Tool = mcpTypes.Tool
 
 local VIEWS = { "list", "ready", "groups", "matches", "show" }
 
-local REF_DESCRIPTION = "Outside work to attach: a GitHub or Jira URL, or source:key such as jira:ABC-1."
+local REF_DESCRIPTION =
+	"Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch."
 local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
 local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
 
