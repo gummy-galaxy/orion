@@ -4,7 +4,7 @@ A canvas for graph-shaped work: tasks and pull requests with dependencies, group
 
 This is a prototype. It runs in the browser or in a desktop shell.
 
-See [`CHARTER.md`](CHARTER.md) for where it's headed.
+See [`CHARTER.md`](CHARTER.md) for where it's headed and [`DECISIONS.md`](DECISIONS.md) for the calls made along the way.
 
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
