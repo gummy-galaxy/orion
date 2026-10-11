@@ -1,10 +1,11 @@
 import { memo } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import { STATUS_LABEL, getPullRef, getTaskTag, type PullDetails, type TaskNode } from '../model'
+import { READINESS_LABEL, STATUS_LABEL, getPullReadiness, getPullRef, getTaskTag, type PullDetails, type TaskNode } from '../model'
 import { SourceBadges } from './SourceBadges'
 import { useLeverage, useMarked, useSources, useStatus, useTraceRole } from '../state'
 import { FarTag } from './FarTag'
 import { Lock } from './Lock'
+import { MergePullRequest } from './MergePullRequest'
 import { OpenInVscode } from './OpenInVscode'
 
 const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
@@ -20,7 +21,12 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   const attention = useMarked(id)
   const sources = useSources(id)
   const pullRequestUrl = data.itemKind === 'pr' ? sources.find((source) => source.href?.startsWith('https://github.com/'))?.href : undefined
-  const checks = (getPullRef(data)?.details as PullDetails | undefined)?.checks
+  const pullRef = getPullRef(data)
+  const pullDetails = pullRef?.details as PullDetails | undefined
+  const readiness = getPullReadiness(pullDetails)
+  // Work parked or blocked by hand stays that way even when GitHub would merge it.
+  const readyToMerge = readiness === 'mergeable' && (status === 'review' || status === 'ready' || status === 'active')
+  const statusLabel = readyToMerge ? READINESS_LABEL.mergeable : STATUS_LABEL[status]
 
   if (data.itemKind === 'note') {
     const className = `card note${trace ? ' tr-' + trace : ''}`
@@ -43,7 +49,7 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
     )
   }
 
-  const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${data.itemKind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`
+  const className = `card st-${status}${data.itemKind === 'placeholder' ? ' placeholder' : ''}${data.itemKind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${readyToMerge ? ' ready-to-merge' : ''}`
   const body = (
     <>
       <div className="meta">
@@ -51,16 +57,17 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
         <span className="meta-tag" title={getTaskTag(data)}>
           {getTaskTag(data)}
         </span>
-        {checks && <span className={`check-dot check-${checks.toLowerCase()}`} title={`Checks: ${checks.toLowerCase()}`} />}
-        <span className="st" title={STATUS_LABEL[status]}>
+        {readiness && <span className={`check-dot check-${readiness}`} title={READINESS_LABEL[readiness]} />}
+        <span className="st" title={statusLabel}>
           {status === 'blocked' && <Lock />}
-          <span className="st-label">{STATUS_LABEL[status]}</span>
+          <span className="st-label">{statusLabel}</span>
         </span>
       </div>
       <div className="label">{data.label}</div>
       {status !== 'done' && status !== 'deferred' && leverage > 0 && <span className={`lev${leverage >= 4 ? ' big' : ''}`}>unblocks {leverage}</span>}
       {status !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
       <div className="card-actions">
+        {readyToMerge && pullRef?.url && pullDetails?.head && <MergePullRequest url={pullRef.url} head={pullDetails.head} />}
         {pullRequestUrl && <OpenInVscode url={pullRequestUrl} />}
         <SourceBadges sources={sources} />
       </div>

@@ -191,12 +191,66 @@ select {
   background: var(--st-review);
   vertical-align: middle;
 }
-.check-success {
+.check-passing,
+.check-mergeable {
   background: var(--st-done);
 }
-.check-failure,
-.check-error {
+.check-mergeable {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--st-done) 35%, transparent);
+}
+.check-conflict,
+.check-failing {
   background: var(--st-blocked);
+}
+/* Queued checks show a hollow ring; once one starts, the dot fills and pulses. */
+.check-waiting {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px var(--st-review);
+}
+.card:has(.merge-pull) .label {
+  padding-right: 45px;
+}
+.card:has(.merge-pull):has(.vscode-open) .label {
+  padding-right: 65px;
+}
+.merge-pull {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--st-done);
+  color: var(--surface);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--st-done) 40%, transparent),
+    var(--shadow);
+  cursor: pointer;
+}
+.merge-pull svg {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.merge-pull:not(.is-idle) {
+  padding: 0 6px 0 4px;
+}
+.merge-pull:hover,
+.merge-pull:focus-visible {
+  outline: 2px solid var(--st-done);
+  outline-offset: 1px;
+}
+.merge-pull:disabled {
+  cursor: wait;
 }
 .card .meta .st {
   color: var(--c);
@@ -424,6 +478,17 @@ select {
   color: var(--muted);
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 65%, var(--bg));
 }
+/* Ready to merge: the card turns the success color and glows, so it reads as the next thing to click. */
+.card.ready-to-merge {
+  --c: var(--st-done);
+  border-color: var(--c);
+  background: color-mix(in srgb, var(--c) 12%, var(--surface));
+  box-shadow:
+    inset 4px 0 0 var(--c),
+    0 0 0 1px var(--c),
+    0 0 20px -2px color-mix(in srgb, var(--c) 60%, transparent),
+    var(--shadow);
+}
 .react-flow__node-task.selected {
   border-radius: var(--radius-md);
   box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent) 26%, transparent);
@@ -601,10 +666,14 @@ select {
   .st-active {
     animation: pulse 3.2s infinite;
   }
+  .check-running {
+    animation: check-running 1.6s steps(24) infinite;
+  }
 }
 /* Zoomed out, motion can't be read, so loops stop. */
 .canvas.is-quiet .react-flow__edge-path,
-.canvas.is-quiet .st-active {
+.canvas.is-quiet .st-active,
+.canvas.is-quiet .check-running {
   animation: none !important;
 }
 /* In the background, off screen, or dimmed by a trace, motion can't be seen, so loops pause. Moving the canvas
@@ -616,6 +685,8 @@ select {
 .canvas[data-moving] .react-flow__edge-path,
 .canvas.no-arrow-motion .react-flow__edge-path,
 .canvas[data-moving] .st-active,
+.canvas.is-away .check-running,
+.canvas[data-moving] .check-running,
 .react-flow__edge.tr-e-dim .react-flow__edge-path,
 .react-flow__edge-path.is-offscreen {
   animation-play-state: paused !important;
@@ -627,6 +698,14 @@ select {
 .canvas.is-still .react-flow__node *,
 .canvas.is-still .react-flow__edge-path {
   transition: none !important;
+}
+@keyframes check-running {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--st-review) 70%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 4px transparent;
+  }
 }
 @keyframes flow {
   to {
@@ -917,7 +996,8 @@ select {
   position: static;
   justify-self: end;
 }
-.far-card:has(.vscode-open) .label {
+.far-card:has(.vscode-open) .label,
+.far-card:has(.merge-pull) .label {
   padding-right: 0;
 }
 .react-flow__node-task:has(.far-card) {

@@ -1,9 +1,11 @@
 import { LinkList } from './LinkList'
 import type { Work } from '../derive'
 import {
+  READINESS_LABEL,
   STATUS_LABEL,
   editPullRef,
   getItemKind,
+  getPullReadiness,
   getPullRef,
   getPullRequestNumber,
   getTaskUrl,
@@ -57,6 +59,7 @@ export function TaskInspector({
   const url = getTaskUrl(data)
   const pullRef = getPullRef(data)
   const pullDetails = pullRef?.details as PullDetails | undefined
+  const readiness = getPullReadiness(pullDetails)
   const linked = new Set(
     [...map.values()].filter(isTask).flatMap((node) => {
       const ref = getPullRef(node.data)
@@ -93,15 +96,10 @@ export function TaskInspector({
         <div className="github-details">
           <p className="facts">{githubSummary(pullDetails)}</p>
           <p className="facts">
-            {pullDetails.checks && (
+            {readiness && (
               <>
-                <span className={`check-dot check-${pullDetails.checks.toLowerCase()}`} />
-                {pullDetails.checks === 'SUCCESS'
-                  ? 'Checks passing'
-                  : ['FAILURE', 'ERROR'].includes(pullDetails.checks)
-                    ? 'Checks failing'
-                    : 'Checks pending'}{' '}
-                ·{' '}
+                <span className={`check-dot check-${readiness}`} />
+                {READINESS_LABEL[readiness]} ·{' '}
               </>
             )}
             {typeof pullDetails.additions === 'number' && (
