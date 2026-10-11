@@ -1132,11 +1132,13 @@ export function Canvas() {
       ...nodes.map((node) => {
         const hidden = view.hidden.has(node.id)
         const className = [node.className, focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : ''].filter(Boolean).join(' ') || undefined
+        // In Pan, an open group still moves by its header. Its frame lets clicks through, so panning across it still works.
+        const draggable = tool === 'hand' && !focus && isCluster(node) && node.id !== root && !collapsed.has(node.id) ? true : undefined
         const shown = shownNodes.get(node)
 
-        if (shown && shown.hidden === hidden && shown.className === className) return shown
+        if (shown && shown.hidden === hidden && shown.className === className && shown.draggable === draggable) return shown
 
-        const next = { ...node, hidden, className }
+        const next = { ...node, hidden, className, draggable }
 
         shownNodes.set(node, next)
 
@@ -1144,7 +1146,7 @@ export function Canvas() {
       }),
       ...(focus ? ghosts.map((group) => ({ ...group, className: 'is-unfocused' })) : ghosts),
     ],
-    [nodes, view, ghosts, focus, shownNodes],
+    [nodes, view, ghosts, focus, shownNodes, tool, root, collapsed],
   )
 
   const trace = useAtomValue(traceAtom)
@@ -1284,6 +1286,28 @@ export function Canvas() {
       window.removeEventListener('pointerdown', stop)
     }
   }, [])
+
+  // ---- Pan: hold ⌘ to move cards, as in Select ----
+  const [commandHeld, setCommandHeld] = useState(false)
+
+  useEffect(() => {
+    if (tool !== 'hand') return
+
+    const down = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(true)
+    const up = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(false)
+    const stop = () => setCommandHeld(false)
+
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', stop)
+
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', stop)
+      stop()
+    }
+  }, [tool])
 
   // ---- Selection box ----
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
@@ -2613,7 +2637,7 @@ export function Canvas() {
               panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
               selectionKeyCode={null}
               selectionOnDrag={false}
-              nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
+              nodesDraggable={!focus && (tool === 'select' || tool === 'comment' || (tool === 'hand' && commandHeld))}
               nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
               elementsSelectable={!focus && tool !== 'sticker'}
               panOnScroll={!focus}

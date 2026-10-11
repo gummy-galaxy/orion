@@ -1360,6 +1360,10 @@ kbd {
 .tool-hand .react-flow__node {
   cursor: grab;
 }
+/* In Pan, links let presses through so a drag that starts on one still pans. */
+.tool-hand .react-flow__edge {
+  pointer-events: none;
+}
 .tool-hand .react-flow__pane.dragging,
 .tool-hand .react-flow__pane.dragging .react-flow__node {
   cursor: grabbing;

@@ -18,7 +18,7 @@ const TOOLS: ToolSpec[] = [
     id: 'hand',
     label: 'Pan',
     shortcut: 'tool-hand',
-    hint: 'Drag anywhere to pan, ⌘-drag to select',
+    hint: 'Drag anywhere to pan, or a group by its header to move it. ⌘-drag to select or move',
     icon: (
       <ToolIcon path="M7 10V4.8a1.2 1.2 0 0 1 2.4 0V9m0-.5V3.6a1.2 1.2 0 0 1 2.4 0V9m0-.5V4.6a1.2 1.2 0 0 1 2.4 0V11m0-4a1.2 1.2 0 0 1 2.4 0v5c0 3-2.2 5-5 5h-1.2c-1.8 0-3-.8-4-2.2L3.4 11a1.2 1.2 0 0 1 2-1.4L7 11.5" />
     ),
