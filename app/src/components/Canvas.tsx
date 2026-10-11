@@ -41,6 +41,7 @@ import {
   isImage,
   isNote,
   isTask,
+  moveOutOfGroup,
   normalize,
   getTaskUrl,
   sizeOf,
@@ -2158,6 +2159,7 @@ export function Canvas() {
           { label: 'Open', hint: hintOf('open-group'), run: () => actions.open(node.id) },
           { label: 'Rename', run: () => (selectOnly(node.id), setEditing(node.id)) },
           ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
+          ...(node.parentId ? [{ label: 'Move out of group', run: () => setNodes((currentNodes) => moveOutOfGroup(currentNodes, node.id)) }] : []),
           { label: 'Ungroup', hint: hintOf('ungroup'), run: () => doUngroup([node.id]) },
         ]
 
