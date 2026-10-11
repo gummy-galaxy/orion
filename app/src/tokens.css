@@ -1,0 +1,19 @@
+/*
+ * Tokens every theme shares. A theme in themes/ sets the colors; it can override any of these too.
+ * Colors resolve with light-dark(), so the color mode only has to set color-scheme.
+ */
+:root {
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  color-scheme: light dark;
+}
+:root[data-color-mode='light'] {
+  color-scheme: light;
+}
+:root[data-color-mode='dark'] {
+  color-scheme: dark;
+}
