@@ -4,6 +4,8 @@ A canvas for graph-shaped work: tasks and pull requests with dependencies, group
 
 This is a prototype. It runs in the browser or in a desktop shell.
 
+See [`CHARTER.md`](CHARTER.md) for where it's headed.
+
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
 - `cli/`: `orion`, a command-line tool for reading and editing the same data, meant for agents as much as people. `orion mcp` exposes its canvas and workspace actions to agents over MCP.
