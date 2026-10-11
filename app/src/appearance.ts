@@ -1,16 +1,27 @@
 import { systemMotion, type Motion } from './motion'
 import { saveSettings } from './settings'
+import { TOKENS } from './tokens'
 
 export type ColorMode = 'light' | 'dark' | 'system'
+
+export type Scheme = 'light' | 'dark'
 
 export type Theme = {
   id: string
   label: string
   /** A theme with one scheme ignores the color mode. */
-  schemes: readonly ('light' | 'dark')[]
+  schemes: readonly Scheme[]
+  /** A shareable theme's token values by scheme, keyed by token name. Built-in themes read their colors from CSS and leave this out. */
+  values?: Partial<Record<Scheme, Record<string, string>>>
+  /** Who made a shareable theme, from its file. */
+  author?: string
+  /** Why a shareable theme file could not be used. The theme is listed, but it cannot be picked. */
+  error?: string
+  /** Problems that did not stop a shareable theme, such as tokens it does not name. */
+  notes?: string[]
 }
 
-/** Each theme's colors live in themes/<id>.css. The first one is the default and needs no attribute. */
+/** Each built-in theme's colors live in themes/<id>.css. The first one is the default and needs no attribute. */
 export const THEMES: readonly Theme[] = [
   { id: 'classic', label: 'Classic', schemes: ['light', 'dark'] },
   { id: 'vibrant', label: 'Vibrant', schemes: ['dark'] },
@@ -44,13 +55,14 @@ const COLOR_MODE_KEY = 'orion:color-mode'
 const STATUS_COLORS_KEY = 'orion:status-colors'
 const ANIMATIONS_KEY = 'orion:animations'
 
-export function themeOf(id: string): Theme {
-  return THEMES.find((theme) => theme.id === id) ?? THEMES[0]
+/** The theme with this id. An unknown id, or a shareable theme that failed to load, falls back to the default. */
+export function themeOf(id: string, themes: readonly Theme[] = THEMES): Theme {
+  return themes.find((theme) => theme.id === id && !theme.error) ?? THEMES[0]
 }
 
 /** The color mode in effect, since a theme with one scheme overrides the chosen mode. */
-export function colorModeOf(appearance: Appearance): ColorMode {
-  const { schemes } = themeOf(appearance.theme)
+export function colorModeOf(appearance: Appearance, themes: readonly Theme[] = THEMES): ColorMode {
+  const { schemes } = themeOf(appearance.theme, themes)
 
   return schemes.length === 1 ? schemes[0] : appearance.colorMode
 }
@@ -60,7 +72,8 @@ export function readAppearance(): Appearance {
     const mode = localStorage.getItem(COLOR_MODE_KEY)
 
     return {
-      theme: themeOf(localStorage.getItem(THEME_KEY) ?? '').id,
+      // Kept as saved, even when its file is gone; applyAppearance falls back to the default.
+      theme: localStorage.getItem(THEME_KEY) ?? THEMES[0].id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
       statusColors: STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
       animations: ANIMATIONS.find((option) => option.id === localStorage.getItem(ANIMATIONS_KEY))?.id ?? 'system',
@@ -79,9 +92,12 @@ export function writeAppearance(appearance: Appearance) {
   })
 }
 
-export function applyAppearance(appearance: Appearance, root = document.documentElement) {
-  if (appearance.theme === THEMES[0].id) delete root.dataset.theme
-  else root.dataset.theme = appearance.theme
+export function applyAppearance(appearance: Appearance, root = document.documentElement, themes: readonly Theme[] = THEMES) {
+  const theme = themeOf(appearance.theme, themes)
+
+  // A shareable theme sets its values on the root instead, so it needs no attribute.
+  if (theme.id === THEMES[0].id || theme.values) delete root.dataset.theme
+  else root.dataset.theme = theme.id
 
   if (appearance.colorMode === 'system') delete root.dataset.colorMode
   else root.dataset.colorMode = appearance.colorMode
@@ -89,7 +105,35 @@ export function applyAppearance(appearance: Appearance, root = document.document
   if (appearance.statusColors === 'theme') delete root.dataset.statusColors
   else root.dataset.statusColors = appearance.statusColors
 
+  applyThemeValues(theme, appearance.statusColors, root)
+
   root.dataset.motion = motionOf(appearance)
+}
+
+/**
+ * Sets a shareable theme's token values on the root, over the stylesheets. A token with a value for both
+ * schemes uses light-dark(), so the color mode still picks one. Status tokens are left to the colorblind
+ * sets, which layer over every theme.
+ */
+function applyThemeValues(theme: Theme, statusColors: StatusColors, root: HTMLElement) {
+  for (const token of TOKENS) root.style.removeProperty(token.cssVar)
+
+  root.style.removeProperty('color-scheme')
+
+  if (!theme.values) return
+
+  for (const token of TOKENS) {
+    if (token.group === 'status' && statusColors !== 'theme') continue
+
+    const light = theme.values.light?.[token.name]
+    const dark = theme.values.dark?.[token.name]
+    const value = light && dark ? `light-dark(${light}, ${dark})` : (light ?? dark)
+
+    if (value) root.style.setProperty(token.cssVar, value)
+  }
+
+  // A theme with one scheme shows that scheme whatever the color mode says.
+  if (theme.schemes.length === 1) root.style.setProperty('color-scheme', theme.schemes[0])
 }
 
 /** The motion level in effect, the computer's when none is picked. */

@@ -65,14 +65,15 @@ import {
   ANIMATIONS,
   COLOR_MODES,
   STATUS_COLORS,
-  THEMES,
   applyAppearance,
   colorModeOf,
   readAppearance,
   withMotion,
   writeAppearance,
   type Appearance,
+  type Theme,
 } from '../appearance'
+import { cachedThemes, loadThemes } from '../themeFile'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
 import { MiniMapNode } from './MiniMapNode'
@@ -316,6 +317,8 @@ export function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
+  /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
+  const [themes, setThemes] = useState<Theme[]>(cachedThemes)
   const systemMotion = useSystemMotion()
   const [scrolling, setScrolling] = useState(readScrolling)
   const [keybindings, setKeybindings] = useState(readKeybindings)
@@ -443,7 +446,11 @@ export function Canvas() {
   useEffect(() => cancelClick, [cancelClick])
 
   // Also runs when the computer's reduced motion setting changes, which Orion follows until a level is picked.
-  useEffect(() => applyAppearance(appearance), [appearance, systemMotion])
+  useEffect(() => applyAppearance(appearance, document.documentElement, themes), [appearance, systemMotion, themes])
+
+  useEffect(() => {
+    if (settings !== null || paletteOpen) void loadThemes().then(setThemes)
+  }, [settings, paletteOpen])
 
   // Runs before React Flow's own click handling, which selects the node as it goes.
   const claimNodeClick = (event: React.MouseEvent) => {
@@ -2381,12 +2388,14 @@ export function Canvas() {
           },
         ]
       : []),
-    ...THEMES.map((theme) => ({
-      id: `theme-${theme.id}`,
-      label: `Theme: ${theme.label}`,
-      detail: 'Saved on this device',
-      run: () => chooseAppearance({ ...appearance, theme: theme.id }),
-    })),
+    ...themes
+      .filter((theme) => !theme.error)
+      .map((theme) => ({
+        id: `theme-${theme.id}`,
+        label: `Theme: ${theme.label}`,
+        detail: 'Saved on this device',
+        run: () => chooseAppearance({ ...appearance, theme: theme.id }),
+      })),
     ...COLOR_MODES.map((mode) => ({
       id: `color-mode-${mode}`,
       label: `Color mode: ${mode[0].toUpperCase()}${mode.slice(1)}`,
@@ -2601,7 +2610,7 @@ export function Canvas() {
               zoomOnDoubleClick={false}
               minZoom={0.06}
               maxZoom={2}
-              colorMode={colorModeOf(appearance)}
+              colorMode={colorModeOf(appearance, themes)}
             >
               <StickerLayer
                 stickers={placedStickers}
@@ -2882,6 +2891,7 @@ export function Canvas() {
             showSection={setSettings}
             close={() => setSettings(null)}
             appearance={appearance}
+            themes={themes}
             chooseAppearance={chooseAppearance}
             scrolling={scrolling}
             chooseScrolling={chooseScrolling}

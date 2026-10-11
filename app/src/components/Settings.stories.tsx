@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
-import type { Appearance } from '../appearance'
+import { THEMES, type Appearance } from '../appearance'
 import { DEFAULT_KEYBINDINGS, type Keybindings } from '../keybindings'
 import type { Scrolling } from '../scrolling'
 import { Settings, type SettingsSection } from './Settings'
@@ -22,6 +22,7 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
       showSection={setShown}
       close={() => {}}
       appearance={appearance}
+      themes={THEMES}
       chooseAppearance={setAppearance}
       scrolling={scrolling}
       chooseScrolling={setScrolling}

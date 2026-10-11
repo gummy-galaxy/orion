@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { Appearance } from '../appearance'
+import type { Appearance, Theme } from '../appearance'
 import type { Keybindings } from '../keybindings'
 import type { Scrolling } from '../scrolling'
 import { AccessibilitySettings } from './AccessibilitySettings'
@@ -21,6 +21,7 @@ type Props = {
   showSection: (section: SettingsSection) => void
   close: () => void
   appearance: Appearance
+  themes: readonly Theme[]
   chooseAppearance: (appearance: Appearance) => void
   scrolling: Scrolling
   chooseScrolling: (scrolling: Scrolling) => void
@@ -34,6 +35,7 @@ export function Settings({
   showSection,
   close,
   appearance,
+  themes,
   chooseAppearance,
   scrolling,
   chooseScrolling,
@@ -87,7 +89,7 @@ export function Settings({
           ×
         </button>
         <div className="settings-body">
-          {section === 'appearance' && <AppearanceSettings appearance={appearance} chooseAppearance={chooseAppearance} />}
+          {section === 'appearance' && <AppearanceSettings appearance={appearance} themes={themes} chooseAppearance={chooseAppearance} />}
           {section === 'canvas' && <CanvasSettings scrolling={scrolling} chooseScrolling={chooseScrolling} />}
           {section === 'accessibility' && <AccessibilitySettings appearance={appearance} chooseAppearance={chooseAppearance} />}
           {section === 'shortcuts' && <ShortcutSettings scrolling={scrolling} keybindings={keybindings} chooseKeybindings={chooseKeybindings} />}
