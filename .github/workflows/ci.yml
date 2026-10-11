@@ -206,12 +206,10 @@ jobs:
   perf:
     needs: changes
     if: needs.changes.outputs.app == 'true'
-    runs-on: beelink
+    # The pin label gives this job its own runner, which the Beelink's supervisor starts in priority order. Exclusive
+    # keeps two perf runs from skewing each other's timings.
+    runs-on: [exclusive, "pin-perf-${{ github.run_id }}-${{ github.run_attempt }}"]
     timeout-minutes: 25
-    # Both Beelink runners share one machine, so concurrent perf runs skew each other's timings
-    concurrency:
-      group: perf
-      queue: max
     permissions:
       contents: read
       pull-requests: write

@@ -1,0 +1,59 @@
+name: Prioritize PR
+
+# Labels a pull request priority-queue so the Beelink supervisor runs its queued perf job ahead of other work, then
+# watches CI until the perf job starts and removes the label. Run it with: gh workflow run prioritize.yml -f pr=<n>
+run-name: "Prioritize #${{ inputs.pr }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number to prioritize
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prioritize:
+    # Runs on a hosted runner, since a Beelink runner waiting for CI would hold one of its two slots.
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+      pull-requests: write
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Luau Tools with Rokit
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+          path: cli
+
+      - name: Add the Priority Label
+        id: label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+        run: lute run prioritize-label-add
+
+      - name: Watch the Perf Job
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+        run: lute run prioritize-watch
+
+      - name: Remove the Priority Label
+        if: always() && steps.label.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+        run: lute run prioritize-label-remove

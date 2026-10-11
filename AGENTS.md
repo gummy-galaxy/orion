@@ -83,6 +83,8 @@ When a pull request changes what the app shows, attach before and after screensh
 
 CI's perf job compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment before marking it ready. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
 
+The perf job runs on a runner the Beelink supervisor starts in priority order, and it queues behind other perf runs. To move a pull request's perf job ahead of the queue, run `gh workflow run prioritize.yml -f pr=<n>`, or press Run on the Prioritize PR workflow in the Actions tab and enter the number. That labels the pull request `priority-queue`, which the Beelink supervisor (vocksel/home-server#52) runs first, watches CI until the perf job starts or is skipped, and then removes the label. It gives up after an hour.
+
 Put `Closes #<n>` in the description for each issue the pull request finishes, so merging it closes the issue. Mention issues it only advances without the keyword.
 
 Give each pull request a place on the canvas. When a card already tracks the work, attach the pull request to it with `orion set <id> --repo vocksel/orion --pr <n>`. Otherwise add a card for it in the outcome group it belongs to.
