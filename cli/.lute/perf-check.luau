@@ -1,8 +1,8 @@
 --[[
-	Checks whether the pull request's perf comment already reports a finished comparison of this head commit. CI's perf
-	job runs it first, so a commit that an earlier run already measured, such as one started with workflow_dispatch,
-	finishes without measuring again. Writes measured=true or measured=false to GITHUB_OUTPUT. If the lookup fails, the
-	commit gets measured, so a failed lookup never skips a measurement.
+	Checks whether the pull request's perf comment already reports a finished comparison of this head commit. CI's resolve
+	job runs it, so a commit that an earlier run already measured, such as one started with workflow_dispatch, never
+	starts the perf job. Writes measured=true or measured=false to GITHUB_OUTPUT. If the lookup fails, the commit gets
+	measured, so a failed lookup never skips a measurement.
 ]]
 local fs = require("@std/fs")
 local process = require("@std/process")

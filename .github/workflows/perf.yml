@@ -31,6 +31,7 @@ jobs:
     outputs:
       head_sha: ${{ steps.resolve.outputs.head_sha }}
       base_ref: ${{ steps.resolve.outputs.base_ref }}
+      measured: ${{ steps.check.outputs.measured }}
     defaults:
       run:
         working-directory: cli
@@ -51,8 +52,18 @@ jobs:
           PR: ${{ inputs.pr }}
         run: lute run perf-resolve
 
+      - name: Check for an Existing Measurement
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ inputs.pr }}
+          SHA: ${{ steps.resolve.outputs.head_sha }}
+        run: lute run perf-check
+
   perf:
     needs: resolve
+    # A head commit that already has a finished report never reaches this job, so it doesn't wait for a runner.
+    if: needs.resolve.outputs.measured != 'true'
     # The pin label gives this job a runner of its own, which the Beelink's supervisor starts in priority order.
     # Exclusive keeps two perf runs from skewing each other's timings.
     runs-on: [exclusive, "pin-perf-${{ github.run_id }}-${{ github.run_attempt }}"]
@@ -77,36 +88,23 @@ jobs:
           cache: true
           path: cli
 
-      - name: Check for an Existing Measurement
-        id: check
-        working-directory: cli
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR: ${{ inputs.pr }}
-          SHA: ${{ needs.resolve.outputs.head_sha }}
-        run: lute run perf-check
-
       - uses: actions/setup-node@v7
-        if: steps.check.outputs.measured != 'true'
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: app/package-lock.json
 
       - name: Install Dependencies
-        if: steps.check.outputs.measured != 'true'
         run: npm ci
 
       - name: Install Chromium
-        if: steps.check.outputs.measured != 'true'
         run: npx playwright install --with-deps --only-shell chromium
 
       - name: Compare Against the Base Branch
-        if: steps.check.outputs.measured != 'true'
         run: npm run perf -- --base origin/${{ needs.resolve.outputs.base_ref }}
 
       - uses: actions/upload-artifact@v7
-        if: always() && steps.check.outputs.measured != 'true'
+        if: always()
         with:
           name: perf
           path: |
@@ -115,7 +113,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Publish Report
-        if: always() && job.status != 'cancelled' && steps.check.outputs.measured != 'true'
+        if: always() && job.status != 'cancelled'
         working-directory: cli
         env:
           GH_TOKEN: ${{ github.token }}
