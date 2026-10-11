@@ -2358,6 +2358,11 @@ kbd {
   color: var(--muted);
   font: 11px var(--font-data);
 }
+.palette-heading {
+  padding: 8px 10px 4px;
+  color: var(--muted);
+  font: 10.5px var(--font-data);
+}
 .palette mark {
   background: none;
   color: var(--accent);
