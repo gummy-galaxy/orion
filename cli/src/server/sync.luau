@@ -1,8 +1,7 @@
 local json = require("@std/json")
 local task = require("@std/task")
 
-local applyPulls = require("@root/github/applyPulls")
-local collectPulls = require("@root/github/collectPulls")
+local getAdapter = require("@root/adapters/getAdapter")
 local runCommand = require("@root/command")
 local store = require("@root/store")
 local types = require("@root/types")
@@ -62,9 +61,12 @@ function sync.create(
 		setStatus(running)
 		local didSucceed, failure = pcall(function()
 			local dir = store.getWorkspaceDir(root, target)
-			local fetched = collectPulls(store.load(dir), command, false)
 			store.transaction(dir, function(doc)
-				applyPulls(doc, fetched, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
+				assert(getAdapter("github").refresh)(
+					doc,
+					command,
+					{ discover = false, now = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string }
+				)
 			end)
 		end)
 
