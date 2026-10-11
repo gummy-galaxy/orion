@@ -73,4 +73,20 @@ describe('getCardView', () => {
     expect(getCardView(taskNode, createFacts()).checks).toBeUndefined()
     expect(getCardView(createTaskNode(createTaskData()), createFacts()).checks).toBeUndefined()
   })
+
+  it('offers a merge while GitHub would merge the pull request and the card is still in play', () => {
+    const url = 'https://github.com/vocksel/orion/pull/1'
+    const details = { state: 'OPEN', checks: 'SUCCESS', mergeState: 'CLEAN', head: 'abc123' }
+    const taskNode = createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', url, details }] }))
+
+    expect(getCardView(taskNode, createFacts('review'))).toMatchObject({
+      readiness: 'mergeable',
+      readyToMerge: true,
+      statusLabel: 'Ready to merge',
+      merge: { url, head: 'abc123' },
+    })
+    expect(getCardView(taskNode, createFacts('blocked'))).toMatchObject({ readiness: 'mergeable', statusLabel: 'Blocked' })
+    expect(getCardView(taskNode, createFacts('blocked'))).not.toHaveProperty('readyToMerge')
+    expect(getCardView(taskNode, createFacts('blocked'))).not.toHaveProperty('merge')
+  })
 })
