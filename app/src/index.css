@@ -1,78 +1,6 @@
-/* Tokens follow the Flipbook Release Map so the two read as one family. */
-:root {
-  --bg: #f3f5f6;
-  --surface: #ffffff;
-  --ink: #17242b;
-  --muted: #5d6d75;
-  --line: #d3dbdf;
-  --dots: #c3ccd1;
-  --accent: #0d6f74;
-  --accent-soft: #d8eeee;
-  --edge: #9aa9b0;
-  --edge-hot: #0d6f74;
-  /* Mixed from the theme's own edges, so every color mode gets it. */
-  --edge-held: color-mix(in srgb, var(--edge-hot) 25%, var(--edge));
-  --st-todo: #5d6d75;
-  --st-active: #1f62c9;
-  --st-review: #a56300;
-  --st-blocked: #c0362c;
-  --st-done: #2f7d4a;
-  --note: #fbf3d5;
-  --note-edge: #d9b94a;
-  --note-ink: #7a6418;
-  --snap: #e0457b;
-  --shadow: 0 1px 2px rgb(23 36 43 / 0.06), 0 4px 14px rgb(23 36 43 / 0.06);
-  --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  color-scheme: light;
-}
-:root[data-theme='dark'] {
-  --bg: #0f1619;
-  --surface: #172227;
-  --ink: #e3eaed;
-  --muted: #92a3aa;
-  --line: #2b3a41;
-  --dots: #26343a;
-  --accent: #4fc1c4;
-  --accent-soft: #163a3c;
-  --edge: #4c5d65;
-  --edge-hot: #4fc1c4;
-  --st-todo: #92a3aa;
-  --st-active: #6ea2f2;
-  --st-review: #e2a34a;
-  --st-blocked: #f07a6f;
-  --st-done: #6cc28a;
-  --note: #2e2a17;
-  --note-edge: #8a7428;
-  --note-ink: #d9c272;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
-  color-scheme: dark;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    --bg: #0f1619;
-    --surface: #172227;
-    --ink: #e3eaed;
-    --muted: #92a3aa;
-    --line: #2b3a41;
-    --dots: #26343a;
-    --accent: #4fc1c4;
-    --accent-soft: #163a3c;
-    --edge: #4c5d65;
-    --edge-hot: #4fc1c4;
-    --st-todo: #92a3aa;
-    --st-active: #6ea2f2;
-    --st-review: #e2a34a;
-    --st-blocked: #f07a6f;
-    --st-done: #6cc28a;
-    --note: #2e2a17;
-    --note-edge: #8a7428;
-    --note-ink: #d9c272;
-    --snap: #ff6f9c;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
-    color-scheme: dark;
-  }
-}
+@import './tokens.css';
+@import './themes/classic.css';
+@import './themes/vibrant.css';
 
 * {
   box-sizing: border-box;
@@ -116,7 +44,7 @@ select {
 }
 .react-flow__minimap {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 .react-flow__minimap-node.mm-cluster {
@@ -141,7 +69,7 @@ select {
 }
 .react-flow__controls {
   box-shadow: var(--shadow);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 /* The detail stepper sits under the zoom buttons, with the level showing between its own two. */
@@ -180,7 +108,7 @@ select {
   display: flex;
   flex-direction: column;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: 0 8px 24px #0002;
 }
@@ -229,7 +157,7 @@ select {
   width: 100%;
   height: 100%;
   padding: 10px 12px 10px 15px;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--surface);
   display: grid;
@@ -343,7 +271,7 @@ select {
   height: 18px;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--surface) 65%, transparent);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--surface);
   color: var(--accent);
   box-shadow: var(--shadow);
@@ -384,7 +312,7 @@ select {
   width: 18px;
   height: 18px;
   border: 1px solid color-mix(in srgb, var(--surface) 65%, transparent);
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--surface);
   color: var(--muted);
   box-shadow: var(--shadow);
@@ -443,7 +371,7 @@ select {
   max-width: 220px;
   padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow);
@@ -516,7 +444,7 @@ select {
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 65%, var(--bg));
 }
 .react-flow__node-task.selected {
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent) 26%, transparent);
 }
 .react-flow__node-task.selected .card {
@@ -769,7 +697,7 @@ select {
   width: 100%;
   height: 100%;
   border: 1.5px dashed var(--edge);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--accent) 3%, transparent);
   transition:
     background-color 0.2s,
@@ -792,7 +720,7 @@ select {
   align-items: center;
   gap: 8px;
   padding: 0 6px 0 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--surface);
   cursor: grab;
@@ -831,7 +759,7 @@ select {
   color: var(--accent);
   font-size: 12px;
   padding: 4px 6px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 .head-actions button:hover {
@@ -840,7 +768,7 @@ select {
 /* A folded group is one card, with its contents inside its own bounds. */
 .cluster.is-collapsed {
   border: max(1.5px, calc(1.5px * var(--inv, 1))) solid var(--edge);
-  border-radius: max(12px, calc(8px * var(--inv, 1)));
+  border-radius: max(var(--radius-lg), calc(var(--radius-md) * var(--inv, 1)));
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -1048,7 +976,7 @@ select {
 .panel {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
 }
 .empty-canvas {
@@ -1089,7 +1017,7 @@ select {
   border: 0;
   background: none;
   padding: 5px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--muted);
 }
@@ -1107,7 +1035,7 @@ select {
   border: 1px solid var(--line);
   background: var(--surface);
   padding: 5px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 12.5px;
   white-space: nowrap;
@@ -1158,7 +1086,7 @@ kbd {
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
 }
 .insp input:focus,
@@ -1302,7 +1230,7 @@ kbd {
   width: 34px;
   height: 34px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   background: none;
   color: var(--muted);
   cursor: pointer;
@@ -1505,7 +1433,7 @@ kbd {
   height: 28px;
   padding: 0;
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background: none;
   color: var(--ink);
   font: 500 11px var(--font-data);
@@ -1529,7 +1457,7 @@ kbd {
   border: 1px solid var(--line);
   width: max-content;
   max-width: 220px;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow);
   color: var(--muted);
@@ -1556,13 +1484,6 @@ kbd {
     opacity: 0;
     transform: scale(0.4);
   }
-}
-.help {
-  padding: 6px 12px;
-  font-size: 11.5px;
-  color: var(--muted);
-  max-width: min(980px, calc(100vw - 420px));
-  text-align: center;
 }
 .snap-guides {
   position: absolute;
@@ -1606,7 +1527,7 @@ kbd {
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--bg);
   font: inherit;
   font-size: 13px;
@@ -1783,7 +1704,7 @@ kbd {
   font-size: 18px;
   line-height: 1;
   padding: 2px 6px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 .side-hide:hover {
@@ -1808,7 +1729,7 @@ kbd {
   background: none;
   text-align: left;
   padding: 7px 10px;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 .side-row:hover {
@@ -1865,42 +1786,284 @@ kbd {
   font-size: 11.5px;
   color: var(--muted);
 }
+/* Stays in reach at the bottom however long the group list gets. */
 .side-settings {
-  padding: 12px 8px 0;
+  position: sticky;
+  bottom: 0;
+  margin-top: 8px;
+  background: var(--surface);
+  box-shadow: 0 -8px 0 var(--surface);
+}
+.side-settings .side-label {
+  font-weight: 400;
+  color: var(--muted);
+}
+.side-settings kbd {
+  grid-area: meta;
+  margin: 0;
+}
+
+/* Settings */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--ink) 35%, transparent);
+}
+.settings {
+  position: relative;
+  display: flex;
+  width: min(820px, 100%);
+  height: min(600px, 100%);
+  overflow: hidden;
+  box-shadow: 0 14px 50px color-mix(in srgb, var(--ink) 20%, transparent);
+}
+.settings:focus {
+  outline: none;
+}
+.settings-nav {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 200px;
+  padding: 16px 8px;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+}
+.settings-nav h2 {
+  margin: 0 10px 10px;
+  font-size: 15px;
+}
+.settings-nav-item {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.settings-nav-item:hover {
+  color: var(--ink);
+}
+.settings-nav-item[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 500;
+}
+.settings-nav-item:focus-visible,
+.settings-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.settings-body {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px 24px 24px;
+}
+.settings-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.settings-close:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+.settings-section {
+  display: grid;
+  gap: 14px;
+}
+.settings-section h3 {
+  margin: 0;
+  padding-right: 32px;
+  font-size: 17px;
+}
+.settings-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 260px);
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
   border-top: 1px solid var(--line);
 }
-.side-settings-label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: 11.5px;
+.settings-field-label {
+  font-size: 13px;
+  font-weight: 500;
 }
-.color-mode-options {
+.settings-field-detail {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.settings-search {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.settings-search:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.settings-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.options {
   display: flex;
   padding: 3px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--bg);
 }
-.color-mode-options button {
+.options button {
   flex: 1;
   min-width: 0;
   padding: 5px 2px;
   border: 0;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 12px;
   cursor: pointer;
 }
-.color-mode-options button[aria-pressed='true'] {
+.options button[aria-pressed='true'] {
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow);
 }
-.color-mode-options button:focus-visible {
+.options button:disabled {
+  cursor: default;
+}
+.options button:disabled:not([aria-pressed='true']) {
+  opacity: 0.5;
+}
+.options button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+.shortcut-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.shortcut-tools .link,
+.shortcut-actions .link {
+  color: var(--muted);
+  font-size: 12px;
+}
+.shortcut-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.shortcut-table td:nth-child(2) {
+  width: 140px;
+}
+.shortcut-table caption {
+  padding: 6px 0;
+  color: var(--muted);
+  font: 500 11px var(--font-data);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.shortcut-table tr {
+  border-top: 1px solid var(--line);
+}
+.shortcut-table th,
+.shortcut-table td {
+  padding: 7px 0;
+  vertical-align: middle;
+}
+.shortcut-table th {
+  display: grid;
+  gap: 1px;
+  padding-right: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+.shortcut-detail {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+.shortcut-conflict {
+  color: var(--st-review);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+.shortcut-chord {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font: 12px var(--font-data);
+  text-align: left;
+  cursor: pointer;
+}
+.shortcut-chord:hover {
+  border-color: var(--edge);
+}
+.shortcut-chord kbd {
+  margin: 0;
+  font-size: 12px;
+  opacity: 1;
+}
+.shortcut-table tr.recording .shortcut-chord {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+.shortcut-unbound {
+  color: var(--muted);
+}
+.shortcut-fixed {
+  color: var(--muted);
+  font: 12px var(--font-data);
+}
+.shortcut-table .shortcut-actions {
+  width: 120px;
+  padding-left: 12px;
+  white-space: nowrap;
+}
+.shortcut-actions .link + .link {
+  margin-left: 10px;
+}
+/* Remove shows on the row you're on; Reset stays, marking a changed shortcut. */
+.shortcut-remove {
+  visibility: hidden;
+}
+.shortcut-table tr:is(:hover, :focus-within) .shortcut-remove {
+  visibility: visible;
 }
 
 /* Connections outside an opened group */
@@ -1912,7 +2075,7 @@ kbd {
   gap: 1px;
   padding: 6px 10px;
   border: 1px dashed var(--edge);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   background: var(--bg);
   cursor: pointer;
   transition:
@@ -2047,7 +2210,7 @@ kbd {
   width: 100%;
   padding: 9px 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: none;
   text-align: left;
   cursor: pointer;
@@ -2108,7 +2271,7 @@ kbd {
   background: none;
   text-align: left;
   padding: 7px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 13px;
   cursor: pointer;
 }
@@ -2200,7 +2363,7 @@ kbd {
 .attn-tally {
   position: absolute;
   padding: 4px 9px;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   background: var(--ink);
   color: var(--surface);
   font: 500 11px var(--font-data);
@@ -2320,7 +2483,7 @@ kbd {
   display: grid;
   gap: 3px;
   padding: 9px 11px 9px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--surface);
   box-shadow:

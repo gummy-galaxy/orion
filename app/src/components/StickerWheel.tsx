@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { isChordKey } from '../keybindings'
 import { WHEEL_SLOTS, firstEmoji, type Loadout } from '../sticker'
 
 type StickerPoint = { x: number; y: number }
@@ -8,7 +9,7 @@ const WHEEL_EDGE = 120
 const HUB_RADIUS = 30
 
 /**
- * Picks a sticker. Opened by holding S, it follows FigJam: point at one and let go.
+ * Picks a sticker. Opened by holding the sticker tool's key, it follows FigJam: point at one and let go.
  * A quick tap leaves it open, as does opening it from the toolbar, and then any
  * emoji typed or pasted into the middle is loaded. Right-clicking a slot, or
  * clicking an empty one, fills it with the next emoji instead.
@@ -16,6 +17,7 @@ const HUB_RADIUS = 30
 export function StickerWheel({
   at,
   held,
+  holdKey,
   current,
   loadout,
   pick,
@@ -24,6 +26,8 @@ export function StickerWheel({
 }: {
   at: StickerPoint
   held: boolean
+  /** The sticker tool's chord, whose key opened the wheel when `held`. */
+  holdKey: string
   current: string
   loadout: Loadout
   pick: (emoji: string) => void
@@ -48,10 +52,10 @@ export function StickerWheel({
     setFilling(slot)
   }
 
-  const latest = useRef({ hover, holding, filling, choose, assign, close })
+  const latest = useRef({ hover, holding, filling, holdKey, choose, assign, close })
 
   useLayoutEffect(() => {
-    latest.current = { hover, holding, filling, choose, assign, close }
+    latest.current = { hover, holding, filling, holdKey, choose, assign, close }
   })
 
   useEffect(() => {
@@ -62,7 +66,7 @@ export function StickerWheel({
     const opened = performance.now()
 
     const down = (event: KeyboardEvent) => {
-      const { hover, filling, choose, assign, close } = latest.current
+      const { hover, filling, holdKey, choose, assign, close } = latest.current
       const digit = Number(event.key)
 
       if (event.key === 'Escape') {
@@ -73,16 +77,16 @@ export function StickerWheel({
       else if ((event.key === 'Backspace' || event.key === 'Delete') && filling !== null) {
         assign(filling, null)
         setFilling(null)
-      } else if (event.key.toLowerCase() !== 's' || event.target === field.current) return
+      } else if (!isChordKey(event, holdKey) || event.target === field.current) return
 
       event.preventDefault()
       event.stopImmediatePropagation()
     }
 
     const up = (event: KeyboardEvent) => {
-      const { hover, holding, choose, close } = latest.current
+      const { hover, holding, holdKey, choose, close } = latest.current
 
-      if (!holding || event.key.toLowerCase() !== 's') return
+      if (!holding || !isChordKey(event, holdKey)) return
 
       if (hover !== null) choose(hover)
       else if (performance.now() - opened > 350) close()
