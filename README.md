@@ -27,7 +27,7 @@ Before replacing an existing data file, the CLI store copies it to `backups/orio
 
 While the app is open, it reports its open group and selection to `orion serve`. The server writes `focus.json` in the active workspace's folder without changing the canvas revision; `orion focus` reads it. The report is cleared when its tab closes, the workspace changes, or the server stops.
 
-The app's preferences, such as the theme, color mode, scrolling, keyboard shortcuts, and whether the sidebar is shown, live in the data root's `settings.json`. `orion serve` reads and merges them at `/api/settings`, so they're shared by every workspace and outlast the desktop app's new server port on each launch.
+The app's preferences, such as the theme, color mode, scrolling, keyboard shortcuts, and whether the sidebar is shown, live in the data root's `settings.json`. `orion serve` reads and merges them at `/api/settings`, so they're shared by every workspace and by the browser and desktop app.
 
 ## Run the app
 
@@ -57,7 +57,7 @@ npm install
 npm run dev
 ```
 
-The development window uses the app's Vite server on port 5199, which proxies the data API and WebSocket to `orion serve`. `npm run build` builds the CLI with Lute and packages it with the canvas. The packaged app runs `orion serve`, so it reads and writes the same workspace files as the CLI, including when `ORION_DATA_DIR` selects another data root.
+The development window uses the app's Vite server on port 5199, which proxies the data API and WebSocket to `orion serve`. `npm run build` builds the CLI with Lute and packages it with the canvas. The packaged app runs `orion serve`, so it reads and writes the same workspace files as the CLI, including when `ORION_DATA_DIR` selects another data root. It picks a free port on first launch, saves it as `server-port` in the app's own folder (`~/Library/Application Support/com.vocksel.orion` on macOS), and reuses it after, so the window keeps one origin and its browser storage, such as each workspace's viewport and detail level, survives a restart. When another process holds that port for more than a few seconds, it picks and saves a new one.
 
 ## Build the CLI
 
