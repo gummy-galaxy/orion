@@ -5,6 +5,7 @@ type Doc = types.Doc
 type Item = types.Item
 type Ref = types.Ref
 type Source = types.Source
+type ResolvedRef = types.ResolvedRef
 type CommandRunner = types.CommandRunner
 
 export type Record = {
@@ -35,6 +36,10 @@ export type Adapter = {
 	collect: (Source, CommandRunner, Context) -> { Record },
 	refresh: ((Doc, CommandRunner, RefreshOptions) -> githubTypes.Report)?,
 	collectOrder: number?,
+	-- Recognizes a pasted URL for this kind; sources are the configured ones, of any kind.
+	refFromUrl: ((string, { Source }) -> ResolvedRef?)?,
+	-- Builds a ref from a source:key reference addressed to one configured source of this kind.
+	refFromKey: ((string, Source) -> ResolvedRef?)?,
 }
 
 return {}

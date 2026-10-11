@@ -46,3 +46,14 @@ test.case("mcp tool arguments run the existing command", function(assert)
 	})
 	assert.strContains(table.concat(output, "\n"), "From the catalog")
 end)
+
+test.case("update_item passes ref through as --ref and keeps repo and pr as aliases", function(assert)
+	assert.eq(
+		getToolArgv("orion_update_item", json.object({ id = "pub", ref = "jira:ABC-1" })),
+		{ "set", "pub", "--ref", "jira:ABC-1", "--json" }
+	)
+	assert.eq(
+		getToolArgv("orion_add_item", json.object({ title = "Review", repo = "Roblox/avatar", pr = 4 })),
+		{ "add", "Review", "--repo", "Roblox/avatar", "--pr", "4", "--json" }
+	)
+end)

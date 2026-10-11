@@ -1,17 +1,32 @@
 local adapterTypes = require("@root/adapters/types")
 local githubCollect = require("@root/adapters/github/collect")
 local githubCreateSource = require("@root/adapters/github/createSource")
+local githubRefFromUrl = require("@root/adapters/github/refFromUrl")
 local githubRefresh = require("@root/adapters/github/refresh")
 local hopCollect = require("@root/adapters/hop/collect")
 local hopCreateSource = require("@root/adapters/hop/createSource")
 local jiraCollect = require("@root/adapters/jira/collect")
 local jiraCreateSource = require("@root/adapters/jira/createSource")
+local jiraRefFromKey = require("@root/adapters/jira/refFromKey")
+local jiraRefFromUrl = require("@root/adapters/jira/refFromUrl")
 
 type Adapter = adapterTypes.Adapter
 
 local adapters: { [string]: Adapter } = {
-	github = { kind = "github", createSource = githubCreateSource, collect = githubCollect, refresh = githubRefresh },
-	jira = { kind = "jira", createSource = jiraCreateSource, collect = jiraCollect },
+	github = {
+		kind = "github",
+		createSource = githubCreateSource,
+		collect = githubCollect,
+		refresh = githubRefresh,
+		refFromUrl = githubRefFromUrl,
+	},
+	jira = {
+		kind = "jira",
+		createSource = jiraCreateSource,
+		collect = jiraCollect,
+		refFromUrl = jiraRefFromUrl,
+		refFromKey = jiraRefFromKey,
+	},
 	hop = { kind = "hop", createSource = hopCreateSource, collect = hopCollect, collectOrder = 1 },
 }
 
