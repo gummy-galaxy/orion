@@ -183,6 +183,59 @@
   background: var(--st-done);
 }
 
+/* A ready pull request's sticker is its merge button: the first click asks, the second merges. */
+.trading-merge {
+  padding: 0;
+}
+
+.card.skin-trading .trading-merge .merge-pull {
+  height: 100%;
+  padding: 0 11px 0 9px;
+  gap: 6px;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.card.skin-trading .trading-merge .merge-pull svg {
+  width: 16px;
+  height: 16px;
+}
+
+.card.skin-trading .trading-merge .merge-pull.is-confirm {
+  outline: 2px solid #f4f0ff;
+  outline-offset: 2px;
+}
+
+/* Card actions wait under the sticker until the card is hovered or holds focus. */
+.trading-actions {
+  position: absolute;
+  top: 54px;
+  right: 12px;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.card.skin-trading:is(:hover, :focus-within) .trading-actions {
+  opacity: 1;
+}
+
+.card.skin-trading .trading-actions .vscode-open {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: rgb(18 13 48 / 0.86);
+}
+
+.card.skin-trading .trading-actions .vscode-open img {
+  width: 18px;
+  height: 18px;
+}
+
 /* Center: what the card is, with a tinted lock over it while blocked. */
 .trading-tile {
   position: absolute;
@@ -383,8 +436,13 @@
   transform: none;
 }
 
-.card.skin-trading.far-card .trading-sticker-word {
+.card.skin-trading.far-card :is(.trading-sticker-word, .merge-pull span, .trading-actions) {
   display: none;
+}
+
+.card.skin-trading.far-card .trading-merge .merge-pull {
+  padding: 0;
+  justify-content: center;
 }
 
 .card.skin-trading.far-card .trading-scrim {

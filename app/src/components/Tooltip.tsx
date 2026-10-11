@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom'
 /** How long the pointer rests on something before its tooltip shows. */
 const DELAY_MS = 350
 const GAP = 8
+/** The closest a tooltip comes to the window's edge. */
+const MARGIN = 8
 
 type AnchorProps = {
   onPointerEnter?: (event: PointerEvent<HTMLElement>) => void
@@ -11,6 +13,16 @@ type AnchorProps = {
   onFocus?: (event: FocusEvent<HTMLElement>) => void
   onBlur?: (event: FocusEvent<HTMLElement>) => void
   'aria-describedby'?: string
+}
+
+// Slides a tooltip back inside the window when it would cross an edge, while its arrow keeps pointing at the anchor.
+function keepInWindow(node: HTMLDivElement | null) {
+  if (!node) return
+
+  const box = node.getBoundingClientRect()
+  const shift = Math.max(MARGIN - box.left, 0) - Math.max(box.right - (window.innerWidth - MARGIN), 0)
+
+  node.style.setProperty('--tooltip-shift', `${shift}px`)
 }
 
 /**
@@ -66,7 +78,7 @@ export function Tooltip({ label, children }: { label: string; children: ReactEle
       {anchor}
       {at &&
         createPortal(
-          <div id={id} role="tooltip" className="tooltip" style={{ left: at.x, top: at.y }}>
+          <div id={id} ref={keepInWindow} role="tooltip" className="tooltip" style={{ left: at.x, top: at.y }}>
             {label}
           </div>,
           document.body,

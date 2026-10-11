@@ -20,10 +20,11 @@ type TradingArgs = {
 const DAY_MS = 24 * 60 * 60 * 1000
 
 // A sticker that comes from readiness wins over motion, since a pull request has one readiness at a time.
-function readinessOf(args: TradingArgs): Pick<CardView, 'readiness' | 'readyToMerge'> {
+function readinessOf(args: TradingArgs): Pick<CardView, 'readiness' | 'readyToMerge' | 'merge'> {
   if (args.sticker === 'conflict' || args.sticker === 'failing') return { readiness: args.sticker }
 
-  if (args.sticker === 'mergeable') return { readiness: 'mergeable', readyToMerge: true }
+  if (args.sticker === 'mergeable')
+    return { readiness: 'mergeable', readyToMerge: true, merge: { url: 'https://github.com/vocksel/orion/pull/158', head: 'storybook' } }
 
   if (args.motion === 'running') return { readiness: 'running' }
 

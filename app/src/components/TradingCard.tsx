@@ -2,6 +2,8 @@ import type { CardSizeLabel, CardView, Priority } from '../cardView'
 import { getTradingFacts, type Motion, type Sticker } from '../skins/tradingFacts'
 import { TradingSignalIcon } from './TradingSignalIcon'
 import { SourceBadges } from './SourceBadges'
+import { MergePullRequest } from './MergePullRequest'
+import { OpenInVscode } from './OpenInVscode'
 import { Tooltip } from './Tooltip'
 import { TradingKindIcon } from './TradingKindIcon'
 
@@ -62,11 +64,26 @@ export function TradingCard({ view }: { view: CardView }) {
         {facts.priority !== undefined && <FactChip text={`P${facts.priority}`} name="Priority" severity={PRIORITY_SEVERITY[facts.priority]} />}
         {facts.size && <FactChip text={facts.size} name="Size" severity={SIZE_SEVERITY[facts.size]} />}
       </div>
-      {facts.sticker && (
-        <Tooltip label={STICKER_HINT[facts.sticker]}>
-          <span className={`trading-sticker trading-sticker-${facts.sticker}`}>
-            <TradingSignalIcon signal={facts.sticker} />
-            <span className="trading-sticker-word">{facts.sticker}</span>
+      {facts.sticker === 'mergeable' && view.merge ? (
+        <Tooltip label="Ready to merge. Click twice to merge it.">
+          <span className="trading-sticker trading-sticker-mergeable trading-merge">
+            <MergePullRequest url={view.merge.url} head={view.merge.head} idleLabel="mergeable" nativeTitle={false} />
+          </span>
+        </Tooltip>
+      ) : (
+        facts.sticker && (
+          <Tooltip label={STICKER_HINT[facts.sticker]}>
+            <span className={`trading-sticker trading-sticker-${facts.sticker}`}>
+              <TradingSignalIcon signal={facts.sticker} />
+              <span className="trading-sticker-word">{facts.sticker}</span>
+            </span>
+          </Tooltip>
+        )
+      )}
+      {view.pullRequestUrl && (
+        <Tooltip label="Open in VS Code">
+          <span className="trading-actions">
+            <OpenInVscode url={view.pullRequestUrl} nativeTitle={false} />
           </span>
         </Tooltip>
       )}

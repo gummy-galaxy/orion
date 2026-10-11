@@ -2736,13 +2736,13 @@ kbd {
   box-shadow: var(--shadow);
   font: 600 12px/1.35 var(--font-ui);
   pointer-events: none;
-  transform: translate(-50%, -100%);
+  transform: translate(calc(-50% + var(--tooltip-shift, 0px)), -100%);
 }
 .tooltip::after {
   content: '';
   position: absolute;
   top: 100%;
-  left: 50%;
+  left: calc(50% - var(--tooltip-shift, 0px));
   border: 5px solid transparent;
   border-top-color: var(--ink);
   transform: translateX(-50%);
