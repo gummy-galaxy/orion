@@ -96,6 +96,7 @@ import {
   reportFocus,
   requestSync,
   save,
+  saveCanvasStyle,
   setActiveWorkspace,
   slim,
   type FocusReport,
@@ -113,7 +114,10 @@ import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
 import { useWheelZoom } from '../useWheelZoom'
-import { attentionAtom, collapsedAtom, focusedAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from '../state'
+import { attentionAtom, collapsedAtom, focusedAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom, workspaceAtom } from '../state'
+import { applyStyleChange, backgroundColor, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import { CoverImage } from './CoverImage'
+import { CoverSettings } from './CoverSettings'
 import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
@@ -314,6 +318,15 @@ export function Canvas() {
   // Where focus started, and whether it has since walked to another card or level.
   const focusEntry = useRef<FocusEntry | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+  /** The canvas's cover and background, as the workspace settings hold them. */
+  const [canvasStyle, setCanvasStyle] = useState<CanvasStyle>({})
+  /** The cover panel on show, for the canvas or the open group, or null while it's closed. */
+  const [coverTarget, setCoverTarget] = useState<{ kind: 'canvas' } | { kind: 'group'; id: string } | null>(null)
+  const setWorkspaceName = useSetAtom(workspaceAtom)
+  const canvasColor = backgroundColor(canvasStyle.background)
+  const canvasImage = isAssetId(canvasStyle.background) ? canvasStyle.background : undefined
+
+  useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
   const systemMotion = useSystemMotion()
@@ -519,6 +532,7 @@ export function Canvas() {
       setStickers(doc.stickers ?? [])
       setLoadout(stickerLoadout)
       setGithub(doc.github ?? null)
+      setCanvasStyle(readCanvasStyle(doc.settings))
 
       return adopted
     },
@@ -583,6 +597,7 @@ export function Canvas() {
         setStickers(initialStickers)
         setLoadout(initialLoadout)
         setGithub(null)
+        setCanvasStyle({})
       }
 
       const view = readViewport(workspace.current)
@@ -1771,6 +1786,26 @@ export function Canvas() {
     [setNodes],
   )
 
+  /** A group's cover and background live on the group, so they save with it. A null clears one. */
+  const changeGroupStyle = useCallback(
+    (id: string, change: StyleChange) => {
+      const patch: Partial<ClusterData> = {}
+
+      if (change.cover !== undefined) patch.cover = change.cover ?? undefined
+
+      if (change.background !== undefined) patch.background = change.background ?? undefined
+
+      updateData(id, patch)
+    },
+    [updateData],
+  )
+
+  /** The canvas's cover and background go to the server and show at once. The page keeps its revision, so its own saves still apply. */
+  const changeCanvasStyle = useCallback((change: StyleChange) => {
+    setCanvasStyle((current) => applyStyleChange(current, change))
+    void saveCanvasStyle(workspace.current, change)
+  }, [])
+
   // ---- Notes and links ----
 
   /** Adds a note, or a work item with `itemKind: 'step'`, with its top-left at `at` (flow coordinates), optionally spliced into links. */
@@ -2157,6 +2192,7 @@ export function Canvas() {
           ...many,
           { label: 'Open', hint: hintOf('open-group'), run: () => actions.open(node.id) },
           { label: 'Rename', run: () => (selectOnly(node.id), setEditing(node.id)) },
+          { label: 'Cover and background', run: () => selectOnly(node.id) },
           ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
           { label: 'Ungroup', hint: hintOf('ungroup'), run: () => doUngroup([node.id]) },
         ]
@@ -2205,6 +2241,10 @@ export function Canvas() {
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
       { label: 'Fit to screen', hint: hintOf('fit'), run: () => fitTo(root) },
+      {
+        label: root ? 'Cover and background' : 'Canvas cover and background',
+        run: () => setCoverTarget(root ? { kind: 'group', id: root } : { kind: 'canvas' }),
+      },
       ...(root ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => openRoot(map.get(root)?.parentId ?? null) }] : []),
     ]
   }
@@ -2502,13 +2542,28 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
-          style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}`}
+          style={
+            {
+              ...(canvasColor ? { '--canvas-background': canvasColor } : {}),
+              ...(tool === 'sticker' ? { '--sticker-cursor': stickerCursor(sticker) } : {}),
+            } as CSSProperties
+          }
           ref={canvasRef}
           onPointerDown={startMarquee}
           onPointerMove={trackPointer}
           onClickCapture={claimNodeClick}
         >
+          {canvasImage && (
+            <div className="canvas-backdrop">
+              <CoverImage workspace={workspaces.active} asset={canvasImage} className="canvas-backdrop-image" />
+            </div>
+          )}
+          {canvasStyle.cover && (
+            <div className="canvas-cover">
+              <CoverImage workspace={workspaces.active} asset={canvasStyle.cover} className="canvas-cover-image" />
+            </div>
+          )}
           {ready && (
             <ReactFlow<ViewNode, Edge>
               fitView={!savedView}
@@ -2706,6 +2761,31 @@ export function Canvas() {
                 />
               </Panel>
 
+              {coverTarget && selected.length === 0 && (
+                <Panel position="top-right" className="panel inspector cover-panel">
+                  {coverTarget.kind === 'canvas' ? (
+                    <CoverSettings
+                      title="Canvas cover and background"
+                      workspace={workspaces.active}
+                      current={canvasStyle}
+                      change={changeCanvasStyle}
+                    />
+                  ) : map.has(coverTarget.id) ? (
+                    <CoverSettings
+                      title="Group cover and background"
+                      workspace={workspaces.active}
+                      current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
+                      change={(change) => changeGroupStyle(coverTarget.id, change)}
+                    />
+                  ) : null}
+                  <div className="row">
+                    <button type="button" className="btn" onClick={() => setCoverTarget(null)}>
+                      Done
+                    </button>
+                  </div>
+                </Panel>
+              )}
+
               {selected.length > 0 && (
                 <Panel position="top-right" className="panel inspector">
                   {!one ? (
@@ -2771,6 +2851,12 @@ export function Canvas() {
                       {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
                       <GroupFacts stats={work.groups.get(one.id)} />
                       <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
+                      <CoverSettings
+                        title="Cover and background"
+                        workspace={workspaces.active}
+                        current={one.data as ClusterData}
+                        change={(change) => changeGroupStyle(one.id, change)}
+                      />
                       <div className="row">
                         <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
                           Open

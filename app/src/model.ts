@@ -90,6 +90,10 @@ export type ClusterData = {
   blurb?: string
   layout?: 'pending' | 'refit'
   arrange?: Arrange
+  /** An image asset id from this workspace's assets, shown as a banner across the top of the group. */
+  cover?: string
+  /** A hex color, a color token name such as `card.background`, or an image asset id. */
+  background?: string
 }
 export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
 export type TaskNode = Node<TaskData, 'task'>

@@ -5,6 +5,8 @@ import { deriveWork, traceFrom, type AttentionMark, type GroupStats, type Source
 import { isTask, type AppNode, type Link } from './model'
 
 export const nodesAtom = atom<AppNode[]>([])
+/** The workspace the canvas shows, which names where its cover and background images are kept. */
+export const workspaceAtom = atom('default')
 export const linksAtom = atom<Link[]>([])
 export const hoverAtom = atom<string | null>(null)
 /** A double-clicked card keeps its trace while you pan around; any click lets it go. */
