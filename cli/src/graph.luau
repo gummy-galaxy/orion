@@ -752,6 +752,36 @@ function graph.ungroup(doc: Doc, id: string)
 	end
 end
 
+-- The recorded status of every card, read before a write so markCelebrations can see what changed.
+function graph.recordedStatuses(doc: Doc): { [string]: string }
+	local statuses: { [string]: string } = {}
+
+	for _, item in doc.nodes do
+		if item.type == "task" then
+			statuses[item.id] = field(item, "status") or "todo"
+		end
+	end
+
+	return statuses
+end
+
+-- Sets `celebrate` on a card that changed to done, so the app can celebrate it, and clears it when the card is
+-- reopened. Cards created done and notes never get the flag, and cards finished before the flag existed don't have it.
+function graph.markCelebrations(doc: Doc, previous: { [string]: string })
+	for _, item in doc.nodes do
+		if item.type == "task" and not graph.isNote(item) then
+			local status = field(item, "status")
+			local wasOpen = previous[item.id] ~= nil and previous[item.id] ~= "done"
+
+			if status == "done" and wasOpen then
+				item.data.celebrate = true
+			elseif status ~= "done" then
+				item.data.celebrate = nil
+			end
+		end
+	end
+end
+
 -- Moves an item or group into another group, or to the top level when `groupId` is nil.
 function graph.move(doc: Doc, id: string, groupId: string?)
 	local item = graph.get(doc, id)
