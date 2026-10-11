@@ -59,6 +59,7 @@ import { DetailStepper } from './DetailStepper'
 import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
+import { saveSettings, type SavedSetting } from '../settings'
 import { COLOR_MODES, THEMES, applyAppearance, colorModeOf, readAppearance, writeAppearance, type Appearance } from '../appearance'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
@@ -217,12 +218,8 @@ function readFlag(key: string, fallback: boolean) {
   }
 }
 
-function writeFlag(key: string, value: boolean) {
-  try {
-    localStorage.setItem(key, value ? '1' : '0')
-  } catch {
-    // Only a remembered preference.
-  }
+function writeFlag(key: SavedSetting, value: boolean) {
+  saveSettings({ [key]: value ? '1' : '0' })
 }
 
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
@@ -2413,12 +2410,12 @@ export function Canvas() {
 
   const toggleSidebar = (value: boolean) => {
     setSidebar(value)
-    writeFlag(SIDEBAR_KEY, value)
+    writeFlag('sidebar', value)
   }
 
   const toggleDebug = (v: boolean) => {
     setDebug(v)
-    writeFlag(DEBUG_KEY, v)
+    writeFlag('debug', v)
   }
 
   const changeMotion = (next: MotionSettings) => {
@@ -2426,11 +2423,7 @@ export function Canvas() {
 
     if (!next.pauseWhileMoving) canvasRef.current?.removeAttribute('data-moving')
 
-    try {
-      localStorage.setItem(MOTION_KEY, JSON.stringify(next))
-    } catch {
-      // Private windows can refuse storage; the setting still applies for this session.
-    }
+    saveSettings({ motion: JSON.stringify(next) })
   }
 
   const chooseAppearance = (next: Appearance) => {

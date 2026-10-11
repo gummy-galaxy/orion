@@ -25,6 +25,8 @@ Before replacing an existing data file, the CLI store copies it to `backups/orio
 
 While the app is open, it reports its open group and selection to `orion serve`. The server writes `focus.json` in the active workspace's folder without changing the canvas revision; `orion focus` reads it. The report is cleared when its tab closes, the workspace changes, or the server stops.
 
+The app's preferences, such as the theme, color mode, scrolling, keyboard shortcuts, and whether the sidebar is shown, live in the data root's `settings.json`. `orion serve` reads and merges them at `/api/settings`, so they're shared by every workspace and outlast the desktop app's new server port on each launch.
+
 ## Run the app
 
 ```sh
@@ -119,7 +121,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result. Type `>` first, or press ⇧⌘P (or Ctrl+Shift+P), to list actions instead; deleting the `>` goes back to searching.
-- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Canvas picks whether scrolling zooms or pans. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. Both are saved on this device. The shortcuts in this section are the defaults.
+- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Canvas picks whether scrolling zooms or pans. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. All three are saved in the data folder. The shortcuts in this section are the defaults.
 - Double-click a group, or press Enter with one selected, to open it. Esc or a double-click on empty canvas goes back up, and the breadcrumbs jump to any level.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
 - The detail stepper beside the zoom buttons, or [ and ], folds groups into single bodies one level of nesting at a time, inner groups first, counting from the open group. Each workspace remembers its level. Links between folded groups are bundled into one line with a count. Zoom only moves the view.
