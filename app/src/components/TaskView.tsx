@@ -1,8 +1,9 @@
-import { memo } from 'react'
+import { memo, useContext, type CSSProperties } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { READINESS_LABEL, STATUS_LABEL, getPullReadiness, getPullRef, getTaskTag, type PullDetails, type TaskNode } from '../model'
+import { ActionsContext } from '../derive'
 import { SourceBadges } from './SourceBadges'
-import { useLeverage, useMarked, useSources, useStatus, useTraceRole } from '../state'
+import { useCelebrating, useLeverage, useMarked, useSources, useStatus, useTraceRole } from '../state'
 import { FarTag } from './FarTag'
 import { ChecksIcon } from './ChecksIcon'
 import { MergePullRequest } from './MergePullRequest'
@@ -28,6 +29,10 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   // Work parked or blocked by hand stays that way even when GitHub would merge it.
   const readyToMerge = readiness === 'mergeable' && (status === 'review' || status === 'ready' || status === 'active')
   const statusLabel = readyToMerge ? READINESS_LABEL.mergeable : STATUS_LABEL[status]
+  const actions = useContext(ActionsContext)!
+  // A card keeps its stamp while the stamp clears, after the flag itself is already gone.
+  const clearing = useCelebrating(id)
+  const stamped = (data.celebrate && status === 'done') || clearing !== undefined
 
   if (data.itemKind === 'note') {
     const className = `card note${trace ? ' tr-' + trace : ''}`
@@ -78,6 +83,24 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
         {pullRequestUrl && <OpenInVscode url={pullRequestUrl} />}
         <SourceBadges sources={sources} />
       </div>
+      {stamped && (
+        <button
+          type="button"
+          className={`finish-stamp nodrag nopan${clearing !== undefined ? ' is-clearing' : ''}`}
+          style={clearing !== undefined ? ({ '--clear-delay': `${clearing}ms` } as CSSProperties) : undefined}
+          aria-label={`Clear the finish stamp on ${data.label}`}
+          title="Click to clear"
+          onClick={(event) => {
+            event.stopPropagation()
+
+            if (clearing === undefined) actions.celebrate(id)
+          }}
+        >
+          <svg viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M2.3 5.2 4.2 7.1 7.8 3.2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
     </>
   )
 

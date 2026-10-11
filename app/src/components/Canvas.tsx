@@ -25,7 +25,8 @@ import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
-import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { reflow } from '../layout'
 import { mergeDocs } from '../merge'
@@ -113,7 +114,18 @@ import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
 import { useWheelZoom } from '../useWheelZoom'
-import { attentionAtom, collapsedAtom, focusedAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from '../state'
+import {
+  attentionAtom,
+  celebratingAtom,
+  collapsedAtom,
+  focusedAtom,
+  hoverAtom,
+  linksAtom,
+  nodesAtom,
+  pinnedAtom,
+  traceAtom,
+  workAtom,
+} from '../state'
 import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
@@ -299,6 +311,7 @@ export function Canvas() {
   const away = useAway()
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
+  const setCelebrating = useSetAtom(celebratingAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
@@ -1751,8 +1764,35 @@ export function Canvas() {
         openRoot(groupId)
         setHover(null)
       },
+      celebrate: (id: string) => {
+        const { nodes: currentNodes, links: currentLinks } = latest.current
+        const finished = deriveWork(currentNodes, currentLinks).status
+        const delays = celebrationDelays(id, currentNodes, currentLinks, (other) => finished.get(other) === 'done')
+
+        if (!delays.size) return
+
+        const cleared = new Set(delays.keys())
+
+        setNodes((latestNodes) => clearCelebrations(latestNodes, cleared))
+
+        // Reduced and off motion clear the stamps at once; the stamps only animate while they're listed here.
+        if (motionReduced()) return
+
+        setCelebrating((current) => new Map([...current, ...delays]))
+        window.setTimeout(
+          () =>
+            setCelebrating((current) => {
+              const next = new Map(current)
+
+              for (const key of cleared) next.delete(key)
+
+              return next
+            }),
+          Math.max(...delays.values()) + CLEAR_MS,
+        )
+      },
     }),
-    [tweenTo, openRoot, setHover],
+    [tweenTo, openRoot, setHover, setNodes, setCelebrating],
   )
 
   const arrangeGroup = useCallback(
@@ -1767,7 +1807,13 @@ export function Canvas() {
 
   const updateData = useCallback(
     (id: string, patch: Partial<TaskData> | Partial<ClusterData> | Partial<ImageNode['data']>) =>
-      setNodes((currentNodes) => currentNodes.map((node) => (node.id === id ? ({ ...node, data: { ...node.data, ...patch } } as AppNode) : node))),
+      setNodes((currentNodes) =>
+        currentNodes.map((node) =>
+          node.id === id
+            ? ({ ...node, data: isTask(node) ? patchTaskData(node.data, patch as Partial<TaskData>) : { ...node.data, ...patch } } as AppNode)
+            : node,
+        ),
+      ),
     [setNodes],
   )
 

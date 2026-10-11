@@ -10,6 +10,8 @@ export type SourceRef = { domain: string; label: string; href?: string }
 export type Actions = {
   reflow: (groupId: string) => void
   open: (groupId: string) => void
+  /** Clears the finish stamp on a card and on the finished cards chained to it. */
+  celebrate: (id: string) => void
 }
 
 export const ActionsContext = createContext<Actions | null>(null)
