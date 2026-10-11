@@ -53,11 +53,19 @@ select {
   stroke: var(--edge) !important;
   stroke-width: 6 !important;
 }
+.react-flow__minimap-node:is(.mm-ready, .mm-active) {
+  fill: transparent !important;
+  stroke-width: 10 !important;
+}
 .react-flow__minimap-node.mm-ready {
-  fill: var(--st-ready) !important;
+  stroke: var(--st-ready) !important;
 }
 .react-flow__minimap-node.mm-active {
-  fill: var(--st-active) !important;
+  stroke: var(--st-active) !important;
+}
+.mm-active-half {
+  fill: var(--st-active);
+  pointer-events: none;
 }
 .react-flow__minimap-node.mm-review {
   fill: var(--st-review) !important;
@@ -443,21 +451,23 @@ select {
 }
 .who {
   position: absolute;
-  top: -5px;
-  left: -5px;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  border: 2px solid var(--surface);
+  top: -7px;
+  left: -7px;
+  --who: var(--muted);
+}
+.who-disc {
+  fill: var(--who);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+.who-pupil {
+  fill: var(--who);
 }
 .who-you {
-  background: var(--accent);
+  --who: var(--accent);
 }
 .who-review {
-  background: var(--st-review);
-}
-.who-ci {
-  background: var(--muted);
+  --who: var(--st-review);
 }
 
 .react-flow__node-task .react-flow__handle {
@@ -753,10 +763,15 @@ select {
 }
 /* A folded group is one card, with its contents inside its own bounds. */
 .cluster.is-collapsed {
+  --stack: max(4px, calc(4px * var(--inv, 1)));
   border: max(1.5px, calc(1.5px * var(--inv, 1))) solid var(--edge);
   border-radius: max(var(--radius-lg), calc(var(--radius-md) * var(--inv, 1)));
   background: var(--surface);
-  box-shadow: var(--shadow);
+  /* A sheet peeking out behind marks a folded group as a stack of work rather than one card. */
+  box-shadow:
+    var(--stack) var(--stack) 0 calc(-1 * max(1.5px, calc(1.5px * var(--inv, 1)))) var(--surface),
+    var(--stack) var(--stack) 0 0 var(--edge),
+    var(--shadow);
 }
 /* Folded groups paint above expanded frames. */
 .react-flow__node-cluster:has(.cluster.is-collapsed) {
@@ -2182,6 +2197,18 @@ kbd {
 }
 .card.note .meta {
   color: var(--note-ink);
+}
+/* A folded corner marks a note as paper rather than work, without its color. */
+.card.note::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 13px;
+  height: 13px;
+  border-radius: 0 7px 0 3px;
+  background: linear-gradient(to bottom left, var(--note) 50%, var(--note-edge) 50%);
+  pointer-events: none;
 }
 .note-text {
   font-size: 12px;

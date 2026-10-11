@@ -74,6 +74,7 @@ import {
 } from '../appearance'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
+import { MiniMapNode } from './MiniMapNode'
 import { ImageView } from './ImageView'
 import { TaskView } from './TaskView'
 import {
@@ -2773,6 +2774,7 @@ export function Canvas() {
               <MiniMap
                 pannable
                 zoomable
+                nodeComponent={MiniMapNode}
                 nodeClassName={(node) =>
                   node.type === 'cluster'
                     ? 'mm-cluster'
