@@ -2,6 +2,8 @@
 
 Orion is a canvas of work items, notes, and groups linked by dependencies. Use the `orion` CLI to read and change it. Never edit `orion.json` directly: the Luau CLI owns the data and its lock. The app talks to `orion serve` over HTTP and WebSocket and picks up every change while it's open.
 
+[`CHARTER.md`](CHARTER.md) sets Orion's direction: its principles, what it won't do, and the roadmap. Check new work against it, and call out a change that conflicts with it.
+
 ## Reading the canvas
 
 - `orion ready` lists work that can start now, the items that unblock the most first.
