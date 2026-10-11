@@ -125,7 +125,8 @@ jobs:
         # Restore hosted runners when the repo is public. Until then, Linux jobs run on the self-hosted Beelink to save private minutes
         runner: [beelink] # [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
+    # A build without the Rust cache takes about 30 minutes on the Beelink's shared cores
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
@@ -206,12 +207,10 @@ jobs:
   perf:
     needs: changes
     if: needs.changes.outputs.app == 'true'
-    runs-on: beelink
+    # The Beelink's supervisor runs exclusive jobs one at a time on cores no other job uses, in rank order. The pin
+    # label gives this job its own runner, so no other job can take it.
+    runs-on: [exclusive, "pin-perf-${{ github.run_id }}-${{ github.run_attempt }}"]
     timeout-minutes: 25
-    # Both Beelink runners share one machine, so concurrent perf runs skew each other's timings
-    concurrency:
-      group: perf
-      queue: max
     permissions:
       contents: read
       pull-requests: write
