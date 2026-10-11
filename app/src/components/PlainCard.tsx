@@ -1,6 +1,6 @@
 import type { CardView } from '../cardView'
-import { Lock } from './Lock'
 import { SourceBadges } from './SourceBadges'
+import { StatusIcon } from './StatusIcon'
 
 export function PlainCard({ view }: { view: CardView }) {
   if (view.kind === 'note') {
@@ -40,7 +40,7 @@ export function PlainCard({ view }: { view: CardView }) {
           </span>
         )}
         <span className="plain-status" title={view.statusLabel}>
-          {view.status === 'blocked' && <Lock />}
+          {view.status === 'blocked' && <StatusIcon status="blocked" />}
           {view.statusLabel}
         </span>
       </div>
