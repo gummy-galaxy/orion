@@ -1,4 +1,6 @@
+local fs = require("@std/fs")
 local json = require("@std/json")
+local path = require("@std/path")
 local test = require("@std/test")
 
 local findRef = require("@root/refs/findRef")
@@ -150,4 +152,22 @@ test.case("sync records unplaced authored pulls without adding review request ca
 	local unplaced = if top then json.asArray(top.unplaced) else nil
 	assert.eq(unplaced and #unplaced, 1)
 	assert.strContains(run({ "matches" }), "flipbook#670")
+end)
+
+test.case("set puts a cover and background on a group, and needs the cover image in the workspace", function(assert)
+	local dir, run = testing.createHarness("set-group-style")
+	assert.throws(function()
+		run({ "set", "ws", "--cover", "image-missing.png" })
+	end)
+	fs.createDirectory(path.join(dir, "assets"), { makeParents = true })
+	fs.writeStringToFile(path.join(dir, "assets", "image-logo.png"), "bytes")
+	run({ "set", "ws", "--cover", "image-logo.png", "--background", "#1d1b2e" })
+	local group = store.load(dir).nodes[1]
+	assert.eq(group.data.cover, "image-logo.png")
+	assert.eq(group.data.background, "#1d1b2e")
+	assert.throws(function()
+		run({ "set", "pub", "--background", "#1d1b2e" })
+	end)
+	run({ "set", "ws", "--background", "" })
+	assert.eq(store.load(dir).nodes[1].data.background, nil)
 end)

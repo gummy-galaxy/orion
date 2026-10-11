@@ -276,6 +276,8 @@ function store.decode(text: string): Doc
 
 	local settings = json.asObject(root.settings) or json.object({})
 	local sources: { Source } = {}
+	local cover = asString(settings.cover)
+	local background = asString(settings.background)
 
 	for _, raw in json.asArray(settings.sources) or {} do
 		local source = json.asObject(raw)
@@ -348,7 +350,7 @@ function store.decode(text: string): Doc
 	return {
 		version = 2,
 		revision = asNumber(root.revision) or 0,
-		settings = { sources = sources },
+		settings = { sources = sources, cover = cover, background = background },
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
@@ -414,6 +416,8 @@ function store.toObject(doc: Doc): json.Object
 	end
 
 	settings.sources = sources
+	settings.cover = doc.settings.cover
+	settings.background = doc.settings.background
 	root.settings = settings
 	root.nodes = nodes
 	root.links = links
@@ -606,6 +610,27 @@ function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
 	end
 
 	return result :: Doc
+end
+
+-- Changes the canvas's own cover and background without moving the revision. The app that made the change
+-- already holds that revision, so its next save still applies.
+function store.putCanvasStyle(dir: string, mutate: (Doc) -> ())
+	if not fs.exists(dir) then
+		fs.createDirectory(dir, { makeParents = true })
+	end
+
+	local lockPath = acquire(dir)
+	local succeeded, failureMessage = pcall(function()
+		local doc = store.load(dir)
+		mutate(doc)
+		atomicWrite(store.filePath(dir), store.encode(doc))
+	end)
+
+	release(lockPath)
+
+	if not succeeded then
+		error(failureMessage, 0)
+	end
 end
 
 -- Writes a whole document, used to seed data and in tests.

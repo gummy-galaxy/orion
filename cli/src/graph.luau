@@ -1,8 +1,10 @@
 local json = require("@std/json")
 
+local checkBackground = require("@root/style/checkBackground")
 local fieldValues = require("@root/fieldValues")
 local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
+local isAssetId = require("@root/media/isAssetId")
 local removeRef = require("@root/refs/removeRef")
 local setRef = require("@root/refs/setRef")
 local types = require("@root/types")
@@ -33,6 +35,8 @@ export type ItemFields = {
 	note: string?,
 	blurb: string?,
 	arrange: string?,
+	cover: string?,
+	background: string?,
 	kind: string?,
 }
 
@@ -344,6 +348,14 @@ local function checkFields(fields: ItemFields)
 		fields.arrange == nil or table.find(fieldValues.arrangements, fields.arrange),
 		`arrange must be one of {table.concat(fieldValues.arrangements, ", ")}`
 	)
+	assert(
+		fields.cover == nil or fields.cover == "" or isAssetId(fields.cover),
+		"cover must be an image asset id, such as the asset from orion media insert"
+	)
+
+	if fields.background and fields.background ~= "" then
+		checkBackground(fields.background)
+	end
 end
 
 export type AddOptions = ItemFields & { group: string? }
@@ -417,7 +429,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.pr == nil
 				and fields.who == nil
 				and fields.kind == nil,
-			"groups only take a label, blurb, and arrange"
+			"groups only take a label, blurb, arrange, cover, and background"
 		)
 
 		if fields.label then
@@ -435,10 +447,22 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 			end
 		end
 
+		if fields.cover then
+			item.data.cover = if fields.cover == "" then nil else fields.cover
+		end
+
+		if fields.background then
+			item.data.background = if fields.background == "" then nil else fields.background
+		end
+
 		return item
 	end
 
 	assert(fields.arrange == nil, `"{id}" is an item; only groups take an arrangement`)
+	assert(
+		fields.cover == nil and fields.background == nil,
+		`"{id}" is an item; only groups take a cover or background`
+	)
 	if fields.label then
 		item.data.label = fields.label
 	end
