@@ -107,13 +107,11 @@ import {
 } from '../persist'
 import { Sidebar } from './Sidebar'
 import { Settings, type SettingsSection } from './Settings'
-import { SCROLLINGS, readScrolling, writeScrolling, type Scrolling } from '../scrolling'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
-import { useWheelZoom } from '../useWheelZoom'
 import {
   attentionAtom,
   collapsedAtom,
@@ -331,7 +329,6 @@ export function Canvas() {
   const [appearance, setAppearance] = useState(readAppearance)
   const setSkin = useSetAtom(skinAtom, { store: skinStore })
   const systemMotion = useSystemMotion()
-  const [scrolling, setScrolling] = useState(readScrolling)
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
   const [settings, setSettings] = useState<SettingsSection | null>(null)
@@ -1008,8 +1005,6 @@ export function Canvas() {
   const map = useMemo(() => byId(nodes), [nodes])
   // Focus ends on its own if someone else removes the card.
   const focus = focusPick && map.has(focusPick) ? focusPick : null
-
-  useWheelZoom(canvasRef, !focus && scrolling === 'zoom')
 
   const work = useAtomValue(workAtom)
 
@@ -2428,16 +2423,10 @@ export function Canvas() {
       detail: 'Saved on this device',
       run: () => chooseAppearance(withMotion(appearance, option.id)),
     })),
-    ...SCROLLINGS.map((option) => ({
-      id: `scroll-${option.id}`,
-      label: `Scroll to: ${option.label}`,
-      detail: 'Saved on this device',
-      run: () => chooseScrolling(option.id),
-    })),
     {
       id: 'settings',
       label: 'Open settings',
-      detail: 'Theme, cards, color mode, scrolling, accessibility, and keyboard shortcuts',
+      detail: 'Theme, cards, color mode, accessibility, and keyboard shortcuts',
       hint: hintOf('settings'),
       run: () => setSettings('appearance'),
     },
@@ -2494,11 +2483,6 @@ export function Canvas() {
   const chooseAppearance = (next: Appearance) => {
     setAppearance(next)
     writeAppearance(next)
-  }
-
-  const chooseScrolling = (next: Scrolling) => {
-    setScrolling(next)
-    writeScrolling(next)
   }
 
   const chooseKeybindings = (next: Keybindings) => {
@@ -2902,8 +2886,6 @@ export function Canvas() {
             close={() => setSettings(null)}
             appearance={appearance}
             chooseAppearance={chooseAppearance}
-            scrolling={scrolling}
-            chooseScrolling={chooseScrolling}
             keybindings={keybindings}
             chooseKeybindings={chooseKeybindings}
           />
