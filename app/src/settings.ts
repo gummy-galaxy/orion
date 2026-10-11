@@ -1,7 +1,7 @@
 /**
- * Preferences saved in the data folder through `orion serve`. The desktop app's page gets a new
- * origin each launch, which starts browser storage empty, so the server's copy is the one that
- * lasts. Browser storage still caches each value for code that reads it synchronously.
+ * Preferences saved in the data folder through `orion serve`, so the browser and desktop app share
+ * them and they outlast either one's browser storage. Browser storage still caches each value for
+ * code that reads it synchronously.
  */
 const API = '/api/settings'
 const PREFIX = 'orion:'
