@@ -1,3 +1,5 @@
+import { saveSettings } from './settings'
+
 /**
  * Keyboard shortcuts you can rebind. A chord is written as its modifiers then its key, such as
  * `Mod+Shift+P`, where `Mod` is ⌘ or Ctrl. An empty chord leaves the shortcut unbound.
@@ -201,10 +203,5 @@ export function writeKeybindings(bindings: Keybindings) {
     SHORTCUTS.filter((shortcut) => bindings[shortcut.id] !== shortcut.chord).map((shortcut) => [shortcut.id, bindings[shortcut.id]]),
   )
 
-  try {
-    if (Object.keys(changed).length) localStorage.setItem(KEYBINDINGS_KEY, JSON.stringify(changed))
-    else localStorage.removeItem(KEYBINDINGS_KEY)
-  } catch {
-    // Only a remembered preference.
-  }
+  saveSettings({ keybindings: Object.keys(changed).length ? JSON.stringify(changed) : null })
 }

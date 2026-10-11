@@ -1,3 +1,5 @@
+import { saveSettings } from './settings'
+
 export type ColorMode = 'light' | 'dark' | 'system'
 
 export type Theme = {
@@ -46,12 +48,7 @@ export function readAppearance(): Appearance {
 }
 
 export function writeAppearance(appearance: Appearance) {
-  try {
-    localStorage.setItem(THEME_KEY, appearance.theme)
-    localStorage.setItem(COLOR_MODE_KEY, appearance.colorMode)
-  } catch {
-    // Only a remembered preference.
-  }
+  saveSettings({ theme: appearance.theme, 'color-mode': appearance.colorMode })
 }
 
 export function applyAppearance(appearance: Appearance, root = document.documentElement) {
