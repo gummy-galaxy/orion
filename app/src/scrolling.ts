@@ -1,4 +1,5 @@
 import { GESTURES, type Gesture } from './keybindings'
+import { saveSettings } from './settings'
 
 /** What scrolling does on the canvas. Pinch zooms either way. */
 export type Scrolling = 'zoom' | 'pan'
@@ -19,11 +20,7 @@ export function readScrolling(): Scrolling {
 }
 
 export function writeScrolling(scrolling: Scrolling) {
-  try {
-    localStorage.setItem(SCROLLING_KEY, scrolling)
-  } catch {
-    // Only a remembered preference.
-  }
+  saveSettings({ scrolling })
 }
 
 /** Every gesture, with panning and zooming described for what scrolling does. */

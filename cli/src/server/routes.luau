@@ -5,6 +5,7 @@ local editor = require("@root/server/routes/editor")
 local focus = require("@root/server/routes/focus")
 local imageRoutes = require("@root/server/routes/images")
 local orion = require("@root/server/routes/orion")
+local settings = require("@root/server/routes/settings")
 local shared = require("@root/server/routes/shared")
 local static = require("@root/server/routes/static")
 local store = require("@root/store")
@@ -58,6 +59,9 @@ function routes.create(
 		end
 		if route == "/api/editor" then
 			return editor.handle(request)
+		end
+		if route == "/api/settings" then
+			return settings.handle(request, root)
 		end
 
 		if route == "/api/workspaces" or route == "/api/workspaces/active" then
