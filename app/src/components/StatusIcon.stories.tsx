@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { STATUS_LABEL, type ViewStatus } from '../model'
+import { READINESS_LABEL, STATUS_LABEL, type PullReadiness, type ViewStatus } from '../model'
 import { ChecksIcon } from './ChecksIcon'
 import { StatusIcon } from './StatusIcon'
 
@@ -26,10 +26,10 @@ export const Statuses: Story = {
 export const Checks: Story = {
   render: () => (
     <div style={{ display: 'grid', gap: 8 }}>
-      {(['SUCCESS', 'FAILURE', 'PENDING'] as const).map((checks) => (
-        <span key={checks} style={row}>
-          <ChecksIcon checks={checks} />
-          {checks.toLowerCase()}
+      {(Object.keys(READINESS_LABEL) as PullReadiness[]).map((readiness) => (
+        <span key={readiness} style={row}>
+          <ChecksIcon readiness={readiness} />
+          {READINESS_LABEL[readiness]}
         </span>
       ))}
     </div>
