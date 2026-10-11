@@ -67,6 +67,12 @@
     linear-gradient(160deg, #d94dff, #2a1577 72%);
 }
 
+/* The card is drawn at 264 by 380 and zoomed down to its size on the canvas, so it sits in scale with group
+   headers. The far form keeps its own on-screen size. */
+.card.skin-trading:not(.far-card) .trading-frame {
+  zoom: 0.75;
+}
+
 .trading-art {
   position: absolute;
   inset: 0;

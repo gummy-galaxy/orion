@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
 import { STALE_DAYS, type Motion, type Sticker } from '../skins/tradingFacts'
+import { skinOf } from '../skins'
 import { TradingCard } from './TradingCard'
 
 type TradingArgs = {
@@ -67,7 +68,7 @@ function TradingFrame({ view, far }: { view: CardView; far: boolean }) {
     (far ? ' far-card' : '')
 
   return (
-    <div style={far ? { position: 'relative', width: 240, height: 170 } : { width: 264, height: 380 }}>
+    <div style={far ? { position: 'relative', width: 240, height: 170 } : skinOf('trading').size}>
       <div className={className} style={far ? { position: 'relative', translate: 'none' } : { width: '100%', height: '100%' }}>
         <TradingCard view={view} />
       </div>

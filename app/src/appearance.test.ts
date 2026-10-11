@@ -24,7 +24,7 @@ describe('card skins', () => {
     expect(SKINS.map((skin) => skin.size)).toEqual([
       { width: TASK_WIDTH, height: TASK_HEIGHT },
       { width: TASK_WIDTH, height: TASK_HEIGHT },
-      { width: 264, height: 380 },
+      { width: 198, height: 285 },
     ])
     expect(skinOf('unknown')).toBe(SKINS[0])
   })
