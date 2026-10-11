@@ -93,6 +93,7 @@ import {
 } from '../persist'
 import { Sidebar } from './Sidebar'
 import { Settings, type SettingsSection } from './Settings'
+import { SCROLLINGS, readScrolling, writeScrolling, type Scrolling } from '../scrolling'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
@@ -325,6 +326,7 @@ export function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
+  const [scrolling, setScrolling] = useState(readScrolling)
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
   const [settings, setSettings] = useState<SettingsSection | null>(null)
@@ -2482,10 +2484,16 @@ export function Canvas() {
       detail: 'Saved on this device',
       run: () => chooseAppearance({ ...appearance, colorMode: mode }),
     })),
+    ...SCROLLINGS.map((option) => ({
+      id: `scroll-${option.id}`,
+      label: `Scroll to: ${option.label}`,
+      detail: 'Saved on this device',
+      run: () => chooseScrolling(option.id),
+    })),
     {
       id: 'settings',
       label: 'Open settings',
-      detail: 'Theme, color mode, and keyboard shortcuts',
+      detail: 'Theme, color mode, scrolling, and keyboard shortcuts',
       hint: hintOf('settings'),
       run: () => setSettings('appearance'),
     },
@@ -2543,6 +2551,11 @@ export function Canvas() {
     setAppearance(next)
     applyAppearance(next)
     writeAppearance(next)
+  }
+
+  const chooseScrolling = (next: Scrolling) => {
+    setScrolling(next)
+    writeScrolling(next)
   }
 
   const chooseKeybindings = (next: Keybindings) => {
@@ -2668,8 +2681,8 @@ export function Canvas() {
               nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
               nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
               elementsSelectable={!focus && tool !== 'sticker'}
-              panOnScroll={!focus}
-              zoomOnScroll={false}
+              panOnScroll={!focus && scrolling === 'pan'}
+              zoomOnScroll={!focus && scrolling === 'zoom'}
               zoomOnPinch={!focus}
               multiSelectionKeyCode={['Meta', 'Shift']}
               deleteKeyCode={null}
@@ -2959,6 +2972,8 @@ export function Canvas() {
             close={() => setSettings(null)}
             appearance={appearance}
             chooseAppearance={chooseAppearance}
+            scrolling={scrolling}
+            chooseScrolling={chooseScrolling}
             keybindings={keybindings}
             chooseKeybindings={chooseKeybindings}
           />

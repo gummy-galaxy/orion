@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useState } from 'react'
 import type { Appearance } from '../appearance'
 import { DEFAULT_KEYBINDINGS, type Keybindings } from '../keybindings'
+import type { Scrolling } from '../scrolling'
 import { Settings, type SettingsSection } from './Settings'
 
 const meta = { title: 'Interaction/Overlays/Settings', parameters: { layout: 'fullscreen' } } satisfies Meta
@@ -12,6 +13,7 @@ type Story = StoryObj<typeof meta>
 function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: SettingsSection; keybindings?: Keybindings }) {
   const [shown, setShown] = useState(section)
   const [appearance, setAppearance] = useState<Appearance>({ theme: 'classic', colorMode: 'system' })
+  const [scrolling, setScrolling] = useState<Scrolling>('zoom')
   const [bindings, setBindings] = useState(keybindings)
 
   return (
@@ -21,6 +23,8 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
       close={() => {}}
       appearance={appearance}
       chooseAppearance={setAppearance}
+      scrolling={scrolling}
+      chooseScrolling={setScrolling}
       keybindings={bindings}
       chooseKeybindings={setBindings}
     />
@@ -28,6 +32,8 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
 }
 
 export const AppearanceSection: Story = { render: () => <Interactive section="appearance" /> }
+
+export const CanvasSection: Story = { render: () => <Interactive section="canvas" /> }
 
 export const ShortcutsSection: Story = { render: () => <Interactive section="shortcuts" /> }
 
