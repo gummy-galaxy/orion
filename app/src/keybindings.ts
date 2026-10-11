@@ -1,3 +1,5 @@
+import { saveSettings } from './settings'
+
 /**
  * Keyboard shortcuts you can rebind. A chord is written as its modifiers then its key, such as
  * `Mod+Shift+P`, where `Mod` is ⌘ or Ctrl. An empty chord leaves the shortcut unbound.
@@ -16,6 +18,8 @@ export type ShortcutId =
   | 'step-back'
   | 'add-note'
   | 'fit'
+  | 'less-detail'
+  | 'more-detail'
   | 'tool-select'
   | 'tool-hand'
   | 'tool-comment'
@@ -45,6 +49,8 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'go-back', label: 'Go back', detail: 'Return to the previous view', category: 'Navigation', chord: 'Mod+[' },
   { id: 'go-forward', label: 'Go forward', detail: 'Return to the view you went back from', category: 'Navigation', chord: 'Mod+]' },
   { id: 'fit', label: 'Fit to screen', detail: 'Show everything in the open group', category: 'Navigation', chord: 'Shift+1' },
+  { id: 'less-detail', label: 'Show less detail', detail: 'Fold one more level of groups', category: 'Navigation', chord: '[' },
+  { id: 'more-detail', label: 'Show more detail', detail: 'Open one more level of groups', category: 'Navigation', chord: ']' },
   { id: 'tool-select', label: 'Select tool', detail: 'Drag to select', category: 'Tools', chord: 'V' },
   { id: 'tool-hand', label: 'Pan tool', detail: 'Drag anywhere to pan', category: 'Tools', chord: 'H' },
   { id: 'tool-comment', label: 'Comment tool', detail: 'Click to leave a note', category: 'Tools', chord: 'C' },
@@ -63,6 +69,7 @@ export const GESTURES: readonly Gesture[] = [
   { label: 'Actions for an item', how: 'Right-click' },
   { label: 'Open a group', how: 'Double-click it' },
   { label: 'Focus a card', how: 'Double-click it' },
+  { label: 'Go up a level', how: 'Double-click empty canvas' },
   { label: 'Hold a card’s trace or edit a note', how: '⇧ double-click' },
   { label: 'Retrace views', how: 'Mouse back and forward buttons' },
   { label: 'Link two items', how: 'Drag from a card’s edge' },
@@ -201,10 +208,5 @@ export function writeKeybindings(bindings: Keybindings) {
     SHORTCUTS.filter((shortcut) => bindings[shortcut.id] !== shortcut.chord).map((shortcut) => [shortcut.id, bindings[shortcut.id]]),
   )
 
-  try {
-    if (Object.keys(changed).length) localStorage.setItem(KEYBINDINGS_KEY, JSON.stringify(changed))
-    else localStorage.removeItem(KEYBINDINGS_KEY)
-  } catch {
-    // Only a remembered preference.
-  }
+  saveSettings({ keybindings: Object.keys(changed).length ? JSON.stringify(changed) : null })
 }

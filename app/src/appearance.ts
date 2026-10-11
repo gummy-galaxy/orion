@@ -1,4 +1,5 @@
 import { systemMotion, type Motion } from './motion'
+import { saveSettings } from './settings'
 
 export type ColorMode = 'light' | 'dark' | 'system'
 
@@ -70,16 +71,12 @@ export function readAppearance(): Appearance {
 }
 
 export function writeAppearance(appearance: Appearance) {
-  try {
-    localStorage.setItem(THEME_KEY, appearance.theme)
-    localStorage.setItem(COLOR_MODE_KEY, appearance.colorMode)
-    localStorage.setItem(STATUS_COLORS_KEY, appearance.statusColors)
-
-    if (appearance.animations === 'system') localStorage.removeItem(ANIMATIONS_KEY)
-    else localStorage.setItem(ANIMATIONS_KEY, appearance.animations)
-  } catch {
-    // Only a remembered preference.
-  }
+  saveSettings({
+    theme: appearance.theme,
+    'color-mode': appearance.colorMode,
+    'status-colors': appearance.statusColors,
+    animations: appearance.animations === 'system' ? null : appearance.animations,
+  })
 }
 
 export function applyAppearance(appearance: Appearance, root = document.documentElement) {

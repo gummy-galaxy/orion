@@ -1,6 +1,6 @@
 # Orion
 
-A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with zoom levels that go from single cards out to whole bodies of work.
+A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with a detail control that goes from single cards out to whole bodies of work.
 
 This is a prototype. It runs in the browser or in a desktop shell.
 
@@ -24,6 +24,8 @@ Use `orion workspace list`, `orion workspace create <name> [--label <label>]`, `
 Before replacing an existing data file, the CLI store copies it to `backups/orion-r<revision>-<UTC timestamp>.json` in that workspace's folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list the selected workspace's backups newest first, and `orion restore <revision>` to recover one in that workspace as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
 
 While the app is open, it reports its open group and selection to `orion serve`. The server writes `focus.json` in the active workspace's folder without changing the canvas revision; `orion focus` reads it. The report is cleared when its tab closes, the workspace changes, or the server stops.
+
+The app's preferences, such as the theme, color mode, scrolling, keyboard shortcuts, and whether the sidebar is shown, live in the data root's `settings.json`. `orion serve` reads and merges them at `/api/settings`, so they're shared by every workspace and outlast the desktop app's new server port on each launch.
 
 ## Run the app
 
@@ -119,11 +121,10 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result. Type `>` first, or press ⇧⌘P (or Ctrl+Shift+P), to list actions instead; deleting the `>` goes back to searching.
-- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Accessibility picks colorblind colors: Red-green or Blue-yellow swaps in status colors tuned for that kind of color blindness, in any theme. Animations follows your computer's reduced motion setting until you pick a level: Reduced stops looping effects and makes the canvas jump instead of glide but keeps fades, and Off stops every animation. Every status also has its own shape: an empty ring when ready, half full in progress, three quarters in review, a solid check when done, a dashed ring when deferred, and a lock when blocked. Whose move it is shows as a person, an eye, or a gear; notes have a folded corner; folded groups look like a stack of cards; and the minimap draws ready work hollow, work in progress half filled, and work in review solid. Canvas picks whether scrolling zooms or pans. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. Both are saved on this device. The shortcuts in this section are the defaults.
-- Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
-- Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
+- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Accessibility picks colorblind colors: Red-green or Blue-yellow swaps in status colors tuned for that kind of color blindness, in any theme. Animations follows your computer's reduced motion setting until you pick a level: Reduced stops looping effects and makes the canvas jump instead of glide but keeps fades, and Off stops every animation. Every status also has its own shape: an empty ring when ready, half full in progress, three quarters in review, a solid check when done, a dashed ring when deferred, and a lock when blocked. Whose move it is shows as a person, an eye, or a gear; notes have a folded corner; folded groups look like a stack of cards; and the minimap draws ready work hollow, work in progress half filled, and work in review solid. Canvas picks whether scrolling zooms or pans. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. All four are saved in the data folder. The shortcuts in this section are the defaults.
+- Double-click a group, or press Enter with one selected, to open it. Esc or a double-click on empty canvas goes back up, and the breadcrumbs jump to any level.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
-- Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
+- The detail stepper beside the zoom buttons, or [ and ], folds groups into single bodies one level of nesting at a time, inner groups first, counting from the open group. Each workspace remembers its level. Links between folded groups are bundled into one line with a count. Zoom only moves the view.
 - However far you zoom out, folded groups, cards, and notes keep their full details at a readable size, and open groups' headers grow to stay legible. Hover one to bring it above its neighbors.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
 - Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it (dark dots).
@@ -155,7 +156,7 @@ In `app/`:
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
-- `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
+- `src/App.tsx`: the canvas, detail levels, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
 - `src/Settings.tsx`, `src/AppearanceSettings.tsx`, `src/CanvasSettings.tsx`, and `src/ShortcutSettings.tsx`: the settings dialog. `app/src/keybindings.ts` lists each shortcut with its default and saves rebound ones.
