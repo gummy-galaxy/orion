@@ -91,6 +91,7 @@ const IDENTITY_LABEL: Record<TradingIdentity, string> = {
   emblem: 'Emblem: the kind drawn into the art, its mark by the title',
   frame: "Frame: emblem inside the vibrant study's rim, lit by status and the art's inks",
   shape: 'Shape: frame, with an outline cut by kind',
+  scene: 'Scene: a sky scene by kind, display type, bare numbers, and a finish by rarity',
 }
 
 const LINEUP_KINDS: CardView['kind'][] = ['step', 'pr', 'placeholder', 'gate']
@@ -133,7 +134,7 @@ const defaults: TradingArgs = {
   unblocks: 2,
   group: 'pr-queue',
   upstream: 5,
-  identity: 'emblem',
+  identity: 'scene',
   sealSide: 'right',
   far: false,
 }
@@ -319,20 +320,15 @@ export const RarityTiers: Story = {
   args: { sticker: 'none', status: 'ready' },
 }
 
-export const Foil: Story = {
-  name: 'Foil · priority',
+export const Finish: Story = {
+  name: 'Finish · rarity',
   render: (args) => (
     <Lineup
-      rows={(['emblem', 'frame', 'shape'] as const).map((identity) => ({
+      rows={(['scene', 'shape'] as const).map((identity) => ({
         label: IDENTITY_LABEL[identity],
-        cards: (['0', '1', '2', 'unknown'] as const).map((priority) => ({
-          key: priority,
-          args: {
-            ...args,
-            identity,
-            priority,
-            title: priority === 'unknown' ? 'No priority set' : `P${priority}: ${['holo', 'foil rim', 'no foil'][Number(priority)]}`,
-          },
+        cards: [0, UNCOMMON_UPSTREAM, RARE_UPSTREAM, MYTHIC_UPSTREAM].map((upstream) => ({
+          key: String(upstream),
+          args: { ...args, identity, upstream, title: `${getRarity(upstream)}: ${upstream} cards feed into this` },
         })),
       }))}
     />

@@ -10,6 +10,7 @@
   /* Ready work wears the theme's accent unless the status colors replace it. */
   --st-ready: var(--accent);
   --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Unbounded', var(--font-ui);
   --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   color-scheme: light dark;
 }

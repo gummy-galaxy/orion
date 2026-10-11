@@ -692,7 +692,7 @@
 }
 
 /* The rim is a border painted from the border box, so it costs no extra layer or clip. */
-.card.skin-trading .trading-frame:is([data-identity='frame'], .trading-foil-edge, .trading-foil-holo) {
+.card.skin-trading .trading-frame:is([data-identity='frame'], .trading-finish-foil, .trading-finish-holo) {
   box-sizing: border-box;
   border: 5px solid transparent;
   background:
@@ -731,8 +731,8 @@
   outline: none;
 }
 
-/* Foil is priority: P1 gets a foil rim, P0 a foil rim and holo over the art. It stays off the text. */
-.card.skin-trading .trading-frame:is(.trading-foil-edge, .trading-foil-holo) {
+/* Foil is rarity: rare cards get a foil rim, mythic cards a foil rim and holo over the art. It stays off the text. */
+.card.skin-trading .trading-frame:is(.trading-finish-foil, .trading-finish-holo) {
   --trading-rim: var(--trading-spectrum);
 }
 
@@ -776,7 +776,7 @@
   box-shadow: 0 18px 40px rgb(0 0 0 / 0.45);
 }
 
-.card.skin-trading .trading-frame[data-identity='shape']:is(.trading-done, .trading-deferred):not(.trading-foil-edge, .trading-foil-holo) {
+.card.skin-trading .trading-frame[data-identity='shape']:is(.trading-done, .trading-deferred):not(.trading-finish-foil, .trading-finish-holo) {
   --trading-rim: linear-gradient(
     155deg,
     color-mix(in oklab, var(--st-done) 70%, #1a1344),
@@ -811,4 +811,130 @@
 
 .trading-frame[data-identity='shape'].trading-gate :is(.trading-facts, .trading-sticker) {
   top: 26px;
+}
+
+/* Scene: the Figma and Runeterra direction. The art is a scene in the night sky under a grain dither, the title
+   is set in the display face, the numbers stand bare, and rarity picks the finish of the card's edge. */
+.trading-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Grain rather than a dot grid: scattered light and dark specks in a 96px tile drawn at 2x. */
+.trading-frame[data-identity='scene'] .trading-art::after {
+  background: url('data:image/png;base64,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')
+    0 0 / calc(var(--trading-dot) * 16) calc(var(--trading-dot) * 16);
+}
+
+.card.skin-trading .trading-frame[data-identity='scene'] {
+  box-shadow:
+    0 18px 40px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(255 255 255 / 0.14);
+}
+
+.trading-frame[data-identity='scene'] .trading-title {
+  font: 800 17px/1.22 var(--font-display);
+  letter-spacing: -0.005em;
+}
+
+.trading-frame[data-identity='scene'] .trading-kind-mark {
+  visibility: hidden;
+}
+
+.trading-frame[data-identity='scene'] :is(.trading-blockers, .trading-unblocks) {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  font: 800 30px/1 var(--font-display);
+}
+
+.trading-frame[data-identity='scene'] .trading-blockers {
+  justify-self: start;
+  padding-left: 4px;
+  color: #a39bcc;
+}
+
+.trading-frame[data-identity='scene'] .trading-unblocks {
+  justify-self: end;
+  padding-right: 4px;
+  color: #18d6c0;
+  font-size: 36px;
+}
+
+/* Shapes by kind: square steps, leaf-cornered pull requests, dashed expected ones, notched gates. */
+.card.skin-trading .trading-frame[data-identity='scene'][data-kind='step'] {
+  border-radius: 5px;
+}
+
+.card.skin-trading .trading-frame[data-identity='scene'][data-kind='pr'] {
+  border-radius: 40px 6px;
+}
+
+.card.skin-trading .trading-frame[data-identity='scene'].trading-expected {
+  border-radius: 30px;
+  outline: none;
+}
+
+/* The dashes sit above the art, since the card's own outline would paint under it. */
+.card.skin-trading .trading-frame[data-identity='scene'].trading-expected::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  z-index: 4;
+  border: 3px dashed rgb(244 240 255 / 0.7);
+  border-radius: 25px;
+  pointer-events: none;
+}
+
+.card.skin-trading .trading-frame[data-identity='scene'].trading-gate {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 264 380' preserveAspectRatio='none'%3E%3Cpath d='M16 0H70V20H100V0H117V20H147V0H164V20H194V0H248Q264 0 264 16V364Q264 380 248 380H16Q0 380 0 364V16Q0 0 16 0Z'/%3E%3C/svg%3E")
+    0 0 / 100% 100%;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 264 380' preserveAspectRatio='none'%3E%3Cpath d='M16 0H70V20H100V0H117V20H147V0H164V20H194V0H248Q264 0 264 16V364Q264 380 248 380H16Q0 380 0 364V16Q0 0 16 0Z'/%3E%3C/svg%3E")
+    0 0 / 100% 100%;
+}
+
+.trading-frame[data-identity='scene'].trading-gate :is(.trading-facts, .trading-sticker) {
+  top: 26px;
+}
+
+/* Finish by rarity. The edge is a border painted from the border box; foil follows the pointer and glows. */
+.card.skin-trading .trading-frame[data-identity='scene']:is(.trading-finish-silver, .trading-finish-foil, .trading-finish-holo) {
+  box-sizing: border-box;
+  border: 4px solid transparent;
+  background:
+    linear-gradient(var(--trading-back), var(--trading-back)) padding-box,
+    var(--trading-edge) var(--mx, 30%) var(--my, 20%) / 300% 300% border-box;
+}
+
+.card.skin-trading .trading-frame[data-identity='scene'].trading-finish-silver {
+  --trading-edge: linear-gradient(135deg, #6c7486, #e8edf5 30%, #8d97a8 50%, #f4f7fb 70%, #6c7486);
+}
+
+.card.skin-trading .trading-frame[data-identity='scene']:is(.trading-finish-foil, .trading-finish-holo) {
+  --trading-edge: linear-gradient(115deg, #ffd166, #ff8fa3, #b45cff, #3b6cff, #18d6c0, #ffd166, #ff8fa3);
+  box-shadow:
+    0 18px 40px rgb(0 0 0 / 0.45),
+    0 0 32px -2px color-mix(in srgb, var(--trading-ink-two) 85%, transparent);
+}
+
+/* Holo over the scene, under the scrim, so it never crosses the text. */
+.trading-frame[data-identity='scene'] .trading-holo {
+  background:
+    radial-gradient(160px circle at var(--mx, 35%) var(--my, 25%), rgb(255 255 255 / 0.3), transparent 65%),
+    linear-gradient(
+        115deg,
+        transparent 20%,
+        rgb(255 143 163 / 0.4) 35%,
+        rgb(255 209 102 / 0.4) 45%,
+        rgb(122 240 224 / 0.4) 55%,
+        rgb(59 108 255 / 0.4) 65%,
+        transparent 80%
+      )
+      var(--mx, 35%) var(--my, 25%) / 260% 260%;
+  opacity: 1;
+  mix-blend-mode: screen;
+  transition: none;
 }

@@ -1,4 +1,4 @@
-import { useContext, type CSSProperties } from 'react'
+import { useContext, type CSSProperties, type PointerEvent } from 'react'
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
 import { describeRarity } from '../rarity'
 import { TradingIdentityContext } from '../skins/tradingIdentity'
@@ -11,6 +11,7 @@ import { OpenInVscode } from './OpenInVscode'
 import { Tooltip } from './Tooltip'
 import { TradingKindIcon } from './TradingKindIcon'
 import { TradingRaritySymbol } from './TradingRaritySymbol'
+import { TradingScene } from './TradingScene'
 
 const STICKER_HINT: Record<Sticker, string> = {
   conflict: 'The pull request has merge conflicts',
@@ -46,6 +47,15 @@ function FactChip({ text, name, severity }: { text: string; name: string; severi
   )
 }
 
+// Foil catches the light where the pointer is. Writing the position straight to the element skips React, so
+// moving over a card repaints only that card.
+function trackFoil(event: PointerEvent<HTMLDivElement>) {
+  const box = event.currentTarget.getBoundingClientRect()
+
+  event.currentTarget.style.setProperty('--mx', `${((event.clientX - box.left) / box.width) * 100}%`)
+  event.currentTarget.style.setProperty('--my', `${((event.clientY - box.top) / box.height) * 100}%`)
+}
+
 function LockIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -71,16 +81,17 @@ export function TradingCard({ view }: { view: CardView }) {
 
   return (
     <div
-      className={`trading-frame trading-${view.status}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}${facts.foil ? ` trading-foil-${facts.foil}` : ''}`}
+      className={`trading-frame trading-${view.status}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}${facts.finish ? ` trading-finish-${facts.finish}` : ''}`}
       data-hue={facts.hue}
       data-kind={view.kind}
       data-identity={identity}
       data-seal={sealSide}
       style={{ '--emblem-shift': facts.shift } as CSSProperties}
+      onPointerMove={facts.finish === 'foil' || facts.finish === 'holo' ? trackFoil : undefined}
     >
       <div className="trading-art" aria-hidden="true">
-        <div className="trading-emblem" />
-        {facts.foil === 'holo' && <div className="trading-holo" />}
+        {identity === 'scene' ? <TradingScene kind={view.kind} seed={facts.seed} /> : <div className="trading-emblem" />}
+        {facts.finish === 'holo' && <div className="trading-holo" />}
       </div>
       <div className="trading-facts">
         {facts.priority !== undefined && <FactChip text={`P${facts.priority}`} name="Priority" severity={PRIORITY_SEVERITY[facts.priority]} />}

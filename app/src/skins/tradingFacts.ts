@@ -1,4 +1,5 @@
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
+import type { Rarity } from '../rarity'
 
 /** One status that asks a person to act, most urgent first. */
 export const STICKERS = ['conflict', 'failing', 'changes', 'stale', 'mergeable'] as const
@@ -8,12 +9,12 @@ export const MOTIONS = ['running', 'queued'] as const
 export type Sticker = (typeof STICKERS)[number]
 export type Motion = (typeof MOTIONS)[number]
 
-/** Priority's finish: P0 cards are holo, P1 cards get a foil rim. */
-export type Foil = 'holo' | 'edge'
+/** Rarity's finish: uncommon cards get a silver rim, rare cards a foil rim, and mythic cards foil and holo. */
+export type Finish = 'silver' | 'foil' | 'holo'
 
 export type TradingFacts = {
   priority?: Priority
-  foil?: Foil
+  finish?: Finish
   size?: CardSizeLabel
   sticker?: Sticker
   motion?: Motion
@@ -23,6 +24,8 @@ export type TradingFacts = {
   hue: number
   /** Where the kind's emblem sits in the art, from -1 to 1, seeded by the card so neighbors differ. */
   shift: number
+  /** Seeds the card's scene, so it draws the same each time. */
+  seed: number
 }
 
 /** A pull request with no change in this long reads as stale. */
@@ -30,7 +33,7 @@ export const STALE_DAYS = 14
 /** Art palettes in `trading.css`, picked per group. */
 export const HUES = 5
 
-const FOIL_BY_PRIORITY: Record<Priority, Foil | undefined> = { 0: 'holo', 1: 'edge', 2: undefined, 3: undefined }
+const FINISH_BY_RARITY: Record<Rarity, Finish | undefined> = { common: undefined, uncommon: 'silver', rare: 'foil', mythic: 'holo' }
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -72,11 +75,11 @@ export function getTradingFacts(view: CardView, now = Date.now()): TradingFacts 
   const settled = view.status === 'done' || view.status === 'deferred'
   const sticker = settled ? undefined : getSticker(view, now)
   const motion = settled ? undefined : getMotion(view)
-  const foil = settled ? undefined : FOIL_BY_PRIORITY[view.priority ?? 3]
+  const finish = settled || !view.rarity ? undefined : FINISH_BY_RARITY[view.rarity]
 
   return {
     ...(view.priority !== undefined ? { priority: view.priority } : {}),
-    ...(foil ? { foil } : {}),
+    ...(finish ? { finish } : {}),
     ...(view.size ? { size: view.size } : {}),
     ...(sticker ? { sticker } : {}),
     ...(motion ? { motion } : {}),
@@ -85,5 +88,6 @@ export function getTradingFacts(view: CardView, now = Date.now()): TradingFacts 
     unblocks: view.unblocks ?? 0,
     hue: view.group ? hashText(view.group) % HUES : 0,
     shift: ((hashText(view.artSeed) % 201) - 100) / 100,
+    seed: hashText(view.artSeed),
   }
 }
