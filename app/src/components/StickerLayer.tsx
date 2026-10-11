@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { ViewportPortal, useReactFlow, type ReactFlowInstance } from '@xyflow/react'
+import { motionReduced } from '../motion'
 import type { Sticker } from '../sticker'
 
 type StickerPoint = { x: number; y: number }
@@ -36,7 +37,6 @@ const DAMPING = 0.72
 const HIT_WOBBLE = 18
 const REST_SPEED = 0.004
 
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const clamp = (value: number, minimum: number, maximum: number) =>
   minimum > maximum ? (minimum + maximum) / 2 : Math.max(minimum, Math.min(maximum, value))
 
@@ -316,7 +316,7 @@ class StickerWorld {
 
   /** A fresh stamp knocks aside whatever it lands on. */
   stamped(id: string) {
-    if (reducedMotion()) return
+    if (motionReduced()) return
 
     this.wake()
     const sticker = this.bodies.get(id)
@@ -389,7 +389,7 @@ class StickerWorld {
     const elapsed = Math.min(MAX_FRAME_MS, now - this.at)
 
     this.at = now
-    const still = reducedMotion()
+    const still = motionReduced()
     const ids = new Set(this.stickers.map((sticker) => sticker.id))
 
     for (const id of this.bodies.keys()) if (!ids.has(id)) this.bodies.delete(id)

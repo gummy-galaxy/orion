@@ -18,6 +18,8 @@ export type ShortcutId =
   | 'step-back'
   | 'add-note'
   | 'fit'
+  | 'less-detail'
+  | 'more-detail'
   | 'tool-select'
   | 'tool-hand'
   | 'tool-comment'
@@ -47,6 +49,8 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'go-back', label: 'Go back', detail: 'Return to the previous view', category: 'Navigation', chord: 'Mod+[' },
   { id: 'go-forward', label: 'Go forward', detail: 'Return to the view you went back from', category: 'Navigation', chord: 'Mod+]' },
   { id: 'fit', label: 'Fit to screen', detail: 'Show everything in the open group', category: 'Navigation', chord: 'Shift+1' },
+  { id: 'less-detail', label: 'Show less detail', detail: 'Fold one more level of groups', category: 'Navigation', chord: '[' },
+  { id: 'more-detail', label: 'Show more detail', detail: 'Open one more level of groups', category: 'Navigation', chord: ']' },
   { id: 'tool-select', label: 'Select tool', detail: 'Drag to select', category: 'Tools', chord: 'V' },
   { id: 'tool-hand', label: 'Pan tool', detail: 'Drag anywhere to pan', category: 'Tools', chord: 'H' },
   { id: 'tool-comment', label: 'Comment tool', detail: 'Click to leave a note', category: 'Tools', chord: 'C' },
@@ -65,6 +69,7 @@ export const GESTURES: readonly Gesture[] = [
   { label: 'Actions for an item', how: 'Right-click' },
   { label: 'Open a group', how: 'Double-click it' },
   { label: 'Focus a card', how: 'Double-click it' },
+  { label: 'Go up a level', how: 'Double-click empty canvas' },
   { label: 'Hold a card’s trace or edit a note', how: '⇧ double-click' },
   { label: 'Retrace views', how: 'Mouse back and forward buttons' },
   { label: 'Link two items', how: 'Drag from a card’s edge' },

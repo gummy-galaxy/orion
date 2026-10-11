@@ -4,11 +4,12 @@ import { READINESS_LABEL, STATUS_LABEL, getPullReadiness, getPullRef, getTaskTag
 import { SourceBadges } from './SourceBadges'
 import { useLeverage, useMarked, useSources, useStatus, useTraceRole } from '../state'
 import { FarTag } from './FarTag'
-import { Lock } from './Lock'
+import { ChecksIcon } from './ChecksIcon'
 import { MergePullRequest } from './MergePullRequest'
 import { OpenInVscode } from './OpenInVscode'
+import { StatusIcon } from './StatusIcon'
+import { WhoBadge } from './WhoBadge'
 
-const WHO_LABEL = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 /** Zoom below which a card's details sit in a tag over its body that keeps one on-screen size. */
 const FAR_ZOOM = 0.3
 
@@ -57,15 +58,15 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
         <span className="meta-tag" title={getTaskTag(data)}>
           {getTaskTag(data)}
         </span>
-        {readiness && <span className={`check-dot check-${readiness}`} title={READINESS_LABEL[readiness]} />}
+        {readiness && <ChecksIcon readiness={readiness} title={READINESS_LABEL[readiness]} />}
         <span className="st" title={statusLabel}>
-          {status === 'blocked' && <Lock />}
+          <StatusIcon status={status} />
           <span className="st-label">{statusLabel}</span>
         </span>
       </div>
       <div className="label">{data.label}</div>
       {status !== 'done' && status !== 'deferred' && leverage > 0 && <span className={`lev${leverage >= 4 ? ' big' : ''}`}>unblocks {leverage}</span>}
-      {status !== 'done' && data.who && <span className={`who who-${data.who}`} title={WHO_LABEL[data.who]} />}
+      {status !== 'done' && data.who && <WhoBadge who={data.who} />}
       <div className="card-actions">
         {readyToMerge && pullRef?.url && pullDetails?.head && <MergePullRequest url={pullRef.url} head={pullDetails.head} />}
         {pullRequestUrl && <OpenInVscode url={pullRequestUrl} />}

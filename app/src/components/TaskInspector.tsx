@@ -1,4 +1,6 @@
+import { ChecksIcon } from './ChecksIcon'
 import { LinkList } from './LinkList'
+import { StatusIcon } from './StatusIcon'
 import type { Work } from '../derive'
 import {
   READINESS_LABEL,
@@ -98,7 +100,7 @@ export function TaskInspector({
           <p className="facts">
             {readiness && (
               <>
-                <span className={`check-dot check-${readiness}`} />
+                <ChecksIcon readiness={readiness} />
                 {READINESS_LABEL[readiness]} ·{' '}
               </>
             )}
@@ -198,7 +200,8 @@ export function TaskInspector({
       <label htmlFor="t-note">Notes</label>
       <textarea id="t-note" rows={3} value={data.note ?? ''} onChange={(event) => update(node.id, { note: event.target.value || undefined })} />
       <p className="facts">
-        Shown as <b>{STATUS_LABEL[status]}</b>
+        Shown as <StatusIcon status={status} />
+        <b>{STATUS_LABEL[status]}</b>
         {leverage > 0 && <> · unblocks {leverage}</>}
       </p>
       {connections && (
