@@ -31,8 +31,6 @@ import { reflow } from '../layout'
 import { mergeDocs } from '../merge'
 import { glide, motionReduced, useSystemMotion } from '../motion'
 import {
-  TASK_HEIGHT,
-  TASK_WIDTH,
   absolutePosition,
   ancestors,
   byId,
@@ -74,6 +72,8 @@ import {
   type Appearance,
 } from '../appearance'
 import { SKINS } from '../skins'
+import { cardSizeAtom, type CardSize } from '../cardSize'
+import { toDisplayed, toStored } from '../skinSpace'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
 import { MiniMapNode } from './MiniMapNode'
@@ -132,7 +132,7 @@ import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { Toolbar, type Tool } from './Toolbar'
 import { detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
-import { readViewport, writeViewport } from '../viewport'
+import { MAX_ZOOM, MIN_ZOOM, mapViewportForCardSize, readViewport, writeViewport } from '../viewport'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
@@ -252,9 +252,9 @@ function writeFlag(key: SavedSetting, value: boolean) {
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
-function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
+function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
   const position = absolutePosition(group, map)
-  const size = sizeOf(group)
+  const size = sizeOf(group, cardSize)
   const width = size.width + 2 * (GHOST_GAP + GHOST_WIDTH * GHOST_PEEK)
   const height = size.height + FIT_VERTICAL_MARGIN * 2
   const zoom = Math.min(box.width / width, box.height / height, FIT_MAX_ZOOM)
@@ -263,9 +263,9 @@ function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { widt
 }
 
 /** Puts a card between the focus columns, a little larger than life. */
-function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }): Viewport {
+function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
   const position = absolutePosition(card, map)
-  const size = sizeOf(card)
+  const size = sizeOf(card, cardSize)
   const zoom = FOCUS_ZOOM
   const centerY = Math.min(box.height * FOCUS_CARD_Y, box.height - FOCUS_BOTTOM_GAP - (size.height * zoom) / 2)
 
@@ -276,19 +276,19 @@ function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: n
  * Stacks newly created groups in columns to the right of everything else at the top
  * level, so laying them out never moves groups that were already placed.
  */
-function placeBesideExisting(nodes: AppNode[], fresh: Set<string>): AppNode[] {
+function placeBesideExisting(nodes: AppNode[], fresh: Set<string>, cardSize: CardSize): AppNode[] {
   const top = nodes.filter((node) => !node.parentId)
   const settled = top.filter((node) => !fresh.has(node.id))
-  const right = settled.length ? Math.max(...settled.map((node) => node.position.x + sizeOf(node).width)) : 0
+  const right = settled.length ? Math.max(...settled.map((node) => node.position.x + sizeOf(node, cardSize).width)) : 0
   const topY = settled.length ? Math.min(...settled.map((node) => node.position.y)) : 0
-  const columnHeight = Math.max(1600, ...settled.map((node) => node.position.y + sizeOf(node).height - topY))
+  const columnHeight = Math.max(1600, ...settled.map((node) => node.position.y + sizeOf(node, cardSize).height - topY))
   const placed = new Map<string, { x: number; y: number }>()
   let x = right + PLACE_GAP * 2
   let y = topY
   let columnWidth = 0
 
   for (const group of top.filter((node) => fresh.has(node.id))) {
-    const size = sizeOf(group)
+    const size = sizeOf(group, cardSize)
 
     if (y > topY && y + size.height > topY + columnHeight) {
       x += columnWidth + PLACE_GAP
@@ -335,6 +335,13 @@ export function Canvas() {
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
   const [settings, setSettings] = useState<SettingsSection | null>(null)
+  const cardSize = useAtomValue(cardSizeAtom, { store: skinStore })
+  const cardSizeRef = useRef(cardSize)
+
+  useLayoutEffect(() => {
+    cardSizeRef.current = cardSize
+  }, [cardSize])
+
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
@@ -350,6 +357,7 @@ export function Canvas() {
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set())
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef<Saved>({ nodes, links, stickers, stickerLoadout: loadout })
+  const tweenSequence = useRef(0)
   const fitZoom = useRef(new Map<string, number>())
   const fitting = useRef(false)
   const fitSequence = useRef(0)
@@ -473,7 +481,7 @@ export function Canvas() {
     setTimeout(() => (plainClick.current = null))
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     latest.current = { nodes, links, stickers, stickerLoadout: loadout }
   }, [nodes, links, stickers, loadout])
   // Folded groups hold one on-screen size through --inv, set outside React so zooming doesn't re-render them.
@@ -508,10 +516,54 @@ export function Canvas() {
   const [savedView, setSavedView] = useState<Viewport | null>(null)
   // The workspace the canvas is showing, so moves while switching aren't remembered for the next one.
   const viewFor = useRef<string | null>(null)
+  const displayedCardSize = useRef(cardSize)
+
+  useLayoutEffect(() => {
+    const previousSize = displayedCardSize.current
+
+    if (previousSize.width === cardSize.width && previousSize.height === cardSize.height) return
+
+    tweenSequence.current++
+    const currentStored = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, previousSize) })
+    const wasSaved = fingerprint(currentStored) === savedPrint.current
+    const mapped = toDisplayed(toStored(latest.current.nodes, previousSize), cardSize)
+    const box = canvasRef.current?.getBoundingClientRect()
+
+    if (box?.width && box.height) {
+      const previousViewport = reactFlow.getViewport()
+      const nodeMap = byId(mapped)
+      const focusedNode = focusPick ? nodeMap.get(focusPick) : undefined
+      const openGroup = root ? nodeMap.get(root) : undefined
+      const groupViewport = openGroup && isCluster(openGroup) ? groupFitViewport(openGroup, nodeMap, box, cardSize) : undefined
+
+      if (root && groupViewport) fitZoom.current.set(root, groupViewport.zoom)
+
+      if (focusEntry.current)
+        focusEntry.current.viewport = groupViewport ?? mapViewportForCardSize(focusEntry.current.viewport, box, previousSize, cardSize)
+
+      const viewport =
+        focusedNode && isTask(focusedNode)
+          ? focusViewport(focusedNode, nodeMap, box, cardSize)
+          : (groupViewport ?? mapViewportForCardSize(previousViewport, box, previousSize, cardSize))
+
+      fitSequence.current++
+      fitting.current = false
+      void reactFlow.setViewport(viewport)
+    }
+
+    latest.current = { ...latest.current, nodes: mapped }
+    displayedCardSize.current = cardSize
+    setNodes(mapped)
+
+    if (wasSaved) {
+      base.current = compactDoc({ ...latest.current, nodes: toStored(mapped, cardSize) })
+      savedPrint.current = fingerprint(base.current)
+    }
+  }, [cardSize, setNodes, reactFlow, focusPick, root])
 
   const adopt = useCallback(
     (doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
-      const next = normalize(doc.nodes)
+      const next = toDisplayed(normalize(doc.nodes), cardSizeRef.current)
       const server = compactDoc({
         nodes: normalize(serverDoc.nodes),
         links: serverDoc.links,
@@ -559,11 +611,11 @@ export function Canvas() {
 
       if (!doc || doc.revision === revision.current) return
 
-      const local = compactDoc(latest.current)
+      const local = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSizeRef.current) })
 
       if (fingerprint(local) === savedPrint.current) adopt(doc)
       else {
-        const merged = mergeDocs(base.current, local, compactDoc(doc))
+        const merged = mergeDocs(base.current, local, compactDoc({ ...doc, nodes: normalize(doc.nodes) }))
 
         adopt({ ...doc, ...merged }, doc)
       }
@@ -584,7 +636,7 @@ export function Canvas() {
         source.current = loaded.source === 'missing' ? 'file' : 'browser'
         const isDefault = name === 'default'
         const kept = isDefault ? (loaded.source === 'browser' ? loaded.saved : readBrowser()) : null
-        const start = kept ? { nodes: normalize(kept.nodes), links: kept.links } : { nodes: [], links: [] }
+        const start = kept ? { nodes: toDisplayed(normalize(kept.nodes), cardSizeRef.current), links: kept.links } : { nodes: [], links: [] }
         const initialStickers = kept?.stickers ?? []
         const initialLoadout = loadoutOf(kept?.stickerLoadout)
 
@@ -671,7 +723,7 @@ export function Canvas() {
       // Stickers on cards or groups that are gone go with them.
       const ids = new Set(nodes.map((node) => node.id))
       const snapshot = { nodes, links, stickers: stickers.filter((sticker) => !sticker.on || ids.has(sticker.on)), stickerLoadout: loadout }
-      const print = fingerprint(snapshot)
+      const print = fingerprint({ ...snapshot, nodes: toStored(nodes, cardSize) })
       const epoch = workspaceEpoch.current
       const name = workspace.current
 
@@ -683,14 +735,14 @@ export function Canvas() {
         let pending: Saved = snapshot
 
         for (let attempt = 0; attempt <= 2; attempt++) {
-          const result = await save(source.current, revision.current, pending, name)
+          const result = await save(source.current, revision.current, pending, name, cardSize)
 
           if (epoch !== workspaceEpoch.current) return
 
           if (result.ok) {
             revision.current = result.revision
-            base.current = compactDoc(pending)
-            savedPrint.current = fingerprint(pending)
+            base.current = compactDoc({ ...pending, nodes: toStored(pending.nodes, cardSize) })
+            savedPrint.current = fingerprint({ ...pending, nodes: toStored(pending.nodes, cardSize) })
 
             return
           }
@@ -703,7 +755,11 @@ export function Canvas() {
 
           if (!remote) break
 
-          const merged = mergeDocs(base.current, compactDoc(latest.current), compactDoc(remote))
+          const merged = mergeDocs(
+            base.current,
+            compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSize) }),
+            compactDoc({ ...remote, nodes: normalize(remote.nodes) }),
+          )
 
           pending = adopt({ ...remote, ...merged }, remote)
 
@@ -721,7 +777,7 @@ export function Canvas() {
     }, 400)
 
     return () => clearTimeout(saveTimer)
-  }, [nodes, links, stickers, loadout, ready, reload, adopt])
+  }, [nodes, links, stickers, loadout, ready, reload, adopt, cardSize])
 
   const pendingLayoutEpoch = useRef<number | null>(null)
 
@@ -744,13 +800,13 @@ export function Canvas() {
       try {
         for (const group of marked) {
           try {
-            next = await reflow(next, links, group.id)
+            next = await reflow(next, links, group.id, cardSize)
           } catch (error) {
             console.error('Could not lay out group', group.id, error)
           }
         }
 
-        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((group) => group.id)))
+        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((group) => group.id)), cardSize)
       } catch (error) {
         console.error('Could not lay out canvas', error)
       } finally {
@@ -765,7 +821,7 @@ export function Canvas() {
         if (pendingLayoutEpoch.current === epoch) pendingLayoutEpoch.current = null
       }
     })()
-  }, [nodes, links, ready, rebaseHistory, setNodes])
+  }, [nodes, links, ready, rebaseHistory, setNodes, cardSize])
   const changeWorkspace = useCallback(
     (name: string) => {
       if (name === workspace.current) return
@@ -863,7 +919,7 @@ export function Canvas() {
 
       for (const node of items) {
         const position = absolutePosition(node, nodeMap)
-        const size = sizeOf(node)
+        const size = sizeOf(node, cardSize)
 
         x0 = Math.min(x0, position.x)
         y0 = Math.min(y0, position.y)
@@ -880,7 +936,7 @@ export function Canvas() {
       }
 
       // An opened group fills the view, with the connections outside it peeking in from the edges.
-      const viewport = groupFitViewport(items[0], nodeMap, box)
+      const viewport = groupFitViewport(items[0], nodeMap, box, cardSize)
 
       fitZoom.current.set(target, viewport.zoom)
       fitting.current = true
@@ -890,7 +946,7 @@ export function Canvas() {
         if (fitSequence.current === sequence) fitting.current = false
       })
     },
-    [reactFlow],
+    [reactFlow, cardSize],
   )
 
   const selectOnly = useCallback(
@@ -910,14 +966,14 @@ export function Canvas() {
 
       selectOnly(id)
       const position = absolutePosition(node, nodeMap)
-      const size = sizeOf(node)
+      const size = sizeOf(node, cardSize)
 
       reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, {
         zoom: Math.max(reactFlow.getZoom(), 0.9),
         duration: glide(450),
       })
     },
-    [reactFlow, selectOnly],
+    [reactFlow, selectOnly, cardSize],
   )
 
   // Opening or closing a group fits it, unless a jump asked to land on one card.
@@ -975,8 +1031,11 @@ export function Canvas() {
 
       const from = byId(latest.current.nodes)
       const start = performance.now()
+      const sequence = ++tweenSequence.current
 
       const step = (now: number) => {
+        if (sequence !== tweenSequence.current) return
+
         const progress = ease(Math.min(1, (now - start) / 380))
 
         setNodes(
@@ -1080,7 +1139,7 @@ export function Canvas() {
     }
 
     const position = absolutePosition(rootNode, map)
-    const size = sizeOf(rootNode)
+    const size = sizeOf(rootNode, cardSize)
     const place = (ids: string[], side: 'in' | 'out') =>
       ids.forEach((id, i) => {
         const node = map.get(id)
@@ -1123,7 +1182,7 @@ export function Canvas() {
     place(outgoing, 'out')
 
     return ghostNodes
-  }, [root, map, links, inView, work])
+  }, [root, map, links, inView, work, cardSize])
 
   // React Flow redraws a node whenever its object changes, so unchanged nodes keep last render's object.
   const [shownNodes] = useState(() => new WeakMap<AppNode, AppNode>())
@@ -1310,7 +1369,7 @@ export function Canvas() {
       .filter((node) => node.id !== root && !view.hidden.has(node.id) && inView(node.id))
       .map((node) => {
         const position = absolutePosition(node, map)
-        const size = sizeOf(node)
+        const size = sizeOf(node, cardSize)
 
         return {
           id: node.id,
@@ -1432,7 +1491,7 @@ export function Canvas() {
       if (!node) continue
 
       const position = absolutePosition(node, map)
-      const size = sizeOf(node)
+      const size = sizeOf(node, cardSize)
 
       targets.push({
         id,
@@ -1444,7 +1503,7 @@ export function Canvas() {
     }
 
     return targets
-  }, [attention, map, transform])
+  }, [attention, map, transform, cardSize])
 
   const setCollapsedShown = useSetAtom(collapsedAtom)
   const setAttentionShown = useSetAtom(attentionAtom)
@@ -1458,7 +1517,7 @@ export function Canvas() {
   }, [collapsed, attention, focus, setCollapsedShown, setAttentionShown, setFocusedShown])
 
   const getCurrentNodes = useCallback(() => latest.current.nodes, [])
-  const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo })
+  const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo, cardSize })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
       let own = changes.filter((change) => !('id' in change) || !change.id.startsWith('ghost:')) as NodeChange<AppNode>[]
@@ -1499,7 +1558,7 @@ export function Canvas() {
       if (!inView(id)) {
         const parent = node.parentId ? nodeMap.get(node.parentId) : undefined
 
-        if (parent) fitZoom.current.set(parent.id, groupFitViewport(parent, nodeMap, box).zoom)
+        if (parent) fitZoom.current.set(parent.id, groupFitViewport(parent, nodeMap, box, cardSize).zoom)
 
         skipNextFit.current = true
         setRoot(parent?.id ?? null)
@@ -1512,9 +1571,9 @@ export function Canvas() {
         currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
       )
       setFocus(id)
-      void reactFlow.setViewport(focusViewport(node, nodeMap, box), focusMove())
+      void reactFlow.setViewport(focusViewport(node, nodeMap, box, cardSize), focusMove())
     },
-    [reactFlow, focus, inView, remember, setHover, setNodes, setPinned],
+    [reactFlow, focus, inView, remember, setHover, setNodes, setPinned, cardSize],
   )
 
   const exitFocus = useCallback(() => {
@@ -1535,11 +1594,11 @@ export function Canvas() {
     }
 
     const position = absolutePosition(node, nodeMap)
-    const size = sizeOf(node)
+    const size = sizeOf(node, cardSize)
     const zoom = (root ? fitZoom.current.get(root) : undefined) ?? entry.viewport.zoom
 
     void reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom, ...focusMove() })
-  }, [focus, root, reactFlow, remember])
+  }, [focus, root, reactFlow, remember, cardSize])
 
   /** Puts the canvas back at a place from its history. */
   const goTo = useCallback(
@@ -1554,7 +1613,7 @@ export function Canvas() {
       setPinned(null)
 
       // Zooming out of a group measures from its fitted zoom, which a group reopened from history may not have yet.
-      if (group && box && !fitZoom.current.has(group.id)) fitZoom.current.set(group.id, groupFitViewport(group, nodeMap, box).zoom)
+      if (group && box && !fitZoom.current.has(group.id)) fitZoom.current.set(group.id, groupFitViewport(group, nodeMap, box, cardSize).zoom)
 
       if (place.root !== root) {
         skipNextFit.current = true
@@ -1568,7 +1627,7 @@ export function Canvas() {
       )
       void reactFlow.setViewport(place.viewport, place.focus || focus ? focusMove() : { duration: glide(450) })
     },
-    [root, focus, reactFlow, setHover, setNodes, setPinned],
+    [root, focus, reactFlow, setHover, setNodes, setPinned, cardSize],
   )
 
   const travelTo = useCallback(
@@ -1736,13 +1795,13 @@ export function Canvas() {
 
   const doGroup = useCallback(() => {
     const visibleSel = nodes.map((node) => (node.selected && view.hidden.has(node.id) ? { ...node, selected: false } : node))
-    const result = groupSelection(visibleSel)
+    const result = groupSelection(visibleSel, cardSize)
 
     if (!result) return
 
     setNodes(result.nodes)
     setEditing(result.groupId)
-  }, [nodes, view, setNodes])
+  }, [nodes, view, setNodes, cardSize])
 
   const doUngroup = useCallback(
     (ids?: string[]) => {
@@ -1752,9 +1811,9 @@ export function Canvas() {
 
       if (root && targets.includes(root)) openRoot(map.get(root)?.parentId ?? null)
 
-      setNodes(ungroup(nodes, targets))
+      setNodes(ungroup(nodes, targets, cardSize))
     },
-    [nodes, selected, root, map, openRoot, setNodes],
+    [nodes, selected, root, map, openRoot, setNodes, cardSize],
   )
 
   const actions = useMemo(
@@ -1762,14 +1821,14 @@ export function Canvas() {
       reflow: (groupId: string) => {
         const { nodes: currentNodes, links: currentLinks } = latest.current
 
-        reflow(currentNodes, currentLinks, groupId).then(tweenTo)
+        reflow(currentNodes, currentLinks, groupId, cardSize).then(tweenTo)
       },
       open: (groupId: string) => {
         openRoot(groupId)
         setHover(null)
       },
     }),
-    [tweenTo, openRoot, setHover],
+    [tweenTo, openRoot, setHover, cardSize],
   )
 
   const arrangeGroup = useCallback(
@@ -1777,9 +1836,9 @@ export function Canvas() {
       const { nodes: currentNodes, links: currentLinks } = latest.current
       const next = currentNodes.map((node) => (node.id === groupId && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node))
 
-      reflow(next, currentLinks, groupId).then(tweenTo)
+      reflow(next, currentLinks, groupId, cardSize).then(tweenTo)
     },
-    [tweenTo],
+    [tweenTo, cardSize],
   )
 
   const updateData = useCallback(
@@ -1818,7 +1877,7 @@ export function Canvas() {
 
       if (options.to) next.push({ id: `${id}>${options.to}`, from: id, to: options.to, kind })
 
-      const nextNodes = normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note])
+      const nextNodes = normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note], cardSize)
 
       setNodes(nextNodes)
       setLinks(next)
@@ -1840,7 +1899,7 @@ export function Canvas() {
           )
         })
     },
-    [root, setLinks, setNodes],
+    [root, setLinks, setNodes, cardSize],
   )
 
   const viewportCenter = useCallback(() => {
@@ -1850,8 +1909,8 @@ export function Canvas() {
 
     const center = reactFlow.screenToFlowPosition({ x: rectangle.left + rectangle.width / 2, y: rectangle.top + rectangle.height / 2 })
 
-    return { x: center.x - TASK_WIDTH / 2, y: center.y - TASK_HEIGHT / 2 }
-  }, [reactFlow])
+    return { x: center.x - cardSize.width / 2, y: center.y - cardSize.height / 2 }
+  }, [reactFlow, cardSize])
 
   const addImage = useCallback(
     async (file: File) => {
@@ -1883,13 +1942,13 @@ export function Canvas() {
             selected: true,
           }
 
-          return normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image])
+          return normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image], cardSize)
         })
       } catch (error) {
         setImageError(error instanceof Error ? error.message : 'Could not add the image.')
       }
     },
-    [root, viewportCenter, setNodes],
+    [root, viewportCenter, setNodes, cardSize],
   )
 
   /** The innermost visible card or group under a canvas point that `accept` allows. */
@@ -1902,7 +1961,7 @@ export function Canvas() {
         if (view.hidden.has(node.id) || !inView(node.id) || !accept(node)) continue
 
         const position = absolutePosition(node, map)
-        const size = sizeOf(node)
+        const size = sizeOf(node, cardSize)
         const nodeDepth = ancestors(node.id, map).length
 
         if (
@@ -1919,7 +1978,7 @@ export function Canvas() {
 
       return found
     },
-    [nodes, map, view, inView],
+    [nodes, map, view, inView, cardSize],
   )
 
   /** Drops a note centered on a click, inside the innermost open group under it. */
@@ -1928,10 +1987,10 @@ export function Canvas() {
       const point = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
       const parent = nodeAt(point, (node) => isCluster(node) && !collapsed.has(node.id)) ?? root
 
-      addNote({ x: point.x - TASK_WIDTH / 2, y: point.y - TASK_HEIGHT / 2 }, { parent })
+      addNote({ x: point.x - cardSize.width / 2, y: point.y - cardSize.height / 2 }, { parent })
       setTool('select')
     },
-    [reactFlow, nodeAt, collapsed, root, addNote],
+    [reactFlow, nodeAt, collapsed, root, addNote, cardSize],
   )
 
   // ---- Stickers ----
@@ -1995,7 +2054,7 @@ export function Canvas() {
 
     return shown.map((node) => {
       const position = absolutePosition(node, map)
-      const size = sizeOf(node)
+      const size = sizeOf(node, cardSize)
       const chain = ancestors(node.id, map)
 
       return {
@@ -2008,7 +2067,7 @@ export function Canvas() {
         depth: chain.length,
       }
     })
-  }, [nodes, map, view, inView])
+  }, [nodes, map, view, inView, cardSize])
 
   const placedStickers = useMemo<PlacedSticker[]>(
     () =>
@@ -2073,7 +2132,7 @@ export function Canvas() {
     const parent = [sourceNode.parentId, ...ancestors(sourceNode.id, map)].find((position) => position && chainB.includes(position)) ?? null
 
     addNote(
-      { x: (sourcePosition.x + targetPosition.x) / 2, y: (sourcePosition.y + targetPosition.y) / 2 + TASK_HEIGHT },
+      { x: (sourcePosition.x + targetPosition.x) / 2, y: (sourcePosition.y + targetPosition.y) / 2 + cardSize.height },
       { parent, from: link.from, to: link.to, replace: link.id, itemKind },
     )
   }
@@ -2097,7 +2156,12 @@ export function Canvas() {
 
       return next
     })
-    setNodes((currentNodes) => normalize(currentNodes.filter((node) => node.id !== id)))
+    setNodes((currentNodes) =>
+      normalize(
+        currentNodes.filter((node) => node.id !== id),
+        cardSize,
+      ),
+    )
   }
 
   const removeLink = (id: string) => setLinks((currentLinks) => currentLinks.filter((link) => link.id !== id))
@@ -2110,7 +2174,7 @@ export function Canvas() {
   const flipLink = (id: string) =>
     setLinks((currentLinks) => currentLinks.map((link) => (link.id === id ? { ...link, kind: link.kind === 'blocks' ? 'related' : 'blocks' } : link)))
 
-  const tidy = () => reflow(nodes, links, root ?? undefined).then(tweenTo)
+  const tidy = () => reflow(nodes, links, root ?? undefined, cardSize).then(tweenTo)
   const rootCustom = !!root && (map.get(root)?.data as ClusterData | undefined)?.arrange === 'custom'
 
   // ---- Context menu ----
@@ -2179,7 +2243,7 @@ export function Canvas() {
         ]
 
       const position = absolutePosition(node, map)
-      const after = { x: position.x + TASK_WIDTH + 48, y: position.y + TASK_HEIGHT + 24 }
+      const after = { x: position.x + cardSize.width + 48, y: position.y + cardSize.height + 24 }
 
       if (isNote(node))
         return [
@@ -2198,7 +2262,13 @@ export function Canvas() {
           {
             label: 'Remove image',
             danger: true,
-            run: () => setNodes((currentNodes) => normalize(currentNodes.filter((item) => item.id !== node.id))),
+            run: () =>
+              setNodes((currentNodes) =>
+                normalize(
+                  currentNodes.filter((item) => item.id !== node.id),
+                  cardSize,
+                ),
+              ),
           },
         ]
 
@@ -2338,7 +2408,7 @@ export function Canvas() {
   const one = selected.length === 1 ? selected[0] : null
   const focused = focus ? map.get(focus) : undefined
   const focusPos = focused && absolutePosition(focused, map)
-  const focusSize = focused && sizeOf(focused)
+  const focusSize = focused && sizeOf(focused, cardSize)
   const readyTotal = [...work.status.values()].filter((status) => status === 'ready').length
 
   const commands: Command[] = [
@@ -2622,8 +2692,8 @@ export function Canvas() {
               multiSelectionKeyCode={['Meta', 'Shift']}
               deleteKeyCode={null}
               zoomOnDoubleClick={false}
-              minZoom={0.06}
-              maxZoom={2}
+              minZoom={MIN_ZOOM}
+              maxZoom={MAX_ZOOM}
               colorMode={colorModeOf(appearance)}
             >
               <StickerLayer
@@ -2771,7 +2841,18 @@ export function Canvas() {
                         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
                         onChange={(event) => updateData(one.id, { label: event.target.value })}
                       />
-                      <button type="button" className="btn" onClick={() => setNodes((ns) => normalize(ns.filter((n) => n.id !== one.id)))}>
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() =>
+                          setNodes((ns) =>
+                            normalize(
+                              ns.filter((n) => n.id !== one.id),
+                              cardSize,
+                            ),
+                          )
+                        }
+                      >
                         Remove image
                       </button>
                     </div>
