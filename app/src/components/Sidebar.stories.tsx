@@ -26,8 +26,8 @@ export const Default: Story = {
         }}
         switchWorkspace={async () => {}}
         newWorkspace={async () => {}}
-        appearance={{ theme: 'classic', colorMode: 'light' }}
-        chooseAppearance={() => {}}
+        openSettings={() => {}}
+        settingsHint="⌘,"
       />
     </div>
   ),
