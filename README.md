@@ -115,11 +115,11 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 
 - The toolbar at the bottom switches tools. Select (V) is the default: drag a box to select everything it touches, and ⇧ adds to the selection. An open group is selected only when the box covers all of it. Middle-drag or hold Space and drag to pan. Pan (H) drags the canvas from anywhere, with ⌘-drag to select. Comment (C) drops a note where you click, then returns to Select. Esc also returns to Select.
 - Hold S to open the sticker wheel, point at one, and let go; a quick tap or the toolbar button leaves it open for clicking, and 1–8 pick by number. With it open, type or paste any emoji to stamp that instead, and right-click a slot, or click an empty one, to put a different emoji there. Each canvas keeps its own wheel. Then click to stamp it as many times as you like. Stickers stamped on a card or group move with it. In Select, drag a sticker to move it or flick it to send it sliding; stickers bounce off each other and stay inside their group's walls. Keep pulling past a wall to pop one out of a group, or into another. Right-click a sticker to remove it.
-- Scroll to pan; pinch or ⌘-scroll to zoom. ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
+- Scroll or pinch to zoom, and Space-drag or middle-drag to pan. Settings › Canvas switches scrolling to pan instead, with pinch or ⌘-scroll to zoom. ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result. Type `>` first, or press ⇧⌘P (or Ctrl+Shift+P), to list actions instead; deleting the `>` goes back to searching.
-- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. Both are saved on this device. The shortcuts in this section are the defaults.
+- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Canvas picks whether scrolling zooms or pans. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. Both are saved on this device. The shortcuts in this section are the defaults.
 - Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
 - Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
@@ -158,7 +158,7 @@ In `app/`:
 - `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
-- `src/Settings.tsx`, `src/AppearanceSettings.tsx`, and `src/ShortcutSettings.tsx`: the settings dialog. `app/src/keybindings.ts` lists each shortcut with its default and saves rebound ones.
+- `src/Settings.tsx`, `src/AppearanceSettings.tsx`, `src/CanvasSettings.tsx`, and `src/ShortcutSettings.tsx`: the settings dialog. `app/src/keybindings.ts` lists each shortcut with its default and saves rebound ones.
 
 In `cli/src/`:
 
