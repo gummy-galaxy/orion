@@ -1,3 +1,4 @@
+import { SKINS, skinOf } from './skins'
 import { systemMotion, type Motion } from './motion'
 import { saveSettings } from './settings'
 import { TOKENS } from './tokens'
@@ -47,10 +48,11 @@ export const ANIMATIONS: readonly { id: Motion; label: string }[] = [
   { id: 'off', label: 'Off' },
 ]
 
-export type Appearance = { theme: string; colorMode: ColorMode; statusColors: StatusColors; animations: Animations }
+export type Appearance = { theme: string; skin: string; colorMode: ColorMode; statusColors: StatusColors; animations: Animations }
 
-// index.html reads these keys before the first paint, so keep the two in step.
+// index.html reads these keys before the first paint, so keep them in step.
 const THEME_KEY = 'orion:theme'
+const SKIN_KEY = 'orion:skin'
 const COLOR_MODE_KEY = 'orion:color-mode'
 const STATUS_COLORS_KEY = 'orion:status-colors'
 const ANIMATIONS_KEY = 'orion:animations'
@@ -74,18 +76,20 @@ export function readAppearance(): Appearance {
     return {
       // Kept as saved, even when its file is gone; applyAppearance falls back to the default.
       theme: localStorage.getItem(THEME_KEY) ?? THEMES[0].id,
+      skin: skinOf(localStorage.getItem(SKIN_KEY) ?? '').id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
       statusColors: STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
       animations: ANIMATIONS.find((option) => option.id === localStorage.getItem(ANIMATIONS_KEY))?.id ?? 'system',
     }
   } catch {
-    return { theme: THEMES[0].id, colorMode: 'system', statusColors: 'theme', animations: 'system' }
+    return { theme: THEMES[0].id, skin: SKINS[0].id, colorMode: 'system', statusColors: 'theme', animations: 'system' }
   }
 }
 
 export function writeAppearance(appearance: Appearance) {
   saveSettings({
     theme: appearance.theme,
+    skin: appearance.skin,
     'color-mode': appearance.colorMode,
     'status-colors': appearance.statusColors,
     animations: appearance.animations === 'system' ? null : appearance.animations,
@@ -98,6 +102,9 @@ export function applyAppearance(appearance: Appearance, root = document.document
   // A shareable theme sets its values on the root instead, so it needs no attribute.
   if (theme.id === THEMES[0].id || theme.values) delete root.dataset.theme
   else root.dataset.theme = theme.id
+
+  if (appearance.skin === SKINS[0].id) delete root.dataset.skin
+  else root.dataset.skin = appearance.skin
 
   if (appearance.colorMode === 'system') delete root.dataset.colorMode
   else root.dataset.colorMode = appearance.colorMode

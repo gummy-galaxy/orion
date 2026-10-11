@@ -1,13 +1,25 @@
-import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { THEMES, applyAppearance, colorModeOf, themeOf, type Appearance, type Theme } from './appearance'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { THEMES, applyAppearance, colorModeOf, readAppearance, themeOf, writeAppearance, type Appearance, type Theme } from './appearance'
+import { TASK_HEIGHT, TASK_WIDTH } from './model'
+import { SKINS, skinOf } from './skins'
 import { parseThemeFile } from './themeFile'
 
-beforeAll(() => {
-  // applyAppearance reads the computer's motion setting, which the test environment does not have.
+const values = new Map<string, string>()
+
+beforeEach(() => {
+  values.clear()
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => values.set(key, value),
+    removeItem: (key: string) => values.delete(key),
+  })
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
   vi.stubGlobal('window', { matchMedia: () => ({ matches: false }) })
 })
 
-const base: Appearance = { theme: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' }
+afterEach(() => vi.unstubAllGlobals())
+
+const base: Appearance = { theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' }
 
 /** A stand-in for the root element that records what applyAppearance sets on it. */
 function fakeRoot() {
@@ -110,5 +122,66 @@ describe('applyAppearance', () => {
 
     expect(properties.size).toBe(0)
     expect(dataset.theme).toBeUndefined()
+  })
+})
+
+describe('card skins', () => {
+  it('keeps Classic first and both skins at the current card size', () => {
+    expect(SKINS.map((skin) => skin.id)).toEqual(['classic', 'plain'])
+    expect(SKINS.map((skin) => skin.size)).toEqual([
+      { width: TASK_WIDTH, height: TASK_HEIGHT },
+      { width: TASK_WIDTH, height: TASK_HEIGHT },
+    ])
+    expect(skinOf('unknown')).toBe(SKINS[0])
+  })
+})
+
+describe('appearance', () => {
+  it('defaults invalid preferences while retaining valid ones', () => {
+    expect(readAppearance()).toEqual({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
+
+    values.set('orion:theme', 'vibrant')
+    values.set('orion:skin', 'plain')
+    values.set('orion:color-mode', 'dark')
+    expect(readAppearance()).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', statusColors: 'theme', animations: 'system' })
+
+    values.set('orion:skin', 'unknown')
+    values.set('orion:color-mode', 'invalid')
+    expect(readAppearance()).toEqual({ theme: 'vibrant', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
+  })
+
+  it('writes theme, skin, and color mode as separate preferences', () => {
+    const appearance: Appearance = { theme: 'vibrant', skin: 'plain', colorMode: 'light', statusColors: 'theme', animations: 'system' }
+
+    writeAppearance(appearance)
+
+    expect(values).toEqual(
+      new Map([
+        ['orion:theme', 'vibrant'],
+        ['orion:skin', 'plain'],
+        ['orion:color-mode', 'light'],
+        ['orion:status-colors', 'theme'],
+      ]),
+    )
+    expect(colorModeOf(appearance)).toBe('dark')
+  })
+
+  it('applies nondefault attributes and clears them for defaults', () => {
+    const { root, dataset } = fakeRoot()
+
+    applyAppearance({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', statusColors: 'theme', animations: 'system' }, root)
+    expect(dataset).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', motion: 'on' })
+
+    applyAppearance({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' }, root)
+    expect(dataset).toEqual({ motion: 'on' })
+  })
+
+  it('falls back when storage is unavailable', () => {
+    vi.stubGlobal('localStorage', {
+      getItem: () => {
+        throw new Error('unavailable')
+      },
+    })
+    expect(readAppearance()).toEqual({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
   })
 })

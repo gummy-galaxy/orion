@@ -1,10 +1,11 @@
 import { COLOR_MODES, colorModeOf, themeOf, type Appearance, type Theme } from '../appearance'
+import { SKINS } from '../skins'
 
 type Props = { appearance: Appearance; themes: readonly Theme[]; chooseAppearance: (appearance: Appearance) => void }
 
 const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1)
 
-/** The theme and color mode, saved on this device. */
+/** The theme, card skin, and color mode, saved on this device. */
 export function AppearanceSettings({ appearance, themes, chooseAppearance }: Props) {
   const theme = themeOf(appearance.theme, themes)
   const fixed = theme.schemes.length === 1
@@ -47,6 +48,26 @@ export function AppearanceSettings({ appearance, themes, chooseAppearance }: Pro
             {problem}
           </p>
         ))}
+      </div>
+      <div className="settings-field">
+        <div>
+          <span className="settings-field-label" id="settings-skin">
+            Cards
+          </span>
+          <p className="settings-field-detail">How cards on the canvas are drawn.</p>
+        </div>
+        <div className="options" role="group" aria-labelledby="settings-skin">
+          {SKINS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={appearance.skin === option.id}
+              onClick={() => chooseAppearance({ ...appearance, skin: option.id })}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="settings-field">
         <div>

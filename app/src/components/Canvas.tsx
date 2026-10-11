@@ -74,6 +74,7 @@ import {
   type Theme,
 } from '../appearance'
 import { cachedThemes, loadThemes } from '../themeFile'
+import { SKINS } from '../skins'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
 import { MiniMapNode } from './MiniMapNode'
@@ -114,7 +115,19 @@ import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
 import { useWheelZoom } from '../useWheelZoom'
-import { attentionAtom, collapsedAtom, focusedAtom, hoverAtom, linksAtom, nodesAtom, pinnedAtom, traceAtom, workAtom } from '../state'
+import {
+  attentionAtom,
+  collapsedAtom,
+  focusedAtom,
+  hoverAtom,
+  linksAtom,
+  nodesAtom,
+  pinnedAtom,
+  skinAtom,
+  skinStore,
+  traceAtom,
+  workAtom,
+} from '../state'
 import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
@@ -319,6 +332,7 @@ export function Canvas() {
   const [appearance, setAppearance] = useState(readAppearance)
   /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
   const [themes, setThemes] = useState<Theme[]>(cachedThemes)
+  const setSkin = useSetAtom(skinAtom, { store: skinStore })
   const systemMotion = useSystemMotion()
   const [scrolling, setScrolling] = useState(readScrolling)
   const [keybindings, setKeybindings] = useState(readKeybindings)
@@ -451,6 +465,9 @@ export function Canvas() {
   useEffect(() => {
     if (settings !== null || paletteOpen) void loadThemes().then(setThemes)
   }, [settings, paletteOpen])
+
+  // The skin atom is read when its module loads, which is before saved settings arrive.
+  useEffect(() => setSkin(appearance.skin), [appearance.skin, setSkin])
 
   // Runs before React Flow's own click handling, which selects the node as it goes.
   const claimNodeClick = (event: React.MouseEvent) => {
@@ -2396,6 +2413,12 @@ export function Canvas() {
         detail: 'Saved on this device',
         run: () => chooseAppearance({ ...appearance, theme: theme.id }),
       })),
+    ...SKINS.map((skin) => ({
+      id: `skin-${skin.id}`,
+      label: `Cards: ${skin.label}`,
+      detail: 'Saved on this device',
+      run: () => chooseAppearance({ ...appearance, skin: skin.id }),
+    })),
     ...COLOR_MODES.map((mode) => ({
       id: `color-mode-${mode}`,
       label: `Color mode: ${mode[0].toUpperCase()}${mode.slice(1)}`,
@@ -2423,7 +2446,7 @@ export function Canvas() {
     {
       id: 'settings',
       label: 'Open settings',
-      detail: 'Theme, color mode, scrolling, accessibility, and keyboard shortcuts',
+      detail: 'Theme, cards, color mode, scrolling, accessibility, and keyboard shortcuts',
       hint: hintOf('settings'),
       run: () => setSettings('appearance'),
     },
