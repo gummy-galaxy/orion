@@ -1,82 +1,33 @@
-import { createElement, useEffect, useMemo, useRef, useState } from 'react'
+import { getCardArea } from '../cardArea'
 import type { CardView } from '../cardView'
-import { getCachedPoster, requestPoster } from '../skins/posterPainter'
-import { getPosterSpec } from '../skins/posterSpec'
+import { getCardArt } from '../skins/cardArt'
+import type { InkPair } from '../skins/frameColor'
+import { useCardArt } from '../skins/useCardArt'
+import { TradingAreaSymbol } from './TradingAreaSymbol'
+import { TradingKindIcon } from './TradingKindIcon'
 
-type ArtKind = CardView['kind']
+type ArtKind = Exclude<CardView['kind'], 'note'>
 
-type PosterSize = { width: number; height: number }
-
-export function TradingArtwork({ view, kind }: { view: CardView; kind: ArtKind }) {
-  const artRef = useRef<HTMLDivElement>(null)
-  const [size, setSize] = useState<PosterSize | null>(null)
-  const [painted, setPainted] = useState<{ key: string; image: string } | null>(null)
-  const input = useMemo(
-    () => ({ artSeed: view.artSeed, kind, status: view.status, upstream: view.upstream, leverage: view.leverage }),
-    [view.artSeed, kind, view.status, view.upstream, view.leverage],
-  )
-  const spec = useMemo(() => getPosterSpec(input), [input])
-  const key = size && JSON.stringify([input.artSeed, input.kind, input.status, input.upstream, input.leverage, size.width, size.height])
-  const image = size ? (getCachedPoster(input, size.width, size.height) ?? (painted?.key === key ? painted.image : null)) : null
-
-  useEffect(() => {
-    const element = artRef.current
-
-    if (!element) return
-
-    const measure = () => {
-      const bounds = element.getBoundingClientRect()
-
-      if (!bounds.width || !bounds.height) return
-
-      const ratio = window.devicePixelRatio || 1
-      const width = Math.max(1, Math.round(bounds.width * ratio))
-      const height = Math.max(1, Math.round(bounds.height * ratio))
-
-      setSize((current) => (current?.width === width && current.height === height ? current : { width, height }))
-    }
-
-    measure()
-    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
-
-    observer?.observe(element)
-    window.addEventListener('resize', measure)
-
-    return () => {
-      observer?.disconnect()
-      window.removeEventListener('resize', measure)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!size || !key) return
-
-    return requestPoster(input, size.width, size.height, (nextImage) => {
-      if (nextImage) setPainted({ key, image: nextImage })
-    })
-  }, [input, size, key])
+export function TradingArtwork({ view, kind, inks }: { view: CardView; kind: ArtKind; inks: InkPair }) {
+  const image = useCardArt(view.artSeed, kind, inks)
+  const fallback = getCardArt(view.artSeed, kind)
+  const area = getCardArea(view.title, view.note)
 
   return (
-    <div className="trading-art" ref={artRef}>
+    <div className="trading-art">
       {image ? (
         <img src={image} alt="" />
       ) : (
-        <svg viewBox="0 0 256 160" preserveAspectRatio="none" aria-hidden="true">
-          {spec.shapes.map((shape, index) =>
-            createElement(shape.tag, {
-              key: index,
-              ...shape.attrs,
-              stroke: shape.stroke,
-              strokeWidth: shape.width,
-              opacity: shape.alpha,
-              transform: shape.rotate ? `rotate(${shape.rotate.join(' ')})` : undefined,
-              style: shape.blend ? { mixBlendMode: shape.blend } : undefined,
-            }),
-          )}
-        </svg>
+        <svg viewBox="0 0 128 96" preserveAspectRatio="xMidYMid slice" aria-hidden="true" dangerouslySetInnerHTML={{ __html: fallback.markup }} />
       )}
-      {spec.excessUpstream > 0 && <span className="trading-art-count">+{spec.excessUpstream}</span>}
       <i className="trading-holo" aria-hidden="true" />
+      {area ? (
+        <TradingAreaSymbol area={area} />
+      ) : (
+        <span className="trading-symbol trading-symbol-kind">
+          <TradingKindIcon kind={kind} />
+        </span>
+      )}
       {view.status === 'done' && <span className="trading-stamp">{kind === 'pr' ? 'Merged' : 'Done'}</span>}
     </div>
   )

@@ -24,7 +24,7 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const PullRequest: Story = {
-  args: { view, kind: 'pr' },
+  args: { view, kind: 'pr', inks: getCardInks(view.repo, 'pr') },
   decorators: [
     (Story) => (
       <div className="card skin-trading" style={{ width: 288, height: 400 }}>

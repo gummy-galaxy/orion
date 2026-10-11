@@ -270,8 +270,8 @@
   border-color: #e6b94f;
 }
 
-.card.skin-trading .trading-art img,
-.card.skin-trading .trading-art svg {
+.card.skin-trading .trading-art > img,
+.card.skin-trading .trading-art > svg:not(.trading-symbol) {
   position: absolute;
   inset: 0;
   display: block;
@@ -303,6 +303,51 @@
   text-transform: uppercase;
   white-space: nowrap;
   box-shadow: 0 2px 10px rgb(0 0 0 / 0.4);
+}
+
+.card.skin-trading .trading-symbol {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  width: 84px;
+  height: 84px;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  filter: drop-shadow(0 4px 10px rgb(var(--trading-deep) / 0.7));
+}
+.card.skin-trading .trading-symbol pattern rect {
+  fill: color-mix(in oklab, var(--trading-ink-one) 70%, white);
+}
+.card.skin-trading .trading-symbol-halo {
+  fill: none;
+  stroke: rgb(var(--trading-deep));
+  stroke-width: 7;
+  stroke-linejoin: round;
+}
+.card.skin-trading .trading-symbol-plate {
+  fill: rgb(var(--trading-deep));
+}
+.card.skin-trading .trading-symbol-edge,
+.card.skin-trading .trading-symbol-line {
+  fill: none;
+  stroke: #f4f0ff;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.card.skin-trading .trading-symbol-dashed {
+  stroke-dasharray: 5 3.5;
+}
+.card.skin-trading .trading-symbol-dot {
+  fill: #f4f0ff;
+}
+/* Cards whose words name no area fall back to their kind's icon, drawn the same size. */
+.card.skin-trading .trading-symbol-kind {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgb(var(--trading-deep) / 0.85);
+  color: #f4f0ff;
 }
 
 .card.skin-trading .trading-type {
@@ -433,9 +478,13 @@
   color: var(--surface);
 }
 
-.card.skin-trading .trading-done .trading-art img,
-.card.skin-trading .trading-done .trading-art svg {
+.card.skin-trading .trading-done .trading-art > img,
+.card.skin-trading .trading-done .trading-art > svg:not(.trading-symbol) {
   filter: grayscale(0.8) brightness(0.75);
+}
+.card.skin-trading .trading-done .trading-symbol {
+  opacity: 0.6;
+  filter: grayscale(0.8);
 }
 .card.skin-trading .trading-done .trading-title h3 {
   color: var(--muted);
@@ -477,8 +526,8 @@
     color-mix(in srgb, var(--trading-kind-tint) var(--trading-kind-wash), var(--trading-bottom))
   );
 }
-.card.skin-trading .trading-expected .trading-art img,
-.card.skin-trading .trading-expected .trading-art svg {
+.card.skin-trading .trading-expected .trading-art > img,
+.card.skin-trading .trading-expected .trading-art > svg:not(.trading-symbol) {
   opacity: 0.55;
 }
 .card.skin-trading .trading-holo {
@@ -593,15 +642,4 @@
 .canvas:is(.is-still, .no-glow) .card.skin-trading .trading-holo,
 .canvas[data-moving] .card.skin-trading .trading-holo {
   opacity: 0;
-}
-
-.card.skin-trading .trading-art-count {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  z-index: 4;
-  padding: 2px 4px;
-  background: rgb(var(--trading-deep) / 0.8);
-  color: #f4f0ff;
-  font: 700 12px var(--font-data);
 }

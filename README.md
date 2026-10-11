@@ -157,6 +157,7 @@ In `app/`:
 - `src/snap.ts`, `src/useNodeSnapping.ts`, and `src/components/SnapGuides.tsx`: drag geometry, interaction state, and alignment guides.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
+- `src/cardArea.ts` and `src/components/TradingAreaSymbol.tsx`: the part of a system a trading card's words name, drawn as a symbol over its dithered art.
 - `src/components/ImageView.tsx`: image nodes and their workspace-local previews.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
