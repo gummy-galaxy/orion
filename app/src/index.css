@@ -1,6 +1,7 @@
 @import './tokens.css';
 @import './themes/classic.css';
 @import './themes/vibrant.css';
+@import './themes/colorblind.css';
 
 * {
   box-sizing: border-box;
@@ -53,7 +54,7 @@ select {
   stroke-width: 6 !important;
 }
 .react-flow__minimap-node.mm-ready {
-  fill: var(--accent) !important;
+  fill: var(--st-ready) !important;
 }
 .react-flow__minimap-node.mm-active {
   fill: var(--st-active) !important;
@@ -180,38 +181,28 @@ select {
   text-overflow: ellipsis;
   margin-right: auto;
 }
-.card .meta .check-dot {
+.status-icon,
+.checks-icon {
   flex: none;
 }
-.check-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--st-review);
-  vertical-align: middle;
+.checks-icon {
+  color: var(--st-review);
 }
 .check-success {
-  background: var(--st-done);
+  color: var(--st-done);
 }
 .check-failure,
 .check-error {
-  background: var(--st-blocked);
+  color: var(--st-blocked);
 }
 .card .meta .st {
   color: var(--c);
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  /* The status gives up its space long before the tag does; the lock always stays. */
+  /* The status gives up its space long before the tag does; its shape always stays. */
   flex: 0 1000 auto;
-  min-width: 0;
-}
-.card .meta .st:has(.lock) {
-  min-width: 8px;
-}
-.card .meta .lock {
-  flex: none;
+  min-width: 10px;
 }
 .card .meta .st-label {
   overflow: hidden;
@@ -389,7 +380,7 @@ select {
   text-decoration: underline;
 }
 .st-ready {
-  --c: var(--accent);
+  --c: var(--st-ready);
 }
 .st-active {
   --c: var(--st-active);
@@ -1130,12 +1121,17 @@ kbd {
   color: var(--ink);
   font-weight: 500;
 }
+.facts .status-icon {
+  margin-right: 4px;
+  vertical-align: -1px;
+}
 .github-details {
   display: grid;
   gap: 3px;
 }
-.github-details .check-dot {
+.github-details .checks-icon {
   margin-right: 5px;
+  vertical-align: -1px;
 }
 .review-requested {
   color: var(--st-review);
@@ -1149,6 +1145,13 @@ kbd {
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: baseline;
   column-gap: 6px;
+}
+.link-status {
+  white-space: nowrap;
+}
+.link-status .status-icon {
+  margin-right: 3px;
+  vertical-align: -1px;
 }
 .links li .link-where {
   grid-column: 1 / -1;
@@ -2143,13 +2146,16 @@ kbd {
   padding-right: 22px;
 }
 .ghost-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-family: var(--font-data);
   font-size: 10px;
   color: var(--c, var(--muted));
   padding-right: 22px;
 }
 .ghost.st-ready {
-  --c: var(--accent);
+  --c: var(--st-ready);
 }
 .ghost.st-active {
   --c: var(--st-active);
@@ -2548,6 +2554,9 @@ kbd {
 }
 .focus-card-meta .st {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--c);
 }
 .focus-card .label {

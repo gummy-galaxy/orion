@@ -1,0 +1,14 @@
+/*
+ * Status colors that stay apart under protanopia, deuteranopia, and tritanopia, layered over any theme.
+ * Ready, in progress, and done sit at different lightness on the blue side, and blocked and review differ
+ * on the warm side, so no pair relies on red against green. Light values keep 4.5:1 on the light surfaces,
+ * and dark values on both Classic dark and Vibrant.
+ */
+:root[data-status-colors='colorblind'] {
+  --st-todo: light-dark(#5d6d75, #92a3aa);
+  --st-ready: light-dark(#0574b6, #8ee6fb);
+  --st-active: light-dark(#9124f0, #cb98fd);
+  --st-review: light-dark(#7a4a00, #fb9a26);
+  --st-blocked: light-dark(#d0194c, #f2486a);
+  --st-done: light-dark(#1f4578, #7179fb);
+}

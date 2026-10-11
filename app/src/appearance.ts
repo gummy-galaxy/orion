@@ -15,11 +15,20 @@ export const THEMES: readonly Theme[] = [
 
 export const COLOR_MODES: readonly ColorMode[] = ['light', 'dark', 'system']
 
-export type Appearance = { theme: string; colorMode: ColorMode }
+export type StatusColors = 'theme' | 'colorblind'
+
+/** Colorblind status colors live in themes/colorblind.css and layer over any theme. */
+export const STATUS_COLORS: readonly { id: StatusColors; label: string }[] = [
+  { id: 'theme', label: 'Theme' },
+  { id: 'colorblind', label: 'Colorblind safe' },
+]
+
+export type Appearance = { theme: string; colorMode: ColorMode; statusColors: StatusColors }
 
 // index.html reads these keys before the first paint, so keep the two in step.
 const THEME_KEY = 'orion:theme'
 const COLOR_MODE_KEY = 'orion:color-mode'
+const STATUS_COLORS_KEY = 'orion:status-colors'
 
 export function themeOf(id: string): Theme {
   return THEMES.find((theme) => theme.id === id) ?? THEMES[0]
@@ -39,9 +48,10 @@ export function readAppearance(): Appearance {
     return {
       theme: themeOf(localStorage.getItem(THEME_KEY) ?? '').id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
+      statusColors: localStorage.getItem(STATUS_COLORS_KEY) === 'colorblind' ? 'colorblind' : 'theme',
     }
   } catch {
-    return { theme: THEMES[0].id, colorMode: 'system' }
+    return { theme: THEMES[0].id, colorMode: 'system', statusColors: 'theme' }
   }
 }
 
@@ -49,6 +59,7 @@ export function writeAppearance(appearance: Appearance) {
   try {
     localStorage.setItem(THEME_KEY, appearance.theme)
     localStorage.setItem(COLOR_MODE_KEY, appearance.colorMode)
+    localStorage.setItem(STATUS_COLORS_KEY, appearance.statusColors)
   } catch {
     // Only a remembered preference.
   }
@@ -60,4 +71,7 @@ export function applyAppearance(appearance: Appearance, root = document.document
 
   if (appearance.colorMode === 'system') delete root.dataset.colorMode
   else root.dataset.colorMode = appearance.colorMode
+
+  if (appearance.statusColors === 'theme') delete root.dataset.statusColors
+  else root.dataset.statusColors = appearance.statusColors
 }

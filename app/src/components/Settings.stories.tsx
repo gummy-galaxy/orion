@@ -12,7 +12,7 @@ type Story = StoryObj<typeof meta>
 
 function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: SettingsSection; keybindings?: Keybindings }) {
   const [shown, setShown] = useState(section)
-  const [appearance, setAppearance] = useState<Appearance>({ theme: 'classic', colorMode: 'system' })
+  const [appearance, setAppearance] = useState<Appearance>({ theme: 'classic', colorMode: 'system', statusColors: 'theme' })
   const [scrolling, setScrolling] = useState<Scrolling>('zoom')
   const [bindings, setBindings] = useState(keybindings)
 
