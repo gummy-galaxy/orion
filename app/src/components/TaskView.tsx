@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import type { TaskNode } from '../model'
 import { useAtomValue } from 'jotai'
-import { useCardView, useMarked, useTraceRole, skinAtom, skinStore } from '../state'
+import { useCardView, useMarked, useSnoozed, useTraceRole, skinAtom, skinStore } from '../state'
 import { CardBody } from './CardBody'
 import { FarTag } from './FarTag'
 
@@ -15,15 +15,16 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   const view = useCardView(id, data)
   const trace = useTraceRole(id)
   const attention = useMarked(id)
+  const snoozedUntil = useSnoozed(id)
   const skin = useAtomValue(skinAtom, { store: skinStore })
   const className =
     view.kind === 'note'
       ? `card skin-${skin} note${trace ? ' tr-' + trace : ''}`
-      : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}`
+      : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${snoozedUntil ? ' snoozed' : ''}`
   const body = <CardBody view={view} />
 
   return (
-    <div className={className}>
+    <div className={className} title={snoozedUntil ? `Snoozed until ${new Date(snoozedUntil).toLocaleString()}` : undefined}>
       <Handle type="target" position={Position.Left} />
       {far ? <FarTag className={className}>{body}</FarTag> : body}
       <Handle type="source" position={Position.Right} />

@@ -502,6 +502,11 @@ select {
   color: var(--muted);
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 65%, var(--bg));
 }
+/* Snoozed work sits back until it wakes: its contents fade and its border goes dotted, so it reads as set aside. */
+.card.snoozed {
+  --fade: 0.5;
+  border-style: dotted;
+}
 /* Ready to merge: the card turns the success color and glows, so it reads as the next thing to click. */
 .card.ready-to-merge {
   --c: var(--st-done);
@@ -2397,6 +2402,22 @@ kbd {
 }
 .menu button.danger {
   color: var(--st-blocked);
+}
+.menu-date {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 5px 10px;
+  font-size: 13px;
+}
+.menu-date input {
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
 }
 .menu hr {
   border: 0;

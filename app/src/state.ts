@@ -64,6 +64,9 @@ export const useStatus = (id: string) => useAtomValue(useMemo(() => selectAtom(w
 
 export const useLeverage = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.leverage.get(id) ?? 0), [id]))
 
+/** When a snooze ends for this card, or undefined when it isn't snoozed. */
+export const useSnoozed = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.snoozed.get(id)), [id]))
+
 export const useUpstream = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.upstream.get(id) ?? 0), [id]))
 
 export const useRarity = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.rarity.get(id)), [id]))

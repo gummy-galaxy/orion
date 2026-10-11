@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom, useStore as useAtomStore } from 'jotai'
 import {
   Background,
   BackgroundVariant,
@@ -26,6 +26,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { localDateValue, snoozeUntil } from '../snooze'
 import { FocusView, type FocusItem } from './FocusView'
 import { reflow } from '../layout'
 import { mergeDocs } from '../merge'
@@ -212,6 +213,8 @@ type Menu = {
   x: number
   y: number
   flow: { x: number; y: number }
+  /** When the menu opened, so snooze choices are made from the moment the reader saw them. */
+  now: Date
   target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string } | { kind: 'sticker'; id: string }
 }
 
@@ -702,6 +705,44 @@ export function Canvas() {
       }),
     [reload, setDerived],
   )
+
+  // A snooze ends on its own, and the server doesn't push when it does, so the app asks again when the nearest one ends.
+  const derivedStore = useAtomStore()
+
+  useEffect(() => {
+    const MAX_TIMER_MS = 2 ** 31 - 1
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const schedule = () => {
+      clearTimeout(timer)
+
+      const wakes = Object.values(derivedStore.get(derivedAtom)?.snoozed ?? {}).map((time) => Date.parse(time))
+
+      if (wakes.length === 0) return
+
+      const delay = Math.min(...wakes) - Date.now()
+
+      timer = setTimeout(
+        () => {
+          const name = workspace.current
+          const epoch = workspaceEpoch.current
+
+          void fetchRemote(name).then((remote) => {
+            if (remote?.derived && epoch === workspaceEpoch.current) setDerived(remote.derived)
+          })
+        },
+        Math.min(Math.max(delay + 500, 1000), MAX_TIMER_MS),
+      )
+    }
+
+    schedule()
+    const unsubscribe = derivedStore.sub(derivedAtom, schedule)
+
+    return () => {
+      unsubscribe()
+      clearTimeout(timer)
+    }
+  }, [derivedStore, setDerived])
 
   useEffect(() => {
     void getSyncStatus().then((status) => status && setSyncStatus(status))
@@ -1458,7 +1499,7 @@ export function Canvas() {
     if (attending) setCursor(pointer.current)
   }
 
-  const needs = useMemo(() => needsAttention(nodes, work.status), [nodes, work.status])
+  const needs = useMemo(() => needsAttention(nodes, work.status, work.snoozed), [nodes, work.status, work.snoozed])
 
   // Work that needs you, gathered onto whatever shows it: the card, or the folded group around it.
   const attention = useMemo(() => {
@@ -2189,7 +2230,13 @@ export function Canvas() {
 
   const openMenu = (event: MouseEvent | React.MouseEvent, target: Menu['target']) => {
     event.preventDefault()
-    setMenu({ x: event.clientX, y: event.clientY, flow: reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }), target })
+    setMenu({
+      x: event.clientX,
+      y: event.clientY,
+      flow: reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }),
+      now: new Date(),
+      target,
+    })
   }
 
   /** A shortcut as menus and the palette show it, or nothing when it's unbound. */
@@ -2252,6 +2299,23 @@ export function Canvas() {
 
       const position = absolutePosition(node, map)
       const after = { x: position.x + cardSize.width + 48, y: position.y + cardSize.height + 24 }
+      const snoozedUntil = work.snoozed.get(node.id)
+      const today = menu.now
+      const snoozeItems: MenuItem[] =
+        work.status.get(node.id) === 'done'
+          ? []
+          : snoozedUntil
+            ? [{ label: 'Wake it now', run: () => updateData(node.id, { snoozedUntil: undefined }) }]
+            : [
+                { label: 'Snooze until later today', run: () => updateData(node.id, { snoozedUntil: snoozeUntil('later', today) }) },
+                { label: 'Snooze until tomorrow', run: () => updateData(node.id, { snoozedUntil: snoozeUntil('tomorrow', today) }) },
+                { label: 'Snooze until next week', run: () => updateData(node.id, { snoozedUntil: snoozeUntil('nextWeek', today) }) },
+                {
+                  label: 'Snooze until a date',
+                  min: localDateValue(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)),
+                  run: (date: string) => updateData(node.id, { snoozedUntil: snoozeUntil({ date }, today) }),
+                },
+              ]
 
       if (isNote(node))
         return [
@@ -2286,6 +2350,7 @@ export function Canvas() {
       return [
         ...many,
         ...(url ? [{ label: `Open ${getTaskTag(data)}`, hint: '↗', run: () => openExternal(url) }] : []),
+        ...snoozeItems,
         data.status === 'done'
           ? { label: 'Mark not done', run: () => updateData(node.id, { status: 'todo' }) }
           : { label: 'Mark done', run: () => updateData(node.id, { status: 'done' }) },

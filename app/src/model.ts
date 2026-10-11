@@ -27,6 +27,8 @@ export type TaskData = {
   refs?: SourceRef[]
   note?: string
   who?: Who
+  /** UTC time a snooze ends, in the form the CLI stores. Snoozed work is set aside until then. */
+  snoozedUntil?: string
 }
 export type SourceRef = {
   source: string
