@@ -1,5 +1,18 @@
 import type { SourceRef } from './derive'
-import { getPullRef, getTaskTag, getTaskUrl, STATUS_LABEL, type ItemKind, type PullDetails, type TaskNode, type ViewStatus, type Who } from './model'
+import {
+  getPullReadiness,
+  getPullRef,
+  getTaskTag,
+  getTaskUrl,
+  READINESS_LABEL,
+  STATUS_LABEL,
+  type ItemKind,
+  type PullDetails,
+  type PullReadiness,
+  type TaskNode,
+  type ViewStatus,
+  type Who,
+} from './model'
 import { getRarity, type Rarity } from './rarity'
 
 export type CardView = {
@@ -20,6 +33,12 @@ export type CardView = {
   rarity?: Rarity
   checks?: 'passing' | 'failing' | 'pending'
   changeSize?: { additions: number; deletions: number }
+  /** How close an open pull request is to merging. */
+  readiness?: PullReadiness
+  /** GitHub would merge the pull request now, and the card isn't parked or blocked by hand. */
+  readyToMerge?: true
+  /** The pull request and head commit a merge from the card must match, while it's ready to merge. */
+  merge?: { url: string; head: string }
   sources: SourceRef[]
   note?: string
   repo?: string
@@ -47,8 +66,13 @@ function getChecks(checks: PullDetails['checks'] | undefined): CardView['checks'
 export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverage: number; upstream: number; sources: SourceRef[] }): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
-  const pullDetails = getPullRef(data)?.details as PullDetails | undefined
+  const pullRef = getPullRef(data)
+  const pullDetails = pullRef?.details as PullDetails | undefined
   const checks = getChecks(pullDetails?.checks)
+  const readiness = getPullReadiness(pullDetails)
+  // Work parked or blocked by hand stays that way even when GitHub would merge it.
+  const readyToMerge = readiness === 'mergeable' && (facts.status === 'review' || facts.status === 'ready' || facts.status === 'active')
+  const merge = readyToMerge && pullRef?.url && pullDetails?.head ? { url: pullRef.url, head: pullDetails.head } : undefined
   const changeSize =
     typeof pullDetails?.additions === 'number' && typeof pullDetails.deletions === 'number'
       ? { additions: pullDetails.additions, deletions: pullDetails.deletions }
@@ -63,13 +87,16 @@ export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverag
     url: getTaskUrl(data),
     ...(pullRequestUrl ? { pullRequestUrl } : {}),
     status: facts.status,
-    statusLabel: STATUS_LABEL[facts.status],
+    statusLabel: readyToMerge ? READINESS_LABEL.mergeable : STATUS_LABEL[facts.status],
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
     upstream: facts.upstream,
     ...(data.itemKind === 'note' ? {} : { rarity: getRarity(facts.upstream) }),
     ...(checks ? { checks } : {}),
     ...(changeSize ? { changeSize } : {}),
+    ...(readiness ? { readiness } : {}),
+    ...(readyToMerge ? { readyToMerge } : {}),
+    ...(merge ? { merge } : {}),
     sources: facts.sources,
     note: data.note,
     repo: data.repo,
