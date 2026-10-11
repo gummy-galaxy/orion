@@ -339,3 +339,92 @@ export const Foil: Story = {
   ),
   args: { sticker: 'none', status: 'ready' },
 }
+
+type SampleCard = Partial<TradingArgs> & Pick<TradingArgs, 'kind' | 'title'>
+
+// Real cards from the Orion workspace, so the options can be judged on a canvas that looks like ours.
+const SAMPLE_GROUPS: { label: string; group: string; cards: SampleCard[] }[] = [
+  {
+    label: 'Card skins',
+    group: 'card-skins',
+    cards: [
+      { kind: 'pr', title: "Lay out cards at the active skin's size", status: 'review', sticker: 'mergeable', unblocks: 3, upstream: 3 },
+      { kind: 'pr', title: 'Add a trading card skin', status: 'review', motion: 'running', blockers: 1, unblocks: 2, upstream: 5, priority: '1' },
+      { kind: 'pr', title: 'Give cards a rarity from the work that feeds into them', status: 'blocked', blockers: 1, unblocks: 2, upstream: 8 },
+      { kind: 'placeholder', title: 'Let people reroll and keep card art', status: 'ready', unblocks: 0, upstream: 0 },
+      { kind: 'gate', title: 'Card skins ship', status: 'blocked', blockers: 3, unblocks: 0, upstream: 15, priority: '0' },
+    ],
+  },
+  {
+    label: 'Navigation',
+    group: 'navigation',
+    cards: [
+      { kind: 'pr', title: 'Always pan on scroll and drop the Scroll to setting', status: 'review', motion: 'running', unblocks: 0, upstream: 2 },
+      {
+        kind: 'pr',
+        title: 'Pan through links and move groups by their header in Pan',
+        status: 'review',
+        sticker: 'changes',
+        unblocks: 1,
+        upstream: 1,
+      },
+      { kind: 'step', title: 'List commands after `>` in the command palette', status: 'ready', unblocks: 1, upstream: 0, size: 'S' },
+      { kind: 'pr', title: "Show a card's far-zoom tag only while hovered or selected", status: 'done', unblocks: 0, upstream: 4 },
+    ],
+  },
+  {
+    label: 'Backlog burn-down',
+    group: 'backlog',
+    cards: [
+      { kind: 'pr', title: 'Select and delete stickers like cards', status: 'review', sticker: 'conflict', unblocks: 1, upstream: 0 },
+      { kind: 'step', title: 'Let one card appear in many places', status: 'ready', unblocks: 0, upstream: 0, size: 'L', priority: '2' },
+      { kind: 'pr', title: 'Snooze cards to hide them from attention for a while', status: 'review', sticker: 'stale', unblocks: 0, upstream: 6 },
+      { kind: 'step', title: 'Keep undo history across workspace switches', status: 'deferred', unblocks: 2, upstream: 1 },
+    ],
+  },
+]
+
+type ColorBy = 'group' | 'kind' | 'card'
+
+// Palettes are picked by hashing a name, so kinds use names that land on five different palettes.
+const KIND_PALETTE: Record<CardView['kind'], string> = { step: 'skins', pr: 'pr', placeholder: 'triage', gate: 'gate', note: 'note' }
+
+function paletteFor(colorBy: ColorBy, group: string, card: SampleCard): string {
+  if (colorBy === 'kind') return KIND_PALETTE[card.kind]
+
+  if (colorBy === 'card') return card.title
+
+  return group
+}
+
+export const SampleCanvas: StoryObj<TradingArgs & { colorBy: ColorBy }> = {
+  name: 'Sample canvas · real cards by group',
+  render: ({ colorBy, ...args }) => (
+    <Lineup
+      rows={SAMPLE_GROUPS.map(({ label, group, cards }) => ({
+        label,
+        cards: cards.map((card) => ({
+          key: card.title,
+          args: {
+            ...args,
+            sticker: 'none',
+            motion: 'none',
+            priority: 'unknown',
+            size: 'unknown',
+            blockers: 0,
+            ...card,
+            group: paletteFor(colorBy, group, card),
+          },
+        })),
+      }))}
+    />
+  ),
+  args: { colorBy: 'group' },
+  argTypes: {
+    colorBy: {
+      control: 'inline-radio',
+      options: ['group', 'kind', 'card'],
+      description: 'Where a card gets its art palette: its group, its kind, or the card itself.',
+    },
+  },
+}
