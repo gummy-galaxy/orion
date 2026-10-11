@@ -34,7 +34,7 @@ function sourceOf(ref: RefData): SourceRef {
 }
 
 /** Every ref on a card gets a badge, once per source, kind, and key. A card with no refs gets none. */
-function sourcesOf(task: TaskNode): SourceRef[] {
+export function sourcesOf(task: TaskNode): SourceRef[] {
   const sources = new Map<string, SourceRef>()
 
   for (const ref of task.data.refs ?? []) {
@@ -44,6 +44,21 @@ function sourcesOf(task: TaskNode): SourceRef[] {
   }
 
   return [...sources.values()]
+}
+
+/** A group's badges: the badges of every card inside it, once per domain and label, linked ones winning over unlinked ones. */
+export function sourcesOfGroup(members: TaskNode[]): SourceRef[] {
+  const groupSources = new Map<string, SourceRef>()
+
+  for (const task of members) {
+    for (const source of sourcesOf(task)) {
+      const key = `${source.domain}:${source.label}`
+
+      if (!groupSources.get(key)?.href) groupSources.set(key, source)
+    }
+  }
+
+  return [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label))
 }
 
 function graph(links: Link[]) {
@@ -170,19 +185,13 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   for (const group of nodes.filter(isCluster)) {
     const inside = descendants(group.id, nodes)
     const stats: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
-    const groupSources = new Map<string, SourceRef>()
+    const members: TaskNode[] = []
     const reach = new Set<string>()
 
     for (const id of inside) {
       const task = tasks.get(id)
 
-      if (task) {
-        for (const source of sourcesOf(task)) {
-          const key = `${source.domain}:${source.label}`
-
-          if (!groupSources.get(key)?.href) groupSources.set(key, source)
-        }
-      }
+      if (task) members.push(task)
 
       const statusValue = status.get(id)
 
@@ -201,10 +210,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
 
     stats.outside = reach.size
     groups.set(group.id, stats)
-    sources.set(
-      group.id,
-      [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label)),
-    )
+    sources.set(group.id, sourcesOfGroup(members))
   }
 
   return { status, flow, leverage, groups, sources, preds: predecessors, succs: successors }
