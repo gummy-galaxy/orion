@@ -42,18 +42,16 @@ describe('getSlotFacts', () => {
     expect(getSlotFacts(createView({ readiness: 'running' }), NOW).sticker).toBeUndefined()
   })
 
-  it('estimates priority from leverage until a source sets one', () => {
-    expect(getSlotFacts(createView({ leverage: 8 }), NOW).priority).toEqual({ value: 1, estimated: true })
-    expect(getSlotFacts(createView({ leverage: 3 }), NOW).priority).toEqual({ value: 2, estimated: true })
-    expect(getSlotFacts(createView({ leverage: 2 }), NOW).priority).toBeUndefined()
-    expect(getSlotFacts(createView({ leverage: 8, priority: 3 }), NOW).priority).toEqual({ value: 3, estimated: false })
+  it('shows priority and size only when a source sets them', () => {
+    expect(getSlotFacts(createView({ leverage: 8 }), NOW).priority).toBeUndefined()
+    expect(getSlotFacts(createView({ priority: 0, size: 'L' }), NOW)).toMatchObject({ priority: 0, size: 'L' })
   })
 
-  it('quiets finished and parked work', () => {
-    const facts = getSlotFacts(createView({ status: 'done', leverage: 8, readiness: 'failing' }), NOW)
+  it('drops stickers and motion from finished and parked work', () => {
+    const facts = getSlotFacts(createView({ status: 'done', readiness: 'failing' }), NOW)
 
-    expect(facts.priority).toBeUndefined()
     expect(facts.sticker).toBeUndefined()
+    expect(facts.motion).toBeUndefined()
   })
 
   it('locks blocked cards and keeps their counts', () => {

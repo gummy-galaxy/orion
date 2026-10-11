@@ -8,11 +8,10 @@ export const MOTIONS = ['running', 'queued'] as const
 
 export type Sticker = (typeof STICKERS)[number]
 export type Motion = (typeof MOTIONS)[number]
-export type SlotFact<T> = { value: T; estimated: boolean }
 
 export type SlotFacts = {
-  priority?: SlotFact<Priority>
-  size?: SlotFact<CardSizeLabel>
+  priority?: Priority
+  size?: CardSizeLabel
   sticker?: Sticker
   motion?: Motion
   locked: boolean
@@ -27,15 +26,6 @@ export const STALE_DAYS = 14
 export const HUES = 5
 
 const DAY_MS = 24 * 60 * 60 * 1000
-
-// Cards that unlock a lot of open work earn a provisional priority until a source sets one.
-function estimatePriority(leverage: number): Priority | undefined {
-  if (leverage >= 6) return 1
-
-  if (leverage >= 3) return 2
-
-  return undefined
-}
 
 function getSticker(view: CardView, now: number): Sticker | undefined {
   if (view.readiness === 'conflict') return 'conflict'
@@ -61,19 +51,12 @@ function getMotion(view: CardView): Motion | undefined {
 
 export function getSlotFacts(view: CardView, now = Date.now()): SlotFacts {
   const settled = view.status === 'done' || view.status === 'deferred'
-  const estimate = settled ? undefined : estimatePriority(view.leverage)
-  const priority =
-    view.priority !== undefined
-      ? { value: view.priority, estimated: false }
-      : estimate !== undefined
-        ? { value: estimate, estimated: true }
-        : undefined
   const sticker = settled ? undefined : getSticker(view, now)
   const motion = settled ? undefined : getMotion(view)
 
   return {
-    ...(priority ? { priority } : {}),
-    ...(view.size ? { size: { value: view.size, estimated: false } } : {}),
+    ...(view.priority !== undefined ? { priority: view.priority } : {}),
+    ...(view.size ? { size: view.size } : {}),
     ...(sticker ? { sticker } : {}),
     ...(motion ? { motion } : {}),
     locked: view.status === 'blocked',

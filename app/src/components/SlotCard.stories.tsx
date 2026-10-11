@@ -14,7 +14,6 @@ type SlotArgs = {
   status: CardView['status']
   priority: 'unknown' | `${Priority}`
   size: 'unknown' | CardSizeLabel
-  leverage: number
   sticker: 'none' | Sticker
   motion: 'none' | Motion
   blockers: number
@@ -48,7 +47,7 @@ function toView(args: SlotArgs): CardView {
     url: null,
     status: args.status,
     statusLabel: args.status,
-    leverage: args.leverage,
+    leverage: 0,
     sources: [],
     artSeed: 'playground',
     blockers: args.blockers,
@@ -83,7 +82,6 @@ const defaults: SlotArgs = {
   status: 'review',
   priority: 'unknown',
   size: 'unknown',
-  leverage: 8,
   sticker: 'mergeable',
   motion: 'none',
   blockers: 0,
@@ -101,10 +99,9 @@ const meta = {
     priority: {
       control: 'inline-radio',
       options: ['unknown', '0', '1', '2', '3'],
-      description: 'Set by a source. Unknown falls back to an estimate from leverage, and shows nothing without one.',
+      description: 'Set by a source. Unknown shows nothing.',
     },
     size: { control: 'inline-radio', options: ['unknown', 'S', 'M', 'L', 'XL'] },
-    leverage: { control: { type: 'range', min: 0, max: 12 }, description: 'Open work downstream. 3 or more estimates P2, 6 or more P1.' },
     sticker: { control: 'select', options: ['none', 'conflict', 'failing', 'changes', 'stale', 'mergeable'] },
     motion: { control: 'inline-radio', options: ['none', 'running', 'queued'] },
     blockers: { control: { type: 'range', min: 0, max: 9 } },
@@ -124,7 +121,6 @@ export const ChecksRunning: Story = {
   name: '#272 · checks running',
   args: {
     title: "Show a card's far-zoom tag only while hovered or selected",
-    leverage: 0,
     sticker: 'none',
     motion: 'running',
     unblocks: 0,
@@ -137,7 +133,6 @@ export const BlockedAndFailing: Story = {
   args: {
     title: 'Draw trading card art as geometric posters built from each card',
     status: 'blocked',
-    leverage: 1,
     sticker: 'failing',
     blockers: 1,
     unblocks: 1,
@@ -146,15 +141,15 @@ export const BlockedAndFailing: Story = {
 
 export const Conflict: Story = {
   name: '#250 · conflict',
-  args: { title: 'Select stickers like cards', leverage: 1, sticker: 'conflict', unblocks: 1, group: 'backlog' },
+  args: { title: 'Select stickers like cards', sticker: 'conflict', unblocks: 1, group: 'backlog' },
 }
 
 export const ChangesRequested: Story = {
-  args: { title: 'Snap only to nearby nodes', leverage: 1, sticker: 'changes', unblocks: 1 },
+  args: { title: 'Snap only to nearby nodes', sticker: 'changes', unblocks: 1 },
 }
 
 export const Stale: Story = {
-  args: { title: 'Pan with touchpad and hide shortcuts by default', leverage: 0, sticker: 'stale', unblocks: 0, group: 'navigation' },
+  args: { title: 'Pan with touchpad and hide shortcuts by default', sticker: 'stale', unblocks: 0, group: 'navigation' },
 }
 
 export const CalmIssue: Story = {
@@ -163,7 +158,6 @@ export const CalmIssue: Story = {
     kind: 'step',
     title: 'List commands after `>` in the command palette',
     status: 'ready',
-    leverage: 1,
     sticker: 'none',
     unblocks: 1,
     group: 'navigation',
@@ -171,7 +165,7 @@ export const CalmIssue: Story = {
 }
 
 export const SetByASource: Story = {
-  args: { title: 'Report release health to PostHog', priority: '0', size: 'L', sticker: 'none', leverage: 2, group: 'release' },
+  args: { title: 'Report release health to PostHog', priority: '0', size: 'L', sticker: 'none', group: 'release' },
 }
 
 export const UnlinkedStep: Story = {
@@ -179,7 +173,6 @@ export const UnlinkedStep: Story = {
     kind: 'step',
     title: 'Let one card appear in many places',
     status: 'ready',
-    leverage: 0,
     sticker: 'none',
     unblocks: 0,
     group: 'workspaces',
@@ -191,7 +184,6 @@ export const ExpectedPullRequest: Story = {
     kind: 'placeholder',
     title: 'Let the scroll setting follow the trackpad',
     status: 'ready',
-    leverage: 0,
     sticker: 'none',
     unblocks: 0,
     group: 'navigation',
@@ -199,11 +191,11 @@ export const ExpectedPullRequest: Story = {
 }
 
 export const Gate: Story = {
-  args: { kind: 'gate', title: 'Card skins ship', status: 'blocked', leverage: 0, sticker: 'none', blockers: 2, unblocks: 0 },
+  args: { kind: 'gate', title: 'Card skins ship', status: 'blocked', sticker: 'none', blockers: 2, unblocks: 0 },
 }
 
 export const Done: Story = {
-  args: { title: 'Add a card skin registry with Classic and Plain skins', status: 'done', leverage: 0, sticker: 'none', unblocks: 0 },
+  args: { title: 'Add a card skin registry with Classic and Plain skins', status: 'done', sticker: 'none', unblocks: 0 },
 }
 
 export const Note: Story = {
