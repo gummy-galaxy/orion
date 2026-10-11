@@ -29,6 +29,7 @@ import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '.
 import { FocusView, type FocusItem } from './FocusView'
 import { reflow } from '../layout'
 import { mergeDocs } from '../merge'
+import { glide, motionReduced, useSystemMotion } from '../motion'
 import {
   TASK_HEIGHT,
   TASK_WIDTH,
@@ -60,9 +61,21 @@ import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
 import { saveSettings, type SavedSetting } from '../settings'
-import { COLOR_MODES, THEMES, applyAppearance, colorModeOf, readAppearance, writeAppearance, type Appearance } from '../appearance'
+import {
+  ANIMATIONS,
+  COLOR_MODES,
+  STATUS_COLORS,
+  THEMES,
+  applyAppearance,
+  colorModeOf,
+  readAppearance,
+  withMotion,
+  writeAppearance,
+  type Appearance,
+} from '../appearance'
 import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
+import { MiniMapNode } from './MiniMapNode'
 import { ImageView } from './ImageView'
 import { TaskView } from './TaskView'
 import {
@@ -171,7 +184,7 @@ const FOCUS_ZOOM = 1.2
 const FOCUS_CARD_Y = 0.7
 const FOCUS_BOTTOM_GAP = 24
 /** Focus moves head straight for the card and start fast. */
-const FOCUS_MOVE = { duration: 260, ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' } as const
+const focusMove = () => ({ duration: glide(260), ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' }) as const
 const PLACE_GAP = 80
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
@@ -302,6 +315,7 @@ export function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
+  const systemMotion = useSystemMotion()
   const [scrolling, setScrolling] = useState(readScrolling)
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
@@ -426,6 +440,9 @@ export function Canvas() {
   }, [])
 
   useEffect(() => cancelClick, [cancelClick])
+
+  // Also runs when the computer's reduced motion setting changes, which Orion follows until a level is picked.
+  useEffect(() => applyAppearance(appearance), [appearance, systemMotion])
 
   // Runs before React Flow's own click handling, which selects the node as it goes.
   const claimNodeClick = (event: React.MouseEvent) => {
@@ -778,8 +795,8 @@ export function Canvas() {
 
       pendingWorkspaceFit.current = null
 
-      if (nodes.length) void reactFlow.fitView({ padding: 0.08, duration: 450 })
-      else void reactFlow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 450 })
+      if (nodes.length) void reactFlow.fitView({ padding: 0.08, duration: glide(450) })
+      else void reactFlow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: glide(450) })
     })
 
     return () => cancelAnimationFrame(frame)
@@ -839,7 +856,7 @@ export function Canvas() {
       const box = canvasRef.current?.getBoundingClientRect()
 
       if (!target || !box) {
-        reactFlow.fitBounds({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, { padding: 0.08, duration: 450 })
+        reactFlow.fitBounds({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, { padding: 0.08, duration: glide(450) })
 
         return
       }
@@ -851,7 +868,7 @@ export function Canvas() {
       fitting.current = true
       const sequence = ++fitSequence.current
 
-      void reactFlow.setViewport(viewport, { duration: 450 }).then(() => {
+      void reactFlow.setViewport(viewport, { duration: glide(450) }).then(() => {
         if (fitSequence.current === sequence) fitting.current = false
       })
     },
@@ -877,7 +894,10 @@ export function Canvas() {
       const position = absolutePosition(node, nodeMap)
       const size = sizeOf(node)
 
-      reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom: Math.max(reactFlow.getZoom(), 0.9), duration: 450 })
+      reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, {
+        zoom: Math.max(reactFlow.getZoom(), 0.9),
+        duration: glide(450),
+      })
     },
     [reactFlow, selectOnly],
   )
@@ -929,6 +949,12 @@ export function Canvas() {
   /** Moves nodes to new positions over a few frames so edges follow along. */
   const tweenTo = useCallback(
     (target: AppNode[]) => {
+      if (motionReduced()) {
+        setNodes(target)
+
+        return
+      }
+
       const from = byId(latest.current.nodes)
       const start = performance.now()
 
@@ -1465,7 +1491,7 @@ export function Canvas() {
         currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
       )
       setFocus(id)
-      void reactFlow.setViewport(focusViewport(node, nodeMap, box), FOCUS_MOVE)
+      void reactFlow.setViewport(focusViewport(node, nodeMap, box), focusMove())
     },
     [reactFlow, focus, inView, remember, setHover, setNodes, setPinned],
   )
@@ -1482,7 +1508,7 @@ export function Canvas() {
     if (!entry) return
 
     if (!entry.moved || !node) {
-      void reactFlow.setViewport(entry.viewport, FOCUS_MOVE)
+      void reactFlow.setViewport(entry.viewport, focusMove())
 
       return
     }
@@ -1491,7 +1517,7 @@ export function Canvas() {
     const size = sizeOf(node)
     const zoom = (root ? fitZoom.current.get(root) : undefined) ?? entry.viewport.zoom
 
-    void reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom, ...FOCUS_MOVE })
+    void reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom, ...focusMove() })
   }, [focus, root, reactFlow, remember])
 
   /** Puts the canvas back at a place from its history. */
@@ -1519,7 +1545,7 @@ export function Canvas() {
       setNodes((currentNodes) =>
         currentNodes.map((node) => (!!node.selected === picked.has(node.id) ? node : { ...node, selected: picked.has(node.id) })),
       )
-      void reactFlow.setViewport(place.viewport, place.focus || focus ? FOCUS_MOVE : { duration: 450 })
+      void reactFlow.setViewport(place.viewport, place.focus || focus ? focusMove() : { duration: glide(450) })
     },
     [root, focus, reactFlow, setHover, setNodes, setPinned],
   )
@@ -2347,7 +2373,7 @@ export function Canvas() {
             label: 'Fit selection',
             detail: `Show ${selected.length} selected`,
             run: () =>
-              void reactFlow.fitView({ nodes: selected.map((node) => ({ id: node.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: 450 }),
+              void reactFlow.fitView({ nodes: selected.map((node) => ({ id: node.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: glide(450) }),
           },
         ]
       : []),
@@ -2363,6 +2389,18 @@ export function Canvas() {
       detail: 'Saved on this device',
       run: () => chooseAppearance({ ...appearance, colorMode: mode }),
     })),
+    ...STATUS_COLORS.map((option) => ({
+      id: `status-colors-${option.id}`,
+      label: `Colorblind colors: ${option.label}`,
+      detail: 'Saved on this device',
+      run: () => chooseAppearance({ ...appearance, statusColors: option.id }),
+    })),
+    ...ANIMATIONS.map((option) => ({
+      id: `animations-${option.id}`,
+      label: `Animations: ${option.label}`,
+      detail: 'Saved on this device',
+      run: () => chooseAppearance(withMotion(appearance, option.id)),
+    })),
     ...SCROLLINGS.map((option) => ({
       id: `scroll-${option.id}`,
       label: `Scroll to: ${option.label}`,
@@ -2372,7 +2410,7 @@ export function Canvas() {
     {
       id: 'settings',
       label: 'Open settings',
-      detail: 'Theme, color mode, scrolling, and keyboard shortcuts',
+      detail: 'Theme, color mode, scrolling, accessibility, and keyboard shortcuts',
       hint: hintOf('settings'),
       run: () => setSettings('appearance'),
     },
@@ -2428,7 +2466,6 @@ export function Canvas() {
 
   const chooseAppearance = (next: Appearance) => {
     setAppearance(next)
-    applyAppearance(next)
     writeAppearance(next)
   }
 
@@ -2603,6 +2640,7 @@ export function Canvas() {
               <MiniMap
                 pannable
                 zoomable
+                nodeComponent={MiniMapNode}
                 nodeClassName={(node) =>
                   node.type === 'cluster'
                     ? 'mm-cluster'
