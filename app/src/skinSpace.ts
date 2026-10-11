@@ -20,12 +20,8 @@ function mapPositions(nodes: AppNode[], size: CardSize, isInverse: boolean): App
       return {
         ...node,
         position: {
-          x: isInverse
-            ? Math.round(origin.x + (node.position.x - origin.x) / pitchX)
-            : origin.x + (node.position.x - origin.x) * pitchX,
-          y: isInverse
-            ? Math.round(origin.y + (node.position.y - origin.y) / pitchY)
-            : origin.y + (node.position.y - origin.y) * pitchY,
+          x: isInverse ? Math.round(origin.x + (node.position.x - origin.x) / pitchX) : origin.x + (node.position.x - origin.x) * pitchX,
+          y: isInverse ? Math.round(origin.y + (node.position.y - origin.y) / pitchY) : origin.y + (node.position.y - origin.y) * pitchY,
         },
       }
     }),
