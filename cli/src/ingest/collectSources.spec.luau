@@ -1,7 +1,9 @@
+local json = require("@std/json")
 local test = require("@std/test")
 
+local collectSources = require("@root/ingest/collectSources")
 local findRef = require("@root/refs/findRef")
-local ingest = require("@root/ingest")
+local placeRecords = require("@root/ingest/placeRecords")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -54,7 +56,7 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 		)
 	end
 
-	local first = ingest.apply(doc, ingest.collect(doc, runCommand, NOW), NOW)
+	local first = placeRecords(doc, collectSources(doc, runCommand, NOW))
 	assert.eq(first.sources[1].added, 2)
 	assert.eq(first.sources[1].linked, 2)
 	assert.eq(first.sources[2].added, 1)
@@ -66,7 +68,7 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 	assert.eq(doc.nodes[1].id, "unsorted")
 	assert.eq(doc.nodes[1].data.layout, "refit")
 	local count = #doc.nodes
-	local second = ingest.apply(doc, ingest.collect(doc, runCommand, NOW), NOW)
+	local second = placeRecords(doc, collectSources(doc, runCommand, NOW))
 	assert.eq(#doc.nodes, count)
 	assert.eq(#doc.links, 2)
 	assert.eq(second.sources[1].updated, 2)
@@ -104,7 +106,7 @@ test.case("issue refs with the same key across sources identify one card", funct
 		)
 	end
 
-	local first = ingest.apply(doc, ingest.collect(doc, runCommand, NOW), NOW)
+	local first = placeRecords(doc, collectSources(doc, runCommand, NOW))
 	assert.eq(first.sources[1].added, 1)
 	assert.eq(first.sources[2].updated, 1)
 	assert.eq(#doc.nodes, 2)
@@ -112,7 +114,7 @@ test.case("issue refs with the same key across sources identify one card", funct
 	assert.eq(issue and issue.source, "jira-two")
 	assert.eq(issue and issue.isDone, true)
 	assert.eq(doc.nodes[2].data.status, "done")
-	local second = ingest.apply(doc, ingest.collect(doc, runCommand, NOW), NOW)
+	local second = placeRecords(doc, collectSources(doc, runCommand, NOW))
 	assert.eq(second.sources[1].updated, 1)
 	assert.eq(second.sources[2].updated, 1)
 	assert.eq(#doc.nodes, 2)
@@ -137,7 +139,7 @@ test.case("hop step converts to a pull request without changing placement or not
 		)
 	end
 
-	ingest.apply(doc, ingest.collect(doc, runHop, NOW), NOW)
+	placeRecords(doc, collectSources(doc, runHop, NOW))
 	local step = doc.nodes[2]
 	assert.eq(step.data.itemKind, "step")
 	assert.eq(step.data.label, "feature ABC-123 avatar fix")
@@ -159,7 +161,7 @@ test.case("hop step converts to a pull request without changing placement or not
 		return result
 	end
 
-	local report = ingest.apply(doc, ingest.collect(doc, runCommand, NOW), NOW)
+	local report = placeRecords(doc, collectSources(doc, runCommand, NOW))
 	assert.eq(report.sources[1].updated, 1)
 	assert.eq(doc.nodes[2].id, id)
 	assert.eq(doc.nodes[2].data.itemKind, "pr")
@@ -187,7 +189,7 @@ test.case("hop resolves bare repository names without changing case and matches 
 		return testing.result(true, "[]")
 	end
 
-	local first = ingest.apply(doc, ingest.collect(doc, runHop, NOW), NOW)
+	local first = placeRecords(doc, collectSources(doc, runHop, NOW))
 	assert.eq(first.sources[1].added, 1)
 	local step = doc.nodes[3]
 	assert.eq(step.data.repo, "Roblox/Avatar")
@@ -206,7 +208,7 @@ test.case("hop resolves bare repository names without changing case and matches 
 	end
 
 	local count = #doc.nodes
-	local second = ingest.apply(doc, ingest.collect(doc, runLowercaseHop, NOW), NOW)
+	local second = placeRecords(doc, collectSources(doc, runLowercaseHop, NOW))
 	assert.eq(second.sources[1].updated, 1)
 	assert.eq(#doc.nodes, count)
 	assert.eq(step.data.repo, "Roblox/Avatar")
@@ -218,7 +220,7 @@ test.case("one failed source does not stop other sources", function(assert)
 		{ id = "hop", kind = "hop", command = { "hop" } },
 		{ id = "jira", kind = "jira", command = { "acli", "jira", "workitem", "search" } },
 	}
-	local fetched = ingest.collect(doc, function(argv)
+	local fetched = collectSources(doc, function(argv)
 		if argv[1] == "hop" then
 			return { ok = false, exitCode = 1, stdout = "", stderr = "not installed" }
 		end
@@ -228,8 +230,106 @@ test.case("one failed source does not stop other sources", function(assert)
 			[[[{"key":"ABC-2","summary":"Continue","status":"To Do","statusCategory":"new","type":"Task","updatedAt":"2026-10-03T00:00:00Z"}] ]]
 		)
 	end, NOW)
-	local report = ingest.apply(doc, fetched, NOW)
+	local report = placeRecords(doc, fetched)
 	assert.strContains(report.sources[1].failed or "", "not installed")
 	assert.eq(report.sources[2].added, 1)
 	assert.eq(#doc.nodes, 2)
+end)
+
+test.case("hop observes GitHub cards collected later in source configuration", function(assert)
+	local doc = testing.createDoc({})
+	doc.settings.sources = {
+		{ id = "hop", kind = "hop", command = { "hop" } },
+		{ id = "gh-roblox", kind = "github", host = "github.com", owners = { "Roblox" } },
+	}
+
+	local function runCommand(argv: { string })
+		if argv[1] == "gh" then
+			return runGh(argv)
+		elseif argv[2] == "list" then
+			return testing.result(
+				true,
+				[[{"worktrees":[{"branch":"ABC-123-avatar-fix","onDefaultBranch":false,"lastActivity":1791072000,"repository":{"name":"avatar"}}]}]]
+			)
+		end
+
+		return testing.result(true, "[]")
+	end
+
+	local report = placeRecords(doc, collectSources(doc, runCommand, NOW))
+	assert.eq(report.sources[1].id, "hop")
+	assert.eq(report.sources[1].updated, 1)
+	assert.eq(report.sources[2].added, 2)
+	assert.eq(#doc.nodes, 3)
+	local branch = findRef(doc.nodes[2], "branch")
+	assert.eq(branch and branch.key, "Roblox/avatar@ABC-123-avatar-fix")
+end)
+
+test.case("hop attaches worktree activity to migrated pull cards", function(assert)
+	local doc = store.decode(
+		[[{"version":1,"settings":{"sources":[{"id":"gh-flipbook-labs","kind":"github","host":"github.com","owners":["flipbook-labs"]},{"id":"hop","kind":"hop","command":["hop"]}]},"nodes":[{"id":"st-161","type":"task","position":{"x":24,"y":240},"data":{"label":"Batch matching discovery queries","status":"done","kind":"task","itemKind":"pr","sources":[{"kind":"github-pr","repo":"storyteller","number":161,"branch":"batch-discovery-queries","state":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/161"}}]}},{"id":"st-162","type":"task","position":{"x":24,"y":150},"data":{"label":"Reference-count Storyteller consumers","status":"done","kind":"task","itemKind":"pr","sources":[{"kind":"github-pr","repo":"storyteller","number":162,"branch":"reference-count-storyteller-runtime","state":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/162"}}]}}]}]]
+	)
+	for _, branch in { "batch-discovery-queries", "reference-count-storyteller-runtime" } do
+		table.insert(
+			doc.nodes,
+			testing.task(`existing-{branch}`, "Existing branch", "active", nil, {
+				repo = "flipbook-labs/storyteller",
+				refs = { { source = "hop", kind = "branch", key = `flipbook-labs/storyteller@{branch}` } },
+			})
+		)
+	end
+
+	local list =
+		[[{"worktrees":[{"repository":{"remote":"flipbook-labs/storyteller"},"branch":"batch-discovery-queries","onDefaultBranch":false,"lastActivity":1789941379.617885},{"repository":{"remote":"flipbook-labs/storyteller"},"branch":"reference-count-storyteller-runtime","onDefaultBranch":false,"lastActivity":1789940593.504069}]}]]
+	local function runHop(argv: { string })
+		return testing.result(true, if argv[2] == "list" then list else "[]")
+	end
+
+	local report = placeRecords(doc, collectSources(doc, runHop, "2026-10-09T01:30:00Z", "hop"))
+	assert.eq(report.sources[1].updated, 2)
+
+	doc = store.decode(store.encode(doc))
+
+	for index = 1, 2 do
+		local item = doc.nodes[index]
+		local branch = findRef(item, "branch")
+		assert.eq(branch and branch.source, "hop")
+		assert.eq(branch and branch.key, `flipbook-labs/storyteller@{(findRef(item, "pull") :: any).details.branch}`)
+		assert.eq(branch and branch.details and branch.details.sessions, {})
+	end
+end)
+
+test.case("hop session activity follows the pull card before a duplicate branch ref", function(assert)
+	local pull = testing.task("pull", "Pull", "done", nil, {
+		repo = "flipbook-labs/storyteller",
+		refs = {
+			{
+				source = "github",
+				kind = "pull",
+				key = "flipbook-labs/storyteller#161",
+				details = json.object({ branch = "batch-discovery-queries" }),
+			},
+		},
+	})
+	local duplicate = testing.task("duplicate", "Branch", "active", nil, {
+		repo = "flipbook-labs/storyteller",
+		refs = { { source = "hop", kind = "branch", key = "flipbook-labs/storyteller@batch-discovery-queries" } },
+	})
+	local doc = testing.createDoc({ pull, duplicate })
+	doc.settings.sources = { { id = "hop", kind = "hop", command = { "hop" } } }
+	local function runHop(argv: { string })
+		return testing.result(
+			true,
+			if argv[2] == "list"
+				then [[{"worktrees":[]}]]
+				else '[{"repository":"flipbook-labs/storyteller","branch":"batch-discovery-queries","title":"Review","updatedAt":1789941379}]'
+		)
+	end
+
+	local report = placeRecords(doc, collectSources(doc, runHop, "2026-10-09T01:30:00Z"))
+	assert.eq(report.sources[1].updated, 0)
+	local branch = findRef(pull, "branch")
+	assert.eq(branch and branch.details and branch.details.sessions, { "Review" })
+	local duplicateBranch = findRef(duplicate, "branch")
+	assert.eq(duplicateBranch and duplicateBranch.details, nil)
 end)

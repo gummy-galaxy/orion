@@ -1,7 +1,9 @@
 import type { CardView } from '../cardView'
-import { Lock } from './Lock'
+import { ChecksIcon } from './ChecksIcon'
 import { OpenInVscode } from './OpenInVscode'
 import { SourceBadges } from './SourceBadges'
+import { StatusIcon } from './StatusIcon'
+import { WhoBadge } from './WhoBadge'
 
 export function ClassicCard({ view }: { view: CardView }) {
   if (view.kind === 'note') {
@@ -16,7 +18,7 @@ export function ClassicCard({ view }: { view: CardView }) {
     )
   }
 
-  const checkClass = view.checks === 'passing' ? 'check-success' : view.checks === 'failing' ? 'check-failure' : 'check-pending'
+  const checks = view.checks === 'passing' ? 'SUCCESS' : view.checks === 'failing' ? 'FAILURE' : 'PENDING'
   const checkTitle = view.checks === 'passing' ? 'success' : view.checks === 'failing' ? 'failure' : 'pending'
 
   return (
@@ -26,9 +28,9 @@ export function ClassicCard({ view }: { view: CardView }) {
         <span className="meta-tag" title={view.tag}>
           {view.tag}
         </span>
-        {view.checks && <span className={`check-dot ${checkClass}`} title={`Checks: ${checkTitle}`} />}
+        {view.checks && <ChecksIcon checks={checks} title={`Checks: ${checkTitle}`} />}
         <span className="st" title={view.statusLabel}>
-          {view.status === 'blocked' && <Lock />}
+          <StatusIcon status={view.status} />
           <span className="st-label">{view.statusLabel}</span>
         </span>
       </div>
@@ -36,7 +38,7 @@ export function ClassicCard({ view }: { view: CardView }) {
       {view.status !== 'done' && view.status !== 'deferred' && view.leverage > 0 && (
         <span className={`lev${view.leverage >= 4 ? ' big' : ''}`}>unblocks {view.leverage}</span>
       )}
-      {view.who && <span className={`who who-${view.who}`} title={view.whoLabel} />}
+      {view.who && <WhoBadge who={view.who} />}
       <div className="card-actions">
         {view.pullRequestUrl && <OpenInVscode url={view.pullRequestUrl} />}
         <SourceBadges sources={view.sources} />

@@ -1,8 +1,10 @@
 # Orion
 
-A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with zoom levels that go from single cards out to whole bodies of work.
+A canvas for graph-shaped work: tasks and pull requests with dependencies, grouped freely across repositories, with a detail control that goes from single cards out to whole bodies of work.
 
 This is a prototype. It runs in the browser or in a desktop shell.
+
+See [`CHARTER.md`](CHARTER.md) for where it's headed.
 
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
@@ -39,7 +41,7 @@ Build the CLI first with `cd cli && lute run build`. Vite starts `orion serve` a
 
 PR cards show a **VS Code** button when the `code` and `hop` launchers are on the server's `PATH`. Clicking it runs `hop to <PR URL>`, which reuses or checks out the PR's worktree and opens it in VS Code.
 
-To browse the component stories without starting `orion serve`, run `npm run storybook` from `app/`. Each component's story lives beside it in `app/src/components/`, with shared sample data in `storySupport/`. Pick a theme from the Theme menu and Light or Dark from the Color mode menu in Storybook's toolbar to check a story in each look. Run `npm run build-storybook` to check the static Storybook build. The stories use sample graph data and render the app composition against Storybook's own browser storage. The normal app build does not import the stories, so they are absent from the packaged app.
+To browse the component stories without starting `orion serve`, run `npm run storybook` from `app/`. Each component's story lives beside it in `app/src/components/`, with shared sample data in `storySupport/`. Pick a theme from the Theme menu, Light or Dark from the Color mode menu, and a colorblind palette from the Colorblind colors menu in Storybook's toolbar to check a story in each look. Run `npm run build-storybook` to check the static Storybook build. The stories use sample graph data and render the app composition against Storybook's own browser storage. The normal app build does not import the stories, so they are absent from the packaged app.
 
 To check a change for performance regressions, run `npm run perf` from `app/`. It compares this checkout against `origin/main` (pass `-- --base <ref>` for another revision) and writes the report to `app/.perf/report.md`. Both sides run this checkout's harness in `app/src/perf/`: data benchmarks over generated canvases of 1,000 and 5,000 cards, and a 1,000-card perf story that Playwright drives in headless Chromium to count React commits, frames drawn, and main-thread and raster time while idle, panning, zooming, hovering, and dragging. Add `-- --stories perf-canvas--cards-1000,perf-canvas--cards-5000` to profile the larger canvas too, which is slow enough today to take several minutes. Install the browser once with `npx playwright install chromium`. Run `npx vitest bench --root src` for the benchmarks alone. Close other heavy work while it runs, since it measures this machine. On pull requests that touch `app/`, CI's perf job runs the same comparison against the base branch and posts the report as a comment, replacing it on each run.
 
@@ -96,6 +98,8 @@ The desktop app bundles the binary at that path; use `cli/build/orion` for a loc
 
 Configure sources once, then run `orion ingest --dry-run` to preview work involving you. `orion ingest` adds new cards to Unsorted, updates matching cards in place, and links mentioned Jira issues or GitHub issues to pull requests. `orion source list --json` shows the configuration. Sources and cards live in the selected Orion data file; source commands run through the CLI and keep credentials in their own tools.
 
+Each source kind is an adapter in `cli/src/adapters/<kind>/`. An adapter validates source options and collects records for ingest; GitHub also implements pull request refresh for sync.
+
 For GitHub sources, `--owners`, `--include`, and `--exclude` accept comma-separated lists. Spaces around entries are ignored, so `--owners vocksel,flipbook-labs --include "orion, hop"` works.
 
 Cards store pull requests, issues, and local branches in `data.refs`, including each source ID, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests.
@@ -117,15 +121,14 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 
 - The toolbar at the bottom switches tools. Select (V) is the default: drag a box to select everything it touches, and ⇧ adds to the selection. An open group is selected only when the box covers all of it. Middle-drag or hold Space and drag to pan. Pan (H) drags the canvas from anywhere, with ⌘-drag to select. Comment (C) drops a note where you click, then returns to Select. Esc also returns to Select.
 - Hold S to open the sticker wheel, point at one, and let go; a quick tap or the toolbar button leaves it open for clicking, and 1–8 pick by number. With it open, type or paste any emoji to stamp that instead, and right-click a slot, or click an empty one, to put a different emoji there. Each canvas keeps its own wheel. Then click to stamp it as many times as you like. Stickers stamped on a card or group move with it. In Select, drag a sticker to move it or flick it to send it sliding; stickers bounce off each other and stay inside their group's walls. Keep pulling past a wall to pop one out of a group, or into another. Right-click a sticker to remove it.
-- Scroll or pinch to zoom, and Space-drag or middle-drag to pan. Settings › Canvas switches scrolling to pan instead, with pinch or ⌘-scroll to zoom. ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
+- Scroll a mouse wheel or pinch to zoom, and scroll a trackpad, Space-drag, or middle-drag to pan. Settings › Canvas switches the mouse wheel to pan instead, with pinch or ⌘-scroll to zoom. ⌘-click or ⇧-click adds to the selection. Right-click anything for its actions.
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result. Type `>` first, or press ⇧⌘P (or Ctrl+Shift+P), to list actions instead; deleting the `>` goes back to searching.
-- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Canvas picks whether scrolling zooms or pans. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. All three are saved in the data folder. The shortcuts in this section are the defaults.
-- Double-click a group, or press Enter with one selected, to open it. Esc goes back up, and the breadcrumbs jump to any level.
-- Zoom out in an open group to peek at its faded surroundings. Keep zooming out, pan the group mostly off screen, or interact with outside work to leave without changing the viewport; the zoom distance scales with the group's work.
+- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Accessibility picks colorblind colors: Red-green or Blue-yellow swaps in status colors tuned for that kind of color blindness, in any theme. Animations follows your computer's reduced motion setting until you pick a level: Reduced stops looping effects and makes the canvas jump instead of glide but keeps fades, and Off stops every animation. Every status also has its own shape: an empty ring when ready, half full in progress, three quarters in review, a solid check when done, a dashed ring when deferred, and a lock when blocked. Whose move it is shows as a person, an eye, or a gear; notes have a folded corner; folded groups look like a stack of cards; and the minimap draws ready work hollow, work in progress half filled, and work in review solid. Canvas picks whether scrolling zooms or pans. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. All four are saved in the data folder. The shortcuts in this section are the defaults.
+- Double-click a group, or press Enter with one selected, to open it. Esc or a double-click on empty canvas goes back up, and the breadcrumbs jump to any level.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
-- Zooming out folds groups into single bodies, inner groups first. Links between folded groups are bundled into one line with a count.
+- The detail stepper beside the zoom buttons, or [ and ], folds groups into single bodies one level of nesting at a time, inner groups first, counting from the open group. Each workspace remembers its level. Links between folded groups are bundled into one line with a count. Zoom only moves the view.
 - However far you zoom out, folded groups, cards, and notes keep their full details at a readable size, and open groups' headers grow to stay legible. Hover one to bring it above its neighbors.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
 - Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it (dark dots).
@@ -157,7 +160,7 @@ In `app/`:
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
-- `src/App.tsx`: the canvas, semantic zoom, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
+- `src/App.tsx`: the canvas, detail levels, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
 - `src/Settings.tsx`, `src/AppearanceSettings.tsx`, `src/CanvasSettings.tsx`, and `src/ShortcutSettings.tsx`: the settings dialog. `app/src/keybindings.ts` lists each shortcut with its default and saves rebound ones.

@@ -1,8 +1,8 @@
 local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
+local createSource = require("@root/sources/createSource")
 local parseCommaList = require("@root/cli/parseCommaList")
-local sources = require("@root/sources")
 local store = require("@root/store")
 
 type Context = context.Context
@@ -40,7 +40,7 @@ return table.freeze({
 			end
 		end
 
-		local source = sources.createSource(kind, values)
+		local source = createSource(kind, values)
 		store.transaction(options.dir, function(doc)
 			for _, existing in doc.settings.sources do
 				assert(existing.id ~= source.id, `source id "{source.id}" already exists`)
