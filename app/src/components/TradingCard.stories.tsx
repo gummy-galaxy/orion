@@ -90,6 +90,7 @@ const IDENTITY_LABEL: Record<TradingIdentity, string> = {
   tile: 'Tile: the icon over the art, as on #275',
   emblem: 'Emblem: the kind drawn into the art, its mark by the title',
   frame: "Frame: emblem inside the vibrant study's rim, lit by status and the art's inks",
+  shape: 'Shape: frame, with an outline cut by kind',
 }
 
 const LINEUP_KINDS: CardView['kind'][] = ['step', 'pr', 'placeholder', 'gate']
@@ -322,7 +323,7 @@ export const Foil: Story = {
   name: 'Foil · priority',
   render: (args) => (
     <Lineup
-      rows={(['emblem', 'frame'] as const).map((identity) => ({
+      rows={(['emblem', 'frame', 'shape'] as const).map((identity) => ({
         label: IDENTITY_LABEL[identity],
         cards: (['0', '1', '2', 'unknown'] as const).map((priority) => ({
           key: priority,

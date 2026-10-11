@@ -548,7 +548,7 @@
 }
 
 .trading-frame[data-kind='placeholder'] .trading-emblem {
-  --emblem: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 176' fill='none' stroke='%23000'%3E%3Ccircle cx='120' cy='88' r='74' stroke-width='14' stroke-dasharray='22 16'/%3E%3Ccircle cx='120' cy='88' r='42' stroke-width='12' stroke-dasharray='14 12'/%3E%3Cpath d='M120 74v28M106 88h28' stroke-width='10' stroke-linecap='round'/%3E%3C/svg%3E");
+  --emblem: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 176' fill='none' stroke='%23000' stroke-width='12' stroke-linecap='round'%3E%3Cpath d='M70 46v84'/%3E%3Cpath d='M70 130c0-48 100-30 100-74'/%3E%3Ccircle cx='70' cy='24' r='20'/%3E%3Ccircle cx='70' cy='152' r='20'/%3E%3Ccircle cx='170' cy='34' r='20'/%3E%3C/svg%3E");
 }
 
 .trading-frame[data-kind='gate'] .trading-emblem {
@@ -756,4 +756,59 @@
 
 :where(:root[data-motion='off']) .trading-holo {
   transition: none;
+}
+
+/* Shape: each kind cuts its own outline. Steps are square blocks, pull requests have two rounded corners like a
+   leaf, expected pull requests are rounded and dashed, and gates have a battlement notched into the top. */
+.card.skin-trading .trading-frame[data-identity='shape'] {
+  --trading-rim: linear-gradient(
+    155deg,
+    color-mix(in oklab, var(--trading-status) 90%, white),
+    color-mix(in oklab, var(--trading-ink-one) 35%, #1a1240) 40%,
+    color-mix(in oklab, var(--trading-ink-two) 30%, #1a1240) 70%,
+    var(--trading-status)
+  );
+  box-sizing: border-box;
+  border: 5px solid transparent;
+  background:
+    linear-gradient(var(--trading-back), var(--trading-back)) padding-box,
+    var(--trading-rim) border-box;
+  box-shadow: 0 18px 40px rgb(0 0 0 / 0.45);
+}
+
+.card.skin-trading .trading-frame[data-identity='shape']:is(.trading-done, .trading-deferred):not(.trading-foil-edge, .trading-foil-holo) {
+  --trading-rim: linear-gradient(
+    155deg,
+    color-mix(in oklab, var(--st-done) 70%, #1a1344),
+    #1b1442 50%,
+    color-mix(in oklab, var(--st-done) 50%, #1a1344)
+  );
+}
+
+.card.skin-trading .trading-frame[data-identity='shape'][data-kind='step'] {
+  border-radius: 4px;
+}
+
+.card.skin-trading .trading-frame[data-identity='shape'][data-kind='pr'] {
+  border-radius: 40px 6px;
+}
+
+.card.skin-trading .trading-frame[data-identity='shape'].trading-expected {
+  border: 4px dashed color-mix(in oklab, var(--trading-status) 70%, transparent);
+  border-radius: 30px;
+  background: var(--trading-back);
+  outline: none;
+}
+
+/* The mask cuts the notches through the rim and shadow too, so the card's edge inside a notch has no rim. */
+.card.skin-trading .trading-frame[data-identity='shape'].trading-gate {
+  --trading-rim: conic-gradient(from 210deg, #ffd166, #ff8f3d, #ffe08a, #e8ad50, #ffd166);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 264 380' preserveAspectRatio='none'%3E%3Cpath d='M16 0H70V20H100V0H117V20H147V0H164V20H194V0H248Q264 0 264 16V364Q264 380 248 380H16Q0 380 0 364V16Q0 0 16 0Z'/%3E%3C/svg%3E")
+    0 0 / 100% 100%;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 264 380' preserveAspectRatio='none'%3E%3Cpath d='M16 0H70V20H100V0H117V20H147V0H164V20H194V0H248Q264 0 264 16V364Q264 380 248 380H16Q0 380 0 364V16Q0 0 16 0Z'/%3E%3C/svg%3E")
+    0 0 / 100% 100%;
+}
+
+.trading-frame[data-identity='shape'].trading-gate :is(.trading-facts, .trading-sticker) {
+  top: 26px;
 }
