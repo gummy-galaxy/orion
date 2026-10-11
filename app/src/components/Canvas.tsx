@@ -2586,7 +2586,7 @@ export function Canvas() {
               {nodes.length === 0 && <EmptyCanvas addNote={() => addNote(viewportCenter())} />}
               {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
               <Controls showInteractive={false}>
-                <DetailStepper level={level} levels={levels} change={changeDetail} />
+                <DetailStepper level={level} levels={levels} keybindings={keybindings} change={changeDetail} />
               </Controls>
               {/* The desktop shell hides the native title bar, so this strip along the top drags the window. */}
               <div className="window-drag" data-tauri-drag-region aria-hidden="true" onPointerDown={(event) => event.stopPropagation()} />
