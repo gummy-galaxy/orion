@@ -129,7 +129,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Card skins are listed in `app/src/skins.ts`, with a component and CSS file for each skin.
 - Double-click a group, or press Enter with one selected, to open it. Esc or a double-click on empty canvas goes back up, and the breadcrumbs jump to any level.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
-- The detail stepper beside the zoom buttons, or [ and ], folds groups into single bodies one level of nesting at a time, inner groups first, counting from the open group. Each workspace remembers its level. Links between folded groups are bundled into one line with a count. Zoom only moves the view.
+- The detail stepper beside the zoom buttons, or [ and ], folds groups into single bodies one level of nesting at a time, inner groups first, counting from the open group. A workspace starts at one level, with every group folded, and remembers the level you pick. Links between folded groups are bundled into one line with a count. Zoom only moves the view.
 - However far you zoom out, folded groups, cards, and notes keep their full details at a readable size, and open groups' headers grow to stay legible. Hover one to bring it above its neighbors.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
 - Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it (dark dots).
