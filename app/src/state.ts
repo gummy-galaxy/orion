@@ -1,11 +1,15 @@
-import { atom, useAtomValue } from 'jotai'
+import { atom, getDefaultStore, useAtomValue } from 'jotai'
 import { selectAtom } from 'jotai/utils'
 import { useMemo } from 'react'
 import { getCardView } from './cardView'
+import { readAppearance } from './appearance'
 import { deriveWork, traceFrom, type AttentionMark, type GroupStats, type SourceRef } from './derive'
 import { isTask, type AppNode, type Link, type TaskNode } from './model'
 
 export const nodesAtom = atom<AppNode[]>([])
+export const skinAtom = atom(readAppearance().skin)
+// The skin lives in Jotai's default store because this per-device preference is shared by every canvas and story store.
+export const skinStore = getDefaultStore()
 export const linksAtom = atom<Link[]>([])
 export const hoverAtom = atom<string | null>(null)
 /** A double-clicked card keeps its trace while you pan around; any click lets it go. */
