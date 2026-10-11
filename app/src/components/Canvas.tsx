@@ -29,7 +29,7 @@ import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '.
 import { FocusView, type FocusItem } from './FocusView'
 import { reflow } from '../layout'
 import { mergeDocs } from '../merge'
-import { glide, motionReduced } from '../motion'
+import { glide, motionReduced, useSystemMotion } from '../motion'
 import {
   TASK_HEIGHT,
   TASK_WIDTH,
@@ -68,6 +68,7 @@ import {
   applyAppearance,
   colorModeOf,
   readAppearance,
+  withMotion,
   writeAppearance,
   type Appearance,
 } from '../appearance'
@@ -340,6 +341,7 @@ export function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
+  const systemMotion = useSystemMotion()
   const [scrolling, setScrolling] = useState(readScrolling)
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
@@ -469,6 +471,9 @@ export function Canvas() {
   }, [])
 
   useEffect(() => cancelClick, [cancelClick])
+
+  // Also runs when the computer's reduced motion setting changes, which Orion follows until a level is picked.
+  useEffect(() => applyAppearance(appearance), [appearance, systemMotion])
 
   // Runs before React Flow's own click handling, which selects the node as it goes.
   const claimNodeClick = (event: React.MouseEvent) => {
@@ -2517,7 +2522,7 @@ export function Canvas() {
       id: `animations-${option.id}`,
       label: `Animations: ${option.label}`,
       detail: 'Saved on this device',
-      run: () => chooseAppearance({ ...appearance, animations: option.id }),
+      run: () => chooseAppearance(withMotion(appearance, option.id)),
     })),
     ...SCROLLINGS.map((option) => ({
       id: `scroll-${option.id}`,
@@ -2588,7 +2593,6 @@ export function Canvas() {
 
   const chooseAppearance = (next: Appearance) => {
     setAppearance(next)
-    applyAppearance(next)
     writeAppearance(next)
   }
 

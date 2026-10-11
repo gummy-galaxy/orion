@@ -1,3 +1,5 @@
+import { systemMotion, type Motion } from './motion'
+
 export type ColorMode = 'light' | 'dark' | 'system'
 
 export type Theme = {
@@ -24,12 +26,13 @@ export const STATUS_COLORS: readonly { id: StatusColors; label: string }[] = [
   { id: 'blue-yellow', label: 'Blue-yellow' },
 ]
 
-/** On still follows the computer's reduced motion setting; Off stops animation regardless. */
-export type Animations = 'on' | 'off'
+/** A motion level picked in Accessibility, or the computer's until one is. */
+export type Animations = 'system' | Motion
 
-export const ANIMATIONS: readonly { id: Animations; label: string }[] = [
-  { id: 'off', label: 'Off' },
+export const ANIMATIONS: readonly { id: Motion; label: string }[] = [
   { id: 'on', label: 'On' },
+  { id: 'reduced', label: 'Reduced' },
+  { id: 'off', label: 'Off' },
 ]
 
 export type Appearance = { theme: string; colorMode: ColorMode; statusColors: StatusColors; animations: Animations }
@@ -59,10 +62,10 @@ export function readAppearance(): Appearance {
       theme: themeOf(localStorage.getItem(THEME_KEY) ?? '').id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
       statusColors: STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
-      animations: localStorage.getItem(ANIMATIONS_KEY) === 'off' ? 'off' : 'on',
+      animations: ANIMATIONS.find((option) => option.id === localStorage.getItem(ANIMATIONS_KEY))?.id ?? 'system',
     }
   } catch {
-    return { theme: THEMES[0].id, colorMode: 'system', statusColors: 'theme', animations: 'on' }
+    return { theme: THEMES[0].id, colorMode: 'system', statusColors: 'theme', animations: 'system' }
   }
 }
 
@@ -71,7 +74,9 @@ export function writeAppearance(appearance: Appearance) {
     localStorage.setItem(THEME_KEY, appearance.theme)
     localStorage.setItem(COLOR_MODE_KEY, appearance.colorMode)
     localStorage.setItem(STATUS_COLORS_KEY, appearance.statusColors)
-    localStorage.setItem(ANIMATIONS_KEY, appearance.animations)
+
+    if (appearance.animations === 'system') localStorage.removeItem(ANIMATIONS_KEY)
+    else localStorage.setItem(ANIMATIONS_KEY, appearance.animations)
   } catch {
     // Only a remembered preference.
   }
@@ -87,6 +92,15 @@ export function applyAppearance(appearance: Appearance, root = document.document
   if (appearance.statusColors === 'theme') delete root.dataset.statusColors
   else root.dataset.statusColors = appearance.statusColors
 
-  if (appearance.animations === 'on') delete root.dataset.animations
-  else root.dataset.animations = appearance.animations
+  root.dataset.motion = motionOf(appearance)
+}
+
+/** The motion level in effect, the computer's when none is picked. */
+export function motionOf(appearance: Appearance): Motion {
+  return appearance.animations === 'system' ? systemMotion() : appearance.animations
+}
+
+/** Picks a motion level. Picking the one the computer asks for follows the computer again. */
+export function withMotion(appearance: Appearance, motion: Motion): Appearance {
+  return { ...appearance, animations: motion === systemMotion() ? 'system' : motion }
 }
