@@ -5,14 +5,12 @@ import { skinOf, type SkinId } from '../skins'
 import { skinAtom, skinStore } from '../state'
 import { ClassicCard } from './ClassicCard'
 import { PlainCard } from './PlainCard'
-import { SlotCard } from './SlotCard'
 import { TradingCard } from './TradingCard'
 
 const CARDS: Record<SkinId, ComponentType<{ view: CardView }>> = {
   classic: ClassicCard,
   plain: PlainCard,
   trading: TradingCard,
-  slots: SlotCard,
 }
 
 export function CardBody({ view }: { view: CardView }) {

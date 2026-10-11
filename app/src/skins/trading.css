@@ -1,9 +1,9 @@
 .card.skin-trading {
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 16px;
   background: transparent;
-  color: var(--ink);
+  color: #f4f0ff;
   box-shadow: none;
   display: block;
   font-family: var(--font-ui);
@@ -11,427 +11,300 @@
 
 .card.skin-trading:is(.st-ready, .st-active, .st-review, .st-blocked, .st-done, .st-deferred, .tr-up, .tr-down, .tr-related, .tr-self, .attn) {
   background: transparent;
-  color: var(--ink);
+  color: #f4f0ff;
   box-shadow: none;
 }
 
-/* Blocked cards keep full strength like the study; trace and peek dimming still win. */
+/* The lock on the kind tile says blocked, so the card keeps full strength; trace dimming still wins. */
 .skin-trading.st-blocked {
   --fade: 1;
 }
 
+.skin-trading:is(.st-done, .st-deferred) {
+  --fade: 0.55;
+}
+
+/* The card is always dark, so status colors resolve to their dark-mode values in any theme or colorblind set. */
 .card.skin-trading .trading-frame {
-  --trading-top: light-dark(#ffffff, #1a2430);
-  --trading-bottom: light-dark(#f4f6f8, #101820);
-  --trading-frame-base: light-dark(#d4dbe2, #1a2630);
-  --trading-body: light-dark(#344149, #c8d3d8);
-  --trading-faint: light-dark(#687780, #8d9ea6);
-  --trading-pill-ink: light-dark(#fff, #140a2b);
-  --trading-status: var(--st-active);
-  --trading-deep: 10 15 22;
-  --trading-art-base: #0d0a22;
-  --trading-art-line: var(--trading-ink-two);
-  --trading-art-ink: var(--trading-ink-one);
-  --trading-art-accent: var(--trading-ink-two);
+  color-scheme: dark;
+  --trading-back: #120d30;
+  --trading-scrim: 18 13 48;
+  --trading-art:
+    radial-gradient(circle at 72% 28%, #ff8fa3 0, transparent 38%), radial-gradient(circle at 18% 82%, #3b6cff 0, transparent 52%),
+    linear-gradient(160deg, #b45cff, #2a1577 70%);
   position: relative;
   width: 100%;
   height: 100%;
-  min-width: 0;
-}
-
-:root[data-theme='vibrant'] .card.skin-trading .trading-frame {
-  --trading-top: #1a1344;
-  --trading-bottom: #120d30;
-  --trading-frame-base: #1a1240;
-  --trading-body: #d4cdf3;
-  --trading-faint: #a39bcc;
-  --trading-pill-ink: #140a2b;
-  --trading-deep: 10 7 25;
-  --trading-art-base: #0d0a22;
-}
-
-.card.skin-trading .trading-frame:not(.trading-note) {
-  --card-fill: var(--trading-bottom);
-}
-
-/* Status colors come from the shared --st-* tokens, so the colorblind palettes reach the frame too. */
-.card.skin-trading .trading-ready {
-  --trading-status: var(--st-ready);
-}
-.card.skin-trading .trading-you {
-  --trading-status: var(--edge-hot);
-}
-.card.skin-trading .trading-active {
-  --trading-status: var(--st-active);
-}
-.card.skin-trading .trading-review {
-  --trading-status: var(--st-review);
-}
-.card.skin-trading .trading-blocked {
-  --trading-status: var(--st-blocked);
-}
-.card.skin-trading .trading-done {
-  --trading-status: var(--muted);
-}
-.card.skin-trading .trading-deferred {
-  --trading-status: var(--muted);
-}
-
-:root[data-theme='vibrant'] .card.skin-trading .trading-done {
-  --trading-status: #7d73a8;
-}
-
-.card.skin-trading .trading-glow {
-  position: absolute;
-  inset: -5px;
-  border-radius: 13px;
-  opacity: 0;
-  background: conic-gradient(var(--trading-ink-one), var(--trading-ink-two), #18d6c0, #3b6cff, var(--trading-ink-one));
-  filter: blur(16px);
-}
-
-.card.skin-trading .trading-you .trading-glow {
-  opacity: 0.55;
-}
-
-.card.skin-trading .trading-frame-border {
-  position: relative;
-  height: 100%;
-  padding: 2px;
-  border-radius: 8px;
-  background: linear-gradient(
-    155deg,
-    color-mix(in oklab, var(--trading-status) 90%, white),
-    color-mix(in oklab, var(--trading-ink-one) 35%, var(--trading-frame-base)) 40%,
-    color-mix(in oklab, var(--trading-ink-two) 30%, var(--trading-frame-base)) 70%,
-    var(--trading-status)
-  );
-  box-shadow: 0 22px 44px -14px rgb(0 0 0 / 0.6);
-}
-
-.card.skin-trading .trading-inner {
-  position: relative;
-  height: 100%;
-  padding: 12px;
-  border-radius: 6px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background:
-    radial-gradient(120% 60% at 50% 0%, color-mix(in oklab, var(--trading-ink-one) 26%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--trading-top), var(--trading-bottom) 65%);
+  border-radius: 16px;
+  background: var(--trading-back);
+  box-shadow:
+    0 18px 40px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
-.card.skin-trading .trading-title {
-  min-height: 44px;
-  padding: 2px 2px 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+.card.skin-trading .trading-frame[data-hue='1'] {
+  --trading-art:
+    radial-gradient(circle at 70% 25%, #7af0e0 0, transparent 38%), radial-gradient(circle at 20% 80%, #b45cff 0, transparent 52%),
+    linear-gradient(160deg, #3b6cff, #1b1442 70%);
 }
 
-.card.skin-trading .trading-title h3 {
-  margin: 0;
-  flex: 1;
-  min-width: 0;
-  font: 700 17px/1.3 var(--font-ui);
-  letter-spacing: -0.01em;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.card.skin-trading .trading-frame[data-hue='2'] {
+  --trading-art:
+    radial-gradient(circle at 70% 25%, #ffe08a 0, transparent 38%), radial-gradient(circle at 20% 80%, #d94dff 0, transparent 52%),
+    linear-gradient(160deg, #ff8f3d, #2a1577 72%);
 }
 
-.card.skin-trading .trading-number {
-  flex: none;
-  padding: 5px 7px;
-  border: 1px solid var(--line);
-  border-radius: 3px;
-  background: rgb(255 255 255 / 0.08);
-  color: var(--trading-body);
-  font: 600 12px/1 var(--font-data);
+.card.skin-trading .trading-frame[data-hue='3'] {
+  --trading-art:
+    radial-gradient(circle at 70% 25%, #b4ffd8 0, transparent 38%), radial-gradient(circle at 20% 80%, #3b6cff 0, transparent 52%),
+    linear-gradient(160deg, #18d6c0, #13285e 72%);
 }
 
-.card.skin-trading .trading-art {
-  position: relative;
-  flex: none;
-  width: 100%;
-  height: 156px;
-  border-radius: 3px;
-  overflow: hidden;
-  background: var(--trading-art-base);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+.card.skin-trading .trading-frame[data-hue='4'] {
+  --trading-art:
+    radial-gradient(circle at 70% 25%, #ffd166 0, transparent 38%), radial-gradient(circle at 20% 80%, #ff5e7e 0, transparent 52%),
+    linear-gradient(160deg, #d94dff, #2a1577 72%);
 }
 
-.card.skin-trading .trading-art img,
-.card.skin-trading .trading-art svg {
+.trading-art {
   position: absolute;
   inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  image-rendering: pixelated;
+  background: var(--trading-art);
 }
 
-.card.skin-trading .trading-art::after {
+/* The dithered dot screen over the art. */
+.trading-art::after {
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: radial-gradient(120% 95% at 50% 35%, transparent 55%, rgb(var(--trading-deep) / 0.55));
+  background: radial-gradient(rgb(10 7 25 / 0.6) 0.8px, transparent 1.15px) 0 0 / 3px 3px;
 }
 
-.card.skin-trading .trading-move {
+.trading-expected {
+  outline: 2px dashed rgb(244 240 255 / 0.5);
+  outline-offset: -6px;
+}
+
+.trading-gate {
+  box-shadow:
+    0 18px 40px rgb(0 0 0 / 0.45),
+    0 0 0 2px #ffd166;
+}
+
+/* Top left: what a source set about the work, colored by severity, and off the card until it's known. */
+.trading-facts {
   position: absolute;
-  top: -9px;
-  right: 12px;
-  z-index: 5;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: var(--trading-status);
-  color: var(--trading-pill-ink);
-  font: 800 11px/1 var(--font-ui);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 0.4);
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  display: flex;
+  gap: 5px;
 }
 
-.card.skin-trading .trading-type {
-  min-width: 0;
-  padding: 7px 2px;
-  border-block: 1px solid var(--line);
+.trading-fact {
+  box-sizing: border-box;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0c0920;
+  font: 700 14px/1 var(--font-ui);
+}
+
+/* Severity borrows the status colors, so colorblind sets reach it too. */
+.trading-fact-critical {
+  background: var(--st-blocked);
+}
+
+.trading-fact-high {
+  background: var(--st-review);
+}
+
+.trading-fact-medium {
+  background: var(--st-active);
+}
+
+.trading-fact-low {
+  background: var(--st-todo);
+}
+
+/* Top right: the one status that asks someone to act. */
+.trading-sticker {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  z-index: 3;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 11px 0 9px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--muted);
-  font: 700 12px var(--font-ui);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  transform: rotate(4deg);
+  font: 700 14px/1 var(--font-ui);
+  box-shadow: 0 4px 12px rgb(12 9 32 / 0.5);
+  color: #0c0920;
 }
 
-.card.skin-trading .trading-type svg {
-  width: 14px;
-  height: 14px;
-  flex: none;
+.trading-sticker svg {
+  width: 16px;
+  height: 16px;
 }
-.card.skin-trading .trading-type span {
-  min-width: 0;
+
+.trading-sticker-conflict,
+.trading-sticker-failing {
+  background: var(--st-blocked);
+}
+
+.trading-sticker-changes,
+.trading-sticker-stale {
+  background: var(--st-review);
+}
+
+.trading-sticker-mergeable {
+  background: var(--st-done);
+}
+
+/* Center: what the card is, with a tinted lock over it while blocked. */
+.trading-tile {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  z-index: 2;
+  width: 60px;
+  height: 60px;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.card.skin-trading .trading-gem {
-  width: 9px;
-  height: 9px;
-  margin-left: auto;
-  border-radius: 2px;
-  flex: none;
-  transform: rotate(45deg);
-  background: var(--trading-ink-two);
-  box-shadow: 0 0 8px var(--trading-ink-two);
-}
-
-.card.skin-trading .trading-text {
-  margin: 0;
-  min-height: 0;
-  padding: 0 2px;
-  flex: 1;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-  color: var(--trading-body);
-  font: 400 14px/1.45 var(--font-ui);
-}
-
-.card.skin-trading .trading-flavor {
-  color: var(--trading-faint);
-  font-style: italic;
-}
-
-.card.skin-trading .trading-bottom {
-  min-width: 0;
-  padding: 0 2px;
+  border-radius: 15px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--muted);
-  font: 600 12px var(--font-data);
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  background: #1b1442;
+  color: #f4f0ff;
+  box-shadow:
+    0 0 0 3px #f4f0ff,
+    0 5px 0 rgb(12 9 32 / 0.45);
 }
 
-.card.skin-trading .trading-add {
-  color: #18d6c0;
-}
-.card.skin-trading .trading-del {
-  color: #ff8fa3;
-}
-.card.skin-trading .trading-state {
-  min-width: 0;
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--c, var(--muted));
-  font: 700 12px/1 var(--font-ui);
-  white-space: nowrap;
-}
-.card.skin-trading .trading-state > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.card.skin-trading .trading-unblocks {
-  flex: none;
-  padding: 4px 7px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  color: var(--accent);
-  font: 600 11px/1 var(--font-data);
-  white-space: nowrap;
-}
-.card.skin-trading .trading-unblocks.big {
-  background: var(--accent);
-  color: var(--surface);
+.trading-tile > svg {
+  width: 30px;
+  height: 30px;
 }
 
-.card.skin-trading .trading-done .trading-art img,
-.card.skin-trading .trading-done .trading-art svg {
-  filter: grayscale(0.8) brightness(0.75);
-}
-.card.skin-trading .trading-done .trading-title h3 {
-  color: var(--muted);
-}
-.card.skin-trading .trading-done .trading-frame-border {
-  background: linear-gradient(
-    155deg,
-    color-mix(in oklab, var(--trading-status) 70%, var(--trading-top)),
-    var(--surface) 50%,
-    color-mix(in oklab, var(--trading-status) 50%, var(--trading-top))
-  );
-}
-.card.skin-trading .trading-stamp {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 4;
-  padding: 6px 14px;
-  border: 2px solid var(--st-done);
-  border-radius: 3px;
-  transform: translate(-50%, -50%) rotate(-12deg);
-  background: rgb(var(--trading-deep) / 0.5);
-  color: var(--st-done);
-  font: 800 17px var(--font-ui);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.card.skin-trading .trading-expected .trading-frame-border {
-  padding: 0;
-  border: 2px dashed color-mix(in oklab, var(--trading-status) 60%, transparent);
-  background: none;
-  box-shadow: none;
-}
-.card.skin-trading .trading-expected .trading-inner {
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
-}
-.card.skin-trading .trading-expected .trading-art img,
-.card.skin-trading .trading-expected .trading-art svg {
-  opacity: 0.55;
-}
-.card.skin-trading .trading-gate .trading-frame-border {
-  background: conic-gradient(from 210deg, #ffd166, #ff8fa3, #b45cff, #3b6cff, #18d6c0, #ffd166);
-}
-.card.skin-trading .trading-gate .trading-inner {
-  background:
-    radial-gradient(120% 70% at 50% 0%, rgb(255 209 102 / 0.18), transparent 70%),
-    linear-gradient(180deg, var(--trading-top), var(--trading-bottom) 65%);
-}
-
-.card.skin-trading .trading-holo {
+.trading-lock {
   position: absolute;
   inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  opacity: 0;
-  background:
-    radial-gradient(120px circle at 50% 30%, rgb(255 255 255 / 0.55), transparent 60%),
-    repeating-linear-gradient(115deg, #18d6c0 0%, #3b6cff 7%, #b45cff 14%, #ff8fa3 21%, #ffd166 28%, #18d6c0 35%);
-  background-size:
-    100% 100%,
-    300% 300%;
-  mix-blend-mode: color-dodge;
-  transition: opacity 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--st-blocked) 45%, transparent);
+  color: #fff;
 }
 
-.card.skin-trading:hover .trading-holo {
-  opacity: 0.5;
-}
-.card.skin-trading:hover .trading-frame-border {
-  background: linear-gradient(115deg, #18d6c0, #3b6cff, #b45cff, #ff8fa3, #ffb347, #18d6c0);
-}
-.card.skin-trading:hover .trading-text {
-  color: var(--ink);
+.trading-lock svg {
+  width: 26px;
+  height: 26px;
 }
 
-.card.skin-trading .trading-frame.trading-note {
-  padding: 12px;
-  border: 1px solid var(--note-edge);
-  border-radius: 8px;
-  display: grid;
-  grid-template-rows: 26px minmax(0, 1fr);
-  background: linear-gradient(160deg, var(--note), color-mix(in srgb, var(--note-edge) 18%, var(--note)));
-  color: var(--note-ink);
+.trading-scrim {
+  position: absolute;
+  inset: 150px 0 0;
+  padding: 0 14px 13px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  background: linear-gradient(0deg, rgb(var(--trading-scrim) / 0.98) 62%, rgb(var(--trading-scrim) / 0));
 }
-.card.skin-trading .trading-note-label {
-  border-bottom: 1px solid var(--note-edge);
-  font: 700 14px var(--font-ui);
-}
-.card.skin-trading .trading-note-text {
+
+.trading-title {
+  margin: 0;
+  display: -webkit-box;
   overflow: hidden;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-  font: 14px/1.5 var(--font-ui);
-}
-.card.skin-trading .trading-note .source-badges {
-  right: 10px;
-  bottom: 10px;
-}
-
-.card.skin-trading.far-card {
-  width: max-content;
-  min-width: 190px;
-  max-width: 260px;
-  height: auto;
-}
-.card.skin-trading.far-card .trading-frame-border {
-  height: auto;
-}
-.card.skin-trading.far-card .trading-title {
-  min-height: 30px;
-}
-.card.skin-trading.far-card .trading-title h3 {
-  display: block;
-  overflow: visible;
-  overflow-wrap: anywhere;
-}
-.card.skin-trading.far-card .trading-art,
-.card.skin-trading.far-card .trading-text,
-.card.skin-trading.far-card .trading-bottom {
-  display: none;
-}
-.card.skin-trading.far-card .trading-note-text {
-  max-height: 110px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  text-align: center;
+  font: 700 19px/1.2 var(--font-ui);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .card.skin-trading .trading-holo {
-    transition: none;
+/* Bottom: open blockers, what's in motion, and what finishing frees up. */
+.trading-bottom {
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 50px 1fr 50px;
+  align-items: center;
+  justify-items: center;
+}
+
+.trading-blockers,
+.trading-unblocks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 700 24px/1 var(--font-ui);
+}
+
+.trading-blockers {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px 12px 12px 5px;
+  background: #3c3370;
+}
+
+.trading-unblocks {
+  grid-column: 3;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: #18d6c0;
+  color: #0c0920;
+}
+
+.trading-motion {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--st-review) 16%, transparent);
+  color: var(--st-review);
+}
+
+.trading-motion svg {
+  width: 20px;
+  height: 20px;
+}
+
+:where(:root[data-motion='on']) .trading-motion-running svg {
+  animation: trading-spin 1.4s linear infinite;
+}
+
+@keyframes trading-spin {
+  to {
+    transform: rotate(1turn);
   }
 }
-.canvas:is(.is-still, .no-glow) .card.skin-trading .trading-holo,
-.canvas[data-moving] .card.skin-trading .trading-holo {
-  opacity: 0;
+
+.trading-note {
+  padding: 18px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #251c57;
+}
+
+.trading-note-text {
+  flex: 1;
+  overflow: hidden;
+  font: 500 17px/1.4 var(--font-ui);
+  color: #d4cdf3;
 }

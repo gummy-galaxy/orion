@@ -5,8 +5,7 @@ export type Skin = { id: string; label: string; size: { width: number; height: n
 export const SKINS = [
   { id: 'classic', label: 'Classic', size: { width: TASK_WIDTH, height: TASK_HEIGHT } },
   { id: 'plain', label: 'Plain', size: { width: TASK_WIDTH, height: TASK_HEIGHT } },
-  { id: 'trading', label: 'Trading cards', size: { width: 288, height: 400 } },
-  { id: 'slots', label: 'Slot cards', size: { width: 264, height: 380 } },
+  { id: 'trading', label: 'Trading cards', size: { width: 264, height: 380 } },
 ] as const satisfies readonly Skin[]
 
 export type SkinId = (typeof SKINS)[number]['id']

@@ -1,5 +1,4 @@
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
-import { hashText } from './frameColor'
 
 /** One status that asks a person to act, most urgent first. */
 export const STICKERS = ['conflict', 'failing', 'changes', 'stale', 'mergeable'] as const
@@ -9,7 +8,7 @@ export const MOTIONS = ['running', 'queued'] as const
 export type Sticker = (typeof STICKERS)[number]
 export type Motion = (typeof MOTIONS)[number]
 
-export type SlotFacts = {
+export type TradingFacts = {
   priority?: Priority
   size?: CardSizeLabel
   sticker?: Sticker
@@ -22,10 +21,22 @@ export type SlotFacts = {
 
 /** A pull request with no change in this long reads as stale. */
 export const STALE_DAYS = 14
-/** Art palettes in `slots.css`, picked per group. */
+/** Art palettes in `trading.css`, picked per group. */
 export const HUES = 5
 
 const DAY_MS = 24 * 60 * 60 * 1000
+
+// FNV-1a, so a group keeps its palette across sessions.
+function hashText(value: string): number {
+  let hash = 2166136261
+
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return hash >>> 0
+}
 
 function getSticker(view: CardView, now: number): Sticker | undefined {
   if (view.readiness === 'conflict') return 'conflict'
@@ -49,7 +60,7 @@ function getMotion(view: CardView): Motion | undefined {
   return undefined
 }
 
-export function getSlotFacts(view: CardView, now = Date.now()): SlotFacts {
+export function getTradingFacts(view: CardView, now = Date.now()): TradingFacts {
   const settled = view.status === 'done' || view.status === 'deferred'
   const sticker = settled ? undefined : getSticker(view, now)
   const motion = settled ? undefined : getMotion(view)

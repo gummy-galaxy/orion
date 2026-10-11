@@ -2,25 +2,19 @@ import { useState, type ReactNode } from 'react'
 import { Provider, createStore } from 'jotai'
 import { ReactFlow, ReactFlowProvider, type Edge, type EdgeTypes, type NodeTypes } from '@xyflow/react'
 import { ActionsContext } from '../../derive'
-import type { AppNode, GhostNode, Link } from '../../model'
+import type { AppNode, GhostNode } from '../../model'
 import { linksAtom, nodesAtom } from '../../state'
-import { blocker, links as sampleLinks, task } from './data'
+import { blocker, links, task } from './data'
 
 export function StoryGraph({
   nodes = [task, blocker],
-  links = sampleLinks,
   edges = [],
-  width = 760,
-  height = 470,
   nodeTypes,
   edgeTypes,
   children,
 }: {
   nodes?: (AppNode | GhostNode)[]
-  links?: Link[]
   edges?: Edge[]
-  width?: number | string
-  height?: number | string
   nodeTypes?: NodeTypes
   edgeTypes?: EdgeTypes
   children?: ReactNode
@@ -41,16 +35,8 @@ export function StoryGraph({
     <Provider store={store}>
       <ActionsContext.Provider value={{ open: () => {}, reflow: () => {} }}>
         <ReactFlowProvider>
-          <div style={{ width, height }}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              edgeTypes={edgeTypes}
-              minZoom={0.1}
-              fitView
-              fitViewOptions={{ padding: 0.25 }}
-            >
+          <div style={{ width: 760, height: 470 }}>
+            <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} fitView fitViewOptions={{ padding: 0.25 }}>
               {children}
             </ReactFlow>
           </div>

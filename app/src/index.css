@@ -4,7 +4,6 @@
 @import './themes/colorblind.css';
 @import './skins/plain.css';
 @import './skins/trading.css';
-@import './skins/slots.css';
 
 * {
   box-sizing: border-box;
