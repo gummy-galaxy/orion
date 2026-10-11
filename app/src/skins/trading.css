@@ -84,14 +84,14 @@
   --trading-dot: 3px;
 }
 
-/* The dithered dot screen over the art. An image tile, not a gradient: WebKit draws a repeating gradient
-   one tile at a time, and a canvas of cards overflowed its drawing pipeline. */
+/* The dithered dot screen over the art: a bitmap of 8 by 8 dots, drawn at 2x. WebKit repeats a background
+   one tile at a time, so a 3px tile, as a gradient or an SVG, made each card thousands of draws. */
 .trading-art::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='3' height='3'%3E%3Ccircle cx='1.5' cy='1.5' r='0.95' fill='%230a0719' fill-opacity='0.6'/%3E%3C/svg%3E")
-    0 0 / var(--trading-dot) var(--trading-dot);
+  background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAAcklEQVR42u3UwQnAIBAEQH8BO8jDTm3Ebk1AwQrEk3ksyKoP4ZyUnzdFzlyUL3WkLAeO7+fGX7SRulw4vr/mAeFHKPwnphCFKEQhClGIQhSiEIUoRCEKUYhCFKIQhShEIQpRiEIUohCFKEQhClGIQjvSAe3UKC5GJErfAAAAAElFTkSuQmCC')
+    0 0 / calc(var(--trading-dot) * 8) calc(var(--trading-dot) * 8);
 }
 
 .trading-expected {
@@ -349,8 +349,11 @@
   height: 20px;
 }
 
-:where(:root[data-motion='on']) .trading-motion-running svg {
+/* The spinner gets its own layer, so turning it doesn't repaint the card under it every frame. The compact form
+   stands still, since it's how a whole canvas shows at once. */
+:where(:root[data-motion='on']) .card.skin-trading:not(.far-card) .trading-motion-running svg {
   animation: trading-spin 1.4s linear infinite;
+  will-change: transform;
 }
 
 @keyframes trading-spin {
@@ -375,7 +378,8 @@
   color: #d4cdf3;
 }
 
-/* Far out, a card shrinks to its kind, title, and two numbers, at one on-screen size. */
+/* Far out, a card shrinks to its kind, title, and two numbers, at one on-screen size. It skips the pop-in and
+   blurred shadows, because far out every card on the canvas draws at once. */
 .card.skin-trading.far-card {
   width: 240px;
   min-width: 0;
@@ -383,15 +387,14 @@
   height: auto;
   padding: 0;
   box-shadow: none;
+  animation: none;
 }
 
 .card.skin-trading.far-card .trading-frame {
   height: auto;
   display: flex;
   flex-direction: column;
-  box-shadow:
-    0 10px 24px rgb(0 0 0 / 0.4),
-    0 0 0 1px rgb(255 255 255 / 0.1);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
 .card.skin-trading.far-card .trading-art {
@@ -456,7 +459,7 @@
   -webkit-line-clamp: 2;
   text-align: left;
   font-size: 16px;
-  text-wrap: pretty;
+  text-wrap: wrap;
 }
 
 .card.skin-trading.far-card .trading-bottom {
