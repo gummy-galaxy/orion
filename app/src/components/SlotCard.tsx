@@ -18,13 +18,13 @@ const MOTION_HINT: Record<Motion, string> = {
 }
 
 function FactChip({ fact, label, name }: { fact: SlotFact<string> | undefined; label: (value: string) => string; name: string }) {
-  if (!fact) return <span className="slot-fact slot-fact-unknown" title={`${name}: unknown`} />
+  if (!fact) return null
 
   const text = label(fact.value)
 
   return (
     <span
-      className={`slot-fact${fact.estimated ? ' slot-fact-estimated' : ''}`}
+      className={`slot-fact slot-fact-${name.toLowerCase()}${fact.estimated ? ' slot-fact-estimated' : ''}`}
       title={`${name}: ${text}${fact.estimated ? ', estimated from links' : ''}`}
     >
       {text}

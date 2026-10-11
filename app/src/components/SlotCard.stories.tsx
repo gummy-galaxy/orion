@@ -101,7 +101,7 @@ const meta = {
     priority: {
       control: 'inline-radio',
       options: ['unknown', '0', '1', '2', '3'],
-      description: 'Set by a source. Unknown falls back to an estimate from leverage.',
+      description: 'Set by a source. Unknown falls back to an estimate from leverage, and shows nothing without one.',
     },
     size: { control: 'inline-radio', options: ['unknown', 'S', 'M', 'L', 'XL'] },
     leverage: { control: { type: 'range', min: 0, max: 12 }, description: 'Open work downstream. 3 or more estimates P2, 6 or more P1.' },

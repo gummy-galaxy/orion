@@ -90,7 +90,7 @@
     0 0 0 2px #ffd166;
 }
 
-/* Top left: what we know. Solid when a source set it, dotted when estimated, dashed when unknown. */
+/* Top left: what we know. Each fact keeps one color: solid when a source set it, dotted when estimated, absent when unknown. */
 .slot-facts {
   position: absolute;
   top: 12px;
@@ -109,20 +109,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f4f0ff;
+  --slot-fact: #f4f0ff;
+  background: var(--slot-fact);
   color: #1b1442;
   font: 700 14px/1 var(--font-ui);
 }
 
-.slot-fact-estimated {
-  background: rgb(18 13 48 / 0.86) radial-gradient(#ffd166 0.7px, transparent 1px) 0 0 / 4px 4px;
-  box-shadow: inset 0 0 0 1.5px #ffd166;
-  color: #ffd166;
+.slot-fact-priority {
+  --slot-fact: #ffd166;
 }
 
-.slot-fact-unknown {
-  border: 1.5px dashed rgb(244 240 255 / 0.45);
-  background: rgb(18 13 48 / 0.5);
+.slot-fact-estimated {
+  background: rgb(18 13 48 / 0.86) radial-gradient(var(--slot-fact) 0.7px, transparent 1px) 0 0 / 4px 4px;
+  box-shadow: inset 0 0 0 1.5px var(--slot-fact);
+  color: var(--slot-fact);
 }
 
 /* Top right: the one status that asks someone to act. */
