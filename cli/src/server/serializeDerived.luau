@@ -35,6 +35,7 @@ local function serializeDerived(derived: Derived): json.Object
 		upstream = copyValues(derived.upstream),
 		rarity = copyValues(derived.rarity),
 		groups = groups,
+		snoozed = copyValues(derived.snoozed),
 	})
 end
 

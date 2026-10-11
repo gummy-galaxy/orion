@@ -6,7 +6,7 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 
 ## Reading the canvas
 
-- `orion ready` lists work that can start now, the items that unblock the most first.
+- `orion ready` lists work that can start now, the items that unblock the most first. Snoozed items are left out until they wake.
 - `orion groups` lists groups with their progress.
 - `orion list [--group <id>] [--all]` lists open items, or everything with `--all`.
 - `orion query --where '<expr>' [--all] [--json]` finds matching cards and groups. Done cards are omitted unless `--all` is set.
@@ -14,7 +14,7 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 
 Add `--json` to any of these for structured output. Statuses in the output are derived: `ready` means nothing the item waits on is still open.
 
-Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr` (pull request number), or `ref` (any ref key). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"` or `ref ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
+Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr` (pull request number), `ref` (any ref key), or `snoozed` (`"true"` while a card is snoozed, `"false"` otherwise). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"` or `ref ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
 
 Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces, and `orion workspace rename <name> <label>` to change a workspace's display label.
 
@@ -40,6 +40,8 @@ To show the person the app, or anything else served locally such as a dev server
 - `orion set <id> [--label …] [--status …] [--kind step|gate] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
 - `orion set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
 - `orion done <id...> | --where '<expr>'` marks items done.
+- `orion snooze <id...> --until <iso>` (or `--where '<expr>'`) hides work items from attention and `orion ready` until a time. `--until` takes ISO 8601 only: a date such as `2026-10-12` means the start of that day in local time, a date-time without an offset is local too, and `Z` or an offset such as `-07:00` is converted to UTC. The time must be in the future. A snoozed card keeps its derived status and still blocks the cards that wait on it; it has no leverage and isn't counted as ready in group progress. It returns on its own once the time passes, and nothing is written to wake it. Stored as the `snoozedUntil` data field, a UTC time.
+- `orion unsnooze <id...> | --where '<expr>'` wakes items now.
 - `orion link <first> <second> [next…]` links each adjacent pair in one transaction. Add `--related` for links that never block. `orion unlink` removes one link.
 - `orion insert <id> --between <from> <to>` replaces an existing link with two links through the item, keeping its kind.
 - `orion note <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it splits their existing link or adds two blocking links if they are unlinked.
@@ -47,9 +49,9 @@ To show the person the app, or anything else served locally such as a dev server
 - `orion group <label> --items <id,id,…>`, `orion ungroup <id...> | --where '<expr>'`, and `orion move <id...> | --where '<expr>' --to <group>` (or `--top`) organize work.
 - `orion remove <id...> | --where '<expr>'` deletes items. Removing a note reconnects the links that ran through it. Add `--reconnect` to reconnect cards with at most one incoming and one outgoing link; every selected card must qualify.
 
-`done`, `link`, `insert`, `remove`, `move`, and `ungroup` accept `--dry-run`, `--json`, and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion remove --where 'repo = "unrelated"' --dry-run`, then run `orion remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
+`done`, `snooze`, `unsnooze`, `link`, `insert`, `remove`, `move`, and `ungroup` accept `--dry-run`, `--json`, and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion remove --where 'repo = "unrelated"' --dry-run`, then run `orion remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
 
-Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set `blocked` or `deferred` only for reasons the graph can't show, since waiting on open work already reads as blocked.
+Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set `blocked` or `deferred` only for reasons the graph can't show, since waiting on open work already reads as blocked. Snoozing is not a status: use `orion snooze` to hide a card for a while.
 
 ## Organizing work
 

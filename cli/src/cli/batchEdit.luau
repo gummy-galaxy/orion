@@ -18,6 +18,8 @@ export type Options = {
 	ifRevision: number?,
 	destination: string?,
 	reconnect: boolean?,
+	-- The UTC time a snooze ends, for the snooze action.
+	untilTime: string?,
 	write: (string) -> (),
 }
 
@@ -26,6 +28,7 @@ type Change = { id: string, label: string }
 local function batchEdit(options: Options)
 	assert(#options.ids == 0 or options.where == nil, "use ids or --where, not both")
 	assert(#options.ids > 0 or options.where ~= nil, "provide ids or --where")
+	assert(options.action ~= "snooze" or options.untilTime ~= nil, "say when it wakes with --until <iso>")
 
 	local changes: { Change } = {}
 
@@ -51,6 +54,11 @@ local function batchEdit(options: Options)
 			elseif options.action == "ungroup" then
 				assert(graph.isGroup(item), `"{item.id}" is an item, not a group`)
 			end
+
+			if options.action == "snooze" or options.action == "unsnooze" then
+				assert(not graph.isGroup(item), `"{item.id}" is a group; snooze works on items`)
+				assert(not graph.isNote(item), `"{item.id}" is a note; snooze works on work items`)
+			end
 			table.insert(changes, { id = item.id, label = graph.label(item) })
 		end
 
@@ -68,6 +76,10 @@ local function batchEdit(options: Options)
 				graph.remove(doc, item.id, options.reconnect)
 			elseif options.action == "ungroup" then
 				graph.ungroup(doc, item.id)
+			elseif options.action == "snooze" then
+				graph.snooze(doc, item.id, options.untilTime)
+			elseif options.action == "unsnooze" then
+				graph.snooze(doc, item.id, nil)
 			else
 				graph.move(doc, item.id, options.destination)
 			end
@@ -89,6 +101,7 @@ local function batchEdit(options: Options)
 				revision = result.revision,
 				items = entries,
 				destination = if options.action == "move" then options.destination or json.null else nil,
+				["until"] = if options.action == "snooze" then options.untilTime else nil,
 			}),
 			true
 		))
@@ -106,6 +119,12 @@ local function batchEdit(options: Options)
 		summary = if options.dryRun then `Would remove {count} {noun}` else `Removed {count} {noun}`
 	elseif options.action == "ungroup" then
 		summary = if options.dryRun then `Would ungroup {count} {noun}` else `Ungrouped {count} {noun}`
+	elseif options.action == "snooze" then
+		summary = if options.dryRun
+			then `Would snooze {count} {noun} until {options.untilTime}`
+			else `Snoozed {count} {noun} until {options.untilTime}`
+	elseif options.action == "unsnooze" then
+		summary = if options.dryRun then `Would wake {count} {noun}` else `Woke {count} {noun}`
 	else
 		local destination = options.destination or "the top level"
 		summary = if options.dryRun

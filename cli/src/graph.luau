@@ -28,6 +28,8 @@ export type Derived = {
 	upstream: { [string]: number },
 	rarity: { [string]: string },
 	groups: { [string]: GroupStats },
+	-- Cards snoozed right now, mapped to the UTC time they wake.
+	snoozed: { [string]: string },
 }
 
 export type ItemFields = {
@@ -234,10 +236,13 @@ end
 
 -- Status, flow, leverage, upstream work, rarity, and group progress, all served to the app rather than derived there.
 -- Notes pass blocking through and never count as work. Gates also pass blocking through, but count as work: one
--- is done once everything it waits on is.
-function graph.derive(doc: Doc): Derived
+-- is done once everything it waits on is. A snoozed card keeps its status and blocking, but it has no leverage and
+-- isn't ready until it wakes. `now` is a UTC time in the form Orion stores; it defaults to the current time.
+function graph.derive(doc: Doc, now: string?): Derived
+	local clock = now or os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 	local tasks: { [string]: Item } = {}
 	local parentOf: { [string]: string } = {}
+	local snoozed: { [string]: string } = {}
 
 	for _, item in doc.nodes do
 		if item.type == "task" then
@@ -246,6 +251,12 @@ function graph.derive(doc: Doc): Derived
 
 		if item.parentId then
 			parentOf[item.id] = item.parentId
+		end
+
+		local wakesAt = field(item, "snoozedUntil")
+
+		if item.type == "task" and not graph.isNote(item) and wakesAt and wakesAt > clock then
+			snoozed[item.id] = wakesAt
 		end
 	end
 
@@ -405,8 +416,11 @@ function graph.derive(doc: Doc): Derived
 			end
 		end
 
-		leverage[id] = count
 		downstream[id] = reached
+
+		if not snoozed[id] then
+			leverage[id] = count
+		end
 	end
 
 	local upstream = countUpstream(tasks, predecessors)
@@ -458,7 +472,9 @@ function graph.derive(doc: Doc): Derived
 			if statusValue == "done" then
 				stats.done += 1
 			elseif statusValue == "ready" then
-				stats.ready += 1
+				if not snoozed[id] then
+					stats.ready += 1
+				end
 			elseif statusValue == "blocked" then
 				stats.blocked += 1
 			end
@@ -478,7 +494,15 @@ function graph.derive(doc: Doc): Derived
 		groups[item.id] = stats
 	end
 
-	return { status = status, flow = flow, leverage = leverage, upstream = upstream, rarity = rarity, groups = groups }
+	return {
+		status = status,
+		flow = flow,
+		leverage = leverage,
+		upstream = upstream,
+		rarity = rarity,
+		groups = groups,
+		snoozed = snoozed,
+	}
 end
 
 local function slug(text: string): string
@@ -731,6 +755,19 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	end
 
 	return item
+end
+
+-- Hides a work item until `untilTime`, a UTC time in the form Orion stores, or shows it again when nil.
+function graph.snooze(doc: Doc, id: string, untilTime: string?)
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), `"{id}" is a group; snooze works on items`)
+	assert(not graph.isNote(item), `"{id}" is a note; snooze works on work items`)
+
+	if untilTime then
+		item.data.snoozedUntil = untilTime
+	else
+		item.data.snoozedUntil = nil
+	end
 end
 
 function graph.link(doc: Doc, from: string, to: string, kind: string): Link

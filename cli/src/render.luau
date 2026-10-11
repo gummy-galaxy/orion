@@ -55,6 +55,7 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 		recordedStatus = asString(item.data.status) or "todo",
 		unblocks = derived.leverage[item.id] or 0,
 	})
+	object.snoozedUntil = derived.snoozed[item.id] or nil
 	object.group = item.parentId
 	object.groupLabel = groupLabel(doc, item)
 	object.repo = item.data.repo
@@ -155,6 +156,12 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 
 	if who then
 		table.insert(lines, `  move     {who}`)
+	end
+
+	local wakesAt = derived.snoozed[item.id]
+
+	if wakesAt then
+		table.insert(lines, `  snoozed  until {wakesAt}`)
 	end
 
 	local leverage = derived.leverage[item.id] or 0

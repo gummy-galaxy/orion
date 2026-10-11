@@ -4,6 +4,7 @@ local process = require("@std/process")
 
 local backups = require("@root/cli/backups")
 local batchEdit = require("@root/cli/batchEdit")
+local batchOptions = require("@root/cli/batchOptions")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local focus = require("@root/cli/focus")
@@ -21,11 +22,13 @@ local restore = require("@root/cli/restore")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
 local serve = require("@root/cli/serve")
+local snooze = require("@root/cli/snooze")
 local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggest = require("@root/cli/suggest")
 local suggestions = require("@root/cli/suggestions")
 local types = require("@root/types")
+local unsnooze = require("@root/cli/unsnooze")
 local workspace = require("@root/cli/workspace")
 
 type Doc = types.Doc
@@ -53,7 +56,9 @@ local COMMANDS: { [string]: Command } = {
 	media = media,
 	restore = restore,
 	serve = serve,
+	snooze = snooze,
 	suggest = suggest,
+	unsnooze = unsnooze,
 	suggestions = suggestions,
 	workspace = workspace,
 	source = source,
@@ -94,7 +99,7 @@ Use orion serve status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
 
 local QUERY_HELP = [[
-Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref.
+Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, snoozed.
 Compare quoted values with = or !=; label and ref also support ~ for case-insensitive text.
 Combine with and, or, not, and parentheses. Missing fields never match.]]
 
@@ -177,11 +182,7 @@ local function createParsers(): Parsers
 	addJsonFlag(set)
 
 	local function addBatchOptions(parser: cli.Parser, help: string)
-		parser:add("ids", "variadic", { help = help })
-		parser:add("where", "option", { help = "Select targets with an expression instead of ids" })
-		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
-		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
-		addJsonFlag(parser)
+		batchOptions.define(parser, help)
 	end
 
 	addBatchOptions(command("done"), "Item ids")
@@ -243,6 +244,8 @@ local function createParsers(): Parsers
 	registeredCommand("source")
 	registeredCommand("ingest")
 
+	registeredCommand("snooze")
+	registeredCommand("unsnooze")
 	registeredCommand("suggest")
 	registeredCommand("suggestions")
 
@@ -306,9 +309,7 @@ local function required(parser: cli.Parser, name: string): string
 end
 
 local function requestedRevision(parser: cli.Parser): number?
-	local value = parser:get("if-revision")
-	assert(value == nil or value:match("^%d+$"), "--if-revision must be a nonnegative integer")
-	return if value then tonumber(value) else nil
+	return batchOptions.readRevision(parser)
 end
 
 local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
@@ -565,7 +566,9 @@ local function execute(args: { string }, options: Dependencies?)
 			derived,
 			sortedTasks(doc, derived, function(item)
 				local status = derived.status[item.id]
-				return not graph.isNote(item) and (status == "ready" or status == "active" or status == "review")
+				return not graph.isNote(item)
+					and not derived.snoozed[item.id]
+					and (status == "ready" or status == "active" or status == "review")
 			end),
 			asJson
 		)

@@ -325,3 +325,50 @@ test.case("move drops groups it leaves empty and refuses cycles", function(asser
 		graph.move(doc, "h", "h")
 	end)
 end)
+
+test.case("derive hides a snoozed card from ready and leverage, but not from blocking", function(assert)
+	local doc = testing.createDoc({ task("a", "A", "todo"), task("b", "B", "todo") }, { { "a", "b" } })
+	graph.snooze(doc, "a", "2026-10-12T17:00:00Z")
+	local derived = graph.derive(doc, "2026-10-04T00:00:00Z")
+	assert.eq(derived.status.a, "ready")
+	assert.eq(derived.status.b, "blocked")
+	assert.eq(derived.snoozed.a, "2026-10-12T17:00:00Z")
+	assert.eq(derived.leverage.a, nil)
+	assert.eq(derived.snoozed.b, nil)
+end)
+
+test.case("derive lets a snoozed card come back once its time has passed", function(assert)
+	local doc = testing.createDoc({ testing.group("g", "G"), task("a", "A", "todo", "g") })
+	graph.snooze(doc, "a", "2026-10-12T17:00:00Z")
+	assert.eq(graph.derive(doc, "2026-10-12T16:59:59Z").snoozed.a, "2026-10-12T17:00:00Z")
+	local woken = graph.derive(doc, "2026-10-12T17:00:00Z")
+	assert.eq(woken.snoozed.a, nil)
+	assert.eq(woken.status.a, "ready")
+	assert.eq(woken.groups.g.ready, 1)
+end)
+
+test.case("derive leaves a snoozed card out of its group's ready count", function(assert)
+	local doc = testing.createDoc({ testing.group("g", "G"), task("a", "A", "todo", "g"), task("b", "B", "todo", "g") })
+	graph.snooze(doc, "a", "2026-10-12T17:00:00Z")
+	local stats = graph.derive(doc, "2026-10-04T00:00:00Z").groups.g
+	assert.eq(stats.total, 2)
+	assert.eq(stats.ready, 1)
+end)
+
+test.case("snooze sets and clears a work item's wake time, and refuses groups and notes", function(assert)
+	local doc = testing.createDoc({
+		testing.group("g", "G"),
+		task("a", "A", "todo"),
+		task("n", "Note", "todo", nil, { itemKind = "note" }),
+	})
+	graph.snooze(doc, "a", "2026-10-12T17:00:00Z")
+	assert.eq(doc.nodes[2].data.snoozedUntil, "2026-10-12T17:00:00Z")
+	graph.snooze(doc, "a", nil)
+	assert.eq(doc.nodes[2].data.snoozedUntil, nil)
+	assert.throws(function()
+		graph.snooze(doc, "g", "2026-10-12T17:00:00Z")
+	end)
+	assert.throws(function()
+		graph.snooze(doc, "n", "2026-10-12T17:00:00Z")
+	end)
+end)
