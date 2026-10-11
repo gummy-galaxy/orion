@@ -172,7 +172,11 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: Card
     }
 
     const id = '\0run:' + child.id
-    const runGrid = grid(run.map((node) => sizeOf(node, cardSize)), Math.min(WRAP, Math.ceil(Math.sqrt(run.length))), gap.node)
+    const runGrid = grid(
+      run.map((node) => sizeOf(node, cardSize)),
+      Math.min(WRAP, Math.ceil(Math.sqrt(run.length))),
+      gap.node,
+    )
 
     for (const member of run) unitOf.set(member.id, id)
 
