@@ -2,6 +2,7 @@
 @import './themes/classic.css';
 @import './themes/vibrant.css';
 @import './themes/colorblind.css';
+@import './skins/plain.css';
 
 * {
   box-sizing: border-box;
