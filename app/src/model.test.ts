@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { editPullRef, getItemKind, getPrimaryRef, getPullRef, getPullRequestNumber, getTaskTag, getTaskUrl, type TaskData } from './model'
+import {
+  editPullRef,
+  getItemKind,
+  getPrimaryRef,
+  getPullReadiness,
+  getPullRef,
+  getPullRequestNumber,
+  getTaskTag,
+  getTaskUrl,
+  type PullDetails,
+  type TaskData,
+} from './model'
 
 const task = (overrides: Partial<TaskData> = {}): TaskData => ({
   kind: 'task',
@@ -101,5 +112,40 @@ describe('editPullRef', () => {
     expect(editPullRef(data, 'vocksel/orion', undefined)).toEqual({ repo: 'vocksel/orion', refs: [issue], itemKind: 'placeholder' })
     expect(editPullRef(data, undefined, 42)).toEqual({ repo: undefined, refs: [issue], itemKind: 'step' })
     expect(editPullRef(task(), undefined, undefined)).toEqual({ repo: undefined, refs: undefined, itemKind: 'step' })
+  })
+})
+
+describe('getPullReadiness', () => {
+  const open: PullDetails = {
+    state: 'OPEN',
+    draft: false,
+    title: 'Title',
+    author: 'vocksel',
+    mine: true,
+    requestedFromYou: false,
+    updatedAt: '2026-10-08T12:00:00Z',
+    additions: 1,
+    deletions: 0,
+    checkedAt: '2026-10-08T12:00:00Z',
+  }
+
+  it('turns red for a merge conflict even while checks pass', () => {
+    expect(getPullReadiness({ ...open, checks: 'SUCCESS', mergeable: 'CONFLICTING', mergeState: 'DIRTY' })).toBe('conflict')
+    expect(getPullReadiness({ ...open, checks: 'FAILURE', mergeState: 'BLOCKED' })).toBe('failing')
+  })
+
+  it('tells running checks from ones that are all still queued', () => {
+    expect(getPullReadiness({ ...open, checks: 'PENDING', checkProgress: 'running' })).toBe('running')
+    expect(getPullReadiness({ ...open, checks: 'PENDING', checkProgress: 'waiting' })).toBe('waiting')
+    expect(getPullReadiness({ ...open, checks: 'PENDING' })).toBe('running')
+  })
+
+  it('saves ready to merge for an open pull request GitHub would merge now', () => {
+    expect(getPullReadiness({ ...open, checks: 'SUCCESS', mergeable: 'MERGEABLE', mergeState: 'CLEAN' })).toBe('mergeable')
+    expect(getPullReadiness({ ...open, mergeState: 'HAS_HOOKS' })).toBe('mergeable')
+    expect(getPullReadiness({ ...open, checks: 'SUCCESS', mergeState: 'BLOCKED' })).toBe('passing')
+    expect(getPullReadiness({ ...open, draft: true, checks: 'SUCCESS', mergeState: 'CLEAN' })).toBe('passing')
+    expect(getPullReadiness({ ...open, state: 'MERGED', checks: 'SUCCESS', mergeState: 'CLEAN' })).toBeUndefined()
+    expect(getPullReadiness(undefined)).toBeUndefined()
   })
 })

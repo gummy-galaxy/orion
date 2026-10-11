@@ -1,34 +1,44 @@
-import type { PullDetails } from '../model'
+import type { ReactNode } from 'react'
+import type { PullReadiness } from '../model'
+import { MergeIcon } from './MergeIcon'
 
-type Checks = NonNullable<PullDetails['checks']>
+const DOT = <circle cx="5" cy="5" r="4" fill="currentColor" />
+const RING = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.4 } as const
 
-const LINE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
+// Dots, with just enough shape that no state rests on color alone: a ring while queued, and a ring around a dot for
+// a conflict. Ready to merge is its own kind of state and draws the merge glyph instead.
+const SHAPES: Record<Exclude<PullReadiness, 'mergeable'>, ReactNode> = {
+  conflict: (
+    <>
+      <circle cx="5" cy="5" r="3.9" {...RING} />
+      <circle cx="5" cy="5" r="1.7" fill="currentColor" />
+    </>
+  ),
+  failing: DOT,
+  running: DOT,
+  waiting: <circle cx="5" cy="5" r="3.6" {...RING} />,
+  passing: DOT,
+}
 
-/** A pull request's checks as a check, a cross, or dots while they run, so the result never rests on color alone. */
-export function ChecksIcon({ checks, title }: { checks: Checks; title?: string }) {
-  const failed = checks === 'FAILURE' || checks === 'ERROR'
+/**
+ * How close a pull request is to merging: a conflict, failing, running or queued checks, passing, or ready.
+ * `badge` adds a cutout of the card's fill around it, to sit on the corner of the status icon.
+ */
+export function ChecksIcon({ readiness, title, badge = false }: { readiness: PullReadiness; title?: string; badge?: boolean }) {
+  if (readiness === 'mergeable') return <MergeIcon title={title} className="checks-icon check-mergeable" />
 
   return (
     <svg
-      viewBox="0 0 10 10"
-      width="9"
-      height="9"
+      viewBox={badge ? '-2 -2 14 14' : '0 0 10 10'}
+      width={badge ? 9 : 8}
+      height={badge ? 9 : 8}
       role={title ? 'img' : undefined}
       aria-hidden={title ? undefined : true}
-      className={`checks-icon check-${checks.toLowerCase()}`}
+      className={`checks-icon check-${readiness}`}
     >
       {title && <title>{title}</title>}
-      {checks === 'SUCCESS' ? (
-        <path d="M2 5.3 4.2 7.4 8 3" {...LINE} />
-      ) : failed ? (
-        <path d="M2.7 2.7l4.6 4.6M7.3 2.7 2.7 7.3" {...LINE} />
-      ) : (
-        <g fill="currentColor">
-          <circle cx="1.6" cy="5" r="1.1" />
-          <circle cx="5" cy="5" r="1.1" />
-          <circle cx="8.4" cy="5" r="1.1" />
-        </g>
-      )}
+      {badge && <circle className="checks-knockout" cx="5" cy="5" r="7" />}
+      {SHAPES[readiness]}
     </svg>
   )
 }
