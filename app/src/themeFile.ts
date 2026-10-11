@@ -1,4 +1,4 @@
-import type { Scheme, Theme } from './appearance'
+import { THEMES, type Scheme, type Theme } from './appearance'
 import { TOKENS, type Token } from './tokens'
 
 /**
@@ -182,37 +182,47 @@ export function parseThemeFile(file: string, text: string): Theme {
   return { id: `custom:${file}`, label, schemes, values, notes, author }
 }
 
-let loaded: Theme[] = []
+/** The picker's list as the last load left it, so the first render can use it before a reload finishes. */
+let loaded: Theme[] = [...THEMES]
 
-/** The theme files as the last load found them, so the first render can use them before a reload finishes. */
+/** The built-in themes, then the valid theme files, then the broken ones with their reasons. */
+export function themeList(files: readonly Theme[]): Theme[] {
+  return [...THEMES, ...files.filter((theme) => theme.error === undefined), ...files.filter((theme) => theme.error !== undefined)]
+}
+
+/** Reads the theme files from the body of GET /api/themes. Entries that are not shaped like a file are skipped. */
+function readThemeBody(body: unknown): Theme[] {
+  const entries = isRecord(body) && Array.isArray(body.themes) ? body.themes : []
+
+  return entries.flatMap((entry): Theme[] => {
+    if (!isRecord(entry) || typeof entry.file !== 'string') return []
+
+    if (typeof entry.text !== 'string') return [brokenTheme(entry.file, typeof entry.error === 'string' ? entry.error : 'could not be read')]
+
+    return [parseThemeFile(entry.file, entry.text)]
+  })
+}
+
 export function cachedThemes(): Theme[] {
   return loaded
 }
 
-/** Fetches the theme files in the data folder. With no server, as in Storybook, there are none. */
+/**
+ * Fetches the theme files in the data folder and returns the picker's list. With no server, as in Storybook, or
+ * when the request fails, the list is the built-in themes alone.
+ */
 export async function loadThemes(): Promise<Theme[]> {
+  let files: Theme[] = []
+
   try {
     const response = await fetch(API, { signal: AbortSignal.timeout(LOAD_TIMEOUT_MS) })
 
-    if (!response.ok) {
-      loaded = []
-
-      return loaded
-    }
-
-    const body = (await response.json()) as unknown
-    const entries = isRecord(body) && Array.isArray(body.themes) ? body.themes : []
-
-    loaded = entries.flatMap((entry): Theme[] => {
-      if (!isRecord(entry) || typeof entry.file !== 'string') return []
-
-      if (typeof entry.text !== 'string') return [brokenTheme(entry.file, typeof entry.error === 'string' ? entry.error : 'could not be read')]
-
-      return [parseThemeFile(entry.file, entry.text)]
-    })
+    if (response.ok) files = readThemeBody((await response.json()) as unknown)
   } catch {
-    loaded = []
+    // Nothing to read: the built-in themes still show.
   }
+
+  loaded = themeList(files)
 
   return loaded
 }

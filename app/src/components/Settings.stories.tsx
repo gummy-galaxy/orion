@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { useState } from 'react'
-import { THEMES, type Appearance } from '../appearance'
+import { useEffect, useState } from 'react'
+import { type Appearance, type Theme } from '../appearance'
 import { DEFAULT_KEYBINDINGS, type Keybindings } from '../keybindings'
 import type { Scrolling } from '../scrolling'
+import { cachedThemes, loadThemes } from '../themeFile'
 import { Settings, type SettingsSection } from './Settings'
 
 const meta = { title: 'Interaction/Overlays/Settings', parameters: { layout: 'fullscreen' } } satisfies Meta
@@ -15,6 +16,12 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
   const [appearance, setAppearance] = useState<Appearance>({ theme: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
   const [scrolling, setScrolling] = useState<Scrolling>('zoom')
   const [bindings, setBindings] = useState(keybindings)
+  const [themes, setThemes] = useState<Theme[]>(cachedThemes)
+
+  // Loads the picker's themes the way Canvas does when settings open, so the story shows the same list.
+  useEffect(() => {
+    void loadThemes().then(setThemes)
+  }, [])
 
   return (
     <Settings
@@ -22,7 +29,7 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
       showSection={setShown}
       close={() => {}}
       appearance={appearance}
-      themes={THEMES}
+      themes={themes}
       chooseAppearance={setAppearance}
       scrolling={scrolling}
       chooseScrolling={setScrolling}

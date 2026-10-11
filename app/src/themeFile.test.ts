@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { THEMES } from './appearance'
 import { TOKENS } from './tokens'
-import { checkValue, parseThemeFile } from './themeFile'
+import { cachedThemes, checkValue, loadThemes, parseThemeFile } from './themeFile'
 
 const token = (name: string) => TOKENS.find((item) => item.name === name)!
 
@@ -135,5 +136,67 @@ describe('the example theme', () => {
     expect(theme.error).toBeUndefined()
     expect(theme.notes).toEqual([])
     expect(theme.schemes).toEqual(['light', 'dark'])
+  })
+})
+
+describe('loadThemes', () => {
+  const duskText = readFileSync(new URL('../../examples/themes/dusk.json', import.meta.url), 'utf8')
+  const builtIns = THEMES.map((theme) => theme.label)
+
+  /** Answers GET /api/themes with the given response. */
+  function serve(response: () => Response | Promise<Response>) {
+    vi.stubGlobal('fetch', vi.fn(response))
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('lists the built-in themes when the data folder has no theme files', async () => {
+    serve(() => Response.json({ themes: [] }))
+
+    const themes = await loadThemes()
+
+    expect(themes.map((theme) => theme.label)).toEqual(builtIns)
+    expect(cachedThemes()).toEqual(themes)
+  })
+
+  it('lists the built-in themes first, then valid theme files, then broken ones with their reasons', async () => {
+    serve(() =>
+      Response.json({
+        themes: [
+          { file: 'broken.json', error: 'could not be read' },
+          { file: 'dusk.json', text: duskText },
+          { file: 'bad.json', text: '{' },
+        ],
+      }),
+    )
+
+    const themes = await loadThemes()
+
+    expect(themes.map((theme) => theme.label)).toEqual([...builtIns, 'Dusk', 'broken', 'bad'])
+    expect(themes.slice(0, THEMES.length)).toEqual(THEMES)
+    expect(themes.find((theme) => theme.id === 'custom:dusk.json')?.error).toBeUndefined()
+    expect(themes.find((theme) => theme.id === 'custom:broken.json')?.error).toBe('could not be read')
+    expect(themes.find((theme) => theme.id === 'custom:bad.json')?.error).toBe('is not valid JSON')
+    expect(cachedThemes()).toEqual(themes)
+  })
+
+  it('still lists the built-in themes when the request fails', async () => {
+    serve(() => Promise.reject(new TypeError('fetch failed')))
+
+    expect((await loadThemes()).map((theme) => theme.label)).toEqual(builtIns)
+  })
+
+  it('still lists the built-in themes when the server answers with an error', async () => {
+    serve(() => new Response('not found', { status: 404 }))
+
+    expect((await loadThemes()).map((theme) => theme.label)).toEqual(builtIns)
+  })
+
+  it('still lists the built-in themes when the answer has no theme list', async () => {
+    serve(() => new Response('<!doctype html>', { status: 200 }))
+
+    expect((await loadThemes()).map((theme) => theme.label)).toEqual(builtIns)
   })
 })
