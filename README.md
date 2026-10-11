@@ -102,7 +102,7 @@ Each source kind is an adapter in `cli/src/adapters/<kind>/`. An adapter validat
 
 For GitHub sources, `--owners`, `--include`, and `--exclude` accept comma-separated lists. Spaces around entries are ignored, so `--owners vocksel,flipbook-labs --include "orion, hop"` works.
 
-Cards store pull requests, issues, and local branches in `data.refs`, including each source ID, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests. Attach an existing issue or pull request to a card with `orion set <id> --ref <url>`.
+Cards store pull requests, issues, and local branches in `data.refs`, including each source ID, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests. Attach an existing issue or pull request to a card with `orion set <id> --ref <url>`. To add cards for a list of them in one step, run `orion import <ref...>`, or pipe one ref per line with `--stdin`. Refs that are already on the canvas are skipped, and any that fail are reported without stopping the rest.
 
 For a Roblox setup:
 
