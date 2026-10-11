@@ -13,6 +13,7 @@ const createView = (overrides: Partial<CardView> = {}): CardView => ({
   status: 'review',
   statusLabel: 'In review',
   leverage: 0,
+  upstream: 0,
   sources: [],
   artSeed: 'card',
   updatedAt: '2026-10-10T12:00:00Z',

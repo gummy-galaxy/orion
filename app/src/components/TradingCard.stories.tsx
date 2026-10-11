@@ -46,6 +46,7 @@ function toView(args: TradingArgs): CardView {
     status: args.status,
     statusLabel: args.status,
     leverage: 0,
+    upstream: 0,
     sources: [],
     artSeed: 'playground',
     blockers: args.blockers,
