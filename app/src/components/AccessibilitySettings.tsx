@@ -1,0 +1,63 @@
+import { ANIMATIONS, STATUS_COLORS, motionOf, withMotion, type Appearance } from '../appearance'
+import { useSystemMotion } from '../motion'
+
+type Props = { appearance: Appearance; chooseAppearance: (appearance: Appearance) => void }
+
+/** Settings that make Orion easier to see and use, saved on this device. */
+export function AccessibilitySettings({ appearance, chooseAppearance }: Props) {
+  // Read so the picked level updates when the computer's setting changes.
+  useSystemMotion()
+  const motion = motionOf(appearance)
+
+  return (
+    <section className="settings-section">
+      <h3>Accessibility</h3>
+      <div className="settings-field">
+        <div>
+          <span className="settings-field-label" id="settings-status-colors">
+            Colorblind colors
+          </span>
+          <p className="settings-field-detail">
+            Status colors tuned for protanopia and deuteranopia (red-green) or tritanopia (blue-yellow), in any theme. Every status also has its own
+            shape.
+          </p>
+        </div>
+        <div className="options" role="group" aria-labelledby="settings-status-colors">
+          {STATUS_COLORS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={appearance.statusColors === option.id}
+              onClick={() => chooseAppearance({ ...appearance, statusColors: option.id })}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="settings-field">
+        <div>
+          <span className="settings-field-label" id="settings-animations">
+            Animations
+          </span>
+          <p className="settings-field-detail">
+            Follows your computer’s reduced motion setting until you pick a level. Reduced stops looping effects and gliding but keeps fades. Off
+            stops every animation.
+          </p>
+        </div>
+        <div className="options" role="group" aria-labelledby="settings-animations">
+          {ANIMATIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={motion === option.id}
+              onClick={() => chooseAppearance(withMotion(appearance, option.id))}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
