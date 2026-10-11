@@ -141,9 +141,9 @@ export function TradingCard({ view }: { view: CardView }) {
             </span>
           </Tooltip>
           {view.rarity && (
-            <Tooltip label={describeRarity(view.rarity, view.upstream)}>
+            <Tooltip label={describeRarity(view.rarity, view.upstream, view.priority)}>
               <span className={`trading-seal trading-seal-${view.rarity}`}>
-                <TradingRaritySymbol rarity={view.rarity} upstream={view.upstream} />
+                <TradingRaritySymbol rarity={view.rarity} upstream={view.upstream} priority={view.priority} />
               </span>
             </Tooltip>
           )}

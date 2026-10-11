@@ -52,7 +52,9 @@ function toView(args: TradingArgs): CardView {
     statusLabel: args.status,
     leverage: 0,
     upstream: args.upstream,
-    ...(args.kind === 'note' ? {} : { rarity: getRarity(args.upstream) }),
+    ...(args.kind === 'note'
+      ? {}
+      : { rarity: getRarity(args.upstream, args.priority === 'unknown' ? undefined : (Number(args.priority) as Priority)) }),
     sources: [],
     artSeed: args.title,
     blockers: args.blockers,
@@ -320,15 +322,21 @@ export const RarityTiers: Story = {
   args: { sticker: 'none', status: 'ready' },
 }
 
+const FINISH_ROWS: { label: string; priority: TradingArgs['priority'] }[] = [
+  { label: 'No priority: rarity from the work that feeds in', priority: 'unknown' },
+  { label: 'P1: one tier higher', priority: '1' },
+  { label: 'P0: two tiers higher', priority: '0' },
+]
+
 export const Finish: Story = {
-  name: 'Finish · rarity',
+  name: 'Finish · rarity and priority',
   render: (args) => (
     <Lineup
-      rows={(['scene', 'shape'] as const).map((identity) => ({
-        label: IDENTITY_LABEL[identity],
+      rows={FINISH_ROWS.map(({ label, priority }) => ({
+        label,
         cards: [0, UNCOMMON_UPSTREAM, RARE_UPSTREAM, MYTHIC_UPSTREAM].map((upstream) => ({
           key: String(upstream),
-          args: { ...args, identity, upstream, title: `${getRarity(upstream)}: ${upstream} cards feed into this` },
+          args: { ...args, priority, upstream, title: `${upstream} cards feed into this` },
         })),
       }))}
     />

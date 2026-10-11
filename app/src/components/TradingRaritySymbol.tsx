@@ -1,12 +1,13 @@
+import type { Priority } from '../cardView'
 import { describeRarity, type Rarity } from '../rarity'
 
-export function TradingRaritySymbol({ rarity, upstream }: { rarity: Rarity; upstream: number }) {
+export function TradingRaritySymbol({ rarity, upstream, priority }: { rarity: Rarity; upstream: number; priority?: Priority }) {
   return (
     <svg
       className={`trading-rarity-symbol trading-rarity-symbol-${rarity}`}
       viewBox="0 0 16 16"
       role="img"
-      aria-label={describeRarity(rarity, upstream)}
+      aria-label={describeRarity(rarity, upstream, priority)}
     >
       {rarity === 'common' && <circle cx="8" cy="8" r="5.5" />}
       {rarity === 'uncommon' && <path d="M8 1.5 14.5 8 8 14.5 1.5 8Z" />}
