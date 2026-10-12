@@ -1,5 +1,17 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, ancestors, byId, isCluster, normalize, sizeOf, type AppNode, type Link } from './model'
+import {
+  GROUP_HEADER_HEIGHT,
+  GROUP_PADDING,
+  TASK_HEIGHT,
+  TASK_WIDTH,
+  ancestors,
+  byId,
+  isCluster,
+  normalize,
+  sizeOf,
+  type AppNode,
+  type Link,
+} from './model'
 import type { CardSize } from './cardSize'
 
 const elk = new ELK()
