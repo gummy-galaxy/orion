@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { getCardView } from './cardView'
 import { readAppearance } from './appearance'
 import { deriveWork, traceFrom, type AttentionMark, type GroupStats, type SourceRef } from './derive'
-import { isTask, type AppNode, type Link, type TaskNode } from './model'
+import { isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
 
 export const nodesAtom = atom<AppNode[]>([])
 export const skinAtom = atom(readAppearance().skin)
@@ -64,20 +64,33 @@ export const useStatus = (id: string) => useAtomValue(useMemo(() => selectAtom(w
 
 export const useLeverage = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.leverage.get(id) ?? 0), [id]))
 
+export const useUpstream = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.upstream.get(id) ?? 0), [id]))
+
 export const useGroupStats = (id: string) =>
   useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.groups.get(id) ?? NO_STATS, sameStats), [id]))
 
 export const useSources = (id: string) =>
   useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.sources.get(id) ?? NO_SOURCES, sameSources), [id]))
 
-export function useCardView(id: string, data: TaskNode['data']) {
+const countOpen = (ids: string[] | undefined, status: Map<string, ViewStatus>) => (ids ?? []).filter((other) => status.get(other) !== 'done').length
+
+export const useBlockers = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(workAtom, (work) => countOpen(work.preds.get(id), work.status)), [id]))
+
+export const useUnblocks = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(workAtom, (work) => countOpen(work.succs.get(id), work.status)), [id]))
+
+export function useCardView(id: string, data: TaskNode['data'], group?: string) {
   const status = useStatus(id)
   const leverage = useLeverage(id)
+  const upstream = useUpstream(id)
   const sources = useSources(id)
+  const blockers = useBlockers(id)
+  const unblocks = useUnblocks(id)
 
   return useMemo(
-    () => getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, sources }),
-    [id, data, status, leverage, sources],
+    () => getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, sources, blockers, unblocks, group }),
+    [id, data, status, leverage, upstream, sources, blockers, unblocks, group],
   )
 }
 
