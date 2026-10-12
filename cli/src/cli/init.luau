@@ -10,6 +10,7 @@ local focus = require("@root/cli/focus")
 local getAdapter = require("@root/adapters/getAdapter")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
+local importCommand = require("@root/cli/import")
 local ingest = require("@root/cli/ingest")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
@@ -17,6 +18,7 @@ local pad = require("@root/render/pad")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
+local requestedRevision = require("@root/cli/requestedRevision")
 local resolveRef = require("@root/adapters/resolveRef")
 local restore = require("@root/cli/restore")
 local runEdit = require("@root/cli/runEdit")
@@ -59,6 +61,7 @@ local COMMANDS: { [string]: Command } = {
 	workspace = workspace,
 	source = source,
 	ingest = ingest,
+	import = importCommand,
 }
 
 local COMMAND_HELP: { [string]: string } = {
@@ -262,6 +265,7 @@ local function createParsers(): Parsers
 	registeredCommand("serve")
 	registeredCommand("source")
 	registeredCommand("ingest")
+	registeredCommand("import")
 
 	registeredCommand("suggest")
 	registeredCommand("suggestions")
@@ -344,12 +348,6 @@ local function requestedWorkspace(root: cli.Parser): string?
 	end
 
 	return selected
-end
-
-local function requestedRevision(parser: cli.Parser): number?
-	local value = parser:get("if-revision")
-	assert(value == nil or value:match("^%d+$"), "--if-revision must be a nonnegative integer")
-	return if value then tonumber(value) else nil
 end
 
 local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)

@@ -20,6 +20,26 @@ test.case("tool arguments map onto the command each tool runs", function(assert)
 	end)
 end)
 
+test.case("orion_import passes each ref as a trailing positional", function(assert)
+	assert.eq(
+		table.concat(
+			getToolArgv(
+				"orion_import",
+				json.object({
+					refs = { "https://github.com/vocksel/orion/issues/91", "jira:ABC-1" },
+					group = "release",
+					dryRun = true,
+				})
+			),
+			" "
+		),
+		"import https://github.com/vocksel/orion/issues/91 jira:ABC-1 --group release --dry-run --json"
+	)
+	assert.throwsWith("refs must be a list of strings", function()
+		getToolArgv("orion_import", json.object({ refs = { "" } }))
+	end)
+end)
+
 test.case("tools reject arguments their schemas do not allow", function(assert)
 	assert.throwsWith("unknown argument: colour", function()
 		getToolArgv("orion_add_item", json.object({ title = "A", colour = "red" }))
