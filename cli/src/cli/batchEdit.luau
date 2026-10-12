@@ -22,6 +22,10 @@ export type Options = {
 	untilTime: string?,
 	-- The current UTC time, which decides what --where sees as snoozed.
 	now: string?,
+	-- A line printed after the summary in text output.
+	note: string?,
+	-- Fields added to the JSON output.
+	extra: json.Object?,
 	write: (string) -> (),
 }
 
@@ -53,7 +57,7 @@ local function batchEdit(options: Options)
 				assert(item.type == "task", `"{item.id}" is not a work item`)
 			elseif options.action == "remove" then
 				assert(not graph.isGroup(item), `"{item.id}" is a group; use ungroup instead`)
-			elseif options.action == "ungroup" then
+			elseif options.action == "ungroup" or options.action == "tidy" then
 				assert(graph.isGroup(item), `"{item.id}" is an item, not a group`)
 			end
 
@@ -82,6 +86,8 @@ local function batchEdit(options: Options)
 				graph.snooze(doc, item.id, options.untilTime)
 			elseif options.action == "unsnooze" then
 				graph.snooze(doc, item.id, nil)
+			elseif options.action == "tidy" then
+				graph.markForTidy(doc, item.id)
 			else
 				graph.move(doc, item.id, options.destination)
 			end
@@ -95,23 +101,26 @@ local function batchEdit(options: Options)
 		for _, change in changes do
 			table.insert(entries, json.object({ id = change.id, label = change.label }))
 		end
-		options.write(json.serialize(
-			json.object({
-				action = options.action,
-				dryRun = options.dryRun,
-				baseRevision = baseRevision,
-				revision = result.revision,
-				items = entries,
-				destination = if options.action == "move" then options.destination or json.null else nil,
-				["until"] = if options.action == "snooze" then options.untilTime else nil,
-			}),
-			true
-		))
+		local report = json.object({
+			action = options.action,
+			dryRun = options.dryRun,
+			baseRevision = baseRevision,
+			revision = result.revision,
+			items = entries,
+			destination = if options.action == "move" then options.destination or json.null else nil,
+			["until"] = if options.action == "snooze" then options.untilTime else nil,
+		})
+
+		for key, value in options.extra or {} do
+			report[key] = value
+		end
+
+		options.write(json.serialize(report, true))
 		return
 	end
 
 	local count = #changes
-	local noun = if options.action == "ungroup"
+	local noun = if options.action == "ungroup" or options.action == "tidy"
 		then (if count == 1 then "group" else "groups")
 		else (if count == 1 then "item" else "items")
 	local summary: string
@@ -127,6 +136,8 @@ local function batchEdit(options: Options)
 			else `Snoozed {count} {noun} until {options.untilTime}`
 	elseif options.action == "unsnooze" then
 		summary = if options.dryRun then `Would wake {count} {noun}` else `Woke {count} {noun}`
+	elseif options.action == "tidy" then
+		summary = if options.dryRun then `Would tidy {count} {noun}` else `Marked {count} {noun} to tidy`
 	else
 		local destination = options.destination or "the top level"
 		summary = if options.dryRun
@@ -137,6 +148,9 @@ local function batchEdit(options: Options)
 	local lines = { `{summary} at revision {revision}` }
 	for _, change in changes do
 		table.insert(lines, `  {change.id} · {change.label}`)
+	end
+	if options.note then
+		table.insert(lines, options.note)
 	end
 	options.write(table.concat(lines, "\n"))
 end

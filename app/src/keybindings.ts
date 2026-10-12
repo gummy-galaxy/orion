@@ -1,3 +1,4 @@
+import { TOP_LEVEL_SELECT_LIMIT } from './selectAll'
 import { saveSettings } from './settings'
 
 /**
@@ -14,10 +15,20 @@ export type ShortcutId =
   | 'go-forward'
   | 'group'
   | 'ungroup'
+  | 'select-all'
+  | 'rename'
+  | 'bring-forward'
+  | 'send-backward'
+  | 'fit-selection'
+  | 'nudge-up'
+  | 'nudge-down'
+  | 'nudge-left'
+  | 'nudge-right'
   | 'open-group'
   | 'step-back'
   | 'add-note'
   | 'fit'
+  | 'zoom-actual'
   | 'less-detail'
   | 'more-detail'
   | 'tool-select'
@@ -37,6 +48,20 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', category: 'Editing', chord: 'Mod+Shift+Z' },
   { id: 'group', label: 'Group selection', detail: 'Put the selected items in a new group', category: 'Editing', chord: 'Mod+G' },
   { id: 'ungroup', label: 'Ungroup', detail: 'Release the selected groups’ contents', category: 'Editing', chord: 'Mod+Shift+G' },
+  {
+    id: 'select-all',
+    label: 'Select all',
+    detail: `Select everything in the open group, or up to ${TOP_LEVEL_SELECT_LIMIT} items at the top level`,
+    category: 'Editing',
+    chord: 'Mod+A',
+  },
+  { id: 'rename', label: 'Rename', detail: 'Edit the name of the selected item', category: 'Editing', chord: 'F2' },
+  { id: 'bring-forward', label: 'Bring forward', detail: 'Stack the selection one step higher', category: 'Editing', chord: 'Mod+Alt+]' },
+  { id: 'send-backward', label: 'Send backward', detail: 'Stack the selection one step lower', category: 'Editing', chord: 'Mod+Alt+[' },
+  { id: 'nudge-up', label: 'Nudge up', detail: 'Move the selection 1 unit, or 10 with ⇧', category: 'Editing', chord: 'ArrowUp' },
+  { id: 'nudge-down', label: 'Nudge down', detail: 'Move the selection 1 unit, or 10 with ⇧', category: 'Editing', chord: 'ArrowDown' },
+  { id: 'nudge-left', label: 'Nudge left', detail: 'Move the selection 1 unit, or 10 with ⇧', category: 'Editing', chord: 'ArrowLeft' },
+  { id: 'nudge-right', label: 'Nudge right', detail: 'Move the selection 1 unit, or 10 with ⇧', category: 'Editing', chord: 'ArrowRight' },
   { id: 'add-note', label: 'Add a note', detail: 'At the middle of the view', category: 'Editing', chord: 'N' },
   { id: 'open-group', label: 'Open group', detail: 'Open the selected group', category: 'Navigation', chord: 'Enter' },
   {
@@ -49,6 +74,8 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'go-back', label: 'Go back', detail: 'Return to the previous view', category: 'Navigation', chord: 'Mod+[' },
   { id: 'go-forward', label: 'Go forward', detail: 'Return to the view you went back from', category: 'Navigation', chord: 'Mod+]' },
   { id: 'fit', label: 'Fit to screen', detail: 'Show everything in the open group', category: 'Navigation', chord: 'Shift+1' },
+  { id: 'fit-selection', label: 'Fit selection', detail: 'Zoom to frame the selected items', category: 'Navigation', chord: 'Shift+2' },
+  { id: 'zoom-actual', label: 'Zoom to 100%', detail: 'Show cards at their actual size', category: 'Navigation', chord: 'Shift+0' },
   { id: 'less-detail', label: 'Show less detail', detail: 'Fold one more level of groups', category: 'Navigation', chord: '[' },
   { id: 'more-detail', label: 'Show more detail', detail: 'Open one more level of groups', category: 'Navigation', chord: ']' },
   { id: 'tool-select', label: 'Select tool', detail: 'Drag to select', category: 'Tools', chord: 'V' },

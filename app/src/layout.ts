@@ -1,5 +1,17 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, byId, isCluster, normalize, sizeOf, type AppNode, type Link } from './model'
+import {
+  GROUP_HEADER_HEIGHT,
+  GROUP_PADDING,
+  TASK_HEIGHT,
+  TASK_WIDTH,
+  ancestors,
+  byId,
+  isCluster,
+  normalize,
+  sizeOf,
+  type AppNode,
+  type Link,
+} from './model'
 import type { CardSize } from './cardSize'
 
 const elk = new ELK()
@@ -298,6 +310,21 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: Card
   })
 
   return positions
+}
+
+/**
+ * The groups waiting for layout, deepest first. A group is arranged only after every group inside it has settled at
+ * its final size, so a single pass over this order lays out the whole tree. Groups at the same depth keep node order.
+ */
+export function layoutOrder(nodes: AppNode[]): AppNode[] {
+  const marked = nodes.filter((node) => isCluster(node) && node.data.layout)
+
+  if (!marked.length) return marked
+
+  const nodeMap = byId(nodes)
+  const depth = new Map(marked.map((node) => [node.id, ancestors(node.id, nodeMap).length]))
+
+  return marked.sort((a, b) => depth.get(b.id)! - depth.get(a.id)!)
 }
 
 /**

@@ -886,7 +886,13 @@ select {
   white-space: nowrap;
   overflow: hidden;
 }
+/* A narrow header clips its trailing items, but the ring and the start of the name hold their size. */
+.cluster-head > * {
+  flex-shrink: 0;
+}
 .cluster-head strong {
+  flex-shrink: 1;
+  min-width: 4em;
   font-size: var(--text-size-emphasis);
   overflow: hidden;
   text-overflow: ellipsis;

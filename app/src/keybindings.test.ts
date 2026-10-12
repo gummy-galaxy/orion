@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_KEYBINDINGS, chordOf, conflictsOf, formatChord, matchesChord, normalizeChord } from './keybindings'
+import { DEFAULT_KEYBINDINGS, SHORTCUTS, chordOf, conflictsOf, formatChord, matchesChord, normalizeChord } from './keybindings'
+import { largeChordOf } from './nudge'
 
 const press = (key: string, code: string, held: { meta?: boolean; ctrl?: boolean; alt?: boolean; shift?: boolean } = {}) => ({
   key,
@@ -62,5 +63,66 @@ describe('keybindings', () => {
     const chords = Object.values(DEFAULT_KEYBINDINGS)
 
     expect(new Set(chords).size).toBe(chords.length)
+  })
+
+  it('binds the familiar shortcuts to the actions they name', () => {
+    expect(DEFAULT_KEYBINDINGS.rename).toBe('F2')
+    expect(DEFAULT_KEYBINDINGS['fit-selection']).toBe('Shift+2')
+    expect(DEFAULT_KEYBINDINGS['bring-forward']).toBe('Mod+Alt+]')
+    expect(DEFAULT_KEYBINDINGS['send-backward']).toBe('Mod+Alt+[')
+    expect(DEFAULT_KEYBINDINGS['nudge-left']).toBe('ArrowLeft')
+    expect(DEFAULT_KEYBINDINGS['select-all']).toBe('Mod+A')
+    expect(DEFAULT_KEYBINDINGS['zoom-actual']).toBe('Shift+0')
+  })
+
+  it('keeps bring forward and send backward apart from back and forward navigation', () => {
+    expect(DEFAULT_KEYBINDINGS['go-forward']).toBe('Mod+]')
+    expect(DEFAULT_KEYBINDINGS['go-back']).toBe('Mod+[')
+    expect(matchesChord(press(']', 'BracketRight', { meta: true, alt: true }), DEFAULT_KEYBINDINGS['bring-forward'])).toBe(true)
+    expect(matchesChord(press(']', 'BracketRight', { meta: true }), DEFAULT_KEYBINDINGS['bring-forward'])).toBe(false)
+    expect(matchesChord(press('[', 'BracketLeft', { meta: true, alt: true }), DEFAULT_KEYBINDINGS['send-backward'])).toBe(true)
+  })
+
+  it('reads the new chords from key presses', () => {
+    expect(chordOf(press('F2', 'F2'))).toBe('F2')
+    expect(chordOf(press('@', 'Digit2', { shift: true }))).toBe('Shift+2')
+    expect(chordOf(press(')', 'Digit0', { shift: true }))).toBe('Shift+0')
+    expect(chordOf(press('a', 'KeyA', { meta: true }))).toBe('Mod+A')
+    expect(chordOf(press('ArrowLeft', 'ArrowLeft', { shift: true }))).toBe('Shift+ArrowLeft')
+  })
+
+  it('formats the new chords the way macOS menus do', () => {
+    expect(formatChord(DEFAULT_KEYBINDINGS['bring-forward'])).toBe('⌥⌘]')
+    expect(formatChord(DEFAULT_KEYBINDINGS['send-backward'])).toBe('⌥⌘[')
+    expect(formatChord('F2')).toBe('F2')
+    expect(formatChord(DEFAULT_KEYBINDINGS['nudge-up'])).toBe('↑')
+    expect(formatChord(largeChordOf(DEFAULT_KEYBINDINGS['nudge-up']))).toBe('⇧↑')
+  })
+
+  it('lists each new action once in the Editing or Navigation category', () => {
+    const ids = [
+      'select-all',
+      'rename',
+      'bring-forward',
+      'send-backward',
+      'nudge-up',
+      'nudge-down',
+      'nudge-left',
+      'nudge-right',
+      'fit-selection',
+      'zoom-actual',
+    ]
+
+    for (const id of ids) {
+      expect(SHORTCUTS.filter((shortcut) => shortcut.id === id)).toHaveLength(1)
+    }
+
+    expect(SHORTCUTS.find((shortcut) => shortcut.id === 'fit-selection')?.category).toBe('Navigation')
+  })
+
+  it('makes the large nudge by adding ⇧ to the arrow chord', () => {
+    expect(largeChordOf('ArrowLeft')).toBe('Shift+ArrowLeft')
+    expect(largeChordOf('Mod+ArrowLeft')).toBe('Mod+Shift+ArrowLeft')
+    expect(largeChordOf('')).toBe('')
   })
 })
