@@ -52,10 +52,11 @@ function getSticker(view: CardView, now: number): Sticker | undefined {
   return undefined
 }
 
+// Checks keep their motion after one fails, so the card shows how far the rest got beside the failing sticker.
 function getMotion(view: CardView): Motion | undefined {
-  if (view.readiness === 'running') return 'running'
+  if (view.readiness === 'running' || view.checkProgress === 'running') return 'running'
 
-  if (view.readiness === 'waiting') return 'queued'
+  if (view.readiness === 'waiting' || view.checkProgress === 'waiting') return 'queued'
 
   return undefined
 }

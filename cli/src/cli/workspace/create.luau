@@ -8,13 +8,13 @@ type Context = context.Context
 return table.freeze({
 	help = "Create a workspace with its own data folder",
 	define = function(parser: cli.Parser)
-		parser:add("name", "positional", { help = "Workspace name" })
+		parser:add("name", "positional", { help = "Workspace name. Omit it to derive one from --label" })
 		parser:add("label", "option", { help = "Display label" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local name = assert(parser:get("name"), "missing <name>")
-		store.createWorkspace(options.root, name, parser:get("label"))
-		options.write(`Created workspace {name}`)
+		local list = store.createWorkspace(options.root, parser:get("name"), parser:get("label"))
+		local created = list.workspaces[#list.workspaces]
+		options.write(`Created workspace {created.name}`)
 	end,
 })

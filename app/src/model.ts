@@ -27,6 +27,11 @@ export type TaskData = {
   refs?: SourceRef[]
   note?: string
   who?: Who
+  /**
+   * Set when the card changes to done, until its finish stamp is clicked or the card is reopened. The CLI store sets
+   * it too, on every path that finishes a card, so it is saved with the card like the other fields.
+   */
+  celebrate?: boolean
 }
 export type SourceRef = {
   source: string
@@ -52,6 +57,7 @@ export type PullDetails = {
   checks?: 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED'
   /** Whether any unfinished check has started, or all of them are still queued. */
   checkProgress?: 'running' | 'waiting'
+  checkCounts?: CheckCounts
   mergeable?: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN'
   mergeState?: 'BEHIND' | 'BLOCKED' | 'CLEAN' | 'DIRTY' | 'DRAFT' | 'HAS_HOOKS' | 'UNKNOWN' | 'UNSTABLE'
   /** The head commit the details describe, which a merge from the card must still match. */
@@ -59,6 +65,8 @@ export type PullDetails = {
   checkedAt: string
   branch?: string
 }
+/** A commit's checks: how many have finished, and failed, out of all of them. Skipped and cancelled checks count as finished. */
+export type CheckCounts = { total: number; finished: number; failed: number }
 /** How close an open pull request is to merging, from what stops it to nothing at all. */
 export type PullReadiness = 'conflict' | 'failing' | 'running' | 'waiting' | 'passing' | 'mergeable'
 
@@ -70,6 +78,16 @@ export const READINESS_LABEL: Record<PullReadiness, string> = {
   passing: 'Checks passing',
   mergeable: 'Ready to merge',
 }
+
+/** "5 of 8 done, 1 failed" while checks run, "1 of 8 failed" once they finish, and nothing once they all pass. */
+export function getCheckCountsLabel(counts: CheckCounts): string | undefined {
+  const failed = counts.failed > 0 ? `${counts.failed} failed` : undefined
+
+  if (counts.finished < counts.total) return [`${counts.finished} of ${counts.total} done`, failed].filter(Boolean).join(', ')
+
+  return failed && `${counts.failed} of ${counts.total} failed`
+}
+
 export type UnplacedPullRequest = {
   repo: string
   number: number
@@ -337,6 +355,69 @@ export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { 
   }
 
   return normalize(next, cardSize)
+}
+
+/** Gap between a moved group and the siblings it lands beside, matching `orion move` in the CLI. */
+const ITEM_GAP = 48
+
+/** The first spot at or below `preferred` that no sibling overlaps, so a moved group keeps its place when it's free. */
+function freeSpotBelow(siblings: AppNode[], preferred: { x: number; y: number }, size: { width: number; height: number }, cardSize: CardSize) {
+  const spot = { ...preferred }
+
+  const clashes = (sibling: AppNode) => {
+    const siblingSize = sizeOf(sibling, cardSize)
+
+    return (
+      spot.x < sibling.position.x + siblingSize.width &&
+      sibling.position.x < spot.x + size.width &&
+      spot.y < sibling.position.y + siblingSize.height &&
+      sibling.position.y < spot.y + size.height
+    )
+  }
+
+  let clash = siblings.find(clashes)
+
+  while (clash) {
+    spot.y = clash.position.y + sizeOf(clash, cardSize).height + ITEM_GAP
+    clash = siblings.find(clashes)
+  }
+
+  return spot
+}
+
+/**
+ * Lifts a group out of its parent to the parent's level, at the first free spot at or below where it was, so it stays
+ * where it was on screen when nothing covers it. The parent shrinks or grows to fit what remains. Anything else returns
+ * the nodes unchanged.
+ */
+export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+  const nodeMap = byId(nodes)
+  const group = nodeMap.get(id)
+
+  if (!group || !isCluster(group) || !group.parentId) return nodes
+
+  const parent = nodeMap.get(group.parentId)
+  const grandparent = parent?.parentId ? nodeMap.get(parent.parentId) : undefined
+  const origin = grandparent ? absolutePosition(grandparent, nodeMap) : { x: 0, y: 0 }
+  const absolute = absolutePosition(group, nodeMap)
+  // Fitting first lets the old parent shrink to what remains, so the spot is checked against where it will actually be.
+  const lifted = normalize(
+    nodes.map((node) =>
+      node.id === id ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } } : node,
+    ),
+    cardSize,
+  )
+  const landed = lifted.find((node) => node.id === id)
+
+  if (!landed) return lifted
+
+  const siblings = lifted.filter((node) => node.parentId === landed.parentId && node.id !== id)
+  const position = freeSpotBelow(siblings, landed.position, sizeOf(landed, cardSize), cardSize)
+
+  return normalize(
+    lifted.map((node) => (node.id === id ? { ...node, position } : node)),
+    cardSize,
+  )
 }
 
 export function descendants(id: string, nodes: AppNode[]): Set<string> {
