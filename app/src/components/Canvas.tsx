@@ -39,6 +39,7 @@ import {
   isImage,
   isNote,
   isTask,
+  moveOutOfGroup,
   normalize,
   getTaskUrl,
   sizeOf,
@@ -2337,6 +2338,9 @@ export function Canvas() {
           { label: 'Rename', run: () => (selectOnly(node.id), setEditing(node.id)) },
           { label: 'Cover and background', run: () => selectOnly(node.id) },
           ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
+          ...(node.parentId
+            ? [{ label: 'Move out of group', run: () => setNodes((currentNodes) => moveOutOfGroup(currentNodes, node.id, cardSize)) }]
+            : []),
           { label: 'Ungroup', hint: hintOf('ungroup'), run: () => doUngroup([node.id]) },
         ]
 
