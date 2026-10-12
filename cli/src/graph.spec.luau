@@ -72,6 +72,20 @@ test.case("derive keeps hand-set blocked and deferred, and skips deferred work i
 	assert.eq(derived.leverage.a, 0)
 end)
 
+test.case("countProgress leaves deferred work and notes out of a group's total", function(assert)
+	local doc = testing.createDoc({
+		testing.group("g", "Group"),
+		task("a", "A", "done", "g"),
+		task("b", "B", "todo", "g"),
+		task("c", "C", "deferred", "g"),
+		task("n", "Remember", "todo", "g", { itemKind = "note" }),
+	})
+	local progress = graph.countProgress(doc, graph.derive(doc), "g")
+	assert.eq(progress.total, 2)
+	assert.eq(progress.done, 1)
+	assert.eq(progress.ready, 1)
+end)
+
 test.case("addItem names pull requests after the repository and number", function(assert)
 	local doc = testing.createDoc({ testing.group("g", "Group"), task("x", "X", "todo", "g") })
 	local item = graph.addItem(doc, "Ship it", { group = "g", repo = "flipbook-labs/flipbook", pr = 700 })
