@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAct
 import { useReactFlow, type NodeChange } from '@xyflow/react'
 import { byId, isCluster, normalize, type AppNode } from './model'
 import { finishDrag, snapDrag, snapGuides } from './snap'
+import type { CardSize } from './cardSize'
 
 const SNAP_PX = 8
 const THROW_SPEED = 0.8
@@ -16,11 +17,13 @@ export function useNodeSnapping({
   getCurrentNodes,
   setNodes,
   tweenTo,
+  cardSize,
 }: {
   nodes: AppNode[]
   getCurrentNodes: () => AppNode[]
   setNodes: Dispatch<SetStateAction<AppNode[]>>
   tweenTo: (nodes: AppNode[]) => void
+  cardSize: CardSize
 }) {
   const reactFlow = useReactFlow()
   const dragOrigins = useRef(new Map<string, AppNode['position']>())
@@ -35,9 +38,9 @@ export function useNodeSnapping({
         session && !session.free ? changes.flatMap((change) => (change.type === 'position' && session.ids.has(change.id) ? [change.id] : [])) : []
       const tolerance = SNAP_PX / reactFlow.getZoom()
 
-      return (changedNodes: AppNode[]) => (movedIds.length ? snapDrag(changedNodes, movedIds, tolerance) : changedNodes)
+      return (changedNodes: AppNode[]) => (movedIds.length ? snapDrag(changedNodes, movedIds, tolerance, cardSize) : changedNodes)
     },
-    [reactFlow],
+    [reactFlow, cardSize],
   )
 
   const onDragStart = useCallback(
@@ -80,7 +83,7 @@ export function useNodeSnapping({
 
       dragOrigins.current = new Map()
 
-      if (!session) return setNodes((currentNodes) => normalize(currentNodes))
+      if (!session) return setNodes((currentNodes) => normalize(currentNodes, cardSize))
 
       const now = performance.now()
       const recentSamples = session.samples.filter((sample) => now - sample.time <= THROW_WINDOW_MS)
@@ -92,21 +95,21 @@ export function useNodeSnapping({
         Math.hypot(lastSample.x - firstSample.x, lastSample.y - firstSample.y) / (lastSample.time - firstSample.time) >= THROW_SPEED
       const draggedIds = [...session.ids]
 
-      if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes((currentNodes) => normalize(currentNodes))
+      if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes((currentNodes) => normalize(currentNodes, cardSize))
 
       requestAnimationFrame(() => {
         const currentNodes = getCurrentNodes()
-        const finished = finishDrag(currentNodes, origins, draggedIds, session.free || event.ctrlKey, thrown)
-        const result = normalize(finished)
+        const finished = finishDrag(currentNodes, origins, draggedIds, session.free || event.ctrlKey, thrown, cardSize)
+        const result = normalize(finished, cardSize)
 
         if (finished !== currentNodes) tweenTo(result)
         else setNodes(result)
       })
     },
-    [getCurrentNodes, setNodes, tweenTo],
+    [getCurrentNodes, setNodes, tweenTo, cardSize],
   )
 
-  const guides = useMemo(() => (skipSnapGuides ? [] : snapGuides(nodes)), [nodes, skipSnapGuides])
+  const guides = useMemo(() => (skipSnapGuides ? [] : snapGuides(nodes, cardSize)), [nodes, skipSnapGuides, cardSize])
 
   return { snapChanges, onDragStart, onDrag, onDragStop, guides }
 }

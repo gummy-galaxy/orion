@@ -1,5 +1,5 @@
 use std::{
-    env,
+    env, fs,
     net::{Ipv4Addr, TcpListener, TcpStream},
     process::{Child, Command},
     sync::{Arc, Mutex},
@@ -13,9 +13,47 @@ mod menu;
 mod mouse_navigation;
 mod usage;
 
+/// Where the shell remembers its server's port, beside the window state in the app's own folder.
+const PORT_FILE: &str = "server-port";
+
 fn get_free_port() -> std::io::Result<u16> {
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
     Ok(listener.local_addr()?.port())
+}
+
+fn is_port_free(port: u16) -> bool {
+    TcpListener::bind((Ipv4Addr::LOCALHOST, port)).is_ok()
+}
+
+/// The port the web view loads from, kept the same across launches. WebKit keys browser storage by
+/// origin, so a new port each launch would start the canvas's view state empty every time.
+fn get_server_port(app: &tauri::App) -> Option<u16> {
+    let file = app.path().app_data_dir().ok()?.join(PORT_FILE);
+    let saved = fs::read_to_string(&file)
+        .ok()
+        .and_then(|text| text.trim().parse::<u16>().ok())
+        .filter(|&port| port != 0);
+
+    if let Some(port) = saved {
+        // A server left by a crashed launch exits within a couple of seconds of noticing.
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if is_port_free(port) {
+                return Some(port);
+            }
+            if Instant::now() >= deadline {
+                break;
+            }
+            thread::sleep(Duration::from_millis(200));
+        }
+    }
+
+    let port = get_free_port().ok()?;
+    if let Some(dir) = file.parent() {
+        let _ = fs::create_dir_all(dir);
+    }
+    let _ = fs::write(&file, port.to_string());
+    Some(port)
 }
 
 fn stop_server(child: &mut Child) {
@@ -24,7 +62,7 @@ fn stop_server(child: &mut Child) {
 }
 
 fn start_server(app: &tauri::App) -> Option<(Child, WebviewUrl)> {
-    let port = get_free_port().ok()?;
+    let port = get_server_port(app)?;
     let url = format!("http://127.0.0.1:{port}/").parse().ok()?;
     let binary = env::current_exe().ok()?.with_file_name("orion");
     let static_dir = app.path().resource_dir().ok()?.join("dist");
