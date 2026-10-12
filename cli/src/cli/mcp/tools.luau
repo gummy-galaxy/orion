@@ -73,6 +73,23 @@ local function buildMoveArgv(arguments: json.Object): { string }
 	return argv
 end
 
+-- Refs are one list argument, which the CLI takes as trailing positionals.
+local function buildImportArgv(arguments: json.Object): { string }
+	local argv = { "import" }
+	local refs = json.asArray(arguments.refs) or {}
+
+	for _, ref in refs do
+		assert(type(ref) == "string" and ref ~= "", "refs must be a list of strings")
+		table.insert(argv, ref)
+	end
+
+	appendOption(argv, "group", arguments.group)
+	appendFlag(argv, "dry-run", arguments.dryRun)
+	appendOption(argv, "workspace", arguments.workspace)
+	table.insert(argv, "--json")
+	return argv
+end
+
 -- Every tool the MCP server offers, in the order tools/list reports them. Tools map their
 -- fields onto a CLI command, and those that need more than that supply their own build.
 local tools: { Tool } = {
@@ -321,6 +338,20 @@ local tools: { Tool } = {
 			workspaceField,
 			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
 			{ name = "discover", kind = "boolean", at = "flag", flag = "discover" },
+		},
+	},
+	{
+		name = "orion_import",
+		description = "Add a card for each GitHub or Jira URL, or source:key, in one step. Refs already on the canvas are skipped. Refs that don't resolve are reported and skipped, and the call fails if any did.",
+		annotations = { openWorldHint = true },
+		command = { "import" },
+		json = true,
+		build = buildImportArgv,
+		fields = {
+			workspaceField,
+			{ name = "refs", kind = "strings", required = true, at = "positional" },
+			{ name = "group", kind = "id", at = "option" },
+			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
 		},
 	},
 }
