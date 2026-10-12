@@ -341,6 +341,69 @@ export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { 
   return normalize(next, cardSize)
 }
 
+/** Gap between a moved group and the siblings it lands beside, matching `orion move` in the CLI. */
+const ITEM_GAP = 48
+
+/** The first spot at or below `preferred` that no sibling overlaps, so a moved group keeps its place when it's free. */
+function freeSpotBelow(siblings: AppNode[], preferred: { x: number; y: number }, size: { width: number; height: number }, cardSize: CardSize) {
+  const spot = { ...preferred }
+
+  const clashes = (sibling: AppNode) => {
+    const siblingSize = sizeOf(sibling, cardSize)
+
+    return (
+      spot.x < sibling.position.x + siblingSize.width &&
+      sibling.position.x < spot.x + size.width &&
+      spot.y < sibling.position.y + siblingSize.height &&
+      sibling.position.y < spot.y + size.height
+    )
+  }
+
+  let clash = siblings.find(clashes)
+
+  while (clash) {
+    spot.y = clash.position.y + sizeOf(clash, cardSize).height + ITEM_GAP
+    clash = siblings.find(clashes)
+  }
+
+  return spot
+}
+
+/**
+ * Lifts a group out of its parent to the parent's level, at the first free spot at or below where it was, so it stays
+ * where it was on screen when nothing covers it. The parent shrinks or grows to fit what remains. Anything else returns
+ * the nodes unchanged.
+ */
+export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+  const nodeMap = byId(nodes)
+  const group = nodeMap.get(id)
+
+  if (!group || !isCluster(group) || !group.parentId) return nodes
+
+  const parent = nodeMap.get(group.parentId)
+  const grandparent = parent?.parentId ? nodeMap.get(parent.parentId) : undefined
+  const origin = grandparent ? absolutePosition(grandparent, nodeMap) : { x: 0, y: 0 }
+  const absolute = absolutePosition(group, nodeMap)
+  // Fitting first lets the old parent shrink to what remains, so the spot is checked against where it will actually be.
+  const lifted = normalize(
+    nodes.map((node) =>
+      node.id === id ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } } : node,
+    ),
+    cardSize,
+  )
+  const landed = lifted.find((node) => node.id === id)
+
+  if (!landed) return lifted
+
+  const siblings = lifted.filter((node) => node.parentId === landed.parentId && node.id !== id)
+  const position = freeSpotBelow(siblings, landed.position, sizeOf(landed, cardSize), cardSize)
+
+  return normalize(
+    lifted.map((node) => (node.id === id ? { ...node, position } : node)),
+    cardSize,
+  )
+}
+
 export function descendants(id: string, nodes: AppNode[]): Set<string> {
   const result = new Set<string>()
 
