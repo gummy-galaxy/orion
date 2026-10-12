@@ -33,7 +33,7 @@ jobs:
         run: lute setup
 
       - name: Install Dependencies
-        run: lute run install
+        run: lute pkg install
 
       - name: Analyze
         run: lute run analyze
@@ -60,7 +60,7 @@ jobs:
           path: cli
 
       - name: Install Dependencies
-        run: lute run install
+        run: lute pkg install
 
       - name: Test
         run: lute test
@@ -163,7 +163,7 @@ jobs:
 
       - name: Install Luau Dependencies
         working-directory: cli
-        run: lute run install
+        run: lute pkg install
 
       - name: Install App Dependencies
         working-directory: app

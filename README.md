@@ -66,14 +66,14 @@ The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang
 ```sh
 cd cli
 rokit install
-lute run install
+lute pkg install
 lute run build
 ```
 
-That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. See [`AGENTS.md`](AGENTS.md) for how agents should use it.
+`lute pkg install` fills `~/.loom/store`, which the build reads directly, so nothing is copied into the checkout. Lute can only bundle that store from a checkout under your home directory, and `lute run build` fails elsewhere. That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. See [`AGENTS.md`](AGENTS.md) for how agents should use it.
 
 Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
-StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute project.luau loom.config.luau` from `cli/` to format all Luau sources, including the Lute scripts. CI checks the same paths.
+StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute project.luau loom.config.luau .config.luau` from `cli/` to format all Luau sources, including the Lute scripts. CI checks the same paths.
 
 ### Connect agents over MCP
 
