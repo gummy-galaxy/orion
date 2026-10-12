@@ -667,6 +667,11 @@ select {
 .react-flow__edge.tr-e-dim {
   opacity: 0.1;
 }
+/* Inspect mode shows every related link at full strength. */
+.canvas.is-inspecting .react-flow__edge.e-rel,
+.canvas.is-inspecting .react-flow__edge.e-rel .react-flow__edge-path {
+  opacity: 1;
+}
 /* A link under the pointer firms up so it reads as something to right-click. */
 .react-flow__edge:not(.e-agg):hover .react-flow__edge-path {
   stroke-width: 2.6;
@@ -1036,6 +1041,31 @@ select {
 }
 .react-flow__node:has(.source-domain-many[open]) {
   z-index: 3000 !important;
+}
+/* Inspect mode opens the hovered card at no less than its canvas size, with nothing cut short. */
+.card > .peek-place {
+  transform: scale(max(1, var(--inv, 1)));
+}
+.peek-card {
+  min-width: 260px;
+  max-width: 340px;
+  --fade: 1;
+}
+.peek-note {
+  margin: 4px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.react-flow__node-task:has(.peek-card) {
+  z-index: 3000 !important;
+}
+.card:has(> .peek-place) > .react-flow__handle {
+  visibility: hidden;
 }
 :where(:root[data-motion='on']) .far-card {
   animation: pop-up 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;

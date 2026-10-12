@@ -113,12 +113,14 @@ import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
+import { useInspecting } from '../useInspecting'
 import { useWheelZoom } from '../useWheelZoom'
 import {
   attentionAtom,
   collapsedAtom,
   focusedAtom,
   hoverAtom,
+  inspectingAtom,
   linksAtom,
   nodesAtom,
   pinnedAtom,
@@ -1069,6 +1071,9 @@ export function Canvas() {
   const focus = focusPick && map.has(focusPick) ? focusPick : null
 
   useWheelZoom(canvasRef, !focus && scrolling === 'zoom')
+  useInspecting()
+
+  const inspecting = useAtomValue(inspectingAtom)
 
   const work = useAtomValue(workAtom)
 
@@ -2595,7 +2600,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
           style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
           ref={canvasRef}
           onPointerDown={startMarquee}
