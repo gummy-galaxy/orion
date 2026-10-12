@@ -263,7 +263,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
 
       if (!statusValue || isNote(id)) continue
 
-      stats.total++
+      if (statusValue !== 'deferred') stats.total++
 
       if (statusValue === 'done') stats.done++
 

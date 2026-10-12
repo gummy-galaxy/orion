@@ -155,3 +155,14 @@ describe('deriveWork upstream', () => {
     expect(upstream.get('c')).toBe(2)
   })
 })
+
+describe('deriveWork groups', () => {
+  it('leaves deferred cards out of the work a group can complete', () => {
+    const group: AppNode = { id: 'group', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
+    const inside = (id: string, status: Status) => ({ ...task(id, status), parentId: 'group' }) as TaskNode
+
+    const { groups } = deriveWork([group, inside('done', 'done'), inside('open', 'todo'), inside('closed', 'deferred')], [])
+
+    expect(groups.get('group')).toMatchObject({ total: 2, done: 1, ready: 1 })
+  })
+})

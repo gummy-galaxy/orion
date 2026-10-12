@@ -48,6 +48,19 @@ test.case("derive finishes a gate once everything it waits on is done", function
 	assert.eq(graph.derive(lone).status.g, "ready")
 end)
 
+test.case("countProgress leaves deferred items out of a group's total", function(assert)
+	local doc = testing.createDoc({
+		testing.group("g", "Work"),
+		task("a", "A", "done", "g"),
+		task("b", "B", "todo", "g"),
+		task("c", "C", "deferred", "g"),
+	})
+	local progress = graph.countProgress(doc, graph.derive(doc), "g")
+	assert.eq(progress.total, 2)
+	assert.eq(progress.done, 1)
+	assert.eq(progress.ready, 1)
+end)
+
 test.case("add and set take a gate kind, and a gate stays one when its repository changes", function(assert)
 	local doc = testing.createDoc({})
 	local item = graph.addItem(doc, "Closure audit", { kind = "gate" })
