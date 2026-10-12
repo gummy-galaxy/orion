@@ -344,6 +344,6 @@ test.case("the theme list route serves theme files from the data folder", functi
 	local response = router.handle(createRequest("GET", "/api/themes"))
 	assert.eq(response.status, 200)
 	local entries = json.asArray(decodeResponse(response).themes) :: json.Array
-	assert.eq(json.asObject(entries[1]).file, "dusk.json")
+	assert.eq((json.asObject(entries[1]) :: json.Object).file, "dusk.json")
 	assert.eq(router.handle(createRequest("POST", "/api/themes")).status, 405)
 end)

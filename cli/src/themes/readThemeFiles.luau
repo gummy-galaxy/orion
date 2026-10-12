@@ -18,7 +18,7 @@ return function(root: string): { ThemeFile }
 		return files
 	end
 
-	local names = {}
+	local names: { string } = {}
 	for _, entry in fs.listDirectory(folder) do
 		if entry.type == "file" and entry.name:sub(-5) == ".json" then
 			table.insert(names, entry.name)
