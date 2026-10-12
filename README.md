@@ -139,6 +139,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Double-click a card to focus on it. The canvas zooms onto it with its details above, what it waits on in a scrolling column on the left, and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. ⌘ or ⇧ click adds to the selection.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks; they stay faint until you hover, hold, or select one of their cards.
 - "Unblocks N" counts every open task downstream, directly or not.
+- Right-click empty canvas and choose **Create from link** to paste a GitHub pull request or issue, or a Jira issue, and get its card where you clicked. A link that already has a card takes you to that card instead.
 - N adds a note. Right-click a link to add a card or a note into it, or a bundled link between folded groups to remove one of its links. Notes pass blocking through but never count as work, and can be turned into work items later.
 - Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.
 - A group's inspector picks its arrangement: Automatic flows by dependency, and Custom keeps cards where you put them. `orion set <group> --arrange custom` does the same from the CLI.
@@ -170,6 +171,7 @@ In `app/`:
 - `src/App.tsx`: the canvas, detail levels, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
+- `src/components/LinkPrompt.tsx`: the field the right-click menu opens for pasting a link to make a card from.
 - `src/Settings.tsx`, `src/AppearanceSettings.tsx`, and `src/ShortcutSettings.tsx`: the settings dialog. `app/src/keybindings.ts` lists each shortcut with its default and saves rebound ones.
 
 In `cli/src/`:
