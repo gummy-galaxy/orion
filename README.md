@@ -103,7 +103,7 @@ Each source kind is an adapter in `cli/src/adapters/<kind>/`. An adapter validat
 
 For GitHub sources, `--owners`, `--include`, and `--exclude` accept comma-separated lists. Spaces around entries are ignored, so `--owners vocksel,flipbook-labs --include "orion, hop"` works.
 
-Cards store pull requests, issues, and local branches in `data.refs`, including each source ID, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests. Attach an existing issue or pull request to a card with `orion set <id> --ref <url>`. To add cards for a list of them in one step, run `orion import <ref...>`, or pipe one ref per line with `--stdin`. Refs that are already on the canvas are skipped, and any that fail are reported without stopping the rest.
+Cards store pull requests, issues, and local branches in `data.refs`, including each source ID, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests. Attach an existing issue or pull request to a card with `orion set <id> --ref <url>`. Take one off with `orion ref remove <id> <key>`. To add cards for a list of them in one step, run `orion import <ref...>`, or pipe one ref per line with `--stdin`. Refs that are already on the canvas are skipped, and any that fail are reported without stopping the rest.
 
 A card that changes to done gets `data.celebrate: true`, whether the change comes from `orion done`, `orion sync`, or the app. Reopening it removes the flag, and clicking its finish stamp in the app clears it along with the finished cards chained to it through blocking links. Cards finished before the flag existed don't have it.
 
