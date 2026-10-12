@@ -17,6 +17,12 @@ export type Outcome = {
 	error: string?,
 }
 
+-- status is "existing" when a card already tracks the ref, or "found" for a card that hasn't been added yet.
+export type CardLookup = {
+	status: string,
+	item: types.Item,
+}
+
 export type Report = {
 	dryRun: boolean,
 	baseRevision: number,

@@ -23,6 +23,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
+import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type Flow } from '../derive'
@@ -92,6 +93,7 @@ import {
   getWorkspaces,
   importImage,
   load,
+  lookupLink,
   onRemoteChange,
   onSyncStatus,
   onWorkspaceChange,
@@ -349,6 +351,8 @@ export function Canvas() {
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
+  /** Where "Create from link" was chosen, in screen and flow coordinates, while its prompt is open. */
+  const [linkPrompt, setLinkPrompt] = useState<Pick<Menu, 'x' | 'y' | 'flow'> | null>(null)
   const [tool, setTool] = useState<Tool>('select')
   /** The text the palette opened with, or null while it's closed. */
   const [paletteQuery, setPaletteQuery] = useState<string | null>(null)
@@ -523,6 +527,8 @@ export function Canvas() {
   const queue = useRef<Promise<void>>(Promise.resolve())
   const workspace = useRef('default')
   const workspaceEpoch = useRef(0)
+  // Set when a card made from a link needs GitHub's details, which the server fills in once the card is saved.
+  const syncAfterSave = useRef(false)
   const pendingWorkspaceFit = useRef<number | null>(null)
   const [savedView, setSavedView] = useState<Viewport | null>(null)
   // The workspace the canvas is showing, so moves while switching aren't remembered for the next one.
@@ -754,6 +760,11 @@ export function Canvas() {
             revision.current = result.revision
             base.current = compactDoc({ ...pending, nodes: toStored(pending.nodes, cardSize) })
             savedPrint.current = fingerprint({ ...pending, nodes: toStored(pending.nodes, cardSize) })
+
+            if (syncAfterSave.current) {
+              syncAfterSave.current = false
+              void requestSync(true).then((status) => status && setSyncStatus(status))
+            }
 
             return
           }
@@ -2066,6 +2077,54 @@ export function Canvas() {
     [root, viewportCenter, setNodes, cardSize],
   )
 
+  /** Adds the card a pasted link names with its top-left at `at`, or lands on the card that already tracks it. */
+  const createFromLink = useCallback(
+    async (url: string, at: { x: number; y: number }) => {
+      const workspaceEpochAtStart = workspaceEpoch.current
+      const parentId = root
+      const found = await lookupLink(url, workspace.current)
+
+      if (workspaceEpochAtStart !== workspaceEpoch.current) return
+
+      const currentNodes = latest.current.nodes
+      // A card made from this link moments ago may not be saved yet, so the server can't know about it.
+      const ref = found.status === 'found' ? found.data.refs?.[0] : undefined
+      const unsaved = ref
+        ? currentNodes.find(
+            (node) =>
+              node.type === 'task' &&
+              (node.data as TaskData).refs?.some((other) => other.kind === ref.kind && other.key.toLowerCase() === ref.key.toLowerCase()),
+          )
+        : undefined
+      const existingId = found.status === 'existing' ? found.id : unsaved?.id
+
+      if (existingId) {
+        selectOnly(existingId)
+        jumpTo(existingId)
+
+        return
+      }
+
+      if (found.status !== 'found') return
+
+      const nodeMap = byId(currentNodes)
+      const parentNode = parentId ? nodeMap.get(parentId) : undefined
+      const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
+      const card: AppNode = {
+        id: nodeMap.has(found.id) ? newId('card') : found.id,
+        type: 'task',
+        parentId: parentNode?.id,
+        position: { x: at.x - origin.x, y: at.y - origin.y },
+        data: found.data,
+        selected: true,
+      }
+
+      syncAfterSave.current = true
+      setNodes((nodesNow) => normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize))
+    },
+    [root, selectOnly, jumpTo, setNodes, cardSize],
+  )
+
   /** The innermost visible card or group under a canvas point that `accept` allows. */
   const nodeAt = useCallback(
     (point: { x: number; y: number }, accept: (node: AppNode) => boolean) => {
@@ -2448,6 +2507,7 @@ export function Canvas() {
 
     return [
       { label: 'Add a note here', hint: hintOf('add-note'), run: () => addNote(menu.flow) },
+      { label: 'Create from link…', run: () => setLinkPrompt({ x: menu.x, y: menu.y, flow: menu.flow }) },
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }] : []),
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
@@ -3131,6 +3191,9 @@ export function Canvas() {
           {!ready && <div className="loading">Laying out…</div>}
           {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
           {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
+          {linkPrompt && (
+            <LinkPrompt x={linkPrompt.x} y={linkPrompt.y} submit={(url) => createFromLink(url, linkPrompt.flow)} close={() => setLinkPrompt(null)} />
+          )}
           {wheel && (
             <StickerWheel
               at={wheel}

@@ -2507,6 +2507,40 @@ kbd {
   border-top: 1px solid var(--line);
   margin: 4px 2px;
 }
+.link-prompt {
+  position: fixed;
+  z-index: 20;
+  width: 320px;
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+.link-prompt label {
+  color: var(--muted);
+  font: 10.5px var(--font-data);
+}
+.link-prompt input {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  outline: none;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+}
+.link-prompt input:focus {
+  border-color: var(--accent);
+}
+.link-prompt-status {
+  color: var(--muted);
+  font-size: 12px;
+}
+.link-prompt-error {
+  color: var(--st-blocked);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
 .btn.danger {
   color: var(--st-blocked);
 }
