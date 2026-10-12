@@ -69,7 +69,7 @@ Each phase clears its gate before the next one starts, except theme work, which 
 
 | Phase | Bets | Gate |
 | --- | --- | --- |
-| 1. One engine | Operations with inverses (#93), status in Luau (#94), source adapters (#54), SQLite storage (#121) | The app holds no graph rules of its own |
+| 1. One engine | Operations with inverses (#93), status in Luau (#94), source adapters (#54), file-backed workspaces with a SQLite index (#121) | The app holds no graph rules of its own |
 | 2. Open graph | Nodes split from placements (#122), type registry (#215), typed links (#216, #83), database views and agent queries (#102, #103) | A new source or type ships with no app change |
 | 3. Less to hold in mind | Detail control (#175), saved views (#217), legend (#219, #40), change feed (#218), triage (#195, #197), telegraphed changes (#230), watched cards (#232) | A newcomer passes the five-second test on our own canvases |
 | 4. Readable by others | Links to cards (#176), snapshots and embeds (#114, #177), image and JSON Canvas export (#113, #220), live collaboration (#80) | A teammate reads a shared view without help |

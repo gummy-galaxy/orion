@@ -4,6 +4,8 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 
 [`CHARTER.md`](CHARTER.md) sets Orion's direction: its principles, what it won't do, and the roadmap. Check new work against it, and call out a change that conflicts with it.
 
+[`DECISIONS.md`](DECISIONS.md) records the specific calls made along the way and why. They're defaults that can be challenged, and the charter outranks them. Follow them, raise a change that goes against one rather than working around it, and add or rewrite an entry when the person settles a new call.
+
 ## Reading the canvas
 
 - `orion ready` lists work that can start now, the items that unblock the most first.
@@ -88,6 +90,8 @@ Put `Closes #<n>` in the description for each issue the pull request finishes, s
 Give each pull request a place on the canvas. When a card already tracks the work, attach the pull request to it with `orion set <id> --repo vocksel/orion --pr <n>`. Otherwise add a card for it in the outcome group it belongs to.
 
 ## Trying a desktop build
+
+A fresh worktree has none of the build's dependencies, and the build fails partway without them. Before the first build there, run `npm ci` in `app/` and `desktop/`, and `lute run install` in `cli/` for the Luau packages that `prepare-sidecar` requires.
 
 To let someone try a change in the desktop app, run `npm run build` in `desktop/`, then replace the copy they launch, usually `~/Applications/Orion.app`. Every build shares one bundle id, so a fresh build elsewhere goes unseen. Quit Orion, move the installed app to the Trash, `ditto` `desktop/src-tauri/target/release/bundle/macos/Orion.app` into its place, register it with `lsregister -f`, and relaunch. When the icon changed, also `touch` the bundle and run `killall Dock`, which otherwise keeps showing the old icon.
 
