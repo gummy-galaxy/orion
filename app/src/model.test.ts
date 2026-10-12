@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  TASK_HEIGHT,
+  absolutePosition,
+  byId,
   editPullRef,
+  getCheckCountsLabel,
   getItemKind,
   getPrimaryRef,
   getPullReadiness,
@@ -8,6 +12,10 @@ import {
   getPullRequestNumber,
   getTaskTag,
   getTaskUrl,
+  moveOutOfGroup,
+  normalize,
+  sizeOf,
+  type AppNode,
   type PullDetails,
   type TaskData,
 } from './model'
@@ -147,5 +155,96 @@ describe('getPullReadiness', () => {
     expect(getPullReadiness({ ...open, draft: true, checks: 'SUCCESS', mergeState: 'CLEAN' })).toBe('passing')
     expect(getPullReadiness({ ...open, state: 'MERGED', checks: 'SUCCESS', mergeState: 'CLEAN' })).toBeUndefined()
     expect(getPullReadiness(undefined)).toBeUndefined()
+  })
+})
+
+describe('getCheckCountsLabel', () => {
+  it('counts finished checks while the rest run, with any failures', () => {
+    expect(getCheckCountsLabel({ total: 8, finished: 5, failed: 0 })).toBe('5 of 8 done')
+    expect(getCheckCountsLabel({ total: 8, finished: 5, failed: 1 })).toBe('5 of 8 done, 1 failed')
+  })
+
+  it('counts only failures once every check finishes', () => {
+    expect(getCheckCountsLabel({ total: 8, finished: 8, failed: 2 })).toBe('2 of 8 failed')
+    expect(getCheckCountsLabel({ total: 8, finished: 8, failed: 0 })).toBeUndefined()
+  })
+})
+
+const groupNode = (id: string, parentId?: string, position = { x: 0, y: 0 }): AppNode => ({
+  id,
+  type: 'cluster',
+  parentId,
+  position,
+  width: 320,
+  height: 200,
+  data: { kind: 'cluster', label: id },
+})
+
+const cardNode = (id: string, parentId?: string, position = { x: 0, y: 0 }): AppNode => ({
+  id,
+  type: 'task',
+  parentId,
+  position,
+  data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
+})
+
+const rectOf = (nodes: AppNode[], id: string) => {
+  const nodeMap = byId(nodes)
+  const node = nodeMap.get(id)!
+  const position = absolutePosition(node, nodeMap)
+  const size = sizeOf(node)
+
+  return { x: position.x, y: position.y, width: size.width, height: size.height }
+}
+
+const overlaps = (first: ReturnType<typeof rectOf>, second: ReturnType<typeof rectOf>) =>
+  first.x < second.x + second.width && second.x < first.x + first.width && first.y < second.y + second.height && second.y < first.y + first.height
+
+describe('moveOutOfGroup', () => {
+  const nested = () =>
+    normalize([groupNode('outer'), cardNode('keep', 'outer'), groupNode('inner', 'outer', { x: 300, y: 0 }), cardNode('deep', 'inner')])
+
+  it('lifts a nested group to its parent level and leaves it where it was', () => {
+    const before = nested()
+    const after = moveOutOfGroup(before, 'inner')
+
+    expect(byId(after).get('inner')?.parentId).toBeUndefined()
+    expect(rectOf(after, 'inner')).toEqual(rectOf(before, 'inner'))
+    expect(rectOf(after, 'deep')).toEqual(rectOf(before, 'deep'))
+    expect(rectOf(after, 'keep')).toEqual(rectOf(before, 'keep'))
+  })
+
+  it('lifts a group to the grandparent when the parent is nested too', () => {
+    const before = normalize([
+      groupNode('top'),
+      groupNode('middle', 'top'),
+      cardNode('keep', 'middle'),
+      groupNode('inner', 'middle', { x: 300, y: 0 }),
+      cardNode('deep', 'inner'),
+    ])
+    const after = moveOutOfGroup(before, 'inner')
+
+    expect(byId(after).get('inner')?.parentId).toBe('top')
+    expect(rectOf(after, 'inner')).toEqual(rectOf(before, 'inner'))
+  })
+
+  it('lands below a card that covers where the group was', () => {
+    const base = nested()
+    const spot = rectOf(base, 'inner')
+    const blocked = normalize([...base, cardNode('blocker', undefined, { x: spot.x, y: spot.y })])
+    const after = moveOutOfGroup(blocked, 'inner')
+    const landed = rectOf(after, 'inner')
+
+    expect(overlaps(landed, rectOf(after, 'blocker'))).toBe(false)
+    expect(overlaps(landed, rectOf(after, 'outer'))).toBe(false)
+    expect(landed.y).toBe(spot.y + TASK_HEIGHT + 48)
+  })
+
+  it('returns the nodes unchanged for a card, a top-level group, or a missing id', () => {
+    const base = nested()
+
+    expect(moveOutOfGroup(base, 'keep')).toBe(base)
+    expect(moveOutOfGroup(base, 'outer')).toBe(base)
+    expect(moveOutOfGroup(base, 'missing')).toBe(base)
   })
 })

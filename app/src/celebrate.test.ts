@@ -1,0 +1,143 @@
+import { describe, expect, it } from 'vitest'
+import { deriveWork } from './derive'
+import { CHAIN_STEP_MS, celebrationDelays, clearCelebrations, finishedHops, patchTaskData } from './celebrate'
+import type { AppNode, ItemKind, Link, Status, TaskData, TaskNode } from './model'
+
+const task = (id: string, status: Status = 'todo', extra: Partial<TaskData> = {}, itemKind: ItemKind = 'step'): AppNode => ({
+  id,
+  type: 'task',
+  position: { x: 0, y: 0 },
+  data: { kind: 'task', label: id, itemKind, status, ...extra },
+})
+const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({ id: `${from}>${to}`, from, to, kind })
+
+const finished = (nodes: AppNode[], links: Link[]) => {
+  const status = deriveWork(nodes, links).status
+
+  return (id: string) => status.get(id) === 'done'
+}
+
+describe('finishedHops', () => {
+  it('walks upstream and downstream through finished cards only', () => {
+    const nodes = [task('up', 'done'), task('start', 'done'), task('down', 'done'), task('open', 'active')]
+    const links = [link('up', 'start'), link('start', 'down'), link('down', 'open')]
+
+    const hops = finishedHops('start', links, finished(nodes, links))
+
+    expect([...hops]).toEqual([
+      ['start', 0],
+      ['up', 1],
+      ['down', 1],
+    ])
+  })
+
+  it('chains through a finished card that is not waiting, so the chain can reach past it', () => {
+    const nodes = [task('a', 'done', { celebrate: true }), task('b', 'done'), task('c', 'done', { celebrate: true })]
+    const links = [link('a', 'b'), link('b', 'c')]
+
+    expect(finishedHops('a', links, finished(nodes, links)).get('c')).toBe(2)
+  })
+
+  it('ignores related links and does not revisit cards in a cycle', () => {
+    const nodes = [task('a', 'done'), task('b', 'done'), task('c', 'done')]
+    const links = [link('a', 'b'), link('b', 'c'), link('c', 'a'), link('a', 'c', 'related')]
+
+    const hops = finishedHops('a', links, finished(nodes, links))
+
+    expect(hops.get('b')).toBe(1)
+    expect(hops.get('c')).toBe(1)
+    expect(hops.size).toBe(3)
+  })
+
+  it('follows a chain through a finished note, since notes pass blocking through', () => {
+    const nodes = [task('a', 'done'), task('n', 'todo', {}, 'note'), task('b', 'done')]
+    const links = [link('a', 'n'), link('n', 'b')]
+
+    expect(finishedHops('a', links, finished(nodes, links)).get('b')).toBe(2)
+  })
+})
+
+describe('celebrationDelays', () => {
+  it('lists only waiting cards in the chain, each delayed by its distance from the click', () => {
+    const nodes = [
+      task('a', 'done', { celebrate: true }),
+      task('b', 'done', { celebrate: true }),
+      task('c', 'done'),
+      task('d', 'done', { celebrate: true }),
+      task('open', 'active', { celebrate: true }),
+    ]
+    const links = [link('a', 'b'), link('b', 'c'), link('c', 'd'), link('d', 'open')]
+
+    const delays = celebrationDelays('a', nodes, links, finished(nodes, links))
+
+    expect([...delays]).toEqual([
+      ['a', 0],
+      ['b', CHAIN_STEP_MS],
+      ['d', 3 * CHAIN_STEP_MS],
+    ])
+  })
+
+  it('leaves out cards that a related link connects', () => {
+    const nodes = [task('a', 'done', { celebrate: true }), task('b', 'done', { celebrate: true })]
+    const links = [link('a', 'b', 'related')]
+
+    expect([...celebrationDelays('a', nodes, links, finished(nodes, links))]).toEqual([['a', 0]])
+  })
+
+  it('does nothing when the clicked card is not waiting', () => {
+    const nodes = [task('a', 'done'), task('b', 'done', { celebrate: true })]
+    const links = [link('a', 'b')]
+
+    expect(celebrationDelays('a', nodes, links, finished(nodes, links)).size).toBe(0)
+  })
+
+  it('caps the delay so a long chain still clears in about a second', () => {
+    const ids = Array.from({ length: 20 }, (_, index) => `t${index}`)
+    const nodes = ids.map((id) => task(id, 'done', { celebrate: true }))
+    const links = ids.slice(1).map((id, index) => link(ids[index], id))
+
+    const delays = celebrationDelays('t0', nodes, links, finished(nodes, links))
+
+    expect(Math.max(...delays.values())).toBe(8 * CHAIN_STEP_MS)
+  })
+})
+
+describe('clearCelebrations', () => {
+  it('removes the flag only from the listed cards and keeps other nodes as they were', () => {
+    const nodes = [task('a', 'done', { celebrate: true }), task('b', 'done', { celebrate: true }), task('c', 'done', { celebrate: true })]
+
+    const cleared = clearCelebrations(nodes, new Set(['a', 'b']))
+
+    expect((cleared[0] as TaskNode).data.celebrate).toBeUndefined()
+    expect('celebrate' in cleared[0].data).toBe(false)
+    expect((cleared[1] as TaskNode).data.celebrate).toBeUndefined()
+    expect(cleared[2]).toBe(nodes[2])
+  })
+})
+
+describe('patchTaskData', () => {
+  it('sets the flag when a card changes to done and clears it when the card is reopened', () => {
+    const data = task('a', 'active').data as TaskData
+
+    const finishedData = patchTaskData(data, { status: 'done' })
+
+    expect(finishedData.celebrate).toBe(true)
+
+    const reopened = patchTaskData(finishedData, { status: 'todo' })
+
+    expect('celebrate' in reopened).toBe(false)
+  })
+
+  it('keeps the flag through edits that leave the status alone', () => {
+    const data = task('a', 'done', { celebrate: true }).data as TaskData
+
+    expect(patchTaskData(data, { label: 'Renamed', status: 'done' }).celebrate).toBe(true)
+    expect(patchTaskData(data, { label: 'Renamed' }).celebrate).toBe(true)
+  })
+
+  it('does not flag notes', () => {
+    const data = task('n', 'todo', {}, 'note').data as TaskData
+
+    expect(patchTaskData(data, { status: 'done' }).celebrate).toBeUndefined()
+  })
+})

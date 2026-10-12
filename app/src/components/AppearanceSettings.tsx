@@ -1,15 +1,19 @@
-import { COLOR_MODES, THEMES, colorModeOf, themeOf, type Appearance } from '../appearance'
+import { COLOR_MODES, colorModeOf, themeOf, type Appearance, type Theme } from '../appearance'
 import { SKINS } from '../skins'
 
-type Props = { appearance: Appearance; chooseAppearance: (appearance: Appearance) => void }
+type Props = { appearance: Appearance; themes: readonly Theme[]; chooseAppearance: (appearance: Appearance) => void }
 
 const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1)
 
 /** The theme, card skin, color mode, and companion, saved on this device. */
-export function AppearanceSettings({ appearance, chooseAppearance }: Props) {
-  const theme = themeOf(appearance.theme)
+export function AppearanceSettings({ appearance, themes, chooseAppearance }: Props) {
+  const theme = themeOf(appearance.theme, themes)
   const fixed = theme.schemes.length === 1
-  const colorMode = colorModeOf(appearance)
+  const colorMode = colorModeOf(appearance, themes)
+  const problems = themes.flatMap((option) => [
+    ...(option.error ? [`${option.label} ${option.error}.`] : []),
+    ...(option.id === theme.id ? (option.notes ?? []).map((note) => `${option.label}: ${note}.`) : []),
+  ])
 
   return (
     <section className="settings-section">
@@ -22,10 +26,11 @@ export function AppearanceSettings({ appearance, chooseAppearance }: Props) {
           <p className="settings-field-detail">The colors the canvas and its cards use.</p>
         </div>
         <div className="options" role="group" aria-labelledby="settings-theme">
-          {THEMES.map((option) => (
+          {themes.map((option) => (
             <button
               key={option.id}
               type="button"
+              disabled={option.error !== undefined}
               aria-pressed={appearance.theme === option.id}
               onClick={() => chooseAppearance({ ...appearance, theme: option.id })}
             >
@@ -33,6 +38,16 @@ export function AppearanceSettings({ appearance, chooseAppearance }: Props) {
             </button>
           ))}
         </div>
+        {theme.author && (
+          <p className="settings-field-detail">
+            {theme.label} by {theme.author}.
+          </p>
+        )}
+        {problems.map((problem) => (
+          <p key={problem} className="settings-field-detail">
+            {problem}
+          </p>
+        ))}
       </div>
       <div className="settings-field">
         <div>

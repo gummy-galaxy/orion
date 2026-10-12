@@ -1,4 +1,5 @@
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
+import { getCheckCountsLabel } from '../model'
 import { getTradingFacts, type Motion, type Sticker } from '../skins/tradingFacts'
 import { TradingSignal } from './TradingSignal'
 import { TradingSignalIcon } from './TradingSignalIcon'
@@ -54,6 +55,8 @@ export function TradingCard({ view }: { view: CardView }) {
   }
 
   const facts = getTradingFacts(view)
+  const checkCounts = facts.motion ? view.checkCounts : undefined
+  const checkCountsLabel = checkCounts && getCheckCountsLabel(checkCounts)
 
   return (
     <div
@@ -112,11 +115,16 @@ export function TradingCard({ view }: { view: CardView }) {
           {facts.motion && (
             <TradingSignal
               signal={facts.motion}
-              className={`trading-motion trading-motion-${facts.motion}`}
-              hint={MOTION_HINT[facts.motion]}
+              className={`trading-motion trading-motion-${facts.motion}${checkCounts ? ' trading-motion-counted' : ''}`}
+              hint={checkCountsLabel ? `${MOTION_HINT[facts.motion]}: ${checkCountsLabel}` : MOTION_HINT[facts.motion]}
               url={view.pullRequestUrl}
             >
               <TradingSignalIcon signal={facts.motion} />
+              {checkCounts && (
+                <span className="trading-motion-count">
+                  {checkCounts.finished}/{checkCounts.total}
+                </span>
+              )}
             </TradingSignal>
           )}
           <Tooltip label={`Unblocks ${facts.unblocks}`}>

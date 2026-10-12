@@ -1,24 +1,27 @@
 /* Follows the Flipbook Release Map so the two read as one family. */
 :root {
-  --bg: light-dark(#f3f5f6, #0f1619);
-  --surface: light-dark(#ffffff, #172227);
-  --ink: light-dark(#17242b, #e3eaed);
-  --muted: light-dark(#5d6d75, #92a3aa);
-  --line: light-dark(#d3dbdf, #2b3a41);
-  --dots: light-dark(#c3ccd1, #26343a);
-  --accent: light-dark(#0d6f74, #4fc1c4);
-  --accent-soft: light-dark(#d8eeee, #163a3c);
-  --edge: light-dark(#9aa9b0, #4c5d65);
+  --canvas-background: light-dark(#f3f5f6, #0f1619);
+  --surface-background: light-dark(#ffffff, #172227);
+  --text-primary: light-dark(#17242b, #e3eaed);
+  --text-muted: light-dark(#5d6d75, #92a3aa);
+  --border-default: light-dark(#d3dbdf, #2b3a41);
+  --canvas-dots: light-dark(#c3ccd1, #26343a);
+  --accent-default: light-dark(#0d6f74, #4fc1c4);
+  --accent-subtle: light-dark(#d8eeee, #163a3c);
+  --edge-default: light-dark(#9aa9b0, #4c5d65);
   --edge-hot: light-dark(#0d6f74, #4fc1c4);
-  --edge-held: color-mix(in srgb, var(--edge-hot) 25%, var(--edge));
-  --st-todo: light-dark(#5d6d75, #92a3aa);
-  --st-active: light-dark(#1f62c9, #6ea2f2);
-  --st-review: light-dark(#a56300, #e2a34a);
-  --st-blocked: light-dark(#c0362c, #f07a6f);
-  --st-done: light-dark(#2f7d4a, #6cc28a);
-  --note: light-dark(#fbf3d5, #2e2a17);
-  --note-edge: light-dark(#d9b94a, #8a7428);
-  --note-ink: light-dark(#7a6418, #d9c272);
-  --snap: light-dark(#e0457b, #ff6f9c);
+  --edge-held: color-mix(in srgb, var(--edge-hot) 25%, var(--edge-default));
+  --status-todo: light-dark(#5d6d75, #92a3aa);
+  --status-active: light-dark(#1f62c9, #6ea2f2);
+  --status-review: light-dark(#a56300, #e2a34a);
+  --status-blocked: light-dark(#c0362c, #f07a6f);
+  --status-done: light-dark(#2f7d4a, #6cc28a);
+  --note-background: light-dark(#fbf3d5, #2e2a17);
+  --note-border: light-dark(#d9b94a, #8a7428);
+  --note-text: light-dark(#7a6418, #d9c272);
+  --snap-guide: light-dark(#e0457b, #ff6f9c);
+  --sticker-edge: #fff;
+  --window-close-background: #c42b1c;
+  --window-close-text: #fff;
   --shadow: 0 1px 2px light-dark(rgb(23 36 43 / 0.06), rgb(0 0 0 / 0.3)), 0 5px 16px light-dark(rgb(23 36 43 / 0.06), rgb(0 0 0 / 0.25));
 }

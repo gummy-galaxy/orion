@@ -362,8 +362,22 @@
 }
 
 .trading-motion svg {
+  flex: none;
   width: 20px;
   height: 20px;
+}
+
+.trading-motion-counted {
+  width: auto;
+  gap: 6px;
+  padding: 0 12px 0 10px;
+  border-radius: 20px;
+}
+
+.trading-motion-count {
+  font: 700 15px/1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* The spinner gets its own layer, so turning it doesn't repaint the card under it every frame. The compact form
@@ -510,6 +524,16 @@
 .card.skin-trading.far-card .trading-motion svg {
   width: 16px;
   height: 16px;
+}
+
+.card.skin-trading.far-card .trading-motion-counted {
+  width: auto;
+  height: 32px;
+  padding: 0 10px 0 8px;
+}
+
+.card.skin-trading.far-card .trading-motion-count {
+  font-size: 20px;
 }
 
 .card.skin-trading.far-card .trading-note {

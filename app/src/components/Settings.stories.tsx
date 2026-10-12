@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { useState } from 'react'
-import type { Appearance } from '../appearance'
+import { useEffect, useState } from 'react'
+import { type Appearance, type Theme } from '../appearance'
 import { DEFAULT_KEYBINDINGS, type Keybindings } from '../keybindings'
+import { cachedThemes, loadThemes } from '../themeFile'
 import { Settings, type SettingsSection } from './Settings'
 
 const meta = { title: 'Interaction/Overlays/Settings', parameters: { layout: 'fullscreen' } } satisfies Meta
@@ -20,6 +21,12 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
     companion: true,
   })
   const [bindings, setBindings] = useState(keybindings)
+  const [themes, setThemes] = useState<Theme[]>(cachedThemes)
+
+  // Loads the picker's themes the way Canvas does when settings open, so the story shows the same list.
+  useEffect(() => {
+    void loadThemes().then(setThemes)
+  }, [])
 
   return (
     <Settings
@@ -27,6 +34,7 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
       showSection={setShown}
       close={() => {}}
       appearance={appearance}
+      themes={themes}
       chooseAppearance={setAppearance}
       keybindings={bindings}
       chooseKeybindings={setBindings}

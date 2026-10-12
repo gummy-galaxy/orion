@@ -1,3 +1,5 @@
+export type CheckCounts = { total: number, finished: number, failed: number }
+
 export type PullState = {
 	owner: string,
 	name: string,
@@ -17,6 +19,7 @@ export type PullState = {
 	deletions: number,
 	checks: string?,
 	checkProgress: string?,
+	checkCounts: CheckCounts?,
 	mergeable: string?,
 	mergeState: string?,
 	head: string?,

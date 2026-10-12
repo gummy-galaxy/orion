@@ -43,6 +43,14 @@ describe('getTradingFacts', () => {
     expect(getTradingFacts(createView({ readiness: 'running' }), NOW).sticker).toBeUndefined()
   })
 
+  it('keeps checks moving beside the failing sticker until the rest finish', () => {
+    expect(getTradingFacts(createView({ readiness: 'failing', checkProgress: 'running' }), NOW)).toMatchObject({
+      sticker: 'failing',
+      motion: 'running',
+    })
+    expect(getTradingFacts(createView({ readiness: 'failing' }), NOW).motion).toBeUndefined()
+  })
+
   it('shows priority and size only when a source sets them', () => {
     expect(getTradingFacts(createView({ leverage: 8 }), NOW).priority).toBeUndefined()
     expect(getTradingFacts(createView({ priority: 0, size: 'L' }), NOW)).toMatchObject({ priority: 0, size: 'L' })
