@@ -1,4 +1,5 @@
 import type { Node } from '@xyflow/react'
+import type { CardSize } from './cardSize'
 
 export const TASK_WIDTH = 216
 export const TASK_HEIGHT = 72
@@ -180,8 +181,8 @@ export function ancestors(id: string, nodeMap: Map<string, AppNode>): string[] {
   return result
 }
 
-export function sizeOf(node: AppNode): { width: number; height: number } {
-  if (isTask(node)) return { width: TASK_WIDTH, height: TASK_HEIGHT }
+export function sizeOf(node: AppNode, cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): CardSize {
+  if (isTask(node)) return cardSize
 
   return { width: node.width ?? 320, height: node.height ?? 200 }
 }
@@ -203,8 +204,8 @@ export function absolutePosition(node: AppNode, nodeMap: Map<string, AppNode>): 
 }
 
 /** Fills in the React Flow fields every node needs, so saved data stays minimal. */
-function hydrate(node: AppNode): AppNode {
-  if (isTask(node)) return { ...node, width: TASK_WIDTH, height: TASK_HEIGHT, expandParent: !!node.parentId }
+function hydrate(node: AppNode, cardSize: CardSize): AppNode {
+  if (isTask(node)) return { ...node, ...cardSize, expandParent: !!node.parentId }
 
   if (isImage(node)) return { ...node, width: node.width ?? 256, height: node.height ?? 256, expandParent: !!node.parentId }
 
@@ -222,7 +223,7 @@ function sortNodes(nodes: AppNode[]): AppNode[] {
  * Shrinks or grows every group to hug its children, deepest first, and removes
  * groups left empty. Children keep their place on screen.
  */
-function fitGroups(nodes: AppNode[]): AppNode[] {
+function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
   const nodeMap = new Map(nodes.map((node) => [node.id, { ...node } as AppNode]))
   const depth = (id: string) => ancestors(id, nodeMap).length
   const clusters = [...nodeMap.values()].filter(isCluster).sort((a, b) => depth(b.id) - depth(a.id))
@@ -241,7 +242,7 @@ function fitGroups(nodes: AppNode[]): AppNode[] {
     let maxY = -Infinity
 
     for (const child of children) {
-      const size = sizeOf(child)
+      const size = sizeOf(child, cardSize)
 
       minX = Math.min(minX, child.position.x)
       minY = Math.min(minY, child.position.y)
@@ -262,12 +263,15 @@ function fitGroups(nodes: AppNode[]): AppNode[] {
   return [...nodeMap.values()]
 }
 
-export function normalize(nodes: AppNode[]): AppNode[] {
-  return sortNodes(fitGroups(nodes)).map(hydrate)
+export function normalize(nodes: AppNode[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+  return sortNodes(fitGroups(nodes, cardSize)).map((node) => hydrate(node, cardSize))
 }
 
 /** Wraps the selection in a new group under the selection's nearest shared parent. */
-export function groupSelection(nodes: AppNode[]): { nodes: AppNode[]; groupId: string } | null {
+export function groupSelection(
+  nodes: AppNode[],
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): { nodes: AppNode[]; groupId: string } | null {
   const nodeMap = byId(nodes)
   const selection = nodes.filter(
     (node) => node.selected && !node.hidden && !ancestors(node.id, nodeMap).some((ancestor) => nodeMap.get(ancestor)?.selected),
@@ -306,11 +310,11 @@ export function groupSelection(nodes: AppNode[]): { nodes: AppNode[]; groupId: s
     return node.selected ? { ...node, selected: false } : node
   })
 
-  return { nodes: normalize([...next, group]), groupId }
+  return { nodes: normalize([...next, group], cardSize), groupId }
 }
 
 /** Dissolves the given groups, handing their children to the group's parent in place. */
-export function ungroup(nodes: AppNode[], ids: string[]): AppNode[] {
+export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
   let next = nodes
 
   for (const id of ids) {
@@ -332,7 +336,7 @@ export function ungroup(nodes: AppNode[], ids: string[]): AppNode[] {
       )
   }
 
-  return normalize(next)
+  return normalize(next, cardSize)
 }
 
 export function descendants(id: string, nodes: AppNode[]): Set<string> {
