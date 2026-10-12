@@ -343,11 +343,11 @@ export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { 
 const ITEM_GAP = 48
 
 /** The first spot at or below `preferred` that no sibling overlaps, so a moved group keeps its place when it's free. */
-function freeSpotBelow(siblings: AppNode[], preferred: { x: number; y: number }, size: { width: number; height: number }) {
+function freeSpotBelow(siblings: AppNode[], preferred: { x: number; y: number }, size: { width: number; height: number }, cardSize: CardSize) {
   const spot = { ...preferred }
 
   const clashes = (sibling: AppNode) => {
-    const siblingSize = sizeOf(sibling)
+    const siblingSize = sizeOf(sibling, cardSize)
 
     return (
       spot.x < sibling.position.x + siblingSize.width &&
@@ -360,7 +360,7 @@ function freeSpotBelow(siblings: AppNode[], preferred: { x: number; y: number },
   let clash = siblings.find(clashes)
 
   while (clash) {
-    spot.y = clash.position.y + sizeOf(clash).height + ITEM_GAP
+    spot.y = clash.position.y + sizeOf(clash, cardSize).height + ITEM_GAP
     clash = siblings.find(clashes)
   }
 
@@ -372,7 +372,7 @@ function freeSpotBelow(siblings: AppNode[], preferred: { x: number; y: number },
  * where it was on screen when nothing covers it. The parent shrinks or grows to fit what remains. Anything else returns
  * the nodes unchanged.
  */
-export function moveOutOfGroup(nodes: AppNode[], id: string): AppNode[] {
+export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
   const nodeMap = byId(nodes)
   const group = nodeMap.get(id)
 
@@ -387,15 +387,19 @@ export function moveOutOfGroup(nodes: AppNode[], id: string): AppNode[] {
     nodes.map((node) =>
       node.id === id ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } } : node,
     ),
+    cardSize,
   )
   const landed = lifted.find((node) => node.id === id)
 
   if (!landed) return lifted
 
   const siblings = lifted.filter((node) => node.parentId === landed.parentId && node.id !== id)
-  const position = freeSpotBelow(siblings, landed.position, sizeOf(landed))
+  const position = freeSpotBelow(siblings, landed.position, sizeOf(landed, cardSize), cardSize)
 
-  return normalize(lifted.map((node) => (node.id === id ? { ...node, position } : node)))
+  return normalize(
+    lifted.map((node) => (node.id === id ? { ...node, position } : node)),
+    cardSize,
+  )
 }
 
 export function descendants(id: string, nodes: AppNode[]): Set<string> {
