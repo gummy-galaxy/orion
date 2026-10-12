@@ -81,9 +81,22 @@ Name files `before-<view>.png` and `after-<view>.png`. Open every image and chec
 
 ## 5. Attach
 
-GitHub hosts the images. Upload them through the pull request's description editor on github.com, which turns each file into a `https://github.com/user-attachments/assets/…` link. Never commit screenshots to the repository or any branch.
+GitHub hosts the images. Attaching a file to any of a pull request's comment or description editors on github.com uploads it right away and turns it into a `https://github.com/user-attachments/assets/…` link, which works whether or not the text is ever posted. Never commit screenshots to the repository or any branch.
 
-With a browser tool that can set files on an input, such as Claude in Chrome's `file_upload`, open the description's edit form, attach the files to its file input, and copy the links GitHub inserts. The browser must be signed in to GitHub. Claude in Chrome's `file_upload` can't read `/tmp`, so copy the chosen images into your session's scratchpad and upload them from there. Otherwise give the person the image paths and the section below with empty links so they can drop the images in.
+With a browser tool that can set files on an input, such as Chrome DevTools MCP's `upload_file` or Claude in Chrome's `file_upload`, get the links from the comment box and write the description with `gh`. This needs no clicks in the description editor:
+
+1. Open the pull request in a background tab of a browser signed in to GitHub.
+2. Find the "Attach files" button in the "Add a comment" form and attach every image to it in one call.
+3. Wait until the comment's textarea no longer says "Uploading", then read the `src` of each `<img>` tag GitHub inserted. Use those links in the Markdown below with your own alt text.
+4. Clear the textarea and dispatch an `input` event on it so GitHub drops the draft. Never submit the comment.
+5. Fetch the live description with `gh pr view <n> --json body -q .body`, change only the Screenshots section, and save it with `gh pr edit <n> --body-file <file>`.
+
+Browser tools read files only from certain folders, so copy the chosen images there first:
+
+- Chrome DevTools MCP accepts paths under the OS temp folder, which on macOS is `$TMPDIR` (`/var/folders/…/T/`), not `/tmp`. It rejects `/tmp` because that resolves to `/private/tmp`, and it can reject the repository too. Copy the images into `"$TMPDIR/orion-screenshots/"` and upload them from there.
+- Claude in Chrome's `file_upload` can't read `/tmp` either. Copy the images into your session's scratchpad and upload them from there.
+
+Without such a tool, give the person the image paths and the section below with empty links so they can drop the images in.
 
 Add a Screenshots section to the pull request description above Testing. Put before and after images under their own headings, each image on its own line in the same view order, with alt text that says what it shows:
 
