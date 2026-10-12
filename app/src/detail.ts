@@ -4,10 +4,15 @@
  */
 export type Detail = number | null
 
-type DetailStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
+type DetailStore = Pick<Storage, 'getItem' | 'setItem'>
 
 /** Detail is this device's view state, like the viewport, so it stays out of orion.json. */
 const KEY = 'orion:detail:'
+/** Stored for every level, since nothing stored means the default. */
+const EVERY_LEVEL = 'all'
+
+/** A canvas starts with its groups folded, so a big one doesn't draw every card at once. */
+export const DEFAULT_DETAIL: Detail = 1
 
 const browserStore = (): DetailStore | null => {
   try {
@@ -41,18 +46,21 @@ export function stepDetail(detail: Detail, levels: number, direction: -1 | 1): D
 
 export function readDetail(workspace: string, store = browserStore()): Detail {
   try {
-    const value = Number(store?.getItem(KEY + workspace))
+    const stored = store?.getItem(KEY + workspace)
 
-    return Number.isInteger(value) && value >= 1 ? value : null
+    if (stored === EVERY_LEVEL) return null
+
+    const value = Number(stored)
+
+    return stored && Number.isInteger(value) && value >= 1 ? value : DEFAULT_DETAIL
   } catch {
-    return null
+    return DEFAULT_DETAIL
   }
 }
 
 export function writeDetail(workspace: string, detail: Detail, store = browserStore()) {
   try {
-    if (detail === null) store?.removeItem(KEY + workspace)
-    else store?.setItem(KEY + workspace, String(detail))
+    store?.setItem(KEY + workspace, detail === null ? EVERY_LEVEL : String(detail))
   } catch {
     // Only a remembered view.
   }

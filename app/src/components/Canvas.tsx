@@ -58,7 +58,8 @@ import { DetailStepper } from './DetailStepper'
 import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
-import { saveSettings, type SavedSetting } from '../settings'
+import { readFileSetting, saveFileSetting, saveSettings, type SavedSetting } from '../settings'
+import { addRecent, keepExistingNodes, readRecents, recentsKey, type Recent } from '../recents'
 import {
   ANIMATIONS,
   COLOR_MODES,
@@ -107,19 +108,19 @@ import {
 } from '../persist'
 import { Sidebar } from './Sidebar'
 import { Settings, type SettingsSection } from './Settings'
-import { SCROLLINGS, readScrolling, writeScrolling, type Scrolling } from '../scrolling'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
-import { useWheelZoom } from '../useWheelZoom'
+import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
   collapsedAtom,
   derivedAtom,
   focusedAtom,
   hoverAtom,
+  inspectingAtom,
   linksAtom,
   nodesAtom,
   pinnedAtom,
@@ -132,7 +133,7 @@ import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove 
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { Toolbar, type Tool } from './Toolbar'
-import { detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
+import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { MAX_ZOOM, MIN_ZOOM, mapViewportForCardSize, readViewport, writeViewport } from '../viewport'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
@@ -321,7 +322,7 @@ export function Canvas() {
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
   // How many levels of nesting show below the open group; zoom no longer changes it.
-  const [detail, setDetail] = useState<Detail>(null)
+  const [detail, setDetail] = useState<Detail>(DEFAULT_DETAIL)
   const [hover, setHover] = useAtom(hoverAtom)
   const [pinned, setPinned] = useAtom(pinnedAtom)
   // A double-clicked card fills the view with what it waits on and leads to beside it.
@@ -333,7 +334,6 @@ export function Canvas() {
   const [appearance, setAppearance] = useState(readAppearance)
   const setSkin = useSetAtom(skinAtom, { store: skinStore })
   const systemMotion = useSystemMotion()
-  const [scrolling, setScrolling] = useState(readScrolling)
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
   const [settings, setSettings] = useState<SettingsSection | null>(null)
@@ -351,6 +351,8 @@ export function Canvas() {
   /** The text the palette opened with, or null while it's closed. */
   const [paletteQuery, setPaletteQuery] = useState<string | null>(null)
   const paletteOpen = paletteQuery !== null
+  /** Commands and places the palette used lately, newest first, for the workspace named. Null until that workspace's copy is read. */
+  const [recents, setRecents] = useState<{ workspace: string; list: Recent[] } | null>(null)
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
   const [chosenSticker, setSticker] = useState<string | null>(null)
@@ -841,6 +843,7 @@ export function Canvas() {
 
       pendingWorkspaceFit.current = epoch
       setReady(false)
+      setRecents(null)
       setRoot(null)
       setFocus(null)
       focusEntry.current = null
@@ -865,6 +868,40 @@ export function Canvas() {
   )
 
   useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
+
+  // Each workspace keeps its own recents in the data folder, read once its canvas is showing.
+  useEffect(() => {
+    if (!ready) return
+
+    const name = workspace.current
+    let cancelled = false
+
+    // Without a read, recents stay off for this workspace rather than starting from an empty list.
+    readFileSetting(recentsKey(name)).then(
+      (value) => {
+        if (!cancelled) setRecents({ workspace: name, list: readRecents(value) })
+      },
+      () => {},
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [ready])
+
+  /** Moves a command or place to the top of the recents, forgetting cards and groups that are gone. */
+  const rememberRecent = useCallback(
+    (entry: Recent) => {
+      if (!recents) return
+
+      const ids = new Set(latest.current.nodes.map((node) => node.id))
+      const list = addRecent(keepExistingNodes(recents.list, ids), entry)
+
+      setRecents({ workspace: recents.workspace, list })
+      saveFileSetting(recentsKey(recents.workspace), list)
+    },
+    [recents],
+  )
 
   useEffect(() => onWorkspaceListChange((list) => setWorkspaces((current) => ({ ...current, workspaces: list.workspaces }))), [])
 
@@ -1076,7 +1113,9 @@ export function Canvas() {
   // Focus ends on its own if someone else removes the card.
   const focus = focusPick && map.has(focusPick) ? focusPick : null
 
-  useWheelZoom(canvasRef, !focus && scrolling === 'zoom')
+  useInspecting()
+
+  const inspecting = useAtomValue(inspectingAtom)
 
   const work = useAtomValue(workAtom)
 
@@ -1351,6 +1390,28 @@ export function Canvas() {
       window.removeEventListener('pointerdown', stop)
     }
   }, [])
+
+  // ---- Pan: hold ⌘ to move cards and groups, as in Select ----
+  const [commandHeld, setCommandHeld] = useState(false)
+
+  useEffect(() => {
+    if (tool !== 'hand') return
+
+    const down = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(true)
+    const up = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(false)
+    const stop = () => setCommandHeld(false)
+
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', stop)
+
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', stop)
+      stop()
+    }
+  }, [tool])
 
   // ---- Selection box ----
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
@@ -2506,16 +2567,10 @@ export function Canvas() {
       detail: 'Saved on this device',
       run: () => chooseAppearance(withMotion(appearance, option.id)),
     })),
-    ...SCROLLINGS.map((option) => ({
-      id: `scroll-${option.id}`,
-      label: `Scroll to: ${option.label}`,
-      detail: 'Saved on this device',
-      run: () => chooseScrolling(option.id),
-    })),
     {
       id: 'settings',
       label: 'Open settings',
-      detail: 'Theme, cards, color mode, scrolling, accessibility, and keyboard shortcuts',
+      detail: 'Theme, cards, color mode, accessibility, and keyboard shortcuts',
       hint: hintOf('settings'),
       run: () => setSettings('appearance'),
     },
@@ -2574,11 +2629,6 @@ export function Canvas() {
     writeAppearance(next)
   }
 
-  const chooseScrolling = (next: Scrolling) => {
-    setScrolling(next)
-    writeScrolling(next)
-  }
-
   const chooseKeybindings = (next: Keybindings) => {
     setKeybindings(next)
     writeKeybindings(next)
@@ -2603,7 +2653,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
           style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
           ref={canvasRef}
           onPointerDown={startMarquee}
@@ -2691,7 +2741,7 @@ export function Canvas() {
               panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
               selectionKeyCode={null}
               selectionOnDrag={false}
-              nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
+              nodesDraggable={!focus && (tool === 'select' || tool === 'comment' || (tool === 'hand' && commandHeld))}
               nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
               elementsSelectable={!focus && tool !== 'sticker'}
               panOnScroll={!focus}
@@ -2982,6 +3032,8 @@ export function Canvas() {
             open={actions.open}
             close={() => setPaletteQuery(null)}
             initialQuery={paletteQuery}
+            recents={recents?.list}
+            remember={rememberRecent}
           />
         )}
         {settings && (
@@ -2991,8 +3043,6 @@ export function Canvas() {
             close={() => setSettings(null)}
             appearance={appearance}
             chooseAppearance={chooseAppearance}
-            scrolling={scrolling}
-            chooseScrolling={chooseScrolling}
             keybindings={keybindings}
             chooseKeybindings={chooseKeybindings}
           />
