@@ -2,6 +2,8 @@
 @import './themes/classic.css';
 @import './themes/vibrant.css';
 @import './themes/colorblind.css';
+@import './skins/plain.css';
+@import './skins/trading.css';
 
 * {
   box-sizing: border-box;
@@ -665,6 +667,11 @@ select {
 .react-flow__edge.tr-e-dim {
   opacity: 0.1;
 }
+/* Inspect mode shows every related link at full strength. */
+.canvas.is-inspecting .react-flow__edge.e-rel,
+.canvas.is-inspecting .react-flow__edge.e-rel .react-flow__edge-path {
+  opacity: 1;
+}
 /* A link under the pointer firms up so it reads as something to right-click. */
 .react-flow__edge:not(.e-agg):hover .react-flow__edge-path {
   stroke-width: 2.6;
@@ -978,7 +985,7 @@ select {
   scale: var(--grow);
   transform-origin: 0 100%;
 }
-/* Card details sit in a tag at one on-screen size beyond the final fold. */
+/* A hovered or selected card's details sit in a tag at one on-screen size beyond the final fold. */
 .card > .pop-place {
   opacity: 1;
 }
@@ -1034,6 +1041,31 @@ select {
 }
 .react-flow__node:has(.source-domain-many[open]) {
   z-index: 3000 !important;
+}
+/* Inspect mode opens the hovered card at no less than its canvas size, with nothing cut short. */
+.card > .peek-place {
+  transform: scale(max(1, var(--inv, 1)));
+}
+.peek-card {
+  min-width: 260px;
+  max-width: 340px;
+  --fade: 1;
+}
+.peek-note {
+  margin: 4px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.react-flow__node-task:has(.peek-card) {
+  z-index: 3000 !important;
+}
+.card:has(> .peek-place) > .react-flow__handle {
+  visibility: hidden;
 }
 :where(:root[data-motion='on']) .far-card {
   animation: pop-up 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
@@ -1358,6 +1390,10 @@ kbd {
 .tool-hand .react-flow__pane,
 .tool-hand .react-flow__node {
   cursor: grab;
+}
+/* In Pan, links let presses through so a drag that starts on one still pans. */
+.tool-hand .react-flow__edge {
+  pointer-events: none;
 }
 .tool-hand .react-flow__pane.dragging,
 .tool-hand .react-flow__pane.dragging .react-flow__node {
@@ -2358,6 +2394,11 @@ kbd {
   color: var(--text-muted);
   font: var(--text-size-caption) var(--font-data);
 }
+.palette-heading {
+  padding: 8px 10px 4px;
+  color: var(--muted);
+  font: 10.5px var(--font-data);
+}
 .palette mark {
   background: none;
   color: var(--accent-default);
@@ -2804,4 +2845,36 @@ kbd {
   margin: 0;
   color: var(--status-blocked);
   font-size: var(--text-size-caption);
+}
+
+/* Tooltip: drawn above its anchor in the page body, so cards and the canvas zoom leave it alone. */
+.tooltip {
+  position: fixed;
+  z-index: 4000;
+  max-width: 260px;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: var(--shadow);
+  font: 600 12px/1.35 var(--font-ui);
+  pointer-events: none;
+  transform: translate(calc(-50% + var(--tooltip-shift, 0px)), -100%);
+}
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: calc(50% - var(--tooltip-shift, 0px));
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+  transform: translateX(-50%);
+}
+:where(:root[data-motion='on']) .tooltip {
+  animation: tooltip-in 0.12s ease-out;
+}
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+  }
 }

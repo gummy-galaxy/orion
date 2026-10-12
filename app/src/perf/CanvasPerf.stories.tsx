@@ -1,6 +1,7 @@
 import { Profiler, type ProfilerOnRenderCallback } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import App from '../components/App'
+import { writeDetail } from '../detail'
 import { generateCanvas } from './fixture'
 
 /** What the perf script reads back from the page: React commits and the time spent rendering them. */
@@ -26,10 +27,14 @@ const record: ProfilerOnRenderCallback = (_id, _phase, actualDuration) => {
   counters.renderMs += actualDuration
 }
 
-/** Seeds browser storage, which the canvas falls back to without an Orion server, with a generated canvas. */
+/**
+ * Seeds browser storage, which the canvas falls back to without an Orion server, with a generated canvas. Every group
+ * shows open so the profile covers every card.
+ */
 function seed(cards: number) {
   localStorage.setItem('orion:v2', JSON.stringify(generateCanvas({ cards })))
   localStorage.setItem('orion:viewport:default', JSON.stringify({ x: 40, y: 40, zoom: 0.8 }))
+  writeDetail('default', null)
   counters.reset()
   window.orionPerf = counters
 
