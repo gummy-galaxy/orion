@@ -1,18 +1,88 @@
 /*
- * Tokens every theme shares. A theme in themes/ sets the colors; it can override any of these too.
- * Colors resolve with light-dark(), so the color mode only has to set color-scheme.
+ * Tokens every theme shares. Names are role-based; tokens.md says what each one is for, and tokens.ts lists them all.
+ * A theme in themes/ sets the colors; it can override any of these too. Colors resolve with light-dark(),
+ * so the color mode only has to set color-scheme.
  */
 :root {
+  /* Cards take the surface and border roles unless a theme gives them their own. */
+  --card-background: var(--surface-background);
+  --card-border: var(--border-default);
+  /* Ready work wears the theme's accent unless the status colors replace it. */
+  --status-ready: var(--accent-default);
+
+  --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --text-size-mini: 8px;
+  --text-size-tiny: 10px;
+  --text-size-micro: 10.5px;
+  --text-size-caption: 11px;
+  --text-size-detail: 11.5px;
+  --text-size-small: 12px;
+  --text-size-label: 12.5px;
+  --text-size-body: 13px;
+  --text-size-emphasis: 13.5px;
+  --text-size-base: 14px;
+  --text-size-subheading: 15px;
+  --text-size-input: 16px;
+  --text-size-heading: 17px;
+  --text-size-glyph: 18px;
+  --text-size-glyph-large: 20px;
+  --text-size-sticker: 28px;
+  --text-size-sticker-art: 40px;
+
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  /* Ready work wears the theme's accent unless the status colors replace it. */
-  --st-ready: var(--accent);
-  --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --radius-card: var(--radius-md);
+  --radius-pill: 999px;
+  --radius-round: 50%;
+  --radius-hairline: 2px;
+  --radius-note-corner: 0 7px 0 3px;
+
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 10px;
+  --space-6: 12px;
+  --space-7: 14px;
+  --space-8: 16px;
+  --space-9: 20px;
+  --space-10: 24px;
+
   color-scheme: light dark;
 }
+
+/* Names from before the role-based tokens. Each aliases its new name, so CSS written against them keeps working. */
+:root {
+  --bg: var(--canvas-background);
+  --dots: var(--canvas-dots);
+  --surface: var(--surface-background);
+  --ink: var(--text-primary);
+  --muted: var(--text-muted);
+  --line: var(--border-default);
+  --accent: var(--accent-default);
+  --accent-soft: var(--accent-subtle);
+  --edge: var(--edge-default);
+  --note: var(--note-background);
+  --note-edge: var(--note-border);
+  --note-ink: var(--note-text);
+  --snap: var(--snap-guide);
+  --st-todo: var(--status-todo);
+  --st-ready: var(--status-ready);
+  --st-active: var(--status-active);
+  --st-review: var(--status-review);
+  --st-blocked: var(--status-blocked);
+  --st-done: var(--status-done);
+}
+
 :root[data-color-mode='light'] {
   color-scheme: light;
 }

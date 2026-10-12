@@ -16,6 +16,8 @@ export const hoverAtom = atom<string | null>(null)
 export const pinnedAtom = atom<string | null>(null)
 /** While a card is in focus, nothing traces from the cursor. */
 export const focusedAtom = atom(false)
+/** Cards whose finish stamp is clearing, each with the delay before its animation starts. */
+export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>())
 
 /** The graph facts `orion serve` derived for the open document. Null until the server answers, or with no server. */
 export const derivedAtom = atom<Derived | null>(null)
@@ -112,6 +114,8 @@ export const useTraceRole = (id: string) =>
       [id],
     ),
   )
+
+export const useCelebrating = (id: string) => useAtomValue(useMemo(() => selectAtom(celebratingAtom, (clearing) => clearing.get(id)), [id]))
 
 export const useMarked = (id: string) => useAtomValue(useMemo(() => selectAtom(attentionAtom, (attention) => !!attention?.has(id)), [id]))
 

@@ -19,8 +19,8 @@ const GLYPHS: Record<Who, ReactNode> = {
   ),
   ci: (
     <>
-      <circle cx="7.5" cy="7.5" r="3.6" fill="none" stroke="var(--surface)" strokeWidth="1.6" strokeDasharray="1.3 1.53" />
-      <circle cx="7.5" cy="7.5" r="2.2" fill="none" stroke="var(--surface)" strokeWidth="1.4" />
+      <circle cx="7.5" cy="7.5" r="3.6" fill="none" stroke="var(--surface-background)" strokeWidth="1.6" strokeDasharray="1.3 1.53" />
+      <circle cx="7.5" cy="7.5" r="2.2" fill="none" stroke="var(--surface-background)" strokeWidth="1.4" />
     </>
   ),
 }
@@ -31,7 +31,7 @@ export function WhoBadge({ who }: { who: Who }) {
     <svg viewBox="0 0 15 15" width="15" height="15" role="img" className={`who who-${who}`}>
       <title>{LABEL[who]}</title>
       <circle cx="7.5" cy="7.5" r="6.5" className="who-disc" />
-      <g fill="var(--surface)">{GLYPHS[who]}</g>
+      <g fill="var(--surface-background)">{GLYPHS[who]}</g>
     </svg>
   )
 }

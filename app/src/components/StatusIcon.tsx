@@ -36,12 +36,12 @@ const SHAPES: Record<ViewStatus, ReactNode> = {
 
 // Not the st-* classes, which also carry card effects such as the in-progress pulse.
 const COLOR: Record<ViewStatus, string> = {
-  ready: 'var(--st-ready)',
-  active: 'var(--st-active)',
-  review: 'var(--st-review)',
-  blocked: 'var(--st-blocked)',
-  deferred: 'var(--st-todo)',
-  done: 'var(--st-done)',
+  ready: 'var(--status-ready)',
+  active: 'var(--status-active)',
+  review: 'var(--status-review)',
+  blocked: 'var(--status-blocked)',
+  deferred: 'var(--status-todo)',
+  done: 'var(--status-done)',
 }
 
 /** A shape for each status, so telling them apart never rests on color alone. */
