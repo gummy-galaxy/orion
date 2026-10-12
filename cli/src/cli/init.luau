@@ -314,7 +314,7 @@ end
 
 local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
 	if asJson then
-		deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
+		deps.write(json.serialize(render.itemJson(doc, graph.derive(doc, deps.now()), item), true))
 	else
 		deps.write(`{verb} {item.id} · {graph.label(item)}`)
 	end
@@ -386,12 +386,13 @@ local function editMany(deps: Resolved, dir: string, command: string, parser: cl
 		ifRevision = requestedRevision(parser),
 		destination = if parser:has("top") then nil else destination,
 		reconnect = parser:has("reconnect"),
+		now = deps.now(),
 		write = deps.write,
 	})
 end
 
 local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
-	local derived = graph.derive(doc)
+	local derived = graph.derive(doc, deps.now())
 	local values: json.Array = {}
 	local lines = {}
 
@@ -506,7 +507,7 @@ local function execute(args: { string }, options: Dependencies?)
 		deps.write(dir)
 	elseif command == "list" then
 		local doc = store.load(dir)
-		local derived = graph.derive(doc)
+		local derived = graph.derive(doc, deps.now())
 		local groupId = parser:get("group")
 
 		if groupId then
@@ -526,8 +527,8 @@ local function execute(args: { string }, options: Dependencies?)
 		)
 	elseif command == "query" then
 		local doc = store.load(dir)
-		local items = selectItems(doc, required(parser, "where"), parser:has("all"))
-		local derived = graph.derive(doc)
+		local items = selectItems(doc, required(parser, "where"), parser:has("all"), deps.now())
+		local derived = graph.derive(doc, deps.now())
 		if asJson then
 			local values: json.Array = {}
 			for _, item in items do
@@ -559,7 +560,7 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif command == "ready" then
 		local doc = store.load(dir)
-		local derived = graph.derive(doc)
+		local derived = graph.derive(doc, deps.now())
 		printItems(
 			deps,
 			doc,
@@ -613,9 +614,9 @@ local function execute(args: { string }, options: Dependencies?)
 		local item = graph.get(doc, required(parser, "id"))
 
 		if asJson then
-			deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
+			deps.write(json.serialize(render.itemJson(doc, graph.derive(doc, deps.now()), item), true))
 		else
-			deps.write(render.show(doc, graph.derive(doc), item))
+			deps.write(render.show(doc, graph.derive(doc, deps.now()), item))
 		end
 	elseif command == "add" then
 		local label = joined(parser:variadics(), "<label>")

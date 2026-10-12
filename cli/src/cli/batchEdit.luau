@@ -20,6 +20,8 @@ export type Options = {
 	reconnect: boolean?,
 	-- The UTC time a snooze ends, for the snooze action.
 	untilTime: string?,
+	-- The current UTC time, which decides what --where sees as snoozed.
+	now: string?,
 	write: (string) -> (),
 }
 
@@ -35,7 +37,7 @@ local function batchEdit(options: Options)
 	local function apply(doc: Doc)
 		local targets: { Item } = {}
 		if options.where then
-			targets = selectItems(doc, options.where, true)
+			targets = selectItems(doc, options.where, true, options.now)
 		else
 			local seen: { [string]: boolean } = {}
 			for _, id in options.ids do

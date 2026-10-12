@@ -21,6 +21,7 @@ return table.freeze({
 			dryRun = parser:has("dry-run"),
 			asJson = options.asJson,
 			ifRevision = batchOptions.readRevision(parser),
+			now = options.now(),
 			write = options.write,
 		})
 	end,

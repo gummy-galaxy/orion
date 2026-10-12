@@ -28,6 +28,7 @@ return table.freeze({
 			asJson = options.asJson,
 			ifRevision = batchOptions.readRevision(parser),
 			untilTime = untilTime,
+			now = now,
 			write = options.write,
 		})
 	end,
