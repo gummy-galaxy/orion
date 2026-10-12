@@ -108,7 +108,8 @@ function graph.countProgress(derived: Derived, groupId: string): Progress
 		else { total = 0, done = 0, ready = 0 }
 end
 
-local function sizeOf(item: Item): (number, number)
+-- The size the app draws an item at. Groups use their stored width and height.
+function graph.sizeOf(item: Item): (number, number)
 	if item.type == "task" then
 		return TASK_WIDTH, TASK_HEIGHT
 	end
@@ -512,7 +513,7 @@ function graph.nextSlot(doc: Doc, parentId: string?): Position
 
 	for _, item in doc.nodes do
 		if item.parentId == parentId then
-			local width = sizeOf(item)
+			local width = graph.sizeOf(item)
 			right = math.max(right or -math.huge, item.position.x + width)
 			top = math.min(top or math.huge, item.position.y)
 		end
@@ -530,7 +531,7 @@ local function overlapsSibling(doc: Doc, parentId: string?, position: Position, 
 
 	for _, item in doc.nodes do
 		if item.parentId == parentId then
-			local itemWidth, itemHeight = sizeOf(item)
+			local itemWidth, itemHeight = graph.sizeOf(item)
 
 			if
 				position.x < item.position.x + itemWidth + margin
@@ -956,6 +957,24 @@ function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	pruneEmptyGroups(doc)
 end
 
+-- Asks the app to tidy a group whose members changed. A pending marker already places it, so it is kept, and a
+-- custom group is left as the user arranged it.
+local function markForRefit(group: Item)
+	if group.data.layout == nil and group.data.arrange ~= "custom" then
+		group.data.layout = "refit"
+	end
+end
+
+-- Marks a group for the app to lay out in place, as `orion tidy` does. A pending marker is kept, since the app already
+-- places that group. A custom group is marked too; the app clears the marker and leaves its arrangement alone.
+function graph.markForTidy(doc: Doc, id: string)
+	local group = graph.group(doc, id)
+
+	if group.data.layout == nil then
+		group.data.layout = "refit"
+	end
+end
+
 -- Wraps items that share a parent in a new group, keeping their arrangement.
 function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 	assert(label ~= "", "a group needs a name")
@@ -975,7 +994,7 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 	local minimumX, minimumY, maximumX, maximumY = math.huge, math.huge, -math.huge, -math.huge
 
 	for _, member in members do
-		local width, height = sizeOf(member)
+		local width, height = graph.sizeOf(member)
 		minimumX = math.min(minimumX, member.position.x)
 		minimumY = math.min(minimumY, member.position.y)
 		maximumX = math.max(maximumX, member.position.x + width)
@@ -998,6 +1017,7 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 		member.position = { x = member.position.x - origin.x, y = member.position.y - origin.y }
 	end
 
+	markForRefit(group)
 	table.insert(doc.nodes, group)
 	return group
 end
@@ -1010,6 +1030,10 @@ function graph.ungroup(doc: Doc, id: string)
 			item.parentId = group.parentId
 			item.position = { x = item.position.x + group.position.x, y = item.position.y + group.position.y }
 		end
+	end
+
+	if group.parentId then
+		markForRefit(graph.group(doc, group.parentId))
 	end
 
 	for index, item in doc.nodes do
@@ -1066,6 +1090,11 @@ function graph.move(doc: Doc, id: string, groupId: string?)
 	-- Node order doesn't matter here; the app sorts parents ahead of children on load.
 	item.position = graph.nextSlot(doc, groupId)
 	item.parentId = groupId
+
+	if groupId then
+		markForRefit(graph.group(doc, groupId))
+	end
+
 	pruneEmptyGroups(doc)
 end
 

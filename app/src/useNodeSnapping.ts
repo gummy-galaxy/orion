@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useReactFlow, type NodeChange } from '@xyflow/react'
+import { liftNodes, unliftNodes } from './lift'
 import { byId, isCluster, normalize, type AppNode } from './model'
 import { finishDrag, snapDrag, snapGuides } from './snap'
 import type { CardSize } from './cardSize'
@@ -52,8 +53,11 @@ export function useNodeSnapping({
 
   const onDragStart = useCallback(
     (event: DragEvent, dragged: { id: string }[]) => {
-      drag.current = { ids: new Set(dragged.map((node) => node.id)), free: event.ctrlKey, samples: [] }
+      const ids = new Set(dragged.map((node) => node.id))
+
+      drag.current = { ids, free: event.ctrlKey, samples: [] }
       setSkipSnapGuides(event.ctrlKey)
+      setNodes((currentNodes) => liftNodes(currentNodes, ids))
       const nodeMap = byId(getCurrentNodes())
 
       dragOrigins.current = new Map()
@@ -65,7 +69,7 @@ export function useNodeSnapping({
         if (node && parent && isCluster(parent) && parent.data.arrange !== 'custom') dragOrigins.current.set(node.id, node.position)
       }
     },
-    [getCurrentNodes],
+    [getCurrentNodes, setNodes],
   )
 
   const onDrag = useCallback((event: DragEvent) => {
@@ -92,6 +96,7 @@ export function useNodeSnapping({
 
       if (!session) return setNodes((currentNodes) => normalize(currentNodes, cardSize))
 
+      const released = (currentNodes: AppNode[]) => normalize(unliftNodes(currentNodes, session.ids), cardSize)
       const now = performance.now()
       const recentSamples = session.samples.filter((sample) => now - sample.time <= THROW_WINDOW_MS)
       const firstSample = recentSamples[0]
@@ -102,12 +107,12 @@ export function useNodeSnapping({
         Math.hypot(lastSample.x - firstSample.x, lastSample.y - firstSample.y) / (lastSample.time - firstSample.time) >= THROW_SPEED
       const draggedIds = [...session.ids]
 
-      if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes((currentNodes) => normalize(currentNodes, cardSize))
+      if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes(released)
 
       requestAnimationFrame(() => {
         const currentNodes = getCurrentNodes()
         const finished = finishDrag(currentNodes, origins, draggedIds, session.free || event.ctrlKey, thrown, cardSize)
-        const result = normalize(finished, cardSize)
+        const result = released(finished)
 
         if (finished !== currentNodes) tweenTo(result)
         else setNodes(result)
