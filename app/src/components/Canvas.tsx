@@ -135,7 +135,7 @@ import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedStickers, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { covers, MARQUEE_REACH, type Box } from '../marquee'
 import { Toolbar, type Tool } from './Toolbar'
-import { detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
+import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { MAX_ZOOM, MIN_ZOOM, mapViewportForCardSize, readViewport, writeViewport } from '../viewport'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
@@ -322,7 +322,7 @@ export function Canvas() {
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
   // How many levels of nesting show below the open group; zoom no longer changes it.
-  const [detail, setDetail] = useState<Detail>(null)
+  const [detail, setDetail] = useState<Detail>(DEFAULT_DETAIL)
   const [hover, setHover] = useAtom(hoverAtom)
   const [pinned, setPinned] = useAtom(pinnedAtom)
   // A double-clicked card fills the view with what it waits on and leads to beside it.
@@ -1393,6 +1393,28 @@ export function Canvas() {
       window.removeEventListener('pointerdown', stop)
     }
   }, [])
+
+  // ---- Pan: hold ⌘ to move cards and groups, as in Select ----
+  const [commandHeld, setCommandHeld] = useState(false)
+
+  useEffect(() => {
+    if (tool !== 'hand') return
+
+    const down = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(true)
+    const up = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(false)
+    const stop = () => setCommandHeld(false)
+
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', stop)
+
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', stop)
+      stop()
+    }
+  }, [tool])
 
   // ---- Selection box ----
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
@@ -2803,7 +2825,7 @@ export function Canvas() {
               panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
               selectionKeyCode={null}
               selectionOnDrag={false}
-              nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
+              nodesDraggable={!focus && (tool === 'select' || tool === 'comment' || (tool === 'hand' && commandHeld))}
               nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
               elementsSelectable={!focus && tool !== 'sticker'}
               panOnScroll={!focus}
