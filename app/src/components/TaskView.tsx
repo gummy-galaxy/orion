@@ -1,10 +1,11 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import type { TaskNode } from '../model'
 import { useAtomValue } from 'jotai'
-import { useCardView, useMarked, useTraceRole, skinAtom, skinStore } from '../state'
+import { useCardView, useMarked, useTraceRole, inspectingAtom, skinAtom, skinStore } from '../state'
 import { CardBody } from './CardBody'
 import { FarTag } from './FarTag'
+import { PeekCard } from './PeekCard'
 
 /** Zoom below which a card's details sit in a tag over its body that keeps one on-screen size. */
 const FAR_ZOOM = 0.3
@@ -12,6 +13,9 @@ const FAR_ZOOM = 0.3
 // Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
 export const TaskView = memo(function TaskView({ id, data, parentId }: NodeProps<TaskNode>) {
   const far = useStore((state) => state.transform[2] < FAR_ZOOM)
+  const [hovered, setHovered] = useState(false)
+  // Inspect mode opens the hovered card in full.
+  const peeking = useAtomValue(inspectingAtom) && hovered
   const view = useCardView(id, data, parentId)
   const trace = useTraceRole(id)
   const attention = useMarked(id)
@@ -23,9 +27,17 @@ export const TaskView = memo(function TaskView({ id, data, parentId }: NodeProps
   const body = <CardBody view={view} />
 
   return (
-    <div className={className}>
+    <div className={className} onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)}>
       <Handle type="target" position={Position.Left} />
-      {far ? <FarTag className={className}>{body}</FarTag> : body}
+      {peeking ? (
+        <PeekCard className={className} note={view.kind === 'note' ? undefined : view.note}>
+          {body}
+        </PeekCard>
+      ) : far ? (
+        <FarTag className={className}>{body}</FarTag>
+      ) : (
+        body
+      )}
       <Handle type="source" position={Position.Right} />
     </div>
   )

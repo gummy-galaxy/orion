@@ -44,6 +44,8 @@ export const traceAtom = atom((get) => {
 export const collapsedAtom = atom<Set<string>>(new Set<string>())
 /** While ⌘ is held: what needs you, keyed by the card or folded group that shows it. */
 export const attentionAtom = atom<Map<string, AttentionMark> | null>(null)
+/** While Ctrl is held, inspect mode shows more about what's on the canvas, such as the hovered card in full. */
+export const inspectingAtom = atom(false)
 
 const NO_STATS: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
 const NO_SOURCES: SourceRef[] = []
