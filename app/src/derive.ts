@@ -97,7 +97,88 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
   return seen
 }
 
-/** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
+function countUpstream(tasks: Map<string, TaskNode>, predecessors: Map<string, string[]>): Map<string, number> {
+  const indices = new Map<string, number>()
+  const lowLinks = new Map<string, number>()
+  const stack: string[] = []
+  const onStack = new Set<string>()
+  const components: string[][] = []
+  const componentById = new Map<string, number>()
+
+  const visit = (id: string) => {
+    const index = indices.size
+
+    indices.set(id, index)
+    lowLinks.set(id, index)
+    stack.push(id)
+    onStack.add(id)
+
+    for (const predecessor of predecessors.get(id) ?? []) {
+      if (!tasks.has(predecessor)) continue
+
+      if (!indices.has(predecessor)) {
+        visit(predecessor)
+        lowLinks.set(id, Math.min(lowLinks.get(id)!, lowLinks.get(predecessor)!))
+      } else if (onStack.has(predecessor)) {
+        lowLinks.set(id, Math.min(lowLinks.get(id)!, indices.get(predecessor)!))
+      }
+    }
+
+    if (lowLinks.get(id) !== index) return
+
+    const component: string[] = []
+    let member: string
+
+    do {
+      member = stack.pop()!
+      onStack.delete(member)
+      componentById.set(member, components.length)
+      component.push(member)
+    } while (member !== id)
+
+    components.push(component)
+  }
+
+  for (const id of tasks.keys()) if (!indices.has(id)) visit(id)
+
+  const ancestors = new Map<number, Set<string>>()
+
+  const collect = (componentIndex: number): Set<string> => {
+    const known = ancestors.get(componentIndex)
+
+    if (known) return known
+
+    const reach = new Set<string>()
+
+    for (const id of components[componentIndex]) {
+      if (tasks.get(id)?.data.itemKind !== 'note') reach.add(id)
+
+      for (const predecessor of predecessors.get(id) ?? []) {
+        const previousComponent = componentById.get(predecessor)
+
+        if (previousComponent !== undefined && previousComponent !== componentIndex) {
+          for (const ancestor of collect(previousComponent)) reach.add(ancestor)
+        }
+      }
+    }
+
+    ancestors.set(componentIndex, reach)
+
+    return reach
+  }
+
+  const upstream = new Map<string, number>()
+
+  for (const task of tasks.values()) {
+    const reach = collect(componentById.get(task.id)!)
+
+    upstream.set(task.id, reach.size - (task.data.itemKind === 'note' ? 0 : 1))
+  }
+
+  return upstream
+}
+
+/** Work-state facts that don't depend on the viewport: status, leverage, upstream work, and per-group progress. */
 export function deriveWork(nodes: AppNode[], links: Link[]) {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
@@ -105,6 +186,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   for (const task of tasks.values()) sources.set(task.id, sourcesOf(task))
 
   const { preds: predecessors, succs: successors } = graph(links)
+  const upstream = countUpstream(tasks, predecessors)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
   const isGate = (id: string) => tasks.get(id)?.data.itemKind === 'gate' && predecessors.has(id)
   // A note is open while anything feeding into it is, so blocking passes through notes. Gates pass it
@@ -213,7 +295,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     sources.set(group.id, sourcesOfGroup(members))
   }
 
-  return { status, flow, leverage, groups, sources, preds: predecessors, succs: successors }
+  return { status, flow, leverage, upstream, groups, sources, preds: predecessors, succs: successors }
 }
 
 export type Work = ReturnType<typeof deriveWork>

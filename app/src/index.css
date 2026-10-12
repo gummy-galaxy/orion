@@ -985,7 +985,7 @@ select {
   scale: var(--grow);
   transform-origin: 0 100%;
 }
-/* Card details sit in a tag at one on-screen size beyond the final fold. */
+/* A hovered or selected card's details sit in a tag at one on-screen size beyond the final fold. */
 .card > .pop-place {
   opacity: 1;
 }
@@ -1390,6 +1390,10 @@ kbd {
 .tool-hand .react-flow__pane,
 .tool-hand .react-flow__node {
   cursor: grab;
+}
+/* In Pan, links let presses through so a drag that starts on one still pans. */
+.tool-hand .react-flow__edge {
+  pointer-events: none;
 }
 .tool-hand .react-flow__pane.dragging,
 .tool-hand .react-flow__pane.dragging .react-flow__node {
@@ -2757,4 +2761,36 @@ kbd {
   overflow-y: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
+}
+
+/* Tooltip: drawn above its anchor in the page body, so cards and the canvas zoom leave it alone. */
+.tooltip {
+  position: fixed;
+  z-index: 4000;
+  max-width: 260px;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: var(--shadow);
+  font: 600 12px/1.35 var(--font-ui);
+  pointer-events: none;
+  transform: translate(calc(-50% + var(--tooltip-shift, 0px)), -100%);
+}
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: calc(50% - var(--tooltip-shift, 0px));
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+  transform: translateX(-50%);
+}
+:where(:root[data-motion='on']) .tooltip {
+  animation: tooltip-in 0.12s ease-out;
+}
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+  }
 }

@@ -151,3 +151,44 @@ describe('deriveWork flow', () => {
     expect(flow.get('n2')).toBe('held')
   })
 })
+
+describe('deriveWork upstream', () => {
+  it('counts a chain including completed work and gates', () => {
+    const { upstream } = deriveWork([task('a', 'done'), task('b'), task('gate', 'todo', 'gate')], [link('a', 'b'), link('b', 'gate')])
+
+    expect([...upstream]).toEqual([
+      ['a', 0],
+      ['b', 1],
+      ['gate', 2],
+    ])
+  })
+
+  it('counts a shared ancestor once in a diamond', () => {
+    const { upstream } = deriveWork([task('a'), task('b'), task('c'), task('d')], [link('a', 'b'), link('a', 'c'), link('b', 'd'), link('c', 'd')])
+
+    expect(upstream.get('d')).toBe(3)
+  })
+
+  it('passes through notes without counting them', () => {
+    const { upstream } = deriveWork([task('a'), task('note', 'todo', 'note'), task('b')], [link('a', 'note'), link('note', 'b')])
+
+    expect(upstream.get('b')).toBe(1)
+  })
+
+  it('ignores related links', () => {
+    const { upstream } = deriveWork([task('a'), task('b')], [{ ...link('a', 'b'), kind: 'related' }])
+
+    expect(upstream.get('b')).toBe(0)
+  })
+
+  it('terminates a cycle and excludes the card itself', () => {
+    const { upstream } = deriveWork(
+      [task('a'), task('b'), task('note', 'todo', 'note'), task('c')],
+      [link('a', 'b'), link('b', 'note'), link('note', 'a'), link('b', 'c')],
+    )
+
+    expect(upstream.get('a')).toBe(1)
+    expect(upstream.get('b')).toBe(1)
+    expect(upstream.get('c')).toBe(2)
+  })
+})

@@ -13,7 +13,7 @@ const createTaskData = (overrides: Partial<TaskData> = {}): TaskData => ({
 
 const createTaskNode = (taskData: TaskData): TaskNode => ({ id: 'card-1', type: 'task', position: { x: 0, y: 0 }, data: taskData })
 const sources: SourceRef[] = [{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }]
-const createFacts = (status: ViewStatus = 'ready') => ({ status, leverage: 3, sources })
+const createFacts = (status: ViewStatus = 'ready', upstream = 0) => ({ status, leverage: 3, upstream, sources })
 
 describe('getCardView', () => {
   it('passes through the kind, tag, URL, sources, and card identity', () => {
@@ -39,11 +39,24 @@ describe('getCardView', () => {
       status: 'ready',
       statusLabel: 'Ready',
       leverage: 3,
+      upstream: 0,
+      rarity: 'common',
       note: 'Keep visible',
       repo: 'vocksel/orion',
       artSeed: 'card-1',
     })
     expect(view.sources).toBe(sources)
+  })
+
+  it('derives rarity for work and leaves it absent for notes', () => {
+    expect(getCardView(createTaskNode(createTaskData({ itemKind: 'gate' })), createFacts('ready', 14))).toMatchObject({
+      upstream: 14,
+      rarity: 'mythic',
+    })
+    const note = getCardView(createTaskNode(createTaskData({ itemKind: 'note' })), createFacts('done', 14))
+
+    expect(note.upstream).toBe(14)
+    expect(note).not.toHaveProperty('rarity')
   })
 
   it('keeps who only while the card is not done', () => {
@@ -100,15 +113,6 @@ describe('getCardView', () => {
     )
 
     expect(getCardView(taskNode, createFacts())).not.toHaveProperty('pullRequestUrl')
-  })
-
-  it('copies pull change size without exposing pull details', () => {
-    const taskNode = createTaskNode(
-      createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', details: { additions: 412, deletions: 38 } }] }),
-    )
-
-    expect(getCardView(taskNode, createFacts()).changeSize).toEqual({ additions: 412, deletions: 38 })
-    expect(getCardView(createTaskNode(createTaskData()), createFacts()).changeSize).toBeUndefined()
   })
 
   it('offers a merge while GitHub would merge the pull request and the card is still in play', () => {
