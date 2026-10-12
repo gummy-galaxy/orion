@@ -270,7 +270,10 @@ export function normalize(nodes: AppNode[], cardSize: CardSize = { width: TASK_W
 }
 
 /** Wraps the selection in a new group under the selection's nearest shared parent. */
-export function groupSelection(nodes: AppNode[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): { nodes: AppNode[]; groupId: string } | null {
+export function groupSelection(
+  nodes: AppNode[],
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): { nodes: AppNode[]; groupId: string } | null {
   const nodeMap = byId(nodes)
   const selection = nodes.filter(
     (node) => node.selected && !node.hidden && !ancestors(node.id, nodeMap).some((ancestor) => nodeMap.get(ancestor)?.selected),

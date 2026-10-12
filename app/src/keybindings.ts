@@ -32,7 +32,7 @@ export type Keybindings = Record<ShortcutId, string>
 export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'search', label: 'Search canvas', detail: 'Find a group or card', category: 'General', chord: 'Mod+K' },
   { id: 'actions', label: 'Show all actions', detail: 'Open the palette in action mode', category: 'General', chord: 'Mod+Shift+P' },
-  { id: 'settings', label: 'Open settings', detail: 'Appearance, scrolling, and keyboard shortcuts', category: 'General', chord: 'Mod+,' },
+  { id: 'settings', label: 'Open settings', detail: 'Appearance, accessibility, and keyboard shortcuts', category: 'General', chord: 'Mod+,' },
   { id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', category: 'Editing', chord: 'Mod+Z' },
   { id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', category: 'Editing', chord: 'Mod+Shift+Z' },
   { id: 'group', label: 'Group selection', detail: 'Put the selected items in a new group', category: 'Editing', chord: 'Mod+G' },
@@ -59,11 +59,10 @@ export const SHORTCUTS: readonly Shortcut[] = [
 
 export type Gesture = { label: string; how: string }
 
-/**
- * Gestures that are part of how the canvas works, listed beside the shortcuts but not rebindable.
- * Panning and zooming depend on what scrolling does, so `gesturesOf` adds them.
- */
+/** Gestures that are part of how the canvas works, listed beside the shortcuts but not rebindable. */
 export const GESTURES: readonly Gesture[] = [
+  { label: 'Pan', how: 'Scroll, middle-drag, or Space-drag' },
+  { label: 'Zoom', how: 'Pinch or ⌘-scroll' },
   { label: 'Select', how: 'Drag across empty canvas' },
   { label: 'Add to the selection', how: '⌘ or ⇧ click' },
   { label: 'Actions for an item', how: 'Right-click' },
@@ -75,6 +74,7 @@ export const GESTURES: readonly Gesture[] = [
   { label: 'Link two items', how: 'Drag from a card’s edge' },
   { label: 'Skip snapping', how: 'Hold Ctrl while dragging' },
   { label: 'See what needs you', how: 'Hold ⌥' },
+  { label: 'Inspect the canvas', how: 'Hold Ctrl' },
 ]
 
 export const DEFAULT_KEYBINDINGS = Object.fromEntries(SHORTCUTS.map((shortcut) => [shortcut.id, shortcut.chord])) as Keybindings

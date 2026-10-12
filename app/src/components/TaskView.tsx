@@ -1,18 +1,22 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import type { TaskNode } from '../model'
 import { useAtomValue } from 'jotai'
-import { useCardView, useMarked, useSnoozed, useTraceRole, skinAtom, skinStore } from '../state'
+import { useCardView, useMarked, useSnoozed, useTraceRole, inspectingAtom, skinAtom, skinStore } from '../state'
 import { CardBody } from './CardBody'
 import { FarTag } from './FarTag'
+import { PeekCard } from './PeekCard'
 
-/** Zoom below which a card's details sit in a tag over its body that keeps one on-screen size. */
+/** Zoom below which a hovered or selected card's details sit in a tag over its body that keeps one on-screen size. */
 const FAR_ZOOM = 0.3
 
 // Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
-export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>) {
+export const TaskView = memo(function TaskView({ id, data, parentId, selected }: NodeProps<TaskNode>) {
   const far = useStore((state) => state.transform[2] < FAR_ZOOM)
-  const view = useCardView(id, data)
+  const [hovered, setHovered] = useState(false)
+  // Inspect mode opens the hovered card in full.
+  const peeking = useAtomValue(inspectingAtom) && hovered
+  const view = useCardView(id, data, parentId)
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const snoozedUntil = useSnoozed(id)
@@ -24,9 +28,23 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   const body = <CardBody view={view} />
 
   return (
-    <div className={className} title={snoozedUntil ? `Snoozed until ${new Date(snoozedUntil).toLocaleString()}` : undefined}>
+    <div
+      className={className}
+      title={snoozedUntil ? `Snoozed until ${new Date(snoozedUntil).toLocaleString()}` : undefined}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+    >
       <Handle type="target" position={Position.Left} />
-      {far ? <FarTag className={className}>{body}</FarTag> : body}
+      {/* Only one card at a time grows into a tag, so tags never pile over their neighbors. */}
+      {peeking ? (
+        <PeekCard className={className} note={view.kind === 'note' ? undefined : view.note}>
+          {body}
+        </PeekCard>
+      ) : far && (hovered || selected) ? (
+        <FarTag className={className}>{body}</FarTag>
+      ) : (
+        body
+      )}
       <Handle type="source" position={Position.Right} />
     </div>
   )

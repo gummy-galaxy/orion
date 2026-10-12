@@ -12,7 +12,8 @@ function canOpen(): Promise<boolean> {
   return availability
 }
 
-export function OpenInVscode({ url }: { url: string }) {
+/** `nativeTitle` turns off the browser tooltip for cards that draw their own. */
+export function OpenInVscode({ url, nativeTitle = true }: { url: string; nativeTitle?: boolean }) {
   const [available, setAvailable] = useState(false)
   const [opening, setOpening] = useState(false)
 
@@ -35,7 +36,7 @@ export function OpenInVscode({ url }: { url: string }) {
       type="button"
       className="vscode-open nodrag nopan"
       aria-label="Open pull request in VS Code"
-      title="Open in VS Code"
+      title={nativeTitle ? 'Open in VS Code' : undefined}
       disabled={opening}
       onClick={(event) => {
         event.stopPropagation()
