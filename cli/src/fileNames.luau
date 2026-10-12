@@ -6,4 +6,5 @@ return table.freeze({
 	workspaces = "workspaces.json",
 	runtime = "serve.json",
 	settings = "settings.json",
+	themes = "themes",
 })

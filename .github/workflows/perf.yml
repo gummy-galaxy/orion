@@ -53,8 +53,11 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps --only-shell chromium
 
+      # The checkout is the pull request's merge commit, whose first parent is the base it was built on. Comparing
+      # against that rather than origin/<base> keeps both sides in step when the base branch moves while this job
+      # waits for the runner, since the base side runs this checkout's harness.
       - name: Compare Against the Base Branch
-        run: npm run perf -- --base origin/${{ github.event.pull_request.base.ref }}
+        run: npm run perf -- --base HEAD^1
 
       - uses: actions/upload-artifact@v7
         if: always()
