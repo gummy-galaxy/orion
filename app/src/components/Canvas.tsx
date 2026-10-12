@@ -2938,7 +2938,7 @@ export function Canvas() {
                   style={{ transform: `translate(${marquee.x}px, ${marquee.y}px)`, width: marquee.width, height: marquee.height }}
                 />
               )}
-              <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--dots)" />
+              <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--canvas-dots)" />
               {nodes.length === 0 && <EmptyCanvas addNote={() => addNote(viewportCenter())} />}
               {guides.length > 0 && <SnapGuides guides={guides} zoom={reactFlow.getZoom()} />}
               <Controls showInteractive={false}>
@@ -2949,14 +2949,18 @@ export function Canvas() {
               {mergeNotice !== null && (
                 <Panel
                   position="bottom-left"
-                  style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300, pointerEvents: 'none' }}
+                  style={{ bottom: 100, margin: 15, padding: 'var(--space-4) var(--space-5)', maxWidth: 300, pointerEvents: 'none' }}
                   role="status"
                 >
                   Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
                 </Panel>
               )}
               {imageError && (
-                <Panel position="bottom-left" style={{ bottom: 100, margin: 15, padding: '8px 10px', maxWidth: 300 }} role="alert">
+                <Panel
+                  position="bottom-left"
+                  style={{ bottom: 100, margin: 15, padding: 'var(--space-4) var(--space-5)', maxWidth: 300 }}
+                  role="alert"
+                >
                   {imageError}
                   <button type="button" className="link" onClick={() => setImageError(null)} aria-label="Dismiss image error">
                     ×
