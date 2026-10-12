@@ -192,3 +192,19 @@ describe('deriveWork upstream', () => {
     expect(upstream.get('c')).toBe(2)
   })
 })
+
+describe('deriveWork group progress', () => {
+  it('leaves deferred work out of the total', () => {
+    const group: AppNode = { id: 'group', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
+    const inGroup = (node: AppNode) => ({ ...node, parentId: 'group' }) as AppNode
+    const nodes = [
+      group,
+      inGroup(task('shipped', 'done')),
+      inGroup(task('next')),
+      inGroup(task('parked', 'deferred')),
+      inGroup(task('note', 'todo', 'note')),
+    ]
+
+    expect(deriveWork(nodes, []).groups.get('group')).toEqual({ total: 2, done: 1, ready: 1, blocked: 0, outside: 0 })
+  })
+})

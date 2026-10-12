@@ -281,7 +281,8 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
 
       if (!statusValue || isNote(id)) continue
 
-      stats.total++
+      // Deferred work is set aside, so it doesn't hold a group short of done.
+      if (statusValue !== 'deferred') stats.total++
 
       if (statusValue === 'done') stats.done++
 

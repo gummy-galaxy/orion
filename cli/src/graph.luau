@@ -93,13 +93,20 @@ end
 
 export type Progress = { total: number, done: number, ready: number }
 
--- Counts the work anywhere inside a group, leaving out notes.
+-- Counts the work anywhere inside a group, leaving out notes and deferred work, which is set aside and doesn't
+-- hold a group short of done.
 function graph.countProgress(doc: Doc, derived: Derived, groupId: string): Progress
 	local progress = { total = 0, done = 0, ready = 0 }
 	for _, item in doc.nodes do
-		if item.type == "task" and not graph.isNote(item) and table.find(graph.ancestors(doc, item.id), groupId) then
+		local status = derived.status[item.id]
+
+		if
+			item.type == "task"
+			and not graph.isNote(item)
+			and status ~= "deferred"
+			and table.find(graph.ancestors(doc, item.id), groupId)
+		then
 			progress.total += 1
-			local status = derived.status[item.id]
 			progress.done += if status == "done" then 1 else 0
 			progress.ready += if status == "ready" then 1 else 0
 		end
