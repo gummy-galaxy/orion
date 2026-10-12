@@ -248,3 +248,25 @@ test.case("repo and pr still attach a pull request as deprecated aliases", funct
 	assert.strContains(run({ "set", "--help" }), "--ref")
 	assert.strContains(run({ "add", "--help" }), "--ref")
 end)
+
+test.case("sync attaches a new pull request to the card its branch was recorded on", function(assert)
+	local dir, run = testing.createHarness("attach-branch")
+	run({ "set", "pub", "--ref", "branch:flipbook-labs/flipbook@feature/a" })
+	local text = run({ "sync" }, function(argv)
+		if argv[5]:find("pullRequests", 1, true) then
+			return testing.result(
+				true,
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a","author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
+			)
+		elseif argv[5]:find("search(", 1, true) then
+			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+		end
+
+		return testing.result(true, [[{"data":{"p1":{"pullRequest":null}}}]])
+	end)
+
+	assert.strContains(text, "attached flipbook-labs/flipbook#670 to pub")
+	local item = store.load(dir).nodes[3]
+	assert.eq((findRef(item, "pull") :: any).key, "flipbook-labs/flipbook#670")
+	assert.strContains(run({ "matches" }), "No unplaced pull requests.")
+end)

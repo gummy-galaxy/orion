@@ -509,12 +509,18 @@ function graph.attachRef(doc: Doc, id: string, resolved: types.ResolvedRef): Ite
 		item.data.repo = resolved.repo
 	end
 
-	if not graph.isNote(item) then
-		local kind = if graph.isGate(item) then "gate" else nil
-		item.data.itemKind = itemKindFor(field(item, "repo"), if findRef(item, "pull") then 1 else nil, kind)
+	graph.refreshItemKind(item)
+	return item
+end
+
+-- Recomputes an item's kind from its repository, pull request, and gate status after its refs change.
+function graph.refreshItemKind(item: Item)
+	if graph.isNote(item) then
+		return
 	end
 
-	return item
+	local kind = if graph.isGate(item) then "gate" else nil
+	item.data.itemKind = itemKindFor(field(item, "repo"), if findRef(item, "pull") then 1 else nil, kind)
 end
 
 function graph.link(doc: Doc, from: string, to: string, kind: string): Link

@@ -1,3 +1,4 @@
+local json = require("@std/json")
 local test = require("@std/test")
 
 local applyPulls = require("@root/github/applyPulls")
@@ -201,4 +202,137 @@ test.case("apply updates statuses, reports what's missing, and files new pull re
 	local recorded = (findRef(doc.nodes[1], "pull") :: types.Ref).details
 	assert.eq(recorded and recorded.checks, "SUCCESS")
 	assert.eq(recorded and recorded.additions, 12)
+end)
+
+local BRANCH = "flipbook-labs/flipbook@feature/a"
+
+local function branchRef(key: string): json.Object
+	return json.object({ source = "hop", kind = "branch", key = key })
+end
+
+local function branchCard(id: string, label: string, status: string, refs: { json.Object }?): types.Item
+	return testing.task(id, label, status, nil, {
+		repo = "flipbook-labs/flipbook",
+		refs = refs or { branchRef(BRANCH) },
+	})
+end
+
+local function unplacedOf(doc: Doc): { json.Object }
+	local found: { json.Object } = {}
+	local values = if doc.github then json.asArray(doc.github.unplaced) else nil
+
+	for _, raw in values or {} do
+		table.insert(found, json.asObject(raw) :: json.Object)
+	end
+
+	return found
+end
+
+local function authoredOnly(authored: PullState): Fetched
+	return { pulls = {}, authored = { authored }, viewer = "vocksel", discover = false }
+end
+
+test.case("a new pull request attaches to the one card recorded on its head branch", function(assert)
+	local doc = testing.createDoc({ branchCard("work", "Dashboard work", "todo") })
+	local report = applyPulls(doc, authoredOnly(pull("OPEN")), "2026-10-04T18:05:00Z")
+
+	assert.eq(#report.attached, 1)
+	assert.eq(report.attached[1].id, "work")
+	assert.eq(report.attached[1].pull, "flipbook-labs/flipbook#1")
+	assert.eq(#unplacedOf(doc), 0)
+
+	local item = doc.nodes[1]
+	assert.eq((findRef(item, "pull") :: types.Ref).key, "flipbook-labs/flipbook#1")
+	assert.eq(item.data.itemKind, "pr")
+	assert.eq(item.data.status, "review")
+	assert.eq(report.changes[1].toStatus, "review")
+end)
+
+test.case("an attached pull request is tracked by the next sync instead of attached again", function(assert)
+	local doc = testing.createDoc({ branchCard("work", "Dashboard work", "todo") })
+	local authored = pull("OPEN")
+	applyPulls(doc, authoredOnly(authored), "2026-10-04T18:05:00Z")
+
+	local fetched: Fetched = { pulls = {}, authored = { authored }, viewer = "vocksel", discover = false }
+	fetched.pulls["flipbook-labs/flipbook#1"] = authored
+	local report = applyPulls(doc, fetched, "2026-10-04T19:00:00Z")
+
+	assert.eq(#report.attached, 0)
+	assert.eq(#report.missing, 0)
+	assert.eq(report.checked, 1)
+end)
+
+test.case("a head branch no card records falls back to title matches", function(assert)
+	local doc = testing.createDoc({
+		testing.task("dashboard", "Add release health dashboard", "todo", nil, { repo = "flipbook-labs/flipbook" }),
+		branchCard("other", "Unrelated work", "todo", { branchRef("flipbook-labs/flipbook@other") }),
+	})
+	local report = applyPulls(doc, authoredOnly(pull("OPEN")), "2026-10-04T18:05:00Z")
+
+	assert.eq(#report.attached, 0)
+	local unplaced = unplacedOf(doc)
+	assert.eq(#unplaced, 1)
+	local first = json.asObject((json.asArray(unplaced[1].matches) or {})[1]) :: json.Object
+	assert.eq(first.id, "dashboard")
+end)
+
+test.case("a branch with the same name in another repository does not match", function(assert)
+	local doc = testing.createDoc({
+		testing.task("work", "Dashboard work", "todo", nil, {
+			repo = "flipbook-labs/other",
+			refs = { branchRef("flipbook-labs/other@feature/a") },
+		}),
+	})
+	local report = applyPulls(doc, authoredOnly(pull("OPEN")), "2026-10-04T18:05:00Z")
+
+	assert.eq(#report.attached, 0)
+	assert.eq(#unplacedOf(doc), 1)
+	assert.eq(findRef(doc.nodes[1], "pull"), nil)
+end)
+
+test.case("two cards on one head branch leave the pull request unplaced and list both", function(assert)
+	local doc = testing.createDoc({
+		branchCard("first", "Dashboard work", "todo"),
+		branchCard("second", "Dashboard follow-up", "active"),
+	})
+	local report = applyPulls(doc, authoredOnly(pull("OPEN")), "2026-10-04T18:05:00Z")
+
+	assert.eq(#report.attached, 0)
+	assert.eq(findRef(doc.nodes[1], "pull"), nil)
+	assert.eq(findRef(doc.nodes[2], "pull"), nil)
+
+	local unplaced = unplacedOf(doc)
+	assert.eq(#unplaced, 1)
+	local matches = json.asArray(unplaced[1].matches) or {}
+	assert.eq(#matches, 2)
+	local first = json.asObject(matches[1]) :: json.Object
+	local second = json.asObject(matches[2]) :: json.Object
+	assert.eq(first.id, "first")
+	assert.eq(first.score, 1)
+	assert.eq(second.id, "second")
+end)
+
+test.case("cards that already track a pull request or are done are not branch matches", function(assert)
+	local tracking = branchCard("tracking", "Tracked work", "active", {
+		branchRef(BRANCH),
+		json.object({ source = "github", kind = "pull", key = "flipbook-labs/flipbook#9" }),
+	})
+	local finished = branchCard("finished", "Finished work", "done")
+	local doc = testing.createDoc({ tracking, finished })
+	local report = applyPulls(doc, authoredOnly(pull("OPEN")), "2026-10-04T18:05:00Z")
+
+	assert.eq(#report.attached, 0)
+	assert.eq(#unplacedOf(doc), 1)
+	assert.eq(findRef(finished, "pull"), nil)
+end)
+
+test.case("discover attaches a branch match to its card instead of filing it in the Inbox", function(assert)
+	local doc = testing.createDoc({ branchCard("work", "Dashboard work", "todo") })
+	local fetched: Fetched = { pulls = {}, authored = { pull("OPEN") }, viewer = "vocksel", discover = true }
+	local report = applyPulls(doc, fetched, "2026-10-04T18:05:00Z")
+
+	assert.eq(#report.attached, 1)
+	assert.eq(#report.added, 0)
+	assert.eq(graph.find(doc, "inbox"), nil)
+	assert.eq(#unplacedOf(doc), 0)
 end)

@@ -99,3 +99,41 @@ test.case("input that is neither a URL nor source:key is refused", function(asse
 		resolveRef("", { JIRA })
 	end)
 end)
+
+test.case("branch: records the branch work started on, keyed like hop's branch refs", function(assert)
+	local resolved = resolveRef("branch:Roblox/avatar@agent/196-attach", {})
+	assert.eq(resolved.ref.source, "github")
+	assert.eq(resolved.ref.kind, "branch")
+	assert.eq(resolved.ref.key, "Roblox/avatar@agent/196-attach")
+	assert.eq(resolved.ref.url, nil)
+	assert.eq(resolved.repo, "Roblox/avatar")
+end)
+
+test.case("branch: keeps any @ in the branch name after the repository", function(assert)
+	local resolved = resolveRef("branch:Roblox/avatar@feature@two", {})
+	assert.eq(resolved.ref.key, "Roblox/avatar@feature@two")
+end)
+
+test.case("branch: on a configured GitHub host takes the host and the configured source id", function(assert)
+	local resolved = resolveRef("branch:github.example.com/Roblox/avatar@main", { ENTERPRISE })
+	assert.eq(resolved.ref.source, "gh-roblox")
+	assert.eq(resolved.ref.key, "github.example.com/Roblox/avatar@main")
+	assert.eq(resolved.repo, "Roblox/avatar")
+end)
+
+test.case("branch: on a GitHub host without a configured source is refused", function(assert)
+	assert.throwsWith(
+		"no GitHub source for git.example.org; add it first",
+		resolveRef,
+		"branch:git.example.org/Roblox/avatar@main",
+		{}
+	)
+end)
+
+test.case("branch: refuses input that is not owner/name@branch", function(assert)
+	for _, input in { "branch:avatar@main", "branch:Roblox/avatar", "branch:Roblox/avatar@", "branch:Roblox/a b@main" } do
+		assert.throws(function()
+			resolveRef(input, {})
+		end)
+	end
+end)
