@@ -14,9 +14,11 @@ export const Default: Story = {
     <StoryGraph nodes={[task]} nodeTypes={{ task: TaskView }}>
       <StickerLayer
         stickers={[{ id: 'sticker', kind: '⭐', x: 195, y: 138, tilt: -12, fresh: false }]}
+        picked={new Set()}
         bounds={[]}
         interactive
         settle={() => {}}
+        select={() => {}}
         menu={() => {}}
       />
     </StoryGraph>

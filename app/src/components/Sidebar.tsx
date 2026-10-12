@@ -85,11 +85,11 @@ export function Sidebar({
           ‹
         </button>
       </div>
-      <details style={{ padding: '4px 10px', position: 'relative' }}>
-        <summary style={{ cursor: 'pointer', fontSize: 13 }} title="Choose a workspace">
+      <details style={{ padding: 'var(--space-2) var(--space-5)', position: 'relative' }}>
+        <summary style={{ cursor: 'pointer', fontSize: 'var(--text-size-body)' }} title="Choose a workspace">
           {current?.label ?? workspaces.active}
         </summary>
-        <div style={{ display: 'grid', gap: 4, padding: '8px 0' }}>
+        <div style={{ display: 'grid', gap: 'var(--space-2)', padding: 'var(--space-4) 0' }}>
           {workspaces.workspaces.map((item) => (
             <button
               key={item.name}

@@ -18,7 +18,7 @@ Add `--json` to any of these for structured output. Statuses in the output are d
 
 Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr` (pull request number), `ref` (any ref key), or `snoozed` (`"true"` while a card is snoozed, `"false"` otherwise). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"` or `ref ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
 
-Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces, and `orion workspace rename <name> <label>` to change a workspace's display label.
+Pass `--workspace <name>` to work in a specific workspace, or rely on the active workspace. Use `orion workspace list` and `orion workspace current` to check the available and active workspaces. `orion workspace create [name] [--label <label>]` makes one; without a name, the label names it, so `Focus areas` becomes `focus-areas`. `orion workspace rename <name> <label>` changes a workspace's display label. `orion workspace archive <name>` takes a workspace off the list and keeps its data; `orion workspace list --archived` lists archived ones, and `orion workspace restore <name>` brings one back. The active workspace and `default` can't be archived.
 
 `orion backups [--json]` lists saved revisions for the selected workspace. If a change was a mistake, `orion restore <revision>` restores the newest backup with that revision in the selected workspace as a new revision and backs up the current file first.
 
@@ -38,9 +38,11 @@ To show the person the app, or anything else served locally such as a dev server
 
 ## Changing it
 
-- `orion add <title> [--group <id>] [--kind gate] [--repo <owner/name>] [--pr <number>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
-- `orion set <id> [--label …] [--status …] [--kind step|gate] [--who you|review|ci] [--note …] [--repo …] [--pr …]` changes fields. Pass an empty value to clear `--who` or `--note`.
+- `orion add <title> [--group <id>] [--kind gate] [--ref <url | source:key>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
+- `orion set <id> [--label …] [--status …] [--kind step|gate] [--who you|review|ci] [--note …] [--ref <url | source:key>]` changes fields. Pass an empty value to clear `--who` or `--note`. Set rejects an item-only field on a group and a group-only field on an item, and the error names the field.
+- `--ref` attaches outside work to a card: a GitHub issue or pull request URL, a Jira issue URL under a configured Jira source, or `source:key` such as `jira:ABC-12`. The adapter of the matching source resolves it. `--repo` and `--pr` still work as aliases for one release and are deprecated; use `--ref` with the pull request URL.
 - `orion set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
+- `orion import <url | source:key>… [--stdin] [--group <id>] [--dry-run] [--json] [--if-revision <n>]` adds a card for each listed ref in one transaction. `--stdin` also reads one ref per line. Refs resolve with `--ref`'s grammar. GitHub titles are fetched 25 refs per query, and Jira refs are read through their source's command, so a Jira key must appear in that source's results. A ref already on the canvas is skipped and keeps its card. A ref that doesn't resolve or can't be found is reported and skipped, the rest are still added, and the command exits nonzero if any failed.
 - `orion done <id...> | --where '<expr>'` marks items done.
 - `orion snooze <id...> --until <iso>` (or `--where '<expr>'`) hides work items from attention and `orion ready` until a time. `--until` takes ISO 8601 only: a date such as `2026-10-12` means the start of that day in local time, a date-time without an offset is local too, and `Z` or an offset such as `-07:00` is converted to UTC. The time must be in the future. A snoozed card keeps its derived status and still blocks the cards that wait on it; it has no leverage and isn't counted as ready in group progress. It returns on its own once the time passes, and nothing is written to wake it. Stored as the `snoozedUntil` data field, a UTC time.
 - `orion unsnooze <id...> | --where '<expr>'` wakes items now.
@@ -63,13 +65,13 @@ Run `orion suggest` to find related ungrouped cards, then review `orion suggesti
 
 Cards with a repository and pull request number stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. Run `orion sync --dry-run` first when unsure.
 
-`orion sync` records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. When the workspace has GitHub sources, only pull requests in their repositories count. Link one to an existing card with `orion set <id> --repo <repo> --pr <n>`.
+`orion sync` records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. When the workspace has GitHub sources, only pull requests in their repositories count. Link one to an existing card with `orion set <id> --ref <pull request URL>`.
 
 `orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
 
 ## Sources and ingestion
 
-Use `orion source list` to inspect configured GitHub, Jira, and hop sources. Add a GitHub source with `orion source add github --host <host> --owners <owner,owner>`; `--include` and `--exclude` also take comma-separated repository lists. Add Jira with `orion source add jira --command '<JSON array>' --browse <url>` and hop with `orion source add hop`. Keep credentials in `gh` and `acli`, never in the source command. Remove a source with `orion source remove <id>`.
+Use `orion source list` to inspect configured GitHub, Jira, and hop sources. Add a GitHub source with `orion source add github --host <host> --owners <owner,owner>`; `--include` and `--exclude` also take comma-separated repository lists. Add Jira with `orion source add jira --command '<JSON array>' --browse <url>` and hop with `orion source add hop`. Each kind takes only its own options, so `orion source add <kind> --help` lists them. Keep credentials in `gh` and `acli`, never in the source command. Remove a source with `orion source remove <id>`.
 
 Run `orion ingest --dry-run` before `orion ingest`; add `--json` for structured counts or `--source <id>` to limit the run. Ingestion files new cards in Unsorted, updates existing cards in place, and leaves cards that are no longer returned alone. Place cards into outcome groups after reviewing them.
 
@@ -83,13 +85,13 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 
 ## Pull requests
 
-When a pull request changes what the app shows, attach before and after screenshots to its description. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures both sides the same way into `/tmp` and uploads them to GitHub through the description editor.
+When a pull request changes what the app shows, attach before and after screenshots to its description. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures both sides the same way into `/tmp`, uploads them to GitHub through the comment box without posting, and writes the description with `gh`.
 
 CI's perf workflow compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. It skips drafts and runs once a pull request is ready for review. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment once it posts. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
 
 Put `Closes #<n>` in the description for each issue the pull request finishes, so merging it closes the issue. Mention issues it only advances without the keyword.
 
-Give each pull request a place on the canvas. When a card already tracks the work, attach the pull request to it with `orion set <id> --repo vocksel/orion --pr <n>`. Otherwise add a card for it in the outcome group it belongs to.
+Give each pull request a place on the canvas. When a card already tracks the work, attach the pull request to it with `orion set <id> --ref https://github.com/vocksel/orion/pull/<n>`. Otherwise add a card for it in the outcome group it belongs to.
 
 ## Trying a desktop build
 

@@ -4,8 +4,10 @@ local path = require("@std/path")
 local process = require("@std/process")
 local task = require("@std/task")
 
+local deriveWorkspaceName = require("@root/deriveWorkspaceName")
 local fileNames = require("@root/fileNames")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
+local graph = require("@root/graph")
 local migrateItem = require("@root/refs/migrateItem")
 local types = require("@root/types")
 
@@ -21,7 +23,7 @@ local LOCK_TIMEOUT_SECONDS = 5
 local STALE_LOCK_SECONDS = 30
 
 export type Workspace = { name: string, label: string }
-export type WorkspaceList = { active: string, workspaces: { Workspace } }
+export type WorkspaceList = { active: string, workspaces: { Workspace }, archived: { Workspace } }
 export type Backup = { revision: number, time: string, size: number, file: string }
 
 local store = {}
@@ -51,7 +53,8 @@ end
 
 function store.getWorkspaces(root: string): WorkspaceList
 	local file = tostring(path.join(root, fileNames.workspaces))
-	local result: WorkspaceList = { active = "default", workspaces = { { name = "default", label = "Default" } } }
+	local result: WorkspaceList =
+		{ active = "default", workspaces = { { name = "default", label = "Default" } }, archived = {} }
 
 	if not fs.exists(file) then
 		return result
@@ -75,6 +78,16 @@ function store.getWorkspaces(root: string): WorkspaceList
 		end
 	end
 
+	for _, entry in json.asArray(raw.archived) or {} do
+		local item = json.asObject(entry)
+		local name = if item then asString(item.name) else nil
+		local label = if item then asString(item.label) else nil
+		assert(name and store.isValidWorkspace(name) and label and label ~= "", `invalid archived workspace in {file}`)
+		assert(not names[name], `workspace listed twice in {file}: {name}`)
+		names[name] = true
+		table.insert(result.archived, { name = name, label = label })
+	end
+
 	local active = asString(raw.active) or "default"
 	assert(names[active], `unknown workspace: {active}`)
 	result.active = active
@@ -93,10 +106,23 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 	for _, workspace in list.workspaces do
 		table.insert(entries, json.object({ name = workspace.name, label = workspace.label }))
 	end
+
+	local value = json.object({ active = list.active, workspaces = entries })
+
+	if #list.archived > 0 then
+		local archived: json.Array = {}
+
+		for _, workspace in list.archived do
+			table.insert(archived, json.object({ name = workspace.name, label = workspace.label }))
+		end
+
+		value.archived = archived
+	end
+
 	local file = tostring(path.join(root, fileNames.workspaces))
 	workspaceWriteSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{workspaceWriteSequence}`
-	fs.writeStringToFile(temporary, json.serialize(json.object({ active = list.active, workspaces = entries }), true))
+	fs.writeStringToFile(temporary, json.serialize(value, true))
 	fs.move(temporary, file)
 end
 
@@ -114,19 +140,22 @@ function store.getActiveWorkspace(root: string, requested: string?, configured: 
 	error(`unknown workspace: {name}`)
 end
 
-function store.createWorkspace(root: string, name: string, label: string?): WorkspaceList
-	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
+-- Without a name, the label names the workspace. An explicit name must be a lowercase slug.
+function store.createWorkspace(root: string, name: string?, label: string?): WorkspaceList
 	assert(label == nil or label:match("%S"), "label must be nonempty")
+	assert(name or label, "give a name or a label")
+	local workspaceName = name or deriveWorkspaceName(label :: string)
+	assert(store.isValidWorkspace(workspaceName), `invalid workspace name: {workspaceName}`)
 	local list = store.getWorkspaces(root)
 
 	for _, workspace in list.workspaces do
-		assert(workspace.name ~= name, `workspace already exists: {name}`)
+		assert(workspace.name ~= workspaceName, `workspace already exists: {workspaceName}`)
 	end
 
-	local dir = store.getWorkspaceDir(root, name)
+	local dir = store.getWorkspaceDir(root, workspaceName)
 	assert(not fs.exists(dir), `workspace folder already exists: {dir}`)
 	store.write(dir, store.createEmptyDoc())
-	table.insert(list.workspaces, { name = name, label = label or name })
+	table.insert(list.workspaces, { name = workspaceName, label = label or workspaceName })
 	writeWorkspaces(root, list)
 	return list
 end
@@ -160,6 +189,49 @@ function store.renameWorkspace(root: string, name: string, label: string): Works
 	end
 
 	error(`unknown workspace: {name}`)
+end
+
+-- Takes a workspace off the list without touching its folder. The default workspace is the data root
+-- itself and is always listed, so it can't be archived, and neither can the one in use.
+function store.archiveWorkspace(root: string, name: string, inUse: string): WorkspaceList
+	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
+	assert(name ~= "default", "the default workspace can't be archived")
+	local list = store.getWorkspaces(root)
+	assert(name ~= list.active and name ~= inUse, `can't archive the active workspace: {name}`)
+
+	for _, workspace in list.archived do
+		assert(workspace.name ~= name, `workspace already archived: {name}`)
+	end
+
+	for index, workspace in list.workspaces do
+		if workspace.name == name then
+			table.remove(list.workspaces, index)
+			table.insert(list.archived, workspace)
+			writeWorkspaces(root, list)
+			return list
+		end
+	end
+
+	error(`unknown workspace: {name}`)
+end
+
+-- Puts an archived workspace back on the list. Its folder is still in place, so it returns with its data.
+function store.restoreWorkspace(root: string, name: string): WorkspaceList
+	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
+	local list = store.getWorkspaces(root)
+
+	for index, workspace in list.archived do
+		if workspace.name == name then
+			local dir = store.getWorkspaceDir(root, name)
+			assert(fs.exists(dir), `workspace folder is missing: {dir}`)
+			table.remove(list.archived, index)
+			table.insert(list.workspaces, workspace)
+			writeWorkspaces(root, list)
+			return list
+		end
+	end
+
+	error(`unknown archived workspace: {name}`)
 end
 
 function store.filePath(dir: string): string
@@ -593,7 +665,9 @@ function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
 	local lockPath = acquire(dir)
 	local succeeded, result = pcall(function(): Doc
 		local doc = store.load(dir)
+		local previous = graph.recordedStatuses(doc)
 		mutate(doc)
+		graph.markCelebrations(doc, previous)
 		doc.revision += 1
 		atomicWrite(store.filePath(dir), store.encode(doc))
 		return doc
@@ -646,6 +720,8 @@ function store.put(
 			return false, previous
 		end
 
+		local previousStatuses = if current then graph.recordedStatuses(current) else {}
+
 		local root = json.object(if current
 			then store.toObject(current)
 			else {
@@ -665,7 +741,9 @@ function store.put(
 			root.stickerLoadout = stickerLoadout
 		end
 
-		atomicWrite(store.filePath(dir), store.encode(store.decode(json.serialize(root, true))))
+		local nextDoc = store.decode(json.serialize(root, true))
+		graph.markCelebrations(nextDoc, previousStatuses)
+		atomicWrite(store.filePath(dir), store.encode(nextDoc))
 		return true, nextRevision
 	end)
 

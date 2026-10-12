@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { Appearance } from '../appearance'
+import type { Appearance, Theme } from '../appearance'
 import type { Keybindings } from '../keybindings'
 import { AccessibilitySettings } from './AccessibilitySettings'
 import { AppearanceSettings } from './AppearanceSettings'
@@ -18,13 +18,14 @@ type Props = {
   showSection: (section: SettingsSection) => void
   close: () => void
   appearance: Appearance
+  themes: readonly Theme[]
   chooseAppearance: (appearance: Appearance) => void
   keybindings: Keybindings
   chooseKeybindings: (keybindings: Keybindings) => void
 }
 
 /** Preferences saved on this device, one section at a time beside a list of sections. */
-export function Settings({ section, showSection, close, appearance, chooseAppearance, keybindings, chooseKeybindings }: Props) {
+export function Settings({ section, showSection, close, appearance, themes, chooseAppearance, keybindings, chooseKeybindings }: Props) {
   const dialog = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export function Settings({ section, showSection, close, appearance, chooseAppear
           ×
         </button>
         <div className="settings-body">
-          {section === 'appearance' && <AppearanceSettings appearance={appearance} chooseAppearance={chooseAppearance} />}
+          {section === 'appearance' && <AppearanceSettings appearance={appearance} themes={themes} chooseAppearance={chooseAppearance} />}
           {section === 'accessibility' && <AccessibilitySettings appearance={appearance} chooseAppearance={chooseAppearance} />}
           {section === 'shortcuts' && <ShortcutSettings keybindings={keybindings} chooseKeybindings={chooseKeybindings} />}
         </div>

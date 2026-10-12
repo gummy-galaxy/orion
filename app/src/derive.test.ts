@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildWork, deriveSources, needsAttention, toServerFacts, type Derived } from './derive'
+import { buildWork, deriveSources, needsAttention, sourcesOf, sourcesOfGroup, toServerFacts, type Derived } from './derive'
 import type { AppNode, ItemKind, Link, Status, TaskNode, ViewStatus } from './model'
 
 const task = (id: string, status: Status = 'todo', itemKind: ItemKind = 'step'): AppNode => ({
@@ -8,27 +8,26 @@ const task = (id: string, status: Status = 'todo', itemKind: ItemKind = 'step'):
   position: { x: 0, y: 0 },
   data: { kind: 'task', label: id, itemKind, status },
 })
+const taskNode = (id: string): TaskNode => task(id) as TaskNode
 const link = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, to, kind: 'blocks' })
 
-describe('deriveSources', () => {
+describe('card sources', () => {
   it('links pull request and external source badges to their source URLs', () => {
-    const pull = task('pull') as TaskNode
+    const pull = taskNode('pull')
 
     pull.data.repo = 'vocksel/orion'
     pull.data.refs = [{ source: 'github', kind: 'pull', key: 'vocksel/orion#42', url: 'https://github.com/vocksel/orion/pull/42' }]
-    const external = task('external') as TaskNode
+    const external = taskNode('external')
 
     external.data.refs = [{ source: 'jira', kind: 'issue', key: 'WORK-7', url: 'https://jira.example.com/browse/WORK-7' }]
 
-    const sources = deriveSources([pull, external])
-
-    expect(sources.get('pull')).toEqual([{ domain: 'github.com', label: 'vocksel/orion#42', href: 'https://github.com/vocksel/orion/pull/42' }])
-    expect(sources.get('external')).toEqual([{ domain: 'jira.example.com', label: 'WORK-7', href: 'https://jira.example.com/browse/WORK-7' }])
+    expect(sourcesOf(pull)).toEqual([{ domain: 'github.com', label: 'vocksel/orion#42', href: 'https://github.com/vocksel/orion/pull/42' }])
+    expect(sourcesOf(external)).toEqual([{ domain: 'jira.example.com', label: 'WORK-7', href: 'https://jira.example.com/browse/WORK-7' }])
   })
 
-  it('uses the first linked ref and falls back to provenance without a URL', () => {
-    const linked = task('linked') as TaskNode
-    const unlinked = task('unlinked') as TaskNode
+  it('gives every linked ref its own badge and falls back to provenance without a URL', () => {
+    const linked = taskNode('linked')
+    const unlinked = taskNode('unlinked')
 
     linked.data.refs = [
       { source: 'hop', kind: 'branch', key: 'vocksel/orion@work' },
@@ -36,37 +35,89 @@ describe('deriveSources', () => {
     ]
     unlinked.data.refs = [{ source: 'hop', kind: 'branch', key: 'vocksel/orion@work' }]
 
-    const sources = deriveSources([linked, unlinked])
+    expect(sourcesOf(linked)).toEqual([
+      { domain: 'hop', label: 'vocksel/orion@work' },
+      { domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' },
+    ])
+    expect(sourcesOf(unlinked)).toEqual([{ domain: 'hop', label: 'vocksel/orion@work' }])
+  })
 
-    expect(sources.get('linked')).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
-    expect(sources.get('unlinked')).toEqual([{ domain: 'hop', label: 'vocksel/orion@work' }])
+  it('shows both the GitHub issue and the pull request on one card', () => {
+    const planning = taskNode('planning')
+
+    planning.data.refs = [
+      { source: 'github', kind: 'issue', key: 'vocksel/orion#187', url: 'https://github.com/vocksel/orion/issues/187' },
+      { source: 'github', kind: 'pull', key: 'vocksel/orion#153', url: 'https://github.com/vocksel/orion/pull/153' },
+    ]
+
+    expect(sourcesOf(planning)).toEqual([
+      { domain: 'github.com', label: 'vocksel/orion#187', href: 'https://github.com/vocksel/orion/issues/187' },
+      { domain: 'github.com', label: 'vocksel/orion#153', href: 'https://github.com/vocksel/orion/pull/153' },
+    ])
+  })
+
+  it('shows one badge per source, kind, and key, ignoring key case', () => {
+    const card = taskNode('card')
+
+    card.data.refs = [
+      { source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' },
+      { source: 'jira', kind: 'issue', key: 'orn-12', url: 'https://jira.example.com/browse/ORN-12' },
+      { source: 'jira', kind: 'issue', key: 'ORN-13', url: 'https://jira.example.com/browse/ORN-13' },
+    ]
+
+    expect(sourcesOf(card)).toEqual([
+      { domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' },
+      { domain: 'jira.example.com', label: 'ORN-13', href: 'https://jira.example.com/browse/ORN-13' },
+    ])
   })
 
   it('does not link a badge with an invalid ref URL', () => {
-    const invalid = task('invalid') as TaskNode
+    const invalid = taskNode('invalid')
 
     invalid.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'not a URL' }]
 
-    expect(deriveSources([invalid]).get('invalid')).toEqual([{ domain: 'jira', label: 'ORN-12' }])
+    expect(sourcesOf(invalid)).toEqual([{ domain: 'jira', label: 'ORN-12' }])
   })
 
   it('gives cards without a repository or outside source no badge', () => {
-    const sources = deriveSources([task('local')])
-
-    expect(sources.get('local')).toEqual([])
+    expect(sourcesOf(taskNode('local'))).toEqual([])
   })
+})
 
+describe('group sources', () => {
   it('collects linked refs from cards inside a group', () => {
-    const group: AppNode = { id: 'group', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
-    const first = { ...task('first'), parentId: 'group' } as TaskNode
-    const second = { ...task('second'), parentId: 'group' } as TaskNode
+    const first = taskNode('first')
+    const second = taskNode('second')
 
     first.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }]
     second.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }]
 
-    const sources = deriveSources([group, first, second])
+    expect(sourcesOfGroup([first, second])).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
+  })
+
+  it('collects every ref from cards inside a group', () => {
+    const planning = taskNode('planning')
+
+    planning.data.refs = [
+      { source: 'github', kind: 'issue', key: 'vocksel/orion#187', url: 'https://github.com/vocksel/orion/issues/187' },
+      { source: 'github', kind: 'pull', key: 'vocksel/orion#153', url: 'https://github.com/vocksel/orion/pull/153' },
+    ]
+
+    expect(sourcesOfGroup([planning]).map((source) => source.label)).toEqual(['vocksel/orion#153', 'vocksel/orion#187'])
+  })
+
+  it('gives each group the badges of the cards inside it', () => {
+    const group: AppNode = { id: 'group', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
+    const inside = { ...taskNode('inside'), parentId: 'group' } as TaskNode
+    const outside = taskNode('outside')
+
+    inside.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }]
+    outside.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-13', url: 'https://jira.example.com/browse/ORN-13' }]
+
+    const sources = deriveSources([group, inside, outside])
 
     expect(sources.get('group')).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
+    expect(sources.get('outside')).toEqual([{ domain: 'jira.example.com', label: 'ORN-13', href: 'https://jira.example.com/browse/ORN-13' }])
   })
 })
 

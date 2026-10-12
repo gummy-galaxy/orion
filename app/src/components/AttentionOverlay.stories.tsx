@@ -8,7 +8,7 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   render: () => (
-    <div style={{ position: 'relative', width: 800, height: 500, margin: '40px auto', border: '1px solid var(--line)' }}>
+    <div style={{ position: 'relative', width: 800, height: 500, margin: '40px auto', border: '1px solid var(--border-default)' }}>
       <AttentionOverlay
         targets={[
           { id: 'near', jump: 'near', label: 'Review a pull request', count: 1, rect: { x: 470, y: 180, width: 170, height: 80 } },

@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import { descendants, getPrimaryRef, isCluster, isNote, isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
+import { descendants, isCluster, isNote, isTask, type AppNode, type Link, type SourceRef as RefData, type TaskNode, type ViewStatus } from './model'
 import type { Rarity } from './rarity'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
@@ -26,16 +26,15 @@ export type Derived = {
 export type Actions = {
   reflow: (groupId: string) => void
   open: (groupId: string) => void
+  /** Clears the finish stamp on a card and on the finished cards chained to it. */
+  celebrate: (id: string) => void
 }
 
 export const ActionsContext = createContext<Actions | null>(null)
 
-/** Where a card's work comes from, or null for a card that only lives in Orion. */
-function sourceOf(task: TaskNode): SourceRef | null {
-  const ref = getPrimaryRef(task.data)
-  const href = ref?.url
-
-  if (!ref) return null
+/** Where one ref comes from: its URL's host when it has a valid one, otherwise the source that recorded it. */
+function sourceOf(ref: RefData): SourceRef {
+  const href = ref.url
 
   if (href) {
     try {
@@ -50,6 +49,34 @@ function sourceOf(task: TaskNode): SourceRef | null {
   }
 
   return { domain: ref.source, label: ref.key }
+}
+
+/** Every ref on a card gets a badge, once per source, kind, and key. A card with no refs gets none. */
+export function sourcesOf(task: TaskNode): SourceRef[] {
+  const sources = new Map<string, SourceRef>()
+
+  for (const ref of task.data.refs ?? []) {
+    const key = `${ref.source}:${ref.kind}:${ref.key.toLowerCase()}`
+
+    if (!sources.has(key)) sources.set(key, sourceOf(ref))
+  }
+
+  return [...sources.values()]
+}
+
+/** A group's badges: the badges of every card inside it, once per domain and label, linked ones winning over unlinked ones. */
+export function sourcesOfGroup(members: TaskNode[]): SourceRef[] {
+  const groupSources = new Map<string, SourceRef>()
+
+  for (const task of members) {
+    for (const source of sourcesOf(task)) {
+      const key = `${source.domain}:${source.label}`
+
+      if (!groupSources.get(key)?.href) groupSources.set(key, source)
+    }
+  }
+
+  return [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label))
 }
 
 /** Blocking links as adjacency lists, so hover tracing can walk up and down the graph. */
@@ -94,31 +121,19 @@ export function deriveSources(nodes: AppNode[]): Map<string, SourceRef[]> {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
 
-  for (const task of tasks.values()) {
-    const source = sourceOf(task)
-
-    sources.set(task.id, source ? [source] : [])
-  }
+  for (const task of tasks.values()) sources.set(task.id, sourcesOf(task))
 
   for (const group of nodes.filter(isCluster)) {
     const inside = descendants(group.id, nodes)
-    const groupSources = new Map<string, SourceRef>()
+    const members: TaskNode[] = []
 
     for (const id of inside) {
       const task = tasks.get(id)
 
-      if (task) {
-        const source = sourceOf(task)
-        const key = source && `${source.domain}:${source.label}`
-
-        if (source && key && !groupSources.get(key)?.href) groupSources.set(key, source)
-      }
+      if (task) members.push(task)
     }
 
-    sources.set(
-      group.id,
-      [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label)),
-    )
+    sources.set(group.id, sourcesOfGroup(members))
   }
 
   return sources

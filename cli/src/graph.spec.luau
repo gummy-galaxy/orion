@@ -206,6 +206,19 @@ test.case("derive counts each group's progress and the work it reaches outside i
 	assert.eq(graph.countProgress(derived, "missing"), { total = 0, done = 0, ready = 0 })
 end)
 
+test.case("derive leaves deferred work and notes out of a group's total", function(assert)
+	local doc = testing.createDoc({
+		testing.group("g", "Group"),
+		task("a", "A", "done", "g"),
+		task("b", "B", "todo", "g"),
+		task("c", "C", "deferred", "g"),
+		task("n", "Remember", "todo", "g", { itemKind = "note" }),
+	})
+	local derived = graph.derive(doc)
+	assert.eq(derived.groups.g, { total = 2, done = 1, ready = 1, blocked = 0, outside = 0 })
+	assert.eq(graph.countProgress(derived, "g"), { total = 2, done = 1, ready = 1 })
+end)
+
 test.case("addItem names pull requests after the repository and number", function(assert)
 	local doc = testing.createDoc({ testing.group("g", "Group"), task("x", "X", "todo", "g") })
 	local item = graph.addItem(doc, "Ship it", { group = "g", repo = "flipbook-labs/flipbook", pr = 700 })
@@ -371,4 +384,33 @@ test.case("snooze sets and clears a work item's wake time, and refuses groups an
 	assert.throws(function()
 		graph.snooze(doc, "n", "2026-10-12T17:00:00Z")
 	end)
+end)
+
+test.case("markCelebrations flags a card that turns done and clears the flag when it reopens", function(assert)
+	local doc = testing.createDoc({ task("a", "A", "active"), task("b", "B", "done") })
+	local previous = graph.recordedStatuses(doc)
+	doc.nodes[1].data.status = "done"
+	graph.markCelebrations(doc, previous)
+	assert.eq(doc.nodes[1].data.celebrate, true)
+	assert.eq(doc.nodes[2].data.celebrate, nil)
+
+	previous = graph.recordedStatuses(doc)
+	doc.nodes[1].data.status = "todo"
+	graph.markCelebrations(doc, previous)
+	assert.eq(doc.nodes[1].data.celebrate, nil)
+end)
+
+test.case("markCelebrations keeps a flag until the card is reopened, and skips new cards and notes", function(assert)
+	local doc = testing.createDoc({
+		task("a", "A", "done", nil, { celebrate = true }),
+		task("created", "Created done", "done"),
+		task("n", "Note", "todo", nil, { itemKind = "note" }),
+	})
+	local previous = graph.recordedStatuses(doc)
+	doc.nodes[1].data.label = "Renamed"
+	doc.nodes[3].data.status = "done"
+	graph.markCelebrations(doc, previous)
+	assert.eq(doc.nodes[1].data.celebrate, true)
+	assert.eq(doc.nodes[2].data.celebrate, nil)
+	assert.eq(doc.nodes[3].data.celebrate, nil)
 end)

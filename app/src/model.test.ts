@@ -4,6 +4,7 @@ import {
   absolutePosition,
   byId,
   editPullRef,
+  getCheckCountsLabel,
   getItemKind,
   getPrimaryRef,
   getPullReadiness,
@@ -154,6 +155,18 @@ describe('getPullReadiness', () => {
     expect(getPullReadiness({ ...open, draft: true, checks: 'SUCCESS', mergeState: 'CLEAN' })).toBe('passing')
     expect(getPullReadiness({ ...open, state: 'MERGED', checks: 'SUCCESS', mergeState: 'CLEAN' })).toBeUndefined()
     expect(getPullReadiness(undefined)).toBeUndefined()
+  })
+})
+
+describe('getCheckCountsLabel', () => {
+  it('counts finished checks while the rest run, with any failures', () => {
+    expect(getCheckCountsLabel({ total: 8, finished: 5, failed: 0 })).toBe('5 of 8 done')
+    expect(getCheckCountsLabel({ total: 8, finished: 5, failed: 1 })).toBe('5 of 8 done, 1 failed')
+  })
+
+  it('counts only failures once every check finishes', () => {
+    expect(getCheckCountsLabel({ total: 8, finished: 8, failed: 2 })).toBe('2 of 8 failed')
+    expect(getCheckCountsLabel({ total: 8, finished: 8, failed: 0 })).toBeUndefined()
   })
 })
 
