@@ -1,0 +1,33 @@
+import { CompanionEye } from './CompanionEye'
+
+// The logo's four-pointed star: long vertical points, shorter side points, and a round core.
+const VERTICAL = 182
+const HORIZONTAL = 104
+const WAIST = 24
+const OUTLINE = [
+  [0, -VERTICAL],
+  [WAIST, -WAIST],
+  [HORIZONTAL, 0],
+  [WAIST, WAIST],
+  [0, VERTICAL],
+  [-WAIST, WAIST],
+  [-HORIZONTAL, 0],
+  [-WAIST, -WAIST],
+]
+const OUTLINE_PATH = `M${OUTLINE.map((point) => point.join(' ')).join(' L')} Z`
+
+/** A star of the companion: the body with a face, or a plain side star. */
+export function CompanionStar({ face = false }: { face?: boolean }) {
+  return (
+    <svg viewBox="-110 -190 220 380" aria-hidden="true">
+      <path d={OUTLINE_PATH} className="companion-fill" />
+      <circle r={face ? 66 : 46} className="companion-fill" />
+      {face && (
+        <g className="eyes" fill="none" stroke="currentColor" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round">
+          <CompanionEye side="l" x={-24} />
+          <CompanionEye side="r" x={24} />
+        </g>
+      )}
+    </svg>
+  )
+}

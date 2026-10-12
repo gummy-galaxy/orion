@@ -17,6 +17,7 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
     colorMode: 'system',
     statusColors: 'theme',
     animations: 'system',
+    companion: true,
   })
   const [bindings, setBindings] = useState(keybindings)
 

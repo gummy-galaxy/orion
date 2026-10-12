@@ -22,6 +22,7 @@ import {
   type Viewport,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { Companion } from './Companion'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
@@ -111,6 +112,7 @@ import { Settings, type SettingsSection } from './Settings'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
+import { useCompanionTargets } from '../useCompanionTargets'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
 import { useInspecting } from '../useInspecting'
@@ -343,6 +345,7 @@ export function Canvas() {
   }, [cardSize])
 
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
+  const companion = useCompanionTargets()
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
   const [tool, setTool] = useState<Tool>('select')
@@ -2943,6 +2946,9 @@ export function Canvas() {
                 <Toolbar tool={tool} sticker={sticker} keybindings={keybindings} setTool={chooseTool} />
               </Panel>
             </ReactFlow>
+          )}
+          {ready && appearance.companion && !focus && (
+            <Companion targets={companion.targets} describe={companion.describe} syncing={syncStatus?.state === 'running'} paused={away} />
           )}
           {attending && cursor && (
             <AttentionOverlay

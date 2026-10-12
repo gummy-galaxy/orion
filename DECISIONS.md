@@ -150,6 +150,14 @@ Cards marked done take on a special finish, like a golden shimmer. Double-clicki
 
 2026-10-11 · #112
 
+### The companion is on by default and quiet at work
+
+The star companion shows on every canvas until it's turned off in Appearance. In work mode it perches and reacts to the card nearest the pointer, and its idle antics stay small. It never takes input, never sits on a card's face, and holds still in its corner when motion is reduced.
+
+**Why:** it makes the canvas feel alive and reads a card's status at a glance, so it earns its place by default. Keeping it small and out of the way respects the charter's calm work mode.
+
+2026-10-11 · #292
+
 ### Triage happens in a tray, and you do the placing
 
 New pull requests and issues land in a tray at the canvas edge, backed by the Inbox and Unsorted groups. You drag cards from the tray onto the canvas, and Orion learns from where they go. Heuristics and agents suggest where cards belong. Adding cards to the canvas automatically is held back.
