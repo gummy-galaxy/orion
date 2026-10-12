@@ -14,6 +14,8 @@ const pullRequest: CardView = {
   who: 'you',
   whoLabel: 'Your move',
   leverage: 3,
+  upstream: 8,
+  rarity: 'rare',
   checks: 'pending',
   readiness: 'running',
   changeSize: { additions: 412, deletions: 38 },
@@ -31,6 +33,8 @@ describe('TradingCard', () => {
     expect(markup).toContain('trading-move">Your move')
     expect(markup).toContain('Pull request · flipbook')
     expect(markup).not.toContain('trading-emblem')
+    expect(markup).toContain('trading-rare')
+    expect(markup).toContain('aria-label="Rare: 8 cards feed into this"')
     expect(markup).toContain('trading-add">+412')
     expect(markup).toContain('trading-del">−38')
     expect(markup).toContain('<title>Checks running</title>')
@@ -51,5 +55,13 @@ describe('TradingCard', () => {
     expect(renderToStaticMarkup(<TradingCard view={{ ...pullRequest, kind: 'placeholder', status: 'ready', who: undefined }} />)).toContain(
       'trading-expected',
     )
+  })
+
+  it('keeps the symbol on done cards and leaves notes without rarity', () => {
+    const done = renderToStaticMarkup(<TradingCard view={{ ...pullRequest, status: 'done' }} />)
+    const note = renderToStaticMarkup(<TradingCard view={{ ...pullRequest, kind: 'note', rarity: undefined }} />)
+
+    expect(done).toContain('trading-rarity-symbol-rare')
+    expect(note).not.toContain('trading-rarity-symbol')
   })
 })

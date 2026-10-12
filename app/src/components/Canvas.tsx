@@ -1387,6 +1387,28 @@ export function Canvas() {
     }
   }, [])
 
+  // ---- Pan: hold ⌘ to move cards and groups, as in Select ----
+  const [commandHeld, setCommandHeld] = useState(false)
+
+  useEffect(() => {
+    if (tool !== 'hand') return
+
+    const down = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(true)
+    const up = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(false)
+    const stop = () => setCommandHeld(false)
+
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', stop)
+
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', stop)
+      stop()
+    }
+  }, [tool])
+
   // ---- Selection box ----
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
 
@@ -2726,7 +2748,7 @@ export function Canvas() {
               panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
               selectionKeyCode={null}
               selectionOnDrag={false}
-              nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
+              nodesDraggable={!focus && (tool === 'select' || tool === 'comment' || (tool === 'hand' && commandHeld))}
               nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
               elementsSelectable={!focus && tool !== 'sticker'}
               panOnScroll={!focus}
