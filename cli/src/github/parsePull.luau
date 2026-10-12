@@ -1,3 +1,4 @@
+local getCheckCounts = require("@root/github/getCheckCounts")
 local getCheckProgress = require("@root/github/getCheckProgress")
 local getCheckState = require("@root/github/getCheckState")
 local getString = require("@root/github/getString")
@@ -51,6 +52,7 @@ local function parsePull(object: json.Object, owner: string, name: string, host:
 		deletions = if type(object.deletions) == "number" then object.deletions else 0,
 		checks = if rollup then getCheckState(rollup) else nil,
 		checkProgress = if rollup then getCheckProgress(rollup) else nil,
+		checkCounts = if rollup then getCheckCounts(rollup) else nil,
 		mergeable = getString(object.mergeable),
 		mergeState = getString(object.mergeStateStatus),
 		head = getString(object.headRefOid),

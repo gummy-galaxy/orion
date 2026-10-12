@@ -12,6 +12,9 @@ type TradingArgs = {
   size: 'unknown' | CardSizeLabel
   sticker: 'none' | Sticker
   motion: 'none' | Motion
+  checksFinished: number
+  checksFailed: number
+  checksTotal: number
   blockers: number
   unblocks: number
   group: string
@@ -34,6 +37,17 @@ function readinessOf(args: TradingArgs): Pick<CardView, 'readiness' | 'readyToMe
   return {}
 }
 
+// Motion also comes from check progress, so checks keep running beside a failing sticker.
+function checksOf(args: TradingArgs): Pick<CardView, 'checkProgress' | 'checkCounts'> {
+  if (args.motion === 'none') return {}
+
+  const checkProgress = args.motion === 'running' ? 'running' : 'waiting'
+
+  if (args.checksTotal === 0) return { checkProgress }
+
+  return { checkProgress, checkCounts: { total: args.checksTotal, finished: args.checksFinished, failed: args.checksFailed } }
+}
+
 function toView(args: TradingArgs): CardView {
   const stale = args.sticker === 'stale'
 
@@ -54,6 +68,7 @@ function toView(args: TradingArgs): CardView {
     group: args.group,
     updatedAt: new Date(Date.now() - (stale ? STALE_DAYS + 6 : 0) * DAY_MS).toISOString(),
     ...readinessOf(args),
+    ...checksOf(args),
     ...(args.kind === 'pr' ? { pullRequestUrl: 'https://github.com/vocksel/orion/pull/158' } : {}),
     ...(args.sticker === 'changes' ? { changesRequested: true as const } : {}),
     ...(args.priority !== 'unknown' ? { priority: Number(args.priority) as Priority } : {}),
@@ -86,6 +101,9 @@ const defaults: TradingArgs = {
   size: 'unknown',
   sticker: 'mergeable',
   motion: 'none',
+  checksFinished: 5,
+  checksFailed: 0,
+  checksTotal: 8,
   blockers: 0,
   unblocks: 2,
   group: 'pr-queue',
@@ -107,6 +125,9 @@ const meta = {
     size: { control: 'inline-radio', options: ['unknown', 'S', 'M', 'L', 'XL'] },
     sticker: { control: 'select', options: ['none', 'conflict', 'failing', 'changes', 'stale', 'mergeable'] },
     motion: { control: 'inline-radio', options: ['none', 'running', 'queued'] },
+    checksFinished: { control: { type: 'range', min: 0, max: 20 } },
+    checksFailed: { control: { type: 'range', min: 0, max: 20 } },
+    checksTotal: { control: { type: 'range', min: 0, max: 20 }, description: 'Zero hides the count, as for records synced before counts.' },
     blockers: { control: { type: 'range', min: 0, max: 9 } },
     unblocks: { control: { type: 'range', min: 0, max: 9 } },
     far: { control: 'boolean', description: 'The compact form the canvas shows when zoomed far out.' },
@@ -127,6 +148,20 @@ export const ChecksRunning: Story = {
     title: "Show a card's far-zoom tag only while hovered or selected",
     sticker: 'none',
     motion: 'running',
+    unblocks: 0,
+    group: 'navigation',
+  },
+}
+
+export const FailingWhileRunning: Story = {
+  name: '#272 · failing while running',
+  args: {
+    title: "Show a card's far-zoom tag only while hovered or selected",
+    sticker: 'failing',
+    motion: 'running',
+    checksFinished: 3,
+    checksFailed: 1,
+    checksTotal: 12,
     unblocks: 0,
     group: 'navigation',
   },
@@ -208,6 +243,10 @@ export const FarZoom: Story = {
     unblocks: 1,
     motion: 'none',
   },
+}
+
+export const FarZoomRunning: Story = {
+  args: { far: true, title: "Show a card's far-zoom tag only while hovered or selected", sticker: 'none', motion: 'running', unblocks: 0 },
 }
 
 export const Done: Story = {

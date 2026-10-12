@@ -57,6 +57,7 @@ export type PullDetails = {
   checks?: 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED'
   /** Whether any unfinished check has started, or all of them are still queued. */
   checkProgress?: 'running' | 'waiting'
+  checkCounts?: CheckCounts
   mergeable?: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN'
   mergeState?: 'BEHIND' | 'BLOCKED' | 'CLEAN' | 'DIRTY' | 'DRAFT' | 'HAS_HOOKS' | 'UNKNOWN' | 'UNSTABLE'
   /** The head commit the details describe, which a merge from the card must still match. */
@@ -64,6 +65,8 @@ export type PullDetails = {
   checkedAt: string
   branch?: string
 }
+/** A commit's checks: how many have finished, and failed, out of all of them. Skipped and cancelled checks count as finished. */
+export type CheckCounts = { total: number; finished: number; failed: number }
 /** How close an open pull request is to merging, from what stops it to nothing at all. */
 export type PullReadiness = 'conflict' | 'failing' | 'running' | 'waiting' | 'passing' | 'mergeable'
 
@@ -75,6 +78,16 @@ export const READINESS_LABEL: Record<PullReadiness, string> = {
   passing: 'Checks passing',
   mergeable: 'Ready to merge',
 }
+
+/** "5 of 8 done, 1 failed" while checks run, "1 of 8 failed" once they finish, and nothing once they all pass. */
+export function getCheckCountsLabel(counts: CheckCounts): string | undefined {
+  const failed = counts.failed > 0 ? `${counts.failed} failed` : undefined
+
+  if (counts.finished < counts.total) return [`${counts.finished} of ${counts.total} done`, failed].filter(Boolean).join(', ')
+
+  return failed && `${counts.failed} of ${counts.total} failed`
+}
+
 export type UnplacedPullRequest = {
   repo: string
   number: number

@@ -6,6 +6,7 @@ import {
   READINESS_LABEL,
   STATUS_LABEL,
   editPullRef,
+  getCheckCountsLabel,
   getItemKind,
   getPullReadiness,
   getPullRef,
@@ -62,6 +63,7 @@ export function TaskInspector({
   const pullRef = getPullRef(data)
   const pullDetails = pullRef?.details as PullDetails | undefined
   const readiness = getPullReadiness(pullDetails)
+  const checkCountsLabel = readiness && pullDetails?.checkCounts && getCheckCountsLabel(pullDetails.checkCounts)
   const linked = new Set(
     [...map.values()].filter(isTask).flatMap((node) => {
       const ref = getPullRef(node.data)
@@ -101,7 +103,8 @@ export function TaskInspector({
             {readiness && (
               <>
                 <ChecksIcon readiness={readiness} />
-                {READINESS_LABEL[readiness]} ·{' '}
+                {READINESS_LABEL[readiness]}
+                {checkCountsLabel && `, ${checkCountsLabel}`} ·{' '}
               </>
             )}
             {typeof pullDetails.additions === 'number' && (

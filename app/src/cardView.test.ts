@@ -87,6 +87,16 @@ describe('getCardView', () => {
     expect(getCardView(createTaskNode(createTaskData()), createFacts()).checks).toBeUndefined()
   })
 
+  it('carries check progress and counts only while the pull request is open', () => {
+    const details = { checks: 'FAILURE', checkProgress: 'running', checkCounts: { total: 8, finished: 3, failed: 1 } }
+    const pull = (state: string) =>
+      createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', details: { ...details, state } }] }))
+
+    expect(getCardView(pull('OPEN'), createFacts())).toMatchObject({ checkProgress: 'running', checkCounts: details.checkCounts })
+    expect(getCardView(pull('MERGED'), createFacts())).not.toHaveProperty('checkCounts')
+    expect(getCardView(pull('MERGED'), createFacts())).not.toHaveProperty('checkProgress')
+  })
+
   it('opens a pull request card from its primary ref, not from another GitHub badge', () => {
     const pullUrl = 'https://github.com/vocksel/orion/pull/153'
     const issueUrl = 'https://github.com/vocksel/orion/issues/187'
