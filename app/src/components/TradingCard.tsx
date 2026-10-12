@@ -1,6 +1,6 @@
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
 import { getCheckCountsLabel } from '../model'
-import { getTradingFacts, type Motion, type Sticker } from '../skins/tradingFacts'
+import { getTradingFacts, type Motion, type StatusBadge } from '../skins/tradingFacts'
 import { TradingSignal } from './TradingSignal'
 import { TradingSignalIcon } from './TradingSignalIcon'
 import { SourceBadges } from './SourceBadges'
@@ -9,7 +9,7 @@ import { OpenInVscode } from './OpenInVscode'
 import { Tooltip } from './Tooltip'
 import { TradingKindIcon } from './TradingKindIcon'
 
-const STICKER_HINT: Record<Sticker, string> = {
+const STATUS_BADGE_HINT: Record<StatusBadge, string> = {
   conflict: 'The pull request has merge conflicts',
   failing: 'Checks are failing',
   changes: 'A review asked for changes',
@@ -68,22 +68,22 @@ export function TradingCard({ view }: { view: CardView }) {
         {facts.priority !== undefined && <FactChip text={`P${facts.priority}`} name="Priority" severity={PRIORITY_SEVERITY[facts.priority]} />}
         {facts.size && <FactChip text={facts.size} name="Size" severity={SIZE_SEVERITY[facts.size]} />}
       </div>
-      {facts.sticker === 'mergeable' && view.merge ? (
+      {facts.statusBadge === 'mergeable' && view.merge ? (
         <Tooltip label="Ready to merge. Click twice to merge it.">
-          <span className="trading-sticker trading-sticker-mergeable trading-merge">
+          <span className="trading-status-badge trading-status-badge-mergeable trading-merge">
             <MergePullRequest url={view.merge.url} head={view.merge.head} idleLabel="mergeable" nativeTitle={false} />
           </span>
         </Tooltip>
       ) : (
-        facts.sticker && (
+        facts.statusBadge && (
           <TradingSignal
-            signal={facts.sticker}
-            className={`trading-sticker trading-sticker-${facts.sticker}`}
-            hint={STICKER_HINT[facts.sticker]}
+            signal={facts.statusBadge}
+            className={`trading-status-badge trading-status-badge-${facts.statusBadge}`}
+            hint={STATUS_BADGE_HINT[facts.statusBadge]}
             url={view.pullRequestUrl}
           >
-            <TradingSignalIcon signal={facts.sticker} />
-            <span className="trading-sticker-word">{facts.sticker}</span>
+            <TradingSignalIcon signal={facts.statusBadge} />
+            <span className="trading-status-badge-word">{facts.statusBadge}</span>
           </TradingSignal>
         )
       )}
