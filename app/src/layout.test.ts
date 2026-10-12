@@ -111,6 +111,65 @@ describe('reflow', () => {
     expect(Math.max(...tops.map((position) => position.x))).toBeLessThan(ROW_WIDTH)
   })
 
+  it('lays unlinked cards out in rows whose column count follows the square root of their count', async () => {
+    const positions = await placed([group(), ...ids(10).map((id, i) => task(id, 'g', i * 300, 0))])
+    const rows = [...new Set([...positions.values()].map((position) => Math.round(position.y)))]
+
+    expect(distinct([...positions.values()].map((position) => position.x))).toBe(Math.ceil(Math.sqrt(10)))
+    expect(rows).toHaveLength(Math.ceil(10 / Math.ceil(Math.sqrt(10))))
+    expect(overlaps(positions)).toBe(false)
+  })
+
+  it('keeps unlinked cards in their reading order', async () => {
+    const cards = ids(9)
+    const nodes = [group(), ...cards.map((id, i) => task(id, 'g', (cards.length - i) * 300, 0))]
+    const positions = await placed(nodes)
+    const inReadingOrder = [...cards].sort((a, b) => {
+      const [first, second] = [positions.get(a)!, positions.get(b)!]
+
+      return first.y - second.y || first.x - second.x
+    })
+
+    expect(inReadingOrder).toEqual([...cards].reverse())
+  })
+
+  it('places a linked chain as one block beside unlinked cards', async () => {
+    const chain = ids(3, 'c')
+    const loose = ids(5, 'u')
+    const positions = await placed(
+      [group(), ...chain.map((id) => task(id)), ...loose.map((id) => task(id))],
+      chain.slice(1).map((id, i) => blocks(chain[i], id)),
+    )
+
+    expect(distinct(chain.map((id) => positions.get(id)!.y))).toBe(1)
+    expect(overlaps(positions)).toBe(false)
+  })
+
+  it('lines up unlinked subgroups of different widths in shared columns', async () => {
+    const sections = ids(4, 's')
+    const taskCounts = [1, 3, 1, 3]
+    const nodes: AppNode[] = [
+      group(),
+      ...sections.map((id): AppNode => ({ id, type: 'cluster', parentId: 'g', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: id } })),
+      ...sections.flatMap((id, i) => Array.from({ length: taskCounts[i] }, (_, j) => task(`${id}-${j}`, id, j * 300, 0))),
+    ]
+    const positions = await placed(nodes)
+    const xs = sections.map((id) => positions.get(id)!.x)
+
+    expect(distinct(xs)).toBe(2)
+    expect(xs[2]).toBe(xs[0])
+    expect(xs[3]).toBe(xs[1])
+    expect(positions.get(sections[2])!.y).toBeGreaterThan(positions.get(sections[0])!.y)
+  })
+
+  it('lays out a large group of unlinked cards without overlaps', async () => {
+    const cards = ids(400)
+    const positions = await placed([group(), ...cards.map((id, i) => task(id, 'g', i * 300, 0))])
+
+    expect(distinct([...positions.values()].map((position) => position.x))).toBe(20)
+    expect(overlaps(positions)).toBe(false)
+  })
+
   it('keeps short chains on one row', async () => {
     const positions = await placed([group(), task('a'), task('b'), task('c')], [blocks('a', 'b'), blocks('b', 'c')])
 
