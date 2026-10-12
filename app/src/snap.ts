@@ -1,5 +1,6 @@
 import { GAP } from './layout'
 import { absolutePosition, byId, sizeOf, type AppNode } from './model'
+import type { CardSize } from './cardSize'
 
 type Axis = 'x' | 'y'
 type Box = { x: number; y: number; width: number; height: number }
@@ -51,13 +52,13 @@ function spacing(boxes: Box[], axis: Axis): number[] {
 }
 
 /** The dragged nodes as one box, and their siblings, in canvas coordinates. */
-function scene(nodes: AppNode[], ids: string[]): Scene | null {
+function scene(nodes: AppNode[], ids: string[], cardSize?: CardSize): Scene | null {
   const nodeMap = byId(nodes)
   const movedNodes = ids.map((id) => nodeMap.get(id)).filter((node) => !!node)
 
   if (!movedNodes.length) return null
 
-  const boxOf = (node: AppNode): Box => ({ ...absolutePosition(node, nodeMap), ...sizeOf(node) })
+  const boxOf = (node: AppNode): Box => ({ ...absolutePosition(node, nodeMap), ...sizeOf(node, cardSize) })
   const boxes = movedNodes.map(boxOf)
   const x = Math.min(...boxes.map((box) => box.x))
   const y = Math.min(...boxes.map((box) => box.y))
@@ -132,8 +133,8 @@ function shift(nodes: AppNode[], ids: string[], deltaX: number, deltaY: number):
  * Pulls dragged nodes onto nearby edges, centers, and the spacing their siblings use.
  * Each pull only holds within `tolerance` (canvas units), so dragging on slides past it.
  */
-export function snapDrag(nodes: AppNode[], ids: string[], tolerance: number): AppNode[] {
-  const currentScene = scene(nodes, ids)
+export function snapDrag(nodes: AppNode[], ids: string[], tolerance: number, cardSize?: CardSize): AppNode[] {
+  const currentScene = scene(nodes, ids, cardSize)
 
   if (!currentScene) return nodes
 
@@ -149,9 +150,9 @@ export function snapDrag(nodes: AppNode[], ids: string[], tolerance: number): Ap
 }
 
 /** Guides for whatever the nodes being dragged now line up with. */
-export function snapGuides(nodes: AppNode[]): Guide[] {
+export function snapGuides(nodes: AppNode[], cardSize?: CardSize): Guide[] {
   const ids = nodes.filter((node) => node.dragging).map((node) => node.id)
-  const currentScene = ids.length ? scene(nodes, ids) : null
+  const currentScene = ids.length ? scene(nodes, ids, cardSize) : null
 
   if (!currentScene) return []
 
@@ -172,8 +173,8 @@ export function snapGuides(nodes: AppNode[]): Guide[] {
  * Where a drop settles. Landing on a sibling, or throwing a node quickly beside one,
  * moves it to the nearest open cell of that sibling's grid. Returns null to stay put.
  */
-export function settleDrop(nodes: AppNode[], ids: string[], thrown: boolean): AppNode[] | null {
-  const currentScene = scene(nodes, ids)
+export function settleDrop(nodes: AppNode[], ids: string[], thrown: boolean, cardSize?: CardSize): AppNode[] | null {
+  const currentScene = scene(nodes, ids, cardSize)
 
   if (!currentScene) return null
 
@@ -223,9 +224,10 @@ export function finishDrag(
   ids: string[],
   free: boolean,
   thrown: boolean,
+  cardSize?: CardSize,
 ): AppNode[] {
   const restored = origins.size ? nodes.map((node) => (origins.has(node.id) ? { ...node, position: origins.get(node.id)! } : node)) : nodes
   const movableIds = ids.filter((id) => !origins.has(id))
 
-  return free || !movableIds.length ? restored : (settleDrop(restored, movableIds, thrown) ?? restored)
+  return free || !movableIds.length ? restored : (settleDrop(restored, movableIds, thrown, cardSize) ?? restored)
 }
