@@ -423,6 +423,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.repo == nil
 				and fields.pr == nil
 				and fields.who == nil
+				and fields.note == nil
 				and fields.kind == nil,
 			"groups only take a label, blurb, and arrange"
 		)
@@ -446,6 +447,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	end
 
 	assert(fields.arrange == nil, `"{id}" is an item; only groups take an arrangement`)
+	assert(fields.blurb == nil, `"{id}" is an item; only groups take a blurb`)
 	if fields.label then
 		item.data.label = fields.label
 	end
@@ -491,6 +493,24 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 		local pr = findRef(item, "pull")
 		local kind = fields.kind or (if graph.isGate(item) then "gate" else nil)
 		item.data.itemKind = itemKindFor(repo, if pr then 1 else nil, kind)
+	end
+
+	return item
+end
+
+-- Attaches outside work to an item. The repository fills in only when the item has none yet.
+function graph.attachRef(doc: Doc, id: string, resolved: types.ResolvedRef): Item
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), "groups don't take refs; attach it to an item")
+	setRef(item, resolved.ref)
+
+	if resolved.repo and item.data.repo == nil then
+		item.data.repo = resolved.repo
+	end
+
+	if not graph.isNote(item) then
+		local kind = if graph.isGate(item) then "gate" else nil
+		item.data.itemKind = itemKindFor(field(item, "repo"), if findRef(item, "pull") then 1 else nil, kind)
 	end
 
 	return item

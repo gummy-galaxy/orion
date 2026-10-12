@@ -12,6 +12,10 @@ type Tool = mcpTypes.Tool
 
 local VIEWS = { "list", "ready", "groups", "matches", "show" }
 
+local REF_DESCRIPTION = "Outside work to attach: a GitHub or Jira URL, or source:key such as jira:ABC-1."
+local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
+local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
+
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
 
@@ -53,6 +57,23 @@ local function buildMoveArgv(arguments: json.Object): { string }
 	end
 
 	appendOption(argv, "workspace", arguments.workspace)
+	return argv
+end
+
+-- Refs are one list argument, which the CLI takes as trailing positionals.
+local function buildImportArgv(arguments: json.Object): { string }
+	local argv = { "import" }
+	local refs = json.asArray(arguments.refs) or {}
+
+	for _, ref in refs do
+		assert(type(ref) == "string" and ref ~= "", "refs must be a list of strings")
+		table.insert(argv, ref)
+	end
+
+	appendOption(argv, "group", arguments.group)
+	appendFlag(argv, "dry-run", arguments.dryRun)
+	appendOption(argv, "workspace", arguments.workspace)
+	table.insert(argv, "--json")
 	return argv
 end
 
@@ -111,8 +132,9 @@ local tools: { Tool } = {
 			{ name = "title", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
 			{ name = "group", kind = "id", at = "option" },
-			{ name = "repo", kind = "string", at = "option" },
-			{ name = "pr", kind = "int", at = "option" },
+			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
+			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
+			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
 			{ name = "status", kind = "enum", values = fieldValues.statuses, at = "option" },
 		},
 	},
@@ -134,8 +156,9 @@ local tools: { Tool } = {
 				at = "option",
 			},
 			{ name = "note", kind = "string", at = "option" },
-			{ name = "repo", kind = "string", at = "option" },
-			{ name = "pr", kind = "int", at = "option" },
+			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
+			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
+			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
 		},
 	},
 	{
@@ -258,6 +281,20 @@ local tools: { Tool } = {
 			workspaceField,
 			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
 			{ name = "discover", kind = "boolean", at = "flag", flag = "discover" },
+		},
+	},
+	{
+		name = "orion_import",
+		description = "Add a card for each GitHub or Jira URL, or source:key, in one step. Refs already on the canvas are skipped. Refs that don't resolve are reported and skipped, and the call fails if any did.",
+		annotations = { openWorldHint = true },
+		command = { "import" },
+		json = true,
+		build = buildImportArgv,
+		fields = {
+			workspaceField,
+			{ name = "refs", kind = "strings", required = true, at = "positional" },
+			{ name = "group", kind = "id", at = "option" },
+			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
 		},
 	},
 }
