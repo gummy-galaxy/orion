@@ -1,5 +1,7 @@
 import type { AppNode, GithubSnapshot, Link } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
+import type { CardSize } from './cardSize'
+import { toStored } from './skinSpace'
 
 /**
  * The canvas lives in orion.json, served by the Orion CLI so the CLI and the
@@ -240,7 +242,15 @@ export async function fetchRemote(workspace = 'default'): Promise<Remote | null>
 }
 
 /** `baseRevision` is null when creating the file. */
-export async function save(source: 'file' | 'browser', baseRevision: number | null, saved: Saved, workspace = 'default'): Promise<SaveResult> {
+export async function save(
+  source: 'file' | 'browser',
+  baseRevision: number | null,
+  saved: Saved,
+  workspace = 'default',
+  cardSize: CardSize,
+): Promise<SaveResult> {
+  saved = { ...saved, nodes: toStored(saved.nodes, cardSize) }
+
   if (source === 'browser') {
     writeBrowser(saved)
 

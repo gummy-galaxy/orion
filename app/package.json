@@ -15,6 +15,7 @@
     "perf": "node scripts/perf.ts"
   },
   "dependencies": {
+    "@paper-design/shaders": "0.0.81",
     "@tauri-apps/api": "^2.12.1",
     "@tauri-apps/plugin-opener": "^2.7.0",
     "@xyflow/react": "^12.12.0",
