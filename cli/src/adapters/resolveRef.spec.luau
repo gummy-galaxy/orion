@@ -14,6 +14,11 @@ local JIRA: Source = {
 }
 local HOP: Source = { id = "hop", kind = "hop", command = { "hop" } }
 
+test.case("resolveRef returns only the ref, not an error message as a second value", function(assert)
+	assert.eq(select("#", resolveRef("jira:ABC-12", { JIRA })), 1)
+	assert.eq(select("#", resolveRef("https://github.com/Roblox/avatar/pull/12", {})), 1)
+end)
+
 test.case("a github.com pull request URL attaches without a configured source", function(assert)
 	local resolved = resolveRef("https://github.com/Roblox/avatar/pull/12", {})
 	assert.eq(resolved.ref.source, "github")

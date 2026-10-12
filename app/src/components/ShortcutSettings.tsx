@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { DEFAULT_KEYBINDINGS, SHORTCUTS, conflictsOf, formatChord, type Keybindings, type ShortcutId } from '../keybindings'
-import { gesturesOf, type Scrolling } from '../scrolling'
+import { DEFAULT_KEYBINDINGS, GESTURES, SHORTCUTS, conflictsOf, formatChord, type Keybindings, type ShortcutId } from '../keybindings'
 import { ShortcutRow } from './ShortcutRow'
 
-type Props = { scrolling: Scrolling; keybindings: Keybindings; chooseKeybindings: (keybindings: Keybindings) => void }
+type Props = { keybindings: Keybindings; chooseKeybindings: (keybindings: Keybindings) => void }
 
 /** Every rebindable shortcut by category, then the gestures that can't change. */
-export function ShortcutSettings({ scrolling, keybindings, chooseKeybindings }: Props) {
+export function ShortcutSettings({ keybindings, chooseKeybindings }: Props) {
   const [query, setQuery] = useState('')
   const [recording, setRecording] = useState<ShortcutId | null>(null)
   const term = query.trim().toLowerCase()
@@ -15,7 +14,7 @@ export function ShortcutSettings({ scrolling, keybindings, chooseKeybindings }: 
     found(shortcut.label, shortcut.detail, shortcut.category, keybindings[shortcut.id], formatChord(keybindings[shortcut.id])),
   )
   const categories = [...new Set(shortcuts.map((shortcut) => shortcut.category))]
-  const gestures = gesturesOf(scrolling).filter((gesture) => found(gesture.label, gesture.how))
+  const gestures = GESTURES.filter((gesture) => found(gesture.label, gesture.how))
   const changed = SHORTCUTS.some((shortcut) => keybindings[shortcut.id] !== shortcut.chord)
   const labelOf = (id: ShortcutId) => SHORTCUTS.find((shortcut) => shortcut.id === id)?.label ?? id
 
