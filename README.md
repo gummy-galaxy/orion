@@ -17,11 +17,11 @@ The default canvas lives in `orion.json` inside Orion's user data folder: `~/Lib
 
 ### Workspaces
 
-The original canvas is the `default` workspace in the data root. Other workspaces keep separate `orion.json` files under `<data root>/workspaces/<name>/`. The root's `workspaces.json` records their names, labels, and the active workspace. Workspace names use lowercase letters, digits, and hyphens.
+The original canvas is the `default` workspace in the data root. Other workspaces keep separate `orion.json` files under `<data root>/workspaces/<name>/`. The root's `workspaces.json` records their names, labels, the active workspace, and any archived workspaces. Workspace names use lowercase letters, digits, and hyphens.
 
 Images are canvas nodes with workspace-local files in `assets/`. The app's **Add image** control accepts PNG, JPEG, GIF, and WebP files up to 5 MB. Agents can insert one with `orion media insert ./concept.png --workspace orion --label "Concept"`; the command identifies supported images from their contents and can accommodate other media types later. `orion media list --workspace orion` lists media nodes. `orion serve` accepts raw bytes at `POST /api/images?workspace=<name>` and serves them at `GET /api/images/<asset>?workspace=<name>`. Both routes use the same asset storage as the CLI.
 
-Use `orion workspace list`, `orion workspace create <name> [--label <label>]`, `orion workspace rename <name> <label>`, and `orion workspace use <name>` to manage them. Renaming changes only the label; the name and folder stay the same. `orion workspace current` shows the selected workspace, and `orion path` prints its folder. The app's sidebar can also create and switch workspaces. Pass `--workspace <name>` to a CLI command to use one without changing the active workspace; `ORION_WORKSPACE` provides the same choice for the environment. The command option takes precedence, followed by the environment, `workspaces.json`, and `default`.
+Use `orion workspace list`, `orion workspace create [name] [--label <label>]`, `orion workspace rename <name> <label>`, `orion workspace archive <name>`, `orion workspace restore <name>`, and `orion workspace use <name>` to manage them. Without a name, create derives one from the label, so `--label "Focus areas"` makes `focus-areas`. Renaming changes only the label; the name and folder stay the same. Archiving takes a workspace off the list and leaves its folder in place, so restoring brings back its data; `orion workspace list --archived` shows archived workspaces. The active workspace and `default` can't be archived. `orion workspace current` shows the selected workspace, and `orion path` prints its folder. The app's sidebar can also create and switch workspaces. Pass `--workspace <name>` to a CLI command to use one without changing the active workspace; `ORION_WORKSPACE` provides the same choice for the environment. The command option takes precedence, followed by the environment, `workspaces.json`, and `default`.
 
 Before replacing an existing data file, the CLI store copies it to `backups/orion-r<revision>-<UTC timestamp>.json` in that workspace's folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backups [--json]` to list the selected workspace's backups newest first, and `orion restore <revision>` to recover one in that workspace as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
 
@@ -104,6 +104,8 @@ For GitHub sources, `--owners`, `--include`, and `--exclude` accept comma-separa
 
 Cards store pull requests, issues, and local branches in `data.refs`, including each source ID, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests. Attach an existing issue or pull request to a card with `orion set <id> --ref <url>`. To add cards for a list of them in one step, run `orion import <ref...>`, or pipe one ref per line with `--stdin`. Refs that are already on the canvas are skipped, and any that fail are reported without stopping the rest.
 
+A card that changes to done gets `data.celebrate: true`, whether the change comes from `orion done`, `orion sync`, or the app. Reopening it removes the flag, and clicking its finish stamp in the app clears it along with the finished cards chained to it through blocking links. Cards finished before the flag existed don't have it.
+
 For a Roblox setup:
 
 ```sh
@@ -137,6 +139,7 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - Double-click a card to focus on it. The canvas zooms onto it with its details above, what it waits on in a scrolling column on the left, and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. ⌘ or ⇧ click adds to the selection.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks; they stay faint until you hover, hold, or select one of their cards.
 - "Unblocks N" counts every open task downstream, directly or not.
+- Right-click empty canvas and choose **Create from link** to paste a GitHub pull request or issue, or a Jira issue, and get its card where you clicked. A link that already has a card takes you to that card instead.
 - N adds a note. Right-click a link to add a card or a note into it, or a bundled link between folded groups to remove one of its links. Notes pass blocking through but never count as work, and can be turned into work items later.
 - Reflow lays out the inside of a group. Tidy lays out the current level. Chains and runs of interchangeable cards wrap at about six across.
 - A group's inspector picks its arrangement: Automatic flows by dependency, and Custom keeps cards where you put them. `orion set <group> --arrange custom` does the same from the CLI.
@@ -168,6 +171,7 @@ In `app/`:
 - `src/App.tsx`: the canvas, detail levels, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.
 - `src/Sidebar.tsx` and `src/ContextMenu.tsx`: the group list and right-click menu.
+- `src/components/LinkPrompt.tsx`: the field the right-click menu opens for pasting a link to make a card from.
 - `src/Settings.tsx`, `src/AppearanceSettings.tsx`, and `src/ShortcutSettings.tsx`: the settings dialog. `app/src/keybindings.ts` lists each shortcut with its default and saves rebound ones.
 
 In `cli/src/`:

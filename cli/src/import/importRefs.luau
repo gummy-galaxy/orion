@@ -1,6 +1,6 @@
 local addCard = require("@root/import/addCard")
 local findExisting = require("@root/import/findExisting")
-local getUnix = require("@root/adapters/getUnix")
+local getSince = require("@root/import/getSince")
 local graph = require("@root/graph")
 local importTypes = require("@root/import/types")
 local lookupRecords = require("@root/import/lookupRecords")
@@ -23,11 +23,6 @@ export type Options = {
 	now: string,
 	runner: CommandRunner,
 }
-
--- Collect functions take the same context as ingest, including a `since` date that only their searches read.
-local function getSince(now: string): string
-	return os.date("!%Y-%m-%d", getUnix(now) - 14 * 86400) :: string
-end
 
 -- Imports every ref in one transaction. Refs that don't resolve or can't be looked up fail alone; refs already on the canvas
 -- are skipped and keep their card. The lookups run before the write, so the transaction stays short.

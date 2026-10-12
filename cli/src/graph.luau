@@ -93,13 +93,20 @@ end
 
 export type Progress = { total: number, done: number, ready: number }
 
--- Counts the work anywhere inside a group, leaving out notes.
+-- Counts the work anywhere inside a group, leaving out notes and deferred work, which is set aside and doesn't
+-- hold a group short of done.
 function graph.countProgress(doc: Doc, derived: Derived, groupId: string): Progress
 	local progress = { total = 0, done = 0, ready = 0 }
 	for _, item in doc.nodes do
-		if item.type == "task" and not graph.isNote(item) and table.find(graph.ancestors(doc, item.id), groupId) then
+		local status = derived.status[item.id]
+
+		if
+			item.type == "task"
+			and not graph.isNote(item)
+			and status ~= "deferred"
+			and table.find(graph.ancestors(doc, item.id), groupId)
+		then
 			progress.total += 1
-			local status = derived.status[item.id]
 			progress.done += if status == "done" then 1 else 0
 			progress.ready += if status == "ready" then 1 else 0
 		end
@@ -774,6 +781,36 @@ function graph.ungroup(doc: Doc, id: string)
 		if item.id == id then
 			table.remove(doc.nodes, index)
 			break
+		end
+	end
+end
+
+-- The recorded status of every card, read before a write so markCelebrations can see what changed.
+function graph.recordedStatuses(doc: Doc): { [string]: string }
+	local statuses: { [string]: string } = {}
+
+	for _, item in doc.nodes do
+		if item.type == "task" then
+			statuses[item.id] = field(item, "status") or "todo"
+		end
+	end
+
+	return statuses
+end
+
+-- Sets `celebrate` on a card that changed to done, so the app can celebrate it, and clears it when the card is
+-- reopened. Cards created done and notes never get the flag, and cards finished before the flag existed don't have it.
+function graph.markCelebrations(doc: Doc, previous: { [string]: string })
+	for _, item in doc.nodes do
+		if item.type == "task" and not graph.isNote(item) then
+			local status = field(item, "status")
+			local wasOpen = previous[item.id] ~= nil and previous[item.id] ~= "done"
+
+			if status == "done" and wasOpen then
+				item.data.celebrate = true
+			elseif status ~= "done" then
+				item.data.celebrate = nil
+			end
 		end
 	end
 end
