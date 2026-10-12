@@ -75,6 +75,7 @@ export const GESTURES: readonly Gesture[] = [
   { label: 'Link two items', how: 'Drag from a card’s edge' },
   { label: 'Skip snapping', how: 'Hold Ctrl while dragging' },
   { label: 'See what needs you', how: 'Hold ⌥' },
+  { label: 'Inspect the canvas', how: 'Hold Ctrl' },
 ]
 
 export const DEFAULT_KEYBINDINGS = Object.fromEntries(SHORTCUTS.map((shortcut) => [shortcut.id, shortcut.chord])) as Keybindings

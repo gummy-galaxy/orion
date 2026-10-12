@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { restoreSettings, saveSettings } from './settings'
+import { readFileSetting, restoreSettings, saveFileSetting, saveSettings } from './settings'
 
 let stored: Map<string, string>
 
@@ -74,4 +74,29 @@ it('sends saves in order', async () => {
   await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
 
   expect(fetchMock.mock.calls.map(([, options]) => JSON.parse(options.body).theme)).toEqual(['vibrant', 'classic'])
+})
+
+it('reads one data-folder preference by key', async () => {
+  vi.stubGlobal('fetch', respond({ 'palette-recents:orion': [{ kind: 'command', id: 'fit' }] }))
+
+  expect(await readFileSetting('palette-recents:orion')).toEqual([{ kind: 'command', id: 'fit' }])
+  expect(await readFileSetting('palette-recents:other')).toBeUndefined()
+})
+
+it('rejects a data-folder read that fails', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+
+  await expect(readFileSetting('palette-recents:orion')).rejects.toThrow('500')
+})
+
+it('saves a data-folder preference without browser storage', async () => {
+  const fetchMock = respond({})
+
+  vi.stubGlobal('fetch', fetchMock)
+
+  saveFileSetting('palette-recents:orion', [{ kind: 'node', id: 'a' }])
+  await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledOnce())
+
+  expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ 'palette-recents:orion': [{ kind: 'node', id: 'a' }] })
+  expect(stored.size).toBe(0)
 })

@@ -1,5 +1,6 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, byId, isCluster, normalize, sizeOf, type AppNode, type Link } from './model'
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, byId, isCluster, normalize, sizeOf, type AppNode, type Link } from './model'
+import type { CardSize } from './cardSize'
 
 const elk = new ELK()
 
@@ -129,12 +130,46 @@ async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Ga
   )
 }
 
+/** Finds the root of each id's linked component, so ids that link to each other share one root. */
+function linkRoots(ids: string[], edges: Edge[]): Map<string, string> {
+  const parent = new Map(ids.map((id) => [id, id]))
+
+  const find = (id: string): string => {
+    let current = id
+
+    while (parent.get(current) !== current) {
+      const grandparent = parent.get(parent.get(current)!)!
+
+      parent.set(current, grandparent)
+      current = grandparent
+    }
+
+    return current
+  }
+
+  for (const [source, target] of edges) parent.set(find(source), find(target))
+
+  return new Map(ids.map((id) => [id, find(id)]))
+}
+
+/** Wraps a linked block that runs too wide, then moves its top left corner to the origin. */
+function frameBlock(boxes: Map<string, Box>, gap: number): { boxes: Map<string, Box>; size: Size } {
+  const wrapped = wrapLayers(boxes, gap) ?? boxes
+  const frame = bounds([...wrapped.values()])
+
+  return {
+    boxes: new Map([...wrapped].map(([id, box]) => [id, { ...box, x: box.x - frame.x, y: box.y - frame.y }])),
+    size: { width: frame.width, height: frame.height },
+  }
+}
+
 /**
- * The default flow: ELK's layered layout, with two limits on width. Siblings that wait on and lead to exactly the
- * same things are interchangeable, so a run of more than `WRAP` of them is laid out as one grid. Chains longer than
- * `WRAP` steps wrap onto further rows, and the pieces are packed again.
+ * The default flow. Siblings that link to each other form a block, laid out by ELK's layered algorithm with two
+ * limits on width: a run of more than `WRAP` interchangeable siblings is laid out as a grid of its own, and chains
+ * longer than `WRAP` steps wrap onto further rows. Every block and every sibling with no links then goes into one
+ * grid, in reading order, so unrelated pieces line up in rows and columns.
  */
-async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<string, Point>> {
+async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: CardSize): Promise<Map<string, Point>> {
   const ends = new Map(children.map((child) => [child.id, { in: [] as string[], out: [] as string[] }]))
 
   for (const [source, target] of edges) {
@@ -147,6 +182,9 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<s
 
   for (const child of [...children].sort(reading)) {
     const childEnds = ends.get(child.id)!
+
+    if (!childEnds.in.length && !childEnds.out.length) continue
+
     const key = childEnds.in.sort().join(',') + '|' + childEnds.out.sort().join(',')
     const run = runs.get(key) ?? []
 
@@ -156,27 +194,35 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<s
   }
 
   const unitOf = new Map<string, string>()
-  const blocks = new Map<string, { members: AppNode[]; at: Point[] }>()
-  const units: ({ id: string } & Size)[] = []
+  const members = new Map<string, AppNode[]>()
+  const sizes = new Map<string, Size>()
+  const offsetOf = new Map<string, Point>()
 
   for (const child of children) {
     if (unitOf.has(child.id)) continue
 
-    const run = runOf.get(child.id)!
+    const run = runOf.get(child.id) ?? []
 
     if (run.length <= WRAP) {
       unitOf.set(child.id, child.id)
-      units.push({ id: child.id, ...sizeOf(child) })
+      members.set(child.id, [child])
+      sizes.set(child.id, sizeOf(child, cardSize))
       continue
     }
 
     const id = '\0run:' + child.id
-    const runGrid = grid(run.map(sizeOf), Math.min(WRAP, Math.ceil(Math.sqrt(run.length))), gap.node)
+    const runGrid = grid(
+      run.map((node) => sizeOf(node, cardSize)),
+      Math.min(WRAP, Math.ceil(Math.sqrt(run.length))),
+      gap.node,
+    )
 
-    for (const member of run) unitOf.set(member.id, id)
-
-    blocks.set(id, { members: run, at: runGrid.at })
-    units.push({ id, width: runGrid.width, height: runGrid.height })
+    run.forEach((member, i) => {
+      unitOf.set(member.id, id)
+      offsetOf.set(member.id, runGrid.at[i])
+    })
+    members.set(id, run)
+    sizes.set(id, { width: runGrid.width, height: runGrid.height })
   }
 
   const seen = new Set<string>()
@@ -191,53 +237,65 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<s
     unitEdges.push(edge)
   }
 
-  let placed = await elkBoxes(units, unitEdges, gap)
-  const root = new Map(units.map((unit) => [unit.id, unit.id]))
-  const findRoot = (id: string): string => (root.get(id) === id ? id : findRoot(root.get(id)!))
-
-  for (const [source, target] of unitEdges) root.set(findRoot(source), findRoot(target))
-
+  const linked = new Set(unitEdges.flat())
+  const roots = linkRoots([...linked], unitEdges)
+  const linkedBoxes = unitEdges.length
+    ? await elkBoxes(
+        [...linked].map((id) => ({ id, ...sizes.get(id)! })),
+        unitEdges,
+        gap,
+      )
+    : new Map<string, Box>()
   const parts = new Map<string, Map<string, Box>>()
 
-  for (const unit of units) {
-    const part = parts.get(findRoot(unit.id)) ?? new Map<string, Box>()
+  for (const id of linked) {
+    const root = roots.get(id)!
+    const part = parts.get(root) ?? new Map<string, Box>()
 
-    part.set(unit.id, placed.get(unit.id)!)
-    parts.set(findRoot(unit.id), part)
+    part.set(id, linkedBoxes.get(id)!)
+    parts.set(root, part)
   }
 
-  const wrapped = new Map([...parts].map(([id, part]) => [id, wrapLayers(part, gap.layer)]))
+  const earliest = (ids: string[]) => ids.flatMap((id) => members.get(id)!).reduce((first, node) => (reading(node, first) < 0 ? node : first))
+  const shapes: { ids: string[]; first: AppNode; boxes: Map<string, Box>; size: Size }[] = []
 
-  if ([...wrapped.values()].some((boxes) => boxes)) {
-    const shapes = [...parts].map(([id, part]) => {
-      const boxes = wrapped.get(id) ?? part
+  for (const part of parts.values()) {
+    const ids = [...part.keys()]
 
-      return { id, boxes, frame: bounds([...boxes.values()]) }
-    })
-    const packed = await elkBoxes(
-      shapes.map((shape) => ({ id: shape.id, width: shape.frame.width, height: shape.frame.height })),
-      [],
-      gap,
-    )
-
-    placed = new Map()
-
-    for (const shape of shapes) {
-      const at = packed.get(shape.id)!
-
-      for (const [id, box] of shape.boxes) placed.set(id, { ...box, x: box.x - shape.frame.x + at.x, y: box.y - shape.frame.y + at.y })
-    }
+    shapes.push({ ids, first: earliest(ids), ...frameBlock(part, gap.layer) })
   }
 
+  for (const id of members.keys()) {
+    if (linked.has(id)) continue
+
+    const size = sizes.get(id)!
+
+    shapes.push({ ids: [id], first: earliest([id]), boxes: new Map([[id, { x: 0, y: 0, ...size }]]), size })
+  }
+
+  shapes.sort((a, b) => reading(a.first, b.first))
+
+  const laidOut = grid(
+    shapes.map((shape) => shape.size),
+    Math.ceil(Math.sqrt(shapes.length)),
+    gap.component,
+  )
   const positions = new Map<string, Point>()
 
-  for (const child of children) {
-    const unit = placed.get(unitOf.get(child.id)!)!
-    const block = blocks.get(unitOf.get(child.id)!)
-    const offset = block ? block.at[block.members.indexOf(child)] : { x: 0, y: 0 }
+  shapes.forEach((shape, i) => {
+    for (const id of shape.ids) {
+      const box = shape.boxes.get(id)!
 
-    positions.set(child.id, { x: unit.x + offset.x, y: unit.y + offset.y })
-  }
+      for (const member of members.get(id)!) {
+        const offset = offsetOf.get(member.id) ?? { x: 0, y: 0 }
+
+        positions.set(member.id, {
+          x: laidOut.at[i].x + box.x + offset.x,
+          y: laidOut.at[i].y + box.y + offset.y,
+        })
+      }
+    }
+  })
 
   return positions
 }
@@ -247,7 +305,12 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap): Promise<Map<s
  * to be arranged. Links between deeper descendants are lifted to the child that contains them, so nested groups are
  * placed as single boxes.
  */
-export async function reflow(nodes: AppNode[], links: Link[], groupId: string | undefined): Promise<AppNode[]> {
+export async function reflow(
+  nodes: AppNode[],
+  links: Link[],
+  groupId: string | undefined,
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): Promise<AppNode[]> {
   const nodeMap = byId(nodes)
   const group = groupId ? nodeMap.get(groupId) : undefined
   const arrange = group && isCluster(group) ? (group.data.arrange ?? 'auto') : 'auto'
@@ -289,7 +352,7 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
     edges.push([source, target])
   }
 
-  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP)
+  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize)
   const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
 
   return normalize(
@@ -298,5 +361,6 @@ export async function reflow(nodes: AppNode[], links: Link[], groupId: string | 
 
       return position ? { ...node, position: { x: position.x + offset.x, y: position.y + offset.y } } : node
     }),
+    cardSize,
   )
 }
