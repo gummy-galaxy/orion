@@ -29,6 +29,7 @@ export type CardView = {
   whoLabel?: string
   leverage: number
   checks?: 'passing' | 'failing' | 'pending'
+  changeSize?: { additions: number; deletions: number }
   /** How close an open pull request is to merging. */
   readiness?: PullReadiness
   /** GitHub would merge the pull request now, and the card isn't parked or blocked by hand. */
@@ -69,6 +70,10 @@ export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverag
   // Work parked or blocked by hand stays that way even when GitHub would merge it.
   const readyToMerge = readiness === 'mergeable' && (facts.status === 'review' || facts.status === 'ready' || facts.status === 'active')
   const merge = readyToMerge && pullRef?.url && pullDetails?.head ? { url: pullRef.url, head: pullDetails.head } : undefined
+  const changeSize =
+    typeof pullDetails?.additions === 'number' && typeof pullDetails.deletions === 'number'
+      ? { additions: pullDetails.additions, deletions: pullDetails.deletions }
+      : undefined
   // The primary ref's URL, so a badge for another GitHub ref can't change what opens from a pull request card.
   const url = getTaskUrl(data)
   const pullRequestUrl = data.itemKind === 'pr' && url?.startsWith('https://github.com/') ? url : undefined
@@ -85,6 +90,7 @@ export function getCardView(node: TaskNode, facts: { status: ViewStatus; leverag
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
     ...(checks ? { checks } : {}),
+    ...(changeSize ? { changeSize } : {}),
     ...(readiness ? { readiness } : {}),
     ...(readyToMerge ? { readyToMerge } : {}),
     ...(merge ? { merge } : {}),
