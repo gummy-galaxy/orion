@@ -3,6 +3,7 @@
 @import './themes/vibrant.css';
 @import './themes/colorblind.css';
 @import './skins/plain.css';
+@import './skins/trading.css';
 
 * {
   box-sizing: border-box;
