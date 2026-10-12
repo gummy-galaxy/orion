@@ -64,6 +64,14 @@ P0 is red, P1 orange, P2 blue, and P3 and below gray. Sizes follow the same scal
 
 2026-10-11 · #275
 
+### Priority and size come from project fields, with labels as a fallback
+
+A card reads priority and size from its issue's GitHub Project fields first. When an issue has no project value, labels such as `P1` and `size/M` fill in. Orion recognizes common field names and label patterns on its own, with no configuration. A per-project config file, such as `orion.luau`, that names other fields or labels waits until a real project doesn't fit those conventions.
+
+**Why:** Orion's own repository keeps priority and size in project fields, and the labels stay on its issues until ingestion proves it reads the fields. Many repositories only have labels, so a fallback covers them without extra setup. A config file is scaffolding until something needs it.
+
+2026-10-12 · #241
+
 ### Legibility wins over flourish
 
 Holo and foil effects stay off text. Card styles should stay readable at a glance, like Legends of Runeterra, Balatro, and Wildfrost, without Wildfrost's chunky black outlines.
