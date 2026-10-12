@@ -4,6 +4,7 @@ local process = require("@std/process")
 
 local backups = require("@root/cli/backups")
 local batchEdit = require("@root/cli/batchEdit")
+local check = require("@root/cli/check")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local focus = require("@root/cli/focus")
@@ -28,6 +29,7 @@ local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggest = require("@root/cli/suggest")
 local suggestions = require("@root/cli/suggestions")
+local tidy = require("@root/cli/tidy")
 local types = require("@root/types")
 local workspace = require("@root/cli/workspace")
 
@@ -61,6 +63,8 @@ local COMMANDS: { [string]: Command } = {
 	workspace = workspace,
 	source = source,
 	ingest = ingest,
+	check = check,
+	tidy = tidy,
 	import = importCommand,
 }
 
@@ -269,6 +273,8 @@ local function createParsers(): Parsers
 
 	registeredCommand("suggest")
 	registeredCommand("suggestions")
+	registeredCommand("check")
+	registeredCommand("tidy")
 
 	command("path")
 	registeredCommand("mcp")
