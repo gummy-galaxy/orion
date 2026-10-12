@@ -64,3 +64,7 @@ const severalRefs: TaskNode = {
 export const SeveralRefs: Story = { render: () => <StoryGraph nodes={[severalRefs]} nodeTypes={{ task: TaskView }} /> }
 
 export const PullReadiness: Story = { render: () => <StoryGraph nodes={readinessCards} nodeTypes={{ task: TaskView }} /> }
+
+export const FinishStamp: Story = {
+  render: () => <StoryGraph nodes={[{ ...task, data: { ...task.data, status: 'done', celebrate: true } }]} nodeTypes={{ task: TaskView }} />,
+}

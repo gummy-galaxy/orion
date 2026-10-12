@@ -6,6 +6,7 @@ local task = require("@std/task")
 
 local fileNames = require("@root/fileNames")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
+local graph = require("@root/graph")
 local migrateItem = require("@root/refs/migrateItem")
 local types = require("@root/types")
 
@@ -593,7 +594,9 @@ function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
 	local lockPath = acquire(dir)
 	local succeeded, result = pcall(function(): Doc
 		local doc = store.load(dir)
+		local previous = graph.recordedStatuses(doc)
 		mutate(doc)
+		graph.markCelebrations(doc, previous)
 		doc.revision += 1
 		atomicWrite(store.filePath(dir), store.encode(doc))
 		return doc
@@ -646,6 +649,8 @@ function store.put(
 			return false, previous
 		end
 
+		local previousStatuses = if current then graph.recordedStatuses(current) else {}
+
 		local root = json.object(if current
 			then store.toObject(current)
 			else {
@@ -665,7 +670,9 @@ function store.put(
 			root.stickerLoadout = stickerLoadout
 		end
 
-		atomicWrite(store.filePath(dir), store.encode(store.decode(json.serialize(root, true))))
+		local nextDoc = store.decode(json.serialize(root, true))
+		graph.markCelebrations(nextDoc, previousStatuses)
+		atomicWrite(store.filePath(dir), store.encode(nextDoc))
 		return true, nextRevision
 	end)
 

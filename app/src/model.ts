@@ -27,6 +27,11 @@ export type TaskData = {
   refs?: SourceRef[]
   note?: string
   who?: Who
+  /**
+   * Set when the card changes to done, until its finish stamp is clicked or the card is reopened. The CLI store sets
+   * it too, on every path that finishes a card, so it is saved with the card like the other fields.
+   */
+  celebrate?: boolean
 }
 export type SourceRef = {
   source: string

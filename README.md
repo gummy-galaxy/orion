@@ -104,6 +104,8 @@ For GitHub sources, `--owners`, `--include`, and `--exclude` accept comma-separa
 
 Cards store pull requests, issues, and local branches in `data.refs`, including each source ID, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests.
 
+A card that changes to done gets `data.celebrate: true`, whether the change comes from `orion done`, `orion sync`, or the app. Reopening it removes the flag, and clicking its finish stamp in the app clears it along with the finished cards chained to it through blocking links. Cards finished before the flag existed don't have it.
+
 For a Roblox setup:
 
 ```sh
