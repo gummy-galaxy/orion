@@ -23,6 +23,6 @@
   --sticker-edge: #fff;
   --window-close-background: #c42b1c;
   --window-close-text: #fff;
-  --shadow: 0 1px 2px rgb(5 3 15 / 0.4), 0 6px 18px rgb(5 3 15 / 0.35);
+  --shadow-raised: 0 1px 2px rgb(5 3 15 / 0.4), 0 6px 18px rgb(5 3 15 / 0.35);
   color-scheme: dark;
 }
