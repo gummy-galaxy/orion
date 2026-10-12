@@ -66,9 +66,9 @@ P0 is red, P1 orange, P2 blue, and P3 and below gray. Sizes follow the same scal
 
 ### Priority and size come from project fields, with labels as a fallback
 
-A card reads priority and size from its issue's GitHub Project fields first. When an issue has no project value, labels such as `P1` and `size/M` fill in. Orion recognizes common field names and label patterns on its own, with no configuration. A per-project config file, such as `orion.luau`, that names other fields or labels waits until a real project doesn't fit those conventions.
+A card reads priority and size from Project fields named Priority and Size first. When an issue has no project value, `P0`–`P3` and `size/XS`–`size/XL` labels fill in. That one base mapping works with no setup. Other field names, label schemes, and broader heuristics are tuned per project through a config file such as `orion.luau` or a setting, rather than guessed by default.
 
-**Why:** Orion's own repository keeps priority and size in project fields, and the labels stay on its issues until ingestion proves it reads the fields. Many repositories only have labels, so a fallback covers them without extra setup. A config file is scaffolding until something needs it.
+**Why:** many repositories only have labels, so a fallback covers them without extra setup. Teams label work in many different ways, and guessing broadly risks reading the wrong labels, such as severity as priority. Keeping the default narrow makes it predictable, and config covers the rest once a real project needs it.
 
 2026-10-12 · #241
 
