@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAct
 import { useReactFlow, type NodeChange } from '@xyflow/react'
 import { liftNodes, unliftNodes } from './lift'
 import { byId, isCluster, normalize, type AppNode } from './model'
+import { pushAside } from './pushAside'
 import { finishDrag, snapDrag, snapGuides } from './snap'
 import type { CardSize } from './cardSize'
 
@@ -15,7 +16,8 @@ const SNAP_REACH_PX = 160
 const THROW_SPEED = 0.8
 const THROW_WINDOW_MS = 90
 
-type DragSession = { ids: Set<string>; free: boolean; samples: { x: number; y: number; time: number }[] }
+/** `before` is the canvas as the drag found it, so a group the drop grows can push its neighbors aside. */
+type DragSession = { ids: Set<string>; free: boolean; samples: { x: number; y: number; time: number }[]; before: AppNode[] }
 type DragEvent = MouseEvent | TouchEvent
 
 /** Owns snapping's drag state while the canvas keeps its other node-change behavior. */
@@ -55,10 +57,12 @@ export function useNodeSnapping({
     (event: DragEvent, dragged: { id: string }[]) => {
       const ids = new Set(dragged.map((node) => node.id))
 
-      drag.current = { ids, free: event.ctrlKey, samples: [] }
+      const before = getCurrentNodes()
+
+      drag.current = { ids, free: event.ctrlKey, samples: [], before }
       setSkipSnapGuides(event.ctrlKey)
       setNodes((currentNodes) => liftNodes(currentNodes, ids))
-      const nodeMap = byId(getCurrentNodes())
+      const nodeMap = byId(before)
 
       dragOrigins.current = new Map()
 
@@ -96,7 +100,7 @@ export function useNodeSnapping({
 
       if (!session) return setNodes((currentNodes) => normalize(currentNodes, cardSize))
 
-      const released = (currentNodes: AppNode[]) => normalize(unliftNodes(currentNodes, session.ids), cardSize)
+      const released = (currentNodes: AppNode[]) => pushAside(session.before, normalize(unliftNodes(currentNodes, session.ids), cardSize), cardSize)
       const now = performance.now()
       const recentSamples = session.samples.filter((sample) => now - sample.time <= THROW_WINDOW_MS)
       const firstSample = recentSamples[0]
