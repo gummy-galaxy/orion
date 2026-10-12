@@ -16,6 +16,7 @@ const ready: CardView = {
   status: 'ready',
   statusLabel: 'Ready',
   leverage: 0,
+  upstream: 0,
   sources: [],
   artSeed: 'ready-step',
 }

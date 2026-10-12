@@ -7,16 +7,16 @@ import { CardBody } from './CardBody'
 import { FarTag } from './FarTag'
 import { PeekCard } from './PeekCard'
 
-/** Zoom below which a card's details sit in a tag over its body that keeps one on-screen size. */
+/** Zoom below which a hovered or selected card's details sit in a tag over its body that keeps one on-screen size. */
 const FAR_ZOOM = 0.3
 
 // Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
-export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>) {
+export const TaskView = memo(function TaskView({ id, data, parentId, selected }: NodeProps<TaskNode>) {
   const far = useStore((state) => state.transform[2] < FAR_ZOOM)
   const [hovered, setHovered] = useState(false)
   // Inspect mode opens the hovered card in full.
   const peeking = useAtomValue(inspectingAtom) && hovered
-  const view = useCardView(id, data)
+  const view = useCardView(id, data, parentId)
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const skin = useAtomValue(skinAtom, { store: skinStore })
@@ -29,11 +29,12 @@ export const TaskView = memo(function TaskView({ id, data }: NodeProps<TaskNode>
   return (
     <div className={className} onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)}>
       <Handle type="target" position={Position.Left} />
+      {/* Only one card at a time grows into a tag, so tags never pile over their neighbors. */}
       {peeking ? (
         <PeekCard className={className} note={view.kind === 'note' ? undefined : view.note}>
           {body}
         </PeekCard>
-      ) : far ? (
+      ) : far && (hovered || selected) ? (
         <FarTag className={className}>{body}</FarTag>
       ) : (
         body
