@@ -1,17 +1,14 @@
 import { useEffect, useRef } from 'react'
 import type { Appearance, Theme } from '../appearance'
 import type { Keybindings } from '../keybindings'
-import type { Scrolling } from '../scrolling'
 import { AccessibilitySettings } from './AccessibilitySettings'
 import { AppearanceSettings } from './AppearanceSettings'
-import { CanvasSettings } from './CanvasSettings'
 import { ShortcutSettings } from './ShortcutSettings'
 
-export type SettingsSection = 'appearance' | 'canvas' | 'accessibility' | 'shortcuts'
+export type SettingsSection = 'appearance' | 'accessibility' | 'shortcuts'
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'appearance', label: 'Appearance' },
-  { id: 'canvas', label: 'Canvas' },
   { id: 'accessibility', label: 'Accessibility' },
   { id: 'shortcuts', label: 'Keyboard Shortcuts' },
 ]
@@ -23,25 +20,12 @@ type Props = {
   appearance: Appearance
   themes: readonly Theme[]
   chooseAppearance: (appearance: Appearance) => void
-  scrolling: Scrolling
-  chooseScrolling: (scrolling: Scrolling) => void
   keybindings: Keybindings
   chooseKeybindings: (keybindings: Keybindings) => void
 }
 
 /** Preferences saved on this device, one section at a time beside a list of sections. */
-export function Settings({
-  section,
-  showSection,
-  close,
-  appearance,
-  themes,
-  chooseAppearance,
-  scrolling,
-  chooseScrolling,
-  keybindings,
-  chooseKeybindings,
-}: Props) {
+export function Settings({ section, showSection, close, appearance, themes, chooseAppearance, keybindings, chooseKeybindings }: Props) {
   const dialog = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -90,9 +74,8 @@ export function Settings({
         </button>
         <div className="settings-body">
           {section === 'appearance' && <AppearanceSettings appearance={appearance} themes={themes} chooseAppearance={chooseAppearance} />}
-          {section === 'canvas' && <CanvasSettings scrolling={scrolling} chooseScrolling={chooseScrolling} />}
           {section === 'accessibility' && <AccessibilitySettings appearance={appearance} chooseAppearance={chooseAppearance} />}
-          {section === 'shortcuts' && <ShortcutSettings scrolling={scrolling} keybindings={keybindings} chooseKeybindings={chooseKeybindings} />}
+          {section === 'shortcuts' && <ShortcutSettings keybindings={keybindings} chooseKeybindings={chooseKeybindings} />}
         </div>
       </div>
     </div>

@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useEffect, useState } from 'react'
 import { type Appearance, type Theme } from '../appearance'
 import { DEFAULT_KEYBINDINGS, type Keybindings } from '../keybindings'
-import type { Scrolling } from '../scrolling'
 import { cachedThemes, loadThemes } from '../themeFile'
 import { Settings, type SettingsSection } from './Settings'
 
@@ -20,7 +19,6 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
     statusColors: 'theme',
     animations: 'system',
   })
-  const [scrolling, setScrolling] = useState<Scrolling>('zoom')
   const [bindings, setBindings] = useState(keybindings)
   const [themes, setThemes] = useState<Theme[]>(cachedThemes)
 
@@ -37,8 +35,6 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
       appearance={appearance}
       themes={themes}
       chooseAppearance={setAppearance}
-      scrolling={scrolling}
-      chooseScrolling={setScrolling}
       keybindings={bindings}
       chooseKeybindings={setBindings}
     />
@@ -46,8 +42,6 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
 }
 
 export const AppearanceSection: Story = { render: () => <Interactive section="appearance" /> }
-
-export const CanvasSection: Story = { render: () => <Interactive section="canvas" /> }
 
 export const AccessibilitySection: Story = { render: () => <Interactive section="accessibility" /> }
 
