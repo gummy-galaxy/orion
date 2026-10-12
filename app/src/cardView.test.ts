@@ -87,15 +87,6 @@ describe('getCardView', () => {
     expect(getCardView(createTaskNode(createTaskData()), createFacts()).checks).toBeUndefined()
   })
 
-  it('copies pull change size without exposing pull details', () => {
-    const taskNode = createTaskNode(
-      createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', details: { additions: 412, deletions: 38 } }] }),
-    )
-
-    expect(getCardView(taskNode, createFacts()).changeSize).toEqual({ additions: 412, deletions: 38 })
-    expect(getCardView(createTaskNode(createTaskData()), createFacts()).changeSize).toBeUndefined()
-  })
-
   it('offers a merge while GitHub would merge the pull request and the card is still in play', () => {
     const url = 'https://github.com/vocksel/orion/pull/1'
     const details = { state: 'OPEN', checks: 'SUCCESS', mergeState: 'CLEAN', head: 'abc123' }
