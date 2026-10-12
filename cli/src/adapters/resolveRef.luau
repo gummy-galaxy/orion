@@ -91,7 +91,9 @@ local function resolveRef(input: string, sources: { Source }): ResolvedRef
 	local refFromKey = getAdapter(source.kind).refFromKey
 	assert(refFromKey, `{source.kind} sources can't attach refs with source:key; use a URL`)
 
-	return assert(refFromKey(key, source), `"{key}" is not a valid {source.kind} key`)
+	local ref = assert(refFromKey(key, source), `"{key}" is not a valid {source.kind} key`)
+
+	return ref
 end
 
 return resolveRef

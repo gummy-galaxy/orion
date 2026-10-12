@@ -4,7 +4,7 @@ A canvas for graph-shaped work: tasks and pull requests with dependencies, group
 
 This is a prototype. It runs in the browser or in a desktop shell.
 
-See [`CHARTER.md`](CHARTER.md) for where it's headed.
+See [`CHARTER.md`](CHARTER.md) for where it's headed and [`DECISIONS.md`](DECISIONS.md) for the calls made along the way.
 
 - `app/`: the canvas.
 - `desktop/`: the Tauri desktop shell.
@@ -27,7 +27,7 @@ Before replacing an existing data file, the CLI store copies it to `backups/orio
 
 While the app is open, it reports its open group and selection to `orion serve`. The server writes `focus.json` in the active workspace's folder without changing the canvas revision; `orion focus` reads it. The report is cleared when its tab closes, the workspace changes, or the server stops.
 
-The app's preferences, such as the theme, color mode, scrolling, keyboard shortcuts, and whether the sidebar is shown, live in the data root's `settings.json`. `orion serve` reads and merges them at `/api/settings`, so they're shared by every workspace and outlast the desktop app's new server port on each launch.
+The app's preferences, such as the theme, color mode, scrolling, keyboard shortcuts, and whether the sidebar is shown, live in the data root's `settings.json`. `orion serve` reads and merges them at `/api/settings`, so they're shared by every workspace and by the browser and desktop app.
 
 ## Run the app
 
@@ -57,7 +57,7 @@ npm install
 npm run dev
 ```
 
-The development window uses the app's Vite server on port 5199, which proxies the data API and WebSocket to `orion serve`. `npm run build` builds the CLI with Lute and packages it with the canvas. The packaged app runs `orion serve`, so it reads and writes the same workspace files as the CLI, including when `ORION_DATA_DIR` selects another data root.
+The development window uses the app's Vite server on port 5199, which proxies the data API and WebSocket to `orion serve`. `npm run build` builds the CLI with Lute and packages it with the canvas. The packaged app runs `orion serve`, so it reads and writes the same workspace files as the CLI, including when `ORION_DATA_DIR` selects another data root. It picks a free port on first launch, saves it as `server-port` in the app's own folder (`~/Library/Application Support/com.vocksel.orion` on macOS), and reuses it after, so the window keeps one origin and its browser storage, such as each workspace's viewport and detail level, survives a restart. When another process holds that port for more than a few seconds, it picks and saves a new one.
 
 ## Build the CLI
 
@@ -66,14 +66,14 @@ The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang
 ```sh
 cd cli
 rokit install
-lute run install
+lute pkg install
 lute run build
 ```
 
-That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. See [`AGENTS.md`](AGENTS.md) for how agents should use it.
+`lute pkg install` fills `~/.loom/store`, which the build reads directly, so nothing is copied into the checkout. Lute can only bundle that store from a checkout under your home directory, and `lute run build` fails elsewhere. That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. See [`AGENTS.md`](AGENTS.md) for how agents should use it.
 
 Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
-StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute project.luau loom.config.luau` from `cli/` to format all Luau sources, including the Lute scripts. CI checks the same paths.
+StyLua is installed through `cli/rokit.toml`. Run `stylua src cli.luau .lute project.luau loom.config.luau .config.luau` from `cli/` to format all Luau sources, including the Lute scripts. CI checks the same paths.
 
 ### Connect agents over MCP
 
@@ -125,12 +125,14 @@ Use `orion ingest --source <id> --json` for one source and a machine-readable re
 - ⌘G groups the selection. ⇧⌘G ungroups. Groups can nest and span repositories.
 - The list on the left shows every group in canvas order. Click one to open it.
 - Press ⌘K (or Ctrl+K) to search groups, cards, PRs, and notes, then press Enter to jump to a result. Type `>` first, or press ⇧⌘P (or Ctrl+Shift+P), to list actions instead; deleting the `>` goes back to searching.
-- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme and Light, Dark, or System color mode. Accessibility picks colorblind colors: Red-green or Blue-yellow swaps in status colors tuned for that kind of color blindness, in any theme. Animations follows your computer's reduced motion setting until you pick a level: Reduced stops looping effects and makes the canvas jump instead of glide but keeps fades, and Off stops every animation. Every status also has its own shape: an empty ring when ready, half full in progress, three quarters in review, a solid check when done, a dashed ring when deferred, and a lock when blocked. Whose move it is shows as a person, an eye, or a gear; notes have a folded corner; folded groups look like a stack of cards; and the minimap draws ready work hollow, work in progress half filled, and work in review solid. Canvas picks whether scrolling zooms or pans. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. All four are saved in the data folder. The shortcuts in this section are the defaults.
+- Open Settings with ⌘, (or Ctrl+,), the Settings button at the bottom of the sidebar, or through ⇧⌘P. Appearance picks the theme, the card skin, and Light, Dark, or System color mode. Accessibility picks colorblind colors: Red-green or Blue-yellow swaps in status colors tuned for that kind of color blindness, in any theme. Animations follows your computer's reduced motion setting until you pick a level: Reduced stops looping effects and makes the canvas jump instead of glide but keeps fades, and Off stops every animation. Every status also has its own shape: an empty ring when ready, half full in progress, three quarters in review, a solid check when done, a dashed ring when deferred, and a lock when blocked. Whose move it is shows as a person, an eye, or a gear; notes have a folded corner; folded groups look like a stack of cards; and the minimap draws ready work hollow, work in progress half filled, and work in review solid. Canvas picks whether scrolling zooms or pans. Keyboard Shortcuts lists every shortcut and gesture; click a shortcut and press new keys to rebind it, and a clash with another shortcut is flagged on both. All four are saved in the data folder. The shortcuts in this section are the defaults.
+- Card skins are listed in `app/src/skins.ts`, with a component and CSS file for each skin.
 - Double-click a group, or press Enter with one selected, to open it. Esc or a double-click on empty canvas goes back up, and the breadcrumbs jump to any level.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right. Click one to focus on it.
 - The detail stepper beside the zoom buttons, or [ and ], folds groups into single bodies one level of nesting at a time, inner groups first, counting from the open group. Each workspace remembers its level. Links between folded groups are bundled into one line with a count. Zoom only moves the view.
 - However far you zoom out, folded groups, cards, and notes keep their full details at a readable size, and open groups' headers grow to stay legible. Hover one to bring it above its neighbors.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one; work off screen gets a chip at the edge that jumps to it.
+- Hold Ctrl to inspect. The card under the cursor opens in full at a readable size, with its note, and every related link shows at full strength.
 - Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it (dark dots).
 - Double-click a card to focus on it. The canvas zooms onto it with its details above, what it waits on in a scrolling column on the left, and what it leads to on the right. Click one of those to focus on it instead, opening its group if it lives elsewhere. Esc or a click on the empty canvas goes back. ⌘ or ⇧ click adds to the selection.
 - Moving lines are dependencies that are still waiting. Still lines are satisfied. Dotted lines are related work that never blocks; they stay faint until you hover, hold, or select one of their cards.
@@ -156,6 +158,7 @@ In `app/`:
 - `src/snap.ts`, `src/useNodeSnapping.ts`, and `src/components/SnapGuides.tsx`: drag geometry, interaction state, and alignment guides.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
+- `src/useInspecting.ts` and `src/components/PeekCard.tsx`: holding Ctrl to inspect, and the card it opens in full.
 - `src/components/ImageView.tsx`: image nodes and their workspace-local previews.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
