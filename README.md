@@ -160,6 +160,7 @@ In `app/`:
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: laying out one group or the top level: ELK with wrapping, and custom groups left alone.
 - `src/snap.ts`, `src/useNodeSnapping.ts`, and `src/components/SnapGuides.tsx`: drag geometry, interaction state, and alignment guides.
+- `src/escape.ts`: dragging work out of its group past the pop distance, and the group a drop lands in.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/nodes.tsx`: task cards and group frames.
 - `src/useInspecting.ts` and `src/components/PeekCard.tsx`: holding Ctrl to inspect, and the card it opens in full.
