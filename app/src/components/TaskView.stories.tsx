@@ -28,7 +28,7 @@ const OPEN_PULL: PullDetails = {
 const READINESS: [string, Partial<PullDetails>][] = [
   ['Merge conflicts', { checks: 'SUCCESS', mergeable: 'CONFLICTING', mergeState: 'DIRTY' }],
   ['Checks failing', { checks: 'FAILURE', mergeState: 'BLOCKED' }],
-  ['Checks running', { checks: 'PENDING', checkProgress: 'running' }],
+  ['Checks running', { checks: 'PENDING', checkProgress: 'running', checkCounts: { total: 8, finished: 5, failed: 0 } }],
   ['Checks queued', { checks: 'PENDING', checkProgress: 'waiting' }],
   ['Checks passing, awaiting review', { checks: 'SUCCESS', mergeable: 'MERGEABLE', mergeState: 'BLOCKED' }],
   ['Ready to merge', { checks: 'SUCCESS', mergeable: 'MERGEABLE', mergeState: 'CLEAN', reviewDecision: 'APPROVED' }],

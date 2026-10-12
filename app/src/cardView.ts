@@ -6,6 +6,7 @@ import {
   getTaskUrl,
   READINESS_LABEL,
   STATUS_LABEL,
+  type CheckCounts,
   type ItemKind,
   type PullDetails,
   type PullReadiness,
@@ -34,6 +35,10 @@ export type CardView = {
   checks?: 'passing' | 'failing' | 'pending'
   /** How close an open pull request is to merging. */
   readiness?: PullReadiness
+  /** Whether an open pull request's unfinished checks have started, even when one has already failed. */
+  checkProgress?: 'running' | 'waiting'
+  /** How many of an open pull request's checks have finished and failed, out of all of them. */
+  checkCounts?: CheckCounts
   /** GitHub would merge the pull request now, and the card isn't parked or blocked by hand. */
   readyToMerge?: true
   /** The pull request and head commit a merge from the card must match, while it's ready to merge. */
@@ -96,6 +101,9 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const pullDetails = pullRef?.details as PullDetails | undefined
   const checks = getChecks(pullDetails?.checks)
   const readiness = getPullReadiness(pullDetails)
+  const open = pullDetails?.state === 'OPEN'
+  const checkProgress = open ? pullDetails.checkProgress : undefined
+  const checkCounts = open ? pullDetails.checkCounts : undefined
   // Work parked or blocked by hand stays that way even when GitHub would merge it.
   const readyToMerge = readiness === 'mergeable' && (facts.status === 'review' || facts.status === 'ready' || facts.status === 'active')
   const merge = readyToMerge && pullRef?.url && pullDetails?.head ? { url: pullRef.url, head: pullDetails.head } : undefined
@@ -118,6 +126,8 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     ...(data.itemKind === 'note' ? {} : { rarity: getRarity(facts.upstream) }),
     ...(checks ? { checks } : {}),
     ...(readiness ? { readiness } : {}),
+    ...(checkProgress ? { checkProgress } : {}),
+    ...(checkCounts ? { checkCounts } : {}),
     ...(readyToMerge ? { readyToMerge } : {}),
     ...(merge ? { merge } : {}),
     sources: facts.sources,
