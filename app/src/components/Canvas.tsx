@@ -108,7 +108,6 @@ import {
 } from '../persist'
 import { Sidebar } from './Sidebar'
 import { Settings, type SettingsSection } from './Settings'
-import { SCROLLINGS, readScrolling, writeScrolling, type Scrolling } from '../scrolling'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
 import { stackNodes } from '../stack'
@@ -117,7 +116,6 @@ import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
 import { useInspecting } from '../useInspecting'
-import { useWheelZoom } from '../useWheelZoom'
 import {
   attentionAtom,
   collapsedAtom,
@@ -136,7 +134,7 @@ import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove 
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { Toolbar, type Tool } from './Toolbar'
-import { detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
+import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { MAX_ZOOM, MIN_ZOOM, mapViewportForCardSize, readViewport, writeViewport } from '../viewport'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
@@ -324,7 +322,7 @@ export function Canvas() {
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
   // How many levels of nesting show below the open group; zoom no longer changes it.
-  const [detail, setDetail] = useState<Detail>(null)
+  const [detail, setDetail] = useState<Detail>(DEFAULT_DETAIL)
   const [hover, setHover] = useAtom(hoverAtom)
   const [pinned, setPinned] = useAtom(pinnedAtom)
   // A double-clicked card fills the view with what it waits on and leads to beside it.
@@ -336,7 +334,6 @@ export function Canvas() {
   const [appearance, setAppearance] = useState(readAppearance)
   const setSkin = useSetAtom(skinAtom, { store: skinStore })
   const systemMotion = useSystemMotion()
-  const [scrolling, setScrolling] = useState(readScrolling)
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
   const [settings, setSettings] = useState<SettingsSection | null>(null)
@@ -1110,7 +1107,6 @@ export function Canvas() {
   // Focus ends on its own if someone else removes the card.
   const focus = focusPick && map.has(focusPick) ? focusPick : null
 
-  useWheelZoom(canvasRef, !focus && scrolling === 'zoom')
   useInspecting()
 
   const inspecting = useAtomValue(inspectingAtom)
@@ -1388,6 +1384,28 @@ export function Canvas() {
       window.removeEventListener('pointerdown', stop)
     }
   }, [])
+
+  // ---- Pan: hold ⌘ to move cards and groups, as in Select ----
+  const [commandHeld, setCommandHeld] = useState(false)
+
+  useEffect(() => {
+    if (tool !== 'hand') return
+
+    const down = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(true)
+    const up = (event: KeyboardEvent) => event.key === 'Meta' && setCommandHeld(false)
+    const stop = () => setCommandHeld(false)
+
+    window.addEventListener('keydown', down)
+    window.addEventListener('keyup', up)
+    window.addEventListener('blur', stop)
+
+    return () => {
+      window.removeEventListener('keydown', down)
+      window.removeEventListener('keyup', up)
+      window.removeEventListener('blur', stop)
+      stop()
+    }
+  }, [tool])
 
   // ---- Selection box ----
   const [marquee, setMarquee] = useState<{ x: number; y: number; width: number; height: number } | null>(null)
@@ -2603,16 +2621,10 @@ export function Canvas() {
       detail: 'Saved on this device',
       run: () => chooseAppearance(withMotion(appearance, option.id)),
     })),
-    ...SCROLLINGS.map((option) => ({
-      id: `scroll-${option.id}`,
-      label: `Scroll to: ${option.label}`,
-      detail: 'Saved on this device',
-      run: () => chooseScrolling(option.id),
-    })),
     {
       id: 'settings',
       label: 'Open settings',
-      detail: 'Theme, cards, color mode, scrolling, accessibility, and keyboard shortcuts',
+      detail: 'Theme, cards, color mode, accessibility, and keyboard shortcuts',
       hint: hintOf('settings'),
       run: () => setSettings('appearance'),
     },
@@ -2690,11 +2702,6 @@ export function Canvas() {
   const chooseAppearance = (next: Appearance) => {
     setAppearance(next)
     writeAppearance(next)
-  }
-
-  const chooseScrolling = (next: Scrolling) => {
-    setScrolling(next)
-    writeScrolling(next)
   }
 
   const chooseKeybindings = (next: Keybindings) => {
@@ -2810,7 +2817,7 @@ export function Canvas() {
               selectionKeyCode={null}
               selectionOnDrag={false}
               elevateNodesOnSelect={false}
-              nodesDraggable={!focus && (tool === 'select' || tool === 'comment')}
+              nodesDraggable={!focus && (tool === 'select' || tool === 'comment' || (tool === 'hand' && commandHeld))}
               nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
               elementsSelectable={!focus && tool !== 'sticker'}
               panOnScroll={!focus}
@@ -3112,8 +3119,6 @@ export function Canvas() {
             close={() => setSettings(null)}
             appearance={appearance}
             chooseAppearance={chooseAppearance}
-            scrolling={scrolling}
-            chooseScrolling={chooseScrolling}
             keybindings={keybindings}
             chooseKeybindings={chooseKeybindings}
           />

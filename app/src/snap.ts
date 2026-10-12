@@ -29,7 +29,8 @@ const separation = (first: Box, second: Box, axis: Axis) =>
 const overlap = (first: Box, second: Box, axis: Axis) =>
   Math.max(0, Math.min(end(first, axis), end(second, axis)) - Math.max(start(first, axis), start(second, axis)))
 
-type Hit = { offset: number; guide: Guide }
+/** `distance` is how far the sibling sits from the moving box, so ties go to the nearer one. */
+type Hit = { offset: number; guide: Guide; distance: number }
 type Scene = { moving: Box; others: Box[]; gaps: Record<Axis, number[]> }
 
 /** Spacing neighbors already keep along `axis`, most common first. */
@@ -77,13 +78,20 @@ function scene(nodes: AppNode[], ids: string[], cardSize?: CardSize): Scene | nu
   return { moving, others, gaps: { x: gapsForAxis('x'), y: gapsForAxis('y') } }
 }
 
-/** Every edge, center, and spacing within `tolerance` of the moving box along `axis`. */
-function hits({ moving, others, gaps }: Scene, axis: Axis, tolerance: number): Hit[] {
+/**
+ * Every edge, center, and spacing within `tolerance` of the moving box along `axis`.
+ * Siblings more than `reach` away are skipped before any of the edge checks run.
+ */
+function hits({ moving, others, gaps }: Scene, axis: Axis, tolerance: number, reach: number): Hit[] {
   const perpendicular = otherAxis(axis)
   const matches: Hit[] = []
-  const addHit = (offset: number, guide: Guide) => Math.abs(offset) <= tolerance && matches.push({ offset, guide })
 
   for (const otherBox of others) {
+    const distance = Math.hypot(separation(moving, otherBox, 'x'), separation(moving, otherBox, 'y'))
+
+    if (distance > reach) continue
+
+    const addHit = (offset: number, guide: Guide) => Math.abs(offset) <= tolerance && matches.push({ offset, guide, distance })
     const beside = sharesSpan(moving, otherBox, perpendicular)
     const from = Math.min(start(moving, perpendicular), start(otherBox, perpendicular))
     const to = Math.max(end(moving, perpendicular), end(otherBox, perpendicular))
@@ -133,25 +141,27 @@ export function shift(nodes: AppNode[], ids: string[], deltaX: number, deltaY: n
 /**
  * Pulls dragged nodes onto nearby edges, centers, and the spacing their siblings use.
  * Each pull only holds within `tolerance` (canvas units), so dragging on slides past it.
+ * Only siblings within `reach` (canvas units) of the dragged nodes can pull them.
  */
-export function snapDrag(nodes: AppNode[], ids: string[], tolerance: number, cardSize?: CardSize): AppNode[] {
+export function snapDrag(nodes: AppNode[], ids: string[], tolerance: number, reach: number, cardSize?: CardSize): AppNode[] {
   const currentScene = scene(nodes, ids, cardSize)
 
   if (!currentScene) return nodes
 
+  // The smallest offset wins; on a tie, the sibling closest to the dragged nodes wins.
+  const closer = (candidate: Hit, best: Hit) =>
+    Math.abs(candidate.offset) < Math.abs(best.offset) || (Math.abs(candidate.offset) === Math.abs(best.offset) && candidate.distance < best.distance)
   const pull = (axis: Axis) =>
-    hits(currentScene, axis, tolerance).reduce<Hit | null>(
-      (best, candidate) => (!best || Math.abs(candidate.offset) < Math.abs(best.offset) ? candidate : best),
-      null,
-    )?.offset ?? 0
+    hits(currentScene, axis, tolerance, reach).reduce<Hit | null>((best, candidate) => (!best || closer(candidate, best) ? candidate : best), null)
+      ?.offset ?? 0
   const deltaX = pull('x')
   const deltaY = pull('y')
 
   return deltaX || deltaY ? shift(nodes, ids, deltaX, deltaY) : nodes
 }
 
-/** Guides for whatever the nodes being dragged now line up with. */
-export function snapGuides(nodes: AppNode[], cardSize?: CardSize): Guide[] {
+/** Guides for whatever the nodes being dragged now line up with, within `reach` (canvas units). */
+export function snapGuides(nodes: AppNode[], reach: number, cardSize?: CardSize): Guide[] {
   const ids = nodes.filter((node) => node.dragging).map((node) => node.id)
   const currentScene = ids.length ? scene(nodes, ids, cardSize) : null
 
@@ -160,7 +170,7 @@ export function snapGuides(nodes: AppNode[], cardSize?: CardSize): Guide[] {
   const lines = new Map<string, Guide>()
 
   for (const axis of ['x', 'y'] as const)
-    for (const { guide } of hits(currentScene, axis, 0.5)) {
+    for (const { guide } of hits(currentScene, axis, 0.5, reach)) {
       const key = guide.kind === 'line' ? `${axis}:${Math.round(guide.at)}` : `${axis}:${guide.from}:${guide.to}:${guide.at}`
       const previous = lines.get(key)
 

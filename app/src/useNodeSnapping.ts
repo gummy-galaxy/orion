@@ -6,6 +6,12 @@ import { finishDrag, snapDrag, snapGuides } from './snap'
 import type { CardSize } from './cardSize'
 
 const SNAP_PX = 8
+/**
+ * Siblings farther than this (on screen, edge to edge) cannot pull a dragged node. It is wider than
+ * the widest gap the top-level layout leaves (120 canvas units), so a neighbor one gap away still snaps,
+ * and narrower than three stacked cards in a group (216 canvas units), so a card does not snap to the far end.
+ */
+const SNAP_REACH_PX = 160
 const THROW_SPEED = 0.8
 const THROW_WINDOW_MS = 90
 
@@ -38,8 +44,9 @@ export function useNodeSnapping({
       const movedIds =
         session && !session.free ? changes.flatMap((change) => (change.type === 'position' && session.ids.has(change.id) ? [change.id] : [])) : []
       const tolerance = SNAP_PX / reactFlow.getZoom()
+      const reach = SNAP_REACH_PX / reactFlow.getZoom()
 
-      return (changedNodes: AppNode[]) => (movedIds.length ? snapDrag(changedNodes, movedIds, tolerance, cardSize) : changedNodes)
+      return (changedNodes: AppNode[]) => (movedIds.length ? snapDrag(changedNodes, movedIds, tolerance, reach, cardSize) : changedNodes)
     },
     [reactFlow, cardSize],
   )
@@ -114,7 +121,11 @@ export function useNodeSnapping({
     [getCurrentNodes, setNodes, tweenTo, cardSize],
   )
 
-  const guides = useMemo(() => (skipSnapGuides ? [] : snapGuides(nodes, cardSize)), [nodes, skipSnapGuides, cardSize])
+  // Zoom is read here, not subscribed to, so guides refresh its reach on the next node change.
+  const guides = useMemo(
+    () => (skipSnapGuides ? [] : snapGuides(nodes, SNAP_REACH_PX / reactFlow.getZoom(), cardSize)),
+    [nodes, skipSnapGuides, cardSize, reactFlow],
+  )
 
   return { snapChanges, onDragStart, onDrag, onDragStop, guides }
 }

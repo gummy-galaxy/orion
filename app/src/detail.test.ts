@@ -34,12 +34,13 @@ describe('detail', () => {
     expect(stepDetail(null, 3, 1)).toBeNull()
   })
 
-  it('remembers detail per workspace', () => {
+  it('remembers detail per workspace, and starts folded to one level', () => {
     const store = memory()
 
+    expect(readDetail('orion', store)).toBe(1)
     writeDetail('orion', 2, store)
     expect(readDetail('orion', store)).toBe(2)
-    expect(readDetail('other', store)).toBeNull()
+    expect(readDetail('other', store)).toBe(1)
     writeDetail('orion', null, store)
     expect(readDetail('orion', store)).toBeNull()
   })
