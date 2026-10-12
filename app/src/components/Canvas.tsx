@@ -67,14 +67,15 @@ import {
   ANIMATIONS,
   COLOR_MODES,
   STATUS_COLORS,
-  THEMES,
   applyAppearance,
   colorModeOf,
   readAppearance,
   withMotion,
   writeAppearance,
   type Appearance,
+  type Theme,
 } from '../appearance'
+import { cachedThemes, loadThemes } from '../themeFile'
 import { SKINS } from '../skins'
 import { cardSizeAtom, type CardSize } from '../cardSize'
 import { toDisplayed, toStored } from '../skinSpace'
@@ -336,6 +337,8 @@ export function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
+  /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
+  const [themes, setThemes] = useState<Theme[]>(cachedThemes)
   const setSkin = useSetAtom(skinAtom, { store: skinStore })
   const systemMotion = useSystemMotion()
   const [keybindings, setKeybindings] = useState(readKeybindings)
@@ -480,7 +483,11 @@ export function Canvas() {
   useEffect(() => cancelClick, [cancelClick])
 
   // Also runs when the computer's reduced motion setting changes, which Orion follows until a level is picked.
-  useEffect(() => applyAppearance(appearance), [appearance, systemMotion])
+  useEffect(() => applyAppearance(appearance, document.documentElement, themes), [appearance, systemMotion, themes])
+
+  useEffect(() => {
+    if (settings !== null || paletteOpen) void loadThemes().then(setThemes)
+  }, [settings, paletteOpen])
 
   // The skin atom is read when its module loads, which is before saved settings arrive.
   useEffect(() => setSkin(appearance.skin), [appearance.skin, setSkin])
@@ -2692,12 +2699,14 @@ export function Canvas() {
           },
         ]
       : []),
-    ...THEMES.map((theme) => ({
-      id: `theme-${theme.id}`,
-      label: `Theme: ${theme.label}`,
-      detail: 'Saved on this device',
-      run: () => chooseAppearance({ ...appearance, theme: theme.id }),
-    })),
+    ...themes
+      .filter((theme) => !theme.error)
+      .map((theme) => ({
+        id: `theme-${theme.id}`,
+        label: `Theme: ${theme.label}`,
+        detail: 'Saved on this device',
+        run: () => chooseAppearance({ ...appearance, theme: theme.id }),
+      })),
     ...SKINS.map((skin) => ({
       id: `skin-${skin.id}`,
       label: `Cards: ${skin.label}`,
@@ -2921,7 +2930,7 @@ export function Canvas() {
               zoomOnDoubleClick={false}
               minZoom={MIN_ZOOM}
               maxZoom={MAX_ZOOM}
-              colorMode={colorModeOf(appearance)}
+              colorMode={colorModeOf(appearance, themes)}
             >
               <StickerLayer
                 stickers={placedStickers}
@@ -3229,6 +3238,7 @@ export function Canvas() {
             showSection={setSettings}
             close={() => setSettings(null)}
             appearance={appearance}
+            themes={themes}
             chooseAppearance={chooseAppearance}
             keybindings={keybindings}
             chooseKeybindings={chooseKeybindings}
