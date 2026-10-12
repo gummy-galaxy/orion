@@ -197,6 +197,45 @@ test.case("makeGroup and ungroup keep items in place", function(assert)
 	assert.eq(firstTask.position.y, 50)
 end)
 
+test.case("makeGroup marks the new group for the app to tidy", function(assert)
+	local doc = testing.createDoc({ task("a", "A", "todo"), task("b", "B", "todo") })
+	local group = graph.makeGroup(doc, "Pair", { "a", "b" })
+	assert.eq(group.data.layout, "refit")
+end)
+
+test.case("move marks the group it moves into, and ungroup marks the group that takes its items", function(assert)
+	local doc = testing.createDoc({
+		testing.group("outer", "Outer"),
+		testing.group("inner", "Inner", "outer"),
+		task("x", "X", "todo", "inner"),
+		testing.group("other", "Other"),
+		task("y", "Y", "todo"),
+	})
+	graph.move(doc, "y", "other")
+	assert.eq(graph.get(doc, "other").data.layout, "refit")
+	graph.ungroup(doc, "inner")
+	assert.eq(graph.get(doc, "x").parentId, "outer")
+	assert.eq(graph.get(doc, "outer").data.layout, "refit")
+end)
+
+test.case("tidying a group the CLI joins keeps a pending marker and skips custom groups", function(assert)
+	local pending = testing.group("pending", "Pending")
+	pending.data.layout = "pending"
+	local custom = testing.group("custom", "Custom")
+	custom.data.arrange = "custom"
+	local doc = testing.createDoc({
+		pending,
+		custom,
+		task("a", "A", "todo"),
+		task("b", "B", "todo"),
+		task("c", "C", "todo", "custom"),
+	})
+	graph.move(doc, "a", "pending")
+	assert.eq(pending.data.layout, "pending")
+	graph.move(doc, "b", "custom")
+	assert.eq(custom.data.layout, nil)
+end)
+
 test.case("move drops groups it leaves empty and refuses cycles", function(assert)
 	local doc = testing.createDoc({ testing.group("g", "G"), testing.group("h", "H"), task("a", "A", "todo", "g") })
 	graph.move(doc, "a", "h")

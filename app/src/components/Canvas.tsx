@@ -29,7 +29,7 @@ import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
-import { reflow } from '../layout'
+import { layoutOrder, reflow } from '../layout'
 import { mergeDocs } from '../merge'
 import { glide, motionReduced, useSystemMotion } from '../motion'
 import {
@@ -115,6 +115,9 @@ import {
 import { Sidebar } from './Sidebar'
 import { Settings, type SettingsSection } from './Settings'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
+import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
+import { selectAllIds, selectNodes } from '../selectAll'
+import { stackNodes } from '../stack'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
@@ -831,7 +834,7 @@ export function Canvas() {
 
     if (!ready || pendingLayoutEpoch.current === epoch) return
 
-    const marked = nodes.filter((node) => isCluster(node) && node.data.layout)
+    const marked = layoutOrder(nodes)
 
     if (!marked.length) return
 
@@ -1909,6 +1912,35 @@ export function Canvas() {
     return () => window.removeEventListener('pagehide', close)
   }, [])
 
+  const fitSelection = useCallback(
+    () => void reactFlow.fitView({ nodes: selected.map((node) => ({ id: node.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: glide(450) }),
+    [reactFlow, selected],
+  )
+
+  const zoomActual = useCallback(() => void reactFlow.zoomTo(1, { duration: glide(450) }), [reactFlow])
+
+  const canSelectAll = useMemo(() => selectAllIds(nodes, root, view.hidden) !== null, [nodes, root, view.hidden])
+
+  const selectAll = useCallback(
+    () =>
+      setNodes((currentNodes) => {
+        const ids = selectAllIds(currentNodes, root, view.hidden)
+
+        return ids ? selectNodes(currentNodes, ids) : currentNodes
+      }),
+    [root, view.hidden, setNodes],
+  )
+
+  /** Moves each selected card one step in the stacking order, which the canvas paints as it lists them. */
+  const restack = useCallback(
+    (direction: 1 | -1) => {
+      const ids = selected.map((node) => node.id)
+
+      setNodes((currentNodes) => stackNodes(currentNodes, ids, direction))
+    },
+    [selected, setNodes],
+  )
+
   const doGroup = useCallback(() => {
     const visibleSel = nodes.map((node) => (node.selected && view.hidden.has(node.id) ? { ...node, selected: false } : node))
     const result = groupSelection(visibleSel, cardSize)
@@ -2496,7 +2528,7 @@ export function Canvas() {
         return [
           ...many,
           { label: 'Open', hint: hintOf('open-group'), run: () => actions.open(node.id) },
-          { label: 'Rename', run: () => (selectOnly(node.id), setEditing(node.id)) },
+          { label: 'Rename', hint: hintOf('rename'), run: () => (selectOnly(node.id), setEditing(node.id)) },
           { label: 'Cover and background', run: () => selectOnly(node.id) },
           ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
           ...(node.parentId
@@ -2565,6 +2597,31 @@ export function Canvas() {
   }
 
   useEffect(() => {
+    // React Flow would move a focused selection itself, so the nudge takes the press first when it applies.
+    const onNudge = (event: KeyboardEvent) => {
+      if (paletteOpen || settings || focus || tool !== 'select' || !selected.length) return
+
+      if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
+
+      const direction = NUDGES.find(({ id }) => matchesChord(event, keybindings[id]) || matchesChord(event, largeChordOf(keybindings[id])))
+
+      if (!direction) return
+
+      const large = matchesChord(event, largeChordOf(keybindings[direction.id]))
+      const step = large ? NUDGE_LARGE_STEP : NUDGE_STEP
+      const deltaX = direction.x * step
+      const deltaY = direction.y * step
+      const ids = selected.map((node) => node.id)
+
+      event.preventDefault()
+      event.stopPropagation()
+      setNodes((currentNodes) => {
+        const next = nudgeNodes(currentNodes, ids, deltaX, deltaY)
+
+        return next === currentNodes ? currentNodes : normalize(next, cardSize)
+      })
+    }
+
     const onKey = (event: KeyboardEvent) => {
       if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
 
@@ -2629,6 +2686,19 @@ export function Canvas() {
       } else if (pressed('ungroup')) {
         event.preventDefault()
         doUngroup()
+      } else if (pressed('select-all')) {
+        event.preventDefault()
+
+        if (tool !== 'sticker') selectAll()
+      } else if (pressed('rename') && selected.length === 1) {
+        event.preventDefault()
+        setEditing(selected[0].id)
+      } else if (pressed('fit-selection') && selected.length) {
+        event.preventDefault()
+        fitSelection()
+      } else if ((pressed('bring-forward') || pressed('send-backward')) && selected.length) {
+        event.preventDefault()
+        restack(pressed('bring-forward') ? 1 : -1)
       } else if (pressed('open-group') && selected.length === 1 && isCluster(selected[0])) {
         actions.open(selected[0].id)
       } else if (pressed('step-back')) {
@@ -2641,21 +2711,34 @@ export function Canvas() {
         }
       } else if (pressed('fit')) {
         fitTo(root)
+      } else if (pressed('zoom-actual')) {
+        event.preventDefault()
+        zoomActual()
       } else if (pressed('add-note')) {
         event.preventDefault()
         addNote(viewportCenter())
       }
     }
 
+    window.addEventListener('keydown', onNudge, true)
     window.addEventListener('keydown', onKey)
 
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('keydown', onNudge, true)
+      window.removeEventListener('keydown', onKey)
+    }
   }, [
     keybindings,
     clearStickerPicks,
     doGroup,
     doUngroup,
+    fitSelection,
+    zoomActual,
+    selectAll,
+    restack,
+    settings,
     selected,
+    setEditing,
     actions,
     root,
     map,
@@ -2674,10 +2757,13 @@ export function Canvas() {
     redo,
     setNodes,
     setPinned,
+    cardSize,
   ])
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
+  // An inspector's name field only auto-focuses when it mounts, so a rename of a card that is already selected remounts it.
+  const inspectorKey = one && editing === one.id ? `${one.id}:editing` : one?.id
   const focused = focus ? map.get(focus) : undefined
   const focusPos = focused && absolutePosition(focused, map)
   const focusSize = focused && sizeOf(focused, cardSize)
@@ -2735,8 +2821,20 @@ export function Canvas() {
             id: 'fit-selection',
             label: 'Fit selection',
             detail: `Show ${selected.length} selected`,
-            run: () =>
-              void reactFlow.fitView({ nodes: selected.map((node) => ({ id: node.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: glide(450) }),
+            hint: hintOf('fit-selection'),
+            run: fitSelection,
+          },
+        ]
+      : []),
+    { id: 'zoom-actual', label: 'Zoom to 100%', detail: 'Show cards at their actual size', hint: hintOf('zoom-actual'), run: zoomActual },
+    ...(canSelectAll
+      ? [
+          {
+            id: 'select-all',
+            label: 'Select all',
+            detail: root ? 'Select everything in the open group' : 'Select everything at the top level',
+            hint: hintOf('select-all'),
+            run: selectAll,
           },
         ]
       : []),
@@ -2779,6 +2877,27 @@ export function Canvas() {
       hint: hintOf('settings'),
       run: () => setSettings('appearance'),
     },
+    ...(one
+      ? [{ id: 'rename', label: 'Rename', detail: 'Edit the name of the selected item', hint: hintOf('rename'), run: () => setEditing(one.id) }]
+      : []),
+    ...(selected.length
+      ? [
+          {
+            id: 'bring-forward',
+            label: 'Bring forward',
+            detail: 'Stack the selection one step higher',
+            hint: hintOf('bring-forward'),
+            run: () => restack(1),
+          },
+          {
+            id: 'send-backward',
+            label: 'Send backward',
+            detail: 'Stack the selection one step lower',
+            hint: hintOf('send-backward'),
+            run: () => restack(-1),
+          },
+        ]
+      : []),
     {
       id: 'keyboard-shortcuts',
       label: 'Open keyboard shortcuts',
@@ -2975,6 +3094,7 @@ export function Canvas() {
               panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
               selectionKeyCode={null}
               selectionOnDrag={false}
+              elevateNodesOnSelect={false}
               nodesDraggable={!focus && (tool === 'select' || tool === 'comment' || (tool === 'hand' && commandHeld))}
               nodesConnectable={!focus && (tool === 'select' || tool === 'comment')}
               elementsSelectable={!focus && tool !== 'sticker'}
@@ -3138,7 +3258,7 @@ export function Canvas() {
                     </div>
                   ) : isNote(one) ? (
                     <NoteInspector
-                      key={one.id}
+                      key={inspectorKey}
                       node={one}
                       focus={editing === one.id}
                       doneEditing={() => setEditing(null)}
@@ -3147,7 +3267,7 @@ export function Canvas() {
                     />
                   ) : isTask(one) ? (
                     <TaskInspector
-                      key={one.id}
+                      key={inspectorKey}
                       node={one}
                       focus={editing === one.id}
                       doneEditing={() => setEditing(null)}
@@ -3162,7 +3282,7 @@ export function Canvas() {
                       flipLink={flipLink}
                     />
                   ) : isImage(one) ? (
-                    <div className="insp" key={one.id}>
+                    <div className="insp" key={inspectorKey}>
                       <label htmlFor="image-label">Image label</label>
                       <input
                         id="image-label"
@@ -3189,7 +3309,7 @@ export function Canvas() {
                       </button>
                     </div>
                   ) : (
-                    <div className="insp" key={one.id}>
+                    <div className="insp" key={inspectorKey}>
                       <label htmlFor="g-label">Group name</label>
                       <input
                         id="g-label"
