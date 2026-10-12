@@ -18,10 +18,19 @@ const OUTLINE_PATH = `M${OUTLINE.map((point) => point.join(' ')).join(' L')} Z`
 
 /** A star of the companion: the body with a face, or a plain side star. */
 export function CompanionStar({ face = false }: { face?: boolean }) {
+  const coreRadius = face ? 66 : 46
+
   return (
     <svg viewBox="-110 -190 220 380" aria-hidden="true">
-      <path d={OUTLINE_PATH} className="companion-fill" />
-      <circle r={face ? 66 : 46} className="companion-fill" />
+      {/* The edge draws the shape again with a wide stroke underneath, so the outline traces the points and core as one. */}
+      <g className="companion-edge">
+        <path d={OUTLINE_PATH} />
+        <circle r={coreRadius} />
+      </g>
+      <g className="companion-fill">
+        <path d={OUTLINE_PATH} />
+        <circle r={coreRadius} />
+      </g>
       {face && (
         <g className="eyes" fill="none" stroke="currentColor" strokeWidth={11} strokeLinecap="round" strokeLinejoin="round">
           <CompanionEye side="l" x={-24} />

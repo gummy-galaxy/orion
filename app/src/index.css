@@ -2926,6 +2926,12 @@ kbd {
 .companion-fill {
   fill: var(--companion-body);
 }
+.companion-edge {
+  fill: var(--companion-edge);
+  stroke: var(--companion-edge);
+  stroke-width: 28;
+  stroke-linejoin: round;
+}
 .companion-tethers {
   position: absolute;
   inset: 0;

@@ -35,6 +35,7 @@ Legacy names such as `--bg` or `--st-ready` still work. Each aliases its new cus
 | `window.close.background` | `--window-close-background` |                 | The close button on hover                         |
 | `window.close.text`       | `--window-close-text`       |                 | The close button's glyph on hover                 |
 | `companion.body`          | `--companion-body`          |                 | The star companion's fill                         |
+| `companion.edge`          | `--companion-edge`          |                 | The outline around each of the companion's stars  |
 | `companion.ink`           | `--companion-ink`           |                 | The companion's face                              |
 | `companion.halo`          | `--companion-halo`          |                 | The soft light right around the companion's stars |
 | `companion.glow`          | `--companion-glow`          |                 | The glow around the companion and its tethers     |
