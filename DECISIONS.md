@@ -2,7 +2,7 @@
 
 [`CHARTER.md`](CHARTER.md) sets Orion's direction. This file records the specific calls made along the way and why, so the intent survives after the conversation that settled it is gone.
 
-Each entry gives the decision, the reason behind it, when it was made, and the issues or pull requests that carry it out.
+Each entry gives the decision, the reason behind it, when it was made, and links to the issues or pull requests that carry it out.
 
 These are current calls, not rules. The charter comes first, and any entry here can be challenged when the work shows a better way. Treat an entry as the default: follow it, and raise a change that would go against it instead of quietly working around it. When a decision changes, rewrite its entry and say what it replaced and why, rather than deleting it.
 
@@ -14,7 +14,7 @@ A card with no inputs is a common card. As more work flows into a card through t
 
 **Why:** cards should stand out for what they are, and the cards that many pieces of work converge on are the ones worth spotting. On upstream work alone, mythic needed more than a dozen cards feeding in, so almost nothing reached it. Priority makes the top tiers reachable for work that matters now. It still comes only from a source, so nothing inside Orion can raise a card's rarity, including padding the board with cards. This replaced rarity from upstream work alone (2026-10-09), which kept priority separate.
 
-2026-10-09, 2026-10-11 · #161, #241
+2026-10-09, 2026-10-11 · [#161](https://github.com/vocksel/orion/issues/161), [#241](https://github.com/vocksel/orion/issues/241)
 
 ### Foil is rarity
 
@@ -22,7 +22,7 @@ Uncommon cards get a silver edge, rare cards a foil edge, and mythic cards a foi
 
 **Why:** card games mark rarity with foil, so a shiny card reads as a rare one at a glance. One finish ladder also keeps two shiny signals from competing on the same card. This replaced "Priority is foil, not rarity" (2026-10-11), which gave P0 holo and P1 a foil edge. That entry's worry, that rarity would reward big tickets, is still covered: rarity comes from the graph and a source's priority, never from a card's own size.
 
-2026-10-11 · #161, #242
+2026-10-11 · [#161](https://github.com/vocksel/orion/issues/161), [#242](https://github.com/vocksel/orion/issues/242)
 
 ### Reward breaking work down and finishing it, never making cards
 
@@ -30,7 +30,7 @@ Big work looks sealed until it's split into smaller cards. Celebrations, points,
 
 **Why:** the behavior worth rewarding is breaking work into smaller pieces. A score that grows with card count invites padding the board to farm it.
 
-2026-10-11 · #242, #116
+2026-10-11 · [#242](https://github.com/vocksel/orion/issues/242), [#116](https://github.com/vocksel/orion/issues/116)
 
 ### Card art is a scene picked by kind
 
@@ -38,7 +38,7 @@ A card's art is a scene in the night sky. The kind picks the subject: steps are 
 
 **Why:** the goal is recognizing a card on sight. Earlier passes missed it in two ways: geometric posters leaned into geometry for its own sake, and a kind icon set over gradient art read as a label stuck onto the card rather than art. This replaced "Card art is symbolic" (2026-10-09), which asked for meaningful shapes without saying what they were.
 
-2026-10-09, 2026-10-11 · #163, #164, #275
+2026-10-09, 2026-10-11 · [#163](https://github.com/vocksel/orion/issues/163), [#164](https://github.com/vocksel/orion/issues/164), [#275](https://github.com/vocksel/orion/issues/275)
 
 ### Each slot on a card has one job
 
@@ -46,7 +46,7 @@ A card never says the same thing twice, such as a repo name above a "Pull reques
 
 **Why:** repeated and ever-present labels are noise. A mark that shows on every card stops telling you anything.
 
-2026-10-11 · #275
+2026-10-11 · [#275](https://github.com/vocksel/orion/issues/275)
 
 ### Marks over words
 
@@ -54,7 +54,7 @@ Stickers are an icon plus at most one word, with icons preferred and tooltips ex
 
 **Why:** short marks read faster than phrases, and the card still has to say what it is while it's blocked.
 
-2026-10-11 · #275
+2026-10-11 · [#275](https://github.com/vocksel/orion/issues/275)
 
 ### Severity colors for priority and size
 
@@ -62,7 +62,7 @@ P0 is red, P1 orange, P2 blue, and P3 and below gray. Sizes follow the same scal
 
 **Why:** one familiar severity scale serves both values, and a placeholder for unknown values would only add noise.
 
-2026-10-11 · #275
+2026-10-11 · [#275](https://github.com/vocksel/orion/issues/275)
 
 ### Legibility wins over flourish
 
@@ -70,7 +70,7 @@ Holo and foil effects stay off text. Card styles should stay readable at a glanc
 
 **Why:** the effects are fun, but a card you can't read has failed at its job.
 
-2026-10-07, 2026-10-11 · #95
+2026-10-07, 2026-10-11 · [#95](https://github.com/vocksel/orion/issues/95)
 
 ### Cards are a skin over sources and data
 
@@ -78,7 +78,7 @@ Sources and their data are one layer, and cards are the presentation attached to
 
 **Why:** the same data should be able to take on very different looks without the model changing underneath.
 
-2026-10-09 · #152, #154
+2026-10-09 · [#152](https://github.com/vocksel/orion/issues/152), [#154](https://github.com/vocksel/orion/issues/154)
 
 ### Card art is reproducible
 
@@ -86,7 +86,7 @@ Generated card art can be produced again from the same card. Later, people shoul
 
 **Why:** art that people can shape makes the canvas feel like theirs.
 
-2026-10-07 · #234
+2026-10-07 · [#234](https://github.com/vocksel/orion/issues/234)
 
 ## Canvas and input
 
@@ -94,9 +94,9 @@ Generated card art can be produced again from the same card. Later, people shoul
 
 Scrolling always pans, whether it comes from a mouse wheel or a trackpad. Pinch and ⌘-scroll zoom. There's no setting and no device detection.
 
-**Why:** the preference was for the mouse wheel to zoom while a trackpad's two-finger scroll pans. That needs Orion to tell the two devices apart, and on macOS there's no reliable way to do it. WebKit reports a mouse wheel and a trackpad with the same delta ratio, and the only other signal relies on undocumented encoding and misses mice with smooth scrolling. Each attempt fixed one device and broke the other. This replaced zooming on scroll (#208, #240). Before trying wheel zoom again, find a reliable way to tell the devices apart in WebKit.
+**Why:** the preference was for the mouse wheel to zoom while a trackpad's two-finger scroll pans. That needs Orion to tell the two devices apart, and on macOS there's no reliable way to do it. WebKit reports a mouse wheel and a trackpad with the same delta ratio, and the only other signal relies on undocumented encoding and misses mice with smooth scrolling. Each attempt fixed one device and broke the other. This replaced zooming on scroll ([#208](https://github.com/vocksel/orion/issues/208), [#240](https://github.com/vocksel/orion/issues/240)). Before trying wheel zoom again, find a reliable way to tell the devices apart in WebKit.
 
-2026-10-11 · #268
+2026-10-11 · [#268](https://github.com/vocksel/orion/issues/268)
 
 ### Pan mode lets clicks pass through links
 
@@ -104,7 +104,7 @@ In Pan, pressing on a link pans instead of grabbing the link. Holding ⌘ moves 
 
 **Why:** on a busy canvas, presses kept landing on links and moving the pointer instead of the canvas, and Pan had no way to move anything.
 
-2026-10-11 · #271
+2026-10-11 · [#271](https://github.com/vocksel/orion/issues/271)
 
 ### Auto-arrange always wins
 
@@ -112,7 +112,7 @@ In an automatically arranged group, a card that's dragged or snapped returns to 
 
 **Why:** a group can't be both arranged and hand-placed, and mixing the two leaves its layout unpredictable.
 
-2026-10-08 · #104
+2026-10-08 · [#104](https://github.com/vocksel/orion/issues/104)
 
 ### Zoomed out reads like a world map
 
@@ -120,9 +120,9 @@ Each group has its own tint, so you know where you are when zoomed out. Cards sw
 
 **Why:** zooming out already feels like looking at a map, so lean into it. Cards that blow up when zoomed out become unreadable, and drawing full detail everywhere is heavy enough to crash the desktop web view.
 
-**Open:** charter principle 6 says zoom only moves the camera and detail is a separate control (#175, #205). Reconcile the two.
+**Open:** charter principle 6 says zoom only moves the camera and detail is a separate control ([#175](https://github.com/vocksel/orion/issues/175), [#205](https://github.com/vocksel/orion/issues/205)). Reconcile the two.
 
-2026-10-07, 2026-10-11 · #280
+2026-10-07, 2026-10-11 · [#280](https://github.com/vocksel/orion/issues/280)
 
 ### Render work is batched from the center out
 
@@ -130,7 +130,7 @@ When many cards need drawing, Orion does the work in batches that spiral outward
 
 **Why:** sending everything at once blocks the frame, and the cards on screen matter first.
 
-2026-10-11 · #280
+2026-10-11 · [#280](https://github.com/vocksel/orion/issues/280)
 
 ### Accessibility settings
 
@@ -138,7 +138,7 @@ Orion has a color palette for each major type of colorblindness, and status uses
 
 **Why:** colorblindness isn't one condition, so one palette can't cover it. Turning off motion should be a single switch rather than a list of effects to find.
 
-2026-10-11 · #213
+2026-10-11 · [#213](https://github.com/vocksel/orion/issues/213)
 
 ## Celebration and triage
 
@@ -148,7 +148,7 @@ Cards marked done take on a special finish, like a golden shimmer. Double-clicki
 
 **Why:** finishing a lot of work should feel like it, and looking back at what got done builds appreciation for it. This stays within the charter: celebrations mark finished work and stay quiet otherwise.
 
-2026-10-11 · #112
+2026-10-11 · [#112](https://github.com/vocksel/orion/issues/112)
 
 ### The companion is on by default and quiet at work
 
@@ -156,7 +156,7 @@ The star companion shows on every canvas until it's turned off in Appearance. In
 
 **Why:** it makes the canvas feel alive and reads a card's status at a glance, so it earns its place by default. Keeping it small and out of the way respects the charter's calm work mode.
 
-2026-10-11 · #292
+2026-10-11 · [#292](https://github.com/vocksel/orion/issues/292)
 
 ### Triage happens in a tray, and you do the placing
 
@@ -164,7 +164,7 @@ New pull requests and issues land in a tray at the canvas edge, backed by the In
 
 **Why:** keeping the canvas current shouldn't need constant back-and-forth with agents, but filing work without a person in the loop risks clutter that has to be cleaned up later.
 
-2026-10-10 · #195, #197
+2026-10-10 · [#195](https://github.com/vocksel/orion/issues/195), [#197](https://github.com/vocksel/orion/issues/197)
 
 ### Linking a pull request to its card ships with Orion
 
@@ -172,7 +172,7 @@ When an agent opens a pull request from a card's work, the pull request attaches
 
 **Why:** every Orion user's agents need this, so it can't depend on one person's local configuration.
 
-2026-10-10 · #196
+2026-10-10 · [#196](https://github.com/vocksel/orion/issues/196)
 
 ## Architecture
 
@@ -182,7 +182,7 @@ A workspace lives as files that can be stored in a repository, like an Obsidian 
 
 **Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast.
 
-2026-10-08, 2026-10-11 · #121
+2026-10-08, 2026-10-11 · [#121](https://github.com/vocksel/orion/issues/121)
 
 ### Built for a thousand cards and more
 
@@ -190,7 +190,7 @@ The target is at least 1000 cards with nested groups and dense links: every pull
 
 **Why:** Orion should hold everything you're juggling, not a slice of it.
 
-2026-10-07 · #122, #102
+2026-10-07 · [#122](https://github.com/vocksel/orion/issues/122), [#102](https://github.com/vocksel/orion/issues/102)
 
 ### Undo history outlives a workspace switch
 
@@ -198,7 +198,7 @@ Undo history persists across workspace switches, either as a full session histor
 
 **Why:** history that disappears when you switch workspaces is too temporary to trust.
 
-2026-10-10 · #1, #166
+2026-10-10 · [#1](https://github.com/vocksel/orion/issues/1), [#166](https://github.com/vocksel/orion/issues/166)
 
 ### Rich cards use link previews, not live embeds
 
@@ -206,7 +206,7 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 **Why:** the goal is rich cards, not running other apps inside the canvas.
 
-2026-10-08 · #81
+2026-10-08 · [#81](https://github.com/vocksel/orion/issues/81)
 
 ### Adapters are Lute packages
 
@@ -214,7 +214,7 @@ Source adapters are Lute packages built on a shared core package. Long term, the
 
 **Why:** Orion maintains the official adapters while others build their own from the same starting point.
 
-2026-10-11 · #54, #98
+2026-10-11 · [#54](https://github.com/vocksel/orion/issues/54), [#98](https://github.com/vocksel/orion/issues/98)
 
 ### No eager scaffolding
 
@@ -222,7 +222,7 @@ Don't build concepts ahead of the features that need them, such as owners before
 
 **Why:** scaffolding nothing uses yet still has to be maintained, and guessed defaults produce wrong data.
 
-2026-10-09 · #13, #89
+2026-10-09 · [#13](https://github.com/vocksel/orion/issues/13), [#89](https://github.com/vocksel/orion/issues/89)
 
 ### MCP stays generic
 
@@ -230,7 +230,7 @@ Orion documents how to register `orion mcp` with any client instead of shipping 
 
 **Why:** registering an MCP server is trivial for people to do themselves, and per-provider code is a lot to maintain for that convenience.
 
-2026-10-09 · #134
+2026-10-09 · [#134](https://github.com/vocksel/orion/issues/134)
 
 ### Physics comes from a library
 
@@ -238,4 +238,4 @@ Canvas physics builds on an established library rather than a homegrown engine. 
 
 **Why:** bespoke physics is costly to keep up long term, and objects passing through each other or wobbling stacks are undesirable everywhere, not just in pinball.
 
-2026-10-11 · #41
+2026-10-11 · [#41](https://github.com/vocksel/orion/issues/41)
