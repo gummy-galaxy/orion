@@ -58,7 +58,8 @@ import { DetailStepper } from './DetailStepper'
 import { EmptyCanvas } from './EmptyCanvas'
 import { CurveEdge } from './CurveEdge'
 import { openExternal } from '../external'
-import { saveSettings, type SavedSetting } from '../settings'
+import { readFileSetting, saveFileSetting, saveSettings, type SavedSetting } from '../settings'
+import { addRecent, keepExistingNodes, readRecents, recentsKey, type Recent } from '../recents'
 import {
   ANIMATIONS,
   COLOR_MODES,
@@ -113,12 +114,14 @@ import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
+import { useInspecting } from '../useInspecting'
 import { useWheelZoom } from '../useWheelZoom'
 import {
   attentionAtom,
   collapsedAtom,
   focusedAtom,
   hoverAtom,
+  inspectingAtom,
   linksAtom,
   nodesAtom,
   pinnedAtom,
@@ -349,6 +352,8 @@ export function Canvas() {
   /** The text the palette opened with, or null while it's closed. */
   const [paletteQuery, setPaletteQuery] = useState<string | null>(null)
   const paletteOpen = paletteQuery !== null
+  /** Commands and places the palette used lately, newest first, for the workspace named. Null until that workspace's copy is read. */
+  const [recents, setRecents] = useState<{ workspace: string; list: Recent[] } | null>(null)
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
   const [chosenSticker, setSticker] = useState<string | null>(null)
@@ -833,6 +838,7 @@ export function Canvas() {
 
       pendingWorkspaceFit.current = epoch
       setReady(false)
+      setRecents(null)
       setRoot(null)
       setFocus(null)
       focusEntry.current = null
@@ -857,6 +863,40 @@ export function Canvas() {
   )
 
   useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
+
+  // Each workspace keeps its own recents in the data folder, read once its canvas is showing.
+  useEffect(() => {
+    if (!ready) return
+
+    const name = workspace.current
+    let cancelled = false
+
+    // Without a read, recents stay off for this workspace rather than starting from an empty list.
+    readFileSetting(recentsKey(name)).then(
+      (value) => {
+        if (!cancelled) setRecents({ workspace: name, list: readRecents(value) })
+      },
+      () => {},
+    )
+
+    return () => {
+      cancelled = true
+    }
+  }, [ready])
+
+  /** Moves a command or place to the top of the recents, forgetting cards and groups that are gone. */
+  const rememberRecent = useCallback(
+    (entry: Recent) => {
+      if (!recents) return
+
+      const ids = new Set(latest.current.nodes.map((node) => node.id))
+      const list = addRecent(keepExistingNodes(recents.list, ids), entry)
+
+      setRecents({ workspace: recents.workspace, list })
+      saveFileSetting(recentsKey(recents.workspace), list)
+    },
+    [recents],
+  )
 
   useEffect(() => onWorkspaceListChange((list) => setWorkspaces((current) => ({ ...current, workspaces: list.workspaces }))), [])
 
@@ -1069,6 +1109,9 @@ export function Canvas() {
   const focus = focusPick && map.has(focusPick) ? focusPick : null
 
   useWheelZoom(canvasRef, !focus && scrolling === 'zoom')
+  useInspecting()
+
+  const inspecting = useAtomValue(inspectingAtom)
 
   const work = useAtomValue(workAtom)
 
@@ -2595,7 +2638,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
           style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
           ref={canvasRef}
           onPointerDown={startMarquee}
@@ -2974,6 +3017,8 @@ export function Canvas() {
             open={actions.open}
             close={() => setPaletteQuery(null)}
             initialQuery={paletteQuery}
+            recents={recents?.list}
+            remember={rememberRecent}
           />
         )}
         {settings && (
