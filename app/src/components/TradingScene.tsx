@@ -28,9 +28,10 @@ function sparkle(x: number, y: number, size: number) {
 /**
  * A card's art as a scene in the night sky. The kind picks the subject: steps are an orb rising over layered
  * hills, pull requests a ringed planet, expected pull requests an eclipse waiting to be lit, and gates a
- * four-point star. The seed places everything, and the group's inks color it.
+ * four-point star. The seed places everything, and the group's inks color it. With `subjectOnly`, the starfield is
+ * left out so the subject can sit on other art.
  */
-export function TradingScene({ kind, seed }: { kind: SceneKind; seed: number }) {
+export function TradingScene({ kind, seed, subjectOnly = false }: { kind: SceneKind; seed: number; subjectOnly?: boolean }) {
   const id = useId()
   const random = createRandom(seed)
   const glow = `${id}-glow`
@@ -62,9 +63,7 @@ export function TradingScene({ kind, seed }: { kind: SceneKind; seed: number }) 
           <stop offset="1" style={{ stopColor: 'var(--trading-ink-one)' }} />
         </radialGradient>
       </defs>
-      {stars.map((star, index) => (
-        <circle key={index} cx={star.x} cy={star.y} r={star.r} fill="#fff" opacity={star.opacity} />
-      ))}
+      {!subjectOnly && stars.map((star, index) => <circle key={index} cx={star.x} cy={star.y} r={star.r} fill="#fff" opacity={star.opacity} />)}
       <path d={sparkle(30 + random() * 40, 30 + random() * 30, 5)} fill="#fff" opacity="0.8" />
       {kind === 'step' && (
         <>

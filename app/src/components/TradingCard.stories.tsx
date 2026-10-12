@@ -5,6 +5,7 @@ import { STALE_DAYS, type Motion, type Sticker } from '../skins/tradingFacts'
 import { TRADING_IDENTITIES, TradingIdentityContext, type SealSide, type TradingIdentity } from '../skins/tradingIdentity'
 import { skinOf } from '../skins'
 import { TradingCard } from './TradingCard'
+import { TradingDetails } from './TradingDetails'
 
 type TradingArgs = {
   kind: CardView['kind']
@@ -94,6 +95,8 @@ const IDENTITY_LABEL: Record<TradingIdentity, string> = {
   frame: "Frame: emblem inside the vibrant study's rim, lit by status and the art's inks",
   shape: 'Shape: frame, with an outline cut by kind',
   scene: 'Scene: a sky scene by kind, display type, bare numbers, and a finish by rarity',
+  shader: "Shader: the scene card with #159's Paper Shaders art. Hover a card to run its top layer",
+  cosmos: "Cosmos: the scene's subject over Paper Shaders art. Hover a card to run it",
 }
 
 const LINEUP_KINDS: CardView['kind'][] = ['step', 'pr', 'placeholder', 'gate']
@@ -431,4 +434,49 @@ export const SampleCanvas: StoryObj<TradingArgs & { colorBy: ColorBy }> = {
       description: 'Where a card gets its art palette: its group, its kind, or the card itself.',
     },
   },
+}
+
+// The same three cards in each story below, so the canvas, the peek, and the details view compare directly.
+const PEEK_CARDS: SampleCard[] = [
+  {
+    kind: 'pr',
+    title: 'Give cards a rarity from the work that feeds into them',
+    status: 'review',
+    motion: 'running',
+    blockers: 0,
+    unblocks: 2,
+    upstream: 8,
+  },
+  { kind: 'step', title: 'List commands after `>` in the command palette', status: 'ready', unblocks: 1, upstream: 1, size: 'S' },
+  { kind: 'gate', title: 'Card skins ship', status: 'blocked', blockers: 3, unblocks: 0, upstream: 6, priority: '0' },
+]
+
+export const Peek: Story = {
+  name: 'Peek · live art',
+  render: (args) => {
+    const cards = PEEK_CARDS.map((card) => ({ ...args, sticker: 'none' as const, motion: 'none' as const, blockers: 0, ...card }))
+    const peeked = cards[0]
+
+    return (
+      <div style={{ display: 'flex', gap: 40, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 18 }}>
+          {cards.map((card) => (
+            <TradingFrame key={card.title} view={toView(card)} far={false} identity={args.identity} sealSide={args.sealSide} />
+          ))}
+        </div>
+        <div className="card skin-trading trading-peek">
+          <TradingIdentityContext.Provider value={{ identity: args.identity, sealSide: args.sealSide, motion: 'always' }}>
+            <TradingCard view={toView(peeked)} />
+          </TradingIdentityContext.Provider>
+        </div>
+      </div>
+    )
+  },
+  args: { identity: 'shader', group: 'card-skins' },
+}
+
+export const Details: Story = {
+  name: 'Details · live art',
+  render: (args) => <TradingDetails view={toView({ ...args, sticker: 'none', ...PEEK_CARDS[0] })} identity={args.identity} />,
+  args: { identity: 'shader', group: 'card-skins' },
 }

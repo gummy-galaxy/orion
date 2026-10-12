@@ -1,8 +1,8 @@
-import { useContext, type CSSProperties, type PointerEvent } from 'react'
+import { useContext, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
 import { describeRarity } from '../rarity'
-import { TradingIdentityContext } from '../skins/tradingIdentity'
-import { getTradingFacts, type Motion, type Sticker } from '../skins/tradingFacts'
+import { SCENE_LOOKS, TradingIdentityContext } from '../skins/tradingIdentity'
+import { getTradingFacts, KIND_HINT, MOTION_HINT, STICKER_HINT } from '../skins/tradingFacts'
 import { TradingSignal } from './TradingSignal'
 import { TradingSignalIcon } from './TradingSignalIcon'
 import { SourceBadges } from './SourceBadges'
@@ -12,27 +12,7 @@ import { Tooltip } from './Tooltip'
 import { TradingKindIcon } from './TradingKindIcon'
 import { TradingRaritySymbol } from './TradingRaritySymbol'
 import { TradingScene } from './TradingScene'
-
-const STICKER_HINT: Record<Sticker, string> = {
-  conflict: 'The pull request has merge conflicts',
-  failing: 'Checks are failing',
-  changes: 'A review asked for changes',
-  stale: 'No change in a while',
-  mergeable: 'Ready to merge',
-}
-
-const KIND_HINT: Record<CardView['kind'], string> = {
-  step: 'Step',
-  pr: 'Pull request',
-  placeholder: 'Expected pull request',
-  gate: 'Gate',
-  note: 'Note',
-}
-
-const MOTION_HINT: Record<Motion, string> = {
-  running: 'Checks are running',
-  queued: 'Checks are queued',
-}
+import { TradingShaderArt } from './TradingShaderArt'
 
 type Severity = 'critical' | 'high' | 'medium' | 'low'
 
@@ -66,7 +46,8 @@ function LockIcon() {
 }
 
 export function TradingCard({ view }: { view: CardView }) {
-  const { identity, sealSide } = useContext(TradingIdentityContext)
+  const { identity, sealSide, motion = 'hover' } = useContext(TradingIdentityContext)
+  const [hovered, setHovered] = useState(false)
 
   if (view.kind === 'note') {
     return (
@@ -85,12 +66,19 @@ export function TradingCard({ view }: { view: CardView }) {
       data-hue={facts.hue}
       data-kind={view.kind}
       data-identity={identity}
+      data-look={SCENE_LOOKS.includes(identity) ? 'scene' : undefined}
       data-seal={sealSide}
       style={{ '--emblem-shift': facts.shift } as CSSProperties}
       onPointerMove={facts.finish === 'foil' || facts.finish === 'holo' ? trackFoil : undefined}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
     >
       <div className="trading-art" aria-hidden="true">
-        {identity === 'scene' ? <TradingScene kind={view.kind} seed={facts.seed} /> : <div className="trading-emblem" />}
+        {(identity === 'shader' || identity === 'cosmos') && (
+          <TradingShaderArt kind={view.kind} seed={view.artSeed} inks={facts.inks} motion={motion === 'always' ? 'all' : hovered ? 'top' : 'still'} />
+        )}
+        {(identity === 'scene' || identity === 'cosmos') && <TradingScene kind={view.kind} seed={facts.seed} subjectOnly={identity === 'cosmos'} />}
+        {!SCENE_LOOKS.includes(identity) && <div className="trading-emblem" />}
         {facts.finish === 'holo' && <div className="trading-holo" />}
       </div>
       <div className="trading-facts">
