@@ -64,6 +64,12 @@ export type Doc = {
 	raw: json.Object?,
 }
 
+-- A ref resolved from --ref, with the repository it belongs to when it names one.
+export type ResolvedRef = {
+	ref: Ref,
+	repo: string?,
+}
+
 -- What the app has open and selected, as it last reported.
 export type Focus = {
 	open: string?,

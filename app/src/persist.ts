@@ -1,4 +1,4 @@
-import type { AppNode, GithubSnapshot, Link } from './model'
+import type { AppNode, GithubSnapshot, Link, TaskData } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
 import type { CardSize } from './cardSize'
 import { toStored } from './skinSpace'
@@ -61,6 +61,29 @@ export async function imageSource(workspace: string, asset: string): Promise<str
   if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Image unavailable')
 
   return URL.createObjectURL(await response.blob())
+}
+
+/** The card a pasted link names: one already on the canvas, or a new one that isn't saved until the app places it. */
+export type LinkLookup = { status: 'existing'; id: string; label: string } | { status: 'found'; id: string; data: TaskData }
+
+export async function lookupLink(url: string, workspace: string): Promise<LinkLookup> {
+  const unserved = new Error('Creating from a link needs orion serve.')
+  const response = await fetch(`/api/links?workspace=${encodeURIComponent(workspace)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ url }),
+  }).catch(() => {
+    throw unserved
+  })
+
+  // A static build answers with its page, or nothing, rather than JSON.
+  if (!response.headers.get('content-type')?.includes('json')) throw unserved
+
+  const body = (await response.json()) as LinkLookup & { error?: string }
+
+  if (!response.ok) throw new Error(body.error ?? 'Could not look up that link.')
+
+  return body
 }
 
 type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT

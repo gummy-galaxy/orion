@@ -23,9 +23,11 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { ContextMenu, type MenuItem } from './ContextMenu'
+import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
-import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { reflow } from '../layout'
 import { mergeDocs } from '../merge'
@@ -65,14 +67,15 @@ import {
   ANIMATIONS,
   COLOR_MODES,
   STATUS_COLORS,
-  THEMES,
   applyAppearance,
   colorModeOf,
   readAppearance,
   withMotion,
   writeAppearance,
   type Appearance,
+  type Theme,
 } from '../appearance'
+import { cachedThemes, loadThemes } from '../themeFile'
 import { SKINS } from '../skins'
 import { cardSizeAtom, type CardSize } from '../cardSize'
 import { toDisplayed, toStored } from '../skinSpace'
@@ -91,6 +94,7 @@ import {
   getWorkspaces,
   importImage,
   load,
+  lookupLink,
   onRemoteChange,
   onSyncStatus,
   onWorkspaceChange,
@@ -118,6 +122,7 @@ import { useUndo } from '../useUndo'
 import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
+  celebratingAtom,
   collapsedAtom,
   focusedAtom,
   hoverAtom,
@@ -134,9 +139,10 @@ import {
 import { applyStyleChange, backgroundColor, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
-import { StickerLayer, type PlacedSticker, type StickerBounds, type StickerMove } from './StickerLayer'
+import { StickerLayer, type PlacedSticker, type PressModifiers, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
-import { FALLBACK_STICKER, loadoutOf, stickerCursor, type Loadout, type Sticker } from '../sticker'
+import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedStickers, stickerCursor, type Loadout, type Sticker } from '../sticker'
+import { covers, MARQUEE_REACH, type Box } from '../marquee'
 import { Toolbar, type Tool } from './Toolbar'
 import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { MAX_ZOOM, MIN_ZOOM, mapViewportForCardSize, readViewport, writeViewport } from '../viewport'
@@ -191,8 +197,6 @@ const GHOST_GAP = 90
 const GHOST_PEEK = 0.4
 const FIT_VERTICAL_MARGIN = 90
 const FIT_MAX_ZOOM = 1.25
-/** How far across a card, on each side, the selection box has to reach to pick it up. */
-const MARQUEE_REACH = 0.25
 /** Kept stable: a new object each render would replace the options of any `fitView` call still queued. */
 const INITIAL_FIT = { padding: 0.12 }
 const ATTEND_DELAY_MS = 150
@@ -210,6 +214,7 @@ const PLACE_GAP = 80
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
 const STICKER_FRESH_MS = 700
+
 /** How far above the toolbar the sticker wheel opens. */
 const WHEEL_LIFT = 140
 const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held' }
@@ -319,6 +324,7 @@ export function Canvas() {
   const away = useAway()
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
+  const setCelebrating = useSetAtom(celebratingAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
@@ -345,6 +351,8 @@ export function Canvas() {
   useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
+  /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
+  const [themes, setThemes] = useState<Theme[]>(cachedThemes)
   const setSkin = useSetAtom(skinAtom, { store: skinStore })
   const systemMotion = useSystemMotion()
   const [keybindings, setKeybindings] = useState(readKeybindings)
@@ -360,6 +368,8 @@ export function Canvas() {
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
+  /** Where "Create from link" was chosen, in screen and flow coordinates, while its prompt is open. */
+  const [linkPrompt, setLinkPrompt] = useState<Pick<Menu, 'x' | 'y' | 'flow'> | null>(null)
   const [tool, setTool] = useState<Tool>('select')
   /** The text the palette opened with, or null while it's closed. */
   const [paletteQuery, setPaletteQuery] = useState<string | null>(null)
@@ -369,6 +379,11 @@ export function Canvas() {
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
   const [chosenSticker, setSticker] = useState<string | null>(null)
+  /** The stickers picked on the canvas. Picking and deleting them works like the selected cards. */
+  const [stickerPicks, setStickerPicks] = useState<ReadonlySet<string>>(() => new Set())
+  const clearStickerPicks = useCallback(() => setStickerPicks((picked) => (picked.size ? new Set() : picked)), [])
+  /** Whether the press that's under way held ⇧ or ⌘, which adds to a card selection instead of replacing it. */
+  const pressModifiers = useRef(false)
   const sticker = chosenSticker ?? loadout.find((sticker) => sticker !== null) ?? FALLBACK_STICKER
   const [wheel, setWheel] = useState<{ x: number; y: number; held: boolean } | null>(null)
   const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set())
@@ -482,7 +497,11 @@ export function Canvas() {
   useEffect(() => cancelClick, [cancelClick])
 
   // Also runs when the computer's reduced motion setting changes, which Orion follows until a level is picked.
-  useEffect(() => applyAppearance(appearance), [appearance, systemMotion])
+  useEffect(() => applyAppearance(appearance, document.documentElement, themes), [appearance, systemMotion, themes])
+
+  useEffect(() => {
+    if (settings !== null || paletteOpen) void loadThemes().then(setThemes)
+  }, [settings, paletteOpen])
 
   // The skin atom is read when its module loads, which is before saved settings arrive.
   useEffect(() => setSkin(appearance.skin), [appearance.skin, setSkin])
@@ -529,6 +548,8 @@ export function Canvas() {
   const queue = useRef<Promise<void>>(Promise.resolve())
   const workspace = useRef('default')
   const workspaceEpoch = useRef(0)
+  // Set when a card made from a link needs GitHub's details, which the server fills in once the card is saved.
+  const syncAfterSave = useRef(false)
   const pendingWorkspaceFit = useRef<number | null>(null)
   const [savedView, setSavedView] = useState<Viewport | null>(null)
   // The workspace the canvas is showing, so moves while switching aren't remembered for the next one.
@@ -762,6 +783,11 @@ export function Canvas() {
             revision.current = result.revision
             base.current = compactDoc({ ...pending, nodes: toStored(pending.nodes, cardSize) })
             savedPrint.current = fingerprint({ ...pending, nodes: toStored(pending.nodes, cardSize) })
+
+            if (syncAfterSave.current) {
+              syncAfterSave.current = false
+              void requestSync(true).then((status) => status && setSyncStatus(status))
+            }
 
             return
           }
@@ -1004,11 +1030,13 @@ export function Canvas() {
   )
 
   const selectOnly = useCallback(
-    (id: string) =>
+    (id: string) => {
+      clearStickerPicks()
       setNodes((currentNodes) =>
         currentNodes.map((node) => (node.id === id ? { ...node, selected: true } : node.selected ? { ...node, selected: false } : node)),
-      ),
-    [setNodes],
+      )
+    },
+    [setNodes, clearStickerPicks],
   )
 
   const focusNode = useCallback(
@@ -1443,6 +1471,7 @@ export function Canvas() {
     event.preventDefault()
     const start = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
     const base = event.shiftKey || event.metaKey ? nodes.filter((node) => node.selected).map((node) => node.id) : []
+    const stickerBase = event.shiftKey || event.metaKey ? [...stickerPicks] : []
     const things = nodes
       .filter((node) => node.id !== root && !view.hidden.has(node.id) && inView(node.id))
       .map((node) => {
@@ -1458,6 +1487,14 @@ export function Canvas() {
           whole: isCluster(node) && !collapsed.has(node.id),
         }
       })
+    const stickerThings = placeStickers(stickers, map, view.hidden).map((sticker) => ({
+      id: sticker.id,
+      x0: sticker.x - STICKER_HALF_SIZE,
+      y0: sticker.y - STICKER_HALF_SIZE,
+      x1: sticker.x + STICKER_HALF_SIZE,
+      y1: sticker.y + STICKER_HALF_SIZE,
+      whole: false,
+    }))
     let moved = false
     let last = ''
 
@@ -1477,16 +1514,12 @@ export function Canvas() {
         height: Math.abs(moveEvent.clientY - from.y),
       })
 
-      const covered = (target: (typeof things)[number]) => {
-        const width = Math.min(target.x1, x1) - Math.max(target.x0, x0)
-        const height = Math.min(target.y1, y1) - Math.max(target.y0, y0)
-        const need = target.whole ? 1 : MARQUEE_REACH
-
-        return width >= (target.x1 - target.x0) * need - 0.5 && height >= (target.y1 - target.y0) * need - 0.5
-      }
+      const area: Box = { x0, y0, x1, y1 }
+      const covered = (target: Box & { whole: boolean }) => covers(target, area, target.whole ? 1 : MARQUEE_REACH)
 
       const hit = things.filter(covered).map((target) => target.id)
-      const key = hit.join(',')
+      const hitStickers = stickerThings.filter(covered).map((target) => target.id)
+      const key = `${hit.join(',')}|${hitStickers.join(',')}`
 
       if (key === last) return
 
@@ -1496,6 +1529,7 @@ export function Canvas() {
       setNodes((currentNodes) =>
         currentNodes.map((node) => (!!node.selected === want.has(node.id) ? node : { ...node, selected: want.has(node.id) })),
       )
+      setStickerPicks(new Set([...stickerBase, ...hitStickers]))
     }
 
     const end = () => {
@@ -1598,6 +1632,9 @@ export function Canvas() {
   const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo, cardSize })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
+      // A plain press that selects a card replaces the stickers picked alongside it.
+      if (!pressModifiers.current && changes.some((change) => change.type === 'select' && change.selected)) clearStickerPicks()
+
       let own = changes.filter((change) => !('id' in change) || !change.id.startsWith('ghost:')) as NodeChange<AppNode>[]
 
       if (plainClick.current) {
@@ -1614,7 +1651,7 @@ export function Canvas() {
         setNodes((currentNodes) => snapChangedNodes(applyNodeChanges(own, currentNodes)))
       }
     },
-    [afterClick, setNodes, snapChanges],
+    [afterClick, setNodes, snapChanges, clearStickerPicks],
   )
 
   // ---- Focus on one card ----
@@ -1648,10 +1685,11 @@ export function Canvas() {
       setNodes((currentNodes) =>
         currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
       )
+      clearStickerPicks()
       setFocus(id)
       void reactFlow.setViewport(focusViewport(node, nodeMap, box, cardSize), focusMove())
     },
-    [reactFlow, focus, inView, remember, setHover, setNodes, setPinned, cardSize],
+    [reactFlow, focus, inView, remember, setHover, setNodes, setPinned, cardSize, clearStickerPicks],
   )
 
   const exitFocus = useCallback(() => {
@@ -1905,8 +1943,35 @@ export function Canvas() {
         openRoot(groupId)
         setHover(null)
       },
+      celebrate: (id: string) => {
+        const { nodes: currentNodes, links: currentLinks } = latest.current
+        const finished = deriveWork(currentNodes, currentLinks).status
+        const delays = celebrationDelays(id, currentNodes, currentLinks, (other) => finished.get(other) === 'done')
+
+        if (!delays.size) return
+
+        const cleared = new Set(delays.keys())
+
+        setNodes((latestNodes) => clearCelebrations(latestNodes, cleared))
+
+        // Reduced and off motion clear the stamps at once; the stamps only animate while they're listed here.
+        if (motionReduced()) return
+
+        setCelebrating((current) => new Map([...current, ...delays]))
+        window.setTimeout(
+          () =>
+            setCelebrating((current) => {
+              const next = new Map(current)
+
+              for (const key of cleared) next.delete(key)
+
+              return next
+            }),
+          Math.max(...delays.values()) + CLEAR_MS,
+        )
+      },
     }),
-    [tweenTo, openRoot, setHover, cardSize],
+    [tweenTo, openRoot, setHover, cardSize, setNodes, setCelebrating],
   )
 
   const arrangeGroup = useCallback(
@@ -1921,7 +1986,13 @@ export function Canvas() {
 
   const updateData = useCallback(
     (id: string, patch: Partial<TaskData> | Partial<ClusterData> | Partial<ImageNode['data']>) =>
-      setNodes((currentNodes) => currentNodes.map((node) => (node.id === id ? ({ ...node, data: { ...node.data, ...patch } } as AppNode) : node))),
+      setNodes((currentNodes) =>
+        currentNodes.map((node) =>
+          node.id === id
+            ? ({ ...node, data: isTask(node) ? patchTaskData(node.data, patch as Partial<TaskData>) : { ...node.data, ...patch } } as AppNode)
+            : node,
+        ),
+      ),
     [setNodes],
   )
 
@@ -2049,6 +2120,54 @@ export function Canvas() {
     [root, viewportCenter, setNodes, cardSize],
   )
 
+  /** Adds the card a pasted link names with its top-left at `at`, or lands on the card that already tracks it. */
+  const createFromLink = useCallback(
+    async (url: string, at: { x: number; y: number }) => {
+      const workspaceEpochAtStart = workspaceEpoch.current
+      const parentId = root
+      const found = await lookupLink(url, workspace.current)
+
+      if (workspaceEpochAtStart !== workspaceEpoch.current) return
+
+      const currentNodes = latest.current.nodes
+      // A card made from this link moments ago may not be saved yet, so the server can't know about it.
+      const ref = found.status === 'found' ? found.data.refs?.[0] : undefined
+      const unsaved = ref
+        ? currentNodes.find(
+            (node) =>
+              node.type === 'task' &&
+              (node.data as TaskData).refs?.some((other) => other.kind === ref.kind && other.key.toLowerCase() === ref.key.toLowerCase()),
+          )
+        : undefined
+      const existingId = found.status === 'existing' ? found.id : unsaved?.id
+
+      if (existingId) {
+        selectOnly(existingId)
+        jumpTo(existingId)
+
+        return
+      }
+
+      if (found.status !== 'found') return
+
+      const nodeMap = byId(currentNodes)
+      const parentNode = parentId ? nodeMap.get(parentId) : undefined
+      const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
+      const card: AppNode = {
+        id: nodeMap.has(found.id) ? newId('card') : found.id,
+        type: 'task',
+        parentId: parentNode?.id,
+        position: { x: at.x - origin.x, y: at.y - origin.y },
+        data: found.data,
+        selected: true,
+      }
+
+      syncAfterSave.current = true
+      setNodes((nodesNow) => normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize))
+    },
+    [root, selectOnly, jumpTo, setNodes, cardSize],
+  )
+
   /** The innermost visible card or group under a canvas point that `accept` allows. */
   const nodeAt = useCallback(
     (point: { x: number; y: number }, accept: (node: AppNode) => boolean) => {
@@ -2145,6 +2264,55 @@ export function Canvas() {
     [anchorAt],
   )
 
+  /** A press on a sticker picks it the way a press on a card selects it: plain replaces the selection, ⇧ or ⌘ adds to it. */
+  const selectSticker = (modifiers: PressModifiers, id: string) => {
+    const additive = modifiers.metaKey || modifiers.shiftKey
+
+    if (!additive && !stickerPicks.has(id))
+      setNodes((currentNodes) =>
+        currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
+      )
+
+    setStickerPicks((picked) => pressedStickers(picked, id, additive))
+  }
+
+  const removeStickers = (ids: ReadonlySet<string>) => {
+    setStickers((current) => current.filter((sticker) => !ids.has(sticker.id)))
+    setStickerPicks((picked) => new Set([...picked].filter((id) => !ids.has(id))))
+  }
+
+  const pickedStickers = stickers.filter((sticker) => stickerPicks.has(sticker.id))
+
+  /** Loose stickers picked along with a dragged card keep their spot from it, so they move with the selection. */
+  const stickerFollow = useRef<{ origin: { x: number; y: number }; stickers: Map<string, { x: number; y: number }> } | null>(null)
+
+  const followStart = (node: ViewNode) => {
+    const picked = stickers.filter((sticker) => !sticker.on && stickerPicks.has(sticker.id))
+
+    if (!picked.length) return null
+
+    return {
+      origin: { x: node.position.x, y: node.position.y },
+      stickers: new Map(picked.map((sticker) => [sticker.id, { x: sticker.x, y: sticker.y }])),
+    }
+  }
+
+  const followDrag = (node: ViewNode) => {
+    const follow = stickerFollow.current
+    const dx = follow ? node.position.x - follow.origin.x : 0
+    const dy = follow ? node.position.y - follow.origin.y : 0
+
+    if (!follow || (!dx && !dy)) return
+
+    setStickers((current) =>
+      current.map((sticker) => {
+        const start = follow.stickers.get(sticker.id)
+
+        return start ? { ...sticker, x: start.x + dx, y: start.y + dy } : sticker
+      }),
+    )
+  }
+
   /** Every group frame on screen, which stickers bounce inside and off of. */
   const stickerBounds = useMemo<StickerBounds[]>(() => {
     const shown = nodes.filter((node) => isCluster(node) && !view.hidden.has(node.id) && inView(node.id))
@@ -2168,18 +2336,7 @@ export function Canvas() {
   }, [nodes, map, view, inView, cardSize])
 
   const placedStickers = useMemo<PlacedSticker[]>(
-    () =>
-      stickers.flatMap((sticker) => {
-        if (!sticker.on) return [{ ...sticker, fresh: fresh.has(sticker.id) }]
-
-        const node = map.get(sticker.on)
-
-        if (!node || view.hidden.has(node.id)) return []
-
-        const position = absolutePosition(node, map)
-
-        return [{ ...sticker, x: position.x + sticker.x, y: position.y + sticker.y, fresh: fresh.has(sticker.id) }]
-      }),
+    () => placeStickers(stickers, map, view.hidden).map((sticker) => ({ ...sticker, fresh: fresh.has(sticker.id) })),
     [stickers, map, view, fresh],
   )
 
@@ -2288,8 +2445,12 @@ export function Canvas() {
   const menuItems = (menu: Menu): MenuItem[] => {
     const target = menu.target
 
-    if (target.kind === 'sticker')
-      return [{ label: 'Remove sticker', danger: true, run: () => setStickers((stickers) => stickers.filter((sticker) => sticker.id !== target.id)) }]
+    if (target.kind === 'sticker') {
+      const ids = stickerPicks.has(target.id) ? new Set(stickerPicks) : new Set([target.id])
+      const count = stickers.filter((sticker) => ids.has(sticker.id)).length
+
+      return [{ label: count > 1 ? `Remove ${count} stickers` : 'Remove sticker', danger: true, run: () => removeStickers(ids) }]
+    }
 
     if (target.kind === 'edge' && target.id.startsWith('agg:')) {
       const key = target.id.slice('agg:'.length)
@@ -2390,6 +2551,7 @@ export function Canvas() {
 
     return [
       { label: 'Add a note here', hint: hintOf('add-note'), run: () => addNote(menu.flow) },
+      { label: 'Create from link…', run: () => setLinkPrompt({ x: menu.x, y: menu.y, flow: menu.flow }) },
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }] : []),
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
@@ -2473,7 +2635,10 @@ export function Canvas() {
         if (tool !== 'select') setTool('select')
         else if (pinned) setPinned(null)
         else if (root) openRoot(map.get(root)?.parentId ?? null)
-        else setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
+        else {
+          clearStickerPicks()
+          setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
+        }
       } else if (pressed('fit')) {
         fitTo(root)
       } else if (pressed('add-note')) {
@@ -2487,6 +2652,7 @@ export function Canvas() {
     return () => window.removeEventListener('keydown', onKey)
   }, [
     keybindings,
+    clearStickerPicks,
     doGroup,
     doUngroup,
     selected,
@@ -2574,12 +2740,14 @@ export function Canvas() {
           },
         ]
       : []),
-    ...THEMES.map((theme) => ({
-      id: `theme-${theme.id}`,
-      label: `Theme: ${theme.label}`,
-      detail: 'Saved on this device',
-      run: () => chooseAppearance({ ...appearance, theme: theme.id }),
-    })),
+    ...themes
+      .filter((theme) => !theme.error)
+      .map((theme) => ({
+        id: `theme-${theme.id}`,
+        label: `Theme: ${theme.label}`,
+        detail: 'Saved on this device',
+        run: () => chooseAppearance({ ...appearance, theme: theme.id }),
+      })),
     ...SKINS.map((skin) => ({
       id: `skin-${skin.id}`,
       label: `Cards: ${skin.label}`,
@@ -2699,6 +2867,9 @@ export function Canvas() {
           }
           ref={canvasRef}
           onPointerDown={startMarquee}
+          onPointerDownCapture={(event) => {
+            pressModifiers.current = event.metaKey || event.shiftKey
+          }}
           onPointerMove={trackPointer}
           onClickCapture={claimNodeClick}
         >
@@ -2724,7 +2895,10 @@ export function Canvas() {
               nodeTypes={nodeTypes}
               edgeTypes={edgeTypes}
               onNodesChange={onNodesChange}
-              onNodeDragStop={onDragStop}
+              onNodeDragStop={(event) => {
+                stickerFollow.current = null
+                onDragStop(event)
+              }}
               onConnect={onConnect}
               onConnectStart={() => {
                 setLinking(true)
@@ -2766,10 +2940,18 @@ export function Canvas() {
 
                 actions.open(node.id)
               }}
-              onNodeDragStart={(event, _node, dragged) => onDragStart(event, dragged)}
-              onNodeDrag={onDrag}
+              onNodeDragStart={(event, node, dragged) => {
+                onDragStart(event, dragged)
+                stickerFollow.current = followStart(node)
+              }}
+              onNodeDrag={(event, node) => {
+                onDrag(event)
+                followDrag(node)
+              }}
               onPaneClick={(event) => {
                 if (focus) return exitFocus()
+
+                if (!event.metaKey && !event.shiftKey) clearStickerPicks()
 
                 setPinned(null)
 
@@ -2804,13 +2986,15 @@ export function Canvas() {
               zoomOnDoubleClick={false}
               minZoom={MIN_ZOOM}
               maxZoom={MAX_ZOOM}
-              colorMode={colorModeOf(appearance)}
+              colorMode={colorModeOf(appearance, themes)}
             >
               <StickerLayer
                 stickers={placedStickers}
+                picked={stickerPicks}
                 interactive={!focus && tool === 'select'}
                 bounds={stickerBounds}
                 settle={settleStickers}
+                select={selectSticker}
                 menu={(event, id) => openMenu(event, { kind: 'sticker', id })}
               />
               {marquee && (
@@ -2909,7 +3093,7 @@ export function Canvas() {
                 />
               </Panel>
 
-              {coverTarget && selected.length === 0 && (
+              {coverTarget && selected.length === 0 && pickedStickers.length === 0 && (
                 <Panel position="top-right" className="panel inspector cover-panel">
                   {coverTarget.kind === 'canvas' ? (
                     <CoverSettings
@@ -2934,9 +3118,18 @@ export function Canvas() {
                 </Panel>
               )}
 
-              {selected.length > 0 && (
+              {(selected.length > 0 || pickedStickers.length > 0) && (
                 <Panel position="top-right" className="panel inspector">
-                  {!one ? (
+                  {!selected.length ? (
+                    <div className="insp">
+                      <strong>
+                        {pickedStickers.length} {pickedStickers.length === 1 ? 'sticker' : 'stickers'} selected
+                      </strong>
+                      <button type="button" className="btn" onClick={() => removeStickers(new Set(pickedStickers.map((sticker) => sticker.id)))}>
+                        Remove {pickedStickers.length === 1 ? 'sticker' : 'stickers'}
+                      </button>
+                    </div>
+                  ) : !one ? (
                     <div className="insp">
                       <strong>{selected.length} selected</strong>
                       <button type="button" className="btn primary" onClick={doGroup}>
@@ -3098,6 +3291,9 @@ export function Canvas() {
           {!ready && <div className="loading">Laying out…</div>}
           {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
           {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
+          {linkPrompt && (
+            <LinkPrompt x={linkPrompt.x} y={linkPrompt.y} submit={(url) => createFromLink(url, linkPrompt.flow)} close={() => setLinkPrompt(null)} />
+          )}
           {wheel && (
             <StickerWheel
               at={wheel}
@@ -3129,6 +3325,7 @@ export function Canvas() {
             showSection={setSettings}
             close={() => setSettings(null)}
             appearance={appearance}
+            themes={themes}
             chooseAppearance={chooseAppearance}
             keybindings={keybindings}
             chooseKeybindings={chooseKeybindings}

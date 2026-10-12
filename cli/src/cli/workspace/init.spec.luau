@@ -110,3 +110,107 @@ test.case("workspace set stores the canvas cover and background and needs an ima
 	run({ "workspace", "set", "--cover", "" })
 	assert.eq(store.load(root).settings.cover, nil)
 end)
+
+-- Lists workspace names in the order the command reports them.
+local function listNames(output: string): string
+	local listed = assert(json.asObject(json.deserialize(output) :: json.Value), "expected a workspace list")
+	local names: { string } = {}
+
+	for _, entry in json.asArray(listed.workspaces) or {} do
+		local object = json.asObject(entry)
+		table.insert(names, if object then tostring(object.name) else "")
+	end
+
+	return table.concat(names, ",")
+end
+
+test.case("workspace create derives the name from a label when none is given", function(assert)
+	local root, run = testing.createHarness("workspace-derive")
+	assert.eq(run({ "workspace", "create", "--label", "Focus areas" }), "Created workspace focus-areas")
+	assert.eq(listNames(run({ "workspace", "list", "--json" })), "default,focus-areas")
+	assert.eq(run({ "path", "--workspace", "focus-areas" }), tostring(path.join(root, "workspaces", "focus-areas")))
+
+	local listed = json.asObject(json.deserialize(run({ "workspace", "list", "--json" })) :: json.Value)
+	local entries = if listed then json.asArray(listed.workspaces) else nil
+	local second = if entries then json.asObject(entries[2]) else nil
+	assert.eq(second and second.label, "Focus areas")
+
+	assert.throwsWith("workspace already exists: focus-areas", function()
+		run({ "workspace", "create", "--label", "focus areas" })
+	end)
+
+	assert.throwsWith("give a name or a label", function()
+		run({ "workspace", "create" })
+	end)
+
+	assert.throwsWith("pass a name: the label has no letters or digits to derive one from", function()
+		run({ "workspace", "create", "--label", "!!!" })
+	end)
+
+	assert.throwsWith("invalid workspace name: Focus areas", function()
+		run({ "workspace", "create", "Focus areas" })
+	end)
+end)
+
+test.case("workspace archive hides a workspace and restore brings it back with its data", function(assert)
+	local root, run = testing.createHarness("workspace-archive")
+	run({ "workspace", "create", "docs" })
+	run({ "workspace", "create", "roblox" })
+	run({ "--workspace", "roblox", "add", "Kept on the canvas" })
+	local dir = tostring(path.join(root, "workspaces", "roblox"))
+	assert.eq(#store.load(dir).nodes, 1)
+
+	assert.eq(run({ "workspace", "archive", "roblox" }), "Archived workspace roblox")
+	assert.eq(listNames(run({ "workspace", "list", "--json" })), "default,docs")
+	assert.eq(listNames(run({ "workspace", "list", "--archived", "--json" })), "roblox")
+	assert.eq(#store.load(dir).nodes, 1)
+
+	assert.throwsWith("unknown workspace: roblox", function()
+		run({ "workspace", "use", "roblox" })
+	end)
+
+	assert.throwsWith("workspace already archived: roblox", function()
+		run({ "workspace", "archive", "roblox" })
+	end)
+
+	assert.throwsWith(`workspace folder already exists: {dir}`, function()
+		run({ "workspace", "create", "roblox" })
+	end)
+
+	assert.eq(run({ "workspace", "restore", "roblox" }), "Restored workspace roblox")
+	assert.eq(listNames(run({ "workspace", "list", "--json" })), "default,docs,roblox")
+	assert.eq(listNames(run({ "workspace", "list", "--archived", "--json" })), "")
+	assert.eq(#store.load(dir).nodes, 1)
+
+	assert.throwsWith("unknown archived workspace: roblox", function()
+		run({ "workspace", "restore", "roblox" })
+	end)
+end)
+
+test.case("workspace archive refuses the active, default, and unknown workspaces", function(assert)
+	local _, run = testing.createHarness("workspace-archive-refuse")
+	run({ "workspace", "create", "docs" })
+	run({ "workspace", "use", "docs" })
+
+	assert.throwsWith("can't archive the active workspace: docs", function()
+		run({ "workspace", "archive", "docs" })
+	end)
+
+	assert.throwsWith("can't archive the active workspace: docs", function()
+		run({ "workspace", "use", "default" })
+		run({ "workspace", "use", "docs" })
+		run({ "workspace", "archive", "docs", "--workspace", "docs" })
+	end)
+
+	run({ "workspace", "use", "default" })
+
+	assert.throwsWith("the default workspace can't be archived", function()
+		run({ "workspace", "archive", "default" })
+	end)
+
+	assert.throwsWith("unknown workspace: missing", function()
+		run({ "workspace", "archive", "missing" })
+	end)
+
+	assert.eq(listNames(run({ "workspace", "list", "--json" })), "default,docs")
+end)

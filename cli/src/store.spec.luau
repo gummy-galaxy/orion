@@ -5,6 +5,7 @@ local test = require("@std/test")
 
 local findRef = require("@root/refs/findRef")
 local getRefs = require("@root/refs/getRefs")
+local graph = require("@root/graph")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -266,4 +267,38 @@ test.case("store keeps the canvas cover and background across later saves", func
 	assert.eq(afterLaterSave.settings.cover, "image-logo.png")
 	assert.eq(afterLaterSave.revision, 2)
 	assert.strContains(fs.readFileToString(store.filePath(dir)), '"cover": "image-logo.png"')
+end)
+
+test.case("a transaction flags a card that turns done and clears the flag on reopen", function(assert)
+	local dir = testing.directory("celebrate-transaction")
+	store.write(
+		dir,
+		testing.createDoc({ testing.task("a", "A", "active"), testing.task("b", "B", "todo") }, { { "a", "b" } })
+	)
+
+	store.transaction(dir, function(doc)
+		graph.setFields(doc, "a", { status = "done" })
+	end)
+	local finished = store.load(dir)
+	assert.eq(finished.nodes[1].data.celebrate, true)
+	assert.eq(finished.nodes[2].data.celebrate, nil)
+
+	store.transaction(dir, function(doc)
+		graph.setFields(doc, "a", { status = "todo" })
+	end)
+	assert.eq(store.load(dir).nodes[1].data.celebrate, nil)
+end)
+
+test.case("a save flags the cards it finishes and leaves the rest without the flag", function(assert)
+	local dir = testing.directory("celebrate-save")
+	store.write(dir, testing.createDoc({ testing.task("a", "A", "active"), testing.task("b", "B", "todo") }))
+	local doc = store.load(dir)
+	doc.nodes[1].data.status = "done"
+	local root = store.toObject(doc)
+
+	local isSaved = store.put(dir, 0, json.asArray(root.nodes) or {}, json.asArray(root.links) or {})
+	assert.eq(isSaved, true)
+	local saved = store.load(dir)
+	assert.eq(saved.nodes[1].data.celebrate, true)
+	assert.eq(saved.nodes[2].data.celebrate, nil)
 end)

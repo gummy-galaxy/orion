@@ -11,6 +11,7 @@ local focus = require("@root/cli/focus")
 local getAdapter = require("@root/adapters/getAdapter")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
+local importCommand = require("@root/cli/import")
 local ingest = require("@root/cli/ingest")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
@@ -18,6 +19,8 @@ local pad = require("@root/render/pad")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
+local requestedRevision = require("@root/cli/requestedRevision")
+local resolveRef = require("@root/adapters/resolveRef")
 local restore = require("@root/cli/restore")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
@@ -59,6 +62,7 @@ local COMMANDS: { [string]: Command } = {
 	workspace = workspace,
 	source = source,
 	ingest = ingest,
+	import = importCommand,
 }
 
 local COMMAND_HELP: { [string]: string } = {
@@ -111,13 +115,30 @@ local function addWorkspaceOption(parser: cli.Parser)
 	parser:add("workspace", "option", { help = "Use this workspace for this command" })
 end
 
-local function addFieldOptions(parser: cli.Parser)
-	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
-	parser:add("repo", "option", { help = "Repository, as owner/name" })
-	parser:add("pr", "option", { help = "Pull request number" })
-	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
-	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
-	parser:add("kind", "option", { help = "step, or gate for one that's done once everything it waits on is" })
+local function addRefOption(parser: cli.Parser)
+	parser:add(
+		"ref",
+		"option",
+		{ help = "Attach outside work: a GitHub or Jira URL, or source:key such as jira:ABC-1" }
+	)
+end
+
+-- Item fields. Set passes a suffix to say that groups don't take them.
+local function addFieldOptions(parser: cli.Parser, suffix: string)
+	parser:add("status", "option", { help = `todo, active, review, blocked, deferred, or done{suffix}` })
+	parser:add(
+		"repo",
+		"option",
+		{ help = `Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL{suffix}` }
+	)
+	parser:add(
+		"pr",
+		"option",
+		{ help = `Pull request number. Deprecated: use --ref with the pull request URL{suffix}` }
+	)
+	parser:add("who", "option", { help = `Whose move: you, review, or ci (empty to clear){suffix}` })
+	parser:add("note", "option", { help = `Free-form note (empty to clear){suffix}` })
+	parser:add("kind", "option", { help = `step, or gate for one that's done once everything it waits on is{suffix}` })
 end
 
 type Parsers = {
@@ -166,14 +187,15 @@ local function createParsers(): Parsers
 	local add = command("add")
 	add:add("label", "variadic", { help = "What the work is" })
 	add:add("group", "option", { help = "Group to add it to" })
-	addFieldOptions(add)
+	addFieldOptions(add, "")
+	addRefOption(add)
 	addJsonFlag(add)
 
 	local set = command("set")
 	set:add("id", "positional", { help = "Item or group id" })
 	set:add("label", "option", { help = "New label" })
-	set:add("blurb", "option", { help = "Group description" })
-	set:add("arrange", "option", { help = "How reflow arranges a group: auto or custom" })
+	set:add("blurb", "option", { help = "Group description (groups only)" })
+	set:add("arrange", "option", { help = "How reflow arranges a group: auto or custom (groups only)" })
 	set:add(
 		"cover",
 		"option",
@@ -184,7 +206,8 @@ local function createParsers(): Parsers
 		"option",
 		{ help = "Color, color token such as card.background, or image asset id (groups only; empty to clear)" }
 	)
-	addFieldOptions(set)
+	addFieldOptions(set, " (items only)")
+	addRefOption(set)
 	addJsonFlag(set)
 
 	local function addBatchOptions(parser: cli.Parser, help: string)
@@ -253,6 +276,7 @@ local function createParsers(): Parsers
 	registeredCommand("serve")
 	registeredCommand("source")
 	registeredCommand("ingest")
+	registeredCommand("import")
 
 	registeredCommand("suggest")
 	registeredCommand("suggestions")
@@ -318,10 +342,25 @@ local function required(parser: cli.Parser, name: string): string
 	return assert(parser:get(name), `missing <{name}>`)
 end
 
-local function requestedRevision(parser: cli.Parser): number?
-	local value = parser:get("if-revision")
-	assert(value == nil or value:match("^%d+$"), "--if-revision must be a nonnegative integer")
-	return if value then tonumber(value) else nil
+-- Attaches the --ref given to add or set, resolving it against the document's sources.
+local function attachRef(doc: Doc, id: string, input: string?)
+	if input then
+		graph.attachRef(doc, id, resolveRef(input, doc.settings.sources))
+	end
+end
+
+-- The workspace comes from the root or the deepest subcommand that names one.
+local function requestedWorkspace(root: cli.Parser): string?
+	local selected: string? = nil
+	local current: cli.Parser? = root
+
+	while current do
+		selected = current:get("workspace") or selected
+		local _, child = current:selected()
+		current = child
+	end
+
+	return selected
 end
 
 local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
@@ -488,11 +527,7 @@ local function execute(args: { string }, options: Dependencies?)
 	end
 
 	local root = deps.dataDir
-	local selected = parser:get("workspace") or parsers.root:get("workspace")
-
-	if subparser then
-		selected = subparser:get("workspace") or selected
-	end
+	local selected = requestedWorkspace(parsers.root)
 
 	local active = store.getActiveWorkspace(root, selected, deps.workspace)
 	local dir = store.getWorkspaceDir(root, active)
@@ -634,6 +669,7 @@ local function execute(args: { string }, options: Dependencies?)
 		options.group = parser:get("group")
 		local doc = store.transaction(dir, function(doc)
 			added = graph.addItem(doc, label, options)
+			attachRef(doc, added.id, parser:get("ref"))
 		end)
 
 		emitItem(deps, doc, added, asJson, "Added")
@@ -645,6 +681,7 @@ local function execute(args: { string }, options: Dependencies?)
 		local changed: Item
 		local doc = store.transaction(dir, function(doc)
 			changed = graph.setFields(doc, id, values)
+			attachRef(doc, id, parser:get("ref"))
 		end)
 
 		emitItem(deps, doc, changed, asJson, "Updated")

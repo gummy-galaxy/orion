@@ -1,10 +1,12 @@
 local cli = require("@batteries/cli")
 
+local archive = require("@root/cli/workspace/archive")
 local context = require("@root/cli/context")
 local create = require("@root/cli/workspace/create")
 local current = require("@root/cli/workspace/current")
 local list = require("@root/cli/workspace/list")
 local rename = require("@root/cli/workspace/rename")
+local restore = require("@root/cli/workspace/restore")
 local set = require("@root/cli/workspace/set")
 local use = require("@root/cli/workspace/use")
 
@@ -16,14 +18,16 @@ local COMMANDS: { [string]: Command } = {
 	create = create,
 	rename = rename,
 	set = set,
+	archive = archive,
+	restore = restore,
 	use = use,
 	current = current,
 }
 
 return table.freeze({
-	help = "List, create, rename, and choose workspaces",
+	help = "List, create, rename, archive, restore, and choose workspaces",
 	define = function(parser: cli.Parser)
-		for _, name in { "list", "create", "rename", "set", "use", "current" } do
+		for _, name in { "list", "create", "rename", "set", "archive", "restore", "use", "current" } do
 			local subcommand = parser:subcommand(name, { help = COMMANDS[name].help })
 			subcommand:add("help", "flag", { help = "Show this help", aliases = { "h" } })
 			subcommand:add("workspace", "option", { help = "Use this workspace for this command" })
@@ -33,7 +37,7 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local name, subcommand = parser:selected()
-		assert(name and subcommand, "choose list, create, rename, set, use, or current")
+		assert(name and subcommand, "choose list, create, rename, set, archive, restore, use, or current")
 		COMMANDS[name].run(subcommand, options)
 	end,
 })

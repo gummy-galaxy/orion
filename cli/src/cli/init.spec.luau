@@ -171,3 +171,100 @@ test.case("set puts a cover and background on a group, and needs the cover image
 	run({ "set", "ws", "--background", "" })
 	assert.eq(store.load(dir).nodes[1].data.background, nil)
 end)
+
+test.case("set attaches a GitHub issue from a URL and fills in an empty repository", function(assert)
+	local dir, run = testing.createHarness("attach-issue")
+	assert.strContains(
+		run({ "set", "pub", "--ref", "https://github.com/Roblox/avatar/issues/3" }),
+		"Updated pub · Publish v2.6.0"
+	)
+	local item = store.load(dir).nodes[3]
+	assert.eq(item.data.repo, "Roblox/avatar")
+	assert.eq(item.data.itemKind, "placeholder")
+	assert.neq(findRef(item, "issue", "Roblox/avatar#3"), nil)
+end)
+
+test.case("set keeps the repository an item already has when a ref names another", function(assert)
+	local dir, run = testing.createHarness("attach-keeps-repo")
+	run({ "set", "ci", "--ref", "https://github.com/Roblox/avatar/issues/3" })
+	local item = store.load(dir).nodes[2]
+	assert.eq(item.data.repo, "flipbook-labs/flipbook")
+	assert.neq(findRef(item, "issue", "Roblox/avatar#3"), nil)
+end)
+
+test.case("add attaches a pull request URL as a pr card", function(assert)
+	local dir, run = testing.createHarness("add-ref")
+	assert.strContains(
+		run({ "add", "Write", "notes", "--group", "ws", "--ref", "https://github.com/Roblox/avatar/pull/9" }),
+		"Added write-notes"
+	)
+	local item = store.load(dir).nodes[4]
+	assert.eq(item.data.repo, "Roblox/avatar")
+	assert.eq(item.data.itemKind, "pr")
+	assert.neq(findRef(item, "pull", "Roblox/avatar#9"), nil)
+end)
+
+test.case("set attaches Jira issues by source:key through a configured source", function(assert)
+	local dir, run = testing.createHarness("attach-jira")
+	run({
+		"source",
+		"add",
+		"jira",
+		"--command",
+		[[ ["acli","jira","workitem","search"] ]],
+		"--browse",
+		"https://jira.example.com/browse/",
+	})
+	run({ "set", "pub", "--ref", "jira:ABC-12" })
+	run({ "set", "ci", "--ref", "https://jira.example.com/browse/ABC-13" })
+	local nodes = store.load(dir).nodes
+	local attached = findRef(nodes[3], "issue", "ABC-12")
+	assert.eq(attached and attached.url, "https://jira.example.com/browse/ABC-12")
+	local retitled = findRef(nodes[2], "issue", "ABC-13")
+	assert.eq(retitled and retitled.source, "jira")
+	assert.eq(nodes[3].data.repo, nil)
+end)
+
+test.case("a ref that cannot be resolved writes nothing", function(assert)
+	local dir, run = testing.createHarness("attach-invalid")
+	local before = store.load(dir).revision
+	assert.throwsWith(
+		"no source recognizes https://git.example.org/a/b/pull/1; add its GitHub or Jira source first, or use source:key",
+		function()
+			run({ "set", "pub", "--ref", "https://git.example.org/a/b/pull/1" })
+		end
+	)
+	assert.throwsWith('no source with id "missing"', function()
+		run({ "add", "Write", "notes", "--ref", "missing:ABC-1" })
+	end)
+	assert.eq(store.load(dir).revision, before)
+	assert.eq(#store.load(dir).nodes, 3)
+end)
+
+test.case("set rejects item-only fields and refs on groups", function(assert)
+	local dir, run = testing.createHarness("set-groups")
+	assert.throwsWith("groups only take a label, blurb, arrange, cover, and background", function()
+		run({ "set", "ws", "--note", "Remember" })
+	end)
+	assert.throwsWith("groups don't take refs; attach it to an item", function()
+		run({ "set", "ws", "--ref", "https://github.com/Roblox/avatar/issues/3" })
+	end)
+	assert.throwsWith("groups only take a label, blurb, arrange, cover, and background", function()
+		run({ "set", "ws", "--status", "done" })
+	end)
+	assert.throwsWith('"pub" is an item; only groups take a blurb', function()
+		run({ "set", "pub", "--blurb", "Not for items" })
+	end)
+	assert.eq(store.load(dir).nodes[1].data.blurb, nil)
+end)
+
+test.case("repo and pr still attach a pull request as deprecated aliases", function(assert)
+	local dir, run = testing.createHarness("deprecated-pr")
+	run({ "set", "pub", "--repo", "Roblox/avatar", "--pr", "4" })
+	local item = store.load(dir).nodes[3]
+	assert.eq(item.data.itemKind, "pr")
+	assert.neq(findRef(item, "pull", "Roblox/avatar#4"), nil)
+	assert.strContains(run({ "set", "--help" }), "Deprecated")
+	assert.strContains(run({ "set", "--help" }), "--ref")
+	assert.strContains(run({ "add", "--help" }), "--ref")
+end)

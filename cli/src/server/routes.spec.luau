@@ -366,3 +366,16 @@ test.case("PUT /api/orion/style sets and clears the canvas cover and bumps the r
 		409
 	)
 end)
+
+test.case("the theme list route serves theme files from the data folder", function(assert)
+	local root, router = createRouter("routes-theme-files")
+	local folder = path.join(root, "themes")
+	fs.createDirectory(folder, { makeParents = true })
+	fs.writeStringToFile(path.join(folder, "dusk.json"), '{"name":"Dusk"}')
+
+	local response = router.handle(createRequest("GET", "/api/themes"))
+	assert.eq(response.status, 200)
+	local entries = json.asArray(decodeResponse(response).themes) :: json.Array
+	assert.eq((json.asObject(entries[1]) :: json.Object).file, "dusk.json")
+	assert.eq(router.handle(createRequest("POST", "/api/themes")).status, 405)
+end)
