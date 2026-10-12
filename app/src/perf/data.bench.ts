@@ -32,7 +32,7 @@ for (const cards of SIZES) {
     await bench('normalize', () => normalize(nodes)).run(RUN)
     await bench('fingerprint', () => fingerprint(saved)).run(RUN)
     await bench('mergeDocs', () => mergeDocs(saved, local, remote)).run(RUN)
-    await bench('snapDrag', () => snapDrag(nodes, dragged, 8)).run(RUN)
+    await bench('snapDrag', () => snapDrag(nodes, dragged, 8, 160)).run(RUN)
     await bench('reflow group', () => reflow(nodes, links, 'group-0')).run(RUN)
     await bench('reflow top level', () => reflow(nodes, links, undefined)).run(RUN)
   })
