@@ -109,6 +109,25 @@
   box-shadow: 0 22px 44px -14px rgb(0 0 0 / 0.6);
 }
 
+.card.skin-trading .trading-mythic .trading-frame-border::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  z-index: 2;
+  padding: 1px;
+  border-radius: 6px;
+  pointer-events: none;
+  background: linear-gradient(135deg, #f2bd72, #dc6743 34%, #eecb8f 58%, #9d3e47 82%, #f2bd72);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
 .card.skin-trading .trading-inner {
   position: relative;
   height: 100%;
@@ -124,11 +143,23 @@
 }
 
 .card.skin-trading .trading-title {
+  position: relative;
   min-height: 44px;
   padding: 2px 2px 0;
   display: flex;
   align-items: flex-start;
   gap: 8px;
+}
+
+.card.skin-trading .trading-rare .trading-title::after,
+.card.skin-trading .trading-mythic .trading-title::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  left: 2px;
+  height: 1px;
+  background: #b9872b;
 }
 
 .card.skin-trading .trading-title h3 {
@@ -162,6 +193,23 @@
   overflow: hidden;
   background: var(--trading-art-base);
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+.card.skin-trading .trading-uncommon .trading-art::before,
+.card.skin-trading .trading-rare .trading-art::before,
+.card.skin-trading .trading-mythic .trading-art::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  z-index: 3;
+  border: 1px solid #aebbc6;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.card.skin-trading .trading-rare .trading-art::before,
+.card.skin-trading .trading-mythic .trading-art::before {
+  border-color: #e6b94f;
 }
 
 .card.skin-trading .trading-art img,
@@ -223,15 +271,45 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.card.skin-trading .trading-gem {
-  width: 9px;
-  height: 9px;
+.card.skin-trading .trading-type .trading-rarity-symbol {
+  width: 18px;
+  height: 18px;
   margin-left: auto;
-  border-radius: 2px;
   flex: none;
-  transform: rotate(45deg);
-  background: var(--trading-ink-two);
-  box-shadow: 0 0 8px var(--trading-ink-two);
+  stroke-width: 1.2px;
+  stroke-linejoin: round;
+}
+.card.skin-trading .trading-rarity-symbol-common {
+  fill: #20252b;
+  stroke: #f1f4f5;
+}
+.card.skin-trading .trading-rarity-symbol-uncommon {
+  fill: #bdc8cf;
+  stroke: #4e5962;
+}
+.card.skin-trading .trading-rarity-symbol-rare {
+  fill: #edc35e;
+  stroke: #765018;
+}
+.card.skin-trading .trading-rarity-symbol-mythic {
+  fill: #ed6744;
+  stroke: #772e25;
+}
+.card.skin-trading .trading-done .trading-rarity-symbol {
+  filter: grayscale(0.85);
+  opacity: 0.7;
+}
+
+.card.skin-trading .trading-done.trading-mythic .trading-frame-border::before {
+  opacity: 0.35;
+}
+
+.card.skin-trading .trading-done .trading-title::after {
+  background: var(--muted);
+}
+
+.card.skin-trading .trading-done .trading-art::before {
+  border-color: var(--muted);
 }
 
 .card.skin-trading .trading-text {

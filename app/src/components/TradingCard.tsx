@@ -7,6 +7,7 @@ import { SourceBadges } from './SourceBadges'
 import { StatusIcon } from './StatusIcon'
 import { TradingArtwork } from './TradingArtwork'
 import { TradingKindIcon } from './TradingKindIcon'
+import { TradingRaritySymbol } from './TradingRaritySymbol'
 
 type ArtKind = Exclude<CardView['kind'], 'note'>
 
@@ -44,7 +45,7 @@ export function TradingCard({ view }: { view: CardView }) {
 
   return (
     <div
-      className={`trading-frame trading-${yourMove ? 'you' : view.status}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
+      className={`trading-frame trading-${yourMove ? 'you' : view.status}${view.rarity ? ` trading-${view.rarity}` : ''}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
       style={style}
     >
       <i className="trading-glow" aria-hidden="true" />
@@ -62,7 +63,7 @@ export function TradingCard({ view }: { view: CardView }) {
               {KIND_LABEL[view.kind]}
               {repositoryName && ` · ${repositoryName}`}
             </span>
-            <i className="trading-gem" aria-hidden="true" />
+            {view.rarity && <TradingRaritySymbol rarity={view.rarity} upstream={view.upstream} />}
           </div>
           <p className={`trading-text${view.note ? '' : ' trading-flavor'}`} title={view.note || view.tag}>
             {view.note || view.tag}
