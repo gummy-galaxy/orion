@@ -71,6 +71,8 @@ describe('keybindings', () => {
     expect(DEFAULT_KEYBINDINGS['bring-forward']).toBe('Mod+Alt+]')
     expect(DEFAULT_KEYBINDINGS['send-backward']).toBe('Mod+Alt+[')
     expect(DEFAULT_KEYBINDINGS['nudge-left']).toBe('ArrowLeft')
+    expect(DEFAULT_KEYBINDINGS['select-all']).toBe('Mod+A')
+    expect(DEFAULT_KEYBINDINGS['zoom-actual']).toBe('Shift+0')
   })
 
   it('keeps bring forward and send backward apart from back and forward navigation', () => {
@@ -84,6 +86,8 @@ describe('keybindings', () => {
   it('reads the new chords from key presses', () => {
     expect(chordOf(press('F2', 'F2'))).toBe('F2')
     expect(chordOf(press('@', 'Digit2', { shift: true }))).toBe('Shift+2')
+    expect(chordOf(press(')', 'Digit0', { shift: true }))).toBe('Shift+0')
+    expect(chordOf(press('a', 'KeyA', { meta: true }))).toBe('Mod+A')
     expect(chordOf(press('ArrowLeft', 'ArrowLeft', { shift: true }))).toBe('Shift+ArrowLeft')
   })
 
@@ -96,7 +100,18 @@ describe('keybindings', () => {
   })
 
   it('lists each new action once in the Editing or Navigation category', () => {
-    const ids = ['rename', 'bring-forward', 'send-backward', 'nudge-up', 'nudge-down', 'nudge-left', 'nudge-right', 'fit-selection']
+    const ids = [
+      'select-all',
+      'rename',
+      'bring-forward',
+      'send-backward',
+      'nudge-up',
+      'nudge-down',
+      'nudge-left',
+      'nudge-right',
+      'fit-selection',
+      'zoom-actual',
+    ]
 
     for (const id of ids) {
       expect(SHORTCUTS.filter((shortcut) => shortcut.id === id)).toHaveLength(1)

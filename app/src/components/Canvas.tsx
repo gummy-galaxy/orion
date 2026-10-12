@@ -110,6 +110,7 @@ import { Sidebar } from './Sidebar'
 import { Settings, type SettingsSection } from './Settings'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
+import { selectAllIds, selectNodes } from '../selectAll'
 import { stackNodes } from '../stack'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
@@ -1861,6 +1862,20 @@ export function Canvas() {
     [reactFlow, selected],
   )
 
+  const zoomActual = useCallback(() => void reactFlow.zoomTo(1, { duration: glide(450) }), [reactFlow])
+
+  const canSelectAll = useMemo(() => selectAllIds(nodes, root, view.hidden) !== null, [nodes, root, view.hidden])
+
+  const selectAll = useCallback(
+    () =>
+      setNodes((currentNodes) => {
+        const ids = selectAllIds(currentNodes, root, view.hidden)
+
+        return ids ? selectNodes(currentNodes, ids) : currentNodes
+      }),
+    [root, view.hidden, setNodes],
+  )
+
   /** Moves each selected card one step in the stacking order, which the canvas paints as it lists them. */
   const restack = useCallback(
     (direction: 1 | -1) => {
@@ -2464,6 +2479,10 @@ export function Canvas() {
       } else if (pressed('ungroup')) {
         event.preventDefault()
         doUngroup()
+      } else if (pressed('select-all')) {
+        event.preventDefault()
+
+        if (tool !== 'sticker') selectAll()
       } else if (pressed('rename') && selected.length === 1) {
         event.preventDefault()
         setEditing(selected[0].id)
@@ -2482,6 +2501,9 @@ export function Canvas() {
         else setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
       } else if (pressed('fit')) {
         fitTo(root)
+      } else if (pressed('zoom-actual')) {
+        event.preventDefault()
+        zoomActual()
       } else if (pressed('add-note')) {
         event.preventDefault()
         addNote(viewportCenter())
@@ -2500,6 +2522,8 @@ export function Canvas() {
     doGroup,
     doUngroup,
     fitSelection,
+    zoomActual,
+    selectAll,
     restack,
     settings,
     selected,
@@ -2588,6 +2612,18 @@ export function Canvas() {
             detail: `Show ${selected.length} selected`,
             hint: hintOf('fit-selection'),
             run: fitSelection,
+          },
+        ]
+      : []),
+    { id: 'zoom-actual', label: 'Zoom to 100%', detail: 'Show cards at their actual size', hint: hintOf('zoom-actual'), run: zoomActual },
+    ...(canSelectAll
+      ? [
+          {
+            id: 'select-all',
+            label: 'Select all',
+            detail: root ? 'Select everything in the open group' : 'Select everything at the top level',
+            hint: hintOf('select-all'),
+            run: selectAll,
           },
         ]
       : []),
