@@ -91,3 +91,22 @@ export function saveSettings(changes: Partial<Record<SavedSetting, string | null
 
   post(sent)
 }
+
+/**
+ * Reads one preference that only the data folder keeps, such as a list per workspace. A missing key reads as undefined;
+ * a failed request rejects, so callers don't mistake a dropped read for an empty list and overwrite it.
+ */
+export async function readFileSetting(key: string): Promise<unknown> {
+  const response = await fetch(API, { signal: AbortSignal.timeout(RESTORE_TIMEOUT_MS) })
+
+  if (!response.ok) throw new Error(`settings read failed: ${response.status}`)
+
+  const saved = (await response.json()) as Record<string, unknown>
+
+  return saved[key]
+}
+
+/** Saves one preference only in the data folder, queued behind other saves. Null forgets it. */
+export function saveFileSetting(key: string, value: unknown) {
+  post({ [key]: value })
+}

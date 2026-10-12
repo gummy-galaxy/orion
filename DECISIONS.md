@@ -8,21 +8,21 @@ These are current calls, not rules. The charter comes first, and any entry here 
 
 ## Cards
 
-### Rarity is the work that feeds into a card
+### Rarity is the work that feeds into a card, lifted by priority
 
-A card with no inputs is a common card. As more work flows into a card through the chain, its rarity climbs: common, uncommon, rare, and up. The exact tiers and thresholds are open to tuning.
+A card with no inputs is a common card. As more work flows into a card through the chain, its rarity climbs: common, uncommon, rare, and mythic. A priority set by a source lifts it further: P0 by two tiers and P1 by one, up to mythic. The exact tiers and thresholds are open to tuning.
 
-**Why:** cards should stand out for what they are, and the cards that many pieces of work converge on are the ones worth spotting. Because rarity comes from the graph's shape, nobody can raise it by inflating one card.
+**Why:** cards should stand out for what they are, and the cards that many pieces of work converge on are the ones worth spotting. On upstream work alone, mythic needed more than a dozen cards feeding in, so almost nothing reached it. Priority makes the top tiers reachable for work that matters now. It still comes only from a source, so nothing inside Orion can raise a card's rarity, including padding the board with cards. This replaced rarity from upstream work alone (2026-10-09), which kept priority separate.
 
-2026-10-09 · #161
+2026-10-09, 2026-10-11 · #161, #241
 
-### Priority is foil, not rarity
+### Foil is rarity
 
-P0 cards get full holo foil and P1 cards get a foil edge. P2 and below are common cards. Priority shows only when a source sets it; Orion never guesses one. Importance inferred from connections comes through rarity instead.
+Uncommon cards get a silver edge, rare cards a foil edge, and mythic cards a foil edge with holo over the art. Priority shows as a chip in the severity colors and lifts rarity, but has no finish of its own.
 
-**Why:** P0s are the specialized cards that ideally don't come up often, and lower priorities are the common cards that keep the whole deck running: less flashy, still necessary. Making rarity mean importance was considered and rejected, because it would reward making big tickets.
+**Why:** card games mark rarity with foil, so a shiny card reads as a rare one at a glance. One finish ladder also keeps two shiny signals from competing on the same card. This replaced "Priority is foil, not rarity" (2026-10-11), which gave P0 holo and P1 a foil edge. That entry's worry, that rarity would reward big tickets, is still covered: rarity comes from the graph and a source's priority, never from a card's own size.
 
-2026-10-11 · #241, #242
+2026-10-11 · #161, #242
 
 ### Reward breaking work down and finishing it, never making cards
 
@@ -32,13 +32,13 @@ Big work looks sealed until it's split into smaller cards. Celebrations, points,
 
 2026-10-11 · #242, #116
 
-### Card art is symbolic
+### Card art is a scene picked by kind
 
-The shapes in a card's art mean something: they tie back to what the card is, so you can tell cards apart and sort them in your head at a glance. Color is never the only cue.
+A card's art is a scene in the night sky. The kind picks the subject: steps are an orb rising over layered hills, pull requests a ringed planet, expected pull requests an eclipse, and gates a four-point star. The group's inks color it, the card's seed places it, and a grain dither ties it together. Kind also shapes the card's outline, so color is never the only cue.
 
-**Why:** the goal is recognizing a card on sight, and art that's only decorative doesn't help with that. An earlier geometric pass leaned too far into geometry for its own sake. Relying on color alone would also shut out colorblind readers.
+**Why:** the goal is recognizing a card on sight. Earlier passes missed it in two ways: geometric posters leaned into geometry for its own sake, and a kind icon set over gradient art read as a label stuck onto the card rather than art. This replaced "Card art is symbolic" (2026-10-09), which asked for meaningful shapes without saying what they were.
 
-2026-10-09, 2026-10-11 · #163, #164
+2026-10-09, 2026-10-11 · #163, #164, #275
 
 ### Each slot on a card has one job
 
