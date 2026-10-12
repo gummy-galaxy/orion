@@ -1,197 +1,219 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import type { CardView } from '../cardView'
-import type { Rarity } from '../rarity'
+import type { CardSizeLabel, CardView, Priority } from '../cardView'
+import { STALE_DAYS, type Motion, type Sticker } from '../skins/tradingFacts'
+import { skinOf } from '../skins'
 import { TradingCard } from './TradingCard'
 
-const meta = { title: 'Canvas/Cards and edges/TradingCard' } satisfies Meta
-
-export default meta
-type Story = StoryObj<typeof meta>
-
-const base: CardView = {
-  id: 'ready-step',
-  kind: 'step',
-  title: 'Prepare the release environment',
-  tag: 'step',
-  url: null,
-  status: 'ready',
-  statusLabel: 'Ready',
-  leverage: 0,
-  upstream: 0,
-  rarity: 'common',
-  sources: [],
-  note: 'Create the shared account and configure the release checks.',
-  artSeed: 'ready-step',
+type TradingArgs = {
+  kind: CardView['kind']
+  title: string
+  status: CardView['status']
+  priority: 'unknown' | `${Priority}`
+  size: 'unknown' | CardSizeLabel
+  sticker: 'none' | Sticker
+  motion: 'none' | Motion
+  blockers: number
+  unblocks: number
+  group: string
+  far: boolean
 }
 
-function renderCard(view: CardView) {
-  const className = view.kind === 'note' ? 'card skin-trading note' : `card skin-trading st-${view.status}`
+const DAY_MS = 24 * 60 * 60 * 1000
+
+// A sticker that comes from readiness wins over motion, since a pull request has one readiness at a time.
+function readinessOf(args: TradingArgs): Pick<CardView, 'readiness' | 'readyToMerge' | 'merge'> {
+  if (args.sticker === 'conflict' || args.sticker === 'failing') return { readiness: args.sticker }
+
+  if (args.sticker === 'mergeable')
+    return { readiness: 'mergeable', readyToMerge: true, merge: { url: 'https://github.com/vocksel/orion/pull/158', head: 'storybook' } }
+
+  if (args.motion === 'running') return { readiness: 'running' }
+
+  if (args.motion === 'queued') return { readiness: 'waiting' }
+
+  return {}
+}
+
+function toView(args: TradingArgs): CardView {
+  const stale = args.sticker === 'stale'
+
+  return {
+    id: 'playground',
+    kind: args.kind,
+    title: args.title,
+    tag: 'vocksel/orion#158',
+    url: null,
+    status: args.status,
+    statusLabel: args.status,
+    leverage: 0,
+    upstream: 0,
+    sources: [],
+    artSeed: 'playground',
+    blockers: args.blockers,
+    unblocks: args.unblocks,
+    group: args.group,
+    updatedAt: new Date(Date.now() - (stale ? STALE_DAYS + 6 : 0) * DAY_MS).toISOString(),
+    ...readinessOf(args),
+    ...(args.kind === 'pr' ? { pullRequestUrl: 'https://github.com/vocksel/orion/pull/158' } : {}),
+    ...(args.sticker === 'changes' ? { changesRequested: true as const } : {}),
+    ...(args.priority !== 'unknown' ? { priority: Number(args.priority) as Priority } : {}),
+    ...(args.size !== 'unknown' ? { size: args.size } : {}),
+  }
+}
+
+// Far zoom wraps the card in the canvas's far-card tag, which sizes it on its own.
+function TradingFrame({ view, far }: { view: CardView; far: boolean }) {
+  const className =
+    (view.kind === 'note'
+      ? 'card skin-trading note'
+      : `card skin-trading st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}`) +
+    (far ? ' far-card' : '')
 
   return (
-    <div style={{ width: 288, height: 400 }}>
-      <div className={className}>
+    <div style={far ? { position: 'relative', width: 240, height: 170 } : skinOf('trading').size}>
+      <div className={className} style={far ? { position: 'relative', translate: 'none' } : { width: '100%', height: '100%' }}>
         <TradingCard view={view} />
       </div>
     </div>
   )
 }
 
-export const Ready: Story = { render: () => renderCard(base) }
-export const YourMove: Story = {
-  render: () =>
-    renderCard({
-      ...base,
-      id: 'your-move',
-      kind: 'pr',
-      title: 'Report release health to PostHog',
-      tag: 'flipbook-labs/flipbook#658',
-      repo: 'flipbook-labs/flipbook',
-      status: 'review',
-      statusLabel: 'In review',
-      who: 'you',
-      upstream: 4,
-      rarity: 'uncommon',
-      whoLabel: 'Your move',
-      leverage: 5,
-      checks: 'pending',
-      readiness: 'running',
-      changeSize: { additions: 412, deletions: 38 },
-      note: 'Needs the flipbook-posthog-ci item and a posthog environment with OP_SERVICE_ACCOUNT_TOKEN.',
-      artSeed: 'your-move',
-    }),
-}
-export const Blocked: Story = {
-  render: () =>
-    renderCard({
-      ...base,
-      id: 'blocked',
-      kind: 'pr',
-      title: 'Publish v2.6.0',
-      tag: 'flipbook-labs/flipbook#641',
-      repo: 'flipbook-labs/flipbook',
-      status: 'blocked',
-      statusLabel: 'Blocked',
-      upstream: 8,
-      rarity: 'rare',
-      leverage: 2,
-      checks: 'failing',
-      readiness: 'failing',
-      changeSize: { additions: 96, deletions: 12 },
-      note: 'The publish check needs the cleanup first.',
-      artSeed: 'blocked',
-    }),
-}
-export const InReview: Story = {
-  render: () =>
-    renderCard({
-      ...base,
-      id: 'in-review',
-      kind: 'pr',
-      title: 'Review the canvas',
-      tag: 'vocksel/orion#127',
-      repo: 'vocksel/orion',
-      status: 'review',
-      statusLabel: 'In review',
-      who: 'review',
-      upstream: 14,
-      rarity: 'mythic',
-      whoLabel: 'Waiting on review',
-      checks: 'passing',
-      readiness: 'passing',
-      changeSize: { additions: 68, deletions: 14 },
-      artSeed: 'in-review',
-    }),
-}
-export const Done: Story = {
-  render: () =>
-    renderCard({
-      ...base,
-      id: 'done',
-      kind: 'pr',
-      title: 'Make the canvas welcoming',
-      tag: 'vocksel/orion#126',
-      repo: 'vocksel/orion',
-      status: 'done',
-      statusLabel: 'Done',
-      upstream: 8,
-      rarity: 'rare',
-      artSeed: 'done',
-    }),
-}
-export const Placeholder: Story = {
-  render: () =>
-    renderCard({
-      ...base,
-      id: 'placeholder',
-      kind: 'placeholder',
-      upstream: 4,
-      rarity: 'uncommon',
-      title: 'Prepare the next PR',
-      tag: 'vocksel/orion',
-      repo: 'vocksel/orion',
-      note: undefined,
-      artSeed: 'placeholder',
-    }),
-}
-export const Gate: Story = {
-  render: () =>
-    renderCard({
-      ...base,
-      id: 'gate',
-      kind: 'gate',
-      upstream: 14,
-      rarity: 'mythic',
-      title: 'v2.6.0 ready to ship',
-      tag: 'gate',
-      note: 'Publish after all release checks pass.',
-      artSeed: 'gate',
-    }),
-}
-export const LongNote: Story = {
-  render: () =>
-    renderCard({
-      ...base,
-      id: 'long-note',
-      kind: 'pr',
-      title: 'Review the canvas',
-      tag: 'vocksel/orion#129',
-      repo: 'vocksel/orion',
-      note: 'Check the whole path from source to canvas. The note should stay readable even when it contains several sentences, and the rest of the card should keep its shape. Follow up on the empty state, keyboard focus, and the details panel before the release review.',
-      artSeed: 'long-note',
-    }),
-}
-export const Note: Story = {
-  render: () =>
-    renderCard({
-      ...base,
-      id: 'note',
-      kind: 'note',
-      title: 'Keep the intent visible',
-      status: 'done',
-      statusLabel: 'Done',
-      rarity: undefined,
-      artSeed: 'note',
-    }),
+const defaults: TradingArgs = {
+  kind: 'pr',
+  title: "Lay out cards at the active skin's size",
+  status: 'review',
+  priority: 'unknown',
+  size: 'unknown',
+  sticker: 'mergeable',
+  motion: 'none',
+  blockers: 0,
+  unblocks: 2,
+  group: 'pr-queue',
+  far: false,
 }
 
-export const RarityLadder: Story = {
-  render: () => (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-      {(
-        [
-          ['common', 0],
-          ['uncommon', 4],
-          ['rare', 8],
-          ['mythic', 14],
-        ] as [Rarity, number][]
-      ).map(([rarity, upstream]) => (
-        <div key={rarity}>
-          <p style={{ textTransform: 'capitalize' }}>
-            {rarity} · {upstream} upstream
-          </p>
-          {renderCard({ ...base, rarity, upstream })}
-        </div>
-      ))}
-    </div>
-  ),
+const meta = {
+  title: 'Canvas/Cards and edges/TradingCard',
+  render: (args) => <TradingFrame view={toView(args)} far={args.far} />,
+  args: defaults,
+  argTypes: {
+    kind: { control: 'inline-radio', options: ['pr', 'step', 'placeholder', 'gate', 'note'] },
+    status: { control: 'select', options: ['ready', 'active', 'review', 'blocked', 'deferred', 'done'] },
+    priority: {
+      control: 'inline-radio',
+      options: ['unknown', '0', '1', '2', '3'],
+      description: 'Set by a source. Unknown shows nothing.',
+    },
+    size: { control: 'inline-radio', options: ['unknown', 'S', 'M', 'L', 'XL'] },
+    sticker: { control: 'select', options: ['none', 'conflict', 'failing', 'changes', 'stale', 'mergeable'] },
+    motion: { control: 'inline-radio', options: ['none', 'running', 'queued'] },
+    blockers: { control: { type: 'range', min: 0, max: 9 } },
+    unblocks: { control: { type: 'range', min: 0, max: 9 } },
+    far: { control: 'boolean', description: 'The compact form the canvas shows when zoomed far out.' },
+    group: { control: 'select', options: ['pr-queue', 'navigation', 'workspaces', 'backlog', 'release'], description: 'Picks the art palette.' },
+  },
+} satisfies Meta<TradingArgs>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+export const Playground: Story = {}
+
+export const Mergeable: Story = { name: '#158 · mergeable' }
+
+export const ChecksRunning: Story = {
+  name: '#272 · checks running',
+  args: {
+    title: "Show a card's far-zoom tag only while hovered or selected",
+    sticker: 'none',
+    motion: 'running',
+    unblocks: 0,
+    group: 'navigation',
+  },
+}
+
+export const BlockedAndFailing: Story = {
+  name: '#164 · blocked, failing',
+  args: {
+    title: 'Draw trading card art as geometric posters built from each card',
+    status: 'blocked',
+    sticker: 'failing',
+    blockers: 1,
+    unblocks: 1,
+  },
+}
+
+export const Conflict: Story = {
+  name: '#250 · conflict',
+  args: { title: 'Select stickers like cards', sticker: 'conflict', unblocks: 1, group: 'backlog' },
+}
+
+export const ChangesRequested: Story = {
+  args: { title: 'Snap only to nearby nodes', sticker: 'changes', unblocks: 1 },
+}
+
+export const Stale: Story = {
+  args: { title: 'Pan with touchpad and hide shortcuts by default', sticker: 'stale', unblocks: 0, group: 'navigation' },
+}
+
+export const CalmIssue: Story = {
+  name: '#68 · calm issue',
+  args: {
+    kind: 'step',
+    title: 'List commands after `>` in the command palette',
+    status: 'ready',
+    sticker: 'none',
+    unblocks: 1,
+    group: 'navigation',
+  },
+}
+
+export const SetByASource: Story = {
+  args: { title: 'Report release health to PostHog', priority: '0', size: 'L', sticker: 'none', group: 'release' },
+}
+
+export const UnlinkedStep: Story = {
+  args: {
+    kind: 'step',
+    title: 'Let one card appear in many places',
+    status: 'ready',
+    sticker: 'none',
+    unblocks: 0,
+    group: 'workspaces',
+  },
+}
+
+export const ExpectedPullRequest: Story = {
+  args: {
+    kind: 'placeholder',
+    title: 'Let the scroll setting follow the trackpad',
+    status: 'ready',
+    sticker: 'none',
+    unblocks: 0,
+    group: 'navigation',
+  },
+}
+
+export const Gate: Story = {
+  args: { kind: 'gate', title: 'Card skins ship', status: 'blocked', sticker: 'none', blockers: 2, unblocks: 0 },
+}
+
+export const FarZoom: Story = {
+  args: {
+    far: true,
+    title: 'Draw trading card art as geometric posters built from each card',
+    status: 'blocked',
+    sticker: 'failing',
+    blockers: 1,
+    unblocks: 1,
+    motion: 'none',
+  },
+}
+
+export const Done: Story = {
+  args: { title: 'Add a card skin registry with Classic and Plain skins', status: 'done', sticker: 'none', unblocks: 0 },
+}
+
+export const Note: Story = {
+  args: { kind: 'note', title: 'Merge the stack bottom up so each child picks up its parent before review.' },
 }

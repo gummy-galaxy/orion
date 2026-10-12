@@ -6,8 +6,22 @@ const API = '/api/merge'
 const CONFIRM_MS = 4000
 const LABEL = { idle: '', confirm: 'Merge', merging: 'Merging…', merged: 'Merged' }
 
-/** Merges a ready pull request in two clicks, as long as GitHub still has the head commit the card shows. */
-export function MergePullRequest({ url, head }: { url: string; head: string }) {
+/**
+ * Merges a ready pull request in two clicks, as long as GitHub still has the head commit the card shows.
+ * `idleLabel` names the button before the first click, and `nativeTitle` turns off the browser tooltip for
+ * cards that draw their own.
+ */
+export function MergePullRequest({
+  url,
+  head,
+  idleLabel = '',
+  nativeTitle = true,
+}: {
+  url: string
+  head: string
+  idleLabel?: string
+  nativeTitle?: boolean
+}) {
   const [step, setStep] = useState<keyof typeof LABEL>('idle')
 
   useEffect(() => {
@@ -23,7 +37,7 @@ export function MergePullRequest({ url, head }: { url: string; head: string }) {
       type="button"
       className={`merge-pull nodrag nopan is-${step}`}
       aria-label={step === 'confirm' ? 'Confirm merging this pull request' : 'Merge pull request'}
-      title={step === 'confirm' ? 'Click again to merge' : 'Ready to merge'}
+      title={nativeTitle ? (step === 'confirm' ? 'Click again to merge' : 'Ready to merge') : undefined}
       disabled={step === 'merging' || step === 'merged'}
       onBlur={() => setStep((current) => (current === 'confirm' ? 'idle' : current))}
       onClick={(event) => {
@@ -59,7 +73,7 @@ export function MergePullRequest({ url, head }: { url: string; head: string }) {
       }}
     >
       <MergeIcon size={11} />
-      {LABEL[step] && <span>{LABEL[step]}</span>}
+      {(step === 'idle' ? idleLabel : LABEL[step]) && <span>{step === 'idle' ? idleLabel : LABEL[step]}</span>}
     </button>
   )
 }
