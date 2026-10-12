@@ -45,4 +45,22 @@ const readinessCards: TaskNode[] = READINESS.map(([label, details], index) => ({
   },
 }))
 
+const severalRefs: TaskNode = {
+  ...task,
+  id: 'several-refs',
+  position: { x: 0, y: 0 },
+  data: {
+    ...task.data,
+    label: 'Plan the badge work',
+    status: 'review',
+    refs: [
+      { source: 'github', kind: 'pull', key: 'vocksel/orion#127', url: 'https://github.com/vocksel/orion/pull/127' },
+      { source: 'github', kind: 'issue', key: 'vocksel/orion#187', url: 'https://github.com/vocksel/orion/issues/187' },
+      { source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' },
+    ],
+  },
+}
+
+export const SeveralRefs: Story = { render: () => <StoryGraph nodes={[severalRefs]} nodeTypes={{ task: TaskView }} /> }
+
 export const PullReadiness: Story = { render: () => <StoryGraph nodes={readinessCards} nodeTypes={{ task: TaskView }} /> }
