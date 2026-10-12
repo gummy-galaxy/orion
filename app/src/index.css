@@ -2810,7 +2810,7 @@ kbd {
   left: 0;
   top: 0;
   will-change: transform;
-  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--companion-body) 55%, transparent)) drop-shadow(0 0 16px var(--companion-glow));
+  filter: drop-shadow(0 0 6px var(--companion-halo)) drop-shadow(0 0 16px var(--companion-glow));
 }
 .companion-star svg {
   display: block;

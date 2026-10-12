@@ -11,10 +11,11 @@
   --st-ready: var(--accent);
   --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  /* The companion: a star in the theme's accent on light canvases and white on dark ones, glowing in the accent. */
-  --companion-body: light-dark(var(--accent), #fff);
+  /* The companion: a near-black star with a blue-violet undertone on light canvases and a white one on dark ones. */
+  --companion-body: light-dark(#1d1a33, #fff);
   --companion-ink: light-dark(#fff, #1a1240);
-  --companion-glow: light-dark(color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, var(--accent) 50%, transparent));
+  --companion-halo: light-dark(rgb(76 64 160 / 0.18), rgb(255 255 255 / 0.55));
+  --companion-glow: light-dark(rgb(98 80 200 / 0.22), color-mix(in srgb, var(--accent) 50%, transparent));
   --companion-tether: color-mix(in srgb, var(--companion-body) 70%, transparent);
   color-scheme: light dark;
 }
