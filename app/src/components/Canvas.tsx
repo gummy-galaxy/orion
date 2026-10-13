@@ -142,16 +142,7 @@ import {
   workAtom,
   workspaceAtom,
 } from '../state'
-import {
-  HEADER_MIN_ZOOM,
-  applyStyleChange,
-  backgroundColor,
-  headerText,
-  isAssetId,
-  readCanvasStyle,
-  type CanvasStyle,
-  type StyleChange,
-} from '../style'
+import { applyStyleChange, backgroundColor, headerText, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
 import { HeaderSettings } from './HeaderSettings'
@@ -335,7 +326,6 @@ export function Canvas() {
   const store = useStoreApi<ViewNode, Edge>()
   const still = useStore((state) => state.transform[2] < STILL_ZOOM)
   const quietZoom = useStore((state) => state.transform[2] < QUIET_ZOOM)
-  const headerFolded = useStore((state) => state.transform[2] < HEADER_MIN_ZOOM)
   const away = useAway()
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
@@ -362,7 +352,8 @@ export function Canvas() {
   const setWorkspaceName = useSetAtom(workspaceAtom)
   const canvasColor = backgroundColor(canvasStyle.background)
   const canvasImage = isAssetId(canvasStyle.background) ? canvasStyle.background : undefined
-  const canvasHeader = headerFolded ? undefined : headerText(canvasStyle.header)
+  // The canvas header is the top level's: inside a group, the group's own header takes its place.
+  const canvasHeader = root ? undefined : headerText(canvasStyle.header)
 
   useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
@@ -3014,7 +3005,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}${canvasHeader ? ' has-header' : ''}`}
           style={
             {
               ...(canvasColor ? { '--canvas-background': canvasColor } : {}),
@@ -3037,6 +3028,11 @@ export function Canvas() {
           {canvasStyle.cover && (
             <div className="canvas-cover">
               <CoverImage workspace={workspaces.active} asset={canvasStyle.cover} className="canvas-cover-image" />
+            </div>
+          )}
+          {canvasHeader && (
+            <div className="canvas-header">
+              <Markdown source={canvasHeader} layout />
             </div>
           )}
           {ready && (
@@ -3403,11 +3399,6 @@ export function Canvas() {
                 <Toolbar tool={tool} sticker={sticker} keybindings={keybindings} setTool={chooseTool} />
               </Panel>
             </ReactFlow>
-          )}
-          {canvasHeader && (
-            <div className="canvas-header">
-              <Markdown source={canvasHeader} layout />
-            </div>
           )}
           {ready && appearance.companion && !focus && (
             <Companion targets={companion.targets} describe={companion.describe} syncing={syncStatus?.state === 'running'} paused={away} />

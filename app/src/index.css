@@ -3238,20 +3238,26 @@ kbd {
   pointer-events: none;
   mask-image: linear-gradient(black calc(100% - var(--space-8)), transparent);
 }
+.canvas.has-header {
+  display: flex;
+  flex-direction: column;
+}
+.canvas.has-header > .react-flow {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+/* The top level's header takes its own band above the canvas, so it never covers a card. The top padding clears the breadcrumb. */
 .canvas-header {
-  position: absolute;
-  top: 96px;
-  left: 0;
+  position: relative;
   z-index: 3;
-  width: 10rem;
-  max-height: 180px;
+  flex: none;
+  max-height: 240px;
   overflow: hidden;
-  padding: var(--space-8) var(--space-9) var(--space-10);
+  padding: 72px var(--space-9) var(--space-6);
   color: var(--text-primary);
   font-size: var(--text-size-emphasis);
   pointer-events: none;
-  background: linear-gradient(color-mix(in srgb, var(--canvas-background) 85%, transparent), transparent);
-  mask-image: linear-gradient(black calc(100% - var(--space-10)), transparent);
 }
 .cluster-header a,
 .canvas-header a {
