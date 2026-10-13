@@ -10,6 +10,8 @@ export const nodesAtom = atom<AppNode[]>([])
 export const skinAtom = atom(readAppearance().skin)
 // The skin lives in Jotai's default store because this per-device preference is shared by every canvas and story store.
 export const skinStore = getDefaultStore()
+/** The workspace the canvas shows, which names where its cover and background images are kept. */
+export const workspaceAtom = atom('default')
 export const linksAtom = atom<Link[]>([])
 export const hoverAtom = atom<string | null>(null)
 /** A double-clicked card keeps its trace while you pan around; any click lets it go. */
