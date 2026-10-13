@@ -325,7 +325,7 @@ local function rootHelp(parser: cli.Parser): string
 	return table.concat({
 		SUMMARY,
 		"",
-		table.concat(orientation.paragraphs, "\n\n"),
+		table.concat(orientation.help, "\n\n"),
 		"",
 		parser:usage("orion"),
 		"",
