@@ -1000,6 +1000,49 @@ select {
     var(--stack) var(--stack) 0 0 var(--edge-default),
     var(--shadow-raised);
 }
+/* Faded miniatures of a folded group's contents sit behind its label and never take the pointer. */
+.fold-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.fold-preview rect {
+  vector-effect: non-scaling-stroke;
+}
+.fold-preview-card {
+  fill: color-mix(in srgb, var(--surface-background) 60%, var(--text-muted));
+}
+.fold-preview-card[data-status='ready'] {
+  fill: var(--status-ready);
+}
+.fold-preview-card[data-status='active'] {
+  fill: var(--status-active);
+}
+.fold-preview-card[data-status='review'] {
+  fill: var(--status-review);
+}
+.fold-preview-card[data-status='blocked'] {
+  fill: var(--status-blocked);
+}
+.fold-preview-card[data-status='deferred'],
+.fold-preview-card[data-status='done'],
+.fold-preview-card[data-status='todo'] {
+  fill: var(--text-muted);
+}
+.fold-preview-image {
+  fill: var(--text-muted);
+  opacity: 0.6;
+}
+.fold-preview-group {
+  fill: none;
+  stroke: var(--edge-default);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
 /* Folded groups paint above expanded frames. */
 .react-flow__node-cluster:has(.cluster.is-collapsed) {
   z-index: 2000 !important;
