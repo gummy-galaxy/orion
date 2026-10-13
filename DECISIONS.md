@@ -124,6 +124,14 @@ Each group has its own tint, so you know where you are when zoomed out. Cards sw
 
 2026-10-07, 2026-10-11 · [#280](https://github.com/vocksel/orion/issues/280)
 
+### Every group opens at the same zoom
+
+Opening a group always lands at actual size. A group that fits on screen is centered; a bigger one opens on its top-left corner, where its flow starts, and you pan or zoom out from there. Fit view is still there for the whole group at once.
+
+**Why:** fitting each group to the screen opened big groups too small to read, so every visit meant zooming out to see the group and back in to read its cards. One opening zoom keeps card text the same size everywhere. This replaced fitting the whole group, up to 125%.
+
+2026-10-12
+
 ### Render work is batched from the center out
 
 When many cards need drawing, Orion does the work in batches that spiral outward from the center of the screen, so the first batch covers most of what's in view. A camera move during a batch recalculates the order. The zoom breakpoints are tuned with a debug panel on a large real canvas.
