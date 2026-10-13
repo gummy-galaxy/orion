@@ -9,6 +9,13 @@ use std::{
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
+#[cfg(target_os = "macos")]
+use objc2::{msg_send, rc::Retained, sel, MainThreadMarker};
+#[cfg(target_os = "macos")]
+use objc2_foundation::NSString;
+#[cfg(target_os = "macos")]
+use objc2_web_kit::WKWebViewConfiguration;
+
 mod menu;
 mod mouse_navigation;
 mod usage;
@@ -16,6 +23,11 @@ mod usage;
 /// The `orion serve` process the shell started, kept to stop it on exit and to measure it for the debug bar.
 #[derive(Default)]
 pub struct Server(pub Mutex<Option<Child>>);
+
+/// What Activity Monitor calls the window's web content process, in line with WebKit's other
+/// "Orion …" processes. Without it, the process goes by the page's address, `http://127.0.0.1:<port>`.
+#[cfg(target_os = "macos")]
+const WEB_CONTENT_NAME: &str = "Orion Web Content";
 
 /// Where the shell remembers its server's port, beside the window state in the app's own folder.
 const PORT_FILE: &str = "server-port";
@@ -111,6 +123,21 @@ fn start_server(app: &tauri::App) -> Option<(Child, WebviewUrl)> {
     None
 }
 
+/// A web view configuration that names the web content process for Activity Monitor.
+#[cfg(target_os = "macos")]
+fn get_webview_configuration() -> Option<Retained<WKWebViewConfiguration>> {
+    let main_thread = MainThreadMarker::new()?;
+    let configuration = unsafe { WKWebViewConfiguration::new(main_thread) };
+    // A private property, so it's checked before it's set in case a WebKit update drops it.
+    let responds: bool =
+        unsafe { msg_send![&*configuration, respondsToSelector: sel!(_setProcessDisplayName:)] };
+    if responds {
+        let name = NSString::from_str(WEB_CONTENT_NAME);
+        let _: () = unsafe { msg_send![&*configuration, _setProcessDisplayName: &*name] };
+    }
+    Some(configuration)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -135,6 +162,12 @@ pub fn run() {
                 .title("Orion")
                 .inner_size(1440.0, 900.0)
                 .min_inner_size(960.0, 640.0);
+
+            #[cfg(target_os = "macos")]
+            let window = match get_webview_configuration() {
+                Some(configuration) => window.with_webview_configuration(configuration),
+                None => window,
+            };
 
             // The app draws its own window chrome. macOS keeps the traffic lights, centered in the
             // sidebar header; elsewhere the app draws minimize, maximize, and close itself.
