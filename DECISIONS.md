@@ -174,6 +174,24 @@ When an agent opens a pull request from a card's work, the pull request attaches
 
 2026-10-10 · [#196](https://github.com/vocksel/orion/issues/196)
 
+## Public interfaces
+
+### Break public interfaces freely until launch
+
+Until Orion launches, cut, rename, and regroup anything on its public surfaces: CLI commands and flags, MCP tools, `--json` shapes, and data files. Remove the old form in the same change, with no alias or deprecation period. Every addition to a public surface needs a reason to exist, and a command that duplicates another or serves one case is a candidate to remove.
+
+**Why:** Orion is unreleased, so a sweeping cut costs nothing but our own scripts. After launch, removing things gets much harder, and the charter's promise of aliases before breaking changes takes over. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release.
+
+2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146)
+
+### CLI commands are a noun, then a verb
+
+Commands name the thing they act on first, then the action: `orion node remove`, `orion group remove`, `orion link add`. Each noun has its own subcommands, help, and options, so no flag changes meaning by what it targets. Flat verbs such as `orion remove` and `orion ungroup` go away.
+
+**Why:** flat verbs grew one feature at a time and overload options across items, groups, and sources. Grouping by noun makes the surface learnable from `--help` and gives each new kind of thing an obvious home.
+
+2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146), [#55](https://github.com/vocksel/orion/issues/55), [#109](https://github.com/vocksel/orion/issues/109)
+
 ## Architecture
 
 ### Files first, with a SQLite index
