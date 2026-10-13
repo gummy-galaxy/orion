@@ -20,14 +20,13 @@ export type Operation = {
 	y: number?,
 	reconnect: boolean?,
 	fields: { [string]: string | number }?,
-	-- create: the kind of item to add, and the group it goes in.
+	-- addCard, addNote, addImage, and addGroup: the kind of item to add, set by the operation's name.
 	nodeType: string?,
-	parentId: string?,
-	-- create and resize: the stored size. `clear` on a resize drops the stored size instead.
+	-- addCard, addNote, addImage, addGroup, and resize: the stored size. `clear` on a resize drops the stored size instead.
 	width: number?,
 	height: number?,
 	clear: boolean?,
-	-- create and setData: the item's data, as the app keeps it.
+	-- The add operations and setData: the item's data, as the app keeps it.
 	data: json.Object?,
 	-- setStickers and setStickerLoadout: the whole list, as the app keeps it.
 	stickers: json.Array?,

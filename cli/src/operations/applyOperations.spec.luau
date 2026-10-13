@@ -49,8 +49,8 @@ local SAMPLES: { { name: string, edit: string } } = {
 	{ name = "move", edit = [=[{"op":"move","id":"pub"}]=] },
 	{ name = "tidy", edit = [=[{"op":"tidy","id":"ws"}]=] },
 	{
-		name = "create",
-		edit = [=[{"op":"create","id":"note-new","type":"task","x":10,"y":20,"parentId":"ws","data":{"kind":"task","label":"New","itemKind":"note","status":"todo"}}]=],
+		name = "addNote",
+		edit = [=[{"op":"addNote","id":"note-new","x":10,"y":20,"group":"ws","data":{"kind":"task","label":"New","itemKind":"note","status":"todo"}}]=],
 	},
 	{
 		name = "setData",
@@ -163,9 +163,9 @@ test.case("a created item joins the canvas and its inverse removes it", function
 	local restores = applyOperations(
 		doc,
 		parse([=[[
-			{"op":"create","id":"img","type":"image","x":4,"y":8,"data":{"kind":"image","label":"Photo","asset":"a.png","workspace":"default"}},
-			{"op":"create","id":"batch","type":"cluster","x":0,"y":0,"data":{"kind":"cluster","label":"Batch"}},
-			{"op":"create","id":"inner","type":"task","x":16,"y":32,"parentId":"batch","data":{"kind":"task","label":"In","itemKind":"step","status":"todo"}}
+			{"op":"addImage","id":"img","x":4,"y":8,"data":{"kind":"image","label":"Photo","asset":"a.png","workspace":"default"}},
+			{"op":"addGroup","id":"batch","x":0,"y":0,"data":{"kind":"cluster","label":"Batch"}},
+			{"op":"addCard","id":"inner","x":16,"y":32,"group":"batch","data":{"kind":"task","label":"In","itemKind":"step","status":"todo"}}
 		]]=])
 	)
 	assert.eq(#restores, 3)
@@ -182,24 +182,20 @@ test.case("creating over an id that's taken, or under a missing or non-group par
 	local doc = createCanvas()
 	local before = snapshot(doc)
 	local taken = {
-		succeeded = pcall(
-			applyOperations,
-			doc,
-			parse([=[[{"op":"create","id":"pub","type":"task","x":0,"y":0,"data":{}}]]=])
-		),
+		succeeded = pcall(applyOperations, doc, parse([=[[{"op":"addCard","id":"pub","x":0,"y":0,"data":{}}]]=])),
 	}
 	local missingParent = {
 		succeeded = pcall(
 			applyOperations,
 			doc,
-			parse([=[[{"op":"create","id":"x","type":"task","x":0,"y":0,"parentId":"nope","data":{}}]]=])
+			parse([=[[{"op":"addCard","id":"x","x":0,"y":0,"group":"nope","data":{}}]]=])
 		),
 	}
 	local itemParent = {
 		succeeded = pcall(
 			applyOperations,
 			doc,
-			parse([=[[{"op":"create","id":"x","type":"task","x":0,"y":0,"parentId":"pub","data":{}}]]=])
+			parse([=[[{"op":"addCard","id":"x","x":0,"y":0,"group":"pub","data":{}}]]=])
 		),
 	}
 	assert.eq(taken.succeeded, false)
@@ -235,8 +231,11 @@ test.case("a resize keeps the stored size, and clear drops it", function(assert)
 end)
 
 test.case("parsing checks the new operations' fields", function(assert)
-	assert.throwsWith("operation 1: type must be task, cluster, or image", function()
-		parse([=[[{"op":"create","id":"a","type":"sticker","x":0,"y":0,"data":{}}]]=])
+	assert.throwsWith("operation 1: addNote needs data.itemKind to be note", function()
+		parse([=[[{"op":"addNote","id":"a","x":0,"y":0,"data":{"itemKind":"step"}}]]=])
+	end)
+	assert.throwsWith("operation 1: addCard is for work items; use addNote for a note", function()
+		parse([=[[{"op":"addCard","id":"a","x":0,"y":0,"data":{"itemKind":"note"}}]]=])
 	end)
 	assert.throwsWith("operation 1: data must be an object", function()
 		parse([=[[{"op":"setData","id":"a","data":"nope"}]]=])

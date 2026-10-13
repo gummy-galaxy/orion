@@ -68,20 +68,20 @@ handlers.tidy = function(doc: Doc, operation: Operation)
 	graph.markForTidy(doc, required(operation.id, "id"))
 end
 
--- Adds an item the app built, such as a card, note, image, or group. The id must be free, and a parent must be a group.
-handlers.create = function(doc: Doc, operation: Operation)
+-- Adds an item the app built, at the id and position it chose. The id must be free, and a group must be a group.
+local function addItem(doc: Doc, operation: Operation)
 	local id = required(operation.id, "id")
 	assert(graph.find(doc, id) == nil, `"{id}" is already taken`)
 
-	if operation.parentId then
-		graph.group(doc, operation.parentId)
+	if operation.group then
+		graph.group(doc, operation.group)
 	end
 
 	local item: types.Item = {
 		id = id,
 		type = required(operation.nodeType, "type"),
 		position = { x = required(operation.x, "x"), y = required(operation.y, "y") },
-		parentId = operation.parentId,
+		parentId = operation.group,
 		width = operation.width,
 		height = operation.height,
 		data = required(operation.data, "data"),
@@ -89,6 +89,11 @@ handlers.create = function(doc: Doc, operation: Operation)
 
 	table.insert(doc.nodes, item)
 end
+
+handlers.addCard = addItem
+handlers.addNote = addItem
+handlers.addImage = addItem
+handlers.addGroup = addItem
 
 -- Replaces an item's data with the data the app holds for it.
 handlers.setData = function(doc: Doc, operation: Operation)

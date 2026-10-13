@@ -20,7 +20,8 @@ local FIELD_TYPES: { [string]: string } = {
 	kind = "string",
 }
 local LINK_KINDS = { blocks = true, related = true }
-local NODE_TYPES = { task = true, cluster = true, image = true }
+-- The add operations, and the kind of node each one makes.
+local ADD_TYPES: { [string]: string } = { addCard = "task", addNote = "task", addImage = "image", addGroup = "cluster" }
 local OPERATIONS = {
 	setFields = true,
 	place = true,
@@ -33,7 +34,10 @@ local OPERATIONS = {
 	removeGroup = true,
 	move = true,
 	tidy = true,
-	create = true,
+	addCard = true,
+	addNote = true,
+	addImage = true,
+	addGroup = true,
 	setData = true,
 	resize = true,
 	setStickers = true,
@@ -159,16 +163,23 @@ local function parseOperation(object: json.Object): Operation
 	elseif operation.op == "remove" then
 		operation.id = requireString(object, "id")
 		operation.reconnect = optionalBoolean(object, "reconnect")
-	elseif operation.op == "create" then
+	elseif ADD_TYPES[operation.op] then
 		operation.id = requireString(object, "id")
-		operation.nodeType = requireString(object, "type")
-		assert(NODE_TYPES[operation.nodeType :: string], "type must be task, cluster, or image")
+		operation.nodeType = ADD_TYPES[operation.op]
 		operation.x = requireNumber(object, "x")
 		operation.y = requireNumber(object, "y")
-		operation.parentId = optionalString(object, "parentId")
+		operation.group = optionalString(object, "group")
 		operation.width = optionalNumber(object, "width")
 		operation.height = optionalNumber(object, "height")
-		operation.data = requireObject(object, "data")
+		local data = requireObject(object, "data")
+		operation.data = data
+
+		-- A note and a work item are both task cards; the item kind tells them apart.
+		if operation.op == "addNote" then
+			assert(data.itemKind == "note", "addNote needs data.itemKind to be note")
+		elseif operation.op == "addCard" then
+			assert(data.itemKind ~= "note", "addCard is for work items; use addNote for a note")
+		end
 	elseif operation.op == "setData" then
 		operation.id = requireString(object, "id")
 		operation.data = requireObject(object, "data")
