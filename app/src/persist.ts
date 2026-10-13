@@ -1,3 +1,4 @@
+import type { Derived } from './derive'
 import type { AppNode, GithubSnapshot, Link, TaskData } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
 import type { CardSize } from './cardSize'
@@ -10,7 +11,8 @@ import { toStored } from './skinSpace'
  */
 
 export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
-export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot }
+/** `derived` is what `orion serve` computed for this revision; a server without it leaves the field out. */
+export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot; derived?: Derived }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
 export type SaveResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
@@ -338,9 +340,9 @@ export function clearFocus(workspace: string) {
   navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB_ID, workspace, closed: true })], { type: 'application/json' }))
 }
 
-/** Calls back when another writer (the CLI, an agent, another window) changes the file. */
-export function onRemoteChange(callback: (revision: number) => void) {
-  return subscribe<{ revision: number }>(CHANGED_EVENT, (data) => callback(data.revision))
+/** Calls back when another writer (the CLI, an agent, another window) changes the file, with the derived values for that revision. */
+export function onRemoteChange(callback: (revision: number, derived?: Derived) => void) {
+  return subscribe<{ revision: number; derived?: Derived }>(CHANGED_EVENT, (data) => callback(data.revision, data.derived))
 }
 
 import.meta.hot?.dispose(() => {

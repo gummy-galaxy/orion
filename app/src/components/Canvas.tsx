@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
+import { useAtom, useAtomValue, useSetAtom, useStore as useAtomStore } from 'jotai'
 import {
   Background,
   BackgroundVariant,
@@ -27,7 +27,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
-import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { layoutOrder, reflow } from '../layout'
@@ -130,6 +130,7 @@ import {
   attentionAtom,
   celebratingAtom,
   collapsedAtom,
+  derivedAtom,
   focusedAtom,
   hoverAtom,
   inspectingAtom,
@@ -322,11 +323,13 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>, cardSize: Car
 export function Canvas() {
   const reactFlow = useReactFlow<ViewNode, Edge>()
   const store = useStoreApi<ViewNode, Edge>()
+  const atomStore = useAtomStore()
   const still = useStore((state) => state.transform[2] < STILL_ZOOM)
   const quietZoom = useStore((state) => state.transform[2] < QUIET_ZOOM)
   const away = useAway()
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
+  const setDerived = useSetAtom(derivedAtom)
   const setCelebrating = useSetAtom(celebratingAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
@@ -627,6 +630,7 @@ export function Canvas() {
         return picked.size ? next.map((node) => (picked.has(node.id) ? { ...node, selected: true } : node)) : next
       })
       setLinks(doc.links)
+      setDerived(doc.derived ?? null)
       setStickers(doc.stickers ?? [])
       setLoadout(stickerLoadout)
       setGithub(doc.github ?? null)
@@ -634,7 +638,7 @@ export function Canvas() {
 
       return adopted
     },
-    [rebaseHistory, setLinks, setNodes],
+    [rebaseHistory, setDerived, setLinks, setNodes],
   )
 
   useEffect(
@@ -692,6 +696,7 @@ export function Canvas() {
         resetHistory(latest.current)
         setNodes(start.nodes)
         setLinks(start.links)
+        setDerived(null)
         setStickers(initialStickers)
         setLoadout(initialLoadout)
         setGithub(null)
@@ -708,7 +713,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, resetHistory, setLinks, setNodes],
+    [adopt, resetHistory, setDerived, setLinks, setNodes],
   )
 
   useEffect(() => {
@@ -730,13 +735,17 @@ export function Canvas() {
 
   useEffect(
     () =>
-      onRemoteChange((next) => {
+      onRemoteChange((next, derived) => {
         const name = workspace.current
         const epoch = workspaceEpoch.current
 
+        // The server's values for this revision, or a newer one, show before the reload lands. Our own saves echo back
+        // here too, so a card's status catches up with an edit a moment after it saves.
+        if (derived && next >= (revision.current ?? -1)) setDerived(derived)
+
         queue.current = queue.current.then(() => (epoch === workspaceEpoch.current && next !== revision.current ? reload(name, epoch) : undefined))
       }),
-    [reload],
+    [reload, setDerived],
   )
 
   useEffect(() => {
@@ -1978,7 +1987,7 @@ export function Canvas() {
       },
       celebrate: (id: string) => {
         const { nodes: currentNodes, links: currentLinks } = latest.current
-        const finished = deriveWork(currentNodes, currentLinks).status
+        const finished = atomStore.get(workAtom).status
         const delays = celebrationDelays(id, currentNodes, currentLinks, (other) => finished.get(other) === 'done')
 
         if (!delays.size) return
@@ -2004,7 +2013,7 @@ export function Canvas() {
         )
       },
     }),
-    [tweenTo, openRoot, setHover, cardSize, setNodes, setCelebrating],
+    [tweenTo, openRoot, setHover, cardSize, setNodes, setCelebrating, atomStore],
   )
 
   const arrangeGroup = useCallback(

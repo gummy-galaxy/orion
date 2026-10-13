@@ -3,7 +3,7 @@ import { selectAtom } from 'jotai/utils'
 import { useMemo } from 'react'
 import { getCardView } from './cardView'
 import { readAppearance } from './appearance'
-import { deriveWork, traceFrom, type AttentionMark, type GroupStats, type SourceRef } from './derive'
+import { buildWork, toServerFacts, traceFrom, type AttentionMark, type Derived, type GroupStats, type SourceRef } from './derive'
 import { isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
 
 export const nodesAtom = atom<AppNode[]>([])
@@ -23,7 +23,11 @@ export const dropTargetAtom = atom<string | null>(null)
 /** Cards whose close-out badge is clearing, each with the delay before its animation starts. */
 export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>())
 
-export const workAtom = atom((get) => deriveWork(get(nodesAtom), get(linksAtom)))
+/** The graph facts `orion serve` derived for the open document. Null until the server answers, or with no server. */
+export const derivedAtom = atom<Derived | null>(null)
+const serverFactsAtom = atom((get) => toServerFacts(get(derivedAtom)))
+
+export const workAtom = atom((get) => buildWork(get(serverFactsAtom), get(nodesAtom), get(linksAtom)))
 
 export const traceAtom = atom((get) => {
   const from = get(focusedAtom) ? null : (get(pinnedAtom) ?? get(hoverAtom))
@@ -70,6 +74,8 @@ export const useLeverage = (id: string) => useAtomValue(useMemo(() => selectAtom
 
 export const useUpstream = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.upstream.get(id) ?? 0), [id]))
 
+export const useRarity = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.rarity.get(id)), [id]))
+
 export const useGroupStats = (id: string) =>
   useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.groups.get(id) ?? NO_STATS, sameStats), [id]))
 
@@ -88,13 +94,14 @@ export function useCardView(id: string, data: TaskNode['data'], group?: string) 
   const status = useStatus(id)
   const leverage = useLeverage(id)
   const upstream = useUpstream(id)
+  const rarity = useRarity(id)
   const sources = useSources(id)
   const blockers = useBlockers(id)
   const unblocks = useUnblocks(id)
 
   return useMemo(
-    () => getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, sources, blockers, unblocks, group }),
-    [id, data, status, leverage, upstream, sources, blockers, unblocks, group],
+    () => getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, rarity, sources, blockers, unblocks, group }),
+    [id, data, status, leverage, upstream, rarity, sources, blockers, unblocks, group],
   )
 }
 

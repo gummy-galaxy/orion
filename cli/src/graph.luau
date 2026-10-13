@@ -22,9 +22,15 @@ local GROUP_PADDING = 32
 local GROUP_HEADER_HEIGHT = 78
 local ITEM_GAP = 48
 
+export type GroupStats = { total: number, done: number, ready: number, blocked: number, outside: number }
+
 export type Derived = {
 	status: { [string]: string },
+	flow: { [string]: string },
 	leverage: { [string]: number },
+	upstream: { [string]: number },
+	rarity: { [string]: string },
+	groups: { [string]: GroupStats },
 }
 
 export type ItemFields = {
@@ -100,23 +106,11 @@ export type Progress = { total: number, done: number, ready: number }
 
 -- Counts the work anywhere inside a group, leaving out notes and deferred work, which is set aside and doesn't
 -- hold a group short of done.
-function graph.countProgress(doc: Doc, derived: Derived, groupId: string): Progress
-	local progress = { total = 0, done = 0, ready = 0 }
-	for _, item in doc.nodes do
-		local status = derived.status[item.id]
-
-		if
-			item.type == "task"
-			and not graph.isNote(item)
-			and status ~= "deferred"
-			and table.find(graph.ancestors(doc, item.id), groupId)
-		then
-			progress.total += 1
-			progress.done += if status == "done" then 1 else 0
-			progress.ready += if status == "ready" then 1 else 0
-		end
-	end
-	return progress
+function graph.countProgress(derived: Derived, groupId: string): Progress
+	local stats = derived.groups[groupId]
+	return if stats
+		then { total = stats.total, done = stats.done, ready = stats.ready }
+		else { total = 0, done = 0, ready = 0 }
 end
 
 -- The size the app draws an item at. Groups use their stored width and height.
@@ -128,14 +122,137 @@ function graph.sizeOf(item: Item): (number, number)
 	return item.width or 320, item.height or 200
 end
 
--- Status and leverage, matching app/src/derive.ts. Notes pass blocking through and never count as work. Gates
--- also pass blocking through, but count as work: one is done once everything it waits on is.
+local UNCOMMON_UPSTREAM = 4
+local RARE_UPSTREAM = 8
+local MYTHIC_UPSTREAM = 14
+
+-- Rarity grows with how much work feeds into a card.
+local function rarityOf(upstream: number): string
+	if upstream >= MYTHIC_UPSTREAM then
+		return "mythic"
+	elseif upstream >= RARE_UPSTREAM then
+		return "rare"
+	elseif upstream >= UNCOMMON_UPSTREAM then
+		return "uncommon"
+	end
+
+	return "common"
+end
+
+-- Tarjan's algorithm groups cards that wait on each other. Each group reaches the work that feeds into it, so
+-- a loop counts its shared upstream once and every card in it reads the same number.
+local function countUpstream(tasks: { [string]: Item }, predecessors: { [string]: { string } }): { [string]: number }
+	local indices: { [string]: number } = {}
+	local lowLinks: { [string]: number } = {}
+	local onStack: { [string]: boolean } = {}
+	local stack: { string } = {}
+	local components: { { string } } = {}
+	local componentOf: { [string]: number } = {}
+	local indexCount = 0
+
+	local function visit(id: string)
+		indexCount += 1
+		indices[id] = indexCount
+		lowLinks[id] = indexCount
+		table.insert(stack, id)
+		onStack[id] = true
+
+		for _, predecessor in predecessors[id] or {} do
+			if not tasks[predecessor] then
+				continue
+			end
+
+			if not indices[predecessor] then
+				visit(predecessor)
+				lowLinks[id] = math.min(lowLinks[id], lowLinks[predecessor])
+			elseif onStack[predecessor] then
+				lowLinks[id] = math.min(lowLinks[id], indices[predecessor])
+			end
+		end
+
+		if lowLinks[id] ~= indices[id] then
+			return
+		end
+
+		local component: { string } = {}
+		local member: string
+
+		repeat
+			member = table.remove(stack) :: string
+			onStack[member] = nil
+			componentOf[member] = #components + 1
+			table.insert(component, member)
+		until member == id
+
+		table.insert(components, component)
+	end
+
+	for id in tasks do
+		if not indices[id] then
+			visit(id)
+		end
+	end
+
+	local reaches: { [number]: { [string]: boolean } } = {}
+
+	local function reachOf(componentIndex: number): { [string]: boolean }
+		local known = reaches[componentIndex]
+
+		if known then
+			return known
+		end
+
+		local reach: { [string]: boolean } = {}
+
+		for _, id in components[componentIndex] do
+			if not graph.isNote(tasks[id]) then
+				reach[id] = true
+			end
+
+			for _, predecessor in predecessors[id] or {} do
+				local previous = componentOf[predecessor]
+
+				if previous ~= nil and previous ~= componentIndex then
+					for ancestor in reachOf(previous) do
+						reach[ancestor] = true
+					end
+				end
+			end
+		end
+
+		reaches[componentIndex] = reach
+		return reach
+	end
+
+	local upstream: { [string]: number } = {}
+
+	for id, item in tasks do
+		local count = 0
+
+		for _ in reachOf(componentOf[id]) do
+			count += 1
+		end
+
+		upstream[id] = count - (if graph.isNote(item) then 0 else 1)
+	end
+
+	return upstream
+end
+
+-- Status, flow, leverage, upstream work, rarity, and group progress, all served to the app rather than derived there.
+-- Notes pass blocking through and never count as work. Gates also pass blocking through, but count as work: one
+-- is done once everything it waits on is.
 function graph.derive(doc: Doc): Derived
 	local tasks: { [string]: Item } = {}
+	local parentOf: { [string]: string } = {}
 
 	for _, item in doc.nodes do
 		if item.type == "task" then
 			tasks[item.id] = item
+		end
+
+		if item.parentId then
+			parentOf[item.id] = item.parentId
 		end
 	end
 
@@ -213,16 +330,64 @@ function graph.derive(doc: Doc): Derived
 		end
 	end
 
+	-- Links move unless they come out of work that's stuck. Notes pass on whatever reaches them.
+	local flow: { [string]: string } = {}
+
+	local function flowOf(id: string, seen: { [string]: boolean }): string
+		local known = flow[id]
+
+		if known then
+			return known
+		end
+
+		local item = tasks[id]
+
+		-- Something that isn't a card has no status, so links out of it move.
+		if not item then
+			return "live"
+		end
+
+		if seen[id] then
+			return "held"
+		end
+
+		seen[id] = true
+		local value: string
+
+		if status[id] == "done" then
+			value = "live"
+		elseif graph.isNote(item) then
+			value = "held"
+
+			for _, predecessor in predecessors[id] or {} do
+				if flowOf(predecessor, seen) == "live" then
+					value = "live"
+					break
+				end
+			end
+		else
+			value = if status[id] == "blocked" or status[id] == "deferred" then "held" else "live"
+		end
+
+		flow[id] = value
+		return value
+	end
+
+	for id in tasks do
+		flowOf(id, {})
+	end
+
 	local leverage: { [string]: number } = {}
+	local downstream: { [string]: { [string]: boolean } } = {}
 
 	for id, item in tasks do
 		if graph.isNote(item) or not isOpen(id) then
 			continue
 		end
 
-		local seen: { [string]: boolean } = {}
+		-- Parked work doesn't count toward what finishing something unlocks.
+		local reached: { [string]: boolean } = {}
 		local stack = { id }
-		local count = 0
 
 		while #stack > 0 do
 			local current = table.remove(stack) :: string
@@ -230,24 +395,100 @@ function graph.derive(doc: Doc): Derived
 			for _, next in successors[current] or {} do
 				local nextItem = tasks[next]
 
-				if seen[next] or not nextItem or not isOpen(next) or field(nextItem, "status") == "deferred" then
+				if reached[next] or not nextItem or not isOpen(next) or field(nextItem, "status") == "deferred" then
 					continue
 				end
 
-				seen[next] = true
-
-				if not graph.isNote(nextItem) then
-					count += 1
-				end
-
+				reached[next] = true
 				table.insert(stack, next)
 			end
 		end
 
+		local count = 0
+
+		for reachedId in reached do
+			if not graph.isNote(tasks[reachedId]) then
+				count += 1
+			end
+		end
+
 		leverage[id] = count
+		downstream[id] = reached
 	end
 
-	return { status = status, leverage = leverage }
+	local upstream = countUpstream(tasks, predecessors)
+	local rarity: { [string]: string } = {}
+
+	for id, item in tasks do
+		if not graph.isNote(item) then
+			rarity[id] = rarityOf(upstream[id])
+		end
+	end
+
+	-- Each group's members are every card below it, however deeply nested.
+	local members: { [string]: { [string]: boolean } } = {}
+
+	for id in tasks do
+		local current = parentOf[id]
+
+		for _ = 1, #doc.nodes do
+			if not current then
+				break
+			end
+
+			members[current] = members[current] or {}
+			members[current][id] = true
+			current = parentOf[current]
+		end
+	end
+
+	local groups: { [string]: GroupStats } = {}
+
+	for _, item in doc.nodes do
+		if not graph.isGroup(item) then
+			continue
+		end
+
+		local stats: GroupStats = { total = 0, done = 0, ready = 0, blocked = 0, outside = 0 }
+		local inside = members[item.id] or {}
+		local outside: { [string]: boolean } = {}
+
+		for id in inside do
+			local statusValue = status[id]
+
+			if not statusValue or graph.isNote(tasks[id]) then
+				continue
+			end
+
+			-- Deferred work is set aside, so it doesn't hold a group short of done.
+			if statusValue ~= "deferred" then
+				stats.total += 1
+			end
+
+			if statusValue == "done" then
+				stats.done += 1
+			elseif statusValue == "ready" then
+				stats.ready += 1
+			elseif statusValue == "blocked" then
+				stats.blocked += 1
+			end
+
+			-- Leverage that lands outside the group counts toward the group's reach.
+			for reachedId in downstream[id] or {} do
+				if not inside[reachedId] and not graph.isNote(tasks[reachedId]) then
+					outside[reachedId] = true
+				end
+			end
+		end
+
+		for _ in outside do
+			stats.outside += 1
+		end
+
+		groups[item.id] = stats
+	end
+
+	return { status = status, flow = flow, leverage = leverage, upstream = upstream, rarity = rarity, groups = groups }
 end
 
 local function slug(text: string): string

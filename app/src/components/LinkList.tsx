@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { deriveWork } from '../derive'
+import type { Work } from '../derive'
 import { STATUS_LABEL, isTask, type AppNode, type ClusterData, type Link, type TaskData } from '../model'
 import { StatusIcon } from './StatusIcon'
 
@@ -19,7 +19,7 @@ export function LinkList({
   flipLink,
 }: {
   node: AppNode
-  work: ReturnType<typeof deriveWork>
+  work: Work
   nodeMap: Map<string, AppNode>
   links: Link[]
   jumpTo: (id: string) => void

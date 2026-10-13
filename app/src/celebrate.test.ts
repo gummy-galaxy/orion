@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { deriveWork } from './derive'
 import { CHAIN_STEP_MS, celebrationDelays, clearCelebrations, finishedHops, patchTaskData } from './celebrate'
-import type { AppNode, ItemKind, Link, Status, TaskData, TaskNode } from './model'
+import { isTask, type AppNode, type ItemKind, type Link, type Status, type TaskData, type TaskNode } from './model'
 
 const task = (id: string, status: Status = 'todo', extra: Partial<TaskData> = {}, itemKind: ItemKind = 'step'): AppNode => ({
   id,
@@ -11,18 +10,18 @@ const task = (id: string, status: Status = 'todo', extra: Partial<TaskData> = {}
 })
 const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({ id: `${from}>${to}`, from, to, kind })
 
-const finished = (nodes: AppNode[], links: Link[]) => {
-  const status = deriveWork(nodes, links).status
-
-  return (id: string) => status.get(id) === 'done'
-}
+// Notes take their status from the server, so a test names the notes it treats as done.
+const finished =
+  (nodes: AppNode[], doneNotes: string[] = []) =>
+  (id: string) =>
+    doneNotes.includes(id) || nodes.some((node) => node.id === id && isTask(node) && node.data.itemKind !== 'note' && node.data.status === 'done')
 
 describe('finishedHops', () => {
   it('walks upstream and downstream through finished cards only', () => {
     const nodes = [task('up', 'done'), task('start', 'done'), task('down', 'done'), task('open', 'active')]
     const links = [link('up', 'start'), link('start', 'down'), link('down', 'open')]
 
-    const hops = finishedHops('start', links, finished(nodes, links))
+    const hops = finishedHops('start', links, finished(nodes))
 
     expect([...hops]).toEqual([
       ['start', 0],
@@ -35,14 +34,14 @@ describe('finishedHops', () => {
     const nodes = [task('a', 'done', { celebrate: true }), task('b', 'done'), task('c', 'done', { celebrate: true })]
     const links = [link('a', 'b'), link('b', 'c')]
 
-    expect(finishedHops('a', links, finished(nodes, links)).get('c')).toBe(2)
+    expect(finishedHops('a', links, finished(nodes)).get('c')).toBe(2)
   })
 
   it('ignores related links and does not revisit cards in a cycle', () => {
     const nodes = [task('a', 'done'), task('b', 'done'), task('c', 'done')]
     const links = [link('a', 'b'), link('b', 'c'), link('c', 'a'), link('a', 'c', 'related')]
 
-    const hops = finishedHops('a', links, finished(nodes, links))
+    const hops = finishedHops('a', links, finished(nodes))
 
     expect(hops.get('b')).toBe(1)
     expect(hops.get('c')).toBe(1)
@@ -53,7 +52,7 @@ describe('finishedHops', () => {
     const nodes = [task('a', 'done'), task('n', 'todo', {}, 'note'), task('b', 'done')]
     const links = [link('a', 'n'), link('n', 'b')]
 
-    expect(finishedHops('a', links, finished(nodes, links)).get('b')).toBe(2)
+    expect(finishedHops('a', links, finished(nodes, ['n'])).get('b')).toBe(2)
   })
 })
 
@@ -68,7 +67,7 @@ describe('celebrationDelays', () => {
     ]
     const links = [link('a', 'b'), link('b', 'c'), link('c', 'd'), link('d', 'open')]
 
-    const delays = celebrationDelays('a', nodes, links, finished(nodes, links))
+    const delays = celebrationDelays('a', nodes, links, finished(nodes))
 
     expect([...delays]).toEqual([
       ['a', 0],
@@ -81,14 +80,14 @@ describe('celebrationDelays', () => {
     const nodes = [task('a', 'done', { celebrate: true }), task('b', 'done', { celebrate: true })]
     const links = [link('a', 'b', 'related')]
 
-    expect([...celebrationDelays('a', nodes, links, finished(nodes, links))]).toEqual([['a', 0]])
+    expect([...celebrationDelays('a', nodes, links, finished(nodes))]).toEqual([['a', 0]])
   })
 
   it('does nothing when the clicked card is not waiting', () => {
     const nodes = [task('a', 'done'), task('b', 'done', { celebrate: true })]
     const links = [link('a', 'b')]
 
-    expect(celebrationDelays('a', nodes, links, finished(nodes, links)).size).toBe(0)
+    expect(celebrationDelays('a', nodes, links, finished(nodes)).size).toBe(0)
   })
 
   it('caps the delay so a long chain still clears in about a second', () => {
@@ -96,7 +95,7 @@ describe('celebrationDelays', () => {
     const nodes = ids.map((id) => task(id, 'done', { celebrate: true }))
     const links = ids.slice(1).map((id, index) => link(ids[index], id))
 
-    const delays = celebrationDelays('t0', nodes, links, finished(nodes, links))
+    const delays = celebrationDelays('t0', nodes, links, finished(nodes))
 
     expect(Math.max(...delays.values())).toBe(8 * CHAIN_STEP_MS)
   })

@@ -14,7 +14,7 @@ import {
   type ViewStatus,
   type Who,
 } from './model'
-import { getRarity, type Rarity } from './rarity'
+import type { Rarity } from './rarity'
 
 export type CardView = {
   id: string
@@ -88,6 +88,7 @@ export type CardFacts = {
   status: ViewStatus
   leverage: number
   upstream: number
+  rarity?: Rarity
   sources: SourceRef[]
   blockers?: number
   unblocks?: number
@@ -123,7 +124,7 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
     upstream: facts.upstream,
-    ...(data.itemKind === 'note' ? {} : { rarity: getRarity(facts.upstream) }),
+    ...(data.itemKind === 'note' ? {} : { rarity: facts.rarity ?? 'common' }),
     ...(checks ? { checks } : {}),
     ...(readiness ? { readiness } : {}),
     ...(checkProgress ? { checkProgress } : {}),

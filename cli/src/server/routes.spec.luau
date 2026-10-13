@@ -71,6 +71,24 @@ test.case("GET returns migrated document with unknown root data", function(asser
 	assert.eq(data and #(json.asArray(data.refs) or {}), 1)
 end)
 
+test.case("GET sends derived values beside the document without storing them", function(assert)
+	local root, router = createRouter("routes-derived")
+	fs.createDirectory(root, { makeParents = true })
+	fs.writeStringToFile(
+		store.filePath(root),
+		[[{"version":2,"revision":3,"settings":{"sources":[]},"nodes":[{"id":"a","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"A","itemKind":"step","status":"todo"}},{"id":"b","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","itemKind":"step","status":"todo"}}],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks"}]}]]
+	)
+	local response = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
+	local derived = json.asObject(response.derived) :: json.Object
+	local status = json.asObject(derived.status) :: json.Object
+	local leverage = json.asObject(derived.leverage) :: json.Object
+	assert.eq(status.a, "ready")
+	assert.eq(status.b, "blocked")
+	assert.eq(leverage.a, 1)
+	assert.eq(response.revision, 3)
+	assert.eq(fs.readFileToString(store.filePath(root)):find("derived"), nil)
+end)
+
 test.case("image routes import and serve workspace-local bytes", function(assert)
 	local root, router = createRouter("routes-images")
 	store.createWorkspace(root, "ideas")
