@@ -16,9 +16,6 @@ const sharedCss = read('./tokens.css')
 const themeCss = Object.fromEntries(THEMES.map((theme) => [theme.id, read(`./themes/${theme.id}.css`)]))
 const legacyNames = TOKENS.flatMap((token) => (token.legacy ? [token.legacy] : []))
 
-// Shadows are out of scope for this pass, so tokens.css and the themes still declare --shadow directly.
-const UNNAMED_YET = new Set(['--shadow'])
-
 it('gives every token a unique name and custom property', () => {
   const names = TOKENS.map((token) => token.name)
   const cssVars = TOKENS.map((token) => token.cssVar)
@@ -47,7 +44,7 @@ it('aliases every legacy name to its token in tokens.css', () => {
 })
 
 it('declares no custom property that the token list does not name', () => {
-  const known = new Set([...TOKENS.map((token) => token.cssVar), ...legacyNames, ...UNNAMED_YET])
+  const known = new Set([...TOKENS.map((token) => token.cssVar), ...legacyNames])
   const sheets = { 'tokens.css': sharedCss, ...Object.fromEntries(THEMES.map((theme) => [`${theme.id}.css`, themeCss[theme.id]])) }
   const unknown = Object.entries(sheets).flatMap(([file, css]) =>
     [...declaredProperties(css)].filter((property) => !known.has(property)).map((property) => `${file}: ${property}`),

@@ -233,7 +233,7 @@
   right: 12px;
   z-index: 3;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--motion-duration-fast);
 }
 
 .card.skin-trading:is(:hover, :focus-within) .trading-actions {
