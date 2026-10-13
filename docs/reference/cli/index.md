@@ -19,6 +19,7 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion group`](./group)           | List, make, change, dissolve, remove, and tidy groups                                    |
 | [`orion ref`](./ref)               | Take outside work off an item                                                            |
 | [`orion next`](./next)             | List items that can start now, most unblocking first                                     |
+| [`orion apply`](./apply)           | Apply a plan of cards, notes, groups, and links in one step                              |
 | [`orion sync`](./sync)             | Update pull request items from GitHub (deprecated: use ingest)                           |
 | [`orion canvas`](./canvas)         | Create, list, rename, set, archive, restore, and choose canvases, and check their layout |
 | [`orion server`](./server)         | Start the Orion server or report whether one is running                                  |

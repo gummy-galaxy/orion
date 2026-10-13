@@ -2,6 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local apply = require("@root/cli/apply")
 local backup = require("@root/cli/backup")
 local batchEdit = require("@root/cli/batchEdit")
 local canvas = require("@root/cli/canvas")
@@ -260,6 +261,8 @@ local function createParsers(): Parsers
 
 	local nextCommand = addCommand(root, "next", "List items that can start now, most unblocking first")
 	addJsonFlag(nextCommand)
+
+	apply.define(addCommand(root, "apply", apply.help))
 
 	local sync = addCommand(root, "sync", "Update pull request items from GitHub (deprecated: use ingest)")
 	sync:add("discover", "flag", { help = "Add your open pull requests that aren't on the canvas to an Inbox group" })
@@ -711,6 +714,8 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif key == "card import" then
 		importCommand.run(parser, commandContext)
+	elseif key == "apply" then
+		apply.run(parser, commandContext)
 	elseif key == "note add" then
 		local text = joined(parser:variadics(), "<text>")
 		local added: Item

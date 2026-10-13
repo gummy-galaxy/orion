@@ -55,6 +55,23 @@ test.case("orion_import passes each ref as a trailing positional", function(asse
 	end)
 end)
 
+test.case("orion_apply passes the plan inline with its dry run and revision", function(assert)
+	local steps = json.asArray(json.deserialize([=[[{"op":"addCard","label":"Ship"}]]=]) :: json.Value)
+	assert.eq(
+		table.concat(
+			getToolArgv(
+				"orion_apply",
+				json.object({ operations = steps, dryRun = true, ifRevision = 4, workspace = "release" })
+			),
+			" "
+		),
+		'apply --plan [{"op":"addCard","label":"Ship"}] --dry-run --if-revision 4 --canvas release --json'
+	)
+	assert.throwsWith("operations must be a list of operations", function()
+		getToolArgv("orion_apply", json.object({ operations = {} }))
+	end)
+end)
+
 test.case("tools reject arguments their schemas do not allow", function(assert)
 	assert.throwsWith("unknown argument: colour", function()
 		getToolArgv("orion_add_item", json.object({ title = "A", colour = "red" }))

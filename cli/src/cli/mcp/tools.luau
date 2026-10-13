@@ -100,6 +100,19 @@ local function buildImportArgv(arguments: json.Object): { string }
 	return argv
 end
 
+-- The plan goes inline as --plan, since an MCP call has no stdin to read it from.
+local function buildApplyArgv(arguments: json.Object): { string }
+	local steps = json.asArray(arguments.operations :: json.Value)
+	assert(steps and #steps > 0, "missing operations")
+	local argv = { "apply", "--plan", json.serialize(steps) }
+
+	appendFlag(argv, "dry-run", arguments.dryRun)
+	appendOption(argv, "if-revision", arguments.ifRevision)
+	appendOption(argv, "canvas", arguments.workspace)
+	table.insert(argv, "--json")
+	return argv
+end
+
 -- Every tool the MCP server offers, in the order tools/list reports them. Tools map their
 -- fields onto a CLI command, and those that need more than that supply their own build.
 local tools: { Tool } = {
@@ -397,6 +410,26 @@ local tools: { Tool } = {
 			{ name = "refs", kind = "strings", required = true, at = "positional" },
 			{ name = "group", kind = "id", at = "option" },
 			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
+		},
+	},
+	{
+		name = "orion_apply",
+		description = 'Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link, unlink, insert, move, ungroup, tidy, remove, removeGroup. Use dryRun to preview the plan and the ids each handle gets.',
+		annotations = { destructiveHint = true },
+		command = { "apply" },
+		build = buildApplyArgv,
+		fields = {
+			{
+				name = "operations",
+				kind = "operations",
+				required = true,
+				description = "Operations in order. Each has an op field, such as addCard with label, or link with from and to. Move needs group, or null for the top level.",
+				at = "option",
+				flag = "plan",
+			},
+			workspaceField,
+			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
+			{ name = "ifRevision", kind = "int", at = "option", flag = "if-revision" },
 		},
 	},
 }
