@@ -25,27 +25,27 @@ describe('getTradingFacts', () => {
     expect(getTradingFacts(createView(), NOW)).toEqual({ locked: false, blockers: 0, unblocks: 0, hue: 0 })
   })
 
-  it('picks the most urgent sticker', () => {
-    expect(getTradingFacts(createView({ readiness: 'conflict', changesRequested: true }), NOW).sticker).toBe('conflict')
-    expect(getTradingFacts(createView({ readiness: 'failing', changesRequested: true }), NOW).sticker).toBe('failing')
-    expect(getTradingFacts(createView({ readiness: 'passing', changesRequested: true }), NOW).sticker).toBe('changes')
-    expect(getTradingFacts(createView({ readiness: 'mergeable', readyToMerge: true }), NOW).sticker).toBe('mergeable')
+  it('picks the most urgent status badge', () => {
+    expect(getTradingFacts(createView({ readiness: 'conflict', changesRequested: true }), NOW).statusBadge).toBe('conflict')
+    expect(getTradingFacts(createView({ readiness: 'failing', changesRequested: true }), NOW).statusBadge).toBe('failing')
+    expect(getTradingFacts(createView({ readiness: 'passing', changesRequested: true }), NOW).statusBadge).toBe('changes')
+    expect(getTradingFacts(createView({ readiness: 'mergeable', readyToMerge: true }), NOW).statusBadge).toBe('mergeable')
   })
 
   it('marks pull requests with no change in two weeks stale', () => {
-    expect(getTradingFacts(createView({ updatedAt: '2026-09-20T12:00:00Z' }), NOW).sticker).toBe('stale')
-    expect(getTradingFacts(createView({ kind: 'step', updatedAt: '2026-09-20T12:00:00Z' }), NOW).sticker).toBeUndefined()
+    expect(getTradingFacts(createView({ updatedAt: '2026-09-20T12:00:00Z' }), NOW).statusBadge).toBe('stale')
+    expect(getTradingFacts(createView({ kind: 'step', updatedAt: '2026-09-20T12:00:00Z' }), NOW).statusBadge).toBeUndefined()
   })
 
-  it('shows checks still running or queued as motion, not a sticker', () => {
+  it('shows checks still running or queued as motion, not a status badge', () => {
     expect(getTradingFacts(createView({ readiness: 'running' }), NOW)).toMatchObject({ motion: 'running' })
     expect(getTradingFacts(createView({ readiness: 'waiting' }), NOW)).toMatchObject({ motion: 'queued' })
-    expect(getTradingFacts(createView({ readiness: 'running' }), NOW).sticker).toBeUndefined()
+    expect(getTradingFacts(createView({ readiness: 'running' }), NOW).statusBadge).toBeUndefined()
   })
 
-  it('keeps checks moving beside the failing sticker until the rest finish', () => {
+  it('keeps checks moving beside the failing status badge until the rest finish', () => {
     expect(getTradingFacts(createView({ readiness: 'failing', checkProgress: 'running' }), NOW)).toMatchObject({
-      sticker: 'failing',
+      statusBadge: 'failing',
       motion: 'running',
     })
     expect(getTradingFacts(createView({ readiness: 'failing' }), NOW).motion).toBeUndefined()
@@ -56,10 +56,10 @@ describe('getTradingFacts', () => {
     expect(getTradingFacts(createView({ priority: 0, size: 'L' }), NOW)).toMatchObject({ priority: 0, size: 'L' })
   })
 
-  it('drops stickers and motion from finished and parked work', () => {
+  it('drops status badges and motion from finished and parked work', () => {
     const facts = getTradingFacts(createView({ status: 'done', readiness: 'failing' }), NOW)
 
-    expect(facts.sticker).toBeUndefined()
+    expect(facts.statusBadge).toBeUndefined()
     expect(facts.motion).toBeUndefined()
   })
 

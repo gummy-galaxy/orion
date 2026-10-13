@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
-import type { Motion, Sticker } from '../skins/tradingFacts'
+import type { Motion, StatusBadge } from '../skins/tradingFacts'
 
-const PATHS: Record<Sticker | Motion, ReactNode> = {
+const PATHS: Record<StatusBadge | Motion, ReactNode> = {
   conflict: <path d="M4 2v12M12 2v5M12 7c0 4-8 3-8 7" />,
   failing: <path d="M4 4l8 8M12 4l-8 8" />,
   changes: (
@@ -27,7 +27,7 @@ const PATHS: Record<Sticker | Motion, ReactNode> = {
   ),
 }
 
-export function TradingSignalIcon({ signal }: { signal: Sticker | Motion }) {
+export function TradingSignalIcon({ signal }: { signal: StatusBadge | Motion }) {
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {PATHS[signal]}

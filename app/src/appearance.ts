@@ -48,7 +48,15 @@ export const ANIMATIONS: readonly { id: Motion; label: string }[] = [
   { id: 'off', label: 'Off' },
 ]
 
-export type Appearance = { theme: string; skin: string; colorMode: ColorMode; statusColors: StatusColors; animations: Animations }
+export type Appearance = {
+  theme: string
+  skin: string
+  colorMode: ColorMode
+  statusColors: StatusColors
+  animations: Animations
+  /** Whether the star companion perches on the canvas. */
+  companion: boolean
+}
 
 // index.html reads these keys before the first paint, so keep them in step.
 const THEME_KEY = 'orion:theme'
@@ -56,6 +64,7 @@ const SKIN_KEY = 'orion:skin'
 const COLOR_MODE_KEY = 'orion:color-mode'
 const STATUS_COLORS_KEY = 'orion:status-colors'
 const ANIMATIONS_KEY = 'orion:animations'
+const COMPANION_KEY = 'orion:companion'
 
 /** The theme with this id. An unknown id, or a shareable theme that failed to load, falls back to the default. */
 export function themeOf(id: string, themes: readonly Theme[] = THEMES): Theme {
@@ -80,9 +89,10 @@ export function readAppearance(): Appearance {
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
       statusColors: STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
       animations: ANIMATIONS.find((option) => option.id === localStorage.getItem(ANIMATIONS_KEY))?.id ?? 'system',
+      companion: localStorage.getItem(COMPANION_KEY) !== 'off',
     }
   } catch {
-    return { theme: THEMES[0].id, skin: SKINS[0].id, colorMode: 'system', statusColors: 'theme', animations: 'system' }
+    return { theme: THEMES[0].id, skin: SKINS[0].id, colorMode: 'system', statusColors: 'theme', animations: 'system', companion: true }
   }
 }
 
@@ -93,6 +103,7 @@ export function writeAppearance(appearance: Appearance) {
     'color-mode': appearance.colorMode,
     'status-colors': appearance.statusColors,
     animations: appearance.animations === 'system' ? null : appearance.animations,
+    companion: appearance.companion ? null : 'off',
   })
 }
 

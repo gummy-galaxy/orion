@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
-import type { Motion, Sticker } from '../skins/tradingFacts'
+import type { Motion, StatusBadge } from '../skins/tradingFacts'
 import { Tooltip } from './Tooltip'
 
 /** Signals about a pull request's checks open its checks page; the rest open the pull request. */
-const CHECK_SIGNALS: ReadonlySet<Sticker | Motion> = new Set(['failing', 'running', 'queued'])
+const CHECK_SIGNALS: ReadonlySet<StatusBadge | Motion> = new Set(['failing', 'running', 'queued'])
 
 /** A trading card signal. It links to GitHub when the card has a pull request, and otherwise only shows. */
 export function TradingSignal({
@@ -13,7 +13,7 @@ export function TradingSignal({
   url,
   children,
 }: {
-  signal: Sticker | Motion
+  signal: StatusBadge | Motion
   className: string
   hint: string
   url?: string

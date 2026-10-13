@@ -12,28 +12,34 @@ Legacy names such as `--bg` or `--st-ready` still work. Each aliases its new cus
 
 ## Color
 
-| Name                      | CSS property                | Legacy          | Used for                                         |
-| ------------------------- | --------------------------- | --------------- | ------------------------------------------------ |
-| `canvas.background`       | `--canvas-background`       | `--bg`          | The canvas and the app background                |
-| `canvas.dots`             | `--canvas-dots`             | `--dots`        | Grid dots on the canvas                          |
-| `surface.background`      | `--surface-background`      | `--surface`     | Menus, panels, and other raised surfaces         |
-| `card.background`         | `--card-background`         |                 | A card's fill; defaults to the surface           |
-| `card.border`             | `--card-border`             |                 | A card's outline; defaults to the default border |
-| `text.primary`            | `--text-primary`            | `--ink`         | Body text and icons                              |
-| `text.muted`              | `--text-muted`              | `--muted`       | Secondary text and quiet icons                   |
-| `border.default`          | `--border-default`          | `--line`        | Dividers and outlines                            |
-| `accent.default`          | `--accent-default`          | `--accent`      | Focus rings, links, and selection                |
-| `accent.subtle`           | `--accent-subtle`           | `--accent-soft` | Tinted backgrounds behind accent content         |
-| `edge.default`            | `--edge-default`            | `--edge`        | Links between cards                              |
-| `edge.hot`                | `--edge-hot`                |                 | Live and held links                              |
-| `edge.held`               | `--edge-held`               |                 | Links held in place by a dependency              |
-| `note.background`         | `--note-background`         | `--note`        | A note's paper                                   |
-| `note.border`             | `--note-border`             | `--note-edge`   | A note's edge and fold                           |
-| `note.text`               | `--note-text`               | `--note-ink`    | A note's text                                    |
-| `snap.guide`              | `--snap-guide`              | `--snap`        | Alignment guides while dragging                  |
-| `sticker.edge`            | `--sticker-edge`            |                 | The die-cut edge around a sticker                |
-| `window.close.background` | `--window-close-background` |                 | The close button on hover                        |
-| `window.close.text`       | `--window-close-text`       |                 | The close button's glyph on hover                |
+| Name                      | CSS property                | Legacy          | Used for                                          |
+| ------------------------- | --------------------------- | --------------- | ------------------------------------------------- |
+| `canvas.background`       | `--canvas-background`       | `--bg`          | The canvas and the app background                 |
+| `canvas.dots`             | `--canvas-dots`             | `--dots`        | Grid dots on the canvas                           |
+| `surface.background`      | `--surface-background`      | `--surface`     | Menus, panels, and other raised surfaces          |
+| `card.background`         | `--card-background`         |                 | A card's fill; defaults to the surface            |
+| `card.border`             | `--card-border`             |                 | A card's outline; defaults to the default border  |
+| `text.primary`            | `--text-primary`            | `--ink`         | Body text and icons                               |
+| `text.muted`              | `--text-muted`              | `--muted`       | Secondary text and quiet icons                    |
+| `border.default`          | `--border-default`          | `--line`        | Dividers and outlines                             |
+| `accent.default`          | `--accent-default`          | `--accent`      | Focus rings, links, and selection                 |
+| `accent.subtle`           | `--accent-subtle`           | `--accent-soft` | Tinted backgrounds behind accent content          |
+| `edge.default`            | `--edge-default`            | `--edge`        | Links between cards                               |
+| `edge.hot`                | `--edge-hot`                |                 | Live and held links                               |
+| `edge.held`               | `--edge-held`               |                 | Links held in place by a dependency               |
+| `note.background`         | `--note-background`         | `--note`        | A note's paper                                    |
+| `note.border`             | `--note-border`             | `--note-edge`   | A note's edge and fold                            |
+| `note.text`               | `--note-text`               | `--note-ink`    | A note's text                                     |
+| `snap.guide`              | `--snap-guide`              | `--snap`        | Alignment guides while dragging                   |
+| `sticker.edge`            | `--sticker-edge`            |                 | The die-cut edge around a sticker                 |
+| `window.close.background` | `--window-close-background` |                 | The close button on hover                         |
+| `window.close.text`       | `--window-close-text`       |                 | The close button's glyph on hover                 |
+| `companion.body`          | `--companion-body`          |                 | The star companion's fill                         |
+| `companion.edge`          | `--companion-edge`          |                 | The outline around each of the companion's stars  |
+| `companion.ink`           | `--companion-ink`           |                 | The companion's face                              |
+| `companion.halo`          | `--companion-halo`          |                 | The soft light right around the companion's stars |
+| `companion.glow`          | `--companion-glow`          |                 | The glow around the companion and its tethers     |
+| `companion.tether`        | `--companion-tether`        |                 | The lines joining the companion's three stars     |
 
 ## Status
 

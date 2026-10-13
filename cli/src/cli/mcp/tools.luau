@@ -247,7 +247,7 @@ local tools: { Tool } = {
 	{
 		name = "orion_group",
 		description = "Wrap existing items in a new group.",
-		command = { "group" },
+		command = { "group", "add" },
 		json = true,
 		fields = {
 			{ name = "label", kind = "string", required = true, minLength = 1, at = "positional" },
@@ -268,11 +268,34 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_remove",
-		description = "Delete an item or group from the canvas.",
+		description = "Delete an item from the canvas. Use orion_remove_group for a group.",
 		annotations = { destructiveHint = true },
 		command = { "remove" },
 		fields = {
 			{ name = "id", kind = "id", required = true, at = "positional" },
+			workspaceField,
+		},
+	},
+	{
+		name = "orion_remove_group",
+		description = "Delete a group and everything inside it. A dry run lists what would go.",
+		annotations = { destructiveHint = true },
+		command = { "group", "remove" },
+		json = true,
+		fields = {
+			{ name = "id", kind = "id", required = true, at = "positional" },
+			workspaceField,
+			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
+		},
+	},
+	{
+		name = "orion_remove_ref",
+		description = "Take a GitHub, Jira, or branch ref off an item. Name it by the key orion_inspect lists, or by its URL.",
+		command = { "ref", "remove" },
+		json = true,
+		fields = {
+			{ name = "id", kind = "id", required = true, at = "positional" },
+			{ name = "ref", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
 		},
 	},
