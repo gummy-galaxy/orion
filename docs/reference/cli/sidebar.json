@@ -60,6 +60,10 @@
     "link": "/reference/cli/group"
   },
   {
+    "text": "ref",
+    "link": "/reference/cli/ref"
+  },
+  {
     "text": "ungroup",
     "link": "/reference/cli/ungroup"
   },

@@ -126,7 +126,7 @@ Runs `orion unlink`.
 
 Wrap existing items in a new group.
 
-Runs `orion group`.
+Runs `orion group add`.
 
 | Argument    | Type      | Description                                                  |
 | ----------- | --------- | ------------------------------------------------------------ |
@@ -148,13 +148,37 @@ Runs `orion move`.
 
 ## orion_remove
 
-Delete an item or group from the canvas.
+Delete an item from the canvas. Use orion_remove_group for a group.
 
 Runs `orion remove`.
 
 | Argument    | Type      | Description                                                  |
 | ----------- | --------- | ------------------------------------------------------------ |
 | `id`        | id        | **Required.**                                                |
+| `workspace` | workspace | Workspace name. Omit to use the workspace selected in Orion. |
+
+## orion_remove_group
+
+Delete a group and everything inside it. A dry run lists what would go.
+
+Runs `orion group remove`.
+
+| Argument    | Type      | Description                                                  |
+| ----------- | --------- | ------------------------------------------------------------ |
+| `id`        | id        | **Required.**                                                |
+| `workspace` | workspace | Workspace name. Omit to use the workspace selected in Orion. |
+| `dryRun`    | boolean   |                                                              |
+
+## orion_remove_ref
+
+Take a GitHub, Jira, or branch ref off an item. Name it by the key orion_inspect lists, or by its URL.
+
+Runs `orion ref remove`.
+
+| Argument    | Type      | Description                                                  |
+| ----------- | --------- | ------------------------------------------------------------ |
+| `id`        | id        | **Required.**                                                |
+| `ref`       | string    | **Required.**                                                |
 | `workspace` | workspace | Workspace name. Omit to use the workspace selected in Orion. |
 
 ## orion_create_workspace
