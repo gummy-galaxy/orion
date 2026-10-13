@@ -2,7 +2,7 @@
 
 # orion card
 
-Add, list, change, finish, and import cards
+Add, list, show, change, finish, and import cards
 
 ```sh
 orion card <command> [options]
@@ -63,6 +63,20 @@ orion card set [id] [options]
 | `--kind <value>`   | step, or gate for one that's done once everything it waits on is                                      |
 | `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch |
 | `--json`           | Print JSON                                                                                            |
+
+## orion card show
+
+Show one card with its most recent log entries
+
+```sh
+orion card show [id] [options]
+```
+
+| Argument          | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `[id]`            | Card id                                     |
+| `--limit <value>` | How many recent entries to show (default 5) |
+| `--json`          | Print JSON                                  |
 
 ## orion card done
 

@@ -302,3 +302,60 @@ test.case("a save flags the cards it finishes and leaves the rest without the fl
 	assert.eq(saved.nodes[1].data.celebrate, true)
 	assert.eq(saved.nodes[2].data.celebrate, nil)
 end)
+
+test.case("log appends entries without changing the canvas revision", function(assert)
+	local dir = testing.directory("log-append")
+	store.write(dir, testing.createDoc({ testing.task("a", "Card", "todo") }))
+
+	store.appendLog(dir, function(entries, doc)
+		assert.eq(#entries, 0)
+		assert.eq(doc.nodes[1].id, "a")
+		return {
+			id = "log-1",
+			text = "First",
+			time = "2026-10-12T18:00:00Z",
+			author = { kind = "person", name = "marin" },
+			targets = { { kind = "card", id = "a" } },
+		}
+	end)
+	store.appendLog(dir, function(entries)
+		assert.eq(#entries, 1)
+		return {
+			id = "log-2",
+			text = "Second, with\nthe line break kept",
+			time = "2026-10-12T19:00:00Z",
+			author = { kind = "agent", name = "claude" },
+			targets = {},
+		}
+	end)
+
+	local entries = store.readLog(dir)
+	assert.eq(#entries, 2)
+	assert.eq(entries[1].targets[1].id, "a")
+	assert.eq(entries[2].text, "Second, with\nthe line break kept")
+	assert.eq(entries[2].author.kind, "agent")
+	assert.eq(store.load(dir).revision, 0)
+	assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
+end)
+
+test.case("log reads skip an append that never finished and refuse a damaged line", function(assert)
+	local dir = testing.directory("log-damaged")
+	store.write(dir, testing.createDoc({ testing.task("a", "Card", "todo") }))
+	store.appendLog(dir, function()
+		return {
+			id = "log-1",
+			text = "Kept",
+			time = "2026-10-12T18:00:00Z",
+			author = { kind = "person", name = "marin" },
+			targets = {},
+		}
+	end)
+	local file = store.logPath(dir)
+	fs.writeStringToFile(file, fs.readFileToString(file) .. '{"id":"log-2","text":"Cut of')
+	assert.eq(#store.readLog(dir), 1)
+
+	fs.writeStringToFile(file, fs.readFileToString(file) .. "\nnot json\n")
+	assert.throws(function()
+		store.readLog(dir)
+	end)
+end)

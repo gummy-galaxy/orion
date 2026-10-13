@@ -198,6 +198,42 @@ When an agent opens a pull request from a card's work, the pull request attaches
 
 2026-10-10 · [#196](https://github.com/vocksel/orion/issues/196)
 
+## Log
+
+### One append-only log per canvas, with cards as targets
+
+Each canvas keeps one log in `log.jsonl`, one JSON line per entry. Each entry records its text, its time, who logged it, and the targets it's attached to. A card's timeline is the log filtered to entries that name the card, so no card stores its own history. Entries are never edited or removed. A mistake is corrected by a new entry.
+
+Adding an entry appends a line under the canvas lock and leaves the canvas revision alone. The app's saves check that revision, so logging something never makes an open app's save fail.
+
+**Why:** one stream serves every card, and an entry that concerns several cards is stored once. Appending keeps the record stable, and a correction that sits beside the mistake is more trustworthy than an edit that hides it. This replaces rewriting a card's note to add a line, which lost earlier records and once recorded a pass that hadn't happened.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
+### Undo leaves log entries in place
+
+Log entries aren't canvas edits, so they have no inverses. When undo lands (#1), it restores the canvas and leaves log entries in place as a record of what was done.
+
+**Why:** the log says what happened, including what was later undone. Charter principle 8 asks that every edit be an operation with an inverse. Log appends are records rather than canvas edits, so they sit outside that rule. If the log should be undoable, that is a change to this entry.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
+### Entries record a person or an agent
+
+Entries from `orion log add` are by the person running the CLI, named by `$USER`, unless `--agent <name>` marks them as an agent's. MCP log tools always pass the agent's name, and the tool requires it.
+
+**Why:** a shell command can't tell whether a person or an agent is running it, since agents run the same CLI. Naming the agent is the one signal that holds. Detecting the client from the environment is fragile, and the MCP server doesn't pass its client name through to commands. Both are open to challenge.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
+### The log is read newest first, and stored oldest first
+
+`orion log list`, `orion card show`, and the MCP log tools list entries newest first. The file and `GET /api/log` keep append order, oldest first.
+
+**Why:** a timeline is read from its latest entry. The stored order matches the file, so anyone replaying it sees entries as they were written.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
 ## Public interfaces
 
 ### Public interfaces tighten in three stages

@@ -5,6 +5,7 @@ local process = require("@std/process")
 local backup = require("@root/cli/backup")
 local batchEdit = require("@root/cli/batchEdit")
 local canvas = require("@root/cli/canvas")
+local cardShow = require("@root/cli/card/show")
 local checkStyleAssets = require("@root/style/checkStyleAssets")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
@@ -17,6 +18,7 @@ local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local importCommand = require("@root/cli/import")
 local ingest = require("@root/cli/ingest")
+local log = require("@root/cli/log")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
 local pad = require("@root/render/pad")
@@ -60,6 +62,7 @@ local COMMANDS: { [string]: Command } = {
 	canvas = canvas,
 	focus = focus,
 	ingest = ingest,
+	log = log,
 	mcp = mcp,
 	media = media,
 	server = server,
@@ -141,7 +144,7 @@ local function createParsers(): Parsers
 		addJsonFlag(parser)
 	end
 
-	local card = addCommand(root, "card", "Add, list, change, finish, and import cards")
+	local card = addCommand(root, "card", "Add, list, show, change, finish, and import cards")
 
 	local cardList = addCommand(card, "list", "List work items with their derived status")
 	cardList:add("group", "option", { help = "Only items inside this group" })
@@ -162,6 +165,7 @@ local function createParsers(): Parsers
 	addRefOption(cardSet)
 	addJsonFlag(cardSet)
 
+	cardShow.define(addCommand(card, "show", cardShow.help))
 	addBatchOptions(addCommand(card, "done", "Mark one or more items done"), "Item ids")
 	importCommand.define(addCommand(card, "import", importCommand.help))
 
@@ -267,7 +271,7 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	-- Commands with their own modules define their subcommands themselves.
-	for _, name in { "canvas", "server", "source", "ingest", "media", "suggestion", "backup", "mcp", "focus" } do
+	for _, name in { "canvas", "log", "server", "source", "ingest", "media", "suggestion", "backup", "mcp", "focus" } do
 		local module = COMMANDS[name]
 		local parser = addCommand(root, name, module.help)
 		commands[name] = parser
@@ -711,6 +715,8 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif key == "card import" then
 		importCommand.run(parser, commandContext)
+	elseif key == "card show" then
+		cardShow.run(parser, commandContext)
 	elseif key == "note add" then
 		local text = joined(parser:variadics(), "<text>")
 		local added: Item

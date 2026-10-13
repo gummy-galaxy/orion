@@ -122,3 +122,31 @@ test.case("canvas tools map onto the canvas commands", function(assert)
 		getToolArgv("orion_archive_workspace", json.object({}))
 	end)
 end)
+
+test.case("log tools attach entries to cards and name the agent that wrote them", function(assert)
+	assert.eq(
+		table.concat(
+			getToolArgv(
+				"orion_log_add",
+				json.object({ text = "Tested Moments", cards = { "moments", "avatars" }, agent = "claude" })
+			),
+			" "
+		),
+		"log add Tested Moments --card moments,avatars --agent claude --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_log_add", json.object({ text = "Canvas-wide", agent = "claude" })), " "),
+		"log add Canvas-wide --agent claude --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_log_list", json.object({ card = "moments" })), " "),
+		"log list --card moments --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_card_show", json.object({ id = "moments", limit = 3 })), " "),
+		"card show moments --limit 3 --json"
+	)
+	assert.throwsWith("missing agent", function()
+		getToolArgv("orion_log_add", json.object({ text = "No name" }))
+	end)
+end)

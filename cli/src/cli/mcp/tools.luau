@@ -100,6 +100,28 @@ local function buildImportArgv(arguments: json.Object): { string }
 	return argv
 end
 
+-- Cards are one list argument, joined into the comma-separated --card the CLI takes. Entries are always by an agent.
+local function buildLogAddArgv(arguments: json.Object): { string }
+	local argv = { "log", "add", getRequiredString(arguments, "text") }
+	local ids: { string } = {}
+
+	for _, card in json.asArray(arguments.cards) or {} do
+		assert(type(card) == "string" and card ~= "", "cards must be a list of strings")
+		table.insert(ids, card)
+	end
+
+	if #ids > 0 then
+		table.insert(argv, "--card")
+		table.insert(argv, table.concat(ids, ","))
+	end
+
+	table.insert(argv, "--agent")
+	table.insert(argv, getRequiredString(arguments, "agent"))
+	appendOption(argv, "canvas", arguments.workspace)
+	table.insert(argv, "--json")
+	return argv
+end
+
 -- Every tool the MCP server offers, in the order tools/list reports them. Tools map their
 -- fields onto a CLI command, and those that need more than that supply their own build.
 local tools: { Tool } = {
@@ -203,6 +225,60 @@ local tools: { Tool } = {
 			{ name = "group", kind = "id", at = "option" },
 			{ name = "after", kind = "id", at = "option" },
 			{ name = "before", kind = "id", at = "option" },
+		},
+	},
+	{
+		name = "orion_log_add",
+		description = "Log what happened on the canvas, attached to any number of cards. Entries are append-only, so correct a mistake with a new entry. Pass the agent's name.",
+		command = { "log", "add" },
+		json = true,
+		fields = {
+			{ name = "text", kind = "string", required = true, minLength = 1, at = "positional" },
+			{
+				name = "cards",
+				kind = "strings",
+				description = "Card ids to attach the entry to. Omit to log it for the whole canvas.",
+				at = "csv",
+				flag = "card",
+			},
+			{
+				name = "agent",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The agent's name, such as claude.",
+				at = "option",
+			},
+			workspaceField,
+		},
+		build = buildLogAddArgv,
+	},
+	{
+		name = "orion_log_list",
+		description = "List the canvas log, newest first, optionally only the entries attached to one card.",
+		annotations = { readOnlyHint = true },
+		command = { "log", "list" },
+		json = true,
+		fields = {
+			workspaceField,
+			{ name = "card", kind = "id", description = "Only entries attached to this card.", at = "option" },
+		},
+	},
+	{
+		name = "orion_card_show",
+		description = "Show one card with its most recent log entries.",
+		annotations = { readOnlyHint = true },
+		command = { "card", "show" },
+		json = true,
+		fields = {
+			{ name = "id", kind = "id", required = true, at = "positional" },
+			workspaceField,
+			{
+				name = "limit",
+				kind = "int",
+				description = "How many recent entries to include. Defaults to 5.",
+				at = "option",
+			},
 		},
 	},
 	{

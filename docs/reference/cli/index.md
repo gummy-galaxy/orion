@@ -12,7 +12,7 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 
 | Command                            | What it does                                                                             |
 | ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| [`orion card`](./card)             | Add, list, change, finish, and import cards                                              |
+| [`orion card`](./card)             | Add, list, show, change, finish, and import cards                                        |
 | [`orion note`](./note)             | Add notes                                                                                |
 | [`orion link`](./link)             | Link items, remove links, and insert an item into a link                                 |
 | [`orion node`](./node)             | Show, query, remove, and move any item or group                                          |
@@ -21,6 +21,7 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion next`](./next)             | List items that can start now, most unblocking first                                     |
 | [`orion sync`](./sync)             | Update pull request items from GitHub (deprecated: use ingest)                           |
 | [`orion canvas`](./canvas)         | Create, list, rename, set, archive, restore, and choose canvases, and check their layout |
+| [`orion log`](./log)               | Add to the canvas log, and list it                                                       |
 | [`orion server`](./server)         | Start the Orion server or report whether one is running                                  |
 | [`orion source`](./source)         | List, add, or remove ingestion sources, and list unplaced pull requests                  |
 | [`orion ingest`](./ingest)         | Import work from configured sources and refresh the cards they track                     |
