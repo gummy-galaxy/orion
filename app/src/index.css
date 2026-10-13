@@ -944,6 +944,18 @@ select {
   white-space: nowrap;
   overflow: hidden;
 }
+/* A group with nothing in it says so in the middle of its body, faintly, and never catches the pointer. */
+.cluster-empty {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--text-size-caption);
+  color: var(--muted);
+  opacity: 0.7;
+  white-space: nowrap;
+  pointer-events: none;
+}
 /* A narrow header clips its trailing items, but the ring and the start of the name hold their size. */
 .cluster-head > * {
   flex-shrink: 0;

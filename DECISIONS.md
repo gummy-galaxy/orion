@@ -96,6 +96,14 @@ Generated card art can be produced again from the same card. Later, people shoul
 
 2026-10-07 · [#234](https://github.com/vocksel/orion/issues/234)
 
+### Empty groups stay until an edit empties them
+
+A group with nothing inside stays on the canvas, at the size of one card, with a faint "Empty group" hint. `orion group create` makes one, and the app keeps it through loads, saves, and writes from elsewhere. A group goes when an edit takes its last card out: a drop, a removal, or a move out. A group that was already empty is never removed by an edit that doesn't touch it, and a group the removal leaves empty goes too, cascading upward.
+
+**Why:** an agent often lays out the groups for a plan before it has cards to fill them. Dropping empty groups on load deleted them from the file on the next save, and pruning on every edit undid a group made on purpose. This replaced groups disappearing as soon as they were empty.
+
+2026-10-12 · [#304](https://github.com/vocksel/orion/issues/304)
+
 ## Canvas and input
 
 ### Scrolling pans, for mouse and trackpad alike

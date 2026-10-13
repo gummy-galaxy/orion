@@ -45,11 +45,17 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
             <strong>{data.label}</strong>
           </div>
           <span className="cluster-card-stats">
-            <span>
-              {stats.done}/{stats.total} done
-            </span>
-            <span>{stats.ready} ready</span>
-            <span>{stats.blocked} blocked</span>
+            {stats.total === 0 ? (
+              <span>Empty group</span>
+            ) : (
+              <>
+                <span>
+                  {stats.done}/{stats.total} done
+                </span>
+                <span>{stats.ready} ready</span>
+                <span>{stats.blocked} blocked</span>
+              </>
+            )}
           </span>
           {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
           <SourceBadges sources={sources} />
@@ -74,6 +80,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
           </span>
         </div>
       )}
+      {!collapsed && stats.total === 0 && <span className="cluster-empty">Empty group</span>}
       {!collapsed && <SourceBadges sources={sources} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>

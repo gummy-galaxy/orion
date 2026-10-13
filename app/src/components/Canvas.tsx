@@ -46,6 +46,7 @@ import {
   moveOutOfGroup,
   normalize,
   getTaskUrl,
+  removeNodes,
   sizeOf,
   getTaskTag,
   relativeTime,
@@ -2454,12 +2455,7 @@ export function Canvas() {
 
       return next
     })
-    setNodes((currentNodes) =>
-      normalize(
-        currentNodes.filter((node) => node.id !== id),
-        cardSize,
-      ),
-    )
+    setNodes((currentNodes) => removeNodes(currentNodes, [id], cardSize))
   }
 
   const removeLink = (id: string) => setLinks((currentLinks) => currentLinks.filter((link) => link.id !== id))
@@ -2568,13 +2564,7 @@ export function Canvas() {
           {
             label: 'Remove image',
             danger: true,
-            run: () =>
-              setNodes((currentNodes) =>
-                normalize(
-                  currentNodes.filter((item) => item.id !== node.id),
-                  cardSize,
-                ),
-              ),
+            run: () => setNodes((currentNodes) => removeNodes(currentNodes, [node.id], cardSize)),
           },
         ]
 
@@ -3304,18 +3294,7 @@ export function Canvas() {
                         onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
                         onChange={(event) => updateData(one.id, { label: event.target.value })}
                       />
-                      <button
-                        type="button"
-                        className="btn"
-                        onClick={() =>
-                          setNodes((ns) =>
-                            normalize(
-                              ns.filter((n) => n.id !== one.id),
-                              cardSize,
-                            ),
-                          )
-                        }
-                      >
+                      <button type="button" className="btn" onClick={() => setNodes((ns) => removeNodes(ns, [one.id], cardSize))}>
                         Remove image
                       </button>
                     </div>
