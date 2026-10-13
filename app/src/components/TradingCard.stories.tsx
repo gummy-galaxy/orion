@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
-import { STALE_DAYS, type Motion, type Sticker } from '../skins/tradingFacts'
+import { STALE_DAYS, type Motion, type StatusBadge } from '../skins/tradingFacts'
 import { skinOf } from '../skins'
 import { TradingCard } from './TradingCard'
 
@@ -10,7 +10,7 @@ type TradingArgs = {
   status: CardView['status']
   priority: 'unknown' | `${Priority}`
   size: 'unknown' | CardSizeLabel
-  sticker: 'none' | Sticker
+  statusBadge: 'none' | StatusBadge
   motion: 'none' | Motion
   checksFinished: number
   checksFailed: number
@@ -23,11 +23,11 @@ type TradingArgs = {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-// A sticker that comes from readiness wins over motion, since a pull request has one readiness at a time.
+// A status badge that comes from readiness wins over motion, since a pull request has one readiness at a time.
 function readinessOf(args: TradingArgs): Pick<CardView, 'readiness' | 'readyToMerge' | 'merge'> {
-  if (args.sticker === 'conflict' || args.sticker === 'failing') return { readiness: args.sticker }
+  if (args.statusBadge === 'conflict' || args.statusBadge === 'failing') return { readiness: args.statusBadge }
 
-  if (args.sticker === 'mergeable')
+  if (args.statusBadge === 'mergeable')
     return { readiness: 'mergeable', readyToMerge: true, merge: { url: 'https://github.com/vocksel/orion/pull/158', head: 'storybook' } }
 
   if (args.motion === 'running') return { readiness: 'running' }
@@ -37,7 +37,7 @@ function readinessOf(args: TradingArgs): Pick<CardView, 'readiness' | 'readyToMe
   return {}
 }
 
-// Motion also comes from check progress, so checks keep running beside a failing sticker.
+// Motion also comes from check progress, so checks keep running beside a failing status badge.
 function checksOf(args: TradingArgs): Pick<CardView, 'checkProgress' | 'checkCounts'> {
   if (args.motion === 'none') return {}
 
@@ -49,7 +49,7 @@ function checksOf(args: TradingArgs): Pick<CardView, 'checkProgress' | 'checkCou
 }
 
 function toView(args: TradingArgs): CardView {
-  const stale = args.sticker === 'stale'
+  const stale = args.statusBadge === 'stale'
 
   return {
     id: 'playground',
@@ -70,7 +70,7 @@ function toView(args: TradingArgs): CardView {
     ...readinessOf(args),
     ...checksOf(args),
     ...(args.kind === 'pr' ? { pullRequestUrl: 'https://github.com/vocksel/orion/pull/158' } : {}),
-    ...(args.sticker === 'changes' ? { changesRequested: true as const } : {}),
+    ...(args.statusBadge === 'changes' ? { changesRequested: true as const } : {}),
     ...(args.priority !== 'unknown' ? { priority: Number(args.priority) as Priority } : {}),
     ...(args.size !== 'unknown' ? { size: args.size } : {}),
   }
@@ -99,7 +99,7 @@ const defaults: TradingArgs = {
   status: 'review',
   priority: 'unknown',
   size: 'unknown',
-  sticker: 'mergeable',
+  statusBadge: 'mergeable',
   motion: 'none',
   checksFinished: 5,
   checksFailed: 0,
@@ -123,7 +123,7 @@ const meta = {
       description: 'Set by a source. Unknown shows nothing.',
     },
     size: { control: 'inline-radio', options: ['unknown', 'S', 'M', 'L', 'XL'] },
-    sticker: { control: 'select', options: ['none', 'conflict', 'failing', 'changes', 'stale', 'mergeable'] },
+    statusBadge: { control: 'select', options: ['none', 'conflict', 'failing', 'changes', 'stale', 'mergeable'] },
     motion: { control: 'inline-radio', options: ['none', 'running', 'queued'] },
     checksFinished: { control: { type: 'range', min: 0, max: 20 } },
     checksFailed: { control: { type: 'range', min: 0, max: 20 } },
@@ -146,7 +146,7 @@ export const ChecksRunning: Story = {
   name: '#272 · checks running',
   args: {
     title: "Show a card's far-zoom tag only while hovered or selected",
-    sticker: 'none',
+    statusBadge: 'none',
     motion: 'running',
     unblocks: 0,
     group: 'navigation',
@@ -157,7 +157,7 @@ export const FailingWhileRunning: Story = {
   name: '#272 · failing while running',
   args: {
     title: "Show a card's far-zoom tag only while hovered or selected",
-    sticker: 'failing',
+    statusBadge: 'failing',
     motion: 'running',
     checksFinished: 3,
     checksFailed: 1,
@@ -172,7 +172,7 @@ export const BlockedAndFailing: Story = {
   args: {
     title: 'Draw trading card art as geometric posters built from each card',
     status: 'blocked',
-    sticker: 'failing',
+    statusBadge: 'failing',
     blockers: 1,
     unblocks: 1,
   },
@@ -180,15 +180,15 @@ export const BlockedAndFailing: Story = {
 
 export const Conflict: Story = {
   name: '#250 · conflict',
-  args: { title: 'Select stickers like cards', sticker: 'conflict', unblocks: 1, group: 'backlog' },
+  args: { title: 'Select stickers like cards', statusBadge: 'conflict', unblocks: 1, group: 'backlog' },
 }
 
 export const ChangesRequested: Story = {
-  args: { title: 'Snap only to nearby nodes', sticker: 'changes', unblocks: 1 },
+  args: { title: 'Snap only to nearby nodes', statusBadge: 'changes', unblocks: 1 },
 }
 
 export const Stale: Story = {
-  args: { title: 'Pan with touchpad and hide shortcuts by default', sticker: 'stale', unblocks: 0, group: 'navigation' },
+  args: { title: 'Pan with touchpad and hide shortcuts by default', statusBadge: 'stale', unblocks: 0, group: 'navigation' },
 }
 
 export const CalmIssue: Story = {
@@ -197,14 +197,14 @@ export const CalmIssue: Story = {
     kind: 'step',
     title: 'List commands after `>` in the command palette',
     status: 'ready',
-    sticker: 'none',
+    statusBadge: 'none',
     unblocks: 1,
     group: 'navigation',
   },
 }
 
 export const SetByASource: Story = {
-  args: { title: 'Report release health to PostHog', priority: '0', size: 'L', sticker: 'none', group: 'release' },
+  args: { title: 'Report release health to PostHog', priority: '0', size: 'L', statusBadge: 'none', group: 'release' },
 }
 
 export const UnlinkedStep: Story = {
@@ -212,7 +212,7 @@ export const UnlinkedStep: Story = {
     kind: 'step',
     title: 'Let one card appear in many places',
     status: 'ready',
-    sticker: 'none',
+    statusBadge: 'none',
     unblocks: 0,
     group: 'workspaces',
   },
@@ -223,14 +223,14 @@ export const ExpectedPullRequest: Story = {
     kind: 'placeholder',
     title: 'Let the scroll setting follow the trackpad',
     status: 'ready',
-    sticker: 'none',
+    statusBadge: 'none',
     unblocks: 0,
     group: 'navigation',
   },
 }
 
 export const Gate: Story = {
-  args: { kind: 'gate', title: 'Card skins ship', status: 'blocked', sticker: 'none', blockers: 2, unblocks: 0 },
+  args: { kind: 'gate', title: 'Card skins ship', status: 'blocked', statusBadge: 'none', blockers: 2, unblocks: 0 },
 }
 
 export const FarZoom: Story = {
@@ -238,7 +238,7 @@ export const FarZoom: Story = {
     far: true,
     title: 'Draw trading card art as geometric posters built from each card',
     status: 'blocked',
-    sticker: 'failing',
+    statusBadge: 'failing',
     blockers: 1,
     unblocks: 1,
     motion: 'none',
@@ -246,11 +246,11 @@ export const FarZoom: Story = {
 }
 
 export const FarZoomRunning: Story = {
-  args: { far: true, title: "Show a card's far-zoom tag only while hovered or selected", sticker: 'none', motion: 'running', unblocks: 0 },
+  args: { far: true, title: "Show a card's far-zoom tag only while hovered or selected", statusBadge: 'none', motion: 'running', unblocks: 0 },
 }
 
 export const Done: Story = {
-  args: { title: 'Add a card skin registry with Classic and Plain skins', status: 'done', sticker: 'none', unblocks: 0 },
+  args: { title: 'Add a card skin registry with Classic and Plain skins', status: 'done', statusBadge: 'none', unblocks: 0 },
 }
 
 export const Note: Story = {

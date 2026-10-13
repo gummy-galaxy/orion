@@ -1,17 +1,17 @@
 import type { CardSizeLabel, CardView, Priority } from '../cardView'
 
 /** One status that asks a person to act, most urgent first. */
-export const STICKERS = ['conflict', 'failing', 'changes', 'stale', 'mergeable'] as const
+export const STATUS_BADGES = ['conflict', 'failing', 'changes', 'stale', 'mergeable'] as const
 /** Work running without anyone, shown until it lands. */
 export const MOTIONS = ['running', 'queued'] as const
 
-export type Sticker = (typeof STICKERS)[number]
+export type StatusBadge = (typeof STATUS_BADGES)[number]
 export type Motion = (typeof MOTIONS)[number]
 
 export type TradingFacts = {
   priority?: Priority
   size?: CardSizeLabel
-  sticker?: Sticker
+  statusBadge?: StatusBadge
   motion?: Motion
   locked: boolean
   blockers: number
@@ -38,7 +38,7 @@ function hashText(value: string): number {
   return hash >>> 0
 }
 
-function getSticker(view: CardView, now: number): Sticker | undefined {
+function getStatusBadge(view: CardView, now: number): StatusBadge | undefined {
   if (view.readiness === 'conflict') return 'conflict'
 
   if (view.readiness === 'failing') return 'failing'
@@ -52,7 +52,7 @@ function getSticker(view: CardView, now: number): Sticker | undefined {
   return undefined
 }
 
-// Checks keep their motion after one fails, so the card shows how far the rest got beside the failing sticker.
+// Checks keep their motion after one fails, so the card shows how far the rest got beside the failing status badge.
 function getMotion(view: CardView): Motion | undefined {
   if (view.readiness === 'running' || view.checkProgress === 'running') return 'running'
 
@@ -63,13 +63,13 @@ function getMotion(view: CardView): Motion | undefined {
 
 export function getTradingFacts(view: CardView, now = Date.now()): TradingFacts {
   const settled = view.status === 'done' || view.status === 'deferred'
-  const sticker = settled ? undefined : getSticker(view, now)
+  const statusBadge = settled ? undefined : getStatusBadge(view, now)
   const motion = settled ? undefined : getMotion(view)
 
   return {
     ...(view.priority !== undefined ? { priority: view.priority } : {}),
     ...(view.size ? { size: view.size } : {}),
-    ...(sticker ? { sticker } : {}),
+    ...(statusBadge ? { statusBadge } : {}),
     ...(motion ? { motion } : {}),
     locked: view.status === 'blocked',
     blockers: view.blockers ?? 0,

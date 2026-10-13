@@ -96,6 +96,13 @@ describe('checkValue', () => {
     ['space.4', '8px'],
     ['radius.note-corner', '0 7px 0 3px'],
     ['radius.round', '50%'],
+    ['shadow.raised', '0 1px 2px rgb(0 0 0 / 0.3), 0 5px 16px rgb(0 0 0 / 0.25)'],
+    ['shadow.selection', 'inset 0 0 0 2px var(--accent-default)'],
+    ['shadow.dialog', 'none'],
+    ['motion.duration.fast', '150ms'],
+    ['motion.duration.base', '0.2s'],
+    ['motion.easing.enter', 'ease-out'],
+    ['motion.easing.pop', 'cubic-bezier(0.2, 0.9, 0.3, 1.25)'],
   ])('accepts %s: %s', (name, value) => {
     expect(checkValue(token(name), value)).toBeNull()
   })
@@ -123,6 +130,14 @@ describe('checkValue', () => {
     ['space.4', '-4px'],
     ['radius.card', '1px 2px 3px 4px 5px'],
     ['radius.card', 'calc(1px + 2px)'],
+    ['shadow.raised', '0 1px 2px url(https://example.com/a.png)'],
+    ['shadow.raised', '0 1px 2px #000; } body { color: red'],
+    ['motion.duration.fast', '150'],
+    ['motion.duration.fast', '-150ms'],
+    ['motion.duration.fast', '30s'],
+    ['motion.easing.enter', 'steps(4)'],
+    ['motion.easing.enter', 'cubic-bezier(0.2, 0.9)'],
+    ['motion.easing.enter', 'var(--motion-easing-pop)'],
   ])('rejects %s: %s', (name, value) => {
     expect(checkValue(token(name), value)).toEqual(expect.any(String))
   })

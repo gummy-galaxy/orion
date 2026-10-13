@@ -50,7 +50,7 @@ A card never says the same thing twice, such as a repo name above a "Pull reques
 
 ### Marks over words
 
-Stickers are an icon plus at most one word, with icons preferred and tooltips explaining them. A card shows CI state rather than a diff count. A blocked card keeps its type icon, with the lock drawn over it in a transparent tint.
+Status badges on a card are an icon plus at most one word, with icons preferred and tooltips explaining them. A card shows CI state rather than a diff count. A blocked card keeps its type icon, with the lock drawn over it in a transparent tint.
 
 **Why:** short marks read faster than phrases, and the card still has to say what it is while it's blocked.
 
@@ -63,6 +63,14 @@ P0 is red, P1 orange, P2 blue, and P3 and below gray. Sizes follow the same scal
 **Why:** one familiar severity scale serves both values, and a placeholder for unknown values would only add noise.
 
 2026-10-11 · [#275](https://github.com/vocksel/orion/issues/275)
+
+### Priority and size come from project fields, with labels as a fallback
+
+A card reads priority and size from Project fields named Priority and Size first. When an issue has no project value, `P0`–`P3` and `size/XS`–`size/XL` labels fill in. That one base mapping works with no setup. Other field names, label schemes, and broader heuristics are tuned per project through a config file such as `orion.luau` or a setting, rather than guessed by default.
+
+**Why:** many repositories only have labels, so a fallback covers them without extra setup. Teams label work in many different ways, and guessing broadly risks reading the wrong labels, such as severity as priority. Keeping the default narrow makes it predictable, and config covers the rest once a real project needs it.
+
+2026-10-12 · #241
 
 ### Legibility wins over flourish
 
@@ -124,6 +132,14 @@ Each group has its own tint, so you know where you are when zoomed out. Cards sw
 
 2026-10-07, 2026-10-11 · [#280](https://github.com/vocksel/orion/issues/280)
 
+### Every group opens at the same zoom
+
+Opening a group always lands at actual size. A group that fits on screen is centered; a bigger one opens on its top-left corner, where its flow starts, and you pan or zoom out from there. Fit view is still there for the whole group at once.
+
+**Why:** fitting each group to the screen opened big groups too small to read, so every visit meant zooming out to see the group and back in to read its cards. One opening zoom keeps card text the same size everywhere. This replaced fitting the whole group, up to 125%.
+
+2026-10-12
+
 ### Render work is batched from the center out
 
 When many cards need drawing, Orion does the work in batches that spiral outward from the center of the screen, so the first batch covers most of what's in view. A camera move during a batch recalculates the order. The zoom breakpoints are tuned with a debug panel on a large real canvas.
@@ -173,6 +189,30 @@ When an agent opens a pull request from a card's work, the pull request attaches
 **Why:** every Orion user's agents need this, so it can't depend on one person's local configuration.
 
 2026-10-10 · [#196](https://github.com/vocksel/orion/issues/196)
+
+## Public interfaces
+
+### Public interfaces tighten in three stages
+
+Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shapes, and data files. How freely they change depends on the release:
+
+- **Before 0.1.0:** cut, rename, and regroup anything. Remove the old form in the same change, with no alias or deprecation period. A command that duplicates another or serves one case is a candidate to remove.
+- **From 0.1.0:** breaking changes are still allowed, but each one is deliberate. Anything new must show why it has to widen the surface rather than fit what's already there.
+- **From 1.0.0:** the charter's stability promises apply, and breaking changes ship with aliases first.
+
+0.1.0 means the first tagged release, whatever version numbers the manifests carry before it, and it lands around when the repository goes public. 1.0.0 comes much later, likely once the charter's roadmap phases are complete, though an earlier gate may fit better. The HTTP API that `orion serve` exposes is internal to the app at every stage and carries no promise.
+
+**Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release.
+
+2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146)
+
+### CLI commands are a noun, then a verb
+
+Commands name the thing they act on first, then the action: `orion node remove`, `orion group remove`, `orion link add`. Each noun has its own subcommands, help, and options, so no flag changes meaning by what it targets. Flat verbs such as `orion remove` and `orion ungroup` go away. Each kind of node has its own noun for creating it, such as `orion card add` and `orion note add`, since their inputs differ, and `orion node` covers what applies to any node. `orion canvas` replaces `orion workspace`, following the charter's vocabulary. Two reads stay top level because agents run them before almost everything else: `orion focus`, and `orion next`, which lists the work that can start now, most unblocking first.
+
+**Why:** flat verbs grew one feature at a time and overload options across items, groups, and sources. Grouping by noun makes the surface learnable from `--help` and gives each new kind of thing an obvious home.
+
+2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146), [#110](https://github.com/vocksel/orion/issues/110), [#55](https://github.com/vocksel/orion/issues/55), [#109](https://github.com/vocksel/orion/issues/109)
 
 ## Architecture
 
