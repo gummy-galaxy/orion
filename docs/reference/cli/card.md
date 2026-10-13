@@ -53,7 +53,7 @@ orion card set [id] [options]
 
 | Argument           | Description                                                                                           |
 | ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `[id]`             | Item id                                                                                               |
+| `[id]`             | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86             |
 | `--label <value>`  | New label                                                                                             |
 | `--status <value>` | todo, active, review, blocked, deferred, or done                                                      |
 | `--repo <value>`   | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                 |
@@ -74,7 +74,7 @@ orion card done [options] [ids...]
 
 | Argument                | Description                                          |
 | ----------------------- | ---------------------------------------------------- |
-| `[ids...]`              | Item ids                                             |
+| `[ids...]`              | Item ids or selectors                                |
 | `--where <value>`       | Select targets with an expression instead of ids     |
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |

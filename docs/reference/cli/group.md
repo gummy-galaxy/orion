@@ -44,7 +44,7 @@ orion group remove [options] [ids...]
 
 | Argument                | Description                                          |
 | ----------------------- | ---------------------------------------------------- |
-| `[ids...]`              | Group ids                                            |
+| `[ids...]`              | Group ids or selectors                               |
 | `--where <value>`       | Select targets with an expression instead of ids     |
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |
@@ -58,15 +58,15 @@ Change a group's fields
 orion group set [id] [options]
 ```
 
-| Argument               | Description                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| `[id]`                 | Group id                                                                       |
-| `--label <value>`      | New label                                                                      |
-| `--blurb <value>`      | Group description                                                              |
-| `--arrange <value>`    | How reflow arranges a group: auto or custom                                    |
-| `--cover <value>`      | Image asset id for the cover, from orion media insert --json (empty to clear)  |
-| `--background <value>` | Color, color token such as card.background, or image asset id (empty to clear) |
-| `--json`               | Print JSON                                                                     |
+| Argument               | Description                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| `[id]`                 | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `--label <value>`      | New label                                                                                 |
+| `--blurb <value>`      | Group description                                                                         |
+| `--arrange <value>`    | How reflow arranges a group: auto or custom                                               |
+| `--cover <value>`      | Image asset id for the cover, from orion media insert --json (empty to clear)             |
+| `--background <value>` | Color, color token such as card.background, or image asset id (empty to clear)            |
+| `--json`               | Print JSON                                                                                |
 
 ## orion group ungroup
 
@@ -78,7 +78,7 @@ orion group ungroup [options] [ids...]
 
 | Argument                | Description                                          |
 | ----------------------- | ---------------------------------------------------- |
-| `[ids...]`              | Group ids                                            |
+| `[ids...]`              | Group ids or selectors                               |
 | `--where <value>`       | Select targets with an expression instead of ids     |
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |

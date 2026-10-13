@@ -20,6 +20,20 @@ test.case("tool arguments map onto the command each tool runs", function(assert)
 	end)
 end)
 
+test.case("orion_find runs node find with its text, limit, and canvas scope", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_find", json.object({ text = "release notes" })), " "),
+		"node find release notes --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_find", json.object({ text = "release", limit = 5, allCanvases = true })), " "),
+		"node find release --limit 5 --all-canvases --json"
+	)
+	assert.throwsWith("missing text", function()
+		getToolArgv("orion_find", json.object({}))
+	end)
+end)
+
 test.case("group and ref tools run their subcommands", function(assert)
 	assert.eq(
 		table.concat(getToolArgv("orion_group", json.object({ label = "Ship", items = { "ci", "pub" } })), " "),

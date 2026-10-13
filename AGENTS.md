@@ -18,7 +18,7 @@ Add `--json` to any of these for structured output. Statuses in the output are d
 
 `orion canvas check [--group <id>] [--json]` reports layout problems that come from stored positions and sizes: overlapping siblings, children outside their group's bounds, links to missing items, and groups waiting for layout. Bounds are in canvas coordinates. Use `--group` to limit the report to a group and what is inside it. It exits nonzero when it finds any problems, and `--json` prints a flat list of `{kind, ids, bounds}` entries, with `bounds` null for a dangling link.
 
-Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr` (pull request number), or `ref` (any ref key). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"` or `ref ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
+Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr` (pull request number), `ref` (any ref key), or `note` (the card's note text). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"`, `ref ~ "text"`, or `note ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
 
 Pass `--canvas <name>` to work on a specific canvas, or rely on the active one. Use `orion canvas list` and `orion canvas current` to check the available and active canvases. `orion canvas create [name] [--label <label>]` makes one; without a name, the label names it, so `Focus areas` becomes `focus-areas`. `orion canvas rename <name> <label>` changes a canvas's display label. `orion canvas archive <name>` takes a canvas off the list and keeps its data; `orion canvas list --archived` lists archived ones, and `orion canvas restore <name>` brings one back. The active canvas and `default` can't be archived.
 
@@ -85,7 +85,7 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 ## Habits
 
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
-- Look up ids with `orion card list --all` or `orion node show` rather than guessing them.
+- Find ids with `orion node find <text>`, which matches labels, notes, and refs and prints the total with a capped list (`--limit`, `--all-canvases`). Where a command takes an id, a selector works too: `label:"Extract slider"`, `ref:jira:ABC-12` or `ref:<url>`, and `pr:86`. A selector must match exactly one item; when it matches several, the command lists them so you can pick an id.
 - Group by outcome, not by repository.
 
 ## Pull requests

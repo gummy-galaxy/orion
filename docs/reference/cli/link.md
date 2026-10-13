@@ -34,10 +34,10 @@ Remove the link between two items
 orion link remove [from] [to] [options]
 ```
 
-| Argument | Description |
-| -------- | ----------- |
-| `[from]` | Link source |
-| `[to]`   | Link target |
+| Argument | Description                                                                               |
+| -------- | ----------------------------------------------------------------------------------------- |
+| `[from]` | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `[to]`   | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
 
 ## orion link insert
 
@@ -47,11 +47,11 @@ Insert an item into an existing link
 orion link insert [id] [options] [target...]
 ```
 
-| Argument                | Description                                          |
-| ----------------------- | ---------------------------------------------------- |
-| `[id]`                  | Item to place in the link                            |
-| `--between <value>`     | **Required.** Source item whose link is replaced     |
-| `[target...]`           | Target item whose link is replaced                   |
-| `--dry-run`             | Preview changes and current revision without writing |
-| `--if-revision <value>` | Write only if the document has this revision         |
-| `--json`                | Print JSON                                           |
+| Argument                | Description                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| `[id]`                  | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `--between <value>`     | **Required.** Source item whose link is replaced                                          |
+| `[target...]`           | Target item whose link is replaced                                                        |
+| `--dry-run`             | Preview changes and current revision without writing                                      |
+| `--if-revision <value>` | Write only if the document has this revision                                              |
+| `--json`                | Print JSON                                                                                |
