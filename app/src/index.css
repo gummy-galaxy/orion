@@ -1307,7 +1307,8 @@ kbd {
   margin-left: var(--space-2);
 }
 .inspector {
-  width: 380px;
+  /* Wider on wide windows, up to 480px, and never wider than the window allows. */
+  width: min(480px, max(380px, 30vw), calc(100vw - 48px));
   padding: var(--space-9);
   max-height: calc(100vh - 120px);
   overflow-y: auto;
@@ -1871,7 +1872,7 @@ kbd {
   outline: 2px solid var(--accent-default);
   outline-offset: 1px;
 }
-.note-source {
+.insp .note-source {
   font-family: var(--font-data);
   font-size: var(--text-size-label);
   line-height: 1.5;
@@ -1895,6 +1896,21 @@ kbd {
 .markdown ul,
 .markdown ol {
   padding-left: 1.25em;
+}
+/* Lists reset their markers for the inspector's link lists, so bring them back inside a note. */
+.insp .markdown ul {
+  display: block;
+  list-style: disc;
+}
+.insp .markdown ol {
+  display: block;
+  list-style: decimal;
+}
+.insp .markdown ul ul {
+  list-style: circle;
+}
+.insp .markdown li {
+  display: list-item;
 }
 .markdown li + li {
   margin-top: var(--space-2);

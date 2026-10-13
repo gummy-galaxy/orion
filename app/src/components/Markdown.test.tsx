@@ -14,6 +14,15 @@ describe('Markdown', () => {
     expect(html).toContain('<code>app/src</code>')
   })
 
+  it('renders bulleted, numbered, and nested lists as their own list elements', () => {
+    const html = render('1. first\n2. second\n\n- outer\n  - inner')
+
+    expect(html).toContain('<ol>')
+    expect(html).toContain('<li>first</li>')
+    expect(html).toContain('<ul>')
+    expect(html).toMatch(/<li>outer\s*<ul>\s*<li>inner<\/li>/)
+  })
+
   it('drops raw HTML instead of rendering it', () => {
     const html = render('before <script>alert(1)</script> <img src="x" onerror="alert(1)"> after')
 
