@@ -860,6 +860,11 @@ select {
 .react-flow__node-cluster.selected .cluster {
   border: 1.5px solid var(--accent-default);
 }
+/* The group that dragged work will join on release. */
+.cluster.is-drop-target {
+  border: 1.5px dashed var(--accent-default);
+  background: color-mix(in srgb, var(--accent-subtle) 60%, transparent);
+}
 .cluster > .source-badges {
   right: 8px;
   bottom: 8px;
