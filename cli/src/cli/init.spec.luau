@@ -270,3 +270,63 @@ test.case("sync attaches a new pull request to the card its branch was recorded 
 	assert.eq((findRef(item, "pull") :: any).key, "flipbook-labs/flipbook#670")
 	assert.strContains(run({ "matches" }), "No unplaced pull requests.")
 end)
+
+test.case("group add wraps items, and a bare group still means add", function(assert)
+	local dir, run = testing.createHarness("group-add")
+	assert.strContains(run({ "group", "add", "Things", "to", "remove", "--items", "ci" }), "Grouped into")
+	assert.strContains(run({ "group", "Ship", "it", "--items", "pub" }), "Grouped into")
+	local labels: { [string]: boolean } = {}
+
+	for _, item in store.load(dir).nodes do
+		labels[item.data.label :: string] = true
+	end
+
+	assert.eq(labels["Things to remove"], true)
+	assert.eq(labels["Ship it"], true)
+end)
+
+test.case("group remove previews and removes a group with everything inside", function(assert)
+	local dir, run = testing.createHarness("group-remove")
+	run({ "add", "Outside", "--group", "ws" })
+	run({ "group", "add", "Inner", "--items", "outside" })
+	local before = store.load(dir).revision
+	local preview = run({ "group", "remove", "ws", "--dry-run" })
+	assert.strContains(preview, "Would remove 1 group and 4 things inside")
+	assert.strContains(preview, "    pub · Publish v2.6.0")
+	assert.eq(store.load(dir).revision, before)
+
+	assert.throwsWith('"pub" is an item, not a group', function()
+		run({ "group", "remove", "pub" })
+	end)
+
+	run({ "group", "remove", "ws" })
+	local doc = store.load(dir)
+	assert.eq(#doc.nodes, 0)
+	assert.eq(#doc.links, 0)
+end)
+
+test.case("remove still points groups at group remove", function(assert)
+	local _, run = testing.createHarness("remove-group-hint")
+	assert.throwsWith('"ws" is a group; use ungroup or group remove instead', function()
+		run({ "remove", "ws" })
+	end)
+end)
+
+test.case("ref remove takes a ref off by its key or URL", function(assert)
+	local dir, run = testing.createHarness("ref-remove")
+	run({ "set", "ci", "--ref", "https://github.com/Roblox/avatar/issues/3" })
+	assert.eq(run({ "ref", "remove", "ci", "FLIPBOOK-LABS/flipbook#658" }), "Updated ci · Report release health")
+	local item = store.load(dir).nodes[2]
+	assert.eq(findRef(item, "pull"), nil)
+	assert.eq(item.data.itemKind, "placeholder")
+
+	run({ "ref", "remove", "ci", "https://github.com/Roblox/avatar/issues/3" })
+	assert.eq(store.load(dir).nodes[2].data.refs, nil)
+
+	assert.throwsWith('"ci" has no ref Roblox/avatar#3', function()
+		run({ "ref", "remove", "ci", "Roblox/avatar#3" })
+	end)
+	assert.throwsWith("groups don't take refs", function()
+		run({ "ref", "remove", "ws", "Roblox/avatar#3" })
+	end)
+end)

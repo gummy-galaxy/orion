@@ -22,6 +22,7 @@ import {
   type Viewport,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { Companion } from './Companion'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
@@ -119,6 +120,7 @@ import { selectAllIds, selectNodes } from '../selectAll'
 import { stackNodes } from '../stack'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
+import { useCompanionTargets } from '../useCompanionTargets'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
 import { useInspecting } from '../useInspecting'
@@ -143,7 +145,7 @@ import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedS
 import { covers, MARQUEE_REACH, type Box } from '../marquee'
 import { Toolbar, type Tool } from './Toolbar'
 import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
-import { MAX_ZOOM, MIN_ZOOM, mapViewportForCardSize, readViewport, writeViewport } from '../viewport'
+import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from '../viewport'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
@@ -262,14 +264,11 @@ function writeFlag(key: SavedSetting, value: boolean) {
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
-function groupFitViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
-  const position = absolutePosition(group, map)
-  const size = sizeOf(group, cardSize)
-  const width = size.width + 2 * (GHOST_GAP + GHOST_WIDTH * GHOST_PEEK)
-  const height = size.height + FIT_VERTICAL_MARGIN * 2
-  const zoom = Math.min(box.width / width, box.height / height, FIT_MAX_ZOOM)
+/** Opens a group at the same zoom as every other, with the connections outside it peeking in from the sides. */
+function groupOpenViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
+  const margin = { x: GHOST_GAP + GHOST_WIDTH * GHOST_PEEK, y: FIT_VERTICAL_MARGIN }
 
-  return { x: box.width / 2 - (position.x + size.width / 2) * zoom, y: box.height / 2 - (position.y + size.height / 2) * zoom, zoom }
+  return openGroupViewport({ ...absolutePosition(group, map), ...sizeOf(group, cardSize) }, box, margin)
 }
 
 /** Puts a card between the focus columns, a little larger than life. */
@@ -355,6 +354,7 @@ export function Canvas() {
   }, [cardSize])
 
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
+  const companion = useCompanionTargets()
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
   /** Where "Create from link" was chosen, in screen and flow coordinates, while its prompt is open. */
@@ -379,7 +379,6 @@ export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const latest = useRef<Saved>({ nodes, links, stickers, stickerLoadout: loadout })
   const tweenSequence = useRef(0)
-  const fitZoom = useRef(new Map<string, number>())
   const fitting = useRef(false)
   const fitSequence = useRef(0)
   const skipNextFit = useRef(false)
@@ -561,9 +560,7 @@ export function Canvas() {
       const nodeMap = byId(mapped)
       const focusedNode = focusPick ? nodeMap.get(focusPick) : undefined
       const openGroup = root ? nodeMap.get(root) : undefined
-      const groupViewport = openGroup && isCluster(openGroup) ? groupFitViewport(openGroup, nodeMap, box, cardSize) : undefined
-
-      if (root && groupViewport) fitZoom.current.set(root, groupViewport.zoom)
+      const groupViewport = openGroup && isCluster(openGroup) ? groupOpenViewport(openGroup, nodeMap, box, cardSize) : undefined
 
       if (focusEntry.current)
         focusEntry.current.viewport = groupViewport ?? mapViewportForCardSize(focusEntry.current.viewport, box, previousSize, cardSize)
@@ -1002,10 +999,9 @@ export function Canvas() {
         return
       }
 
-      // An opened group fills the view, with the connections outside it peeking in from the edges.
-      const viewport = groupFitViewport(items[0], nodeMap, box, cardSize)
+      // An opened group lands at the same zoom every time, so card text never opens too small to read.
+      const viewport = groupOpenViewport(items[0], nodeMap, box, cardSize)
 
-      fitZoom.current.set(target, viewport.zoom)
       fitting.current = true
       const sequence = ++fitSequence.current
 
@@ -1660,8 +1656,6 @@ export function Canvas() {
       if (!inView(id)) {
         const parent = node.parentId ? nodeMap.get(node.parentId) : undefined
 
-        if (parent) fitZoom.current.set(parent.id, groupFitViewport(parent, nodeMap, box, cardSize).zoom)
-
         skipNextFit.current = true
         setRoot(parent?.id ?? null)
         focusEntry.current.moved = true
@@ -1698,7 +1692,7 @@ export function Canvas() {
 
     const position = absolutePosition(node, nodeMap)
     const size = sizeOf(node, cardSize)
-    const zoom = (root ? fitZoom.current.get(root) : undefined) ?? entry.viewport.zoom
+    const zoom = root ? OPEN_ZOOM : entry.viewport.zoom
 
     void reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom, ...focusMove() })
   }, [focus, root, reactFlow, remember, cardSize])
@@ -1706,17 +1700,11 @@ export function Canvas() {
   /** Puts the canvas back at a place from its history. */
   const goTo = useCallback(
     (place: Place<FocusEntry>) => {
-      const nodeMap = byId(latest.current.nodes)
-      const group = place.root ? nodeMap.get(place.root) : undefined
-      const box = canvasRef.current?.getBoundingClientRect()
       const picked = new Set(place.selected)
 
       pendingFocus.current = null
       setHover(null)
       setPinned(null)
-
-      // Zooming out of a group measures from its fitted zoom, which a group reopened from history may not have yet.
-      if (group && box && !fitZoom.current.has(group.id)) fitZoom.current.set(group.id, groupFitViewport(group, nodeMap, box, cardSize).zoom)
 
       if (place.root !== root) {
         skipNextFit.current = true
@@ -1730,7 +1718,7 @@ export function Canvas() {
       )
       void reactFlow.setViewport(place.viewport, place.focus || focus ? focusMove() : { duration: glide(450) })
     },
-    [root, focus, reactFlow, setHover, setNodes, setPinned, cardSize],
+    [root, focus, reactFlow, setHover, setNodes, setPinned],
   )
 
   const travelTo = useCallback(
@@ -3264,6 +3252,9 @@ export function Canvas() {
                 <Toolbar tool={tool} sticker={sticker} keybindings={keybindings} setTool={chooseTool} />
               </Panel>
             </ReactFlow>
+          )}
+          {ready && appearance.companion && !focus && (
+            <Companion targets={companion.targets} describe={companion.describe} syncing={syncStatus?.state === 'running'} paused={away} />
           )}
           {attending && cursor && (
             <AttentionOverlay

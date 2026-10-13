@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_ZOOM, MIN_ZOOM, mapViewportForCardSize, readViewport, writeViewport } from './viewport'
+import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from './viewport'
 
 const classicSize = { width: 216, height: 72 }
 const largeSize = { width: 288, height: 400 }
@@ -60,5 +60,33 @@ describe('viewport card size mapping', () => {
     expect(enlarged.zoom).toBe(MIN_ZOOM)
     expect(reduced.zoom).toBe(MAX_ZOOM)
     expect((box.width / 2 - enlarged.x) / enlarged.zoom).toBeCloseTo(((box.width / 2 - viewport.x) / viewport.zoom) * (344 / 272), 9)
+  })
+})
+
+describe('openGroupViewport', () => {
+  const screen = { width: 1000, height: 800 }
+  const margin = { x: 170, y: 90 }
+
+  it('centers a group that fits, at the same zoom as any other', () => {
+    const viewport = openGroupViewport({ x: 100, y: 200, width: 400, height: 300 }, screen, margin)
+
+    expect(viewport.zoom).toBe(OPEN_ZOOM)
+    expect(viewport.x + (100 + 200) * viewport.zoom).toBe(screen.width / 2)
+    expect(viewport.y + (200 + 150) * viewport.zoom).toBe(screen.height / 2)
+  })
+
+  it('opens a group too big to fit on its top-left corner, past the margin', () => {
+    const viewport = openGroupViewport({ x: 100, y: 200, width: 5000, height: 3000 }, screen, margin)
+
+    expect(viewport.zoom).toBe(OPEN_ZOOM)
+    expect(viewport.x + 100 * viewport.zoom).toBe(margin.x * viewport.zoom)
+    expect(viewport.y + 200 * viewport.zoom).toBe(margin.y * viewport.zoom)
+  })
+
+  it('handles each axis on its own', () => {
+    const viewport = openGroupViewport({ x: 0, y: 0, width: 5000, height: 300 }, screen, margin)
+
+    expect(viewport.x).toBe(margin.x * viewport.zoom)
+    expect(viewport.y + 150 * viewport.zoom).toBe(screen.height / 2)
   })
 })

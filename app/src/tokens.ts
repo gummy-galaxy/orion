@@ -3,7 +3,7 @@
  * Keep this list, tokens.css, and tokens.md in step. tokens.test.ts checks all three, and checks that each theme defines
  * every token.
  */
-export type TokenGroup = 'color' | 'status' | 'font' | 'weight' | 'size' | 'radius' | 'space'
+export type TokenGroup = 'color' | 'status' | 'font' | 'weight' | 'size' | 'radius' | 'space' | 'shadow' | 'duration' | 'easing'
 
 export type Token = {
   /** The role-based name documented in tokens.md, such as card.background. */
@@ -36,6 +36,12 @@ export const TOKENS: readonly Token[] = [
   { name: 'sticker.edge', cssVar: '--sticker-edge', group: 'color' },
   { name: 'window.close.background', cssVar: '--window-close-background', group: 'color' },
   { name: 'window.close.text', cssVar: '--window-close-text', group: 'color' },
+  { name: 'companion.body', cssVar: '--companion-body', group: 'color' },
+  { name: 'companion.edge', cssVar: '--companion-edge', group: 'color' },
+  { name: 'companion.ink', cssVar: '--companion-ink', group: 'color' },
+  { name: 'companion.halo', cssVar: '--companion-halo', group: 'color' },
+  { name: 'companion.glow', cssVar: '--companion-glow', group: 'color' },
+  { name: 'companion.tether', cssVar: '--companion-tether', group: 'color' },
 
   { name: 'status.todo', cssVar: '--status-todo', group: 'status', legacy: '--st-todo' },
   { name: 'status.ready', cssVar: '--status-ready', group: 'status', legacy: '--st-ready' },
@@ -90,4 +96,29 @@ export const TOKENS: readonly Token[] = [
   { name: 'space.8', cssVar: '--space-8', group: 'space' },
   { name: 'space.9', cssVar: '--space-9', group: 'space' },
   { name: 'space.10', cssVar: '--space-10', group: 'space' },
+
+  { name: 'shadow.raised', cssVar: '--shadow-raised', group: 'shadow', legacy: '--shadow' },
+  { name: 'shadow.image', cssVar: '--shadow-image', group: 'shadow' },
+  { name: 'shadow.dialog', cssVar: '--shadow-dialog', group: 'shadow' },
+  { name: 'shadow.selection', cssVar: '--shadow-selection', group: 'shadow' },
+  { name: 'shadow.sticker', cssVar: '--shadow-sticker', group: 'shadow' },
+  { name: 'shadow.sticker-held', cssVar: '--shadow-sticker-held', group: 'shadow' },
+
+  { name: 'motion.duration.stagger', cssVar: '--motion-duration-stagger', group: 'duration' },
+  { name: 'motion.duration.instant', cssVar: '--motion-duration-instant', group: 'duration' },
+  { name: 'motion.duration.quick', cssVar: '--motion-duration-quick', group: 'duration' },
+  { name: 'motion.duration.fast', cssVar: '--motion-duration-fast', group: 'duration' },
+  { name: 'motion.duration.open', cssVar: '--motion-duration-open', group: 'duration' },
+  { name: 'motion.duration.fade', cssVar: '--motion-duration-fade', group: 'duration' },
+  { name: 'motion.duration.base', cssVar: '--motion-duration-base', group: 'duration' },
+  { name: 'motion.duration.reveal', cssVar: '--motion-duration-reveal', group: 'duration' },
+  { name: 'motion.duration.pop', cssVar: '--motion-duration-pop', group: 'duration' },
+  { name: 'motion.duration.stamp', cssVar: '--motion-duration-stamp', group: 'duration' },
+
+  { name: 'motion.easing.standard', cssVar: '--motion-easing-standard', group: 'easing' },
+  { name: 'motion.easing.enter', cssVar: '--motion-easing-enter', group: 'easing' },
+  { name: 'motion.easing.exit', cssVar: '--motion-easing-exit', group: 'easing' },
+  { name: 'motion.easing.pop', cssVar: '--motion-easing-pop', group: 'easing' },
+  { name: 'motion.easing.bounce', cssVar: '--motion-easing-bounce', group: 'easing' },
+  { name: 'motion.easing.stamp', cssVar: '--motion-easing-stamp', group: 'easing' },
 ]

@@ -3,7 +3,7 @@ import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext } from '../derive'
 import type { ClusterNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useCollapsed, useGroupStats, useMarked, useSources, useTraceRole } from '../state'
+import { useCollapsed, useIsDropTarget, useGroupStats, useMarked, useSources, useTraceRole } from '../state'
 import { Ring } from './Ring'
 
 export const ClusterView = memo(function ClusterView({ id, data, width, height }: NodeProps<ClusterNode>) {
@@ -15,9 +15,12 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const sources = useSources(id)
+  const isDropTarget = useIsDropTarget(id)
 
   return (
-    <div className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`}>
+    <div
+      className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${isDropTarget ? ' is-drop-target' : ''}`}
+    >
       <Handle type="target" position={Position.Left} isConnectable={false} />
       {collapsed ? (
         <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">

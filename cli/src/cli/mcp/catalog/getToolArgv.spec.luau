@@ -20,6 +20,21 @@ test.case("tool arguments map onto the command each tool runs", function(assert)
 	end)
 end)
 
+test.case("group and ref tools run their subcommands", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_group", json.object({ label = "Ship", items = { "ci", "pub" } })), " "),
+		"group add Ship --items ci,pub --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_remove_group", json.object({ id = "ws", dryRun = true })), " "),
+		"group remove ws --dry-run --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_remove_ref", json.object({ id = "ci", ref = "owner/name#1" })), " "),
+		"ref remove ci owner/name#1 --json"
+	)
+end)
+
 test.case("orion_import passes each ref as a trailing positional", function(assert)
 	assert.eq(
 		table.concat(
