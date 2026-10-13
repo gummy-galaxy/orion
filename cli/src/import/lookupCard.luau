@@ -11,7 +11,7 @@ type CommandRunner = types.CommandRunner
 type Doc = types.Doc
 
 -- Finds the card a URL or source:key would import, without saving it: the card already tracking it, or a new card shaped the
--- way `orion import` shapes one. The document is left unchanged. Raises the reason when the input can't be resolved or found.
+-- way `orion card import` shapes one. The document is left unchanged. Raises the reason when the input can't be resolved or found.
 local function lookupCard(input: string, doc: Doc, now: string, runner: CommandRunner): CardLookup
 	local entry = resolveInputs({ input }, doc.settings.sources)[1]
 	if entry.error then
