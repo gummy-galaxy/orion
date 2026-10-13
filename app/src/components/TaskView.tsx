@@ -1,4 +1,4 @@
-import { memo, useContext, useState, type CSSProperties } from 'react'
+import { memo, useContext, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import type { TaskNode } from '../model'
 import { useAtomValue } from 'jotai'
@@ -7,14 +7,16 @@ import { useCardView, useCelebrating, useMarked, useTraceRole, inspectingAtom, s
 import { CardBody } from './CardBody'
 import { FarTag } from './FarTag'
 import { PeekCard } from './PeekCard'
-import { zoomLevel } from '../zoomLevel'
+import { getCompactZoom, subscribeCompactZoom } from '../zoomLevel'
 
 // Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
 export const TaskView = memo(function TaskView({ id, data, parentId, selected }: NodeProps<TaskNode>) {
   const [hovered, setHovered] = useState(false)
-  // Only a hovered or selected card reads the zoom, so crossing a breakpoint doesn't re-render every card. The compact
-  // look for all cards is CSS keyed off the canvas's data-zoom.
-  const far = useStore((state) => (hovered || selected) && zoomLevel(state.transform[2]) === 'compact')
+  // Only a hovered or selected card reads the zoom, so zooming across the breakpoint doesn't re-render every card. The
+  // compact look for all cards is CSS keyed off the canvas's data-zoom. Retuning the breakpoint in the debug bar re-renders
+  // cards, so a selected card's tag follows the new value at once.
+  const breakpoint = useSyncExternalStore(subscribeCompactZoom, getCompactZoom)
+  const far = useStore((state) => (hovered || selected) && state.transform[2] < breakpoint)
   // Inspect mode opens the hovered card in full.
   const peeking = useAtomValue(inspectingAtom) && hovered
   const view = useCardView(id, data, parentId)

@@ -1209,7 +1209,8 @@ select {
   }
 }
 /* Below the compact breakpoint (the canvas's data-zoom, set outside React), every card draws its far form: no
-   animations, no blurred shadows, no pop-in, and the trading card drops its facts. Related links stop drawing there too. */
+   animations, no blurred shadows, no pop-in, and the trading card drops its facts. Related links stop drawing there too,
+   unless inspect mode asks for them. */
 .canvas[data-zoom='compact'] {
   --shadow-raised: none;
 }
@@ -1225,7 +1226,7 @@ select {
 .canvas[data-zoom='compact'] .card .trading-facts {
   display: none;
 }
-.canvas[data-zoom='compact'] .react-flow__edge.e-rel {
+.canvas[data-zoom='compact']:not(.is-inspecting) .react-flow__edge.e-rel {
   display: none;
 }
 .cluster .react-flow__handle {
