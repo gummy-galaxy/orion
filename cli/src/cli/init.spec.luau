@@ -7,6 +7,13 @@ local findRef = require("@root/refs/findRef")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
+test.case("help opens with the orientation that MCP clients also receive", function(assert)
+	local _, run = testing.createHarness("help-orientation")
+	local text = run({ "help" })
+	assert.strContains(text, "canvas")
+	assert.strContains(text, "orion_inspect")
+end)
+
 test.case("ready lists startable work, most unblocking first", function(assert)
 	local _, run = testing.createHarness("ready")
 	local text = run({ "ready" })

@@ -19,6 +19,7 @@ local importCommand = require("@root/cli/import")
 local ingest = require("@root/cli/ingest")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
+local orientation = require("@root/cli/orientation")
 local pad = require("@root/render/pad")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
@@ -321,7 +322,17 @@ local function createParsers(): Parsers
 end
 
 local function rootHelp(parser: cli.Parser): string
-	return table.concat({ SUMMARY, "", parser:usage("orion"), "", parser:help(), "", ABOUT }, "\n")
+	return table.concat({
+		SUMMARY,
+		"",
+		table.concat(orientation.paragraphs, "\n\n"),
+		"",
+		parser:usage("orion"),
+		"",
+		parser:help(),
+		"",
+		ABOUT,
+	}, "\n")
 end
 
 local function commandHelp(name: string, parser: cli.Parser): string
