@@ -64,6 +64,14 @@ P0 is red, P1 orange, P2 blue, and P3 and below gray. Sizes follow the same scal
 
 2026-10-11 · [#275](https://github.com/vocksel/orion/issues/275)
 
+### Priority and size come from project fields, with labels as a fallback
+
+A card reads priority and size from Project fields named Priority and Size first. When an issue has no project value, `P0`–`P3` and `size/XS`–`size/XL` labels fill in. That one base mapping works with no setup. Other field names, label schemes, and broader heuristics are tuned per project through a config file such as `orion.luau` or a setting, rather than guessed by default.
+
+**Why:** many repositories only have labels, so a fallback covers them without extra setup. Teams label work in many different ways, and guessing broadly risks reading the wrong labels, such as severity as priority. Keeping the default narrow makes it predictable, and config covers the rest once a real project needs it.
+
+2026-10-12 · #241
+
 ### Legibility wins over flourish
 
 Holo and foil effects stay off text. Card styles should stay readable at a glance, like Legends of Runeterra, Balatro, and Wildfrost, without Wildfrost's chunky black outlines.
