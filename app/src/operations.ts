@@ -1,4 +1,5 @@
 import type { Link } from './model'
+import { stableJson } from './stableJson'
 
 /** One edit the server applies, in the shape `POST /api/operations` reads. */
 export type Operation = { op: string } & Record<string, unknown>
@@ -20,23 +21,7 @@ export type OperationDoc = { nodes: StoredNode[]; links: Link[]; stickers?: unkn
 const isGroup = (node: StoredNode) => node.type === 'cluster'
 const keyOf = (from: string, to: string) => `${from}\0${to}`
 
-/** JSON with sorted keys, so two copies of the same data compare equal however their keys were added. */
-function stable(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(stable).join(',')}]`
-
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>
-    const keys = Object.keys(record)
-      .filter((key) => record[key] !== undefined)
-      .sort()
-
-    return `{${keys.map((key) => `${JSON.stringify(key)}:${stable(record[key])}`).join(',')}}`
-  }
-
-  return JSON.stringify(value) ?? 'null'
-}
-
-const sameJson = (a: unknown, b: unknown) => stable(a) === stable(b)
+const sameJson = (a: unknown, b: unknown) => stableJson(a) === stableJson(b)
 
 function moveOp(node: StoredNode): Operation {
   return node.parentId ? { op: 'move', id: node.id, group: node.parentId } : { op: 'move', id: node.id }

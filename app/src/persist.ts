@@ -2,6 +2,7 @@ import type { Derived } from './derive'
 import type { AppNode, GithubSnapshot, Link, TaskData } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
 import type { Operation } from './operations'
+import { stableJson } from './stableJson'
 
 /**
  * The canvas lives in orion.json, served by `orion serve`, which is the only store. The app reads it, and every
@@ -239,8 +240,7 @@ export function slim(nodes: AppNode[]) {
 }
 
 /** A stable fingerprint, so view-only changes don't cause writes. */
-export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) =>
-  JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout })
+export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) => stableJson({ nodes: slim(nodes), links, stickers, stickerLoadout })
 
 /** The stored shape of a document, for comparing and merging. */
 export const compactDoc = (doc: Saved): Saved =>
