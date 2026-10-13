@@ -57,6 +57,8 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		hub.publish("orion:changed", json.object({ revision = revision }))
 	end, function(list: store.WorkspaceList)
 		hub.publish("orion:workspaces", json.object({ active = list.active, workspaces = list.workspaces }))
+	end, function(name: string)
+		hub.publish("orion:log", json.object({ workspace = name }))
 	end)
 
 	local running = net.serve({

@@ -50,6 +50,7 @@ To show the person the app, or anything else served locally such as a dev server
 - `orion link add <first> <second> [next…]` links each adjacent pair in one transaction. Add `--related` for links that never block. `orion link remove` removes one link.
 - `orion link insert <id> --between <from> <to>` replaces an existing link with two links through the item, keeping its kind.
 - `orion note add <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it splits their existing link or adds two blocking links if they are unlinked.
+- `orion log add <text> [--card <id,…>] [--agent <name>]` appends to the canvas log, attached to any number of cards. `orion log list [--card <id>] [--json]` lists it, newest first. `orion card show <id>` shows a card with its most recent entries. Entries are append-only, so a correction is a new entry.
 - `orion media insert <file> [--label <text>] [--group <id>]` inserts a media node. It currently accepts PNG, JPEG, GIF, and WebP images, identified from their contents. `orion media list` lists media nodes in the selected canvas. `orion server start` accepts raw bytes at `POST /api/images?workspace=<name>` and returns them at `GET /api/images/<asset>?workspace=<name>`.
 - `orion group add <label> --items <id,id,…>`, `orion group ungroup <id...> | --where '<expr>'`, and `orion node move <id...> | --where '<expr>' --to <group>` (or `--top`) organize work. The old bare `orion group <label> --items …` form is gone; use `group add`.
 - `orion group tidy [<group>...] | --where '<expr>'` marks groups for the app to lay out in place, using the same markers the CLI sets when it changes a group's members. The app lays out marked groups deepest first, so nested groups settle before their parents. Custom groups keep their arrangement, and a group that already has a pending marker keeps it. The CLI never lays out groups itself: if `orion server start` isn't running, the output says the layout runs when the app opens.
@@ -85,6 +86,7 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 ## Habits
 
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
+- Log each notable step on the card with `orion log add <text> --card <id> --agent <your agent name>`: a test run and its outcome, or a decision made. Keep the card's note as the short summary of where it stands rather than adding each step to it, and correct a logged mistake with a new entry.
 - Look up ids with `orion card list --all` or `orion node show` rather than guessing them.
 - Group by outcome, not by repository.
 

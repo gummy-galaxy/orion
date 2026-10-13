@@ -36,7 +36,7 @@ test.case("watcher announces external edits and follows manifest switches", func
 		table.insert(revisions, revision)
 	end, function(list)
 		table.insert(workspaceLists, list)
-	end)
+	end, function() end)
 
 	monitor.start()
 	store.createWorkspace(root, "new")
@@ -65,5 +65,61 @@ test.case("watcher announces external edits and follows manifest switches", func
 	end)
 	expect.eq(#revisions, 2)
 	expect.eq(revisions[2], 1)
+	monitor.close()
+end)
+
+test.case("watcher announces log appends for the canvas they land in, not document revisions", function(expect)
+	local root = testing.directory("server-watcher-log")
+	store.write(root, testing.createDoc({}, {}))
+	store.createWorkspace(root, "other")
+	local active = "default"
+	local revisions: { number } = {}
+	local logNames: { string } = {}
+	local monitor
+	monitor = watcher.create(root, function()
+		return active
+	end, function(name)
+		active = name
+		assert(monitor).switchTo(name)
+	end, function(revision)
+		table.insert(revisions, revision)
+	end, function() end, function(name)
+		table.insert(logNames, name)
+	end)
+
+	monitor.start()
+	store.appendLog(root, function()
+		return {
+			id = "log-1",
+			text = "First",
+			time = "2026-10-12T18:00:00Z",
+			author = { kind = "person", name = "marin" },
+			targets = {},
+		}
+	end)
+	waitUntil(function()
+		return #logNames >= 1
+	end)
+	expect.eq(logNames[1], "default")
+	expect.eq(#revisions, 0)
+
+	store.useWorkspace(root, "other")
+	waitUntil(function()
+		return active == "other"
+	end)
+	store.appendLog(store.getWorkspaceDir(root, "other"), function()
+		return {
+			id = "log-1",
+			text = "Elsewhere",
+			time = "2026-10-12T19:00:00Z",
+			author = { kind = "agent", name = "claude" },
+			targets = {},
+		}
+	end)
+	waitUntil(function()
+		return #logNames >= 2
+	end)
+	expect.eq(logNames[#logNames], "other")
+	expect.eq(#revisions, 0)
 	monitor.close()
 end)
