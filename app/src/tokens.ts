@@ -110,6 +110,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'shadow.sticker-held', cssVar: '--shadow-sticker-held', group: 'shadow' },
 
   { name: 'motion.duration.stagger', cssVar: '--motion-duration-stagger', group: 'duration' },
+  { name: 'motion.duration.blink', cssVar: '--motion-duration-blink', group: 'duration' },
   { name: 'motion.duration.instant', cssVar: '--motion-duration-instant', group: 'duration' },
   { name: 'motion.duration.quick', cssVar: '--motion-duration-quick', group: 'duration' },
   { name: 'motion.duration.fast', cssVar: '--motion-duration-fast', group: 'duration' },

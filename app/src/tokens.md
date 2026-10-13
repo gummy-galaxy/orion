@@ -158,6 +158,7 @@ Durations and easings for transitions and one-shot animations. Like text sizes, 
 | Name                      | CSS property                | Value | Used for                                      |
 | ------------------------- | --------------------------- | ----- | --------------------------------------------- |
 | `motion.duration.stagger` | `--motion-duration-stagger` | 16ms  | The delay between sticker wheel items opening |
+| `motion.duration.blink`   | `--motion-duration-blink`   | 80ms  | The companion's eyes closing and opening      |
 | `motion.duration.instant` | `--motion-duration-instant` | 120ms | Tooltips and sticker wheel hovers             |
 | `motion.duration.quick`   | `--motion-duration-quick`   | 140ms | A sticker growing under the pointer           |
 | `motion.duration.fast`    | `--motion-duration-fast`    | 150ms | Handles, hover actions, and border changes    |
@@ -182,6 +183,7 @@ Durations and easings for transitions and one-shot animations. Like text sizes, 
 These are left for later passes, so they keep their literal values:
 
 - Sounds. The app plays none yet.
+- The companion's 250ms hint scale, which no token matches yet.
 - Looping animations, such as flowing links, the active pulse, and the sync spinner. Each `steps()` count is paired with its duration to hold 15 frames a second, so the two change together.
 - Durations a script waits on: the finish stamp clearing (420ms, `CLEAR_MS` in `celebrate.ts`) and a fresh sticker's stamp and ring (520ms, and 480ms after 140ms, inside `STICKER_FRESH_MS`). A theme that lengthened them would see them cut off.
 - Rings and stripes built from color tokens, such as a card's inset status stripe and the 1px tracing outlines. Their widths are part of the shape, not the elevation. The same goes for outlines, the 2px and 3px sticker rings, and the 2.5px Done stamp border.

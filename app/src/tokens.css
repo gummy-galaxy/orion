@@ -80,6 +80,7 @@
   --shadow-sticker-held: 0 9px 7px rgb(23 36 43 / 0.22);
 
   --motion-duration-stagger: 16ms;
+  --motion-duration-blink: 80ms;
   --motion-duration-instant: 120ms;
   --motion-duration-quick: 140ms;
   --motion-duration-fast: 150ms;
