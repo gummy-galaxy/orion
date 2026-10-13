@@ -21,7 +21,7 @@ test.case("backups lists newest first with revision, time, and size", function(a
 	assert.strContains(run({ "backup", "list" }), "r1  20261003T010000Z  5 bytes")
 end)
 
-test.case("--workspace lists backups from the selected workspace", function(assert)
+test.case("--canvas lists backups from the selected canvas", function(assert)
 	local root, run, setWorkspace = testing.createHarness("workspace-backups")
 	run({ "canvas", "create", "roblox" })
 	local roblox = store.getWorkspaceDir(root, "roblox")
