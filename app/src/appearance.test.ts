@@ -19,7 +19,7 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals())
 
-const base: Appearance = { theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' }
+const base: Appearance = { theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system', companion: true }
 
 /** A stand-in for the root element that records what applyAppearance sets on it. */
 function fakeRoot() {
@@ -139,23 +139,58 @@ describe('card skins', () => {
 
 describe('appearance', () => {
   it('defaults invalid preferences while retaining valid ones', () => {
-    expect(readAppearance()).toEqual({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
+    expect(readAppearance()).toEqual({
+      theme: 'classic',
+      skin: 'classic',
+      colorMode: 'system',
+      statusColors: 'theme',
+      animations: 'system',
+      companion: true,
+    })
 
     values.set('orion:theme', 'vibrant')
     values.set('orion:skin', 'plain')
     values.set('orion:color-mode', 'dark')
-    expect(readAppearance()).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', statusColors: 'theme', animations: 'system' })
+    expect(readAppearance()).toEqual({
+      theme: 'vibrant',
+      skin: 'plain',
+      colorMode: 'dark',
+      statusColors: 'theme',
+      animations: 'system',
+      companion: true,
+    })
 
     values.set('orion:skin', 'unknown')
     values.set('orion:color-mode', 'invalid')
-    expect(readAppearance()).toEqual({ theme: 'vibrant', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
+    expect(readAppearance()).toEqual({
+      theme: 'vibrant',
+      skin: 'classic',
+      colorMode: 'system',
+      statusColors: 'theme',
+      animations: 'system',
+      companion: true,
+    })
 
     values.set('orion:skin', 'trading')
-    expect(readAppearance()).toEqual({ theme: 'vibrant', skin: 'trading', colorMode: 'system', statusColors: 'theme', animations: 'system' })
+    expect(readAppearance()).toEqual({
+      theme: 'vibrant',
+      skin: 'trading',
+      colorMode: 'system',
+      statusColors: 'theme',
+      animations: 'system',
+      companion: true,
+    })
   })
 
   it('writes theme, skin, and color mode as separate preferences', () => {
-    const appearance: Appearance = { theme: 'vibrant', skin: 'plain', colorMode: 'light', statusColors: 'theme', animations: 'system' }
+    const appearance: Appearance = {
+      theme: 'vibrant',
+      skin: 'plain',
+      colorMode: 'light',
+      statusColors: 'theme',
+      animations: 'system',
+      companion: true,
+    }
 
     writeAppearance(appearance)
 
@@ -170,13 +205,32 @@ describe('appearance', () => {
     expect(colorModeOf(appearance)).toBe('dark')
   })
 
+  it('remembers a hidden companion and forgets the default', () => {
+    const appearance: Appearance = {
+      theme: 'classic',
+      skin: 'classic',
+      colorMode: 'system',
+      statusColors: 'theme',
+      animations: 'system',
+      companion: false,
+    }
+
+    writeAppearance(appearance)
+    expect(values.get('orion:companion')).toBe('off')
+    expect(readAppearance().companion).toBe(false)
+
+    writeAppearance({ ...appearance, companion: true })
+    expect(values.has('orion:companion')).toBe(false)
+    expect(readAppearance().companion).toBe(true)
+  })
+
   it('applies nondefault attributes and clears them for defaults', () => {
     const { root, dataset } = fakeRoot()
 
-    applyAppearance({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', statusColors: 'theme', animations: 'system' }, root)
+    applyAppearance({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', statusColors: 'theme', animations: 'system', companion: true }, root)
     expect(dataset).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', motion: 'on' })
 
-    applyAppearance({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' }, root)
+    applyAppearance({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system', companion: true }, root)
     expect(dataset).toEqual({ motion: 'on' })
   })
 
@@ -186,6 +240,13 @@ describe('appearance', () => {
         throw new Error('unavailable')
       },
     })
-    expect(readAppearance()).toEqual({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system' })
+    expect(readAppearance()).toEqual({
+      theme: 'classic',
+      skin: 'classic',
+      colorMode: 'system',
+      statusColors: 'theme',
+      animations: 'system',
+      companion: true,
+    })
   })
 })

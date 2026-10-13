@@ -12,7 +12,8 @@ type Tool = mcpTypes.Tool
 
 local VIEWS = { "list", "ready", "groups", "matches", "show" }
 
-local REF_DESCRIPTION = "Outside work to attach: a GitHub or Jira URL, or source:key such as jira:ABC-1."
+local REF_DESCRIPTION =
+	"Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch."
 local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
 local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
 
@@ -246,7 +247,7 @@ local tools: { Tool } = {
 	{
 		name = "orion_group",
 		description = "Wrap existing items in a new group.",
-		command = { "group" },
+		command = { "group", "add" },
 		json = true,
 		fields = {
 			{ name = "label", kind = "string", required = true, minLength = 1, at = "positional" },
@@ -267,11 +268,34 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_remove",
-		description = "Delete an item or group from the canvas.",
+		description = "Delete an item from the canvas. Use orion_remove_group for a group.",
 		annotations = { destructiveHint = true },
 		command = { "remove" },
 		fields = {
 			{ name = "id", kind = "id", required = true, at = "positional" },
+			workspaceField,
+		},
+	},
+	{
+		name = "orion_remove_group",
+		description = "Delete a group and everything inside it. A dry run lists what would go.",
+		annotations = { destructiveHint = true },
+		command = { "group", "remove" },
+		json = true,
+		fields = {
+			{ name = "id", kind = "id", required = true, at = "positional" },
+			workspaceField,
+			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
+		},
+	},
+	{
+		name = "orion_remove_ref",
+		description = "Take a GitHub, Jira, or branch ref off an item. Name it by the key orion_inspect lists, or by its URL.",
+		command = { "ref", "remove" },
+		json = true,
+		fields = {
+			{ name = "id", kind = "id", required = true, at = "positional" },
+			{ name = "ref", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
 		},
 	},

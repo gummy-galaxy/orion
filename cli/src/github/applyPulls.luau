@@ -1,3 +1,4 @@
+local findBranchCards = require("@root/github/findBranchCards")
 local getDesired = require("@root/github/getDesired")
 local getKey = require("@root/github/getKey")
 local getRefFor = require("@root/github/getRefFor")
@@ -14,8 +15,42 @@ type PullState = githubTypes.PullState
 type Fetched = githubTypes.Fetched
 type Report = githubTypes.Report
 type Doc = types.Doc
+type Item = types.Item
 
 local INBOX_ID = "inbox"
+
+-- Moves a card's status and whose move it is to match the pull request, recording any change.
+local function applyDesired(item: Item, pull: PullState, viewer: string, report: Report)
+	local status, who = getString(item.data.status) or "todo", getString(item.data.who)
+	local nextStatus, nextWho = getDesired(pull, status, who, viewer)
+
+	if nextStatus ~= status or nextWho ~= who then
+		table.insert(report.changes, {
+			id = item.id,
+			label = graph.label(item),
+			fromStatus = status,
+			toStatus = nextStatus,
+			fromWho = who,
+			toWho = nextWho,
+			closed = pull.state == "CLOSED",
+		})
+		item.data.status, item.data.who = nextStatus, nextWho
+	end
+end
+
+-- Attaches a new pull request to the card its head branch was recorded on, as `--ref branch:` does.
+local function attachByBranch(item: Item, pull: PullState, fetched: Fetched, checkedAt: string, report: Report)
+	local repo = `{pull.owner}/{pull.name}`
+	applyDesired(item, pull, fetched.viewer, report)
+	setPullRef(item, pull, "github", fetched.viewer, checkedAt)
+
+	if item.data.repo == nil then
+		item.data.repo = repo
+	end
+
+	graph.refreshItemKind(item)
+	table.insert(report.attached, { id = item.id, pull = `{repo}#{pull.number}` })
+end
 
 local function ensureGroup(doc: Doc, id: string, label: string, blurb: string)
 	if not graph.find(doc, id) then
@@ -119,7 +154,8 @@ local function isInSources(doc: Doc, pull: PullState): boolean
 end
 
 local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
-	local report: Report = { changes = {}, missing = {}, added = {}, linked = {}, unlinked = {}, checked = 0 }
+	local report: Report =
+		{ changes = {}, missing = {}, added = {}, attached = {}, linked = {}, unlinked = {}, checked = 0 }
 	local onCanvas: { [string]: boolean } = {}
 
 	for _, item in doc.nodes do
@@ -139,22 +175,7 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		end
 
 		report.checked += 1
-		local status, who = getString(item.data.status) or "todo", getString(item.data.who)
-		local nextStatus, nextWho = getDesired(pull, status, who, fetched.viewer)
-
-		if nextStatus ~= status or nextWho ~= who then
-			table.insert(report.changes, {
-				id = item.id,
-				label = graph.label(item),
-				fromStatus = status,
-				toStatus = nextStatus,
-				fromWho = who,
-				toWho = nextWho,
-				closed = pull.state == "CLOSED",
-			})
-			item.data.status, item.data.who = nextStatus, nextWho
-		end
-
+		applyDesired(item, pull, fetched.viewer, report)
 		setPullRef(item, pull, "github", fetched.viewer, checkedAt)
 	end
 
@@ -167,6 +188,13 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		end
 
 		local repo = `{pull.owner}/{pull.name}`
+		local branchCards = findBranchCards(doc, pull)
+
+		if #branchCards == 1 then
+			attachByBranch(branchCards[1], pull, fetched, checkedAt, report)
+			onCanvas[key] = true
+			continue
+		end
 
 		if fetched.discover then
 			ensureGroup(doc, INBOX_ID, "Inbox", "Open pull requests found on GitHub that aren't placed yet.")
@@ -184,8 +212,15 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		else
 			local candidates: json.Array = {}
 
-			for _, candidate in match.candidates(doc, pull.title, pull.owner, pull.name) do
-				table.insert(candidates, json.object({ id = candidate.id, score = candidate.score }))
+			-- Several cards on one branch are a tie, so they're the only candidates listed.
+			if #branchCards > 1 then
+				for _, card in branchCards do
+					table.insert(candidates, json.object({ id = card.id, score = 1 }))
+				end
+			else
+				for _, candidate in match.candidates(doc, pull.title, pull.owner, pull.name) do
+					table.insert(candidates, json.object({ id = candidate.id, score = candidate.score }))
+				end
 			end
 
 			table.insert(

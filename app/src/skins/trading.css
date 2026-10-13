@@ -152,7 +152,7 @@
 }
 
 /* Top right: the one status that asks someone to act. */
-.trading-sticker {
+.trading-status-badge {
   position: absolute;
   top: 12px;
   right: 10px;
@@ -170,22 +170,22 @@
   color: #0c0920;
 }
 
-.trading-sticker svg {
+.trading-status-badge svg {
   width: 16px;
   height: 16px;
 }
 
-.trading-sticker-conflict,
-.trading-sticker-failing {
+.trading-status-badge-conflict,
+.trading-status-badge-failing {
   background: var(--st-blocked);
 }
 
-.trading-sticker-changes,
-.trading-sticker-stale {
+.trading-status-badge-changes,
+.trading-status-badge-stale {
   background: var(--st-review);
 }
 
-.trading-sticker-mergeable {
+.trading-status-badge-mergeable {
   background: var(--st-done);
 }
 
@@ -200,7 +200,7 @@
   outline-offset: 2px;
 }
 
-/* A ready pull request's sticker is its merge button: the first click asks, the second merges. */
+/* A ready pull request's status badge is its merge button: the first click asks, the second merges. */
 .trading-merge {
   padding: 0;
 }
@@ -226,14 +226,14 @@
   outline-offset: 2px;
 }
 
-/* Card actions wait under the sticker until the card is hovered or holds focus. */
+/* Card actions wait under the status badge until the card is hovered or holds focus. */
 .trading-actions {
   position: absolute;
   top: 54px;
   right: 12px;
   z-index: 3;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--motion-duration-fast);
 }
 
 .card.skin-trading:is(:hover, :focus-within) .trading-actions {
@@ -460,7 +460,7 @@
   height: 13px;
 }
 
-.card.skin-trading.far-card .trading-sticker {
+.card.skin-trading.far-card .trading-status-badge {
   top: 7px;
   right: 8px;
   width: 26px;
@@ -470,7 +470,7 @@
   transform: none;
 }
 
-.card.skin-trading.far-card :is(.trading-sticker-word, .merge-pull span, .trading-actions) {
+.card.skin-trading.far-card :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
   display: none;
 }
 
