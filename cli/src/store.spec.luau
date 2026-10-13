@@ -292,12 +292,9 @@ end)
 test.case("a save flags the cards it finishes and leaves the rest without the flag", function(assert)
 	local dir = testing.directory("celebrate-save")
 	store.write(dir, testing.createDoc({ testing.task("a", "A", "active"), testing.task("b", "B", "todo") }))
-	local doc = store.load(dir)
-	doc.nodes[1].data.status = "done"
-	local root = store.toObject(doc)
-
-	local isSaved = store.put(dir, 0, json.asArray(root.nodes) or {}, json.asArray(root.links) or {})
-	assert.eq(isSaved, true)
+	store.transaction(dir, function(doc)
+		doc.nodes[1].data.status = "done"
+	end)
 	local saved = store.load(dir)
 	assert.eq(saved.nodes[1].data.celebrate, true)
 	assert.eq(saved.nodes[2].data.celebrate, nil)
