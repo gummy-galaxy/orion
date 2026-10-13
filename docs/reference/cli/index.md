@@ -26,6 +26,7 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion ingest`](./ingest)         | Import work from configured sources and refresh the cards they track                     |
 | [`orion media`](./media)           | Insert or list media nodes                                                               |
 | [`orion suggestion`](./suggestion) | Find, list, apply, or dismiss group suggestions                                          |
+| [`orion theme`](./theme)           | Add, list, or remove theme files                                                         |
 | [`orion backup`](./backup)         | List saved revisions and restore one as a new revision                                   |
 | [`orion mcp`](./mcp)               | Agent tools over MCP                                                                     |
 | [`orion focus`](./focus)           | Show the group open in the app and what's selected                                       |

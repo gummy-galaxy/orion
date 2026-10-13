@@ -31,6 +31,7 @@ local server = require("@root/cli/server")
 local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggestion = require("@root/cli/suggestion")
+local theme = require("@root/cli/theme")
 local tidy = require("@root/cli/tidy")
 local types = require("@root/types")
 
@@ -65,6 +66,7 @@ local COMMANDS: { [string]: Command } = {
 	server = server,
 	source = source,
 	suggestion = suggestion,
+	theme = theme,
 }
 
 local ABOUT = [[
@@ -267,7 +269,7 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	-- Commands with their own modules define their subcommands themselves.
-	for _, name in { "canvas", "server", "source", "ingest", "media", "suggestion", "backup", "mcp", "focus" } do
+	for _, name in { "canvas", "server", "source", "ingest", "media", "suggestion", "theme", "backup", "mcp", "focus" } do
 		local module = COMMANDS[name]
 		local parser = addCommand(root, name, module.help)
 		commands[name] = parser

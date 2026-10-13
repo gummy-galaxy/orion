@@ -97,6 +97,34 @@ Runs `orion media insert`.
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
 | `group`     | id        |                                                        |
 
+## orion_themes
+
+List the theme files in the Orion data folder, and whether each one can be used.
+
+Runs `orion theme list`.
+
+Takes no arguments.
+
+## orion_add_theme
+
+Check a theme JSON file against the token contract and copy it into the Orion data folder, where the app lists it. Unknown tokens are reported and ignored. A file that is malformed or sets a bad value is refused.
+
+Runs `orion theme add`.
+
+| Argument | Type   | Description                                              |
+| -------- | ------ | -------------------------------------------------------- |
+| `path`   | string | **Required.** Absolute path to a local .json theme file. |
+
+## orion_remove_theme
+
+Delete a theme file from the Orion data folder by the file name orion_themes lists.
+
+Runs `orion theme remove`.
+
+| Argument | Type   | Description                                       |
+| -------- | ------ | ------------------------------------------------- |
+| `file`   | string | **Required.** Theme file name, such as dusk.json. |
+
 ## orion_link
 
 Connect two items, optionally as a related link that does not block work.

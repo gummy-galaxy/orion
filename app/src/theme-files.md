@@ -1,6 +1,6 @@
 # Theme files
 
-A theme file sets token values from [tokens.md](./tokens.md) for the light and dark schemes. Install one by copying it into the `themes` folder inside Orion's data folder (`orion canvas path` shows where that is). Orion reads the folder at startup and again when Settings or the command palette opens, so there is nothing to restart. The theme then sits beside Classic and Vibrant. Delete the file to remove the theme.
+A theme file sets token values from [tokens.md](./tokens.md) for the light and dark schemes. Install one with `orion theme add <file>`, which checks the file against the token names and copies it into the `themes` folder inside Orion's data folder (`orion canvas path` shows where that is). Copying the file there by hand works too; Orion checks it when it reads the folder. Orion reads the folder at startup and again when Settings or the command palette opens, so there is nothing to restart. The theme then sits beside Classic and Vibrant. Remove it with `orion theme remove <file>`, or delete the file.
 
 `examples/themes/dusk.json` in the repository is an example. It is not installed by default.
 
@@ -46,6 +46,6 @@ A value is refused when it contains anything else. That includes `url()`, `image
 
 ## Broken files
 
-A file that is not JSON, is not an object, has no `light` or `dark` object, or has a value that breaks the rules above is a broken theme. The picker lists it with its reason and does not let it be picked. If it was the selected theme, Orion shows Classic instead, and the theme returns once the file is fixed. A bad file never stops the app from opening.
+A file that is not JSON, is not an object, has no `light` or `dark` object, or has a value that breaks the rules above is a broken theme. The picker lists it with its reason and does not let it be picked. If it was the selected theme, Orion shows Classic instead, and the theme returns once the file is fixed. A bad file never stops the app from opening. `orion theme add` refuses a broken file and copies nothing.
 
-Names and values are checked in `app/src/themeFile.ts`, and `app/src/themeFile.test.ts` covers them. The data folder's `themes` folder is read by `cli/src/themes/readThemeFiles.luau` and served by `GET /api/themes`, which returns each file's text for the app to check.
+Names and values are checked in `app/src/themeFile.ts`, and `app/src/themeFile.test.ts` covers them. `orion theme add` runs the same checks in `cli/src/themes/checkThemeFile.luau` and `checkThemeValue.luau`, against the token list in `cli/src/themes/tokenContract.luau`. `app/src/tokens.test.ts` fails if that list drifts from `tokens.ts`. The app's browser check, which asks whether the browser accepts a value, runs only in the app, so a value that passes `orion theme add` can still be refused when the theme is picked. The data folder's `themes` folder is read by `cli/src/themes/readThemeFiles.luau` and served by `GET /api/themes`, which returns each file's text for the app to check.

@@ -233,6 +233,47 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_themes",
+		description = "List the theme files in the Orion data folder, and whether each one can be used.",
+		annotations = { readOnlyHint = true },
+		command = { "theme", "list" },
+		json = true,
+		fields = {},
+	},
+	{
+		name = "orion_add_theme",
+		description = "Check a theme JSON file against the token contract and copy it into the Orion data folder, where the app lists it. Unknown tokens are reported and ignored. A file that is malformed or sets a bad value is refused.",
+		command = { "theme", "add" },
+		json = true,
+		fields = {
+			{
+				name = "path",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Absolute path to a local .json theme file.",
+				at = "positional",
+			},
+		},
+	},
+	{
+		name = "orion_remove_theme",
+		description = "Delete a theme file from the Orion data folder by the file name orion_themes lists.",
+		annotations = { destructiveHint = true },
+		command = { "theme", "remove" },
+		json = true,
+		fields = {
+			{
+				name = "file",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Theme file name, such as dusk.json.",
+				at = "positional",
+			},
+		},
+	},
+	{
 		name = "orion_link",
 		description = "Connect two items, optionally as a related link that does not block work.",
 		command = { "link", "add" },
