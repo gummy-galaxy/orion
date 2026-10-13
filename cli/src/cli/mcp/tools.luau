@@ -25,6 +25,7 @@ local REF_DESCRIPTION =
 	"Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch."
 local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
 local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
+local GROUP_DESCRIPTION = "Group id, or its label when exactly one group has it."
 
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
@@ -162,7 +163,7 @@ local tools: { Tool } = {
 		fields = {
 			{ name = "title", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
-			{ name = "group", kind = "id", at = "option" },
+			{ name = "group", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
 			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
 			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
@@ -200,7 +201,7 @@ local tools: { Tool } = {
 		fields = {
 			{ name = "text", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
-			{ name = "group", kind = "id", at = "option" },
+			{ name = "group", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
 			{ name = "after", kind = "id", at = "option" },
 			{ name = "before", kind = "id", at = "option" },
 		},
@@ -229,7 +230,7 @@ local tools: { Tool } = {
 			},
 			{ name = "label", kind = "string", minLength = 1, at = "option" },
 			workspaceField,
-			{ name = "group", kind = "id", at = "option" },
+			{ name = "group", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
 		},
 	},
 	{
@@ -265,13 +266,24 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_create_group",
+		description = "Make an empty group, optionally inside another group. Add cards to it afterward with its id or label.",
+		command = { "group", "create" },
+		json = true,
+		fields = {
+			{ name = "label", kind = "string", required = true, minLength = 1, at = "positional" },
+			{ name = "in", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
+			workspaceField,
+		},
+	},
+	{
 		name = "orion_move",
 		description = "Move an item into a group or to the top level.",
 		command = { "node", "move" },
 		fields = {
 			{ name = "id", kind = "id", required = true, at = "positional" },
 			workspaceField,
-			{ name = "group", kind = "id", at = "option" },
+			{ name = "group", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
 		},
 		build = buildMoveArgv,
 	},

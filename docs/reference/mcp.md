@@ -36,7 +36,7 @@ Runs `orion card add`.
 | ----------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `title`     | string                                                  | **Required.**                                                                                             |
 | `workspace` | workspace                                               | Canvas name. Omit to use the canvas selected in Orion.                                                    |
-| `group`     | id                                                      |                                                                                                           |
+| `group`     | id                                                      | Group id, or its label when exactly one group has it.                                                     |
 | `repo`      | string                                                  | Deprecated: with pr, use ref with the pull request URL instead.                                           |
 | `pr`        | int                                                     | Deprecated: use ref with the pull request URL instead.                                                    |
 | `ref`       | string                                                  | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch. |
@@ -70,7 +70,7 @@ Runs `orion note add`.
 | ----------- | --------- | ------------------------------------------------------ |
 | `text`      | string    | **Required.**                                          |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`     | id        |                                                        |
+| `group`     | id        | Group id, or its label when exactly one group has it.  |
 | `after`     | id        |                                                        |
 | `before`    | id        |                                                        |
 
@@ -95,7 +95,7 @@ Runs `orion media insert`.
 | `path`      | string    | **Required.** Absolute path to a local image file.     |
 | `label`     | string    |                                                        |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`     | id        |                                                        |
+| `group`     | id        | Group id, or its label when exactly one group has it.  |
 
 ## orion_link
 
@@ -134,6 +134,18 @@ Runs `orion group add`.
 | `items`     | strings   | **Required.**                                          |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
 
+## orion_create_group
+
+Make an empty group, optionally inside another group. Add cards to it afterward with its id or label.
+
+Runs `orion group create`.
+
+| Argument    | Type      | Description                                            |
+| ----------- | --------- | ------------------------------------------------------ |
+| `label`     | string    | **Required.**                                          |
+| `in`        | id        | Group id, or its label when exactly one group has it.  |
+| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
+
 ## orion_move
 
 Move an item into a group or to the top level.
@@ -144,7 +156,7 @@ Runs `orion node move`.
 | ----------- | --------- | ------------------------------------------------------ |
 | `id`        | id        | **Required.**                                          |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`     | id        |                                                        |
+| `group`     | id        | Group id, or its label when exactly one group has it.  |
 
 ## orion_remove
 

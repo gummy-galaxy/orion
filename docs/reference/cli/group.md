@@ -20,6 +20,20 @@ orion group list [options]
 | -------- | ----------- |
 | `--json` | Print JSON  |
 
+## orion group create
+
+Make an empty group, optionally inside another
+
+```sh
+orion group create [options] [label...]
+```
+
+| Argument       | Description                             |
+| -------------- | --------------------------------------- |
+| `[label...]`   | Group name                              |
+| `--in <value>` | Group to make it inside, by id or label |
+| `--json`       | Print JSON                              |
+
 ## orion group add
 
 Wrap items that share a parent in a new group

@@ -100,7 +100,7 @@ return table.freeze({
 	define = function(parser: cli.Parser)
 		parser:add("refs", "variadic", { help = "GitHub or Jira URLs, or source:key such as jira:ABC-1" })
 		parser:add("stdin", "flag", { help = "Also read one reference per line from stdin" })
-		parser:add("group", "option", { help = "Group to add the cards to" })
+		parser:add("group", "option", { help = "Group to add the cards to, by id or label" })
 		parser:add("dry-run", "flag", { help = "Preview the cards without writing" })
 		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
 		parser:add("json", "flag", { help = "Print JSON" })

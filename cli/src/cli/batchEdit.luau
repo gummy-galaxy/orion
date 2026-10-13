@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local graph = require("@root/graph")
+local resolveNodeId = require("@root/resolveNodeId")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
 local types = require("@root/types")
@@ -40,8 +41,9 @@ local function batchEdit(options: Options)
 			targets = selectItems(doc, options.where, true)
 		else
 			local seen: { [string]: boolean } = {}
-			for _, id in options.ids do
-				assert(not seen[id], `duplicate id: {id}`)
+			for _, given in options.ids do
+				local id = resolveNodeId(doc, given)
+				assert(not seen[id], `duplicate id: {given}`)
 				seen[id] = true
 				local item = graph.get(doc, id)
 				table.insert(targets, item)
@@ -72,6 +74,8 @@ local function batchEdit(options: Options)
 			end
 		end
 
+		local destination = if options.destination then resolveNodeId(doc, options.destination) else nil
+
 		for _, item in targets do
 			if options.action == "done" then
 				graph.setFields(doc, item.id, { status = "done" })
@@ -86,7 +90,7 @@ local function batchEdit(options: Options)
 			elseif options.action == "tidy" then
 				graph.markForTidy(doc, item.id)
 			else
-				graph.move(doc, item.id, options.destination)
+				graph.move(doc, item.id, destination)
 			end
 		end
 	end
