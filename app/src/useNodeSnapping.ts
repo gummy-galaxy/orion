@@ -4,6 +4,7 @@ import { useSetAtom } from 'jotai'
 import { POP_DISTANCE, dropTarget, followEscape, reparent, startEscape, type Escape } from './escape'
 import { liftNodes, unliftNodes } from './lift'
 import { byId, isCluster, normalize, type AppNode } from './model'
+import { pushAside } from './pushAside'
 import { finishDrag, snapDrag, snapGuides } from './snap'
 import { dropTargetAtom } from './state'
 import type { CardSize } from './cardSize'
@@ -18,7 +19,10 @@ const SNAP_REACH_PX = 160
 const THROW_SPEED = 0.8
 const THROW_WINDOW_MS = 90
 
-/** `before` is the canvas as the drag found it; `escape` tracks the group the dragged work is leaving, if any. */
+/**
+ * `before` is the canvas as the drag found it, so a group the drop grows can push its neighbors aside. `escape` tracks
+ * the group the dragged work is leaving, if any.
+ */
 type DragSession = {
   ids: Set<string>
   free: boolean
@@ -133,7 +137,7 @@ export function useNodeSnapping({
 
       if (!session) return setNodes((currentNodes) => normalize(currentNodes, cardSize))
 
-      const released = (currentNodes: AppNode[]) => normalize(unliftNodes(currentNodes, session.ids), cardSize)
+      const released = (currentNodes: AppNode[]) => pushAside(session.before, normalize(unliftNodes(currentNodes, session.ids), cardSize), cardSize)
       const now = performance.now()
       const recentSamples = session.samples.filter((sample) => now - sample.time <= THROW_WINDOW_MS)
       const firstSample = recentSamples[0]
@@ -152,7 +156,13 @@ export function useNodeSnapping({
 
         // Work dropped into another group, or popped out of its own, lands where it was let go.
         if (escape && target !== escape.from)
-          return setNodes((latestNodes) => normalize(reparent(unliftNodes(latestNodes, session.ids), escape.roots, target, escape.from), cardSize))
+          return setNodes((latestNodes) =>
+            pushAside(
+              session.before,
+              normalize(reparent(unliftNodes(latestNodes, session.ids), escape.roots, target, escape.from), cardSize),
+              cardSize,
+            ),
+          )
 
         if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes(released)
 

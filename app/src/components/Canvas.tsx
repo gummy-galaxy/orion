@@ -31,6 +31,7 @@ import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type Fl
 import { CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { layoutOrder, reflow } from '../layout'
+import { pushAside } from '../pushAside'
 import { mergeDocs } from '../merge'
 import { glide, motionReduced, useSystemMotion } from '../motion'
 import {
@@ -600,8 +601,11 @@ export function Canvas() {
   }, [cardSize, setNodes, reactFlow, focusPick, root])
 
   const adopt = useCallback(
-    (doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
-      const next = toDisplayed(normalize(doc.nodes), cardSizeRef.current)
+    (doc: Remote, serverDoc: Remote = doc, preserveSelection = true, previous?: AppNode[]): Saved => {
+      const displayed = toDisplayed(normalize(doc.nodes), cardSizeRef.current)
+      // Another writer can grow a group, such as the CLI adding a card to it. Its neighbors move aside here, and
+      // since that differs from the server's copy, the next save writes the new positions back.
+      const next = previous ? pushAside(previous, displayed, cardSizeRef.current) : displayed
       const server = compactDoc({
         nodes: normalize(serverDoc.nodes),
         links: serverDoc.links,
@@ -652,11 +656,11 @@ export function Canvas() {
 
       const local = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSizeRef.current) })
 
-      if (fingerprint(local) === savedPrint.current) adopt(doc)
+      if (fingerprint(local) === savedPrint.current) adopt(doc, doc, true, latest.current.nodes)
       else {
         const merged = mergeDocs(base.current, local, compactDoc({ ...doc, nodes: normalize(doc.nodes) }))
 
-        adopt({ ...doc, ...merged }, doc)
+        adopt({ ...doc, ...merged }, doc, true, latest.current.nodes)
       }
     },
     [adopt],
@@ -851,7 +855,16 @@ export function Canvas() {
           }
         }
 
-        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((group) => group.id)), cardSize)
+        const pendingIds = new Set(pending.map((group) => group.id))
+
+        // A new group is placed beside existing work below, so only groups that were already placed push their neighbors.
+        next = pushAside(
+          nodes.filter((node) => !pendingIds.has(node.id)),
+          next,
+          cardSize,
+        )
+
+        if (pending.length) next = placeBesideExisting(next, pendingIds, cardSize)
       } catch (error) {
         console.error('Could not lay out canvas', error)
       } finally {
@@ -2066,7 +2079,11 @@ export function Canvas() {
 
       if (options.to) next.push({ id: `${id}>${options.to}`, from: id, to: options.to, kind })
 
-      const nextNodes = normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note], cardSize)
+      const nextNodes = pushAside(
+        currentNodes,
+        normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note], cardSize),
+        cardSize,
+      )
 
       setNodes(nextNodes)
       setLinks(next)
@@ -2131,7 +2148,11 @@ export function Canvas() {
             selected: true,
           }
 
-          return normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image], cardSize)
+          return pushAside(
+            currentNodes,
+            normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image], cardSize),
+            cardSize,
+          )
         })
       } catch (error) {
         setImageError(error instanceof Error ? error.message : 'Could not add the image.')
@@ -2183,7 +2204,9 @@ export function Canvas() {
       }
 
       syncAfterSave.current = true
-      setNodes((nodesNow) => normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize))
+      setNodes((nodesNow) =>
+        pushAside(nodesNow, normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize), cardSize),
+      )
     },
     [root, selectOnly, jumpTo, setNodes, cardSize],
   )

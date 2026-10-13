@@ -160,6 +160,7 @@ In `app/`:
 - `src/persist.ts`: loading, saving, reacting to changes from other writers, and reporting focus.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: laying out one group or the top level: ELK with wrapping, and custom groups left alone.
+- `src/pushAside.ts`: moving neighbors out of the way when a group grows, level by level up to the top.
 - `src/snap.ts`, `src/useNodeSnapping.ts`, and `src/components/SnapGuides.tsx`: drag geometry, interaction state, and alignment guides.
 - `src/escape.ts`: dragging work out of its group past the pop distance, and the group a drop lands in.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
