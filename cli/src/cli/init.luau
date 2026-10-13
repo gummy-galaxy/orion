@@ -7,6 +7,7 @@ local batchEdit = require("@root/cli/batchEdit")
 local check = require("@root/cli/check")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
+local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local getAdapter = require("@root/adapters/getAdapter")
 local githubTypes = require("@root/github/types")
@@ -875,7 +876,13 @@ local function run(argv: { string })
 	end
 end
 
+-- Describes every command and option, for the generated reference in docs/.
+local function describe(): describeCommands.CommandDescription
+	return describeCommands(createParsers().root, "orion", SUMMARY)
+end
+
 return table.freeze({
+	describe = describe,
 	execute = execute,
 	run = run,
 })
