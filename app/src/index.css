@@ -3240,10 +3240,10 @@ kbd {
 }
 .canvas-header {
   position: absolute;
-  top: 0;
+  top: 96px;
   left: 0;
-  right: 0;
   z-index: 3;
+  width: 10rem;
   max-height: 180px;
   overflow: hidden;
   padding: var(--space-8) var(--space-9) var(--space-10);
