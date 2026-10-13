@@ -190,7 +190,7 @@ local function createParsers(): Parsers
 
 	local linkInsert = addCommand(link, "insert", "Insert an item into an existing link")
 	linkInsert:add("id", "positional", { help = "Item to place in the link" })
-	linkInsert:add("between", "option", { help = "Source item whose link is replaced", required = true })
+	linkInsert:add("between", "option", { help = "Source item whose link is replaced (required)" })
 	linkInsert:add("target", "variadic", { help = "Target item whose link is replaced" })
 	linkInsert:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
 	linkInsert:add("if-revision", "option", { help = "Write only if the document has this revision" })
@@ -203,7 +203,7 @@ local function createParsers(): Parsers
 	addJsonFlag(nodeShow)
 
 	local nodeQuery = addCommand(node, "query", "Find cards and groups with an expression")
-	nodeQuery:add("where", "option", { help = "Expression selecting cards or groups", required = true })
+	nodeQuery:add("where", "option", { help = "Expression selecting cards or groups (required)" })
 	nodeQuery:add("all", "flag", { help = "Include done items" })
 	addJsonFlag(nodeQuery)
 
@@ -223,7 +223,7 @@ local function createParsers(): Parsers
 
 	local groupAdd = addCommand(group, "add", "Wrap items that share a parent in a new group")
 	groupAdd:add("label", "variadic", { help = "Group name" })
-	groupAdd:add("items", "option", { help = "Comma-separated ids to put in it", required = true })
+	groupAdd:add("items", "option", { help = "Comma-separated ids to put in it (required)" })
 	addJsonFlag(groupAdd)
 
 	addBatchOptions(addCommand(group, "remove", "Remove groups with everything inside them"), "Group ids")
