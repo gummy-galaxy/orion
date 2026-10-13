@@ -19,14 +19,20 @@ return table.freeze({
 			"option",
 			{ help = "Color, color token such as card.background, or image asset id (empty to clear)" }
 		)
+		parser:add(
+			"header",
+			"option",
+			{ help = "Markdown with layout HTML shown over the top of the canvas (empty to clear)" }
+		)
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
 		local cover = parser:get("cover")
 		local background = parser:get("background")
-		assert(cover ~= nil or background ~= nil, "give --cover or --background")
+		local header = parser:get("header")
+		assert(cover ~= nil or background ~= nil or header ~= nil, "give --cover, --background, or --header")
 		store.transaction(options.dir, function(doc)
-			applyCanvasStyle(doc, options.dir, { cover = cover, background = background })
+			applyCanvasStyle(doc, options.dir, { cover = cover, background = background, header = header })
 		end)
 		options.write(`Updated workspace {options.workspace}`)
 	end,

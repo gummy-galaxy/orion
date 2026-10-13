@@ -142,9 +142,20 @@ import {
   workAtom,
   workspaceAtom,
 } from '../state'
-import { applyStyleChange, backgroundColor, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import {
+  HEADER_MIN_ZOOM,
+  applyStyleChange,
+  backgroundColor,
+  headerText,
+  isAssetId,
+  readCanvasStyle,
+  type CanvasStyle,
+  type StyleChange,
+} from '../style'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
+import { HeaderSettings } from './HeaderSettings'
+import { Markdown } from './Markdown'
 import { StickerLayer, type PlacedSticker, type PressModifiers, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedStickers, stickerCursor, type Loadout, type Sticker } from '../sticker'
@@ -324,6 +335,7 @@ export function Canvas() {
   const store = useStoreApi<ViewNode, Edge>()
   const still = useStore((state) => state.transform[2] < STILL_ZOOM)
   const quietZoom = useStore((state) => state.transform[2] < QUIET_ZOOM)
+  const headerFolded = useStore((state) => state.transform[2] < HEADER_MIN_ZOOM)
   const away = useAway()
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
@@ -350,6 +362,7 @@ export function Canvas() {
   const setWorkspaceName = useSetAtom(workspaceAtom)
   const canvasColor = backgroundColor(canvasStyle.background)
   const canvasImage = isAssetId(canvasStyle.background) ? canvasStyle.background : undefined
+  const canvasHeader = headerFolded ? undefined : headerText(canvasStyle.header)
 
   useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
@@ -2038,9 +2051,22 @@ export function Canvas() {
 
       if (change.background !== undefined) patch.background = change.background ?? undefined
 
-      updateData(id, patch)
+      if (change.header === undefined) {
+        updateData(id, patch)
+
+        return
+      }
+
+      // A header adds or removes the band under the title, so the group refits and its cards keep their places.
+      patch.header = change.header ?? undefined
+      setNodes((currentNodes) =>
+        normalize(
+          currentNodes.map((node) => (node.id === id && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node)),
+          cardSize,
+        ),
+      )
     },
-    [updateData],
+    [updateData, setNodes, cardSize],
   )
 
   /** The canvas's cover and background go to the server and show at once. The server bumps the revision, so the page reloads to match it. */
@@ -3227,19 +3253,29 @@ export function Canvas() {
               {coverTarget && selected.length === 0 && pickedStickers.length === 0 && (
                 <Panel position="top-right" className="panel inspector cover-panel">
                   {coverTarget.kind === 'canvas' ? (
-                    <CoverSettings
-                      title="Canvas cover and background"
-                      workspace={workspaces.active}
-                      current={canvasStyle}
-                      change={changeCanvasStyle}
-                    />
+                    <>
+                      <CoverSettings
+                        title="Canvas cover and background"
+                        workspace={workspaces.active}
+                        current={canvasStyle}
+                        change={changeCanvasStyle}
+                      />
+                      <HeaderSettings title="Canvas header" value={canvasStyle.header} change={(header) => changeCanvasStyle({ header })} />
+                    </>
                   ) : map.has(coverTarget.id) ? (
-                    <CoverSettings
-                      title="Group cover and background"
-                      workspace={workspaces.active}
-                      current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
-                      change={(change) => changeGroupStyle(coverTarget.id, change)}
-                    />
+                    <>
+                      <CoverSettings
+                        title="Group cover and background"
+                        workspace={workspaces.active}
+                        current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
+                        change={(change) => changeGroupStyle(coverTarget.id, change)}
+                      />
+                      <HeaderSettings
+                        title="Group header"
+                        value={(map.get(coverTarget.id)?.data as ClusterData | undefined)?.header}
+                        change={(header) => changeGroupStyle(coverTarget.id, { header })}
+                      />
+                    </>
                   ) : null}
                   <div className="row">
                     <button type="button" className="btn" onClick={() => setCoverTarget(null)}>
@@ -3340,6 +3376,11 @@ export function Canvas() {
                         current={one.data as ClusterData}
                         change={(change) => changeGroupStyle(one.id, change)}
                       />
+                      <HeaderSettings
+                        title="Header"
+                        value={(one.data as ClusterData).header}
+                        change={(header) => changeGroupStyle(one.id, { header })}
+                      />
                       <div className="row">
                         <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
                           Open
@@ -3362,6 +3403,11 @@ export function Canvas() {
                 <Toolbar tool={tool} sticker={sticker} keybindings={keybindings} setTool={chooseTool} />
               </Panel>
             </ReactFlow>
+          )}
+          {canvasHeader && (
+            <div className="canvas-header">
+              <Markdown source={canvasHeader} layout />
+            </div>
           )}
           {ready && appearance.companion && !focus && (
             <Companion targets={companion.targets} describe={companion.describe} syncing={syncStatus?.state === 'running'} paused={away} />

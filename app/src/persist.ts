@@ -41,7 +41,10 @@ export async function importImage(file: File, workspace: string): Promise<ImageA
 }
 
 /** Saves a canvas's cover or background. The server bumps the revision and announces it, so open windows reload. */
-export async function saveCanvasStyle(workspace: string, change: { cover?: string | null; background?: string | null }): Promise<boolean> {
+export async function saveCanvasStyle(
+  workspace: string,
+  change: { cover?: string | null; background?: string | null; header?: string | null },
+): Promise<boolean> {
   try {
     const response = await fetch('/api/orion/style', {
       method: 'PUT',
