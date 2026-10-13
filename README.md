@@ -168,7 +168,8 @@ In `app/`:
 - `src/useInspecting.ts` and `src/components/PeekCard.tsx`: holding Ctrl to inspect, and the card it opens in full.
 - `src/components/ImageView.tsx`: image nodes and their workspace-local previews.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
-- `src/components/TaskInspector.tsx`: a card's details in the inspector: the title and its pull request and issue links, status and whose move, notes, the pull request, and collapsible relationships.
+- `src/components/TaskInspector.tsx`: a card's details in the inspector: the title and its pull request and issue links, status and whose move, notes, the timeline, the pull request, and collapsible relationships.
+- `src/components/Timeline.tsx`, `src/useCardLog.ts`, and `src/log.ts`: a card's timeline, its entries from the canvas log newest first, with agent entries marked. The app reads `GET /api/log` and refetches when `orion:log` announces an append; the section stays hidden where the server has no log.
 - `src/components/NoteBody.tsx` and `src/components/Markdown.tsx`: a card's note, shown as rendered Markdown and edited as source in place. `Markdown` is the shared renderer, with no raw HTML, for any surface that shows a short written note.
 - `src/components/LinkList.tsx`, `src/components/LinkSection.tsx`, and `src/components/LinkAdd.tsx`: a card's own links in the inspector, in collapsible waits-on, unblocks, and related sections, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
