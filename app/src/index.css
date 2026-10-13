@@ -79,7 +79,7 @@ select {
   fill: var(--border-default) !important;
 }
 .react-flow__controls {
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -121,7 +121,7 @@ select {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   background: var(--surface-background);
-  box-shadow: 0 8px 24px #0002;
+  box-shadow: var(--shadow-image);
 }
 .react-flow__node-image.selected .image-node {
   outline: 2px solid var(--accent-default);
@@ -178,9 +178,9 @@ select {
   gap: 3px;
   box-shadow: inset 3px 0 0 var(--c);
   transition:
-    opacity 0.2s,
-    border-color 0.15s,
-    background-color 0.2s;
+    opacity var(--motion-duration-base),
+    border-color var(--motion-duration-fast),
+    background-color var(--motion-duration-base);
 }
 .card .meta {
   display: flex;
@@ -265,7 +265,7 @@ select {
   white-space: nowrap;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--status-done) 40%, transparent),
-    var(--shadow);
+    var(--shadow-raised);
   cursor: pointer;
 }
 .merge-pull svg {
@@ -341,7 +341,7 @@ select {
   color: var(--surface);
   box-shadow:
     0 0 0 2px var(--card-fill),
-    var(--shadow);
+    var(--shadow-raised);
   cursor: pointer;
 }
 .finish-stamp svg {
@@ -353,10 +353,10 @@ select {
   outline-offset: 2px;
 }
 :where(:root[data-motion='on']) .finish-stamp:not(.is-clearing) {
-  animation: finish-stamp-in 360ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation: finish-stamp-in var(--motion-duration-stamp) var(--motion-easing-pop) both;
 }
 :where(:root[data-motion='on']) .finish-stamp.is-clearing {
-  animation: finish-stamp-clear 420ms ease-in var(--clear-delay, 0ms) both;
+  animation: finish-stamp-clear 420ms var(--motion-easing-exit) var(--clear-delay, 0ms) both;
 }
 @keyframes finish-stamp-in {
   from {
@@ -392,7 +392,7 @@ select {
   border-radius: var(--radius-xs);
   background: var(--surface-background);
   color: var(--accent-default);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
   cursor: pointer;
 }
 .vscode-open img {
@@ -433,7 +433,7 @@ select {
   border-radius: var(--radius-xs);
   background: var(--surface-background);
   color: var(--text-muted);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
 }
 .source-domain-many {
   cursor: pointer;
@@ -492,7 +492,7 @@ select {
   border-radius: var(--radius-md);
   background: var(--surface-background);
   color: var(--text-primary);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
   font: var(--text-size-caption)/1.4 var(--font-ui);
   white-space: nowrap;
 }
@@ -546,7 +546,7 @@ select {
   border-color: var(--c);
   box-shadow:
     inset 4px 0 0 var(--c),
-    var(--shadow);
+    var(--shadow-raised);
 }
 .card.st-ready {
   --card-fill: var(--accent-subtle);
@@ -570,11 +570,11 @@ select {
     inset 4px 0 0 var(--c),
     0 0 0 1px var(--c),
     0 0 20px -2px color-mix(in srgb, var(--c) 60%, transparent),
-    var(--shadow);
+    var(--shadow-raised);
 }
 .react-flow__node-task.selected {
   border-radius: var(--radius-card);
-  box-shadow: 0 0 0 9px color-mix(in srgb, var(--accent-default) 26%, transparent);
+  box-shadow: var(--shadow-selection);
 }
 .react-flow__node-task.selected .card {
   outline: 3px solid var(--accent-default);
@@ -624,7 +624,7 @@ select {
   height: 9px;
   border-width: 1.5px;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--motion-duration-fast);
 }
 .react-flow__node-task .react-flow__handle::before {
   content: '';
@@ -652,11 +652,11 @@ select {
 .ghost > :not(.react-flow__handle),
 .cluster-card > * {
   opacity: var(--fade, 1);
-  transition: opacity 0.2s;
+  transition: opacity var(--motion-duration-base);
 }
 .cluster-head > * {
   opacity: var(--fade, 1);
-  transition: opacity 0.2s;
+  transition: opacity var(--motion-duration-base);
 }
 
 /* Hover trace. Everything outside it dims through the canvas, so only cards whose role changes redraw. */
@@ -688,7 +688,7 @@ select {
 .react-flow__edge .react-flow__edge-path {
   stroke: var(--edge-default);
   stroke-width: 1.3;
-  transition: opacity 0.2s;
+  transition: opacity var(--motion-duration-base);
 }
 .react-flow__edge.e-live .react-flow__edge-path,
 .react-flow__edge.e-held .react-flow__edge-path {
@@ -810,21 +810,21 @@ select {
   0% {
     box-shadow:
       inset 4px 0 0 var(--c),
-      var(--shadow),
+      var(--shadow-raised),
       0 0 0 0 color-mix(in srgb, var(--status-active) 45%, transparent);
     animation-timing-function: steps(5);
   }
   10% {
     box-shadow:
       inset 4px 0 0 var(--c),
-      var(--shadow),
+      var(--shadow-raised),
       0 0 0 2.5px color-mix(in srgb, var(--status-active) 31%, transparent);
     animation-timing-function: steps(7);
   }
   25% {
     box-shadow:
       inset 4px 0 0 var(--c),
-      var(--shadow),
+      var(--shadow-raised),
       0 0 0 5.5px color-mix(in srgb, var(--status-active) 14%, transparent);
     animation-timing-function: steps(12);
   }
@@ -832,7 +832,7 @@ select {
   100% {
     box-shadow:
       inset 4px 0 0 var(--c),
-      var(--shadow),
+      var(--shadow-raised),
       0 0 0 8px color-mix(in srgb, var(--status-active) 0%, transparent);
     animation-timing-function: steps(1);
   }
@@ -854,8 +854,8 @@ select {
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--accent-default) 3%, transparent);
   transition:
-    background-color 0.2s,
-    border-color 0.2s;
+    background-color var(--motion-duration-base),
+    border-color var(--motion-duration-base);
 }
 .react-flow__node-cluster.selected .cluster {
   border: 1.5px solid var(--accent-default);
@@ -912,7 +912,7 @@ select {
   display: flex;
   gap: var(--space-1);
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity var(--motion-duration-fast);
 }
 .cluster-head:hover .head-actions,
 .react-flow__node-cluster.selected .head-actions {
@@ -940,7 +940,7 @@ select {
   box-shadow:
     var(--stack) var(--stack) 0 calc(-1 * max(1.5px, calc(1.5px * var(--inv, 1)))) var(--surface-background),
     var(--stack) var(--stack) 0 0 var(--edge-default),
-    var(--shadow);
+    var(--shadow-raised);
 }
 /* Folded groups paint above expanded frames. */
 .react-flow__node-cluster:has(.cluster.is-collapsed) {
@@ -1071,7 +1071,7 @@ select {
   gap: var(--space-2);
   box-shadow:
     inset 3px 0 0 var(--c),
-    var(--shadow);
+    var(--shadow-raised);
 }
 .far-card .meta {
   flex-wrap: wrap;
@@ -1138,7 +1138,7 @@ select {
   visibility: hidden;
 }
 :where(:root[data-motion='on']) .far-card {
-  animation: pop-up 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation: pop-up var(--motion-duration-pop) var(--motion-easing-pop) both;
 }
 @keyframes pop-up {
   from {
@@ -1171,7 +1171,7 @@ select {
   background: var(--surface-background);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
 }
 .empty-canvas {
   position: absolute;
@@ -1501,9 +1501,9 @@ kbd {
   transform: translate(-50%, -50%) rotate(var(--tilt));
   /* A die-cut white edge and a little lift off the canvas. */
   filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge)) drop-shadow(0 1.5px 0 var(--sticker-edge))
-    drop-shadow(0 -1.5px 0 var(--sticker-edge)) drop-shadow(0 2px 2px rgb(23 36 43 / 0.25));
+    drop-shadow(0 -1.5px 0 var(--sticker-edge)) drop-shadow(var(--shadow-sticker));
   pointer-events: none;
-  transition: scale 140ms ease;
+  transition: scale var(--motion-duration-quick) var(--motion-easing-standard);
 }
 .sticker.is-interactive .sticker-art {
   pointer-events: auto;
@@ -1516,7 +1516,7 @@ kbd {
   scale: 1.16;
   cursor: grabbing;
   filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge)) drop-shadow(0 1.5px 0 var(--sticker-edge))
-    drop-shadow(0 -1.5px 0 var(--sticker-edge)) drop-shadow(0 9px 7px rgb(23 36 43 / 0.22));
+    drop-shadow(0 -1.5px 0 var(--sticker-edge)) drop-shadow(var(--shadow-sticker-held));
 }
 .sticker::after {
   content: '';
@@ -1537,10 +1537,10 @@ kbd {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 :where(:root[data-motion='on']) .sticker.is-fresh .sticker-art {
-  animation: sticker-stamp 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  animation: sticker-stamp 520ms var(--motion-easing-stamp) both;
 }
 :where(:root[data-motion='on']) .sticker.is-fresh::after {
-  animation: sticker-ring 480ms ease-out 140ms;
+  animation: sticker-ring 480ms var(--motion-easing-enter) 140ms;
 }
 @keyframes sticker-stamp {
   0% {
@@ -1590,7 +1590,7 @@ kbd {
   border-radius: var(--radius-round);
   border: 1px solid var(--border-default);
   background: color-mix(in srgb, var(--surface-background) 90%, transparent);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
   backdrop-filter: blur(8px);
 }
 .wheel-item {
@@ -1607,8 +1607,8 @@ kbd {
   cursor: pointer;
   transform: translate(var(--x), var(--y));
   transition:
-    transform 120ms ease,
-    background 120ms ease;
+    transform var(--motion-duration-instant) var(--motion-easing-standard),
+    background var(--motion-duration-instant) var(--motion-easing-standard);
 }
 .wheel-item.current {
   box-shadow: inset 0 0 0 1.5px var(--accent-default);
@@ -1671,17 +1671,17 @@ kbd {
   max-width: 220px;
   border-radius: var(--radius-lg);
   background: var(--surface-background);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
   color: var(--text-muted);
   font: var(--weight-medium) var(--text-size-caption)/1.4 var(--font-data);
   text-align: center;
 }
 :where(:root[data-motion='on']) .wheel::before {
-  animation: wheel-open 160ms ease-out both;
+  animation: wheel-open var(--motion-duration-open) var(--motion-easing-enter) both;
 }
 :where(:root[data-motion='on']) .wheel-item {
-  animation: wheel-item-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
-  animation-delay: calc(var(--i) * 16ms);
+  animation: wheel-item-in var(--motion-duration-reveal) var(--motion-easing-bounce) both;
+  animation-delay: calc(var(--i) * var(--motion-duration-stagger));
 }
 @keyframes wheel-open {
   from {
@@ -2030,7 +2030,7 @@ kbd {
   width: min(820px, 100%);
   height: min(600px, 100%);
   overflow: hidden;
-  box-shadow: 0 14px 50px color-mix(in srgb, var(--text-primary) 20%, transparent);
+  box-shadow: var(--shadow-dialog);
 }
 .settings:focus {
   outline: none;
@@ -2165,7 +2165,7 @@ kbd {
 .options button[aria-pressed='true'] {
   background: var(--surface-background);
   color: var(--text-primary);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
 }
 .options button:disabled {
   cursor: default;
@@ -2289,8 +2289,8 @@ kbd {
   background: var(--canvas-background);
   cursor: pointer;
   transition:
-    border-color 0.15s,
-    opacity 0.2s;
+    border-color var(--motion-duration-fast),
+    opacity var(--motion-duration-base);
 }
 :where(.canvas.is-tracing) .ghost:not(.tr-self, .tr-up, .tr-down, .tr-related) {
   --fade: 0.25;
@@ -2407,7 +2407,7 @@ kbd {
 .palette {
   width: min(600px, 100%);
   overflow: hidden;
-  box-shadow: 0 14px 50px color-mix(in srgb, var(--text-primary) 20%, transparent);
+  box-shadow: var(--shadow-dialog);
 }
 .palette input {
   display: block;
@@ -2617,7 +2617,7 @@ kbd {
   border-radius: var(--radius-pill);
   border: 1px solid currentColor;
   background: var(--surface-background);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
   color: var(--status-active);
   font: var(--weight-medium) var(--text-size-detail) var(--font-ui);
   cursor: pointer;
@@ -2634,7 +2634,7 @@ kbd {
 
 /* Focus on one card */
 .react-flow__node {
-  transition: opacity 0.18s;
+  transition: opacity var(--motion-duration-fade);
 }
 .canvas.is-focus .react-flow__node.is-unfocused {
   opacity: 0;
@@ -2644,8 +2644,8 @@ kbd {
 .canvas .react-flow__edgelabel-renderer,
 .canvas .react-flow__panel {
   transition:
-    opacity 0.18s,
-    visibility 0.18s;
+    opacity var(--motion-duration-fade),
+    visibility var(--motion-duration-fade);
 }
 .canvas.is-focus .react-flow__edge,
 .canvas.is-focus .react-flow__edgelabel-renderer,
@@ -2657,7 +2657,7 @@ kbd {
 .canvas.is-focus .react-flow__node.is-focused .card {
   box-shadow:
     inset 3px 0 0 var(--c),
-    var(--shadow);
+    var(--shadow-raised);
 }
 .focus {
   position: absolute;
@@ -2675,8 +2675,8 @@ kbd {
   stroke: var(--edge-default);
   stroke-width: 1.5;
   transition:
-    opacity 0.15s,
-    stroke-width 0.15s;
+    opacity var(--motion-duration-fast),
+    stroke-width var(--motion-duration-fast);
 }
 .focus-line.live,
 .focus-line.held {
@@ -2750,12 +2750,12 @@ kbd {
   background: var(--surface-background);
   box-shadow:
     inset 3px 0 0 var(--c),
-    var(--shadow);
+    var(--shadow-raised);
   text-align: left;
   cursor: pointer;
   transition:
-    border-color 0.15s,
-    transform 0.15s;
+    border-color var(--motion-duration-fast),
+    transform var(--motion-duration-fast);
 }
 .focus-card:hover,
 .focus-card.is-hot,
@@ -2854,7 +2854,7 @@ kbd {
 :where(:root[data-motion='on']) .focus-bar,
 :where(:root[data-motion='on']) .focus-details,
 :where(:root[data-motion='on']) .focus svg {
-  animation: focus-in 0.2s ease-out both;
+  animation: focus-in var(--motion-duration-base) var(--motion-easing-enter) both;
 }
 @keyframes focus-in {
   from {
@@ -2882,7 +2882,7 @@ kbd {
   border-radius: var(--radius-sm);
   background: var(--ink);
   color: var(--surface);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
   font: 600 12px/1.35 var(--font-ui);
   pointer-events: none;
   transform: translate(calc(-50% + var(--tooltip-shift, 0px)), -100%);
@@ -2897,7 +2897,7 @@ kbd {
   transform: translateX(-50%);
 }
 :where(:root[data-motion='on']) .tooltip {
-  animation: tooltip-in 0.12s ease-out;
+  animation: tooltip-in var(--motion-duration-instant) var(--motion-easing-enter);
 }
 @keyframes tooltip-in {
   from {
@@ -3008,7 +3008,7 @@ kbd {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-raised);
   font: 700 12px var(--font-ui);
   color: var(--ink);
   white-space: nowrap;

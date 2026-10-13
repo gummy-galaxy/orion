@@ -38,6 +38,9 @@ Each value must be plain CSS for its token's type:
 | Weight (`weight`)                  | A number from 100 to 1000                                                                                                                                                                                |
 | Size and spacing (`size`, `space`) | A length in `px`, `rem`, or `em`                                                                                                                                                                         |
 | Radius (`radius`)                  | One to four lengths in `px`, `rem`, `em`, or `%`, such as `0 7px 0 3px`                                                                                                                                  |
+| Shadow (`shadow`)                  | `none`, or one or more shadows of lengths, `inset`, and colors under the color rules, such as `0 1px 2px rgb(0 0 0 / 0.3)`                                                                               |
+| Duration (`duration`)              | A time in `ms` or `s`, up to `10s`                                                                                                                                                                       |
+| Easing (`easing`)                  | `ease`, `ease-in`, `ease-out`, `ease-in-out`, `linear`, or `cubic-bezier()` with four numbers                                                                                                            |
 
 A value is refused when it contains anything else. That includes `url()`, `image-set()`, `expression()`, any other function, `@` rules, semicolons, braces, and quotes outside a font name. Nothing in a file can load a remote resource or add a rule to the page. Each value is at most 200 characters, and a file is read only up to 256 KiB.
 
