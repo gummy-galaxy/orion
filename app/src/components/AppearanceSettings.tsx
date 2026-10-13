@@ -5,7 +5,7 @@ type Props = { appearance: Appearance; themes: readonly Theme[]; chooseAppearanc
 
 const capitalize = (text: string) => text[0].toUpperCase() + text.slice(1)
 
-/** The theme, card skin, and color mode, saved on this device. */
+/** The theme, card skin, color mode, and companion, saved on this device. */
 export function AppearanceSettings({ appearance, themes, chooseAppearance }: Props) {
   const theme = themeOf(appearance.theme, themes)
   const fixed = theme.schemes.length === 1
@@ -88,6 +88,26 @@ export function AppearanceSettings({ appearance, themes, chooseAppearance }: Pro
               onClick={() => chooseAppearance({ ...appearance, colorMode: mode })}
             >
               {capitalize(mode)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="settings-field">
+        <div>
+          <span className="settings-field-label" id="settings-companion">
+            Companion
+          </span>
+          <p className="settings-field-detail">A little star that perches on the card nearest the pointer and reacts to its status.</p>
+        </div>
+        <div className="options" role="group" aria-labelledby="settings-companion">
+          {[true, false].map((shown) => (
+            <button
+              key={String(shown)}
+              type="button"
+              aria-pressed={appearance.companion === shown}
+              onClick={() => chooseAppearance({ ...appearance, companion: shown })}
+            >
+              {shown ? 'On' : 'Off'}
             </button>
           ))}
         </div>
