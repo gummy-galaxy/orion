@@ -26,17 +26,18 @@ Every command also takes `--workspace <name>` to work in a specific workspace, a
 | [`orion unlink`](./unlink)           | Remove the link between two items                                                                          |
 | [`orion note`](./note)               | Add a note, optionally between two linked items                                                            |
 | [`orion remove`](./remove)           | Remove items; optionally reconnect a card's links                                                          |
-| [`orion group`](./group)             | Wrap items that share a parent in a new group                                                              |
+| [`orion group`](./group)             | Make a group around items, or remove one with everything inside                                            |
+| [`orion ref`](./ref)                 | Take outside work off an item                                                                              |
 | [`orion ungroup`](./ungroup)         | Dissolve groups, keeping their items in place                                                              |
 | [`orion move`](./move)               | Move items or groups into another group                                                                    |
-| [`orion sync`](./sync)               | Update pull request items from GitHub                                                                      |
+| [`orion sync`](./sync)               | Update pull request items from GitHub (deprecated: use ingest)                                             |
 | [`orion matches`](./matches)         | List unplaced pull requests and likely cards                                                               |
 | [`orion backups`](./backups)         | List saved Orion data revisions                                                                            |
 | [`orion media`](./media)             | Insert or list media nodes                                                                                 |
 | [`orion restore`](./restore)         | Restore a saved revision as a new revision                                                                 |
 | [`orion serve`](./serve)             | Serve the Orion API or report its status                                                                   |
 | [`orion source`](./source)           | List, add, or remove ingestion sources                                                                     |
-| [`orion ingest`](./ingest)           | Import work from configured sources                                                                        |
+| [`orion ingest`](./ingest)           | Import work from configured sources and refresh the cards they track                                       |
 | [`orion import`](./import)           | Add a card for each URL or source:key in one step                                                          |
 | [`orion suggest`](./suggest)         | Compute group suggestions                                                                                  |
 | [`orion suggestions`](./suggestions) | List, apply, or dismiss group suggestions                                                                  |
