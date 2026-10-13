@@ -167,6 +167,7 @@ In `app/`:
 - `src/nodes.tsx`: task cards and group frames.
 - `src/useInspecting.ts` and `src/components/PeekCard.tsx`: holding Ctrl to inspect, and the card it opens in full.
 - `src/components/ImageView.tsx`: image nodes and their workspace-local previews.
+- `src/cardDraw.ts`, `src/useDrawnCards.ts`, and `src/components/CardSlot.tsx`: which cards get their bodies. Cards far from the view keep their node, handles, and size, so edges and fitting still work, but skip the card body. The rest mount a batch per frame, nearest the view's center first.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
