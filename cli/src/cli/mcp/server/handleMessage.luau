@@ -9,6 +9,9 @@ type Run = mcpTypes.Run
 
 local SERVER_VERSION = "0.1.0"
 local PROTOCOL_VERSIONS = { "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05" }
+-- Sent in the initialize response so every MCP client records where work starts, without per-machine setup.
+local INSTRUCTIONS =
+	'When you start work for an Orion card, record its branch on that card with orion_update_item and ref "branch:<owner>/<repo>@<branch>". Orion attaches a pull request you open from that branch to the card on the next sync. If no card exists for the work, add one first.'
 
 local PARSE_ERROR = -32700
 local INVALID_REQUEST = -32600
@@ -55,6 +58,7 @@ local function initialize(params: json.Object): json.Object
 		protocolVersion = version,
 		capabilities = json.object({ tools = json.object({ listChanged = false }) }),
 		serverInfo = json.object({ name = "orion", version = SERVER_VERSION }),
+		instructions = INSTRUCTIONS,
 	})
 end
 

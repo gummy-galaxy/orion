@@ -55,6 +55,15 @@ test.case("initialize negotiates a protocol version and advertises tools", funct
 	assert.eq(need(json.asObject(newer.result)).protocolVersion, "2025-11-25")
 end)
 
+test.case("initialize tells agents to record the branch a card's work starts on", function(assert)
+	local run = runner(testing.directory("mcp-instructions"))
+	local response = need(handleMessage(request(1, "initialize", json.object({})), run))
+	local instructions = need(json.asObject(response.result)).instructions
+
+	assert.strContains(instructions :: string, "orion_update_item")
+	assert.strContains(instructions :: string, "branch:<owner>/<repo>@<branch>")
+end)
+
 test.case("tools round-trip through the CLI and workspace storage", function(assert)
 	local run = runner(testing.directory("mcp-round-trip"))
 

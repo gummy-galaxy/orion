@@ -10,6 +10,17 @@
   /* Ready work wears the theme's accent unless the status colors replace it. */
   --status-ready: var(--accent-default);
 
+  /* The companion: white stars with dark eyes, outlined in near-black with a blue-violet undertone on light canvases. */
+  --companion-body: #fff;
+  --companion-edge: light-dark(#1d1a33, transparent);
+  --companion-ink: light-dark(#1d1a33, #1a1240);
+  --companion-halo: light-dark(rgb(76 64 160 / 0.18), rgb(255 255 255 / 0.55));
+  --companion-glow: light-dark(rgb(98 80 200 / 0.22), color-mix(in srgb, var(--accent-default) 50%, transparent));
+  --companion-tether: light-dark(
+    color-mix(in srgb, var(--companion-edge) 70%, transparent),
+    color-mix(in srgb, var(--companion-body) 70%, transparent)
+  );
+
   --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
@@ -57,6 +68,30 @@
   --space-9: 20px;
   --space-10: 24px;
 
+  --shadow-image: 0 8px 24px #0002;
+  --shadow-dialog: 0 14px 50px color-mix(in srgb, var(--text-primary) 20%, transparent);
+  --shadow-selection: 0 0 0 9px color-mix(in srgb, var(--accent-default) 26%, transparent);
+  --shadow-sticker: 0 2px 2px rgb(23 36 43 / 0.25);
+  --shadow-sticker-held: 0 9px 7px rgb(23 36 43 / 0.22);
+
+  --motion-duration-stagger: 16ms;
+  --motion-duration-instant: 120ms;
+  --motion-duration-quick: 140ms;
+  --motion-duration-fast: 150ms;
+  --motion-duration-open: 160ms;
+  --motion-duration-fade: 180ms;
+  --motion-duration-base: 200ms;
+  --motion-duration-reveal: 240ms;
+  --motion-duration-pop: 340ms;
+  --motion-duration-stamp: 360ms;
+
+  --motion-easing-standard: ease;
+  --motion-easing-enter: ease-out;
+  --motion-easing-exit: ease-in;
+  --motion-easing-pop: cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  --motion-easing-bounce: cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  --motion-easing-stamp: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+
   color-scheme: light dark;
 }
 
@@ -81,6 +116,7 @@
   --st-review: var(--status-review);
   --st-blocked: var(--status-blocked);
   --st-done: var(--status-done);
+  --shadow: var(--shadow-raised);
 }
 
 :root[data-color-mode='light'] {

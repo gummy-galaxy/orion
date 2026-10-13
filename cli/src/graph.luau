@@ -4,6 +4,7 @@ local checkBackground = require("@root/style/checkBackground")
 local fieldValues = require("@root/fieldValues")
 local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
+local getRefs = require("@root/refs/getRefs")
 local isAssetId = require("@root/media/isAssetId")
 local removeRef = require("@root/refs/removeRef")
 local setRef = require("@root/refs/setRef")
@@ -533,12 +534,18 @@ function graph.attachRef(doc: Doc, id: string, resolved: types.ResolvedRef): Ite
 		item.data.repo = resolved.repo
 	end
 
-	if not graph.isNote(item) then
-		local kind = if graph.isGate(item) then "gate" else nil
-		item.data.itemKind = itemKindFor(field(item, "repo"), if findRef(item, "pull") then 1 else nil, kind)
+	graph.refreshItemKind(item)
+	return item
+end
+
+-- Recomputes an item's kind from its repository, pull request, and gate status after its refs change.
+function graph.refreshItemKind(item: Item)
+	if graph.isNote(item) then
+		return
 	end
 
-	return item
+	local kind = if graph.isGate(item) then "gate" else nil
+	item.data.itemKind = itemKindFor(field(item, "repo"), if findRef(item, "pull") then 1 else nil, kind)
 end
 
 function graph.link(doc: Doc, from: string, to: string, kind: string): Link
@@ -698,7 +705,7 @@ end
 -- A note's incoming and outgoing links are reconnected so nothing loses its blocker.
 function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	local item = graph.get(doc, id)
-	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup instead`)
+	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup or group remove instead`)
 	if reconnect then
 		graph.checkReconnect(doc, id)
 	end
@@ -825,6 +832,70 @@ function graph.ungroup(doc: Doc, id: string)
 			break
 		end
 	end
+end
+
+-- Everything inside a group at any depth, parents before their children.
+function graph.contents(doc: Doc, id: string): { Item }
+	local contents: { Item } = {}
+	local parents = { id }
+	local index = 1
+
+	while index <= #parents do
+		for _, item in doc.nodes do
+			if item.parentId == parents[index] then
+				table.insert(contents, item)
+
+				if graph.isGroup(item) then
+					table.insert(parents, item.id)
+				end
+			end
+		end
+
+		index += 1
+	end
+
+	return contents
+end
+
+-- Removes a group with everything inside it. Each card goes the way `remove` takes it, so a note's links reconnect
+-- around it, and a parent left empty disappears.
+function graph.removeGroup(doc: Doc, id: string)
+	graph.group(doc, id)
+	local groupIds = { [id] = true }
+
+	for _, item in graph.contents(doc, id) do
+		if graph.isGroup(item) then
+			groupIds[item.id] = true
+		elseif graph.find(doc, item.id) then
+			graph.remove(doc, item.id)
+		end
+	end
+
+	for index = #doc.nodes, 1, -1 do
+		if groupIds[doc.nodes[index].id] then
+			table.remove(doc.nodes, index)
+		end
+	end
+
+	pruneEmptyGroups(doc)
+end
+
+-- Takes a ref off an item. A kind narrows the match when the same key could name an issue and a pull request.
+function graph.detachRef(doc: Doc, id: string, key: string, kind: string?): Item
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), "groups don't take refs")
+	local matched = false
+
+	for _, ref in getRefs(item) do
+		if ref.key:lower() == key:lower() and (kind == nil or ref.kind == kind) then
+			removeRef(item, ref.kind, ref.key)
+			matched = true
+		end
+	end
+
+	assert(matched, `"{id}" has no ref {key}`)
+	graph.refreshItemKind(item)
+	return item
 end
 
 -- The recorded status of every card, read before a write so markCelebrations can see what changed.

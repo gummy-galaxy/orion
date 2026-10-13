@@ -22,6 +22,12 @@ const FONT_TEXT = /^[a-z0-9 ,'"_-]+$/i
 const SIZE = /^(0|\d+(\.\d+)?(px|rem|em))$/
 const RADIUS = /^(0|\d+(\.\d+)?(px|rem|em|%))( (0|\d+(\.\d+)?(px|rem|em|%))){0,3}$/
 const WEIGHT = /^\d+$/
+const DURATION = /^\d+(\.\d+)?(ms|s)$/
+/** Longer than any transition should run, so a typo can't freeze the interface for minutes. */
+const MAX_DURATION_MS = 10_000
+const EASING_KEYWORDS = ['ease', 'ease-in', 'ease-out', 'ease-in-out', 'linear']
+const NUMBER = '-?\\d+(\\.\\d+)?'
+const CUBIC_BEZIER = new RegExp(`^cubic-bezier\\(\\s*${NUMBER}(\\s*,\\s*${NUMBER}){3}\\s*\\)$`)
 
 type Problem = string | null
 
@@ -60,6 +66,12 @@ export function checkValue(token: Token, value: string): Problem {
       return RADIUS.test(text) && text.split(' ').every((part) => Number.parseFloat(part) <= MAX_RADIUS)
         ? null
         : 'must be one to four lengths in px, rem, em, or %'
+    case 'shadow':
+      return checkShadow(text)
+    case 'duration':
+      return checkDuration(text)
+    case 'easing':
+      return EASING_KEYWORDS.includes(text) || CUBIC_BEZIER.test(text) ? null : 'must be an easing keyword or cubic-bezier()'
   }
 }
 
@@ -82,6 +94,21 @@ function checkColor(text: string): Problem {
   if (!COLOR_TEXT.test(text)) return 'has characters that are not part of a color'
 
   return null
+}
+
+/** A shadow is lengths, the word inset, and colors, so it follows the color rules and lets the browser check the shape. */
+function checkShadow(text: string): Problem {
+  if (text === 'none') return null
+
+  return checkColor(text)?.replace('part of a color', 'part of a shadow') ?? null
+}
+
+function checkDuration(text: string): Problem {
+  if (!DURATION.test(text)) return 'must be a time in ms or s'
+
+  const ms = Number.parseFloat(text) * (text.endsWith('ms') ? 1 : 1000)
+
+  return ms <= MAX_DURATION_MS ? null : 'must be 10s or less'
 }
 
 function checkFont(text: string): Problem {
@@ -114,6 +141,9 @@ const PROPERTY_FOR_GROUP: Record<Token['group'], string> = {
   size: 'font-size',
   space: 'padding',
   radius: 'border-radius',
+  shadow: 'box-shadow',
+  duration: 'transition-duration',
+  easing: 'transition-timing-function',
 }
 
 /** Where the browser exists, it has the last word on a value its parser would drop. Elsewhere the checks above stand alone. */
