@@ -18,6 +18,7 @@ function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: 
     colorMode: 'system',
     statusColors: 'theme',
     animations: 'system',
+    companion: true,
   })
   const [bindings, setBindings] = useState(keybindings)
   const [themes, setThemes] = useState<Theme[]>(cachedThemes)

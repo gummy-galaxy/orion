@@ -40,9 +40,10 @@ To show the person the app, or anything else served locally such as a dev server
 
 ## Changing it
 
-- `orion add <title> [--group <id>] [--kind gate] [--ref <url | source:key>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
-- `orion set <id> [--label …] [--status …] [--kind step|gate] [--who you|review|ci] [--note …] [--ref <url | source:key>]` changes fields. Pass an empty value to clear `--who` or `--note`. Set rejects an item-only field on a group and a group-only field on an item, and the error names the field.
-- `--ref` attaches outside work to a card: a GitHub issue or pull request URL, a Jira issue URL under a configured Jira source, or `source:key` such as `jira:ABC-12`. The adapter of the matching source resolves it. `--repo` and `--pr` still work as aliases for one release and are deprecated; use `--ref` with the pull request URL.
+- `orion add <title> [--group <id>] [--kind gate] [--ref <url | source:key | branch:owner/name@branch>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
+- `orion set <id> [--label …] [--status …] [--kind step|gate] [--who you|review|ci] [--note …] [--ref <url | source:key | branch:owner/name@branch>]` changes fields. Pass an empty value to clear `--who` or `--note`. Set rejects an item-only field on a group and a group-only field on an item, and the error names the field.
+- `--ref` attaches outside work to a card: a GitHub issue or pull request URL, a Jira issue URL under a configured Jira source, or `source:key` such as `jira:ABC-12`. The adapter of the matching source resolves it. `branch:owner/name@branch` (for example `branch:vocksel/orion@agent/196-attach`) records the branch work started on, as a branch ref keyed like hop's; GitHub Enterprise hosts go in front of the repository, as in `branch:github.example.com/owner/name@branch`. `--repo` and `--pr` still work as aliases for one release and are deprecated; use `--ref` with the pull request URL.
+- `orion ref remove <id> <ref>` takes a ref off a card. Name it by the key `orion show` lists, such as `owner/name#12`, or by the URL or `source:key` that attached it.
 - `orion set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
 - `orion import <url | source:key>… [--stdin] [--group <id>] [--dry-run] [--json] [--if-revision <n>]` adds a card for each listed ref in one transaction. `--stdin` also reads one ref per line. Refs resolve with `--ref`'s grammar. GitHub titles are fetched 25 refs per query, and Jira refs are read through their source's command, so a Jira key must appear in that source's results. A ref already on the canvas is skipped and keeps its card. A ref that doesn't resolve or can't be found is reported and skipped, the rest are still added, and the command exits nonzero if any failed.
 - `orion done <id...> | --where '<expr>'` marks items done.
@@ -52,11 +53,12 @@ To show the person the app, or anything else served locally such as a dev server
 - `orion insert <id> --between <from> <to>` replaces an existing link with two links through the item, keeping its kind.
 - `orion note <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it splits their existing link or adds two blocking links if they are unlinked.
 - `orion media insert <file> [--label <text>] [--group <id>]` inserts a media node. It currently accepts PNG, JPEG, GIF, and WebP images, identified from their contents. `orion media list` lists media nodes in the selected workspace. `orion serve` accepts raw bytes at `POST /api/images?workspace=<name>` and returns them at `GET /api/images/<asset>?workspace=<name>`.
-- `orion group <label> --items <id,id,…>`, `orion ungroup <id...> | --where '<expr>'`, and `orion move <id...> | --where '<expr>' --to <group>` (or `--top`) organize work.
+- `orion group add <label> --items <id,id,…>` (or the older `orion group <label> --items …`), `orion ungroup <id...> | --where '<expr>'`, and `orion move <id...> | --where '<expr>' --to <group>` (or `--top`) organize work.
 - `orion tidy [<group>...] | --where '<expr>'` marks groups for the app to lay out in place, using the same markers the CLI sets when it changes a group's members. The app lays out marked groups deepest first, so nested groups settle before their parents. Custom groups keep their arrangement, and a group that already has a pending marker keeps it. The CLI never lays out groups itself: if `orion serve` isn't running, the output says the layout runs when the app opens.
 - `orion remove <id...> | --where '<expr>'` deletes items. Removing a note reconnects the links that ran through it. Add `--reconnect` to reconnect cards with at most one incoming and one outgoing link; every selected card must qualify.
+- `orion group remove <id...> | --where '<expr>'` deletes groups with everything inside them, at any depth. Preview it with `--dry-run`, which lists each group and what's inside.
 
-`done`, `snooze`, `unsnooze`, `link`, `insert`, `remove`, `move`, `ungroup`, and `tidy` accept `--dry-run`, `--json`, and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion remove --where 'repo = "unrelated"' --dry-run`, then run `orion remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
+`done`, `snooze`, `unsnooze`, `link`, `insert`, `remove`, `group remove`, `move`, `ungroup`, and `tidy` accept `--dry-run`, `--json`, and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion remove --where 'repo = "unrelated"' --dry-run`, then run `orion remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
 
 Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set `blocked` or `deferred` only for reasons the graph can't show, since waiting on open work already reads as blocked. Snoozing is not a status: use `orion snooze` to hide a card for a while.
 
@@ -69,6 +71,8 @@ Run `orion suggest` to find related ungrouped cards, then review `orion suggesti
 Cards with a repository and pull request number stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. Run `orion sync --dry-run` first when unsure.
 
 `orion sync` records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. When the workspace has GitHub sources, only pull requests in their repositories count. Link one to an existing card with `orion set <id> --ref <pull request URL>`.
+
+When a card has a branch ref for the pull request's head branch in its repository, `orion sync` attaches the new pull request to that card and records it as its pull request. If more than one card has that branch, the pull request stays unplaced and `orion matches` lists those cards. Record the branch when you start work (`orion set <id> --ref branch:owner/name@branch`) so sync can attach the pull request you open.
 
 `orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
 
@@ -96,9 +100,13 @@ Put `Closes #<n>` in the description for each issue the pull request finishes, s
 
 Give each pull request a place on the canvas. When a card already tracks the work, attach the pull request to it with `orion set <id> --ref https://github.com/vocksel/orion/pull/<n>`. Otherwise add a card for it in the outcome group it belongs to.
 
+## Docs
+
+The docs site in `docs/` shows Orion's public surfaces. Its CLI and MCP reference pages are generated from the command table and the MCP tool catalog. After changing a command, an option, or an MCP tool, run `lute run docs` from the repository root and commit the pages it writes; CI fails when they're out of date. It formats them with the docs site's Prettier, so run `npm ci` in `docs/` first. Write the guide pages by hand, for someone who has never used Orion.
+
 ## Trying a desktop build
 
-A fresh worktree has none of the build's dependencies, and the build fails partway without them. Before the first build there, run `npm ci` in `app/` and `desktop/`, and `lute run install` in `cli/` for the Luau packages that `prepare-sidecar` requires.
+A fresh worktree has none of the build's dependencies, and the build fails partway without them. Before the first build there, run `npm ci` in `app/` and `desktop/`, and `lute pkg install` in `cli/` for the Luau packages that `prepare-sidecar` requires.
 
 To let someone try a change in the desktop app, run `npm run build` in `desktop/`, then replace the copy they launch, usually `~/Applications/Orion.app`. Every build shares one bundle id, so a fresh build elsewhere goes unseen. Quit Orion, move the installed app to the Trash, `ditto` `desktop/src-tauri/target/release/bundle/macos/Orion.app` into its place, register it with `lsregister -f`, and relaunch. When the icon changed, also `touch` the bundle and run `killall Dock`, which otherwise keeps showing the old icon.
 

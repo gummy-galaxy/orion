@@ -39,10 +39,12 @@ export type Change = {
 	closed: boolean,
 }
 export type StackLink = { from: string, to: string }
+export type Attachment = { id: string, pull: string }
 export type Report = {
 	changes: { Change },
 	missing: { string },
 	added: { string },
+	attached: { Attachment },
 	linked: { StackLink },
 	unlinked: { StackLink },
 	checked: number,

@@ -1,8 +1,11 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useReactFlow, type NodeChange } from '@xyflow/react'
+import { useSetAtom } from 'jotai'
+import { POP_DISTANCE, dropTarget, followEscape, reparent, startEscape, type Escape } from './escape'
 import { liftNodes, unliftNodes } from './lift'
 import { byId, isCluster, normalize, type AppNode } from './model'
 import { finishDrag, snapDrag, snapGuides } from './snap'
+import { dropTargetAtom } from './state'
 import type { CardSize } from './cardSize'
 
 const SNAP_PX = 8
@@ -15,7 +18,14 @@ const SNAP_REACH_PX = 160
 const THROW_SPEED = 0.8
 const THROW_WINDOW_MS = 90
 
-type DragSession = { ids: Set<string>; free: boolean; samples: { x: number; y: number; time: number }[] }
+/** `before` is the canvas as the drag found it; `escape` tracks the group the dragged work is leaving, if any. */
+type DragSession = {
+  ids: Set<string>
+  free: boolean
+  samples: { x: number; y: number; time: number }[]
+  before: AppNode[]
+  escape: Escape | null
+}
 type DragEvent = MouseEvent | TouchEvent
 
 /** Owns snapping's drag state while the canvas keeps its other node-change behavior. */
@@ -36,6 +46,7 @@ export function useNodeSnapping({
   const dragOrigins = useRef(new Map<string, AppNode['position']>())
   const drag = useRef<DragSession | null>(null)
   const [skipSnapGuides, setSkipSnapGuides] = useState(false)
+  const setDropTarget = useSetAtom(dropTargetAtom)
 
   const snapChanges = useCallback(
     (changes: NodeChange<AppNode>[]) => {
@@ -45,8 +56,23 @@ export function useNodeSnapping({
         session && !session.free ? changes.flatMap((change) => (change.type === 'position' && session.ids.has(change.id) ? [change.id] : [])) : []
       const tolerance = SNAP_PX / reactFlow.getZoom()
       const reach = SNAP_REACH_PX / reactFlow.getZoom()
+      const pop = POP_DISTANCE / reactFlow.getZoom()
+      // Read once here, so the updater gives the same answer however many times React calls it.
+      const escape = session?.escape
 
-      return (changedNodes: AppNode[]) => (movedIds.length ? snapDrag(changedNodes, movedIds, tolerance, reach, cardSize) : changedNodes)
+      return (changedNodes: AppNode[]) => {
+        if (!movedIds.length) return changedNodes
+
+        const snapped = snapDrag(changedNodes, movedIds, tolerance, reach, cardSize)
+
+        if (!session || !escape) return snapped
+
+        const followed = followEscape(snapped, escape, session.before, pop, cardSize)
+
+        session.escape = followed.escape
+
+        return followed.nodes
+      }
     },
     [reactFlow, cardSize],
   )
@@ -54,11 +80,12 @@ export function useNodeSnapping({
   const onDragStart = useCallback(
     (event: DragEvent, dragged: { id: string }[]) => {
       const ids = new Set(dragged.map((node) => node.id))
+      const before = getCurrentNodes()
 
-      drag.current = { ids, free: event.ctrlKey, samples: [] }
+      drag.current = { ids, free: event.ctrlKey, samples: [], before, escape: startEscape(before, ids, cardSize) }
       setSkipSnapGuides(event.ctrlKey)
       setNodes((currentNodes) => liftNodes(currentNodes, ids))
-      const nodeMap = byId(getCurrentNodes())
+      const nodeMap = byId(before)
 
       dragOrigins.current = new Map()
 
@@ -69,20 +96,29 @@ export function useNodeSnapping({
         if (node && parent && isCluster(parent) && parent.data.arrange !== 'custom') dragOrigins.current.set(node.id, node.position)
       }
     },
-    [getCurrentNodes, setNodes],
+    [getCurrentNodes, setNodes, cardSize],
   )
 
-  const onDrag = useCallback((event: DragEvent) => {
-    const session = drag.current
+  const onDrag = useCallback(
+    (event: DragEvent) => {
+      const session = drag.current
 
-    if (!session) return
+      if (!session) return
 
-    session.free = event.ctrlKey
-    setSkipSnapGuides(event.ctrlKey)
-    const point = 'touches' in event ? event.touches[0] : event
+      session.free = event.ctrlKey
+      setSkipSnapGuides(event.ctrlKey)
+      const point = 'touches' in event ? event.touches[0] : event
 
-    if (point) session.samples = [...session.samples.slice(-7), { x: point.clientX, y: point.clientY, time: performance.now() }]
-  }, [])
+      if (point) session.samples = [...session.samples.slice(-7), { x: point.clientX, y: point.clientY, time: performance.now() }]
+
+      const escape = session.escape
+      const target = escape ? dropTarget(getCurrentNodes(), escape, cardSize) : undefined
+
+      // Only a group that isn't the one the work started in is highlighted. Landing at the top level has nothing to show.
+      setDropTarget(escape && target && target !== escape.from ? target : null)
+    },
+    [getCurrentNodes, cardSize, setDropTarget],
+  )
 
   const onDragStop = useCallback(
     (event: DragEvent) => {
@@ -90,6 +126,7 @@ export function useNodeSnapping({
 
       drag.current = null
       setSkipSnapGuides(false)
+      setDropTarget(null)
       const origins = dragOrigins.current
 
       dragOrigins.current = new Map()
@@ -107,10 +144,18 @@ export function useNodeSnapping({
         Math.hypot(lastSample.x - firstSample.x, lastSample.y - firstSample.y) / (lastSample.time - firstSample.time) >= THROW_SPEED
       const draggedIds = [...session.ids]
 
-      if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes(released)
-
+      // The last position change lands a frame after drag stop, so where the work ended up is read then.
       requestAnimationFrame(() => {
         const currentNodes = getCurrentNodes()
+        const escape = session.escape
+        const target = escape ? dropTarget(currentNodes, escape, cardSize) : undefined
+
+        // Work dropped into another group, or popped out of its own, lands where it was let go.
+        if (escape && target !== escape.from)
+          return setNodes((latestNodes) => normalize(reparent(unliftNodes(latestNodes, session.ids), escape.roots, target, escape.from), cardSize))
+
+        if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes(released)
+
         const finished = finishDrag(currentNodes, origins, draggedIds, session.free || event.ctrlKey, thrown, cardSize)
         const result = released(finished)
 
@@ -118,7 +163,7 @@ export function useNodeSnapping({
         else setNodes(result)
       })
     },
-    [getCurrentNodes, setNodes, tweenTo, cardSize],
+    [getCurrentNodes, setNodes, tweenTo, cardSize, setDropTarget],
   )
 
   // Zoom is read here, not subscribed to, so guides refresh its reach on the next node change.
