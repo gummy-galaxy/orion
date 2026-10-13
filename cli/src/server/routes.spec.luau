@@ -308,3 +308,42 @@ test.case("static route serves files and falls back to index outside the API", f
 	assert.eq(router.handle(createRequest("GET", "/deep/link")).body, "home")
 	assert.eq(router.handle(createRequest("GET", "/api/unknown")).status, 404)
 end)
+
+test.case("settings routes merge preferences beside the workspaces", function(assert)
+	local root, router = createRouter("routes-settings")
+	assert.eq(router.handle(createRequest("GET", "/api/settings")).body, "{}")
+
+	local saved =
+		router.handle(createRequest("POST", "/api/settings", json.object({ theme = "vibrant", sidebar = false })))
+	assert.eq(saved.status, 200)
+
+	router.handle(createRequest("POST", "/api/settings", json.object({ colorMode = "dark", sidebar = json.null })))
+	local settings = decodeResponse(router.handle(createRequest("GET", "/api/settings")))
+	assert.eq(settings.theme, "vibrant")
+	assert.eq(settings.colorMode, "dark")
+	assert.eq(settings.sidebar, nil)
+	assert.eq(fs.exists(path.join(root, "settings.json")), true)
+
+	fs.writeStringToFile(path.join(root, "settings.json"), "not json")
+	assert.eq(router.handle(createRequest("GET", "/api/settings")).body, "{}")
+
+	local invalid = createRequest("POST", "/api/settings")
+	invalid.body = "[1]"
+	assert.eq(router.handle(invalid).status, 400)
+	invalid.body = json.serialize(json.object({ big = string.rep("x", 64 * 1024) }))
+	assert.eq(router.handle(invalid).status, 400)
+	assert.eq(router.handle(createRequest("DELETE", "/api/settings")).status, 405)
+end)
+
+test.case("the theme list route serves theme files from the data folder", function(assert)
+	local root, router = createRouter("routes-theme-files")
+	local folder = path.join(root, "themes")
+	fs.createDirectory(folder, { makeParents = true })
+	fs.writeStringToFile(path.join(folder, "dusk.json"), '{"name":"Dusk"}')
+
+	local response = router.handle(createRequest("GET", "/api/themes"))
+	assert.eq(response.status, 200)
+	local entries = json.asArray(decodeResponse(response).themes) :: json.Array
+	assert.eq((json.asObject(entries[1]) :: json.Object).file, "dusk.json")
+	assert.eq(router.handle(createRequest("POST", "/api/themes")).status, 405)
+end)

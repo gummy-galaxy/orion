@@ -3,7 +3,7 @@ import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext } from '../derive'
 import type { ClusterNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useCollapsed, useGroupParts, useGroupStats, useMarked, useSources, useTint, useTraceRole } from '../state'
+import { useCollapsed, useGroupParts, useGroupStats, useIsDropTarget, useMarked, useSources, useTint, useTraceRole } from '../state'
 import { Ring } from './Ring'
 
 export const ClusterView = memo(function ClusterView({ id, data, width, height }: NodeProps<ClusterNode>) {
@@ -19,10 +19,11 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   // Groups that hold no work, like the boundaries of a system diagram, have no progress to show.
   const hasWork = stats.total > 0
   const parts = useGroupParts(id)
+  const isDropTarget = useIsDropTarget(id)
 
   return (
     <div
-      className={`cluster${tint ? ' tint-' + tint : ''}${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}`}
+      className={`cluster${tint ? ' tint-' + tint : ''}${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${isDropTarget ? ' is-drop-target' : ''}`}
     >
       <Handle type="target" position={Position.Left} isConnectable={false} />
       {collapsed ? (

@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local sources = require("@root/sources")
+local getJson = require("@root/sources")
 local store = require("@root/store")
 
 type Context = context.Context
@@ -14,7 +14,7 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local values = sources.getJson(store.load(options.dir).settings.sources)
+		local values = getJson(store.load(options.dir).settings.sources)
 
 		if parser:has("json") then
 			options.write(json.serialize(values, true))

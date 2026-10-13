@@ -20,6 +20,41 @@ test.case("tool arguments map onto the command each tool runs", function(assert)
 	end)
 end)
 
+test.case("group and ref tools run their subcommands", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_group", json.object({ label = "Ship", items = { "ci", "pub" } })), " "),
+		"group add Ship --items ci,pub --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_remove_group", json.object({ id = "ws", dryRun = true })), " "),
+		"group remove ws --dry-run --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_remove_ref", json.object({ id = "ci", ref = "owner/name#1" })), " "),
+		"ref remove ci owner/name#1 --json"
+	)
+end)
+
+test.case("orion_import passes each ref as a trailing positional", function(assert)
+	assert.eq(
+		table.concat(
+			getToolArgv(
+				"orion_import",
+				json.object({
+					refs = { "https://github.com/vocksel/orion/issues/91", "jira:ABC-1" },
+					group = "release",
+					dryRun = true,
+				})
+			),
+			" "
+		),
+		"import https://github.com/vocksel/orion/issues/91 jira:ABC-1 --group release --dry-run --json"
+	)
+	assert.throwsWith("refs must be a list of strings", function()
+		getToolArgv("orion_import", json.object({ refs = { "" } }))
+	end)
+end)
+
 test.case("tools reject arguments their schemas do not allow", function(assert)
 	assert.throwsWith("unknown argument: colour", function()
 		getToolArgv("orion_add_item", json.object({ title = "A", colour = "red" }))
@@ -45,4 +80,45 @@ test.case("mcp tool arguments run the existing command", function(assert)
 		end,
 	})
 	assert.strContains(table.concat(output, "\n"), "From the catalog")
+end)
+
+test.case("update_item passes ref through as --ref and keeps repo and pr as aliases", function(assert)
+	assert.eq(
+		getToolArgv("orion_update_item", json.object({ id = "pub", ref = "jira:ABC-1" })),
+		{ "set", "pub", "--ref", "jira:ABC-1", "--json" }
+	)
+	assert.eq(
+		getToolArgv("orion_add_item", json.object({ title = "Review", repo = "Roblox/avatar", pr = 4 })),
+		{ "add", "Review", "--repo", "Roblox/avatar", "--pr", "4", "--json" }
+	)
+end)
+
+test.case("workspace tools map onto the workspace commands", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_workspace", json.object({ label = "Focus areas" })), " "),
+		"workspace create --label Focus areas"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_workspace", json.object({ name = "focus", label = "Focus" })), " "),
+		"workspace create focus --label Focus"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_rename_workspace", json.object({ name = "focus", label = "Focus" })), " "),
+		"workspace rename focus Focus"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_archive_workspace", json.object({ name = "focus" })), " "),
+		"workspace archive focus"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_restore_workspace", json.object({ name = "focus" })), " "),
+		"workspace restore focus"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_workspaces", json.object({ archived = true })), " "),
+		"workspace list --archived --json"
+	)
+	assert.throwsWith("missing name", function()
+		getToolArgv("orion_archive_workspace", json.object({}))
+	end)
 end)

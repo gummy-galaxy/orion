@@ -1,3 +1,5 @@
+export type CheckCounts = { total: number, finished: number, failed: number }
+
 export type PullState = {
 	owner: string,
 	name: string,
@@ -16,6 +18,11 @@ export type PullState = {
 	additions: number,
 	deletions: number,
 	checks: string?,
+	checkProgress: string?,
+	checkCounts: CheckCounts?,
+	mergeable: string?,
+	mergeState: string?,
+	head: string?,
 	branch: string?,
 	body: string?,
 	host: string?,
@@ -32,10 +39,12 @@ export type Change = {
 	closed: boolean,
 }
 export type StackLink = { from: string, to: string }
+export type Attachment = { id: string, pull: string }
 export type Report = {
 	changes: { Change },
 	missing: { string },
 	added: { string },
+	attached: { Attachment },
 	linked: { StackLink },
 	unlinked: { StackLink },
 	checked: number,

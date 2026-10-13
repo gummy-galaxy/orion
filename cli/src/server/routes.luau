@@ -4,11 +4,15 @@ local net = require("@lute/net/server")
 local editor = require("@root/server/routes/editor")
 local focus = require("@root/server/routes/focus")
 local imageRoutes = require("@root/server/routes/images")
+local links = require("@root/server/routes/links")
+local merge = require("@root/server/routes/merge")
 local orion = require("@root/server/routes/orion")
+local settings = require("@root/server/routes/settings")
 local shared = require("@root/server/routes/shared")
 local static = require("@root/server/routes/static")
 local store = require("@root/store")
 local sync = require("@root/server/routes/sync")
+local themes = require("@root/server/routes/themes")
 local workspaces = require("@root/server/routes/workspaces")
 
 type Request = net.ReceivedRequest
@@ -58,6 +62,18 @@ function routes.create(
 		end
 		if route == "/api/editor" then
 			return editor.handle(request)
+		end
+		if route == "/api/merge" then
+			return merge.handle(request, syncLoop)
+		end
+		if route == "/api/links" then
+			return links.handle(request, root)
+		end
+		if route == "/api/settings" then
+			return settings.handle(request, root)
+		end
+		if route == "/api/themes" then
+			return themes.handle(request, root)
 		end
 
 		if route == "/api/workspaces" or route == "/api/workspaces/active" then

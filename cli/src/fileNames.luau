@@ -5,4 +5,6 @@ return table.freeze({
 	backups = "backups",
 	workspaces = "workspaces.json",
 	runtime = "serve.json",
+	settings = "settings.json",
+	themes = "themes",
 })

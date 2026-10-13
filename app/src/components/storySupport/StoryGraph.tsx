@@ -33,7 +33,7 @@ export function StoryGraph({
 
   return (
     <Provider store={store}>
-      <ActionsContext.Provider value={{ open: () => {}, reflow: () => {} }}>
+      <ActionsContext.Provider value={{ open: () => {}, reflow: () => {}, celebrate: () => {} }}>
         <ReactFlowProvider>
           <div style={{ width: 760, height: 470 }}>
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} fitView fitViewOptions={{ padding: 0.25 }}>

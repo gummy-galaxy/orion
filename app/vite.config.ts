@@ -49,7 +49,10 @@ function orionServer(port: number): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig(async ({ command }) => {
-  if (command !== 'serve' || process.env.ORION_STORYBOOK === '1') return { plugins: [react()] }
+  // The desktop build lists these licenses on its Acknowledgements page.
+  if (command === 'build') return { plugins: [react()], build: { license: { fileName: '.vite/licenses.json' } } }
+
+  if (process.env.ORION_STORYBOOK === '1') return { plugins: [react()] }
 
   const port = await freePort()
 

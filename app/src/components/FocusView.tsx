@@ -6,6 +6,7 @@ import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from '
 import type { Rect } from './AttentionOverlay'
 import type { Flow } from '../derive'
 import { STATUS_LABEL, type ViewStatus } from '../model'
+import { StatusIcon } from './StatusIcon'
 
 /** Lines from cards scrolled out of a column stop this far inside its edge. */
 const CLIP_INSET = 6
@@ -146,7 +147,12 @@ export function FocusView({
               >
                 <span className="focus-card-meta">
                   <span className="focus-card-tag">{item.tag}</span>
-                  {item.status && <span className="st">{STATUS_LABEL[item.status]}</span>}
+                  {item.status && (
+                    <span className="st">
+                      <StatusIcon status={item.status} />
+                      {STATUS_LABEL[item.status]}
+                    </span>
+                  )}
                 </span>
                 <span className="label">{item.label}</span>
                 <span className="focus-card-where">

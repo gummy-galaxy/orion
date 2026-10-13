@@ -20,6 +20,17 @@ local function getRecorded(pull: PullState, viewer: string, checkedAt: string): 
 	})
 	result.reviewDecision = pull.reviewDecision
 	result.checks = pull.checks
+	result.checkProgress = pull.checkProgress
+	result.checkCounts = if pull.checkCounts
+		then json.object({
+			total = pull.checkCounts.total,
+			finished = pull.checkCounts.finished,
+			failed = pull.checkCounts.failed,
+		})
+		else nil
+	result.mergeable = pull.mergeable
+	result.mergeState = pull.mergeState
+	result.head = pull.head
 	return result
 end
 

@@ -1,9 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { ViewportPortal, useReactFlow, type ReactFlowInstance } from '@xyflow/react'
-import type { Sticker } from '../sticker'
+import { motionReduced } from '../motion'
+import { offsetsFrom, pressedStickers, type Sticker } from '../sticker'
 
 type StickerPoint = { x: number; y: number }
 export type PlacedSticker = Sticker & { fresh: boolean }
+/** Whether a press held ⇧ or ⌘, which adds to the selection instead of replacing it. */
+export type PressModifiers = Pick<React.MouseEvent, 'metaKey' | 'shiftKey'>
 /** A visible group's frame in canvas coordinates. `parent` is the nearest visible group around it. */
 export type StickerBounds = { id: string; x0: number; y0: number; x1: number; y1: number; parent: string | null; depth: number }
 export type StickerMove = { id: string; x: number; y: number }
@@ -36,7 +39,6 @@ const DAMPING = 0.72
 const HIT_WOBBLE = 18
 const REST_SPEED = 0.004
 
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const clamp = (value: number, minimum: number, maximum: number) =>
   minimum > maximum ? (minimum + maximum) / 2 : Math.max(minimum, Math.min(maximum, value))
 
@@ -254,6 +256,8 @@ function collide(a: Body, b: Body, held: Body | undefined) {
 class StickerWorld {
   bodies = new Map<string, Body>()
   hold: Hold | null = null
+  /** Offsets from the held sticker of the other picked stickers that move with it. */
+  private followers = new Map<string, StickerPoint>()
   private frame = 0
   private at = 0
   private stickers: PlacedSticker[] = []
@@ -316,7 +320,7 @@ class StickerWorld {
 
   /** A fresh stamp knocks aside whatever it lands on. */
   stamped(id: string) {
-    if (reducedMotion()) return
+    if (motionReduced()) return
 
     this.wake()
     const sticker = this.bodies.get(id)
@@ -342,7 +346,8 @@ class StickerWorld {
     return this.reactFlow ? this.reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }) : { x: event.clientX, y: event.clientY }
   }
 
-  grab(id: string, event: React.PointerEvent) {
+  /** `companions` are the other picked stickers, which move with this one once it's dragged. */
+  grab(id: string, event: React.PointerEvent, companions: PlacedSticker[]) {
     const at = this.flow(event)
     const sticker = this.bodies.get(id) ?? this.stickers.find((candidate) => candidate.id === id)
 
@@ -357,6 +362,10 @@ class StickerWorld {
       at: { x: sticker.x, y: sticker.y },
       active: false,
     }
+    this.followers = offsetsFrom(
+      { x: sticker.x, y: sticker.y },
+      companions.map((companion) => ({ ...companion, ...this.position(companion) })),
+    )
   }
 
   drag(event: React.PointerEvent) {
@@ -383,13 +392,14 @@ class StickerWorld {
     if (this.hold?.pointerId !== event.pointerId) return
 
     this.hold = null
+    this.followers = new Map()
   }
 
   private step = (now: number) => {
     const elapsed = Math.min(MAX_FRAME_MS, now - this.at)
 
     this.at = now
-    const still = reducedMotion()
+    const still = motionReduced()
     const ids = new Set(this.stickers.map((sticker) => sticker.id))
 
     for (const id of this.bodies.keys()) if (!ids.has(id)) this.bodies.delete(id)
@@ -447,6 +457,14 @@ class StickerWorld {
       for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) collide(all[i], all[j], held)
     }
 
+    // Picked companions keep their spot from the held sticker rather than being pushed about by it.
+    if (held)
+      for (const [id, offset] of this.followers) {
+        const body = this.bodies.get(id)
+
+        if (body) Object.assign(body, { x: held.x + offset.x, y: held.y + offset.y, velocityX: 0, velocityY: 0, resting: false })
+      }
+
     let awake = !!this.hold
 
     for (const body of all) {
@@ -485,18 +503,31 @@ class StickerWorld {
   }
 }
 
+/** The other stickers a press keeps picked along with the one pressed, so they move together when it's dragged. */
+function companionsOf(stickers: PlacedSticker[], picked: ReadonlySet<string>, id: string, modifiers: PressModifiers) {
+  const next = pressedStickers(picked, id, modifiers.metaKey || modifiers.shiftKey)
+
+  return next.has(id) ? stickers.filter((sticker) => next.has(sticker.id) && sticker.id !== id) : []
+}
+
 /** Stickers in canvas coordinates, drawn above the cards. */
 export function StickerLayer({
   stickers,
+  picked,
   bounds,
   interactive,
   settle,
+  select,
   menu,
 }: {
   stickers: PlacedSticker[]
+  /** The stickers the canvas has picked, which show as selected and move together. */
+  picked: ReadonlySet<string>
   bounds: StickerBounds[]
   interactive: boolean
   settle: (moves: StickerMove[]) => void
+  /** Picks a sticker for a press or a right-click. A plain press on one that's already picked keeps the pick. */
+  select: (modifiers: PressModifiers, id: string) => void
   menu: (event: React.MouseEvent, id: string) => void
 }) {
   const reactFlow = useReactFlow()
@@ -525,20 +556,24 @@ export function StickerLayer({
         return (
           <div
             key={sticker.id}
-            className={`sticker nopan${sticker.fresh ? ' is-fresh' : ''}${held ? ' is-held' : ''}${interactive ? ' is-interactive' : ''}`}
+            className={`sticker nopan${sticker.fresh ? ' is-fresh' : ''}${held ? ' is-held' : ''}${picked.has(sticker.id) ? ' is-selected' : ''}${interactive ? ' is-interactive' : ''}`}
             style={{ transform: `translate(${at.x}px, ${at.y}px)`, '--tilt': `${sticker.tilt + at.lean}deg` } as CSSProperties}
             onPointerDown={(event) => {
               if (event.button !== 0 || !interactive) return
 
               event.stopPropagation()
               event.currentTarget.setPointerCapture(event.pointerId)
-              world.grab(sticker.id, event)
+              select(event, sticker.id)
+              world.grab(sticker.id, event, companionsOf(stickers, picked, sticker.id, event))
             }}
             onPointerMove={(event) => world.drag(event)}
             onPointerUp={(event) => world.release(event)}
             onPointerCancel={(event) => world.release(event)}
             onContextMenu={(event) => {
               event.stopPropagation()
+
+              if (!picked.has(sticker.id)) select(event, sticker.id)
+
               menu(event, sticker.id)
             }}
           >

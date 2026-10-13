@@ -1,5 +1,5 @@
 use std::{
-    env,
+    env, fs,
     net::{Ipv4Addr, TcpListener, TcpStream},
     process::{Child, Command},
     sync::{Arc, Mutex},
@@ -9,12 +9,63 @@ use std::{
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
+#[cfg(target_os = "macos")]
+use objc2::{msg_send, rc::Retained, sel, MainThreadMarker};
+#[cfg(target_os = "macos")]
+use objc2_foundation::NSString;
+#[cfg(target_os = "macos")]
+use objc2_web_kit::WKWebViewConfiguration;
+
+mod menu;
 mod mouse_navigation;
 mod usage;
+
+/// What Activity Monitor calls the window's web content process, in line with WebKit's other
+/// "Orion …" processes. Without it, the process goes by the page's address, `http://127.0.0.1:<port>`.
+#[cfg(target_os = "macos")]
+const WEB_CONTENT_NAME: &str = "Orion Web Content";
+
+/// Where the shell remembers its server's port, beside the window state in the app's own folder.
+const PORT_FILE: &str = "server-port";
 
 fn get_free_port() -> std::io::Result<u16> {
     let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0))?;
     Ok(listener.local_addr()?.port())
+}
+
+fn is_port_free(port: u16) -> bool {
+    TcpListener::bind((Ipv4Addr::LOCALHOST, port)).is_ok()
+}
+
+/// The port the web view loads from, kept the same across launches. WebKit keys browser storage by
+/// origin, so a new port each launch would start the canvas's view state empty every time.
+fn get_server_port(app: &tauri::App) -> Option<u16> {
+    let file = app.path().app_data_dir().ok()?.join(PORT_FILE);
+    let saved = fs::read_to_string(&file)
+        .ok()
+        .and_then(|text| text.trim().parse::<u16>().ok())
+        .filter(|&port| port != 0);
+
+    if let Some(port) = saved {
+        // A server left by a crashed launch exits within a couple of seconds of noticing.
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if is_port_free(port) {
+                return Some(port);
+            }
+            if Instant::now() >= deadline {
+                break;
+            }
+            thread::sleep(Duration::from_millis(200));
+        }
+    }
+
+    let port = get_free_port().ok()?;
+    if let Some(dir) = file.parent() {
+        let _ = fs::create_dir_all(dir);
+    }
+    let _ = fs::write(&file, port.to_string());
+    Some(port)
 }
 
 fn stop_server(child: &mut Child) {
@@ -23,7 +74,7 @@ fn stop_server(child: &mut Child) {
 }
 
 fn start_server(app: &tauri::App) -> Option<(Child, WebviewUrl)> {
-    let port = get_free_port().ok()?;
+    let port = get_server_port(app)?;
     let url = format!("http://127.0.0.1:{port}/").parse().ok()?;
     let binary = env::current_exe().ok()?.with_file_name("orion");
     let static_dir = app.path().resource_dir().ok()?.join("dist");
@@ -68,6 +119,21 @@ fn start_server(app: &tauri::App) -> Option<(Child, WebviewUrl)> {
     None
 }
 
+/// A web view configuration that names the web content process for Activity Monitor.
+#[cfg(target_os = "macos")]
+fn get_webview_configuration() -> Option<Retained<WKWebViewConfiguration>> {
+    let main_thread = MainThreadMarker::new()?;
+    let configuration = unsafe { WKWebViewConfiguration::new(main_thread) };
+    // A private property, so it's checked before it's set in case a WebKit update drops it.
+    let responds: bool =
+        unsafe { msg_send![&*configuration, respondsToSelector: sel!(_setProcessDisplayName:)] };
+    if responds {
+        let name = NSString::from_str(WEB_CONTENT_NAME);
+        let _: () = unsafe { msg_send![&*configuration, _setProcessDisplayName: &*name] };
+    }
+    Some(configuration)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let server = Arc::new(Mutex::new(None::<Child>));
@@ -76,6 +142,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .menu(menu::build)
+        .on_menu_event(menu::handle_event)
         .manage(usage::UsageSamples::default())
         .invoke_handler(tauri::generate_handler![usage::process_usage])
         .setup(move |app| {
@@ -92,6 +160,12 @@ pub fn run() {
                 .title("Orion")
                 .inner_size(1440.0, 900.0)
                 .min_inner_size(960.0, 640.0);
+
+            #[cfg(target_os = "macos")]
+            let window = match get_webview_configuration() {
+                Some(configuration) => window.with_webview_configuration(configuration),
+                None => window,
+            };
 
             // The app draws its own window chrome. macOS keeps the traffic lights, centered in the
             // sidebar header; elsewhere the app draws minimize, maximize, and close itself.

@@ -139,6 +139,20 @@ test.case("derive keeps hand-set blocked and deferred, and skips deferred work i
 	assert.eq(derived.leverage.a, 0)
 end)
 
+test.case("countProgress leaves deferred work and notes out of a group's total", function(assert)
+	local doc = testing.createDoc({
+		testing.group("g", "Group"),
+		task("a", "A", "done", "g"),
+		task("b", "B", "todo", "g"),
+		task("c", "C", "deferred", "g"),
+		task("n", "Remember", "todo", "g", { itemKind = "note" }),
+	})
+	local progress = graph.countProgress(doc, graph.derive(doc), "g")
+	assert.eq(progress.total, 2)
+	assert.eq(progress.done, 1)
+	assert.eq(progress.ready, 1)
+end)
+
 test.case("addItem names pull requests after the repository and number", function(assert)
 	local doc = testing.createDoc({ testing.group("g", "Group"), task("x", "X", "todo", "g") })
 	local item = graph.addItem(doc, "Ship it", { group = "g", repo = "flipbook-labs/flipbook", pr = 700 })
@@ -250,6 +264,45 @@ test.case("makeGroup and ungroup keep items in place", function(assert)
 	assert.eq(firstTask.position.y, 50)
 end)
 
+test.case("makeGroup marks the new group for the app to tidy", function(assert)
+	local doc = testing.createDoc({ task("a", "A", "todo"), task("b", "B", "todo") })
+	local group = graph.makeGroup(doc, "Pair", { "a", "b" })
+	assert.eq(group.data.layout, "refit")
+end)
+
+test.case("move marks the group it moves into, and ungroup marks the group that takes its items", function(assert)
+	local doc = testing.createDoc({
+		testing.group("outer", "Outer"),
+		testing.group("inner", "Inner", "outer"),
+		task("x", "X", "todo", "inner"),
+		testing.group("other", "Other"),
+		task("y", "Y", "todo"),
+	})
+	graph.move(doc, "y", "other")
+	assert.eq(graph.get(doc, "other").data.layout, "refit")
+	graph.ungroup(doc, "inner")
+	assert.eq(graph.get(doc, "x").parentId, "outer")
+	assert.eq(graph.get(doc, "outer").data.layout, "refit")
+end)
+
+test.case("tidying a group the CLI joins keeps a pending marker and skips custom groups", function(assert)
+	local pending = testing.group("pending", "Pending")
+	pending.data.layout = "pending"
+	local custom = testing.group("custom", "Custom")
+	custom.data.arrange = "custom"
+	local doc = testing.createDoc({
+		pending,
+		custom,
+		task("a", "A", "todo"),
+		task("b", "B", "todo"),
+		task("c", "C", "todo", "custom"),
+	})
+	graph.move(doc, "a", "pending")
+	assert.eq(pending.data.layout, "pending")
+	graph.move(doc, "b", "custom")
+	assert.eq(custom.data.layout, nil)
+end)
+
 test.case("move drops groups it leaves empty and refuses cycles", function(assert)
 	local doc = testing.createDoc({ testing.group("g", "G"), testing.group("h", "H"), task("a", "A", "todo", "g") })
 	graph.move(doc, "a", "h")
@@ -257,4 +310,33 @@ test.case("move drops groups it leaves empty and refuses cycles", function(asser
 	assert.throws(function()
 		graph.move(doc, "h", "h")
 	end)
+end)
+
+test.case("markCelebrations flags a card that turns done and clears the flag when it reopens", function(assert)
+	local doc = testing.createDoc({ task("a", "A", "active"), task("b", "B", "done") })
+	local previous = graph.recordedStatuses(doc)
+	doc.nodes[1].data.status = "done"
+	graph.markCelebrations(doc, previous)
+	assert.eq(doc.nodes[1].data.celebrate, true)
+	assert.eq(doc.nodes[2].data.celebrate, nil)
+
+	previous = graph.recordedStatuses(doc)
+	doc.nodes[1].data.status = "todo"
+	graph.markCelebrations(doc, previous)
+	assert.eq(doc.nodes[1].data.celebrate, nil)
+end)
+
+test.case("markCelebrations keeps a flag until the card is reopened, and skips new cards and notes", function(assert)
+	local doc = testing.createDoc({
+		task("a", "A", "done", nil, { celebrate = true }),
+		task("created", "Created done", "done"),
+		task("n", "Note", "todo", nil, { itemKind = "note" }),
+	})
+	local previous = graph.recordedStatuses(doc)
+	doc.nodes[1].data.label = "Renamed"
+	doc.nodes[3].data.status = "done"
+	graph.markCelebrations(doc, previous)
+	assert.eq(doc.nodes[1].data.celebrate, true)
+	assert.eq(doc.nodes[2].data.celebrate, nil)
+	assert.eq(doc.nodes[3].data.celebrate, nil)
 end)

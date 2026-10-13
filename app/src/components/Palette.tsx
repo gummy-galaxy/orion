@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ancestors, byId, isCluster, getTaskTag, type AppNode } from '../model'
+import { RECENT_BOOST, recentKey, type Recent } from '../recents'
 
 export type Command = { id: string; label: string; detail: string; hint?: string; run: () => void }
 type Props = {
@@ -10,10 +11,24 @@ type Props = {
   close: () => void
   /** Text the search starts with. A leading `>` lists actions instead of groups and cards. */
   initialQuery?: string
+  /** Commands and places used lately in this workspace, newest first. */
+  recents?: Recent[]
+  /** Called with each command or place the palette runs or jumps to. */
+  remember?: (recent: Recent) => void
 }
 type Match = { score: number; indices: number[] }
-type NodeResult = { kind: 'node'; node: AppNode; path: string; score: number; labelMatch: number[]; tagMatch: number[]; idMatch: boolean }
-type CommandResult = { kind: 'command'; command: Command; score: number; labelMatch: number[] }
+/** `recent` is set on the entries listed first when the query is empty. */
+type NodeResult = {
+  kind: 'node'
+  node: AppNode
+  path: string
+  score: number
+  labelMatch: number[]
+  tagMatch: number[]
+  idMatch: boolean
+  recent?: boolean
+}
+type CommandResult = { kind: 'command'; command: Command; score: number; labelMatch: number[]; recent?: boolean }
 type Result = NodeResult | CommandResult
 
 function match(query: string, value: string): Match | null {
@@ -59,7 +74,9 @@ function highlighted(value: string, indices: number[]) {
 /** Typing this first lists actions, as in VS Code's command palette. */
 export const COMMAND_PREFIX = '>'
 
-export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '' }: Props) {
+const NO_RECENTS: Recent[] = []
+
+export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '', recents = NO_RECENTS, remember }: Props) {
   const [query, setQuery] = useState(initialQuery)
   const [selected, setSelected] = useState(0)
   const input = useRef<HTMLInputElement>(null)
@@ -73,46 +90,84 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
     return () => previous?.focus()
   }, [])
 
-  const results = useMemo(() => {
+  const results = useMemo((): Result[] => {
     const map = byId(nodes)
+    const commandById = new Map(commands.map((command) => [command.id, command]))
     const isCommandMode = query.startsWith(COMMAND_PREFIX)
     const term = (isCommandMode ? query.slice(COMMAND_PREFIX.length) : query).trim()
+    const pathOf = (node: AppNode) =>
+      ancestors(node.id, map)
+        .reverse()
+        .map((id) => map.get(id)?.data.label)
+        .filter(Boolean)
+        .join(' › ')
 
-    if (isCommandMode) {
-      if (!term) return commands.map((command): CommandResult => ({ kind: 'command', command, score: 0, labelMatch: [] }))
+    // Recents that still exist, newest first. A recent's place in this list decides how far it rises.
+    const usable = recents.filter((recent) => (recent.kind === 'node' ? map.has(recent.id) : commandById.has(recent.id)))
+    const rank = new Map(usable.map((recent, index) => [recentKey(recent), index]))
 
-      return commands
-        .map((command): CommandResult | null => {
-          const labelMatch = match(term, command.label)
+    const boost = (kind: Recent['kind'], id: string) => {
+      const index = rank.get(recentKey({ kind, id }))
 
-          if (!labelMatch) return null
-
-          return { kind: 'command', command, score: labelMatch.score, labelMatch: labelMatch.indices }
-        })
-        .filter((result): result is CommandResult => result !== null)
-        .sort((a, b) => b.score - a.score)
+      return index === undefined ? 0 : RECENT_BOOST - index
     }
 
     if (!term) {
+      // With nothing typed, recent entries lead and the rest follows in its usual order.
+      const shown = isCommandMode ? usable.filter((recent) => recent.kind === 'command') : usable
+      const shownKeys = new Set(shown.map(recentKey))
+      const recentResults = shown.flatMap((recent): Result[] => {
+        if (recent.kind === 'command') {
+          const command = commandById.get(recent.id)
+
+          return command ? [{ kind: 'command', command, score: 0, labelMatch: [], recent: true }] : []
+        }
+
+        const node = map.get(recent.id)
+
+        return node ? [{ kind: 'node', node, path: pathOf(node), score: 0, labelMatch: [], tagMatch: [], idMatch: false, recent: true }] : []
+      })
+
+      if (isCommandMode) {
+        return [
+          ...recentResults,
+          ...commands
+            .filter((command) => !shownKeys.has(recentKey({ kind: 'command', id: command.id })))
+            .map((command): CommandResult => ({ kind: 'command', command, score: 0, labelMatch: [] })),
+        ]
+      }
+
       const nodeResults = nodes
-        .filter((node) => isCluster(node) || (node.type === 'task' && node.data.who === 'you'))
+        .filter(
+          (node) =>
+            (isCluster(node) || (node.type === 'task' && node.data.who === 'you')) && !shownKeys.has(recentKey({ kind: 'node', id: node.id })),
+        )
         .sort((a, b) => Number(isCluster(b)) - Number(isCluster(a)))
         .slice(0, 50)
         .map((node): NodeResult => ({
           kind: 'node',
           node,
-          path: ancestors(node.id, map)
-            .reverse()
-            .map((id) => map.get(id)?.data.label)
-            .filter(Boolean)
-            .join(' › '),
+          path: pathOf(node),
           score: 0,
           labelMatch: [],
           tagMatch: [],
           idMatch: false,
         }))
 
-      return nodeResults
+      return [...recentResults, ...nodeResults]
+    }
+
+    if (isCommandMode) {
+      return commands
+        .map((command): CommandResult | null => {
+          const labelMatch = match(term, command.label)
+
+          if (!labelMatch) return null
+
+          return { kind: 'command', command, score: labelMatch.score + boost('command', command.id), labelMatch: labelMatch.indices }
+        })
+        .filter((result): result is CommandResult => result !== null)
+        .sort((a, b) => b.score - a.score)
     }
 
     return nodes
@@ -127,12 +182,8 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
         return {
           kind: 'node',
           node,
-          path: ancestors(node.id, map)
-            .reverse()
-            .map((id) => map.get(id)?.data.label)
-            .filter(Boolean)
-            .join(' › '),
-          score,
+          path: pathOf(node),
+          score: score + boost('node', node.id),
           labelMatch: labelMatch?.indices ?? [],
           tagMatch: tagMatch?.indices ?? [],
           idMatch: !!idMatch,
@@ -141,7 +192,7 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
       .filter((result): result is NodeResult => result !== null)
       .sort((a, b) => b.score - a.score || a.node.data.label.length - b.node.data.label.length || a.node.data.label.localeCompare(b.node.data.label))
       .slice(0, 50)
-  }, [nodes, query, commands])
+  }, [nodes, query, commands, recents])
 
   useEffect(() => {
     list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })
@@ -149,6 +200,7 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
 
   const pick = (result: Result) => {
     close()
+    remember?.(result.kind === 'command' ? { kind: 'command', id: result.command.id } : { kind: 'node', id: result.node.id })
 
     if (result.kind === 'command') {
       result.command.run()
@@ -210,6 +262,11 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
           }}
         />
         <div ref={list} className="palette-results" id="palette-results" role="listbox">
+          {results[0]?.recent && (
+            <div className="palette-heading" role="presentation">
+              Recently used
+            </div>
+          )}
           {results.map((result, i) => {
             if (result.kind === 'command') {
               return (

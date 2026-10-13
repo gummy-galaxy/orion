@@ -1,9 +1,14 @@
+import { ChecksIcon } from './ChecksIcon'
 import { LinkList } from './LinkList'
+import { StatusIcon } from './StatusIcon'
 import type { Work } from '../derive'
 import {
+  READINESS_LABEL,
   STATUS_LABEL,
   editPullRef,
+  getCheckCountsLabel,
   getItemKind,
+  getPullReadiness,
   getPullRef,
   getPullRequestNumber,
   getTaskUrl,
@@ -57,6 +62,8 @@ export function TaskInspector({
   const url = getTaskUrl(data)
   const pullRef = getPullRef(data)
   const pullDetails = pullRef?.details as PullDetails | undefined
+  const readiness = getPullReadiness(pullDetails)
+  const checkCountsLabel = readiness && pullDetails?.checkCounts && getCheckCountsLabel(pullDetails.checkCounts)
   const linked = new Set(
     [...map.values()].filter(isTask).flatMap((node) => {
       const ref = getPullRef(node.data)
@@ -93,15 +100,11 @@ export function TaskInspector({
         <div className="github-details">
           <p className="facts">{githubSummary(pullDetails)}</p>
           <p className="facts">
-            {pullDetails.checks && (
+            {readiness && (
               <>
-                <span className={`check-dot check-${pullDetails.checks.toLowerCase()}`} />
-                {pullDetails.checks === 'SUCCESS'
-                  ? 'Checks passing'
-                  : ['FAILURE', 'ERROR'].includes(pullDetails.checks)
-                    ? 'Checks failing'
-                    : 'Checks pending'}{' '}
-                ·{' '}
+                <ChecksIcon readiness={readiness} />
+                {READINESS_LABEL[readiness]}
+                {checkCountsLabel && `, ${checkCountsLabel}`} ·{' '}
               </>
             )}
             {typeof pullDetails.additions === 'number' && (
@@ -200,7 +203,8 @@ export function TaskInspector({
       <label htmlFor="t-note">Notes</label>
       <textarea id="t-note" rows={3} value={data.note ?? ''} onChange={(event) => update(node.id, { note: event.target.value || undefined })} />
       <p className="facts">
-        Shown as <b>{STATUS_LABEL[status]}</b>
+        Shown as <StatusIcon status={status} />
+        <b>{STATUS_LABEL[status]}</b>
         {leverage > 0 && <> · unblocks {leverage}</>}
       </p>
       {connections && (

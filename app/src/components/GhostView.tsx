@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { STATUS_LABEL, type GhostNode } from '../model'
 import { SourceBadges } from './SourceBadges'
+import { StatusIcon } from './StatusIcon'
 import { useSources, useTraceRole } from '../state'
 
 export const GhostView = memo(function GhostView({ data }: NodeProps<GhostNode>) {
@@ -18,7 +19,12 @@ export const GhostView = memo(function GhostView({ data }: NodeProps<GhostNode>)
         {data.side === 'in' ? 'from' : 'to'} {data.where}
       </span>
       <span className="label">{data.label}</span>
-      {data.status && <span className="ghost-status">{STATUS_LABEL[data.status]}</span>}
+      {data.status && (
+        <span className="ghost-status">
+          <StatusIcon status={data.status} />
+          {STATUS_LABEL[data.status]}
+        </span>
+      )}
       <SourceBadges sources={sources} />
       {data.side === 'in' && <Handle type="source" position={Position.Right} isConnectable={false} />}
     </div>

@@ -27,3 +27,6 @@ desktop/src-tauri/binaries/
 
 # Performance reports and builds from npm run perf
 .perf
+
+# VitePress cache
+docs/.vitepress/cache

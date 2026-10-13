@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import { descendants, getPrimaryRef, isCluster, isTask, isWork, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
+import { descendants, isCluster, isTask, isWork, type AppNode, type Link, type SourceRef as RefData, type TaskNode, type ViewStatus } from './model'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
 /** How a link out of a card reads: moving, held behind work that's stuck, or still, out of a component that carries no work. */
@@ -10,16 +10,15 @@ export type SourceRef = { domain: string; label: string; href?: string }
 export type Actions = {
   reflow: (groupId: string) => void
   open: (groupId: string) => void
+  /** Clears the finish stamp on a card and on the finished cards chained to it. */
+  celebrate: (id: string) => void
 }
 
 export const ActionsContext = createContext<Actions | null>(null)
 
-/** Where a card's work comes from, or null for a card that only lives in Orion. */
-function sourceOf(task: TaskNode): SourceRef | null {
-  const ref = getPrimaryRef(task.data)
-  const href = ref?.url
-
-  if (!ref) return null
+/** Where one ref comes from: its URL's host when it has a valid one, otherwise the source that recorded it. */
+function sourceOf(ref: RefData): SourceRef {
+  const href = ref.url
 
   if (href) {
     try {
@@ -34,6 +33,34 @@ function sourceOf(task: TaskNode): SourceRef | null {
   }
 
   return { domain: ref.source, label: ref.key }
+}
+
+/** Every ref on a card gets a badge, once per source, kind, and key. A card with no refs gets none. */
+export function sourcesOf(task: TaskNode): SourceRef[] {
+  const sources = new Map<string, SourceRef>()
+
+  for (const ref of task.data.refs ?? []) {
+    const key = `${ref.source}:${ref.kind}:${ref.key.toLowerCase()}`
+
+    if (!sources.has(key)) sources.set(key, sourceOf(ref))
+  }
+
+  return [...sources.values()]
+}
+
+/** A group's badges: the badges of every card inside it, once per domain and label, linked ones winning over unlinked ones. */
+export function sourcesOfGroup(members: TaskNode[]): SourceRef[] {
+  const groupSources = new Map<string, SourceRef>()
+
+  for (const task of members) {
+    for (const source of sourcesOf(task)) {
+      const key = `${source.domain}:${source.label}`
+
+      if (!groupSources.get(key)?.href) groupSources.set(key, source)
+    }
+  }
+
+  return [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label))
 }
 
 function graph(links: Link[]) {
@@ -72,18 +99,96 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
   return seen
 }
 
-/** Work-state facts that don't depend on the viewport: status, leverage, and per-group progress. */
+function countUpstream(tasks: Map<string, TaskNode>, predecessors: Map<string, string[]>): Map<string, number> {
+  const indices = new Map<string, number>()
+  const lowLinks = new Map<string, number>()
+  const stack: string[] = []
+  const onStack = new Set<string>()
+  const components: string[][] = []
+  const componentById = new Map<string, number>()
+
+  const visit = (id: string) => {
+    const index = indices.size
+
+    indices.set(id, index)
+    lowLinks.set(id, index)
+    stack.push(id)
+    onStack.add(id)
+
+    for (const predecessor of predecessors.get(id) ?? []) {
+      if (!tasks.has(predecessor)) continue
+
+      if (!indices.has(predecessor)) {
+        visit(predecessor)
+        lowLinks.set(id, Math.min(lowLinks.get(id)!, lowLinks.get(predecessor)!))
+      } else if (onStack.has(predecessor)) {
+        lowLinks.set(id, Math.min(lowLinks.get(id)!, indices.get(predecessor)!))
+      }
+    }
+
+    if (lowLinks.get(id) !== index) return
+
+    const component: string[] = []
+    let member: string
+
+    do {
+      member = stack.pop()!
+      onStack.delete(member)
+      componentById.set(member, components.length)
+      component.push(member)
+    } while (member !== id)
+
+    components.push(component)
+  }
+
+  for (const id of tasks.keys()) if (!indices.has(id)) visit(id)
+
+  const ancestors = new Map<number, Set<string>>()
+
+  const collect = (componentIndex: number): Set<string> => {
+    const known = ancestors.get(componentIndex)
+
+    if (known) return known
+
+    const reach = new Set<string>()
+
+    for (const id of components[componentIndex]) {
+      if (isWork(tasks.get(id))) reach.add(id)
+
+      for (const predecessor of predecessors.get(id) ?? []) {
+        const previousComponent = componentById.get(predecessor)
+
+        if (previousComponent !== undefined && previousComponent !== componentIndex) {
+          for (const ancestor of collect(previousComponent)) reach.add(ancestor)
+        }
+      }
+    }
+
+    ancestors.set(componentIndex, reach)
+
+    return reach
+  }
+
+  const upstream = new Map<string, number>()
+
+  for (const task of tasks.values()) {
+    const reach = collect(componentById.get(task.id)!)
+
+    upstream.set(task.id, reach.size - (isWork(task) ? 1 : 0))
+  }
+
+  return upstream
+}
+
+/** Work-state facts that don't depend on the viewport: status, leverage, upstream work, and per-group progress. */
 export function deriveWork(nodes: AppNode[], links: Link[]) {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
 
-  for (const task of tasks.values()) {
-    const source = sourceOf(task)
-
-    sources.set(task.id, source ? [source] : [])
-  }
+  for (const task of tasks.values()) sources.set(task.id, sourcesOf(task))
 
   const { preds: predecessors, succs: successors } = graph(links)
+  const upstream = countUpstream(tasks, predecessors)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
   const isComponent = (id: string) => tasks.get(id)?.data.itemKind === 'component'
   const isGate = (id: string) => tasks.get(id)?.data.itemKind === 'gate' && predecessors.has(id)
@@ -173,24 +278,20 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   for (const group of nodes.filter(isCluster)) {
     const inside = descendants(group.id, nodes)
     const stats: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
-    const groupSources = new Map<string, SourceRef>()
+    const members: TaskNode[] = []
     const reach = new Set<string>()
 
     for (const id of inside) {
       const task = tasks.get(id)
 
-      if (task) {
-        const source = sourceOf(task)
-        const key = source && `${source.domain}:${source.label}`
-
-        if (source && key && !groupSources.get(key)?.href) groupSources.set(key, source)
-      }
+      if (task) members.push(task)
 
       const statusValue = status.get(id)
 
       if (!statusValue || !isWork(tasks.get(id))) continue
 
-      stats.total++
+      // Deferred work is set aside, so it doesn't hold a group short of done.
+      if (statusValue !== 'deferred') stats.total++
 
       if (statusValue === 'done') stats.done++
 
@@ -203,13 +304,10 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
 
     stats.outside = reach.size
     groups.set(group.id, stats)
-    sources.set(
-      group.id,
-      [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label)),
-    )
+    sources.set(group.id, sourcesOfGroup(members))
   }
 
-  return { status, flow, leverage, groups, sources, preds: predecessors, succs: successors }
+  return { status, flow, leverage, upstream, groups, sources, preds: predecessors, succs: successors }
 }
 
 export type Work = ReturnType<typeof deriveWork>

@@ -2,15 +2,19 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
-local applyPulls = require("@root/github/applyPulls")
 local backups = require("@root/cli/backups")
 local batchEdit = require("@root/cli/batchEdit")
-local collectPulls = require("@root/github/collectPulls")
+local check = require("@root/cli/check")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
+local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
+local formatRefreshReport = require("@root/github/formatRefreshReport")
+local getAdapter = require("@root/adapters/getAdapter")
+local getRefs = require("@root/refs/getRefs")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
+local importCommand = require("@root/cli/import")
 local ingest = require("@root/cli/ingest")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
@@ -18,6 +22,8 @@ local pad = require("@root/render/pad")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
+local requestedRevision = require("@root/cli/requestedRevision")
+local resolveRef = require("@root/adapters/resolveRef")
 local restore = require("@root/cli/restore")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
@@ -26,11 +32,13 @@ local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggest = require("@root/cli/suggest")
 local suggestions = require("@root/cli/suggestions")
+local tidy = require("@root/cli/tidy")
 local types = require("@root/types")
 local workspace = require("@root/cli/workspace")
 
 type Doc = types.Doc
 type Item = types.Item
+type RefreshReport = githubTypes.Report
 type Context = context.Context
 
 type Command = context.Command
@@ -46,6 +54,7 @@ type Resolved = {
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
+local SYNC_DEPRECATION = "`orion sync` is deprecated and will be removed. `orion ingest` refreshes pull requests too."
 
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
@@ -59,6 +68,9 @@ local COMMANDS: { [string]: Command } = {
 	workspace = workspace,
 	source = source,
 	ingest = ingest,
+	check = check,
+	tidy = tidy,
+	import = importCommand,
 }
 
 local COMMAND_HELP: { [string]: string } = {
@@ -75,10 +87,11 @@ local COMMAND_HELP: { [string]: string } = {
 	unlink = "Remove the link between two items",
 	note = "Add a note, optionally between two linked items",
 	remove = "Remove items; optionally reconnect a card's links",
-	group = "Wrap items that share a parent in a new group",
+	group = "Make a group around items, or remove one with everything inside",
+	ref = "Take outside work off an item",
 	ungroup = "Dissolve groups, keeping their items in place",
 	move = "Move items or groups into another group",
-	sync = "Update pull request items from GitHub",
+	sync = "Update pull request items from GitHub (deprecated: use ingest)",
 	matches = "List unplaced pull requests and likely cards",
 	path = "Print where Orion keeps its data",
 	help = "Show help for Orion or one of its commands",
@@ -113,20 +126,35 @@ local function addWorkspaceOption(parser: cli.Parser)
 	parser:add("workspace", "option", { help = "Use this workspace for this command" })
 end
 
-local function addFieldOptions(parser: cli.Parser)
-	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
-	parser:add("repo", "option", { help = "Repository, as owner/name" })
-	parser:add("pr", "option", { help = "Pull request number" })
-	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
-	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
+local function addRefOption(parser: cli.Parser)
+	parser:add("ref", "option", {
+		help = "Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch",
+	})
+end
+
+-- Item fields. Set passes a suffix to say that groups don't take them.
+local function addFieldOptions(parser: cli.Parser, suffix: string)
+	parser:add("status", "option", { help = `todo, active, review, blocked, deferred, or done{suffix}` })
+	parser:add(
+		"repo",
+		"option",
+		{ help = `Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL{suffix}` }
+	)
+	parser:add(
+		"pr",
+		"option",
+		{ help = `Pull request number. Deprecated: use --ref with the pull request URL{suffix}` }
+	)
+	parser:add("who", "option", { help = `Whose move: you, review, or ci (empty to clear){suffix}` })
+	parser:add("note", "option", { help = `Free-form note (empty to clear){suffix}` })
 	parser:add("shape", "option", {
-		help = "How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)",
+		help = `How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear){suffix}`,
 	})
 	parser:add("color", "option", {
 		help = "A component's or group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)",
 	})
 	parser:add("kind", "option", {
-		help = "step; gate for one that's done once everything it waits on is; or component for a part of a system, not work",
+		help = `step; gate for one that's done once everything it waits on is; or component for a part of a system, not work{suffix}`,
 	})
 end
 
@@ -176,15 +204,17 @@ local function createParsers(): Parsers
 	local add = command("add")
 	add:add("label", "variadic", { help = "What the work is" })
 	add:add("group", "option", { help = "Group to add it to" })
-	addFieldOptions(add)
+	addFieldOptions(add, "")
+	addRefOption(add)
 	addJsonFlag(add)
 
 	local set = command("set")
 	set:add("id", "positional", { help = "Item or group id" })
 	set:add("label", "option", { help = "New label" })
-	set:add("blurb", "option", { help = "Group description" })
-	set:add("arrange", "option", { help = "How reflow arranges a group: auto or custom" })
-	addFieldOptions(set)
+	set:add("blurb", "option", { help = "Group description (groups only)" })
+	set:add("arrange", "option", { help = "How reflow arranges a group: auto or custom (groups only)" })
+	addFieldOptions(set, " (items only)")
+	addRefOption(set)
 	addJsonFlag(set)
 
 	local function addBatchOptions(parser: cli.Parser, help: string)
@@ -231,9 +261,30 @@ local function createParsers(): Parsers
 	remove:add("reconnect", "flag", { help = "Reconnect at most one incoming and outgoing link per item" })
 
 	local group = command("group")
-	group:add("label", "variadic", { help = "Group name" })
-	group:add("items", "option", { help = "Comma-separated ids to put in it", required = true })
-	addJsonFlag(group)
+	local function groupSubcommand(name: string, help: string): cli.Parser
+		local parser = group:subcommand(name, { help = help })
+		addHelpFlag(parser)
+		addWorkspaceOption(parser)
+		return parser
+	end
+
+	local groupAdd = groupSubcommand("add", "Wrap items that share a parent in a new group")
+	groupAdd:add("label", "variadic", { help = "Group name" })
+	groupAdd:add("items", "option", { help = "Comma-separated ids to put in it", required = true })
+	addJsonFlag(groupAdd)
+	addBatchOptions(groupSubcommand("remove", "Remove groups with everything inside them"), "Group ids")
+
+	local ref = command("ref")
+	local refRemove = ref:subcommand("remove", { help = "Take a ref off an item" })
+	addHelpFlag(refRemove)
+	addWorkspaceOption(refRemove)
+	refRemove:add("id", "positional", { help = "Item id" })
+	refRemove:add(
+		"ref",
+		"positional",
+		{ help = "The ref's key as orion show lists it, such as owner/name#12, or a URL or source:key" }
+	)
+	addJsonFlag(refRemove)
 
 	addBatchOptions(command("ungroup"), "Group ids")
 
@@ -254,9 +305,12 @@ local function createParsers(): Parsers
 	registeredCommand("serve")
 	registeredCommand("source")
 	registeredCommand("ingest")
+	registeredCommand("import")
 
 	registeredCommand("suggest")
 	registeredCommand("suggestions")
+	registeredCommand("check")
+	registeredCommand("tidy")
 
 	command("path")
 	registeredCommand("mcp")
@@ -319,10 +373,71 @@ local function required(parser: cli.Parser, name: string): string
 	return assert(parser:get(name), `missing <{name}>`)
 end
 
-local function requestedRevision(parser: cli.Parser): number?
-	local value = parser:get("if-revision")
-	assert(value == nil or value:match("^%d+$"), "--if-revision must be a nonnegative integer")
-	return if value then tonumber(value) else nil
+-- Attaches the --ref given to add or set, resolving it against the document's sources.
+local function attachRef(doc: Doc, id: string, input: string?)
+	if input then
+		graph.attachRef(doc, id, resolveRef(input, doc.settings.sources))
+	end
+end
+
+-- Takes a ref off an item by the key orion show lists. A URL or source:key that isn't a key on the item resolves
+-- the way --ref does, and then has to match that ref's kind too.
+local function detachRef(doc: Doc, id: string, input: string): Item
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), "groups don't take refs")
+
+	for _, ref in getRefs(item) do
+		if ref.key:lower() == input:lower() then
+			return graph.detachRef(doc, id, ref.key)
+		end
+	end
+
+	assert(input:find(":"), `"{id}" has no ref {input}`)
+	local resolved = resolveRef(input, doc.settings.sources)
+	return graph.detachRef(doc, id, resolved.ref.key, resolved.ref.kind)
+end
+
+-- `orion group <label> --items` predates `group add`, so a group command without a subcommand still means add.
+local function withGroupAdd(args: { string }): { string }
+	local index = 1
+
+	while index <= #args do
+		local arg = args[index]
+
+		if arg == "--workspace" then
+			index += 2
+		elseif arg:sub(1, 1) == "-" then
+			index += 1
+		else
+			break
+		end
+	end
+
+	local following = args[index + 1]
+	local isSubcommand = following == "add" or following == "remove"
+	local wantsHelp = following == nil or following == "--help" or following == "-h"
+
+	if args[index] ~= "group" or isSubcommand or wantsHelp then
+		return args
+	end
+
+	local rewritten = table.clone(args)
+	table.insert(rewritten, index + 1, "add")
+	return rewritten
+end
+
+-- The workspace comes from the root or the deepest subcommand that names one.
+local function requestedWorkspace(root: cli.Parser): string?
+	local selected: string? = nil
+	local current: cli.Parser? = root
+
+	while current do
+		selected = current:get("workspace") or selected
+		local _, child = current:selected()
+		current = child
+	end
+
+	return selected
 end
 
 local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
@@ -382,7 +497,7 @@ local function isBatchEdit(parser: cli.Parser): boolean
 		or parser:has("reconnect")
 end
 
-local function editMany(deps: Resolved, dir: string, command: string, parser: cli.Parser)
+local function editMany(deps: Resolved, dir: string, command: string, parser: cli.Parser, action: string?)
 	local ids = parser:variadics()
 	local destination = parser:get("to")
 	if command == "move" then
@@ -391,7 +506,7 @@ local function editMany(deps: Resolved, dir: string, command: string, parser: cl
 	end
 	batchEdit({
 		dir = dir,
-		action = command,
+		action = action or command,
 		ids = ids,
 		where = parser:get("where"),
 		dryRun = parser:has("dry-run"),
@@ -418,43 +533,9 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
 end
 
-local function syncReport(report: githubTypes.Report, dryRun: boolean): string
-	local lines = { `{if dryRun then "Would update" else "Checked"} {report.checked} pull requests on GitHub.` }
-
-	for _, change in report.changes do
-		local who = if change.fromWho ~= change.toWho
-			then ` (move: {change.fromWho or "unset"} → {change.toWho or "unset"})`
-			else ""
-		local closed = if change.closed then " — closed without merging; deferred until you decide" else ""
-		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
-	end
-
-	if #report.changes == 0 and #report.added == 0 and #report.linked == 0 and #report.unlinked == 0 then
-		table.insert(lines, "  Everything already matches.")
-	end
-
-	for _, link in report.linked do
-		table.insert(lines, `  linked {link.from} → {link.to} (stacked)`)
-	end
-
-	for _, link in report.unlinked do
-		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)
-	end
-
-	for _, id in report.added do
-		table.insert(lines, `  added {id} to Inbox`)
-	end
-
-	if #report.missing > 0 then
-		table.insert(lines, `  not found on GitHub: {table.concat(report.missing, ", ")}`)
-	end
-
-	return table.concat(lines, "\n")
-end
-
 local function execute(args: { string }, options: Dependencies?)
 	local parsers = createParsers()
-	parsers.root:parse(args)
+	parsers.root:parse(withGroupAdd(args))
 	local deps = dependencies(options)
 
 	local command, parser = parsers.root:selected()
@@ -489,11 +570,7 @@ local function execute(args: { string }, options: Dependencies?)
 	end
 
 	local root = deps.dataDir
-	local selected = parser:get("workspace") or parsers.root:get("workspace")
-
-	if subparser then
-		selected = subparser:get("workspace") or selected
-	end
+	local selected = requestedWorkspace(parsers.root)
 
 	local active = store.getActiveWorkspace(root, selected, deps.workspace)
 	local dir = store.getWorkspaceDir(root, active)
@@ -635,6 +712,7 @@ local function execute(args: { string }, options: Dependencies?)
 		options.group = parser:get("group")
 		local doc = store.transaction(dir, function(doc)
 			added = graph.addItem(doc, label, options)
+			attachRef(doc, added.id, parser:get("ref"))
 		end)
 
 		emitItem(deps, doc, added, asJson, "Added")
@@ -643,6 +721,7 @@ local function execute(args: { string }, options: Dependencies?)
 		local changed: Item
 		local doc = store.transaction(dir, function(doc)
 			changed = graph.setFields(doc, id, fields(parser))
+			attachRef(doc, id, parser:get("ref"))
 		end)
 
 		emitItem(deps, doc, changed, asJson, "Updated")
@@ -776,14 +855,30 @@ local function execute(args: { string }, options: Dependencies?)
 			deps.write(`Removed {id}`)
 		end
 	elseif command == "group" then
-		local label = joined(parser:variadics(), "<label>")
-		local ids = parseCommaList(parser:get("items") or "")
-		local made: Item
+		assert(subcommandName and subparser, "choose add or remove")
+
+		if subcommandName == "remove" then
+			editMany(deps, dir, command, subparser, "removeGroup")
+		else
+			local label = joined(subparser:variadics(), "<label>")
+			local ids = parseCommaList(required(subparser, "items"))
+			local made: Item
+			local doc = store.transaction(dir, function(doc)
+				made = graph.makeGroup(doc, label, ids)
+			end)
+
+			emitItem(deps, doc, made, subparser:has("json"), "Grouped into")
+		end
+	elseif command == "ref" then
+		assert(subcommandName and subparser, "choose remove")
+		local id = required(subparser, "id")
+		local input = required(subparser, "ref")
+		local detached: Item
 		local doc = store.transaction(dir, function(doc)
-			made = graph.makeGroup(doc, label, ids)
+			detached = detachRef(doc, id, input)
 		end)
 
-		emitItem(deps, doc, made, asJson, "Grouped into")
+		emitItem(deps, doc, detached, subparser:has("json"), "Updated")
 	elseif command == "ungroup" then
 		local ids = parser:variadics()
 		if isBatchEdit(parser) then
@@ -812,21 +907,28 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif command == "sync" then
 		local dryRun = parser:has("dry-run")
-		local fetched = collectPulls(store.load(dir), deps.runner, parser:has("discover"))
-		local report: githubTypes.Report
+		local report: RefreshReport
 
 		if dryRun then
-			report = applyPulls(store.load(dir), fetched, deps.now())
+			report = assert(getAdapter("github").refresh)(
+				store.load(dir),
+				deps.runner,
+				{ discover = parser:has("discover"), now = deps.now() }
+			)
 		else
 			store.transaction(dir, function(doc)
-				report = applyPulls(doc, fetched, deps.now())
+				report = assert(getAdapter("github").refresh)(
+					doc,
+					deps.runner,
+					{ discover = parser:has("discover"), now = deps.now() }
+				)
 			end)
 		end
 
 		if asJson then
 			deps.write(json.serialize(report :: any, true))
 		else
-			deps.write(syncReport(report, dryRun))
+			deps.write(`{formatRefreshReport(report, dryRun)}\n{SYNC_DEPRECATION}`)
 		end
 	end
 end
@@ -842,7 +944,13 @@ local function run(argv: { string })
 	end
 end
 
+-- Describes every command and option, for the generated reference in docs/.
+local function describe(): describeCommands.CommandDescription
+	return describeCommands(createParsers().root, "orion", SUMMARY)
+end
+
 return table.freeze({
+	describe = describe,
 	execute = execute,
 	run = run,
 })

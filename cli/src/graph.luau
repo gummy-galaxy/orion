@@ -3,6 +3,7 @@ local json = require("@std/json")
 local fieldValues = require("@root/fieldValues")
 local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
+local getRefs = require("@root/refs/getRefs")
 local removeRef = require("@root/refs/removeRef")
 local setRef = require("@root/refs/setRef")
 local types = require("@root/types")
@@ -105,17 +106,18 @@ end
 
 export type Progress = { total: number, done: number, ready: number, components: number }
 
--- Counts the work anywhere inside a group, leaving out notes. Components are counted on their own.
+-- Counts the work anywhere inside a group, leaving out notes and deferred work, which is set aside and doesn't
+-- hold a group short of done. Components are counted on their own.
 function graph.countProgress(doc: Doc, derived: Derived, groupId: string): Progress
 	local progress = { total = 0, done = 0, ready = 0, components = 0 }
 	for _, item in doc.nodes do
+		local status = derived.status[item.id]
 		local inside = item.type == "task" and table.find(graph.ancestors(doc, item.id), groupId) ~= nil
 
 		if inside and graph.isComponent(item) then
 			progress.components += 1
-		elseif inside and graph.isWork(item) then
+		elseif inside and graph.isWork(item) and status ~= "deferred" then
 			progress.total += 1
-			local status = derived.status[item.id]
 			progress.done += if status == "done" then 1 else 0
 			progress.ready += if status == "ready" then 1 else 0
 		end
@@ -123,7 +125,8 @@ function graph.countProgress(doc: Doc, derived: Derived, groupId: string): Progr
 	return progress
 end
 
-local function sizeOf(item: Item): (number, number)
+-- The size the app draws an item at. Groups use their stored width and height.
+function graph.sizeOf(item: Item): (number, number)
 	if item.type == "task" then
 		return TASK_WIDTH, TASK_HEIGHT
 	end
@@ -285,7 +288,7 @@ function graph.nextSlot(doc: Doc, parentId: string?): Position
 
 	for _, item in doc.nodes do
 		if item.parentId == parentId then
-			local width = sizeOf(item)
+			local width = graph.sizeOf(item)
 			right = math.max(right or -math.huge, item.position.x + width)
 			top = math.min(top or math.huge, item.position.y)
 		end
@@ -303,7 +306,7 @@ local function overlapsSibling(doc: Doc, parentId: string?, position: Position, 
 
 	for _, item in doc.nodes do
 		if item.parentId == parentId then
-			local itemWidth, itemHeight = sizeOf(item)
+			local itemWidth, itemHeight = graph.sizeOf(item)
 
 			if
 				position.x < item.position.x + itemWidth + margin
@@ -461,6 +464,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.repo == nil
 				and fields.pr == nil
 				and fields.who == nil
+				and fields.note == nil
 				and fields.kind == nil
 				and fields.shape == nil,
 			"groups only take a label, blurb, arrange, and color"
@@ -489,6 +493,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	end
 
 	assert(fields.arrange == nil, `"{id}" is an item; only groups take an arrangement`)
+	assert(fields.blurb == nil, `"{id}" is an item; only groups take a blurb`)
 	if fields.label then
 		item.data.label = fields.label
 	end
@@ -549,6 +554,30 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	setLook(item, fields)
 	return item
+end
+
+-- Attaches outside work to an item. The repository fills in only when the item has none yet.
+function graph.attachRef(doc: Doc, id: string, resolved: types.ResolvedRef): Item
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), "groups don't take refs; attach it to an item")
+	setRef(item, resolved.ref)
+
+	if resolved.repo and item.data.repo == nil then
+		item.data.repo = resolved.repo
+	end
+
+	graph.refreshItemKind(item)
+	return item
+end
+
+-- Recomputes an item's kind from its repository, pull request, and gate status after its refs change.
+function graph.refreshItemKind(item: Item)
+	if graph.isNote(item) or graph.isComponent(item) then
+		return
+	end
+
+	local kind = if graph.isGate(item) then "gate" else nil
+	item.data.itemKind = itemKindFor(field(item, "repo"), if findRef(item, "pull") then 1 else nil, kind)
 end
 
 -- Links two items. A label names what the link carries, like "HTTP" in a system diagram; an empty one clears it,
@@ -723,7 +752,7 @@ end
 -- A note's incoming and outgoing links are reconnected so nothing loses its blocker.
 function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	local item = graph.get(doc, id)
-	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup instead`)
+	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup or group remove instead`)
 	if reconnect then
 		graph.checkReconnect(doc, id)
 	end
@@ -765,6 +794,24 @@ function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	pruneEmptyGroups(doc)
 end
 
+-- Asks the app to tidy a group whose members changed. A pending marker already places it, so it is kept, and a
+-- custom group is left as the user arranged it.
+local function markForRefit(group: Item)
+	if group.data.layout == nil and group.data.arrange ~= "custom" then
+		group.data.layout = "refit"
+	end
+end
+
+-- Marks a group for the app to lay out in place, as `orion tidy` does. A pending marker is kept, since the app already
+-- places that group. A custom group is marked too; the app clears the marker and leaves its arrangement alone.
+function graph.markForTidy(doc: Doc, id: string)
+	local group = graph.group(doc, id)
+
+	if group.data.layout == nil then
+		group.data.layout = "refit"
+	end
+end
+
 -- Wraps items that share a parent in a new group, keeping their arrangement.
 function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 	assert(label ~= "", "a group needs a name")
@@ -784,7 +831,7 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 	local minimumX, minimumY, maximumX, maximumY = math.huge, math.huge, -math.huge, -math.huge
 
 	for _, member in members do
-		local width, height = sizeOf(member)
+		local width, height = graph.sizeOf(member)
 		minimumX = math.min(minimumX, member.position.x)
 		minimumY = math.min(minimumY, member.position.y)
 		maximumX = math.max(maximumX, member.position.x + width)
@@ -807,6 +854,7 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 		member.position = { x = member.position.x - origin.x, y = member.position.y - origin.y }
 	end
 
+	markForRefit(group)
 	table.insert(doc.nodes, group)
 	return group
 end
@@ -821,10 +869,108 @@ function graph.ungroup(doc: Doc, id: string)
 		end
 	end
 
+	if group.parentId then
+		markForRefit(graph.group(doc, group.parentId))
+	end
+
 	for index, item in doc.nodes do
 		if item.id == id then
 			table.remove(doc.nodes, index)
 			break
+		end
+	end
+end
+
+-- Everything inside a group at any depth, parents before their children.
+function graph.contents(doc: Doc, id: string): { Item }
+	local contents: { Item } = {}
+	local parents = { id }
+	local index = 1
+
+	while index <= #parents do
+		for _, item in doc.nodes do
+			if item.parentId == parents[index] then
+				table.insert(contents, item)
+
+				if graph.isGroup(item) then
+					table.insert(parents, item.id)
+				end
+			end
+		end
+
+		index += 1
+	end
+
+	return contents
+end
+
+-- Removes a group with everything inside it. Each card goes the way `remove` takes it, so a note's links reconnect
+-- around it, and a parent left empty disappears.
+function graph.removeGroup(doc: Doc, id: string)
+	graph.group(doc, id)
+	local groupIds = { [id] = true }
+
+	for _, item in graph.contents(doc, id) do
+		if graph.isGroup(item) then
+			groupIds[item.id] = true
+		elseif graph.find(doc, item.id) then
+			graph.remove(doc, item.id)
+		end
+	end
+
+	for index = #doc.nodes, 1, -1 do
+		if groupIds[doc.nodes[index].id] then
+			table.remove(doc.nodes, index)
+		end
+	end
+
+	pruneEmptyGroups(doc)
+end
+
+-- Takes a ref off an item. A kind narrows the match when the same key could name an issue and a pull request.
+function graph.detachRef(doc: Doc, id: string, key: string, kind: string?): Item
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), "groups don't take refs")
+	local matched = false
+
+	for _, ref in getRefs(item) do
+		if ref.key:lower() == key:lower() and (kind == nil or ref.kind == kind) then
+			removeRef(item, ref.kind, ref.key)
+			matched = true
+		end
+	end
+
+	assert(matched, `"{id}" has no ref {key}`)
+	graph.refreshItemKind(item)
+	return item
+end
+
+-- The recorded status of every card, read before a write so markCelebrations can see what changed.
+function graph.recordedStatuses(doc: Doc): { [string]: string }
+	local statuses: { [string]: string } = {}
+
+	for _, item in doc.nodes do
+		if item.type == "task" then
+			statuses[item.id] = field(item, "status") or "todo"
+		end
+	end
+
+	return statuses
+end
+
+-- Sets `celebrate` on a card that changed to done, so the app can celebrate it, and clears it when the card is
+-- reopened. Cards created done and notes never get the flag, and cards finished before the flag existed don't have it.
+function graph.markCelebrations(doc: Doc, previous: { [string]: string })
+	for _, item in doc.nodes do
+		if item.type == "task" and not graph.isNote(item) then
+			local status = field(item, "status")
+			local wasOpen = previous[item.id] ~= nil and previous[item.id] ~= "done"
+
+			if status == "done" and wasOpen then
+				item.data.celebrate = true
+			elseif status ~= "done" then
+				item.data.celebrate = nil
+			end
 		end
 	end
 end
@@ -845,6 +991,11 @@ function graph.move(doc: Doc, id: string, groupId: string?)
 	-- Node order doesn't matter here; the app sorts parents ahead of children on load.
 	item.position = graph.nextSlot(doc, groupId)
 	item.parentId = groupId
+
+	if groupId then
+		markForRefit(graph.group(doc, groupId))
+	end
+
 	pruneEmptyGroups(doc)
 end
 

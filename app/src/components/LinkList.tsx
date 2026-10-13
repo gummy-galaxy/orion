@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { deriveWork } from '../derive'
 import { STATUS_LABEL, isComponent, isTask, type AppNode, type ClusterData, type Link, type TaskData } from '../model'
+import { StatusIcon } from './StatusIcon'
 
 type Direction = 'waits' | 'unblocks' | 'related'
 const DIRECTION_LABEL: Record<Direction, string> = { waits: 'Waits on', unblocks: 'Unblocks', related: 'Related' }
@@ -65,11 +66,18 @@ export function LinkList({
                 const id = link.from === node.id ? link.to : link.from
                 const other = nodeMap.get(id)!
                 const parent = other.parentId ? nodeMap.get(other.parentId) : undefined
+                const status = work.status.get(id) ?? 'ready'
 
                 return (
                   <li key={link.id}>
                     <button type="button" className="link" onClick={() => jumpTo(id)}>
-                      {labelOf(other)} {!isComponent(other) && <span>({STATUS_LABEL[work.status.get(id) ?? 'ready']})</span>}
+                      {labelOf(other)}{' '}
+                      {!isComponent(other) && (
+                        <span className="link-status">
+                          <StatusIcon status={status} />
+                          {STATUS_LABEL[status]}
+                        </span>
+                      )}
                     </button>
                     <button
                       type="button"
