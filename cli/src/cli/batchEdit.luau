@@ -1,6 +1,8 @@
 local json = require("@std/json")
 
+local applyOperations = require("@root/operations/applyOperations")
 local graph = require("@root/graph")
+local operationTypes = require("@root/operations/types")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
 local types = require("@root/types")
@@ -27,6 +29,23 @@ export type Options = {
 
 -- `parent` marks something removed along with the group it sits in.
 type Change = { id: string, label: string, parent: string? }
+
+-- The operation one target gets. The app sends the same operations, so both paths edit the document one way.
+local function editFor(options: Options, id: string): operationTypes.Operation
+	if options.action == "done" then
+		return { op = "setFields", id = id, fields = { status = "done" } }
+	elseif options.action == "remove" then
+		return { op = "remove", id = id, reconnect = options.reconnect }
+	elseif options.action == "ungroup" then
+		return { op = "ungroup", id = id }
+	elseif options.action == "removeGroup" then
+		return { op = "removeGroup", id = id }
+	elseif options.action == "tidy" then
+		return { op = "tidy", id = id }
+	end
+
+	return { op = "move", id = id, group = options.destination }
+end
 
 local function batchEdit(options: Options)
 	assert(#options.ids == 0 or options.where == nil, "use ids or --where, not both")
@@ -72,23 +91,30 @@ local function batchEdit(options: Options)
 			end
 		end
 
-		for _, item in targets do
-			if options.action == "done" then
-				graph.setFields(doc, item.id, { status = "done" })
-			elseif options.action == "remove" then
-				graph.remove(doc, item.id, options.reconnect)
-			elseif options.action == "ungroup" then
-				graph.ungroup(doc, item.id)
-			elseif options.action == "removeGroup" then
-				if graph.find(doc, item.id) then
-					graph.removeGroup(doc, item.id)
-				end
-			elseif options.action == "tidy" then
-				graph.markForTidy(doc, item.id)
-			else
-				graph.move(doc, item.id, options.destination)
+		-- A group inside another target group leaves with it, so it isn't removed twice.
+		local targetedGroups: { [string]: boolean } = {}
+
+		if options.action == "removeGroup" then
+			for _, item in targets do
+				targetedGroups[item.id] = true
 			end
 		end
+
+		local edits: { operationTypes.Operation } = {}
+
+		for _, item in targets do
+			local insideTarget = false
+
+			for _, ancestor in graph.ancestors(doc, item.id) do
+				insideTarget = insideTarget or targetedGroups[ancestor] == true
+			end
+
+			if not insideTarget then
+				table.insert(edits, editFor(options, item.id))
+			end
+		end
+
+		applyOperations(doc, edits)
 	end
 
 	local result, baseRevision = runEdit(options.dir, options.dryRun, options.ifRevision, apply)

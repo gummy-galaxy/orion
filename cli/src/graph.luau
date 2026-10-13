@@ -766,6 +766,13 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 end
 
 -- Attaches outside work to an item. The repository fills in only when the item has none yet.
+-- Sets where an item sits. A child's position is relative to its group, as the app stores it.
+function graph.place(doc: Doc, id: string, position: Position): Item
+	local item = graph.get(doc, id)
+	item.position = position
+	return item
+end
+
 function graph.attachRef(doc: Doc, id: string, resolved: types.ResolvedRef): Item
 	local item = graph.get(doc, id)
 	assert(not graph.isGroup(item), "groups don't take refs; attach it to an item")
@@ -1006,10 +1013,11 @@ function graph.markForTidy(doc: Doc, id: string)
 	end
 end
 
--- Wraps items that share a parent in a new group, keeping their arrangement.
-function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
+-- Wraps items that share a parent in a new group, keeping their arrangement. An id the caller picks must be free.
+function graph.makeGroup(doc: Doc, label: string, ids: { string }, groupId: string?): Item
 	assert(label ~= "", "a group needs a name")
 	assert(#ids > 0, "a group needs at least one item")
+	assert(groupId == nil or graph.find(doc, groupId) == nil, `"{groupId or ""}" is already taken`)
 	local members: { Item } = {}
 
 	for _, id in ids do
@@ -1034,7 +1042,7 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 
 	local origin = { x = minimumX - GROUP_PADDING, y = minimumY - GROUP_HEADER_HEIGHT }
 	local group: Item = {
-		id = uniqueId(doc, slug(label)),
+		id = groupId or uniqueId(doc, slug(label)),
 		type = "cluster",
 		position = origin,
 		parentId = parent,
