@@ -233,6 +233,18 @@ Runs `orion canvas use`.
 | -------- | --------- | ------------- |
 | `name`   | workspace | **Required.** |
 
+## orion_reveal
+
+Select cards or groups in the open Orion app and zoom the canvas to them, opening the group they share. Opens the app when it's closed. Set selectOnly to select without moving the camera.
+
+Runs `orion reveal`.
+
+| Argument     | Type      | Description                                            |
+| ------------ | --------- | ------------------------------------------------------ |
+| `ids`        | strings   | **Required.**                                          |
+| `workspace`  | workspace | Canvas name. Omit to use the canvas selected in Orion. |
+| `selectOnly` | boolean   | Select without moving the camera.                      |
+
 ## orion_ingest
 
 Import work from the canvas's configured sources into Unsorted, and refresh the cards they track, such as pull request states from GitHub.

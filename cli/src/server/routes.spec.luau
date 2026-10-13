@@ -379,3 +379,60 @@ test.case("the theme list route serves theme files from the data folder", functi
 	assert.eq((json.asObject(entries[1]) :: json.Object).file, "dusk.json")
 	assert.eq(router.handle(createRequest("POST", "/api/themes")).status, 405)
 end)
+
+local function createRevealRouter(name: string, openClients: number)
+	local root = testing.directory(name)
+	local published: { { name: string, data: json.Object } } = {}
+	local hub = {
+		count = function()
+			return openClients
+		end,
+
+		publish = function(eventName: string, data: json.Object)
+			table.insert(published, { name = eventName, data = data })
+		end,
+	}
+	local router = routes.create(root, "default", {
+		getStatus = function()
+			return json.object({ state = "idle" })
+		end,
+
+		run = function()
+			return json.object({ state = "idle" })
+		end,
+	}, function() end, nil, hub)
+	store.write(store.getWorkspaceDir(root, "default"), testing.createDoc({ testing.task("ci", "Ship it", "todo") }))
+	return root, router, published
+end
+
+test.case("reveal needs a known canvas and items on it, and an open app", function(assert)
+	local _, router = createRevealRouter("routes-reveal-checks", 0)
+	local ids = json.object({ canvas = "default", ids = { "ci" } })
+	assert.eq(router.handle(createRequest("POST", "/api/reveal", ids)).status, 409)
+	assert.eq(
+		router.handle(createRequest("POST", "/api/reveal", json.object({ canvas = "default", ids = { "gone" } }))).status,
+		404
+	)
+	assert.eq(
+		router.handle(createRequest("POST", "/api/reveal", json.object({ canvas = "nope", ids = { "ci" } }))).status,
+		404
+	)
+	assert.eq(router.handle(createRequest("GET", "/api/reveal")).status, 405)
+	assert.eq(router.getActive(), "default")
+end)
+
+test.case("reveal publishes to the open app and switches to the item's canvas", function(assert)
+	local root, router, published = createRevealRouter("routes-reveal-switch", 1)
+	store.createWorkspace(root, "planning", "Planning")
+	store.write(store.getWorkspaceDir(root, "planning"), testing.createDoc({ testing.group("plan", "Plan") }))
+	local response = router.handle(
+		createRequest("POST", "/api/reveal", json.object({ canvas = "planning", ids = { "plan" }, selectOnly = true }))
+	)
+	assert.eq(response.status, 200)
+	assert.eq(router.getActive(), "planning")
+	assert.eq(#published, 1)
+	assert.eq(published[1].name, "orion:reveal")
+	assert.eq(published[1].data.canvas, "planning")
+	assert.eq(published[1].data.selectOnly, true)
+	assert.eq(decodeResponse(response).canvas, "planning")
+end)

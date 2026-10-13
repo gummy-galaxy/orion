@@ -100,6 +100,22 @@ local function buildImportArgv(arguments: json.Object): { string }
 	return argv
 end
 
+-- Ids are one list argument, which the CLI takes as trailing positionals.
+local function buildRevealArgv(arguments: json.Object): { string }
+	local argv = { "reveal" }
+	local ids = json.asArray(arguments.ids) or {}
+
+	for _, id in ids do
+		assert(type(id) == "string" and id ~= "", "ids must be a list of strings")
+		table.insert(argv, id)
+	end
+
+	appendFlag(argv, "select-only", arguments.selectOnly)
+	appendOption(argv, "canvas", arguments.workspace)
+	table.insert(argv, "--json")
+	return argv
+end
+
 -- Every tool the MCP server offers, in the order tools/list reports them. Tools map their
 -- fields onto a CLI command, and those that need more than that supply their own build.
 local tools: { Tool } = {
@@ -359,6 +375,24 @@ local tools: { Tool } = {
 		command = { "canvas", "use" },
 		fields = {
 			{ name = "name", kind = "workspace", required = true, at = "positional" },
+		},
+	},
+	{
+		name = "orion_reveal",
+		description = "Select cards or groups in the open Orion app and zoom the canvas to them, opening the group they share. Opens the app when it's closed. Set selectOnly to select without moving the camera.",
+		command = { "reveal" },
+		json = true,
+		build = buildRevealArgv,
+		fields = {
+			{ name = "ids", kind = "strings", required = true, at = "positional" },
+			workspaceField,
+			{
+				name = "selectOnly",
+				kind = "boolean",
+				description = "Select without moving the camera.",
+				at = "flag",
+				flag = "select-only",
+			},
 		},
 	},
 	{

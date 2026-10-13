@@ -25,6 +25,7 @@ local render = require("@root/render")
 local renderGroup = require("@root/render/group")
 local requestedRevision = require("@root/cli/requestedRevision")
 local resolveRef = require("@root/adapters/resolveRef")
+local reveal = require("@root/cli/reveal")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
 local server = require("@root/cli/server")
@@ -60,6 +61,7 @@ local COMMANDS: { [string]: Command } = {
 	canvas = canvas,
 	focus = focus,
 	ingest = ingest,
+	reveal = reveal,
 	mcp = mcp,
 	media = media,
 	server = server,
@@ -75,7 +77,7 @@ Repositories are "owner/name".
 Data lives in Orion's user data folder (run orion canvas path to see it); set ORION_DATA_DIR to change it.
 The Orion app talks to orion server start, which watches the data files.
 Use orion server status [--json] to find the running server.
-While the app is open, orion focus shows its open group and selection.]]
+While the app is open, orion focus shows its open group and selection, and orion reveal selects items in it and zooms to them.]]
 
 local QUERY_HELP = [[
 Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref.
@@ -267,7 +269,7 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	-- Commands with their own modules define their subcommands themselves.
-	for _, name in { "canvas", "server", "source", "ingest", "media", "suggestion", "backup", "mcp", "focus" } do
+	for _, name in { "canvas", "server", "source", "ingest", "media", "suggestion", "backup", "mcp", "focus", "reveal" } do
 		local module = COMMANDS[name]
 		local parser = addCommand(root, name, module.help)
 		commands[name] = parser

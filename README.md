@@ -27,7 +27,7 @@ Use `orion canvas list`, `orion canvas create [name] [--label <label>]`, `orion 
 
 Before replacing an existing data file, the CLI store copies it to `backups/orion-r<revision>-<UTC timestamp>.json` in that canvas's folder. Backups from the last 24 hours are kept, along with the newest backup for each UTC day in the last 30 days. Run `orion backup list [--json]` to list the selected canvas's backups newest first, and `orion backup restore <revision>` to recover one in that canvas as a new revision. If several backups have that revision, restore uses the newest. Restoring also backs up the current file first.
 
-While the app is open, it reports its open group and selection to `orion server start`. The server writes `focus.json` in the active canvas's folder without changing the canvas revision; `orion focus` reads it. The report is cleared when its tab closes, the workspace changes, or the server stops.
+While the app is open, it reports its open group and selection to `orion server start`. The server writes `focus.json` in the active canvas's folder without changing the canvas revision; `orion focus` reads it. The report is cleared when its tab closes, the workspace changes, or the server stops. `orion reveal <id…>` works the other way: it selects cards or groups in the open app and zooms the canvas to them, opening the innermost group that holds them all. With no app running, it opens the installed app on the same data folder first.
 
 The app's preferences, such as the theme, color mode, keyboard shortcuts, and whether the sidebar is shown, live in the data root's `settings.json`. `orion server start` reads and merges them at `/api/settings`, so they're shared by every workspace and by the browser and desktop app.
 
@@ -157,7 +157,8 @@ The toolbar shows when GitHub was last synced, or a sync error; click the status
 In `app/`:
 
 - `vite.config.ts`: starts `orion server start` for development and proxies its API.
-- `src/persist.ts`: loading, saving, reacting to changes from other writers, and reporting focus.
+- `src/persist.ts`: loading, saving, reacting to changes from other writers, reporting focus, and receiving reveals.
+- `src/reveal.ts`: the group, detail level, and camera that `orion reveal` uses to show cards.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/layout.ts`: laying out one group or the top level: ELK with wrapping, and custom groups left alone.
 - `src/pushAside.ts`: moving neighbors out of the way when a group grows, level by level up to the top.
@@ -184,6 +185,7 @@ In `cli/src/`:
 - `cli/init.luau`: command registration and dispatch; command modules in `cli/` define their own options.
 - `cli/tidy.luau` and `cli/check.luau`: `orion group tidy` marks groups for layout, and `orion canvas check` reports layout problems; the checks themselves are in `layout/checkLayout.luau`.
 - `cli/focus.luau`: reads and renders the app's reported open group and selection.
+- `cli/reveal.luau`: selects items in the open app and waits for the app to report them, opening the app first when none is running.
 - `cli/mcp/`: the MCP server and its tool catalog. `cli/mcp/tools.luau` lists every tool.
 - `cli/describeCommands.luau`: describes every command and option for the generated reference in `docs/reference/`, which the root `.lute/docs.luau` writes.
 - `store.luau`: reading, locking, and writing the data file, and reading and writing focus reports.

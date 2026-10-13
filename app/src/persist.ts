@@ -15,6 +15,8 @@ export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; 
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
 export type SaveResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
 export type Workspaces = { active: string; workspaces: { name: string; label: string }[] }
+/** What `orion reveal` asked the open app to select and frame, on the canvas named. */
+export type Reveal = { canvas: string; ids: string[]; selectOnly: boolean }
 
 const API = '/api/orion'
 const STORAGE_KEY = 'orion:v2'
@@ -22,6 +24,7 @@ const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:workspace'
 const WORKSPACES_EVENT = 'orion:workspaces'
+const REVEAL_EVENT = 'orion:reveal'
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 export type ImageAsset = { asset: string; mime: string }
@@ -86,7 +89,7 @@ export async function lookupLink(url: string, workspace: string): Promise<LinkLo
   return body
 }
 
-type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT
+type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT | typeof REVEAL_EVENT
 const listeners = new Map<EventName, Set<(data: never) => void>>()
 let socket: WebSocket | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
@@ -179,6 +182,11 @@ export function onWorkspaceChange(callback: (active: string) => void) {
 /** Updates the list when another client creates or edits a workspace. */
 export function onWorkspaceListChange(callback: (list: Workspaces) => void) {
   return subscribe<Workspaces>(WORKSPACES_EVENT, callback)
+}
+
+/** Calls back when `orion reveal` (or an agent) asks this page to select cards and zoom to them. */
+export function onReveal(callback: (reveal: Reveal) => void) {
+  return subscribe<Reveal>(REVEAL_EVENT, callback)
 }
 
 export async function getSyncStatus(): Promise<SyncStatus | null> {

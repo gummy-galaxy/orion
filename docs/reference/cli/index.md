@@ -29,4 +29,5 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion backup`](./backup)         | List saved revisions and restore one as a new revision                                   |
 | [`orion mcp`](./mcp)               | Agent tools over MCP                                                                     |
 | [`orion focus`](./focus)           | Show the group open in the app and what's selected                                       |
+| [`orion reveal`](./reveal)         | Select cards or groups in the app and zoom the canvas to them                            |
 | [`orion help`](./help)             | Show help for Orion or one of its commands                                               |

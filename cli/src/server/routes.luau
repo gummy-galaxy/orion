@@ -8,6 +8,7 @@ local imageRoutes = require("@root/server/routes/images")
 local links = require("@root/server/routes/links")
 local merge = require("@root/server/routes/merge")
 local orion = require("@root/server/routes/orion")
+local reveal = require("@root/server/routes/reveal")
 local settings = require("@root/server/routes/settings")
 local shared = require("@root/server/routes/shared")
 local static = require("@root/server/routes/static")
@@ -19,6 +20,7 @@ local workspaces = require("@root/server/routes/workspaces")
 type Request = net.ReceivedRequest
 type Response = shared.Response
 type SyncLoop = sync.SyncLoop
+type RevealHub = reveal.Hub
 
 local routes = {}
 
@@ -31,7 +33,8 @@ function routes.create(
 	initialWorkspace: string,
 	syncLoop: SyncLoop,
 	onSwitch: (string) -> (),
-	staticDir: string?
+	staticDir: string?,
+	hub: RevealHub?
 )
 	local active = initialWorkspace
 	local router = {}
@@ -63,6 +66,9 @@ function routes.create(
 		end
 		if route == "/api/focus" then
 			return focus.handle(request, root, active)
+		end
+		if route == "/api/reveal" then
+			return reveal.handle(request, root, router.getActive, router.switchTo, hub)
 		end
 		if route == "/api/editor" then
 			return editor.handle(request)
