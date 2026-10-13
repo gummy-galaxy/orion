@@ -39,7 +39,7 @@ npm install
 npm run dev
 ```
 
-Build the CLI first with `cd cli && lute run build`. Vite starts `orion serve` and proxies `/api` to it. Set `ORION_BIN` to use another CLI binary. If the binary is missing, Vite still runs and the app falls back to browser storage.
+Build the CLI first with `cd cli && lute run build`. Vite starts `orion serve` and proxies `/api` to it. Set `ORION_BIN` to use another CLI binary. If the binary is missing, Vite still runs, but the canvas shows empty and nothing is saved, since `orion serve` is the only store.
 
 PR cards show a **VS Code** button when the `code` and `hop` launchers are on the server's `PATH`. Clicking it runs `hop to <PR URL>`, which reuses or checks out the PR's worktree and opens it in VS Code.
 
@@ -47,7 +47,7 @@ To browse the component stories without starting `orion serve`, run `npm run sto
 
 To check a change for performance regressions, run `npm run perf` from `app/`. It compares this checkout against `origin/main` (pass `-- --base <ref>` for another revision) and writes the report to `app/.perf/report.md`. Both sides run this checkout's harness in `app/src/perf/`: data benchmarks over generated canvases of 1,000 and 5,000 cards, and a 1,000-card perf story that Playwright drives in headless Chromium to count React commits, frames drawn, and main-thread and raster time while idle, panning, zooming, hovering, and dragging. Add `-- --stories perf-canvas--cards-1000,perf-canvas--cards-5000` to profile the larger canvas too, which is slow enough today to take several minutes. Install the browser once with `npx playwright install chromium`. Run `npx vitest bench --root src` for the benchmarks alone. Close other heavy work while it runs, since it measures this machine. On pull requests that touch `app/` and are ready for review, CI's perf workflow runs the same comparison against the base branch and posts the report as a comment, replacing it on each run.
 
-`orion serve` reads and writes the active workspace's data file. Run it directly with `orion serve [--host 127.0.0.1] [--port 5198] [--static app/dist]`; `--static` serves a built app with an `index.html` fallback. When the default workspace has no file, the app carries over what the browser had saved. Otherwise a new workspace starts empty. The server syncs five seconds after startup and every five minutes. Returning to the window also requests a sync, with a one-minute throttle.
+`orion serve` reads and writes the active workspace's data file. Run it directly with `orion serve [--host 127.0.0.1] [--port 5198] [--static app/dist]`; `--static` serves a built app with an `index.html` fallback. A workspace with no file yet starts empty. The server syncs five seconds after startup and every five minutes. Returning to the window also requests a sync, with a one-minute throttle.
 
 ## Desktop app
 

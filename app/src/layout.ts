@@ -4,12 +4,14 @@ import {
   GROUP_PADDING,
   TASK_HEIGHT,
   TASK_WIDTH,
+  absolutePosition,
   ancestors,
   byId,
   isCluster,
   normalize,
   sizeOf,
   type AppNode,
+  type ClusterNode,
   type Link,
 } from './model'
 import type { CardSize } from './cardSize'
@@ -388,6 +390,142 @@ export async function reflow(
 
       return position ? { ...node, position: { x: position.x + offset.x, y: position.y + offset.y } } : node
     }),
+    cardSize,
+  )
+}
+
+// Group changes show at once with this geometry. Which items belong to a group is the server's rule, applied through operations.
+/** Wraps the selection in a new group under the selection's nearest shared parent. */
+export function groupSelection(
+  nodes: AppNode[],
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): { nodes: AppNode[]; groupId: string } | null {
+  const nodeMap = byId(nodes)
+  const selection = nodes.filter(
+    (node) => node.selected && !node.hidden && !ancestors(node.id, nodeMap).some((ancestor) => nodeMap.get(ancestor)?.selected),
+  )
+
+  if (!selection.length) return null
+
+  const chains = selection.map((node) => ancestors(node.id, nodeMap))
+  const parent = chains[0].find((ancestor) => chains.every((chain) => chain.includes(ancestor)))
+  const parentNode = parent ? nodeMap.get(parent) : undefined
+  const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
+  const absolutePositions = new Map(selection.map((node) => [node.id, absolutePosition(node, nodeMap)]))
+  const minX = Math.min(...[...absolutePositions.values()].map((position) => position.x))
+  const minY = Math.min(...[...absolutePositions.values()].map((position) => position.y))
+  const groupPosition = { x: minX - origin.x - GROUP_PADDING, y: minY - origin.y - GROUP_HEADER_HEIGHT }
+  const groupId = 'g-' + Date.now().toString(36)
+  const group: ClusterNode = {
+    id: groupId,
+    type: 'cluster',
+    position: groupPosition,
+    parentId: parent,
+    data: { kind: 'cluster', label: 'New group' },
+    selected: true,
+  }
+  const next = nodes.map((node): AppNode => {
+    const position = absolutePositions.get(node.id)
+
+    if (position)
+      return {
+        ...node,
+        parentId: groupId,
+        selected: false,
+        position: { x: position.x - origin.x - groupPosition.x, y: position.y - origin.y - groupPosition.y },
+      }
+
+    return node.selected ? { ...node, selected: false } : node
+  })
+
+  return { nodes: normalize([...next, group], cardSize), groupId }
+}
+
+/** Dissolves the given groups, handing their children to the group's parent in place. */
+export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+  let next = nodes
+
+  for (const id of ids) {
+    const group = next.find((node) => node.id === id)
+
+    if (!group || !isCluster(group)) continue
+
+    next = next
+      .filter((node) => node.id !== id)
+      .map((node): AppNode =>
+        node.parentId === id
+          ? {
+              ...node,
+              parentId: group.parentId,
+              selected: true,
+              position: { x: node.position.x + group.position.x, y: node.position.y + group.position.y },
+            }
+          : node,
+      )
+  }
+
+  return normalize(next, cardSize)
+}
+
+/** Gap between a moved group and the siblings it lands beside, matching `orion move` in the CLI. */
+const ITEM_GAP = 48
+
+/** The first spot at or below `preferred` that no sibling overlaps, so a moved group keeps its place when it's free. */
+function freeSpotBelow(siblings: AppNode[], preferred: { x: number; y: number }, size: { width: number; height: number }, cardSize: CardSize) {
+  const spot = { ...preferred }
+
+  const clashes = (sibling: AppNode) => {
+    const siblingSize = sizeOf(sibling, cardSize)
+
+    return (
+      spot.x < sibling.position.x + siblingSize.width &&
+      sibling.position.x < spot.x + size.width &&
+      spot.y < sibling.position.y + siblingSize.height &&
+      sibling.position.y < spot.y + size.height
+    )
+  }
+
+  let clash = siblings.find(clashes)
+
+  while (clash) {
+    spot.y = clash.position.y + sizeOf(clash, cardSize).height + ITEM_GAP
+    clash = siblings.find(clashes)
+  }
+
+  return spot
+}
+
+/**
+ * Lifts a group out of its parent to the parent's level, at the first free spot at or below where it was, so it stays
+ * where it was on screen when nothing covers it. The parent shrinks or grows to fit what remains. Anything else returns
+ * the nodes unchanged.
+ */
+export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+  const nodeMap = byId(nodes)
+  const group = nodeMap.get(id)
+
+  if (!group || !isCluster(group) || !group.parentId) return nodes
+
+  const parent = nodeMap.get(group.parentId)
+  const grandparent = parent?.parentId ? nodeMap.get(parent.parentId) : undefined
+  const origin = grandparent ? absolutePosition(grandparent, nodeMap) : { x: 0, y: 0 }
+  const absolute = absolutePosition(group, nodeMap)
+  // Fitting first lets the old parent shrink to what remains, so the spot is checked against where it will actually be.
+  const lifted = normalize(
+    nodes.map((node) =>
+      node.id === id ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } } : node,
+    ),
+    cardSize,
+  )
+  const landed = lifted.find((node) => node.id === id)
+
+  if (!landed) return lifted
+
+  const siblings = lifted.filter((node) => node.parentId === landed.parentId && node.id !== id)
+  const position = freeSpotBelow(siblings, landed.position, sizeOf(landed, cardSize), cardSize)
+
+  return normalize(
+    lifted.map((node) => (node.id === id ? { ...node, position } : node)),
     cardSize,
   )
 }

@@ -12,13 +12,13 @@ import {
   getPullRequestNumber,
   getTaskTag,
   getTaskUrl,
-  moveOutOfGroup,
   normalize,
   sizeOf,
   type AppNode,
   type PullDetails,
   type TaskData,
 } from './model'
+import { moveOutOfGroup } from './layout'
 
 const task = (overrides: Partial<TaskData> = {}): TaskData => ({
   kind: 'task',

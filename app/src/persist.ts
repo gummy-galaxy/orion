@@ -1,25 +1,23 @@
 import type { Derived } from './derive'
 import type { AppNode, GithubSnapshot, Link, TaskData } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
-import type { CardSize } from './cardSize'
-import { toStored } from './skinSpace'
+import type { Operation } from './operations'
 
 /**
- * The canvas lives in orion.json, served by the Orion CLI so the CLI and the
- * app share one copy. Without that server (a static build), it falls back to
- * this browser's storage.
+ * The canvas lives in orion.json, served by `orion serve`, which is the only store. The app reads it, and every
+ * committed edit goes to the server as operations. Without a server the canvas shows empty and nothing is saved.
  */
 
 export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
 /** `derived` is what `orion serve` computed for this revision; a server without it leaves the field out. */
 export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot; derived?: Derived }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
-export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
-export type SaveResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
+export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string }
+export type CommitResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
 export type Workspaces = { active: string; workspaces: { name: string; label: string }[] }
 
 const API = '/api/orion'
-const STORAGE_KEY = 'orion:v2'
+const OPERATIONS_API = '/api/operations'
 const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:workspace'
@@ -207,6 +205,26 @@ export function onSyncStatus(callback: (status: SyncStatus) => void) {
   return subscribe(SYNC_EVENT, callback)
 }
 
+/**
+ * Sends a list of edits the server applies as one change. `baseRevision` is the revision the edits were made against,
+ * or null when the file doesn't exist yet. A conflict means the file changed since, and the list was not applied.
+ */
+export async function commitOperations(workspace: string, baseRevision: number | null, operations: Operation[]): Promise<CommitResult> {
+  try {
+    const response = await fetch(OPERATIONS_API, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
+      body: JSON.stringify({ baseRevision, operations }),
+    })
+
+    if (response.ok) return { ok: true, revision: (await response.json()).revision }
+
+    return { ok: false, conflict: response.status === 409 }
+  } catch {
+    return { ok: false, conflict: false }
+  }
+}
+
 /** Only what's worth keeping; selection, measurements and handles are view state. */
 export function slim(nodes: AppNode[]) {
   return nodes.map((node) => ({
@@ -234,25 +252,6 @@ function isSaved(value: unknown): value is Saved {
   return !!saved && Array.isArray(saved.nodes) && Array.isArray(saved.links)
 }
 
-export function readBrowser(): Saved | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const saved = raw ? JSON.parse(raw) : null
-
-    return isSaved(saved) ? saved : null
-  } catch {
-    return null
-  }
-}
-
-function writeBrowser({ nodes, links, stickers, stickerLoadout }: Saved) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout }))
-  } catch {
-    // Saving is a convenience; the canvas keeps working without it.
-  }
-}
-
 export async function load(workspace = 'default'): Promise<Loaded> {
   try {
     const response = await fetch(API, { headers: { 'x-orion-workspace': workspace } })
@@ -272,50 +271,13 @@ export async function load(workspace = 'default'): Promise<Loaded> {
     // No dev server.
   }
 
-  return workspace === 'default' ? { source: 'browser', saved: readBrowser() } : { source: 'missing', workspace }
+  return { source: 'missing', workspace }
 }
 
 export async function fetchRemote(workspace = 'default'): Promise<Remote | null> {
   const loaded = await load(workspace)
 
   return loaded.source === 'file' ? loaded.doc : null
-}
-
-/** `baseRevision` is null when creating the file. */
-export async function save(
-  source: 'file' | 'browser',
-  baseRevision: number | null,
-  saved: Saved,
-  workspace = 'default',
-  cardSize: CardSize,
-): Promise<SaveResult> {
-  saved = { ...saved, nodes: toStored(saved.nodes, cardSize) }
-
-  if (source === 'browser') {
-    writeBrowser(saved)
-
-    return { ok: true, revision: 0 }
-  }
-
-  try {
-    const response = await fetch(API, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
-      body: JSON.stringify({
-        baseRevision,
-        nodes: slim(saved.nodes),
-        links: saved.links,
-        stickers: saved.stickers,
-        stickerLoadout: saved.stickerLoadout,
-      }),
-    })
-
-    if (response.ok) return { ok: true, revision: (await response.json()).revision }
-
-    return { ok: false, conflict: response.status === 409 }
-  } catch {
-    return { ok: false, conflict: false }
-  }
 }
 
 export type FocusReport = { open: string | null; selected: string[] }
