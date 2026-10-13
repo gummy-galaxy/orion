@@ -1,4 +1,5 @@
 local copyValue = require("@root/operations/copyValue")
+local getRawValue = require("@root/operations/getRawValue")
 local linkKey = require("@root/operations/linkKey")
 local operationTypes = require("@root/operations/types")
 local types = require("@root/types")
@@ -17,6 +18,9 @@ local function captureDoc(doc: Doc): Snapshot
 	for index, link in doc.links do
 		snapshot.links[linkKey(link.from, link.to)] = { index = index, link = copyValue(link) }
 	end
+
+	snapshot.stickers = copyValue(getRawValue(doc, "stickers"))
+	snapshot.stickerLoadout = copyValue(getRawValue(doc, "stickerLoadout"))
 
 	return snapshot
 end

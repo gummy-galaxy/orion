@@ -3,6 +3,7 @@ local diffDocs = require("@root/operations/diffDocs")
 local graph = require("@root/graph")
 local operationTypes = require("@root/operations/types")
 local restoreDoc = require("@root/operations/restoreDoc")
+local setRawValue = require("@root/operations/setRawValue")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -65,6 +66,58 @@ end
 
 handlers.tidy = function(doc: Doc, operation: Operation)
 	graph.markForTidy(doc, required(operation.id, "id"))
+end
+
+-- Adds an item the app built, such as a card, note, image, or group. The id must be free, and a parent must be a group.
+handlers.create = function(doc: Doc, operation: Operation)
+	local id = required(operation.id, "id")
+	assert(graph.find(doc, id) == nil, `"{id}" is already taken`)
+
+	if operation.parentId then
+		graph.group(doc, operation.parentId)
+	end
+
+	local item: types.Item = {
+		id = id,
+		type = required(operation.nodeType, "type"),
+		position = { x = required(operation.x, "x"), y = required(operation.y, "y") },
+		parentId = operation.parentId,
+		width = operation.width,
+		height = operation.height,
+		data = required(operation.data, "data"),
+	}
+
+	table.insert(doc.nodes, item)
+end
+
+-- Replaces an item's data with the data the app holds for it.
+handlers.setData = function(doc: Doc, operation: Operation)
+	local data = required(operation.data, "data")
+	graph.get(doc, required(operation.id, "id")).data = data
+end
+
+-- Sets an item's stored size, or drops it when `clear` is set.
+handlers.resize = function(doc: Doc, operation: Operation)
+	local item = graph.get(doc, required(operation.id, "id"))
+
+	if operation.clear then
+		item.width = nil
+		item.height = nil
+		return
+	end
+
+	local width = required(operation.width, "width")
+	local height = required(operation.height, "height")
+	item.width = width
+	item.height = height
+end
+
+handlers.setStickers = function(doc: Doc, operation: Operation)
+	setRawValue(doc, "stickers", required(operation.stickers, "stickers"))
+end
+
+handlers.setStickerLoadout = function(doc: Doc, operation: Operation)
+	setRawValue(doc, "stickerLoadout", required(operation.stickerLoadout, "stickerLoadout"))
 end
 
 -- Applies one operation and returns its inverse. A failed operation leaves the document as it was.

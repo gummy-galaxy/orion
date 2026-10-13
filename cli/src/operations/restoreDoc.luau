@@ -1,5 +1,6 @@
 local copyValue = require("@root/operations/copyValue")
 local operationTypes = require("@root/operations/types")
+local setRawValue = require("@root/operations/setRawValue")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -64,6 +65,14 @@ local function restoreDoc(doc: Doc, restore: Restore)
 		else
 			table.insert(doc.links, math.min(entry.index, #doc.links + 1), link)
 		end
+	end
+
+	if restore.stickers then
+		setRawValue(doc, "stickers", restore.stickers.value)
+	end
+
+	if restore.stickerLoadout then
+		setRawValue(doc, "stickerLoadout", restore.stickerLoadout.value)
 	end
 end
 

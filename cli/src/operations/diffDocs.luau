@@ -1,4 +1,5 @@
 local copyValue = require("@root/operations/copyValue")
+local getRawValue = require("@root/operations/getRawValue")
 local linkKey = require("@root/operations/linkKey")
 local operationTypes = require("@root/operations/types")
 local sameValue = require("@root/operations/sameValue")
@@ -50,6 +51,14 @@ local function diffDocs(before: Snapshot, doc: Doc): Restore
 		if before.links[key] == nil then
 			table.insert(restore.removedLinks, { from = link.from, to = link.to })
 		end
+	end
+
+	if not sameValue(getRawValue(doc, "stickers"), before.stickers) then
+		restore.stickers = { value = copyValue(before.stickers) }
+	end
+
+	if not sameValue(getRawValue(doc, "stickerLoadout"), before.stickerLoadout) then
+		restore.stickerLoadout = { value = copyValue(before.stickerLoadout) }
 	end
 
 	table.sort(restore.nodes, function(a: { index: number }, b: { index: number }): boolean

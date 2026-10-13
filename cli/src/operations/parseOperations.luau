@@ -20,6 +20,7 @@ local FIELD_TYPES: { [string]: string } = {
 	kind = "string",
 }
 local LINK_KINDS = { blocks = true, related = true }
+local NODE_TYPES = { task = true, cluster = true, image = true }
 local OPERATIONS = {
 	setFields = true,
 	place = true,
@@ -32,6 +33,11 @@ local OPERATIONS = {
 	removeGroup = true,
 	move = true,
 	tidy = true,
+	create = true,
+	setData = true,
+	resize = true,
+	setStickers = true,
+	setStickerLoadout = true,
 }
 
 local function requireString(object: json.Object, key: string): string
@@ -65,6 +71,25 @@ local function optionalBoolean(object: json.Object, key: string): boolean?
 
 	assert(type(value) == "boolean", `{key} must be true or false`)
 	return value :: boolean
+end
+
+local function optionalNumber(object: json.Object, key: string): number?
+	local value = object[key]
+
+	if value == nil then
+		return nil
+	end
+
+	assert(type(value) == "number", `{key} must be a number`)
+	return value :: number
+end
+
+local function requireObject(object: json.Object, key: string): json.Object
+	return assert(json.asObject(object[key] :: json.Value), `{key} must be an object`)
+end
+
+local function requireArray(object: json.Object, key: string): json.Array
+	return assert(json.asArray(object[key] :: json.Value), `{key} must be an array`)
 end
 
 local function requireStrings(object: json.Object, key: string): { string }
@@ -134,6 +159,31 @@ local function parseOperation(object: json.Object): Operation
 	elseif operation.op == "remove" then
 		operation.id = requireString(object, "id")
 		operation.reconnect = optionalBoolean(object, "reconnect")
+	elseif operation.op == "create" then
+		operation.id = requireString(object, "id")
+		operation.nodeType = requireString(object, "type")
+		assert(NODE_TYPES[operation.nodeType :: string], "type must be task, cluster, or image")
+		operation.x = requireNumber(object, "x")
+		operation.y = requireNumber(object, "y")
+		operation.parentId = optionalString(object, "parentId")
+		operation.width = optionalNumber(object, "width")
+		operation.height = optionalNumber(object, "height")
+		operation.data = requireObject(object, "data")
+	elseif operation.op == "setData" then
+		operation.id = requireString(object, "id")
+		operation.data = requireObject(object, "data")
+	elseif operation.op == "resize" then
+		operation.id = requireString(object, "id")
+		operation.clear = optionalBoolean(object, "clear")
+
+		if not operation.clear then
+			operation.width = requireNumber(object, "width")
+			operation.height = requireNumber(object, "height")
+		end
+	elseif operation.op == "setStickers" then
+		operation.stickers = requireArray(object, "stickers")
+	elseif operation.op == "setStickerLoadout" then
+		operation.stickerLoadout = requireArray(object, "stickerLoadout")
 	else
 		-- ungroup, removeGroup, and tidy each take only the id of the item they act on.
 		operation.id = requireString(object, "id")
