@@ -1,0 +1,138 @@
+[
+  {
+    "text": "list",
+    "link": "/reference/cli/list"
+  },
+  {
+    "text": "query",
+    "link": "/reference/cli/query"
+  },
+  {
+    "text": "ready",
+    "link": "/reference/cli/ready"
+  },
+  {
+    "text": "groups",
+    "link": "/reference/cli/groups"
+  },
+  {
+    "text": "show",
+    "link": "/reference/cli/show"
+  },
+  {
+    "text": "focus",
+    "link": "/reference/cli/focus"
+  },
+  {
+    "text": "add",
+    "link": "/reference/cli/add"
+  },
+  {
+    "text": "set",
+    "link": "/reference/cli/set"
+  },
+  {
+    "text": "done",
+    "link": "/reference/cli/done"
+  },
+  {
+    "text": "link",
+    "link": "/reference/cli/link"
+  },
+  {
+    "text": "insert",
+    "link": "/reference/cli/insert"
+  },
+  {
+    "text": "unlink",
+    "link": "/reference/cli/unlink"
+  },
+  {
+    "text": "note",
+    "link": "/reference/cli/note"
+  },
+  {
+    "text": "remove",
+    "link": "/reference/cli/remove"
+  },
+  {
+    "text": "group",
+    "link": "/reference/cli/group"
+  },
+  {
+    "text": "ungroup",
+    "link": "/reference/cli/ungroup"
+  },
+  {
+    "text": "move",
+    "link": "/reference/cli/move"
+  },
+  {
+    "text": "sync",
+    "link": "/reference/cli/sync"
+  },
+  {
+    "text": "matches",
+    "link": "/reference/cli/matches"
+  },
+  {
+    "text": "backups",
+    "link": "/reference/cli/backups"
+  },
+  {
+    "text": "media",
+    "link": "/reference/cli/media"
+  },
+  {
+    "text": "restore",
+    "link": "/reference/cli/restore"
+  },
+  {
+    "text": "serve",
+    "link": "/reference/cli/serve"
+  },
+  {
+    "text": "source",
+    "link": "/reference/cli/source"
+  },
+  {
+    "text": "ingest",
+    "link": "/reference/cli/ingest"
+  },
+  {
+    "text": "import",
+    "link": "/reference/cli/import"
+  },
+  {
+    "text": "suggest",
+    "link": "/reference/cli/suggest"
+  },
+  {
+    "text": "suggestions",
+    "link": "/reference/cli/suggestions"
+  },
+  {
+    "text": "check",
+    "link": "/reference/cli/check"
+  },
+  {
+    "text": "tidy",
+    "link": "/reference/cli/tidy"
+  },
+  {
+    "text": "path",
+    "link": "/reference/cli/path"
+  },
+  {
+    "text": "mcp",
+    "link": "/reference/cli/mcp"
+  },
+  {
+    "text": "workspace",
+    "link": "/reference/cli/workspace"
+  },
+  {
+    "text": "help",
+    "link": "/reference/cli/help"
+  }
+]

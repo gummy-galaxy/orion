@@ -96,6 +96,10 @@ Put `Closes #<n>` in the description for each issue the pull request finishes, s
 
 Give each pull request a place on the canvas. When a card already tracks the work, attach the pull request to it with `orion set <id> --ref https://github.com/vocksel/orion/pull/<n>`. Otherwise add a card for it in the outcome group it belongs to.
 
+## Docs
+
+The docs site in `docs/` shows Orion's public surfaces. Its CLI and MCP reference pages are generated from the command table and the MCP tool catalog. After changing a command, an option, or an MCP tool, run `lute run docs` from the repository root and commit the pages it writes; CI fails when they're out of date. It formats them with the docs site's Prettier, so run `npm ci` in `docs/` first. Write the guide pages by hand, for someone who has never used Orion.
+
 ## Trying a desktop build
 
 A fresh worktree has none of the build's dependencies, and the build fails partway without them. Before the first build there, run `npm ci` in `app/` and `desktop/`, and `lute pkg install` in `cli/` for the Luau packages that `prepare-sidecar` requires.

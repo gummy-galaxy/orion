@@ -1,0 +1,192 @@
+/*
+ * The app's vibrant theme (app/src/themes/vibrant.css), mapped onto VitePress's variables. Keep the Orion tokens
+ * in step with the app's; the --vp-* names below only say where each one goes.
+ */
+:root {
+  --canvas-background: #0c0920;
+  --surface-background: #1b1442;
+  --surface-raised: #241b4f;
+  --text-primary: #f4f0ff;
+  --text-muted: #a39bcc;
+  --border-default: rgb(255 255 255 / 0.1);
+  --accent-default: #b45cff;
+  --accent-subtle: #2f1a5e;
+  --edge-hot: #c98bff;
+  --status-active: #6f8bff;
+  --status-review: #ffb347;
+  --status-blocked: #ff5e7e;
+  --status-done: #18d6c0;
+  --note-background: #2b1f5c;
+  --note-border: #7a5cd6;
+  --note-text: #d4cdf3;
+
+  --font-display: 'Unbounded', 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+.dark {
+  --vp-font-family-base: var(--font-ui);
+  --vp-font-family-mono: var(--font-data);
+
+  --vp-c-bg: var(--canvas-background);
+  --vp-c-bg-alt: #110c2b;
+  --vp-c-bg-elv: var(--surface-background);
+  --vp-c-bg-soft: var(--surface-background);
+  --vp-c-default-soft: var(--accent-subtle);
+
+  --vp-c-text-1: var(--text-primary);
+  --vp-c-text-2: var(--text-muted);
+  --vp-c-text-3: #7b72a8;
+
+  --vp-c-border: var(--border-default);
+  --vp-c-divider: var(--border-default);
+  --vp-c-gutter: #07051a;
+
+  --vp-c-brand-1: var(--edge-hot);
+  --vp-c-brand-2: var(--accent-default);
+  --vp-c-brand-3: #9440e6;
+  --vp-c-brand-soft: rgb(180 92 255 / 0.16);
+
+  --vp-c-tip-1: var(--status-done);
+  --vp-c-tip-soft: rgb(24 214 192 / 0.12);
+  --vp-c-warning-1: var(--status-review);
+  --vp-c-warning-soft: rgb(255 179 71 / 0.12);
+  --vp-c-danger-1: var(--status-blocked);
+  --vp-c-danger-soft: rgb(255 94 126 / 0.12);
+  --vp-c-note-1: var(--note-text);
+  --vp-c-note-soft: var(--note-background);
+
+  --vp-code-bg: var(--accent-subtle);
+  --vp-code-color: #e3c9ff;
+  --vp-code-block-bg: #120d30;
+  --vp-code-block-divider-color: var(--border-default);
+
+  --vp-button-brand-bg: var(--accent-default);
+  --vp-button-brand-hover-bg: var(--edge-hot);
+  --vp-button-brand-active-bg: #9440e6;
+  --vp-button-brand-text: #fff;
+  --vp-button-brand-hover-text: #120d30;
+  --vp-button-alt-bg: var(--surface-background);
+  --vp-button-alt-border: var(--border-default);
+  --vp-button-alt-text: var(--text-primary);
+  --vp-button-alt-hover-bg: var(--accent-subtle);
+  --vp-button-alt-hover-border: var(--accent-default);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #f4f0ff 10%, var(--edge-hot) 45%, var(--status-active) 90%);
+  --vp-home-hero-image-background-image: radial-gradient(circle, rgb(180 92 255 / 0.55), rgb(111 139 255 / 0.15) 55%, transparent 70%);
+  --vp-home-hero-image-filter: blur(56px);
+
+  --vp-nav-bg-color: rgb(12 9 32 / 0.8);
+  --vp-sidebar-bg-color: #0f0b27;
+  --vp-local-search-bg: var(--canvas-background);
+  --vp-local-search-result-bg: var(--surface-background);
+  --vp-local-search-highlight-bg: var(--accent-default);
+}
+
+/* A faint starfield behind every page, like the canvas's dots at night. */
+.dark body {
+  background:
+    radial-gradient(1px 1px at 12% 18%, rgb(255 255 255 / 0.5), transparent),
+    radial-gradient(1px 1px at 68% 9%, rgb(255 255 255 / 0.35), transparent),
+    radial-gradient(1.5px 1.5px at 82% 42%, rgb(201 139 255 / 0.5), transparent),
+    radial-gradient(1px 1px at 33% 72%, rgb(255 255 255 / 0.3), transparent),
+    radial-gradient(1px 1px at 91% 83%, rgb(255 255 255 / 0.4), transparent),
+    radial-gradient(1.5px 1.5px at 6% 91%, rgb(111 139 255 / 0.45), transparent),
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(180 92 255 / 0.18), transparent 70%), var(--canvas-background);
+  background-attachment: fixed;
+}
+
+.VPContent,
+.VPFooter {
+  background: transparent;
+}
+
+/* Titles take the trading cards' display face. */
+.vp-doc h1,
+.vp-doc h2,
+.VPHero .name,
+.VPHero .text,
+.VPFeature .title,
+.VPNavBarTitle .title {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.vp-doc h1 {
+  font-weight: 700;
+}
+
+.vp-doc h2 {
+  font-weight: 500;
+  border-top-color: var(--border-default);
+}
+
+/* Command names in the reference sidebar read as code. */
+.VPSidebarItem.level-1 .text {
+  font-family: var(--font-data);
+  font-size: 13px;
+}
+
+.VPNavBarTitle .logo {
+  border-radius: 6px;
+}
+
+/* The icon has transparent padding around its rounded square, so the shadow follows its shape, not its box. */
+.VPHero .image-src {
+  filter: drop-shadow(0 18px 36px rgb(5 3 15 / 0.6));
+}
+
+/* Feature tiles read like cards on the canvas: a raised surface, a medium radius, and an accent edge on hover. */
+.VPFeature {
+  background: linear-gradient(160deg, var(--surface-raised), var(--surface-background));
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
+}
+
+.VPFeature:hover {
+  border-color: var(--accent-default);
+  transform: translateY(-2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPFeature {
+    transition: none;
+  }
+
+  .VPFeature:hover {
+    transform: none;
+  }
+}
+
+/* Tables fill the column on wide screens and scroll sideways on narrow ones. */
+@media (min-width: 768px) {
+  .vp-doc table {
+    display: table;
+    width: 100%;
+  }
+}
+
+.vp-doc tr:nth-child(2n) {
+  background: rgb(255 255 255 / 0.02);
+}
+
+.vp-doc th {
+  background: var(--surface-background);
+  font-family: var(--font-ui);
+}
+
+.vp-doc td code {
+  white-space: nowrap;
+}
+
+.custom-block.tip,
+.custom-block.warning,
+.custom-block.danger,
+.custom-block.info {
+  border-radius: 8px;
+}
