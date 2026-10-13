@@ -3,7 +3,7 @@
  * Keep this list, tokens.css, and tokens.md in step. tokens.test.ts checks all three, and checks that each theme defines
  * every token.
  */
-export type TokenGroup = 'color' | 'status' | 'font' | 'weight' | 'size' | 'radius' | 'space' | 'shadow' | 'duration' | 'easing'
+export type TokenGroup = 'color' | 'status' | 'font' | 'weight' | 'size' | 'radius' | 'border' | 'space' | 'shadow' | 'duration' | 'easing'
 
 export type Token = {
   /** The role-based name documented in tokens.md, such as card.background. */
@@ -57,8 +57,10 @@ export const TOKENS: readonly Token[] = [
   { name: 'weight.medium', cssVar: '--weight-medium', group: 'weight' },
   { name: 'weight.semibold', cssVar: '--weight-semibold', group: 'weight' },
   { name: 'weight.bold', cssVar: '--weight-bold', group: 'weight' },
+  { name: 'weight.extrabold', cssVar: '--weight-extrabold', group: 'weight' },
 
   { name: 'text.size.mini', cssVar: '--text-size-mini', group: 'size' },
+  { name: 'text.size.nano', cssVar: '--text-size-nano', group: 'size' },
   { name: 'text.size.tiny', cssVar: '--text-size-tiny', group: 'size' },
   { name: 'text.size.micro', cssVar: '--text-size-micro', group: 'size' },
   { name: 'text.size.caption', cssVar: '--text-size-caption', group: 'size' },
@@ -85,6 +87,9 @@ export const TOKENS: readonly Token[] = [
   { name: 'radius.round', cssVar: '--radius-round', group: 'radius' },
   { name: 'radius.hairline', cssVar: '--radius-hairline', group: 'radius' },
   { name: 'radius.note-corner', cssVar: '--radius-note-corner', group: 'radius' },
+
+  { name: 'border.width.default', cssVar: '--border-width-default', group: 'border' },
+  { name: 'border.width.strong', cssVar: '--border-width-strong', group: 'border' },
 
   { name: 'space.1', cssVar: '--space-1', group: 'space' },
   { name: 'space.2', cssVar: '--space-2', group: 'space' },
