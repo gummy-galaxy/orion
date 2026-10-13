@@ -1208,6 +1208,26 @@ select {
     opacity: 1;
   }
 }
+/* Below the compact breakpoint (the canvas's data-zoom, set outside React), every card draws its far form: no
+   animations, no blurred shadows, no pop-in, and the trading card drops its facts. Related links stop drawing there too. */
+.canvas[data-zoom='compact'] {
+  --shadow-raised: none;
+}
+.canvas[data-zoom='compact'] .card,
+.canvas[data-zoom='compact'] .card * {
+  animation: none !important;
+  transition: none !important;
+}
+.canvas[data-zoom='compact'] .card,
+.canvas[data-zoom='compact'] .card .trading-frame {
+  box-shadow: none;
+}
+.canvas[data-zoom='compact'] .card .trading-facts {
+  display: none;
+}
+.canvas[data-zoom='compact'] .react-flow__edge.e-rel {
+  display: none;
+}
 .cluster .react-flow__handle {
   opacity: 0;
   pointer-events: none;
@@ -1870,6 +1890,10 @@ kbd {
   align-items: center;
   gap: var(--space-2);
   cursor: pointer;
+}
+.debug-breakpoint {
+  width: 4.5em;
+  font: inherit;
 }
 .debug-close {
   border: 0;

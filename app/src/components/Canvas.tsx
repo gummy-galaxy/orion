@@ -152,6 +152,7 @@ import { covers, MARQUEE_REACH, type Box } from '../marquee'
 import { Toolbar, type Tool } from './Toolbar'
 import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from '../viewport'
+import { subscribeCompactZoom, zoomLevel } from '../zoomLevel'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
@@ -523,20 +524,32 @@ export function Canvas() {
   useLayoutEffect(() => {
     latest.current = { nodes, links, stickers, stickerLoadout: loadout }
   }, [nodes, links, stickers, loadout])
-  // Folded groups hold one on-screen size through --inv, set outside React so zooming doesn't re-render them.
+  // Folded groups hold one on-screen size through --inv, and the zoom level sits on the canvas as data-zoom. Both are
+  // set outside React so zooming doesn't re-render every card, and React never touches either.
   useEffect(() => {
     let shown = 0
+    let shownLevel = ''
 
     const apply = (zoom: number) => {
-      if (zoom === shown) return
+      const level = zoomLevel(zoom)
+
+      if (zoom === shown && level === shownLevel) return
 
       shown = zoom
+      shownLevel = level
       canvasRef.current?.style.setProperty('--inv', String(1 / zoom))
+      canvasRef.current?.setAttribute('data-zoom', level)
     }
 
     apply(store.getState().transform[2])
 
-    return store.subscribe((state) => apply(state.transform[2]))
+    const unsubscribeLevel = subscribeCompactZoom(() => apply(store.getState().transform[2]))
+    const unsubscribeStore = store.subscribe((state) => apply(state.transform[2]))
+
+    return () => {
+      unsubscribeLevel()
+      unsubscribeStore()
+    }
   }, [store])
 
   // ---- Persistence ----

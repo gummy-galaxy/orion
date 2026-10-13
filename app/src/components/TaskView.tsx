@@ -7,14 +7,14 @@ import { useCardView, useCelebrating, useMarked, useTraceRole, inspectingAtom, s
 import { CardBody } from './CardBody'
 import { FarTag } from './FarTag'
 import { PeekCard } from './PeekCard'
-
-/** Zoom below which a hovered or selected card's details sit in a tag over its body that keeps one on-screen size. */
-const FAR_ZOOM = 0.3
+import { zoomLevel } from '../zoomLevel'
 
 // Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
 export const TaskView = memo(function TaskView({ id, data, parentId, selected }: NodeProps<TaskNode>) {
-  const far = useStore((state) => state.transform[2] < FAR_ZOOM)
   const [hovered, setHovered] = useState(false)
+  // Only a hovered or selected card reads the zoom, so crossing a breakpoint doesn't re-render every card. The compact
+  // look for all cards is CSS keyed off the canvas's data-zoom.
+  const far = useStore((state) => (hovered || selected) && zoomLevel(state.transform[2]) === 'compact')
   // Inspect mode opens the hovered card in full.
   const peeking = useAtomValue(inspectingAtom) && hovered
   const view = useCardView(id, data, parentId)
@@ -72,7 +72,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected }:
         <PeekCard className={className} note={view.kind === 'note' ? undefined : view.note}>
           {body}
         </PeekCard>
-      ) : far && (hovered || selected) ? (
+      ) : far ? (
         <FarTag className={className}>{body}</FarTag>
       ) : (
         body
