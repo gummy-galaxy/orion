@@ -84,6 +84,39 @@ test.case("sync writes GitHub state through the command runner", function(assert
 	assert.eq(recorded and recorded.mine, true)
 end)
 
+test.case("ingest refreshes pull request cards without any sources configured", function(assert)
+	local dir, run = testing.createHarness("ingest-refresh")
+	local text = run({ "ingest" }, function(argv)
+		if argv[5]:find("pullRequests", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
+		elseif argv[5]:find("search(", 1, true) then
+			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+		end
+
+		return testing.result(
+			true,
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,"reviewRequests":{"totalCount":0}}}}}]]
+		)
+	end)
+
+	assert.strContains(text, "Checked 1 pull requests on GitHub.")
+	assert.strContains(text, "ci: active → done")
+	assert.eq(store.load(dir).nodes[2].data.status, "done")
+end)
+
+test.case("sync still works and points to ingest", function(assert)
+	local _, run = testing.createHarness("sync-deprecated")
+	local text = run({ "sync", "--dry-run" }, function(argv)
+		if argv[5]:find("pullRequests", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
+		end
+
+		return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+	end)
+
+	assert.strContains(text, "`orion ingest` refreshes pull requests too")
+end)
+
 test.case("sync --dry-run leaves the data alone", function(assert)
 	local dir, run = testing.createHarness("dry")
 	run({ "sync", "--dry-run" }, function(argv)

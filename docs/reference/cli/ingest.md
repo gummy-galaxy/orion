@@ -2,7 +2,7 @@
 
 # orion ingest
 
-Import work from configured sources
+Import work from configured sources and refresh the cards they track
 
 ```sh
 orion ingest [options]
