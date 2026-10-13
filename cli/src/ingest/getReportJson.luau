@@ -14,7 +14,16 @@ local function getReportJson(report: Report): json.Object
 		table.insert(entries, entry)
 	end
 
-	return json.object({ sources = entries })
+	local refreshes: json.Array = {}
+
+	for _, refresh in report.refreshes or {} do
+		local entry = json.object({ kind = refresh.kind })
+		entry.failed = refresh.failed
+		entry.report = refresh.report :: any
+		table.insert(refreshes, entry)
+	end
+
+	return json.object({ sources = entries, refreshes = refreshes })
 end
 
 return getReportJson

@@ -2,10 +2,18 @@
 
 # orion group
 
+Make a group around items, or remove one with everything inside
+
+```sh
+orion group <command> [options]
+```
+
+## orion group add
+
 Wrap items that share a parent in a new group
 
 ```sh
-orion group [options] [label...]
+orion group add [options] [label...]
 ```
 
 | Argument          | Description                                    |
@@ -13,3 +21,19 @@ orion group [options] [label...]
 | `[label...]`      | Group name                                     |
 | `--items <value>` | **Required.** Comma-separated ids to put in it |
 | `--json`          | Print JSON                                     |
+
+## orion group remove
+
+Remove groups with everything inside them
+
+```sh
+orion group remove [options] [ids...]
+```
+
+| Argument                | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| `[ids...]`              | Group ids                                            |
+| `--where <value>`       | Select targets with an expression instead of ids     |
+| `--dry-run`             | Preview changes and current revision without writing |
+| `--if-revision <value>` | Write only if the document has this revision         |
+| `--json`                | Print JSON                                           |

@@ -248,6 +248,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 2026-10-08 · [#81](https://github.com/vocksel/orion/issues/81)
 
+### Ingest is the one command that pulls from outside
+
+`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. `orion sync` stays for one release as a deprecated way to run only the GitHub refresh, and `orion serve`'s background loop keeps running only the refresh.
+
+**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks.
+
+2026-10-12 · [#55](https://github.com/vocksel/orion/issues/55)
+
 ### Adapters are Lute packages
 
 Source adapters are Lute packages built on a shared core package. Long term, the official adapters live in their own repositories in an organization, Orion ships with them by default, and people copy them to make their own. Hop becomes a package Orion depends on, and it powers opening a pull request in VS Code.

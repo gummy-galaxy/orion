@@ -353,8 +353,20 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_ingest",
+		description = "Import work from the workspace's configured sources into Unsorted, and refresh the cards they track, such as pull request states from GitHub.",
+		annotations = { openWorldHint = true },
+		command = { "ingest" },
+		json = true,
+		fields = {
+			workspaceField,
+			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
+			{ name = "source", kind = "string", at = "option" },
+		},
+	},
+	{
 		name = "orion_sync",
-		description = "Refresh pull request cards from GitHub. Discovery adds open authored PRs to Inbox when requested.",
+		description = "Deprecated: use orion_ingest. Refresh pull request cards from GitHub. Discovery adds open authored PRs to Inbox when requested.",
 		annotations = { openWorldHint = true },
 		command = { "sync" },
 		json = true,

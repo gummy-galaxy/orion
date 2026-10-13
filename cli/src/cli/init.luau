@@ -10,6 +10,7 @@ local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
+local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getAdapter = require("@root/adapters/getAdapter")
 local getRefs = require("@root/refs/getRefs")
 local githubTypes = require("@root/github/types")
@@ -38,6 +39,7 @@ local workspace = require("@root/cli/workspace")
 
 type Doc = types.Doc
 type Item = types.Item
+type RefreshReport = githubTypes.Report
 type Context = context.Context
 
 type Command = context.Command
@@ -53,6 +55,7 @@ type Resolved = {
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
+local SYNC_DEPRECATION = "`orion sync` is deprecated and will be removed. `orion ingest` refreshes pull requests too."
 
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
@@ -89,7 +92,7 @@ local COMMAND_HELP: { [string]: string } = {
 	ref = "Take outside work off an item",
 	ungroup = "Dissolve groups, keeping their items in place",
 	move = "Move items or groups into another group",
-	sync = "Update pull request items from GitHub",
+	sync = "Update pull request items from GitHub (deprecated: use ingest)",
 	matches = "List unplaced pull requests and likely cards",
 	path = "Print where Orion keeps its data",
 	help = "Show help for Orion or one of its commands",
@@ -530,50 +533,6 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
 end
 
-local function syncReport(report: githubTypes.Report, dryRun: boolean): string
-	local lines = { `{if dryRun then "Would update" else "Checked"} {report.checked} pull requests on GitHub.` }
-
-	for _, change in report.changes do
-		local who = if change.fromWho ~= change.toWho
-			then ` (move: {change.fromWho or "unset"} → {change.toWho or "unset"})`
-			else ""
-		local closed = if change.closed then " — closed without merging; deferred until you decide" else ""
-		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
-	end
-
-	if
-		#report.changes == 0
-		and #report.added == 0
-		and #report.attached == 0
-		and #report.linked == 0
-		and #report.unlinked == 0
-	then
-		table.insert(lines, "  Everything already matches.")
-	end
-
-	for _, attachment in report.attached do
-		table.insert(lines, `  attached {attachment.pull} to {attachment.id} (from its branch)`)
-	end
-
-	for _, link in report.linked do
-		table.insert(lines, `  linked {link.from} → {link.to} (stacked)`)
-	end
-
-	for _, link in report.unlinked do
-		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)
-	end
-
-	for _, id in report.added do
-		table.insert(lines, `  added {id} to Inbox`)
-	end
-
-	if #report.missing > 0 then
-		table.insert(lines, `  not found on GitHub: {table.concat(report.missing, ", ")}`)
-	end
-
-	return table.concat(lines, "\n")
-end
-
 local function execute(args: { string }, options: Dependencies?)
 	local parsers = createParsers()
 	parsers.root:parse(withGroupAdd(args))
@@ -940,7 +899,7 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif command == "sync" then
 		local dryRun = parser:has("dry-run")
-		local report: githubTypes.Report
+		local report: RefreshReport
 
 		if dryRun then
 			report = assert(getAdapter("github").refresh)(
@@ -961,7 +920,7 @@ local function execute(args: { string }, options: Dependencies?)
 		if asJson then
 			deps.write(json.serialize(report :: any, true))
 		else
-			deps.write(syncReport(report, dryRun))
+			deps.write(`{formatRefreshReport(report, dryRun)}\n{SYNC_DEPRECATION}`)
 		end
 	end
 end

@@ -66,13 +66,13 @@ Run `orion suggest` to find related ungrouped cards, then review `orion suggesti
 
 ## Keeping pull requests current
 
-Cards with a repository and pull request number stay in step with GitHub through `orion sync`. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. Run `orion sync --dry-run` first when unsure.
+Cards with a pull request ref stay in step with GitHub through `orion ingest`, which refreshes the cards already on the canvas as well as importing from sources. It marks merged pull requests done and closed ones deferred, and sets whose move it is from drafts and reviews. This runs even in a workspace with no sources configured. Run `orion ingest --dry-run` first when unsure.
 
-`orion sync` records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. When the workspace has GitHub sources, only pull requests in their repositories count. Link one to an existing card with `orion set <id> --ref <pull request URL>`.
+The refresh records your unplaced open pull requests and likely matching cards; inspect them with `orion matches`. When the workspace has GitHub sources, only pull requests in their repositories count. Link one to an existing card with `orion set <id> --ref <pull request URL>`.
 
-When a card has a branch ref for the pull request's head branch in its repository, `orion sync` attaches the new pull request to that card and records it as its pull request. If more than one card has that branch, the pull request stays unplaced and `orion matches` lists those cards. Record the branch when you start work (`orion set <id> --ref branch:owner/name@branch`) so sync can attach the pull request you open.
+When a card has a branch ref for the pull request's head branch in its repository, the refresh attaches the new pull request to that card and records it as its pull request. If more than one card has that branch, the pull request stays unplaced and `orion matches` lists those cards. Record the branch when you start work (`orion set <id> --ref branch:owner/name@branch`) so the refresh can attach the pull request you open.
 
-`orion sync --discover` adds your unplaced open pull requests to an Inbox group. Only use it when asked, then move each new card into the group it belongs to.
+`orion sync` is deprecated and runs only the GitHub refresh. Its `--discover` flag adds your unplaced open pull requests to an Inbox group; a GitHub source does the same through `orion ingest`, which files them in Unsorted. Only use `--discover` when asked, then move each new card into the group it belongs to.
 
 ## Sources and ingestion
 
