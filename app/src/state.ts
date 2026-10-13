@@ -100,7 +100,8 @@ export function useCardView(id: string, data: TaskNode['data'], group?: string) 
   const unblocks = useUnblocks(id)
 
   return useMemo(
-    () => getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, rarity, sources, blockers, unblocks, group }),
+    () =>
+      getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, rarity, sources, blockers, unblocks, group }),
     [id, data, status, leverage, upstream, rarity, sources, blockers, unblocks, group],
   )
 }
