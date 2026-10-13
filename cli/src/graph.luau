@@ -480,6 +480,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	if fields.status then
 		item.data.status = fields.status
+		item.data.deferredByClosedPull = nil
 	end
 
 	if fields.who then

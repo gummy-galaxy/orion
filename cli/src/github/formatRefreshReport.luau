@@ -8,7 +8,9 @@ local function formatRefreshReport(report: githubTypes.Report, isDryRun: boolean
 		local who = if change.fromWho ~= change.toWho
 			then ` (move: {change.fromWho or "unset"} → {change.toWho or "unset"})`
 			else ""
-		local closed = if change.closed then " — closed without merging; deferred until you decide" else ""
+		local closed = if change.closed
+			then " — closed without merging; deferred until it reopens or you decide"
+			else ""
 		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
 	end
 

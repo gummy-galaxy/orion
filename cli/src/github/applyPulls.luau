@@ -8,6 +8,7 @@ local graph = require("@root/graph")
 local isListed = require("@root/github/isListed")
 local json = require("@std/json")
 local match = require("@root/match")
+local setDesired = require("@root/github/setDesired")
 local setPullRef = require("@root/github/setPullRef")
 local types = require("@root/types")
 
@@ -22,7 +23,8 @@ local INBOX_ID = "inbox"
 -- Moves a card's status and whose move it is to match the pull request, recording any change.
 local function applyDesired(item: Item, pull: PullState, viewer: string, report: Report)
 	local status, who = getString(item.data.status) or "todo", getString(item.data.who)
-	local nextStatus, nextWho = getDesired(pull, status, who, viewer)
+	setDesired(item, pull, viewer)
+	local nextStatus, nextWho = getString(item.data.status) or "todo", getString(item.data.who)
 
 	if nextStatus ~= status or nextWho ~= who then
 		table.insert(report.changes, {
@@ -34,7 +36,6 @@ local function applyDesired(item: Item, pull: PullState, viewer: string, report:
 			toWho = nextWho,
 			closed = pull.state == "CLOSED",
 		})
-		item.data.status, item.data.who = nextStatus, nextWho
 	end
 end
 

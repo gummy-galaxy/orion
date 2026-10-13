@@ -21,7 +21,8 @@ export type Record = {
 	createWho: string?,
 	findFallback: ((Doc) -> Item?)?,
 	shouldFindFallbackFirst: boolean?,
-	getStatus: ((string, string?) -> (string, string?))?,
+	-- Sets the item's status and whose move it is from the source, once the record is placed.
+	updateStatus: ((Item) -> ())?,
 	mentionText: string?,
 	setRepoOnUpdate: boolean?,
 	setLabelOnUpdate: boolean?,
