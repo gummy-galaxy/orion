@@ -2,7 +2,7 @@
 
 # orion sync
 
-Update pull request items from GitHub
+Update pull request items from GitHub (deprecated: use ingest)
 
 ```sh
 orion sync [options]
