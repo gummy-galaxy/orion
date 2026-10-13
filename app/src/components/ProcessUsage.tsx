@@ -9,7 +9,7 @@ const USAGE_MS = 1000
 const megabytes = (bytes: number) => `${Math.round(bytes / 1048576)} MB`
 const percent = (cpu: number | null) => (cpu === null ? '…' : `${cpu < 10 ? cpu.toFixed(1) : Math.round(cpu)}%`)
 
-/** CPU and memory summed over the app, its server, and the WebKit processes drawing it, with each one in the tooltip. */
+/** CPU and memory summed over the app and the WebKit processes drawing it, with each one in the tooltip. */
 export function ProcessUsage() {
   const [usage, setUsage] = useState<ProcessSample[] | null>(null)
 

@@ -1,12 +1,10 @@
-//! CPU and memory for the app, its server, and the WebKit processes that draw it, for the debug bar.
+//! CPU and memory for the app and the WebKit processes that draw it, for the debug bar.
 
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Instant;
 use tauri::{State, WebviewWindow};
-
-use crate::Server;
 
 #[derive(Serialize)]
 pub struct ProcessUsage {
@@ -25,12 +23,8 @@ pub struct UsageSamples(Mutex<HashMap<i32, (Instant, u64)>>);
 pub async fn process_usage(
     window: WebviewWindow,
     samples: State<'_, UsageSamples>,
-    server: State<'_, Server>,
 ) -> Result<Vec<ProcessUsage>, String> {
     let mut processes = vec![("App", std::process::id() as i32)];
-    if let Some(child) = server.0.lock().map_err(|error| error.to_string())?.as_ref() {
-        processes.push(("Server", child.id() as i32));
-    }
     processes.extend(platform::webkit_processes(&window));
     let now = Instant::now();
     let mut last = samples.0.lock().map_err(|error| error.to_string())?;

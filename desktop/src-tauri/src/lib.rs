@@ -2,7 +2,7 @@ use std::{
     env, fs,
     net::{Ipv4Addr, TcpListener, TcpStream},
     process::{Child, Command},
-    sync::Mutex,
+    sync::{Arc, Mutex},
     thread,
     time::{Duration, Instant},
 };
@@ -19,10 +19,6 @@ use objc2_web_kit::WKWebViewConfiguration;
 mod menu;
 mod mouse_navigation;
 mod usage;
-
-/// The `orion serve` process the shell started, kept to stop it on exit and to measure it for the debug bar.
-#[derive(Default)]
-pub struct Server(pub Mutex<Option<Child>>);
 
 /// What Activity Monitor calls the window's web content process, in line with WebKit's other
 /// "Orion …" processes. Without it, the process goes by the page's address, `http://127.0.0.1:<port>`.
@@ -140,19 +136,21 @@ fn get_webview_configuration() -> Option<Retained<WKWebViewConfiguration>> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let server = Arc::new(Mutex::new(None::<Child>));
+    let server_for_setup = Arc::clone(&server);
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .menu(menu::build)
         .on_menu_event(menu::handle_event)
-        .manage(Server::default())
         .manage(usage::UsageSamples::default())
         .invoke_handler(tauri::generate_handler![usage::process_usage])
-        .setup(|app| {
+        .setup(move |app| {
             let url = if cfg!(debug_assertions) {
                 WebviewUrl::App("index.html".into())
             } else if let Some((child, url)) = start_server(app) {
-                *app.state::<Server>().0.lock().unwrap() = Some(child);
+                *server_for_setup.lock().unwrap() = Some(child);
                 url
             } else {
                 WebviewUrl::App("index.html".into())
@@ -185,9 +183,9 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building Orion")
-        .run(|app, event| {
+        .run(move |_, event| {
             if matches!(event, RunEvent::Exit) {
-                if let Some(mut child) = app.state::<Server>().0.lock().unwrap().take() {
+                if let Some(mut child) = server.lock().unwrap().take() {
                     stop_server(&mut child);
                 }
             }
