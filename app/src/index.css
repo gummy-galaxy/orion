@@ -1071,6 +1071,12 @@ select {
   transform: scale(var(--inv));
   transform-origin: 0 0;
 }
+/* The label rows sit on an opaque backing so a folded group's preview never draws under its text. */
+.cluster-card-title,
+.cluster-card-stats {
+  align-self: flex-start;
+  background: var(--surface-background);
+}
 .cluster-card-title {
   display: flex;
   align-items: center;
