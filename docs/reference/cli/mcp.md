@@ -2,8 +2,16 @@
 
 # orion mcp
 
+Agent tools over MCP
+
+```sh
+orion mcp <command> [options]
+```
+
+## orion mcp serve
+
 Serve Orion's agent tools over MCP on stdin and stdout
 
 ```sh
-orion mcp [options]
+orion mcp serve [options]
 ```

@@ -2,7 +2,7 @@ import { THEMES, type Scheme, type Theme } from './appearance'
 import { TOKENS, type Token } from './tokens'
 
 /**
- * Shareable theme files, read from the themes folder in the data folder through `orion serve`. A file names
+ * Shareable theme files, read from the themes folder in the data folder through `orion server start`. A file names
  * its theme and gives token values by scheme; see theme-files.md. A value reaches the page only after it passes
  * checkValue, so a file can set colors and sizes but cannot load a URL or add rules.
  */

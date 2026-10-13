@@ -2,10 +2,18 @@
 
 # orion link
 
+Link items, remove links, and insert an item into a link
+
+```sh
+orion link <command> [options]
+```
+
+## orion link add
+
 Link each adjacent pair of items
 
 ```sh
-orion link [from] [to] [options] [next...]
+orion link add [from] [to] [options] [next...]
 ```
 
 | Argument                | Description                                          |
@@ -14,6 +22,36 @@ orion link [from] [to] [options] [next...]
 | `[to]`                  | The item that waits on it                            |
 | `[next...]`             | Further items in the chain                           |
 | `--related`             | Link without blocking                                |
+| `--dry-run`             | Preview changes and current revision without writing |
+| `--if-revision <value>` | Write only if the document has this revision         |
+| `--json`                | Print JSON                                           |
+
+## orion link remove
+
+Remove the link between two items
+
+```sh
+orion link remove [from] [to] [options]
+```
+
+| Argument | Description |
+| -------- | ----------- |
+| `[from]` | Link source |
+| `[to]`   | Link target |
+
+## orion link insert
+
+Insert an item into an existing link
+
+```sh
+orion link insert [id] [options] [target...]
+```
+
+| Argument                | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| `[id]`                  | Item to place in the link                            |
+| `--between <value>`     | **Required.** Source item whose link is replaced     |
+| `[target...]`           | Target item whose link is replaced                   |
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |
 | `--json`                | Print JSON                                           |
