@@ -184,7 +184,7 @@ Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shap
 - **From 0.1.0:** breaking changes are still allowed, but each one is deliberate. Anything new must show why it has to widen the surface rather than fit what's already there.
 - **From 1.0.0:** the charter's stability promises apply, and breaking changes ship with aliases first.
 
-0.1.0 means the first tagged release, whatever version numbers the manifests carry before it. The HTTP API that `orion serve` exposes is internal to the app at every stage and carries no promise.
+0.1.0 means the first tagged release, whatever version numbers the manifests carry before it, and it lands around when the repository goes public. 1.0.0 comes much later, likely once the charter's roadmap phases are complete, though an earlier gate may fit better. The HTTP API that `orion serve` exposes is internal to the app at every stage and carries no promise.
 
 **Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release.
 
