@@ -182,6 +182,30 @@ When an agent opens a pull request from a card's work, the pull request attaches
 
 2026-10-10 · [#196](https://github.com/vocksel/orion/issues/196)
 
+## Public interfaces
+
+### Public interfaces tighten in three stages
+
+Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shapes, and data files. How freely they change depends on the release:
+
+- **Before 0.1.0:** cut, rename, and regroup anything. Remove the old form in the same change, with no alias or deprecation period. A command that duplicates another or serves one case is a candidate to remove.
+- **From 0.1.0:** breaking changes are still allowed, but each one is deliberate. Anything new must show why it has to widen the surface rather than fit what's already there.
+- **From 1.0.0:** the charter's stability promises apply, and breaking changes ship with aliases first.
+
+0.1.0 means the first tagged release, whatever version numbers the manifests carry before it, and it lands around when the repository goes public. 1.0.0 comes much later, likely once the charter's roadmap phases are complete, though an earlier gate may fit better. The HTTP API that `orion serve` exposes is internal to the app at every stage and carries no promise.
+
+**Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release.
+
+2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146)
+
+### CLI commands are a noun, then a verb
+
+Commands name the thing they act on first, then the action: `orion node remove`, `orion group remove`, `orion link add`. Each noun has its own subcommands, help, and options, so no flag changes meaning by what it targets. Flat verbs such as `orion remove` and `orion ungroup` go away. Each kind of node has its own noun for creating it, such as `orion card add` and `orion note add`, since their inputs differ, and `orion node` covers what applies to any node. `orion canvas` replaces `orion workspace`, following the charter's vocabulary. Two reads stay top level because agents run them before almost everything else: `orion focus`, and `orion next`, which lists the work that can start now, most unblocking first.
+
+**Why:** flat verbs grew one feature at a time and overload options across items, groups, and sources. Grouping by noun makes the surface learnable from `--help` and gives each new kind of thing an obvious home.
+
+2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146), [#110](https://github.com/vocksel/orion/issues/110), [#55](https://github.com/vocksel/orion/issues/55), [#109](https://github.com/vocksel/orion/issues/109)
+
 ## Architecture
 
 ### Files first, with a SQLite index
