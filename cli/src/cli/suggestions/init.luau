@@ -3,9 +3,10 @@ local json = require("@std/json")
 
 local apply = require("@root/cli/suggestions/apply")
 local context = require("@root/cli/context")
+local convertToJson = require("@root/suggest/convertToJson")
 local dismiss = require("@root/cli/suggestions/dismiss")
+local getStored = require("@root/suggest/getStored")
 local store = require("@root/store")
-local suggest = require("@root/suggest")
 
 type Context = context.Context
 type Command = context.Command
@@ -33,10 +34,10 @@ return table.freeze({
 			return
 		end
 
-		local result = suggest.getStored(store.load(options.dir))
+		local result = getStored(store.load(options.dir))
 
 		if options.asJson then
-			options.write(json.serialize(suggest.convertToJson(result), true))
+			options.write(json.serialize(convertToJson(result), true))
 		else
 			local lines: { string } = {}
 

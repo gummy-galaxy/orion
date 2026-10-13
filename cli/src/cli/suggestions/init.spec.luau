@@ -2,9 +2,10 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local cli = require("@root/cli")
+local getStored = require("@root/suggest/getStored")
 local graph = require("@root/graph")
+local save = require("@root/suggest/save")
 local store = require("@root/store")
-local suggest = require("@root/suggest")
 local testing = require("@root/testing")
 
 test.case("suggestions apply keeps links, marks layout pending, and prunes empty Unsorted", function(assert)
@@ -60,7 +61,7 @@ test.case("suggestions apply keeps links, marks layout pending, and prunes empty
 	assert.eq(after.nodes[1].parentId, after.nodes[3].id)
 	assert.eq(after.nodes[2].parentId, after.nodes[3].id)
 	assert.eq(after.nodes[3].data.layout, "pending")
-	assert.eq(#suggest.getStored(after).groups, 0)
+	assert.eq(#getStored(after).groups, 0)
 end)
 
 test.case("suggestions apply and dismiss select their workspace", function(assert)
@@ -77,7 +78,7 @@ test.case("suggestions apply and dismiss select their workspace", function(asser
 			})
 		)
 		store.transaction(dir, function(doc)
-			suggest.save(doc, {
+			save(doc, {
 				createdAt = "2026-10-04T00:00:00Z",
 				groups = {
 					{
@@ -95,10 +96,10 @@ test.case("suggestions apply and dismiss select their workspace", function(asser
 	saveSuggestion()
 	assert.eq(run({ "suggestions" }), "No group suggestions.")
 	assert.strContains(run({ "suggestions", "apply", "--all", "--workspace", "roblox" }), "Applied 1 suggestions")
-	assert.eq(#suggest.getStored(store.load(dir)).groups, 0)
+	assert.eq(#getStored(store.load(dir)).groups, 0)
 	assert.eq(#store.load(root).nodes, 3)
 	saveSuggestion()
 	assert.strContains(run({ "--workspace", "roblox", "suggestions", "dismiss", "s1" }), "Dismissed 1 suggestions")
-	assert.eq(#suggest.getStored(store.load(dir)).groups, 0)
+	assert.eq(#getStored(store.load(dir)).groups, 0)
 	assert.eq(#store.load(dir).nodes, 2)
 end)
