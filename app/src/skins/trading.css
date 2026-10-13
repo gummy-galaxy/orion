@@ -20,8 +20,12 @@
   --fade: 1;
 }
 
-.skin-trading:is(.st-done, .st-deferred) {
+.skin-trading.st-deferred {
   --fade: 0.55;
+}
+
+.skin-trading.st-done {
+  --fade: 0.8;
 }
 
 /* The card is always dark, so status colors resolve to their dark-mode values in any theme or colorblind set. */
@@ -539,4 +543,17 @@
 .card.skin-trading.far-card .trading-note {
   height: auto;
   max-height: 170px;
+}
+
+/* The Done stamp sits across the art, where it reads against the dark card, and resolves to the dark status colors. */
+.card.skin-trading > .done-stamp {
+  color-scheme: dark;
+  top: 34%;
+  right: auto;
+  bottom: auto;
+  left: 50%;
+  translate: -50% -50%;
+  border-width: 3px;
+  background: color-mix(in srgb, var(--status-done) 22%, rgb(18 13 48 / 0.55));
+  font-size: 22px;
 }

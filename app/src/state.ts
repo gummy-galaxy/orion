@@ -20,7 +20,7 @@ export const pinnedAtom = atom<string | null>(null)
 export const focusedAtom = atom(false)
 /** The group dragged work would join if it were dropped now. */
 export const dropTargetAtom = atom<string | null>(null)
-/** Cards whose finish stamp is clearing, each with the delay before its animation starts. */
+/** Cards whose close-out badge is clearing, each with the delay before its animation starts. */
 export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>())
 
 export const workAtom = atom((get) => deriveWork(get(nodesAtom), get(linksAtom)))
