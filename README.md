@@ -168,6 +168,7 @@ In `app/`:
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
 - `src/components/Tooltip.tsx`: a label shown above an element on hover or focus, drawn outside the canvas so zoom and clipping don't affect it.
+- `src/companion.ts`, `src/useCompanionTargets.ts`, `src/components/Companion.tsx`, `src/components/CompanionStar.tsx`, and `src/components/CompanionEye.tsx`: the star companion, which perches on the card nearest the pointer, reacts to its status, and can be turned off in Appearance.
 - `src/components/TradingCard.tsx`, `src/components/TradingSignalIcon.tsx`, and `src/skins/tradingFacts.ts`: trading cards, a skin that gives each part of a card one job: what's known at the top left, the one status that needs someone at the top right, the kind in the middle, and open blockers, work in motion, and unblocks along the bottom. `src/components/TradingSignal.tsx` links a signal about a pull request to it on GitHub, or to its checks.
 - `src/App.tsx`: the canvas, detail levels, drill-in, connections outside an open group, focusing on a card, notes, and the inspector.
 - `src/focus.tsx`: the columns and lines around a focused card.

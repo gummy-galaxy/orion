@@ -36,6 +36,12 @@ export const TOKENS: readonly Token[] = [
   { name: 'sticker.edge', cssVar: '--sticker-edge', group: 'color' },
   { name: 'window.close.background', cssVar: '--window-close-background', group: 'color' },
   { name: 'window.close.text', cssVar: '--window-close-text', group: 'color' },
+  { name: 'companion.body', cssVar: '--companion-body', group: 'color' },
+  { name: 'companion.edge', cssVar: '--companion-edge', group: 'color' },
+  { name: 'companion.ink', cssVar: '--companion-ink', group: 'color' },
+  { name: 'companion.halo', cssVar: '--companion-halo', group: 'color' },
+  { name: 'companion.glow', cssVar: '--companion-glow', group: 'color' },
+  { name: 'companion.tether', cssVar: '--companion-tether', group: 'color' },
 
   { name: 'status.todo', cssVar: '--status-todo', group: 'status', legacy: '--st-todo' },
   { name: 'status.ready', cssVar: '--status-ready', group: 'status', legacy: '--st-ready' },

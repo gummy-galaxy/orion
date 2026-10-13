@@ -10,6 +10,17 @@
   /* Ready work wears the theme's accent unless the status colors replace it. */
   --status-ready: var(--accent-default);
 
+  /* The companion: white stars with dark eyes, outlined in near-black with a blue-violet undertone on light canvases. */
+  --companion-body: #fff;
+  --companion-edge: light-dark(#1d1a33, transparent);
+  --companion-ink: light-dark(#1d1a33, #1a1240);
+  --companion-halo: light-dark(rgb(76 64 160 / 0.18), rgb(255 255 255 / 0.55));
+  --companion-glow: light-dark(rgb(98 80 200 / 0.22), color-mix(in srgb, var(--accent-default) 50%, transparent));
+  --companion-tether: light-dark(
+    color-mix(in srgb, var(--companion-edge) 70%, transparent),
+    color-mix(in srgb, var(--companion-body) 70%, transparent)
+  );
+
   --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 

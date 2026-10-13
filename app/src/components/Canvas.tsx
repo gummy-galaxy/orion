@@ -22,6 +22,7 @@ import {
   type Viewport,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { Companion } from './Companion'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
@@ -119,6 +120,7 @@ import { selectAllIds, selectNodes } from '../selectAll'
 import { stackNodes } from '../stack'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
+import { useCompanionTargets } from '../useCompanionTargets'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
 import { useInspecting } from '../useInspecting'
@@ -355,6 +357,7 @@ export function Canvas() {
   }, [cardSize])
 
   const [debug, setDebug] = useState(() => readFlag(DEBUG_KEY, false))
+  const companion = useCompanionTargets()
   const [motion, setMotion] = useState(readMotion)
   const [menu, setMenu] = useState<Menu | null>(null)
   /** Where "Create from link" was chosen, in screen and flow coordinates, while its prompt is open. */
@@ -3264,6 +3267,9 @@ export function Canvas() {
                 <Toolbar tool={tool} sticker={sticker} keybindings={keybindings} setTool={chooseTool} />
               </Panel>
             </ReactFlow>
+          )}
+          {ready && appearance.companion && !focus && (
+            <Companion targets={companion.targets} describe={companion.describe} syncing={syncStatus?.state === 'running'} paused={away} />
           )}
           {attending && cursor && (
             <AttentionOverlay
