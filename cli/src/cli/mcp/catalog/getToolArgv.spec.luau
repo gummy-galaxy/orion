@@ -10,11 +10,17 @@ test.case("tool arguments map onto the command each tool runs", function(assert)
 		table.concat(getToolArgv("orion_inspect", json.object({ view = "show", id = "ci" })), " "),
 		"node show ci --json"
 	)
-	assert.eq(table.concat(getToolArgv("orion_move", json.object({ id = "ci" })), " "), "node move ci --top")
 	assert.eq(
-		table.concat(getToolArgv("orion_move", json.object({ id = "ci", group = "release" })), " "),
-		"node move ci --to release"
+		table.concat(getToolArgv("orion_move", json.object({ ids = { "ci" }, top = true })), " "),
+		"node move ci --top --json"
 	)
+	assert.eq(
+		table.concat(getToolArgv("orion_move", json.object({ ids = { "ci", "pub" }, group = "release" })), " "),
+		"node move ci pub --to release --json"
+	)
+	assert.throwsWith("missing where", function()
+		getToolArgv("orion_query", json.object({}))
+	end)
 	assert.throwsWith("missing id", function()
 		getToolArgv("orion_inspect", json.object({ view = "show" }))
 	end)
@@ -26,12 +32,41 @@ test.case("group and ref tools run their subcommands", function(assert)
 		"group add Ship --items ci,pub --json"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_remove_group", json.object({ id = "ws", dryRun = true })), " "),
+		table.concat(getToolArgv("orion_remove_group", json.object({ ids = { "ws" }, dryRun = true })), " "),
 		"group remove ws --dry-run --json"
 	)
 	assert.eq(
 		table.concat(getToolArgv("orion_remove_ref", json.object({ id = "ci", ref = "owner/name#1" })), " "),
 		"ref remove ci owner/name#1 --json"
+	)
+end)
+
+test.case("batch and link tools pass ids, chains, and revision guards through", function(assert)
+	assert.eq(
+		table.concat(
+			getToolArgv("orion_remove", json.object({ ids = { "a", "b" }, reconnect = true, ifRevision = 12 })),
+			" "
+		),
+		"node remove a b --if-revision 12 --reconnect --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_done", json.object({ where = 'label ~ "ship"', dryRun = true })), " "),
+		'card done --where label ~ "ship" --dry-run --json'
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_link", json.object({ from = "a", to = "b", next = { "c" } })), " "),
+		"link add a b c --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_insert", json.object({ id = "x", between = "a", targets = { "b" } })), " "),
+		"link insert x b --between a --json"
+	)
+	assert.eq(
+		table.concat(
+			getToolArgv("orion_update_group", json.object({ id = "g", label = "New", arrange = "custom" })),
+			" "
+		),
+		"group set g --label New --arrange custom --json"
 	)
 end)
 

@@ -29,11 +29,11 @@ Find cards and groups with an expression
 orion node query [options]
 ```
 
-| Argument          | Description                                        |
-| ----------------- | -------------------------------------------------- |
-| `--where <value>` | **Required.** Expression selecting cards or groups |
-| `--all`           | Include done items                                 |
-| `--json`          | Print JSON                                         |
+| Argument          | Description                                     |
+| ----------------- | ----------------------------------------------- |
+| `--where <value>` | Expression selecting cards or groups (required) |
+| `--all`           | Include done items                              |
+| `--json`          | Print JSON                                      |
 
 ## orion node remove
 

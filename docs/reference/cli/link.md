@@ -50,7 +50,7 @@ orion link insert [id] [options] [target...]
 | Argument                | Description                                          |
 | ----------------------- | ---------------------------------------------------- |
 | `[id]`                  | Item to place in the link                            |
-| `--between <value>`     | **Required.** Source item whose link is replaced     |
+| `--between <value>`     | Source item whose link is replaced (required)        |
 | `[target...]`           | Target item whose link is replaced                   |
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |
