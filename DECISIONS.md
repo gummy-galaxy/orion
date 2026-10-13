@@ -50,7 +50,7 @@ A card never says the same thing twice, such as a repo name above a "Pull reques
 
 ### Marks over words
 
-Stickers are an icon plus at most one word, with icons preferred and tooltips explaining them. A card shows CI state rather than a diff count. A blocked card keeps its type icon, with the lock drawn over it in a transparent tint.
+Status badges on a card are an icon plus at most one word, with icons preferred and tooltips explaining them. A card shows CI state rather than a diff count. A blocked card keeps its type icon, with the lock drawn over it in a transparent tint.
 
 **Why:** short marks read faster than phrases, and the card still has to say what it is while it's blocked.
 
