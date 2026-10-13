@@ -10,6 +10,7 @@ local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local getAdapter = require("@root/adapters/getAdapter")
+local getRefs = require("@root/refs/getRefs")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local importCommand = require("@root/cli/import")
@@ -83,7 +84,8 @@ local COMMAND_HELP: { [string]: string } = {
 	unlink = "Remove the link between two items",
 	note = "Add a note, optionally between two linked items",
 	remove = "Remove items; optionally reconnect a card's links",
-	group = "Wrap items that share a parent in a new group",
+	group = "Make a group around items, or remove one with everything inside",
+	ref = "Take outside work off an item",
 	ungroup = "Dissolve groups, keeping their items in place",
 	move = "Move items or groups into another group",
 	sync = "Update pull request items from GitHub",
@@ -245,9 +247,30 @@ local function createParsers(): Parsers
 	remove:add("reconnect", "flag", { help = "Reconnect at most one incoming and outgoing link per item" })
 
 	local group = command("group")
-	group:add("label", "variadic", { help = "Group name" })
-	group:add("items", "option", { help = "Comma-separated ids to put in it", required = true })
-	addJsonFlag(group)
+	local function groupSubcommand(name: string, help: string): cli.Parser
+		local parser = group:subcommand(name, { help = help })
+		addHelpFlag(parser)
+		addWorkspaceOption(parser)
+		return parser
+	end
+
+	local groupAdd = groupSubcommand("add", "Wrap items that share a parent in a new group")
+	groupAdd:add("label", "variadic", { help = "Group name" })
+	groupAdd:add("items", "option", { help = "Comma-separated ids to put in it", required = true })
+	addJsonFlag(groupAdd)
+	addBatchOptions(groupSubcommand("remove", "Remove groups with everything inside them"), "Group ids")
+
+	local ref = command("ref")
+	local refRemove = ref:subcommand("remove", { help = "Take a ref off an item" })
+	addHelpFlag(refRemove)
+	addWorkspaceOption(refRemove)
+	refRemove:add("id", "positional", { help = "Item id" })
+	refRemove:add(
+		"ref",
+		"positional",
+		{ help = "The ref's key as orion show lists it, such as owner/name#12, or a URL or source:key" }
+	)
+	addJsonFlag(refRemove)
 
 	addBatchOptions(command("ungroup"), "Group ids")
 
@@ -341,6 +364,52 @@ local function attachRef(doc: Doc, id: string, input: string?)
 	end
 end
 
+-- Takes a ref off an item by the key orion show lists. A URL or source:key that isn't a key on the item resolves
+-- the way --ref does, and then has to match that ref's kind too.
+local function detachRef(doc: Doc, id: string, input: string): Item
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), "groups don't take refs")
+
+	for _, ref in getRefs(item) do
+		if ref.key:lower() == input:lower() then
+			return graph.detachRef(doc, id, ref.key)
+		end
+	end
+
+	assert(input:find(":"), `"{id}" has no ref {input}`)
+	local resolved = resolveRef(input, doc.settings.sources)
+	return graph.detachRef(doc, id, resolved.ref.key, resolved.ref.kind)
+end
+
+-- `orion group <label> --items` predates `group add`, so a group command without a subcommand still means add.
+local function withGroupAdd(args: { string }): { string }
+	local index = 1
+
+	while index <= #args do
+		local arg = args[index]
+
+		if arg == "--workspace" then
+			index += 2
+		elseif arg:sub(1, 1) == "-" then
+			index += 1
+		else
+			break
+		end
+	end
+
+	local following = args[index + 1]
+	local isSubcommand = following == "add" or following == "remove"
+	local wantsHelp = following == nil or following == "--help" or following == "-h"
+
+	if args[index] ~= "group" or isSubcommand or wantsHelp then
+		return args
+	end
+
+	local rewritten = table.clone(args)
+	table.insert(rewritten, index + 1, "add")
+	return rewritten
+end
+
 -- The workspace comes from the root or the deepest subcommand that names one.
 local function requestedWorkspace(root: cli.Parser): string?
 	local selected: string? = nil
@@ -412,7 +481,7 @@ local function isBatchEdit(parser: cli.Parser): boolean
 		or parser:has("reconnect")
 end
 
-local function editMany(deps: Resolved, dir: string, command: string, parser: cli.Parser)
+local function editMany(deps: Resolved, dir: string, command: string, parser: cli.Parser, action: string?)
 	local ids = parser:variadics()
 	local destination = parser:get("to")
 	if command == "move" then
@@ -421,7 +490,7 @@ local function editMany(deps: Resolved, dir: string, command: string, parser: cl
 	end
 	batchEdit({
 		dir = dir,
-		action = command,
+		action = action or command,
 		ids = ids,
 		where = parser:get("where"),
 		dryRun = parser:has("dry-run"),
@@ -494,7 +563,7 @@ end
 
 local function execute(args: { string }, options: Dependencies?)
 	local parsers = createParsers()
-	parsers.root:parse(args)
+	parsers.root:parse(withGroupAdd(args))
 	local deps = dependencies(options)
 
 	local command, parser = parsers.root:selected()
@@ -803,14 +872,30 @@ local function execute(args: { string }, options: Dependencies?)
 			deps.write(`Removed {id}`)
 		end
 	elseif command == "group" then
-		local label = joined(parser:variadics(), "<label>")
-		local ids = parseCommaList(parser:get("items") or "")
-		local made: Item
+		assert(subcommandName and subparser, "choose add or remove")
+
+		if subcommandName == "remove" then
+			editMany(deps, dir, command, subparser, "removeGroup")
+		else
+			local label = joined(subparser:variadics(), "<label>")
+			local ids = parseCommaList(required(subparser, "items"))
+			local made: Item
+			local doc = store.transaction(dir, function(doc)
+				made = graph.makeGroup(doc, label, ids)
+			end)
+
+			emitItem(deps, doc, made, subparser:has("json"), "Grouped into")
+		end
+	elseif command == "ref" then
+		assert(subcommandName and subparser, "choose remove")
+		local id = required(subparser, "id")
+		local input = required(subparser, "ref")
+		local detached: Item
 		local doc = store.transaction(dir, function(doc)
-			made = graph.makeGroup(doc, label, ids)
+			detached = detachRef(doc, id, input)
 		end)
 
-		emitItem(deps, doc, made, asJson, "Grouped into")
+		emitItem(deps, doc, detached, subparser:has("json"), "Updated")
 	elseif command == "ungroup" then
 		local ids = parser:variadics()
 		if isBatchEdit(parser) then
