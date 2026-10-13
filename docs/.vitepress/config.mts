@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitepress';
-import cliCommands from '../reference/cli/sidebar.json' with { type: 'json' };
+import { defineConfig } from 'vitepress'
+import cliCommands from '../reference/cli/sidebar.json' with { type: 'json' }
 
 export default defineConfig({
   title: 'Orion',
@@ -49,4 +49,4 @@ export default defineConfig({
       pattern: 'https://github.com/vocksel/orion/edit/main/docs/:path',
     },
   },
-});
+})

@@ -27,7 +27,7 @@ jobs:
         with:
           version: v1.2.0
           cache: true
-          path: cli
+          path: .
 
       - name: Set Up Lute Type Definitions
         run: lute setup
@@ -37,9 +37,6 @@ jobs:
 
       - name: Analyze
         run: lute run analyze
-
-      - name: Check the Docs Reference
-        run: lute run docs --check
 
   cli:
     strategy:
@@ -60,7 +57,7 @@ jobs:
         with:
           version: v1.2.0
           cache: true
-          path: cli
+          path: .
 
       - name: Install Dependencies
         run: lute pkg install
@@ -130,14 +127,32 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Install Luau Tools with Rokit
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+          path: .
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: docs/package-lock.json
 
+      - name: Install Luau Dependencies
+        run: lute pkg install
+        working-directory: cli
+
       - name: Install Dependencies
         run: npm ci
+
+      - name: Check the Reference
+        run: lute run docs --check
+        working-directory: .
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build
         run: npm run build
@@ -159,7 +174,7 @@ jobs:
         with:
           version: v1.2.0
           cache: true
-          path: cli
+          path: .
 
       - uses: actions/setup-node@v7
         with:

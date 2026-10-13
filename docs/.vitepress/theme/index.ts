@@ -1,4 +1,4 @@
-import DefaultTheme from 'vitepress/theme';
-import './vibrant.css';
+import DefaultTheme from 'vitepress/theme'
+import './vibrant.css'
 
-export default DefaultTheme;
+export default DefaultTheme

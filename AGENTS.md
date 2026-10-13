@@ -98,7 +98,7 @@ Give each pull request a place on the canvas. When a card already tracks the wor
 
 ## Docs
 
-The docs site in `docs/` shows Orion's public surfaces. Its CLI and MCP reference pages are generated from the command table and the MCP tool catalog. After changing a command, an option, or an MCP tool, run `lute run docs` in `cli/` and commit the pages it writes; CI fails when they're out of date. Write the guide pages by hand, for someone who has never used Orion.
+The docs site in `docs/` shows Orion's public surfaces. Its CLI and MCP reference pages are generated from the command table and the MCP tool catalog. After changing a command, an option, or an MCP tool, run `lute run docs` from the repository root and commit the pages it writes; CI fails when they're out of date. It formats them with the docs site's Prettier, so run `npm ci` in `docs/` first. Write the guide pages by hand, for someone who has never used Orion.
 
 ## Trying a desktop build
 

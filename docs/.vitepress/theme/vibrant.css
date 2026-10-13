@@ -94,8 +94,7 @@
     radial-gradient(1px 1px at 33% 72%, rgb(255 255 255 / 0.3), transparent),
     radial-gradient(1px 1px at 91% 83%, rgb(255 255 255 / 0.4), transparent),
     radial-gradient(1.5px 1.5px at 6% 91%, rgb(111 139 255 / 0.45), transparent),
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(180 92 255 / 0.18), transparent 70%),
-    var(--canvas-background);
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgb(180 92 255 / 0.18), transparent 70%), var(--canvas-background);
   background-attachment: fixed;
 }
 
@@ -144,7 +143,9 @@
   background: linear-gradient(160deg, var(--surface-raised), var(--surface-background));
   border: 1px solid var(--border-default);
   border-radius: 12px;
-  transition: border-color 0.2s, transform 0.2s;
+  transition:
+    border-color 0.2s,
+    transform 0.2s;
 }
 
 .VPFeature:hover {
