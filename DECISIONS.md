@@ -176,11 +176,17 @@ When an agent opens a pull request from a card's work, the pull request attaches
 
 ## Public interfaces
 
-### Break public interfaces freely until launch
+### Public interfaces tighten in three stages
 
-Until Orion launches, cut, rename, and regroup anything on its public surfaces: CLI commands and flags, MCP tools, `--json` shapes, and data files. Remove the old form in the same change, with no alias or deprecation period. The HTTP API that `orion serve` exposes is internal to the app and carries no promise. Every addition to a public surface needs a reason to exist, and a command that duplicates another or serves one case is a candidate to remove.
+Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shapes, and data files. How freely they change depends on the release:
 
-**Why:** Orion is unreleased, so a sweeping cut costs nothing but our own scripts. After launch, removing things gets much harder, and the charter's promise of aliases before breaking changes takes over. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release.
+- **Before 0.1.0:** cut, rename, and regroup anything. Remove the old form in the same change, with no alias or deprecation period. A command that duplicates another or serves one case is a candidate to remove.
+- **From 0.1.0:** breaking changes are still allowed, but each one is deliberate. Anything new must show why it has to widen the surface rather than fit what's already there.
+- **From 1.0.0:** the charter's stability promises apply, and breaking changes ship with aliases first.
+
+0.1.0 means the first tagged release, whatever version numbers the manifests carry before it. The HTTP API that `orion serve` exposes is internal to the app at every stage and carries no promise.
+
+**Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release.
 
 2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146)
 
