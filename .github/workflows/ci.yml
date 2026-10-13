@@ -27,7 +27,6 @@ jobs:
         with:
           version: v1.2.0
           cache: true
-          path: .
 
       - name: Set Up Lute Type Definitions
         run: lute setup
@@ -57,7 +56,6 @@ jobs:
         with:
           version: v1.2.0
           cache: true
-          path: .
 
       - name: Install Dependencies
         run: lute pkg install
@@ -132,7 +130,6 @@ jobs:
         with:
           version: v1.2.0
           cache: true
-          path: .
 
       - uses: actions/setup-node@v7
         with:
@@ -174,7 +171,6 @@ jobs:
         with:
           version: v1.2.0
           cache: true
-          path: .
 
       - uses: actions/setup-node@v7
         with:
