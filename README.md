@@ -168,7 +168,9 @@ In `app/`:
 - `src/useInspecting.ts` and `src/components/PeekCard.tsx`: holding Ctrl to inspect, and the card it opens in full.
 - `src/components/ImageView.tsx`: image nodes and their workspace-local previews.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
-- `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
+- `src/components/TaskInspector.tsx`: a card's details in the inspector: the title and its pull request and issue links, status and whose move, notes, the pull request, and collapsible relationships.
+- `src/components/NoteBody.tsx` and `src/components/Markdown.tsx`: a card's note, shown as rendered Markdown and edited as source in place. `Markdown` is the shared renderer, with no raw HTML, for any surface that shows a short written note.
+- `src/components/LinkList.tsx`, `src/components/LinkSection.tsx`, and `src/components/LinkAdd.tsx`: a card's own links in the inspector, in collapsible waits-on, unblocks, and related sections, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
 - `src/components/Tooltip.tsx`: a label shown above an element on hover or focus, drawn outside the canvas so zoom and clipping don't affect it.
 - `src/companion.ts`, `src/useCompanionTargets.ts`, `src/components/Companion.tsx`, `src/components/CompanionStar.tsx`, and `src/components/CompanionEye.tsx`: the star companion, which perches on the card nearest the pointer, reacts to its status, and can be turned off in Appearance.

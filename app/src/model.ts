@@ -186,6 +186,9 @@ export const isTask = (node: AppNode): node is TaskNode => node.type === 'task'
 export const isImage = (node: AppNode): node is ImageNode => node.type === 'image'
 export const isNote = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.itemKind === 'note'
 
+/** A card's label for lists and links, with notes falling back to the word Note. */
+export const cardLabel = (node: AppNode): string => (node.data as TaskData).label || 'Note'
+
 export function byId(nodes: AppNode[]): Map<string, AppNode> {
   return new Map(nodes.map((node) => [node.id, node]))
 }

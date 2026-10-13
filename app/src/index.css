@@ -1307,8 +1307,8 @@ kbd {
   margin-left: var(--space-2);
 }
 .inspector {
-  width: 290px;
-  padding: var(--space-7);
+  width: 380px;
+  padding: var(--space-9);
   max-height: calc(100vh - 120px);
   overflow-y: auto;
 }
@@ -1809,6 +1809,177 @@ kbd {
 .blurb {
   margin: 0;
   font-size: var(--text-size-body);
+}
+
+/* Card details: the title leads, then status, notes, the pull request, and collapsible relationships. */
+.task-insp {
+  gap: var(--space-10);
+}
+.insp-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-6);
+}
+.insp .title-input {
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border-color: transparent;
+  background: transparent;
+  font: var(--weight-semibold) var(--text-size-subheading)/1.3 var(--font-ui);
+}
+.insp .title-input:hover {
+  border-color: var(--border-default);
+}
+.insp .title-input:focus {
+  border-color: var(--border-default);
+  background: var(--canvas-background);
+}
+.ref-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+.insp-section {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+.insp-heading {
+  margin: 0;
+  font: var(--weight-medium) var(--text-size-label)/1.2 var(--font-ui);
+  color: var(--text-muted);
+}
+.task-insp .grid2 {
+  gap: var(--space-5);
+}
+.note-view {
+  min-height: 3em;
+  padding: var(--space-3) var(--space-4);
+  margin: 0 calc(var(--space-4) * -1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: text;
+  font-size: var(--text-size-body);
+  line-height: 1.5;
+}
+.note-view:hover {
+  border-color: var(--border-default);
+}
+.note-view:focus-visible {
+  outline: 2px solid var(--accent-default);
+  outline-offset: 1px;
+}
+.note-source {
+  font-family: var(--font-data);
+  font-size: var(--text-size-label);
+  line-height: 1.5;
+}
+.markdown {
+  overflow-wrap: anywhere;
+}
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown pre,
+.markdown blockquote {
+  margin: 0 0 var(--space-5);
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 1.25em;
+}
+.markdown li + li {
+  margin-top: var(--space-2);
+}
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: var(--space-6) 0 var(--space-3);
+  font: var(--weight-semibold) var(--text-size-emphasis)/1.3 var(--font-ui);
+}
+.markdown h1 {
+  font-size: var(--text-size-subheading);
+}
+.markdown a {
+  color: var(--accent-default);
+}
+.markdown code {
+  font-family: var(--font-data);
+  font-size: 0.92em;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--canvas-background);
+}
+.markdown pre {
+  overflow-x: auto;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-background);
+}
+.markdown pre code {
+  padding: 0;
+  background: none;
+}
+.markdown blockquote {
+  padding-left: var(--space-5);
+  border-left: 2px solid var(--border-default);
+  color: var(--text-muted);
+}
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--border-default);
+  margin: var(--space-5) 0;
+}
+.link-sections {
+  display: grid;
+  gap: var(--space-2);
+}
+.link-section {
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-3);
+}
+.link-section > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--text-size-label);
+  color: var(--text-primary);
+}
+.link-section > summary::-webkit-details-marker {
+  display: none;
+}
+.link-section > summary::before {
+  content: '▸';
+  color: var(--text-muted);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+}
+.link-section[open] > summary::before {
+  transform: rotate(90deg);
+}
+.link-section > summary:focus-visible {
+  outline: 2px solid var(--accent-default);
+  outline-offset: 1px;
+}
+.link-count {
+  color: var(--text-muted);
+  font: var(--text-size-detail) var(--font-data);
+}
+.link-section > :not(summary) {
+  margin-top: var(--space-4);
 }
 
 /* App frame */
