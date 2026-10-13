@@ -65,6 +65,12 @@ export const SeveralRefs: Story = { render: () => <StoryGraph nodes={[severalRef
 
 export const PullReadiness: Story = { render: () => <StoryGraph nodes={readinessCards} nodeTypes={{ task: TaskView }} /> }
 
-export const FinishStamp: Story = {
+/** Finished and waiting to be closed out: the card shimmers and shows the close-out badge. */
+export const WaitingToCloseOut: Story = {
   render: () => <StoryGraph nodes={[{ ...task, data: { ...task.data, status: 'done', celebrate: true } }]} nodeTypes={{ task: TaskView }} />,
+}
+
+/** Closed out: the card carries a Done stamp. */
+export const ClosedOut: Story = {
+  render: () => <StoryGraph nodes={[{ ...task, data: { ...task.data, status: 'done' } }]} nodeTypes={{ task: TaskView }} />,
 }

@@ -150,6 +150,14 @@ Cards marked done take on a special finish, like a golden shimmer. Double-clicki
 
 2026-10-11 · #112
 
+### A finished card carries a Done stamp
+
+A card that's done and closed out carries a Done stamp and fades only slightly. Until it's closed out, it shimmers. A done card has to read as finished on its own, without blocked or deferred cards beside it to compare against.
+
+**Why:** fading alone made done look like blocked and deferred work, so a group of finished cards gave no sign it was finished. A stamp says it in one word, which fits marks over words.
+
+2026-10-12 · #317
+
 ### Triage happens in a tray, and you do the placing
 
 New pull requests and issues land in a tray at the canvas edge, backed by the Inbox and Unsorted groups. You drag cards from the tray onto the canvas, and Orion learns from where they go. Heuristics and agents suggest where cards belong. Adding cards to the canvas automatically is held back.
