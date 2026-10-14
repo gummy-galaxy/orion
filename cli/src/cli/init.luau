@@ -12,6 +12,7 @@ local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getAdapter = require("@root/adapters/getAdapter")
+local getErrorText = require("@root/getErrorText")
 local getRefs = require("@root/refs/getRefs")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
@@ -930,8 +931,7 @@ local function run(argv: { string })
 	local succeeded, message = pcall(execute, { table.unpack(argv, 2) }, nil)
 
 	if not succeeded then
-		local text = tostring(message):gsub("^[^\n]-:%d+: ", "", 1)
-		print(`Error: {text}`)
+		print(`Error: {getErrorText(message)}`)
 		process.exit(1)
 	end
 end
