@@ -129,6 +129,7 @@ import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
   celebratingAtom,
+  checkSnoozesAtom,
   collapsedAtom,
   focusedAtom,
   hoverAtom,
@@ -143,6 +144,7 @@ import {
   workspaceAtom,
 } from '../state'
 import { applyStyleChange, backgroundColor, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import { readCheckSnoozes } from '../checkSnoozes'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
 import { StickerLayer, type PlacedSticker, type PressModifiers, type StickerBounds, type StickerMove } from './StickerLayer'
@@ -328,6 +330,7 @@ export function Canvas() {
   const [nodes, setNodes] = useAtom(nodesAtom)
   const [links, setLinks] = useAtom(linksAtom)
   const setCelebrating = useSetAtom(celebratingAtom)
+  const setCheckSnoozes = useSetAtom(checkSnoozesAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
@@ -631,10 +634,11 @@ export function Canvas() {
       setLoadout(stickerLoadout)
       setGithub(doc.github ?? null)
       setCanvasStyle(readCanvasStyle(doc.settings))
+      setCheckSnoozes(readCheckSnoozes(doc.settings))
 
       return adopted
     },
-    [rebaseHistory, setLinks, setNodes],
+    [rebaseHistory, setLinks, setNodes, setCheckSnoozes],
   )
 
   useEffect(
@@ -696,6 +700,7 @@ export function Canvas() {
         setLoadout(initialLoadout)
         setGithub(null)
         setCanvasStyle({})
+        setCheckSnoozes([])
       }
 
       const view = readViewport(workspace.current)
@@ -708,7 +713,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, resetHistory, setLinks, setNodes],
+    [adopt, resetHistory, setLinks, setNodes, setCheckSnoozes],
   )
 
   useEffect(() => {

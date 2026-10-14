@@ -42,6 +42,7 @@ Every command also takes `--workspace <name>` to work in a specific workspace, a
 | [`orion suggest`](./suggest)         | Compute group suggestions                                                                                  |
 | [`orion suggestions`](./suggestions) | List, apply, or dismiss group suggestions                                                                  |
 | [`orion check`](./check)             | Report layout problems: overlaps, items outside their group, dangling links, and groups waiting for layout |
+| [`orion ci`](./ci)                   | List, snooze, or unsnooze CI jobs whose failures cards leave out                                           |
 | [`orion tidy`](./tidy)               | Mark groups for the app to lay out in place                                                                |
 | [`orion path`](./path)               | Print where Orion keeps its data                                                                           |
 | [`orion mcp`](./mcp)                 | Serve Orion's agent tools over MCP on stdin and stdout                                                     |

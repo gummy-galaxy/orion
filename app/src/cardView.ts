@@ -15,6 +15,7 @@ import {
   type Who,
 } from './model'
 import { getRarity, type Rarity } from './rarity'
+import { repoOfPullKey, withSnoozes, type CheckSnooze } from './checkSnoozes'
 
 export type CardView = {
   id: string
@@ -92,13 +93,16 @@ export type CardFacts = {
   blockers?: number
   unblocks?: number
   group?: string
+  /** CI jobs the canvas has snoozed, left out of whether the card's checks are failing. */
+  snoozes?: CheckSnooze[]
 }
 
 export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
   const pullRef = getPullRef(data)
-  const pullDetails = pullRef?.details as PullDetails | undefined
+  const recorded = pullRef?.details as PullDetails | undefined
+  const pullDetails = recorded && pullRef ? withSnoozes(recorded, repoOfPullKey(pullRef.key), node.id, facts.snoozes ?? []) : recorded
   const checks = getChecks(pullDetails?.checks)
   const readiness = getPullReadiness(pullDetails)
   const open = pullDetails?.state === 'OPEN'

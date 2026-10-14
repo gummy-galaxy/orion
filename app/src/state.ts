@@ -2,6 +2,7 @@ import { atom, getDefaultStore, useAtomValue } from 'jotai'
 import { selectAtom } from 'jotai/utils'
 import { useMemo } from 'react'
 import { getCardView } from './cardView'
+import type { CheckSnooze } from './checkSnoozes'
 import { readAppearance } from './appearance'
 import { deriveWork, traceFrom, type AttentionMark, type GroupStats, type SourceRef } from './derive'
 import { isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
@@ -12,6 +13,8 @@ export const skinAtom = atom(readAppearance().skin)
 export const skinStore = getDefaultStore()
 /** The workspace the canvas shows, which names where its cover and background images are kept. */
 export const workspaceAtom = atom('default')
+/** The CI jobs the canvas has snoozed, from its settings. */
+export const checkSnoozesAtom = atom<CheckSnooze[]>([])
 export const linksAtom = atom<Link[]>([])
 export const hoverAtom = atom<string | null>(null)
 /** A double-clicked card keeps its trace while you pan around; any click lets it go. */
@@ -91,10 +94,12 @@ export function useCardView(id: string, data: TaskNode['data'], group?: string) 
   const sources = useSources(id)
   const blockers = useBlockers(id)
   const unblocks = useUnblocks(id)
+  const snoozes = useAtomValue(checkSnoozesAtom)
 
   return useMemo(
-    () => getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, sources, blockers, unblocks, group }),
-    [id, data, status, leverage, upstream, sources, blockers, unblocks, group],
+    () =>
+      getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, sources, blockers, unblocks, group, snoozes }),
+    [id, data, status, leverage, upstream, sources, blockers, unblocks, group, snoozes],
   )
 }
 

@@ -1,7 +1,11 @@
+import { useAtomValue } from 'jotai'
 import { ChecksIcon } from './ChecksIcon'
+import { CheckSnoozes } from './CheckSnoozes'
 import { LinkList } from './LinkList'
 import { StatusIcon } from './StatusIcon'
+import { repoOfPullKey, withSnoozes } from '../checkSnoozes'
 import type { Work } from '../derive'
+import { checkSnoozesAtom } from '../state'
 import {
   READINESS_LABEL,
   STATUS_LABEL,
@@ -61,7 +65,10 @@ export function TaskInspector({
   const leverage = work.leverage.get(node.id) ?? 0
   const url = getTaskUrl(data)
   const pullRef = getPullRef(data)
-  const pullDetails = pullRef?.details as PullDetails | undefined
+  const snoozes = useAtomValue(checkSnoozesAtom)
+  const recorded = pullRef?.details as PullDetails | undefined
+  const repo = pullRef ? repoOfPullKey(pullRef.key) : undefined
+  const pullDetails = recorded ? withSnoozes(recorded, repo, node.id, snoozes) : undefined
   const readiness = getPullReadiness(pullDetails)
   const checkCountsLabel = readiness && pullDetails?.checkCounts && getCheckCountsLabel(pullDetails.checkCounts)
   const linked = new Set(
@@ -113,6 +120,9 @@ export function TaskInspector({
               </>
             )}
           </p>
+          {repo && pullDetails.state === 'OPEN' && recorded?.failedChecks?.length ? (
+            <CheckSnoozes cardId={node.id} repo={repo} failedChecks={recorded.failedChecks} />
+          ) : null}
           {pullDetails.author && !pullDetails.mine && <p className="facts">By {pullDetails.author}</p>}
           {pullDetails.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
         </div>

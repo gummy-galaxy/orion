@@ -169,6 +169,7 @@ In `app/`:
 - `src/components/ImageView.tsx`: image nodes and their workspace-local previews.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
 - `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
+- `src/checkSnoozes.ts` and `src/components/CheckSnoozes.tsx`: CI jobs snoozed across every card in a repository, and the inspector's list of a card's failing jobs, where unchecking one snoozes it.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
 - `src/components/Tooltip.tsx`: a label shown above an element on hover or focus, drawn outside the canvas so zoom and clipping don't affect it.
 - `src/companion.ts`, `src/useCompanionTargets.ts`, `src/components/Companion.tsx`, `src/components/CompanionStar.tsx`, and `src/components/CompanionEye.tsx`: the star companion, which perches on the card nearest the pointer, reacts to its status, and can be turned off in Appearance.

@@ -58,6 +58,8 @@ export type PullDetails = {
   /** Whether any unfinished check has started, or all of them are still queued. */
   checkProgress?: 'running' | 'waiting'
   checkCounts?: CheckCounts
+  /** The jobs that failed, listed when any did. An optional one failed where other jobs are required, so it doesn't count. */
+  failedChecks?: FailedCheck[]
   mergeable?: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN'
   mergeState?: 'BEHIND' | 'BLOCKED' | 'CLEAN' | 'DIRTY' | 'DRAFT' | 'HAS_HOOKS' | 'UNKNOWN' | 'UNSTABLE'
   /** The head commit the details describe, which a merge from the card must still match. */
@@ -67,6 +69,8 @@ export type PullDetails = {
 }
 /** A commit's checks: how many have finished, and failed, out of all of them. Skipped and cancelled checks count as finished. */
 export type CheckCounts = { total: number; finished: number; failed: number }
+/** A CI job that failed on a pull request, by the name GitHub shows for it. */
+export type FailedCheck = { name: string; optional?: boolean }
 /** How close an open pull request is to merging, from what stops it to nothing at all. */
 export type PullReadiness = 'conflict' | 'failing' | 'running' | 'waiting' | 'passing' | 'mergeable'
 

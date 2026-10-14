@@ -88,6 +88,14 @@ Sources and their data are one layer, and cards are the presentation attached to
 
 2026-10-09 · [#152](https://github.com/vocksel/orion/issues/152), [#154](https://github.com/vocksel/orion/issues/154)
 
+### Snoozed and optional jobs don't make a card fail
+
+A pull request reads as failing only for a job that counts. When some of its jobs are required, a failing job that isn't required doesn't count. A failing job can also be snoozed, by name, for every card in its repository: either until it next passes on each card, so a later failure there shows again, or until a set time. Cards list their failing jobs with a checkbox each, and unchecking one snoozes it.
+
+**Why:** one boring failure, such as stale generated docs, turns every open pull request red at once. Fixing it on each branch means a CI run per pull request, while snoozing it once clears it everywhere and still catches the job breaking again.
+
+2026-10-13
+
 ### Card art is reproducible
 
 Generated card art can be produced again from the same card. Later, people should be able to reroll art, keep favorites, and give a card its own color.
