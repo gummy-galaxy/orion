@@ -47,6 +47,19 @@ orion workspace rename [name] [label] [options]
 | `[name]`  | Workspace name    |
 | `[label]` | New display label |
 
+## orion workspace set
+
+Set a canvas's cover or background
+
+```sh
+orion workspace set [options]
+```
+
+| Argument               | Description                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `--cover <value>`      | Image asset id for the cover, from orion media insert --json (empty to clear)  |
+| `--background <value>` | Color, color token such as card.background, or image asset id (empty to clear) |
+
 ## orion workspace archive
 
 Archive a workspace. Its data stays in place, and restore brings it back
