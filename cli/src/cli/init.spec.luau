@@ -108,7 +108,7 @@ end)
 
 -- Answers a refresh with flipbook #658 in the given state, which the harness card tracks.
 local function refreshRunner(state: string)
-	return function(argv)
+	return function(argv: { string })
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
 		elseif argv[5]:find("search(", 1, true) then
