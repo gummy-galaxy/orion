@@ -40,7 +40,7 @@ for side in before after; do
   mkdir -p "$SCRATCH/$side-data/workspaces"
   cp ~/Library/Application\ Support/Orion/workspaces.json "$SCRATCH/$side-data/"
   rsync -a --exclude backups ~/Library/Application\ Support/Orion/workspaces/orion "$SCRATCH/$side-data/workspaces/"
-  ORION_DATA_DIR="$SCRATCH/$side-data" ~/Applications/Orion.app/Contents/MacOS/orion canvas use orion
+  ORION_DATA_DIR="$SCRATCH/$side-data" /Applications/Orion.app/Contents/MacOS/orion canvas use orion
 done
 ```
 
@@ -53,8 +53,8 @@ Run Vite in each tree's `app/` on fixed ports. Use the installed `orion` binary 
 Run one side, capture it, and stop it before starting the other. A linked `node_modules` means both trees share Vite's dependency cache in `node_modules/.vite`, and two servers at once leave one blank with "504 Outdated Optimize Dep". Pass `--force` so each start rebuilds that cache for its own tree:
 
 ```sh
-ORION_BIN=~/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort --force
-ORION_BIN=~/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort --force
+ORION_BIN=/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort --force
+ORION_BIN=/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort --force
 ```
 
 Start each with your harness's dev-server tool when it has one, such as Claude Code's `preview_start` with entries in `.claude/launch.json`. Otherwise run it in the background.
