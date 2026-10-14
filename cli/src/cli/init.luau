@@ -5,6 +5,7 @@ local process = require("@std/process")
 local backups = require("@root/cli/backups")
 local batchEdit = require("@root/cli/batchEdit")
 local check = require("@root/cli/check")
+local checkStyleAssets = require("@root/style/checkStyleAssets")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
@@ -203,6 +204,16 @@ local function createParsers(): Parsers
 	set:add("label", "option", { help = "New label" })
 	set:add("blurb", "option", { help = "Group description (groups only)" })
 	set:add("arrange", "option", { help = "How reflow arranges a group: auto or custom (groups only)" })
+	set:add(
+		"cover",
+		"option",
+		{ help = "Image asset id for the cover, from orion media insert --json (groups only; empty to clear)" }
+	)
+	set:add(
+		"background",
+		"option",
+		{ help = "Color, color token such as card.background, or image asset id (groups only; empty to clear)" }
+	)
 	addFieldOptions(set, " (items only)")
 	addRefOption(set)
 	addJsonFlag(set)
@@ -346,6 +357,8 @@ local function fields(parser: cli.Parser): graph.ItemFields
 		who = parser:get("who"),
 		note = parser:get("note"),
 		arrange = parser:get("arrange"),
+		cover = parser:get("cover"),
+		background = parser:get("background"),
 		kind = parser:get("kind"),
 	}
 end
@@ -705,9 +718,12 @@ local function execute(args: { string }, options: Dependencies?)
 		emitItem(deps, doc, added, asJson, "Added")
 	elseif command == "set" then
 		local id = required(parser, "id")
+		local values = fields(parser)
+		checkStyleAssets(dir, values.cover)
+		checkStyleAssets(dir, values.background)
 		local changed: Item
 		local doc = store.transaction(dir, function(doc)
-			changed = graph.setFields(doc, id, fields(parser))
+			changed = graph.setFields(doc, id, values)
 			attachRef(doc, id, parser:get("ref"))
 		end)
 

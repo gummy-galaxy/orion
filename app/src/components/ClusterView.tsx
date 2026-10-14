@@ -1,9 +1,12 @@
 import { memo, useContext } from 'react'
+import { useAtomValue } from 'jotai'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext } from '../derive'
 import type { ClusterNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useCollapsed, useIsDropTarget, useGroupStats, useMarked, useSources, useTraceRole } from '../state'
+import { useCollapsed, useIsDropTarget, useGroupStats, useMarked, useSources, useTraceRole, workspaceAtom } from '../state'
+import { groupLayers } from '../style'
+import { CoverImage } from './CoverImage'
 import { Ring } from './Ring'
 
 export const ClusterView = memo(function ClusterView({ id, data, width, height }: NodeProps<ClusterNode>) {
@@ -16,12 +19,25 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   const attention = useMarked(id)
   const sources = useSources(id)
   const isDropTarget = useIsDropTarget(id)
+  const workspace = useAtomValue(workspaceAtom)
+  const layers = groupLayers(data, collapsed)
 
   return (
     <div
       className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${isDropTarget ? ' is-drop-target' : ''}`}
+      style={layers.color ? { background: layers.color } : undefined}
     >
       <Handle type="target" position={Position.Left} isConnectable={false} />
+      {layers.backdrop && (
+        <div className="cluster-backdrop">
+          <CoverImage workspace={workspace} asset={layers.backdrop} className="cluster-backdrop-image" />
+        </div>
+      )}
+      {layers.cover && (
+        <div className="cluster-cover">
+          <CoverImage workspace={workspace} asset={layers.cover} className="cluster-cover-image" />
+        </div>
+      )}
       {collapsed ? (
         <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">
           <div className="cluster-card-title">

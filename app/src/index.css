@@ -323,8 +323,8 @@ select {
   position: static;
   max-width: none;
 }
-/* A finished card's stamp, which clears when clicked and takes its chain with it. Only the stamp moves, never the card,
-   so nothing shifts under the pointer. --clear-delay staggers each card down the chain. */
+/* A finished card's close-out badge, which clears when clicked and takes its chain with it. Only the badge moves, never
+   the card, so nothing shifts under the pointer. --clear-delay staggers each card down the chain. */
 .finish-stamp {
   position: absolute;
   top: -7px;
@@ -366,6 +366,61 @@ select {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+/* Finished work waiting to be closed out shimmers, so it reads as something to click. */
+.card.is-waiting::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--status-done) 22%, transparent) 50%, transparent 65%);
+  background-size: 250% 100%;
+  background-position: 100% 0;
+}
+:where(:root[data-motion='on']) .card.is-waiting::after {
+  animation: done-shimmer 2.4s ease-in-out infinite;
+}
+@keyframes done-shimmer {
+  0%,
+  35% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+/* A closed-out card carries a Done stamp, so it reads as finished on its own, with nothing beside it to compare. */
+.card > .done-stamp {
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-3);
+  z-index: 1;
+  padding: 0 var(--space-3);
+  border: 2.5px solid var(--status-done);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--status-done) 10%, transparent);
+  color: var(--status-done);
+  font-size: var(--text-size-subheading);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.16em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  transform: rotate(-9deg);
+  pointer-events: none;
+}
+:where(:root[data-motion='on']) .card > .done-stamp.is-landing {
+  animation: done-stamp-land 360ms cubic-bezier(0.2, 0.9, 0.3, 1.25) calc(var(--clear-delay, 0ms) + 180ms) both;
+}
+@keyframes done-stamp-land {
+  from {
+    opacity: 0;
+    transform: rotate(-20deg) scale(1.8);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-9deg);
   }
 }
 @keyframes finish-stamp-clear {
@@ -552,9 +607,12 @@ select {
   --card-fill: var(--accent-subtle);
 }
 .st-blocked,
-.st-done,
 .st-deferred {
   --fade: 0.75;
+}
+/* Done work fades only a little. Its stamp, not the fade, says it's finished. */
+.st-done {
+  --fade: 0.88;
 }
 .card:is(.st-blocked, .st-done, .st-deferred) {
   --card-fill: var(--canvas-background);
@@ -2871,6 +2929,90 @@ kbd {
   overflow-y: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
+}
+
+/* Covers and backgrounds. Images sit behind the content and are dimmed toward the canvas color so cards and links stay readable. */
+.cluster-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 78px;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.cluster-backdrop,
+.canvas-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.cluster-backdrop::after,
+.canvas-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--canvas-background) 80%, transparent);
+}
+.canvas-cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 0;
+  height: 132px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.canvas-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(color-mix(in srgb, var(--canvas-background) 30%, transparent), var(--canvas-background));
+}
+.cluster-cover-image,
+.cluster-backdrop-image,
+.canvas-cover-image,
+.canvas-backdrop-image,
+.cover-preview-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.canvas.has-backdrop .react-flow {
+  --xy-background-color: transparent;
+}
+.cover-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.cover-settings h3 {
+  margin: 0;
+  font-size: var(--text-size-emphasis);
+}
+.cover-preview {
+  display: grid;
+  place-items: center;
+  height: 72px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+  font-size: var(--text-size-caption);
+}
+.cover-file {
+  display: none;
+}
+.cover-error {
+  margin: 0;
+  color: var(--status-blocked);
+  font-size: var(--text-size-caption);
 }
 
 /* Tooltip: drawn above its anchor in the page body, so cards and the canvas zoom leave it alone. */

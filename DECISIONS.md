@@ -174,6 +174,14 @@ The star companion shows on every canvas until it's turned off in Appearance. In
 
 2026-10-11 · [#292](https://github.com/vocksel/orion/issues/292)
 
+### A finished card carries a Done stamp
+
+A card that's done and closed out carries a Done stamp and fades only slightly. Until it's closed out, it shimmers. A done card has to read as finished on its own, without blocked or deferred cards beside it to compare against.
+
+**Why:** fading alone made done look like blocked and deferred work, so a group of finished cards gave no sign it was finished. A stamp says it in one word, which fits marks over words.
+
+2026-10-12 · #317
+
 ### Triage happens in a tray, and you do the placing
 
 New pull requests and issues land in a tray at the canvas edge, backed by the Inbox and Unsorted groups. You drag cards from the tray onto the canvas, and Orion learns from where they go. Heuristics and agents suggest where cards belong. Adding cards to the canvas automatically is held back.
@@ -287,3 +295,11 @@ Canvas physics builds on an established library rather than a homegrown engine. 
 **Why:** bespoke physics is costly to keep up long term, and objects passing through each other or wobbling stacks are undesirable everywhere, not just in pinball.
 
 2026-10-11 · [#41](https://github.com/vocksel/orion/issues/41)
+
+### The desktop app installs to `/Applications`
+
+Orion installs to `/Applications/Orion.app` so every user on the machine gets it, and local builds replace that copy rather than one in `~/Applications`. The `orion` CLI link and MCP setup point there too.
+
+**Why:** every build shares one bundle id, so a second copy in `~/Applications` shows up as a duplicate Orion and leaves the CLI and the app running different builds.
+
+2026-10-13

@@ -1,0 +1,42 @@
+local fs = require("@std/fs")
+local path = require("@std/path")
+local test = require("@std/test")
+
+local applyCanvasStyle = require("@root/style/applyCanvasStyle")
+local testing = require("@root/testing")
+
+local function assetDir(name: string): string
+	local dir = testing.directory(name)
+	fs.createDirectory(path.join(dir, "assets"), { makeParents = true })
+	fs.writeStringToFile(path.join(dir, "assets", "image-logo.png"), "bytes")
+	return dir
+end
+
+test.case("a change sets the cover and background, and an empty value clears them", function(assert)
+	local dir = assetDir("canvas-style-set")
+	local doc = testing.createDoc({})
+	applyCanvasStyle(doc, dir, { cover = "image-logo.png", background = "#1d1b2e" })
+	assert.eq(doc.settings.cover, "image-logo.png")
+	assert.eq(doc.settings.background, "#1d1b2e")
+	applyCanvasStyle(doc, dir, { background = "" })
+	assert.eq(doc.settings.cover, "image-logo.png")
+	assert.eq(doc.settings.background, nil)
+	applyCanvasStyle(doc, dir, { cover = "" })
+	assert.eq(doc.settings.cover, nil)
+end)
+
+test.case("an image that the workspace does not hold is refused and changes nothing", function(assert)
+	local dir = assetDir("canvas-style-missing")
+	local doc = testing.createDoc({})
+	assert.throws(function()
+		applyCanvasStyle(doc, dir, { cover = "image-missing.png" })
+	end)
+	assert.throws(function()
+		applyCanvasStyle(doc, dir, { background = "image-missing.png" })
+	end)
+	assert.throws(function()
+		applyCanvasStyle(doc, dir, { cover = "#1d1b2e" })
+	end)
+	assert.eq(doc.settings.cover, nil)
+	assert.eq(doc.settings.background, nil)
+end)
