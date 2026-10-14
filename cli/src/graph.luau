@@ -1,9 +1,11 @@
 local json = require("@std/json")
 
+local checkBackground = require("@root/style/checkBackground")
 local fieldValues = require("@root/fieldValues")
 local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
 local getRefs = require("@root/refs/getRefs")
+local isAssetId = require("@root/media/isAssetId")
 local removeRef = require("@root/refs/removeRef")
 local setRef = require("@root/refs/setRef")
 local types = require("@root/types")
@@ -34,6 +36,8 @@ export type ItemFields = {
 	note: string?,
 	blurb: string?,
 	arrange: string?,
+	cover: string?,
+	background: string?,
 	kind: string?,
 	shape: string?,
 	color: string?,
@@ -376,6 +380,14 @@ local function checkFields(fields: ItemFields)
 		fields.color == nil or fields.color == "" or table.find(fieldValues.colors, fields.color),
 		`color must be one of {table.concat(fieldValues.colors, ", ")}`
 	)
+	assert(
+		fields.cover == nil or fields.cover == "" or isAssetId(fields.cover),
+		"cover must be an image asset id, such as the asset from orion media insert"
+	)
+
+	if fields.background and fields.background ~= "" then
+		checkBackground(fields.background)
+	end
 end
 
 -- Sets or clears (with an empty value) a component's shape and color.
@@ -467,7 +479,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.note == nil
 				and fields.kind == nil
 				and fields.shape == nil,
-			"groups only take a label, blurb, arrange, and color"
+			"groups only take a label, blurb, arrange, cover, background, and color"
 		)
 
 		if fields.color then
@@ -489,11 +501,23 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 			end
 		end
 
+		if fields.cover then
+			item.data.cover = if fields.cover == "" then nil else fields.cover
+		end
+
+		if fields.background then
+			item.data.background = if fields.background == "" then nil else fields.background
+		end
+
 		return item
 	end
 
 	assert(fields.arrange == nil, `"{id}" is an item; only groups take an arrangement`)
 	assert(fields.blurb == nil, `"{id}" is an item; only groups take a blurb`)
+	assert(
+		fields.cover == nil and fields.background == nil,
+		`"{id}" is an item; only groups take a cover or background`
+	)
 	if fields.label then
 		item.data.label = fields.label
 	end

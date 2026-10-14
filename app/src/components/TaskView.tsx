@@ -23,16 +23,19 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   const attention = useMarked(id)
   const actions = useContext(ActionsContext)!
   const tint = useTint(id)
-  // A card keeps its stamp while the stamp clears, after the flag itself is already gone.
+  // A card keeps its badge while the badge clears, after the flag itself is already gone.
   const clearing = useCelebrating(id)
-  const stamped = view.kind !== 'note' && view.kind !== 'component' && ((data.celebrate && view.status === 'done') || clearing !== undefined)
+  const finished = view.kind !== 'note' && view.kind !== 'component' && view.status === 'done'
+  // Finished work shimmers until someone closes it out, then carries a Done stamp from then on.
+  const waiting = finished && !!data.celebrate && clearing === undefined
+  const badged = waiting || clearing !== undefined
   const skin = useAtomValue(skinAtom, { store: skinStore })
   const className =
     view.kind === 'note'
       ? `card skin-${skin} note${trace ? ' tr-' + trace : ''}`
       : view.kind === 'component'
         ? `card component shape-${data.shape ?? 'service'}${tint ? ' tint-' + tint : ''}${trace ? ' tr-' + trace : ''}`
-        : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}`
+        : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}`
   const body = (
     <>
       {view.kind === 'component' ? (
@@ -40,13 +43,21 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
       ) : (
         <CardBody view={view} />
       )}
-      {stamped && (
+      {finished && !waiting && (
+        <span
+          className={`done-stamp${clearing !== undefined ? ' is-landing' : ''}`}
+          style={clearing !== undefined ? ({ '--clear-delay': `${clearing}ms` } as CSSProperties) : undefined}
+        >
+          Done
+        </span>
+      )}
+      {badged && (
         <button
           type="button"
           className={`finish-stamp nodrag nopan${clearing !== undefined ? ' is-clearing' : ''}`}
           style={clearing !== undefined ? ({ '--clear-delay': `${clearing}ms` } as CSSProperties) : undefined}
-          aria-label={`Clear the finish stamp on ${view.title}`}
-          title="Click to clear"
+          aria-label={`Close out ${view.title}`}
+          title="Click to close out"
           onClick={(event) => {
             event.stopPropagation()
 

@@ -32,6 +32,7 @@ import { CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '.
 import { FocusView, type FocusItem } from './FocusView'
 import { forgetTextWidths } from '../cardHeight'
 import { layoutOrder, reflow } from '../layout'
+import { pushAside } from '../pushAside'
 import { mergeDocs } from '../merge'
 import { glide, motionReduced, useSystemMotion } from '../motion'
 import {
@@ -109,6 +110,7 @@ import {
   reportFocus,
   requestSync,
   save,
+  saveCanvasStyle,
   setActiveWorkspace,
   slim,
   type FocusReport,
@@ -143,7 +145,11 @@ import {
   skinStore,
   traceAtom,
   workAtom,
+  workspaceAtom,
 } from '../state'
+import { applyStyleChange, backgroundColor, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import { CoverImage } from './CoverImage'
+import { CoverSettings } from './CoverSettings'
 import { StickerLayer, type PlacedSticker, type PressModifiers, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedStickers, stickerCursor, type Loadout, type Sticker } from '../sticker'
@@ -359,6 +365,15 @@ export function Canvas() {
   const [editing, setEditing] = useState<string | null>(null)
   /** The link whose inspector is showing, picked by clicking it. */
   const [pickedLink, setPickedLink] = useState<string | null>(null)
+  /** The canvas's cover and background, as the workspace settings hold them. */
+  const [canvasStyle, setCanvasStyle] = useState<CanvasStyle>({})
+  /** The cover panel on show, for the canvas or the open group, or null while it's closed. */
+  const [coverTarget, setCoverTarget] = useState<{ kind: 'canvas' } | { kind: 'group'; id: string } | null>(null)
+  const setWorkspaceName = useSetAtom(workspaceAtom)
+  const canvasColor = backgroundColor(canvasStyle.background)
+  const canvasImage = isAssetId(canvasStyle.background) ? canvasStyle.background : undefined
+
+  useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
   /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
@@ -608,8 +623,11 @@ export function Canvas() {
   }, [cardSize, setNodes, reactFlow, focusPick, root])
 
   const adopt = useCallback(
-    (doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
-      const next = toDisplayed(normalize(doc.nodes), cardSizeRef.current)
+    (doc: Remote, serverDoc: Remote = doc, preserveSelection = true, previous?: AppNode[]): Saved => {
+      const displayed = toDisplayed(normalize(doc.nodes), cardSizeRef.current)
+      // Another writer can grow a group, such as the CLI adding a card to it. Its neighbors move aside here, and
+      // since that differs from the server's copy, the next save writes the new positions back.
+      const next = previous ? pushAside(previous, displayed, cardSizeRef.current) : displayed
       const server = compactDoc({
         nodes: normalize(serverDoc.nodes),
         links: serverDoc.links,
@@ -634,6 +652,7 @@ export function Canvas() {
       setStickers(doc.stickers ?? [])
       setLoadout(stickerLoadout)
       setGithub(doc.github ?? null)
+      setCanvasStyle(readCanvasStyle(doc.settings))
 
       return adopted
     },
@@ -659,11 +678,11 @@ export function Canvas() {
 
       const local = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSizeRef.current) })
 
-      if (fingerprint(local) === savedPrint.current) adopt(doc)
+      if (fingerprint(local) === savedPrint.current) adopt(doc, doc, true, latest.current.nodes)
       else {
         const merged = mergeDocs(base.current, local, compactDoc({ ...doc, nodes: normalize(doc.nodes) }))
 
-        adopt({ ...doc, ...merged }, doc)
+        adopt({ ...doc, ...merged }, doc, true, latest.current.nodes)
       }
     },
     [adopt],
@@ -698,6 +717,7 @@ export function Canvas() {
         setStickers(initialStickers)
         setLoadout(initialLoadout)
         setGithub(null)
+        setCanvasStyle({})
       }
 
       const view = readViewport(workspace.current)
@@ -861,7 +881,16 @@ export function Canvas() {
           }
         }
 
-        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((group) => group.id)), cardSize)
+        const pendingIds = new Set(pending.map((group) => group.id))
+
+        // A new group is placed beside existing work below, so only groups that were already placed push their neighbors.
+        next = pushAside(
+          nodes.filter((node) => !pendingIds.has(node.id)),
+          next,
+          cardSize,
+        )
+
+        if (pending.length) next = placeBesideExisting(next, pendingIds, cardSize)
       } catch (error) {
         console.error('Could not lay out canvas', error)
       } finally {
@@ -2051,6 +2080,26 @@ export function Canvas() {
     })
   }, [setNodes])
 
+  /** A group's cover and background live on the group, so they save with it. A null clears one. */
+  const changeGroupStyle = useCallback(
+    (id: string, change: StyleChange) => {
+      const patch: Partial<ClusterData> = {}
+
+      if (change.cover !== undefined) patch.cover = change.cover ?? undefined
+
+      if (change.background !== undefined) patch.background = change.background ?? undefined
+
+      updateData(id, patch)
+    },
+    [updateData],
+  )
+
+  /** The canvas's cover and background go to the server and show at once. The server bumps the revision, so the page reloads to match it. */
+  const changeCanvasStyle = useCallback((change: StyleChange) => {
+    setCanvasStyle((current) => applyStyleChange(current, change))
+    void saveCanvasStyle(workspace.current, change)
+  }, [])
+
   // ---- Notes and links ----
 
   /**
@@ -2084,7 +2133,11 @@ export function Canvas() {
 
       if (options.to) next.push({ id: `${id}>${options.to}`, from: id, to: options.to, kind })
 
-      const nextNodes = normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note], cardSize)
+      const nextNodes = pushAside(
+        currentNodes,
+        normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note], cardSize),
+        cardSize,
+      )
 
       setNodes(nextNodes)
       setLinks(next)
@@ -2149,7 +2202,11 @@ export function Canvas() {
             selected: true,
           }
 
-          return normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image], cardSize)
+          return pushAside(
+            currentNodes,
+            normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image], cardSize),
+            cardSize,
+          )
         })
       } catch (error) {
         setImageError(error instanceof Error ? error.message : 'Could not add the image.')
@@ -2201,7 +2258,9 @@ export function Canvas() {
       }
 
       syncAfterSave.current = true
-      setNodes((nodesNow) => normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize))
+      setNodes((nodesNow) =>
+        pushAside(nodesNow, normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize), cardSize),
+      )
     },
     [root, selectOnly, jumpTo, setNodes, cardSize],
   )
@@ -2552,6 +2611,7 @@ export function Canvas() {
           ...many,
           { label: 'Open', hint: hintOf('open-group'), run: () => actions.open(node.id) },
           { label: 'Rename', hint: hintOf('rename'), run: () => (selectOnly(node.id), setEditing(node.id)) },
+          { label: 'Cover and background', run: () => selectOnly(node.id) },
           ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
           ...(node.parentId
             ? [{ label: 'Move out of group', run: () => setNodes((currentNodes) => moveOutOfGroup(currentNodes, node.id, cardSize)) }]
@@ -2626,6 +2686,10 @@ export function Canvas() {
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
       { label: 'Fit to screen', hint: hintOf('fit'), run: () => fitTo(root) },
+      {
+        label: root ? 'Cover and background' : 'Canvas cover and background',
+        run: () => setCoverTarget(root ? { kind: 'group', id: root } : { kind: 'canvas' }),
+      },
       ...(root ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => openRoot(map.get(root)?.parentId ?? null) }] : []),
     ]
   }
@@ -3012,8 +3076,13 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
-          style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}`}
+          style={
+            {
+              ...(canvasColor ? { '--canvas-background': canvasColor } : {}),
+              ...(tool === 'sticker' ? { '--sticker-cursor': stickerCursor(sticker) } : {}),
+            } as CSSProperties
+          }
           ref={canvasRef}
           onPointerDown={startMarquee}
           onPointerDownCapture={(event) => {
@@ -3022,6 +3091,16 @@ export function Canvas() {
           onPointerMove={trackPointer}
           onClickCapture={claimNodeClick}
         >
+          {canvasImage && (
+            <div className="canvas-backdrop">
+              <CoverImage workspace={workspaces.active} asset={canvasImage} className="canvas-backdrop-image" />
+            </div>
+          )}
+          {canvasStyle.cover && (
+            <div className="canvas-cover">
+              <CoverImage workspace={workspaces.active} asset={canvasStyle.cover} className="canvas-cover-image" />
+            </div>
+          )}
           {ready && (
             <ReactFlow<ViewNode, Edge>
               fitView={!savedView}
@@ -3238,6 +3317,31 @@ export function Canvas() {
                 />
               </Panel>
 
+              {coverTarget && selected.length === 0 && pickedStickers.length === 0 && (
+                <Panel position="top-right" className="panel inspector cover-panel">
+                  {coverTarget.kind === 'canvas' ? (
+                    <CoverSettings
+                      title="Canvas cover and background"
+                      workspace={workspaces.active}
+                      current={canvasStyle}
+                      change={changeCanvasStyle}
+                    />
+                  ) : map.has(coverTarget.id) ? (
+                    <CoverSettings
+                      title="Group cover and background"
+                      workspace={workspaces.active}
+                      current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
+                      change={(change) => changeGroupStyle(coverTarget.id, change)}
+                    />
+                  ) : null}
+                  <div className="row">
+                    <button type="button" className="btn" onClick={() => setCoverTarget(null)}>
+                      Done
+                    </button>
+                  </div>
+                </Panel>
+              )}
+
               {(selected.length > 0 || pickedStickers.length > 0) && (
                 <Panel position="top-right" className="panel inspector">
                   {!selected.length ? (
@@ -3346,6 +3450,12 @@ export function Canvas() {
                         change={(color) => updateData(one.id, { color })}
                       />
                       <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
+                      <CoverSettings
+                        title="Cover and background"
+                        workspace={workspaces.active}
+                        current={one.data as ClusterData}
+                        change={(change) => changeGroupStyle(one.id, change)}
+                      />
                       <div className="row">
                         <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
                           Open

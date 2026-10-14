@@ -54,7 +54,7 @@ export type TaskData = {
   /** Components only; otherwise the nearest group's tint applies. */
   color?: Tint
   /**
-   * Set when the card changes to done, until its finish stamp is clicked or the card is reopened. The CLI store sets
+   * Set when the card changes to done, until it is closed out or reopened. The CLI store sets
    * it too, on every path that finishes a card, so it is saved with the card like the other fields.
    */
   celebrate?: boolean
@@ -136,6 +136,10 @@ export type ClusterData = {
   layout?: 'pending' | 'refit'
   arrange?: Arrange
   color?: Tint
+  /** An image asset id from this workspace's assets, shown as a banner across the top of the group. */
+  cover?: string
+  /** A hex color, a color token name such as `card.background`, or an image asset id. */
+  background?: string
 }
 export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
 export type TaskNode = Node<TaskData, 'task'>

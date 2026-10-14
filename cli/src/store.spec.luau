@@ -261,6 +261,28 @@ test.case("pruning keeps recent backups and one newest backup per UTC day", func
 	assert.eq(fs.exists(path.join(folder, "orion-r10-20260904T010000Z.json")), true)
 end)
 
+test.case("store keeps the canvas cover and background across later saves", function(assert)
+	local dir = testing.directory("canvas-style-store")
+	fs.createDirectory(path.join(dir, "assets"), { makeParents = true })
+	fs.writeStringToFile(path.join(dir, "assets", "image-logo.png"), "bytes")
+	store.transaction(dir, function(doc)
+		doc.settings.cover = "image-logo.png"
+		doc.settings.background = "#1d1b2e"
+	end)
+	local reread = store.load(dir)
+	assert.eq(reread.settings.cover, "image-logo.png")
+	assert.eq(reread.settings.background, "#1d1b2e")
+	assert.eq(reread.revision, 1)
+	store.transaction(dir, function(doc)
+		doc.settings.background = nil
+	end)
+	local afterLaterSave = store.load(dir)
+	assert.eq(afterLaterSave.settings.background, nil)
+	assert.eq(afterLaterSave.settings.cover, "image-logo.png")
+	assert.eq(afterLaterSave.revision, 2)
+	assert.strContains(fs.readFileToString(store.filePath(dir)), '"cover": "image-logo.png"')
+end)
+
 test.case("a transaction flags a card that turns done and clears the flag on reopen", function(assert)
 	local dir = testing.directory("celebrate-transaction")
 	store.write(

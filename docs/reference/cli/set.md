@@ -8,19 +8,21 @@ Change an item's or group's fields
 orion set [id] [options]
 ```
 
-| Argument            | Description                                                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `[id]`              | Item or group id                                                                                                          |
-| `--label <value>`   | New label                                                                                                                 |
-| `--blurb <value>`   | Group description (groups only)                                                                                           |
-| `--arrange <value>` | How reflow arranges a group: auto or custom (groups only)                                                                 |
-| `--status <value>`  | todo, active, review, blocked, deferred, or done (items only)                                                             |
-| `--repo <value>`    | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL (items only)                        |
-| `--pr <value>`      | Pull request number. Deprecated: use --ref with the pull request URL (items only)                                         |
-| `--who <value>`     | Whose move: you, review, or ci (empty to clear) (items only)                                                              |
-| `--note <value>`    | Free-form note (empty to clear) (items only)                                                                              |
-| `--shape <value>`   | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear) (items only)     |
-| `--color <value>`   | A component's or group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                          |
-| `--kind <value>`    | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work (items only) |
-| `--ref <value>`     | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch                     |
-| `--json`            | Print JSON                                                                                                                |
+| Argument               | Description                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `[id]`                 | Item or group id                                                                                                          |
+| `--label <value>`      | New label                                                                                                                 |
+| `--blurb <value>`      | Group description (groups only)                                                                                           |
+| `--arrange <value>`    | How reflow arranges a group: auto or custom (groups only)                                                                 |
+| `--cover <value>`      | Image asset id for the cover, from orion media insert --json (groups only; empty to clear)                                |
+| `--background <value>` | Color, color token such as card.background, or image asset id (groups only; empty to clear)                               |
+| `--status <value>`     | todo, active, review, blocked, deferred, or done (items only)                                                             |
+| `--repo <value>`       | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL (items only)                        |
+| `--pr <value>`         | Pull request number. Deprecated: use --ref with the pull request URL (items only)                                         |
+| `--who <value>`        | Whose move: you, review, or ci (empty to clear) (items only)                                                              |
+| `--note <value>`       | Free-form note (empty to clear) (items only)                                                                              |
+| `--shape <value>`      | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear) (items only)     |
+| `--color <value>`      | A component's or group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                          |
+| `--kind <value>`       | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work (items only) |
+| `--ref <value>`        | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch                     |
+| `--json`               | Print JSON                                                                                                                |
