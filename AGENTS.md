@@ -106,7 +106,7 @@ The docs site in `docs/` shows Orion's public surfaces. Its CLI and MCP referenc
 
 A fresh worktree has none of the build's dependencies, and the build fails partway without them. Before the first build there, run `npm ci` in `app/` and `desktop/`, and `lute pkg install` in `cli/` for the Luau packages that `prepare-sidecar` requires.
 
-To let someone try a change in the desktop app, run `npm run build` in `desktop/`, then replace the copy they launch, usually `~/Applications/Orion.app`. Every build shares one bundle id, so a fresh build elsewhere goes unseen. Quit Orion, move the installed app to the Trash, `ditto` `desktop/src-tauri/target/release/bundle/macos/Orion.app` into its place, register it with `lsregister -f`, and relaunch. When the icon changed, also `touch` the bundle and run `killall Dock`, which otherwise keeps showing the old icon.
+To let someone try a change in the desktop app, run `npm run build` in `desktop/`, then replace `/Applications/Orion.app`, which installs it for every user on the machine. Every build shares one bundle id, so a fresh build elsewhere goes unseen, and a second copy in `~/Applications` shows up as a duplicate. Quit Orion, move the installed app to the Trash, `ditto` `desktop/src-tauri/target/release/bundle/macos/Orion.app` into its place, register it with `lsregister -f`, and relaunch. When the icon changed, also `touch` the bundle and run `killall Dock`, which otherwise keeps showing the old icon.
 
 ## Code style
 
