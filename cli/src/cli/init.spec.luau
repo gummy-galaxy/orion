@@ -419,9 +419,14 @@ test.case("node find matches labels, refs, and notes, label matches first", func
 	local found = json.asObject(json.deserialize(run({ "node", "find", "release", "--json" })) :: json.Value)
 	assert.eq(found and found.total, 3)
 	local items = if found then json.asArray(found.items) or {} else {}
-	assert.eq(json.asObject(items[1]) and json.asObject(items[1]).id, "ws")
-	assert.eq(json.asObject(items[2]) and json.asObject(items[2]).id, "ci")
-	assert.eq(json.asObject(items[3]) and json.asObject(items[3]).id, "pub")
+	local ids: { string } = {}
+
+	for _, value in items do
+		local item = json.asObject(value)
+		table.insert(ids, if item then tostring(item.id) else "")
+	end
+
+	assert.eq(table.concat(ids, ","), "ws,ci,pub")
 	assert.strContains(run({ "node", "find", "flipbook-labs/flipbook#658" }), "ci")
 	assert.strContains(run({ "node", "find", "release", "--limit", "1" }), "Showing 1 of 3 matches")
 	assert.strContains(run({ "node", "find", "publish" }), "pub")
