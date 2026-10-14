@@ -26,6 +26,8 @@ type Point = { x: number; y: number }
 type Size = { width: number; height: number }
 type Box = Point & Size
 type Edge = [string, string]
+/** A linked block or a lone sibling, placed as one piece, with the outside group it's tied to. */
+type Shape = { ids: string[]; first: AppNode; boxes: Map<string, Box>; size: Size; isLinked: boolean; cluster: string }
 
 /** Space between neighbors inside groups and at the top level. */
 export const GAP = { inner: { x: 56, y: 24 }, top: { x: 120, y: 72 } }
@@ -175,13 +177,31 @@ function frameBlock(boxes: Map<string, Box>, gap: number): { boxes: Map<string, 
   }
 }
 
+/** The value that occurs most often, breaking ties by sort order so the same input always gives the same answer. */
+function mostCommon(values: string[]): string {
+  const counts = new Map<string, number>()
+
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1)
+
+  return [...counts].sort(([a, first], [b, second]) => second - first || a.localeCompare(b))[0]?.[0] ?? ''
+}
+
 /**
  * The default flow. Siblings that link to each other form a block, laid out by ELK's layered algorithm with two
  * limits on width: a run of more than `WRAP` interchangeable siblings is laid out as a grid of its own, and chains
- * longer than `WRAP` steps wrap onto further rows. Every block and every sibling with no links then goes into one
- * grid, in reading order, so unrelated pieces line up in rows and columns.
+ * longer than `WRAP` steps wrap onto further rows.
+ *
+ * Pieces are then sorted into clusters by `outside`, the group outside this one that each sibling links to most, so
+ * work tied to the same place sits together. Clusters stack top to bottom in reading order. In each, the linked blocks
+ * pack into rows of their own, each reading left to right, and the siblings with no links follow in a grid.
  */
-async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: CardSize): Promise<Map<string, Point>> {
+async function flow(
+  children: AppNode[],
+  edges: Edge[],
+  gap: Gap,
+  cardSize: CardSize,
+  outside: Map<string, string> = new Map(),
+): Promise<Map<string, Point>> {
   const ends = new Map(children.map((child) => [child.id, { in: [] as string[], out: [] as string[] }]))
 
   for (const [source, target] of edges) {
@@ -269,12 +289,15 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: Card
   }
 
   const earliest = (ids: string[]) => ids.flatMap((id) => members.get(id)!).reduce((first, node) => (reading(node, first) < 0 ? node : first))
-  const shapes: { ids: string[]; first: AppNode; boxes: Map<string, Box>; size: Size }[] = []
+
+  const shapes: Shape[] = []
+  const clusterOf = (ids: string[]) =>
+    mostCommon(ids.flatMap((id) => members.get(id)!.flatMap((member) => (outside.has(member.id) ? [outside.get(member.id)!] : []))))
 
   for (const part of parts.values()) {
     const ids = [...part.keys()]
 
-    shapes.push({ ids, first: earliest(ids), ...frameBlock(part, gap.layer) })
+    shapes.push({ ids, first: earliest(ids), ...frameBlock(part, gap.layer), isLinked: true, cluster: clusterOf(ids) })
   }
 
   for (const id of members.keys()) {
@@ -282,32 +305,75 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: Card
 
     const size = sizes.get(id)!
 
-    shapes.push({ ids: [id], first: earliest([id]), boxes: new Map([[id, { x: 0, y: 0, ...size }]]), size })
+    shapes.push({
+      ids: [id],
+      first: earliest([id]),
+      boxes: new Map([[id, { x: 0, y: 0, ...size }]]),
+      size,
+      isLinked: false,
+      cluster: clusterOf([id]),
+    })
   }
 
   shapes.sort((a, b) => reading(a.first, b.first))
 
-  const laidOut = grid(
-    shapes.map((shape) => shape.size),
-    Math.ceil(Math.sqrt(shapes.length)),
-    gap.component,
-  )
+  const clusters = new Map<string, Shape[]>()
+
+  for (const shape of shapes) clusters.set(shape.cluster, [...(clusters.get(shape.cluster) ?? []), shape])
+
+  const rowWidth = Math.max(ROW_WIDTH, ...shapes.filter((shape) => shape.isLinked).map((shape) => shape.size.width))
+  const placed = new Map<Shape, Point>()
+  let top = 0
+
+  for (const clusterShapes of clusters.values()) {
+    let x = 0
+    let rowHeight = 0
+
+    // Linked blocks fill rows left to right, starting a new row when the next one would run past the row width.
+    for (const shape of clusterShapes.filter((member) => member.isLinked)) {
+      if (x > 0 && x + shape.size.width > rowWidth) {
+        top += rowHeight + gap.component
+        x = 0
+        rowHeight = 0
+      }
+
+      placed.set(shape, { x, y: top })
+      x += shape.size.width + gap.component
+      rowHeight = Math.max(rowHeight, shape.size.height)
+    }
+
+    if (rowHeight) top += rowHeight + gap.component
+
+    const loose = clusterShapes.filter((member) => !member.isLinked)
+
+    if (loose.length) {
+      const looseGrid = grid(
+        loose.map((shape) => shape.size),
+        Math.ceil(Math.sqrt(loose.length)),
+        gap.component,
+      )
+
+      loose.forEach((shape, i) => placed.set(shape, { x: looseGrid.at[i].x, y: top + looseGrid.at[i].y }))
+      top += looseGrid.height + gap.component
+    }
+
+    // A wider gap between clusters than inside them lets each read as its own patch.
+    top += gap.component
+  }
+
   const positions = new Map<string, Point>()
 
-  shapes.forEach((shape, i) => {
+  for (const [shape, at] of placed) {
     for (const id of shape.ids) {
       const box = shape.boxes.get(id)!
 
       for (const member of members.get(id)!) {
         const offset = offsetOf.get(member.id) ?? { x: 0, y: 0 }
 
-        positions.set(member.id, {
-          x: laidOut.at[i].x + box.x + offset.x,
-          y: laidOut.at[i].y + box.y + offset.y,
-        })
+        positions.set(member.id, { x: at.x + box.x + offset.x, y: at.y + box.y + offset.y })
       }
     }
-  })
+  }
 
   return positions
 }
@@ -366,12 +432,20 @@ export async function reflow(
 
   const seen = new Set<string>()
   const edges: Edge[] = []
+  const reaches = new Map<string, string[]>()
 
   for (const link of links) {
-    if (link.kind !== 'blocks') continue
-
     const source = lift(link.from)
     const target = lift(link.to)
+
+    // A link of any kind to work outside the group pulls the child toward others tied to the same place.
+    if (groupId && (source === null) !== (target === null)) {
+      const [inside, away] = source ? [source, nodeMap.get(link.to)] : [target!, nodeMap.get(link.from)]
+
+      if (away) reaches.set(inside, [...(reaches.get(inside) ?? []), away.parentId ?? ''])
+    }
+
+    if (link.kind !== 'blocks') continue
 
     if (!source || !target || source === target || seen.has(source + '>' + target)) continue
 
@@ -379,7 +453,8 @@ export async function reflow(
     edges.push([source, target])
   }
 
-  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize)
+  const outside = new Map([...reaches].map(([id, places]) => [id, mostCommon(places)]))
+  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize, outside)
   const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
 
   return normalize(

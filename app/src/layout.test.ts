@@ -140,7 +140,7 @@ describe('reflow', () => {
     expect(inReadingOrder).toEqual([...cards].reverse())
   })
 
-  it('places a linked chain as one block beside unlinked cards', async () => {
+  it('places a linked chain in a row of its own above unlinked cards', async () => {
     const chain = ids(3, 'c')
     const loose = ids(5, 'u')
     const positions = await placed(
@@ -149,6 +149,41 @@ describe('reflow', () => {
     )
 
     expect(distinct(chain.map((id) => positions.get(id)!.y))).toBe(1)
+    expect(Math.max(...chain.map((id) => positions.get(id)!.y))).toBeLessThan(Math.min(...loose.map((id) => positions.get(id)!.y)))
+    expect(overlaps(positions)).toBe(false)
+  })
+
+  it('clusters cards by the outside group they link to', async () => {
+    const sources = ids(3, 's')
+    const agents = ids(3, 'a')
+    const nodes = [
+      group(),
+      cluster('sources', undefined),
+      cluster('agents', undefined),
+      task('far-source', 'sources'),
+      task('far-agent', 'agents'),
+      // Interleaved in reading order, so only the outside links can bring each set together.
+      ...sources.flatMap((id, i) => [task(id, 'g', i * 600), task(agents[i], 'g', i * 600 + 300)]),
+    ]
+    const links = [...sources.map((id) => blocks('far-source', id)), ...agents.map((id) => blocks(id, 'far-agent'))]
+    const positions = await placed(nodes, links)
+    const bottom = (cards: string[]) => Math.max(...cards.map((id) => positions.get(id)!.y))
+    const top = (cards: string[]) => Math.min(...cards.map((id) => positions.get(id)!.y))
+
+    expect(bottom(sources) < top(agents) || bottom(agents) < top(sources)).toBe(true)
+    expect(overlaps(positions)).toBe(false)
+  })
+
+  it('packs short linked chains side by side in rows', async () => {
+    const pairs = ids(4, 'p')
+    const nodes = [group(), ...pairs.flatMap((id) => [task(id + 'a'), task(id + 'b')])]
+    const positions = await placed(
+      nodes,
+      pairs.map((id) => blocks(id + 'a', id + 'b')),
+    )
+    const rows = distinct([...positions.values()].map((position) => position.y))
+
+    expect(rows).toBeLessThan(pairs.length)
     expect(overlaps(positions)).toBe(false)
   })
 

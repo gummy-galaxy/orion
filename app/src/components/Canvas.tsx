@@ -199,6 +199,8 @@ const QUIET_ZOOM = 0.6
 const GHOST_WIDTH = 200
 const GHOST_HEIGHT = 62
 const GHOST_GAP = 90
+/** Space between ghosts stacked on one side of a group. */
+const GHOST_SPACING = 18
 /** How much of the outside connections shows when a group opens. */
 const GHOST_PEEK = 0.4
 const FIT_VERTICAL_MARGIN = 90
@@ -1215,42 +1217,57 @@ export function Canvas() {
     return { rep: representative, hidden }
   }, [nodes, map, collapsed, inView])
 
-  // With a group open, work outside it that links in or out is drawn along its sides.
+  // With a group open, work outside it that links in or out is drawn along its sides, level with the cards it links to.
   const ghosts = useMemo(() => {
     const ghostNodes: GhostNode[] = []
     const rootNode = root ? map.get(root) : undefined
 
     if (!rootNode) return ghostNodes
 
-    const incoming: string[] = []
-    const outgoing: string[] = []
+    const incoming = new Map<string, string[]>()
+    const outgoing = new Map<string, string[]>()
 
     for (const link of links) {
       const source = inView(link.from)
       const target = inView(link.to)
 
-      if (source && !target && !outgoing.includes(link.to)) outgoing.push(link.to)
+      if (source && !target) outgoing.set(link.to, [...(outgoing.get(link.to) ?? []), link.from])
 
-      if (!source && target && !incoming.includes(link.from)) incoming.push(link.from)
+      if (!source && target) incoming.set(link.from, [...(incoming.get(link.from) ?? []), link.to])
     }
 
     const position = absolutePosition(rootNode, map)
     const size = sizeOf(rootNode, cardSize)
-    const place = (ids: string[], side: 'in' | 'out') =>
-      ids.forEach((id, i) => {
-        const node = map.get(id)
 
-        if (!node || !isTask(node)) return
+    const middleOf = (id: string) => {
+      const shown = map.get(view.rep(id) ?? id)
 
+      return shown ? absolutePosition(shown, map).y + sizeOf(shown, cardSize).height / 2 : position.y + size.height / 2
+    }
+
+    const place = (ends: Map<string, string[]>, side: 'in' | 'out') => {
+      const wanted = [...ends]
+        .flatMap(([id, inside]) => {
+          const node = map.get(id)
+
+          if (!node || !isTask(node)) return []
+
+          const middles = inside.map(middleOf)
+
+          return [{ id, node, top: middles.reduce((sum, middle) => sum + middle, 0) / middles.length - GHOST_HEIGHT / 2 }]
+        })
+        .sort((a, b) => a.top - b.top)
+      let below = -Infinity
+
+      for (const { id, node, top } of wanted) {
+        const y = Math.max(top, below)
         const parent = node.parentId ? map.get(node.parentId) : undefined
 
+        below = y + GHOST_HEIGHT + GHOST_SPACING
         ghostNodes.push({
           id: `ghost:${side}:${id}`,
           type: 'ghost',
-          position: {
-            x: side === 'in' ? position.x - GHOST_WIDTH - GHOST_GAP : position.x + size.width + GHOST_GAP,
-            y: position.y + size.height / 2 + (i - (ids.length - 1) / 2) * (GHOST_HEIGHT + 18) - GHOST_HEIGHT / 2,
-          },
+          position: { x: side === 'in' ? position.x - GHOST_WIDTH - GHOST_GAP : position.x + size.width + GHOST_GAP, y },
           width: GHOST_WIDTH,
           height: GHOST_HEIGHT,
           // Ghosts are rebuilt every render, so declare their handles instead of waiting on a measure.
@@ -1272,13 +1289,14 @@ export function Canvas() {
             side,
           },
         })
-      })
+      }
+    }
 
     place(incoming, 'in')
     place(outgoing, 'out')
 
     return ghostNodes
-  }, [root, map, links, inView, work, cardSize])
+  }, [root, map, links, inView, view, work, cardSize])
 
   // React Flow redraws a node whenever its object changes, so unchanged nodes keep last render's object.
   const [shownNodes] = useState(() => new WeakMap<AppNode, AppNode>())
