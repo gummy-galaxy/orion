@@ -153,6 +153,14 @@ describe('reflow', () => {
     expect(overlaps(positions)).toBe(false)
   })
 
+  it('keeps a cluster of a card or two with the rest', async () => {
+    const nodes = [group(), cluster('far', undefined), task('far-card', 'far'), ...ids(4).map((id, i) => task(id, 'g', i * 300))]
+    const positions = await placed(nodes, [blocks('far-card', 't03')])
+
+    expect(distinct([...positions.values()].map((position) => position.y))).toBe(2)
+    expect(overlaps(positions)).toBe(false)
+  })
+
   it('clusters cards by the outside group they link to', async () => {
     const sources = ids(3, 's')
     const agents = ids(3, 'a')
@@ -167,10 +175,18 @@ describe('reflow', () => {
     ]
     const links = [...sources.map((id) => blocks('far-source', id)), ...agents.map((id) => blocks(id, 'far-agent'))]
     const positions = await placed(nodes, links)
-    const bottom = (cards: string[]) => Math.max(...cards.map((id) => positions.get(id)!.y))
-    const top = (cards: string[]) => Math.min(...cards.map((id) => positions.get(id)!.y))
 
-    expect(bottom(sources) < top(agents) || bottom(agents) < top(sources)).toBe(true)
+    const box = (cards: string[]) => {
+      const points = cards.map((id) => positions.get(id)!)
+      const xs = points.map((point) => point.x)
+      const ys = points.map((point) => point.y)
+
+      return { left: Math.min(...xs), right: Math.max(...xs) + TASK_WIDTH, top: Math.min(...ys), bottom: Math.max(...ys) + TASK_HEIGHT }
+    }
+
+    const [first, second] = [box(sources), box(agents)]
+
+    expect(first.right <= second.left || second.right <= first.left || first.bottom <= second.top || second.bottom <= first.top).toBe(true)
     expect(overlaps(positions)).toBe(false)
   })
 

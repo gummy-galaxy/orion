@@ -29,6 +29,9 @@ type Edge = [string, string]
 /** A linked block or a lone sibling, placed as one piece, with the outside group it's tied to. */
 type Shape = { ids: string[]; first: AppNode; boxes: Map<string, Box>; size: Size; isLinked: boolean; cluster: string }
 
+/** A cluster of work tied to one outside group needs at least this many cards to sit apart from the rest. */
+const CLUSTER_MINIMUM = 3
+
 /** Space between neighbors inside groups and at the top level. */
 export const GAP = { inner: { x: 56, y: 24 }, top: { x: 120, y: 72 } }
 
@@ -317,19 +320,28 @@ async function flow(
 
   shapes.sort((a, b) => reading(a.first, b.first))
 
-  const clusters = new Map<string, Shape[]>()
+  const group = (list: Shape[]) => {
+    const byCluster = new Map<string, Shape[]>()
 
-  for (const shape of shapes) clusters.set(shape.cluster, [...(clusters.get(shape.cluster) ?? []), shape])
+    for (const shape of list) byCluster.set(shape.cluster, [...(byCluster.get(shape.cluster) ?? []), shape])
+
+    return byCluster
+  }
+
+  const cardCount = (list: Shape[]) => list.reduce((sum, shape) => sum + shape.ids.reduce((count, id) => count + members.get(id)!.length, 0), 0)
+
+  // A tie shared by only a card or two doesn't read as a patch of its own, so those cards join the rest.
+  for (const [cluster, list] of group(shapes)) if (cluster && cardCount(list) < CLUSTER_MINIMUM) for (const shape of list) shape.cluster = ''
 
   const rowWidth = Math.max(ROW_WIDTH, ...shapes.filter((shape) => shape.isLinked).map((shape) => shape.size.width))
-  const placed = new Map<Shape, Point>()
-  let top = 0
 
-  for (const clusterShapes of clusters.values()) {
+  // Lays out one cluster as a block: its linked blocks fill rows left to right, and its loose siblings follow in a grid.
+  const arrangeCluster = (clusterShapes: Shape[]): { at: Map<Shape, Point>; size: Size } => {
+    const at = new Map<Shape, Point>()
     let x = 0
+    let top = 0
     let rowHeight = 0
 
-    // Linked blocks fill rows left to right, starting a new row when the next one would run past the row width.
     for (const shape of clusterShapes.filter((member) => member.isLinked)) {
       if (x > 0 && x + shape.size.width > rowWidth) {
         top += rowHeight + gap.component
@@ -337,7 +349,7 @@ async function flow(
         rowHeight = 0
       }
 
-      placed.set(shape, { x, y: top })
+      at.set(shape, { x, y: top })
       x += shape.size.width + gap.component
       rowHeight = Math.max(rowHeight, shape.size.height)
     }
@@ -345,20 +357,37 @@ async function flow(
     if (rowHeight) top += rowHeight + gap.component
 
     const loose = clusterShapes.filter((member) => !member.isLinked)
+    const looseGrid = grid(
+      loose.map((shape) => shape.size),
+      Math.ceil(Math.sqrt(loose.length)),
+      gap.component,
+    )
 
-    if (loose.length) {
-      const looseGrid = grid(
-        loose.map((shape) => shape.size),
-        Math.ceil(Math.sqrt(loose.length)),
-        gap.component,
-      )
+    loose.forEach((shape, i) => at.set(shape, { x: looseGrid.at[i].x, y: top + looseGrid.at[i].y }))
 
-      loose.forEach((shape, i) => placed.set(shape, { x: looseGrid.at[i].x, y: top + looseGrid.at[i].y }))
-      top += looseGrid.height + gap.component
+    const frame = bounds([...at].map(([shape, point]) => ({ ...point, ...shape.size })))
+
+    return { at, size: { width: frame.x + frame.width, height: frame.y + frame.height } }
+  }
+
+  // Clusters sit side by side and wrap at the row width, with a wider gap between them than inside them.
+  const clusterGap = gap.component * 2
+  const placed = new Map<Shape, Point>()
+  let x = 0
+  let top = 0
+  let rowHeight = 0
+
+  for (const block of [...group(shapes).values()].map(arrangeCluster)) {
+    if (x > 0 && x + block.size.width > rowWidth) {
+      top += rowHeight + clusterGap
+      x = 0
+      rowHeight = 0
     }
 
-    // A wider gap between clusters than inside them lets each read as its own patch.
-    top += gap.component
+    for (const [shape, point] of block.at) placed.set(shape, { x: x + point.x, y: top + point.y })
+
+    x += block.size.width + clusterGap
+    rowHeight = Math.max(rowHeight, block.size.height)
   }
 
   const positions = new Map<string, Point>()
