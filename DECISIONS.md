@@ -331,3 +331,11 @@ Canvas physics builds on an established library rather than a homegrown engine. 
 **Why:** bespoke physics is costly to keep up long term, and objects passing through each other or wobbling stacks are undesirable everywhere, not just in pinball.
 
 2026-10-11 · [#41](https://github.com/vocksel/orion/issues/41)
+
+### The desktop app installs to `/Applications`
+
+Orion installs to `/Applications/Orion.app` so every user on the machine gets it, and local builds replace that copy rather than one in `~/Applications`. The `orion` CLI link and MCP setup point there too.
+
+**Why:** every build shares one bundle id, so a second copy in `~/Applications` shows up as a duplicate Orion and leaves the CLI and the app running different builds.
+
+2026-10-13
