@@ -315,6 +315,18 @@ test.case("sync attaches a new pull request to the card its branch was recorded 
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
 
+		-- The branch match is fetched in full before it's attached.
+		local alias = argv[5]:match(
+			'(p%d+): repository%(owner: "flipbook%-labs", name: "flipbook"%) { pullRequest%(number: 670%)'
+		)
+
+		if alias then
+			return testing.result(
+				true,
+				`\{"data":\{"{alias}":\{"pullRequest":\{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a","author":\{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z"}}}}`
+			)
+		end
+
 		return testing.result(true, [[{"data":{"p1":{"pullRequest":null}}}]])
 	end)
 

@@ -901,19 +901,18 @@ local function execute(args: { string }, options: Dependencies?)
 		local dryRun = parser:has("dry-run")
 		local report: RefreshReport
 
+		local snapshot = store.load(dir)
+		local apply = assert(getAdapter("github").refresh)(
+			snapshot,
+			deps.runner,
+			{ discover = parser:has("discover"), now = deps.now() }
+		)
+
 		if dryRun then
-			report = assert(getAdapter("github").refresh)(
-				store.load(dir),
-				deps.runner,
-				{ discover = parser:has("discover"), now = deps.now() }
-			)
+			report = apply(snapshot)
 		else
 			store.transaction(dir, function(doc)
-				report = assert(getAdapter("github").refresh)(
-					doc,
-					deps.runner,
-					{ discover = parser:has("discover"), now = deps.now() }
-				)
+				report = apply(doc)
 			end)
 		end
 
