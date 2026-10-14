@@ -59,7 +59,7 @@ function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 	return {
 		version = 2,
 		revision = 0,
-		settings = { sources = {} },
+		settings = { sources = {}, checkSnoozes = {} },
 		nodes = nodes,
 		links = output,
 	}

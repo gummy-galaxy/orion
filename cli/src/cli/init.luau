@@ -6,6 +6,7 @@ local backups = require("@root/cli/backups")
 local batchEdit = require("@root/cli/batchEdit")
 local check = require("@root/cli/check")
 local checkStyleAssets = require("@root/style/checkStyleAssets")
+local ci = require("@root/cli/ci")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
@@ -59,6 +60,7 @@ local SYNC_DEPRECATION = "`orion sync` is deprecated and will be removed. `orion
 
 local COMMANDS: { [string]: Command } = {
 	backups = backups,
+	ci = ci,
 	focus = focus,
 	mcp = mcp,
 	media = media,
@@ -310,6 +312,7 @@ local function createParsers(): Parsers
 	registeredCommand("suggest")
 	registeredCommand("suggestions")
 	registeredCommand("check")
+	registeredCommand("ci")
 	registeredCommand("tidy")
 
 	command("path")

@@ -1,5 +1,12 @@
 export type CheckCounts = { total: number, finished: number, failed: number }
 
+-- One CI job on a pull request's head commit, by the name GitHub shows for it. `required` is whether the base branch's
+-- rules require it to pass before merging.
+export type CheckRun = { name: string, state: "failed" | "passed" | "pending" | "other", required: boolean }
+
+-- A job that failed. An optional one failed where other jobs are required, so it doesn't count against the pull request.
+export type FailedCheck = { name: string, optional: boolean }
+
 export type PullState = {
 	owner: string,
 	name: string,
@@ -20,6 +27,10 @@ export type PullState = {
 	checks: string?,
 	checkProgress: string?,
 	checkCounts: CheckCounts?,
+	-- Listed only for pull requests with a failing job, since finding them takes a second query.
+	failedChecks: { FailedCheck }?,
+	-- The jobs that passed, known for the same pull requests as failedChecks.
+	passedChecks: { string }?,
 	mergeable: string?,
 	mergeState: string?,
 	head: string?,

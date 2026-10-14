@@ -2,6 +2,7 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 
 local canvasStyle = require("@root/server/routes/canvasStyle")
+local checkSnoozes = require("@root/server/routes/checkSnoozes")
 local editor = require("@root/server/routes/editor")
 local focus = require("@root/server/routes/focus")
 local imageRoutes = require("@root/server/routes/images")
@@ -60,6 +61,9 @@ function routes.create(
 		end
 		if route == "/api/orion/style" then
 			return canvasStyle.handle(request, root, active)
+		end
+		if route == "/api/orion/check-snoozes" then
+			return checkSnoozes.handle(request, root, active)
 		end
 		if route == "/api/focus" then
 			return focus.handle(request, root, active)

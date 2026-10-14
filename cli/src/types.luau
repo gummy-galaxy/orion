@@ -52,11 +52,15 @@ export type Source = {
 	browse: string?,
 }
 
+-- A CI job whose failures cards leave out, across every card in its repository. `untilTime` ends it at a UTC time;
+-- without one it lasts on each card until the job next passes there, and `passed` lists the cards where it has.
+export type CheckSnooze = { repo: string, name: string, untilTime: string?, at: string, passed: { string } }
+
 export type Doc = {
 	version: number,
 	revision: number,
 	-- cover and background style the canvas itself: an image asset id, and a color, token name, or asset id.
-	settings: { sources: { Source }, cover: string?, background: string? },
+	settings: { sources: { Source }, cover: string?, background: string?, checkSnoozes: { CheckSnooze } },
 	nodes: { Item },
 	links: { Link },
 	github: json.Object?,

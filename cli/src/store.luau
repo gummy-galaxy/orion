@@ -11,6 +11,7 @@ local graph = require("@root/graph")
 local migrateItem = require("@root/refs/migrateItem")
 local types = require("@root/types")
 
+type CheckSnooze = types.CheckSnooze
 type Doc = types.Doc
 type Focus = types.Focus
 type Item = types.Item
@@ -350,6 +351,29 @@ function store.decode(text: string): Doc
 	local sources: { Source } = {}
 	local cover = asString(settings.cover)
 	local background = asString(settings.background)
+	local checkSnoozes: { CheckSnooze } = {}
+
+	for _, raw in json.asArray(settings.checkSnoozes) or {} do
+		local snooze = json.asObject(raw)
+		local repo = if snooze then asString(snooze.repo) else nil
+		local name = if snooze then asString(snooze.name) else nil
+		local at = if snooze then asString(snooze.at) else nil
+
+		if snooze and repo and name and at then
+			local passed: { string } = {}
+
+			for _, id in json.asArray(snooze.passed) or {} do
+				if type(id) == "string" then
+					table.insert(passed, id)
+				end
+			end
+
+			table.insert(
+				checkSnoozes,
+				{ repo = repo, name = name, untilTime = asString(snooze["until"]), at = at, passed = passed }
+			)
+		end
+	end
 
 	for _, raw in json.asArray(settings.sources) or {} do
 		local source = json.asObject(raw)
@@ -422,7 +446,7 @@ function store.decode(text: string): Doc
 	return {
 		version = 2,
 		revision = asNumber(root.revision) or 0,
-		settings = { sources = sources, cover = cover, background = background },
+		settings = { sources = sources, cover = cover, background = background, checkSnoozes = checkSnoozes },
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
@@ -490,6 +514,16 @@ function store.toObject(doc: Doc): json.Object
 	settings.sources = sources
 	settings.cover = doc.settings.cover
 	settings.background = doc.settings.background
+	local checkSnoozes: json.Array = {}
+
+	for _, snooze in doc.settings.checkSnoozes do
+		local value = json.object({ repo = snooze.repo, name = snooze.name, at = snooze.at })
+		value["until"] = snooze.untilTime
+		value.passed = getStringArray(snooze.passed)
+		table.insert(checkSnoozes, value)
+	end
+
+	settings.checkSnoozes = if #checkSnoozes > 0 then checkSnoozes else nil
 	root.settings = settings
 	root.nodes = nodes
 	root.links = links
@@ -583,7 +617,7 @@ function store.createEmptyDoc(): Doc
 	return {
 		version = 2,
 		revision = 0,
-		settings = { sources = {} },
+		settings = { sources = {}, checkSnoozes = {} },
 		nodes = {},
 		links = {},
 	}
