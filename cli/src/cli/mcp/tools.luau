@@ -35,6 +35,9 @@ local DRY_RUN = "Preview the changes and the current revision without writing."
 local IF_REVISION =
 	"Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written."
 local WHERE = 'Select targets with an expression instead of ids, such as label ~ "text".'
+local NOTE_STYLE =
+	"Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card."
+local NOTE_DESCRIPTION = "Replaces the whole note. " .. NOTE_STYLE
 
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
@@ -198,7 +201,7 @@ local tools: { Tool } = {
 				description = "Whose move: you, review, or ci. Empty clears it.",
 				at = "option",
 			},
-			{ name = "note", kind = "string", description = "Free-form note. Empty clears it.", at = "option" },
+			{ name = "note", kind = "string", description = NOTE_DESCRIPTION .. " Empty clears it.", at = "option" },
 			{
 				name = "kind",
 				kind = "enum",
@@ -220,7 +223,7 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_add_note",
-		description = "Add a canvas note, optionally inside a group or a dependency link.",
+		description = "Add a canvas note, optionally inside a group or a dependency link. " .. NOTE_STYLE,
 		command = { "note", "add" },
 		json = true,
 		fields = {

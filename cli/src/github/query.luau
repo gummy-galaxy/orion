@@ -3,7 +3,8 @@ local types = require("@root/types")
 
 type CommandRunner = types.CommandRunner
 
--- gh can exit non-zero for a partially resolved GraphQL query while retaining usable data.
+-- gh can exit non-zero for a partially resolved GraphQL query while retaining usable data. A query that returns no data
+-- at all, as one that runs past GitHub's time limit does, raises with GitHub's first error.
 local function query(run: CommandRunner, source: string, host: string?): json.Object?
 	local argv = { "gh", "api" }
 
@@ -29,7 +30,15 @@ local function query(run: CommandRunner, source: string, host: string?): json.Ob
 		return nil
 	end
 
-	return json.asObject(body.data)
+	local data = json.asObject(body.data)
+	local errors = json.asArray(body.errors)
+	local first = if errors then json.asObject(errors[1]) else nil
+
+	if data == nil and first and type(first.message) == "string" then
+		error(`gh api graphql failed: {first.message}`, 0)
+	end
+
+	return data
 end
 
 return query
