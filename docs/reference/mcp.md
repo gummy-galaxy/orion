@@ -48,21 +48,21 @@ Change fields on an existing Orion item or group.
 
 Runs `orion set`.
 
-| Argument    | Type                                                    | Description                                                                                               |
-| ----------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `id`        | id                                                      | **Required.**                                                                                             |
-| `workspace` | workspace                                               | Workspace name. Omit to use the workspace selected in Orion.                                              |
-| `label`     | string                                                  |                                                                                                           |
-| `status`    | todo \| active \| review \| blocked \| deferred \| done |                                                                                                           |
-| `who`       | you \| review \| ci \|                                  | Whose move: you, review, or ci. Empty clears it.                                                          |
-| `note`      | string                                                  |                                                                                                           |
-| `repo`      | string                                                  | Deprecated: with pr, use ref with the pull request URL instead.                                           |
-| `pr`        | int                                                     | Deprecated: use ref with the pull request URL instead.                                                    |
-| `ref`       | string                                                  | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch. |
+| Argument    | Type                                                    | Description                                                                                                                                                                                                                   |
+| ----------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | id                                                      | **Required.**                                                                                                                                                                                                                 |
+| `workspace` | workspace                                               | Workspace name. Omit to use the workspace selected in Orion.                                                                                                                                                                  |
+| `label`     | string                                                  |                                                                                                                                                                                                                               |
+| `status`    | todo \| active \| review \| blocked \| deferred \| done |                                                                                                                                                                                                                               |
+| `who`       | you \| review \| ci \|                                  | Whose move: you, review, or ci. Empty clears it.                                                                                                                                                                              |
+| `note`      | string                                                  | Replaces the whole note. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
+| `repo`      | string                                                  | Deprecated: with pr, use ref with the pull request URL instead.                                                                                                                                                               |
+| `pr`        | int                                                     | Deprecated: use ref with the pull request URL instead.                                                                                                                                                                        |
+| `ref`       | string                                                  | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                                                                                                     |
 
 ## orion_add_note
 
-Add a canvas note, optionally inside a group or a dependency link.
+Add a canvas note, optionally inside a group or a dependency link. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card.
 
 Runs `orion note`.
 
