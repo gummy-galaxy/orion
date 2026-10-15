@@ -94,8 +94,8 @@ function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 	}
 end
 
-function testing.result(succeeded: boolean, stdout: string): types.CommandResult
-	return { ok = succeeded, exitCode = if succeeded then 0 else 1, stdout = stdout, stderr = "" }
+function testing.result(succeeded: boolean, stdout: string, stderr: string?): types.CommandResult
+	return { ok = succeeded, exitCode = if succeeded then 0 else 1, stdout = stdout, stderr = stderr or "" }
 end
 
 function testing.run(

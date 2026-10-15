@@ -5,7 +5,7 @@ local getRefFor = require("@root/github/getRefFor")
 local getString = require("@root/github/getString")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
-local isListed = require("@root/github/isListed")
+local isInSources = require("@root/github/isInSources")
 local json = require("@std/json")
 local match = require("@root/match")
 local setDesired = require("@root/github/setDesired")
@@ -134,29 +134,17 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	end
 end
 
--- Your own open pull requests only belong on a canvas whose GitHub sources cover their repository.
--- A canvas without GitHub sources takes them all.
-local function isInSources(doc: Doc, pull: PullState): boolean
-	local hasSources = false
-	for _, source in doc.settings.sources do
-		if source.kind ~= "github" or (source.host or "github.com") ~= "github.com" then
-			continue
-		end
-		hasSources = true
-		if
-			isListed(source.owners, pull.owner)
-			and (not source.include or isListed(source.include, pull.name))
-			and not isListed(source.exclude, pull.name)
-		then
-			return true
-		end
-	end
-	return not hasSources
-end
-
 local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
-	local report: Report =
-		{ changes = {}, missing = {}, added = {}, attached = {}, linked = {}, unlinked = {}, checked = 0 }
+	local report: Report = {
+		changes = {},
+		missing = {},
+		added = {},
+		attached = {},
+		linked = {},
+		unlinked = {},
+		checked = 0,
+		failures = {},
+	}
 	local onCanvas: { [string]: boolean } = {}
 
 	for _, item in doc.nodes do
@@ -170,8 +158,12 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		onCanvas[key] = true
 		local pull = fetched.pulls[key]
 
+		-- A card that wasn't fetched keeps its state: it's merged, its batch failed, or it was added after the fetch.
 		if not pull then
-			table.insert(report.missing, item.id)
+			if fetched.checked[key] then
+				table.insert(report.missing, item.id)
+			end
+
 			continue
 		end
 
@@ -188,26 +180,28 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			continue
 		end
 
+		-- Only a pull request with its full state, fetched for this, becomes a card. Otherwise it stays unplaced this run.
 		local repo = `{pull.owner}/{pull.name}`
 		local branchCards = findBranchCards(doc, pull)
+		local full = fetched.pulls[key]
 
-		if #branchCards == 1 then
-			attachByBranch(branchCards[1], pull, fetched, checkedAt, report)
+		if full and #branchCards == 1 then
+			attachByBranch(branchCards[1], full, fetched, checkedAt, report)
 			onCanvas[key] = true
 			continue
 		end
 
-		if fetched.discover then
+		if full and fetched.discover then
 			ensureGroup(doc, INBOX_ID, "Inbox", "Open pull requests found on GitHub that aren't placed yet.")
-			local status, who = getDesired(pull, "todo", nil, fetched.viewer)
-			local item = graph.addItem(doc, pull.title, {
+			local status, who = getDesired(full, "todo", nil, fetched.viewer)
+			local item = graph.addItem(doc, full.title, {
 				group = INBOX_ID,
 				repo = repo,
-				pr = pull.number,
+				pr = full.number,
 				status = status,
 				who = who,
 			})
-			setPullRef(item, pull, "github", fetched.viewer, checkedAt)
+			setPullRef(item, full, "github", fetched.viewer, checkedAt)
 			onCanvas[key] = true
 			table.insert(report.added, item.id)
 		else
@@ -242,6 +236,7 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 	end
 
 	syncStackLinks(doc, fetched, report)
+	table.move(fetched.failures, 1, #fetched.failures, 1, report.failures)
 	table.sort(unplaced, function(a, b)
 		local left, right = json.asObject(a), json.asObject(b)
 		local leftTime: string = if left then getString(left.updatedAt) or "" else ""
