@@ -1,6 +1,7 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
+local process = require("@std/process")
 local test = require("@std/test")
 
 local findRef = require("@root/refs/findRef")
@@ -183,6 +184,46 @@ test.case("transaction releases the lock when the change fails", function(assert
 
 	assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
 	assert.eq(store.load(dir).revision, 0)
+end)
+
+local function leaveLock(dir: string, owner: string?, isOld: boolean)
+	local lockPath = path.join(dir, "orion.lock")
+	fs.createDirectory(lockPath, { makeParents = true })
+
+	if owner then
+		fs.writeStringToFile(path.join(lockPath, "owner"), owner)
+	end
+
+	if isOld then
+		assert(process.run({ "touch", "-t", "202001010000", tostring(lockPath) }).ok, "could not age the lock")
+	end
+end
+
+test.case("transaction reclaims a lock whose owner stamp is stale", function(assert)
+	local dir = testing.directory("stale-owner")
+	store.write(dir, testing.createDoc({}))
+	leaveLock(dir, `1 {os.time() - 60}`, false)
+
+	assert.eq(store.transaction(dir, function() end).revision, 1)
+	assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
+end)
+
+test.case("transaction reclaims an old lock left without an owner", function(assert)
+	local dir = testing.directory("ownerless")
+	store.write(dir, testing.createDoc({}))
+	leaveLock(dir, nil, true)
+
+	assert.eq(store.transaction(dir, function() end).revision, 1)
+	assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
+end)
+
+test.case("transaction reclaims an old lock with an unreadable owner stamp", function(assert)
+	local dir = testing.directory("blank-owner")
+	store.write(dir, testing.createDoc({}))
+	leaveLock(dir, "", true)
+
+	assert.eq(store.transaction(dir, function() end).revision, 1)
+	assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
 end)
 
 test.case("backup names use the replaced revision and UTC second", function(assert)

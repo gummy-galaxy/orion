@@ -600,6 +600,21 @@ local function release(lockPath: string)
 	end)
 end
 
+-- A writer that crashes right after creating the lock leaves no readable owner
+-- stamp, so the lock directory's own age stands in for it.
+local function getLockStamp(lockPath: string, ownerPath: path.Path): number?
+	local succeeded, owner = pcall(fs.readFileToString, ownerPath)
+	local stamp = if succeeded then tonumber(owner:match("%s(%d+)")) else nil
+
+	if stamp then
+		return stamp
+	end
+
+	local found, metadata = pcall(fs.metadata, lockPath)
+
+	return if found then metadata.modified:toSeconds() else nil
+end
+
 local function acquire(dir: string): string
 	local lockPath = tostring(path.join(dir, fileNames.lock))
 	local ownerPath = path.join(lockPath, "owner")
@@ -612,8 +627,7 @@ local function acquire(dir: string): string
 		end
 
 		-- Reclaim a lock left behind by a writer that crashed.
-		local succeeded, owner = pcall(fs.readFileToString, ownerPath)
-		local stamp = if succeeded then tonumber(owner:match("%s(%d+)")) else nil
+		local stamp = getLockStamp(lockPath, ownerPath)
 
 		if stamp and os.time() - stamp > STALE_LOCK_SECONDS then
 			release(lockPath)
