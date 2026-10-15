@@ -13,10 +13,9 @@ export const skinStore = getDefaultStore()
 /** The workspace the canvas shows, which names where its cover and background images are kept. */
 export const workspaceAtom = atom('default')
 export const linksAtom = atom<Link[]>([])
-export const hoverAtom = atom<string | null>(null)
 /** A double-clicked card keeps its trace while you pan around; any click lets it go. */
 export const pinnedAtom = atom<string | null>(null)
-/** While a card is in focus, nothing traces from the cursor. */
+/** While a card is in focus, nothing traces. */
 export const focusedAtom = atom(false)
 /** The group dragged work would join if it were dropped now. */
 export const dropTargetAtom = atom<string | null>(null)
@@ -26,7 +25,7 @@ export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>
 export const workAtom = atom((get) => deriveWork(get(nodesAtom), get(linksAtom)))
 
 export const traceAtom = atom((get) => {
-  const from = get(focusedAtom) ? null : (get(pinnedAtom) ?? get(hoverAtom))
+  const from = get(focusedAtom) ? null : get(pinnedAtom)
   const nodes = get(nodesAtom)
   const tracedNode = from ? nodes.find((node) => node.id === from) : undefined
 

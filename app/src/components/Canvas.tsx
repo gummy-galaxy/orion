@@ -131,7 +131,6 @@ import {
   celebratingAtom,
   collapsedAtom,
   focusedAtom,
-  hoverAtom,
   inspectingAtom,
   linksAtom,
   nodesAtom,
@@ -336,7 +335,6 @@ export function Canvas() {
   const [root, setRoot] = useState<string | null>(null)
   // How many levels of nesting show below the open group; zoom no longer changes it.
   const [detail, setDetail] = useState<Detail>(DEFAULT_DETAIL)
-  const [hover, setHover] = useAtom(hoverAtom)
   const [pinned, setPinned] = useAtom(pinnedAtom)
   // A double-clicked card fills the view with what it waits on and leads to beside it.
   const [focusPick, setFocus] = useState<string | null>(null)
@@ -897,7 +895,6 @@ export function Canvas() {
       focusEntry.current = null
       updateTrail(emptyTrail())
       setPinned(null)
-      setHover(null)
       setEditing(null)
       setMergeNotice(null)
 
@@ -912,7 +909,7 @@ export function Canvas() {
         await loadWorkspace(name, epoch, true)
       })
     },
-    [loadWorkspace, updateTrail, setHover, setPinned],
+    [loadWorkspace, updateTrail, setPinned],
   )
 
   useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
@@ -1102,7 +1099,6 @@ export function Canvas() {
       const target = node.parentId ?? null
 
       remember()
-      setHover(null)
 
       if (target === root) {
         focusNode(id)
@@ -1111,7 +1107,7 @@ export function Canvas() {
         openRoot(target)
       }
     },
-    [root, focusNode, openRoot, remember, setHover],
+    [root, focusNode, openRoot, remember],
   )
 
   /** Moves nodes to new positions over a few frames so edges follow along. */
@@ -1309,7 +1305,7 @@ export function Canvas() {
     .map((node) => node.id)
     .join(',')
   /** Related links never block, so they stay faint except around the cards being looked at. */
-  const relatedFocus = useMemo(() => new Set([pinned, hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
+  const relatedFocus = useMemo(() => new Set([pinned, ...selectedKey.split(',')].filter(Boolean)), [pinned, selectedKey])
 
   /** Where a link is drawn: the nodes standing in for its ends, ghosts for ends outside the open group, or null when it isn't drawn. */
   const drawnEnds = useCallback(
@@ -1690,7 +1686,6 @@ export function Canvas() {
         focusEntry.current.moved = true
       }
 
-      setHover(null)
       setPinned(null)
       setNodes((currentNodes) =>
         currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
@@ -1699,7 +1694,7 @@ export function Canvas() {
       setFocus(id)
       void reactFlow.setViewport(focusViewport(node, nodeMap, box, cardSize), focusMove())
     },
-    [reactFlow, focus, inView, remember, setHover, setNodes, setPinned, cardSize, clearStickerPicks],
+    [reactFlow, focus, inView, remember, setNodes, setPinned, cardSize, clearStickerPicks],
   )
 
   const exitFocus = useCallback(() => {
@@ -1732,7 +1727,6 @@ export function Canvas() {
       const picked = new Set(place.selected)
 
       pendingFocus.current = null
-      setHover(null)
       setPinned(null)
 
       if (place.root !== root) {
@@ -1747,7 +1741,7 @@ export function Canvas() {
       )
       void reactFlow.setViewport(place.viewport, place.focus || focus ? focusMove() : { duration: glide(450) })
     },
-    [root, focus, reactFlow, setHover, setNodes, setPinned],
+    [root, focus, reactFlow, setNodes, setPinned],
   )
 
   const travelTo = useCallback(
@@ -1974,7 +1968,6 @@ export function Canvas() {
       },
       open: (groupId: string) => {
         openRoot(groupId)
-        setHover(null)
       },
       celebrate: (id: string) => {
         const { nodes: currentNodes, links: currentLinks } = latest.current
@@ -2004,7 +1997,7 @@ export function Canvas() {
         )
       },
     }),
-    [tweenTo, openRoot, setHover, cardSize, setNodes, setCelebrating],
+    [tweenTo, openRoot, cardSize, setNodes, setCelebrating],
   )
 
   const arrangeGroup = useCallback(
@@ -3032,13 +3025,8 @@ export function Canvas() {
               onConnect={onConnect}
               onConnectStart={() => {
                 setLinking(true)
-                setHover(null)
               }}
               onConnectEnd={onConnectEnd}
-              onNodeMouseEnter={(_, node) =>
-                !focus && !linking && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)
-              }
-              onNodeMouseLeave={() => setHover(null)}
               onNodeClick={(event, node) => {
                 if (tool === 'sticker') return stamp(event)
 
