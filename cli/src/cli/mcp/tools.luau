@@ -25,6 +25,9 @@ local REF_DESCRIPTION =
 	"Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch."
 local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
 local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
+local NOTE_STYLE =
+	"Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card."
+local NOTE_DESCRIPTION = "Replaces the whole note. " .. NOTE_STYLE
 
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
@@ -208,7 +211,7 @@ local tools: { Tool } = {
 				description = "Whose move: you, review, or ci. Empty clears it.",
 				at = "option",
 			},
-			{ name = "note", kind = "string", at = "option" },
+			{ name = "note", kind = "string", description = NOTE_DESCRIPTION, at = "option" },
 			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
 			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
@@ -216,7 +219,7 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_add_note",
-		description = "Add a canvas note, optionally inside a group or a dependency link.",
+		description = "Add a canvas note, optionally inside a group or a dependency link. " .. NOTE_STYLE,
 		command = { "note", "add" },
 		json = true,
 		fields = {

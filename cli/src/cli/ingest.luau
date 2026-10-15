@@ -49,13 +49,16 @@ return table.freeze({
 		local isDryRun = parser:has("dry-run")
 		local now = options.now()
 		local selected = parser:get("source")
-		local fetched = collectSources(store.load(options.dir), options.runner, now, selected)
+		local snapshot = store.load(options.dir)
+		local fetched = collectSources(snapshot, options.runner, now, selected)
+		local applyRefreshes = refreshAdapters(snapshot, options.runner, now, selected)
 		local report: ingestTypes.Report
 
-		-- Refreshing after placing lets it update the cards this run added, and skip them when listing what's unplaced.
+		-- Fetching happens above, outside the lock. Refreshing after placing skips the cards this run added when listing
+		-- what's unplaced.
 		local function apply(doc: Doc)
 			report = placeRecords(doc, fetched)
-			report.refreshes = refreshAdapters(doc, options.runner, now, selected)
+			report.refreshes = applyRefreshes(doc)
 		end
 
 		if isDryRun then

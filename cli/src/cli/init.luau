@@ -21,6 +21,7 @@ local ingest = require("@root/cli/ingest")
 local log = require("@root/cli/log")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
+local orientation = require("@root/cli/orientation")
 local pad = require("@root/render/pad")
 local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
@@ -285,7 +286,17 @@ local function createParsers(): Parsers
 end
 
 local function rootHelp(parser: cli.Parser): string
-	return table.concat({ SUMMARY, "", parser:usage("orion"), "", parser:help(), "", ABOUT }, "\n")
+	return table.concat({
+		SUMMARY,
+		"",
+		table.concat(orientation.help, "\n\n"),
+		"",
+		parser:usage("orion"),
+		"",
+		parser:help(),
+		"",
+		ABOUT,
+	}, "\n")
 end
 
 -- Finds the parser for a command path such as {"card", "list"}, along with the help its parent lists for it.
@@ -889,19 +900,18 @@ local function execute(args: { string }, options: Dependencies?)
 		local dryRun = parser:has("dry-run")
 		local report: RefreshReport
 
+		local snapshot = store.load(dir)
+		local apply = assert(getAdapter("github").refresh)(
+			snapshot,
+			deps.runner,
+			{ discover = parser:has("discover"), now = deps.now() }
+		)
+
 		if dryRun then
-			report = assert(getAdapter("github").refresh)(
-				store.load(dir),
-				deps.runner,
-				{ discover = parser:has("discover"), now = deps.now() }
-			)
+			report = apply(snapshot)
 		else
 			store.transaction(dir, function(doc)
-				report = assert(getAdapter("github").refresh)(
-					doc,
-					deps.runner,
-					{ discover = parser:has("discover"), now = deps.now() }
-				)
+				report = apply(doc)
 			end)
 		end
 
