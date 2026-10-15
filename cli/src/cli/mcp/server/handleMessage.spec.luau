@@ -75,13 +75,16 @@ test.case("a stale server answers each request with an update error instead of t
 	assert.strContains(failure.message :: string, "Reconnect the MCP server")
 end)
 
-test.case("initialize tells agents to record the branch a card's work starts on", function(assert)
+test.case("initialize says what Orion is and where a card's branch goes", function(assert)
 	local run = runner(testing.directory("mcp-instructions"))
 	local response = need(handleMessage(request(1, "initialize", json.object({})), run))
-	local instructions = need(json.asObject(response.result)).instructions
+	local instructions = need(json.asObject(response.result)).instructions :: string
 
-	assert.strContains(instructions :: string, "orion_update_item")
-	assert.strContains(instructions :: string, "branch:<owner>/<repo>@<branch>")
+	assert.strContains(instructions, "canvas")
+	assert.strContains(instructions, "orion_workspaces")
+	assert.strContains(instructions, "orion_inspect")
+	assert.strContains(instructions, "orion_update_item")
+	assert.strContains(instructions, "branch:<owner>/<repo>@<branch>")
 end)
 
 test.case("tools round-trip through the CLI and workspace storage", function(assert)

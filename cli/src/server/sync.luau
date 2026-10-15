@@ -59,21 +59,29 @@ function sync.create(
 		running.state = "running"
 		running.message = nil
 		setStatus(running)
+		local failures: { string } = {}
+
+		-- Fetch from a snapshot, then take the workspace lock only to apply, so edits don't wait on GitHub.
 		local didSucceed, failure = pcall(function()
 			local dir = store.getWorkspaceDir(root, target)
+			local apply = assert(getAdapter("github").refresh)(
+				store.load(dir),
+				command,
+				{ discover = false, now = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string }
+			)
+
 			store.transaction(dir, function(doc)
-				assert(getAdapter("github").refresh)(
-					doc,
-					command,
-					{ discover = false, now = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string }
-				)
+				failures = apply(doc).failures
 			end)
 		end)
 
 		local finishedAt = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 
 		if started == generation then
-			if didSucceed then
+			if didSucceed and #failures > 0 then
+				local first = failures[1]:match("^[^\r\n]*")
+				setStatus(json.object({ state = "error", lastRun = finishedAt, message = `Couldn't fetch {first}` }))
+			elseif didSucceed then
 				setStatus(json.object({ state = "idle", lastRun = finishedAt }))
 			else
 				local message = tostring(failure):match("([^\r\n]+)$") or tostring(failure)
