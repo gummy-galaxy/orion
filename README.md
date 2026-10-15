@@ -75,6 +75,7 @@ lute run build
 `lute pkg install` fills `~/.loom/store`, which the build reads directly, so nothing is copied into the checkout. Lute can only bundle that store from a checkout under your home directory, and `lute run build` fails elsewhere. That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. See [`AGENTS.md`](AGENTS.md) for how agents should use it.
 
 Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
+To see how well a module's spec pins down its behavior, run `lute run mutate src/<module>.luau` in `cli/`. It makes one small change at a time, such as flipping `==` to `~=` or `true` to `false`, runs the module's sibling spec against each, and lists the changes the spec didn't catch. Pass `--spec <path>` one or more times, or a folder such as `--spec src/cli`, when the tests live elsewhere. Some survivors make no real difference, so read each one before writing a test for it.
 StyLua is installed through `rokit.toml` at the repository root. Run `stylua src cli.luau .lute project.luau loom.config.luau .config.luau ../.lute ../.config.luau` from `cli/` to format all Luau sources, including the Lute scripts in both `.lute` folders. CI checks the same paths.
 
 ### Connect agents over MCP
@@ -191,3 +192,4 @@ In `cli/src/`:
 - `graph.luau`: derived status and leverage, and every edit the commands make.
 - `github/`: looking up pull requests and mapping their state onto cards.
 - `render.luau`: text and JSON output.
+- `mutation/`: finds the source changes that `lute run mutate` tries against a module's spec.
