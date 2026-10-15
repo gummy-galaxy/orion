@@ -31,7 +31,7 @@ local COMMANDS: { [string]: Command } = {
 }
 
 return table.freeze({
-	help = "Create, list, rename, set, archive, restore, and choose canvases, and check their layout",
+	help = "Canvases and their layout",
 	define = function(parser: cli.Parser)
 		defineSubcommands(
 			parser,

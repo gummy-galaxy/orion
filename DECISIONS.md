@@ -290,7 +290,7 @@ Don't build concepts ahead of the features that need them, such as owners before
 
 ### MCP stays generic
 
-Orion documents how to register `orion mcp serve` with any client instead of shipping setup for each AI provider.
+Orion documents how to register `orion mcp start` with any client instead of shipping setup for each AI provider.
 
 **Why:** registering an MCP server is trivial for people to do themselves, and per-provider code is a lot to maintain for that convenience.
 

@@ -2,7 +2,7 @@
 
 # orion canvas
 
-Create, list, rename, set, archive, restore, and choose canvases, and check their layout
+Canvases and their layout
 
 ```sh
 orion canvas <command> [options]

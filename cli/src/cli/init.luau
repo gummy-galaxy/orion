@@ -145,7 +145,7 @@ local function createParsers(): Parsers
 		addJsonFlag(parser)
 	end
 
-	local card = addCommand(root, "card", "Add, list, change, finish, and import cards")
+	local card = addCommand(root, "card", "Work items on the canvas")
 
 	local cardList = addCommand(card, "list", "List work items with their derived status")
 	cardList:add("group", "option", { help = "Only items inside this group" })
@@ -169,7 +169,7 @@ local function createParsers(): Parsers
 	addBatchOptions(addCommand(card, "done", "Mark one or more items done"), "Item ids")
 	importCommand.define(addCommand(card, "import", importCommand.help))
 
-	local note = addCommand(root, "note", "Add notes")
+	local note = addCommand(root, "note", "Notes for context, decisions, and reminders")
 	local noteAdd = addCommand(note, "add", "Add a note, optionally between two linked items")
 	noteAdd:add("text", "variadic", { help = "Note text" })
 	noteAdd:add("group", "option", { help = "Group to add it to" })
@@ -177,7 +177,7 @@ local function createParsers(): Parsers
 	noteAdd:add("before", "option", { help = "Item the note leads into" })
 	addJsonFlag(noteAdd)
 
-	local link = addCommand(root, "link", "Link items, remove links, and insert an item into a link")
+	local link = addCommand(root, "link", "Dependencies between items")
 
 	local linkAdd = addCommand(link, "add", "Link each adjacent pair of items")
 	linkAdd:add("from", "positional", { help = "The item that has to happen first" })
@@ -200,7 +200,7 @@ local function createParsers(): Parsers
 	linkInsert:add("if-revision", "option", { help = "Write only if the document has this revision" })
 	addJsonFlag(linkInsert)
 
-	local node = addCommand(root, "node", "Show, query, remove, and move any item or group")
+	local node = addCommand(root, "node", "Any item or group")
 
 	local nodeShow = addCommand(node, "show", "Show one item or group")
 	nodeShow:add("id", "positional", { help = "Item or group id" })
@@ -220,7 +220,7 @@ local function createParsers(): Parsers
 	nodeMove:add("to", "option", { help = "Destination group" })
 	nodeMove:add("top", "flag", { help = "Move to the top level" })
 
-	local group = addCommand(root, "group", "List, make, change, dissolve, remove, and tidy groups")
+	local group = addCommand(root, "group", "Groups of items")
 
 	local groupList = addCommand(group, "list", "List groups with their progress")
 	addJsonFlag(groupList)
@@ -252,7 +252,7 @@ local function createParsers(): Parsers
 	addBatchOptions(addCommand(group, "ungroup", "Dissolve groups, keeping their items in place"), "Group ids")
 	tidy.define(addCommand(group, "tidy", tidy.help))
 
-	local ref = addCommand(root, "ref", "Take outside work off an item")
+	local ref = addCommand(root, "ref", "Outside work attached to cards")
 	local refRemove = addCommand(ref, "remove", "Take a ref off an item")
 	refRemove:add("id", "positional", { help = "Item id" })
 	refRemove:add(

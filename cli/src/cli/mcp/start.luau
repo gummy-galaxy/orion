@@ -15,7 +15,7 @@ return table.freeze({
 		-- A server keeps the tools of the build it started from, so it stops once that build is replaced.
 		local started = getBinaryFingerprint()
 
-		serve(io.read, io.write, function(argv, write)
+		local function runTool(argv: { string }, write: (string) -> ())
 			options.execute(argv, {
 				dataDir = options.root,
 				-- Without --canvas, each call resolves the selected workspace again, so
@@ -25,8 +25,12 @@ return table.freeze({
 				runner = options.runner,
 				now = options.now,
 			})
-		end, function()
+		end
+
+		local function isStale(): boolean
 			return started ~= nil and getBinaryFingerprint() ~= started
-		end)
+		end
+
+		serve(io.read, io.write, runTool, isStale)
 	end,
 })
