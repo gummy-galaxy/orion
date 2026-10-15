@@ -85,7 +85,7 @@ import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
 import { MiniMapNode } from './MiniMapNode'
 import { ImageView } from './ImageView'
-import { TaskView } from './TaskView'
+import { CardSlot, type CardSlotData } from './CardSlot'
 import {
   createWorkspace,
   clearFocus,
@@ -152,6 +152,8 @@ import { Toolbar, type Tool } from './Toolbar'
 import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from '../viewport'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
+import { type DrawCard } from '../cardDraw'
+import { useDrawnCards } from '../useDrawnCards'
 import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'
@@ -160,8 +162,10 @@ import { TaskInspector } from './TaskInspector'
 type ViewNode = AppNode | GhostNode
 type FocusEntry = { viewport: Viewport; moved: boolean }
 
-const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, image: ImageView, ghost: GhostView }
+const nodeTypes: NodeTypes = { task: CardSlot, cluster: ClusterView, image: ImageView, ghost: GhostView }
 const edgeTypes: EdgeTypes = { default: CurveEdge }
+/** Whether a card view node was made away from the view, so it's drawn without its body. */
+const isAway = (node: AppNode) => isTask(node) && !!(node.data as CardSlotData).away
 const SIDEBAR_KEY = 'orion:sidebar'
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
@@ -1278,16 +1282,26 @@ export function Canvas() {
 
   // React Flow redraws a node whenever its object changes, so unchanged nodes keep last render's object.
   const [shownNodes] = useState(() => new WeakMap<AppNode, AppNode>())
+  // Cards far from the view keep their node but not their body, and get bodies a batch at a time, nearest the center first.
+  const drawCards = useMemo<DrawCard[]>(
+    () =>
+      nodes
+        .filter((node) => isTask(node) && !view.hidden.has(node.id))
+        .map((node) => ({ id: node.id, ...absolutePosition(node, map), ...sizeOf(node, cardSize) })),
+    [nodes, map, view, cardSize],
+  )
+  const drawn = useDrawnCards(drawCards)
   const viewNodes = useMemo<ViewNode[]>(
     () => [
       ...nodes.map((node) => {
         const hidden = view.hidden.has(node.id)
+        const away = isTask(node) && !hidden && !drawn.has(node.id)
         const className = [node.className, focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : ''].filter(Boolean).join(' ') || undefined
         const shown = shownNodes.get(node)
 
-        if (shown && shown.hidden === hidden && shown.className === className) return shown
+        if (shown && shown.hidden === hidden && shown.className === className && isAway(shown) === away) return shown
 
-        const next = { ...node, hidden, className }
+        const next = away && isTask(node) ? { ...node, hidden, className, data: { ...node.data, away: true } } : { ...node, hidden, className }
 
         shownNodes.set(node, next)
 
@@ -1295,7 +1309,7 @@ export function Canvas() {
       }),
       ...(focus ? ghosts.map((group) => ({ ...group, className: 'is-unfocused' })) : ghosts),
     ],
-    [nodes, view, ghosts, focus, shownNodes],
+    [nodes, view, ghosts, focus, shownNodes, drawn],
   )
 
   const trace = useAtomValue(traceAtom)
