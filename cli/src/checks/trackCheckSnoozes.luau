@@ -65,7 +65,8 @@ local function trackCheckSnoozes(doc: Doc, fetched: Fetched, now: string)
 			end
 		end
 
-		if not hiding then
+		-- A refresh that couldn't fetch every card can't tell whether a job still fails anywhere, so it keeps the snooze.
+		if not hiding and #fetched.failures == 0 then
 			table.remove(snoozes, index)
 		end
 	end

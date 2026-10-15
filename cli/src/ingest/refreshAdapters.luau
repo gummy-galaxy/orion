@@ -1,5 +1,6 @@
 local getAdapter = require("@root/adapters/getAdapter")
 local getRefs = require("@root/refs/getRefs")
+local githubTypes = require("@root/github/types")
 local ingestTypes = require("@root/ingest/types")
 local types = require("@root/types")
 
@@ -35,11 +36,12 @@ local function getKinds(doc: Doc): { string }
 end
 
 --[[
-	Runs the refresh of each adapter the workspace uses, which updates cards already on the canvas, such as GitHub's
-	pull request states. With `selected`, only that source's kind refreshes. A failed refresh is reported rather than
-	raised, as a failed source is.
+	Fetches the refresh of each adapter the workspace uses, which updates cards already on the canvas, such as GitHub's
+	pull request states, and returns the step that applies them. It reads `doc` without changing it, so callers can
+	fetch outside the workspace lock and apply under it. With `selected`, only that source's kind refreshes. A failed
+	refresh is reported rather than raised, as a failed source is.
 ]]
-local function refreshAdapters(doc: Doc, run: CommandRunner, now: string, selected: string?): { RefreshReport }
+local function refreshAdapters(doc: Doc, run: CommandRunner, now: string, selected: string?): (Doc) -> { RefreshReport }
 	local kinds = getKinds(doc)
 
 	if selected then
@@ -52,7 +54,7 @@ local function refreshAdapters(doc: Doc, run: CommandRunner, now: string, select
 		end
 	end
 
-	local reports: { RefreshReport } = {}
+	local pending: { { kind: string, apply: ((Doc) -> githubTypes.Report)?, failed: string? } } = {}
 
 	for _, kind in kinds do
 		local succeeded, adapter = pcall(getAdapter, kind)
@@ -61,20 +63,36 @@ local function refreshAdapters(doc: Doc, run: CommandRunner, now: string, select
 			continue
 		end
 
-		local refresh = adapter.refresh
-		local entry: RefreshReport = { kind = kind }
-		local didRefresh, failure = pcall(function()
-			entry.report = refresh(doc, run, { discover = false, now = now })
-		end)
-
-		if not didRefresh then
-			entry.failed = tostring(failure)
-		end
-
-		table.insert(reports, entry)
+		local didFetch, result = pcall(adapter.refresh, doc, run, { discover = false, now = now })
+		table.insert(pending, {
+			kind = kind,
+			apply = if didFetch then result else nil,
+			failed = if didFetch then nil else tostring(result),
+		})
 	end
 
-	return reports
+	return function(current: Doc): { RefreshReport }
+		local reports: { RefreshReport } = {}
+
+		for _, entry in pending do
+			local report: RefreshReport = { kind = entry.kind, failed = entry.failed }
+			local apply = entry.apply
+
+			if apply then
+				local didApply, result = pcall(apply, current)
+
+				if didApply then
+					report.report = result
+				else
+					report.failed = tostring(result)
+				end
+			end
+
+			table.insert(reports, report)
+		end
+
+		return reports
+	end
 end
 
 return refreshAdapters

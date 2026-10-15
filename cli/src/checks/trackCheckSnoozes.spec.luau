@@ -54,7 +54,7 @@ local function fetched(pulls: { PullState }): Fetched
 		byKey[`vocksel/orion#{entry.number}`] = entry
 	end
 
-	return { pulls = byKey, authored = {}, viewer = "vocksel", discover = false }
+	return { pulls = byKey, checked = {}, authored = {}, viewer = "vocksel", discover = false, failures = {} }
 end
 
 local function snoozeDocs(doc: types.Doc, untilTime: string?)
@@ -125,4 +125,15 @@ test.case("a timed snooze ends at its time whatever the job does", function(asse
 
 	trackCheckSnoozes(doc, failing, "2026-10-13T02:00:00Z")
 	assert.eq(#doc.settings.checkSnoozes, 0)
+end)
+
+test.case("a snooze stays when the refresh couldn't fetch every card", function(assert)
+	local doc = testing.createDoc({ card("a", 1), card("b", 2) })
+	snoozeDocs(doc)
+	local partial = fetched({ pull(1, { checks = "SUCCESS" }) })
+	partial.failures = { "vocksel/orion#2: gh: HTTP 502" }
+	trackCheckSnoozes(doc, partial, "2026-10-13T01:00:00Z")
+
+	assert.eq(#doc.settings.checkSnoozes, 1)
+	assert.eq(table.concat(doc.settings.checkSnoozes[1].passed, ","), "a")
 end)
