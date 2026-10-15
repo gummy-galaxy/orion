@@ -13,6 +13,7 @@ local focus = require("@root/cli/focus")
 local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getAdapter = require("@root/adapters/getAdapter")
 local getRefs = require("@root/refs/getRefs")
+local getVersion = require("@root/getVersion")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local importCommand = require("@root/cli/import")
@@ -105,6 +106,7 @@ Statuses: todo, active, review, blocked, deferred, done.
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "owner/name".
 Data lives in Orion's user data folder (run orion path to see it); set ORION_DATA_DIR to change it.
+Set ORION_WORKSPACE to pick a workspace, as --workspace does for a single command.
 The Orion app talks to orion serve, which watches the data files.
 Use orion serve status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
@@ -158,6 +160,7 @@ type Parsers = {
 local function createParsers(): Parsers
 	local root = cli.parser()
 	addHelpFlag(root)
+	root:add("version", "flag", { help = "Print the Orion version and build commit" })
 	addWorkspaceOption(root)
 	local commands: { [string]: cli.Parser } = {}
 
@@ -548,6 +551,11 @@ local function execute(args: { string }, options: Dependencies?)
 	local parsers = createParsers()
 	parsers.root:parse(withGroupAdd(args))
 	local deps = dependencies(options)
+
+	if parsers.root:has("version") then
+		deps.write(`orion {getVersion()}`)
+		return
+	end
 
 	local command, parser = parsers.root:selected()
 

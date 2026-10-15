@@ -4,6 +4,7 @@ local path = require("@std/path")
 local test = require("@std/test")
 
 local findRef = require("@root/refs/findRef")
+local getVersion = require("@root/getVersion")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -403,4 +404,9 @@ test.case("ref remove takes a ref off by its key or URL", function(assert)
 	assert.throwsWith("groups don't take refs", function()
 		run({ "ref", "remove", "ws", "Roblox/avatar#3" })
 	end)
+end)
+
+test.case("--version prints the version and build commit the MCP server reports", function(assert)
+	local _, run = testing.createHarness("version")
+	assert.eq(run({ "--version" }), `orion {getVersion()}`)
 end)
