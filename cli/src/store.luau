@@ -8,6 +8,7 @@ local deriveWorkspaceName = require("@root/deriveWorkspaceName")
 local fileNames = require("@root/fileNames")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
 local graph = require("@root/graph")
+local isProcessAlive = require("@root/server/isProcessAlive")
 local migrateItem = require("@root/refs/migrateItem")
 local types = require("@root/types")
 
@@ -21,6 +22,7 @@ local DAY_SECONDS = 24 * 60 * 60
 local DAILY_DAYS = 30
 local LOCK_TIMEOUT_SECONDS = 5
 local STALE_LOCK_SECONDS = 30
+local ABANDONED_LOCK_SECONDS = 10 * 60
 
 export type Workspace = { name: string, label: string }
 export type WorkspaceList = { active: string, workspaces: { Workspace }, archived: { Workspace } }
@@ -600,19 +602,35 @@ local function release(lockPath: string)
 	end)
 end
 
--- A writer that crashes right after creating the lock leaves no readable owner
--- stamp, so the lock directory's own age stands in for it.
-local function getLockStamp(lockPath: string, ownerPath: path.Path): number?
+-- A lock is abandoned once its owner stamp is stale and its writer is gone. A
+-- writer that crashes right after creating the lock leaves no readable stamp, so
+-- the lock directory's own age stands in for it. A stamp far past stale is
+-- abandoned even if its process id is alive, since the id may have been reused.
+local function isLockAbandoned(lockPath: string, ownerPath: path.Path): boolean
 	local succeeded, owner = pcall(fs.readFileToString, ownerPath)
-	local stamp = if succeeded then tonumber(owner:match("%s(%d+)")) else nil
+	local processId, stamp = nil, nil
 
-	if stamp then
-		return stamp
+	if succeeded then
+		local processText, stampText = owner:match("^(%d+)%s(%d+)")
+		processId, stamp = tonumber(processText), tonumber(stampText)
 	end
 
-	local found, metadata = pcall(fs.metadata, lockPath)
+	if not stamp then
+		local found, metadata = pcall(fs.metadata, lockPath)
+		stamp = if found then metadata.modified:toSeconds() else nil
+	end
 
-	return if found then metadata.modified:toSeconds() else nil
+	if not stamp then
+		return false
+	end
+
+	local age = os.time() - stamp
+
+	if age <= STALE_LOCK_SECONDS then
+		return false
+	end
+
+	return age > ABANDONED_LOCK_SECONDS or not processId or not isProcessAlive(processId)
 end
 
 local function acquire(dir: string): string
@@ -627,9 +645,7 @@ local function acquire(dir: string): string
 		end
 
 		-- Reclaim a lock left behind by a writer that crashed.
-		local stamp = getLockStamp(lockPath, ownerPath)
-
-		if stamp and os.time() - stamp > STALE_LOCK_SECONDS then
+		if isLockAbandoned(lockPath, ownerPath) then
 			release(lockPath)
 			continue
 		end
