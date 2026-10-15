@@ -1,0 +1,19 @@
+# Coverage reports for information only; they never block a pull request.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+# Vitest runs with src as its root, so its paths start inside app/src.
+fixes:
+  - "::app/src/"
+
+flags:
+  app:
+    paths:
+      - app/
+    carryforward: true

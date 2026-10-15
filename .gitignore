@@ -30,3 +30,6 @@ desktop/src-tauri/binaries/
 
 # VitePress cache
 docs/.vitepress/cache
+
+# Coverage reports from npm run coverage
+coverage

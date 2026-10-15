@@ -82,6 +82,9 @@ jobs:
   app:
     runs-on: beelink
     timeout-minutes: 5
+    permissions:
+      contents: read
+      id-token: write
     defaults:
       run:
         working-directory: app
@@ -101,7 +104,15 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test
+        run: npm run coverage
+
+      - name: Upload Coverage
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          use_oidc: true
+          files: app/coverage/lcov.info
+          disable_search: true
+          flags: app
 
       - name: Build
         run: npm run build
