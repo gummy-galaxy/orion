@@ -13,6 +13,7 @@ local focus = require("@root/cli/focus")
 local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getAdapter = require("@root/adapters/getAdapter")
 local getRefs = require("@root/refs/getRefs")
+local getVersion = require("@root/getVersion")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local importCommand = require("@root/cli/import")
@@ -74,6 +75,7 @@ Statuses: todo, active, review, blocked, deferred, done.
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "owner/name".
 Data lives in Orion's user data folder (run orion canvas path to see it); set ORION_DATA_DIR to change it.
+Set ORION_CANVAS to pick a canvas, as --canvas does for a single command.
 The Orion app talks to orion server start, which watches the data files.
 Use orion server status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
@@ -123,6 +125,7 @@ type Parsers = {
 local function createParsers(): Parsers
 	local root = cli.parser()
 	addHelpFlag(root)
+	root:add("version", "flag", { help = "Print the Orion version and build commit" })
 	addCanvasOption(root)
 	local commands: { [string]: cli.Parser } = {}
 
@@ -544,6 +547,11 @@ local function execute(args: { string }, options: Dependencies?)
 	local deps = dependencies(options)
 	local names, parser = selectedPath(parsers.root)
 	local command = names[1]
+
+	if parsers.root:has("version") then
+		deps.write(`orion {getVersion()}`)
+		return
+	end
 
 	if command == nil or parsers.root:has("help") then
 		deps.write(rootHelp(parsers.root))
