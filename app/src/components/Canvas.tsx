@@ -131,6 +131,7 @@ import {
   celebratingAtom,
   collapsedAtom,
   focusedAtom,
+  foldPreviewsAtom,
   inspectingAtom,
   linksAtom,
   nodesAtom,
@@ -150,6 +151,7 @@ import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedS
 import { covers, MARQUEE_REACH, type Box } from '../marquee'
 import { Toolbar, type Tool } from './Toolbar'
 import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
+import { foldPreviews } from '../foldPreview'
 import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from '../viewport'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { type DrawCard } from '../cardDraw'
@@ -1186,6 +1188,8 @@ export function Canvas() {
   const smallSet = new Set(small)
   const collapsedKey = small.filter((id) => !ancestors(id, map).some((ancestor) => smallSet.has(ancestor))).join(',')
   const collapsed = useMemo(() => new Set(collapsedKey ? collapsedKey.split(',') : []), [collapsedKey])
+  // What each folded group hints at inside, in its own coordinates, so zooming never recomputes it.
+  const foldPreviewsShown = useMemo(() => foldPreviews(nodes, map, collapsed, cardSize, work.status), [nodes, map, collapsed, cardSize, work.status])
   const level = shownLevel(detail, levels)
 
   /** Shows one level less or more of the nesting below the open group, and remembers it for this workspace. */
@@ -1640,15 +1644,17 @@ export function Canvas() {
   }, [attention, map, transform, cardSize])
 
   const setCollapsedShown = useSetAtom(collapsedAtom)
+  const setFoldPreviewsShown = useSetAtom(foldPreviewsAtom)
   const setAttentionShown = useSetAtom(attentionAtom)
   const setFocusedShown = useSetAtom(focusedAtom)
 
   // Before paint, so cards that read these never show a stale frame.
   useLayoutEffect(() => {
     setCollapsedShown(collapsed)
+    setFoldPreviewsShown(foldPreviewsShown)
     setAttentionShown(attention?.marks ?? null)
     setFocusedShown(focus !== null)
-  }, [collapsed, attention, focus, setCollapsedShown, setAttentionShown, setFocusedShown])
+  }, [collapsed, foldPreviewsShown, attention, focus, setCollapsedShown, setFoldPreviewsShown, setAttentionShown, setFocusedShown])
 
   const getCurrentNodes = useCallback(() => latest.current.nodes, [])
   const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo, cardSize })
