@@ -8,6 +8,15 @@ local graph = require("@root/graph")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
+test.case("help opens with the shared orientation and no MCP tool names", function(assert)
+	local _, run = testing.createHarness("help-orientation")
+	local text = run({ "help" })
+	assert.strContains(text, "canvas")
+	assert.strContains(text, "replaces its whole text")
+	assert.strContains(text, "branch:<owner>/<repo>@<branch>")
+	assert.strNotContains(text, "orion_")
+end)
+
 test.case("ready lists startable work, most unblocking first", function(assert)
 	local _, run = testing.createHarness("ready")
 	local text = run({ "next" })
@@ -356,6 +365,18 @@ test.case("sync attaches a new pull request to the card its branch was recorded 
 			)
 		elseif argv[5]:find("search(", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+		end
+
+		-- The branch match is fetched in full before it's attached.
+		local alias = argv[5]:match(
+			'(p%d+): repository%(owner: "flipbook%-labs", name: "flipbook"%) { pullRequest%(number: 670%)'
+		)
+
+		if alias then
+			return testing.result(
+				true,
+				`\{"data":\{"{alias}":\{"pullRequest":\{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a","author":\{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z"}}}}`
+			)
 		end
 
 		return testing.result(true, [[{"data":{"p1":{"pullRequest":null}}}]])

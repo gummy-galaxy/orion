@@ -4,14 +4,14 @@ local describeTools = require("@root/cli/mcp/catalog/describeTools")
 local findTool = require("@root/cli/mcp/catalog/findTool")
 local getToolArgv = require("@root/cli/mcp/catalog/getToolArgv")
 local mcpTypes = require("@root/cli/mcp/types")
+local orientation = require("@root/cli/orientation")
 
 type Run = mcpTypes.Run
 
 local SERVER_VERSION = "0.1.0"
 local PROTOCOL_VERSIONS = { "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05" }
--- Sent in the initialize response so every MCP client records where work starts, without per-machine setup.
-local INSTRUCTIONS =
-	'When you start work for an Orion card, record its branch on that card with orion_update_item and ref "branch:<owner>/<repo>@<branch>". Orion attaches a pull request you open from that branch to the card on the next sync. If no card exists for the work, add one first.'
+-- Sent in the initialize response so clients know what Orion is before they pick a tool.
+local INSTRUCTIONS = table.concat(orientation.paragraphs, " ")
 
 local PARSE_ERROR = -32700
 local INVALID_REQUEST = -32600
