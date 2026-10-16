@@ -101,6 +101,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'shadow.image', cssVar: '--shadow-image', group: 'shadow' },
   { name: 'shadow.dialog', cssVar: '--shadow-dialog', group: 'shadow' },
   { name: 'shadow.selection', cssVar: '--shadow-selection', group: 'shadow' },
+  { name: 'shadow.lift', cssVar: '--shadow-lift', group: 'shadow' },
   { name: 'shadow.sticker', cssVar: '--shadow-sticker', group: 'shadow' },
   { name: 'shadow.sticker-held', cssVar: '--shadow-sticker-held', group: 'shadow' },
 

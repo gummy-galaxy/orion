@@ -10,24 +10,24 @@ orion <command> [options]
 
 Every command also takes `--canvas <name>` to work on a specific canvas, and `--help` (`-h`) to print its help.
 
-| Command                            | What it does                                                                             |
-| ---------------------------------- | ---------------------------------------------------------------------------------------- |
-| [`orion card`](./card)             | Add, list, change, finish, and import cards                                              |
-| [`orion note`](./note)             | Add notes                                                                                |
-| [`orion link`](./link)             | Link items, remove links, and insert an item into a link                                 |
-| [`orion node`](./node)             | Show, query, remove, and move any item or group                                          |
-| [`orion group`](./group)           | List, make, change, dissolve, remove, and tidy groups                                    |
-| [`orion ref`](./ref)               | Take outside work off an item                                                            |
-| [`orion next`](./next)             | List items that can start now, most unblocking first                                     |
-| [`orion sync`](./sync)             | Update pull request items from GitHub (deprecated: use ingest)                           |
-| [`orion canvas`](./canvas)         | Create, list, rename, set, archive, restore, and choose canvases, and check their layout |
-| [`orion server`](./server)         | Start the Orion server or report whether one is running                                  |
-| [`orion source`](./source)         | List, add, or remove ingestion sources, and list unplaced pull requests                  |
-| [`orion ingest`](./ingest)         | Import work from configured sources and refresh the cards they track                     |
-| [`orion media`](./media)           | Insert or list media nodes                                                               |
-| [`orion suggestion`](./suggestion) | Find, list, apply, or dismiss group suggestions                                          |
-| [`orion backup`](./backup)         | List saved revisions and restore one as a new revision                                   |
-| [`orion mcp`](./mcp)               | Agent tools over MCP                                                                     |
-| [`orion focus`](./focus)           | Show the group open in the app and what's selected                                       |
-| [`orion reveal`](./reveal)         | Select cards or groups in the app and zoom the canvas to them                            |
-| [`orion help`](./help)             | Show help for Orion or one of its commands                                               |
+| Command                            | What it does                                                         |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| [`orion card`](./card)             | Work items on the canvas                                             |
+| [`orion note`](./note)             | Notes for context, decisions, and reminders                          |
+| [`orion link`](./link)             | Dependencies between items                                           |
+| [`orion node`](./node)             | Any item or group                                                    |
+| [`orion group`](./group)           | Groups of items                                                      |
+| [`orion ref`](./ref)               | Outside work attached to cards                                       |
+| [`orion next`](./next)             | List items that can start now, most unblocking first                 |
+| [`orion sync`](./sync)             | Update pull request items from GitHub (deprecated: use ingest)       |
+| [`orion canvas`](./canvas)         | Canvases and their layout                                            |
+| [`orion server`](./server)         | The server the app and agents talk to                                |
+| [`orion source`](./source)         | Sources that ingest imports work from                                |
+| [`orion ingest`](./ingest)         | Import work from configured sources and refresh the cards they track |
+| [`orion media`](./media)           | Media on the canvas                                                  |
+| [`orion suggestion`](./suggestion) | Suggested groups for related cards                                   |
+| [`orion backup`](./backup)         | Saved revisions of a canvas                                          |
+| [`orion mcp`](./mcp)               | Agent tools over MCP                                                 |
+| [`orion focus`](./focus)           | Show the group open in the app and what's selected                   |
+| [`orion reveal`](./reveal)         | Select cards or groups in the app and zoom the canvas to them        |
+| [`orion help`](./help)             | Show help for Orion or one of its commands                           |

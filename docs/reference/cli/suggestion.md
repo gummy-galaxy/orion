@@ -2,7 +2,7 @@
 
 # orion suggestion
 
-Find, list, apply, or dismiss group suggestions
+Suggested groups for related cards
 
 ```sh
 orion suggestion <command> [options]

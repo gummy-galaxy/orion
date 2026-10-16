@@ -156,6 +156,14 @@ Orion has a color palette for each major type of colorblindness, and status uses
 
 2026-10-11 · [#213](https://github.com/vocksel/orion/issues/213)
 
+### Hover lifts the card, and only a pinned card traces its chain
+
+Hovering a card lifts that card alone: it grows slightly from the middle of its title, gets a light ring and a deeper shadow, and rises above its neighbors. Nothing else on the canvas changes on hover. The chain trace, with its dimming, is for a pinned card only. Holding ⌥ keeps its attention fade.
+
+**Why:** tracing on every hover restyled the whole canvas on each pointer move and made hover heavy. Scaling from the title keeps the title readable.
+
+2026-10-12 · [#333](https://github.com/vocksel/orion/issues/333)
+
 ## Celebration and triage
 
 ### Finished work gets savored
@@ -290,7 +298,7 @@ Don't build concepts ahead of the features that need them, such as owners before
 
 ### MCP stays generic
 
-Orion documents how to register `orion mcp serve` with any client instead of shipping setup for each AI provider.
+Orion documents how to register `orion mcp start` with any client instead of shipping setup for each AI provider.
 
 **Why:** registering an MCP server is trivial for people to do themselves, and per-provider code is a lot to maintain for that convenience.
 

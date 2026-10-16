@@ -2,7 +2,7 @@
 
 # orion note
 
-Add notes
+Notes for context, decisions, and reminders
 
 ```sh
 orion note <command> [options]
