@@ -1,6 +1,6 @@
 # Theme files
 
-A theme file sets token values from [tokens.md](./tokens.md) for the light and dark schemes. Install one by copying it into the `themes` folder inside Orion's data folder (`orion path` shows where that is). Orion reads the folder at startup and again when Settings or the command palette opens, so there is nothing to restart. The theme then sits beside Classic and Vibrant. Delete the file to remove the theme.
+A theme file sets token values from [tokens.md](./tokens.md) for the light and dark schemes. Install one by copying it into the `themes` folder inside Orion's data folder (`orion canvas path` shows where that is). Orion reads the folder at startup and again when Settings or the command palette opens, so there is nothing to restart. The theme then sits beside Classic and Vibrant. Delete the file to remove the theme.
 
 `examples/themes/dusk.json` in the repository is an example. It is not installed by default.
 

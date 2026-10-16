@@ -52,7 +52,7 @@ test.case("an issue URL adds a card with its GitHub title, repo, and ref", funct
 	local dir = testing.directory("import-issue")
 	store.write(dir, testing.createDoc({}))
 
-	local report = parseJson(testing.run(dir, { "import", ISSUE_URL, "--json" }, githubRunner, NOW))
+	local report = parseJson(testing.run(dir, { "card", "import", ISSUE_URL, "--json" }, githubRunner, NOW))
 	assert.eq(report.added, 1)
 	assert.eq(report.failed, 0)
 	assert.eq(report.revision, 1)
@@ -74,7 +74,7 @@ test.case("a pull request URL adds a pull request card", function(assert)
 	local dir = testing.directory("import-pull")
 	store.write(dir, testing.createDoc({}))
 
-	testing.run(dir, { "import", PULL_URL }, githubRunner, NOW)
+	testing.run(dir, { "card", "import", PULL_URL }, githubRunner, NOW)
 
 	local item = store.load(dir).nodes[1]
 	assert.eq(item.data.label, "Add --ref")
@@ -91,7 +91,7 @@ test.case("a ref already on the canvas is skipped without a lookup or a second c
 	})
 	store.write(dir, doc)
 
-	local report = parseJson(testing.run(dir, { "import", ISSUE_URL, "--json" }, unreachableRunner, NOW))
+	local report = parseJson(testing.run(dir, { "card", "import", ISSUE_URL, "--json" }, unreachableRunner, NOW))
 	assert.eq(report.existing, 1)
 	assert.eq(report.added, 0)
 	assert.eq(report.revision, 0)
@@ -104,7 +104,7 @@ test.case("a bad ref or a missing one is reported, the rest are added, and the c
 
 	local ok, failure = runFailing(
 		dir,
-		{ "import", ISSUE_URL, "https://git.example.org/Roblox/avatar/pull/1", "jira:ABC-9", "--json" },
+		{ "card", "import", ISSUE_URL, "https://git.example.org/Roblox/avatar/pull/1", "jira:ABC-9", "--json" },
 		githubRunner
 	)
 
@@ -121,7 +121,7 @@ test.case("a failed ref still prints every outcome before the command fails", fu
 
 	local printed: { string } = {}
 	local ok = pcall(function()
-		cli.execute({ "import", ISSUE_URL, "https://git.example.org/Roblox/avatar/pull/1" }, {
+		cli.execute({ "card", "import", ISSUE_URL, "https://git.example.org/Roblox/avatar/pull/1" }, {
 			dataDir = dir,
 			write = function(line)
 				table.insert(printed, line)
@@ -145,7 +145,7 @@ test.case("--group puts the new card inside the group", function(assert)
 	local dir = testing.directory("import-group")
 	store.write(dir, testing.createDoc({ testing.group("ws", "Release") }))
 
-	testing.run(dir, { "import", ISSUE_URL, "--group", "ws" }, githubRunner, NOW)
+	testing.run(dir, { "card", "import", ISSUE_URL, "--group", "ws" }, githubRunner, NOW)
 
 	assert.eq(store.load(dir).nodes[2].parentId, "ws")
 end)
@@ -154,7 +154,7 @@ test.case("--group must name a group", function(assert)
 	local dir = testing.directory("import-bad-group")
 	store.write(dir, testing.createDoc({ testing.task("one", "Item", "todo") }))
 
-	local ok, failure = runFailing(dir, { "import", ISSUE_URL, "--group", "one" }, githubRunner)
+	local ok, failure = runFailing(dir, { "card", "import", ISSUE_URL, "--group", "one" }, githubRunner)
 	assert.eq(ok, false)
 	assert.strContains(failure, "is an item, not a group")
 	assert.eq(store.load(dir).revision, 0)
@@ -164,7 +164,7 @@ test.case("--dry-run previews cards and writes nothing", function(assert)
 	local dir = testing.directory("import-dry-run")
 	store.write(dir, testing.createDoc({}))
 
-	local output = testing.run(dir, { "import", ISSUE_URL, "--dry-run" }, githubRunner, NOW)
+	local output = testing.run(dir, { "card", "import", ISSUE_URL, "--dry-run" }, githubRunner, NOW)
 
 	assert.strContains(output, "Would add 1 card")
 	assert.strContains(output, "at revision 0")
@@ -176,7 +176,7 @@ test.case("--if-revision refuses the write when the document has moved", functio
 	local dir = testing.directory("import-if-revision")
 	store.write(dir, testing.createDoc({}))
 
-	local ok, failure = runFailing(dir, { "import", ISSUE_URL, "--if-revision", "5" }, githubRunner)
+	local ok, failure = runFailing(dir, { "card", "import", ISSUE_URL, "--if-revision", "5" }, githubRunner)
 	assert.eq(ok, false)
 	assert.strContains(failure, "revision changed: expected 5, current 0")
 	assert.eq(#store.load(dir).nodes, 0)
@@ -188,7 +188,7 @@ test.case("a configured Jira source imports a key from its results", function(as
 	doc.settings.sources = { JIRA }
 	store.write(dir, doc)
 
-	local output = testing.run(dir, { "import", "jira:ABC-9", "--json" }, function(argv)
+	local output = testing.run(dir, { "card", "import", "jira:ABC-9", "--json" }, function(argv)
 		assert.eq(argv[1], "acli")
 		return testing.result(true, '[{"key":"ABC-9","summary":"Ship","statusCategory":"new","type":"Task"}]')
 	end, NOW)
@@ -209,7 +209,7 @@ test.case("a Jira key missing from the source's results fails with that reason",
 	doc.settings.sources = { JIRA }
 	store.write(dir, doc)
 
-	local ok, failure = runFailing(dir, { "import", "jira:ABC-9" }, function()
+	local ok, failure = runFailing(dir, { "card", "import", "jira:ABC-9" }, function()
 		return testing.result(true, "[]")
 	end)
 
