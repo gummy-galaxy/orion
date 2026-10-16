@@ -78,7 +78,9 @@ jobs:
           CHROMATIC_SHA: ${{ github.event.pull_request.head.sha }}
           CHROMATIC_SLUG: ${{ github.repository }}
         with:
-          storybookBuildDir: app/storybook-static
+          # The action changes into workingDir before it reads package.json or resolves the build directory.
+          workingDir: app
+          storybookBuildDir: storybook-static
           # Exit once the build is uploaded so the job never waits on UI Tests or UI Review.
           exitOnceUploaded: true
 
