@@ -33,14 +33,14 @@ Reuse `node_modules` when `app/package-lock.json` is unchanged; otherwise run `n
 ln -s "$PWD/app/node_modules" "$SCRATCH/before/app/node_modules"
 ```
 
-Give each app its own copy of the data. Never point either at the real data folder, since `orion serve` writes to it. Copy only the `orion` workspace, which tracks Orion's own work, or build a small sample with the CLI against the copy:
+Give each app its own copy of the data. Never point either at the real data folder, since `orion server start` writes to it. Copy only the `orion` workspace, which tracks Orion's own work, or build a small sample with the CLI against the copy:
 
 ```sh
 for side in before after; do
   mkdir -p "$SCRATCH/$side-data/workspaces"
   cp ~/Library/Application\ Support/Orion/workspaces.json "$SCRATCH/$side-data/"
   rsync -a --exclude backups ~/Library/Application\ Support/Orion/workspaces/orion "$SCRATCH/$side-data/workspaces/"
-  ORION_DATA_DIR="$SCRATCH/$side-data" /Applications/Orion.app/Contents/MacOS/orion workspace use orion
+  ORION_DATA_DIR="$SCRATCH/$side-data" /Applications/Orion.app/Contents/MacOS/orion canvas use orion
 done
 ```
 
@@ -48,7 +48,7 @@ Seed whatever the change needs, such as a gate card or a long label, with the sa
 
 ## 3. Start one app at a time
 
-Run Vite in each tree's `app/` on fixed ports. Use the installed `orion` binary for both unless the pull request changes the CLI or `orion serve`; then each side needs its own `cli/build/orion`.
+Run Vite in each tree's `app/` on fixed ports. Use the installed `orion` binary for both unless the pull request changes the CLI or `orion server start`; then each side needs its own `cli/build/orion`.
 
 Run one side, capture it, and stop it before starting the other. A linked `node_modules` means both trees share Vite's dependency cache in `node_modules/.vite`, and two servers at once leave one blank with "504 Outdated Optimize Dep". Pass `--force` so each start rebuilds that cache for its own tree:
 
