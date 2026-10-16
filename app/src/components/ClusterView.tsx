@@ -8,6 +8,7 @@ import { useCollapsed, useGroupParts, useGroupStats, useIsDropTarget, useMarked,
 import { groupLayers } from '../style'
 import { CoverImage } from './CoverImage'
 import { Ring } from './Ring'
+import { FoldPreview } from './FoldPreview'
 
 export const ClusterView = memo(function ClusterView({ id, data, width, height }: NodeProps<ClusterNode>) {
   const actions = useContext(ActionsContext)!
@@ -43,35 +44,38 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
         </div>
       )}
       {collapsed ? (
-        <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">
-          {/* The text wraps into all the room the group has and clips only at its edge. */}
-          <div className="cluster-card-body">
-            <div className="cluster-card-title">
-              {hasWork && <Ring done={stats.done} total={stats.total} size={16} />}
-              <strong>{data.label}</strong>
-            </div>
-            {hasWork ? (
-              <span className="cluster-card-stats">
-                <span>
-                  {stats.done}/{stats.total} done
+        <>
+          <FoldPreview id={id} width={width ?? 320} height={height ?? 200} />
+          <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">
+            {/* The text wraps into all the room the group has and clips only at its edge. */}
+            <div className="cluster-card-body">
+              <div className="cluster-card-title">
+                {hasWork && <Ring done={stats.done} total={stats.total} size={16} />}
+                <strong>{data.label}</strong>
+              </div>
+              {hasWork ? (
+                <span className="cluster-card-stats">
+                  <span>
+                    {stats.done}/{stats.total} done
+                  </span>
+                  <span>{stats.ready} ready</span>
+                  <span>{stats.blocked} blocked</span>
                 </span>
-                <span>{stats.ready} ready</span>
-                <span>{stats.blocked} blocked</span>
-              </span>
-            ) : (
-              // A folded diagram group lists what it holds, so the system still reads from far out.
-              parts.length > 0 && (
-                <ul className="cluster-card-parts">
-                  {parts.map((part, i) => (
-                    <li key={i}>{part}</li>
-                  ))}
-                </ul>
-              )
-            )}
+              ) : (
+                // A folded diagram group lists what it holds, so the system still reads from far out.
+                parts.length > 0 && (
+                  <ul className="cluster-card-parts">
+                    {parts.map((part, i) => (
+                      <li key={i}>{part}</li>
+                    ))}
+                  </ul>
+                )
+              )}
+            </div>
+            {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
+            <SourceBadges sources={sources} />
           </div>
-          {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
-          <SourceBadges sources={sources} />
-        </div>
+        </>
       ) : (
         <div className="cluster-head drag" title="Double-click to open">
           {hasWork && <Ring done={stats.done} total={stats.total} />}

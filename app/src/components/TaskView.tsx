@@ -11,6 +11,28 @@ import { PeekCard } from './PeekCard'
 
 /** Zoom below which a hovered or selected card's details sit in a tag over its body that keeps one on-screen size. */
 const FAR_ZOOM = 0.3
+/** Where a card's title is, across the three skins and notes. */
+const TITLE_SELECTOR = '.label, .plain-title, .trading-title, .note-text, .plain-note-text, .trading-note-text'
+
+/** The middle of the card's title text, as a percentage of the card, so a hover lift grows out of the title. */
+function liftOrigin(card: HTMLElement) {
+  const title = card.querySelector<HTMLElement>(TITLE_SELECTOR)
+  const box = card.getBoundingClientRect()
+
+  if (!title || !box.width || !box.height) return '50% 50%'
+
+  // Text can be narrower than its block, so measure the words themselves.
+  const range = document.createRange()
+
+  range.selectNodeContents(title)
+
+  const words = range.getBoundingClientRect()
+  const text = words.width ? words : title.getBoundingClientRect()
+  const x = ((text.left + text.width / 2 - box.left) / box.width) * 100
+  const y = ((text.top + text.height / 2 - box.top) / box.height) * 100
+
+  return `${x}% ${y}%`
+}
 
 // Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
 export const TaskView = memo(function TaskView({ id, data, parentId, selected, width, height }: NodeProps<TaskNode>) {
@@ -73,7 +95,14 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   )
 
   return (
-    <div className={className} onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)}>
+    <div
+      className={className}
+      onPointerEnter={(event) => {
+        event.currentTarget.style.transformOrigin = liftOrigin(event.currentTarget)
+        setHovered(true)
+      }}
+      onPointerLeave={() => setHovered(false)}
+    >
       <Handle type="target" position={Position.Left} />
       {/* Only one card at a time grows into a tag, so tags never pile over their neighbors. */}
       {peeking ? (

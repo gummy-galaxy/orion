@@ -144,14 +144,15 @@ Spacing follows a 4px rhythm with half steps. Use these for `gap`, `padding`, an
 
 `shadow.raised` comes from the theme, since it has to read on that theme's background. The rest are shared.
 
-| Name                  | CSS property            | Legacy     | Used for                                        |
-| --------------------- | ----------------------- | ---------- | ----------------------------------------------- |
-| `shadow.raised`       | `--shadow-raised`       | `--shadow` | Cards, panels, menus, and other raised surfaces |
-| `shadow.image`        | `--shadow-image`        |            | Image nodes                                     |
-| `shadow.dialog`       | `--shadow-dialog`       |            | Settings and the command palette                |
-| `shadow.selection`    | `--shadow-selection`    |            | The halo around a selected card                 |
-| `shadow.sticker`      | `--shadow-sticker`      |            | A sticker resting on the canvas; one layer only |
-| `shadow.sticker-held` | `--shadow-sticker-held` |            | A sticker being dragged; one layer only         |
+| Name                  | CSS property            | Legacy     | Used for                                           |
+| --------------------- | ----------------------- | ---------- | -------------------------------------------------- |
+| `shadow.raised`       | `--shadow-raised`       | `--shadow` | Cards, panels, menus, and other raised surfaces    |
+| `shadow.image`        | `--shadow-image`        |            | Image nodes                                        |
+| `shadow.dialog`       | `--shadow-dialog`       |            | Settings and the command palette                   |
+| `shadow.selection`    | `--shadow-selection`    |            | The halo around a selected card                    |
+| `shadow.lift`         | `--shadow-lift`         |            | The hovered card: a light ring and a deeper shadow |
+| `shadow.sticker`      | `--shadow-sticker`      |            | A sticker resting on the canvas; one layer only    |
+| `shadow.sticker-held` | `--shadow-sticker-held` |            | A sticker being dragged; one layer only            |
 
 The sticker shadows go inside `drop-shadow()`, so each must be a single shadow with no `inset` or spread.
 
