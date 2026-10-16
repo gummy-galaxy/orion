@@ -84,7 +84,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      id-token: write
+      pull-requests: write
     defaults:
       run:
         working-directory: app
@@ -106,13 +106,22 @@ jobs:
       - name: Test
         run: npm run coverage
 
-      - name: Upload Coverage
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+      - name: Install Luau Tools with Rokit
+        if: github.event_name == 'pull_request'
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
         with:
-          use_oidc: true
-          files: app/coverage/lcov.info
-          disable_search: true
-          flags: app
+          version: v1.2.0
+          cache: true
+
+      - name: Publish Coverage
+        if: github.event_name == 'pull_request'
+        working-directory: cli
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: lute run coverage-report
 
       - name: Build
         run: npm run build

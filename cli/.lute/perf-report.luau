@@ -7,21 +7,14 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
 
+local publishPullRequestComment = require("./lib/publishPullRequestComment")
+
 local MARKER = "<!-- orion-perf -->"
 
 local env = process.env
 local perfDir = path.resolve("../app/.perf")
 local reportPath = path.join(perfDir, "report.md")
 local commentPath = path.join(perfDir, "comment.md")
-local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
-local pullRequest = assert(env.PR, "PR is not set")
-
-local function gh(args: { string }): string
-	local result = process.run({ "gh", table.unpack(args) })
-	assert(result.ok, `gh {table.concat(args, " ")} failed: {result.stderr}`)
-
-	return result.stdout
-end
 
 local report = if env.STATUS == "success" and fs.exists(reportPath)
 	then fs.readFileToString(reportPath)
@@ -41,19 +34,4 @@ if not fs.exists(perfDir) then
 	fs.createDirectory(perfDir, { makeParents = true })
 end
 
-fs.writeStringToFile(commentPath, `{MARKER}\n{report}\n{footer}\n`)
-
-local existing = gh({
-	"api",
-	`repos/{repository}/issues/{pullRequest}/comments`,
-	"--paginate",
-	"--jq",
-	`.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("{MARKER}"))) | .id`,
-})
-local commentId = string.match(existing, "%d+")
-
-if commentId then
-	gh({ "api", "-X", "PATCH", `repos/{repository}/issues/comments/{commentId}`, "-F", `body=@{commentPath}` })
-else
-	gh({ "api", `repos/{repository}/issues/{pullRequest}/comments`, "-F", `body=@{commentPath}` })
-end
+publishPullRequestComment(MARKER, `{report}\n{footer}\n`, commentPath)
