@@ -8,6 +8,7 @@ import { useCollapsed, useIsDropTarget, useGroupStats, useMarked, useSources, us
 import { groupLayers } from '../style'
 import { CoverImage } from './CoverImage'
 import { Ring } from './Ring'
+import { FoldPreview } from './FoldPreview'
 
 export const ClusterView = memo(function ClusterView({ id, data, width, height }: NodeProps<ClusterNode>) {
   const actions = useContext(ActionsContext)!
@@ -39,21 +40,24 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
         </div>
       )}
       {collapsed ? (
-        <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">
-          <div className="cluster-card-title">
-            <Ring done={stats.done} total={stats.total} size={16} />
-            <strong>{data.label}</strong>
-          </div>
-          <span className="cluster-card-stats">
-            <span>
-              {stats.done}/{stats.total} done
+        <>
+          <FoldPreview id={id} width={width ?? 320} height={height ?? 200} />
+          <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">
+            <div className="cluster-card-title">
+              <Ring done={stats.done} total={stats.total} size={16} />
+              <strong>{data.label}</strong>
+            </div>
+            <span className="cluster-card-stats">
+              <span>
+                {stats.done}/{stats.total} done
+              </span>
+              <span>{stats.ready} ready</span>
+              <span>{stats.blocked} blocked</span>
             </span>
-            <span>{stats.ready} ready</span>
-            <span>{stats.blocked} blocked</span>
-          </span>
-          {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
-          <SourceBadges sources={sources} />
-        </div>
+            {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
+            <SourceBadges sources={sources} />
+          </div>
+        </>
       ) : (
         <div className="cluster-head drag" title="Double-click to open">
           <Ring done={stats.done} total={stats.total} />
