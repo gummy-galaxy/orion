@@ -2,6 +2,7 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local cli = require("@root/cli")
+local getVersion = require("@root/getVersion")
 local handleMessage = require("@root/cli/mcp/server/handleMessage")
 local mcpTypes = require("@root/cli/mcp/types")
 local testing = require("@root/testing")
@@ -55,13 +56,35 @@ test.case("initialize negotiates a protocol version and advertises tools", funct
 	assert.eq(need(json.asObject(newer.result)).protocolVersion, "2025-11-25")
 end)
 
-test.case("initialize tells agents to record the branch a card's work starts on", function(assert)
+test.case("initialize reports the same version and commit that orion --version prints", function(assert)
+	local run = runner(testing.directory("mcp-server-version"))
+	local response = need(handleMessage(request(1, "initialize", json.object({})), run))
+	local serverInfo = need(json.asObject(need(json.asObject(response.result)).serverInfo))
+
+	assert.eq(serverInfo.version, getVersion())
+end)
+
+test.case("a stale server answers each request with an update error instead of tools", function(assert)
+	local run = runner(testing.directory("mcp-stale-request"))
+	local response = need(handleMessage(request(7, "tools/list"), run, true))
+	local failure = need(json.asObject(response.error))
+
+	assert.eq(response.id, 7)
+	assert.eq(response.result, nil)
+	assert.eq(failure.code, -32000)
+	assert.strContains(failure.message :: string, "Reconnect the MCP server")
+end)
+
+test.case("initialize says what Orion is and where a card's branch goes", function(assert)
 	local run = runner(testing.directory("mcp-instructions"))
 	local response = need(handleMessage(request(1, "initialize", json.object({})), run))
-	local instructions = need(json.asObject(response.result)).instructions
+	local instructions = need(json.asObject(response.result)).instructions :: string
 
-	assert.strContains(instructions :: string, "orion_update_item")
-	assert.strContains(instructions :: string, "branch:<owner>/<repo>@<branch>")
+	assert.strContains(instructions, "canvas")
+	assert.strContains(instructions, "orion_workspaces")
+	assert.strContains(instructions, "orion_inspect")
+	assert.strContains(instructions, "orion_update_item")
+	assert.strContains(instructions, "branch:<owner>/<repo>@<branch>")
 end)
 
 test.case("tools round-trip through the CLI and workspace storage", function(assert)

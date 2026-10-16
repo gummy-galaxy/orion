@@ -14,7 +14,7 @@ type Command = context.Command
 local COMMANDS: { [string]: Command } = { list = list, add = add, remove = remove, matches = matches }
 
 return table.freeze({
-	help = "List, add, or remove ingestion sources, and list unplaced pull requests",
+	help = "Sources that ingest imports work from",
 	define = function(parser: cli.Parser)
 		defineSubcommands(parser, COMMANDS, { "list", "add", "remove", "matches" })
 	end,
