@@ -14,7 +14,7 @@ type Command = context.Command
 local COMMANDS: { [string]: Command } = { find = find, list = list, apply = apply, dismiss = dismiss }
 
 return table.freeze({
-	help = "Find, list, apply, or dismiss group suggestions",
+	help = "Suggested groups for related cards",
 	define = function(parser: cli.Parser)
 		defineSubcommands(parser, COMMANDS, { "find", "list", "apply", "dismiss" })
 	end,

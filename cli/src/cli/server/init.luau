@@ -12,7 +12,7 @@ type Command = context.Command
 local COMMANDS: { [string]: Command } = { start = start, status = status }
 
 return table.freeze({
-	help = "Start the Orion server or report whether one is running",
+	help = "The server the app and agents talk to",
 	define = function(parser: cli.Parser)
 		defineSubcommands(parser, COMMANDS, { "start", "status" })
 	end,

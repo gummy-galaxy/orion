@@ -2,7 +2,7 @@
 
 # orion ref
 
-Take outside work off an item
+Outside work attached to cards
 
 ```sh
 orion ref <command> [options]

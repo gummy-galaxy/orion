@@ -4,6 +4,7 @@ local path = require("@std/path")
 local test = require("@std/test")
 
 local findRef = require("@root/refs/findRef")
+local getVersion = require("@root/getVersion")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -502,4 +503,9 @@ test.case("selectors work in writes and report the ids they resolved to", functi
 	assert.eq(run({ "node", "move", `label:"Ship v2.6.0"`, "--to", "ws" }), "Moved pub to ws")
 	assert.eq(run({ "group", "set", `label:"Release"`, "--label", "Renamed" }), "Updated ws · Renamed")
 	assert.eq(store.load(dir).nodes[1].data.label, "Renamed")
+end)
+
+test.case("--version prints the version and build commit the MCP server reports", function(assert)
+	local _, run = testing.createHarness("version")
+	assert.eq(run({ "--version" }), `orion {getVersion()}`)
 end)
