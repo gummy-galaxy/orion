@@ -100,7 +100,7 @@ local function renderIndex(root: CommandDescription): string
 		root.usage,
 		"```",
 		"",
-		"Every command also takes `--workspace <name>` to work in a specific workspace, and `--help` (`-h`) to print its help.",
+		"Every command also takes `--canvas <name>` to work on a specific canvas, and `--help` (`-h`) to print its help.",
 		"",
 		"| Command | What it does |",
 		"| --- | --- |",
@@ -150,7 +150,7 @@ local function renderMcp(): string
 		"",
 		"# MCP reference",
 		"",
-		"`orion mcp` serves these tools over stdio. Each one runs a CLI command, so it reads and writes the same data.",
+		"`orion mcp start` serves these tools over stdio. Each one runs a CLI command, so it reads and writes the same data.",
 		"",
 	}
 

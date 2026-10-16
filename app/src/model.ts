@@ -374,7 +374,7 @@ export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { 
   return normalize(next, cardSize)
 }
 
-/** Gap between a moved group and the siblings it lands beside, matching `orion move` in the CLI. */
+/** Gap between a moved group and the siblings it lands beside, matching `orion node move` in the CLI. */
 const ITEM_GAP = 48
 
 /** The first spot at or below `preferred` that no sibling overlaps, so a moved group keeps its place when it's free. */

@@ -752,7 +752,7 @@ end
 -- A note's incoming and outgoing links are reconnected so nothing loses its blocker.
 function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	local item = graph.get(doc, id)
-	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup or group remove instead`)
+	assert(not graph.isGroup(item), `"{id}" is a group; use group ungroup or group remove instead`)
 	if reconnect then
 		graph.checkReconnect(doc, id)
 	end
@@ -802,7 +802,7 @@ local function markForRefit(group: Item)
 	end
 end
 
--- Marks a group for the app to lay out in place, as `orion tidy` does. A pending marker is kept, since the app already
+-- Marks a group for the app to lay out in place, as `orion group tidy` does. A pending marker is kept, since the app already
 -- places that group. A custom group is marked too; the app clears the marker and leaves its arrangement alone.
 function graph.markForTidy(doc: Doc, id: string)
 	local group = graph.group(doc, id)

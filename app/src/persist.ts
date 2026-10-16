@@ -70,7 +70,7 @@ export async function imageSource(workspace: string, asset: string): Promise<str
 export type LinkLookup = { status: 'existing'; id: string; label: string } | { status: 'found'; id: string; data: TaskData }
 
 export async function lookupLink(url: string, workspace: string): Promise<LinkLookup> {
-  const unserved = new Error('Creating from a link needs orion serve.')
+  const unserved = new Error('Creating from a link needs orion server start.')
   const response = await fetch(`/api/links?workspace=${encodeURIComponent(workspace)}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

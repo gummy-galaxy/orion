@@ -42,6 +42,10 @@ local function formatRefreshReport(report: githubTypes.Report, isDryRun: boolean
 		table.insert(lines, `  not found on GitHub: {table.concat(report.missing, ", ")}`)
 	end
 
+	for _, failure in report.failures do
+		table.insert(lines, `  couldn't fetch {failure}`)
+	end
+
 	return table.concat(lines, "\n")
 end
 
