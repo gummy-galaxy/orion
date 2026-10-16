@@ -1,8 +1,9 @@
 name: Storybook
 
 # Chromatic publishes Storybook for main and for every pull request. UI Tests and UI Review stay off in the Chromatic
-# project, so these builds only publish and use no snapshots. Without the CHROMATIC_PROJECT_TOKEN secret, every step
-# after the token check skips.
+# project, so these builds only publish and use no snapshots. The CHROMATIC_PROJECT_TOKEN secret lives in the Storybook
+# environment, which also links each run's published Storybook as a deployment. Without the secret, every step after the
+# token check skips.
 
 on:
   push:
@@ -22,6 +23,9 @@ jobs:
     # A local install and Storybook build take about 9 seconds, but a cold runner also installs Rokit and uploads the build.
     # Lower this after the first real run.
     timeout-minutes: 5
+    environment:
+      name: Storybook
+      url: ${{ steps.chromatic.outputs.storybookUrl }}
     permissions:
       contents: read
       pull-requests: write
@@ -36,7 +40,7 @@ jobs:
         id: token
         env:
           CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
-        run: 'if [ -n "$CHROMATIC_PROJECT_TOKEN" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; else echo "::notice title=Storybook publishing skipped::Add the CHROMATIC_PROJECT_TOKEN secret to publish Storybook."; fi'
+        run: 'if [ -n "$CHROMATIC_PROJECT_TOKEN" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; else echo "::notice title=Storybook publishing skipped::Add the CHROMATIC_PROJECT_TOKEN secret to the Storybook environment to publish Storybook."; fi'
 
       - name: Set Up Node
         if: steps.token.outputs.enabled == 'true'
