@@ -86,6 +86,7 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 ## Habits
 
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
+- Write a note as a plain-language summary of where the card stands. Use Markdown for structure, such as headings and lists. Put code, file paths, and identifiers in code formatting rather than running them through the prose. Keep pull requests and issues in the card's refs (`orion card set <id> --ref ...`) instead of links in the text. A work log for the running record is coming, so a note doesn't need to narrate each step.
 - Look up ids with `orion card list --all` or `orion node show` rather than guessing them.
 - Group by outcome, not by repository.
 

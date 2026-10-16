@@ -48,12 +48,18 @@ export type Report = {
 	linked: { StackLink },
 	unlinked: { StackLink },
 	checked: number,
+	failures: { string },
 }
+-- Pull requests fetched by key. `checked` holds every key a successful query covered, so a key that's checked but
+-- missing from `pulls` wasn't found, and an unchecked one wasn't asked for or failed.
+export type PullResult = { pulls: { [string]: PullState }, checked: { [string]: boolean }, failures: { string } }
 export type Fetched = {
 	pulls: { [string]: PullState },
+	checked: { [string]: boolean },
 	authored: { PullState },
 	viewer: string,
 	discover: boolean,
+	failures: { string },
 }
 export type IssueState = { owner: string, name: string, number: number, title: string, url: string, host: string? }
 
