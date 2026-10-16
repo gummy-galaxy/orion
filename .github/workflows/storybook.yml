@@ -1,9 +1,9 @@
 name: Storybook
 
 # Chromatic publishes Storybook for main and for every pull request. UI Tests and UI Review stay off in the Chromatic
-# project, so these builds only publish and use no snapshots. The CHROMATIC_PROJECT_TOKEN secret lives in the Storybook
-# environment, which also links each run's published Storybook as a deployment. Without the secret, every step after the
-# token check skips.
+# project, so these builds only publish and use no snapshots. Pushes to main deploy to the Storybook environment, which
+# links each build, and pull requests deploy to Storybook Preview. Each environment holds
+# its own CHROMATIC_PROJECT_TOKEN secret. Without it, every step after the token check skips.
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
     # Lower this after the first real run.
     timeout-minutes: 5
     environment:
-      name: Storybook
+      name: ${{ github.event_name == 'push' && 'Storybook' || 'Storybook Preview' }}
       url: ${{ steps.chromatic.outputs.storybookUrl }}
     permissions:
       contents: read
