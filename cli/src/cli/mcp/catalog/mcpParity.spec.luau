@@ -18,7 +18,7 @@ local COMMAND_EXCEPTIONS: { [string]: string } = {
 	["source add jira"] = "configures a source with adapter-specific settings, so setup stays in the CLI",
 	["source add hop"] = "configures a source with adapter-specific settings, so setup stays in the CLI",
 	["source remove"] = "changes which sources ingest reads, so it stays with source add",
-	["mcp serve"] = "is the MCP server itself",
+	["mcp start"] = "is the MCP server itself",
 	["help"] = "prints help text, which MCP clients already get from tools/list",
 }
 
