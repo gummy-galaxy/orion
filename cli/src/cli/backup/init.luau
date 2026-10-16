@@ -12,7 +12,7 @@ type Command = context.Command
 local COMMANDS: { [string]: Command } = { list = backups, restore = restore }
 
 return table.freeze({
-	help = "List saved revisions and restore one as a new revision",
+	help = "Saved revisions of a canvas",
 	define = function(parser: cli.Parser)
 		defineSubcommands(parser, COMMANDS, { "list", "restore" })
 	end,

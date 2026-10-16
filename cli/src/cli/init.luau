@@ -13,6 +13,7 @@ local focus = require("@root/cli/focus")
 local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getAdapter = require("@root/adapters/getAdapter")
 local getRefs = require("@root/refs/getRefs")
+local getVersion = require("@root/getVersion")
 local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local importCommand = require("@root/cli/import")
@@ -75,6 +76,7 @@ Statuses: todo, active, review, blocked, deferred, done.
   and as blocked while something is. Notes pass blocking through and never count as work.
 Repositories are "owner/name".
 Data lives in Orion's user data folder (run orion canvas path to see it); set ORION_DATA_DIR to change it.
+Set ORION_CANVAS to pick a canvas, as --canvas does for a single command.
 The Orion app talks to orion server start, which watches the data files.
 Use orion server status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
@@ -124,6 +126,7 @@ type Parsers = {
 local function createParsers(): Parsers
 	local root = cli.parser()
 	addHelpFlag(root)
+	root:add("version", "flag", { help = "Print the Orion version and build commit" })
 	addCanvasOption(root)
 	local commands: { [string]: cli.Parser } = {}
 
@@ -143,7 +146,7 @@ local function createParsers(): Parsers
 		addJsonFlag(parser)
 	end
 
-	local card = addCommand(root, "card", "Add, list, change, finish, and import cards")
+	local card = addCommand(root, "card", "Work items on the canvas")
 
 	local cardList = addCommand(card, "list", "List work items with their derived status")
 	cardList:add("group", "option", { help = "Only items inside this group, by id or label" })
@@ -167,7 +170,7 @@ local function createParsers(): Parsers
 	addBatchOptions(addCommand(card, "done", "Mark one or more items done"), "Item ids")
 	importCommand.define(addCommand(card, "import", importCommand.help))
 
-	local note = addCommand(root, "note", "Add notes")
+	local note = addCommand(root, "note", "Notes for context, decisions, and reminders")
 	local noteAdd = addCommand(note, "add", "Add a note, optionally between two linked items")
 	noteAdd:add("text", "variadic", { help = "Note text" })
 	noteAdd:add("group", "option", { help = "Group to add it to, by id or label" })
@@ -175,7 +178,7 @@ local function createParsers(): Parsers
 	noteAdd:add("before", "option", { help = "Item the note leads into" })
 	addJsonFlag(noteAdd)
 
-	local link = addCommand(root, "link", "Link items, remove links, and insert an item into a link")
+	local link = addCommand(root, "link", "Dependencies between items")
 
 	local linkAdd = addCommand(link, "add", "Link each adjacent pair of items")
 	linkAdd:add("from", "positional", { help = "The item that has to happen first" })
@@ -198,7 +201,7 @@ local function createParsers(): Parsers
 	linkInsert:add("if-revision", "option", { help = "Write only if the document has this revision" })
 	addJsonFlag(linkInsert)
 
-	local node = addCommand(root, "node", "Show, query, remove, and move any item or group")
+	local node = addCommand(root, "node", "Any item or group")
 
 	local nodeShow = addCommand(node, "show", "Show one item or group")
 	nodeShow:add("id", "positional", { help = "Item or group id" })
@@ -218,7 +221,7 @@ local function createParsers(): Parsers
 	nodeMove:add("to", "option", { help = "Destination group, by id or label" })
 	nodeMove:add("top", "flag", { help = "Move to the top level" })
 
-	local group = addCommand(root, "group", "List, make, change, dissolve, remove, and tidy groups")
+	local group = addCommand(root, "group", "Groups of items")
 
 	local groupList = addCommand(group, "list", "List groups with their progress")
 	addJsonFlag(groupList)
@@ -255,7 +258,7 @@ local function createParsers(): Parsers
 	addBatchOptions(addCommand(group, "ungroup", "Dissolve groups, keeping their items in place"), "Group ids")
 	tidy.define(addCommand(group, "tidy", tidy.help))
 
-	local ref = addCommand(root, "ref", "Take outside work off an item")
+	local ref = addCommand(root, "ref", "Outside work attached to cards")
 	local refRemove = addCommand(ref, "remove", "Take a ref off an item")
 	refRemove:add("id", "positional", { help = "Item id" })
 	refRemove:add(
@@ -550,6 +553,11 @@ local function execute(args: { string }, options: Dependencies?)
 	local deps = dependencies(options)
 	local names, parser = selectedPath(parsers.root)
 	local command = names[1]
+
+	if parsers.root:has("version") then
+		deps.write(`orion {getVersion()}`)
+		return
+	end
 
 	if command == nil or parsers.root:has("help") then
 		deps.write(rootHelp(parsers.root))

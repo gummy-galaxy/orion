@@ -2,7 +2,7 @@
 
 # orion backup
 
-List saved revisions and restore one as a new revision
+Saved revisions of a canvas
 
 ```sh
 orion backup <command> [options]

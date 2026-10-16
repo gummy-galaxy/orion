@@ -180,7 +180,8 @@ select {
   transition:
     opacity var(--motion-duration-base),
     border-color var(--motion-duration-fast),
-    background-color var(--motion-duration-base);
+    background-color var(--motion-duration-base),
+    transform var(--motion-duration-base);
 }
 .card .meta {
   display: flex;
@@ -742,6 +743,29 @@ select {
     0 0 0 1px color-mix(in srgb, var(--text-primary) 40%, transparent);
 }
 
+/* Hover lift. Only the hovered card changes: it grows a little from the middle of its title so the title barely moves,
+   gets a light ring and a deeper shadow, and rises above its neighbors. The far-zoom tag and inspect peek already
+   enlarge the card, so they skip the lift. The ring is its own layer, since cards already use box-shadow for state. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: var(--shadow-lift);
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast);
+}
+.card:not(.far-card, .peek-card, :has(.far-card, .peek-card)):hover::before {
+  opacity: 1;
+}
+:where(:root[data-motion='on']) .card:not(.far-card, .peek-card, :has(.far-card, .peek-card)):hover {
+  transform: scale(1.04);
+}
+.react-flow__node-task:has(.card:not(.far-card):hover):not(:has(.far-card, .peek-card)) {
+  z-index: 1000 !important;
+}
+
 /* Edges: motion everywhere but behind stuck work */
 .react-flow__edge .react-flow__edge-path {
   stroke: var(--edge-default);
@@ -1012,6 +1036,49 @@ select {
     var(--stack) var(--stack) 0 0 var(--edge-default),
     var(--shadow-raised);
 }
+/* Faded miniatures of a folded group's contents sit behind its label and never take the pointer. */
+.fold-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.fold-preview rect {
+  vector-effect: non-scaling-stroke;
+}
+.fold-preview-card {
+  fill: color-mix(in srgb, var(--surface-background) 60%, var(--text-muted));
+}
+.fold-preview-card[data-status='ready'] {
+  fill: var(--status-ready);
+}
+.fold-preview-card[data-status='active'] {
+  fill: var(--status-active);
+}
+.fold-preview-card[data-status='review'] {
+  fill: var(--status-review);
+}
+.fold-preview-card[data-status='blocked'] {
+  fill: var(--status-blocked);
+}
+.fold-preview-card[data-status='deferred'],
+.fold-preview-card[data-status='done'],
+.fold-preview-card[data-status='todo'] {
+  fill: var(--text-muted);
+}
+.fold-preview-image {
+  fill: var(--text-muted);
+  opacity: 0.6;
+}
+.fold-preview-group {
+  fill: none;
+  stroke: var(--edge-default);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
 /* Folded groups paint above expanded frames. */
 .react-flow__node-cluster:has(.cluster.is-collapsed) {
   z-index: 2000 !important;
@@ -1039,6 +1106,12 @@ select {
   height: 0;
   transform: scale(var(--inv));
   transform-origin: 0 0;
+}
+/* The label rows sit on an opaque backing so a folded group's preview never draws under its text. */
+.cluster-card-title,
+.cluster-card-stats {
+  align-self: flex-start;
+  background: var(--surface-background);
 }
 .cluster-card-title {
   display: flex;

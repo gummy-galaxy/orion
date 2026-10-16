@@ -2,7 +2,7 @@
 
 # orion node
 
-Show, query, remove, and move any item or group
+Any item or group
 
 ```sh
 orion node <command> [options]

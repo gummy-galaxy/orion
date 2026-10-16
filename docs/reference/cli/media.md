@@ -2,7 +2,7 @@
 
 # orion media
 
-Insert or list media nodes
+Media on the canvas
 
 ```sh
 orion media <command> [options]

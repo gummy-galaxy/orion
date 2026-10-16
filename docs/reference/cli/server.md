@@ -2,7 +2,7 @@
 
 # orion server
 
-Start the Orion server or report whether one is running
+The server the app and agents talk to
 
 ```sh
 orion server <command> [options]

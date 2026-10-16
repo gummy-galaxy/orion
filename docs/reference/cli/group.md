@@ -2,7 +2,7 @@
 
 # orion group
 
-List, make, change, dissolve, remove, and tidy groups
+Groups of items
 
 ```sh
 orion group <command> [options]

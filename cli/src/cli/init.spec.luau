@@ -4,6 +4,7 @@ local path = require("@std/path")
 local test = require("@std/test")
 
 local findRef = require("@root/refs/findRef")
+local getVersion = require("@root/getVersion")
 local graph = require("@root/graph")
 local store = require("@root/store")
 local testing = require("@root/testing")
@@ -468,4 +469,9 @@ test.case("flat command names and --workspace are gone, and help uses the noun f
 	assert.strContains(run({ "help", "card", "list" }), "orion card list")
 	assert.strContains(run({ "help", "node", "query" }), "Fields: kind")
 	assert.strContains(run({ "card", "--help" }), "import")
+end)
+
+test.case("--version prints the version and build commit the MCP server reports", function(assert)
+	local _, run = testing.createHarness("version")
+	assert.eq(run({ "--version" }), `orion {getVersion()}`)
 end)
