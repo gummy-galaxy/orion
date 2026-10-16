@@ -2,7 +2,7 @@
 
 # orion source
 
-List, add, or remove ingestion sources, and list unplaced pull requests
+Sources that ingest imports work from
 
 ```sh
 orion source <command> [options]

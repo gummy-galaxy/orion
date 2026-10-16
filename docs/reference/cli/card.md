@@ -2,7 +2,7 @@
 
 # orion card
 
-Add, list, show, change, finish, and import cards
+Work items on the canvas
 
 ```sh
 orion card <command> [options]

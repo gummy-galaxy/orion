@@ -12,7 +12,7 @@ type Command = context.Command
 local COMMANDS: { [string]: Command } = { insert = insert, list = list }
 
 return table.freeze({
-	help = "Insert or list media nodes",
+	help = "Media on the canvas",
 	define = function(parser: cli.Parser)
 		defineSubcommands(parser, COMMANDS, { "insert", "list" })
 	end,

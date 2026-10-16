@@ -2,7 +2,7 @@
 
 # orion link
 
-Link items, remove links, and insert an item into a link
+Dependencies between items
 
 ```sh
 orion link <command> [options]

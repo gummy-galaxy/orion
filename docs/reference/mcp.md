@@ -2,7 +2,7 @@
 
 # MCP reference
 
-`orion mcp serve` serves these tools over stdio. Each one runs a CLI command, so it reads and writes the same data.
+`orion mcp start` serves these tools over stdio. Each one runs a CLI command, so it reads and writes the same data.
 
 ## orion_workspaces
 
