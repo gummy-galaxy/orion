@@ -1,5 +1,9 @@
 import type { ComponentProps } from 'react'
 import ReactMarkdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
+import rehypeSanitize from 'rehype-sanitize'
+import { HEADER_SCHEMA } from '../headerLayout'
+import { HeaderImage } from './HeaderImage'
 
 /**
  * The only elements a note can render. Anything else, including raw HTML and images,
@@ -12,10 +16,25 @@ function MarkdownLink({ node: _node, ...props }: ComponentProps<'a'> & { node?: 
   return <a {...props} target="_blank" rel="noreferrer" />
 }
 
-/** Renders Markdown as React elements, with no raw HTML. Shared by any surface that shows a short written note. */
-export function Markdown({ source, className }: { source: string; className?: string }) {
+/**
+ * Renders Markdown as React elements. By default it shows no raw HTML, which suits notes shared by any surface.
+ * With `layout`, a sanitized subset of HTML renders for layout instead (see `headerLayout.ts`), which suits headers.
+ */
+export function Markdown({ source, className, layout = false }: { source: string; className?: string; layout?: boolean }) {
+  const classes = [layout ? 'markdown markdown-layout' : 'markdown', className].filter(Boolean).join(' ')
+
+  if (layout) {
+    return (
+      <div className={classes}>
+        <ReactMarkdown rehypePlugins={[rehypeRaw, [rehypeSanitize, HEADER_SCHEMA]]} components={{ a: MarkdownLink, img: HeaderImage }}>
+          {source}
+        </ReactMarkdown>
+      </div>
+    )
+  }
+
   return (
-    <div className={className ? `markdown ${className}` : 'markdown'}>
+    <div className={classes}>
       <ReactMarkdown allowedElements={ALLOWED_ELEMENTS} unwrapDisallowed skipHtml components={{ a: MarkdownLink }}>
         {source}
       </ReactMarkdown>
