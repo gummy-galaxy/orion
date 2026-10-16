@@ -192,3 +192,7 @@ In `cli/src/`:
 - `graph.luau`: derived status and leverage, and every edit the commands make.
 - `github/`: looking up pull requests and mapping their state onto cards.
 - `render.luau`: text and JSON output.
+
+## License
+
+Orion is released under the [MIT License](LICENSE).
