@@ -1,59 +1,19 @@
 [
   {
-    "text": "list",
-    "link": "/reference/cli/list"
-  },
-  {
-    "text": "query",
-    "link": "/reference/cli/query"
-  },
-  {
-    "text": "ready",
-    "link": "/reference/cli/ready"
-  },
-  {
-    "text": "groups",
-    "link": "/reference/cli/groups"
-  },
-  {
-    "text": "show",
-    "link": "/reference/cli/show"
-  },
-  {
-    "text": "focus",
-    "link": "/reference/cli/focus"
-  },
-  {
-    "text": "add",
-    "link": "/reference/cli/add"
-  },
-  {
-    "text": "set",
-    "link": "/reference/cli/set"
-  },
-  {
-    "text": "done",
-    "link": "/reference/cli/done"
-  },
-  {
-    "text": "link",
-    "link": "/reference/cli/link"
-  },
-  {
-    "text": "insert",
-    "link": "/reference/cli/insert"
-  },
-  {
-    "text": "unlink",
-    "link": "/reference/cli/unlink"
+    "text": "card",
+    "link": "/reference/cli/card"
   },
   {
     "text": "note",
     "link": "/reference/cli/note"
   },
   {
-    "text": "remove",
-    "link": "/reference/cli/remove"
+    "text": "link",
+    "link": "/reference/cli/link"
+  },
+  {
+    "text": "node",
+    "link": "/reference/cli/node"
   },
   {
     "text": "group",
@@ -64,36 +24,20 @@
     "link": "/reference/cli/ref"
   },
   {
-    "text": "ungroup",
-    "link": "/reference/cli/ungroup"
-  },
-  {
-    "text": "move",
-    "link": "/reference/cli/move"
+    "text": "next",
+    "link": "/reference/cli/next"
   },
   {
     "text": "sync",
     "link": "/reference/cli/sync"
   },
   {
-    "text": "matches",
-    "link": "/reference/cli/matches"
+    "text": "canvas",
+    "link": "/reference/cli/canvas"
   },
   {
-    "text": "backups",
-    "link": "/reference/cli/backups"
-  },
-  {
-    "text": "media",
-    "link": "/reference/cli/media"
-  },
-  {
-    "text": "restore",
-    "link": "/reference/cli/restore"
-  },
-  {
-    "text": "serve",
-    "link": "/reference/cli/serve"
+    "text": "server",
+    "link": "/reference/cli/server"
   },
   {
     "text": "source",
@@ -104,36 +48,24 @@
     "link": "/reference/cli/ingest"
   },
   {
-    "text": "import",
-    "link": "/reference/cli/import"
+    "text": "media",
+    "link": "/reference/cli/media"
   },
   {
-    "text": "suggest",
-    "link": "/reference/cli/suggest"
+    "text": "suggestion",
+    "link": "/reference/cli/suggestion"
   },
   {
-    "text": "suggestions",
-    "link": "/reference/cli/suggestions"
-  },
-  {
-    "text": "check",
-    "link": "/reference/cli/check"
-  },
-  {
-    "text": "tidy",
-    "link": "/reference/cli/tidy"
-  },
-  {
-    "text": "path",
-    "link": "/reference/cli/path"
+    "text": "backup",
+    "link": "/reference/cli/backup"
   },
   {
     "text": "mcp",
     "link": "/reference/cli/mcp"
   },
   {
-    "text": "workspace",
-    "link": "/reference/cli/workspace"
+    "text": "focus",
+    "link": "/reference/cli/focus"
   },
   {
     "text": "help",

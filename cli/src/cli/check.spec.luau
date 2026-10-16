@@ -14,8 +14,8 @@ test.case("check reports a clean canvas as clean in text and as an empty list in
 	second.position = { x = 280, y = 78 }
 	local dir = testing.directory("check-clean")
 	store.write(dir, testing.createDoc({ outer, first, second }))
-	assert.eq(testing.run(dir, { "check" }), "No layout problems found.")
-	local values = json.asArray(json.deserialize(testing.run(dir, { "check", "--json" })) :: json.Value)
+	assert.eq(testing.run(dir, { "canvas", "check" }), "No layout problems found.")
+	local values = json.asArray(json.deserialize(testing.run(dir, { "canvas", "check", "--json" })) :: json.Value)
 	assert.eq(values and #values, 0)
-	assert.eq(testing.run(dir, { "check", "--group", "outer" }), "No layout problems found.")
+	assert.eq(testing.run(dir, { "canvas", "check", "--group", "outer" }), "No layout problems found.")
 end)
