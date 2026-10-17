@@ -1,5 +1,8 @@
-import { afterEach, expect, it, vi } from 'vitest'
-import { clearFocus, fetchRemote, reportFocus } from './persist'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { TASK_HEIGHT, TASK_WIDTH } from './model'
+import { adoptedPrint, clearFocus, displayedDoc, fetchRemote, reportFocus, storedPrint, type Remote } from './persist'
+import { pushAside } from './pushAside'
+import { skinOf } from './skins'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -42,4 +45,48 @@ it('sends a closing report for the same workspace', async () => {
 
   expect(url).toBe('/api/focus')
   expect(JSON.parse(await (body as Blob).text())).toEqual({ tab: expect.any(String), workspace: 'planning', closed: true })
+})
+
+describe('adopting a server document', () => {
+  const CLASSIC = { width: TASK_WIDTH, height: TASK_HEIGHT }
+  const TRADING = skinOf('trading').size
+
+  // The CLI's JSON encoder writes keys in hash order, so positions come back with `y` first.
+  const serverDoc = JSON.parse(`{
+    "revision": 7,
+    "settings": {},
+    "nodes": [
+      { "id": "loose", "type": "task", "position": { "y": 40, "x": 900 }, "data": { "status": "todo", "label": "Loose card", "kind": "task", "itemKind": "step" } },
+      { "id": "picture", "type": "image", "position": { "y": 600, "x": 0 }, "width": 200, "height": 150, "data": { "kind": "image", "label": "Picture", "asset": "a", "workspace": "default" } },
+      { "id": "group", "type": "cluster", "position": { "y": 0, "x": 0 }, "width": 280, "height": 182, "data": { "label": "Group", "kind": "cluster" } },
+      { "id": "inside", "type": "task", "parentId": "group", "position": { "y": 78, "x": 32 }, "data": { "kind": "task", "label": "Inside", "itemKind": "step", "status": "active" } }
+    ],
+    "links": [{ "to": "inside", "kind": "blocks", "id": "link", "from": "loose" }]
+  }`) as Remote
+
+  for (const [skin, cardSize] of [
+    ['classic', CLASSIC],
+    ['trading', TRADING],
+  ] as const) {
+    it(`leaves nothing to save with ${skin} cards`, () => {
+      const adopted = displayedDoc(serverDoc, cardSize)
+
+      expect(storedPrint(adopted, cardSize)).toBe(adoptedPrint(serverDoc, cardSize))
+    })
+
+    it(`leaves nothing to save when the same document arrives again with ${skin} cards`, () => {
+      const shown = displayedDoc(serverDoc, cardSize).nodes
+      const again = displayedDoc(serverDoc, cardSize)
+      const nodes = pushAside(shown, again.nodes, cardSize)
+
+      expect(storedPrint({ ...again, nodes }, cardSize)).toBe(adoptedPrint(serverDoc, cardSize))
+    })
+  }
+
+  it('saves positions that moved aside', () => {
+    const shown = displayedDoc(serverDoc, TRADING)
+    const nodes = shown.nodes.map((node) => (node.id === 'loose' ? { ...node, position: { x: node.position.x + 400, y: node.position.y } } : node))
+
+    expect(storedPrint({ ...shown, nodes }, TRADING)).not.toBe(adoptedPrint(serverDoc, TRADING))
+  })
 })
