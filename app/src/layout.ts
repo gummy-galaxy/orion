@@ -1,11 +1,11 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
 import {
-  GROUP_HEADER_HEIGHT,
   GROUP_PADDING,
   TASK_HEIGHT,
   TASK_WIDTH,
   ancestors,
   byId,
+  groupHeaderHeight,
   isCluster,
   normalize,
   sizeOf,
@@ -25,7 +25,8 @@ type Gap = { node: number; layer: number; component: number }
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
 type Box = Point & Size
-type Edge = [string, string]
+/** A link between two laid-out boxes, with the label it's drawn with, if any. */
+type Edge = [string, string, string?]
 
 /** Space between neighbors inside groups and at the top level. */
 export const GAP = { inner: { x: 56, y: 24 }, top: { x: 120, y: 72 } }
@@ -39,7 +40,15 @@ const elkOptions = (gap: Gap) => ({
   'elk.spacing.nodeNode': String(gap.node),
   'elk.layered.spacing.nodeNodeBetweenLayers': String(gap.layer),
   'elk.spacing.componentComponent': String(gap.component),
+  'elk.edgeLabels.placement': 'CENTER',
 })
+
+/** About how much room a link's label takes on the canvas: 11px monospace text in a tag with 6px sides. */
+export const LABEL_SIZE = { character: 6.6, padding: 12, height: 18 }
+
+export function labelWidth(text: string): number {
+  return Math.ceil(text.length * LABEL_SIZE.character) + LABEL_SIZE.padding
+}
 
 /** Top to bottom, then left to right. */
 const reading = (a: AppNode, b: AppNode) => a.position.y - b.position.y || a.position.x - b.position.x
@@ -134,7 +143,13 @@ async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Ga
     id: 'root',
     layoutOptions: elkOptions(gap),
     children: units.map((unit) => ({ id: unit.id, width: unit.width, height: unit.height })),
-    edges: edges.map(([source, target]) => ({ id: source + '>' + target, sources: [source], targets: [target] })),
+    // Labels make ELK leave room for them between the boxes they join.
+    edges: edges.map(([source, target, label]) => ({
+      id: source + '>' + target,
+      sources: [source],
+      targets: [target],
+      labels: label ? [{ id: source + '>' + target + ':label', text: label, width: labelWidth(label), height: LABEL_SIZE.height }] : [],
+    })),
   })
 
   return new Map(
@@ -240,16 +255,20 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: Card
   const seen = new Set<string>()
   const unitEdges: Edge[] = []
 
-  for (const [source, target] of edges) {
+  for (const [source, target, label] of edges) {
     const edge: Edge = [unitOf.get(source)!, unitOf.get(target)!]
+    const key = edge.join('>')
 
-    if (edge[0] === edge[1] || seen.has(edge.join('>'))) continue
+    if (edge[0] === edge[1] || seen.has(key)) continue
 
-    seen.add(edge.join('>'))
+    // A label only makes room between the two boxes it's drawn between, not around a grid of siblings.
+    if (label && edge[0] === source && edge[1] === target) edge.push(label)
+
+    seen.add(key)
     unitEdges.push(edge)
   }
 
-  const linked = new Set(unitEdges.flat())
+  const linked = new Set(unitEdges.flatMap(([source, target]) => [source, target]))
   const roots = linkRoots([...linked], unitEdges)
   const linkedBoxes = unitEdges.length
     ? await elkBoxes(
@@ -376,11 +395,12 @@ export async function reflow(
     if (!source || !target || source === target || seen.has(source + '>' + target)) continue
 
     seen.add(source + '>' + target)
-    edges.push([source, target])
+    // Only a link drawn directly between the two shows its label; lifted links are bundled.
+    edges.push(source === link.from && target === link.to && link.label ? [source, target, link.label] : [source, target])
   }
 
   const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize)
-  const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
+  const offset = groupId ? { x: GROUP_PADDING, y: groupHeaderHeight(group && isCluster(group) ? group.data : undefined) } : { x: 0, y: 0 }
 
   return normalize(
     nodes.map((node) => {

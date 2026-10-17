@@ -18,7 +18,7 @@ import { getRarity, type Rarity } from './rarity'
 
 export type CardView = {
   id: string
-  /** 'step' | 'pr' | 'placeholder' | 'gate' | 'note', from data.itemKind */
+  /** 'step' | 'pr' | 'placeholder' | 'gate' | 'note' | 'component', from data.itemKind */
   kind: ItemKind
   title: string
   tag: string
@@ -123,7 +123,8 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     ...(who ? { who, whoLabel: WHO_LABEL[who] } : {}),
     leverage: facts.leverage,
     upstream: facts.upstream,
-    ...(data.itemKind === 'note' ? {} : { rarity: getRarity(facts.upstream) }),
+    // Notes and components aren't work, so nothing about them is rare.
+    ...(data.itemKind === 'note' || data.itemKind === 'component' ? {} : { rarity: getRarity(facts.upstream) }),
     ...(checks ? { checks } : {}),
     ...(readiness ? { readiness } : {}),
     ...(checkProgress ? { checkProgress } : {}),

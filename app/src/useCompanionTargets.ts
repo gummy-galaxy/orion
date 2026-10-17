@@ -2,11 +2,11 @@ import { useStoreApi } from '@xyflow/react'
 import { useStore } from 'jotai'
 import { useCallback } from 'react'
 import { describeCard, type Hint, type PerchTarget } from './companion'
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, isNote } from './model'
+import { GROUP_PADDING, TASK_HEIGHT, groupHeaderHeight, isComponent, isNote, type ClusterData } from './model'
 import { collapsedAtom, nodesAtom, workAtom } from './state'
 
-/** How far into an open group, in canvas units, its top row of cards starts. */
-const TOP_ROW_DEPTH = GROUP_HEADER_HEIGHT + GROUP_PADDING + TASK_HEIGHT
+/** How far into an open group, in canvas units, its top row of cards ends. The header band, if any, sits above that row. */
+const topRowDepthOf = (group: { data: unknown }) => groupHeaderHeight(group.data as ClusterData) + GROUP_PADDING + TASK_HEIGHT
 
 /**
  * What the companion can perch on and what it says there, read from React Flow's measured nodes and the derived work
@@ -38,7 +38,7 @@ export function useCompanionTargets() {
       const parent = node.parentId ? nodeLookup.get(node.parentId) : undefined
       // A card in the top row of an open group perches above the group's header rather than on it.
       const parentY = parent?.type === 'cluster' && !collapsed.has(parent.id) ? parent.internals.positionAbsolute.y : undefined
-      const underHeader = parentY !== undefined && y - parentY < TOP_ROW_DEPTH
+      const underHeader = parent !== undefined && parentY !== undefined && y - parentY < topRowDepthOf(parent)
 
       shown.push({
         id: node.id,
@@ -54,7 +54,7 @@ export function useCompanionTargets() {
     (id: string): Hint | null => {
       const node = store.get(nodesAtom).find((other) => other.id === id)
 
-      if (!node || isNote(node)) return null
+      if (!node || isNote(node) || isComponent(node)) return null
 
       const work = store.get(workAtom)
 

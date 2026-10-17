@@ -14,6 +14,8 @@ local describeCommands = require("@cli/cli/describeCommands")
 local mcpTypes = require("@cli/cli/mcp/types")
 local tools = require("@cli/cli/mcp/tools")
 
+local runScript = require("@cli/runScript")
+
 type CommandDescription = describeCommands.CommandDescription
 type Argument = describeCommands.Argument
 type Tool = mcpTypes.Tool
@@ -235,48 +237,50 @@ local function formatPages(pages: { Page })
 	assert(result.ok, `Prettier failed: {result.stderr}`)
 end
 
-local current = readCurrentPages()
-local pages = collectPages()
-writePages(pages, current)
-formatPages(pages)
+runScript(function()
+	local current = readCurrentPages()
+	local pages = collectPages()
+	writePages(pages, current)
+	formatPages(pages)
 
-local generated = readCurrentPages()
-local stale: { string } = {}
+	local generated = readCurrentPages()
+	local stale: { string } = {}
 
-for file, contents in generated do
-	if current[file] ~= contents then
-		table.insert(stale, file)
-	end
-end
-
-for file in current do
-	if generated[file] == nil then
-		table.insert(stale, file)
-	end
-end
-
-table.sort(stale)
-
-if checkOnly then
-	writePages({}, generated)
-
-	for file, contents in current do
-		fs.writeStringToFile(file, contents)
-	end
-end
-
-if checkOnly and #stale > 0 then
-	print("These reference pages are out of date. Run `lute run docs` and commit the result:")
-
-	for _, file in stale do
-		print(`  {path.format(path.relative(process.cwd(), file))}`)
+	for file, contents in generated do
+		if current[file] ~= contents then
+			table.insert(stale, file)
+		end
 	end
 
-	process.exit(1)
-end
+	for file in current do
+		if generated[file] == nil then
+			table.insert(stale, file)
+		end
+	end
 
-print(
-	if #stale == 0
-		then "Reference pages are up to date"
-		else `Updated {#stale} reference {if #stale == 1 then "page" else "pages"}`
-)
+	table.sort(stale)
+
+	if checkOnly then
+		writePages({}, generated)
+
+		for file, contents in current do
+			fs.writeStringToFile(file, contents)
+		end
+	end
+
+	if checkOnly and #stale > 0 then
+		print("These reference pages are out of date. Run `lute run docs` and commit the result:")
+
+		for _, file in stale do
+			print(`  {path.format(path.relative(process.cwd(), file))}`)
+		end
+
+		process.exit(1)
+	end
+
+	print(
+		if #stale == 0
+			then "Reference pages are up to date"
+			else `Updated {#stale} reference {if #stale == 1 then "page" else "pages"}`
+	)
+end)

@@ -42,6 +42,33 @@ local NOTE_DESCRIPTION = "Replaces the whole note. " .. NOTE_STYLE
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
 
+local CLEARABLE_COLORS = table.clone(fieldValues.colors)
+table.insert(CLEARABLE_COLORS, "")
+
+local shapeField: Field = {
+	name = "shape",
+	kind = "enum",
+	values = fieldValues.shapes,
+	description = "How a component is drawn. Giving a shape makes the item a component.",
+	at = "option",
+}
+
+local colorField: Field = {
+	name = "color",
+	kind = "enum",
+	values = fieldValues.colors,
+	description = "A component's tint. Components take their nearest group's tint unless they set their own.",
+	at = "option",
+}
+
+local kindField: Field = {
+	name = "kind",
+	kind = "enum",
+	values = fieldValues.kinds,
+	description = "step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work.",
+	at = "option",
+}
+
 local workspaceField: Field = {
 	name = "workspace",
 	kind = "workspace",
@@ -148,7 +175,7 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_add_item",
-		description = "Add a work item to the canvas.",
+		description = "Add a work item, or a component for a system diagram, to the canvas.",
 		command = { "card", "add" },
 		json = true,
 		fields = {
@@ -172,13 +199,9 @@ local tools: { Tool } = {
 				at = "option",
 			},
 			{ name = "note", kind = "string", description = "Free-form note.", at = "option" },
-			{
-				name = "kind",
-				kind = "enum",
-				values = fieldValues.kinds,
-				description = "step, or gate for one that's done once everything it waits on is.",
-				at = "option",
-			},
+			kindField,
+			shapeField,
+			colorField,
 			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
 			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
@@ -202,13 +225,9 @@ local tools: { Tool } = {
 				at = "option",
 			},
 			{ name = "note", kind = "string", description = NOTE_DESCRIPTION .. " Empty clears it.", at = "option" },
-			{
-				name = "kind",
-				kind = "enum",
-				values = fieldValues.kinds,
-				description = "step, or gate for one that's done once everything it waits on is.",
-				at = "option",
-			},
+			kindField,
+			shapeField,
+			colorField,
 			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
 			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
@@ -264,7 +283,7 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_link",
-		description = "Link items so each waits on the one before it. Give more than two items to link a chain. Use related for a link that does not block work.",
+		description = "Link items so each waits on the one before it. Give more than two items to link a chain. Use related for a link that does not block work. Linking an already linked pair updates that link.",
 		command = { "link", "add" },
 		json = true,
 		fields = {
@@ -297,6 +316,12 @@ local tools: { Tool } = {
 			},
 			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
 			{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
+			{
+				name = "label",
+				kind = "string",
+				description = "What the link carries, such as HTTP or WebSocket. Empty clears it.",
+				at = "option",
+			},
 		},
 	},
 	{
@@ -435,6 +460,19 @@ local tools: { Tool } = {
 				description = "Color, color token such as card.background, or image asset id. Empty clears it.",
 				at = "option",
 			},
+			{
+				name = "header",
+				kind = "string",
+				description = "Markdown with layout HTML shown under the group's title. Empty clears it.",
+				at = "option",
+			},
+			{
+				name = "color",
+				kind = "enum",
+				values = CLEARABLE_COLORS,
+				description = "The group's tint. Components inside take it unless they set their own. Empty clears it.",
+				at = "option",
+			},
 		},
 	},
 	{
@@ -522,6 +560,12 @@ local tools: { Tool } = {
 				name = "background",
 				kind = "string",
 				description = "Color, color token such as card.background, or image asset id. Empty clears it.",
+				at = "option",
+			},
+			{
+				name = "header",
+				kind = "string",
+				description = "Markdown with layout HTML shown over the top of the canvas. Empty clears it.",
 				at = "option",
 			},
 		},

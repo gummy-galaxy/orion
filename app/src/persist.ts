@@ -41,7 +41,10 @@ export async function importImage(file: File, workspace: string): Promise<ImageA
 }
 
 /** Saves a canvas's cover or background. The server bumps the revision and announces it, so open windows reload. */
-export async function saveCanvasStyle(workspace: string, change: { cover?: string | null; background?: string | null }): Promise<boolean> {
+export async function saveCanvasStyle(
+  workspace: string,
+  change: { cover?: string | null; background?: string | null; header?: string | null },
+): Promise<boolean> {
   try {
     const response = await fetch('/api/orion/style', {
       method: 'PUT',
@@ -206,6 +209,7 @@ export function onSyncStatus(callback: (status: SyncStatus) => void) {
 }
 
 /** Only what's worth keeping; selection, measurements and handles are view state. */
+/** The stored fields of each node. A card's size comes from its kind and text, so only groups and images keep one. */
 export function slim(nodes: AppNode[]) {
   return nodes.map((node) => ({
     id: node.id,
@@ -213,8 +217,8 @@ export function slim(nodes: AppNode[]) {
     position: node.position,
     parentId: node.parentId,
     data: node.data,
-    width: node.width,
-    height: node.height,
+    width: node.type === 'task' ? undefined : node.width,
+    height: node.type === 'task' ? undefined : node.height,
   }))
 }
 

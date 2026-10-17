@@ -1,19 +1,16 @@
-local json = require("@std/json")
-
 local findRef = require("@root/refs/findRef")
 local getRefs = require("@root/refs/getRefs")
 local graph = require("@root/graph")
+local json = require("@std/json")
 local match = require("@root/match")
+local suggestTypes = require("@root/suggest/types")
 local types = require("@root/types")
 
 type Doc = types.Doc
 type Item = types.Item
 type CommandRunner = types.CommandRunner
-
-export type Group = { id: string, title: string, members: { string }, reason: string, source: string }
-export type Result = { createdAt: string, groups: { Group } }
-
-local suggest = {}
+type Group = suggestTypes.Group
+type Result = suggestTypes.Result
 
 local function getBounded(value: string?, limit: number): string?
 	return if value then value:sub(1, limit) else nil
@@ -110,11 +107,7 @@ local function getEligible(doc: Doc, scope: string): { Item }
 	local cards: { Item } = {}
 
 	for _, item in doc.nodes do
-		if
-			item.type == "task"
-			and not graph.isNote(item)
-			and (scope == "all" or item.parentId == nil or item.parentId == "unsorted")
-		then
+		if graph.isWork(item) and (scope == "all" or item.parentId == nil or item.parentId == "unsorted") then
 			table.insert(cards, item)
 		end
 	end
@@ -527,7 +520,7 @@ local function getAgentGroups(
 	return groups
 end
 
-function suggest.compute(doc: Doc, scope: string, agent: string, run: CommandRunner, now: string): (Result, boolean)
+local function compute(doc: Doc, scope: string, agent: string, run: CommandRunner, now: string): (Result, boolean)
 	assert(scope == "unsorted" or scope == "all", "scope must be unsorted or all")
 	assert(agent == "none" or agent == "claude" or agent == "codex", "agent must be claude, codex, or none")
 	local cards = getEligible(doc, scope)
@@ -551,138 +544,4 @@ function suggest.compute(doc: Doc, scope: string, agent: string, run: CommandRun
 	return { createdAt = now, groups = groups }, didFallback
 end
 
-function suggest.getStored(doc: Doc): Result
-	local saved = doc.suggestions
-	local groups: { Group } = {}
-
-	for _, raw in (if saved then json.asArray(saved.groups) else nil) or {} do
-		local object = json.asObject(raw)
-		local members: { string } = {}
-
-		for _, id in (if object then json.asArray(object.members) else nil) or {} do
-			if type(id) == "string" then
-				table.insert(members, id)
-			end
-		end
-
-		if object and type(object.id) == "string" and type(object.title) == "string" then
-			table.insert(groups, {
-				id = object.id,
-				title = object.title,
-				members = members,
-				reason = if type(object.reason) == "string" then object.reason else "",
-				source = if type(object.source) == "string" then object.source else "heuristic",
-			})
-		end
-	end
-
-	return { createdAt = if saved and type(saved.createdAt) == "string" then saved.createdAt else "", groups = groups }
-end
-
-function suggest.convertToJson(result: Result): json.Object
-	local groups: json.Array = {}
-
-	for _, group in result.groups do
-		table.insert(
-			groups,
-			json.object({
-				id = group.id,
-				title = group.title,
-				members = group.members,
-				reason = group.reason,
-				source = group.source,
-			})
-		)
-	end
-
-	return json.object({ createdAt = result.createdAt, groups = groups })
-end
-
-function suggest.save(doc: Doc, result: Result)
-	doc.suggestions = suggest.convertToJson(result)
-end
-
-function suggest.change(doc: Doc, action: string, ids: { string }, isAll: boolean): { string }
-	local result = suggest.getStored(doc)
-	assert(isAll or #ids > 0, "give suggestion ids or --all")
-	local selected: { [string]: boolean } = {}
-	local available: { [string]: boolean } = {}
-
-	for _, group in result.groups do
-		available[group.id] = true
-	end
-
-	for _, id in ids do
-		assert(available[id], `no suggestion with id "{id}"`)
-		selected[id] = true
-	end
-
-	local changed: { string } = {}
-	local remaining: { Group } = {}
-	local left: { [string]: boolean } = {}
-
-	for _, group in result.groups do
-		if isAll or selected[group.id] then
-			if action == "apply" then
-				for _, id in group.members do
-					assert(graph.find(doc, id), `no item with id "{id}"`)
-				end
-
-				local position = graph.nextSlot(doc, nil)
-				local made: Item = {
-					id = group.id,
-					type = "cluster",
-					position = position,
-					width = 280,
-					height = 110 + #group.members * 96,
-					data = json.object({ kind = "cluster", label = group.title, layout = "pending" }),
-				}
-				local base = group.title:lower():gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
-
-				if base == "" then
-					base = "group"
-				end
-
-				made.id = base:sub(1, 32)
-				local suffix = 2
-
-				while graph.find(doc, made.id) do
-					made.id = `{base:sub(1, 32)}-{suffix}`
-					suffix += 1
-				end
-
-				table.insert(doc.nodes, made)
-
-				for index, id in group.members do
-					local from = graph.get(doc, id).parentId
-
-					if from then
-						left[from] = true
-					end
-
-					graph.move(doc, id, made.id)
-					graph.get(doc, id).position = { x = 32, y = 78 + (index - 1) * 96 }
-				end
-			end
-
-			table.insert(changed, group.id)
-		else
-			table.insert(remaining, group)
-		end
-	end
-
-	-- Groups that lost cards keep their old gaps until the app tidies them.
-	for id in left do
-		local group = graph.find(doc, id)
-
-		if group and group.data.layout == nil then
-			group.data.layout = "refit"
-		end
-	end
-
-	result.groups = remaining
-	suggest.save(doc, result)
-	return changed
-end
-
-return table.freeze(suggest)
+return compute

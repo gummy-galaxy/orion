@@ -30,6 +30,7 @@ import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
+import { forgetTextWidths } from '../cardHeight'
 import { layoutOrder, reflow } from '../layout'
 import { pushAside } from '../pushAside'
 import { mergeDocs } from '../merge'
@@ -40,11 +41,13 @@ import {
   byId,
   groupSelection,
   isCluster,
+  isComponent,
   isImage,
   isNote,
   isTask,
   moveOutOfGroup,
   normalize,
+  getItemKind,
   getTaskUrl,
   sizeOf,
   getTaskTag,
@@ -61,7 +64,9 @@ import {
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { DetailStepper } from './DetailStepper'
 import { EmptyCanvas } from './EmptyCanvas'
+import { ComponentInspector } from './ComponentInspector'
 import { CurveEdge } from './CurveEdge'
+import { LinkInspector } from './LinkInspector'
 import { openExternal } from '../external'
 import { readFileSetting, saveFileSetting, saveSettings, type SavedSetting } from '../settings'
 import { addRecent, keepExistingNodes, readRecents, recentsKey, type Recent } from '../recents'
@@ -142,9 +147,11 @@ import {
   workAtom,
   workspaceAtom,
 } from '../state'
-import { applyStyleChange, backgroundColor, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import { applyStyleChange, backgroundColor, headerText, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
+import { HeaderSettings } from './HeaderSettings'
+import { Markdown } from './Markdown'
 import { StickerLayer, type PlacedSticker, type PressModifiers, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedStickers, stickerCursor, type Loadout, type Sticker } from '../sticker'
@@ -153,6 +160,7 @@ import { Toolbar, type Tool } from './Toolbar'
 import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { foldPreviews } from '../foldPreview'
 import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from '../viewport'
+import { subscribeCompactZoom, zoomLevel } from '../zoomLevel'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { type DrawCard } from '../cardDraw'
 import { useDrawnCards } from '../useDrawnCards'
@@ -160,6 +168,7 @@ import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
+import { TintSelect } from './TintSelect'
 
 type ViewNode = AppNode | GhostNode
 type FocusEntry = { viewport: Viewport; moved: boolean }
@@ -228,7 +237,21 @@ const STICKER_FRESH_MS = 700
 
 /** How far above the toolbar the sticker wheel opens. */
 const WHEEL_LIFT = 140
-const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held' }
+const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held', still: '--edge-still' }
+/** Space around a link's label, so it reads as a tag sitting on the line. */
+const EDGE_LABEL = { labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 4 }
+
+/** Links between the same two drawn ends, drawn as one thicker arrow. */
+type Bundle = { a: string; b: string; count: number; flow: Flow; labels: (string | undefined)[] }
+
+/** A bundle whose links all say the same thing keeps saying it; otherwise it counts them. */
+function bundleLabel({ count, labels }: Bundle): string | undefined {
+  const [first] = labels
+
+  if (first && labels.every((label) => label === first)) return count > 1 ? `${first} ×${count}` : first
+
+  return count > 1 ? `${count} links` : undefined
+}
 
 type Menu = {
   x: number
@@ -347,6 +370,8 @@ export function Canvas() {
   // Where focus started, and whether it has since walked to another card or level.
   const focusEntry = useRef<FocusEntry | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+  /** The link whose inspector is showing, picked by clicking it. */
+  const [pickedLink, setPickedLink] = useState<string | null>(null)
   /** The canvas's cover and background, as the workspace settings hold them. */
   const [canvasStyle, setCanvasStyle] = useState<CanvasStyle>({})
   /** The cover panel on show, for the canvas or the open group, or null while it's closed. */
@@ -354,6 +379,8 @@ export function Canvas() {
   const setWorkspaceName = useSetAtom(workspaceAtom)
   const canvasColor = backgroundColor(canvasStyle.background)
   const canvasImage = isAssetId(canvasStyle.background) ? canvasStyle.background : undefined
+  // The canvas header is the top level's: inside a group, the group's own header takes its place.
+  const canvasHeader = root ? undefined : headerText(canvasStyle.header)
 
   useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
@@ -527,20 +554,32 @@ export function Canvas() {
   useLayoutEffect(() => {
     latest.current = { nodes, links, stickers, stickerLoadout: loadout }
   }, [nodes, links, stickers, loadout])
-  // Folded groups hold one on-screen size through --inv, set outside React so zooming doesn't re-render them.
+  // Folded groups hold one on-screen size through --inv, and the zoom level sits on the canvas as data-zoom. Both are
+  // set outside React so zooming doesn't re-render every card, and React never touches either.
   useEffect(() => {
     let shown = 0
+    let shownLevel = ''
 
     const apply = (zoom: number) => {
-      if (zoom === shown) return
+      const level = zoomLevel(zoom)
+
+      if (zoom === shown && level === shownLevel) return
 
       shown = zoom
+      shownLevel = level
       canvasRef.current?.style.setProperty('--inv', String(1 / zoom))
+      canvasRef.current?.setAttribute('data-zoom', level)
     }
 
     apply(store.getState().transform[2])
 
-    return store.subscribe((state) => apply(state.transform[2]))
+    const unsubscribeLevel = subscribeCompactZoom(() => apply(store.getState().transform[2]))
+    const unsubscribeStore = store.subscribe((state) => apply(state.transform[2]))
+
+    return () => {
+      unsubscribeLevel()
+      unsubscribeStore()
+    }
   }, [store])
 
   // ---- Persistence ----
@@ -851,7 +890,11 @@ export function Canvas() {
       let next = nodes
 
       try {
-        for (const group of marked) {
+        // Inner groups go first, so a group around them is laid out with their new sizes.
+        const nodeMap = byId(nodes)
+        const depth = (id: string) => ancestors(id, nodeMap).length
+
+        for (const group of [...marked].sort((a, b) => depth(b.id) - depth(a.id))) {
           try {
             next = await reflow(next, links, group.id, cardSize)
           } catch (error) {
@@ -1270,9 +1313,9 @@ export function Canvas() {
           data: {
             kind: 'ghost',
             taskId: id,
-            label: node.data.label || 'Note',
+            label: node.data.label || (isComponent(node) ? 'Untitled component' : 'Note'),
             where: parent ? (parent.data as ClusterData).label : 'loose work',
-            status: work.status.get(id) ?? 'ready',
+            status: isComponent(node) ? undefined : (work.status.get(id) ?? 'ready'),
             side,
           },
         })
@@ -1346,7 +1389,7 @@ export function Canvas() {
   const edges = useMemo(() => {
     const resultEdges: Edge[] = []
     const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
-    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
+    const aggregates = new Map<string, Bundle>()
 
     for (const link of links) {
       const ends = drawnEnds(link)
@@ -1372,21 +1415,26 @@ export function Canvas() {
           className += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
         }
 
+        if (link.id === pickedLink && !selectedKey) className += ' is-picked'
+
         resultEdges.push({
           id: link.id,
           source: source,
           target: target,
           className: className,
           markerEnd: link.kind === 'blocks' ? marker(flow) : undefined,
+          ...(link.label ? { label: link.label, ...EDGE_LABEL } : {}),
         })
       } else if (link.kind === 'blocks') {
         const key = source + '>' + target
-        const aggregate = aggregates.get(key) ?? { a: source, b: target, count: 0, flow: 'held' }
+        const aggregate = aggregates.get(key) ?? { a: source, b: target, count: 0, flow: 'still', labels: [] }
 
         aggregate.count++
+        aggregate.labels.push(link.label)
 
-        // A bundle moves if any of its links do.
+        // A bundle moves if any of its links do, and stays still only when all of them do.
         if (flow === 'live') aggregate.flow = 'live'
+        else if (flow === 'held' && aggregate.flow === 'still') aggregate.flow = 'held'
 
         aggregates.set(key, aggregate)
       }
@@ -1399,14 +1447,15 @@ export function Canvas() {
         target: aggregate.b,
         className: `e-agg e-${aggregate.flow}`,
         selectable: false,
-        label: aggregate.count > 1 ? `${aggregate.count} links` : undefined,
+        label: bundleLabel(aggregate),
+        ...EDGE_LABEL,
         markerEnd: marker(aggregate.flow),
         style: { strokeWidth: Math.min(6, 1.5 + aggregate.count * 0.8) },
       })
     }
 
     return keepDrawn(drawnEdges, resultEdges)
-  }, [links, drawnEnds, work, trace, relatedFocus, drawnEdges])
+  }, [links, drawnEnds, work, trace, relatedFocus, drawnEdges, pickedLink, selectedKey])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1824,7 +1873,7 @@ export function Canvas() {
       if (!node || !isTask(node)) return null
 
       const parent = node.parentId ? map.get(node.parentId) : undefined
-      const status = work.status.get(id) ?? 'ready'
+      const status = isComponent(node) ? undefined : (work.status.get(id) ?? 'ready')
 
       return {
         id,
@@ -2032,15 +2081,34 @@ export function Canvas() {
 
   const updateData = useCallback(
     (id: string, patch: Partial<TaskData> | Partial<ClusterData> | Partial<ImageNode['data']>) =>
-      setNodes((currentNodes) =>
-        currentNodes.map((node) =>
-          node.id === id
-            ? ({ ...node, data: isTask(node) ? patchTaskData(node.data, patch as Partial<TaskData>) : { ...node.data, ...patch } } as AppNode)
-            : node,
-        ),
-      ),
+      setNodes((currentNodes) => {
+        let resized = false
+        const nextNodes = currentNodes.map((node) => {
+          if (node.id !== id) return node
+
+          const updated = {
+            ...node,
+            data: isTask(node) ? patchTaskData(node.data, patch as Partial<TaskData>) : { ...node.data, ...patch },
+          } as AppNode
+
+          // Notes and components grow with their text, and their group grows with them.
+          if (isTask(updated) && sizeOf(updated, cardSizeRef.current).height !== node.height) resized = true
+
+          return updated
+        })
+
+        return resized ? normalize(nextNodes, cardSizeRef.current) : nextNodes
+      }),
     [setNodes],
   )
+
+  // Card heights are measured from text, so measure again once the web fonts arrive.
+  useEffect(() => {
+    void document.fonts?.ready.then(() => {
+      forgetTextWidths()
+      setNodes((currentNodes) => normalize(currentNodes, cardSizeRef.current))
+    })
+  }, [setNodes])
 
   /** A group's cover and background live on the group, so they save with it. A null clears one. */
   const changeGroupStyle = useCallback(
@@ -2051,9 +2119,22 @@ export function Canvas() {
 
       if (change.background !== undefined) patch.background = change.background ?? undefined
 
-      updateData(id, patch)
+      if (change.header === undefined) {
+        updateData(id, patch)
+
+        return
+      }
+
+      // A header adds or removes the band under the title, so the group refits and its cards keep their places.
+      patch.header = change.header ?? undefined
+      setNodes((currentNodes) =>
+        normalize(
+          currentNodes.map((node) => (node.id === id && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node)),
+          cardSize,
+        ),
+      )
     },
-    [updateData],
+    [updateData, setNodes, cardSize],
   )
 
   /** The canvas's cover and background go to the server and show at once. The server bumps the revision, so the page reloads to match it. */
@@ -2064,11 +2145,14 @@ export function Canvas() {
 
   // ---- Notes and links ----
 
-  /** Adds a note, or a work item with `itemKind: 'step'`, with its top-left at `at` (flow coordinates), optionally spliced into links. */
+  /**
+   * Adds a note, or a work item with `itemKind: 'step'` or a component with `itemKind: 'component'`, with its top-left at
+   * `at` (flow coordinates), optionally spliced into links.
+   */
   const addNote = useCallback(
     (
       at: { x: number; y: number },
-      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' } = {},
+      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' | 'component' } = {},
     ) => {
       const { nodes: currentNodes, links: currentLinks } = latest.current
       const nodeMap = byId(currentNodes)
@@ -2076,7 +2160,7 @@ export function Canvas() {
       const parentNode = parent ? nodeMap.get(parent) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const itemKind = options.itemKind ?? 'note'
-      const id = newId(itemKind === 'note' ? 'note' : 'card')
+      const id = newId(itemKind === 'step' ? 'card' : itemKind)
       const note: AppNode = {
         id,
         type: 'task',
@@ -2475,7 +2559,23 @@ export function Canvas() {
     )
   }
 
+  /** Removes a component and its links. Unlike a note, nothing flows through it once it's gone. */
+  const deleteComponent = (id: string) => {
+    setLinks((currentLinks) => currentLinks.filter((link) => link.from !== id && link.to !== id))
+    setNodes((currentNodes) => normalize(currentNodes.filter((node) => node.id !== id)))
+  }
+
   const removeLink = (id: string) => setLinks((currentLinks) => currentLinks.filter((link) => link.id !== id))
+  const updateLink = (id: string, patch: Partial<Pick<Link, 'label'>>) =>
+    setLinks((currentLinks) => currentLinks.map((link) => (link.id === id ? { ...link, ...patch } : link)))
+
+  /** Shows a link's inspector with its label ready to type into. */
+  const editLink = (id: string) => {
+    setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
+    setPickedLink(id)
+    setEditing(`link:${id}`)
+  }
+
   /** One link per pair of cards: adding a link replaces whatever already joined them. */
   const addLink = (from: string, to: string, kind: Link['kind']) =>
     setLinks((currentLinks) => [
@@ -2528,6 +2628,7 @@ export function Canvas() {
       return [
         { label: 'Add card here', run: () => insertOnLink(link.id, 'step') },
         { label: 'Insert a note here', run: () => insertOnLink(link.id, 'note') },
+        { label: link.label ? 'Edit label' : 'Add a label', run: () => editLink(link.id) },
         { label: link.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link', run: () => flipLink(link.id) },
         'divider',
         { label: 'Remove link', danger: true, run: () => removeLink(link.id) },
@@ -2573,6 +2674,20 @@ export function Canvas() {
           { label: 'Delete note', danger: true, run: () => deleteNote(node.id) },
         ]
 
+      if (isComponent(node))
+        return [
+          ...many,
+          { label: 'Rename component', run: () => (selectOnly(node.id), setEditing(node.id)) },
+          { label: 'Add a component after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id, itemKind: 'component' }) },
+          {
+            label: 'Turn into a work item',
+            run: () =>
+              updateData(node.id, { itemKind: getItemKind({ ...node.data, itemKind: 'step' }), status: 'todo', shape: undefined, color: undefined }),
+          },
+          'divider',
+          { label: 'Delete component', danger: true, run: () => deleteComponent(node.id) },
+        ]
+
       if (isImage(node))
         return [
           ...many,
@@ -2601,12 +2716,14 @@ export function Canvas() {
           ? { label: 'Mark not done', run: () => updateData(node.id, { status: 'todo' }) }
           : { label: 'Mark done', run: () => updateData(node.id, { status: 'done' }) },
         { label: 'Add a note after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id }) },
+        { label: 'Turn into a component', run: () => updateData(node.id, { itemKind: 'component' }) },
         ...(node.parentId !== root ? [{ label: 'Open its group', run: () => jumpTo(node.id) }] : []),
       ]
     }
 
     return [
       { label: 'Add a note here', hint: hintOf('add-note'), run: () => addNote(menu.flow) },
+      { label: 'Add a component here', run: () => addNote(menu.flow, { itemKind: 'component' }) },
       { label: 'Create from link…', run: () => setLinkPrompt({ x: menu.x, y: menu.y, flow: menu.flow }) },
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }] : []),
       'divider',
@@ -2786,6 +2903,7 @@ export function Canvas() {
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
+  const pickedLinkData = pickedLink ? links.find((link) => link.id === pickedLink) : undefined
   // An inspector's name field only auto-focuses when it mounts, so a rename of a card that is already selected remounts it.
   const inspectorKey = one && editing === one.id ? `${one.id}:editing` : one?.id
   const focused = focus ? map.get(focus) : undefined
@@ -3001,7 +3119,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}${canvasHeader ? ' has-header' : ''}`}
           style={
             {
               ...(canvasColor ? { '--canvas-background': canvasColor } : {}),
@@ -3024,6 +3142,11 @@ export function Canvas() {
           {canvasStyle.cover && (
             <div className="canvas-cover">
               <CoverImage workspace={workspaces.active} asset={canvasStyle.cover} className="canvas-cover-image" />
+            </div>
+          )}
+          {canvasHeader && (
+            <div className="canvas-header">
+              <Markdown source={canvasHeader} layout />
             </div>
           )}
           {ready && (
@@ -3092,6 +3215,7 @@ export function Canvas() {
                 if (!event.metaKey && !event.shiftKey) clearStickerPicks()
 
                 setPinned(null)
+                setPickedLink(null)
 
                 // A double-click on empty canvas goes up out of the open group.
                 if (event.detail === 2 && root && tool === 'select') return openRoot(map.get(root)?.parentId ?? null)
@@ -3099,7 +3223,11 @@ export function Canvas() {
                 if (tool === 'comment') placeComment(event)
                 else if (tool === 'sticker') stamp(event)
               }}
-              onEdgeClick={() => setPinned(null)}
+              onEdgeClick={(_event, edge) => {
+                setPinned(null)
+                setPickedLink(edge.id.startsWith('agg:') ? null : edge.id)
+              }}
+              onEdgeDoubleClick={(_event, edge) => !edge.id.startsWith('agg:') && editLink(edge.id)}
               onPaneContextMenu={(event) => (focus ? event.preventDefault() : openMenu(event, { kind: 'pane' }))}
               onNodeContextMenu={(event, node) => {
                 if (focus) return event.preventDefault()
@@ -3235,19 +3363,29 @@ export function Canvas() {
               {coverTarget && selected.length === 0 && pickedStickers.length === 0 && (
                 <Panel position="top-right" className="panel inspector cover-panel">
                   {coverTarget.kind === 'canvas' ? (
-                    <CoverSettings
-                      title="Canvas cover and background"
-                      workspace={workspaces.active}
-                      current={canvasStyle}
-                      change={changeCanvasStyle}
-                    />
+                    <>
+                      <CoverSettings
+                        title="Canvas cover and background"
+                        workspace={workspaces.active}
+                        current={canvasStyle}
+                        change={changeCanvasStyle}
+                      />
+                      <HeaderSettings title="Canvas header" value={canvasStyle.header} change={(header) => changeCanvasStyle({ header })} />
+                    </>
                   ) : map.has(coverTarget.id) ? (
-                    <CoverSettings
-                      title="Group cover and background"
-                      workspace={workspaces.active}
-                      current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
-                      change={(change) => changeGroupStyle(coverTarget.id, change)}
-                    />
+                    <>
+                      <CoverSettings
+                        title="Group cover and background"
+                        workspace={workspaces.active}
+                        current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
+                        change={(change) => changeGroupStyle(coverTarget.id, change)}
+                      />
+                      <HeaderSettings
+                        title="Group header"
+                        value={(map.get(coverTarget.id)?.data as ClusterData | undefined)?.header}
+                        change={(header) => changeGroupStyle(coverTarget.id, { header })}
+                      />
+                    </>
                   ) : null}
                   <div className="row">
                     <button type="button" className="btn" onClick={() => setCoverTarget(null)}>
@@ -3283,6 +3421,22 @@ export function Canvas() {
                       doneEditing={() => setEditing(null)}
                       update={updateData}
                       remove={() => deleteNote(one.id)}
+                    />
+                  ) : isComponent(one) ? (
+                    <ComponentInspector
+                      key={one.id}
+                      node={one}
+                      focus={editing === one.id}
+                      doneEditing={() => setEditing(null)}
+                      work={work}
+                      map={map}
+                      update={updateData}
+                      remove={() => deleteComponent(one.id)}
+                      jumpTo={jumpTo}
+                      links={links}
+                      addLink={addLink}
+                      removeLink={removeLink}
+                      flipLink={flipLink}
                     />
                   ) : isTask(one) ? (
                     <TaskInspector
@@ -3341,12 +3495,24 @@ export function Canvas() {
                       />
                       {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
                       <GroupFacts stats={work.groups.get(one.id)} />
+                      <label htmlFor="g-color">Color</label>
+                      <TintSelect
+                        id="g-color"
+                        value={(one.data as ClusterData).color}
+                        inherit={one.parentId ? "Its group's" : 'None'}
+                        change={(color) => updateData(one.id, { color })}
+                      />
                       <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
                       <CoverSettings
                         title="Cover and background"
                         workspace={workspaces.active}
                         current={one.data as ClusterData}
                         change={(change) => changeGroupStyle(one.id, change)}
+                      />
+                      <HeaderSettings
+                        title="Header"
+                        value={(one.data as ClusterData).header}
+                        change={(header) => changeGroupStyle(one.id, { header })}
                       />
                       <div className="row">
                         <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
@@ -3363,6 +3529,24 @@ export function Canvas() {
                       </div>
                     </div>
                   )}
+                </Panel>
+              )}
+              {selected.length === 0 && pickedLinkData && (
+                <Panel position="top-right" className="panel inspector">
+                  <LinkInspector
+                    key={pickedLinkData.id}
+                    link={pickedLinkData}
+                    map={map}
+                    focus={editing === `link:${pickedLinkData.id}`}
+                    doneEditing={() => setEditing(null)}
+                    update={updateLink}
+                    flip={flipLink}
+                    remove={() => {
+                      removeLink(pickedLinkData.id)
+                      setPickedLink(null)
+                    }}
+                    jumpTo={jumpTo}
+                  />
                 </Panel>
               )}
 
@@ -3412,6 +3596,25 @@ export function Canvas() {
                     exitFocus()
                     deleteNote(focused.id)
                   }}
+                />
+              ) : isComponent(focused) ? (
+                <ComponentInspector
+                  node={focused}
+                  focus={false}
+                  doneEditing={() => setEditing(null)}
+                  work={work}
+                  map={map}
+                  update={updateData}
+                  remove={() => {
+                    exitFocus()
+                    deleteComponent(focused.id)
+                  }}
+                  jumpTo={focusOn}
+                  connections={false}
+                  links={links}
+                  addLink={addLink}
+                  removeLink={removeLink}
+                  flipLink={flipLink}
                 />
               ) : (
                 <TaskInspector

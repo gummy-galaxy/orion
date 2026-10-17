@@ -309,7 +309,15 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
                 onClick={() => pick(result)}
               >
                 <span className="palette-kind">
-                  {isCluster(node) ? 'Group' : node.type === 'image' ? 'Image' : node.data.itemKind === 'note' ? 'Note' : 'Card'}
+                  {isCluster(node)
+                    ? 'Group'
+                    : node.type === 'image'
+                      ? 'Image'
+                      : node.data.itemKind === 'note'
+                        ? 'Note'
+                        : node.data.itemKind === 'component'
+                          ? 'Component'
+                          : 'Card'}
                 </span>
                 <span className="palette-details">
                   <span className="palette-label">

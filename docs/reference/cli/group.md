@@ -58,15 +58,17 @@ Change a group's fields
 orion group set [id] [options]
 ```
 
-| Argument               | Description                                                                    |
-| ---------------------- | ------------------------------------------------------------------------------ |
-| `[id]`                 | Group id                                                                       |
-| `--label <value>`      | New label                                                                      |
-| `--blurb <value>`      | Group description                                                              |
-| `--arrange <value>`    | How reflow arranges a group: auto or custom                                    |
-| `--cover <value>`      | Image asset id for the cover, from orion media insert --json (empty to clear)  |
-| `--background <value>` | Color, color token such as card.background, or image asset id (empty to clear) |
-| `--json`               | Print JSON                                                                     |
+| Argument               | Description                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `[id]`                 | Group id                                                                            |
+| `--label <value>`      | New label                                                                           |
+| `--blurb <value>`      | Group description                                                                   |
+| `--arrange <value>`    | How reflow arranges a group: auto or custom                                         |
+| `--cover <value>`      | Image asset id for the cover, from orion media insert --json (empty to clear)       |
+| `--background <value>` | Color, color token such as card.background, or image asset id (empty to clear)      |
+| `--header <value>`     | Markdown with layout HTML shown under the group's title (empty to clear)            |
+| `--color <value>`      | The group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear) |
+| `--json`               | Print JSON                                                                          |
 
 ## orion group ungroup
 
