@@ -6,6 +6,7 @@ local task = require("@std/task")
 
 local deriveWorkspaceName = require("@root/deriveWorkspaceName")
 local fileNames = require("@root/fileNames")
+local fillPullFacts = require("@root/github/fillPullFacts")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
 local graph = require("@root/graph")
 local migrateItem = require("@root/refs/migrateItem")
@@ -418,6 +419,10 @@ function store.decode(text: string): Doc
 			)
 		then
 			migrateItem(item, owner, sources)
+		end
+
+		if item.type == "task" then
+			fillPullFacts(item)
 		end
 	end
 

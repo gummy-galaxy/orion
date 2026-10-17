@@ -19,7 +19,27 @@ export type Ref = {
 	status: string?,
 	isDone: boolean?,
 	updatedAt: string?,
+	-- What the source said, in its own terms. Only its adapter reads it.
 	details: json.Object?,
+
+	-- Source-neutral facts the adapter reads from details, which the app shows as they are.
+	-- When the adapter last read the source.
+	checkedAt: string?,
+	-- The source's word for the ref's state, with the source's name, such as "Approved on GitHub".
+	stateLabel: string?,
+	-- How close open work is to landing: conflict, failing, running, waiting, passing, or mergeable.
+	readiness: string?,
+	-- The ref's checks: a state of passing, failing, or pending, and while the work is open, whether they're running
+	-- or waiting and how many have finished and failed out of the total.
+	checks: json.Object?,
+	changesRequested: boolean?,
+	author: string?,
+	isMine: boolean?,
+	isReviewRequested: boolean?,
+	additions: number?,
+	deletions: number?,
+	-- The revision the facts describe, which an action taken from them, such as a merge, must still match.
+	head: string?,
 }
 
 -- Mirrors a node as the app saves it. `data` stays raw JSON so fields the app adds survive a CLI write.

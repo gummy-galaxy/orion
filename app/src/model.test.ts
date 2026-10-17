@@ -4,12 +4,13 @@ import {
   absolutePosition,
   byId,
   editPullRef,
+  getCheckCounts,
   getCheckCountsLabel,
   getItemKind,
   getPrimaryRef,
-  getPullReadiness,
   getPullRef,
   getPullRequestNumber,
+  getRefSummary,
   getTaskTag,
   getTaskUrl,
   moveOutOfGroup,
@@ -17,7 +18,6 @@ import {
   sizeOf,
   tintOf,
   type AppNode,
-  type PullDetails,
   type TaskData,
 } from './model'
 
@@ -159,38 +159,25 @@ describe('tintOf', () => {
   })
 })
 
-describe('getPullReadiness', () => {
-  const open: PullDetails = {
-    state: 'OPEN',
-    draft: false,
-    title: 'Title',
-    author: 'vocksel',
-    mine: true,
-    requestedFromYou: false,
-    updatedAt: '2026-10-08T12:00:00Z',
-    additions: 1,
-    deletions: 0,
-    checkedAt: '2026-10-08T12:00:00Z',
-  }
+describe('getRefSummary', () => {
+  const ref = { source: 'github', kind: 'pull', key: 'vocksel/orion#1' }
 
-  it('turns red for a merge conflict even while checks pass', () => {
-    expect(getPullReadiness({ ...open, checks: 'SUCCESS', mergeable: 'CONFLICTING', mergeState: 'DIRTY' })).toBe('conflict')
-    expect(getPullReadiness({ ...open, checks: 'FAILURE', mergeState: 'BLOCKED' })).toBe('failing')
+  it('names the state its adapter read and when it read it', () => {
+    const now = Date.parse('2026-10-08T14:00:00Z')
+
+    expect(getRefSummary({ ...ref, stateLabel: 'Merged on GitHub', checkedAt: '2026-10-08T12:00:00Z' }, now)).toBe(
+      'Merged on GitHub · checked 2h ago',
+    )
+    expect(getRefSummary({ ...ref, stateLabel: 'Open on GitHub' }, now)).toBe('Open on GitHub')
+    expect(getRefSummary(ref, now)).toBeUndefined()
   })
+})
 
-  it('tells running checks from ones that are all still queued', () => {
-    expect(getPullReadiness({ ...open, checks: 'PENDING', checkProgress: 'running' })).toBe('running')
-    expect(getPullReadiness({ ...open, checks: 'PENDING', checkProgress: 'waiting' })).toBe('waiting')
-    expect(getPullReadiness({ ...open, checks: 'PENDING' })).toBe('running')
-  })
-
-  it('saves ready to merge for an open pull request GitHub would merge now', () => {
-    expect(getPullReadiness({ ...open, checks: 'SUCCESS', mergeable: 'MERGEABLE', mergeState: 'CLEAN' })).toBe('mergeable')
-    expect(getPullReadiness({ ...open, mergeState: 'HAS_HOOKS' })).toBe('mergeable')
-    expect(getPullReadiness({ ...open, checks: 'SUCCESS', mergeState: 'BLOCKED' })).toBe('passing')
-    expect(getPullReadiness({ ...open, draft: true, checks: 'SUCCESS', mergeState: 'CLEAN' })).toBe('passing')
-    expect(getPullReadiness({ ...open, state: 'MERGED', checks: 'SUCCESS', mergeState: 'CLEAN' })).toBeUndefined()
-    expect(getPullReadiness(undefined)).toBeUndefined()
+describe('getCheckCounts', () => {
+  it('returns counts only when the source reported all three', () => {
+    expect(getCheckCounts({ state: 'pending', total: 8, finished: 5, failed: 0 })).toEqual({ total: 8, finished: 5, failed: 0 })
+    expect(getCheckCounts({ state: 'pending', total: 8 })).toBeUndefined()
+    expect(getCheckCounts(undefined)).toBeUndefined()
   })
 })
 

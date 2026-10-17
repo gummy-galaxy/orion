@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getCardView } from './cardView'
 import type { SourceRef } from './derive'
-import type { TaskData, TaskNode, ViewStatus } from './model'
+import type { SourceRef as SourceRefData, TaskData, TaskNode, ViewStatus } from './model'
 
 const createTaskData = (overrides: Partial<TaskData> = {}): TaskData => ({
   kind: 'task',
@@ -68,33 +68,27 @@ describe('getCardView', () => {
     expect(getCardView(taskNode, createFacts('done'))).not.toHaveProperty('whoLabel')
   })
 
-  it.each([
-    ['SUCCESS', 'passing'],
-    ['FAILURE', 'failing'],
-    ['ERROR', 'failing'],
-    ['PENDING', 'pending'],
-    ['EXPECTED', 'pending'],
-  ] as const)('maps %s checks to %s', (checks, expected) => {
-    const taskNode = createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', details: { checks } }] }))
+  it.each(['passing', 'failing', 'pending'] as const)('carries %s checks', (state) => {
+    const taskNode = createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', checks: { state } }] }))
 
-    expect(getCardView(taskNode, createFacts()).checks).toBe(expected)
+    expect(getCardView(taskNode, createFacts()).checks).toBe(state)
   })
 
   it('omits checks when the pull has no check state', () => {
-    const taskNode = createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', details: {} }] }))
+    const taskNode = createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1' }] }))
 
     expect(getCardView(taskNode, createFacts()).checks).toBeUndefined()
     expect(getCardView(createTaskNode(createTaskData()), createFacts()).checks).toBeUndefined()
   })
 
-  it('carries check progress and counts only while the pull request is open', () => {
-    const details = { checks: 'FAILURE', checkProgress: 'running', checkCounts: { total: 8, finished: 3, failed: 1 } }
-    const pull = (state: string) =>
-      createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', details: { ...details, state } }] }))
+  it('carries check progress and counts when the source reports them', () => {
+    const checks = { state: 'failing', progress: 'running', total: 8, finished: 3, failed: 1 } as const
+    const pull = (refChecks: SourceRefData['checks']) =>
+      createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', checks: refChecks }] }))
 
-    expect(getCardView(pull('OPEN'), createFacts())).toMatchObject({ checkProgress: 'running', checkCounts: details.checkCounts })
-    expect(getCardView(pull('MERGED'), createFacts())).not.toHaveProperty('checkCounts')
-    expect(getCardView(pull('MERGED'), createFacts())).not.toHaveProperty('checkProgress')
+    expect(getCardView(pull(checks), createFacts())).toMatchObject({ checkProgress: 'running', checkCounts: { total: 8, finished: 3, failed: 1 } })
+    expect(getCardView(pull({ state: 'failing' }), createFacts())).not.toHaveProperty('checkCounts')
+    expect(getCardView(pull({ state: 'failing' }), createFacts())).not.toHaveProperty('checkProgress')
   })
 
   it('opens a pull request card from its primary ref, not from another GitHub badge', () => {
@@ -127,8 +121,11 @@ describe('getCardView', () => {
 
   it('offers a merge while GitHub would merge the pull request and the card is still in play', () => {
     const url = 'https://github.com/vocksel/orion/pull/1'
-    const details = { state: 'OPEN', checks: 'SUCCESS', mergeState: 'CLEAN', head: 'abc123' }
-    const taskNode = createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', url, details }] }))
+    const taskNode = createTaskNode(
+      createTaskData({
+        refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', url, readiness: 'mergeable', checks: { state: 'passing' }, head: 'abc123' }],
+      }),
+    )
 
     expect(getCardView(taskNode, createFacts('review'))).toMatchObject({
       readiness: 'mergeable',
