@@ -370,27 +370,36 @@ select {
     transform: none;
   }
 }
-/* Finished work waiting to be closed out shimmers, so it reads as something to click. */
-.card.is-waiting::after {
-  content: '';
+/* Finished work waiting to be closed out shimmers, so it reads as something to click. The band slides by transform on
+   its own layer, which WebKit animates without repainting the card or the canvas around it. */
+.card-shimmer {
   position: absolute;
   inset: 0;
+  overflow: hidden;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--status-done) 22%, transparent) 50%, transparent 65%);
-  background-size: 250% 100%;
-  background-position: 100% 0;
 }
-:where(:root[data-motion='on']) .card.is-waiting::after {
+.card-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 250%;
+  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--status-done) 22%, transparent) 50%, transparent 65%);
+  transform: translateX(-60%);
+}
+:where(:root[data-motion='on']) .card-shimmer::before {
+  will-change: transform;
   animation: done-shimmer 2.4s ease-in-out infinite;
 }
 @keyframes done-shimmer {
   0%,
   35% {
-    background-position: 100% 0;
+    transform: translateX(-60%);
   }
   100% {
-    background-position: 0 0;
+    transform: none;
   }
 }
 /* A closed-out card carries a Done stamp, so it reads as finished on its own, with nothing beside it to compare. */
@@ -3670,10 +3679,10 @@ kbd {
 }
 .companion-tethers {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: 0;
+  top: 0;
   overflow: visible;
+  will-change: transform;
 }
 .companion-tethers path {
   fill: none;
@@ -3725,6 +3734,7 @@ kbd {
   position: absolute;
   left: 0;
   top: 0;
+  will-change: transform;
   display: flex;
   align-items: center;
   gap: var(--space-3);

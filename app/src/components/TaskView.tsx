@@ -68,6 +68,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
       ) : (
         <CardBody view={view} />
       )}
+      {waiting && <span className="card-shimmer" aria-hidden="true" />}
       {finished && !waiting && (
         <span
           className={`done-stamp${clearing !== undefined ? ' is-landing' : ''}`}
