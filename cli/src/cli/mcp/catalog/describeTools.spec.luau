@@ -4,6 +4,8 @@ local test = require("@std/test")
 local describeTools = require("@root/cli/mcp/catalog/describeTools")
 local findTool = require("@root/cli/mcp/catalog/findTool")
 
+local need = assert
+
 test.case("each tool is described with an input schema", function(assert)
 	local names: { [string]: boolean } = {}
 
@@ -39,6 +41,32 @@ test.case("note tools ask agents for a plain-language summary with code formatti
 				assert.strContains(field.description or "", "plain-language summary")
 				assert.strContains(field.description or "", "Replaces the whole note")
 			end
+		end
+	end
+end)
+
+test.case("layout tools describe every field, and check is read-only", function(assert)
+	for _, name in { "orion_tidy", "orion_check" } do
+		local tool = findTool(name)
+		assert.neq(tool, nil)
+
+		for _, field in if tool then tool.fields else {} do
+			assert.neq(field.description, nil)
+		end
+	end
+
+	for _, description in describeTools() do
+		local tool = json.asObject(description)
+
+		if tool and tool.name == "orion_tidy" then
+			local schema = need(json.asObject(need(tool.inputSchema)))
+			local properties = need(json.asObject(need(schema.properties)))
+			local ifRevision = need(json.asObject(need(properties.ifRevision)))
+			assert.eq(ifRevision.minimum, 0)
+			assert.eq(schema.required, nil)
+		elseif tool and tool.name == "orion_check" then
+			local annotations = need(json.asObject(need(tool.annotations)))
+			assert.eq(annotations.readOnlyHint, true)
 		end
 	end
 end)

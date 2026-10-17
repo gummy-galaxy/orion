@@ -3,7 +3,7 @@ import { TOKENS, type Token } from './tokens'
 
 /**
  * Shareable theme files, read from the themes folder in the data folder through `orion server start`. A file names
- * its theme and gives token values by scheme; see theme-files.md. A value reaches the page only after it passes
+ * its theme and gives token values by scheme; see docs/guide/themes.md. A value reaches the page only after it passes
  * checkValue, so a file can set colors and sizes but cannot load a URL or add rules.
  */
 const API = '/api/themes'
@@ -22,6 +22,9 @@ const FONT_TEXT = /^[a-z0-9 ,'"_-]+$/i
 const SIZE = /^(0|\d+(\.\d+)?(px|rem|em))$/
 const RADIUS = /^(0|\d+(\.\d+)?(px|rem|em|%))( (0|\d+(\.\d+)?(px|rem|em|%))){0,3}$/
 const WEIGHT = /^\d+$/
+const LINE_HEIGHT = /^\d+(\.\d+)?$/
+/** A bare line height multiplies the font size, so anything past this is a typo. */
+const MAX_LINE_HEIGHT = 10
 const DURATION = /^\d+(\.\d+)?(ms|s)$/
 /** Longer than any transition should run, so a typo can't freeze the interface for minutes. */
 const MAX_DURATION_MS = 10_000
@@ -63,6 +66,10 @@ export function checkValue(token: Token, value: string): Problem {
     case 'space':
     case 'border':
       return SIZE.test(text) && Number.parseFloat(text) <= MAX_VALUE_LENGTH ? null : 'must be a length in px, rem, or em'
+    case 'line-height':
+      return (LINE_HEIGHT.test(text) && Number(text) <= MAX_LINE_HEIGHT) || (SIZE.test(text) && Number.parseFloat(text) <= MAX_VALUE_LENGTH)
+        ? null
+        : 'must be a number, such as 1.4, or a length in px, rem, or em'
     case 'radius':
       return RADIUS.test(text) && text.split(' ').every((part) => Number.parseFloat(part) <= MAX_RADIUS)
         ? null
@@ -140,6 +147,7 @@ const PROPERTY_FOR_GROUP: Record<Token['group'], string> = {
   font: 'font-family',
   weight: 'font-weight',
   size: 'font-size',
+  'line-height': 'line-height',
   space: 'padding',
   border: 'border-width',
   radius: 'border-radius',
