@@ -14,7 +14,7 @@ local function getFieldSchema(field: Field): json.Object
 	if field.kind == "boolean" then
 		schema = json.object({ type = "boolean" })
 	elseif field.kind == "int" then
-		schema = json.object({ type = "integer", minimum = 1 })
+		schema = json.object({ type = "integer", minimum = field.minimum or 1 })
 	elseif field.kind == "strings" then
 		schema = json.object({
 			type = "array",
