@@ -26,7 +26,7 @@ describe('fetchLog', () => {
 
     const entries = await fetchLog('planning board')
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/log?workspace=planning%20board')
+    expect(fetchMock).toHaveBeenCalledWith('/api/log?canvas=planning%20board')
     expect(entries?.map((item) => item.id)).toEqual(['log-1'])
   })
 

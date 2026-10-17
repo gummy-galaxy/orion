@@ -27,7 +27,7 @@ local function getRunningRuntime(
 	local responds = checkEndpoint
 		or function(url: string): boolean
 			local succeeded, response = pcall(function()
-				return net.request(`{url}/api/workspaces`)
+				return net.request(`{url}/api/canvases`)
 			end)
 			return succeeded and response.status == 200
 		end
