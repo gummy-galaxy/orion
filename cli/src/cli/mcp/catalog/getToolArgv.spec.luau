@@ -20,6 +20,17 @@ test.case("tool arguments map onto the command each tool runs", function(assert)
 	end)
 end)
 
+test.case("create group takes a label and an optional parent", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_group", json.object({ label = "Week 1" })), " "),
+		"group create Week 1 --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_group", json.object({ label = "Monday", ["in"] = "week-1" })), " "),
+		"group create Monday --in week-1 --json"
+	)
+end)
+
 test.case("group and ref tools run their subcommands", function(assert)
 	assert.eq(
 		table.concat(getToolArgv("orion_group", json.object({ label = "Ship", items = { "ci", "pub" } })), " "),
@@ -61,7 +72,7 @@ test.case("orion_apply passes the plan inline with its dry run and revision", fu
 		table.concat(
 			getToolArgv(
 				"orion_apply",
-				json.object({ operations = steps, dryRun = true, ifRevision = 4, workspace = "release" })
+				json.object({ operations = steps, dryRun = true, ifRevision = 4, canvas = "release" })
 			),
 			" "
 		),
@@ -112,37 +123,37 @@ end)
 
 test.case("canvas tools map onto the canvas commands", function(assert)
 	assert.eq(
-		table.concat(getToolArgv("orion_create_workspace", json.object({ label = "Focus areas" })), " "),
+		table.concat(getToolArgv("orion_create_canvas", json.object({ label = "Focus areas" })), " "),
 		"canvas create --label Focus areas"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_create_workspace", json.object({ name = "focus", label = "Focus" })), " "),
+		table.concat(getToolArgv("orion_create_canvas", json.object({ name = "focus", label = "Focus" })), " "),
 		"canvas create focus --label Focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_rename_workspace", json.object({ name = "focus", label = "Focus" })), " "),
+		table.concat(getToolArgv("orion_rename_canvas", json.object({ name = "focus", label = "Focus" })), " "),
 		"canvas rename focus Focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_archive_workspace", json.object({ name = "focus" })), " "),
+		table.concat(getToolArgv("orion_archive_canvas", json.object({ name = "focus" })), " "),
 		"canvas archive focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_restore_workspace", json.object({ name = "focus" })), " "),
+		table.concat(getToolArgv("orion_restore_canvas", json.object({ name = "focus" })), " "),
 		"canvas restore focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_workspaces", json.object({ archived = true })), " "),
+		table.concat(getToolArgv("orion_canvases", json.object({ archived = true })), " "),
 		"canvas list --archived --json"
 	)
 	assert.throwsWith("missing name", function()
-		getToolArgv("orion_archive_workspace", json.object({}))
+		getToolArgv("orion_archive_canvas", json.object({}))
 	end)
 end)
 
 test.case("layout tools map onto group tidy and canvas check", function(assert)
 	assert.eq(
-		getToolArgv("orion_tidy", json.object({ ids = { "ws", "release" }, dryRun = true, workspace = "focus" })),
+		getToolArgv("orion_tidy", json.object({ ids = { "ws", "release" }, dryRun = true, canvas = "focus" })),
 		{ "group", "tidy", "ws", "release", "--dry-run", "--canvas", "focus", "--json" }
 	)
 	assert.eq(
@@ -151,7 +162,7 @@ test.case("layout tools map onto group tidy and canvas check", function(assert)
 	)
 	assert.eq(getToolArgv("orion_check", json.object({})), { "canvas", "check", "--json" })
 	assert.eq(
-		getToolArgv("orion_check", json.object({ group = "ws", workspace = "focus" })),
+		getToolArgv("orion_check", json.object({ group = "ws", canvas = "focus" })),
 		{ "canvas", "check", "--canvas", "focus", "--group", "ws", "--json" }
 	)
 	assert.throwsWith("ifRevision must be a nonnegative integer", function()

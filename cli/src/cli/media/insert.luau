@@ -29,7 +29,7 @@ return table.freeze({
 					id = item.id,
 					label = graph.label(item),
 					asset = item.data.asset,
-					workspace = options.workspace,
+					canvas = options.workspace,
 				}),
 				true
 			))

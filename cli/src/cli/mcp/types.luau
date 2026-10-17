@@ -1,6 +1,6 @@
 local json = require("@std/json")
 
-export type FieldKind = "string" | "id" | "workspace" | "enum" | "boolean" | "strings" | "int" | "operations"
+export type FieldKind = "string" | "id" | "canvas" | "enum" | "boolean" | "strings" | "int" | "operations"
 export type Placement = "positional" | "option" | "flag" | "csv"
 
 export type Field = {

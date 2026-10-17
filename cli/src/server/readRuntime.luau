@@ -7,7 +7,7 @@ local fileNames = require("@root/fileNames")
 export type Runtime = {
 	pid: number,
 	url: string,
-	workspace: string,
+	canvas: string,
 	dataFolder: string,
 	startedAt: string,
 }
@@ -28,7 +28,7 @@ local function readRuntime(root: string): Runtime?
 
 	local pid = object.pid
 	local url = object.url
-	local workspace = object.workspace
+	local canvas = object.canvas
 	local dataFolder = object.dataFolder
 	local startedAt = object.startedAt
 	if type(pid) ~= "number" or pid < 1 or pid % 1 ~= 0 then
@@ -36,14 +36,14 @@ local function readRuntime(root: string): Runtime?
 	end
 	if
 		type(url) ~= "string"
-		or type(workspace) ~= "string"
+		or type(canvas) ~= "string"
 		or type(dataFolder) ~= "string"
 		or type(startedAt) ~= "string"
 	then
 		return nil
 	end
 
-	return { pid = pid, url = url, workspace = workspace, dataFolder = dataFolder, startedAt = startedAt }
+	return { pid = pid, url = url, canvas = canvas, dataFolder = dataFolder, startedAt = startedAt }
 end
 
 return readRuntime

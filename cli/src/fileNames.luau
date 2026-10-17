@@ -3,7 +3,7 @@ return table.freeze({
 	focus = "focus.json",
 	lock = "orion.lock",
 	backups = "backups",
-	workspaces = "workspaces.json",
+	canvases = "canvases.json",
 	runtime = "serve.json",
 	settings = "settings.json",
 	themes = "themes",
