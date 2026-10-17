@@ -47,6 +47,7 @@ export default defineConfig({
         { text: 'Reference', link: '/reference/' },
         { text: 'CLI', link: '/reference/cli/', items: cliCommands, collapsed: false },
         { text: 'MCP', link: '/reference/mcp' },
+        { text: 'Interface audit', link: '/reference/interface-audit' },
       ],
       '/development/': [
         { text: 'Development', link: '/development/' },

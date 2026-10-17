@@ -22,3 +22,5 @@ Orion hasn't had its first release. Until it does, any command, option, tool, or
 - **From 1.0.0:** breaking changes ship with aliases first.
 
 The CLI and MCP pages are generated from the code that defines them, so they always match what Orion accepts.
+
+The [interface audit](/reference/interface-audit) lists what is expected to change on each surface before 0.1.0.
