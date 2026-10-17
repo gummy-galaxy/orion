@@ -43,6 +43,8 @@ export type Derived = {
 	upstream: { [string]: number },
 	rarity: { [string]: string },
 	groups: { [string]: GroupStats },
+	-- Cards snoozed right now, mapped to the UTC time they wake.
+	snoozed: { [string]: string },
 }
 
 export type ItemFields = {
@@ -60,6 +62,8 @@ export type ItemFields = {
 	kind: string?,
 	shape: string?,
 	color: string?,
+	-- The UTC time a snooze ends, in the form Orion stores; empty to wake it now.
+	snoozedUntil: string?,
 }
 
 local graph = {}
@@ -266,10 +270,14 @@ end
 
 -- Status, flow, leverage, upstream work, rarity, and group progress, all served to the app rather than derived there.
 -- Notes and components pass blocking through and never count as work, and components have no status. Gates also
--- pass blocking through, but count as work: one is done once everything it waits on is.
-function graph.derive(doc: Doc): Derived
+-- pass blocking through, but count as work: one is done once everything it waits on is. A snoozed card keeps its
+-- status and blocking, but it has no leverage and isn't ready until it wakes. `now` is a UTC time in the form Orion
+-- stores; it defaults to the current time.
+function graph.derive(doc: Doc, now: string?): Derived
+	local clock = now or os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 	local tasks: { [string]: Item } = {}
 	local parentOf: { [string]: string } = {}
+	local snoozed: { [string]: string } = {}
 
 	for _, item in doc.nodes do
 		if item.type == "task" then
@@ -278,6 +286,12 @@ function graph.derive(doc: Doc): Derived
 
 		if item.parentId then
 			parentOf[item.id] = item.parentId
+		end
+
+		local wakesAt = field(item, "snoozedUntil")
+
+		if graph.isWork(item) and wakesAt and wakesAt > clock then
+			snoozed[item.id] = wakesAt
 		end
 	end
 
@@ -458,8 +472,11 @@ function graph.derive(doc: Doc): Derived
 			end
 		end
 
-		leverage[id] = count
 		downstream[id] = work
+
+		if not snoozed[id] then
+			leverage[id] = count
+		end
 	end
 
 	local upstream = countUpstream(tasks, predecessors)
@@ -518,7 +535,9 @@ function graph.derive(doc: Doc): Derived
 			if statusValue == "done" then
 				stats.done += 1
 			elseif statusValue == "ready" then
-				stats.ready += 1
+				if not snoozed[id] then
+					stats.ready += 1
+				end
 			elseif statusValue == "blocked" then
 				stats.blocked += 1
 			end
@@ -538,7 +557,15 @@ function graph.derive(doc: Doc): Derived
 		groups[item.id] = stats
 	end
 
-	return { status = status, flow = flow, leverage = leverage, upstream = upstream, rarity = rarity, groups = groups }
+	return {
+		status = status,
+		flow = flow,
+		leverage = leverage,
+		upstream = upstream,
+		rarity = rarity,
+		groups = groups,
+		snoozed = snoozed,
+	}
 end
 
 local function uniqueId(doc: Doc, base: string): string
@@ -675,6 +702,13 @@ local function checkFields(fields: ItemFields)
 	if fields.header and fields.header ~= "" then
 		checkHeader(fields.header)
 	end
+
+	assert(
+		fields.snoozedUntil == nil
+			or fields.snoozedUntil == ""
+			or fields.snoozedUntil:match("^%d%d%d%d%-%d%d%-%d%dT%d%d:%d%d:%d%dZ$"),
+		"snoozedUntil must be a UTC time such as 2026-10-12T17:00:00Z"
+	)
 end
 
 -- Sets or clears (with an empty value) a component's shape and color.
@@ -787,7 +821,8 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.who == nil
 				and fields.note == nil
 				and fields.kind == nil
-				and fields.shape == nil,
+				and fields.shape == nil
+				and fields.snoozedUntil == nil,
 			"groups only take a label, blurb, arrange, cover, background, header, and color"
 		)
 
@@ -892,8 +927,25 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 		item.data.color = nil
 	end
 
+	if fields.snoozedUntil then
+		graph.snooze(doc, id, if fields.snoozedUntil == "" then nil else fields.snoozedUntil)
+	end
+
 	setLook(item, fields)
 	return item
+end
+
+-- Hides a work item until `untilTime`, a UTC time in the form Orion stores, or shows it again when nil.
+function graph.snooze(doc: Doc, id: string, untilTime: string?)
+	local item = graph.get(doc, id)
+	assert(not graph.isGroup(item), `"{id}" is a group; snooze works on items`)
+	assert(graph.isWork(item), `"{id}" isn't work; snooze works on work items`)
+
+	if untilTime then
+		item.data.snoozedUntil = untilTime
+	else
+		item.data.snoozedUntil = nil
+	end
 end
 
 -- Attaches outside work to an item. The repository fills in only when the item has none yet.

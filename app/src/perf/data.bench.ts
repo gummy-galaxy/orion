@@ -20,7 +20,7 @@ for (const cards of SIZES) {
   test(`${cards} cards`, async ({ bench }) => {
     await bench('buildWork', () => buildWork(toServerFacts(null), nodes, links)).run(RUN)
     await bench('traceFrom', () => traceFrom(middle, work.preds, work.succs, taskIds)).run(RUN)
-    await bench('needsAttention', () => needsAttention(nodes, work.status)).run(RUN)
+    await bench('needsAttention', () => needsAttention(nodes, work.status, work.snoozed)).run(RUN)
     await bench('normalize', () => normalize(nodes)).run(RUN)
     await bench('fingerprint', () => fingerprint(saved)).run(RUN)
     await bench('snapDrag', () => snapDrag(nodes, dragged, 8, 160)).run(RUN)

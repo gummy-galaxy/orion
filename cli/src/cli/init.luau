@@ -31,12 +31,14 @@ local resolveRef = require("@root/adapters/resolveRef")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
 local server = require("@root/cli/server")
+local snooze = require("@root/cli/snooze")
 local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggestion = require("@root/cli/suggestion")
 local theme = require("@root/cli/theme")
 local tidy = require("@root/cli/tidy")
 local types = require("@root/types")
+local unsnooze = require("@root/cli/unsnooze")
 
 type Doc = types.Doc
 type Item = types.Item
@@ -87,7 +89,7 @@ Use orion server status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
 
 local QUERY_HELP = [[
-Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref.
+Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, snoozed.
 Compare quoted values with = or !=; label and ref also support ~ for case-insensitive text.
 Combine with and, or, not, and parentheses. Missing fields never match.]]
 
@@ -182,6 +184,8 @@ local function createParsers(): Parsers
 
 	addBatchOptions(addCommand(card, "done", "Mark one or more items done"), "Item ids")
 	importCommand.define(addCommand(card, "import", importCommand.help))
+	snooze.define(addCommand(card, "snooze", snooze.help))
+	unsnooze.define(addCommand(card, "unsnooze", unsnooze.help))
 
 	local note = addCommand(root, "note", "Notes for context, decisions, and reminders")
 	local noteAdd = addCommand(note, "add", "Add a note, optionally between two linked items")
@@ -484,7 +488,7 @@ end
 
 local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
 	if asJson then
-		deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
+		deps.write(json.serialize(render.itemJson(doc, graph.derive(doc, deps.now()), item), true))
 	else
 		deps.write(`{verb} {item.id} · {graph.label(item)}`)
 	end
@@ -556,12 +560,13 @@ local function editMany(deps: Resolved, dir: string, command: string, parser: cl
 		ifRevision = requestedRevision(parser),
 		destination = if parser:has("top") then nil else destination,
 		reconnect = parser:has("reconnect"),
+		now = deps.now(),
 		write = deps.write,
 	})
 end
 
 local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
-	local derived = graph.derive(doc)
+	local derived = graph.derive(doc, deps.now())
 	local values: json.Array = {}
 	local lines = {}
 
@@ -655,20 +660,22 @@ local function execute(args: { string }, options: Dependencies?)
 
 	if key == "next" then
 		local doc = store.load(dir)
-		local derived = graph.derive(doc)
+		local derived = graph.derive(doc, deps.now())
 		printItems(
 			deps,
 			doc,
 			derived,
 			sortedTasks(doc, derived, function(item)
 				local status = derived.status[item.id]
-				return graph.isWork(item) and (status == "ready" or status == "active" or status == "review")
+				return graph.isWork(item)
+					and not derived.snoozed[item.id]
+					and (status == "ready" or status == "active" or status == "review")
 			end),
 			asJson
 		)
 	elseif key == "card list" then
 		local doc = store.load(dir)
-		local derived = graph.derive(doc)
+		local derived = graph.derive(doc, deps.now())
 		local groupId = parser:get("group")
 
 		if groupId then
@@ -688,8 +695,8 @@ local function execute(args: { string }, options: Dependencies?)
 		)
 	elseif key == "node query" then
 		local doc = store.load(dir)
-		local items = selectItems(doc, required(parser, "where"), parser:has("all"))
-		local derived = graph.derive(doc)
+		local items = selectItems(doc, required(parser, "where"), parser:has("all"), deps.now())
+		local derived = graph.derive(doc, deps.now())
 		if asJson then
 			local values: json.Array = {}
 			for _, item in items do
@@ -724,9 +731,9 @@ local function execute(args: { string }, options: Dependencies?)
 		local item = graph.get(doc, required(parser, "id"))
 
 		if asJson then
-			deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
+			deps.write(json.serialize(render.itemJson(doc, graph.derive(doc, deps.now()), item), true))
 		else
-			deps.write(render.show(doc, graph.derive(doc), item))
+			deps.write(render.show(doc, graph.derive(doc, deps.now()), item))
 		end
 	elseif key == "card add" then
 		local label = joined(parser:variadics(), "<label>")
@@ -765,6 +772,10 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif key == "card import" then
 		importCommand.run(parser, commandContext)
+	elseif key == "card snooze" then
+		snooze.run(parser, commandContext)
+	elseif key == "card unsnooze" then
+		unsnooze.run(parser, commandContext)
 	elseif key == "note add" then
 		local text = joined(parser:variadics(), "<text>")
 		local added: Item

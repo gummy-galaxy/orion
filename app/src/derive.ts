@@ -30,6 +30,8 @@ export type Derived = {
   upstream: Record<string, number>
   rarity: Record<string, Rarity>
   groups: Record<string, GroupStats>
+  /** Cards snoozed right now, mapped to the UTC time they wake. */
+  snoozed: Record<string, string>
 }
 
 export type Actions = {
@@ -156,6 +158,7 @@ export type ServerFacts = {
   upstream: Map<string, number>
   rarity: Map<string, Rarity>
   groups: Map<string, GroupStats>
+  snoozed: Map<string, string>
 }
 
 export function toServerFacts(derived: Derived | null): ServerFacts {
@@ -166,6 +169,7 @@ export function toServerFacts(derived: Derived | null): ServerFacts {
     upstream: new Map(Object.entries(derived?.upstream ?? {})),
     rarity: new Map(Object.entries(derived?.rarity ?? {})),
     groups: new Map(Object.entries(derived?.groups ?? {})),
+    snoozed: new Map(Object.entries(derived?.snoozed ?? {})),
   }
 }
 
@@ -206,12 +210,12 @@ export function traceFrom(id: string, predecessors: Map<string, string[]>, succe
 /** Cards where it's your move, gathered onto whatever shows them. */
 export type AttentionMark = { ids: string[] }
 
-/** Open work where it's your move. Blocked work can't move, so it waits. */
-export function needsAttention(nodes: AppNode[], status: Map<string, ViewStatus>) {
+/** Open work where it's your move. Blocked work can't move, so it waits, and snoozed work is set aside until it wakes. */
+export function needsAttention(nodes: AppNode[], status: Map<string, ViewStatus>, snoozed: Map<string, string>) {
   const result: string[] = []
 
   for (const node of nodes) {
-    if (!isWork(node) || !isTask(node) || node.data.who !== 'you') continue
+    if (!isWork(node) || !isTask(node) || node.data.who !== 'you' || snoozed.has(node.id)) continue
 
     const statusValue = status.get(node.id)
 

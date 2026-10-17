@@ -20,6 +20,10 @@ export type Options = {
 	ifRevision: number?,
 	destination: string?,
 	reconnect: boolean?,
+	-- The UTC time a snooze ends, for the snooze action.
+	untilTime: string?,
+	-- The current UTC time, which decides what --where sees as snoozed.
+	now: string?,
 	-- A line printed after the summary in text output.
 	note: string?,
 	-- Fields added to the JSON output.
@@ -42,6 +46,10 @@ local function editFor(options: Options, id: string): operationTypes.Operation
 		return { op = "removeGroup", id = id }
 	elseif options.action == "tidy" then
 		return { op = "tidy", id = id }
+	elseif options.action == "snooze" then
+		return { op = "setFields", id = id, fields = { snoozedUntil = assert(options.untilTime) } }
+	elseif options.action == "unsnooze" then
+		return { op = "setFields", id = id, fields = { snoozedUntil = "" } }
 	end
 
 	return { op = "move", id = id, group = options.destination }
@@ -50,13 +58,14 @@ end
 local function batchEdit(options: Options)
 	assert(#options.ids == 0 or options.where == nil, "use ids or --where, not both")
 	assert(#options.ids > 0 or options.where ~= nil, "provide ids or --where")
+	assert(options.action ~= "snooze" or options.untilTime ~= nil, "say when it wakes with --until <iso>")
 
 	local changes: { Change } = {}
 
 	local function apply(doc: Doc)
 		local targets: { Item } = {}
 		if options.where then
-			targets = selectItems(doc, options.where, true)
+			targets = selectItems(doc, options.where, true, options.now)
 		else
 			local seen: { [string]: boolean } = {}
 			for _, id in options.ids do
@@ -74,6 +83,11 @@ local function batchEdit(options: Options)
 				assert(not graph.isGroup(item), `"{item.id}" is a group; use group ungroup or group remove instead`)
 			elseif options.action == "ungroup" or options.action == "tidy" or options.action == "removeGroup" then
 				assert(graph.isGroup(item), `"{item.id}" is an item, not a group`)
+			end
+
+			if options.action == "snooze" or options.action == "unsnooze" then
+				assert(not graph.isGroup(item), `"{item.id}" is a group; snooze works on items`)
+				assert(graph.isWork(item), `"{item.id}" isn't work; snooze works on work items`)
 			end
 			table.insert(changes, { id = item.id, label = graph.label(item) })
 
@@ -131,6 +145,7 @@ local function batchEdit(options: Options)
 			revision = result.revision,
 			items = entries,
 			destination = if options.action == "move" then options.destination or json.null else nil,
+			["until"] = if options.action == "snooze" then options.untilTime else nil,
 		})
 
 		for key, value in options.extra or {} do
@@ -163,6 +178,12 @@ local function batchEdit(options: Options)
 		summary = if options.dryRun then `Would remove {count} {noun}` else `Removed {count} {noun}`
 	elseif options.action == "ungroup" then
 		summary = if options.dryRun then `Would ungroup {count} {noun}` else `Ungrouped {count} {noun}`
+	elseif options.action == "snooze" then
+		summary = if options.dryRun
+			then `Would snooze {count} {noun} until {options.untilTime}`
+			else `Snoozed {count} {noun} until {options.untilTime}`
+	elseif options.action == "unsnooze" then
+		summary = if options.dryRun then `Would wake {count} {noun}` else `Woke {count} {noun}`
 	elseif options.action == "removeGroup" then
 		local contents = `{inside} {if inside == 1 then "thing" else "things"} inside`
 		summary = if options.dryRun

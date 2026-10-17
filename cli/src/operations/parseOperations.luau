@@ -21,6 +21,7 @@ local FIELD_TYPES: { [string]: string } = {
 	kind = "string",
 	shape = "string",
 	color = "string",
+	snoozedUntil = "string",
 }
 local LINK_KINDS = { blocks = true, related = true }
 -- The add operations, and the kind of node each one makes.

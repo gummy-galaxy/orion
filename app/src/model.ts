@@ -55,6 +55,8 @@ export type TaskData = {
   shape?: ComponentShape
   /** Components only; otherwise the nearest group's tint applies. */
   color?: Tint
+  /** UTC time a snooze ends, in the form the CLI stores. Snoozed work is set aside until then. */
+  snoozedUntil?: string
   /**
    * True while a card finished outside the app waits to be closed out. The CLI store sets it on every path that
    * finishes a card and clears it on reopen. The app sends false when it finishes a card itself, so the store
