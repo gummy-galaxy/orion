@@ -70,8 +70,8 @@ local kindField: Field = {
 }
 
 local workspaceField: Field = {
-	name = "workspace",
-	kind = "workspace",
+	name = "canvas",
+	kind = "canvas",
 	description = "Canvas name. Omit to use the canvas selected in Orion.",
 	at = "option",
 	flag = "canvas",
@@ -100,11 +100,11 @@ local function buildInspectArgv(arguments: json.Object): { string }
 		appendFlag(argv, "all", arguments.all)
 	end
 
-	appendOption(argv, "canvas", arguments.workspace)
+	appendOption(argv, "canvas", arguments.canvas)
 	return argv
 end
 
--- Workspace names are optional when a label is given, so the name is passed only when present.
+-- Canvas names are optional when a label is given, so the name is passed only when present.
 local function buildCreateWorkspaceArgv(arguments: json.Object): { string }
 	local argv = { "canvas", "create" }
 	local name = getStringField(arguments.name)
@@ -130,7 +130,7 @@ local function buildTidyArgv(arguments: json.Object): { string }
 	appendOption(argv, "where", arguments.where)
 	appendFlag(argv, "dry-run", arguments.dryRun)
 	appendOption(argv, "if-revision", arguments.ifRevision)
-	appendOption(argv, "canvas", arguments.workspace)
+	appendOption(argv, "canvas", arguments.canvas)
 	return argv
 end
 
@@ -138,7 +138,7 @@ end
 -- fields onto a CLI command, and those that need more than that supply their own build.
 local tools: { Tool } = {
 	{
-		name = "orion_workspaces",
+		name = "orion_canvases",
 		description = "List Orion canvases and the active canvas, or the archived ones.",
 		annotations = { readOnlyHint = true },
 		command = { "canvas", "list" },
@@ -491,6 +491,29 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_create_group",
+		description = "Make an empty group, optionally inside another group. Add cards to it afterward with its id.",
+		command = { "group", "create" },
+		json = true,
+		fields = {
+			{
+				name = "label",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The group's name, shown on the canvas.",
+				at = "positional",
+			},
+			{
+				name = "in",
+				kind = "id",
+				description = "Id of the group to make it inside. Omit to make it at the top level.",
+				at = "option",
+			},
+			workspaceField,
+		},
+	},
+	{
 		name = "orion_update_group",
 		description = "Change a group's label, blurb, arrangement, cover, or background. Empty cover or background clears it.",
 		command = { "group", "set" },
@@ -606,13 +629,13 @@ local tools: { Tool } = {
 		},
 	},
 	{
-		name = "orion_create_workspace",
+		name = "orion_create_canvas",
 		description = "Create an Orion canvas. Without a name, one is derived from the label.",
 		command = { "canvas", "create" },
 		fields = {
 			{
 				name = "name",
-				kind = "workspace",
+				kind = "canvas",
 				description = "Canvas name. Omit it to derive one from label.",
 				at = "positional",
 			},
@@ -626,11 +649,11 @@ local tools: { Tool } = {
 		build = buildCreateWorkspaceArgv,
 	},
 	{
-		name = "orion_rename_workspace",
+		name = "orion_rename_canvas",
 		description = "Change a canvas's display label. The name and folder stay the same.",
 		command = { "canvas", "rename" },
 		fields = {
-			{ name = "name", kind = "workspace", required = true, at = "positional" },
+			{ name = "name", kind = "canvas", required = true, at = "positional" },
 			{ name = "label", kind = "string", required = true, minLength = 1, at = "positional" },
 		},
 	},
@@ -661,27 +684,27 @@ local tools: { Tool } = {
 		},
 	},
 	{
-		name = "orion_archive_workspace",
+		name = "orion_archive_canvas",
 		description = "Archive a canvas so it leaves the canvas list. Its data stays in place. The active canvas can't be archived.",
 		command = { "canvas", "archive" },
 		fields = {
-			{ name = "name", kind = "workspace", required = true, at = "positional" },
+			{ name = "name", kind = "canvas", required = true, at = "positional" },
 		},
 	},
 	{
-		name = "orion_restore_workspace",
+		name = "orion_restore_canvas",
 		description = "Restore an archived Orion canvas with its data.",
 		command = { "canvas", "restore" },
 		fields = {
-			{ name = "name", kind = "workspace", required = true, at = "positional" },
+			{ name = "name", kind = "canvas", required = true, at = "positional" },
 		},
 	},
 	{
-		name = "orion_select_workspace",
+		name = "orion_select_canvas",
 		description = "Set the active Orion canvas shown by the app.",
 		command = { "canvas", "use" },
 		fields = {
-			{ name = "name", kind = "workspace", required = true, at = "positional" },
+			{ name = "name", kind = "canvas", required = true, at = "positional" },
 		},
 	},
 	{

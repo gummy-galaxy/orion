@@ -11,7 +11,7 @@ type Tool = mcpTypes.Tool
 
 -- CLI commands MCP deliberately leaves out, each with the reason. Their options aren't checked.
 local COMMAND_EXCEPTIONS: { [string]: string } = {
-	["canvas current"] = "orion_workspaces already reports the active canvas",
+	["canvas current"] = "orion_canvases already reports the active canvas",
 	["canvas path"] = "reports the local data folder, which tools have no use for",
 	["server start"] = "runs the long-lived app server, which belongs in a terminal",
 	["source add github"] = "configures a source with adapter-specific settings, so setup stays in the CLI",

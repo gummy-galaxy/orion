@@ -3,7 +3,7 @@ import { useReactFlow, type NodeChange } from '@xyflow/react'
 import { useSetAtom } from 'jotai'
 import { POP_DISTANCE, dropTarget, followEscape, reparent, startEscape, type Escape } from './escape'
 import { liftNodes, unliftNodes } from './lift'
-import { byId, isCluster, normalize, type AppNode } from './model'
+import { byId, isCluster, normalize, pruneEmptied, type AppNode } from './model'
 import { pushAside } from './pushAside'
 import { finishDrag, snapDrag, snapGuides } from './snap'
 import { dropTargetAtom } from './state'
@@ -137,7 +137,9 @@ export function useNodeSnapping({
 
       if (!session) return setNodes((currentNodes) => normalize(currentNodes, cardSize))
 
-      const released = (currentNodes: AppNode[]) => pushAside(session.before, normalize(unliftNodes(currentNodes, session.ids), cardSize), cardSize)
+      // The drop is the edit, so a group the drag took its last card out of goes, judged against where the drag began.
+      const released = (currentNodes: AppNode[]) =>
+        pushAside(session.before, pruneEmptied(session.before, normalize(unliftNodes(currentNodes, session.ids), cardSize)), cardSize)
       const now = performance.now()
       const recentSamples = session.samples.filter((sample) => now - sample.time <= THROW_WINDOW_MS)
       const firstSample = recentSamples[0]
@@ -159,7 +161,7 @@ export function useNodeSnapping({
           return setNodes((latestNodes) =>
             pushAside(
               session.before,
-              normalize(reparent(unliftNodes(latestNodes, session.ids), escape.roots, target, escape.from), cardSize),
+              pruneEmptied(session.before, normalize(reparent(unliftNodes(latestNodes, session.ids), escape.roots, target, escape.from), cardSize)),
               cardSize,
             ),
           )

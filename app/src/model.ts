@@ -56,8 +56,9 @@ export type TaskData = {
   /** Components only; otherwise the nearest group's tint applies. */
   color?: Tint
   /**
-   * Set when the card changes to done, until it is closed out or reopened. The CLI store sets
-   * it too, on every path that finishes a card, so it is saved with the card like the other fields.
+   * True while a card finished outside the app waits to be closed out. The CLI store sets it on every path that
+   * finishes a card and clears it on reopen. The app sends false when it finishes a card itself, so the store
+   * closes it out at once and drops the flag.
    */
   celebrate?: boolean
 }
@@ -168,6 +169,22 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   deferred: 'Deferred',
   done: 'Done',
 }
+
+/** The statuses a person can record on a card, in the order the inspector lists them. */
+export const STATUS_CHOICES: { value: Status; label: string }[] = [
+  { value: 'todo', label: 'To do' },
+  { value: 'active', label: 'In progress' },
+  { value: 'review', label: 'In review' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'deferred', label: 'Deferred' },
+  { value: 'done', label: 'Done' },
+]
+
+export const WHO_CHOICES: { value: Who; label: string }[] = [
+  { value: 'you', label: 'You' },
+  { value: 'review', label: 'Reviewer' },
+  { value: 'ci', label: 'CI' },
+]
 
 export function getPrimaryRef(data: Pick<TaskData, 'refs'>): SourceRef | undefined {
   return data.refs?.find((ref) => ref.url) ?? data.refs?.[0]
@@ -297,8 +314,9 @@ function sortNodes(nodes: AppNode[]): AppNode[] {
 }
 
 /**
- * Shrinks or grows every group to hug its children, deepest first, and removes
- * groups left empty. Children keep their place on screen.
+ * Shrinks or grows every group to hug its children, deepest first. A group with nothing inside keeps its place and
+ * takes the smallest size that fits one card, so an empty group made on purpose, such as by `orion group create`,
+ * stays on the canvas. Children keep their place on screen.
  */
 function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
   const nodeMap = new Map(nodes.map((node) => [node.id, { ...node } as AppNode]))
@@ -309,7 +327,8 @@ function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
     const children = [...nodeMap.values()].filter((node) => node.parentId === group.id)
 
     if (!children.length) {
-      nodeMap.delete(group.id)
+      group.width = cardSize.width + GROUP_PADDING * 2
+      group.height = cardSize.height + GROUP_HEADER_HEIGHT + GROUP_PADDING
       continue
     }
 
@@ -348,6 +367,38 @@ export function groupHeaderHeight(data: { header?: string } | undefined): number
 
 export function normalize(nodes: AppNode[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
   return sortNodes(fitGroups(nodes, cardSize)).map((node) => hydrate(node, cardSize))
+}
+
+/**
+ * Removes the groups that `after` left with nothing inside, but only those that `before` had children in. An edit
+ * removes a group this way when it takes the group's last child out; a group that was already empty stays, and so
+ * does one the edit didn't touch. A group that goes can leave its own parent empty, so that goes too.
+ */
+export function pruneEmptied(before: AppNode[], after: AppNode[]): AppNode[] {
+  const hadChildren = new Set(before.map((node) => node.parentId).filter((id): id is string => !!id))
+  let next = after
+
+  for (;;) {
+    const haveChildren = new Set(next.map((node) => node.parentId).filter((id): id is string => !!id))
+    const emptied = new Set(next.filter((node) => isCluster(node) && hadChildren.has(node.id) && !haveChildren.has(node.id)).map((node) => node.id))
+
+    if (!emptied.size) return next
+
+    next = next.filter((node) => !emptied.has(node.id))
+  }
+}
+
+/** Removes nodes from the canvas, dropping any group they were the last of. */
+export function removeNodes(nodes: AppNode[], ids: string[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+  const removed = new Set(ids)
+
+  return pruneEmptied(
+    nodes,
+    normalize(
+      nodes.filter((node) => !removed.has(node.id)),
+      cardSize,
+    ),
+  )
 }
 
 /** Wraps the selection in a new group under the selection's nearest shared parent. */
@@ -419,7 +470,7 @@ export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { 
       )
   }
 
-  return normalize(next, cardSize)
+  return pruneEmptied(nodes, normalize(next, cardSize))
 }
 
 /** Gap between a moved group and the siblings it lands beside, matching `orion node move` in the CLI. */
@@ -466,11 +517,14 @@ export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize 
   const origin = grandparent ? absolutePosition(grandparent, nodeMap) : { x: 0, y: 0 }
   const absolute = absolutePosition(group, nodeMap)
   // Fitting first lets the old parent shrink to what remains, so the spot is checked against where it will actually be.
-  const lifted = normalize(
-    nodes.map((node) =>
-      node.id === id ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } } : node,
+  const lifted = pruneEmptied(
+    nodes,
+    normalize(
+      nodes.map((node) =>
+        node.id === id ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } } : node,
+      ),
+      cardSize,
     ),
-    cardSize,
   )
   const landed = lifted.find((node) => node.id === id)
 
