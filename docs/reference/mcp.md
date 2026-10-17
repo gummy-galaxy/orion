@@ -28,19 +28,23 @@ Read the canvas: list items, ready work, groups, PR matches, or one item/group.
 
 ## orion_add_item
 
-Add a work item to the canvas.
+Add a work item, or a component for a system diagram, to the canvas.
 
 Runs `orion card add`.
 
-| Argument    | Type                                                    | Description                                                                                               |
-| ----------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `title`     | string                                                  | **Required.**                                                                                             |
-| `workspace` | workspace                                               | Canvas name. Omit to use the canvas selected in Orion.                                                    |
-| `group`     | id                                                      |                                                                                                           |
-| `repo`      | string                                                  | Deprecated: with pr, use ref with the pull request URL instead.                                           |
-| `pr`        | int                                                     | Deprecated: use ref with the pull request URL instead.                                                    |
-| `ref`       | string                                                  | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch. |
-| `status`    | todo \| active \| review \| blocked \| deferred \| done |                                                                                                           |
+| Argument    | Type                                                                   | Description                                                                                                                                           |
+| ----------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`     | string                                                                 | **Required.**                                                                                                                                         |
+| `workspace` | workspace                                                              | Canvas name. Omit to use the canvas selected in Orion.                                                                                                |
+| `group`     | id                                                                     |                                                                                                                                                       |
+| `kind`      | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work. |
+| `shape`     | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                  |
+| `color`     | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                             |
+| `repo`      | string                                                                 | Deprecated: with pr, use ref with the pull request URL instead.                                                                                       |
+| `pr`        | int                                                                    | Deprecated: use ref with the pull request URL instead.                                                                                                |
+| `ref`       | string                                                                 | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                             |
+| `status`    | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                       |
+| `note`      | string                                                                 |                                                                                                                                                       |
 
 ## orion_update_item
 
@@ -48,17 +52,20 @@ Change fields on an existing Orion card.
 
 Runs `orion card set`.
 
-| Argument    | Type                                                    | Description                                                                                                                                                                                                                   |
-| ----------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`        | id                                                      | **Required.**                                                                                                                                                                                                                 |
-| `workspace` | workspace                                               | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                        |
-| `label`     | string                                                  |                                                                                                                                                                                                                               |
-| `status`    | todo \| active \| review \| blocked \| deferred \| done |                                                                                                                                                                                                                               |
-| `who`       | you \| review \| ci \|                                  | Whose move: you, review, or ci. Empty clears it.                                                                                                                                                                              |
-| `note`      | string                                                  | Replaces the whole note. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
-| `repo`      | string                                                  | Deprecated: with pr, use ref with the pull request URL instead.                                                                                                                                                               |
-| `pr`        | int                                                     | Deprecated: use ref with the pull request URL instead.                                                                                                                                                                        |
-| `ref`       | string                                                  | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                                                                                                     |
+| Argument    | Type                                                                   | Description                                                                                                                                                                                                                   |
+| ----------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | id                                                                     | **Required.**                                                                                                                                                                                                                 |
+| `workspace` | workspace                                                              | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                        |
+| `label`     | string                                                                 |                                                                                                                                                                                                                               |
+| `status`    | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                                                                                               |
+| `who`       | you \| review \| ci \|                                                 | Whose move: you, review, or ci. Empty clears it.                                                                                                                                                                              |
+| `note`      | string                                                                 | Replaces the whole note. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
+| `kind`      | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work.                                                                         |
+| `shape`     | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                                                                                          |
+| `color`     | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                                                                                                     |
+| `repo`      | string                                                                 | Deprecated: with pr, use ref with the pull request URL instead.                                                                                                                                                               |
+| `pr`        | int                                                                    | Deprecated: use ref with the pull request URL instead.                                                                                                                                                                        |
+| `ref`       | string                                                                 | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                                                                                                     |
 
 ## orion_add_note
 
@@ -97,18 +104,47 @@ Runs `orion media insert`.
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
 | `group`     | id        |                                                        |
 
+## orion_themes
+
+List the theme files in the Orion data folder, and whether each one can be used.
+
+Runs `orion theme list`.
+
+Takes no arguments.
+
+## orion_add_theme
+
+Check a theme JSON file against the token contract and copy it into the Orion data folder, where the app lists it. Unknown tokens are reported and ignored. A file that is malformed or sets a bad value is refused.
+
+Runs `orion theme add`.
+
+| Argument | Type   | Description                                              |
+| -------- | ------ | -------------------------------------------------------- |
+| `path`   | string | **Required.** Absolute path to a local .json theme file. |
+
+## orion_remove_theme
+
+Delete a theme file from the Orion data folder by the file name orion_themes lists.
+
+Runs `orion theme remove`.
+
+| Argument | Type   | Description                                       |
+| -------- | ------ | ------------------------------------------------- |
+| `file`   | string | **Required.** Theme file name, such as dusk.json. |
+
 ## orion_link
 
-Connect two items, optionally as a related link that does not block work.
+Connect two items, optionally as a related link that does not block work. Linking an already linked pair updates that link.
 
 Runs `orion link add`.
 
-| Argument    | Type      | Description                                            |
-| ----------- | --------- | ------------------------------------------------------ |
-| `from`      | id        | **Required.**                                          |
-| `to`        | id        | **Required.**                                          |
-| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
-| `related`   | boolean   |                                                        |
+| Argument    | Type      | Description                                                        |
+| ----------- | --------- | ------------------------------------------------------------------ |
+| `from`      | id        | **Required.**                                                      |
+| `to`        | id        | **Required.**                                                      |
+| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion.             |
+| `related`   | boolean   |                                                                    |
+| `label`     | string    | What the link carries, such as HTTP or WebSocket. Empty clears it. |
 
 ## orion_unlink
 
@@ -145,6 +181,31 @@ Runs `orion node move`.
 | `id`        | id        | **Required.**                                          |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
 | `group`     | id        |                                                        |
+
+## orion_tidy
+
+Mark groups for the app to lay out in place, deepest first, such as after adding cards in bulk. The app does the layout, so appConnected in the result says whether it runs now or when the app next opens. Custom groups keep their arrangement.
+
+Runs `orion group tidy`.
+
+| Argument     | Type      | Description                                                                            |
+| ------------ | --------- | -------------------------------------------------------------------------------------- |
+| `ids`        | strings   | Groups to tidy. Give ids or where, not both.                                           |
+| `where`      | string    | Select groups with a query expression instead of ids, such as label ~ "release".       |
+| `workspace`  | workspace | Canvas name. Omit to use the canvas selected in Orion.                                 |
+| `dryRun`     | boolean   | List the groups and the current revision without marking them.                         |
+| `ifRevision` | int       | Mark only if the canvas is still at this revision, such as the one a dry run reported. |
+
+## orion_check
+
+Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.
+
+Runs `orion canvas check`.
+
+| Argument    | Type      | Description                                               |
+| ----------- | --------- | --------------------------------------------------------- |
+| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion.    |
+| `group`     | id        | Only report problems in this group and what is inside it. |
 
 ## orion_remove
 
