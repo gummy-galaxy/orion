@@ -9,6 +9,7 @@ local getRefs = require("@root/refs/getRefs")
 local isAssetId = require("@root/media/isAssetId")
 local removeRef = require("@root/refs/removeRef")
 local setRef = require("@root/refs/setRef")
+local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -269,12 +270,6 @@ function graph.derive(doc: Doc): Derived
 	return { status = status, leverage = leverage }
 end
 
-local function slug(text: string): string
-	local value = text:lower():gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
-	value = value:sub(1, 32):gsub("%-+$", "")
-	return if value == "" then "item" else value
-end
-
 local function uniqueId(doc: Doc, base: string): string
 	if not graph.find(doc, base) then
 		return base
@@ -436,7 +431,9 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 		graph.group(doc, options.group)
 	end
 
-	local base = if options.repo and options.pr then `{slug(options.repo :: string)}-{options.pr}` else slug(label)
+	local base = if options.repo and options.pr
+		then `{slugify(options.repo :: string)}-{options.pr}`
+		else slugify(label)
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
@@ -473,7 +470,7 @@ function graph.addImage(doc: Doc, label: string, extension: string, workspace: s
 	if group then
 		graph.group(doc, group)
 	end
-	local id = uniqueId(doc, `image-{slug(label)}`)
+	local id = uniqueId(doc, `image-{slugify(label)}`)
 	local item: Item = {
 		id = id,
 		type = "image",
@@ -787,7 +784,7 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	end
 
 	local note: Item = {
-		id = uniqueId(doc, `note-{slug(text):sub(1, 24)}`),
+		id = uniqueId(doc, `note-{slugify(text, 24)}`),
 		type = "task",
 		position = position,
 		parentId = parent,
@@ -912,7 +909,7 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 
 	local origin = { x = minimumX - GROUP_PADDING, y = minimumY - GROUP_HEADER_HEIGHT }
 	local group: Item = {
-		id = uniqueId(doc, slug(label)),
+		id = uniqueId(doc, slugify(label)),
 		type = "cluster",
 		position = origin,
 		parentId = parent,

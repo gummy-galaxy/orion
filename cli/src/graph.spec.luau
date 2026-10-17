@@ -164,6 +164,23 @@ test.case("addItem names pull requests after the repository and number", functio
 	assert.eq(graph.addItem(doc, "Ship it", {}).id, "ship-it-2")
 end)
 
+test.case("addItem cuts long ids at a word boundary and suffixes collisions", function(assert)
+	local doc = testing.createDoc({})
+	local label = "Pick the next slider family piece to build"
+	assert.eq(graph.addItem(doc, label, {}).id, "pick-the-next-slider-family")
+	assert.eq(graph.addItem(doc, label, {}).id, "pick-the-next-slider-family-2")
+end)
+
+test.case("setFields keeps an item's id when its label changes", function(assert)
+	local doc = testing.createDoc({ testing.group("g", "Group") })
+	local item = graph.addItem(doc, "Ship it", {})
+	graph.setFields(doc, item.id, { label = "Ship the release" })
+	graph.setFields(doc, "g", { label = "Release work" })
+	assert.eq(item.id, "ship-it")
+	assert.eq(graph.get(doc, "ship-it").data.label, "Ship the release")
+	assert.eq(graph.get(doc, "g").data.label, "Release work")
+end)
+
 test.case("repo and pull fields use full repository names and refs", function(assert)
 	local doc = testing.createDoc({})
 	assert.throwsWith("repo must be owner/name", function()
