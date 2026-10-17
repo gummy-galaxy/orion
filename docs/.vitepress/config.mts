@@ -24,8 +24,23 @@ export default defineConfig({
     logo: '/logo.png',
     nav: [
       { text: 'Guide', link: '/guide/getting-started' },
-      { text: 'CLI', link: '/reference/cli/' },
-      { text: 'MCP', link: '/reference/mcp' },
+      {
+        text: 'Reference',
+        activeMatch: '^/reference/',
+        items: [
+          { text: 'CLI', link: '/reference/cli/' },
+          { text: 'MCP', link: '/reference/mcp' },
+        ],
+      },
+      {
+        text: 'Development',
+        activeMatch: '^/development/',
+        items: [
+          { text: 'Overview', link: '/development/' },
+          { text: 'Design', link: '/development/design/' },
+          { text: 'Engineering', link: '/development/engineering/' },
+        ],
+      },
     ],
     sidebar: {
       '/guide/': [
@@ -46,6 +61,11 @@ export default defineConfig({
       '/reference/': [
         { text: 'CLI', link: '/reference/cli/', items: cliCommands, collapsed: false },
         { text: 'MCP', link: '/reference/mcp' },
+      ],
+      '/development/': [
+        { text: 'Development', link: '/development/' },
+        { text: 'Design', link: '/development/design/' },
+        { text: 'Engineering', link: '/development/engineering/' },
       ],
     },
     search: { provider: 'local' },

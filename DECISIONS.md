@@ -345,3 +345,13 @@ Orion installs to `/Applications/Orion.app` so every user on the machine gets it
 **Why:** every build shares one bundle id, so a second copy in `~/Applications` shows up as a duplicate Orion and leaves the CLI and the app running different builds.
 
 2026-10-13
+
+## Docs
+
+### The docs site has Guide, Reference, and Development sections
+
+Guide pages teach someone who has never used Orion. Reference pages are generated from the CLI's command table and the MCP tool catalog. Development holds pages about how Orion is made, split into Design and Engineering: audits, proposals, and studies. The top nav shows Guide, Reference with CLI and MCP under it, and Development.
+
+**Why:** hand-written write-ups need a home that the reference generator doesn't own, since it removes any page in `docs/reference/` it didn't write. A Development section keeps them apart from the pages that describe what Orion does today, and one umbrella leaves room for Design and Engineering to grow without crowding the nav.
+
+2026-10-17
