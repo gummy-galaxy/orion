@@ -3,7 +3,9 @@ local path = require("@std/path")
 
 -- Creates a folder and its parents unless it's already there. Another process
 -- can create it between the check and the create, which only counts as a
--- failure if the folder still doesn't exist afterward.
+-- failure if the folder still doesn't exist afterward. Lute's `makeParents` has
+-- the same gap: it checks each parent before creating it, and a folder that
+-- already exists fails the create.
 local function ensureDirectory(dir: path.Pathlike)
 	local failure: unknown = nil
 
