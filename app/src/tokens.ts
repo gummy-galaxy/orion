@@ -45,6 +45,19 @@ export const TOKENS: readonly Token[] = [
   { name: 'companion.glow', cssVar: '--companion-glow', group: 'color' },
   { name: 'companion.tether', cssVar: '--companion-tether', group: 'color' },
 
+  { name: 'trading.background', cssVar: '--trading-background', group: 'color' },
+  { name: 'trading.tile', cssVar: '--trading-tile', group: 'color' },
+  { name: 'trading.text', cssVar: '--trading-text', group: 'color' },
+  { name: 'trading.text-muted', cssVar: '--trading-text-muted', group: 'color' },
+  { name: 'trading.ink', cssVar: '--trading-ink', group: 'color' },
+  { name: 'trading.edge', cssVar: '--trading-edge', group: 'color' },
+  { name: 'trading.gate', cssVar: '--trading-gate', group: 'color' },
+  { name: 'trading.lock', cssVar: '--trading-lock', group: 'color' },
+  { name: 'trading.blockers', cssVar: '--trading-blockers', group: 'color' },
+  { name: 'trading.unblocks', cssVar: '--trading-unblocks', group: 'color' },
+  { name: 'trading.note.background', cssVar: '--trading-note-background', group: 'color' },
+  { name: 'trading.note.text', cssVar: '--trading-note-text', group: 'color' },
+
   { name: 'status.todo', cssVar: '--status-todo', group: 'status', legacy: '--st-todo' },
   { name: 'status.ready', cssVar: '--status-ready', group: 'status', legacy: '--st-ready' },
   { name: 'status.active', cssVar: '--status-active', group: 'status', legacy: '--st-active' },
@@ -95,6 +108,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'line-height.preview', cssVar: '--line-height-preview', group: 'line-height' },
   { name: 'line-height.base', cssVar: '--line-height-base', group: 'line-height' },
   { name: 'line-height.prose', cssVar: '--line-height-prose', group: 'line-height' },
+  { name: 'line-height.poster', cssVar: '--line-height-poster', group: 'line-height' },
 
   { name: 'radius.xs', cssVar: '--radius-xs', group: 'radius' },
   { name: 'radius.sm', cssVar: '--radius-sm', group: 'radius' },
@@ -105,6 +119,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'radius.round', cssVar: '--radius-round', group: 'radius' },
   { name: 'radius.hairline', cssVar: '--radius-hairline', group: 'radius' },
   { name: 'radius.note-corner', cssVar: '--radius-note-corner', group: 'radius' },
+  { name: 'trading.radius', cssVar: '--trading-radius', group: 'radius' },
 
   { name: 'border.width.default', cssVar: '--border-width-default', group: 'border' },
   { name: 'border.width.strong', cssVar: '--border-width-strong', group: 'border' },
@@ -160,6 +175,9 @@ export const TOKENS: readonly Token[] = [
   { name: 'shadow.lift', cssVar: '--shadow-lift', group: 'shadow' },
   { name: 'shadow.sticker', cssVar: '--shadow-sticker', group: 'shadow' },
   { name: 'shadow.sticker-held', cssVar: '--shadow-sticker-held', group: 'shadow' },
+  { name: 'trading.shadow.card', cssVar: '--trading-shadow-card', group: 'shadow' },
+  { name: 'trading.shadow.badge', cssVar: '--trading-shadow-badge', group: 'shadow' },
+  { name: 'trading.shadow.tile', cssVar: '--trading-shadow-tile', group: 'shadow' },
 
   { name: 'motion.duration.stagger', cssVar: '--motion-duration-stagger', group: 'duration' },
   { name: 'motion.duration.blink', cssVar: '--motion-duration-blink', group: 'duration' },
@@ -189,6 +207,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'motion.loop.shimmer', cssVar: '--motion-loop-shimmer', group: 'duration' },
   { name: 'motion.loop.snooze', cssVar: '--motion-loop-snooze', group: 'duration' },
   { name: 'motion.loop.pulse', cssVar: '--motion-loop-pulse', group: 'duration' },
+  { name: 'motion.loop.spin', cssVar: '--motion-loop-spin', group: 'duration' },
 
   { name: 'motion.easing.standard', cssVar: '--motion-easing-standard', group: 'easing' },
   { name: 'motion.easing.enter', cssVar: '--motion-easing-enter', group: 'easing' },

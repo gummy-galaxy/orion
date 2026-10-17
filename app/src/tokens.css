@@ -23,6 +23,24 @@
     color-mix(in srgb, var(--companion-body) 70%, transparent)
   );
 
+  /* The trading card skin is always dark, so its colors don't follow the color mode. Its art gradients stay its own. */
+  --trading-background: #120d30;
+  --trading-tile: #1b1442;
+  --trading-text: #f4f0ff;
+  --trading-text-muted: #a39bcc;
+  --trading-ink: #0c0920;
+  --trading-edge: rgb(255 255 255 / 0.1);
+  --trading-gate: #ffd166;
+  --trading-lock: #fff;
+  --trading-blockers: #3c3370;
+  --trading-unblocks: #18d6c0;
+  --trading-note-background: #251c57;
+  --trading-note-text: #d4cdf3;
+  --trading-radius: 16px;
+  --trading-shadow-card: 0 18px 40px rgb(0 0 0 / 0.45);
+  --trading-shadow-badge: 0 4px 12px rgb(12 9 32 / 0.5);
+  --trading-shadow-tile: 0 5px 0 rgb(12 9 32 / 0.45);
+
   --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
@@ -97,6 +115,7 @@
   --line-height-preview: 1.4;
   --line-height-base: 1.45;
   --line-height-prose: 1.5;
+  --line-height-poster: 1.15;
 
   /* A step's half, such as space.1.5, sits halfway between it and the next step. */
   --space-0-5: 1px;
@@ -156,6 +175,7 @@
   --motion-loop-shimmer: 2.4s;
   --motion-loop-snooze: 2.4s;
   --motion-loop-pulse: 3.2s;
+  --motion-loop-spin: 1.4s;
 
   --motion-easing-standard: ease;
   --motion-easing-enter: ease-out;
