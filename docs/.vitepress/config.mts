@@ -37,6 +37,8 @@ export default defineConfig({
             { text: 'Using the canvas', link: '/guide/canvas' },
             { text: 'Sources', link: '/guide/sources' },
             { text: 'Data and canvases', link: '/guide/data' },
+            { text: 'Themes', link: '/guide/themes' },
+            { text: 'Theme tokens', link: '/guide/tokens' },
             { text: 'Public surfaces', link: '/guide/surfaces' },
           ],
         },
