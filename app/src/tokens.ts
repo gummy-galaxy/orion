@@ -121,6 +121,7 @@ export const TOKENS: readonly Token[] = [
 
   { name: 'motion.duration.stagger', cssVar: '--motion-duration-stagger', group: 'duration' },
   { name: 'motion.duration.blink', cssVar: '--motion-duration-blink', group: 'duration' },
+  { name: 'motion.duration.chain', cssVar: '--motion-duration-chain', group: 'duration' },
   { name: 'motion.duration.instant', cssVar: '--motion-duration-instant', group: 'duration' },
   { name: 'motion.duration.quick', cssVar: '--motion-duration-quick', group: 'duration' },
   { name: 'motion.duration.fast', cssVar: '--motion-duration-fast', group: 'duration' },
@@ -128,8 +129,24 @@ export const TOKENS: readonly Token[] = [
   { name: 'motion.duration.fade', cssVar: '--motion-duration-fade', group: 'duration' },
   { name: 'motion.duration.base', cssVar: '--motion-duration-base', group: 'duration' },
   { name: 'motion.duration.reveal', cssVar: '--motion-duration-reveal', group: 'duration' },
+  { name: 'motion.duration.hint', cssVar: '--motion-duration-hint', group: 'duration' },
+  { name: 'motion.duration.camera-focus', cssVar: '--motion-duration-camera-focus', group: 'duration' },
   { name: 'motion.duration.pop', cssVar: '--motion-duration-pop', group: 'duration' },
   { name: 'motion.duration.stamp', cssVar: '--motion-duration-stamp', group: 'duration' },
+  { name: 'motion.duration.clear', cssVar: '--motion-duration-clear', group: 'duration' },
+  { name: 'motion.duration.camera', cssVar: '--motion-duration-camera', group: 'duration' },
+  { name: 'motion.duration.sticker-ring', cssVar: '--motion-duration-sticker-ring', group: 'duration' },
+  { name: 'motion.duration.sticker-stamp', cssVar: '--motion-duration-sticker-stamp', group: 'duration' },
+
+  { name: 'motion.loop.twinkle', cssVar: '--motion-loop-twinkle', group: 'duration' },
+  { name: 'motion.loop.attention', cssVar: '--motion-loop-attention', group: 'duration' },
+  { name: 'motion.loop.flow', cssVar: '--motion-loop-flow', group: 'duration' },
+  { name: 'motion.loop.flow-group', cssVar: '--motion-loop-flow-group', group: 'duration' },
+  { name: 'motion.loop.sync', cssVar: '--motion-loop-sync', group: 'duration' },
+  { name: 'motion.loop.check', cssVar: '--motion-loop-check', group: 'duration' },
+  { name: 'motion.loop.shimmer', cssVar: '--motion-loop-shimmer', group: 'duration' },
+  { name: 'motion.loop.snooze', cssVar: '--motion-loop-snooze', group: 'duration' },
+  { name: 'motion.loop.pulse', cssVar: '--motion-loop-pulse', group: 'duration' },
 
   { name: 'motion.easing.standard', cssVar: '--motion-easing-standard', group: 'easing' },
   { name: 'motion.easing.enter', cssVar: '--motion-easing-enter', group: 'easing' },
@@ -137,4 +154,5 @@ export const TOKENS: readonly Token[] = [
   { name: 'motion.easing.pop', cssVar: '--motion-easing-pop', group: 'easing' },
   { name: 'motion.easing.bounce', cssVar: '--motion-easing-bounce', group: 'easing' },
   { name: 'motion.easing.stamp', cssVar: '--motion-easing-stamp', group: 'easing' },
+  { name: 'motion.easing.spring', cssVar: '--motion-easing-spring', group: 'easing' },
 ]

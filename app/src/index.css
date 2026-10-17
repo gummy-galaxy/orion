@@ -358,7 +358,7 @@ select {
   animation: finish-stamp-in var(--motion-duration-stamp) var(--motion-easing-pop) both;
 }
 :where(:root[data-motion='on']) .finish-stamp.is-clearing {
-  animation: finish-stamp-clear 420ms var(--motion-easing-exit) var(--clear-delay, 0ms) both;
+  animation: finish-stamp-clear var(--motion-duration-clear) var(--motion-easing-exit) var(--clear-delay, 0ms) both;
 }
 @keyframes finish-stamp-in {
   from {
@@ -382,7 +382,7 @@ select {
   background-position: 100% 0;
 }
 :where(:root[data-motion='on']) .card.is-waiting::after {
-  animation: done-shimmer 2.4s ease-in-out infinite;
+  animation: done-shimmer var(--motion-loop-shimmer) ease-in-out infinite;
 }
 @keyframes done-shimmer {
   0%,
@@ -833,19 +833,20 @@ select {
   opacity: 1;
 }
 /* Each frame these loops change repaints the canvas under them, so steps() holds them to 15 a second (one step
-   per 1/15 s of duration) rather than the display's 120. WebKit skips the frames between steps. */
+   per 1/15 s of the default period) rather than the display's 120. WebKit skips the frames between steps. A theme
+   that changes a loop's period changes its frame rate with it. */
 :where(:root[data-motion='on']) .react-flow__edge.e-live .react-flow__edge-path {
-  animation: flow 0.8s steps(12) infinite;
+  animation: flow var(--motion-loop-flow) steps(12) infinite;
 }
 :where(:root[data-motion='on']) .react-flow__edge.e-agg.e-live .react-flow__edge-path {
-  animation: flow-agg 1.2s steps(18) infinite;
+  animation: flow-agg var(--motion-loop-flow-group) steps(18) infinite;
 }
 :where(:root[data-motion='on']) .st-active {
-  animation: pulse 3.2s infinite;
+  animation: pulse var(--motion-loop-pulse) infinite;
 }
 /* Queued checks show hollow dots; once one starts, the dots fill and breathe. */
 :where(:root[data-motion='on']) .check-running {
-  animation: check-running 1.6s steps(24) infinite;
+  animation: check-running var(--motion-loop-check) steps(24) infinite;
 }
 /* Animations off in Accessibility stops every animation and transition. Reduced only drops the loops and
    entrances that need data-motion='on', keeping fades. */
@@ -1616,7 +1617,7 @@ kbd {
   flex-direction: column;
 }
 :where(:root[data-motion='on']) .tool.sync.is-running svg {
-  animation: sync-spin 1.2s linear infinite;
+  animation: sync-spin var(--motion-loop-sync) linear infinite;
 }
 @keyframes sync-spin {
   to {
@@ -1736,10 +1737,10 @@ kbd {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 :where(:root[data-motion='on']) .sticker.is-fresh .sticker-art {
-  animation: sticker-stamp 520ms var(--motion-easing-stamp) both;
+  animation: sticker-stamp var(--motion-duration-sticker-stamp) var(--motion-easing-stamp) both;
 }
 :where(:root[data-motion='on']) .sticker.is-fresh::after {
-  animation: sticker-ring 480ms var(--motion-easing-enter) 140ms;
+  animation: sticker-ring var(--motion-duration-sticker-ring) var(--motion-easing-enter) var(--motion-duration-quick);
 }
 @keyframes sticker-stamp {
   0% {
@@ -3146,7 +3147,7 @@ kbd {
   fill: var(--text-primary);
 }
 :where(:root[data-motion='on']) .attn-line line {
-  animation: attn-march 0.6s steps(9) infinite;
+  animation: attn-march var(--motion-loop-attention) steps(9) infinite;
 }
 @keyframes attn-march {
   to {
@@ -3398,7 +3399,7 @@ kbd {
   font-weight: var(--weight-medium);
 }
 :where(:root[data-motion='on']) .focus-line.live {
-  animation: flow 0.8s steps(12) infinite;
+  animation: flow var(--motion-loop-flow) steps(12) infinite;
 }
 :where(:root[data-motion='on']) .focus-side,
 :where(:root[data-motion='on']) .focus-bar,
@@ -3719,7 +3720,7 @@ kbd {
   transform-origin: center;
 }
 :where(:root[data-motion='on']) .companion .eye .spark {
-  animation: companion-twinkle 0.5s ease-in-out infinite alternate;
+  animation: companion-twinkle var(--motion-loop-twinkle) ease-in-out infinite alternate;
 }
 .companion-hint {
   position: absolute;
@@ -3759,8 +3760,8 @@ kbd {
 }
 :where(:root[data-motion='on']) .companion-hint {
   transition:
-    opacity 0.18s,
-    scale 0.25s cubic-bezier(0.3, 1.6, 0.5, 1);
+    opacity var(--motion-duration-fade),
+    scale var(--motion-duration-hint) var(--motion-easing-spring);
 }
 :where(:root[data-motion='reduced']) .companion-hint {
   transition: opacity var(--motion-duration-fade);
@@ -3783,14 +3784,14 @@ kbd {
   opacity: 0;
 }
 :where(:root[data-motion='on']) .companion-snooze i {
-  animation: companion-snooze 2.4s ease-out infinite;
+  animation: companion-snooze var(--motion-loop-snooze) ease-out infinite;
 }
 .companion-snooze i:nth-child(2) {
-  animation-delay: 0.8s;
+  animation-delay: calc(var(--motion-loop-snooze) / 3);
   font-size: var(--text-size-tiny);
 }
 .companion-snooze i:nth-child(3) {
-  animation-delay: 1.6s;
+  animation-delay: calc(var(--motion-loop-snooze) * 2 / 3);
   font-size: var(--text-size-nano);
 }
 @keyframes companion-twinkle {
