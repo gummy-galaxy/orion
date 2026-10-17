@@ -3,7 +3,8 @@
  * Keep this list, tokens.css, and docs/guide/tokens.md in step. tokens.test.ts checks all three, and checks that each
  * theme defines every token.
  */
-export type TokenGroup = 'color' | 'status' | 'font' | 'weight' | 'size' | 'radius' | 'border' | 'space' | 'shadow' | 'duration' | 'easing'
+export type TokenGroup =
+  'color' | 'status' | 'font' | 'weight' | 'size' | 'line-height' | 'radius' | 'border' | 'space' | 'shadow' | 'duration' | 'easing'
 
 export type Token = {
   /** The role-based name documented in docs/guide/tokens.md, such as card.background. */
@@ -87,6 +88,14 @@ export const TOKENS: readonly Token[] = [
   { name: 'text.size.sticker', cssVar: '--text-size-sticker', group: 'size' },
   { name: 'text.size.sticker-art', cssVar: '--text-size-sticker-art', group: 'size' },
 
+  { name: 'line-height.glyph', cssVar: '--line-height-glyph', group: 'line-height' },
+  { name: 'line-height.tight', cssVar: '--line-height-tight', group: 'line-height' },
+  { name: 'line-height.label', cssVar: '--line-height-label', group: 'line-height' },
+  { name: 'line-height.note', cssVar: '--line-height-note', group: 'line-height' },
+  { name: 'line-height.preview', cssVar: '--line-height-preview', group: 'line-height' },
+  { name: 'line-height.base', cssVar: '--line-height-base', group: 'line-height' },
+  { name: 'line-height.prose', cssVar: '--line-height-prose', group: 'line-height' },
+
   { name: 'radius.xs', cssVar: '--radius-xs', group: 'radius' },
   { name: 'radius.sm', cssVar: '--radius-sm', group: 'radius' },
   { name: 'radius.md', cssVar: '--radius-md', group: 'radius' },
@@ -99,16 +108,49 @@ export const TOKENS: readonly Token[] = [
 
   { name: 'border.width.default', cssVar: '--border-width-default', group: 'border' },
   { name: 'border.width.strong', cssVar: '--border-width-strong', group: 'border' },
+  { name: 'border.width.rule', cssVar: '--border-width-rule', group: 'border' },
+  { name: 'border.width.stamp', cssVar: '--border-width-stamp', group: 'border' },
 
+  { name: 'ring.width.hairline', cssVar: '--ring-width-hairline', group: 'border' },
+  { name: 'ring.width.inset', cssVar: '--ring-width-inset', group: 'border' },
+  { name: 'ring.width.default', cssVar: '--ring-width-default', group: 'border' },
+  { name: 'ring.width.selection', cssVar: '--ring-width-selection', group: 'border' },
+  { name: 'ring.width.pulse', cssVar: '--ring-width-pulse', group: 'border' },
+  { name: 'ring.offset.default', cssVar: '--ring-offset-default', group: 'border' },
+  { name: 'ring.offset.wide', cssVar: '--ring-offset-wide', group: 'border' },
+  { name: 'ring.offset.selection', cssVar: '--ring-offset-selection', group: 'border' },
+  { name: 'stripe.width.default', cssVar: '--stripe-width-default', group: 'border' },
+  { name: 'stripe.width.strong', cssVar: '--stripe-width-strong', group: 'border' },
+
+  { name: 'link.width.default', cssVar: '--link-width-default', group: 'border' },
+  { name: 'link.width.focus', cssVar: '--link-width-focus', group: 'border' },
+  { name: 'link.width.still', cssVar: '--link-width-still', group: 'border' },
+  { name: 'link.width.held', cssVar: '--link-width-held', group: 'border' },
+  { name: 'link.width.focus-held', cssVar: '--link-width-focus-held', group: 'border' },
+  { name: 'link.width.attention', cssVar: '--link-width-attention', group: 'border' },
+  { name: 'link.width.related', cssVar: '--link-width-related', group: 'border' },
+  { name: 'link.width.traced', cssVar: '--link-width-traced', group: 'border' },
+  { name: 'link.width.picked', cssVar: '--link-width-picked', group: 'border' },
+  { name: 'snap.guide.width', cssVar: '--snap-guide-width', group: 'border' },
+
+  { name: 'space.0.5', cssVar: '--space-0-5', group: 'space' },
   { name: 'space.1', cssVar: '--space-1', group: 'space' },
+  { name: 'space.1.5', cssVar: '--space-1-5', group: 'space' },
   { name: 'space.2', cssVar: '--space-2', group: 'space' },
+  { name: 'space.2.5', cssVar: '--space-2-5', group: 'space' },
   { name: 'space.3', cssVar: '--space-3', group: 'space' },
+  { name: 'space.3.5', cssVar: '--space-3-5', group: 'space' },
   { name: 'space.4', cssVar: '--space-4', group: 'space' },
+  { name: 'space.4.5', cssVar: '--space-4-5', group: 'space' },
   { name: 'space.5', cssVar: '--space-5', group: 'space' },
+  { name: 'space.5.5', cssVar: '--space-5-5', group: 'space' },
   { name: 'space.6', cssVar: '--space-6', group: 'space' },
   { name: 'space.7', cssVar: '--space-7', group: 'space' },
+  { name: 'space.7.5', cssVar: '--space-7-5', group: 'space' },
   { name: 'space.8', cssVar: '--space-8', group: 'space' },
+  { name: 'space.8.5', cssVar: '--space-8-5', group: 'space' },
   { name: 'space.9', cssVar: '--space-9', group: 'space' },
+  { name: 'space.9.5', cssVar: '--space-9-5', group: 'space' },
   { name: 'space.10', cssVar: '--space-10', group: 'space' },
 
   { name: 'shadow.raised', cssVar: '--shadow-raised', group: 'shadow', legacy: '--shadow' },
