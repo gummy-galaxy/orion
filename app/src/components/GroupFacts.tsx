@@ -1,7 +1,8 @@
 import type { GroupStats } from '../derive'
 
+/** A group's progress. Groups that hold no work, like the boundaries of a system diagram, have none to show. */
 export function GroupFacts({ stats }: { stats?: GroupStats }) {
-  if (!stats) return null
+  if (!stats?.total) return null
 
   return (
     <p className="facts">

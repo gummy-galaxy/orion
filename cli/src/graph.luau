@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local checkBackground = require("@root/style/checkBackground")
+local checkHeader = require("@root/style/checkHeader")
 local fieldValues = require("@root/fieldValues")
 local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
@@ -8,6 +9,7 @@ local getRefs = require("@root/refs/getRefs")
 local isAssetId = require("@root/media/isAssetId")
 local removeRef = require("@root/refs/removeRef")
 local setRef = require("@root/refs/setRef")
+local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -20,6 +22,8 @@ local TASK_WIDTH = 216
 local TASK_HEIGHT = 72
 local GROUP_PADDING = 32
 local GROUP_HEADER_HEIGHT = 78
+-- The band a group's header takes under its title row. The app reserves the same band.
+local GROUP_HEADER_BAND = 112
 local ITEM_GAP = 48
 
 export type Derived = {
@@ -38,7 +42,10 @@ export type ItemFields = {
 	arrange: string?,
 	cover: string?,
 	background: string?,
+	header: string?,
 	kind: string?,
+	shape: string?,
+	color: string?,
 }
 
 local graph = {}
@@ -62,6 +69,16 @@ end
 
 function graph.isGate(item: Item): boolean
 	return item.type == "task" and field(item, "itemKind") == "gate"
+end
+
+-- A component is a part of a system drawn on the canvas, like a service or a data store, rather than work.
+function graph.isComponent(item: Item): boolean
+	return item.type == "task" and field(item, "itemKind") == "component"
+end
+
+-- Cards that count as work. Notes and components pass blocking through and never do.
+function graph.isWork(item: Item): boolean
+	return item.type == "task" and not graph.isNote(item) and not graph.isComponent(item)
 end
 
 function graph.find(doc: Doc, id: string): Item?
@@ -96,21 +113,19 @@ function graph.ancestors(doc: Doc, id: string): { string }
 	return ancestors
 end
 
-export type Progress = { total: number, done: number, ready: number }
+export type Progress = { total: number, done: number, ready: number, components: number }
 
 -- Counts the work anywhere inside a group, leaving out notes and deferred work, which is set aside and doesn't
--- hold a group short of done.
+-- hold a group short of done. Components are counted on their own.
 function graph.countProgress(doc: Doc, derived: Derived, groupId: string): Progress
-	local progress = { total = 0, done = 0, ready = 0 }
+	local progress = { total = 0, done = 0, ready = 0, components = 0 }
 	for _, item in doc.nodes do
 		local status = derived.status[item.id]
+		local inside = item.type == "task" and table.find(graph.ancestors(doc, item.id), groupId) ~= nil
 
-		if
-			item.type == "task"
-			and not graph.isNote(item)
-			and status ~= "deferred"
-			and table.find(graph.ancestors(doc, item.id), groupId)
-		then
+		if inside and graph.isComponent(item) then
+			progress.components += 1
+		elseif inside and graph.isWork(item) and status ~= "deferred" then
 			progress.total += 1
 			progress.done += if status == "done" then 1 else 0
 			progress.ready += if status == "ready" then 1 else 0
@@ -128,8 +143,9 @@ function graph.sizeOf(item: Item): (number, number)
 	return item.width or 320, item.height or 200
 end
 
--- Status and leverage, matching app/src/derive.ts. Notes pass blocking through and never count as work. Gates
--- also pass blocking through, but count as work: one is done once everything it waits on is.
+-- Status and leverage, matching app/src/derive.ts. Notes and components pass blocking through and never count as
+-- work, and components have no status. Gates also pass blocking through, but count as work: one is done once
+-- everything it waits on is.
 function graph.derive(doc: Doc): Derived
 	local tasks: { [string]: Item } = {}
 
@@ -160,7 +176,7 @@ function graph.derive(doc: Doc): Derived
 			return false
 		end
 
-		local passesThrough = graph.isNote(item) or (graph.isGate(item) and predecessors[id] ~= nil)
+		local passesThrough = not graph.isWork(item) or (graph.isGate(item) and predecessors[id] ~= nil)
 		if not passesThrough then
 			return field(item, "status") ~= "done"
 		end
@@ -192,6 +208,10 @@ function graph.derive(doc: Doc): Derived
 	local status: { [string]: string } = {}
 
 	for id, item in tasks do
+		if graph.isComponent(item) then
+			continue
+		end
+
 		local recorded = field(item, "status") or "todo"
 		local blockedByDeps = false
 
@@ -216,7 +236,7 @@ function graph.derive(doc: Doc): Derived
 	local leverage: { [string]: number } = {}
 
 	for id, item in tasks do
-		if graph.isNote(item) or not isOpen(id) then
+		if not graph.isWork(item) or not isOpen(id) then
 			continue
 		end
 
@@ -236,7 +256,7 @@ function graph.derive(doc: Doc): Derived
 
 				seen[next] = true
 
-				if not graph.isNote(nextItem) then
+				if graph.isWork(nextItem) then
 					count += 1
 				end
 
@@ -248,12 +268,6 @@ function graph.derive(doc: Doc): Derived
 	end
 
 	return { status = status, leverage = leverage }
-end
-
-local function slug(text: string): string
-	local value = text:lower():gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
-	value = value:sub(1, 32):gsub("%-+$", "")
-	return if value == "" then "item" else value
 end
 
 local function uniqueId(doc: Doc, base: string): string
@@ -271,6 +285,17 @@ local function uniqueId(doc: Doc, base: string): string
 end
 
 -- The next free spot to the right of a parent's children, or of the top level.
+-- The space above a group's cards: its title row, plus the header band when the group has a header.
+function graph.headerHeight(item: Item): number
+	local header = item.data.header
+
+	if type(header) == "string" and header:match("%S") then
+		return GROUP_HEADER_HEIGHT + GROUP_HEADER_BAND
+	end
+
+	return GROUP_HEADER_HEIGHT
+end
+
 function graph.nextSlot(doc: Doc, parentId: string?): Position
 	local right: number? = nil
 	local top: number? = nil
@@ -284,7 +309,9 @@ function graph.nextSlot(doc: Doc, parentId: string?): Position
 	end
 
 	if right == nil or top == nil then
-		return if parentId then { x = GROUP_PADDING, y = GROUP_HEADER_HEIGHT } else { x = 0, y = 0 }
+		return if parentId
+			then { x = GROUP_PADDING, y = graph.headerHeight(graph.get(doc, parentId)) }
+			else { x = 0, y = 0 }
 	end
 
 	return { x = (right :: number) + (if parentId then ITEM_GAP else ITEM_GAP * 2), y = top :: number }
@@ -323,8 +350,8 @@ local function freeSpotBelow(doc: Doc, parentId: string?, preferred: Position): 
 end
 
 local function itemKindFor(repo: string?, pr: number?, kind: string?): string
-	if kind == "gate" then
-		return "gate"
+	if kind == "gate" or kind == "component" then
+		return kind
 	end
 
 	if repo and pr then
@@ -351,11 +378,19 @@ local function checkFields(fields: ItemFields)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
 	assert(
 		fields.kind == nil or table.find(fieldValues.kinds, fields.kind),
-		`kind must be {table.concat(fieldValues.kinds, " or ")}`
+		`kind must be one of {table.concat(fieldValues.kinds, ", ")}`
 	)
 	assert(
 		fields.arrange == nil or table.find(fieldValues.arrangements, fields.arrange),
 		`arrange must be one of {table.concat(fieldValues.arrangements, ", ")}`
+	)
+	assert(
+		fields.shape == nil or fields.shape == "" or table.find(fieldValues.shapes, fields.shape),
+		`shape must be one of {table.concat(fieldValues.shapes, ", ")}`
+	)
+	assert(
+		fields.color == nil or fields.color == "" or table.find(fieldValues.colors, fields.color),
+		`color must be one of {table.concat(fieldValues.colors, ", ")}`
 	)
 	assert(
 		fields.cover == nil or fields.cover == "" or isAssetId(fields.cover),
@@ -365,6 +400,23 @@ local function checkFields(fields: ItemFields)
 	if fields.background and fields.background ~= "" then
 		checkBackground(fields.background)
 	end
+
+	if fields.header and fields.header ~= "" then
+		checkHeader(fields.header)
+	end
+end
+
+-- Sets or clears (with an empty value) a component's shape and color.
+local function setLook(item: Item, fields: ItemFields)
+	if fields.shape then
+		assert(graph.isComponent(item), "only components take a shape")
+		item.data.shape = if fields.shape == "" then nil else fields.shape
+	end
+
+	if fields.color then
+		assert(graph.isComponent(item), "only components and groups take a color")
+		item.data.color = if fields.color == "" then nil else fields.color
+	end
 end
 
 export type AddOptions = ItemFields & { group: string? }
@@ -372,17 +424,21 @@ export type AddOptions = ItemFields & { group: string? }
 function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	assert(label ~= "", "an item needs a label")
 	checkFields(options)
+	assert(options.shape == nil or options.kind == nil or options.kind == "component", "only components take a shape")
 	assert(options.pr == nil or options.repo ~= nil, "pr needs a repository as owner/name")
 
 	if options.group then
 		graph.group(doc, options.group)
 	end
 
-	local base = if options.repo and options.pr then `{slug(options.repo :: string)}-{options.pr}` else slug(label)
+	local base = if options.repo and options.pr
+		then `{slugify(options.repo :: string)}-{options.pr}`
+		else slugify(label)
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
-		itemKind = itemKindFor(options.repo, options.pr, options.kind),
+		-- A shape only fits a component, so giving one makes the item a component.
+		itemKind = itemKindFor(options.repo, options.pr, if options.shape then "component" else options.kind),
 		status = options.status or "todo",
 	})
 	data.repo = options.repo
@@ -404,6 +460,7 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 			url = `https://github.com/{options.repo}/pull/{options.pr}`,
 		})
 	end
+	setLook(item, options)
 	table.insert(doc.nodes, item)
 	return item
 end
@@ -413,7 +470,7 @@ function graph.addImage(doc: Doc, label: string, extension: string, workspace: s
 	if group then
 		graph.group(doc, group)
 	end
-	local id = uniqueId(doc, `image-{slug(label)}`)
+	local id = uniqueId(doc, `image-{slugify(label)}`)
 	local item: Item = {
 		id = id,
 		type = "image",
@@ -427,6 +484,26 @@ function graph.addImage(doc: Doc, label: string, extension: string, workspace: s
 	return item
 end
 
+-- Adding or removing a group's header moves its top edge up or down and keeps every card where it is on the canvas,
+-- as the app does when it refits a group.
+local function resizeHeader(doc: Doc, group: Item, delta: number)
+	if delta == 0 then
+		return
+	end
+
+	group.position = { x = group.position.x, y = group.position.y - delta }
+
+	if group.height then
+		group.height = (group.height :: number) + delta
+	end
+
+	for _, item in doc.nodes do
+		if item.parentId == group.id then
+			item.position = { x = item.position.x, y = item.position.y + delta }
+		end
+	end
+end
+
 function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	local item = graph.get(doc, id)
 	checkFields(fields)
@@ -438,9 +515,14 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.pr == nil
 				and fields.who == nil
 				and fields.note == nil
-				and fields.kind == nil,
-			"groups only take a label, blurb, arrange, cover, and background"
+				and fields.kind == nil
+				and fields.shape == nil,
+			"groups only take a label, blurb, arrange, cover, background, header, and color"
 		)
+
+		if fields.color then
+			item.data.color = if fields.color == "" then nil else fields.color
+		end
 
 		if fields.label then
 			item.data.label = fields.label
@@ -465,14 +547,20 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 			item.data.background = if fields.background == "" then nil else fields.background
 		end
 
+		if fields.header then
+			local before = graph.headerHeight(item)
+			item.data.header = if fields.header == "" then nil else fields.header
+			resizeHeader(doc, item, graph.headerHeight(item) - before)
+		end
+
 		return item
 	end
 
 	assert(fields.arrange == nil, `"{id}" is an item; only groups take an arrangement`)
 	assert(fields.blurb == nil, `"{id}" is an item; only groups take a blurb`)
 	assert(
-		fields.cover == nil and fields.background == nil,
-		`"{id}" is an item; only groups take a cover or background`
+		fields.cover == nil and fields.background == nil and fields.header == nil,
+		`"{id}" is an item; only groups take a cover, background, or header`
 	)
 	if fields.label then
 		item.data.label = fields.label
@@ -480,6 +568,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	if fields.status then
 		item.data.status = fields.status
+		item.data.deferredByClosedPull = nil
 	end
 
 	if fields.who then
@@ -514,13 +603,25 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 		assert(not graph.isNote(item), "notes don't take a kind; make it a work item first")
 	end
 
-	if not graph.isNote(item) and (fields.repo or fields.pr or fields.kind) then
+	-- As with add, giving a card a shape makes it a component.
+	local givenKind = fields.kind
+		or (if fields.shape and fields.shape ~= "" and not graph.isNote(item) then "component" else nil)
+
+	if not graph.isNote(item) and (fields.repo or fields.pr or givenKind) then
 		local repo = field(item, "repo")
 		local pr = findRef(item, "pull")
-		local kind = fields.kind or (if graph.isGate(item) then "gate" else nil)
+		local kind = givenKind
+			or (if graph.isGate(item) or graph.isComponent(item) then field(item, "itemKind") else nil)
 		item.data.itemKind = itemKindFor(repo, if pr then 1 else nil, kind)
 	end
 
+	-- Work isn't drawn with a shape or tint, so a component turned into work drops them.
+	if not graph.isComponent(item) then
+		item.data.shape = nil
+		item.data.color = nil
+	end
+
+	setLook(item, fields)
 	return item
 end
 
@@ -540,7 +641,7 @@ end
 
 -- Recomputes an item's kind from its repository, pull request, and gate status after its refs change.
 function graph.refreshItemKind(item: Item)
-	if graph.isNote(item) then
+	if graph.isNote(item) or graph.isComponent(item) then
 		return
 	end
 
@@ -548,22 +649,36 @@ function graph.refreshItemKind(item: Item)
 	item.data.itemKind = itemKindFor(field(item, "repo"), if findRef(item, "pull") then 1 else nil, kind)
 end
 
-function graph.link(doc: Doc, from: string, to: string, kind: string): Link
+-- Links two items. A label names what the link carries, like "HTTP" in a system diagram; an empty one clears it,
+-- and leaving it out keeps the label an existing link already has.
+function graph.link(doc: Doc, from: string, to: string, kind: string, label: string?): Link
 	assert(from ~= to, "an item can't link to itself")
 
 	for _, id in { from, to } do
 		assert(not graph.isGroup(graph.get(doc, id)), `"{id}" is a group; link the items inside it`)
 	end
 
+	local text = if label then label:match("^%s*(.-)%s*$") else nil
+
 	for _, link in doc.links do
 		if link.from == from and link.to == to then
 			link.kind = kind
+
+			if text then
+				link.label = if text == "" then nil else text
+			end
+
 			return link
 		end
 	end
 
 	local link: Link =
 		{ id = if kind == "blocks" then `{from}>{to}` else `{from}~{to}`, from = from, to = to, kind = kind }
+
+	if text and text ~= "" then
+		link.label = text
+	end
+
 	table.insert(doc.links, link)
 	return link
 end
@@ -597,37 +712,38 @@ function graph.insertBetween(doc: Doc, id: string, from: string, to: string)
 	end
 	assert(existing, `no link from "{from}" to "{to}"`)
 
+	-- The label stays with the half that leaves the original source.
 	graph.unlink(doc, from, to)
-	graph.link(doc, from, id, existing.kind)
+	graph.link(doc, from, id, existing.kind, existing.label)
 	graph.link(doc, id, to, existing.kind)
 end
 
--- Groups left with nothing inside disappear, as they do in the app.
-local function pruneEmptyGroups(doc: Doc)
-	local changed = true
+-- Removes a group that an edit left with nothing inside, then checks the group that holds it the same way. Only groups
+-- the edit emptied go, so a group made empty on purpose, such as by group create, stays until something lands in it.
+local function pruneEmptied(doc: Doc, groupId: string?)
+	local current = groupId
 
-	while changed do
-		changed = false
+	while current do
+		local group = graph.find(doc, current)
 
-		for index = #doc.nodes, 1, -1 do
-			local item = doc.nodes[index]
+		if group == nil or not graph.isGroup(group) then
+			return
+		end
 
-			if graph.isGroup(item) then
-				local hasChildren = false
-
-				for _, other in doc.nodes do
-					if other.parentId == item.id then
-						hasChildren = true
-						break
-					end
-				end
-
-				if not hasChildren then
-					table.remove(doc.nodes, index)
-					changed = true
-				end
+		for _, other in doc.nodes do
+			if other.parentId == current then
+				return
 			end
 		end
+
+		for index, node in doc.nodes do
+			if node.id == current then
+				table.remove(doc.nodes, index)
+				break
+			end
+		end
+
+		current = group.parentId
 	end
 end
 
@@ -668,7 +784,7 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	end
 
 	local note: Item = {
-		id = uniqueId(doc, `note-{slug(text):sub(1, 24)}`),
+		id = uniqueId(doc, `note-{slugify(text, 24)}`),
 		type = "task",
 		position = position,
 		parentId = parent,
@@ -705,7 +821,8 @@ end
 -- A note's incoming and outgoing links are reconnected so nothing loses its blocker.
 function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	local item = graph.get(doc, id)
-	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup or group remove instead`)
+	assert(not graph.isGroup(item), `"{id}" is a group; use group ungroup or group remove instead`)
+	local parentId = item.parentId
 	if reconnect then
 		graph.checkReconnect(doc, id)
 	end
@@ -744,7 +861,7 @@ function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 		end
 	end
 
-	pruneEmptyGroups(doc)
+	pruneEmptied(doc, parentId)
 end
 
 -- Asks the app to tidy a group whose members changed. A pending marker already places it, so it is kept, and a
@@ -755,7 +872,7 @@ local function markForRefit(group: Item)
 	end
 end
 
--- Marks a group for the app to lay out in place, as `orion tidy` does. A pending marker is kept, since the app already
+-- Marks a group for the app to lay out in place, as `orion group tidy` does. A pending marker is kept, since the app already
 -- places that group. A custom group is marked too; the app clears the marker and leaves its arrangement alone.
 function graph.markForTidy(doc: Doc, id: string)
 	local group = graph.group(doc, id)
@@ -793,7 +910,7 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 
 	local origin = { x = minimumX - GROUP_PADDING, y = minimumY - GROUP_HEADER_HEIGHT }
 	local group: Item = {
-		id = uniqueId(doc, slug(label)),
+		id = uniqueId(doc, slugify(label)),
 		type = "cluster",
 		position = origin,
 		parentId = parent,
@@ -808,6 +925,27 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 	end
 
 	markForRefit(group)
+	table.insert(doc.nodes, group)
+	return group
+end
+
+-- Makes an empty group, inside `parentId` when given. Its size is one card's worth, so layout checks leave room for it.
+function graph.createGroup(doc: Doc, label: string, parentId: string?): Item
+	assert(label ~= "", "a group needs a name")
+
+	if parentId then
+		graph.group(doc, parentId)
+	end
+
+	local group: Item = {
+		id = uniqueId(doc, slugify(label)),
+		type = "cluster",
+		position = graph.nextSlot(doc, parentId),
+		parentId = parentId,
+		width = TASK_WIDTH + GROUP_PADDING * 2,
+		height = TASK_HEIGHT + GROUP_HEADER_HEIGHT + GROUP_PADDING,
+		data = json.object({ kind = "cluster", label = label }),
+	}
 	table.insert(doc.nodes, group)
 	return group
 end
@@ -860,7 +998,7 @@ end
 -- Removes a group with everything inside it. Each card goes the way `remove` takes it, so a note's links reconnect
 -- around it, and a parent left empty disappears.
 function graph.removeGroup(doc: Doc, id: string)
-	graph.group(doc, id)
+	local parentId = graph.group(doc, id).parentId
 	local groupIds = { [id] = true }
 
 	for _, item in graph.contents(doc, id) do
@@ -877,7 +1015,7 @@ function graph.removeGroup(doc: Doc, id: string)
 		end
 	end
 
-	pruneEmptyGroups(doc)
+	pruneEmptied(doc, parentId)
 end
 
 -- Takes a ref off an item. A kind narrows the match when the same key could name an issue and a pull request.
@@ -911,15 +1049,18 @@ function graph.recordedStatuses(doc: Doc): { [string]: string }
 	return statuses
 end
 
--- Sets `celebrate` on a card that changed to done, so the app can celebrate it, and clears it when the card is
+-- Sets `celebrate` on a card that changed to done, so it waits to be closed out, and clears it when the card is
 -- reopened. Cards created done and notes never get the flag, and cards finished before the flag existed don't have it.
+-- The app sends `celebrate = false` for a card it finished and closed out at once, so that card doesn't wait.
 function graph.markCelebrations(doc: Doc, previous: { [string]: string })
 	for _, item in doc.nodes do
 		if item.type == "task" and not graph.isNote(item) then
 			local status = field(item, "status")
 			local wasOpen = previous[item.id] ~= nil and previous[item.id] ~= "done"
 
-			if status == "done" and wasOpen then
+			if item.data.celebrate == false then
+				item.data.celebrate = nil
+			elseif status == "done" and wasOpen then
 				item.data.celebrate = true
 			elseif status ~= "done" then
 				item.data.celebrate = nil
@@ -941,6 +1082,8 @@ function graph.move(doc: Doc, id: string, groupId: string?)
 		return
 	end
 
+	local previousParent = item.parentId
+
 	-- Node order doesn't matter here; the app sorts parents ahead of children on load.
 	item.position = graph.nextSlot(doc, groupId)
 	item.parentId = groupId
@@ -949,7 +1092,7 @@ function graph.move(doc: Doc, id: string, groupId: string?)
 		markForRefit(graph.group(doc, groupId))
 	end
 
-	pruneEmptyGroups(doc)
+	pruneEmptied(doc, previousParent)
 end
 
 return table.freeze(graph)

@@ -33,14 +33,14 @@ export function Sidebar({
 }: Props) {
   const clusters = nodes.filter(isCluster)
   const children = (parent: string | undefined) => clusters.filter((cluster) => cluster.parentId === parent)
-  const current = workspaces.workspaces.find((item) => item.name === workspaces.active)
+  const current = workspaces.canvases.find((item) => item.name === workspaces.active)
 
   const create = async () => {
-    const name = window.prompt('Workspace name (lowercase letters, digits, hyphens)')?.trim()
+    const name = window.prompt('Canvas name (lowercase letters, digits, hyphens)')?.trim()
 
     if (!name) return
 
-    const label = window.prompt('Workspace label', name)?.trim()
+    const label = window.prompt('Canvas label', name)?.trim()
 
     if (label === undefined) return
 
@@ -64,9 +64,12 @@ export function Sidebar({
           onClick={() => open(cluster.id)}
           title={(cluster.data as ClusterData).blurb}
         >
-          <span className="side-bar" aria-hidden="true">
-            <span style={{ width: `${percent}%` }} />
-          </span>
+          {/* Groups that hold no work have no progress to show. */}
+          {!!stats?.total && (
+            <span className="side-bar" aria-hidden="true">
+              <span style={{ width: `${percent}%` }} />
+            </span>
+          )}
           <span className="side-label">{(cluster.data as ClusterData).label}</span>
           <span className="side-meta">
             {stats && stats.ready > 0 && <span className="side-ready">{stats.ready} ready</span>}
@@ -86,11 +89,11 @@ export function Sidebar({
         </button>
       </div>
       <details style={{ padding: 'var(--space-2) var(--space-5)', position: 'relative' }}>
-        <summary style={{ cursor: 'pointer', fontSize: 'var(--text-size-body)' }} title="Choose a workspace">
+        <summary style={{ cursor: 'pointer', fontSize: 'var(--text-size-body)' }} title="Choose a canvas">
           {current?.label ?? workspaces.active}
         </summary>
         <div style={{ display: 'grid', gap: 'var(--space-2)', padding: 'var(--space-4) 0' }}>
-          {workspaces.workspaces.map((item) => (
+          {workspaces.canvases.map((item) => (
             <button
               key={item.name}
               type="button"

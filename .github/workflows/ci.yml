@@ -73,6 +73,8 @@ jobs:
         run: lute run package
 
       - name: Upload CLI
+        # A full artifact storage quota shouldn't fail the build
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           path: cli/build/orion-*.zip
@@ -82,6 +84,9 @@ jobs:
   app:
     runs-on: beelink
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
     defaults:
       run:
         working-directory: app
@@ -101,7 +106,24 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test
+        run: npm run coverage
+
+      - name: Install Luau Tools with Rokit
+        if: github.event_name == 'pull_request'
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Publish Coverage
+        if: github.event_name == 'pull_request'
+        working-directory: cli
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: lute run coverage-report
 
       - name: Build
         run: npm run build
@@ -110,11 +132,14 @@ jobs:
         run: npm run build-storybook
 
       - name: Upload App
+        if: github.ref == 'refs/heads/main'
+        # A full artifact storage quota shouldn't fail the build
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: orion-app
           path: app/dist
-          retention-days: 14
+          retention-days: 1
 
   docs:
     runs-on: beelink
@@ -191,6 +216,9 @@ jobs:
           # Pull requests restore main's cache but don't save their own, since
           # each save uploads hundreds of megabytes from the self-hosted runner
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Save even when a later step fails, so one failed main run doesn't leave
+          # every pull request building from scratch
+          cache-on-failure: true
 
       - name: Install Tauri System Dependencies
         if: runner.os == 'Linux'
@@ -213,6 +241,9 @@ jobs:
         run: lute run desktop
 
       - name: Upload Desktop Installer
+        if: github.ref == 'refs/heads/main'
+        # A full artifact storage quota shouldn't fail the build
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: orion-desktop-${{ runner.os }}
@@ -220,4 +251,4 @@ jobs:
             desktop/src-tauri/target/release/bundle/deb/*.deb
             desktop/src-tauri/target/release/bundle/dmg/*.dmg
             desktop/src-tauri/target/release/bundle/nsis/*.exe
-          retention-days: 14
+          retention-days: 1

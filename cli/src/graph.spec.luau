@@ -56,9 +56,76 @@ test.case("add and set take a gate kind, and a gate stays one when its repositor
 	assert.eq(item.data.itemKind, "gate")
 	graph.setFields(doc, item.id, { kind = "step" })
 	assert.eq(item.data.itemKind, "placeholder")
-	assert.throwsWith("kind must be step or gate", function()
+	assert.throwsWith("kind must be one of step, gate, component", function()
 		graph.setFields(doc, item.id, { kind = "milestone" })
 	end)
+end)
+
+test.case("components have no status, pass blocking through, and never count as work", function(assert)
+	local component = task("api", "API server", "todo", "g", { itemKind = "component" })
+	local doc = testing.createDoc(
+		{ testing.group("g", "System"), task("a", "A", "active", "g"), component, task("b", "B", "todo", "g") },
+		{ { "a", "api" }, { "api", "b" } }
+	)
+	local derived = graph.derive(doc)
+	assert.eq(derived.status.api, nil)
+	assert.eq(derived.status.b, "blocked")
+	assert.eq(derived.leverage.a, 1)
+	assert.eq(derived.leverage.api, nil)
+	assert.eq(graph.countProgress(doc, derived, "g").total, 2)
+end)
+
+test.case("a component keeps its kind when its repository changes, and step turns it back into work", function(assert)
+	local doc = testing.createDoc({})
+	local item = graph.addItem(doc, "Desktop shell", { kind = "component", repo = "vocksel/orion" })
+	assert.eq(item.data.itemKind, "component")
+	graph.setFields(doc, item.id, { repo = "" })
+	assert.eq(item.data.itemKind, "component")
+	graph.setFields(doc, item.id, { kind = "step" })
+	assert.eq(item.data.itemKind, "step")
+end)
+
+test.case("a shape makes a component, and components and groups take a color", function(assert)
+	local doc = testing.createDoc({ testing.group("g", "System") })
+	local item = graph.addItem(doc, "orion.json", { shape = "store", color = "amber" })
+	assert.eq(item.data.itemKind, "component")
+	assert.eq(item.data.shape, "store")
+	assert.eq(item.data.color, "amber")
+
+	graph.setFields(doc, item.id, { shape = "", color = "" })
+	assert.eq(item.data.shape, nil)
+	assert.eq(item.data.color, nil)
+
+	local step = graph.addItem(doc, "Write the docs", {})
+	graph.setFields(doc, step.id, { shape = "process" })
+	assert.eq(step.data.itemKind, "component")
+	graph.setFields(doc, step.id, { kind = "step" })
+	assert.eq(step.data.shape, nil)
+
+	graph.setFields(doc, "g", { color = "teal" })
+	assert.eq(graph.get(doc, "g").data.color, "teal")
+	assert.throwsWith("only components and groups take a color", function()
+		graph.setFields(doc, step.id, { color = "rose" })
+	end)
+	assert.throwsWith("shape must be one of service, store, actor, external, interface, process, queue", function()
+		graph.addItem(doc, "Blob", { shape = "blob" })
+	end)
+end)
+
+test.case("link sets, keeps, and clears a label, and insertBetween keeps it on the first half", function(assert)
+	local doc = testing.createDoc({ task("a", "A", "todo"), task("b", "B", "todo"), task("n", "N", "todo") })
+	local link = graph.link(doc, "a", "b", "blocks", "  HTTP  ")
+	assert.eq(link.label, "HTTP")
+	graph.link(doc, "a", "b", "related")
+	assert.eq(link.label, "HTTP")
+	assert.eq(link.kind, "related")
+
+	graph.insertBetween(doc, "n", "a", "b")
+	assert.eq(doc.links[1].label, "HTTP")
+	assert.eq(doc.links[2].label, nil)
+
+	graph.link(doc, "a", "n", "related", "")
+	assert.eq(doc.links[1].label, nil)
 end)
 
 test.case("derive keeps hand-set blocked and deferred, and skips deferred work in leverage", function(assert)
@@ -95,6 +162,23 @@ test.case("addItem names pull requests after the repository and number", functio
 	assert.eq(item.position.x > 0, true)
 	assert.eq(graph.addItem(doc, "Ship it", {}).id, "ship-it")
 	assert.eq(graph.addItem(doc, "Ship it", {}).id, "ship-it-2")
+end)
+
+test.case("addItem cuts long ids at a word boundary and suffixes collisions", function(assert)
+	local doc = testing.createDoc({})
+	local label = "Pick the next slider family piece to build"
+	assert.eq(graph.addItem(doc, label, {}).id, "pick-the-next-slider-family")
+	assert.eq(graph.addItem(doc, label, {}).id, "pick-the-next-slider-family-2")
+end)
+
+test.case("setFields keeps an item's id when its label changes", function(assert)
+	local doc = testing.createDoc({ testing.group("g", "Group") })
+	local item = graph.addItem(doc, "Ship it", {})
+	graph.setFields(doc, item.id, { label = "Ship the release" })
+	graph.setFields(doc, "g", { label = "Release work" })
+	assert.eq(item.id, "ship-it")
+	assert.eq(graph.get(doc, "ship-it").data.label, "Ship the release")
+	assert.eq(graph.get(doc, "g").data.label, "Release work")
 end)
 
 test.case("repo and pull fields use full repository names and refs", function(assert)
@@ -258,13 +342,47 @@ test.case("a group takes a cover and background, and an empty value clears them"
 	assert.eq(group.data.cover, nil)
 end)
 
-test.case("an item refuses a cover or background, and a group refuses a bad one", function(assert)
+test.case("a group takes a header, and an empty value clears it", function(assert)
+	local doc = testing.createDoc({ testing.group("ws", "Workspace", nil) })
+	graph.setFields(doc, "ws", { header = "# Sprint 14" })
+	assert.eq(graph.get(doc, "ws").data.header, "# Sprint 14")
+	graph.setFields(doc, "ws", { header = "" })
+	assert.eq(graph.get(doc, "ws").data.header, nil)
+end)
+
+test.case("adding a header moves the group's top edge up and keeps its cards where they are", function(assert)
+	local group = testing.group("ws", "Workspace", nil)
+	group.position = { x = 100, y = 300 }
+	group.height = 300
+	local doc = testing.createDoc({ group, task("a", "A", "todo", "ws") })
+	doc.nodes[2].position = { x = 32, y = 78 }
+	graph.setFields(doc, "ws", { header = "# Sprint 14" })
+	assert.eq(graph.get(doc, "ws").position.y, 300 - 112)
+	assert.eq(graph.get(doc, "ws").height, 300 + 112)
+	assert.eq(graph.get(doc, "a").position.y, 78 + 112)
+	graph.setFields(doc, "ws", { header = "" })
+	assert.eq(graph.get(doc, "ws").position.y, 300)
+	assert.eq(graph.get(doc, "ws").height, 300)
+	assert.eq(graph.get(doc, "a").position.y, 78)
+end)
+
+test.case("a card added to a group with a header starts below the header band", function(assert)
+	local doc = testing.createDoc({ testing.group("ws", "Workspace", nil) })
+	graph.setFields(doc, "ws", { header = "# Sprint 14" })
+	local added = graph.addItem(doc, "Next", { group = "ws" })
+	assert.eq(added.position.y, 78 + 112)
+end)
+
+test.case("an item refuses a cover or background or header, and a group refuses a bad one", function(assert)
 	local doc = testing.createDoc({ testing.group("ws", "Workspace", nil), task("a", "A", "todo") })
-	assert.throwsWith('"a" is an item; only groups take a cover or background', function()
+	assert.throwsWith('"a" is an item; only groups take a cover, background, or header', function()
 		graph.setFields(doc, "a", { cover = "image-logo.png" })
 	end)
-	assert.throwsWith('"a" is an item; only groups take a cover or background', function()
+	assert.throwsWith('"a" is an item; only groups take a cover, background, or header', function()
 		graph.setFields(doc, "a", { background = "#fff" })
+	end)
+	assert.throwsWith('"a" is an item; only groups take a cover, background, or header', function()
+		graph.setFields(doc, "a", { header = "# Hi" })
 	end)
 	assert.throws(function()
 		graph.setFields(doc, "ws", { cover = "../orion.json" })
@@ -302,4 +420,47 @@ test.case("markCelebrations keeps a flag until the card is reopened, and skips n
 	assert.eq(doc.nodes[1].data.celebrate, true)
 	assert.eq(doc.nodes[2].data.celebrate, nil)
 	assert.eq(doc.nodes[3].data.celebrate, nil)
+end)
+
+test.case("create makes an empty group at the top or inside another group", function(assert)
+	local doc = testing.createDoc({ testing.group("ws", "Workspace"), task("a", "A", "todo") })
+	local weekly = graph.createGroup(doc, "Week 1")
+	assert.eq(weekly.id, "week-1")
+	assert.eq(weekly.parentId, nil)
+	local inner = graph.createGroup(doc, "Monday", "ws")
+	assert.eq(inner.parentId, "ws")
+	assert.eq(graph.isGroup(inner), true)
+	assert.eq(graph.countProgress(doc, graph.derive(doc), "week-1").total, 0)
+	assert.throwsWith('no item or group with id "missing"', function()
+		graph.createGroup(doc, "Nowhere", "missing")
+	end)
+	assert.throwsWith("a group needs a name", function()
+		graph.createGroup(doc, "")
+	end)
+end)
+
+test.case("an empty group made on purpose survives moves elsewhere, and emptied groups still go", function(assert)
+	local doc = testing.createDoc({
+		testing.group("g", "G"),
+		testing.group("h", "H"),
+		testing.group("kept", "Kept"),
+		task("a", "A", "todo", "g"),
+		task("b", "B", "todo"),
+	})
+	graph.move(doc, "a", "h")
+	assert.eq(graph.find(doc, "g"), nil)
+	assert.eq(graph.find(doc, "kept") ~= nil, true)
+end)
+
+test.case("removing the last item of a nested group also drops the group above it when it empties", function(assert)
+	local doc = testing.createDoc({
+		testing.group("outer", "Outer"),
+		testing.group("inner", "Inner", "outer"),
+		task("a", "A", "todo", "inner"),
+		testing.group("spare", "Spare"),
+	})
+	graph.remove(doc, "a")
+	assert.eq(graph.find(doc, "inner"), nil)
+	assert.eq(graph.find(doc, "outer"), nil)
+	assert.eq(graph.find(doc, "spare") ~= nil, true)
 end)

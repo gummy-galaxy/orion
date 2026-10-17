@@ -8,42 +8,26 @@ orion — keep a graph of work up to date from the command line.
 orion <command> [options]
 ```
 
-Every command also takes `--workspace <name>` to work in a specific workspace, and `--help` (`-h`) to print its help.
+Every command also takes `--canvas <name>` to work on a specific canvas, and `--help` (`-h`) to print its help.
 
-| Command                              | What it does                                                                                               |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| [`orion list`](./list)               | List work items with their derived status                                                                  |
-| [`orion query`](./query)             | Find cards and groups with an expression                                                                   |
-| [`orion ready`](./ready)             | List items that can start now, most unblocking first                                                       |
-| [`orion groups`](./groups)           | List groups with their progress                                                                            |
-| [`orion show`](./show)               | Show one item or group                                                                                     |
-| [`orion focus`](./focus)             | Show the group open in the app and what's selected                                                         |
-| [`orion add`](./add)                 | Add a work item                                                                                            |
-| [`orion set`](./set)                 | Change an item's or group's fields                                                                         |
-| [`orion done`](./done)               | Mark one or more items done                                                                                |
-| [`orion link`](./link)               | Link each adjacent pair of items                                                                           |
-| [`orion insert`](./insert)           | Insert an item into an existing link                                                                       |
-| [`orion unlink`](./unlink)           | Remove the link between two items                                                                          |
-| [`orion note`](./note)               | Add a note, optionally between two linked items                                                            |
-| [`orion remove`](./remove)           | Remove items; optionally reconnect a card's links                                                          |
-| [`orion group`](./group)             | Make a group around items, or remove one with everything inside                                            |
-| [`orion ref`](./ref)                 | Take outside work off an item                                                                              |
-| [`orion ungroup`](./ungroup)         | Dissolve groups, keeping their items in place                                                              |
-| [`orion move`](./move)               | Move items or groups into another group                                                                    |
-| [`orion sync`](./sync)               | Update pull request items from GitHub (deprecated: use ingest)                                             |
-| [`orion matches`](./matches)         | List unplaced pull requests and likely cards                                                               |
-| [`orion backups`](./backups)         | List saved Orion data revisions                                                                            |
-| [`orion media`](./media)             | Insert or list media nodes                                                                                 |
-| [`orion restore`](./restore)         | Restore a saved revision as a new revision                                                                 |
-| [`orion serve`](./serve)             | Serve the Orion API or report its status                                                                   |
-| [`orion source`](./source)           | List, add, or remove ingestion sources                                                                     |
-| [`orion ingest`](./ingest)           | Import work from configured sources and refresh the cards they track                                       |
-| [`orion import`](./import)           | Add a card for each URL or source:key in one step                                                          |
-| [`orion suggest`](./suggest)         | Compute group suggestions                                                                                  |
-| [`orion suggestions`](./suggestions) | List, apply, or dismiss group suggestions                                                                  |
-| [`orion check`](./check)             | Report layout problems: overlaps, items outside their group, dangling links, and groups waiting for layout |
-| [`orion tidy`](./tidy)               | Mark groups for the app to lay out in place                                                                |
-| [`orion path`](./path)               | Print where Orion keeps its data                                                                           |
-| [`orion mcp`](./mcp)                 | Serve Orion's agent tools over MCP on stdin and stdout                                                     |
-| [`orion workspace`](./workspace)     | List, create, rename, archive, restore, and choose workspaces                                              |
-| [`orion help`](./help)               | Show help for Orion or one of its commands                                                                 |
+| Command                            | What it does                                                         |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| [`orion card`](./card)             | Work items on the canvas                                             |
+| [`orion note`](./note)             | Notes for context, decisions, and reminders                          |
+| [`orion link`](./link)             | Dependencies between items                                           |
+| [`orion node`](./node)             | Any item or group                                                    |
+| [`orion group`](./group)           | Groups of items                                                      |
+| [`orion ref`](./ref)               | Outside work attached to cards                                       |
+| [`orion next`](./next)             | List items that can start now, most unblocking first                 |
+| [`orion sync`](./sync)             | Update pull request items from GitHub (deprecated: use ingest)       |
+| [`orion canvas`](./canvas)         | Canvases and their layout                                            |
+| [`orion server`](./server)         | The server the app and agents talk to                                |
+| [`orion source`](./source)         | Sources that ingest imports work from                                |
+| [`orion ingest`](./ingest)         | Import work from configured sources and refresh the cards they track |
+| [`orion media`](./media)           | Media on the canvas                                                  |
+| [`orion suggestion`](./suggestion) | Suggested groups for related cards                                   |
+| [`orion theme`](./theme)           | Add, list, or remove theme files                                     |
+| [`orion backup`](./backup)         | Saved revisions of a canvas                                          |
+| [`orion mcp`](./mcp)               | Agent tools over MCP                                                 |
+| [`orion focus`](./focus)           | Show the group open in the app and what's selected                   |
+| [`orion help`](./help)             | Show help for Orion or one of its commands                           |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROW_WIDTH, WRAP, layoutOrder, reflow } from './layout'
+import { ROW_WIDTH, WRAP, labelWidth, layoutOrder, reflow } from './layout'
 import { TASK_HEIGHT, TASK_WIDTH, type AppNode, type ClusterData, type Link } from './model'
 import { toDisplayed } from './skinSpace'
 import { skinOf } from './skins'
@@ -46,6 +46,17 @@ const overlaps = (positions: Map<string, { x: number; y: number }>, size = { wid
 }
 
 describe('reflow', () => {
+  it('leaves room between linked cards for the label on their link', async () => {
+    const nodes = [group(), task('a'), task('b', 'g', 300)]
+    const plain = await placed(nodes, [blocks('a', 'b')])
+    const label = 'HTTP /api and WebSocket'
+    const labeled = await placed(nodes, [{ ...blocks('a', 'b'), label }])
+    const gap = (positions: Map<string, { x: number }>) => positions.get('b')!.x - positions.get('a')!.x - TASK_WIDTH
+
+    expect(gap(labeled)).toBeGreaterThanOrEqual(labelWidth(label))
+    expect(gap(labeled)).toBeGreaterThan(gap(plain))
+  })
+
   it('keeps a mapped fan apart and reflows it at the trading card size', async () => {
     const fleet = ids(24)
     const nodes = [group(), task('start'), ...fleet.map((id) => task(id)), task('gate')]

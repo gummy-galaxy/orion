@@ -2,10 +2,18 @@
 
 # orion note
 
+Notes for context, decisions, and reminders
+
+```sh
+orion note <command> [options]
+```
+
+## orion note add
+
 Add a note, optionally between two linked items
 
 ```sh
-orion note [options] [text...]
+orion note add [options] [text...]
 ```
 
 | Argument           | Description              |

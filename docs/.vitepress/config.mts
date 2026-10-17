@@ -23,7 +23,7 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.png',
     nav: [
-      { text: 'Guide', link: '/guide/concepts' },
+      { text: 'Guide', link: '/guide/getting-started' },
       { text: 'CLI', link: '/reference/cli/' },
       { text: 'MCP', link: '/reference/mcp' },
     ],
@@ -32,7 +32,13 @@ export default defineConfig({
         {
           text: 'Guide',
           items: [
+            { text: 'Getting started', link: '/guide/getting-started' },
             { text: 'Concepts', link: '/guide/concepts' },
+            { text: 'Using the canvas', link: '/guide/canvas' },
+            { text: 'Sources', link: '/guide/sources' },
+            { text: 'Data and canvases', link: '/guide/data' },
+            { text: 'Themes', link: '/guide/themes' },
+            { text: 'Theme tokens', link: '/guide/tokens' },
             { text: 'Public surfaces', link: '/guide/surfaces' },
           ],
         },

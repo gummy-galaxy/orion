@@ -8,16 +8,27 @@ local testing = require("@root/testing")
 test.case("tool arguments map onto the command each tool runs", function(assert)
 	assert.eq(
 		table.concat(getToolArgv("orion_inspect", json.object({ view = "show", id = "ci" })), " "),
-		"show ci --json"
+		"node show ci --json"
 	)
-	assert.eq(table.concat(getToolArgv("orion_move", json.object({ id = "ci" })), " "), "move ci --top")
+	assert.eq(table.concat(getToolArgv("orion_move", json.object({ id = "ci" })), " "), "node move ci --top")
 	assert.eq(
 		table.concat(getToolArgv("orion_move", json.object({ id = "ci", group = "release" })), " "),
-		"move ci --to release"
+		"node move ci --to release"
 	)
 	assert.throwsWith("missing id", function()
 		getToolArgv("orion_inspect", json.object({ view = "show" }))
 	end)
+end)
+
+test.case("create group takes a label and an optional parent", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_group", json.object({ label = "Week 1" })), " "),
+		"group create Week 1 --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_group", json.object({ label = "Monday", ["in"] = "week-1" })), " "),
+		"group create Monday --in week-1 --json"
+	)
 end)
 
 test.case("group and ref tools run their subcommands", function(assert)
@@ -48,7 +59,7 @@ test.case("orion_import passes each ref as a trailing positional", function(asse
 			),
 			" "
 		),
-		"import https://github.com/vocksel/orion/issues/91 jira:ABC-1 --group release --dry-run --json"
+		"card import https://github.com/vocksel/orion/issues/91 jira:ABC-1 --group release --dry-run --json"
 	)
 	assert.throwsWith("refs must be a list of strings", function()
 		getToolArgv("orion_import", json.object({ refs = { "" } }))
@@ -85,40 +96,65 @@ end)
 test.case("update_item passes ref through as --ref and keeps repo and pr as aliases", function(assert)
 	assert.eq(
 		getToolArgv("orion_update_item", json.object({ id = "pub", ref = "jira:ABC-1" })),
-		{ "set", "pub", "--ref", "jira:ABC-1", "--json" }
+		{ "card", "set", "pub", "--ref", "jira:ABC-1", "--json" }
 	)
 	assert.eq(
 		getToolArgv("orion_add_item", json.object({ title = "Review", repo = "Roblox/avatar", pr = 4 })),
-		{ "add", "Review", "--repo", "Roblox/avatar", "--pr", "4", "--json" }
+		{ "card", "add", "Review", "--repo", "Roblox/avatar", "--pr", "4", "--json" }
 	)
 end)
 
-test.case("workspace tools map onto the workspace commands", function(assert)
+test.case("canvas tools map onto the canvas commands", function(assert)
 	assert.eq(
-		table.concat(getToolArgv("orion_create_workspace", json.object({ label = "Focus areas" })), " "),
-		"workspace create --label Focus areas"
+		table.concat(getToolArgv("orion_create_canvas", json.object({ label = "Focus areas" })), " "),
+		"canvas create --label Focus areas"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_create_workspace", json.object({ name = "focus", label = "Focus" })), " "),
-		"workspace create focus --label Focus"
+		table.concat(getToolArgv("orion_create_canvas", json.object({ name = "focus", label = "Focus" })), " "),
+		"canvas create focus --label Focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_rename_workspace", json.object({ name = "focus", label = "Focus" })), " "),
-		"workspace rename focus Focus"
+		table.concat(getToolArgv("orion_rename_canvas", json.object({ name = "focus", label = "Focus" })), " "),
+		"canvas rename focus Focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_archive_workspace", json.object({ name = "focus" })), " "),
-		"workspace archive focus"
+		table.concat(getToolArgv("orion_archive_canvas", json.object({ name = "focus" })), " "),
+		"canvas archive focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_restore_workspace", json.object({ name = "focus" })), " "),
-		"workspace restore focus"
+		table.concat(getToolArgv("orion_restore_canvas", json.object({ name = "focus" })), " "),
+		"canvas restore focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_workspaces", json.object({ archived = true })), " "),
-		"workspace list --archived --json"
+		table.concat(getToolArgv("orion_canvases", json.object({ archived = true })), " "),
+		"canvas list --archived --json"
 	)
 	assert.throwsWith("missing name", function()
-		getToolArgv("orion_archive_workspace", json.object({}))
+		getToolArgv("orion_archive_canvas", json.object({}))
+	end)
+end)
+
+test.case("layout tools map onto group tidy and canvas check", function(assert)
+	assert.eq(
+		getToolArgv("orion_tidy", json.object({ ids = { "ws", "release" }, dryRun = true, canvas = "focus" })),
+		{ "group", "tidy", "ws", "release", "--dry-run", "--canvas", "focus", "--json" }
+	)
+	assert.eq(
+		getToolArgv("orion_tidy", json.object({ where = 'label ~ "release"', ifRevision = 0 })),
+		{ "group", "tidy", "--where", 'label ~ "release"', "--if-revision", "0", "--json" }
+	)
+	assert.eq(getToolArgv("orion_check", json.object({})), { "canvas", "check", "--json" })
+	assert.eq(
+		getToolArgv("orion_check", json.object({ group = "ws", canvas = "focus" })),
+		{ "canvas", "check", "--canvas", "focus", "--group", "ws", "--json" }
+	)
+	assert.throwsWith("ifRevision must be a nonnegative integer", function()
+		getToolArgv("orion_tidy", json.object({ ids = { "ws" }, ifRevision = -1 }))
+	end)
+	assert.throwsWith("ids must be a list of strings", function()
+		getToolArgv("orion_tidy", json.object({ ids = { "" } }))
+	end)
+	assert.throwsWith("unknown argument: deep", function()
+		getToolArgv("orion_tidy", json.object({ ids = { "ws" }, deep = true }))
 	end)
 end)

@@ -52,7 +52,7 @@ local function batchEdit(options: Options)
 			if options.action == "done" then
 				assert(item.type == "task", `"{item.id}" is not a work item`)
 			elseif options.action == "remove" then
-				assert(not graph.isGroup(item), `"{item.id}" is a group; use ungroup or group remove instead`)
+				assert(not graph.isGroup(item), `"{item.id}" is a group; use group ungroup or group remove instead`)
 			elseif options.action == "ungroup" or options.action == "tidy" or options.action == "removeGroup" then
 				assert(graph.isGroup(item), `"{item.id}" is an item, not a group`)
 			end
