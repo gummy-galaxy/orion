@@ -15,6 +15,8 @@ local time = require("@std/time")
 local findMutations = require("@root/mutation/findMutations")
 local mutationTypes = require("@root/mutation/types")
 
+local runScript = require("@root/runScript")
+
 type Mutation = mutationTypes.Mutation
 type Outcome = mutationTypes.Outcome
 
@@ -46,81 +48,83 @@ local function runSpecs(specs: { string }, timeoutSeconds: number): Outcome
 	return if result.exitcode == KILLED_EXIT_CODE then "timedOut" else "killed"
 end
 
-local modules: { string } = {}
-local specOverrides: { string } = {}
-local index = 2
+runScript(function()
+	local modules: { string } = {}
+	local specOverrides: { string } = {}
+	local index = 2
 
-while index <= #process.args do
-	local argument = process.args[index]
+	while index <= #process.args do
+		local argument = process.args[index]
 
-	if argument == "--spec" then
-		table.insert(specOverrides, (assert(process.args[index + 1], "--spec needs a path")))
-		index += 2
-	else
-		table.insert(modules, argument)
-		index += 1
-	end
-end
-
-assert(#modules > 0, "usage: lute run mutate <module.luau>... [--spec <spec or folder>]...")
-
-local restoring: { file: string, source: string }? = nil
-
-local interrupt = process.onSignal("SIGINT", function()
-	if restoring then
-		fs.writeStringToFile(restoring.file, restoring.source)
-	end
-
-	process.exit(130)
-end)
-
-local totalKilled, totalCount = 0, 0
-
-for _, module in modules do
-	local specs = if #specOverrides > 0 then specOverrides else { (module:gsub("%.luau$", ".spec.luau")) }
-	local described = table.concat(specs, ", ")
-
-	if not fs.exists(specs[1]) then
-		print(`{module}: no spec at {described}, skipped`)
-		continue
-	end
-
-	local started = time.now()
-	assert(runSpecs(specs, 600) == "survived", `{described} fails before any mutation; fix it first`)
-	-- Generous, since a mutation can make a spec slower without looping.
-	local timeoutSeconds = math.max(10, math.ceil(time.since(started) * 10))
-
-	local original = fs.readFileToString(module)
-	local mutations = findMutations(original)
-	local survivors: { Mutation } = {}
-	local killed = 0
-	restoring = { file = module, source = original }
-
-	for _, mutation in mutations do
-		fs.writeStringToFile(module, mutation.source)
-		local succeeded, outcome = pcall(runSpecs, specs, timeoutSeconds)
-		fs.writeStringToFile(module, original)
-		assert(succeeded, outcome)
-
-		if outcome == "survived" then
-			table.insert(survivors, mutation)
+		if argument == "--spec" then
+			table.insert(specOverrides, (assert(process.args[index + 1], "--spec needs a path")))
+			index += 2
 		else
-			killed += 1
+			table.insert(modules, argument)
+			index += 1
 		end
 	end
 
-	restoring = nil
-	totalKilled += killed
-	totalCount += #mutations
-	print(`{module}: {killed} of {#mutations} mutations caught by {described}`)
+	assert(#modules > 0, "usage: lute run mutate <module.luau>... [--spec <spec or folder>]...")
 
-	for _, mutation in survivors do
-		print(`  {module}:{mutation.line}:{mutation.column} {mutation.original} -> {mutation.replacement}`)
+	local restoring: { file: string, source: string }? = nil
+
+	local interrupt = process.onSignal("SIGINT", function()
+		if restoring then
+			fs.writeStringToFile(restoring.file, restoring.source)
+		end
+
+		process.exit(130)
+	end)
+
+	local totalKilled, totalCount = 0, 0
+
+	for _, module in modules do
+		local specs = if #specOverrides > 0 then specOverrides else { (module:gsub("%.luau$", ".spec.luau")) }
+		local described = table.concat(specs, ", ")
+
+		if not fs.exists(specs[1]) then
+			print(`{module}: no spec at {described}, skipped`)
+			continue
+		end
+
+		local started = time.now()
+		assert(runSpecs(specs, 600) == "survived", `{described} fails before any mutation; fix it first`)
+		-- Generous, since a mutation can make a spec slower without looping.
+		local timeoutSeconds = math.max(10, math.ceil(time.since(started) * 10))
+
+		local original = fs.readFileToString(module)
+		local mutations = findMutations(original)
+		local survivors: { Mutation } = {}
+		local killed = 0
+		restoring = { file = module, source = original }
+
+		for _, mutation in mutations do
+			fs.writeStringToFile(module, mutation.source)
+			local succeeded, outcome = pcall(runSpecs, specs, timeoutSeconds)
+			fs.writeStringToFile(module, original)
+			assert(succeeded, outcome)
+
+			if outcome == "survived" then
+				table.insert(survivors, mutation)
+			else
+				killed += 1
+			end
+		end
+
+		restoring = nil
+		totalKilled += killed
+		totalCount += #mutations
+		print(`{module}: {killed} of {#mutations} mutations caught by {described}`)
+
+		for _, mutation in survivors do
+			print(`  {module}:{mutation.line}:{mutation.column} {mutation.original} -> {mutation.replacement}`)
+		end
 	end
-end
 
-interrupt:close()
+	interrupt:close()
 
-if #modules > 1 then
-	print(`Total: {totalKilled} of {totalCount} mutations caught`)
-end
+	if #modules > 1 then
+		print(`Total: {totalKilled} of {totalCount} mutations caught`)
+	end
+end)
