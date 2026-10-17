@@ -52,6 +52,7 @@ type Resolved = {
 	dataDir: string,
 	workspace: string?,
 	now: () -> string,
+	exit: (code: number) -> (),
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
@@ -238,6 +239,11 @@ local function createParsers(): Parsers
 	local groupList = addCommand(group, "list", "List groups with their progress")
 	addJsonFlag(groupList)
 
+	local groupCreate = addCommand(group, "create", "Make an empty group, optionally inside another")
+	groupCreate:add("label", "variadic", { help = "Group name" })
+	groupCreate:add("in", "option", { help = "Group to make it inside" })
+	addJsonFlag(groupCreate)
+
 	local groupAdd = addCommand(group, "add", "Wrap items that share a parent in a new group")
 	groupAdd:add("label", "variadic", { help = "Group name" })
 	groupAdd:add("items", "option", { help = "Comma-separated ids to put in it", required = true })
@@ -389,6 +395,9 @@ local function dependencies(options: Dependencies?): Resolved
 		workspace = if given.workspace == nil then process.env.ORION_CANVAS else given.workspace,
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+		end,
+		exit = given.exit or function(code: number)
+			process.exit(code)
 		end,
 	}
 end
@@ -619,6 +628,7 @@ local function execute(args: { string }, options: Dependencies?)
 		asJson = asJson,
 		runner = deps.runner,
 		now = deps.now,
+		exit = deps.exit,
 		execute = execute,
 	}
 
@@ -887,6 +897,14 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif key == "group list" then
 		groupsReport(deps, store.load(dir), asJson)
+	elseif key == "group create" then
+		local label = joined(parser:variadics(), "<label>")
+		local made: Item
+		local doc = store.transaction(dir, function(doc)
+			made = graph.createGroup(doc, label, parser:get("in"))
+		end)
+
+		emitItem(deps, doc, made, asJson, "Created group")
 	elseif key == "group add" then
 		local label = joined(parser:variadics(), "<label>")
 		local ids = parseCommaList(required(parser, "items"))

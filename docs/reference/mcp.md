@@ -170,6 +170,18 @@ Runs `orion group add`.
 | `items`  | strings | **Required.**                                          |
 | `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion. |
 
+## orion_create_group
+
+Make an empty group, optionally inside another group. Add cards to it afterward with its id.
+
+Runs `orion group create`.
+
+| Argument | Type   | Description                                                          |
+| -------- | ------ | -------------------------------------------------------------------- |
+| `label`  | string | **Required.** The group's name, shown on the canvas.                 |
+| `in`     | id     | Id of the group to make it inside. Omit to make it at the top level. |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.               |
+
 ## orion_move
 
 Move an item into a group or to the top level.
@@ -181,6 +193,31 @@ Runs `orion node move`.
 | `id`     | id     | **Required.**                                          |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 | `group`  | id     |                                                        |
+
+## orion_tidy
+
+Mark groups for the app to lay out in place, deepest first, such as after adding cards in bulk. The app does the layout, so appConnected in the result says whether it runs now or when the app next opens. Custom groups keep their arrangement.
+
+Runs `orion group tidy`.
+
+| Argument     | Type    | Description                                                                            |
+| ------------ | ------- | -------------------------------------------------------------------------------------- |
+| `ids`        | strings | Groups to tidy. Give ids or where, not both.                                           |
+| `where`      | string  | Select groups with a query expression instead of ids, such as label ~ "release".       |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                 |
+| `dryRun`     | boolean | List the groups and the current revision without marking them.                         |
+| `ifRevision` | int     | Mark only if the canvas is still at this revision, such as the one a dry run reported. |
+
+## orion_check
+
+Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.
+
+Runs `orion canvas check`.
+
+| Argument | Type   | Description                                               |
+| -------- | ------ | --------------------------------------------------------- |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.    |
+| `group`  | id     | Only report problems in this group and what is inside it. |
 
 ## orion_remove
 

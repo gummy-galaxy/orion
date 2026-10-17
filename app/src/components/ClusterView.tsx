@@ -4,7 +4,18 @@ import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext } from '../derive'
 import { GROUP_HEADER_BAND, GROUP_HEADER_HEIGHT, type ClusterNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useCollapsed, useGroupParts, useGroupStats, useIsDropTarget, useMarked, useSources, useTint, useTraceRole, workspaceAtom } from '../state'
+import {
+  useCollapsed,
+  useGroupParts,
+  useGroupStats,
+  useIsDropTarget,
+  useIsEmptyGroup,
+  useMarked,
+  useSources,
+  useTint,
+  useTraceRole,
+  workspaceAtom,
+} from '../state'
 import { HEADER_MIN_ZOOM, groupLayers, headerText } from '../style'
 import { CoverImage } from './CoverImage'
 import { Markdown } from './Markdown'
@@ -24,6 +35,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   // Groups that hold no work, like the boundaries of a system diagram, have no progress to show.
   const hasWork = stats.total > 0
   const parts = useGroupParts(id)
+  const isEmpty = useIsEmptyGroup(id)
   const isDropTarget = useIsDropTarget(id)
   const workspace = useAtomValue(workspaceAtom)
   const headerFolded = useStore((state) => state.transform[2] < HEADER_MIN_ZOOM)
@@ -65,14 +77,18 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
                   <span>{stats.ready} ready</span>
                   <span>{stats.blocked} blocked</span>
                 </span>
+              ) : // A folded diagram group lists what it holds, so the system still reads from far out.
+              parts.length > 0 ? (
+                <ul className="cluster-card-parts">
+                  {parts.map((part, i) => (
+                    <li key={i}>{part}</li>
+                  ))}
+                </ul>
               ) : (
-                // A folded diagram group lists what it holds, so the system still reads from far out.
-                parts.length > 0 && (
-                  <ul className="cluster-card-parts">
-                    {parts.map((part, i) => (
-                      <li key={i}>{part}</li>
-                    ))}
-                  </ul>
+                isEmpty && (
+                  <span className="cluster-card-stats">
+                    <span>Empty group</span>
+                  </span>
                 )
               )}
             </div>
@@ -107,6 +123,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
           <Markdown source={header} layout />
         </div>
       )}
+      {!collapsed && isEmpty && <span className="cluster-empty">Empty group</span>}
       {!collapsed && <SourceBadges sources={sources} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
