@@ -29,6 +29,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'edge.default', cssVar: '--edge-default', group: 'color', legacy: '--edge' },
   { name: 'edge.hot', cssVar: '--edge-hot', group: 'color' },
   { name: 'edge.held', cssVar: '--edge-held', group: 'color' },
+  { name: 'edge.still', cssVar: '--edge-still', group: 'color' },
   { name: 'note.background', cssVar: '--note-background', group: 'color', legacy: '--note' },
   { name: 'note.border', cssVar: '--note-border', group: 'color', legacy: '--note-edge' },
   { name: 'note.text', cssVar: '--note-text', group: 'color', legacy: '--note-ink' },
@@ -49,6 +50,14 @@ export const TOKENS: readonly Token[] = [
   { name: 'status.review', cssVar: '--status-review', group: 'status', legacy: '--st-review' },
   { name: 'status.blocked', cssVar: '--status-blocked', group: 'status', legacy: '--st-blocked' },
   { name: 'status.done', cssVar: '--status-done', group: 'status', legacy: '--st-done' },
+
+  { name: 'tint.teal', cssVar: '--tint-teal', group: 'color' },
+  { name: 'tint.blue', cssVar: '--tint-blue', group: 'color' },
+  { name: 'tint.purple', cssVar: '--tint-purple', group: 'color' },
+  { name: 'tint.amber', cssVar: '--tint-amber', group: 'color' },
+  { name: 'tint.rose', cssVar: '--tint-rose', group: 'color' },
+  { name: 'tint.green', cssVar: '--tint-green', group: 'color' },
+  { name: 'tint.slate', cssVar: '--tint-slate', group: 'color' },
 
   { name: 'font.ui', cssVar: '--font-ui', group: 'font' },
   { name: 'font.data', cssVar: '--font-data', group: 'font' },

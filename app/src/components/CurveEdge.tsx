@@ -12,7 +12,7 @@ function boxOf(xs: number[], ys: number[]): Box {
 
 /** Route arrows behind their source around the cards while keeping nearby arrows gently curved. */
 export const CurveEdge = memo(function CurveEdge(props: EdgeProps) {
-  const { sourceX, sourceY, targetX, targetY, markerEnd, style, label, labelStyle } = props
+  const { sourceX, sourceY, targetX, targetY, markerEnd, style, label, labelStyle, labelBgPadding, labelBgBorderRadius } = props
   const reach = Math.min(80, Math.max(36, Math.abs(targetY - sourceY) / 3))
   let path: string
   let labelX: number
@@ -61,6 +61,8 @@ export const CurveEdge = memo(function CurveEdge(props: EdgeProps) {
       style={style}
       label={label}
       labelStyle={labelStyle}
+      labelBgPadding={labelBgPadding}
+      labelBgBorderRadius={labelBgBorderRadius}
       labelX={labelX}
       labelY={labelY}
     />

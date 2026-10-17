@@ -25,7 +25,15 @@ local GROUP_HEADER_HEIGHT = 78
 local GROUP_HEADER_BAND = 112
 local ITEM_GAP = 48
 
-export type GroupStats = { total: number, done: number, ready: number, blocked: number, outside: number }
+-- components counts the components inside, which are parts of a system rather than work.
+export type GroupStats = {
+	total: number,
+	done: number,
+	ready: number,
+	blocked: number,
+	outside: number,
+	components: number,
+}
 
 export type Derived = {
 	status: { [string]: string },
@@ -49,6 +57,8 @@ export type ItemFields = {
 	background: string?,
 	header: string?,
 	kind: string?,
+	shape: string?,
+	color: string?,
 }
 
 local graph = {}
@@ -72,6 +82,16 @@ end
 
 function graph.isGate(item: Item): boolean
 	return item.type == "task" and field(item, "itemKind") == "gate"
+end
+
+-- A component is a part of a system drawn on the canvas, like a service or a data store, rather than work.
+function graph.isComponent(item: Item): boolean
+	return item.type == "task" and field(item, "itemKind") == "component"
+end
+
+-- Cards that count as work. Notes and components pass blocking through and never do.
+function graph.isWork(item: Item): boolean
+	return item.type == "task" and not graph.isNote(item) and not graph.isComponent(item)
 end
 
 function graph.find(doc: Doc, id: string): Item?
@@ -106,15 +126,15 @@ function graph.ancestors(doc: Doc, id: string): { string }
 	return ancestors
 end
 
-export type Progress = { total: number, done: number, ready: number }
+export type Progress = { total: number, done: number, ready: number, components: number }
 
 -- Counts the work anywhere inside a group, leaving out notes and deferred work, which is set aside and doesn't
--- hold a group short of done.
+-- hold a group short of done. Components are counted on their own.
 function graph.countProgress(derived: Derived, groupId: string): Progress
 	local stats = derived.groups[groupId]
 	return if stats
-		then { total = stats.total, done = stats.done, ready = stats.ready }
-		else { total = 0, done = 0, ready = 0 }
+		then { total = stats.total, done = stats.done, ready = stats.ready, components = stats.components }
+		else { total = 0, done = 0, ready = 0, components = 0 }
 end
 
 -- The size the app draws an item at. Groups use their stored width and height.
@@ -209,7 +229,7 @@ local function countUpstream(tasks: { [string]: Item }, predecessors: { [string]
 		local reach: { [string]: boolean } = {}
 
 		for _, id in components[componentIndex] do
-			if not graph.isNote(tasks[id]) then
+			if graph.isWork(tasks[id]) then
 				reach[id] = true
 			end
 
@@ -237,15 +257,15 @@ local function countUpstream(tasks: { [string]: Item }, predecessors: { [string]
 			count += 1
 		end
 
-		upstream[id] = count - (if graph.isNote(item) then 0 else 1)
+		upstream[id] = count - (if graph.isWork(item) then 1 else 0)
 	end
 
 	return upstream
 end
 
 -- Status, flow, leverage, upstream work, rarity, and group progress, all served to the app rather than derived there.
--- Notes pass blocking through and never count as work. Gates also pass blocking through, but count as work: one
--- is done once everything it waits on is.
+-- Notes and components pass blocking through and never count as work, and components have no status. Gates also
+-- pass blocking through, but count as work: one is done once everything it waits on is.
 function graph.derive(doc: Doc): Derived
 	local tasks: { [string]: Item } = {}
 	local parentOf: { [string]: string } = {}
@@ -281,7 +301,7 @@ function graph.derive(doc: Doc): Derived
 			return false
 		end
 
-		local passesThrough = graph.isNote(item) or (graph.isGate(item) and predecessors[id] ~= nil)
+		local passesThrough = not graph.isWork(item) or (graph.isGate(item) and predecessors[id] ~= nil)
 		if not passesThrough then
 			return field(item, "status") ~= "done"
 		end
@@ -313,6 +333,10 @@ function graph.derive(doc: Doc): Derived
 	local status: { [string]: string } = {}
 
 	for id, item in tasks do
+		if graph.isComponent(item) then
+			continue
+		end
+
 		local recorded = field(item, "status") or "todo"
 		local blockedByDeps = false
 
@@ -334,7 +358,8 @@ function graph.derive(doc: Doc): Derived
 		end
 	end
 
-	-- Links move unless they come out of work that's stuck. Notes pass on whatever reaches them.
+	-- Links move unless they come out of work that's stuck. Notes pass on whatever reaches them, and links out of
+	-- components stay still.
 	local flow: { [string]: string } = {}
 
 	local function flowOf(id: string, seen: { [string]: boolean }): string
@@ -358,7 +383,21 @@ function graph.derive(doc: Doc): Derived
 		seen[id] = true
 		local value: string
 
-		if status[id] == "done" then
+		local incoming = predecessors[id] or {}
+		-- A note fed only by components carries no work either, so its links stay still too.
+		local fedOnlyByComponents = graph.isNote(item) and #incoming > 0
+
+		for _, predecessor in incoming do
+			if not fedOnlyByComponents then
+				break
+			end
+
+			fedOnlyByComponents = flowOf(predecessor, seen) == "still"
+		end
+
+		if graph.isComponent(item) or fedOnlyByComponents then
+			value = "still"
+		elseif status[id] == "done" then
 			value = "live"
 		elseif graph.isNote(item) then
 			value = "held"
@@ -385,7 +424,7 @@ function graph.derive(doc: Doc): Derived
 	local downstream: { [string]: { [string]: boolean } } = {}
 
 	for id, item in tasks do
-		if graph.isNote(item) or not isOpen(id) then
+		if not graph.isWork(item) or not isOpen(id) then
 			continue
 		end
 
@@ -408,23 +447,25 @@ function graph.derive(doc: Doc): Derived
 			end
 		end
 
+		local work: { [string]: boolean } = {}
 		local count = 0
 
 		for reachedId in reached do
-			if not graph.isNote(tasks[reachedId]) then
+			if graph.isWork(tasks[reachedId]) then
+				work[reachedId] = true
 				count += 1
 			end
 		end
 
 		leverage[id] = count
-		downstream[id] = reached
+		downstream[id] = work
 	end
 
 	local upstream = countUpstream(tasks, predecessors)
 	local rarity: { [string]: string } = {}
 
 	for id, item in tasks do
-		if not graph.isNote(item) then
+		if graph.isWork(item) then
 			rarity[id] = rarityOf(upstream[id])
 		end
 	end
@@ -453,14 +494,18 @@ function graph.derive(doc: Doc): Derived
 			continue
 		end
 
-		local stats: GroupStats = { total = 0, done = 0, ready = 0, blocked = 0, outside = 0 }
+		local stats: GroupStats = { total = 0, done = 0, ready = 0, blocked = 0, outside = 0, components = 0 }
 		local inside = members[item.id] or {}
 		local outside: { [string]: boolean } = {}
 
 		for id in inside do
 			local statusValue = status[id]
 
-			if not statusValue or graph.isNote(tasks[id]) then
+			if graph.isComponent(tasks[id]) then
+				stats.components += 1
+			end
+
+			if not statusValue or not graph.isWork(tasks[id]) then
 				continue
 			end
 
@@ -479,7 +524,7 @@ function graph.derive(doc: Doc): Derived
 
 			-- Leverage that lands outside the group counts toward the group's reach.
 			for reachedId in downstream[id] or {} do
-				if not inside[reachedId] and not graph.isNote(tasks[reachedId]) then
+				if not inside[reachedId] then
 					outside[reachedId] = true
 				end
 			end
@@ -581,8 +626,8 @@ local function freeSpotBelow(doc: Doc, parentId: string?, preferred: Position): 
 end
 
 local function itemKindFor(repo: string?, pr: number?, kind: string?): string
-	if kind == "gate" then
-		return "gate"
+	if kind == "gate" or kind == "component" then
+		return kind
 	end
 
 	if repo and pr then
@@ -609,11 +654,19 @@ local function checkFields(fields: ItemFields)
 	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
 	assert(
 		fields.kind == nil or table.find(fieldValues.kinds, fields.kind),
-		`kind must be {table.concat(fieldValues.kinds, " or ")}`
+		`kind must be one of {table.concat(fieldValues.kinds, ", ")}`
 	)
 	assert(
 		fields.arrange == nil or table.find(fieldValues.arrangements, fields.arrange),
 		`arrange must be one of {table.concat(fieldValues.arrangements, ", ")}`
+	)
+	assert(
+		fields.shape == nil or fields.shape == "" or table.find(fieldValues.shapes, fields.shape),
+		`shape must be one of {table.concat(fieldValues.shapes, ", ")}`
+	)
+	assert(
+		fields.color == nil or fields.color == "" or table.find(fieldValues.colors, fields.color),
+		`color must be one of {table.concat(fieldValues.colors, ", ")}`
 	)
 	assert(
 		fields.cover == nil or fields.cover == "" or isAssetId(fields.cover),
@@ -629,11 +682,25 @@ local function checkFields(fields: ItemFields)
 	end
 end
 
+-- Sets or clears (with an empty value) a component's shape and color.
+local function setLook(item: Item, fields: ItemFields)
+	if fields.shape then
+		assert(graph.isComponent(item), "only components take a shape")
+		item.data.shape = if fields.shape == "" then nil else fields.shape
+	end
+
+	if fields.color then
+		assert(graph.isComponent(item), "only components and groups take a color")
+		item.data.color = if fields.color == "" then nil else fields.color
+	end
+end
+
 export type AddOptions = ItemFields & { group: string? }
 
 function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	assert(label ~= "", "an item needs a label")
 	checkFields(options)
+	assert(options.shape == nil or options.kind == nil or options.kind == "component", "only components take a shape")
 	assert(options.pr == nil or options.repo ~= nil, "pr needs a repository as owner/name")
 
 	if options.group then
@@ -644,7 +711,8 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
-		itemKind = itemKindFor(options.repo, options.pr, options.kind),
+		-- A shape only fits a component, so giving one makes the item a component.
+		itemKind = itemKindFor(options.repo, options.pr, if options.shape then "component" else options.kind),
 		status = options.status or "todo",
 	})
 	data.repo = options.repo
@@ -666,6 +734,7 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 			url = `https://github.com/{options.repo}/pull/{options.pr}`,
 		})
 	end
+	setLook(item, options)
 	table.insert(doc.nodes, item)
 	return item
 end
@@ -720,9 +789,14 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.pr == nil
 				and fields.who == nil
 				and fields.note == nil
-				and fields.kind == nil,
-			"groups only take a label, blurb, arrange, cover, background, and header"
+				and fields.kind == nil
+				and fields.shape == nil,
+			"groups only take a label, blurb, arrange, cover, background, header, and color"
 		)
+
+		if fields.color then
+			item.data.color = if fields.color == "" then nil else fields.color
+		end
 
 		if fields.label then
 			item.data.label = fields.label
@@ -803,13 +877,25 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 		assert(not graph.isNote(item), "notes don't take a kind; make it a work item first")
 	end
 
-	if not graph.isNote(item) and (fields.repo or fields.pr or fields.kind) then
+	-- As with add, giving a card a shape makes it a component.
+	local givenKind = fields.kind
+		or (if fields.shape and fields.shape ~= "" and not graph.isNote(item) then "component" else nil)
+
+	if not graph.isNote(item) and (fields.repo or fields.pr or givenKind) then
 		local repo = field(item, "repo")
 		local pr = findRef(item, "pull")
-		local kind = fields.kind or (if graph.isGate(item) then "gate" else nil)
+		local kind = givenKind
+			or (if graph.isGate(item) or graph.isComponent(item) then field(item, "itemKind") else nil)
 		item.data.itemKind = itemKindFor(repo, if pr then 1 else nil, kind)
 	end
 
+	-- Work isn't drawn with a shape or tint, so a component turned into work drops them.
+	if not graph.isComponent(item) then
+		item.data.shape = nil
+		item.data.color = nil
+	end
+
+	setLook(item, fields)
 	return item
 end
 
@@ -836,7 +922,7 @@ end
 
 -- Recomputes an item's kind from its repository, pull request, and gate status after its refs change.
 function graph.refreshItemKind(item: Item)
-	if graph.isNote(item) then
+	if graph.isNote(item) or graph.isComponent(item) then
 		return
 	end
 
@@ -844,22 +930,36 @@ function graph.refreshItemKind(item: Item)
 	item.data.itemKind = itemKindFor(field(item, "repo"), if findRef(item, "pull") then 1 else nil, kind)
 end
 
-function graph.link(doc: Doc, from: string, to: string, kind: string): Link
+-- Links two items. A label names what the link carries, like "HTTP" in a system diagram; an empty one clears it,
+-- and leaving it out keeps the label an existing link already has.
+function graph.link(doc: Doc, from: string, to: string, kind: string, label: string?): Link
 	assert(from ~= to, "an item can't link to itself")
 
 	for _, id in { from, to } do
 		assert(not graph.isGroup(graph.get(doc, id)), `"{id}" is a group; link the items inside it`)
 	end
 
+	local text = if label then label:match("^%s*(.-)%s*$") else nil
+
 	for _, link in doc.links do
 		if link.from == from and link.to == to then
 			link.kind = kind
+
+			if text then
+				link.label = if text == "" then nil else text
+			end
+
 			return link
 		end
 	end
 
 	local link: Link =
 		{ id = if kind == "blocks" then `{from}>{to}` else `{from}~{to}`, from = from, to = to, kind = kind }
+
+	if text and text ~= "" then
+		link.label = text
+	end
+
 	table.insert(doc.links, link)
 	return link
 end
@@ -893,8 +993,9 @@ function graph.insertBetween(doc: Doc, id: string, from: string, to: string)
 	end
 	assert(existing, `no link from "{from}" to "{to}"`)
 
+	-- The label stays with the half that leaves the original source.
 	graph.unlink(doc, from, to)
-	graph.link(doc, from, id, existing.kind)
+	graph.link(doc, from, id, existing.kind, existing.label)
 	graph.link(doc, id, to, existing.kind)
 end
 
