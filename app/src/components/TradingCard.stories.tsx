@@ -76,7 +76,8 @@ function toView(args: TradingArgs): CardView {
   }
 }
 
-// Far zoom wraps the card in the canvas's far-card tag, which sizes it on its own.
+// Far zoom wraps the card in the canvas's far-card tag, which sizes it on its own, inside a canvas below the compact
+// breakpoint.
 function TradingFrame({ view, far }: { view: CardView; far: boolean }) {
   const className =
     (view.kind === 'note'
@@ -84,9 +85,18 @@ function TradingFrame({ view, far }: { view: CardView; far: boolean }) {
       : `card skin-trading st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}`) +
     (far ? ' far-card' : '')
 
+  if (far)
+    return (
+      <div className="canvas" data-zoom="compact">
+        <div className={className} style={{ position: 'relative', translate: 'none' }}>
+          <TradingCard view={view} />
+        </div>
+      </div>
+    )
+
   return (
-    <div style={far ? { position: 'relative', width: 240, height: 170 } : skinOf('trading').size}>
-      <div className={className} style={far ? { position: 'relative', translate: 'none' } : { width: '100%', height: '100%' }}>
+    <div style={skinOf('trading').size}>
+      <div className={className} style={{ width: '100%', height: '100%' }}>
         <TradingCard view={view} />
       </div>
     </div>

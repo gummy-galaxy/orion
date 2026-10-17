@@ -5,11 +5,14 @@ local process = require("@std/process")
 local task = require("@std/task")
 
 local events = require("@root/server/events")
+local graph = require("@root/graph")
 local readRuntime = require("@root/server/readRuntime")
 local removeRuntime = require("@root/server/removeRuntime")
 local routes = require("@root/server/routes")
+local serializeDerived = require("@root/server/serializeDerived")
 local store = require("@root/store")
 local sync = require("@root/server/sync")
+local types = require("@root/types")
 local watcher = require("@root/server/watcher")
 local writeRuntime = require("@root/server/writeRuntime")
 
@@ -53,8 +56,11 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			syncLoop.run(true)
 		end)
 	end, staticDir)
-	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number)
-		hub.publish("orion:changed", json.object({ revision = revision }))
+	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number, doc: types.Doc)
+		hub.publish(
+			"orion:changed",
+			json.object({ revision = revision, derived = serializeDerived(graph.derive(doc)) })
+		)
 	end, function(list: store.WorkspaceList)
 		hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
 	end)

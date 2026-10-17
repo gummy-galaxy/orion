@@ -6,9 +6,9 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Item = types.Item
 
-local function selectItems(doc: Doc, expression: string, includeDone: boolean): { Item }
+local function selectItems(doc: Doc, expression: string, includeDone: boolean, now: string?): { Item }
 	local parsed = parseExpression(expression)
-	local derived = graph.derive(doc)
+	local derived = graph.derive(doc, now)
 	local selected: { Item } = {}
 
 	for _, item in doc.nodes do
