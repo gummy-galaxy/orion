@@ -114,12 +114,13 @@ To let someone try a change in the desktop app, run `npm run build` in `desktop/
 ## Code style
 
 - Spell identifiers out: `nodes`, not `ns`; `TASK_HEIGHT`, not `TASK_H`; `event`, not `e`. These short names are fine: `doc`/`docs`, `id`, `url`, `ref`, `dir`, `deps`, `repo`, `app`, `pr`, an `ms` suffix, `i`/`j` for indices, `x`/`y` for coordinates, and `a`/`b` in comparators.
-- Give each React component its own file named after it, such as `components/SourceBadges.tsx`, and list it in the README's code layout. Don't add a component to another component's file.
+- Give each React component its own file named after it, such as `components/SourceBadges.tsx`, and list it in [`app/README.md`](app/README.md)'s code layout when it's a main piece of the app. Don't add a component to another component's file.
 - Log diagnostics from the CLI and `orion server start`, such as timings, flush sizes, and errors, with [Archivist](https://github.com/flipbook-labs/archivist). Report rough edges you find in it. Don't use it for the data operation log, which must commit with the change it records.
 
 ## Workflows
 
 - Keep each `run:` step to one command, ideally `lute run <script>`. Multi-line shell and multi-step logic go in a Luau script in `cli/.lute/`, run with `working-directory: cli`, so it runs locally the same way. Prefer `@std/*`, and use `process.run` from `@std/process` when an argument may contain spaces. Name steps in Title Case.
+- Run a script's body through `runScript` from `cli/src/runScript.luau`. Lute exits 0 for some uncaught errors, such as a `process.run` whose program is missing, so without it a failed step can pass.
 - Reference actions from the `actions` organization by major tag, such as `actions/checkout@v7`. Pin every other action to a commit SHA with a version comment.
 - Set `timeout-minutes` to about one and a half times a measured run. Raise it only when real runs get close.
 

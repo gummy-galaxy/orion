@@ -11,6 +11,8 @@ local net = require("@std/net")
 local path = require("@std/path")
 local process = require("@std/process")
 
+local runScript = require("@root/runScript")
+
 type Project = {
 	name: string,
 	version: string,
@@ -400,19 +402,21 @@ local function byName(a: Project, b: Project): boolean
 	return a.version < b.version
 end
 
-local sections: { Section } = {
-	{ title = "Canvas", projects = javascriptPackages() },
-	{ title = "Desktop shell", projects = rustCrates() },
-	{ title = "Command-line tool", projects = luauPackages() },
-	{ title = "Lute runtime", projects = luteLibraries() },
-}
+runScript(function()
+	local sections: { Section } = {
+		{ title = "Canvas", projects = javascriptPackages() },
+		{ title = "Desktop shell", projects = rustCrates() },
+		{ title = "Command-line tool", projects = luauPackages() },
+		{ title = "Lute runtime", projects = luteLibraries() },
+	}
 
-local count = 0
-for _, section in sections do
-	table.sort(section.projects, byName)
-	count += #section.projects
-end
+	local count = 0
+	for _, section in sections do
+		table.sort(section.projects, byName)
+		count += #section.projects
+	end
 
-local outputPath = path.join(dist, "acknowledgements.html")
-fs.writeStringToFile(outputPath, render(sections))
-print(`Wrote {count} projects to {outputPath}`)
+	local outputPath = path.join(dist, "acknowledgements.html")
+	fs.writeStringToFile(outputPath, render(sections))
+	print(`Wrote {count} projects to {outputPath}`)
+end)

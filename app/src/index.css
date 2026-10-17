@@ -43,10 +43,10 @@ select {
   --xy-handle-border-color: var(--edge-default);
   --xy-connectionline-stroke: var(--accent-default);
   --xy-selection-background-color: color-mix(in srgb, var(--accent-default) 10%, transparent);
-  --xy-selection-border: 1px solid var(--accent-default);
+  --xy-selection-border: var(--border-width-default) solid var(--accent-default);
 }
 .react-flow__minimap {
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
@@ -97,7 +97,7 @@ select {
   display: grid;
   place-items: center;
   height: 22px;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: var(--border-width-default) solid var(--border-default);
   background: var(--surface-background);
   color: var(--text-muted);
   font: var(--weight-medium) var(--text-size-tiny) var(--font-data);
@@ -118,7 +118,7 @@ select {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-lg);
   background: var(--surface-background);
   box-shadow: var(--shadow-image);
@@ -171,7 +171,7 @@ select {
   height: 100%;
   padding: var(--space-5) var(--space-6) var(--space-5) 15px;
   border-radius: var(--radius-card);
-  border: 1px solid var(--card-border);
+  border: var(--border-width-default) solid var(--card-border);
   background: var(--card-fill);
   display: grid;
   align-content: start;
@@ -200,7 +200,7 @@ select {
   width: 7px;
   height: 7px;
   margin-right: 1px;
-  border: 1.5px solid var(--c);
+  border: var(--border-width-strong) solid var(--c);
   transform: rotate(45deg);
 }
 .card.st-done .gate-mark {
@@ -412,7 +412,7 @@ select {
   pointer-events: none;
 }
 :where(:root[data-motion='on']) .card > .done-stamp.is-landing {
-  animation: done-stamp-land 360ms cubic-bezier(0.2, 0.9, 0.3, 1.25) calc(var(--clear-delay, 0ms) + 180ms) both;
+  animation: done-stamp-land var(--motion-duration-stamp) var(--motion-easing-pop) calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
 }
 @keyframes done-stamp-land {
   from {
@@ -444,7 +444,7 @@ select {
   width: 18px;
   height: 18px;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--surface-background) 65%, transparent);
+  border: var(--border-width-default) solid color-mix(in srgb, var(--surface-background) 65%, transparent);
   border-radius: var(--radius-xs);
   background: var(--surface-background);
   color: var(--accent-default);
@@ -485,7 +485,7 @@ select {
   flex: none;
   width: 18px;
   height: 18px;
-  border: 1px solid color-mix(in srgb, var(--surface-background) 65%, transparent);
+  border: var(--border-width-default) solid color-mix(in srgb, var(--surface-background) 65%, transparent);
   border-radius: var(--radius-xs);
   background: var(--surface-background);
   color: var(--text-muted);
@@ -544,7 +544,7 @@ select {
   min-width: 140px;
   max-width: 220px;
   padding: var(--space-4) var(--space-5);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--surface-background);
   color: var(--text-primary);
@@ -648,7 +648,7 @@ select {
   line-height: 1;
   padding: 3px var(--space-3);
   border-radius: var(--radius-pill);
-  border: 1px solid var(--accent-default);
+  border: var(--border-width-default) solid var(--accent-default);
   background: var(--surface-background);
   color: var(--accent-default);
   white-space: nowrap;
@@ -681,7 +681,7 @@ select {
 .react-flow__node-task .react-flow__handle {
   width: 9px;
   height: 9px;
-  border-width: 1.5px;
+  border-width: var(--border-width-strong);
   opacity: 0;
   transition: opacity var(--motion-duration-fast);
 }
@@ -932,7 +932,7 @@ select {
   position: relative;
   width: 100%;
   height: 100%;
-  border: 1.5px dashed var(--edge-default);
+  border: var(--border-width-strong) dashed var(--edge-default);
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--accent-default) 3%, transparent);
   transition:
@@ -940,11 +940,11 @@ select {
     border-color var(--motion-duration-base);
 }
 .react-flow__node-cluster.selected .cluster {
-  border: 1.5px solid var(--accent-default);
+  border: var(--border-width-strong) solid var(--accent-default);
 }
 /* The group that dragged work will join on release. */
 .cluster.is-drop-target {
-  border: 1.5px dashed var(--accent-default);
+  border: var(--border-width-strong) dashed var(--accent-default);
   background: color-mix(in srgb, var(--accent-subtle) 60%, transparent);
 }
 .cluster > .source-badges {
@@ -962,7 +962,7 @@ select {
   gap: var(--space-4);
   padding: 0 var(--space-3) 0 var(--space-5);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   background: var(--surface-background);
   cursor: grab;
   white-space: nowrap;
@@ -1015,12 +1015,12 @@ select {
 /* A folded group is one card, with its contents inside its own bounds. */
 .cluster.is-collapsed {
   --stack: max(4px, calc(4px * var(--inv, 1)));
-  border: max(1.5px, calc(1.5px * var(--inv, 1))) solid var(--edge-default);
+  border: max(var(--border-width-strong), calc(var(--border-width-strong) * var(--inv, 1))) solid var(--edge-default);
   border-radius: max(var(--radius-lg), calc(var(--radius-md) * var(--inv, 1)));
   background: var(--surface-background);
   /* A sheet peeking out behind marks a folded group as a stack of work rather than one card. */
   box-shadow:
-    var(--stack) var(--stack) 0 calc(-1 * max(1.5px, calc(1.5px * var(--inv, 1)))) var(--surface-background),
+    var(--stack) var(--stack) 0 calc(-1 * max(var(--border-width-strong), calc(var(--border-width-strong) * var(--inv, 1)))) var(--surface-background),
     var(--stack) var(--stack) 0 0 var(--edge-default),
     var(--shadow-raised);
 }
@@ -1137,7 +1137,7 @@ select {
   right: calc(8px * var(--inv, 1));
   font-size: calc(var(--text-size-tiny) * var(--inv, 1));
   padding: calc(3px * var(--inv, 1)) calc(7px * var(--inv, 1));
-  border-width: calc(1px * var(--inv, 1));
+  border-width: calc(var(--border-width-default) * var(--inv, 1));
 }
 .cluster-card.is-compact {
   gap: calc(3px * var(--inv, 1));
@@ -1253,10 +1253,10 @@ select {
   --fade: 1;
 }
 .peek-note {
-  margin: 4px 0 0;
-  padding-top: 6px;
-  border-top: 1px solid var(--line);
-  font-size: 12px;
+  margin: var(--space-2) 0 0;
+  padding-top: var(--space-3);
+  border-top: var(--border-width-default) solid var(--line);
+  font-size: var(--text-size-small);
   line-height: 1.4;
   color: var(--muted);
   white-space: pre-wrap;
@@ -1317,7 +1317,7 @@ select {
 /* Panels */
 .panel {
   background: var(--surface-background);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-raised);
 }
@@ -1374,7 +1374,7 @@ select {
   color: var(--text-muted);
 }
 .btn {
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   background: var(--surface-background);
   padding: 5px var(--space-5);
   border-radius: var(--radius-sm);
@@ -1428,7 +1428,7 @@ kbd {
 .insp select {
   width: 100%;
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--canvas-background);
 }
@@ -1788,7 +1788,7 @@ kbd {
   width: 216px;
   height: 216px;
   border-radius: var(--radius-round);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   background: color-mix(in srgb, var(--surface-background) 90%, transparent);
   box-shadow: var(--shadow-raised);
   backdrop-filter: blur(8px);
@@ -1824,7 +1824,7 @@ kbd {
   content: '';
   position: absolute;
   inset: 12px;
-  border: 1.5px dashed var(--border-default);
+  border: var(--border-width-strong) dashed var(--border-default);
   border-radius: var(--radius-round);
 }
 .wheel-item.empty.hover::after {
@@ -1866,7 +1866,7 @@ kbd {
   margin: 0;
   padding: var(--space-2) var(--space-5);
   transform: translateX(-50%);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   width: max-content;
   max-width: 220px;
   border-radius: var(--radius-lg);
@@ -1936,7 +1936,7 @@ kbd {
 .insp textarea {
   width: 100%;
   padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--canvas-background);
   font: inherit;
@@ -2164,7 +2164,7 @@ kbd {
   gap: var(--space-7);
   height: 24px;
   padding: 0 var(--space-5);
-  border-top: 1px solid var(--border-default);
+  border-top: var(--border-width-default) solid var(--border-default);
   background: var(--surface-background);
   color: var(--text-muted);
   font: var(--text-size-micro) var(--font-data);
@@ -2220,7 +2220,7 @@ kbd {
   flex-direction: column;
   gap: var(--space-2);
   padding: 0 var(--space-4) var(--space-6);
-  border-right: 1px solid var(--border-default);
+  border-right: var(--border-width-default) solid var(--border-default);
   background: var(--surface-background);
   overflow-y: auto;
 }
@@ -2432,7 +2432,7 @@ kbd {
   gap: var(--space-1);
   width: 200px;
   padding: var(--space-8) var(--space-4);
-  border-right: 1px solid var(--border-default);
+  border-right: var(--border-width-default) solid var(--border-default);
   background: var(--canvas-background);
 }
 .settings-nav h2 {
@@ -2503,7 +2503,7 @@ kbd {
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-7) 0;
-  border-top: 1px solid var(--border-default);
+  border-top: var(--border-width-default) solid var(--border-default);
 }
 .settings-field-label {
   font-size: var(--text-size-body);
@@ -2518,7 +2518,7 @@ kbd {
   flex: 1;
   min-width: 0;
   padding: 7px var(--space-5);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--canvas-background);
   color: var(--text-primary);
@@ -2537,7 +2537,7 @@ kbd {
 .options {
   display: flex;
   padding: 3px;
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--canvas-background);
 }
@@ -2594,7 +2594,7 @@ kbd {
   letter-spacing: 0.04em;
 }
 .shortcut-table tr {
-  border-top: 1px solid var(--border-default);
+  border-top: var(--border-width-default) solid var(--border-default);
 }
 .shortcut-table th,
 .shortcut-table td {
@@ -2622,7 +2622,7 @@ kbd {
 .shortcut-chord {
   width: 100%;
   padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--canvas-background);
   color: var(--text-primary);
@@ -2674,7 +2674,7 @@ kbd {
   align-content: center;
   gap: 1px;
   padding: var(--space-3) var(--space-5);
-  border: 1px dashed var(--edge-default);
+  border: var(--border-width-default) dashed var(--edge-default);
   border-radius: var(--radius-md);
   background: var(--canvas-background);
   cursor: pointer;
@@ -2804,7 +2804,7 @@ kbd {
   width: 100%;
   padding: var(--space-7) var(--space-8);
   border: 0;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: var(--border-width-default) solid var(--border-default);
   outline: none;
   background: var(--surface-background);
   color: var(--text-primary);
@@ -2861,9 +2861,9 @@ kbd {
   font: var(--text-size-caption) var(--font-data);
 }
 .palette-heading {
-  padding: 8px 10px 4px;
+  padding: var(--space-4) var(--space-5) var(--space-2);
   color: var(--muted);
-  font: 10.5px var(--font-data);
+  font: var(--text-size-micro) var(--font-data);
 }
 .palette mark {
   background: none;
@@ -2905,41 +2905,41 @@ kbd {
 }
 .menu hr {
   border: 0;
-  border-top: 1px solid var(--border-default);
+  border-top: var(--border-width-default) solid var(--border-default);
   margin: var(--space-2) var(--space-1);
 }
 .link-prompt {
   position: fixed;
   z-index: 20;
   width: 320px;
-  padding: 10px;
+  padding: var(--space-5);
   display: grid;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .link-prompt label {
   color: var(--muted);
-  font: 10.5px var(--font-data);
+  font: var(--text-size-micro) var(--font-data);
 }
 .link-prompt input {
   width: 100%;
   padding: 7px 9px;
-  border: 1px solid var(--line);
+  border: var(--border-width-default) solid var(--line);
   border-radius: var(--radius-sm);
   outline: none;
   background: var(--surface);
   color: var(--ink);
-  font-size: 13px;
+  font-size: var(--text-size-body);
 }
 .link-prompt input:focus {
   border-color: var(--accent);
 }
 .link-prompt-status {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-size-small);
 }
 .link-prompt-error {
   color: var(--st-blocked);
-  font-size: 12px;
+  font-size: var(--text-size-small);
   overflow-wrap: anywhere;
 }
 .btn.danger {
@@ -3005,7 +3005,7 @@ kbd {
   white-space: nowrap;
   padding: var(--space-2) 9px;
   border-radius: var(--radius-pill);
-  border: 1px solid currentColor;
+  border: var(--border-width-default) solid currentColor;
   background: var(--surface-background);
   box-shadow: var(--shadow-raised);
   color: var(--status-active);
@@ -3136,7 +3136,7 @@ kbd {
   gap: 3px;
   padding: 9px 11px 9px var(--space-7);
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   background: var(--surface-background);
   box-shadow:
     inset 3px 0 0 var(--c),
@@ -3205,7 +3205,7 @@ kbd {
   flex: none;
   padding: 1px var(--space-3);
   border-radius: var(--radius-pill);
-  border: 1px dotted var(--text-muted);
+  border: var(--border-width-default) dotted var(--text-muted);
   font: var(--text-size-tiny) var(--font-data);
 }
 .focus-empty {
@@ -3334,7 +3334,7 @@ kbd {
   height: 72px;
   overflow: hidden;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-default);
+  border: var(--border-width-default) solid var(--border-default);
   color: var(--text-muted);
   font-size: var(--text-size-caption);
 }
@@ -3440,12 +3440,12 @@ kbd {
   position: fixed;
   z-index: 4000;
   max-width: 260px;
-  padding: 6px 9px;
+  padding: var(--space-3) 9px;
   border-radius: var(--radius-sm);
   background: var(--ink);
   color: var(--surface);
   box-shadow: var(--shadow-raised);
-  font: 600 12px/1.35 var(--font-ui);
+  font: var(--weight-semibold) var(--text-size-small)/1.35 var(--font-ui);
   pointer-events: none;
   transform: translate(calc(-50% + var(--tooltip-shift, 0px)), -100%);
 }
@@ -3527,7 +3527,7 @@ kbd {
   scale: 1 0.12;
 }
 :where(:root[data-motion='on']) .companion .eyes {
-  transition: scale 0.08s;
+  transition: scale var(--motion-duration-blink);
 }
 /* One eye shape per mood: a soft U by default, ^ when happy, sparkly when excited, round when surprised, shut when
    asleep, side-eyed when curious, dots under tilted brows when worried, and half-lidded when impatient. */
@@ -3564,14 +3564,14 @@ kbd {
   top: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
   max-width: 220px;
   padding: 5px 9px 5px 7px;
-  border: 1px solid var(--line);
+  border: var(--border-width-default) solid var(--line);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   box-shadow: var(--shadow-raised);
-  font: 700 12px var(--font-ui);
+  font: var(--weight-bold) var(--text-size-small) var(--font-ui);
   color: var(--ink);
   white-space: nowrap;
   opacity: 0;
@@ -3600,7 +3600,7 @@ kbd {
     scale 0.25s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 :where(:root[data-motion='reduced']) .companion-hint {
-  transition: opacity 0.18s;
+  transition: opacity var(--motion-duration-fade);
   scale: 1;
 }
 .companion-snooze {
@@ -3614,7 +3614,7 @@ kbd {
 }
 .companion-snooze i {
   position: absolute;
-  font: 800 12px var(--font-ui);
+  font: var(--weight-extrabold) var(--text-size-small) var(--font-ui);
   font-style: normal;
   color: var(--muted);
   opacity: 0;
@@ -3624,11 +3624,11 @@ kbd {
 }
 .companion-snooze i:nth-child(2) {
   animation-delay: 0.8s;
-  font-size: 10px;
+  font-size: var(--text-size-tiny);
 }
 .companion-snooze i:nth-child(3) {
   animation-delay: 1.6s;
-  font-size: 9px;
+  font-size: var(--text-size-nano);
 }
 @keyframes companion-twinkle {
   to {

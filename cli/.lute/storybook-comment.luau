@@ -5,6 +5,7 @@
 local process = require("@std/process")
 
 local command = require("@root/command")
+local runScript = require("@root/runScript")
 local upsertComment = require("@root/github/upsertComment")
 
 local MARKER = "<!-- orion-storybook -->"
@@ -20,7 +21,9 @@ local footer =
 
 local body = `{MARKER}\n**Storybook:** [Open this pull request's Storybook]({storybookUrl})\n\n{footer}\n`
 
-local posted, problem = upsertComment(command, repository, pullRequest, MARKER, body)
-assert(posted, problem)
+runScript(function()
+	local posted, problem = upsertComment(command, repository, pullRequest, MARKER, body)
+	assert(posted, problem)
 
-print(`Linked {storybookUrl} from #{pullRequest}`)
+	print(`Linked {storybookUrl} from #{pullRequest}`)
+end)
