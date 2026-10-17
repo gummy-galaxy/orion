@@ -22,6 +22,9 @@ local function getField(item: Item, derived: graph.Derived, field: string): stri
 		value = item.data.status
 	elseif field == "group" then
 		value = item.parentId
+	elseif field == "snoozed" then
+		-- Groups can't be snoozed, so they have no value for this field.
+		value = if graph.isGroup(item) then nil else tostring(derived.snoozed[item.id] ~= nil)
 	elseif field == "draft" then
 		local pull = findRef(item, "pull")
 		value = if pull and pull.details then pull.details.draft else nil

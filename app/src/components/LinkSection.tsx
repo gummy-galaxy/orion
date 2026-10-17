@@ -1,4 +1,4 @@
-import type { deriveWork } from '../derive'
+import type { Work } from '../derive'
 import { STATUS_LABEL, cardLabel, isComponent, type AppNode, type ClusterData, type Link } from '../model'
 import { StatusIcon } from './StatusIcon'
 
@@ -17,7 +17,7 @@ export function LinkSection({
 }: {
   title: string
   node: AppNode
-  work: ReturnType<typeof deriveWork>
+  work: Work
   nodeMap: Map<string, AppNode>
   links: Link[]
   jumpTo: (id: string) => void

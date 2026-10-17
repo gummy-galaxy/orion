@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { TASK_HEIGHT, TASK_WIDTH } from './model'
-import { adoptedPrint, clearFocus, displayedDoc, fetchRemote, reportFocus, storedPrint, type Remote } from './persist'
+import { adoptedPrint, clearFocus, compactDoc, displayedDoc, fetchRemote, fingerprint, reportFocus, storedPrint, type Remote } from './persist'
 import { pushAside } from './pushAside'
 import { skinOf } from './skins'
 
@@ -89,4 +89,18 @@ describe('adopting a server document', () => {
 
     expect(storedPrint({ ...shown, nodes }, TRADING)).not.toBe(adoptedPrint(serverDoc, TRADING))
   })
+})
+
+it('fingerprints a document the same however its position keys are ordered', () => {
+  // The server returns positions as y then x; the canvas builds x then y. Both are the same document.
+  const canvas = compactDoc({
+    nodes: [{ id: 'a', type: 'task', position: { x: 10, y: 20 }, data: { kind: 'task', label: 'a' } }] as never,
+    links: [],
+  })
+  const server = compactDoc({
+    nodes: [{ id: 'a', type: 'task', position: { y: 20, x: 10 }, data: { label: 'a', kind: 'task' } }] as never,
+    links: [],
+  })
+
+  expect(fingerprint(canvas)).toBe(fingerprint(server))
 })

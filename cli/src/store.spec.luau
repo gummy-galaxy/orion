@@ -4,9 +4,11 @@ local path = require("@std/path")
 local process = require("@std/process")
 local test = require("@std/test")
 
+local applyOperations = require("@root/operations/applyOperations")
 local findRef = require("@root/refs/findRef")
 local getRefs = require("@root/refs/getRefs")
 local graph = require("@root/graph")
+local parseOperations = require("@root/operations/parseOperations")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -383,12 +385,9 @@ end)
 test.case("a save flags the cards it finishes and leaves the rest without the flag", function(assert)
 	local dir = testing.directory("celebrate-save")
 	store.write(dir, testing.createDoc({ testing.task("a", "A", "active"), testing.task("b", "B", "todo") }))
-	local doc = store.load(dir)
-	doc.nodes[1].data.status = "done"
-	local root = store.toObject(doc)
-
-	local isSaved = store.put(dir, 0, json.asArray(root.nodes) or {}, json.asArray(root.links) or {})
-	assert.eq(isSaved, true)
+	store.transaction(dir, function(doc)
+		doc.nodes[1].data.status = "done"
+	end)
 	local saved = store.load(dir)
 	assert.eq(saved.nodes[1].data.celebrate, true)
 	assert.eq(saved.nodes[2].data.celebrate, nil)
@@ -459,17 +458,13 @@ test.case("a data file that can't be read refuses writes and stays as it was", f
 			end)
 		end)
 
-		assert.throws(function()
-			store.put(dir, nil, {}, {})
-		end)
-
 		assert.eq(fs.readFileToString(store.filePath(dir)), contents)
 		assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
 		assert.eq(#store.getBackups(dir), 0)
 	end
 end)
 
-test.case("a save from the app keeps what other writers own", function(assert)
+test.case("an operation list from the app keeps what other writers own", function(assert)
 	local dir = testing.directory("save-keeps-others")
 	fs.createDirectory(dir, { makeParents = true })
 	fs.writeStringToFile(
@@ -477,14 +472,15 @@ test.case("a save from the app keeps what other writers own", function(assert)
 		[[{"version":2,"revision":4,"settings":{"sources":[{"id":"gh","kind":"github","owners":["vocksel"]}]},"github":{"viewer":"vocksel"},"future":{"kept":true},"nodes":[],"links":[]}]]
 	)
 
-	local isSaved, revision = store.put(
-		dir,
-		4,
-		{ json.object({ id = "a", type = "task", data = json.object({}) }) },
-		{}
-	)
-	assert.eq(isSaved, true)
-	assert.eq(revision, 5)
+	local doc = store.transaction(dir, function(current)
+		applyOperations(
+			current,
+			parseOperations({
+				json.object({ op = "addCard", id = "a", x = 0, y = 0, data = json.object({ label = "A" }) }),
+			})
+		)
+	end)
+	assert.eq(doc.revision, 5)
 
 	local saved = json.asObject(json.deserialize(fs.readFileToString(store.filePath(dir))) :: json.Value) :: json.Object
 	local settings = json.asObject(saved.settings) :: json.Object
@@ -493,20 +489,6 @@ test.case("a save from the app keeps what other writers own", function(assert)
 	assert.eq((json.asObject(saved.github) :: json.Object).viewer, "vocksel")
 	assert.eq((json.asObject(saved.future) :: json.Object).kept, true)
 	assert.eq(#(json.asArray(saved.nodes) :: json.Array), 1)
-end)
-
-test.case("a save from the app based on an older revision changes nothing", function(assert)
-	local dir = testing.directory("stale-save")
-	store.write(dir, testing.createDoc({ testing.task("a", "A", "todo") }))
-	store.transaction(dir, function(doc)
-		doc.nodes[1].data.label = "Renamed by the CLI"
-	end)
-
-	local before = fs.readFileToString(store.filePath(dir))
-	local isSaved, revision = store.put(dir, 0, {}, {})
-	assert.eq(isSaved, false)
-	assert.eq(revision, 1)
-	assert.eq(fs.readFileToString(store.filePath(dir)), before)
 end)
 
 test.case("each backup holds the exact revision it replaced", function(assert)
@@ -543,7 +525,7 @@ test.case("a backup that can't be written never blocks the write", function(asse
 	assert.eq(store.load(dir).nodes[1].id, "a")
 end)
 
-test.case("a save closes out the cards the app finished and closed out at once", function(assert)
+test.case("an operation list closes out the cards the app finished and closed out at once", function(assert)
 	local dir = testing.directory("celebrate-closed-out")
 	store.write(
 		dir,
@@ -552,14 +534,19 @@ test.case("a save closes out the cards the app finished and closed out at once",
 			testing.task("b", "B", "done", nil, { celebrate = true }),
 		})
 	)
-	local doc = store.load(dir)
-	doc.nodes[1].data.status = "done"
-	doc.nodes[1].data.celebrate = false
-	doc.nodes[2].data.celebrate = false
-	local root = store.toObject(doc)
+	local nodes = json.asArray(store.toObject(store.load(dir)).nodes) or {}
 
-	local isSaved = store.put(dir, 0, json.asArray(root.nodes) or {}, json.asArray(root.links) or {})
-	assert.eq(isSaved, true)
+	local function closeOut(index: number)
+		local node = json.asObject(nodes[index]) :: json.Object
+		local data = json.asObject(node.data) :: json.Object
+		data.status = "done"
+		data.celebrate = false
+		return json.object({ op = "setData", id = node.id, data = data })
+	end
+
+	store.transaction(dir, function(doc)
+		applyOperations(doc, parseOperations({ closeOut(1), closeOut(2) }))
+	end)
 	local saved = store.load(dir)
 	assert.eq(saved.nodes[1].data.celebrate, nil)
 	assert.eq(saved.nodes[2].data.celebrate, nil)
