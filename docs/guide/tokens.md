@@ -173,21 +173,28 @@ Spacing for gaps, padding, and margins follows a 4px rhythm with half steps.
 
 ## Motion
 
-Durations and easings for transitions and one-shot animations. Like text sizes, each exact value is one token, named for the role it most often plays. The Animations setting still decides whether anything moves.
+Durations and easings for transitions and one-shot animations. When Orion waits for an animation to finish, it reads the token, so a longer value is never cut off. Like text sizes, each exact value is one token, named for the role it most often plays. The Animations setting still decides whether anything moves.
 
-| Name                      | Default | Used for                                      |
-| ------------------------- | ------- | --------------------------------------------- |
-| `motion.duration.stagger` | `16ms`  | The delay between sticker wheel items opening |
-| `motion.duration.blink`   | `80ms`  | The companion's eyes closing and opening      |
-| `motion.duration.instant` | `120ms` | Tooltips and sticker wheel hovers             |
-| `motion.duration.quick`   | `140ms` | A sticker growing under the pointer           |
-| `motion.duration.fast`    | `150ms` | Handles, hover actions, and border changes    |
-| `motion.duration.open`    | `160ms` | The sticker wheel opening                     |
-| `motion.duration.fade`    | `180ms` | Nodes and panels fading in and out            |
-| `motion.duration.base`    | `200ms` | Card, group, and link fades                   |
-| `motion.duration.reveal`  | `240ms` | Sticker wheel items popping in                |
-| `motion.duration.pop`     | `340ms` | A far-zoom card popping up                    |
-| `motion.duration.stamp`   | `360ms` | The finish stamp landing                      |
+| Name                            | Default | Used for                                                           |
+| ------------------------------- | ------- | ------------------------------------------------------------------ |
+| `motion.duration.stagger`       | `16ms`  | The delay between sticker wheel items opening                      |
+| `motion.duration.blink`         | `80ms`  | The companion's eyes closing and opening                           |
+| `motion.duration.chain`         | `90ms`  | The delay between each card down a chain clearing its finish stamp |
+| `motion.duration.instant`       | `120ms` | Tooltips and sticker wheel hovers                                  |
+| `motion.duration.quick`         | `140ms` | A sticker growing under the pointer                                |
+| `motion.duration.fast`          | `150ms` | Handles, hover actions, and border changes                         |
+| `motion.duration.open`          | `160ms` | The sticker wheel opening                                          |
+| `motion.duration.fade`          | `180ms` | Nodes and panels fading in and out                                 |
+| `motion.duration.base`          | `200ms` | Card, group, and link fades                                        |
+| `motion.duration.reveal`        | `240ms` | Sticker wheel items popping in                                     |
+| `motion.duration.hint`          | `250ms` | The companion's hint growing in                                    |
+| `motion.duration.camera-focus`  | `260ms` | The camera heading for a card it's focusing                        |
+| `motion.duration.pop`           | `340ms` | A far-zoom card popping up                                         |
+| `motion.duration.stamp`         | `360ms` | The finish stamp landing                                           |
+| `motion.duration.clear`         | `420ms` | A finish stamp clearing                                            |
+| `motion.duration.camera`        | `450ms` | The camera panning and zooming, such as to fit the canvas          |
+| `motion.duration.sticker-ring`  | `480ms` | The ring around a fresh sticker                                    |
+| `motion.duration.sticker-stamp` | `520ms` | A fresh sticker stamping down                                      |
 
 | Name                     | Default                             | Used for                                 |
 | ------------------------ | ----------------------------------- | ---------------------------------------- |
@@ -197,6 +204,23 @@ Durations and easings for transitions and one-shot animations. Like text sizes, 
 | `motion.easing.pop`      | `cubic-bezier(0.2, 0.9, 0.3, 1.25)` | Stamps and far-zoom cards, with a bounce |
 | `motion.easing.bounce`   | `cubic-bezier(0.2, 0.9, 0.3, 1.3)`  | Sticker wheel items, with more bounce    |
 | `motion.easing.stamp`    | `cubic-bezier(0.2, 0.9, 0.3, 1.2)`  | A sticker stamping down                  |
+| `motion.easing.spring`   | `cubic-bezier(0.3, 1.6, 0.5, 1)`    | The companion's hint, with a spring      |
+
+## Looping animations
+
+One cycle of each animation that repeats while something is live. Most loops step at 15 frames a second at their default length to keep repaints down, so a longer loop also moves in coarser steps. Loops stop when the canvas is zoomed far out or moving, and when animations are off.
+
+| Name                     | Default | Used for                                                  |
+| ------------------------ | ------- | --------------------------------------------------------- |
+| `motion.loop.twinkle`    | `0.5s`  | The sparkle in the companion's eyes                       |
+| `motion.loop.attention`  | `0.6s`  | The marching line toward work that needs attention        |
+| `motion.loop.flow`       | `0.8s`  | Live links flowing toward the work they lead to           |
+| `motion.loop.flow-group` | `1.2s`  | Live links into a folded group                            |
+| `motion.loop.sync`       | `1.2s`  | The sync button spinning                                  |
+| `motion.loop.check`      | `1.6s`  | Running checks breathing                                  |
+| `motion.loop.shimmer`    | `2.4s`  | Finished work shimmering until it is closed out           |
+| `motion.loop.snooze`     | `2.4s`  | The companion's sleepy Z's, each a third of a cycle apart |
+| `motion.loop.pulse`      | `3.2s`  | The ring pulsing around active work                       |
 
 ## Aliases
 
@@ -231,8 +255,6 @@ No token has been renamed since theme files arrived, so there are no older token
 
 These still have literal values and will get tokens in later changes:
 
-- Looping animations, such as flowing links, the active pulse, and the sync spinner.
-- Durations a script waits on, such as the finish stamp clearing and a fresh sticker's stamp and ring, and the companion's 250ms hint scale.
 - Rings, stripes, and outlines, such as a card's status stripe, focus outlines, and the Done stamp's border.
 - Line heights, and spacing values off the scale: 1, 3, 5, 7, 9, 11, 15, 18, and 22px.
 - The trading card skin's frame, gate, sticker, and tile shadows.
