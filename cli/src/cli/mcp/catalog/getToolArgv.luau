@@ -16,9 +16,10 @@ local function checkValue(field: Field, value: json.Value)
 	if field.kind == "boolean" then
 		assert(type(value) == "boolean", `{name} must be a boolean`)
 	elseif field.kind == "int" then
+		local minimum = field.minimum or 1
 		assert(
-			type(value) == "number" and value >= 1 and value == math.floor(value),
-			`{name} must be a positive integer`
+			type(value) == "number" and value >= minimum and value == math.floor(value),
+			if minimum == 0 then `{name} must be a nonnegative integer` else `{name} must be a positive integer`
 		)
 	elseif field.kind == "strings" then
 		local list = json.asArray(value)

@@ -40,15 +40,15 @@ To show the person the app, or anything else served locally such as a dev server
 
 ## Changing it
 
-- `orion card add <title> [--group <id>] [--kind gate] [--ref <url | source:key | branch:owner/name@branch>] [--status <status>]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off.
-- `orion card set <id> [--label …] [--status …] [--kind step|gate] [--who you|review|ci] [--note …] [--ref <url | source:key | branch:owner/name@branch>]` changes an item's fields. Pass an empty value to clear `--who` or `--note`. `orion group set <id> [--label …] [--blurb …] [--arrange …] [--cover …] [--background …]` changes a group's fields. Each takes only its own kind of node, and the error names the other command to use.
+- `orion card add <title> [--group <id>] [--kind gate|component] [--shape …] [--color …] [--ref <url | source:key | branch:owner/name@branch>] [--status <status>] [--note …]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off. A component is a part of a system diagram rather than work; see below.
+- `orion card set <id> [--label …] [--status …] [--kind step|gate|component] [--shape …] [--color …] [--who you|review|ci] [--note …] [--ref <url | source:key | branch:owner/name@branch>]` changes an item's fields. Pass an empty value to clear `--who`, `--note`, `--shape`, or `--color`. `orion group set <id> [--label …] [--blurb …] [--arrange …] [--cover …] [--background …] [--color …]` changes a group's fields. Each takes only its own kind of node, and the error names the other command to use.
 - `--ref` attaches outside work to a card: a GitHub issue or pull request URL, a Jira issue URL under a configured Jira source, or `source:key` such as `jira:ABC-12`. The adapter of the matching source resolves it. `branch:owner/name@branch` (for example `branch:vocksel/orion@agent/196-attach`) records the branch work started on, as a branch ref keyed like hop's; GitHub Enterprise hosts go in front of the repository, as in `branch:github.example.com/owner/name@branch`. `--repo` and `--pr` still work as aliases for one release and are deprecated; use `--ref` with the pull request URL.
 - `orion apply <file | -> [--plan <json>] [--dry-run] [--if-revision <n>]` runs a plan in one write, so a timeline of many cards, notes, groups, and links takes one call instead of one per change. A plan is a JSON list of operations that run in order and land whole or not at all. `addCard` and `addNote` create items and take a `handle`; later steps refer to it as `"@handle"`. Refer to existing cards and groups by id. The output maps each handle to the id it got.
 - `orion ref remove <id> <ref>` takes a ref off a card. Name it by the key `orion node show` lists, such as `owner/name#12`, or by the URL or `source:key` that attached it.
 - `orion group set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
 - `orion card import <url | source:key>… [--stdin] [--group <id>] [--dry-run] [--json] [--if-revision <n>]` adds a card for each listed ref in one transaction. `--stdin` also reads one ref per line. Refs resolve with `--ref`'s grammar. GitHub titles are fetched 25 refs per query, and Jira refs are read through their source's command, so a Jira key must appear in that source's results. A ref already on the canvas is skipped and keeps its card. A ref that doesn't resolve or can't be found is reported and skipped, the rest are still added, and the command exits nonzero if any failed.
 - `orion card done <id...> | --where '<expr>'` marks items done.
-- `orion link add <first> <second> [next…]` links each adjacent pair in one transaction. Add `--related` for links that never block. `orion link remove` removes one link.
+- `orion link add <first> <second> [next…] [--label <text>]` links each adjacent pair in one transaction. Add `--related` for links that never block. A label names what the link carries; linking an already linked pair updates it, and `--label ""` clears it. `orion link remove` removes one link.
 - `orion link insert <id> --between <from> <to>` replaces an existing link with two links through the item, keeping its kind.
 - `orion note add <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it splits their existing link or adds two blocking links if they are unlinked.
 - `orion media insert <file> [--label <text>] [--group <id>]` inserts a media node. It currently accepts PNG, JPEG, GIF, and WebP images, identified from their contents. `orion media list` lists media nodes in the selected canvas. `orion server start` accepts raw bytes at `POST /api/images?workspace=<name>` and returns them at `GET /api/images/<asset>?workspace=<name>`.
@@ -64,6 +64,17 @@ Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set 
 ## Organizing work
 
 Run `orion suggestion find` to find related ungrouped cards, then review `orion suggestion list`. Apply only suggestions that clearly fit with `orion suggestion apply <id...>`; use `orion suggestion dismiss <id...>` for the rest.
+
+## System diagrams
+
+A workspace can also draw a system: services, apps, files, and outside tools, linked by what flows between them. Make each part a component with `orion card add <name> --shape <shape> [--repo <owner/name>] [--note <what it does>]`; a shape makes the card a component. Components have no status, never count as work, and grow to show their whole name and note.
+
+- Shapes: `service` (a box, the default), `store` (a cylinder, for files and databases), `actor` (a pill, for people and agents), `external` (a dashed box, for anything outside the system), `interface` (a window, for a UI), `process` (a chevron, for commands and jobs), and `queue` (a stack, for streams of events).
+- Colors: `teal`, `blue`, `purple`, `amber`, `rose`, `green`, and `slate`. Set one on a group with `orion group set <group> --color <color>`; the components and groups inside take it unless they set their own.
+
+Link components with `orion link add <caller> <callee> --label <what travels>`, pointing from what starts a call to what it calls. Group them by boundary, such as an app, a process, or everything outside the system, and nest smaller groups inside for its parts. `orion group add` wraps items that share a parent, so make the inner groups first.
+
+Create the links before the groups, then run `orion group set <group> --arrange auto` on each group so the app lays it out by its links and leaves room for their labels; it lays out inner groups first. Run Tidy in the app for the top level. A folded group lists what it holds, and opening one shows the components outside it that it talks to. A note at the top level that explains the shapes and colors helps first-time readers.
 
 ## Keeping pull requests current
 

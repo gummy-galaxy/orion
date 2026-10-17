@@ -19,6 +19,13 @@
   --note-border: #7a5cd6;
   --note-text: #d4cdf3;
   --snap-guide: #ff8fa3;
+  --tint-teal: #2fe0d2;
+  --tint-blue: #6f8bff;
+  --tint-purple: #c98bff;
+  --tint-amber: #ffb347;
+  --tint-rose: #ff6f9c;
+  --tint-green: #5ce68f;
+  --tint-slate: #9c95c4;
   --edge-held: color-mix(in srgb, var(--edge-hot) 25%, var(--edge-default));
   --sticker-edge: #fff;
   --window-close-background: #c42b1c;

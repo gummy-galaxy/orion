@@ -60,6 +60,10 @@
     "link": "/reference/cli/suggestion"
   },
   {
+    "text": "theme",
+    "link": "/reference/cli/theme"
+  },
+  {
     "text": "backup",
     "link": "/reference/cli/backup"
   },

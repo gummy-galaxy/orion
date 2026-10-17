@@ -47,6 +47,10 @@ PR cards show a **VS Code** button when `code` and [`hop`](https://github.com/vo
 
 [`app/README.md`](app/README.md) maps the code.
 
+### Tests and coverage
+
+`npm test` runs the unit tests. `npm run coverage` also writes a coverage summary and an HTML report to `app/coverage/`. On pull requests, CI posts the coverage totals as a comment, replacing it on each run.
+
 ### Storybook
 
 `npm run storybook` browses component stories without a server. Each story lives beside its component in `app/src/components/`, with shared sample data in `storySupport/`. The toolbar switches theme, color mode, and colorblind palette. `npm run build-storybook` checks the static build.

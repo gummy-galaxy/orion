@@ -139,3 +139,28 @@ test.case("canvas tools map onto the canvas commands", function(assert)
 		getToolArgv("orion_archive_workspace", json.object({}))
 	end)
 end)
+
+test.case("layout tools map onto group tidy and canvas check", function(assert)
+	assert.eq(
+		getToolArgv("orion_tidy", json.object({ ids = { "ws", "release" }, dryRun = true, workspace = "focus" })),
+		{ "group", "tidy", "ws", "release", "--dry-run", "--canvas", "focus", "--json" }
+	)
+	assert.eq(
+		getToolArgv("orion_tidy", json.object({ where = 'label ~ "release"', ifRevision = 0 })),
+		{ "group", "tidy", "--where", 'label ~ "release"', "--if-revision", "0", "--json" }
+	)
+	assert.eq(getToolArgv("orion_check", json.object({})), { "canvas", "check", "--json" })
+	assert.eq(
+		getToolArgv("orion_check", json.object({ group = "ws", workspace = "focus" })),
+		{ "canvas", "check", "--canvas", "focus", "--group", "ws", "--json" }
+	)
+	assert.throwsWith("ifRevision must be a nonnegative integer", function()
+		getToolArgv("orion_tidy", json.object({ ids = { "ws" }, ifRevision = -1 }))
+	end)
+	assert.throwsWith("ids must be a list of strings", function()
+		getToolArgv("orion_tidy", json.object({ ids = { "" } }))
+	end)
+	assert.throwsWith("unknown argument: deep", function()
+		getToolArgv("orion_tidy", json.object({ ids = { "ws" }, deep = true }))
+	end)
+end)

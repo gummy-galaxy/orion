@@ -12,6 +12,8 @@ export type Field = {
 	description: string?,
 	values: { string }?,
 	minLength: number?,
+	-- The smallest value an int field takes. Defaults to 1.
+	minimum: number?,
 }
 
 -- A tool maps its arguments onto an existing CLI command. Tools that need more than
