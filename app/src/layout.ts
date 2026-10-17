@@ -1,5 +1,6 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
 import {
+  GROUP_HEADER_HEIGHT,
   GROUP_PADDING,
   TASK_HEIGHT,
   TASK_WIDTH,
