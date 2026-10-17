@@ -1,10 +1,11 @@
 import { memo, useContext, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import type { TaskNode } from '../model'
+import { TASK_HEIGHT, TASK_WIDTH, type TaskNode } from '../model'
 import { useAtomValue } from 'jotai'
 import { ActionsContext } from '../derive'
-import { useCardView, useCelebrating, useMarked, useTraceRole, inspectingAtom, skinAtom, skinStore } from '../state'
+import { useCardView, useCelebrating, useMarked, useTint, useTraceRole, inspectingAtom, skinAtom, skinStore } from '../state'
 import { CardBody } from './CardBody'
+import { ComponentCard } from './ComponentCard'
 import { FarTag } from './FarTag'
 import { PeekCard } from './PeekCard'
 import { getCompactZoom, subscribeCompactZoom } from '../zoomLevel'
@@ -33,7 +34,7 @@ function liftOrigin(card: HTMLElement) {
 }
 
 // Memoized because React Flow re-renders every node wrapper whenever the canvas passes new handlers.
-export const TaskView = memo(function TaskView({ id, data, parentId, selected }: NodeProps<TaskNode>) {
+export const TaskView = memo(function TaskView({ id, data, parentId, selected, width, height }: NodeProps<TaskNode>) {
   const [hovered, setHovered] = useState(false)
   // Only a hovered or selected card reads the zoom, so zooming across the breakpoint doesn't re-render every card. The
   // compact look for all cards is CSS keyed off the canvas's data-zoom. Retuning the breakpoint in the debug bar re-renders
@@ -46,9 +47,10 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected }:
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const actions = useContext(ActionsContext)!
+  const tint = useTint(id)
   // A card keeps its badge while the badge clears, after the flag itself is already gone.
   const clearing = useCelebrating(id)
-  const finished = view.kind !== 'note' && view.status === 'done'
+  const finished = view.kind !== 'note' && view.kind !== 'component' && view.status === 'done'
   // Finished work shimmers until someone closes it out, then carries a Done stamp from then on.
   const waiting = finished && !!data.celebrate && clearing === undefined
   const badged = waiting || clearing !== undefined
@@ -56,10 +58,16 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected }:
   const className =
     view.kind === 'note'
       ? `card skin-${skin} note${trace ? ' tr-' + trace : ''}`
-      : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}`
+      : view.kind === 'component'
+        ? `card component shape-${data.shape ?? 'service'}${tint ? ' tint-' + tint : ''}${trace ? ' tr-' + trace : ''}`
+        : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}`
   const body = (
     <>
-      <CardBody view={view} />
+      {view.kind === 'component' ? (
+        <ComponentCard view={view} shape={data.shape ?? 'service'} width={width ?? TASK_WIDTH} height={height ?? TASK_HEIGHT} />
+      ) : (
+        <CardBody view={view} />
+      )}
       {finished && !waiting && (
         <span
           className={`done-stamp${clearing !== undefined ? ' is-landing' : ''}`}
@@ -101,7 +109,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected }:
       <Handle type="target" position={Position.Left} />
       {/* Only one card at a time grows into a tag, so tags never pile over their neighbors. */}
       {peeking ? (
-        <PeekCard className={className} note={view.kind === 'note' ? undefined : view.note}>
+        <PeekCard className={className} note={view.kind === 'note' || view.kind === 'component' ? undefined : view.note}>
           {body}
         </PeekCard>
       ) : far ? (

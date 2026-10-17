@@ -1,9 +1,9 @@
 import { createContext } from 'react'
-import { descendants, isCluster, isNote, isTask, type AppNode, type Link, type SourceRef as RefData, type TaskNode, type ViewStatus } from './model'
+import { descendants, isCluster, isTask, isWork, type AppNode, type Link, type SourceRef as RefData, type TaskNode, type ViewStatus } from './model'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
-/** How a link out of a card reads: moving, or held behind work that's stuck. */
-export type Flow = 'live' | 'held'
+/** How a link out of a card reads: moving, held behind work that's stuck, or still, out of a component that carries no work. */
+export type Flow = 'live' | 'held' | 'still'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
 export type SourceRef = { domain: string; label: string; href?: string }
 
@@ -153,7 +153,7 @@ function countUpstream(tasks: Map<string, TaskNode>, predecessors: Map<string, s
     const reach = new Set<string>()
 
     for (const id of components[componentIndex]) {
-      if (tasks.get(id)?.data.itemKind !== 'note') reach.add(id)
+      if (isWork(tasks.get(id))) reach.add(id)
 
       for (const predecessor of predecessors.get(id) ?? []) {
         const previousComponent = componentById.get(predecessor)
@@ -174,7 +174,7 @@ function countUpstream(tasks: Map<string, TaskNode>, predecessors: Map<string, s
   for (const task of tasks.values()) {
     const reach = collect(componentById.get(task.id)!)
 
-    upstream.set(task.id, reach.size - (task.data.itemKind === 'note' ? 0 : 1))
+    upstream.set(task.id, reach.size - (isWork(task) ? 1 : 0))
   }
 
   return upstream
@@ -190,9 +190,10 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   const { preds: predecessors, succs: successors } = graph(links)
   const upstream = countUpstream(tasks, predecessors)
   const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
+  const isComponent = (id: string) => tasks.get(id)?.data.itemKind === 'component'
   const isGate = (id: string) => tasks.get(id)?.data.itemKind === 'gate' && predecessors.has(id)
-  // A note is open while anything feeding into it is, so blocking passes through notes. Gates pass it
-  // through the same way but count as work: one is done once everything it waits on is.
+  // A note or component is open while anything feeding into it is, so blocking passes through them. Gates pass
+  // it through the same way but count as work: one is done once everything it waits on is.
   const noteOpen = new Map<string, boolean>()
 
   const open = (id: string, seen = new Set<string>()): boolean => {
@@ -200,7 +201,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
 
     if (!task) return false
 
-    if (!isNote(id) && !isGate(id)) return task.data.status !== 'done'
+    if (isWork(task) && !isGate(id)) return task.data.status !== 'done'
 
     if (noteOpen.has(id)) return noteOpen.get(id)!
 
@@ -216,8 +217,11 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
 
   const status = new Map<string, ViewStatus>()
 
+  // Components have no status: they're parts of a system, not work.
   for (const task of tasks.values()) {
     const statusValue = task.data.status
+
+    if (isComponent(task.id)) continue
 
     if (isNote(task.id) || (isGate(task.id) && statusValue !== 'deferred')) status.set(task.id, open(task.id) ? 'blocked' : 'done')
     else if (statusValue === 'done' || statusValue === 'deferred' || statusValue === 'blocked') status.set(task.id, statusValue)
@@ -225,7 +229,8 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     else status.set(task.id, statusValue === 'todo' ? 'ready' : statusValue)
   }
 
-  // Links move unless they come out of work that's stuck. Notes pass on whatever reaches them.
+  // Links move unless they come out of work that's stuck. Notes pass on whatever reaches them, and links out of
+  // components stay still.
   const flow = new Map<string, Flow>()
 
   const flowOf = (id: string, seen = new Set<string>()): Flow => {
@@ -239,8 +244,12 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
     const statusValue = status.get(id)
     let flowValue: Flow
 
-    if (statusValue === 'done') flowValue = 'live'
-    else if (isNote(id)) flowValue = (predecessors.get(id) ?? []).some((predecessor) => flowOf(predecessor, seen) === 'live') ? 'live' : 'held'
+    const incoming = predecessors.get(id) ?? []
+
+    if (isComponent(id)) flowValue = 'still'
+    else if (isNote(id) && incoming.length && incoming.every((predecessor) => flowOf(predecessor, seen) === 'still')) flowValue = 'still'
+    else if (statusValue === 'done') flowValue = 'live'
+    else if (isNote(id)) flowValue = incoming.some((predecessor) => flowOf(predecessor, seen) === 'live') ? 'live' : 'held'
     else flowValue = statusValue === 'blocked' || statusValue === 'deferred' ? 'held' : 'live'
 
     flow.set(id, flowValue)
@@ -254,11 +263,11 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
   const downstream = new Map<string, Set<string>>()
 
   for (const task of tasks.values()) {
-    if (isNote(task.id) || !open(task.id)) continue
+    if (!isWork(task) || !open(task.id)) continue
 
     // Parked work doesn't count toward what finishing something unlocks, and notes aren't work.
     const reach = walk(task.id, successors, (id) => open(id) && tasks.get(id)?.data.status !== 'deferred')
-    const downstreamNodes = new Set([...reach].filter((id) => !isNote(id)))
+    const downstreamNodes = new Set([...reach].filter((id) => isWork(tasks.get(id))))
 
     downstream.set(task.id, downstreamNodes)
     leverage.set(task.id, downstreamNodes.size)
@@ -279,7 +288,7 @@ export function deriveWork(nodes: AppNode[], links: Link[]) {
 
       const statusValue = status.get(id)
 
-      if (!statusValue || isNote(id)) continue
+      if (!statusValue || !isWork(tasks.get(id))) continue
 
       // Deferred work is set aside, so it doesn't hold a group short of done.
       if (statusValue !== 'deferred') stats.total++
@@ -323,7 +332,7 @@ export function needsAttention(nodes: AppNode[], status: Map<string, ViewStatus>
   const result: string[] = []
 
   for (const node of nodes) {
-    if (!isTask(node) || isNote(node) || node.data.who !== 'you') continue
+    if (!isWork(node) || !isTask(node) || node.data.who !== 'you') continue
 
     const statusValue = status.get(node.id)
 

@@ -21,6 +21,7 @@ import {
   pruneEmptied,
   removeNodes,
   sizeOf,
+  tintOf,
   ungroup,
   type AppNode,
   type PullDetails,
@@ -127,6 +128,41 @@ describe('editPullRef', () => {
     expect(editPullRef(data, 'vocksel/orion', undefined)).toEqual({ repo: 'vocksel/orion', refs: [issue], itemKind: 'placeholder' })
     expect(editPullRef(data, undefined, 42)).toEqual({ repo: undefined, refs: [issue], itemKind: 'step' })
     expect(editPullRef(task(), undefined, undefined)).toEqual({ repo: undefined, refs: undefined, itemKind: 'step' })
+  })
+})
+
+describe('tintOf', () => {
+  const group = (id: string, color?: 'teal' | 'rose', parentId?: string): AppNode => ({
+    id,
+    type: 'cluster',
+    parentId,
+    position: { x: 0, y: 0 },
+    data: { kind: 'cluster', label: id, color },
+  })
+  const card = (id: string, data: Partial<TaskData>): AppNode => ({
+    id,
+    type: 'task',
+    parentId: 'inner',
+    position: { x: 0, y: 0 },
+    data: { kind: 'task', label: id, itemKind: 'component', status: 'todo', ...data },
+  })
+  const nodes = [
+    group('outer', 'teal'),
+    group('inner', undefined, 'outer'),
+    card('plain', {}),
+    card('own', { color: 'rose' }),
+    card('work', { itemKind: 'step' }),
+  ]
+  const nodeMap = byId(nodes)
+
+  it("takes a component's own tint, or else its nearest tinted group's", () => {
+    expect(tintOf(nodeMap.get('own')!, nodeMap)).toBe('rose')
+    expect(tintOf(nodeMap.get('plain')!, nodeMap)).toBe('teal')
+    expect(tintOf(nodeMap.get('inner')!, nodeMap)).toBe('teal')
+  })
+
+  it('never tints work', () => {
+    expect(tintOf(nodeMap.get('work')!, nodeMap)).toBeUndefined()
   })
 })
 
