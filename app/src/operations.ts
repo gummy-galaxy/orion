@@ -193,8 +193,11 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
   for (const [key, link] of afterLinks) {
     const previous = beforeLinks.get(key)
 
-    if ((!previous || previous.kind !== link.kind) && after.has(link.from) && after.has(link.to)) {
-      operations.push({ op: 'link', from: link.from, to: link.to, kind: link.kind })
+    const relabeled = (previous?.label ?? '') !== (link.label ?? '')
+
+    if ((!previous || previous.kind !== link.kind || relabeled) && after.has(link.from) && after.has(link.to)) {
+      // An empty label clears one the link had.
+      operations.push({ op: 'link', from: link.from, to: link.to, kind: link.kind, ...(link.label || relabeled ? { label: link.label ?? '' } : {}) })
     }
   }
 

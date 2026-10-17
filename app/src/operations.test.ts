@@ -170,6 +170,15 @@ describe('diffOperations', () => {
     expect(ops).toContainEqual({ op: 'unlink', from: 'b', to: 'c' })
   })
 
+  it('sends a link again when its label changes, with an empty label to clear one', () => {
+    const base = doc([task('a'), task('b'), task('c')], [link('a', 'b'), { ...link('b', 'c'), label: 'HTTP' }])
+    const current = doc([task('a'), task('b'), task('c')], [{ ...link('a', 'b'), label: 'SQL' }, link('b', 'c')])
+    const ops = diffOperations(base, current)
+
+    expect(ops).toContainEqual({ op: 'link', from: 'a', to: 'b', kind: 'blocks', label: 'SQL' })
+    expect(ops).toContainEqual({ op: 'link', from: 'b', to: 'c', kind: 'blocks', label: '' })
+  })
+
   it('leaves links that touch a removed card to the removal', () => {
     const base = doc([task('a'), task('b')], [link('a', 'b')])
     const current = doc([task('a')])
