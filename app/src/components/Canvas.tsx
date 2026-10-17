@@ -358,7 +358,7 @@ export function Canvas() {
   const setCelebrating = useSetAtom(celebratingAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
-  const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', workspaces: [{ name: 'default', label: 'Default' }] })
+  const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', canvases: [{ name: 'default', label: 'Default' }] })
   const [clock, setClock] = useState(() => Date.now())
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
@@ -997,7 +997,7 @@ export function Canvas() {
     [recents],
   )
 
-  useEffect(() => onWorkspaceListChange((list) => setWorkspaces((current) => ({ ...current, workspaces: list.workspaces }))), [])
+  useEffect(() => onWorkspaceListChange((list) => setWorkspaces((current) => ({ ...current, canvases: list.canvases }))), [])
 
   useEffect(() => {
     if (!ready || pendingWorkspaceFit.current !== workspaceEpoch.current) return

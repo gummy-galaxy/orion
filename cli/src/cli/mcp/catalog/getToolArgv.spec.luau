@@ -95,30 +95,30 @@ end)
 
 test.case("canvas tools map onto the canvas commands", function(assert)
 	assert.eq(
-		table.concat(getToolArgv("orion_create_workspace", json.object({ label = "Focus areas" })), " "),
+		table.concat(getToolArgv("orion_create_canvas", json.object({ label = "Focus areas" })), " "),
 		"canvas create --label Focus areas"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_create_workspace", json.object({ name = "focus", label = "Focus" })), " "),
+		table.concat(getToolArgv("orion_create_canvas", json.object({ name = "focus", label = "Focus" })), " "),
 		"canvas create focus --label Focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_rename_workspace", json.object({ name = "focus", label = "Focus" })), " "),
+		table.concat(getToolArgv("orion_rename_canvas", json.object({ name = "focus", label = "Focus" })), " "),
 		"canvas rename focus Focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_archive_workspace", json.object({ name = "focus" })), " "),
+		table.concat(getToolArgv("orion_archive_canvas", json.object({ name = "focus" })), " "),
 		"canvas archive focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_restore_workspace", json.object({ name = "focus" })), " "),
+		table.concat(getToolArgv("orion_restore_canvas", json.object({ name = "focus" })), " "),
 		"canvas restore focus"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_workspaces", json.object({ archived = true })), " "),
+		table.concat(getToolArgv("orion_canvases", json.object({ archived = true })), " "),
 		"canvas list --archived --json"
 	)
 	assert.throwsWith("missing name", function()
-		getToolArgv("orion_archive_workspace", json.object({}))
+		getToolArgv("orion_archive_canvas", json.object({}))
 	end)
 end)

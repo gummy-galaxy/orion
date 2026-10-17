@@ -14,7 +14,7 @@ it('reads the requested workspace during a conflict retry', async () => {
   vi.stubGlobal('fetch', fetchMock)
 
   expect(await fetchRemote('other')).toEqual(remote)
-  expect(fetchMock).toHaveBeenCalledWith('/api/orion', { headers: { 'x-orion-workspace': 'other' } })
+  expect(fetchMock).toHaveBeenCalledWith('/api/orion', { headers: { 'x-orion-canvas': 'other' } })
 })
 
 it('reports the selection with a tab and workspace', () => {
@@ -28,7 +28,7 @@ it('reports the selection with a tab and workspace', () => {
 
   expect(url).toBe('/api/focus')
   expect(options.method).toBe('POST')
-  expect(JSON.parse(options.body)).toEqual({ tab: expect.any(String), workspace: 'planning', open: 'group', selected: ['card'] })
+  expect(JSON.parse(options.body)).toEqual({ tab: expect.any(String), canvas: 'planning', open: 'group', selected: ['card'] })
 })
 
 it('sends a closing report for the same workspace', async () => {
@@ -41,5 +41,5 @@ it('sends a closing report for the same workspace', async () => {
   const [url, body] = sendBeacon.mock.calls[0]
 
   expect(url).toBe('/api/focus')
-  expect(JSON.parse(await (body as Blob).text())).toEqual({ tab: expect.any(String), workspace: 'planning', closed: true })
+  expect(JSON.parse(await (body as Blob).text())).toEqual({ tab: expect.any(String), canvas: 'planning', closed: true })
 })

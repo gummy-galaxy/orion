@@ -6,7 +6,7 @@ local tools = require("@root/cli/mcp/tools")
 type Field = mcpTypes.Field
 
 -- Matches store.isValidWorkspace, written as a JSON Schema pattern.
-local WORKSPACE_PATTERN = "^[a-z0-9-]+$"
+local CANVAS_PATTERN = "^[a-z0-9-]+$"
 
 local function getFieldSchema(field: Field): json.Object
 	local schema: json.Object
@@ -29,8 +29,8 @@ local function getFieldSchema(field: Field): json.Object
 		end
 
 		schema = json.object({ type = "string", enum = values })
-	elseif field.kind == "workspace" then
-		schema = json.object({ type = "string", pattern = WORKSPACE_PATTERN })
+	elseif field.kind == "canvas" then
+		schema = json.object({ type = "string", pattern = CANVAS_PATTERN })
 	else
 		schema = json.object({ type = "string" })
 

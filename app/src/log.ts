@@ -31,7 +31,7 @@ const isLogEntry = (value: unknown): value is LogEntry => {
  */
 export async function fetchLog(workspace: string): Promise<LogEntry[] | null> {
   try {
-    const response = await fetch(`${API}?workspace=${encodeURIComponent(workspace)}`)
+    const response = await fetch(`${API}?canvas=${encodeURIComponent(workspace)}`)
 
     if (!response.ok || !response.headers.get('content-type')?.includes('json')) return null
 

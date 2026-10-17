@@ -25,7 +25,7 @@ local function writeRuntime(root: string, runtime: Runtime)
 				json.object({
 					pid = runtime.pid,
 					url = runtime.url,
-					workspace = runtime.workspace,
+					canvas = runtime.canvas,
 					dataFolder = runtime.dataFolder,
 					startedAt = runtime.startedAt,
 				}),

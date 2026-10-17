@@ -81,7 +81,7 @@ test.case("initialize says what Orion is and where a card's branch goes", functi
 	local instructions = need(json.asObject(response.result)).instructions :: string
 
 	assert.strContains(instructions, "canvas")
-	assert.strContains(instructions, "orion_workspaces")
+	assert.strContains(instructions, "orion_canvases")
 	assert.strContains(instructions, "orion_inspect")
 	assert.strContains(instructions, "orion_update_item")
 	assert.strContains(instructions, "branch:<owner>/<repo>@<branch>")
@@ -94,19 +94,19 @@ test.case("tools round-trip through the CLI and workspace storage", function(ass
 	local tools = need(json.asArray(need(json.asObject(listed.result)).tools))
 	assert.eq(#tools > 10, true)
 
-	local created = call(run, "orion_create_workspace", json.object({ name = "sample", label = "Sample" }))
+	local created = call(run, "orion_create_canvas", json.object({ name = "sample", label = "Sample" }))
 	assert.eq(created.isError, nil)
 
-	local added = call(run, "orion_add_item", json.object({ title = "MCP smoke test", workspace = "sample" }))
+	local added = call(run, "orion_add_item", json.object({ title = "MCP smoke test", canvas = "sample" }))
 	assert.eq(added.isError, nil)
 	local item = need(json.asObject(json.deserialize(firstText(added)) :: json.Value))
 	assert.eq(item.label, "MCP smoke test")
 
-	local shown = call(run, "orion_inspect", json.object({ view = "show", workspace = "sample", id = item.id }))
+	local shown = call(run, "orion_inspect", json.object({ view = "show", canvas = "sample", id = item.id }))
 	assert.eq(shown.isError, nil)
 	assert.strContains(firstText(shown), "MCP smoke test")
 
-	local missing = call(run, "orion_inspect", json.object({ view = "show", workspace = "sample", id = "missing" }))
+	local missing = call(run, "orion_inspect", json.object({ view = "show", canvas = "sample", id = "missing" }))
 	assert.eq(missing.isError, true)
 	assert.eq(string.find(firstText(missing), "%.luau:%d+:"), nil)
 end)
