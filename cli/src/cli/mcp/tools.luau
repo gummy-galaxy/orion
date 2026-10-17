@@ -364,6 +364,29 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_create_group",
+		description = "Make an empty group, optionally inside another group. Add cards to it afterward with its id.",
+		command = { "group", "create" },
+		json = true,
+		fields = {
+			{
+				name = "label",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The group's name, shown on the canvas.",
+				at = "positional",
+			},
+			{
+				name = "in",
+				kind = "id",
+				description = "Id of the group to make it inside. Omit to make it at the top level.",
+				at = "option",
+			},
+			workspaceField,
+		},
+	},
+	{
 		name = "orion_move",
 		description = "Move an item into a group or to the top level.",
 		command = { "node", "move" },

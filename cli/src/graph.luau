@@ -721,32 +721,32 @@ function graph.insertBetween(doc: Doc, id: string, from: string, to: string)
 	graph.link(doc, id, to, existing.kind)
 end
 
--- Groups left with nothing inside disappear, as they do in the app.
-local function pruneEmptyGroups(doc: Doc)
-	local changed = true
+-- Removes a group that an edit left with nothing inside, then checks the group that holds it the same way. Only groups
+-- the edit emptied go, so a group made empty on purpose, such as by group create, stays until something lands in it.
+local function pruneEmptied(doc: Doc, groupId: string?)
+	local current = groupId
 
-	while changed do
-		changed = false
+	while current do
+		local group = graph.find(doc, current)
 
-		for index = #doc.nodes, 1, -1 do
-			local item = doc.nodes[index]
+		if group == nil or not graph.isGroup(group) then
+			return
+		end
 
-			if graph.isGroup(item) then
-				local hasChildren = false
-
-				for _, other in doc.nodes do
-					if other.parentId == item.id then
-						hasChildren = true
-						break
-					end
-				end
-
-				if not hasChildren then
-					table.remove(doc.nodes, index)
-					changed = true
-				end
+		for _, other in doc.nodes do
+			if other.parentId == current then
+				return
 			end
 		end
+
+		for index, node in doc.nodes do
+			if node.id == current then
+				table.remove(doc.nodes, index)
+				break
+			end
+		end
+
+		current = group.parentId
 	end
 end
 
@@ -825,6 +825,7 @@ end
 function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	local item = graph.get(doc, id)
 	assert(not graph.isGroup(item), `"{id}" is a group; use group ungroup or group remove instead`)
+	local parentId = item.parentId
 	if reconnect then
 		graph.checkReconnect(doc, id)
 	end
@@ -863,7 +864,7 @@ function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 		end
 	end
 
-	pruneEmptyGroups(doc)
+	pruneEmptied(doc, parentId)
 end
 
 -- Asks the app to tidy a group whose members changed. A pending marker already places it, so it is kept, and a
@@ -931,6 +932,27 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }): Item
 	return group
 end
 
+-- Makes an empty group, inside `parentId` when given. Its size is one card's worth, so layout checks leave room for it.
+function graph.createGroup(doc: Doc, label: string, parentId: string?): Item
+	assert(label ~= "", "a group needs a name")
+
+	if parentId then
+		graph.group(doc, parentId)
+	end
+
+	local group: Item = {
+		id = uniqueId(doc, slug(label)),
+		type = "cluster",
+		position = graph.nextSlot(doc, parentId),
+		parentId = parentId,
+		width = TASK_WIDTH + GROUP_PADDING * 2,
+		height = TASK_HEIGHT + GROUP_HEADER_HEIGHT + GROUP_PADDING,
+		data = json.object({ kind = "cluster", label = label }),
+	}
+	table.insert(doc.nodes, group)
+	return group
+end
+
 function graph.ungroup(doc: Doc, id: string)
 	local group = graph.group(doc, id)
 
@@ -979,7 +1001,7 @@ end
 -- Removes a group with everything inside it. Each card goes the way `remove` takes it, so a note's links reconnect
 -- around it, and a parent left empty disappears.
 function graph.removeGroup(doc: Doc, id: string)
-	graph.group(doc, id)
+	local parentId = graph.group(doc, id).parentId
 	local groupIds = { [id] = true }
 
 	for _, item in graph.contents(doc, id) do
@@ -996,7 +1018,7 @@ function graph.removeGroup(doc: Doc, id: string)
 		end
 	end
 
-	pruneEmptyGroups(doc)
+	pruneEmptied(doc, parentId)
 end
 
 -- Takes a ref off an item. A kind narrows the match when the same key could name an issue and a pull request.
@@ -1060,6 +1082,8 @@ function graph.move(doc: Doc, id: string, groupId: string?)
 		return
 	end
 
+	local previousParent = item.parentId
+
 	-- Node order doesn't matter here; the app sorts parents ahead of children on load.
 	item.position = graph.nextSlot(doc, groupId)
 	item.parentId = groupId
@@ -1068,7 +1092,7 @@ function graph.move(doc: Doc, id: string, groupId: string?)
 		markForRefit(graph.group(doc, groupId))
 	end
 
-	pruneEmptyGroups(doc)
+	pruneEmptied(doc, previousParent)
 end
 
 return table.freeze(graph)

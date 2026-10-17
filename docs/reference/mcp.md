@@ -170,6 +170,18 @@ Runs `orion group add`.
 | `items`     | strings   | **Required.**                                          |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
 
+## orion_create_group
+
+Make an empty group, optionally inside another group. Add cards to it afterward with its id.
+
+Runs `orion group create`.
+
+| Argument    | Type      | Description                                                          |
+| ----------- | --------- | -------------------------------------------------------------------- |
+| `label`     | string    | **Required.** The group's name, shown on the canvas.                 |
+| `in`        | id        | Id of the group to make it inside. Omit to make it at the top level. |
+| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion.               |
+
 ## orion_move
 
 Move an item into a group or to the top level.

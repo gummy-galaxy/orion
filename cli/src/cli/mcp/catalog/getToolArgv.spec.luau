@@ -20,6 +20,17 @@ test.case("tool arguments map onto the command each tool runs", function(assert)
 	end)
 end)
 
+test.case("create group takes a label and an optional parent", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_group", json.object({ label = "Week 1" })), " "),
+		"group create Week 1 --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_create_group", json.object({ label = "Monday", ["in"] = "week-1" })), " "),
+		"group create Monday --in week-1 --json"
+	)
+end)
+
 test.case("group and ref tools run their subcommands", function(assert)
 	assert.eq(
 		table.concat(getToolArgv("orion_group", json.object({ label = "Ship", items = { "ci", "pub" } })), " "),
