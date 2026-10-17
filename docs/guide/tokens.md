@@ -314,8 +314,17 @@ No token has been renamed since theme files arrived, so there are no older token
 
 ## Not named yet
 
-These still have literal values and will get tokens in later changes:
+These still have literal values and will get tokens in a later change:
 
 - The trading card skin's frame, gate, sticker, and tile shadows.
+
+## Not tokens
+
+These stay fixed, since changing them would change what something means or how the app is laid out rather than how it looks:
+
+- Layout sizes, such as widths, positions, and the room kept beside badges and buttons.
+- A link's dash pattern, which tells held, related, and component links apart.
+- The strokes inside icons and the companion's face, which are part of the drawing.
+- The canvas dot grid's pitch and size.
 
 Sounds will get their own tokens with [the sound layer](https://github.com/vocksel/orion/issues/378).
