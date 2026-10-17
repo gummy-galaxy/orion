@@ -94,7 +94,7 @@ end)
 
 test.case("workspace set stores the canvas cover and background and needs an image it holds", function(assert)
 	local root, run = testing.createHarness("workspace-style")
-	assert.throwsWith("give --cover or --background", function()
+	assert.throwsWith("give --cover, --background, or --header", function()
 		run({ "canvas", "set" })
 	end)
 	assert.throws(function()

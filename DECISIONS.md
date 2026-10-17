@@ -96,6 +96,14 @@ Generated card art can be produced again from the same card. Later, people shoul
 
 2026-10-07 · [#234](https://github.com/vocksel/orion/issues/234)
 
+### Notes are short Markdown summaries, an experiment
+
+A card's note renders as Markdown: headings, lists, emphasis, links, and inline code. Clicking into it edits the Markdown source in place, and nothing richer is added. Notes stay a short summary that links out to where long writing lives. They're an experiment: the timeline is meant to take over the running record, so once both have been used for a while, decide whether notes stay, shrink to a short description, or go away.
+
+**Why:** a summary reads better rendered than as raw text, but a document editor is a non-goal in the charter, so editing stays plain source. Agents rewrote one note 12 times and once recorded a pass that hadn't happened, which is why the running record gets an append-only timeline rather than more note text. Rendering uses a Markdown library that emits React elements and no raw HTML, so a note can't run code.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
 ### Empty groups stay until an edit empties them
 
 A group with nothing inside stays on the canvas, at the size of one card, with a faint "Empty group" hint. `orion group create` makes one, and the app keeps it through loads, saves, and writes from elsewhere. A group goes when an edit takes its last card out: a drop, a removal, or a move out. A group that was already empty is never removed by an edit that doesn't touch it, and a group the removal leaves empty goes too, cascading upward.

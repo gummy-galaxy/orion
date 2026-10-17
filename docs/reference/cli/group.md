@@ -80,6 +80,7 @@ orion group set [id] [options]
 | `--arrange <value>`    | How reflow arranges a group: auto or custom                                    |
 | `--cover <value>`      | Image asset id for the cover, from orion media insert --json (empty to clear)  |
 | `--background <value>` | Color, color token such as card.background, or image asset id (empty to clear) |
+| `--header <value>`     | Markdown with layout HTML shown under the group's title (empty to clear)       |
 | `--json`               | Print JSON                                                                     |
 
 ## orion group ungroup

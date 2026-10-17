@@ -143,9 +143,11 @@ import {
   workAtom,
   workspaceAtom,
 } from '../state'
-import { applyStyleChange, backgroundColor, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import { applyStyleChange, backgroundColor, headerText, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
+import { HeaderSettings } from './HeaderSettings'
+import { Markdown } from './Markdown'
 import { StickerLayer, type PlacedSticker, type PressModifiers, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedStickers, stickerCursor, type Loadout, type Sticker } from '../sticker'
@@ -154,6 +156,7 @@ import { Toolbar, type Tool } from './Toolbar'
 import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
 import { foldPreviews } from '../foldPreview'
 import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from '../viewport'
+import { subscribeCompactZoom, zoomLevel } from '../zoomLevel'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { type DrawCard } from '../cardDraw'
 import { useDrawnCards } from '../useDrawnCards'
@@ -355,6 +358,8 @@ export function Canvas() {
   const setWorkspaceName = useSetAtom(workspaceAtom)
   const canvasColor = backgroundColor(canvasStyle.background)
   const canvasImage = isAssetId(canvasStyle.background) ? canvasStyle.background : undefined
+  // The canvas header is the top level's: inside a group, the group's own header takes its place.
+  const canvasHeader = root ? undefined : headerText(canvasStyle.header)
 
   useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
@@ -528,20 +533,32 @@ export function Canvas() {
   useLayoutEffect(() => {
     latest.current = { nodes, links, stickers, stickerLoadout: loadout }
   }, [nodes, links, stickers, loadout])
-  // Folded groups hold one on-screen size through --inv, set outside React so zooming doesn't re-render them.
+  // Folded groups hold one on-screen size through --inv, and the zoom level sits on the canvas as data-zoom. Both are
+  // set outside React so zooming doesn't re-render every card, and React never touches either.
   useEffect(() => {
     let shown = 0
+    let shownLevel = ''
 
     const apply = (zoom: number) => {
-      if (zoom === shown) return
+      const level = zoomLevel(zoom)
+
+      if (zoom === shown && level === shownLevel) return
 
       shown = zoom
+      shownLevel = level
       canvasRef.current?.style.setProperty('--inv', String(1 / zoom))
+      canvasRef.current?.setAttribute('data-zoom', level)
     }
 
     apply(store.getState().transform[2])
 
-    return store.subscribe((state) => apply(state.transform[2]))
+    const unsubscribeLevel = subscribeCompactZoom(() => apply(store.getState().transform[2]))
+    const unsubscribeStore = store.subscribe((state) => apply(state.transform[2]))
+
+    return () => {
+      unsubscribeLevel()
+      unsubscribeStore()
+    }
   }, [store])
 
   // ---- Persistence ----
@@ -2052,9 +2069,22 @@ export function Canvas() {
 
       if (change.background !== undefined) patch.background = change.background ?? undefined
 
-      updateData(id, patch)
+      if (change.header === undefined) {
+        updateData(id, patch)
+
+        return
+      }
+
+      // A header adds or removes the band under the title, so the group refits and its cards keep their places.
+      patch.header = change.header ?? undefined
+      setNodes((currentNodes) =>
+        normalize(
+          currentNodes.map((node) => (node.id === id && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node)),
+          cardSize,
+        ),
+      )
     },
-    [updateData],
+    [updateData, setNodes, cardSize],
   )
 
   /** The canvas's cover and background go to the server and show at once. The server bumps the revision, so the page reloads to match it. */
@@ -2991,7 +3021,7 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}`}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}${canvasHeader ? ' has-header' : ''}`}
           style={
             {
               ...(canvasColor ? { '--canvas-background': canvasColor } : {}),
@@ -3014,6 +3044,11 @@ export function Canvas() {
           {canvasStyle.cover && (
             <div className="canvas-cover">
               <CoverImage workspace={workspaces.active} asset={canvasStyle.cover} className="canvas-cover-image" />
+            </div>
+          )}
+          {canvasHeader && (
+            <div className="canvas-header">
+              <Markdown source={canvasHeader} layout />
             </div>
           )}
           {ready && (
@@ -3225,19 +3260,29 @@ export function Canvas() {
               {coverTarget && selected.length === 0 && pickedStickers.length === 0 && (
                 <Panel position="top-right" className="panel inspector cover-panel">
                   {coverTarget.kind === 'canvas' ? (
-                    <CoverSettings
-                      title="Canvas cover and background"
-                      workspace={workspaces.active}
-                      current={canvasStyle}
-                      change={changeCanvasStyle}
-                    />
+                    <>
+                      <CoverSettings
+                        title="Canvas cover and background"
+                        workspace={workspaces.active}
+                        current={canvasStyle}
+                        change={changeCanvasStyle}
+                      />
+                      <HeaderSettings title="Canvas header" value={canvasStyle.header} change={(header) => changeCanvasStyle({ header })} />
+                    </>
                   ) : map.has(coverTarget.id) ? (
-                    <CoverSettings
-                      title="Group cover and background"
-                      workspace={workspaces.active}
-                      current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
-                      change={(change) => changeGroupStyle(coverTarget.id, change)}
-                    />
+                    <>
+                      <CoverSettings
+                        title="Group cover and background"
+                        workspace={workspaces.active}
+                        current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
+                        change={(change) => changeGroupStyle(coverTarget.id, change)}
+                      />
+                      <HeaderSettings
+                        title="Group header"
+                        value={(map.get(coverTarget.id)?.data as ClusterData | undefined)?.header}
+                        change={(header) => changeGroupStyle(coverTarget.id, { header })}
+                      />
+                    </>
                   ) : null}
                   <div className="row">
                     <button type="button" className="btn" onClick={() => setCoverTarget(null)}>
@@ -3326,6 +3371,11 @@ export function Canvas() {
                         workspace={workspaces.active}
                         current={one.data as ClusterData}
                         change={(change) => changeGroupStyle(one.id, change)}
+                      />
+                      <HeaderSettings
+                        title="Header"
+                        value={(one.data as ClusterData).header}
+                        change={(header) => changeGroupStyle(one.id, { header })}
                       />
                       <div className="row">
                         <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>

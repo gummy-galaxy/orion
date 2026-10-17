@@ -1,8 +1,8 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
+local compute = require("@root/suggest/compute")
 local graph = require("@root/graph")
-local suggest = require("@root/suggest")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
@@ -10,8 +10,8 @@ local function runUnexpected(_argv: { string }, _stdin: string?): types.CommandR
 	error("unexpected agent call")
 end
 
-local function compute(doc: types.Doc, agent: string?, runner: types.CommandRunner?, scope: string?)
-	return suggest.compute(doc, scope or "unsorted", agent or "none", runner or runUnexpected, "2026-10-04T00:00:00Z")
+local function getSuggestions(doc: types.Doc, agent: string?, runner: types.CommandRunner?, scope: string?)
+	return compute(doc, scope or "unsorted", agent or "none", runner or runUnexpected, "2026-10-04T00:00:00Z")
 end
 
 local function getPair(extraA: json.Object?, extraB: json.Object?)
@@ -24,7 +24,7 @@ end
 test.case("heuristics join linked cards", function(assert)
 	local doc = getPair()
 	graph.link(doc, "a", "b", "related")
-	local result = compute(doc)
+	local result = getSuggestions(doc)
 	assert.eq(#result.groups, 1)
 	assert.eq(result.groups[1].reason, "Linked work")
 end)
@@ -52,7 +52,7 @@ test.case("heuristics join a shared Jira epic", function(assert)
 			},
 		})
 	)
-	local result = compute(doc)
+	local result = getSuggestions(doc)
 	assert.eq(result.groups[1].title, "Avatar loading")
 	assert.eq(result.groups[1].reason, "Shared epic ABC-1")
 end)
@@ -81,7 +81,7 @@ test.case("heuristics join the same repository branch", function(assert)
 			})
 		)
 	)
-	local result = compute(doc)
+	local result = getSuggestions(doc)
 	assert.eq(#result.groups, 1)
 	assert.eq(table.concat(result.groups[1].members, ","), "a,b")
 	assert.eq(result.groups[1].reason, "Shared branch agent/avatar")
@@ -121,7 +121,7 @@ test.case("heuristics join issue references in titles and branches", function(as
 			})
 		),
 	})
-	local result = compute(doc)
+	local result = getSuggestions(doc)
 	assert.eq(#result.groups, 2)
 	assert.eq(result.groups[1].reason, "Shared Jira or issue reference")
 	assert.eq(result.groups[2].reason, "Shared Jira or issue reference")
@@ -133,7 +133,7 @@ test.case("title overlap joins only a matching repository without epic conflict"
 		testing.task("b", "Fix avatar loading", "todo", nil, json.object({ repo = "vocksel/app" })),
 		testing.task("c", "Fix avatar loading", "todo", nil, json.object({ repo = "vocksel/other" })),
 	})
-	local result = compute(doc)
+	local result = getSuggestions(doc)
 	assert.eq(#result.groups, 1)
 	assert.eq(table.concat(result.groups[1].members, ","), "a,b")
 	assert.eq(result.groups[1].reason, "Strong title overlap")
@@ -174,7 +174,7 @@ test.case("title overlap joins only a matching repository without epic conflict"
 			})
 		),
 	})
-	assert.eq(#compute(conflicting).groups, 0)
+	assert.eq(#getSuggestions(conflicting).groups, 0)
 end)
 
 test.case("default scope includes unsorted and top-level cards, ignoring notes", function(assert)
@@ -186,8 +186,8 @@ test.case("default scope includes unsorted and top-level cards, ignoring notes",
 		testing.task("c", "Alpha loading", "todo", "placed", json.object({ repo = "vocksel/app" })),
 		testing.task("note", "Alpha loading", "todo", nil, json.object({ itemKind = "note", repo = "vocksel/app" })),
 	})
-	assert.eq(table.concat(compute(doc).groups[1].members, ","), "a,b")
-	assert.eq(table.concat(compute(doc, nil, nil, "all").groups[1].members, ","), "a,b,c")
+	assert.eq(table.concat(getSuggestions(doc).groups[1].members, ","), "a,b")
+	assert.eq(table.concat(getSuggestions(doc, nil, nil, "all").groups[1].members, ","), "a,b,c")
 end)
 
 test.case("agent reply drops unknown and duplicate ids while retaining ignored heuristics", function(assert)
@@ -234,7 +234,7 @@ test.case("agent reply drops unknown and duplicate ids while retaining ignored h
 		),
 	})
 	local prompt = ""
-	local result, didFallback = compute(doc, "claude", function(argv, stdin)
+	local result, didFallback = getSuggestions(doc, "claude", function(argv, stdin)
 		assert.eq(argv[1], "claude")
 		prompt = stdin
 		return testing.result(
@@ -257,7 +257,7 @@ test.case("garbage agent reply keeps heuristic suggestions", function(assert)
 		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } }),
 		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } })
 	)
-	local result, didFallback = compute(doc, "codex", function(argv, stdin)
+	local result, didFallback = getSuggestions(doc, "codex", function(argv, stdin)
 		assert.eq(argv[1], "codex")
 		assert.strContains(stdin or "", "cards")
 		return testing.result(true, "not JSON")
@@ -265,33 +265,4 @@ test.case("garbage agent reply keeps heuristic suggestions", function(assert)
 
 	assert.eq(didFallback, true)
 	assert.eq(result.groups[1].source, "heuristic")
-end)
-
-test.case("suggestions apply asks the app to tidy groups that lost cards", function(assert)
-	local doc = testing.createDoc({
-		testing.group("unsorted", "Unsorted"),
-		testing.task("a", "Avatar one", "todo", "unsorted"),
-		testing.task("b", "Avatar two", "todo", "unsorted"),
-		testing.task("c", "Something else", "todo", "unsorted"),
-	}, {})
-	suggest.save(doc, {
-		createdAt = "2026-10-04T00:00:00Z",
-		groups = { { id = "s1", title = "Avatars", members = { "a", "b" }, reason = "", source = "agent" } },
-	})
-	suggest.change(doc, "apply", { "s1" }, false)
-	local unsorted = graph.get(doc, "unsorted")
-	assert.eq(unsorted.data.layout, "refit")
-	assert.eq(graph.get(doc, "c").parentId, "unsorted")
-end)
-
-test.case("suggestions dismiss removes chosen suggestions without moving cards", function(assert)
-	local doc = getPair(
-		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } }),
-		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } })
-	)
-	suggest.save(doc, compute(doc))
-	local changed = suggest.change(doc, "dismiss", { "s1" }, false)
-	assert.eq(changed[1], "s1")
-	assert.eq(#suggest.getStored(doc).groups, 0)
-	assert.eq(doc.nodes[1].parentId, nil)
 end)

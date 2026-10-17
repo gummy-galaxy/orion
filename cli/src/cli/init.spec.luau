@@ -156,6 +156,45 @@ test.case("ingest refreshes pull request cards without any sources configured", 
 	assert.eq(store.load(dir).nodes[2].data.status, "done")
 end)
 
+-- Answers a refresh with flipbook #658 in the given state, which the harness card tracks.
+local function refreshRunner(state: string)
+	return function(argv: { string })
+		if argv[5]:find("pullRequests", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
+		elseif argv[5]:find("search(", 1, true) then
+			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+		end
+
+		return testing.result(
+			true,
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"]]
+				.. state
+				.. [[","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z","additions":1,"deletions":1,"reviewRequests":{"totalCount":0}}}}}]]
+		)
+	end
+end
+
+test.case("sync defers a card whose pull request closed and resumes it when the pull request reopens", function(assert)
+	local dir, run = testing.createHarness("sync-closed")
+	assert.strContains(run({ "sync" }, refreshRunner("CLOSED")), "ci: active → deferred")
+	assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, true)
+	assert.strContains(run({ "sync" }, refreshRunner("OPEN")), "ci: deferred → review")
+	assert.eq(store.load(dir).nodes[2].data.status, "review")
+	assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, nil)
+end)
+
+test.case(
+	"ingest defers a card whose pull request closed and resumes it when the pull request reopens",
+	function(assert)
+		local dir, run = testing.createHarness("ingest-closed")
+		assert.strContains(run({ "ingest" }, refreshRunner("CLOSED")), "ci: active → deferred")
+		assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, true)
+		assert.strContains(run({ "ingest" }, refreshRunner("OPEN")), "ci: deferred → review")
+		assert.eq(store.load(dir).nodes[2].data.status, "review")
+		assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, nil)
+	end
+)
+
 test.case("sync still works and points to ingest", function(assert)
 	local _, run = testing.createHarness("sync-deprecated")
 	local text = run({ "sync", "--dry-run" }, function(argv)
