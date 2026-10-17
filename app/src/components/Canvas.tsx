@@ -321,6 +321,17 @@ function serverCopyOf(doc: Remote, cardSize: CardSize): Saved {
   return compactDoc({ ...shown, nodes: toStored(shown.nodes, cardSize) })
 }
 
+/**
+ * `copy` with each group at the size `stored` keeps for it. The canvas fits groups around their children, so a group
+ * another writer grew shows larger than its stored size. A base that keeps the stored size lets the next commit send
+ * the fitted one, as a whole-document save did, without writing anything just for adopting the document.
+ */
+function withStoredGroupSizes(copy: Saved, stored: Saved): Saved {
+  const sizes = new Map(stored.nodes.filter(isCluster).map((node) => [node.id, { width: node.width, height: node.height }]))
+
+  return { ...copy, nodes: copy.nodes.map((node) => (sizes.has(node.id) ? { ...node, ...sizes.get(node.id) } : node)) }
+}
+
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
 
@@ -677,8 +688,10 @@ export function Canvas() {
     setNodes(mapped)
 
     if (wasSaved) {
-      base.current = compactDoc({ ...latest.current, nodes: toStored(mapped, cardSize) })
-      savedPrint.current = fingerprint(base.current)
+      const shown = compactDoc({ ...latest.current, nodes: toStored(mapped, cardSize) })
+
+      base.current = withStoredGroupSizes(shown, base.current)
+      savedPrint.current = fingerprint(shown)
     }
   }, [cardSize, setNodes, reactFlow, focusPick, root])
 
@@ -691,7 +704,7 @@ export function Canvas() {
       const server = serverCopyOf(serverDoc, cardSizeRef.current)
 
       revision.current = doc.revision
-      base.current = server
+      base.current = withStoredGroupSizes(server, serverDoc)
       savedPrint.current = fingerprint(server)
       const adopted = { ...shown, nodes: next }
 
