@@ -18,7 +18,7 @@ local function createRequest(
 	local headers: { [string]: string } = {}
 
 	if workspace then
-		headers["x-orion-workspace"] = workspace
+		headers["x-orion-canvas"] = workspace
 	end
 
 	return {
@@ -77,7 +77,7 @@ test.case("image routes import and serve workspace-local bytes", function(assert
 	local bytes = string.char(137, 80, 78, 71, 13, 10, 26, 10) .. "image bytes"
 	local function request(method: string, route: string, workspace: string, body: string?): net.ReceivedRequest
 		local req = createRequest(method, route)
-		req.query.workspace = workspace
+		req.query.canvas = workspace
 		req.body = body or ""
 		return req
 	end
@@ -123,7 +123,7 @@ test.case("GET reports a missing file and PUT creates it with a guarded revision
 	local missing = router.handle(createRequest("GET", "/api/orion"))
 	assert.eq(missing.status, 404)
 	assert.eq(decodeResponse(missing).path, store.filePath(root))
-	assert.eq(decodeResponse(missing).workspace, "default")
+	assert.eq(decodeResponse(missing).canvas, "default")
 	local change = json.object({ baseRevision = json.null, nodes = {}, links = {} })
 	local saved = router.handle(createRequest("PUT", "/api/orion", change))
 	assert.eq(saved.status, 200)
@@ -191,7 +191,7 @@ test.case("focus reports use the workspace and tab without changing the document
 			createRequest(
 				"POST",
 				"/api/focus",
-				json.object({ tab = "a", workspace = "missing", open = json.null, selected = {} })
+				json.object({ tab = "a", canvas = "missing", open = json.null, selected = {} })
 			)
 		).status,
 		404
@@ -201,7 +201,7 @@ test.case("focus reports use the workspace and tab without changing the document
 			createRequest(
 				"POST",
 				"/api/focus",
-				json.object({ tab = "a", workspace = "other", open = json.null, selected = {} })
+				json.object({ tab = "a", canvas = "other", open = json.null, selected = {} })
 			)
 		).status,
 		409
@@ -211,7 +211,7 @@ test.case("focus reports use the workspace and tab without changing the document
 			createRequest(
 				"POST",
 				"/api/focus",
-				json.object({ tab = "a", workspace = "default", open = "group", selected = { "card" } })
+				json.object({ tab = "a", canvas = "default", open = "group", selected = { "card" } })
 			)
 		).status,
 		200
@@ -226,14 +226,14 @@ test.case("focus reports use the workspace and tab without changing the document
 	assert.eq(type(focus.updatedAt), "string")
 	assert.eq(
 		router.handle(
-			createRequest("POST", "/api/focus", json.object({ tab = "b", workspace = "default", closed = true }))
+			createRequest("POST", "/api/focus", json.object({ tab = "b", canvas = "default", closed = true }))
 		).status,
 		200
 	)
 	assert.eq(fs.exists(focusFile), true)
 	assert.eq(
 		router.handle(
-			createRequest("POST", "/api/focus", json.object({ tab = "a", workspace = "default", closed = true }))
+			createRequest("POST", "/api/focus", json.object({ tab = "a", canvas = "default", closed = true }))
 		).status,
 		200
 	)
@@ -243,7 +243,7 @@ test.case("focus reports use the workspace and tab without changing the document
 			createRequest(
 				"POST",
 				"/api/focus",
-				json.object({ tab = "a", workspace = "default", open = json.null, selected = {} })
+				json.object({ tab = "a", canvas = "default", open = json.null, selected = {} })
 			)
 		).status,
 		200
@@ -259,15 +259,15 @@ end)
 test.case("workspace routes create, list, and switch", function(assert)
 	local root, router = createRouter("routes-workspaces")
 	local created =
-		router.handle(createRequest("POST", "/api/workspaces", json.object({ name = "planning", label = "Planning" })))
+		router.handle(createRequest("POST", "/api/canvases", json.object({ name = "planning", label = "Planning" })))
 	assert.eq(created.status, 201)
 	assert.eq(decodeResponse(created).active, "default")
 	local createdDoc = store.read(store.getWorkspaceDir(root, "planning"))
 	assert.eq(if createdDoc then createdDoc.revision else nil, 0)
-	local switched = router.handle(createRequest("POST", "/api/workspaces/active", json.object({ name = "planning" })))
+	local switched = router.handle(createRequest("POST", "/api/canvases/active", json.object({ name = "planning" })))
 	assert.eq(switched.status, 200)
 	assert.eq(decodeResponse(switched).active, "planning")
-	assert.eq(decodeResponse(router.handle(createRequest("GET", "/api/workspaces"))).active, "planning")
+	assert.eq(decodeResponse(router.handle(createRequest("GET", "/api/canvases"))).active, "planning")
 	assert.eq(
 		router.handle(
 			createRequest("PUT", "/api/orion", json.object({ baseRevision = 0, nodes = {}, links = {} }), "default")
@@ -284,7 +284,7 @@ test.case("GET reads the workspace a request names", function(assert)
 	assert.eq(decodeResponse(planning).revision, 0)
 	local missing = router.handle(createRequest("GET", "/api/orion", nil, "default"))
 	assert.eq(missing.status, 404)
-	assert.eq(decodeResponse(missing).workspace, "default")
+	assert.eq(decodeResponse(missing).canvas, "default")
 	assert.eq(router.handle(createRequest("GET", "/api/orion", nil, "unknown")).status, 404)
 	assert.eq(router.getActive(), "default")
 end)

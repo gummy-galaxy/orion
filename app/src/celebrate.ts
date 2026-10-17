@@ -79,8 +79,9 @@ export function clearCelebrations(nodes: AppNode[], ids: ReadonlySet<string>): A
 }
 
 /**
- * A card's data after a patch. A change to done sets the celebrate flag and a change away from done clears it,
- * the same as the CLI store does when it writes the card. Notes never get the flag.
+ * A card's data after a patch. Finishing a card in the app closes it out at once, so a change to done sets the flag
+ * to false, which the CLI store reads as closed out and drops instead of leaving the card waiting. A change away from
+ * done clears it. Notes never get the flag.
  */
 export function patchTaskData(data: TaskData, patch: Partial<TaskData>): TaskData {
   const next: TaskData = { ...data, ...patch }
@@ -88,8 +89,15 @@ export function patchTaskData(data: TaskData, patch: Partial<TaskData>): TaskDat
 
   if (!changed || next.itemKind === 'note') return next
 
-  if (next.status === 'done') next.celebrate = true
+  if (next.status === 'done') next.celebrate = false
   else delete next.celebrate
 
   return next
+}
+
+/** Whether a patch finishes a card in the app. Those close out at once, so their Done stamp lands right away. */
+export function closesOut(data: TaskData, patch: Partial<TaskData>): boolean {
+  const kind = patch.itemKind ?? data.itemKind
+
+  return patch.status === 'done' && data.status !== 'done' && kind !== 'note' && kind !== 'component'
 }

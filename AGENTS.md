@@ -50,7 +50,7 @@ To show the person the app, or anything else served locally such as a dev server
 - `orion link add <first> <second> [next…] [--label <text>]` links each adjacent pair in one transaction. Add `--related` for links that never block. A label names what the link carries; linking an already linked pair updates it, and `--label ""` clears it. `orion link remove` removes one link.
 - `orion link insert <id> --between <from> <to>` replaces an existing link with two links through the item, keeping its kind.
 - `orion note add <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it splits their existing link or adds two blocking links if they are unlinked.
-- `orion media insert <file> [--label <text>] [--group <id>]` inserts a media node. It currently accepts PNG, JPEG, GIF, and WebP images, identified from their contents. `orion media list` lists media nodes in the selected canvas. `orion server start` accepts raw bytes at `POST /api/images?workspace=<name>` and returns them at `GET /api/images/<asset>?workspace=<name>`.
+- `orion media insert <file> [--label <text>] [--group <id>]` inserts a media node. It currently accepts PNG, JPEG, GIF, and WebP images, identified from their contents. `orion media list` lists media nodes in the selected canvas. `orion server start` accepts raw bytes at `POST /api/images?canvas=<name>` and returns them at `GET /api/images/<asset>?canvas=<name>`.
 - `orion group add <label> --items <id,id,…>`, `orion group ungroup <id...> | --where '<expr>'`, and `orion node move <id...> | --where '<expr>' --to <group>` (or `--top`) organize work. The old bare `orion group <label> --items …` form is gone; use `group add`. `orion group create <label> [--in <group>]` makes an empty group to fill later.
 - `orion group tidy [<group>...] | --where '<expr>'` marks groups for the app to lay out in place, using the same markers the CLI sets when it changes a group's members. The app lays out marked groups deepest first, so nested groups settle before their parents. Custom groups keep their arrangement, and a group that already has a pending marker keeps it. The CLI never lays out groups itself: if `orion server start` isn't running, the output says the layout runs when the app opens.
 - `orion node remove <id...> | --where '<expr>'` deletes items. Removing a note reconnects the links that ran through it. Add `--reconnect` to reconnect cards with at most one incoming and one outgoing link; every selected card must qualify.
@@ -66,7 +66,7 @@ Run `orion suggestion find` to find related ungrouped cards, then review `orion 
 
 ## System diagrams
 
-A workspace can also draw a system: services, apps, files, and outside tools, linked by what flows between them. Make each part a component with `orion card add <name> --shape <shape> [--repo <owner/name>] [--note <what it does>]`; a shape makes the card a component. Components have no status, never count as work, and grow to show their whole name and note.
+A canvas can also draw a system: services, apps, files, and outside tools, linked by what flows between them. Make each part a component with `orion card add <name> --shape <shape> [--repo <owner/name>] [--note <what it does>]`; a shape makes the card a component. Components have no status, never count as work, and grow to show their whole name and note.
 
 - Shapes: `service` (a box, the default), `store` (a cylinder, for files and databases), `actor` (a pill, for people and agents), `external` (a dashed box, for anything outside the system), `interface` (a window, for a UI), `process` (a chevron, for commands and jobs), and `queue` (a stack, for streams of events).
 - Colors: `teal`, `blue`, `purple`, `amber`, `rose`, `green`, and `slate`. Set one on a group with `orion group set <group> --color <color>`; the components and groups inside take it unless they set their own.
@@ -121,6 +121,8 @@ Give each pull request a place on the canvas. When a card already tracks the wor
 ## Docs
 
 The docs site in `docs/` shows Orion's public surfaces. Its CLI and MCP reference pages are generated from the command table and the MCP tool catalog. After changing a command, an option, or an MCP tool, run `lute run docs` from the repository root and commit the pages it writes; CI fails when they're out of date. It formats them with the docs site's Prettier, so run `npm ci` in `docs/` first. Write the guide pages by hand, for someone who has never used Orion.
+
+The generator owns every page in `docs/reference/` and removes any it didn't write, so hand-written pages go elsewhere. Pages about how Orion is made, such as audits, proposals, and studies, go in `docs/development/design/` or `docs/development/engineering/`, with an entry in that section's sidebar in `docs/.vitepress/config.mts`. Write them for a contributor who wasn't in the conversation that produced them.
 
 ## Trying a desktop build
 
