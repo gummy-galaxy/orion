@@ -27,7 +27,13 @@ handlers.place = function(doc: Doc, operation: Operation)
 end
 
 handlers.link = function(doc: Doc, operation: Operation)
-	graph.link(doc, required(operation.from, "from"), required(operation.to, "to"), operation.kind or "blocks")
+	graph.link(
+		doc,
+		required(operation.from, "from"),
+		required(operation.to, "to"),
+		operation.kind or "blocks",
+		operation.label
+	)
 end
 
 handlers.unlink = function(doc: Doc, operation: Operation)

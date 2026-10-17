@@ -17,7 +17,10 @@ local FIELD_TYPES: { [string]: string } = {
 	arrange = "string",
 	cover = "string",
 	background = "string",
+	header = "string",
 	kind = "string",
+	shape = "string",
+	color = "string",
 }
 local LINK_KINDS = { blocks = true, related = true }
 -- The add operations, and the kind of node each one makes.
@@ -146,6 +149,7 @@ local function parseOperation(object: json.Object): Operation
 		operation.to = requireString(object, "to")
 		operation.kind = optionalString(object, "kind") or "blocks"
 		assert(LINK_KINDS[operation.kind :: string], "kind must be blocks or related")
+		operation.label = optionalString(object, "label")
 	elseif operation.op == "unlink" then
 		operation.from = requireString(object, "from")
 		operation.to = requireString(object, "to")
