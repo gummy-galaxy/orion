@@ -130,6 +130,7 @@ A bare number multiplies the text size. Like text sizes, each value is shared by
 | `line-height.preview` | `1.4`   | The Done stamp and note previews                       |
 | `line-height.base`    | `1.45`  | The page's base                                        |
 | `line-height.prose`   | `1.5`   | Notes and Markdown in the inspector                    |
+| `line-height.poster`  | `1.15`  | Trading card titles when zoomed out                    |
 
 ## Radius
 
@@ -282,6 +283,33 @@ One cycle of each animation that repeats while something is live. Most loops ste
 | `motion.loop.shimmer`    | `2.4s`  | Finished work shimmering until it is closed out           |
 | `motion.loop.snooze`     | `2.4s`  | The companion's sleepy Z's, each a third of a cycle apart |
 | `motion.loop.pulse`      | `3.2s`  | The ring pulsing around active work                       |
+| `motion.loop.spin`       | `1.4s`  | The spinner for running checks on a trading card          |
+
+## Trading cards
+
+The trading card skin is always dark, so its colors have one value for both schemes. Each card's art gradient is part of its drawing and stays fixed, as do the sizes on the card, which is drawn at one size and scaled to fit the canvas.
+
+| Name                      | Light                    | Dark                     | Used for                                        |
+| ------------------------- | ------------------------ | ------------------------ | ----------------------------------------------- |
+| `trading.background`      | `#120d30`                | `#120d30`                | The card's fill, and the scrim under its title  |
+| `trading.tile`            | `#1b1442`                | `#1b1442`                | The tile that shows the card's kind             |
+| `trading.text`            | `#f4f0ff`                | `#f4f0ff`                | Titles, the kind tile's rim, and focus outlines |
+| `trading.text-muted`      | `#a39bcc`                | `#a39bcc`                | Blocker counts on a zoomed-out card             |
+| `trading.ink`             | `#0c0920`                | `#0c0920`                | Text on bright badges and fact chips            |
+| `trading.edge`            | `rgb(255 255 255 / 0.1)` | `rgb(255 255 255 / 0.1)` | The hairline around the card                    |
+| `trading.gate`            | `#ffd166`                | `#ffd166`                | The ring around a gate card                     |
+| `trading.lock`            | `#fff`                   | `#fff`                   | The lock over a blocked card's kind             |
+| `trading.blockers`        | `#3c3370`                | `#3c3370`                | The badge counting open blockers                |
+| `trading.unblocks`        | `#18d6c0`                | `#18d6c0`                | The badge counting what finishing frees up      |
+| `trading.note.background` | `#251c57`                | `#251c57`                | A note's fill                                   |
+| `trading.note.text`       | `#d4cdf3`                | `#d4cdf3`                | A note's text                                   |
+
+| Name                   | Default                         | Used for                            |
+| ---------------------- | ------------------------------- | ----------------------------------- |
+| `trading.radius`       | `16px`                          | The card's corners                  |
+| `trading.shadow.card`  | `0 18px 40px rgb(0 0 0 / 0.45)` | The shadow under a card             |
+| `trading.shadow.badge` | `0 4px 12px rgb(12 9 32 / 0.5)` | The shadow under the status badge   |
+| `trading.shadow.tile`  | `0 5px 0 rgb(12 9 32 / 0.45)`   | The hard shadow under the kind tile |
 
 ## Aliases
 
@@ -312,12 +340,6 @@ These custom properties come from before tokens had role-based names. Each still
 
 No token has been renamed since theme files arrived, so there are no older token names to alias yet.
 
-## Not named yet
-
-These still have literal values and will get tokens in a later change:
-
-- The trading card skin's frame, gate, sticker, and tile shadows.
-
 ## Not tokens
 
 These stay fixed, since changing them would change what something means or how the app is laid out rather than how it looks:
@@ -326,5 +348,6 @@ These stay fixed, since changing them would change what something means or how t
 - A link's dash pattern, which tells held, related, and component links apart.
 - The strokes inside icons and the companion's face, which are part of the drawing.
 - The canvas dot grid's pitch and size.
+- The trading card's art gradients and dot screen, and the sizes on the card.
 
 Sounds will get their own tokens with [the sound layer](https://github.com/vocksel/orion/issues/378).
