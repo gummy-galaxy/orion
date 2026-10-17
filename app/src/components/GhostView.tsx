@@ -10,16 +10,21 @@ export const GhostView = memo(function GhostView({ data }: NodeProps<GhostNode>)
   const sources = useSources(data.taskId)
 
   return (
-    <div className={`ghost st-${data.status} side-${data.side}${trace ? ' tr-' + trace : ''}`} title={`Jump to ${data.label}`}>
+    <div
+      className={`ghost${data.status ? ' st-' + data.status : ''} side-${data.side}${trace ? ' tr-' + trace : ''}`}
+      title={`Jump to ${data.label}`}
+    >
       {data.side === 'out' && <Handle type="target" position={Position.Left} isConnectable={false} />}
       <span className="ghost-where">
         {data.side === 'in' ? 'from' : 'to'} {data.where}
       </span>
       <span className="label">{data.label}</span>
-      <span className="ghost-status">
-        <StatusIcon status={data.status} />
-        {STATUS_LABEL[data.status]}
-      </span>
+      {data.status && (
+        <span className="ghost-status">
+          <StatusIcon status={data.status} />
+          {STATUS_LABEL[data.status]}
+        </span>
+      )}
       <SourceBadges sources={sources} />
       {data.side === 'in' && <Handle type="source" position={Position.Right} isConnectable={false} />}
     </div>

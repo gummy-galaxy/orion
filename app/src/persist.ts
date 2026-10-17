@@ -25,6 +25,7 @@ const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:workspace'
 const WORKSPACES_EVENT = 'orion:workspaces'
 const REVEAL_EVENT = 'orion:reveal'
+const LOG_EVENT = 'orion:log'
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 export type ImageAsset = { asset: string; mime: string }
@@ -92,7 +93,7 @@ export async function lookupLink(url: string, workspace: string): Promise<LinkLo
   return body
 }
 
-type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT | typeof REVEAL_EVENT
+type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT | typeof REVEAL_EVENT | typeof LOG_EVENT
 const listeners = new Map<EventName, Set<(data: never) => void>>()
 let socket: WebSocket | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
@@ -192,6 +193,11 @@ export function onReveal(callback: (reveal: Reveal) => void) {
   return subscribe<Reveal>(REVEAL_EVENT, callback)
 }
 
+/** Runs when another writer appends to a canvas's log, with the name of that canvas's workspace. Appends don't change the document. */
+export function onLogChange(callback: (workspace: string) => void) {
+  return subscribe<{ workspace: string }>(LOG_EVENT, (data) => callback(data.workspace))
+}
+
 export async function getSyncStatus(): Promise<SyncStatus | null> {
   try {
     const response = await fetch('/api/sync')
@@ -217,6 +223,7 @@ export function onSyncStatus(callback: (status: SyncStatus) => void) {
 }
 
 /** Only what's worth keeping; selection, measurements and handles are view state. */
+/** The stored fields of each node. A card's size comes from its kind and text, so only groups and images keep one. */
 export function slim(nodes: AppNode[]) {
   return nodes.map((node) => ({
     id: node.id,
@@ -224,8 +231,8 @@ export function slim(nodes: AppNode[]) {
     position: node.position,
     parentId: node.parentId,
     data: node.data,
-    width: node.width,
-    height: node.height,
+    width: node.type === 'task' ? undefined : node.width,
+    height: node.type === 'task' ? undefined : node.height,
   }))
 }
 

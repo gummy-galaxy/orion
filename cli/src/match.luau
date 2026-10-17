@@ -56,7 +56,7 @@ function match.candidates(doc: Doc, title: string, owner: string, name: string):
 	local candidates: { Candidate } = {}
 
 	for _, item in doc.nodes do
-		if item.type ~= "task" or graph.isNote(item) or findRef(item, "pull") or item.data.status == "done" then
+		if not graph.isWork(item) or findRef(item, "pull") or item.data.status == "done" then
 			continue
 		end
 

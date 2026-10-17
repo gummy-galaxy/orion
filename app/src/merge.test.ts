@@ -154,6 +154,19 @@ describe('mergeDocs', () => {
     expect(merged.conflicts).toEqual([])
   })
 
+  it('keeps a link label edited on one side alongside a kind change on the other', () => {
+    const nodes = [makeNode('a'), makeNode('b')]
+    const original = makeLink('edge', 'a', 'b')
+    const merged = mergeDocs(
+      makeDoc(nodes, [original]),
+      makeDoc(nodes, [{ ...original, label: 'HTTP' }]),
+      makeDoc(nodes, [{ ...original, kind: 'related' }]),
+    )
+
+    expect(merged.links).toEqual([{ ...original, kind: 'related', label: 'HTTP' }])
+    expect(merged.conflicts).toEqual([])
+  })
+
   it('merges stickers and loadout edits with concurrent canvas changes', () => {
     const original: Sticker = { id: 'one', kind: '🎉', x: 0, y: 0, tilt: 0, on: 'a' }
     const base: Saved = { ...makeDoc([makeNode('a')]), stickers: [original], stickerLoadout: ['🎉', '🔥'] }
