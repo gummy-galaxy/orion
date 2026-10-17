@@ -386,7 +386,7 @@
 
 /* The spinner gets its own layer, so turning it doesn't repaint the card under it every frame. The compact form
    stands still, since it's how a whole canvas shows at once. */
-:where(:root[data-motion='on']) .card.skin-trading:not(.far-card) .trading-motion-running svg {
+:where(:root[data-motion='on']) .card.skin-trading:not(.far-card) > .trading-frame .trading-motion-running svg {
   animation: trading-spin 1.4s linear infinite;
   will-change: transform;
 }
@@ -415,18 +415,18 @@
 
 /* Below the compact breakpoint a card keeps its size and layout but drops to the parts that read from far out: the art,
    kind, facts, title, and the bottom row, each drawn larger. Status badges keep only their icon, and nothing casts a
-   blurred shadow. A hovered or selected card's far tag draws the same way at its own size. The rules reach only a card's
-   own frame, so a resting card's look never reaches the peek card opened over it. */
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame {
+   blurred shadow. This is the one compact form: a hovered or selected card's far tag and inspect mode's peek draw it at any
+   zoom, each at its own size. */
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame {
   box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-facts {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-facts {
   scale: 1.5;
   transform-origin: 0 0;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-status-badge {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-status-badge {
   width: 46px;
   height: 46px;
   padding: 0;
@@ -434,66 +434,68 @@
   box-shadow: none;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-status-badge svg {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-status-badge svg {
   width: 26px;
   height: 26px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card)
+  > .trading-frame
+  :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
   display: none;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-tile {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-tile {
   top: 112px;
   width: 70px;
   height: 70px;
   border-radius: 17px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-tile > svg {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-tile > svg {
   width: 38px;
   height: 38px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-lock svg {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-lock svg {
   width: 30px;
   height: 30px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-scrim {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-scrim {
   padding: 0 16px 16px;
   gap: 12px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-title {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-title {
   font-size: 25px;
   line-height: 1.15;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-bottom {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-bottom {
   min-height: 67px;
   grid-template-columns: 67px 1fr 67px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-blockers {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-blockers {
   width: 60px;
   height: 60px;
   border-radius: 24px 24px 24px 10px;
   font-size: 30px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-unblocks {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-unblocks {
   width: 67px;
   height: 67px;
   font-size: 35px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-motion:not(.trading-motion-counted) {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-motion:not(.trading-motion-counted) {
   width: 56px;
   height: 56px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-motion svg {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-motion svg {
   width: 30px;
   height: 30px;
 }
@@ -515,12 +517,12 @@
   height: 380px;
 }
 
-/* The far tag draws the compact card above, about 240px across on screen. */
+/* The far tag is about 240px across on screen. */
 .card.skin-trading.far-card:not(.peek-card) > .trading-frame {
   zoom: 0.9;
 }
 
-/* Peek opens the full card at the size it's drawn at, with its note on a panel underneath. */
+/* Peek draws the card at the size it's drawn at, larger than the far tag, with its note on a panel underneath. */
 .card.skin-trading.peek-card {
   width: 264px;
 }
