@@ -1,8 +1,8 @@
 local cli = require("@batteries/cli")
 
+local change = require("@root/suggest/change")
 local context = require("@root/cli/context")
 local store = require("@root/store")
-local suggest = require("@root/suggest")
 
 type Context = context.Context
 
@@ -16,7 +16,7 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local changed: { string } = {}
 		store.transaction(options.dir, function(doc)
-			changed = suggest.change(doc, "apply", parser:variadics(), parser:has("all"))
+			changed = change(doc, "apply", parser:variadics(), parser:has("all"))
 		end)
 
 		options.write(`Applied {#changed} suggestions: {table.concat(changed, ", ")}`)

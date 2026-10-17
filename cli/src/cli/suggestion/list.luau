@@ -2,8 +2,9 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
+local convertToJson = require("@root/suggest/convertToJson")
+local getStored = require("@root/suggest/getStored")
 local store = require("@root/store")
-local suggest = require("@root/suggest")
 
 type Context = context.Context
 
@@ -14,10 +15,10 @@ return table.freeze({
 	end,
 
 	run = function(_parser: cli.Parser, options: Context)
-		local result = suggest.getStored(store.load(options.dir))
+		local result = getStored(store.load(options.dir))
 
 		if options.asJson then
-			options.write(json.serialize(suggest.convertToJson(result), true))
+			options.write(json.serialize(convertToJson(result), true))
 		else
 			local lines: { string } = {}
 

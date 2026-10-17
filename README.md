@@ -75,6 +75,7 @@ lute run build
 `lute pkg install` fills `~/.loom/store`, which the build reads directly, so nothing is copied into the checkout. Lute can only bundle that store from a checkout under your home directory, and `lute run build` fails elsewhere. That produces `cli/build/orion`. Put it on your `PATH`, then run `orion help`. See [`AGENTS.md`](AGENTS.md) for how agents should use it.
 
 Before committing CLI changes, run `lute run analyze` and `lute test` in `cli/`.
+To see how well a module's spec pins down its behavior, run `lute run mutate src/<module>.luau` in `cli/`. It makes one small change at a time, such as flipping `==` to `~=` or `true` to `false`, runs the module's sibling spec against each, and lists the changes the spec didn't catch. Pass `--spec <path>` one or more times, or a folder such as `--spec src/cli`, when the tests live elsewhere. Some survivors make no real difference, so read each one before writing a test for it.
 StyLua is installed through `rokit.toml` at the repository root. Run `stylua src cli.luau .lute project.luau loom.config.luau .config.luau ../.lute ../.config.luau` from `cli/` to format all Luau sources, including the Lute scripts in both `.lute` folders. CI checks the same paths.
 
 ### Connect agents over MCP
@@ -169,7 +170,9 @@ In `app/`:
 - `src/components/ImageView.tsx`: image nodes and their workspace-local previews.
 - `src/cardDraw.ts`, `src/useDrawnCards.ts`, and `src/components/CardSlot.tsx`: which cards get their bodies. Cards far from the view keep their node, handles, and size, so edges and fitting still work, but skip the card body. The rest mount a batch per frame, nearest the view's center first.
 - `src/SourceBadges.tsx`, `src/SourceMenu.tsx`, `src/SourceLink.tsx`, and `src/Favicon.tsx`: the source favicons on cards and group bubbles, and the links behind them.
-- `src/LinkList.tsx`: a card's own links in the inspector, and adding, flipping, or removing them.
+- `src/components/TaskInspector.tsx`: a card's details in the inspector: the title and its pull request and issue links, status and whose move, notes, the pull request, and collapsible relationships.
+- `src/components/NoteBody.tsx` and `src/components/Markdown.tsx`: a card's note, shown as rendered Markdown and edited as source in place. `Markdown` is the shared renderer, with no raw HTML, for any surface that shows a short written note.
+- `src/components/LinkList.tsx`, `src/components/LinkSection.tsx`, and `src/components/LinkAdd.tsx`: a card's own links in the inspector, in collapsible waits-on, unblocks, and related sections, and adding, flipping, or removing them.
 - `src/CurveEdge.tsx`: arrows that loop around cards when they run backward.
 - `src/components/Tooltip.tsx`: a label shown above an element on hover or focus, drawn outside the canvas so zoom and clipping don't affect it.
 - `src/companion.ts`, `src/useCompanionTargets.ts`, `src/components/Companion.tsx`, `src/components/CompanionStar.tsx`, and `src/components/CompanionEye.tsx`: the star companion, which perches on the card nearest the pointer, reacts to its status, and can be turned off in Appearance.
@@ -192,6 +195,7 @@ In `cli/src/`:
 - `graph.luau`: derived status and leverage, and every edit the commands make.
 - `github/`: looking up pull requests and mapping their state onto cards.
 - `render.luau`: text and JSON output.
+- `mutation/`: finds the source changes that `lute run mutate` tries against a module's spec.
 
 ## License
 

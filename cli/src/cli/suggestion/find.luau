@@ -1,9 +1,11 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local compute = require("@root/suggest/compute")
 local context = require("@root/cli/context")
+local convertToJson = require("@root/suggest/convertToJson")
+local save = require("@root/suggest/save")
 local store = require("@root/store")
-local suggest = require("@root/suggest")
 
 type Context = context.Context
 
@@ -22,15 +24,15 @@ return table.freeze({
 		local configured = if settings and type(settings.agent) == "string" then settings.agent else nil
 		local agent = parser:get("agent") or configured or "none"
 		local result, didFallback =
-			suggest.compute(current, parser:get("scope") or "unsorted", agent, options.runner, options.now())
+			compute(current, parser:get("scope") or "unsorted", agent, options.runner, options.now())
 		if not parser:has("dry-run") then
 			store.transaction(options.dir, function(doc)
-				suggest.save(doc, result)
+				save(doc, result)
 			end)
 		end
 
 		if options.asJson then
-			local value = suggest.convertToJson(result)
+			local value = convertToJson(result)
 
 			if didFallback then
 				value.warning = "Agent unavailable or returned no valid groups; kept heuristic suggestions."
