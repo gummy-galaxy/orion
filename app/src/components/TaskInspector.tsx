@@ -9,7 +9,9 @@ import { workspaceAtom } from '../state'
 import type { Work } from '../derive'
 import {
   READINESS_LABEL,
+  STATUS_CHOICES,
   STATUS_LABEL,
+  WHO_CHOICES,
   editPullRef,
   getCheckCountsLabel,
   getItemKind,
@@ -123,12 +125,11 @@ export function TaskInspector({
           <div>
             <label htmlFor="t-status">Status</label>
             <select id="t-status" value={data.status} onChange={(event) => update(node.id, { status: event.target.value as Status })}>
-              <option value="todo">To do</option>
-              <option value="active">In progress</option>
-              <option value="review">In review</option>
-              <option value="blocked">Blocked</option>
-              <option value="deferred">Deferred</option>
-              <option value="done">Done</option>
+              {STATUS_CHOICES.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -139,9 +140,11 @@ export function TaskInspector({
               onChange={(event) => update(node.id, { who: (event.target.value || undefined) as Who | undefined })}
             >
               <option value="">Not set</option>
-              <option value="you">You</option>
-              <option value="review">Reviewer</option>
-              <option value="ci">CI</option>
+              {WHO_CHOICES.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
