@@ -112,7 +112,7 @@ To let someone try a change in the desktop app, run `npm run build` in `desktop/
 ## Code style
 
 - Spell identifiers out: `nodes`, not `ns`; `TASK_HEIGHT`, not `TASK_H`; `event`, not `e`. These short names are fine: `doc`/`docs`, `id`, `url`, `ref`, `dir`, `deps`, `repo`, `app`, `pr`, an `ms` suffix, `i`/`j` for indices, `x`/`y` for coordinates, and `a`/`b` in comparators.
-- Give each React component its own file named after it, such as `components/SourceBadges.tsx`, and list it in the README's code layout. Don't add a component to another component's file.
+- Give each React component its own file named after it, such as `components/SourceBadges.tsx`, and list it in [`app/README.md`](app/README.md)'s code layout when it's a main piece of the app. Don't add a component to another component's file.
 - Log diagnostics from the CLI and `orion server start`, such as timings, flush sizes, and errors, with [Archivist](https://github.com/flipbook-labs/archivist). Report rough edges you find in it. Don't use it for the data operation log, which must commit with the change it records.
 
 ## Workflows
