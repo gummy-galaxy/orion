@@ -28,8 +28,10 @@
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
+  --weight-extrabold: 800;
 
   --text-size-mini: 8px;
+  --text-size-nano: 9px;
   --text-size-tiny: 10px;
   --text-size-micro: 10.5px;
   --text-size-caption: 11px;
@@ -56,6 +58,9 @@
   --radius-round: 50%;
   --radius-hairline: 2px;
   --radius-note-corner: 0 7px 0 3px;
+
+  --border-width-default: 1px;
+  --border-width-strong: 1.5px;
 
   --space-1: 2px;
   --space-2: 4px;
