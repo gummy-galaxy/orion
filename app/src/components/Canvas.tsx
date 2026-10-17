@@ -32,23 +32,21 @@ import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '.
 import { CHAIN_STEP_MS, CLEAR_MS, celebrationDelays, clearCelebrations, closesOut, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { forgetTextWidths } from '../cardHeight'
-import { layoutOrder, reflow } from '../layout'
+import { groupSelection, layoutOrder, moveOutOfGroup, reflow, ungroup } from '../layout'
 import { pushAside } from '../pushAside'
-import { mergeDocs } from '../merge'
+import { diffOperations } from '../operations'
 import { cameraGlide, focusGlide, motionReduced, useSystemMotion } from '../motion'
 import { readDurationMs } from '../readDurationMs'
 import {
   absolutePosition,
   ancestors,
   byId,
-  groupSelection,
   isCluster,
   isComponent,
   isImage,
   isNote,
   isTask,
   isWork,
-  moveOutOfGroup,
   normalize,
   getItemKind,
   getTaskUrl,
@@ -56,7 +54,6 @@ import {
   sizeOf,
   getTaskTag,
   relativeTime,
-  ungroup,
   type AppNode,
   type ClusterData,
   type GhostNode,
@@ -98,10 +95,10 @@ import { CardSlot, type CardSlotData } from './CardSlot'
 import {
   createWorkspace,
   clearFocus,
-  adoptedPrint,
   compactDoc,
   displayedDoc,
   fetchRemote,
+  fingerprint,
   getSyncStatus,
   getWorkspaces,
   importImage,
@@ -111,14 +108,12 @@ import {
   onSyncStatus,
   onWorkspaceChange,
   onWorkspaceListChange,
-  readBrowser,
   reportFocus,
   requestSync,
-  save,
+  commitOperations,
   saveCanvasStyle,
   setActiveWorkspace,
   slim,
-  storedPrint,
   type FocusReport,
   type Remote,
   type Saved,
@@ -314,6 +309,27 @@ function readFlag(key: string, fallback: boolean) {
 
 function writeFlag(key: SavedSetting, value: boolean) {
   saveSettings({ [key]: value ? '1' : '0' })
+}
+
+/**
+ * The server's copy in the form the canvas compares: shown at this card size and stored again, so it rounds the same
+ * way a save does, with the same defaults the canvas applies.
+ */
+function serverCopyOf(doc: Remote, cardSize: CardSize): Saved {
+  const shown = displayedDoc(doc, cardSize)
+
+  return compactDoc({ ...shown, nodes: toStored(shown.nodes, cardSize) })
+}
+
+/**
+ * `copy` with each group at the size `stored` keeps for it. The canvas fits groups around their children, so a group
+ * another writer grew shows larger than its stored size. A base that keeps the stored size lets the next commit send
+ * the fitted one, as a whole-document save did, without writing anything just for adopting the document.
+ */
+function withStoredGroupSizes(copy: Saved, stored: Saved): Saved {
+  const sizes = new Map(stored.nodes.filter(isCluster).map((node) => [node.id, { width: node.width, height: node.height }]))
+
+  return { ...copy, nodes: copy.nodes.map((node) => (sizes.has(node.id) ? { ...node, ...sizes.get(node.id) } : node)) }
 }
 
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
@@ -606,14 +622,13 @@ export function Canvas() {
   }, [store])
 
   // ---- Persistence ----
-  const source = useRef<'file' | 'browser'>('file')
+  // The server's file is the only store. Edits are sent as operations, computed from what the server last had.
   const revision = useRef<number | null>(null)
   const savedPrint = useRef('')
+  // The canvas as the server last had it, in the stored form, which the next commit's operations are computed from.
   const base = useRef<Saved>({ nodes: [], links: [] })
-  const [mergeNotice, setMergeNotice] = useState<number | null>(null)
   const [imageError, setImageError] = useState<string | null>(null)
-  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Saves and reloads run one at a time so a reload never lands on a half-finished save.
+  // Commits and reloads run one at a time so a reload never lands on a half-finished commit.
   const queue = useRef<Promise<void>>(Promise.resolve())
   const workspace = useRef('default')
   const workspaceEpoch = useRef(0)
@@ -625,13 +640,26 @@ export function Canvas() {
   const viewFor = useRef<string | null>(null)
   const displayedCardSize = useRef(cardSize)
 
+  /** The canvas as the server stores it, with stickers on cards that are gone dropped. */
+  const storedOf = useCallback((doc: Saved): Saved => {
+    const ids = new Set(doc.nodes.map((node) => node.id))
+
+    return compactDoc({
+      nodes: toStored(doc.nodes, cardSizeRef.current),
+      links: doc.links,
+      stickers: (doc.stickers ?? []).filter((sticker) => !sticker.on || ids.has(sticker.on)),
+      stickerLoadout: doc.stickerLoadout,
+    })
+  }, [])
+
   useLayoutEffect(() => {
     const previousSize = displayedCardSize.current
 
     if (previousSize.width === cardSize.width && previousSize.height === cardSize.height) return
 
     tweenSequence.current++
-    const wasSaved = storedPrint(latest.current, previousSize) === savedPrint.current
+    const currentStored = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, previousSize) })
+    const wasSaved = fingerprint(currentStored) === savedPrint.current
     const mapped = toDisplayed(toStored(latest.current.nodes, previousSize), cardSize)
     const box = canvasRef.current?.getBoundingClientRect()
 
@@ -660,8 +688,10 @@ export function Canvas() {
     setNodes(mapped)
 
     if (wasSaved) {
-      base.current = compactDoc({ ...latest.current, nodes: toStored(mapped, cardSize) })
-      savedPrint.current = storedPrint(latest.current, cardSize)
+      const shown = compactDoc({ ...latest.current, nodes: toStored(mapped, cardSize) })
+
+      base.current = withStoredGroupSizes(shown, base.current)
+      savedPrint.current = fingerprint(shown)
     }
   }, [cardSize, setNodes, reactFlow, focusPick, root])
 
@@ -671,10 +701,11 @@ export function Canvas() {
       // Another writer can grow a group, such as the CLI adding a card to it. Its neighbors move aside here, and
       // since that differs from the server's copy, the next save writes the new positions back.
       const next = previous ? pushAside(previous, shown.nodes, cardSizeRef.current) : shown.nodes
+      const server = serverCopyOf(serverDoc, cardSizeRef.current)
 
       revision.current = doc.revision
-      base.current = compactDoc({ ...serverDoc, nodes: normalize(serverDoc.nodes) })
-      savedPrint.current = adoptedPrint(serverDoc, cardSizeRef.current)
+      base.current = withStoredGroupSizes(server, serverDoc)
+      savedPrint.current = fingerprint(server)
       const adopted = { ...shown, nodes: next }
 
       rebaseHistory(adopted)
@@ -696,32 +727,27 @@ export function Canvas() {
     [rebaseHistory, setDerived, setLinks, setNodes],
   )
 
-  useEffect(
-    () => () => {
-      if (noticeTimer.current) clearTimeout(noticeTimer.current)
-    },
-    [],
-  )
-
+  /**
+   * Takes the server's copy when it differs from what's shown. Unsaved edits win over it, since their commit is
+   * still on its way, unless `discard` says the server's copy replaces them, as after a refused commit.
+   */
   const reload = useCallback(
-    async (name: string, epoch: number) => {
+    async (name: string, epoch: number, discard = false) => {
       if (epoch !== workspaceEpoch.current) return
 
       const doc = await fetchRemote(name)
 
-      if (epoch !== workspaceEpoch.current) return
+      if (epoch !== workspaceEpoch.current || !doc) return
 
-      if (!doc || doc.revision === revision.current) return
+      const local = storedOf(latest.current)
 
-      if (storedPrint(latest.current, cardSizeRef.current) === savedPrint.current) adopt(doc, doc, true, latest.current.nodes)
-      else {
-        const local = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSizeRef.current) })
-        const merged = mergeDocs(base.current, local, compactDoc({ ...doc, nodes: normalize(doc.nodes) }))
+      if (!discard && fingerprint(local) !== savedPrint.current) return
 
-        adopt({ ...doc, ...merged }, doc, true, latest.current.nodes)
-      }
+      if (!discard && doc.revision === revision.current && fingerprint(local) === fingerprint(serverCopyOf(doc, cardSizeRef.current))) return
+
+      adopt(doc, doc, true, latest.current.nodes)
     },
-    [adopt],
+    [adopt, storedOf],
   )
 
   const loadWorkspace = useCallback(
@@ -731,28 +757,21 @@ export function Canvas() {
       if (epoch !== workspaceEpoch.current) return
 
       if (loaded.source === 'file') {
-        source.current = 'file'
         resetHistory(adopt(loaded.doc, loaded.doc, !switched))
       } else {
-        source.current = loaded.source === 'missing' ? 'file' : 'browser'
-        const isDefault = name === 'default'
-        const kept = isDefault ? (loaded.source === 'browser' ? loaded.saved : readBrowser()) : null
-        const start = kept ? { nodes: toDisplayed(normalize(kept.nodes), cardSizeRef.current), links: kept.links } : { nodes: [], links: [] }
-        const initialStickers = kept?.stickers ?? []
-        const initialLoadout = loadoutOf(kept?.stickerLoadout)
-
-        if (epoch !== workspaceEpoch.current) return
+        // No file yet, or no server to read from: the canvas starts empty, and the first edit that saves creates the file.
+        const empty = compactDoc({ nodes: [], links: [] })
 
         revision.current = null
-        savedPrint.current = ''
-        base.current = { nodes: [], links: [] }
-        latest.current = { ...start, stickers: initialStickers, stickerLoadout: initialLoadout }
+        base.current = empty
+        savedPrint.current = fingerprint(empty)
+        latest.current = { nodes: [], links: [], stickers: [], stickerLoadout: loadoutOf() }
         resetHistory(latest.current)
-        setNodes(start.nodes)
-        setLinks(start.links)
+        setNodes([])
+        setLinks([])
         setDerived(null)
-        setStickers(initialStickers)
-        setLoadout(initialLoadout)
+        setStickers([])
+        setLoadout(loadoutOf())
         setGithub(null)
         setCanvasStyle({})
       }
@@ -827,69 +846,51 @@ export function Canvas() {
     if (!ready) return
 
     const saveTimer = setTimeout(() => {
-      // Stickers on cards or groups that are gone go with them.
-      const ids = new Set(nodes.map((node) => node.id))
-      const snapshot = { nodes, links, stickers: stickers.filter((sticker) => !sticker.on || ids.has(sticker.on)), stickerLoadout: loadout }
-      const print = storedPrint(snapshot, cardSize)
       const epoch = workspaceEpoch.current
       const name = workspace.current
 
       queue.current = queue.current.then(async () => {
         if (epoch !== workspaceEpoch.current) return
 
+        // A drag keeps moving until it ends, and its edits commit then.
+        if (latest.current.nodes.some((node) => node.dragging)) return
+
+        const snapshot = storedOf(latest.current)
+        const print = fingerprint(snapshot)
+
         if (print === savedPrint.current) return
 
-        let pending: Saved = snapshot
+        const operations = diffOperations(base.current, snapshot)
 
-        for (let attempt = 0; attempt <= 2; attempt++) {
-          const result = await save(source.current, revision.current, pending, name, cardSize)
+        if (operations.length) {
+          const result = await commitOperations(name, revision.current, operations)
 
           if (epoch !== workspaceEpoch.current) return
 
-          if (result.ok) {
-            revision.current = result.revision
-            base.current = compactDoc({ ...pending, nodes: toStored(pending.nodes, cardSize) })
-            savedPrint.current = storedPrint(pending, cardSize)
-
-            if (syncAfterSave.current) {
-              syncAfterSave.current = false
-              void requestSync(true).then((status) => status && setSyncStatus(status))
-            }
+          // A refused list means another writer got there first, or an edit no longer applies. The server's copy replaces this one.
+          if (!result.ok) {
+            await reload(name, epoch, true)
 
             return
           }
 
-          if (!result.conflict || attempt === 2) break
+          revision.current = result.revision
 
-          const remote = await fetchRemote(name)
-
-          if (epoch !== workspaceEpoch.current) return
-
-          if (!remote) break
-
-          const merged = mergeDocs(
-            base.current,
-            compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSize) }),
-            compactDoc({ ...remote, nodes: normalize(remote.nodes) }),
-          )
-
-          pending = adopt({ ...remote, ...merged }, remote)
-
-          if (merged.conflicts.length) {
-            setMergeNotice(merged.conflicts.length)
-
-            if (noticeTimer.current) clearTimeout(noticeTimer.current)
-
-            noticeTimer.current = setTimeout(() => setMergeNotice(null), 4500)
+          if (syncAfterSave.current) {
+            syncAfterSave.current = false
+            void requestSync(true).then((status) => status && setSyncStatus(status))
           }
         }
 
-        await reload(name, epoch)
+        base.current = snapshot
+        savedPrint.current = print
+
+        if (operations.length) await reload(name, epoch)
       })
     }, 400)
 
     return () => clearTimeout(saveTimer)
-  }, [nodes, links, stickers, loadout, ready, reload, adopt, cardSize])
+  }, [nodes, links, stickers, loadout, ready, reload, storedOf])
 
   const pendingLayoutEpoch = useRef<number | null>(null)
 
@@ -965,9 +966,6 @@ export function Canvas() {
       updateTrail(emptyTrail())
       setPinned(null)
       setEditing(null)
-      setMergeNotice(null)
-
-      if (noticeTimer.current) clearTimeout(noticeTimer.current)
 
       queue.current = queue.current.then(async () => {
         const list = await getWorkspaces()
@@ -3380,15 +3378,6 @@ export function Canvas() {
               </Controls>
               {/* The desktop shell hides the native title bar, so this strip along the top drags the window. */}
               <div className="window-drag" data-tauri-drag-region aria-hidden="true" onPointerDown={(event) => event.stopPropagation()} />
-              {mergeNotice !== null && (
-                <Panel
-                  position="bottom-left"
-                  style={{ bottom: 100, margin: 15, padding: 'var(--space-4) var(--space-5)', maxWidth: 300, pointerEvents: 'none' }}
-                  role="status"
-                >
-                  Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
-                </Panel>
-              )}
               {imageError && (
                 <Panel
                   position="bottom-left"
