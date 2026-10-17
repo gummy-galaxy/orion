@@ -59,3 +59,12 @@ it('documents every token in tokens.md', () => {
 
   expect(undocumented).toEqual([])
 })
+
+it('matches the token contract that the CLI checks theme files against', () => {
+  const contract = read('../../cli/src/themes/tokenContract.luau')
+  const entries = [...contract.matchAll(/\["([^"]+)"\] = \{ group = "([^"]+)", cssVar = "([^"]+)"(?:, legacy = "([^"]+)")? \}/g)].map(
+    ([, name, group, cssVar, legacy]) => ({ name, group, cssVar, legacy }),
+  )
+
+  expect(entries).toEqual(TOKENS.map(({ name, group, cssVar, legacy }) => ({ name, group, cssVar, legacy })))
+})
