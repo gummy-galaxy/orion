@@ -17,6 +17,7 @@ import {
   type Edge,
   type EdgeTypes,
   type FinalConnectionState,
+  type HandleType,
   type NodeChange,
   type NodeTypes,
   type Viewport,
@@ -125,6 +126,7 @@ import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keyb
 import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
 import { selectAllIds, selectNodes } from '../selectAll'
 import { stackNodes } from '../stack'
+import { reconnectLink } from '../reconnect'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useCompanionTargets } from '../useCompanionTargets'
@@ -177,6 +179,14 @@ const nodeTypes: NodeTypes = { task: CardSlot, cluster: ClusterView, image: Imag
 const edgeTypes: EdgeTypes = { default: CurveEdge }
 /** Whether a card view node was made away from the view, so it's drawn without its body. */
 const isAway = (node: AppNode) => isTask(node) && !!(node.data as CardSlotData).away
+
+/** The card under the pointer where a drag ended, so a link dropped anywhere on a card joins it. */
+function cardAt(event: MouseEvent | TouchEvent): string | undefined {
+  const point = 'changedTouches' in event ? event.changedTouches[0] : event
+
+  return document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node-task')?.dataset.id
+}
+
 const SIDEBAR_KEY = 'orion:sidebar'
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
@@ -1422,6 +1432,8 @@ export function Canvas() {
           source: source,
           target: target,
           className: className,
+          // A ghost only stands in for work outside the open group, so its end stays put.
+          reconnectable: source.startsWith('ghost:') ? 'target' : target.startsWith('ghost:') ? 'source' : true,
           markerEnd: link.kind === 'blocks' ? marker(flow) : undefined,
           ...(link.label ? { label: link.label, ...EDGE_LABEL } : {}),
         })
@@ -1447,6 +1459,8 @@ export function Canvas() {
         target: aggregate.b,
         className: `e-agg e-${aggregate.flow}`,
         selectable: false,
+        // A bundle stands for several links, so dragging its end couldn't say which one moves.
+        reconnectable: false,
         label: bundleLabel(aggregate),
         ...EDGE_LABEL,
         markerEnd: marker(aggregate.flow),
@@ -1936,8 +1950,7 @@ export function Canvas() {
 
       if (state.isValid || !state.fromNode || !state.fromHandle) return
 
-      const point = 'changedTouches' in event ? event.changedTouches[0] : event
-      const dropped = document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node-task')?.dataset.id
+      const dropped = cardAt(event)
 
       if (!dropped) return
 
@@ -1945,6 +1958,45 @@ export function Canvas() {
       else connect(dropped, state.fromNode.id)
     },
     [connect],
+  )
+
+  /** Moves a link's ends onto other cards in one edit, keeping it picked if it was. */
+  const reconnect = useCallback(
+    (id: string, ends: { from?: string; to?: string }) => {
+      if ([ends.from, ends.to].some((end) => end !== undefined && map.get(end)?.type !== 'task')) return
+
+      const currentLinks = latest.current.links
+      const next = reconnectLink(currentLinks, id, ends)
+
+      if (next === currentLinks) return
+
+      const moved = next.find((link) => !currentLinks.includes(link))
+
+      setLinks(next)
+      setPickedLink((picked) => (picked === id && moved ? moved.id : picked))
+    },
+    [map, setLinks],
+  )
+  const onReconnect = useCallback(
+    (edge: Edge, connection: Connection) =>
+      reconnect(edge.id, {
+        from: connection.source !== edge.source ? connection.source : undefined,
+        to: connection.target !== edge.target ? connection.target : undefined,
+      }),
+    [reconnect],
+  )
+  /** Like a new link, a moved end joins a card dropped anywhere on it. `fixed` is the end that stayed put. */
+  const onReconnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent, edge: Edge, fixed: HandleType, state: FinalConnectionState) => {
+      setLinking(false)
+
+      if (state.isValid) return
+
+      const dropped = cardAt(event)
+
+      if (dropped) reconnect(edge.id, fixed === 'source' ? { to: dropped } : { from: dropped })
+    },
+    [reconnect],
   )
 
   const selected = nodes.filter((node) => node.selected && !view.hidden.has(node.id))
@@ -3170,6 +3222,9 @@ export function Canvas() {
                 setLinking(true)
               }}
               onConnectEnd={onConnectEnd}
+              onReconnect={onReconnect}
+              onReconnectStart={() => setLinking(true)}
+              onReconnectEnd={onReconnectEnd}
               onNodeClick={(event, node) => {
                 if (tool === 'sticker') return stamp(event)
 

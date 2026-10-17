@@ -119,6 +119,34 @@ Runs `orion media insert`.
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
 | `group`     | id        | Group to add it to.                                    |
 
+## orion_themes
+
+List the theme files in the Orion data folder, and whether each one can be used.
+
+Runs `orion theme list`.
+
+Takes no arguments.
+
+## orion_add_theme
+
+Check a theme JSON file against the token contract and copy it into the Orion data folder, where the app lists it. Unknown tokens are reported and ignored. A file that is malformed or sets a bad value is refused.
+
+Runs `orion theme add`.
+
+| Argument | Type   | Description                                              |
+| -------- | ------ | -------------------------------------------------------- |
+| `path`   | string | **Required.** Absolute path to a local .json theme file. |
+
+## orion_remove_theme
+
+Delete a theme file from the Orion data folder by the file name orion_themes lists.
+
+Runs `orion theme remove`.
+
+| Argument | Type   | Description                                       |
+| -------- | ------ | ------------------------------------------------- |
+| `file`   | string | **Required.** Theme file name, such as dusk.json. |
+
 ## orion_link
 
 Link items so each waits on the one before it. Give more than two items to link a chain. Use related for a link that does not block work. Linking an already linked pair updates that link.
@@ -266,17 +294,17 @@ Runs `orion group ungroup`.
 
 ## orion_tidy
 
-Mark groups for the app to lay out in place. The app lays them out when it is open, deepest groups first.
+Mark groups for the app to lay out in place, deepest first, such as after adding cards in bulk. The app does the layout, so appConnected in the result says whether it runs now or when the app next opens. Custom groups keep their arrangement.
 
 Runs `orion group tidy`.
 
-| Argument     | Type      | Description                                                                                                |
-| ------------ | --------- | ---------------------------------------------------------------------------------------------------------- |
-| `ids`        | strings   | Group ids to lay out. Leave out to use where.                                                              |
-| `workspace`  | workspace | Canvas name. Omit to use the canvas selected in Orion.                                                     |
-| `where`      | string    | Select targets with an expression instead of ids, such as label ~ "text".                                  |
-| `dryRun`     | boolean   | Preview the changes and the current revision without writing.                                              |
-| `ifRevision` | int       | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+| Argument     | Type      | Description                                                                            |
+| ------------ | --------- | -------------------------------------------------------------------------------------- |
+| `ids`        | strings   | Groups to tidy. Give ids or where, not both.                                           |
+| `where`      | string    | Select groups with a query expression instead of ids, such as label ~ "release".       |
+| `workspace`  | workspace | Canvas name. Omit to use the canvas selected in Orion.                                 |
+| `dryRun`     | boolean   | List the groups and the current revision without marking them.                         |
+| `ifRevision` | int       | Mark only if the canvas is still at this revision, such as the one a dry run reported. |
 
 ## orion_remove_ref
 
@@ -357,14 +385,14 @@ Runs `orion canvas use`.
 
 ## orion_check
 
-Report layout problems on a canvas: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout.
+Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.
 
 Runs `orion canvas check`.
 
-| Argument    | Type      | Description                                            |
-| ----------- | --------- | ------------------------------------------------------ |
-| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`     | id        | Only problems in this group or inside it.              |
+| Argument    | Type      | Description                                               |
+| ----------- | --------- | --------------------------------------------------------- |
+| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion.    |
+| `group`     | id        | Only report problems in this group and what is inside it. |
 
 ## orion_ingest
 
