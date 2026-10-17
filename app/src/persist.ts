@@ -43,7 +43,10 @@ export async function importImage(file: File, workspace: string): Promise<ImageA
 }
 
 /** Saves a canvas's cover or background. The server bumps the revision and announces it, so open windows reload. */
-export async function saveCanvasStyle(workspace: string, change: { cover?: string | null; background?: string | null }): Promise<boolean> {
+export async function saveCanvasStyle(
+  workspace: string,
+  change: { cover?: string | null; background?: string | null; header?: string | null },
+): Promise<boolean> {
   try {
     const response = await fetch('/api/orion/style', {
       method: 'PUT',
@@ -69,7 +72,7 @@ export async function imageSource(workspace: string, asset: string): Promise<str
 export type LinkLookup = { status: 'existing'; id: string; label: string } | { status: 'found'; id: string; data: TaskData }
 
 export async function lookupLink(url: string, workspace: string): Promise<LinkLookup> {
-  const unserved = new Error('Creating from a link needs orion serve.')
+  const unserved = new Error('Creating from a link needs orion server start.')
   const response = await fetch(`/api/links?workspace=${encodeURIComponent(workspace)}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

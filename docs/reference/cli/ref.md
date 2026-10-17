@@ -2,7 +2,7 @@
 
 # orion ref
 
-Take outside work off an item
+Outside work attached to cards
 
 ```sh
 orion ref <command> [options]
@@ -16,8 +16,8 @@ Take a ref off an item
 orion ref remove [id] [ref] [options]
 ```
 
-| Argument | Description                                                                         |
-| -------- | ----------------------------------------------------------------------------------- |
-| `[id]`   | Item id                                                                             |
-| `[ref]`  | The ref's key as orion show lists it, such as owner/name#12, or a URL or source:key |
-| `--json` | Print JSON                                                                          |
+| Argument | Description                                                                              |
+| -------- | ---------------------------------------------------------------------------------------- |
+| `[id]`   | Item id                                                                                  |
+| `[ref]`  | The ref's key as orion node show lists it, such as owner/name#12, or a URL or source:key |
+| `--json` | Print JSON                                                                               |

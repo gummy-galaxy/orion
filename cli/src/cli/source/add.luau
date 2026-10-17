@@ -76,7 +76,7 @@ return table.freeze({
 		for _, kind in KIND_ORDER do
 			local kindParser = parser:subcommand(kind, { help = KINDS[kind].help })
 			kindParser:add("help", "flag", { help = "Show this help", aliases = { "h" } })
-			kindParser:add("workspace", "option", { help = "Use this workspace for this command" })
+			kindParser:add("canvas", "option", { help = "Use this canvas for this command" })
 
 			for _, option in getOptions(kind) do
 				kindParser:add(option.name, "option", { help = option.help })

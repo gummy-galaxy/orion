@@ -2,11 +2,23 @@
 
 # orion group
 
-Make a group around items, or remove one with everything inside
+Groups of items
 
 ```sh
 orion group <command> [options]
 ```
+
+## orion group list
+
+List groups with their progress
+
+```sh
+orion group list [options]
+```
+
+| Argument | Description |
+| -------- | ----------- |
+| `--json` | Print JSON  |
 
 ## orion group add
 
@@ -34,6 +46,57 @@ orion group remove [options] [ids...]
 | ----------------------- | ---------------------------------------------------- |
 | `[ids...]`              | Group ids                                            |
 | `--where <value>`       | Select targets with an expression instead of ids     |
+| `--dry-run`             | Preview changes and current revision without writing |
+| `--if-revision <value>` | Write only if the document has this revision         |
+| `--json`                | Print JSON                                           |
+
+## orion group set
+
+Change a group's fields
+
+```sh
+orion group set [id] [options]
+```
+
+| Argument               | Description                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| `[id]`                 | Group id                                                                       |
+| `--label <value>`      | New label                                                                      |
+| `--blurb <value>`      | Group description                                                              |
+| `--arrange <value>`    | How reflow arranges a group: auto or custom                                    |
+| `--cover <value>`      | Image asset id for the cover, from orion media insert --json (empty to clear)  |
+| `--background <value>` | Color, color token such as card.background, or image asset id (empty to clear) |
+| `--header <value>`     | Markdown with layout HTML shown under the group's title (empty to clear)       |
+| `--json`               | Print JSON                                                                     |
+
+## orion group ungroup
+
+Dissolve groups, keeping their items in place
+
+```sh
+orion group ungroup [options] [ids...]
+```
+
+| Argument                | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| `[ids...]`              | Group ids                                            |
+| `--where <value>`       | Select targets with an expression instead of ids     |
+| `--dry-run`             | Preview changes and current revision without writing |
+| `--if-revision <value>` | Write only if the document has this revision         |
+| `--json`                | Print JSON                                           |
+
+## orion group tidy
+
+Mark groups for the app to lay out in place
+
+```sh
+orion group tidy [options] [ids...]
+```
+
+| Argument                | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| `[ids...]`              | Group ids                                            |
+| `--where <value>`       | Select groups with an expression instead of ids      |
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |
 | `--json`                | Print JSON                                           |
