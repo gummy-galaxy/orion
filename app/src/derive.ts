@@ -1,11 +1,36 @@
 import { createContext } from 'react'
-import { descendants, isCluster, isTask, isWork, type AppNode, type Link, type SourceRef as RefData, type TaskNode, type ViewStatus } from './model'
+import {
+  descendants,
+  isCluster,
+  isComponent,
+  isTask,
+  isWork,
+  type AppNode,
+  type Link,
+  type SourceRef as RefData,
+  type TaskNode,
+  type ViewStatus,
+} from './model'
+import type { Rarity } from './rarity'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
 /** How a link out of a card reads: moving, held behind work that's stuck, or still, out of a component that carries no work. */
 export type Flow = 'live' | 'held' | 'still'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
 export type SourceRef = { domain: string; label: string; href?: string }
+
+/**
+ * The graph facts `orion serve` derives and sends beside the document, on `GET /api/orion` and on `orion:changed`
+ * events. Maps are keyed by item id. The app reads them and never works out status or blocking itself.
+ */
+export type Derived = {
+  status: Record<string, ViewStatus>
+  flow: Record<string, Flow>
+  leverage: Record<string, number>
+  upstream: Record<string, number>
+  rarity: Record<string, Rarity>
+  groups: Record<string, GroupStats>
+}
 
 export type Actions = {
   reflow: (groupId: string) => void
@@ -63,7 +88,8 @@ export function sourcesOfGroup(members: TaskNode[]): SourceRef[] {
   return [...groupSources.values()].sort((a, b) => a.domain.localeCompare(b.domain) || a.label.localeCompare(b.label))
 }
 
-function graph(links: Link[]) {
+/** Blocking links as adjacency lists, so hover tracing can walk up and down the graph. */
+export function linkGraph(links: Link[]) {
   const predecessors = new Map<string, string[]>()
   const successors = new Map<string, string[]>()
 
@@ -99,218 +125,71 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
   return seen
 }
 
-function countUpstream(tasks: Map<string, TaskNode>, predecessors: Map<string, string[]>): Map<string, number> {
-  const indices = new Map<string, number>()
-  const lowLinks = new Map<string, number>()
-  const stack: string[] = []
-  const onStack = new Set<string>()
-  const components: string[][] = []
-  const componentById = new Map<string, number>()
-
-  const visit = (id: string) => {
-    const index = indices.size
-
-    indices.set(id, index)
-    lowLinks.set(id, index)
-    stack.push(id)
-    onStack.add(id)
-
-    for (const predecessor of predecessors.get(id) ?? []) {
-      if (!tasks.has(predecessor)) continue
-
-      if (!indices.has(predecessor)) {
-        visit(predecessor)
-        lowLinks.set(id, Math.min(lowLinks.get(id)!, lowLinks.get(predecessor)!))
-      } else if (onStack.has(predecessor)) {
-        lowLinks.set(id, Math.min(lowLinks.get(id)!, indices.get(predecessor)!))
-      }
-    }
-
-    if (lowLinks.get(id) !== index) return
-
-    const component: string[] = []
-    let member: string
-
-    do {
-      member = stack.pop()!
-      onStack.delete(member)
-      componentById.set(member, components.length)
-      component.push(member)
-    } while (member !== id)
-
-    components.push(component)
-  }
-
-  for (const id of tasks.keys()) if (!indices.has(id)) visit(id)
-
-  const ancestors = new Map<number, Set<string>>()
-
-  const collect = (componentIndex: number): Set<string> => {
-    const known = ancestors.get(componentIndex)
-
-    if (known) return known
-
-    const reach = new Set<string>()
-
-    for (const id of components[componentIndex]) {
-      if (isWork(tasks.get(id))) reach.add(id)
-
-      for (const predecessor of predecessors.get(id) ?? []) {
-        const previousComponent = componentById.get(predecessor)
-
-        if (previousComponent !== undefined && previousComponent !== componentIndex) {
-          for (const ancestor of collect(previousComponent)) reach.add(ancestor)
-        }
-      }
-    }
-
-    ancestors.set(componentIndex, reach)
-
-    return reach
-  }
-
-  const upstream = new Map<string, number>()
-
-  for (const task of tasks.values()) {
-    const reach = collect(componentById.get(task.id)!)
-
-    upstream.set(task.id, reach.size - (isWork(task) ? 1 : 0))
-  }
-
-  return upstream
-}
-
-/** Work-state facts that don't depend on the viewport: status, leverage, upstream work, and per-group progress. */
-export function deriveWork(nodes: AppNode[], links: Link[]) {
+/** Where each card's work comes from, and what each group gathers from the cards inside it. Badges only: nothing here decides status. */
+export function deriveSources(nodes: AppNode[]): Map<string, SourceRef[]> {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
 
   for (const task of tasks.values()) sources.set(task.id, sourcesOf(task))
 
-  const { preds: predecessors, succs: successors } = graph(links)
-  const upstream = countUpstream(tasks, predecessors)
-  const isNote = (id: string) => tasks.get(id)?.data.itemKind === 'note'
-  const isComponent = (id: string) => tasks.get(id)?.data.itemKind === 'component'
-  const isGate = (id: string) => tasks.get(id)?.data.itemKind === 'gate' && predecessors.has(id)
-  // A note or component is open while anything feeding into it is, so blocking passes through them. Gates pass
-  // it through the same way but count as work: one is done once everything it waits on is.
-  const noteOpen = new Map<string, boolean>()
-
-  const open = (id: string, seen = new Set<string>()): boolean => {
-    const task = tasks.get(id)
-
-    if (!task) return false
-
-    if (isWork(task) && !isGate(id)) return task.data.status !== 'done'
-
-    if (noteOpen.has(id)) return noteOpen.get(id)!
-
-    if (seen.has(id)) return false
-
-    seen.add(id)
-    const result = (predecessors.get(id) ?? []).some((predecessor) => open(predecessor, seen))
-
-    noteOpen.set(id, result)
-
-    return result
-  }
-
-  const status = new Map<string, ViewStatus>()
-
-  // Components have no status: they're parts of a system, not work.
-  for (const task of tasks.values()) {
-    const statusValue = task.data.status
-
-    if (isComponent(task.id)) continue
-
-    if (isNote(task.id) || (isGate(task.id) && statusValue !== 'deferred')) status.set(task.id, open(task.id) ? 'blocked' : 'done')
-    else if (statusValue === 'done' || statusValue === 'deferred' || statusValue === 'blocked') status.set(task.id, statusValue)
-    else if ((predecessors.get(task.id) ?? []).some((predecessor) => open(predecessor))) status.set(task.id, 'blocked')
-    else status.set(task.id, statusValue === 'todo' ? 'ready' : statusValue)
-  }
-
-  // Links move unless they come out of work that's stuck. Notes pass on whatever reaches them, and links out of
-  // components stay still.
-  const flow = new Map<string, Flow>()
-
-  const flowOf = (id: string, seen = new Set<string>()): Flow => {
-    const known = flow.get(id)
-
-    if (known) return known
-
-    if (seen.has(id)) return 'held'
-
-    seen.add(id)
-    const statusValue = status.get(id)
-    let flowValue: Flow
-
-    const incoming = predecessors.get(id) ?? []
-
-    if (isComponent(id)) flowValue = 'still'
-    else if (isNote(id) && incoming.length && incoming.every((predecessor) => flowOf(predecessor, seen) === 'still')) flowValue = 'still'
-    else if (statusValue === 'done') flowValue = 'live'
-    else if (isNote(id)) flowValue = incoming.some((predecessor) => flowOf(predecessor, seen) === 'live') ? 'live' : 'held'
-    else flowValue = statusValue === 'blocked' || statusValue === 'deferred' ? 'held' : 'live'
-
-    flow.set(id, flowValue)
-
-    return flowValue
-  }
-
-  for (const id of tasks.keys()) flowOf(id)
-
-  const leverage = new Map<string, number>()
-  const downstream = new Map<string, Set<string>>()
-
-  for (const task of tasks.values()) {
-    if (!isWork(task) || !open(task.id)) continue
-
-    // Parked work doesn't count toward what finishing something unlocks, and notes aren't work.
-    const reach = walk(task.id, successors, (id) => open(id) && tasks.get(id)?.data.status !== 'deferred')
-    const downstreamNodes = new Set([...reach].filter((id) => isWork(tasks.get(id))))
-
-    downstream.set(task.id, downstreamNodes)
-    leverage.set(task.id, downstreamNodes.size)
-  }
-
-  const groups = new Map<string, GroupStats>()
-
   for (const group of nodes.filter(isCluster)) {
     const inside = descendants(group.id, nodes)
-    const stats: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
     const members: TaskNode[] = []
-    const reach = new Set<string>()
 
     for (const id of inside) {
       const task = tasks.get(id)
 
       if (task) members.push(task)
-
-      const statusValue = status.get(id)
-
-      if (!statusValue || !isWork(tasks.get(id))) continue
-
-      // Deferred work is set aside, so it doesn't hold a group short of done.
-      if (statusValue !== 'deferred') stats.total++
-
-      if (statusValue === 'done') stats.done++
-
-      if (statusValue === 'ready') stats.ready++
-
-      if (statusValue === 'blocked') stats.blocked++
-
-      for (const downstreamNodes of downstream.get(id) ?? []) if (!inside.has(downstreamNodes)) reach.add(downstreamNodes)
     }
 
-    stats.outside = reach.size
-    groups.set(group.id, stats)
     sources.set(group.id, sourcesOfGroup(members))
   }
 
-  return { status, flow, leverage, upstream, groups, sources, preds: predecessors, succs: successors }
+  return sources
 }
 
-export type Work = ReturnType<typeof deriveWork>
+/** The server's derived values as maps, which cards and the canvas read by id. */
+export type ServerFacts = {
+  status: Map<string, ViewStatus>
+  flow: Map<string, Flow>
+  leverage: Map<string, number>
+  upstream: Map<string, number>
+  rarity: Map<string, Rarity>
+  groups: Map<string, GroupStats>
+}
+
+export function toServerFacts(derived: Derived | null): ServerFacts {
+  return {
+    status: new Map(Object.entries(derived?.status ?? {})),
+    flow: new Map(Object.entries(derived?.flow ?? {})),
+    leverage: new Map(Object.entries(derived?.leverage ?? {})),
+    upstream: new Map(Object.entries(derived?.upstream ?? {})),
+    rarity: new Map(Object.entries(derived?.rarity ?? {})),
+    groups: new Map(Object.entries(derived?.groups ?? {})),
+  }
+}
+
+/**
+ * What cards and the canvas read: the server's values, plus sources and the blocking links for tracing. A card the
+ * server hasn't derived yet (one just added, or no server at all) shows its recorded status, with no blocking and
+ * zero leverage, upstream work, and rarity, until the server answers.
+ */
+export function buildWork(facts: ServerFacts, nodes: AppNode[], links: Link[]) {
+  let status = facts.status
+
+  for (const node of nodes) {
+    // Components have no status, so they never get one to fall back on.
+    if (!isTask(node) || isComponent(node) || status.has(node.id)) continue
+
+    if (status === facts.status) status = new Map(facts.status)
+
+    status.set(node.id, node.data.status === 'todo' ? 'ready' : node.data.status)
+  }
+
+  return { ...facts, status, sources: deriveSources(nodes), ...linkGraph(links) }
+}
+
+export type Work = ReturnType<typeof buildWork>
 
 /** What `id` needs, what it unlocks, and the cards related to it directly; everything else dims. */
 export function traceFrom(id: string, predecessors: Map<string, string[]>, successors: Map<string, string[]>, ids: string[], related: string[] = []) {

@@ -12,6 +12,7 @@ local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getAdapter = require("@root/adapters/getAdapter")
+local getErrorText = require("@root/getErrorText")
 local getRefs = require("@root/refs/getRefs")
 local getVersion = require("@root/getVersion")
 local githubTypes = require("@root/github/types")
@@ -566,8 +567,8 @@ local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
 
 	for _, group in doc.nodes do
 		if graph.isGroup(group) then
-			table.insert(values, renderGroup.serialize(doc, derived, group))
-			table.insert(lines, `{group.id}  {renderGroup.formatLine(doc, derived, group)}`)
+			table.insert(values, renderGroup.serialize(derived, group))
+			table.insert(lines, `{group.id}  {renderGroup.formatLine(derived, group)}`)
 		end
 	end
 
@@ -983,8 +984,7 @@ local function run(argv: { string })
 	local succeeded, message = pcall(execute, { table.unpack(argv, 2) }, nil)
 
 	if not succeeded then
-		local text = tostring(message):gsub("^[^\n]-:%d+: ", "", 1)
-		print(`Error: {text}`)
+		print(`Error: {getErrorText(message)}`)
 		process.exit(1)
 	end
 end

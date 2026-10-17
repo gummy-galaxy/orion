@@ -1,6 +1,8 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
+local graph = require("@root/graph")
+local serializeDerived = require("@root/server/serializeDerived")
 local shared = require("@root/server/routes/shared")
 local store = require("@root/store")
 
@@ -21,7 +23,9 @@ function orion.handle(request: net.ReceivedRequest, root: string, active: string
 			if not doc then
 				return shared.reply(404, json.object({ path = store.filePath(requestedDir), canvas = requested }))
 			end
-			return shared.reply(200, store.toObject(doc))
+			local response = store.toObject(doc)
+			response.derived = serializeDerived(graph.derive(doc))
+			return shared.reply(200, response)
 		elseif request.method == "PUT" then
 			local tagged = request.headers["x-orion-canvas"]
 			if tagged and tagged ~= active then

@@ -1,4 +1,4 @@
-import { deriveWork, type SourceRef } from '../../derive'
+import { buildWork, toServerFacts, type Derived, type SourceRef } from '../../derive'
 import type { AppNode, ClusterNode, GhostNode, Link, TaskNode } from '../../model'
 
 export const task: TaskNode = {
@@ -70,6 +70,15 @@ export const ghost: GhostNode = {
 }
 
 export const links: Link[] = [{ id: 'link', from: 'task', to: 'blocker', kind: 'blocks' }]
-export const work = deriveWork([task, blocker, note, group], links)
+// What `orion serve` derives for these cards: the task is active, and it holds the blocker back.
+export const derived: Derived = {
+  status: { task: 'active', blocker: 'blocked', note: 'done' },
+  flow: { task: 'live', blocker: 'held', note: 'live' },
+  leverage: { task: 1, blocker: 0 },
+  upstream: { task: 0, blocker: 1, note: 0 },
+  rarity: { task: 'common', blocker: 'common' },
+  groups: { group: { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 } },
+}
+export const work = buildWork(toServerFacts(derived), [task, blocker, note, group], links)
 export const nodeMap = new Map<string, AppNode>([task, blocker, note, group].map((node) => [node.id, node]))
 export const source: SourceRef = { domain: 'github.com', label: 'vocksel/orion#127', href: 'https://github.com/vocksel/orion/pull/127' }
