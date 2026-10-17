@@ -39,6 +39,7 @@ export type Link = {
 	to: string,
 	kind: string,
 	origin: string?,
+	label: string?,
 }
 
 export type Source = {

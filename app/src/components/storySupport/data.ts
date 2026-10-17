@@ -30,6 +30,29 @@ export const note: TaskNode = {
   data: { kind: 'task', itemKind: 'note', label: 'Keep the intent visible', status: 'todo' },
 }
 
+export const component: TaskNode = {
+  id: 'component',
+  type: 'task',
+  position: { x: 80, y: 150 },
+  data: {
+    kind: 'task',
+    itemKind: 'component',
+    label: 'orion serve',
+    status: 'todo',
+    repo: 'vocksel/orion',
+    note: 'HTTP API and WebSocket; watches files; syncs every 5 minutes',
+  },
+}
+
+export const store: TaskNode = {
+  id: 'store',
+  type: 'task',
+  position: { x: 460, y: 150 },
+  data: { kind: 'task', itemKind: 'component', label: 'Store', status: 'todo', note: 'One lock for every write; revisions, migrations, backups' },
+}
+
+export const componentLink: Link = { id: 'component>store', from: 'component', to: 'store', kind: 'blocks', label: 'reads, writes, watches' }
+
 export const group: ClusterNode = {
   id: 'group',
   type: 'cluster',

@@ -27,6 +27,7 @@ Legacy names such as `--bg`, `--st-ready`, or `--shadow` still work. Each aliase
 | `edge.default`            | `--edge-default`            | `--edge`        | Links between cards                               |
 | `edge.hot`                | `--edge-hot`                |                 | Live and held links                               |
 | `edge.held`               | `--edge-held`               |                 | Links held in place by a dependency               |
+| `edge.still`              | `--edge-still`              |                 | Links out of components, which carry no work      |
 | `note.background`         | `--note-background`         | `--note`        | A note's paper                                    |
 | `note.border`             | `--note-border`             | `--note-edge`   | A note's edge and fold                            |
 | `note.text`               | `--note-text`               | `--note-ink`    | A note's text                                     |
@@ -53,6 +54,20 @@ Status colors also carry a shape, so they never stand alone. The colorblind sets
 | `status.review`  | `--status-review`  | `--st-review`  | Waiting on review                               |
 | `status.blocked` | `--status-blocked` | `--st-blocked` | Waiting on open work                            |
 | `status.done`    | `--status-done`    | `--st-done`    | Finished                                        |
+
+## Tint
+
+Groups and components in a system diagram take one of these colors. A group's tint washes its frame and header, and the components inside take it unless they set their own. Each theme sets all seven.
+
+| Name          | CSS property    | Used for                     |
+| ------------- | --------------- | ---------------------------- |
+| `tint.teal`   | `--tint-teal`   | Teal groups and components   |
+| `tint.blue`   | `--tint-blue`   | Blue groups and components   |
+| `tint.purple` | `--tint-purple` | Purple groups and components |
+| `tint.amber`  | `--tint-amber`  | Amber groups and components  |
+| `tint.rose`   | `--tint-rose`   | Rose groups and components   |
+| `tint.green`  | `--tint-green`  | Green groups and components  |
+| `tint.slate`  | `--tint-slate`  | Slate groups and components  |
 
 ## Font
 

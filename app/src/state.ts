@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { getCardView } from './cardView'
 import { readAppearance } from './appearance'
 import { deriveWork, traceFrom, type AttentionMark, type GroupStats, type SourceRef } from './derive'
-import { isTask, type AppNode, type Link, type TaskNode, type ViewStatus } from './model'
+import { byId, isImage, isTask, tintOf, type AppNode, type Link, type TaskNode, type Tint, type ViewStatus } from './model'
 import { sameFoldPreview, type FoldPreviewItem } from './foldPreview'
 
 export const nodesAtom = atom<AppNode[]>([])
@@ -24,6 +24,21 @@ export const dropTargetAtom = atom<string | null>(null)
 export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>())
 
 export const workAtom = atom((get) => deriveWork(get(nodesAtom), get(linksAtom)))
+
+/** Each group's and component's tint, its own or its nearest group's. */
+export const tintsAtom = atom((get) => {
+  const nodes = get(nodesAtom)
+  const nodeMap = byId(nodes)
+  const tints = new Map<string, Tint>()
+
+  for (const node of nodes) {
+    const tint = isImage(node) ? undefined : tintOf(node, nodeMap)
+
+    if (tint) tints.set(node.id, tint)
+  }
+
+  return tints
+})
 
 export const traceAtom = atom((get) => {
   const from = get(focusedAtom) ? null : get(pinnedAtom)
@@ -121,6 +136,32 @@ export const useMarked = (id: string) => useAtomValue(useMemo(() => selectAtom(a
 export const useIsDropTarget = (id: string) => useAtomValue(useMemo(() => selectAtom(dropTargetAtom, (target) => target === id), [id]))
 
 export const useCollapsed = (id: string) => useAtomValue(useMemo(() => selectAtom(collapsedAtom, (collapsed) => collapsed.has(id)), [id]))
+
+export const useTint = (id: string) => useAtomValue(useMemo(() => selectAtom(tintsAtom, (tints) => tints.get(id)), [id]))
+
+const NO_PARTS: string[] = []
+
+/** The names of what's directly inside a group, in reading order, for a folded group that holds no work to list. */
+export const useGroupParts = (id: string) =>
+  useAtomValue(
+    useMemo(
+      () =>
+        selectAtom(
+          nodesAtom,
+          (nodes) => {
+            const parts = nodes
+              .filter((node) => node.parentId === id && !isImage(node))
+              .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
+              .map((node) => (node.data as { label: string }).label)
+              .filter(Boolean)
+
+            return parts.length ? parts : NO_PARTS
+          },
+          (a, b) => a.length === b.length && a.every((label, i) => label === b[i]),
+        ),
+      [id],
+    ),
+  )
 
 // Only a group whose own preview changed redraws, so moving other work doesn't touch it.
 export const useFoldPreview = (id: string) =>

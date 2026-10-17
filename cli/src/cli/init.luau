@@ -35,6 +35,7 @@ local server = require("@root/cli/server")
 local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggestion = require("@root/cli/suggestion")
+local theme = require("@root/cli/theme")
 local tidy = require("@root/cli/tidy")
 local types = require("@root/types")
 
@@ -53,6 +54,7 @@ type Resolved = {
 	dataDir: string,
 	workspace: string?,
 	now: () -> string,
+	exit: (code: number) -> (),
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
@@ -70,12 +72,15 @@ local COMMANDS: { [string]: Command } = {
 	server = server,
 	source = source,
 	suggestion = suggestion,
+	theme = theme,
 }
 
 local ABOUT = [[
 Statuses: todo, active, review, blocked, deferred, done.
   Listed statuses are derived: todo shows as ready once nothing it waits on is open,
   and as blocked while something is. Notes pass blocking through and never count as work.
+Components (card add --kind component) draw a system: services, apps, and data stores linked
+  by what flows between them (link add --label). They have no status and never count as work.
 Repositories are "owner/name".
 Data lives in Orion's user data folder (run orion canvas path to see it); set ORION_DATA_DIR to change it.
 Set ORION_CANVAS to pick a canvas, as --canvas does for a single command.
@@ -117,7 +122,15 @@ local function addFieldOptions(parser: cli.Parser)
 	parser:add("pr", "option", { help = "Pull request number. Deprecated: use --ref with the pull request URL" })
 	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
 	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
-	parser:add("kind", "option", { help = "step, or gate for one that's done once everything it waits on is" })
+	parser:add("shape", "option", {
+		help = "How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)",
+	})
+	parser:add("color", "option", {
+		help = "A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)",
+	})
+	parser:add("kind", "option", {
+		help = "step; gate for one that's done once everything it waits on is; or component for a part of a system, not work",
+	})
 end
 
 type Parsers = {
@@ -188,6 +201,7 @@ local function createParsers(): Parsers
 	linkAdd:add("to", "positional", { help = "The item that waits on it" })
 	linkAdd:add("next", "variadic", { help = "Further items in the chain" })
 	linkAdd:add("related", "flag", { help = "Link without blocking" })
+	linkAdd:add("label", "option", { help = "What the link carries, such as HTTP (empty to clear)" })
 	linkAdd:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
 	linkAdd:add("if-revision", "option", { help = "Write only if the document has this revision" })
 	addJsonFlag(linkAdd)
@@ -256,6 +270,9 @@ local function createParsers(): Parsers
 		"option",
 		{ help = "Markdown with layout HTML shown under the group's title (empty to clear)" }
 	)
+	groupSet:add("color", "option", {
+		help = "The group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)",
+	})
 	addJsonFlag(groupSet)
 
 	addBatchOptions(addCommand(group, "ungroup", "Dissolve groups, keeping their items in place"), "Group ids")
@@ -280,7 +297,7 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	-- Commands with their own modules define their subcommands themselves.
-	for _, name in { "canvas", "log", "server", "source", "ingest", "media", "suggestion", "backup", "mcp", "focus" } do
+	for _, name in { "canvas", "log", "server", "source", "ingest", "media", "suggestion", "theme", "backup", "mcp", "focus" } do
 		local module = COMMANDS[name]
 		local parser = addCommand(root, name, module.help)
 		commands[name] = parser
@@ -378,6 +395,9 @@ local function dependencies(options: Dependencies?): Resolved
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 		end,
+		exit = given.exit or function(code: number)
+			process.exit(code)
+		end,
 	}
 end
 
@@ -398,6 +418,8 @@ local function fields(parser: cli.Parser): graph.ItemFields
 		background = parser:get("background"),
 		header = parser:get("header"),
 		kind = parser:get("kind"),
+		shape = parser:get("shape"),
+		color = parser:get("color"),
 	}
 end
 
@@ -605,6 +627,7 @@ local function execute(args: { string }, options: Dependencies?)
 		asJson = asJson,
 		runner = deps.runner,
 		now = deps.now,
+		exit = deps.exit,
 		execute = execute,
 	}
 
@@ -637,7 +660,7 @@ local function execute(args: { string }, options: Dependencies?)
 			derived,
 			sortedTasks(doc, derived, function(item)
 				local status = derived.status[item.id]
-				return not graph.isNote(item) and (status == "ready" or status == "active" or status == "review")
+				return graph.isWork(item) and (status == "ready" or status == "active" or status == "review")
 			end),
 			asJson
 		)
@@ -762,9 +785,10 @@ local function execute(args: { string }, options: Dependencies?)
 			table.insert(ids, id)
 		end
 		local dryRun = parser:has("dry-run")
+		local linked: { types.Link } = {}
 		local doc, baseRevision = runEdit(dir, dryRun, requestedRevision(parser), function(current)
 			for index = 1, #ids - 1 do
-				graph.link(current, ids[index], ids[index + 1], kind)
+				linked[index] = graph.link(current, ids[index], ids[index + 1], kind, parser:get("label"))
 			end
 		end)
 
@@ -775,7 +799,9 @@ local function execute(args: { string }, options: Dependencies?)
 				table.insert(items, json.object({ id = id, label = graph.label(graph.get(doc, id)) }))
 			end
 			for index = 1, #ids - 1 do
-				table.insert(links, json.object({ from = ids[index], to = ids[index + 1], kind = kind }))
+				local object = json.object({ from = ids[index], to = ids[index + 1], kind = kind })
+				object.label = linked[index].label
+				table.insert(links, object)
 			end
 			deps.write(json.serialize(
 				json.object({
@@ -789,7 +815,14 @@ local function execute(args: { string }, options: Dependencies?)
 				true
 			))
 		elseif #ids == 2 and not dryRun then
-			deps.write(if kind == "blocks" then `{to} now waits on {from}` else `{from} and {to} are related`)
+			local label = linked[1].label
+			local suffix = if label then ` ("{label}")` else ""
+			local isWork = graph.isWork(graph.get(doc, from)) and graph.isWork(graph.get(doc, to))
+			local sentence = if kind ~= "blocks"
+				then `{from} and {to} are related`
+				elseif isWork then `{to} now waits on {from}`
+				else `{from} → {to}`
+			deps.write(`{sentence}{suffix}`)
 		else
 			local count = #ids - 1
 			local revision = if dryRun then `{baseRevision}` else `{baseRevision} → {doc.revision}`
@@ -797,7 +830,8 @@ local function execute(args: { string }, options: Dependencies?)
 				`{if dryRun then "Would link" else "Linked"} {count} {if count == 1 then "pair" else "pairs"} at revision {revision}`,
 			}
 			for index = 1, count do
-				table.insert(lines, `  {ids[index]} → {ids[index + 1]} ({kind})`)
+				local label = linked[index].label
+				table.insert(lines, `  {ids[index]} → {ids[index + 1]} ({kind}){if label then ` "{label}"` else ""}`)
 			end
 			deps.write(table.concat(lines, "\n"))
 		end

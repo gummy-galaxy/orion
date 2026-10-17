@@ -30,7 +30,9 @@ Components:
 - `components/TaskView.tsx` and `components/ClusterView.tsx`: cards and group frames.
 - `components/FocusView.tsx`: the columns and lines around a focused card.
 - `components/CurveEdge.tsx`: arrows that loop around cards when they run backward.
+- `components/ComponentCard.tsx`, `components/ShapeOutline.tsx`, and `src/cardHeight.ts`: system diagram components, drawn the same in every skin with their shape's outline, and the heights notes and components grow to from their text. `components/ComponentInspector.tsx`, `components/LinkInspector.tsx`, and `components/TintSelect.tsx` edit components, link labels, and tints.
 - `components/TaskInspector.tsx`, `components/NoteBody.tsx`, and `components/LinkSection.tsx`: a card's details, note, and links in the inspector.
+- `components/Timeline.tsx`, `src/useCardLog.ts`, and `src/log.ts`: a card's timeline, its entries from the canvas log newest first, read from `GET /api/log` and refetched when `orion:log` announces an append.
 - `components/Markdown.tsx`: the shared Markdown renderer, with no raw HTML.
 - `components/Sidebar.tsx`, `components/ContextMenu.tsx`, and `components/Palette.tsx`: the group list, right-click menu, and ⌘K search.
 - `components/Settings.tsx`: the settings dialog and its pages.

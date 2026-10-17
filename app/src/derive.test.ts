@@ -152,6 +152,35 @@ describe('deriveWork flow', () => {
   })
 })
 
+describe('deriveWork components', () => {
+  const group: AppNode = { id: 'system', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'System' } }
+  const inside = (node: AppNode): AppNode => ({ ...node, parentId: 'system' })
+
+  it('gives components no status, passes blocking through them, and leaves them out of progress', () => {
+    const nodes = [group, inside(task('a', 'active')), inside(task('api', 'todo', 'component')), inside(task('b'))]
+    const work = deriveWork(nodes, [link('a', 'api'), link('api', 'b')])
+
+    expect(work.status.has('api')).toBe(false)
+    expect(work.status.get('b')).toBe('blocked')
+    expect(work.leverage.get('a')).toBe(1)
+    expect(work.leverage.has('api')).toBe(false)
+    expect(work.groups.get('system')).toMatchObject({ total: 2 })
+  })
+
+  it('keeps links out of components still, and notes fed only by components pass that on', () => {
+    const nodes = [task('app', 'todo', 'component'), task('server', 'todo', 'component'), task('why', 'todo', 'note'), task('a')]
+    const work = deriveWork(nodes, [link('app', 'server'), link('server', 'why'), link('a', 'why')])
+
+    expect(work.flow.get('app')).toBe('still')
+    expect(work.flow.get('server')).toBe('still')
+    expect(work.flow.get('why')).toBe('live')
+
+    const quiet = deriveWork(nodes, [link('app', 'server'), link('server', 'why')])
+
+    expect(quiet.flow.get('why')).toBe('still')
+  })
+})
+
 describe('deriveWork upstream', () => {
   it('counts a chain including completed work and gates', () => {
     const { upstream } = deriveWork([task('a', 'done'), task('b'), task('gate', 'todo', 'gate')], [link('a', 'b'), link('b', 'gate')])
