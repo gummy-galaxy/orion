@@ -54,7 +54,7 @@ end)
 
 test.case("focus reads the requested workspace", function(assert)
 	local root, run = testing.createHarness("focus-workspace")
-	run({ "workspace", "create", "planning" })
+	run({ "canvas", "create", "planning" })
 	local planning = store.getWorkspaceDir(root, "planning")
 	store.putFocus(root, "default-tab", nil, { "ws" })
 	store.putFocus(planning, "planning-tab", nil, {})
@@ -63,7 +63,7 @@ test.case("focus reads the requested workspace", function(assert)
 	local selected = if current then json.asArray(current.selected) else nil
 	assert.eq(selected and #selected, 1)
 
-	local other = json.asObject(json.deserialize(run({ "focus", "--json", "--workspace", "planning" })) :: json.Value)
+	local other = json.asObject(json.deserialize(run({ "focus", "--json", "--canvas", "planning" })) :: json.Value)
 	local otherSelected = if other then json.asArray(other.selected) else nil
 	assert.eq(other and other.appOpen, true)
 	assert.eq(otherSelected and #otherSelected, 0)

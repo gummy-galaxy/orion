@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local checkBackground = require("@root/style/checkBackground")
+local checkHeader = require("@root/style/checkHeader")
 local fieldValues = require("@root/fieldValues")
 local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
@@ -20,6 +21,8 @@ local TASK_WIDTH = 216
 local TASK_HEIGHT = 72
 local GROUP_PADDING = 32
 local GROUP_HEADER_HEIGHT = 78
+-- The band a group's header takes under its title row. The app reserves the same band.
+local GROUP_HEADER_BAND = 112
 local ITEM_GAP = 48
 
 export type Derived = {
@@ -38,6 +41,7 @@ export type ItemFields = {
 	arrange: string?,
 	cover: string?,
 	background: string?,
+	header: string?,
 	kind: string?,
 }
 
@@ -271,6 +275,17 @@ local function uniqueId(doc: Doc, base: string): string
 end
 
 -- The next free spot to the right of a parent's children, or of the top level.
+-- The space above a group's cards: its title row, plus the header band when the group has a header.
+function graph.headerHeight(item: Item): number
+	local header = item.data.header
+
+	if type(header) == "string" and header:match("%S") then
+		return GROUP_HEADER_HEIGHT + GROUP_HEADER_BAND
+	end
+
+	return GROUP_HEADER_HEIGHT
+end
+
 function graph.nextSlot(doc: Doc, parentId: string?): Position
 	local right: number? = nil
 	local top: number? = nil
@@ -284,7 +299,9 @@ function graph.nextSlot(doc: Doc, parentId: string?): Position
 	end
 
 	if right == nil or top == nil then
-		return if parentId then { x = GROUP_PADDING, y = GROUP_HEADER_HEIGHT } else { x = 0, y = 0 }
+		return if parentId
+			then { x = GROUP_PADDING, y = graph.headerHeight(graph.get(doc, parentId)) }
+			else { x = 0, y = 0 }
 	end
 
 	return { x = (right :: number) + (if parentId then ITEM_GAP else ITEM_GAP * 2), y = top :: number }
@@ -365,6 +382,10 @@ local function checkFields(fields: ItemFields)
 	if fields.background and fields.background ~= "" then
 		checkBackground(fields.background)
 	end
+
+	if fields.header and fields.header ~= "" then
+		checkHeader(fields.header)
+	end
 end
 
 export type AddOptions = ItemFields & { group: string? }
@@ -427,6 +448,26 @@ function graph.addImage(doc: Doc, label: string, extension: string, workspace: s
 	return item
 end
 
+-- Adding or removing a group's header moves its top edge up or down and keeps every card where it is on the canvas,
+-- as the app does when it refits a group.
+local function resizeHeader(doc: Doc, group: Item, delta: number)
+	if delta == 0 then
+		return
+	end
+
+	group.position = { x = group.position.x, y = group.position.y - delta }
+
+	if group.height then
+		group.height = (group.height :: number) + delta
+	end
+
+	for _, item in doc.nodes do
+		if item.parentId == group.id then
+			item.position = { x = item.position.x, y = item.position.y + delta }
+		end
+	end
+end
+
 function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 	local item = graph.get(doc, id)
 	checkFields(fields)
@@ -439,7 +480,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.who == nil
 				and fields.note == nil
 				and fields.kind == nil,
-			"groups only take a label, blurb, arrange, cover, and background"
+			"groups only take a label, blurb, arrange, cover, background, and header"
 		)
 
 		if fields.label then
@@ -465,14 +506,20 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 			item.data.background = if fields.background == "" then nil else fields.background
 		end
 
+		if fields.header then
+			local before = graph.headerHeight(item)
+			item.data.header = if fields.header == "" then nil else fields.header
+			resizeHeader(doc, item, graph.headerHeight(item) - before)
+		end
+
 		return item
 	end
 
 	assert(fields.arrange == nil, `"{id}" is an item; only groups take an arrangement`)
 	assert(fields.blurb == nil, `"{id}" is an item; only groups take a blurb`)
 	assert(
-		fields.cover == nil and fields.background == nil,
-		`"{id}" is an item; only groups take a cover or background`
+		fields.cover == nil and fields.background == nil and fields.header == nil,
+		`"{id}" is an item; only groups take a cover, background, or header`
 	)
 	if fields.label then
 		item.data.label = fields.label
@@ -480,6 +527,7 @@ function graph.setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	if fields.status then
 		item.data.status = fields.status
+		item.data.deferredByClosedPull = nil
 	end
 
 	if fields.who then
@@ -705,7 +753,7 @@ end
 -- A note's incoming and outgoing links are reconnected so nothing loses its blocker.
 function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	local item = graph.get(doc, id)
-	assert(not graph.isGroup(item), `"{id}" is a group; use ungroup or group remove instead`)
+	assert(not graph.isGroup(item), `"{id}" is a group; use group ungroup or group remove instead`)
 	if reconnect then
 		graph.checkReconnect(doc, id)
 	end
@@ -755,7 +803,7 @@ local function markForRefit(group: Item)
 	end
 end
 
--- Marks a group for the app to lay out in place, as `orion tidy` does. A pending marker is kept, since the app already
+-- Marks a group for the app to lay out in place, as `orion group tidy` does. A pending marker is kept, since the app already
 -- places that group. A custom group is marked too; the app clears the marker and leaves its arrangement alone.
 function graph.markForTidy(doc: Doc, id: string)
 	local group = graph.group(doc, id)

@@ -7,14 +7,27 @@ import { TOKENS } from './tokens'
 const ASSET_ID = /^[a-z0-9-]+\.(png|jpg|gif|webp)$/
 const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i
 
-/** A canvas's own cover and background, saved in the workspace settings beside its sources. */
-export type CanvasStyle = { cover?: string; background?: string }
+/** Longest header the CLI and inspector accept, in characters. */
+export const HEADER_MAX_LENGTH = 2000
+
+/** Below this zoom a header's text is too small to read, so it folds away. Canvas and group headers share it. */
+export const HEADER_MIN_ZOOM = 0.8
+
+/** A canvas's own cover, background, and header, saved in the workspace settings beside its sources. */
+export type CanvasStyle = { cover?: string; background?: string; header?: string }
 
 /** A change to a canvas or group style: `null` clears a setting, and an absent key keeps it. */
-export type StyleChange = { cover?: string | null; background?: string | null }
+export type StyleChange = { cover?: string | null; background?: string | null; header?: string | null }
 
 /** What a group paints behind its contents. Each layer is optional, so a group with none looks stock. */
 export type GroupLayers = { color?: string; backdrop?: string; cover?: string }
+
+/** The header text to show, or undefined when there is none or it is only whitespace. */
+export function headerText(value: string | undefined): string | undefined {
+  const text = value?.trim()
+
+  return text ? text : undefined
+}
 
 export const isAssetId = (value: string | undefined): boolean => value !== undefined && ASSET_ID.test(value)
 
@@ -37,6 +50,8 @@ export function readCanvasStyle(settings: Record<string, unknown> | undefined): 
 
   if (typeof settings?.background === 'string' && settings.background) style.background = settings.background
 
+  if (typeof settings?.header === 'string' && settings.header.trim()) style.header = settings.header
+
   return style
 }
 
@@ -52,6 +67,11 @@ export function applyStyleChange<T extends CanvasStyle>(current: T, change: Styl
   if (change.background !== undefined) {
     if (change.background === null) delete next.background
     else next.background = change.background
+  }
+
+  if (change.header !== undefined) {
+    if (change.header === null) delete next.header
+    else next.header = change.header
   }
 
   return next

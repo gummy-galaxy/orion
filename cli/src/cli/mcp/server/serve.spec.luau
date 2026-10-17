@@ -43,3 +43,39 @@ test.case("serve answers each line, however stdin splits it, and stops at end of
 	assert.eq(string.sub(written[1], -1), "\n")
 	assert.eq(need(json.asObject(json.deserialize(written[2]) :: json.Value)).id, 2)
 end)
+
+test.case("serve answers the message that finds the binary stale with an update error, then stops", function(assert)
+	local run = runner(testing.directory("mcp-serve-stale"))
+	local chunks = { `{request(1, "ping")}\n{request(2, "ping")}\n{request(3, "ping")}\n` }
+	local written: { string } = {}
+	local stale = false
+
+	serve(
+		function()
+			local chunk = table.remove(chunks, 1)
+
+			if chunk == nil then
+				error("end of file")
+			end
+
+			return chunk
+		end,
+		function(text: string)
+			table.insert(written, text)
+			stale = true
+		end,
+		run,
+		function()
+			return stale
+		end
+	)
+
+	assert.eq(#written, 2)
+	assert.eq(need(json.asObject(json.deserialize(written[1]) :: json.Value)).id, 1)
+
+	local answer = need(json.asObject(json.deserialize(written[2]) :: json.Value))
+	local failure = need(json.asObject(answer.error))
+	assert.eq(answer.id, 2)
+	assert.eq(failure.code, -32000)
+	assert.strContains(failure.message :: string, "Reconnect the MCP server")
+end)
