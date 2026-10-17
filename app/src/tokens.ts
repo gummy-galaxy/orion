@@ -1,12 +1,12 @@
 /**
  * Every named visual token. Components read the CSS custom property; `legacy` names alias it so older CSS keeps working.
- * Keep this list, tokens.css, and tokens.md in step. tokens.test.ts checks all three, and checks that each theme defines
- * every token.
+ * Keep this list, tokens.css, and docs/guide/tokens.md in step. tokens.test.ts checks all three, and checks that each
+ * theme defines every token.
  */
 export type TokenGroup = 'color' | 'status' | 'font' | 'weight' | 'size' | 'radius' | 'border' | 'space' | 'shadow' | 'duration' | 'easing'
 
 export type Token = {
-  /** The role-based name documented in tokens.md, such as card.background. */
+  /** The role-based name documented in docs/guide/tokens.md, such as card.background. */
   name: string
   /** The custom property components read, such as --card-background. */
   cssVar: string

@@ -1,7 +1,7 @@
 /*
- * Tokens every theme shares. Names are role-based; tokens.md says what each one is for, and tokens.ts lists them all.
- * A theme in themes/ sets the colors; it can override any of these too. Colors resolve with light-dark(),
- * so the color mode only has to set color-scheme.
+ * Tokens every theme shares. Names are role-based; docs/guide/tokens.md says what each one is for, and tokens.ts
+ * lists them all. A theme in themes/ sets the colors; it can override any of these too. Colors resolve with
+ * light-dark(), so the color mode only has to set color-scheme.
  */
 :root {
   /* Cards take the surface and border roles unless a theme gives them their own. */

@@ -3,7 +3,7 @@ import { TOKENS, type Token } from './tokens'
 
 /**
  * Shareable theme files, read from the themes folder in the data folder through `orion server start`. A file names
- * its theme and gives token values by scheme; see theme-files.md. A value reaches the page only after it passes
+ * its theme and gives token values by scheme; see docs/guide/themes.md. A value reaches the page only after it passes
  * checkValue, so a file can set colors and sizes but cannot load a URL or add rules.
  */
 const API = '/api/themes'
