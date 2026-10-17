@@ -260,6 +260,22 @@ export function ancestors(id: string, nodeMap: Map<string, AppNode>): string[] {
   return result
 }
 
+/**
+ * The group to show once the nodes change from `before` to `after`: the open group while it's still there, or else its
+ * nearest ancestor that is, or null for the top level.
+ */
+export function survivingRoot(root: string, before: Map<string, AppNode>, after: Map<string, AppNode>): string | null {
+  const isGroup = (id: string) => {
+    const node = after.get(id)
+
+    return !!node && isCluster(node)
+  }
+
+  if (isGroup(root)) return root
+
+  return ancestors(root, before).find(isGroup) ?? null
+}
+
 /** A component's own tint, or else its nearest group's. Work cards and notes have none. */
 export function tintOf(node: AppNode, nodeMap: Map<string, AppNode>): Tint | undefined {
   if (isTask(node) && node.data.itemKind !== 'component') return undefined
