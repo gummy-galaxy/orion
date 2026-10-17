@@ -838,12 +838,13 @@ select {
   opacity: 1;
 }
 /* Each frame these loops change repaints the canvas under them, so steps() holds them to 15 a second (one step
-   per 1/15 s of duration) rather than the display's 120. WebKit skips the frames between steps. */
+   per 1/15 s of duration) rather than the display's 120. WebKit skips the frames between steps. Arrows run long
+   across the canvas and repaint the most, so they step at 10 a second. */
 :where(:root[data-motion='on']) .react-flow__edge.e-live .react-flow__edge-path {
-  animation: flow 0.8s steps(12) infinite;
+  animation: flow 0.8s steps(8) infinite;
 }
 :where(:root[data-motion='on']) .react-flow__edge.e-agg.e-live .react-flow__edge-path {
-  animation: flow-agg 1.2s steps(18) infinite;
+  animation: flow-agg 1.2s steps(12) infinite;
 }
 :where(:root[data-motion='on']) .st-active {
   animation: pulse 3.2s infinite;
@@ -3409,7 +3410,7 @@ kbd {
   font-weight: var(--weight-medium);
 }
 :where(:root[data-motion='on']) .focus-line.live {
-  animation: flow 0.8s steps(12) infinite;
+  animation: flow 0.8s steps(8) infinite;
 }
 :where(:root[data-motion='on']) .focus-side,
 :where(:root[data-motion='on']) .focus-bar,
