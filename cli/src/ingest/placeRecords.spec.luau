@@ -67,10 +67,10 @@ test.case("placeRecords uses fallback, skips missing update-only, and computes s
 			findFallback = function()
 				return existing
 			end,
-			getStatus = function(current, who)
-				assert.eq(current, "blocked")
-				assert.eq(who, nil)
-				return "review", "review"
+			updateStatus = function(item)
+				assert.eq(item.data.status, "blocked")
+				assert.eq(item.data.who, nil)
+				item.data.status, item.data.who = "review", "review"
 			end,
 		},
 	})

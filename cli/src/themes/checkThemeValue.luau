@@ -200,7 +200,7 @@ local function checkThemeValue(group: string, value: string): string?
 		end
 
 		return "must be a weight from 100 to 1000"
-	elseif group == "size" or group == "space" then
+	elseif group == "size" or group == "space" or group == "border" then
 		if isLength(text, LENGTH_UNITS, true, MAX_VALUE_LENGTH) then
 			return nil
 		end

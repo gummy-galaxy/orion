@@ -37,10 +37,12 @@ test.case("GitHub adapter collects pull and issue records without writing cards"
 	assert.eq(records[1].ref.status, "draft")
 	assert.eq(records[1].itemKind, "pr")
 	assert.eq(records[1].mentionText, "Fix ABC-1 ABC-1-fix Closes #3")
-	local getStatus = records[1].getStatus
-	assert.eq(getStatus ~= nil, true)
-	if getStatus then
-		assert.eq(select(1, getStatus("todo", nil)), "active")
+	local updateStatus = records[1].updateStatus
+	assert.eq(updateStatus ~= nil, true)
+	if updateStatus then
+		local item = testing.task("pull", "Pull", "todo")
+		updateStatus(item)
+		assert.eq(item.data.status, "active")
 	end
 	assert.eq(records[2].ref.kind, "issue")
 	assert.eq(records[2].createWho, "you")
