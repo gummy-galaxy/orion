@@ -28,6 +28,19 @@
   --fade: 0.8;
 }
 
+/* The frame carries the card's solid fill, so it stays opaque and only what's on it fades. Fading the frame let the
+   links behind the card show through. The hover actions keep their own opacity. Isolation keeps what's on the
+   frame stacked under the Done stamp, as the fade used to. */
+.card.skin-trading > .trading-frame {
+  opacity: 1;
+  isolation: isolate;
+}
+
+.card.skin-trading .trading-frame > :not(.trading-actions) {
+  opacity: var(--fade, 1);
+  transition: opacity var(--motion-duration-base);
+}
+
 /* The card is always dark, so status colors resolve to their dark-mode values in any theme or colorblind set. */
 .card.skin-trading .trading-frame {
   color-scheme: dark;
