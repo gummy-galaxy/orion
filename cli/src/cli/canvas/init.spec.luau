@@ -10,9 +10,9 @@ test.case("workspace create and list use a temporary data root", function(assert
 	local root, run = testing.createHarness("workspace-create")
 	local initial = json.asObject(json.deserialize(run({ "canvas", "list", "--json" })) :: json.Value)
 	assert.eq(initial and initial.active, "default")
-	assert.eq(initial and #(json.asArray(initial.workspaces) or {}), 1)
+	assert.eq(initial and #(json.asArray(initial.canvases) or {}), 1)
 	run({ "canvas", "create", "roblox", "--label", "Roblox" })
-	local dir = tostring(path.join(root, "workspaces", "roblox"))
+	local dir = tostring(path.join(root, "canvases", "roblox"))
 	local doc = store.load(dir)
 	assert.eq(doc.version, 2)
 	assert.eq(doc.revision, 0)
@@ -20,7 +20,7 @@ test.case("workspace create and list use a temporary data root", function(assert
 	assert.eq(#doc.nodes, 0)
 	assert.eq(#doc.links, 0)
 	local listed = json.asObject(json.deserialize(run({ "canvas", "list", "--json" })) :: json.Value)
-	local entries = if listed then json.asArray(listed.workspaces) else nil
+	local entries = if listed then json.asArray(listed.canvases) else nil
 	assert.eq(listed and listed.active, "default")
 	assert.eq(entries and #entries, 2)
 	local second = if entries then json.asObject(entries[2]) else nil
@@ -28,11 +28,11 @@ test.case("workspace create and list use a temporary data root", function(assert
 	assert.eq(run({ "canvas", "path", "--canvas", "roblox" }), dir)
 	assert.eq(run({ "--canvas", "roblox", "canvas", "path" }), dir)
 	assert.eq(run({ "canvas", "path" }), root)
-	assert.throwsWith("workspace already exists: roblox", function()
+	assert.throwsWith("canvas already exists: roblox", function()
 		run({ "canvas", "create", "roblox" })
 	end)
 
-	assert.throwsWith("invalid workspace name: Bad/Name", function()
+	assert.throwsWith("invalid canvas name: Bad/Name", function()
 		run({ "canvas", "create", "Bad/Name" })
 	end)
 end)
@@ -46,18 +46,18 @@ test.case("workspace rename changes only the label", function(assert)
 		"Renamed canvas focus to Foundation components"
 	)
 	local listed = json.asObject(json.deserialize(run({ "canvas", "list", "--json" })) :: json.Value)
-	local entries = if listed then json.asArray(listed.workspaces) else nil
+	local entries = if listed then json.asArray(listed.canvases) else nil
 	local second = if entries then json.asObject(entries[2]) else nil
 	assert.eq(listed and listed.active, "focus")
 	assert.eq(second and second.name, "focus")
 	assert.eq(second and second.label, "Foundation components")
-	assert.eq(run({ "canvas", "path" }), tostring(path.join(root, "workspaces", "focus")))
+	assert.eq(run({ "canvas", "path" }), tostring(path.join(root, "canvases", "focus")))
 	run({ "canvas", "rename", "default", "Personal" })
 	local relisted = json.asObject(json.deserialize(run({ "canvas", "list", "--json" })) :: json.Value)
-	local first = if relisted then json.asObject((json.asArray(relisted.workspaces) or {})[1]) else nil
+	local first = if relisted then json.asObject((json.asArray(relisted.canvases) or {})[1]) else nil
 	assert.eq(first and first.label, "Personal")
 
-	assert.throwsWith("unknown workspace: missing", function()
+	assert.throwsWith("unknown canvas: missing", function()
 		run({ "canvas", "rename", "missing", "Missing" })
 	end)
 
@@ -73,21 +73,21 @@ test.case("workspace selection follows option, environment, manifest, default", 
 	run({ "canvas", "create", "docs" })
 	run({ "canvas", "use", "roblox" })
 	assert.eq(run({ "canvas", "current" }), "roblox")
-	assert.eq(run({ "canvas", "path" }), tostring(path.join(root, "workspaces", "roblox")))
+	assert.eq(run({ "canvas", "path" }), tostring(path.join(root, "canvases", "roblox")))
 	setWorkspace("docs")
 	assert.eq(run({ "canvas", "current" }), "docs")
 	local listed = json.asObject(json.deserialize(run({ "canvas", "list", "--json" })) :: json.Value)
 	assert.eq(listed and listed.active, "docs")
-	assert.eq(run({ "canvas", "path", "--canvas", "roblox" }), tostring(path.join(root, "workspaces", "roblox")))
+	assert.eq(run({ "canvas", "path", "--canvas", "roblox" }), tostring(path.join(root, "canvases", "roblox")))
 	local overridden =
 		json.asObject(json.deserialize(run({ "canvas", "list", "--json", "--canvas", "roblox" })) :: json.Value)
 	assert.eq(overridden and overridden.active, "roblox")
 	setWorkspace("")
-	assert.throwsWith("unknown workspace: missing", function()
+	assert.throwsWith("unknown canvas: missing", function()
 		run({ "canvas", "use", "missing" })
 	end)
 
-	assert.throwsWith("unknown workspace: missing", function()
+	assert.throwsWith("unknown canvas: missing", function()
 		run({ "canvas", "path", "--canvas", "missing" })
 	end)
 end)
@@ -113,10 +113,10 @@ end)
 
 -- Lists workspace names in the order the command reports them.
 local function listNames(output: string): string
-	local listed = assert(json.asObject(json.deserialize(output) :: json.Value), "expected a workspace list")
+	local listed = assert(json.asObject(json.deserialize(output) :: json.Value), "expected a canvas list")
 	local names: { string } = {}
 
-	for _, entry in json.asArray(listed.workspaces) or {} do
+	for _, entry in json.asArray(listed.canvases) or {} do
 		local object = json.asObject(entry)
 		table.insert(names, if object then tostring(object.name) else "")
 	end
@@ -130,15 +130,15 @@ test.case("workspace create derives the name from a label when none is given", f
 	assert.eq(listNames(run({ "canvas", "list", "--json" })), "default,focus-areas")
 	assert.eq(
 		run({ "canvas", "path", "--canvas", "focus-areas" }),
-		tostring(path.join(root, "workspaces", "focus-areas"))
+		tostring(path.join(root, "canvases", "focus-areas"))
 	)
 
 	local listed = json.asObject(json.deserialize(run({ "canvas", "list", "--json" })) :: json.Value)
-	local entries = if listed then json.asArray(listed.workspaces) else nil
+	local entries = if listed then json.asArray(listed.canvases) else nil
 	local second = if entries then json.asObject(entries[2]) else nil
 	assert.eq(second and second.label, "Focus areas")
 
-	assert.throwsWith("workspace already exists: focus-areas", function()
+	assert.throwsWith("canvas already exists: focus-areas", function()
 		run({ "canvas", "create", "--label", "focus areas" })
 	end)
 
@@ -150,7 +150,7 @@ test.case("workspace create derives the name from a label when none is given", f
 		run({ "canvas", "create", "--label", "!!!" })
 	end)
 
-	assert.throwsWith("invalid workspace name: Focus areas", function()
+	assert.throwsWith("invalid canvas name: Focus areas", function()
 		run({ "canvas", "create", "Focus areas" })
 	end)
 end)
@@ -160,7 +160,7 @@ test.case("workspace archive hides a workspace and restore brings it back with i
 	run({ "canvas", "create", "docs" })
 	run({ "canvas", "create", "roblox" })
 	run({ "--canvas", "roblox", "card", "add", "Kept on the canvas" })
-	local dir = tostring(path.join(root, "workspaces", "roblox"))
+	local dir = tostring(path.join(root, "canvases", "roblox"))
 	assert.eq(#store.load(dir).nodes, 1)
 
 	assert.eq(run({ "canvas", "archive", "roblox" }), "Archived canvas roblox")
@@ -168,15 +168,15 @@ test.case("workspace archive hides a workspace and restore brings it back with i
 	assert.eq(listNames(run({ "canvas", "list", "--archived", "--json" })), "roblox")
 	assert.eq(#store.load(dir).nodes, 1)
 
-	assert.throwsWith("unknown workspace: roblox", function()
+	assert.throwsWith("unknown canvas: roblox", function()
 		run({ "canvas", "use", "roblox" })
 	end)
 
-	assert.throwsWith("workspace already archived: roblox", function()
+	assert.throwsWith("canvas already archived: roblox", function()
 		run({ "canvas", "archive", "roblox" })
 	end)
 
-	assert.throwsWith(`workspace folder already exists: {dir}`, function()
+	assert.throwsWith(`canvas folder already exists: {dir}`, function()
 		run({ "canvas", "create", "roblox" })
 	end)
 
@@ -185,7 +185,7 @@ test.case("workspace archive hides a workspace and restore brings it back with i
 	assert.eq(listNames(run({ "canvas", "list", "--archived", "--json" })), "")
 	assert.eq(#store.load(dir).nodes, 1)
 
-	assert.throwsWith("unknown archived workspace: roblox", function()
+	assert.throwsWith("unknown archived canvas: roblox", function()
 		run({ "canvas", "restore", "roblox" })
 	end)
 end)
@@ -195,11 +195,11 @@ test.case("workspace archive refuses the active, default, and unknown workspaces
 	run({ "canvas", "create", "docs" })
 	run({ "canvas", "use", "docs" })
 
-	assert.throwsWith("can't archive the active workspace: docs", function()
+	assert.throwsWith("can't archive the active canvas: docs", function()
 		run({ "canvas", "archive", "docs" })
 	end)
 
-	assert.throwsWith("can't archive the active workspace: docs", function()
+	assert.throwsWith("can't archive the active canvas: docs", function()
 		run({ "canvas", "use", "default" })
 		run({ "canvas", "use", "docs" })
 		run({ "canvas", "archive", "docs", "--canvas", "docs" })
@@ -207,11 +207,11 @@ test.case("workspace archive refuses the active, default, and unknown workspaces
 
 	run({ "canvas", "use", "default" })
 
-	assert.throwsWith("the default workspace can't be archived", function()
+	assert.throwsWith("the default canvas can't be archived", function()
 		run({ "canvas", "archive", "default" })
 	end)
 
-	assert.throwsWith("unknown workspace: missing", function()
+	assert.throwsWith("unknown canvas: missing", function()
 		run({ "canvas", "archive", "missing" })
 	end)
 

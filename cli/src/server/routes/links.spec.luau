@@ -14,7 +14,7 @@ local function request(method: string, workspace: string?, body: json.Object?): 
 		method = method,
 		path = "/api/links",
 		body = if body then json.serialize(body) else "",
-		query = { workspace = workspace } :: { [string]: string },
+		query = { canvas = workspace } :: { [string]: string },
 		headers = {},
 	}
 end

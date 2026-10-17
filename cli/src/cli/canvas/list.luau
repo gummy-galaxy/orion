@@ -25,7 +25,7 @@ return table.freeze({
 				table.insert(values, json.object({ name = entry.name, label = entry.label }))
 			end
 
-			options.write(json.serialize(json.object({ active = list.active, workspaces = values }), true))
+			options.write(json.serialize(json.object({ active = list.active, canvases = values }), true))
 		else
 			local lines = {}
 

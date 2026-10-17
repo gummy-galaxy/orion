@@ -59,8 +59,8 @@ local kindField: Field = {
 }
 
 local workspaceField: Field = {
-	name = "workspace",
-	kind = "workspace",
+	name = "canvas",
+	kind = "canvas",
 	description = "Canvas name. Omit to use the canvas selected in Orion.",
 	at = "option",
 	flag = "canvas",
@@ -78,12 +78,12 @@ local function buildInspectArgv(arguments: json.Object): { string }
 		appendFlag(argv, "all", arguments.all)
 	end
 
-	appendOption(argv, "canvas", arguments.workspace)
+	appendOption(argv, "canvas", arguments.canvas)
 	table.insert(argv, "--json")
 	return argv
 end
 
--- Workspace names are optional when a label is given, so the name is passed only when present.
+-- Canvas names are optional when a label is given, so the name is passed only when present.
 local function buildCreateWorkspaceArgv(arguments: json.Object): { string }
 	local argv = { "canvas", "create" }
 	local name = getStringField(arguments.name)
@@ -108,7 +108,7 @@ local function buildMoveArgv(arguments: json.Object): { string }
 		table.insert(argv, "--top")
 	end
 
-	appendOption(argv, "canvas", arguments.workspace)
+	appendOption(argv, "canvas", arguments.canvas)
 	return argv
 end
 
@@ -124,7 +124,25 @@ local function buildImportArgv(arguments: json.Object): { string }
 
 	appendOption(argv, "group", arguments.group)
 	appendFlag(argv, "dry-run", arguments.dryRun)
-	appendOption(argv, "canvas", arguments.workspace)
+	appendOption(argv, "canvas", arguments.canvas)
+	table.insert(argv, "--json")
+	return argv
+end
+
+-- Group ids are one list argument, which the CLI takes as trailing positionals.
+local function buildTidyArgv(arguments: json.Object): { string }
+	local argv = { "group", "tidy" }
+	local ids = json.asArray(arguments.ids) or {}
+
+	for _, id in ids do
+		assert(type(id) == "string" and id ~= "", "ids must be a list of strings")
+		table.insert(argv, id)
+	end
+
+	appendOption(argv, "where", arguments.where)
+	appendFlag(argv, "dry-run", arguments.dryRun)
+	appendOption(argv, "if-revision", arguments.ifRevision)
+	appendOption(argv, "canvas", arguments.canvas)
 	table.insert(argv, "--json")
 	return argv
 end
@@ -133,7 +151,7 @@ end
 -- fields onto a CLI command, and those that need more than that supply their own build.
 local tools: { Tool } = {
 	{
-		name = "orion_workspaces",
+		name = "orion_canvases",
 		description = "List Orion canvases and the active canvas, or the archived ones.",
 		annotations = { readOnlyHint = true },
 		command = { "canvas", "list" },
@@ -295,6 +313,47 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_themes",
+		description = "List the theme files in the Orion data folder, and whether each one can be used.",
+		annotations = { readOnlyHint = true },
+		command = { "theme", "list" },
+		json = true,
+		fields = {},
+	},
+	{
+		name = "orion_add_theme",
+		description = "Check a theme JSON file against the token contract and copy it into the Orion data folder, where the app lists it. Unknown tokens are reported and ignored. A file that is malformed or sets a bad value is refused.",
+		command = { "theme", "add" },
+		json = true,
+		fields = {
+			{
+				name = "path",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Absolute path to a local .json theme file.",
+				at = "positional",
+			},
+		},
+	},
+	{
+		name = "orion_remove_theme",
+		description = "Delete a theme file from the Orion data folder by the file name orion_themes lists.",
+		annotations = { destructiveHint = true },
+		command = { "theme", "remove" },
+		json = true,
+		fields = {
+			{
+				name = "file",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Theme file name, such as dusk.json.",
+				at = "positional",
+			},
+		},
+	},
+	{
 		name = "orion_link",
 		description = "Connect two items, optionally as a related link that does not block work. Linking an already linked pair updates that link.",
 		command = { "link", "add" },
@@ -333,6 +392,29 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_create_group",
+		description = "Make an empty group, optionally inside another group. Add cards to it afterward with its id.",
+		command = { "group", "create" },
+		json = true,
+		fields = {
+			{
+				name = "label",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The group's name, shown on the canvas.",
+				at = "positional",
+			},
+			{
+				name = "in",
+				kind = "id",
+				description = "Id of the group to make it inside. Omit to make it at the top level.",
+				at = "option",
+			},
+			workspaceField,
+		},
+	},
+	{
 		name = "orion_move",
 		description = "Move an item into a group or to the top level.",
 		command = { "node", "move" },
@@ -342,6 +424,59 @@ local tools: { Tool } = {
 			{ name = "group", kind = "id", at = "option" },
 		},
 		build = buildMoveArgv,
+	},
+	{
+		name = "orion_tidy",
+		description = "Mark groups for the app to lay out in place, deepest first, such as after adding cards in bulk. The app does the layout, so appConnected in the result says whether it runs now or when the app next opens. Custom groups keep their arrangement.",
+		command = { "group", "tidy" },
+		fields = {
+			{
+				name = "ids",
+				kind = "strings",
+				description = "Groups to tidy. Give ids or where, not both.",
+				at = "positional",
+			},
+			{
+				name = "where",
+				kind = "string",
+				minLength = 1,
+				description = 'Select groups with a query expression instead of ids, such as label ~ "release".',
+				at = "option",
+			},
+			workspaceField,
+			{
+				name = "dryRun",
+				kind = "boolean",
+				description = "List the groups and the current revision without marking them.",
+				at = "flag",
+				flag = "dry-run",
+			},
+			{
+				name = "ifRevision",
+				kind = "int",
+				minimum = 0,
+				description = "Mark only if the canvas is still at this revision, such as the one a dry run reported.",
+				at = "option",
+				flag = "if-revision",
+			},
+		},
+		build = buildTidyArgv,
+	},
+	{
+		name = "orion_check",
+		description = "Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.",
+		annotations = { readOnlyHint = true },
+		command = { "canvas", "check" },
+		json = true,
+		fields = {
+			workspaceField,
+			{
+				name = "group",
+				kind = "id",
+				description = "Only report problems in this group and what is inside it.",
+				at = "option",
+			},
+		},
 	},
 	{
 		name = "orion_remove",
@@ -377,13 +512,13 @@ local tools: { Tool } = {
 		},
 	},
 	{
-		name = "orion_create_workspace",
+		name = "orion_create_canvas",
 		description = "Create an Orion canvas. Without a name, one is derived from the label.",
 		command = { "canvas", "create" },
 		fields = {
 			{
 				name = "name",
-				kind = "workspace",
+				kind = "canvas",
 				description = "Canvas name. Omit it to derive one from label.",
 				at = "positional",
 			},
@@ -397,36 +532,36 @@ local tools: { Tool } = {
 		build = buildCreateWorkspaceArgv,
 	},
 	{
-		name = "orion_rename_workspace",
+		name = "orion_rename_canvas",
 		description = "Change a canvas's display label. The name and folder stay the same.",
 		command = { "canvas", "rename" },
 		fields = {
-			{ name = "name", kind = "workspace", required = true, at = "positional" },
+			{ name = "name", kind = "canvas", required = true, at = "positional" },
 			{ name = "label", kind = "string", required = true, minLength = 1, at = "positional" },
 		},
 	},
 	{
-		name = "orion_archive_workspace",
+		name = "orion_archive_canvas",
 		description = "Archive a canvas so it leaves the canvas list. Its data stays in place. The active canvas can't be archived.",
 		command = { "canvas", "archive" },
 		fields = {
-			{ name = "name", kind = "workspace", required = true, at = "positional" },
+			{ name = "name", kind = "canvas", required = true, at = "positional" },
 		},
 	},
 	{
-		name = "orion_restore_workspace",
+		name = "orion_restore_canvas",
 		description = "Restore an archived Orion canvas with its data.",
 		command = { "canvas", "restore" },
 		fields = {
-			{ name = "name", kind = "workspace", required = true, at = "positional" },
+			{ name = "name", kind = "canvas", required = true, at = "positional" },
 		},
 	},
 	{
-		name = "orion_select_workspace",
+		name = "orion_select_canvas",
 		description = "Set the active Orion canvas shown by the app.",
 		command = { "canvas", "use" },
 		fields = {
-			{ name = "name", kind = "workspace", required = true, at = "positional" },
+			{ name = "name", kind = "canvas", required = true, at = "positional" },
 		},
 	},
 	{

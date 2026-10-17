@@ -1,11 +1,17 @@
+import { useAtomValue } from 'jotai'
 import { ChecksIcon } from './ChecksIcon'
 import { LinkList } from './LinkList'
 import { NoteBody } from './NoteBody'
 import { StatusIcon } from './StatusIcon'
+import { Timeline } from './Timeline'
+import { useCardLog } from '../useCardLog'
+import { workspaceAtom } from '../state'
 import type { Work } from '../derive'
 import {
   READINESS_LABEL,
+  STATUS_CHOICES,
   STATUS_LABEL,
+  WHO_CHOICES,
   editPullRef,
   getCheckCountsLabel,
   getItemKind,
@@ -56,6 +62,8 @@ export function TaskInspector({
   flipLink: (id: string) => void
 }) {
   const data = node.data as TaskData
+  const workspace = useAtomValue(workspaceAtom)
+  const log = useCardLog(workspace, node.id)
   const status = work.status.get(node.id) ?? 'ready'
   const leverage = work.leverage.get(node.id) ?? 0
   // Every link a card carries to its pull requests and issues, so each one opens from the header.
@@ -117,12 +125,11 @@ export function TaskInspector({
           <div>
             <label htmlFor="t-status">Status</label>
             <select id="t-status" value={data.status} onChange={(event) => update(node.id, { status: event.target.value as Status })}>
-              <option value="todo">To do</option>
-              <option value="active">In progress</option>
-              <option value="review">In review</option>
-              <option value="blocked">Blocked</option>
-              <option value="deferred">Deferred</option>
-              <option value="done">Done</option>
+              {STATUS_CHOICES.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -133,9 +140,11 @@ export function TaskInspector({
               onChange={(event) => update(node.id, { who: (event.target.value || undefined) as Who | undefined })}
             >
               <option value="">Not set</option>
-              <option value="you">You</option>
-              <option value="review">Reviewer</option>
-              <option value="ci">CI</option>
+              {WHO_CHOICES.map((choice) => (
+                <option key={choice.value} value={choice.value}>
+                  {choice.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -151,7 +160,7 @@ export function TaskInspector({
         <NoteBody id="t-note" note={data.note} change={(note) => update(node.id, { note })} />
       </section>
 
-      {/* The timeline goes here: the running record people and agents log, newest first (#298, its own pull request). */}
+      <Timeline entries={log} />
 
       <section className="insp-section">
         <h3 className="insp-heading">Pull request</h3>

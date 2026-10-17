@@ -1,6 +1,5 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
-local process = require("@std/process")
 
 local checkLayout = require("@root/layout/checkLayout")
 local context = require("@root/cli/context")
@@ -71,7 +70,7 @@ return table.freeze({
 		end
 
 		if #issues > 0 then
-			process.exit(1)
+			options.exit(1)
 		end
 	end,
 })
