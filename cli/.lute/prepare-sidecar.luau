@@ -4,23 +4,27 @@ local path = require("@std/path")
 local project = require("@repo/project")
 local system = require("@std/system")
 
+local runScript = require("@root/runScript")
+
 local run = FlipbookBatteries.run
 
 local root = path.resolve("..")
 local binariesPath = path.join(root, "desktop", "src-tauri", "binaries")
 
-local rustcVersion = assert(run("rustc", { "-vV" }, { captureOutput = true }), "rustc did not print its version")
-local triple = string.match(rustcVersion, "host: (%S+)")
-assert(triple, "Could not determine the Rust host target triple")
+runScript(function()
+	local rustcVersion = assert(run("rustc", { "-vV" }, { captureOutput = true }), "rustc did not print its version")
+	local triple = string.match(rustcVersion, "host: (%S+)")
+	assert(triple, "Could not determine the Rust host target triple")
 
-run("lute", { "run", "build" })
+	run("lute", { "run", "build" })
 
-local extension = if system.win32 then ".exe" else ""
-local builtPath = tostring(project.BUILD_OUTPUT) .. extension
-assert(fs.exists(builtPath) and fs.type(builtPath) == "file", `build did not produce {builtPath}`)
+	local extension = if system.win32 then ".exe" else ""
+	local builtPath = tostring(project.BUILD_OUTPUT) .. extension
+	assert(fs.exists(builtPath) and fs.type(builtPath) == "file", `build did not produce {builtPath}`)
 
-if not fs.exists(binariesPath) then
-	fs.createDirectory(binariesPath, { makeParents = true })
-end
+	if not fs.exists(binariesPath) then
+		fs.createDirectory(binariesPath, { makeParents = true })
+	end
 
-fs.copy(builtPath, path.join(binariesPath, `orion-{triple}{extension}`))
+	fs.copy(builtPath, path.join(binariesPath, `orion-{triple}{extension}`))
+end)
