@@ -9,6 +9,8 @@
   --card-border: var(--border-default);
   /* Ready work wears the theme's accent unless the status colors replace it. */
   --status-ready: var(--accent-default);
+  /* Links out of components carry no work, so they read as plain wiring in any theme. */
+  --edge-still: color-mix(in srgb, var(--text-primary) 45%, var(--edge-default));
 
   /* The companion: white stars with dark eyes, outlined in near-black with a blue-violet undertone on light canvases. */
   --companion-body: #fff;

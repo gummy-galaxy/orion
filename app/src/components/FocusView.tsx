@@ -21,7 +21,8 @@ export type FocusItem = {
   id: string
   label: string
   tag: string
-  status: ViewStatus
+  /** Components have no status. */
+  status?: ViewStatus
   where: string
   related: boolean
   /** How the link between this card and the focused one reads. */
@@ -138,7 +139,7 @@ export function FocusView({
                 type="button"
                 data-key={key}
                 data-side={side}
-                className={`focus-card st-${item.status}${hot === key ? ' is-hot' : ''}`}
+                className={`focus-card${item.status ? ' st-' + item.status : ''}${hot === key ? ' is-hot' : ''}`}
                 title={`Focus on ${item.label}`}
                 onClick={() => onFocus(item.id)}
                 onMouseEnter={() => setHot(key)}
@@ -146,10 +147,12 @@ export function FocusView({
               >
                 <span className="focus-card-meta">
                   <span className="focus-card-tag">{item.tag}</span>
-                  <span className="st">
-                    <StatusIcon status={item.status} />
-                    {STATUS_LABEL[item.status]}
-                  </span>
+                  {item.status && (
+                    <span className="st">
+                      <StatusIcon status={item.status} />
+                      {STATUS_LABEL[item.status]}
+                    </span>
+                  )}
                 </span>
                 <span className="label">{item.label}</span>
                 <span className="focus-card-where">
@@ -170,7 +173,7 @@ export function FocusView({
     <div className="focus" ref={root} onAnimationEnd={measure}>
       <svg width={size.width} height={size.height} aria-hidden="true">
         <defs>
-          {['live', 'held'].map((kind) => (
+          {['live', 'held', 'still'].map((kind) => (
             <marker
               key={kind}
               id={`focus-arrow-${kind}`}
