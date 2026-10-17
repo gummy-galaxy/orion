@@ -49,7 +49,7 @@ Each side runs its own CLI because the app and the server change together. An ap
 
 Give each app its own copy of the data. Never point either at the real data folder, since `orion server start` writes to it.
 
-Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once with the before tree's CLI, since newer builds read older data. Run `"$BEFORE/cli/build/orion" --help` for its commands, such as `card add`, `link add`, and `group add`, and run each with `ORION_DATA_DIR="$SCRATCH/seed-data"`. `canvas check` reports groups waiting for layout on a fresh sample, which the app settles when it opens. Then copy the sample to each side:
+Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once with the before tree's CLI, since newer builds read older data. Run `"$BEFORE/cli/build/orion" --help` for its commands, such as `card add`, `link add`, and `group add`, and run each with `ORION_DATA_DIR="$SCRATCH/seed-data"`. `canvas check` reports groups waiting for layout on a fresh sample and exits nonzero, which is expected: the app settles them when it opens. Then copy the sample to each side:
 
 ```sh
 for side in before after; do
@@ -108,7 +108,8 @@ Getting around the canvas:
 
 - Cards inside a group aren't on the page until the group is open, so `--wait-for` and `data-id` selectors for them time out at the top level. Open the group first, such as by its entry in the sidebar, then `--pause` while it lays out.
 - `--click-text` takes the first match in page order, which is often the sidebar. Use a selector when the canvas shows the same text.
-- Clicking a card or group opens the details panel over the right side of the canvas. Close it with `--key Escape`, or select with a `--drag` and `--drop` across empty canvas instead.
+- Clicking a card or group opens the details panel over the right side of the canvas. Selecting with a `--drag` and `--drop` across empty canvas avoids it. `--key Escape` closes it but also clears the selection, so don't use it before a step that needs the selection, such as a copy.
+- Frame the change before recording. Capture a screenshot of the end state with the same steps and check that the change sits in open canvas, clear of the sidebar and the details panel. Move the pointer somewhere open before a paste, since pasted work lands there.
 
 Name files `before-<view>.png` and `after-<view>.png`. Open every image and check that it shows the change and that both sides match apart from it. Recapture rather than attach a misleading pair.
 
@@ -145,6 +146,8 @@ VIDEO="$SCRATCH/compare-drag-out.mp4"
 DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO")
 ffmpeg -v error -y -i "$VIDEO" -vf "fps=16/$DURATION,scale=480:-1,tile=4x4" -frames:v 1 "$SCRATCH/contact.png"
 ```
+
+Text is too small to read in the sheet. To read a moment, pull a full-size frame at that time with `ffmpeg -v error -y -ss <seconds> -i "$VIDEO" -frames:v 1 "$SCRATCH/frame.png"`.
 
 Open the sheet and check that each step happened, the cursor and key badges show it, and the change itself is visible. A step that silently did nothing, such as a shortcut sent before anything had focus, shows up here as a missing result. Fix the steps and record again rather than attach a video that doesn't show the change.
 
