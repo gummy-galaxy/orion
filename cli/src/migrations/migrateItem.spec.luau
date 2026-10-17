@@ -3,7 +3,7 @@ local test = require("@std/test")
 
 local findRef = require("@root/refs/findRef")
 local getRefs = require("@root/refs/getRefs")
-local migrateItem = require("@root/refs/migrateItem")
+local migrateItem = require("@root/migrations/migrateItem")
 local testing = require("@root/testing")
 
 test.case("migrateItem converts legacy fields once", function(assert)

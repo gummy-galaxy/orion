@@ -30,7 +30,7 @@ return table.freeze({
 					running = true,
 					pid = runtime.pid,
 					url = runtime.url,
-					workspace = runtime.workspace,
+					canvas = runtime.canvas,
 					dataFolder = runtime.dataFolder,
 					startedAt = runtime.startedAt,
 				}),
@@ -38,7 +38,7 @@ return table.freeze({
 			))
 		else
 			options.write(
-				`Orion serving on {runtime.url} (pid {runtime.pid}, canvas {runtime.workspace}, data folder {runtime.dataFolder}, started {runtime.startedAt})`
+				`Orion serving on {runtime.url} (pid {runtime.pid}, canvas {runtime.canvas}, data folder {runtime.dataFolder}, started {runtime.startedAt})`
 			)
 		end
 	end,

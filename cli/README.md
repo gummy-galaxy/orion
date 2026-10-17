@@ -24,5 +24,6 @@ In `src/`:
 - `layout/`: the checks behind `orion canvas check`.
 - `media/`: image assets.
 - `platform/`: the data folder for each operating system.
+- `migrations/`: upgrades for data from before 0.1.0, removed at that release. Its README lists each one.
 - `render.luau`: text and JSON output.
 - `mutation/`: the source changes `lute run mutate` tries against a module's spec.

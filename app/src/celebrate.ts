@@ -1,12 +1,12 @@
 import { isTask, type AppNode, type Link, type TaskData } from './model'
 
-/** How far apart, in milliseconds, each hop down a chain starts its stamp clearing. */
+/** How far apart, in milliseconds, each hop down a chain starts its stamp clearing. `motion.duration.chain` overrides it. */
 export const CHAIN_STEP_MS = 90
 
 /** Chains stop spreading after this many hops, so a long chain still clears in about a second. */
 const MAX_HOPS = 8
 
-/** How long one stamp's clearing animation runs. The CSS uses the same duration. */
+/** How long one stamp's clearing animation runs. `motion.duration.clear` overrides it, in the CSS too. */
 export const CLEAR_MS = 420
 
 /**
@@ -45,7 +45,13 @@ export function finishedHops(startId: string, links: Link[], isFinished: (id: st
  * The waiting cards a click on `startId` clears, each with the delay before its stamp starts clearing.
  * Empty unless the clicked card is itself waiting. Cards without the flag are never included.
  */
-export function celebrationDelays(startId: string, nodes: AppNode[], links: Link[], isFinished: (id: string) => boolean): Map<string, number> {
+export function celebrationDelays(
+  startId: string,
+  nodes: AppNode[],
+  links: Link[],
+  isFinished: (id: string) => boolean,
+  stepMs = CHAIN_STEP_MS,
+): Map<string, number> {
   const delays = new Map<string, number>()
   const byId = new Map(nodes.map((node) => [node.id, node]))
   const start = byId.get(startId)
@@ -55,7 +61,7 @@ export function celebrationDelays(startId: string, nodes: AppNode[], links: Link
   for (const [id, hops] of finishedHops(startId, links, isFinished)) {
     const node = byId.get(id)
 
-    if (node && isTask(node) && node.data.celebrate) delays.set(id, Math.min(hops, MAX_HOPS) * CHAIN_STEP_MS)
+    if (node && isTask(node) && node.data.celebrate) delays.set(id, Math.min(hops, MAX_HOPS) * stepMs)
   }
 
   return delays
@@ -73,8 +79,9 @@ export function clearCelebrations(nodes: AppNode[], ids: ReadonlySet<string>): A
 }
 
 /**
- * A card's data after a patch. A change to done sets the celebrate flag and a change away from done clears it,
- * the same as the CLI store does when it writes the card. Notes never get the flag.
+ * A card's data after a patch. Finishing a card in the app closes it out at once, so a change to done sets the flag
+ * to false, which the CLI store reads as closed out and drops instead of leaving the card waiting. A change away from
+ * done clears it. Notes never get the flag.
  */
 export function patchTaskData(data: TaskData, patch: Partial<TaskData>): TaskData {
   const next: TaskData = { ...data, ...patch }
@@ -82,8 +89,15 @@ export function patchTaskData(data: TaskData, patch: Partial<TaskData>): TaskDat
 
   if (!changed || next.itemKind === 'note') return next
 
-  if (next.status === 'done') next.celebrate = true
+  if (next.status === 'done') next.celebrate = false
   else delete next.celebrate
 
   return next
+}
+
+/** Whether a patch finishes a card in the app. Those close out at once, so their Done stamp lands right away. */
+export function closesOut(data: TaskData, patch: Partial<TaskData>): boolean {
+  const kind = patch.itemKind ?? data.itemKind
+
+  return patch.status === 'done' && data.status !== 'done' && kind !== 'note' && kind !== 'component'
 }
