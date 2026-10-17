@@ -144,7 +144,7 @@ local function buildLogAddArgv(arguments: json.Object): { string }
 
 	table.insert(argv, "--agent")
 	table.insert(argv, getRequiredString(arguments, "agent"))
-	appendOption(argv, "canvas", arguments.workspace)
+	appendOption(argv, "canvas", arguments.canvas)
 	table.insert(argv, "--json")
 	return argv
 end
