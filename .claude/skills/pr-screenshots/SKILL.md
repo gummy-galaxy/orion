@@ -29,13 +29,21 @@ git fetch origin
 git worktree add --detach "$SCRATCH/before" "$(git merge-base origin/main HEAD)"
 ```
 
-Reuse `node_modules` when `app/package-lock.json` is unchanged; otherwise run `npm ci` in the before tree's `app/`:
+Run `npm ci` in each tree's `app/`, which takes seconds with npm's cache. Don't link another checkout's `node_modules`: it may lack packages the branch added, and Vite would write its cache into that checkout.
+
+Give each app its own copy of the data. Never point either at the real data folder, since `orion server start` writes to it.
+
+Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once in `$SCRATCH/seed-data` with commands such as `orion card add`, `orion link add`, and `orion group add`, all run with `ORION_DATA_DIR="$SCRATCH/seed-data"`, then copy it to each side:
 
 ```sh
-ln -s "$PWD/app/node_modules" "$SCRATCH/before/app/node_modules"
+for side in before after; do
+  rsync -a --delete "$SCRATCH/seed-data/" "$SCRATCH/$side-data/"
+done
 ```
 
-Give each app its own copy of the data. Never point either at the real data folder, since `orion server start` writes to it. Copy only the `orion` canvas, which tracks Orion's own work, or build a small sample with the CLI against the copy:
+Recording changes the data: a paste adds cards and a drag moves them. Run that copy again before every take, including retakes, so each starts from the same state.
+
+When the change depends on real layout or data, copy only the `orion` canvas, which tracks Orion's own work, instead:
 
 ```sh
 for side in before after; do
@@ -48,20 +56,18 @@ done
 
 Seed whatever the change needs, such as a gate card or a long label, with the same CLI commands in both copies.
 
-## 3. Start one app at a time
+## 3. Start the apps
 
-Run Vite in each tree's `app/` on fixed ports. Use the installed `orion` binary for both unless the pull request changes the CLI or `orion server start`; then each side needs its own `cli/build/orion`.
-
-Run one side, capture it, and stop it before starting the other. A linked `node_modules` means both trees share Vite's dependency cache in `node_modules/.vite`, and two servers at once leave one blank with "504 Outdated Optimize Dep". Pass `--force` so each start rebuilds that cache for its own tree:
+Run Vite in each tree's `app/` on its own port. Use the installed `orion` binary for both unless the pull request changes the CLI or `orion server start`; then each side needs its own `cli/build/orion`.
 
 ```sh
-ORION_BIN=/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort --force
-ORION_BIN=/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort --force
+ORION_BIN=/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort
+ORION_BIN=/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort
 ```
 
-Start each with your harness's dev-server tool when it has one, such as Claude Code's `preview_start` with entries in `.claude/launch.json`. Otherwise run it in the background.
+Run them in the background, and keep everything headless so nothing opens on the person's screen. Don't use a dev-server tool that opens a browser pane, such as Claude Code's `preview_start`.
 
-For a story, run `ORION_STORYBOOK=1 npx storybook dev -p 6011 --ci` in the before tree's `app/`, then the same with `-p 6012` in the after tree's, one at a time, and capture `http://localhost:<port>/iframe.html?id=<story-id>&viewMode=story`.
+For a story, run `ORION_STORYBOOK=1 npx storybook dev -p 6011 --ci` in the before tree's `app/` and the same with `-p 6012` in the after tree's, and capture `http://localhost:<port>/iframe.html?id=<story-id>&viewMode=story`.
 
 ## 4. Capture
 
@@ -73,8 +79,9 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
   --wait-for .react-flow__node --click-text Editing --delay 1200
 ```
 
-- `--click-text <text>` clicks the innermost visible element whose text starts with it. `--click`, `--right-click`, and `--middle-click` press that button on a target, `--hover` moves there without pressing, `--drag` presses the left button on a target and `--drop` carries it to another and lets go, `--pause <ms>` waits, and `--eval <js>` runs code in the page. They repeat and run in order. A target is a CSS selector, acted on at the element's center, or an `<x>,<y>` point such as empty canvas.
+- `--click-text <text>` clicks the innermost visible element whose text starts with it. `--click`, `--right-click`, and `--middle-click` press that button on a target, `--hover` moves there without pressing, `--drag` presses the left button on a target and `--drop` carries it to another and lets go, `--key <keys>` presses a key or shortcut such as `Meta+C`, `Shift+Tab`, `Escape`, or `Delete`, `--type <text>` types into whatever has focus, `--pause <ms>` waits, and `--eval <js>` runs code in the page. They repeat and run in order. A target is a CSS selector, acted on at the element's center, or an `<x>,<y>` point such as empty canvas.
 - The pointer glides to each target, sending moves along the way, so hovers and drags behave as they do by hand.
+- Pointer and keyboard steps send real input, so the app handles them as it would a person's. Prefer them over `--eval` for anything a person would do. Keys go to whatever has focus, so click the canvas or a field first. Use Mac shortcuts with `Meta`: the browser runs headless on a Mac, and `Meta+A`, `C`, `X`, `V`, and `Z` also edit text fields and the clipboard.
 - The image shows a cursor where the last pointer step acted: a ring at the point and a small mouse just below and to its right, where an arrow cursor would sit, with the pressed button filled in. Left clicks are blue, right clicks orange, middle clicks purple, and `--hover` a thin gray ring with no button pressed. It's drawn just before the capture and removed after, and it's skipped when the element it acted on is gone by then, such as a menu item that closed its menu. Prefer real pointer steps over `--eval` for clicks so the cursor shows what happened. When an `--eval` step does the clicking, add `--pointer <x>,<y>,<idle|left|right|middle>` after it to place the cursor. Use `--cursor off` only when the cursor would hide the change.
 - `--selector <css>` crops to one element, which suits menus, cards, and panels. The crop keeps 32 px of the page around the element so shadows, borders, and nearby context stay in the frame. Raise `--padding` when the surroundings help explain the change, and never set it to 0: a crop flush with the element's edges reads as cut off.
 - `--theme light|dark` sets the color scheme. Defaults are 1440×900 at 2× scale.
@@ -93,7 +100,7 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
   --drag '.react-flow__node[data-id="encode"]' --drop 900,650
 ```
 
-- The cursor stays on screen throughout and shows each press as it happens, in the colors above.
+- The cursor stays on screen throughout and shows each press as it happens, in the colors above. Each `--key` press shows in a badge at the bottom of the frame, such as `⌘ C`, so shortcuts read as clearly as clicks.
 - Videos default to 1× scale, which keeps text readable at a fraction of the size, a 1500 ms `--delay`, and a 600 ms `--glide` between targets. Pass `--scale 2` when small text matters.
 - Start with a `--pause` so the opening state reads before anything moves.
 - `--selector` crops to where the element ends up.
@@ -108,13 +115,15 @@ node .claude/skills/pr-screenshots/scripts/compare.mjs \
 
 It stacks after below before, which fits the description's narrow column. `--layout side` puts them next to each other, and `--labels <before>,<after>` renames the label bars or `off` drops them.
 
-You can't watch a video, so check it as a contact sheet of frames before attaching it:
+You can't watch a video, so check each one as a contact sheet of 16 frames spread over its whole length before attaching it:
 
 ```sh
-ffmpeg -v error -i "$SCRATCH/compare-drag-out.mp4" -vf "fps=2,scale=480:-1,tile=4x4" -frames:v 1 "$SCRATCH/contact.png"
+VIDEO="$SCRATCH/compare-drag-out.mp4"
+DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO")
+ffmpeg -v error -y -i "$VIDEO" -vf "fps=16/$DURATION,scale=480:-1,tile=4x4" -frames:v 1 "$SCRATCH/contact.png"
 ```
 
-Open the sheet and check that each step happened and the cursor shows it. Raise `fps` for a short video, or lower it for a long one.
+Open the sheet and check that each step happened, the cursor and key badges show it, and the change itself is visible. A step that silently did nothing, such as a shortcut sent before anything had focus, shows up here as a missing result. Fix the steps and record again rather than attach a video that doesn't show the change.
 
 ## 5. Attach
 

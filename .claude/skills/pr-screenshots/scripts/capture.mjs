@@ -7,18 +7,23 @@
 //     [--width 1440] [--height 900] [--scale 2] [--theme light|dark] \
 //     [--wait-for <selector>] [--click <target>] [--click-text <text>] \
 //     [--right-click <target>] [--middle-click <target>] [--hover <target>] \
-//     [--drag <target>] [--drop <target>] [--pause <ms>] \
+//     [--drag <target>] [--drop <target>] [--key <keys>] [--type <text>] [--pause <ms>] \
 //     [--pointer <x>,<y>[,idle|left|right|middle]] [--eval <js>] [--cursor on|off] \
 //     [--delay <ms>] [--glide <ms>] [--selector <selector>] [--padding <px>] \
 //     [--fps <n>] [--chrome <path>] [--ffmpeg <path>]
 //
 // Steps (--click, --click-text, --right-click, --middle-click, --hover, --drag, --drop,
-// --pause, --pointer, and --eval) can repeat and run in the order given, after the page
-// loads and --wait-for matches. A <target> is a CSS selector, which the pointer acts on
-// at its center, or an `<x>,<y>` point in CSS pixels. --click-text clicks the innermost
-// visible element whose text starts with the given text. --drag presses the left button
-// on its target, and --drop moves there with it held and lets go. --pause waits. --pointer
-// marks where an --eval step acted, without sending input.
+// --key, --type, --pause, --pointer, and --eval) can repeat and run in the order given,
+// after the page loads and --wait-for matches. A <target> is a CSS selector, which the
+// pointer acts on at its center, or an `<x>,<y>` point in CSS pixels. --click-text
+// clicks the innermost visible element whose text starts with the given text. --drag
+// presses the left button on its target, and --drop moves there with it held and lets
+// go. --pause waits. --pointer marks where an --eval step acted, without sending input.
+//
+// --key presses a key or shortcut as real input to whatever has focus, such as
+// `Meta+C`, `Shift+Tab`, `Escape`, or `Delete`, with modifiers joined by `+`. --type
+// types text into whatever has focus. Videos show each --key press in a badge at the
+// bottom of the frame, so a shortcut reads as clearly as a click.
 //
 // The pointer glides to each target over --glide milliseconds, sending moves along the
 // way, so hovers and drags behave as they would by hand.
@@ -58,6 +63,9 @@ const VIDEO_PRESS_MS = 220;
 const SCREENSHOT_DEFAULTS = { scale: 2, delay: 500, glide: 120 };
 const VIDEO_DEFAULTS = { scale: 1, delay: 1500, glide: 600 };
 
+const VIDEO_KEY_MS = 900;
+const VIDEO_TYPE_MS = 45;
+
 const POINT_PATTERN = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
 const BUTTON_MASKS = { left: 1, right: 2, middle: 4 };
 
@@ -91,6 +99,8 @@ function parseArguments(argv) {
       options.steps.push({ pointer: value, button: "idle" });
     else if (name === "--drag") options.steps.push({ drag: value });
     else if (name === "--drop") options.steps.push({ drop: value });
+    else if (name === "--key") options.steps.push({ key: parseKeys(value) });
+    else if (name === "--type") options.steps.push({ type: value });
     else if (name === "--pause") options.steps.push({ pause: Number(value) });
     else if (name === "--pointer") options.steps.push({ mark: value });
     else if (name === "--click-text") options.steps.push({ clickText: value });
@@ -527,6 +537,221 @@ function createMouse(session, options) {
   };
 }
 
+// Modifier keys by the names --key accepts, with their DevTools bit, key name, and
+// the symbol the video badge shows.
+const MODIFIERS = {
+  alt: { bit: 1, key: "Alt", code: "AltLeft", keyCode: 18, symbol: "⌥" },
+  option: { bit: 1, key: "Alt", code: "AltLeft", keyCode: 18, symbol: "⌥" },
+  control: {
+    bit: 2,
+    key: "Control",
+    code: "ControlLeft",
+    keyCode: 17,
+    symbol: "⌃",
+  },
+  ctrl: {
+    bit: 2,
+    key: "Control",
+    code: "ControlLeft",
+    keyCode: 17,
+    symbol: "⌃",
+  },
+  meta: { bit: 4, key: "Meta", code: "MetaLeft", keyCode: 91, symbol: "⌘" },
+  cmd: { bit: 4, key: "Meta", code: "MetaLeft", keyCode: 91, symbol: "⌘" },
+  command: { bit: 4, key: "Meta", code: "MetaLeft", keyCode: 91, symbol: "⌘" },
+  shift: { bit: 8, key: "Shift", code: "ShiftLeft", keyCode: 16, symbol: "⇧" },
+};
+
+// Keys that don't type a character, by the names --key accepts.
+const NAMED_KEYS = {
+  enter: { key: "Enter", code: "Enter", keyCode: 13, symbol: "↩", text: "\r" },
+  escape: { key: "Escape", code: "Escape", keyCode: 27, symbol: "esc" },
+  esc: { key: "Escape", code: "Escape", keyCode: 27, symbol: "esc" },
+  tab: { key: "Tab", code: "Tab", keyCode: 9, symbol: "⇥" },
+  backspace: { key: "Backspace", code: "Backspace", keyCode: 8, symbol: "⌫" },
+  delete: { key: "Delete", code: "Delete", keyCode: 46, symbol: "⌦" },
+  space: { key: " ", code: "Space", keyCode: 32, symbol: "Space", text: " " },
+  arrowup: { key: "ArrowUp", code: "ArrowUp", keyCode: 38, symbol: "↑" },
+  arrowdown: { key: "ArrowDown", code: "ArrowDown", keyCode: 40, symbol: "↓" },
+  arrowleft: { key: "ArrowLeft", code: "ArrowLeft", keyCode: 37, symbol: "←" },
+  arrowright: {
+    key: "ArrowRight",
+    code: "ArrowRight",
+    keyCode: 39,
+    symbol: "→",
+  },
+  home: { key: "Home", code: "Home", keyCode: 36, symbol: "Home" },
+  end: { key: "End", code: "End", keyCode: 35, symbol: "End" },
+  pageup: { key: "PageUp", code: "PageUp", keyCode: 33, symbol: "PgUp" },
+  pagedown: { key: "PageDown", code: "PageDown", keyCode: 34, symbol: "PgDn" },
+};
+
+// Editing commands Chrome runs for Mac shortcuts in a real window but not headless,
+// keyed by the shortcut with Meta, and Shift when it's held.
+const EDITING_COMMANDS = {
+  "Meta+a": "selectAll",
+  "Meta+c": "copy",
+  "Meta+x": "cut",
+  "Meta+v": "paste",
+  "Meta+z": "undo",
+  "Meta+Shift+z": "redo",
+};
+
+function describeCharacter(character) {
+  const upper = character.toUpperCase();
+
+  if (/^[a-z]$/i.test(character))
+    return {
+      key: character.toLowerCase(),
+      code: `Key${upper}`,
+      keyCode: upper.charCodeAt(0),
+      symbol: upper,
+      text: character.toLowerCase(),
+    };
+
+  if (/^[0-9]$/.test(character))
+    return {
+      key: character,
+      code: `Digit${character}`,
+      keyCode: character.charCodeAt(0),
+      symbol: character,
+      text: character,
+    };
+
+  return { key: character, keyCode: 0, symbol: character, text: character };
+}
+
+// Splits a shortcut such as `Meta+Shift+Z` into its modifiers and the key they modify.
+function parseKeys(value) {
+  const parts = value.split(/\+(?!$)/);
+  const name = parts.pop();
+  const modifiers = parts.map((part) => {
+    const modifier = MODIFIERS[part.toLowerCase()];
+
+    if (!modifier) throw new Error(`Unknown modifier ${part} in ${value}`);
+
+    return modifier;
+  });
+  const key =
+    MODIFIERS[name.toLowerCase()] ??
+    NAMED_KEYS[name.toLowerCase()] ??
+    (name.length === 1 ? describeCharacter(name) : undefined);
+
+  if (!key) throw new Error(`Unknown key ${name} in ${value}`);
+
+  return { modifiers, key };
+}
+
+// Draws a badge with the keys just pressed at the bottom of the frame, replacing any
+// badge still showing.
+async function showKeys(session, keys) {
+  const label = [...keys.modifiers, keys.key]
+    .map((key) => key.symbol)
+    .join(" ");
+
+  await evaluate(
+    session,
+    `(() => {
+      document.getElementById('capture-keys')?.remove()
+      const badge = document.createElement('div')
+      badge.id = 'capture-keys'
+      badge.textContent = ${JSON.stringify(label)}
+      Object.assign(badge.style, {
+        position: 'fixed',
+        left: '50%',
+        bottom: '72px',
+        transform: 'translateX(-50%)',
+        padding: '10px 18px',
+        borderRadius: '12px',
+        background: 'rgba(27, 31, 36, 0.88)',
+        color: '#f6f8fa',
+        font: '600 24px -apple-system, system-ui, sans-serif',
+        letterSpacing: '0.08em',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+      })
+      document.body.append(badge)
+    })()`,
+  );
+}
+
+async function hideKeys(session) {
+  await evaluate(session, `document.getElementById('capture-keys')?.remove()`);
+}
+
+// Presses `keys` as real keyboard input: modifiers down, the key down and up, then the
+// modifiers up. A character key types only without Control, Alt, or Meta, as on a Mac.
+async function pressKeys(session, keys, options) {
+  let modifierBits = 0;
+
+  for (const modifier of keys.modifiers) {
+    modifierBits |= modifier.bit;
+
+    await session.send("Input.dispatchKeyEvent", {
+      type: "rawKeyDown",
+      modifiers: modifierBits,
+      key: modifier.key,
+      code: modifier.code,
+      windowsVirtualKeyCode: modifier.keyCode,
+    });
+  }
+
+  const types = (modifierBits & 7) === 0 && keys.key.text;
+  const command =
+    modifierBits === 4 || modifierBits === 12
+      ? EDITING_COMMANDS[
+          `Meta+${modifierBits & 8 ? "Shift+" : ""}${keys.key.key.toLowerCase()}`
+        ]
+      : undefined;
+  const event = {
+    modifiers: modifierBits,
+    key:
+      modifierBits & 8 && keys.key.text?.length === 1
+        ? keys.key.key.toUpperCase()
+        : keys.key.key,
+    code: keys.key.code,
+    windowsVirtualKeyCode: keys.key.keyCode,
+  };
+
+  if (options.video) await showKeys(session, keys);
+
+  await session.send("Input.dispatchKeyEvent", {
+    ...event,
+    type: types ? "keyDown" : "rawKeyDown",
+    ...(command ? { commands: [command] } : {}),
+    ...(types
+      ? { text: modifierBits & 8 ? keys.key.text.toUpperCase() : keys.key.text }
+      : {}),
+  });
+  await session.send("Input.dispatchKeyEvent", { ...event, type: "keyUp" });
+
+  for (const modifier of keys.modifiers.toReversed()) {
+    modifierBits &= ~modifier.bit;
+
+    await session.send("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      modifiers: modifierBits,
+      key: modifier.key,
+      code: modifier.code,
+      windowsVirtualKeyCode: modifier.keyCode,
+    });
+  }
+
+  if (options.video) {
+    await sleep(VIDEO_KEY_MS);
+    await hideKeys(session);
+  }
+}
+
+// Types `text` a character at a time, slowly enough in videos to read as typing.
+async function typeText(session, text, options) {
+  for (const character of text) {
+    await session.send("Input.insertText", { text: character });
+
+    if (options.video) await sleep(VIDEO_TYPE_MS);
+  }
+}
+
 // Marks the innermost visible element whose text starts with `text` so a selector can
 // find it, and returns a function that clears the mark.
 async function markText(session, text) {
@@ -555,7 +780,7 @@ async function markText(session, text) {
 
 // Runs one step and returns where the pointer acted and with which button, or nothing
 // for steps that don't move it.
-async function runStep(session, mouse, step) {
+async function runStep(session, mouse, step, options) {
   if (step.pointer || step.clickText) {
     const clear = step.clickText && (await markText(session, step.clickText));
     const position = await locate(
@@ -611,7 +836,9 @@ async function runStep(session, mouse, step) {
     return mark;
   }
 
-  if (step.pause !== undefined) await sleep(step.pause);
+  if (step.key) await pressKeys(session, step.key, options);
+  else if (step.type !== undefined) await typeText(session, step.type, options);
+  else if (step.pause !== undefined) await sleep(step.pause);
   else await evaluate(session, step.evaluate);
 }
 
@@ -813,7 +1040,7 @@ async function capture(options) {
     let pointer;
 
     for (const step of options.steps) {
-      pointer = (await runStep(session, mouse, step)) ?? pointer;
+      pointer = (await runStep(session, mouse, step, options)) ?? pointer;
 
       await sleep(options.video ? VIDEO_STEP_MS : STEP_MS);
     }
