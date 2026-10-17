@@ -9,6 +9,8 @@ local RADIUS_UNITS = { "px", "rem", "em", "%" }
 local MAX_DURATION_MS = 10000
 -- Radii may be a percentage, so they are checked against a larger number than sizes and spacing.
 local MAX_RADIUS = 1000
+-- A bare line height multiplies the font size, so anything past this is a typo.
+local MAX_LINE_HEIGHT = 10
 local MAX_VALUE_LENGTH = 200
 
 local cssVars: { [string]: boolean } = {}
@@ -206,6 +208,14 @@ local function checkThemeValue(group: string, value: string): string?
 		end
 
 		return "must be a length in px, rem, or em"
+	elseif group == "line-height" then
+		local lineHeight = numberOf(text)
+
+		if (lineHeight and lineHeight <= MAX_LINE_HEIGHT) or isLength(text, LENGTH_UNITS, true, MAX_VALUE_LENGTH) then
+			return nil
+		end
+
+		return "must be a number, such as 1.4, or a length in px, rem, or em"
 	elseif group == "radius" then
 		local parts: { string } = {}
 
