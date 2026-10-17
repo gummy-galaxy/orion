@@ -2177,6 +2177,10 @@ export function Canvas() {
   /** Sets the same fields on every work item in the selection, as one edit. */
   const patchSelection = (patch: BatchPatch) => {
     const ids = new Set(selected.map((node) => node.id))
+    const finished = selected.filter((node) => isTask(node) && closesOut(node.data, patch))
+
+    // Finishing cards here closes them out at once, as a single edit does, so their Done stamps land together.
+    if (finished.length > 0) landStamps(new Map(finished.map((node) => [node.id, 0])))
 
     setNodes((currentNodes) => {
       const next = patchWork(currentNodes, ids, patch)
