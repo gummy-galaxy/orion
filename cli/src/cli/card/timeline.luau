@@ -7,8 +7,8 @@ local formatEntry = require("@root/log/formatEntry")
 local getCardEntries = require("@root/log/getCardEntries")
 local graph = require("@root/graph")
 local newestFirst = require("@root/log/newestFirst")
+local parseLimit = require("@root/cli/parseLimit")
 local readLog = require("@root/log/readLog")
-local render = require("@root/render")
 local store = require("@root/store")
 
 type Context = context.Context
@@ -16,7 +16,7 @@ type Context = context.Context
 local DEFAULT_LIMIT = 5
 
 return table.freeze({
-	help = "Show one card with its most recent log entries",
+	help = "Show a card's timeline: its most recent log entries, newest first",
 	define = function(parser: cli.Parser)
 		parser:add("id", "positional", { help = "Card id" })
 		parser:add("limit", "option", { help = `How many recent entries to show (default {DEFAULT_LIMIT})` })
@@ -25,39 +25,30 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local id = assert(parser:get("id"), "missing <id>")
-		local limit = tonumber(parser:get("limit") or tostring(DEFAULT_LIMIT))
-		assert(limit and limit >= 1 and limit % 1 == 0, "limit must be a positive integer")
+		local limit = parseLimit(parser:get("limit")) or DEFAULT_LIMIT
 
-		local doc = store.load(options.dir)
-		local item = graph.get(doc, id)
-		assert(not graph.isGroup(item), `"{id}" is a group; use orion group set`)
+		local item = graph.get(store.load(options.dir), id)
+		assert(not graph.isGroup(item), `"{id}" is a group; only cards have a timeline`)
 
-		local derived = graph.derive(doc)
 		local recent = newestFirst(getCardEntries(readLog(options.dir), id), limit)
 
 		if options.asJson then
-			local value = render.itemJson(doc, derived, item)
-			local entries: json.Array = {}
+			local values: json.Array = {}
 
 			for _, entry in recent do
-				table.insert(entries, encodeEntry(entry))
+				table.insert(values, encodeEntry(entry))
 			end
 
-			value.log = entries
-			options.write(json.serialize(value, true))
+			options.write(json.serialize(values, true))
 			return
 		end
 
-		local lines = { render.show(doc, derived, item), "", "Log" }
+		local lines: { string } = {}
 
 		for _, entry in recent do
-			table.insert(lines, `  {entry.id}  {formatEntry(entry, false)}`)
+			table.insert(lines, `{entry.id}  {formatEntry(entry, false)}`)
 		end
 
-		if #recent == 0 then
-			table.insert(lines, "  No entries yet.")
-		end
-
-		options.write(table.concat(lines, "\n"))
+		options.write(if #lines > 0 then table.concat(lines, "\n") else "No entries yet.")
 	end,
 })

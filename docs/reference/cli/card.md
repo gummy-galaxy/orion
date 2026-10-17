@@ -68,12 +68,12 @@ orion card set [id] [options]
 | `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch        |
 | `--json`           | Print JSON                                                                                                   |
 
-## orion card show
+## orion card timeline
 
-Show one card with its most recent log entries
+Show a card's timeline: its most recent log entries, newest first
 
 ```sh
-orion card show [id] [options]
+orion card timeline [id] [options]
 ```
 
 | Argument          | Description                                 |

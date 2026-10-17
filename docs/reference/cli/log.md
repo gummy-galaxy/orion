@@ -31,7 +31,8 @@ List the canvas log, newest first
 orion log list [options]
 ```
 
-| Argument         | Description                        |
-| ---------------- | ---------------------------------- |
-| `--card <value>` | Only entries attached to this card |
-| `--json`         | Print JSON                         |
+| Argument          | Description                                  |
+| ----------------- | -------------------------------------------- |
+| `--card <value>`  | Only entries attached to this card           |
+| `--limit <value>` | Show at most this many of the newest entries |
+| `--json`          | Print JSON                                   |

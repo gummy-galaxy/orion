@@ -104,12 +104,13 @@ Runs `orion log list`.
 | -------- | ------ | ------------------------------------------------------ |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 | `card`   | id     | Only entries attached to this card.                    |
+| `limit`  | int    | Include at most this many of the newest entries.       |
 
-## orion_card_show
+## orion_card_timeline
 
-Show one card with its most recent log entries.
+Show a card's timeline: its most recent log entries, newest first.
 
-Runs `orion card show`.
+Runs `orion card timeline`.
 
 | Argument | Type   | Description                                            |
 | -------- | ------ | ------------------------------------------------------ |

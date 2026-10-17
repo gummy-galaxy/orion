@@ -6,6 +6,7 @@ local encodeEntry = require("@root/log/encodeEntry")
 local formatEntry = require("@root/log/formatEntry")
 local getCardEntries = require("@root/log/getCardEntries")
 local newestFirst = require("@root/log/newestFirst")
+local parseLimit = require("@root/cli/parseLimit")
 local readLog = require("@root/log/readLog")
 
 type Context = context.Context
@@ -14,10 +15,12 @@ return table.freeze({
 	help = "List the canvas log, newest first",
 	define = function(parser: cli.Parser)
 		parser:add("card", "option", { help = "Only entries attached to this card" })
+		parser:add("limit", "option", { help = "Show at most this many of the newest entries" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
+		local limit = parseLimit(parser:get("limit"))
 		local entries = readLog(options.dir)
 		local card = parser:get("card")
 
@@ -25,7 +28,7 @@ return table.freeze({
 			entries = getCardEntries(entries, card)
 		end
 
-		local ordered = newestFirst(entries)
+		local ordered = newestFirst(entries, limit)
 
 		if options.asJson then
 			local values: json.Array = {}

@@ -106,31 +106,49 @@ test.case("log add refuses empty text, groups, and unknown cards without writing
 	assert.eq(#readLog(dir), 0)
 end)
 
-test.case("card show lists the card's most recent entries, newest first", function(assert)
-	local dir = createCanvas("card-show")
+test.case("log list --limit keeps only the newest entries", function(assert)
+	local dir = createCanvas("log-limit")
+
+	for index = 1, 3 do
+		testing.run(dir, { "log", "add", `Update {index}`, "--card", "moments" }, nil, NOW)
+	end
+
+	local limited = testing.run(dir, { "log", "list", "--card", "moments", "--limit", "2" })
+	assert.strContains(limited, "log-3  ")
+	assert.strContains(limited, "log-2  ")
+	assert.strNotContains(limited, "log-1  ")
+	assert.throwsWith("limit must be a positive integer", function()
+		testing.run(dir, { "log", "list", "--limit", "0" })
+	end)
+end)
+
+test.case("card timeline lists the card's most recent entries, newest first", function(assert)
+	local dir = createCanvas("card-timeline")
 
 	for index = 1, 7 do
 		testing.run(dir, { "log", "add", `Update {index}`, "--card", "moments" }, nil, NOW)
 	end
 	testing.run(dir, { "log", "add", "Elsewhere", "--card", "avatars" }, nil, NOW)
 
-	local output = testing.run(dir, { "card", "show", "moments" })
-	assert.strContains(output, "Moments")
-	assert.strContains(output, `Log\n  log-7  2026-10-12T18:00:00Z  {PERSON}  Update 7\n`)
-	assert.strContains(output, `  log-3  2026-10-12T18:00:00Z  {PERSON}  Update 3`)
+	local output = testing.run(dir, { "card", "timeline", "moments" })
+	assert.strContains(output, `log-7  2026-10-12T18:00:00Z  {PERSON}  Update 7\n`)
+	assert.strContains(output, `log-3  2026-10-12T18:00:00Z  {PERSON}  Update 3`)
 	assert.strNotContains(output, "log-2 ")
 	assert.strNotContains(output, "Elsewhere")
 
-	local limited = testing.run(dir, { "card", "show", "moments", "--limit", "1" })
-	assert.strContains(limited, "  log-7  ")
-	assert.strNotContains(limited, "log-6")
+	local limited = testing.run(dir, { "card", "timeline", "moments", "--limit", "1" })
+	assert.eq(limited, `log-7  2026-10-12T18:00:00Z  {PERSON}  Update 7`)
+
+	local value =
+		json.asArray(json.deserialize(testing.run(dir, { "card", "timeline", "moments", "--json" })) :: json.Value)
+	assert.eq(#(value :: json.Array), 5)
 end)
 
-test.case("card show without entries says so and refuses groups", function(assert)
-	local dir = createCanvas("card-show-empty")
+test.case("card timeline without entries says so and refuses groups", function(assert)
+	local dir = createCanvas("card-timeline-empty")
 
-	assert.strContains(testing.run(dir, { "card", "show", "avatars" }), "No entries yet.")
-	assert.throwsWith("use orion group set", function()
-		testing.run(dir, { "card", "show", "release" })
+	assert.eq(testing.run(dir, { "card", "timeline", "avatars" }), "No entries yet.")
+	assert.throwsWith("only cards have a timeline", function()
+		testing.run(dir, { "card", "timeline", "release" })
 	end)
 end)

@@ -314,13 +314,19 @@ local tools: { Tool } = {
 		fields = {
 			workspaceField,
 			{ name = "card", kind = "id", description = "Only entries attached to this card.", at = "option" },
+			{
+				name = "limit",
+				kind = "int",
+				description = "Include at most this many of the newest entries.",
+				at = "option",
+			},
 		},
 	},
 	{
-		name = "orion_card_show",
-		description = "Show one card with its most recent log entries.",
+		name = "orion_card_timeline",
+		description = "Show a card's timeline: its most recent log entries, newest first.",
 		annotations = { readOnlyHint = true },
-		command = { "card", "show" },
+		command = { "card", "timeline" },
 		json = true,
 		fields = {
 			{ name = "id", kind = "id", required = true, at = "positional" },

@@ -230,11 +230,11 @@ When an agent opens a pull request from a card's work, the pull request attaches
 
 2026-10-10 · [#196](https://github.com/vocksel/orion/issues/196)
 
-## Log
+## Card timeline
 
 ### One append-only log per canvas, with cards as targets
 
-Each canvas keeps one log in `log.jsonl`, one JSON line per entry. Each entry records its text, its time, who logged it, and the targets it's attached to. A card's timeline is the log filtered to entries that name the card, so no card stores its own history. Entries are never edited or removed. A mistake is corrected by a new entry.
+Each canvas keeps one log in `log.jsonl`, one JSON line per entry. Each entry records its text, its time, who logged it, and the targets it's attached to. A card's timeline is the log filtered to entries that name the card, so no card stores its own history. An entry that names no card is for the whole canvas and stays in the log only. Entries are never edited or removed. A mistake is corrected by a new entry.
 
 Adding an entry appends a line under the canvas lock and leaves the canvas revision alone. The app's saves check that revision, so logging something never makes an open app's save fail.
 
@@ -260,7 +260,7 @@ Entries from `orion log add` are by the person running the CLI, named by `$USER`
 
 ### The log is read newest first, and stored oldest first
 
-`orion log list`, `orion card show`, and the MCP log tools list entries newest first. The file and `GET /api/log` keep append order, oldest first.
+`orion log list`, `orion card timeline`, and the MCP log tools list entries newest first. The file and `GET /api/log` keep append order, oldest first.
 
 **Why:** a timeline is read from its latest entry. The stored order matches the file, so anyone replaying it sees entries as they were written.
 

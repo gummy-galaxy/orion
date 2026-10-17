@@ -150,12 +150,12 @@ test.case("log tools attach entries to cards and name the agent that wrote them"
 		"log add Canvas-wide --agent claude --json"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_log_list", json.object({ card = "moments" })), " "),
-		"log list --card moments --json"
+		table.concat(getToolArgv("orion_log_list", json.object({ card = "moments", limit = 2 })), " "),
+		"log list --card moments --limit 2 --json"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_card_show", json.object({ id = "moments", limit = 3 })), " "),
-		"card show moments --limit 3 --json"
+		table.concat(getToolArgv("orion_card_timeline", json.object({ id = "moments", limit = 3 })), " "),
+		"card timeline moments --limit 3 --json"
 	)
 	assert.throwsWith("missing agent", function()
 		getToolArgv("orion_log_add", json.object({ text = "No name" }))

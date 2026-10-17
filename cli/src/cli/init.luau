@@ -5,7 +5,7 @@ local process = require("@std/process")
 local backup = require("@root/cli/backup")
 local batchEdit = require("@root/cli/batchEdit")
 local canvas = require("@root/cli/canvas")
-local cardShow = require("@root/cli/card/show")
+local cardTimeline = require("@root/cli/card/timeline")
 local checkStyleAssets = require("@root/style/checkStyleAssets")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
@@ -182,7 +182,7 @@ local function createParsers(): Parsers
 	addRefOption(cardSet)
 	addJsonFlag(cardSet)
 
-	cardShow.define(addCommand(card, "show", cardShow.help))
+	cardTimeline.define(addCommand(card, "timeline", cardTimeline.help))
 	addBatchOptions(addCommand(card, "done", "Mark one or more items done"), "Item ids")
 	importCommand.define(addCommand(card, "import", importCommand.help))
 
@@ -770,8 +770,8 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif key == "card import" then
 		importCommand.run(parser, commandContext)
-	elseif key == "card show" then
-		cardShow.run(parser, commandContext)
+	elseif key == "card timeline" then
+		cardTimeline.run(parser, commandContext)
 	elseif key == "note add" then
 		local text = joined(parser:variadics(), "<text>")
 		local added: Item
