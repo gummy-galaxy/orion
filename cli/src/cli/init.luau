@@ -35,6 +35,7 @@ local snooze = require("@root/cli/snooze")
 local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggestion = require("@root/cli/suggestion")
+local theme = require("@root/cli/theme")
 local tidy = require("@root/cli/tidy")
 local types = require("@root/types")
 local unsnooze = require("@root/cli/unsnooze")
@@ -54,6 +55,7 @@ type Resolved = {
 	dataDir: string,
 	workspace: string?,
 	now: () -> string,
+	exit: (code: number) -> (),
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
@@ -70,6 +72,7 @@ local COMMANDS: { [string]: Command } = {
 	server = server,
 	source = source,
 	suggestion = suggestion,
+	theme = theme,
 }
 
 local ABOUT = [[
@@ -295,7 +298,7 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	-- Commands with their own modules define their subcommands themselves.
-	for _, name in { "canvas", "server", "source", "ingest", "media", "suggestion", "backup", "mcp", "focus" } do
+	for _, name in { "canvas", "server", "source", "ingest", "media", "suggestion", "theme", "backup", "mcp", "focus" } do
 		local module = COMMANDS[name]
 		local parser = addCommand(root, name, module.help)
 		commands[name] = parser
@@ -392,6 +395,9 @@ local function dependencies(options: Dependencies?): Resolved
 		workspace = if given.workspace == nil then process.env.ORION_CANVAS else given.workspace,
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+		end,
+		exit = given.exit or function(code: number)
+			process.exit(code)
 		end,
 	}
 end
@@ -623,6 +629,7 @@ local function execute(args: { string }, options: Dependencies?)
 		asJson = asJson,
 		runner = deps.runner,
 		now = deps.now,
+		exit = deps.exit,
 		execute = execute,
 	}
 
