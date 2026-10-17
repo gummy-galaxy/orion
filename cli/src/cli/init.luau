@@ -248,6 +248,11 @@ local function createParsers(): Parsers
 		"option",
 		{ help = "Color, color token such as card.background, or image asset id (empty to clear)" }
 	)
+	groupSet:add(
+		"header",
+		"option",
+		{ help = "Markdown with layout HTML shown under the group's title (empty to clear)" }
+	)
 	addJsonFlag(groupSet)
 
 	addBatchOptions(addCommand(group, "ungroup", "Dissolve groups, keeping their items in place"), "Group ids")
@@ -390,6 +395,7 @@ local function fields(parser: cli.Parser): graph.ItemFields
 		arrange = parser:get("arrange"),
 		cover = parser:get("cover"),
 		background = parser:get("background"),
+		header = parser:get("header"),
 		kind = parser:get("kind"),
 	}
 end

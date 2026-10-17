@@ -1,6 +1,6 @@
 .card.skin-plain {
-  padding: 7px 10px;
-  border: 1px solid var(--line);
+  padding: 7px var(--space-5);
+  border: var(--border-width-default) solid var(--line);
   border-radius: var(--radius-xs);
   background: var(--surface);
   color: var(--ink);
@@ -38,8 +38,8 @@
   -webkit-line-clamp: 2;
   overflow: hidden;
   overflow-wrap: anywhere;
-  padding-right: 14px;
-  font-size: 13px;
+  padding-right: var(--space-7);
+  font-size: var(--text-size-body);
   font-weight: 500;
   line-height: 1.2;
 }
@@ -53,10 +53,10 @@
 .card.skin-plain .plain-note-kind {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2);
   min-width: 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: var(--text-size-nano);
   line-height: 1.3;
 }
 
@@ -68,7 +68,7 @@
 }
 
 .card.skin-plain:has(.source-badges) .plain-meta {
-  padding-right: 24px;
+  padding-right: var(--space-10);
 }
 
 .card.skin-plain .plain-tag {
@@ -83,12 +83,12 @@
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .card.skin-plain .plain-gate {
   flex: none;
-  font-size: 14px;
+  font-size: var(--text-size-base);
   line-height: 10px;
 }
 
@@ -106,7 +106,7 @@
 }
 
 .card.skin-plain .plain-check {
-  font: 700 12px/1 var(--font-ui);
+  font: var(--weight-bold) var(--text-size-small)/1 var(--font-ui);
 }
 
 .card.skin-plain .plain-note-kind {
@@ -119,7 +119,7 @@
 
 .card.skin-plain.far-card {
   height: auto;
-  padding: 8px 10px;
+  padding: var(--space-4) var(--space-5);
   box-shadow: none;
 }
 

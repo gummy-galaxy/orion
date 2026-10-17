@@ -1,11 +1,11 @@
 import ELK from 'elkjs/lib/elk.bundled.js'
 import {
-  GROUP_HEADER_HEIGHT,
   GROUP_PADDING,
   TASK_HEIGHT,
   TASK_WIDTH,
   ancestors,
   byId,
+  groupHeaderHeight,
   isCluster,
   normalize,
   sizeOf,
@@ -380,7 +380,7 @@ export async function reflow(
   }
 
   const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize)
-  const offset = groupId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
+  const offset = groupId ? { x: GROUP_PADDING, y: groupHeaderHeight(group && isCluster(group) ? group.data : undefined) } : { x: 0, y: 0 }
 
   return normalize(
     nodes.map((node) => {
