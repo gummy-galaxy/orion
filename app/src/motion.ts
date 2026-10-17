@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { readDurationMs } from './readDurationMs'
 
 export type Motion = 'on' | 'reduced' | 'off'
 
@@ -30,4 +31,14 @@ export function motionReduced(): boolean {
 /** How long a camera or layout move takes: its duration, or an instant jump when motion is reduced. */
 export function glide(duration: number): number {
   return motionReduced() ? 0 : duration
+}
+
+/** How long the camera takes to pan or zoom, from `motion.duration.camera`. */
+export function cameraGlide(): number {
+  return glide(readDurationMs('--motion-duration-camera', 450))
+}
+
+/** How long the camera takes to head for a card it's focusing, from `motion.duration.camera-focus`. */
+export function focusGlide(): number {
+  return glide(readDurationMs('--motion-duration-camera-focus', 260))
 }

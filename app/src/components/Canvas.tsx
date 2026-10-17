@@ -17,6 +17,7 @@ import {
   type Edge,
   type EdgeTypes,
   type FinalConnectionState,
+  type HandleType,
   type NodeChange,
   type NodeTypes,
   type Viewport,
@@ -28,13 +29,14 @@ import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type Flow } from '../derive'
-import { CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
+import { CHAIN_STEP_MS, CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { forgetTextWidths } from '../cardHeight'
 import { layoutOrder, reflow } from '../layout'
 import { pushAside } from '../pushAside'
 import { mergeDocs } from '../merge'
-import { glide, motionReduced, useSystemMotion } from '../motion'
+import { cameraGlide, focusGlide, motionReduced, useSystemMotion } from '../motion'
+import { readDurationMs } from '../readDurationMs'
 import {
   absolutePosition,
   ancestors,
@@ -127,6 +129,7 @@ import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '
 import { selectAllIds, selectNodes } from '../selectAll'
 import { stackNodes } from '../stack'
 import { patchWork, type BatchPatch } from '../batchEdit'
+import { reconnectLink } from '../reconnect'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
 import { useCompanionTargets } from '../useCompanionTargets'
@@ -180,6 +183,14 @@ const nodeTypes: NodeTypes = { task: CardSlot, cluster: ClusterView, image: Imag
 const edgeTypes: EdgeTypes = { default: CurveEdge }
 /** Whether a card view node was made away from the view, so it's drawn without its body. */
 const isAway = (node: AppNode) => isTask(node) && !!(node.data as CardSlotData).away
+
+/** The card under the pointer where a drag ended, so a link dropped anywhere on a card joins it. */
+function cardAt(event: MouseEvent | TouchEvent): string | undefined {
+  const point = 'changedTouches' in event ? event.changedTouches[0] : event
+
+  return document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node-task')?.dataset.id
+}
+
 const SIDEBAR_KEY = 'orion:sidebar'
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
@@ -232,11 +243,14 @@ const FOCUS_ZOOM = 1.2
 const FOCUS_CARD_Y = 0.7
 const FOCUS_BOTTOM_GAP = 24
 /** Focus moves head straight for the card and start fast. */
-const focusMove = () => ({ duration: glide(260), ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' }) as const
+const focusMove = () => ({ duration: focusGlide(), ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' }) as const
 const PLACE_GAP = 80
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
-const STICKER_FRESH_MS = 700
+/** A fresh sticker stamps down while its ring opens after a beat. These are the defaults; the theme can change each. */
+const STICKER_STAMP_MS = 520
+const STICKER_RING_DELAY_MS = 140
+const STICKER_RING_MS = 480
 
 /** How far above the toolbar the sticker wheel opens. */
 const WHEEL_LIFT = 140
@@ -1011,8 +1025,8 @@ export function Canvas() {
 
       pendingWorkspaceFit.current = null
 
-      if (nodes.length) void reactFlow.fitView({ padding: 0.08, duration: glide(450) })
-      else void reactFlow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: glide(450) })
+      if (nodes.length) void reactFlow.fitView({ padding: 0.08, duration: cameraGlide() })
+      else void reactFlow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: cameraGlide() })
     })
 
     return () => cancelAnimationFrame(frame)
@@ -1072,7 +1086,7 @@ export function Canvas() {
       const box = canvasRef.current?.getBoundingClientRect()
 
       if (!target || !box) {
-        reactFlow.fitBounds({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, { padding: 0.08, duration: glide(450) })
+        reactFlow.fitBounds({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, { padding: 0.08, duration: cameraGlide() })
 
         return
       }
@@ -1083,7 +1097,7 @@ export function Canvas() {
       fitting.current = true
       const sequence = ++fitSequence.current
 
-      void reactFlow.setViewport(viewport, { duration: glide(450) }).then(() => {
+      void reactFlow.setViewport(viewport, { duration: cameraGlide() }).then(() => {
         if (fitSequence.current === sequence) fitting.current = false
       })
     },
@@ -1113,7 +1127,7 @@ export function Canvas() {
 
       reactFlow.setCenter(position.x + size.width / 2, position.y + size.height / 2, {
         zoom: Math.max(reactFlow.getZoom(), 0.9),
-        duration: glide(450),
+        duration: cameraGlide(),
       })
     },
     [reactFlow, selectOnly, cardSize],
@@ -1425,6 +1439,8 @@ export function Canvas() {
           source: source,
           target: target,
           className: className,
+          // A ghost only stands in for work outside the open group, so its end stays put.
+          reconnectable: source.startsWith('ghost:') ? 'target' : target.startsWith('ghost:') ? 'source' : true,
           markerEnd: link.kind === 'blocks' ? marker(flow) : undefined,
           ...(link.label ? { label: link.label, ...EDGE_LABEL } : {}),
         })
@@ -1450,6 +1466,8 @@ export function Canvas() {
         target: aggregate.b,
         className: `e-agg e-${aggregate.flow}`,
         selectable: false,
+        // A bundle stands for several links, so dragging its end couldn't say which one moves.
+        reconnectable: false,
         label: bundleLabel(aggregate),
         ...EDGE_LABEL,
         markerEnd: marker(aggregate.flow),
@@ -1811,7 +1829,7 @@ export function Canvas() {
       setNodes((currentNodes) =>
         currentNodes.map((node) => (!!node.selected === picked.has(node.id) ? node : { ...node, selected: picked.has(node.id) })),
       )
-      void reactFlow.setViewport(place.viewport, place.focus || focus ? focusMove() : { duration: glide(450) })
+      void reactFlow.setViewport(place.viewport, place.focus || focus ? focusMove() : { duration: cameraGlide() })
     },
     [root, focus, reactFlow, setNodes, setPinned],
   )
@@ -1939,8 +1957,7 @@ export function Canvas() {
 
       if (state.isValid || !state.fromNode || !state.fromHandle) return
 
-      const point = 'changedTouches' in event ? event.changedTouches[0] : event
-      const dropped = document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node-task')?.dataset.id
+      const dropped = cardAt(event)
 
       if (!dropped) return
 
@@ -1948,6 +1965,45 @@ export function Canvas() {
       else connect(dropped, state.fromNode.id)
     },
     [connect],
+  )
+
+  /** Moves a link's ends onto other cards in one edit, keeping it picked if it was. */
+  const reconnect = useCallback(
+    (id: string, ends: { from?: string; to?: string }) => {
+      if ([ends.from, ends.to].some((end) => end !== undefined && map.get(end)?.type !== 'task')) return
+
+      const currentLinks = latest.current.links
+      const next = reconnectLink(currentLinks, id, ends)
+
+      if (next === currentLinks) return
+
+      const moved = next.find((link) => !currentLinks.includes(link))
+
+      setLinks(next)
+      setPickedLink((picked) => (picked === id && moved ? moved.id : picked))
+    },
+    [map, setLinks],
+  )
+  const onReconnect = useCallback(
+    (edge: Edge, connection: Connection) =>
+      reconnect(edge.id, {
+        from: connection.source !== edge.source ? connection.source : undefined,
+        to: connection.target !== edge.target ? connection.target : undefined,
+      }),
+    [reconnect],
+  )
+  /** Like a new link, a moved end joins a card dropped anywhere on it. `fixed` is the end that stayed put. */
+  const onReconnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent, edge: Edge, fixed: HandleType, state: FinalConnectionState) => {
+      setLinking(false)
+
+      if (state.isValid) return
+
+      const dropped = cardAt(event)
+
+      if (dropped) reconnect(edge.id, fixed === 'source' ? { to: dropped } : { from: dropped })
+    },
+    [reconnect],
   )
 
   const selected = nodes.filter((node) => node.selected && !view.hidden.has(node.id))
@@ -1980,11 +2036,11 @@ export function Canvas() {
   }, [])
 
   const fitSelection = useCallback(
-    () => void reactFlow.fitView({ nodes: selected.map((node) => ({ id: node.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: glide(450) }),
+    () => void reactFlow.fitView({ nodes: selected.map((node) => ({ id: node.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: cameraGlide() }),
     [reactFlow, selected],
   )
 
-  const zoomActual = useCallback(() => void reactFlow.zoomTo(1, { duration: glide(450) }), [reactFlow])
+  const zoomActual = useCallback(() => void reactFlow.zoomTo(1, { duration: cameraGlide() }), [reactFlow])
 
   const canSelectAll = useMemo(() => selectAllIds(nodes, root, view.hidden) !== null, [nodes, root, view.hidden])
 
@@ -2044,7 +2100,13 @@ export function Canvas() {
       celebrate: (id: string) => {
         const { nodes: currentNodes, links: currentLinks } = latest.current
         const finished = deriveWork(currentNodes, currentLinks).status
-        const delays = celebrationDelays(id, currentNodes, currentLinks, (other) => finished.get(other) === 'done')
+        const delays = celebrationDelays(
+          id,
+          currentNodes,
+          currentLinks,
+          (other) => finished.get(other) === 'done',
+          readDurationMs('--motion-duration-chain', CHAIN_STEP_MS),
+        )
 
         if (!delays.size) return
 
@@ -2065,7 +2127,7 @@ export function Canvas() {
 
               return next
             }),
-          Math.max(...delays.values()) + CLEAR_MS,
+          Math.max(...delays.values()) + readDurationMs('--motion-duration-clear', CLEAR_MS),
         )
       },
     }),
@@ -2397,7 +2459,10 @@ export function Canvas() {
 
             return next
           }),
-        STICKER_FRESH_MS,
+        Math.max(
+          readDurationMs('--motion-duration-sticker-stamp', STICKER_STAMP_MS),
+          readDurationMs('--motion-duration-quick', STICKER_RING_DELAY_MS) + readDurationMs('--motion-duration-sticker-ring', STICKER_RING_MS),
+        ),
       )
     },
     [reactFlow, sticker, anchorAt],
@@ -3192,6 +3257,9 @@ export function Canvas() {
                 setLinking(true)
               }}
               onConnectEnd={onConnectEnd}
+              onReconnect={onReconnect}
+              onReconnectStart={() => setLinking(true)}
+              onReconnectEnd={onReconnectEnd}
               onNodeClick={(event, node) => {
                 if (tool === 'sticker') return stamp(event)
 
