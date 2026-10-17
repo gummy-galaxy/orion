@@ -52,6 +52,7 @@ type Resolved = {
 	dataDir: string,
 	workspace: string?,
 	now: () -> string,
+	exit: (code: number) -> (),
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
@@ -390,6 +391,9 @@ local function dependencies(options: Dependencies?): Resolved
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 		end,
+		exit = given.exit or function(code: number)
+			process.exit(code)
+		end,
 	}
 end
 
@@ -619,6 +623,7 @@ local function execute(args: { string }, options: Dependencies?)
 		asJson = asJson,
 		runner = deps.runner,
 		now = deps.now,
+		exit = deps.exit,
 		execute = execute,
 	}
 
