@@ -63,16 +63,60 @@
 
   --border-width-default: 1px;
   --border-width-strong: 1.5px;
+  --border-width-rule: 2px;
+  --border-width-stamp: 2.5px;
 
+  /* Rings sit outside or inside a box without changing its size: focus outlines, selection, and status stripes. */
+  --ring-width-hairline: 1px;
+  --ring-width-inset: 1.5px;
+  --ring-width-default: 2px;
+  --ring-width-selection: 3px;
+  --ring-width-pulse: 8px;
+  --ring-offset-default: 1px;
+  --ring-offset-wide: 2px;
+  --ring-offset-selection: 3px;
+  --stripe-width-default: 3px;
+  --stripe-width-strong: 4px;
+
+  /* Stroke widths for the lines drawn on the canvas. */
+  --link-width-default: 1.3px;
+  --link-width-focus: 1.5px;
+  --link-width-still: 1.6px;
+  --link-width-held: 1.7px;
+  --link-width-focus-held: 1.8px;
+  --link-width-attention: 2px;
+  --link-width-related: 2.2px;
+  --link-width-traced: 2.6px;
+  --link-width-picked: 2.8px;
+  --snap-guide-width: 1px;
+
+  --line-height-glyph: 1;
+  --line-height-tight: 1.2;
+  --line-height-label: 1.25;
+  --line-height-note: 1.3;
+  --line-height-preview: 1.4;
+  --line-height-base: 1.45;
+  --line-height-prose: 1.5;
+
+  /* A step's half, such as space.1.5, sits halfway between it and the next step. */
+  --space-0-5: 1px;
   --space-1: 2px;
+  --space-1-5: 3px;
   --space-2: 4px;
+  --space-2-5: 5px;
   --space-3: 6px;
+  --space-3-5: 7px;
   --space-4: 8px;
+  --space-4-5: 9px;
   --space-5: 10px;
+  --space-5-5: 11px;
   --space-6: 12px;
   --space-7: 14px;
+  --space-7-5: 15px;
   --space-8: 16px;
+  --space-8-5: 18px;
   --space-9: 20px;
+  --space-9-5: 22px;
   --space-10: 24px;
 
   --shadow-image: 0 8px 24px #0002;

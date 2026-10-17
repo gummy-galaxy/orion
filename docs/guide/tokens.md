@@ -117,6 +117,20 @@ Each size is named for the role it most often plays, and every role that uses th
 | `text.size.sticker`     | `28px`   | Sticker wheel items                           |
 | `text.size.sticker-art` | `40px`   | Stickers on the canvas                        |
 
+## Line height
+
+A bare number multiplies the text size. Like text sizes, each value is shared by every role that uses it.
+
+| Name                  | Default | Used for                                               |
+| --------------------- | ------- | ------------------------------------------------------ |
+| `line-height.glyph`   | `1`     | Glyphs, badges, and close buttons that sit on one line |
+| `line-height.tight`   | `1.2`   | A folded group's facts and the Plain skin's notes      |
+| `line-height.label`   | `1.25`  | Card labels, group titles, and component notes         |
+| `line-height.note`    | `1.3`   | Note text and labels in the focus view                 |
+| `line-height.preview` | `1.4`   | The Done stamp and note previews                       |
+| `line-height.base`    | `1.45`  | The page's base                                        |
+| `line-height.prose`   | `1.5`   | Notes and Markdown in the inspector                    |
+
 ## Radius
 
 | Name                 | Default            | Used for                      |
@@ -139,23 +153,70 @@ Widths for borders that outline or frame a box, such as a card, a group, or a co
 | ---------------------- | ------- | -------------------------------------------------------- |
 | `border.width.default` | `1px`   | Cards, panels, menus, rows, and chips                    |
 | `border.width.strong`  | `1.5px` | Group frames, drop targets, handles, and card gate marks |
+| `border.width.rule`    | `2px`   | Quote bars and the timeline's rail                       |
+| `border.width.stamp`   | `2.5px` | The Done stamp's border                                  |
+
+## Ring
+
+Rings sit around or inside a box without changing its size. They mark focus, selection, and status.
+
+| Name                    | Default | Used for                                                                               |
+| ----------------------- | ------- | -------------------------------------------------------------------------------------- |
+| `ring.width.hairline`   | `1px`   | Traced cards, cards ready to merge, and the merge button                               |
+| `ring.width.inset`      | `1.5px` | The sticker wheel's current and filling slots                                          |
+| `ring.width.default`    | `2px`   | Focus outlines, link targets, a fresh sticker, and a folded group that needs attention |
+| `ring.width.selection`  | `3px`   | A selected card and a picked sticker                                                   |
+| `ring.width.pulse`      | `8px`   | How far the pulse around active work spreads                                           |
+| `ring.offset.default`   | `1px`   | The gap between a control and its focus outline                                        |
+| `ring.offset.wide`      | `2px`   | The gap around round buttons and selected images                                       |
+| `ring.offset.selection` | `3px`   | The gap between a selected card and its outline                                        |
+| `stripe.width.default`  | `3px`   | The status stripe down a card's left edge                                              |
+| `stripe.width.strong`   | `4px`   | The stripe on ready, active, and review cards                                          |
+
+Focus outlines that have to stay inside a clipped control, such as the window buttons, use the negative of an offset.
+
+## Line width
+
+Stroke widths for lines drawn on the canvas. A link's dash pattern shows what kind of link it is, so it stays fixed.
+
+| Name                    | Default | Used for                                                     |
+| ----------------------- | ------- | ------------------------------------------------------------ |
+| `link.width.default`    | `1.3px` | Links between cards                                          |
+| `link.width.focus`      | `1.5px` | Links in the focus view                                      |
+| `link.width.still`      | `1.6px` | Links out of components, and related links in the focus view |
+| `link.width.held`       | `1.7px` | Links held in place by a dependency                          |
+| `link.width.focus-held` | `1.8px` | Held and still links in the focus view                       |
+| `link.width.attention`  | `2px`   | The line toward work that needs attention                    |
+| `link.width.related`    | `2.2px` | Related links, drawn as dots                                 |
+| `link.width.traced`     | `2.6px` | Traced, hovered, and live links in the focus view            |
+| `link.width.picked`     | `2.8px` | A picked link                                                |
+| `snap.guide.width`      | `1px`   | Alignment guides while dragging                              |
 
 ## Space
 
-Spacing for gaps, padding, and margins follows a 4px rhythm with half steps.
+Spacing for gaps, padding, and margins follows a 2px rhythm. A step ending in `.5`, such as `space.1.5`, sits halfway between its neighbors, for the small nudges that line things up.
 
-| Name       | Default |
-| ---------- | ------- |
-| `space.1`  | `2px`   |
-| `space.2`  | `4px`   |
-| `space.3`  | `6px`   |
-| `space.4`  | `8px`   |
-| `space.5`  | `10px`  |
-| `space.6`  | `12px`  |
-| `space.7`  | `14px`  |
-| `space.8`  | `16px`  |
-| `space.9`  | `20px`  |
-| `space.10` | `24px`  |
+| Name        | Default |
+| ----------- | ------- |
+| `space.0.5` | `1px`   |
+| `space.1`   | `2px`   |
+| `space.1.5` | `3px`   |
+| `space.2`   | `4px`   |
+| `space.2.5` | `5px`   |
+| `space.3`   | `6px`   |
+| `space.3.5` | `7px`   |
+| `space.4`   | `8px`   |
+| `space.4.5` | `9px`   |
+| `space.5`   | `10px`  |
+| `space.5.5` | `11px`  |
+| `space.6`   | `12px`  |
+| `space.7`   | `14px`  |
+| `space.7.5` | `15px`  |
+| `space.8`   | `16px`  |
+| `space.8.5` | `18px`  |
+| `space.9`   | `20px`  |
+| `space.9.5` | `22px`  |
+| `space.10`  | `24px`  |
 
 ## Shadow
 
@@ -253,10 +314,17 @@ No token has been renamed since theme files arrived, so there are no older token
 
 ## Not named yet
 
-These still have literal values and will get tokens in later changes:
+These still have literal values and will get tokens in a later change:
 
-- Rings, stripes, and outlines, such as a card's status stripe, focus outlines, and the Done stamp's border.
-- Line heights, and spacing values off the scale: 1, 3, 5, 7, 9, 11, 15, 18, and 22px.
 - The trading card skin's frame, gate, sticker, and tile shadows.
+
+## Not tokens
+
+These stay fixed, since changing them would change what something means or how the app is laid out rather than how it looks:
+
+- Layout sizes, such as widths, positions, and the room kept beside badges and buttons.
+- A link's dash pattern, which tells held, related, and component links apart.
+- The strokes inside icons and the companion's face, which are part of the drawing.
+- The canvas dot grid's pitch and size.
 
 Sounds will get their own tokens with [the sound layer](https://github.com/vocksel/orion/issues/378).
