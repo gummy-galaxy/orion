@@ -2,11 +2,12 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local appendLog = require("@root/log/appendLog")
 local context = require("@root/cli/context")
 local createEntry = require("@root/log/createEntry")
+local encodeEntry = require("@root/log/encodeEntry")
 local formatEntry = require("@root/log/formatEntry")
 local parseCommaList = require("@root/cli/parseCommaList")
-local store = require("@root/store")
 local types = require("@root/types")
 
 type Context = context.Context
@@ -32,7 +33,7 @@ return table.freeze({
 			else { kind = "person", name = process.env.USER or "person" }
 		assert(author.name:match("%S"), "agent name must not be empty")
 
-		local entry = store.appendLog(options.dir, function(entries, doc)
+		local entry = appendLog(options.dir, function(entries, doc)
 			return createEntry(entries, doc, {
 				text = text,
 				author = author,
@@ -42,7 +43,7 @@ return table.freeze({
 		end)
 
 		if options.asJson then
-			options.write(json.serialize(store.encodeLogEntry(entry), true))
+			options.write(json.serialize(encodeEntry(entry), true))
 		else
 			options.write(`Logged {entry.id} · {formatEntry(entry, true)}`)
 		end

@@ -3,6 +3,7 @@ local path = require("@std/path")
 local task = require("@std/task")
 
 local fileNames = require("@root/fileNames")
+local getLogPath = require("@root/log/getLogPath")
 local store = require("@root/store")
 
 type Stamp = { size: number, modified: number }
@@ -37,7 +38,7 @@ function watcher.create(
 )
 	local isClosed = false
 	local dataFile = store.filePath(store.getWorkspaceDir(root, active()))
-	local logFile = store.logPath(store.getWorkspaceDir(root, active()))
+	local logFile = getLogPath(store.getWorkspaceDir(root, active()))
 	local logName = active()
 	local manifestFile = tostring(path.join(root, fileNames.canvases))
 	local lastDataStamp = getStamp(dataFile)
@@ -66,7 +67,7 @@ function watcher.create(
 
 		folder = fs.watch(dir)
 		dataFile = store.filePath(dir)
-		logFile = store.logPath(dir)
+		logFile = getLogPath(dir)
 		logName = name
 		lastDataStamp = getStamp(dataFile)
 		lastLogStamp = getStamp(logFile)

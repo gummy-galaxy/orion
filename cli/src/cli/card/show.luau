@@ -2,10 +2,12 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
+local encodeEntry = require("@root/log/encodeEntry")
 local formatEntry = require("@root/log/formatEntry")
 local getCardEntries = require("@root/log/getCardEntries")
 local graph = require("@root/graph")
 local newestFirst = require("@root/log/newestFirst")
+local readLog = require("@root/log/readLog")
 local render = require("@root/render")
 local store = require("@root/store")
 
@@ -31,14 +33,14 @@ return table.freeze({
 		assert(not graph.isGroup(item), `"{id}" is a group; use orion group set`)
 
 		local derived = graph.derive(doc)
-		local recent = newestFirst(getCardEntries(store.readLog(options.dir), id), limit)
+		local recent = newestFirst(getCardEntries(readLog(options.dir), id), limit)
 
 		if options.asJson then
 			local value = render.itemJson(doc, derived, item)
 			local entries: json.Array = {}
 
 			for _, entry in recent do
-				table.insert(entries, store.encodeLogEntry(entry))
+				table.insert(entries, encodeEntry(entry))
 			end
 
 			value.log = entries

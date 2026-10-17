@@ -2,10 +2,11 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
+local encodeEntry = require("@root/log/encodeEntry")
 local formatEntry = require("@root/log/formatEntry")
 local getCardEntries = require("@root/log/getCardEntries")
 local newestFirst = require("@root/log/newestFirst")
-local store = require("@root/store")
+local readLog = require("@root/log/readLog")
 
 type Context = context.Context
 
@@ -17,7 +18,7 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local entries = store.readLog(options.dir)
+		local entries = readLog(options.dir)
 		local card = parser:get("card")
 
 		if card then
@@ -30,7 +31,7 @@ return table.freeze({
 			local values: json.Array = {}
 
 			for _, entry in ordered do
-				table.insert(values, store.encodeLogEntry(entry))
+				table.insert(values, encodeEntry(entry))
 			end
 
 			options.write(json.serialize(values, true))

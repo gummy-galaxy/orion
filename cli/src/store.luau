@@ -17,8 +17,6 @@ type Doc = types.Doc
 type Focus = types.Focus
 type Item = types.Item
 type Link = types.Link
-type LogEntry = types.LogEntry
-type LogTarget = types.LogTarget
 type Source = types.Source
 
 local DAY_SECONDS = 24 * 60 * 60
@@ -742,109 +740,21 @@ function store.write(dir: string, doc: Doc)
 	end
 end
 
-function store.logPath(dir: string): string
-	return tostring(path.join(dir, fileNames.log))
-end
-
-function store.encodeLogEntry(entry: LogEntry): json.Object
-	local targets: json.Array = {}
-
-	for _, target in entry.targets do
-		table.insert(targets, json.object({ kind = target.kind, id = target.id }))
-	end
-
-	return json.object({
-		id = entry.id,
-		text = entry.text,
-		time = entry.time,
-		author = json.object({ kind = entry.author.kind, name = entry.author.name }),
-		targets = targets,
-	})
-end
-
-local function decodeLogEntry(object: json.Object): LogEntry
-	local id = asString(object.id)
-	local text = asString(object.text)
-	local time = asString(object.time)
-	local author = json.asObject(object.author)
-	local kind = if author then asString(author.kind) else nil
-	local name = if author then asString(author.name) else nil
-	assert(id and text and time and name and (kind == "person" or kind == "agent"), "missing log entry fields")
-
-	local targets: { LogTarget } = {}
-
-	for _, raw in json.asArray(object.targets) or {} do
-		local target = json.asObject(raw)
-		local targetKind = if target then asString(target.kind) else nil
-		local targetId = if target then asString(target.id) else nil
-		assert(targetKind == "card" and targetId, `invalid target on log entry {id}`)
-		local logTarget: LogTarget = { kind = "card", id = targetId }
-		table.insert(targets, logTarget)
-	end
-
-	return {
-		id = id,
-		text = text,
-		time = time,
-		author = { kind = if kind == "agent" then "agent" else "person", name = name },
-		targets = targets,
-	}
-end
-
--- Every entry in the order it was appended. A last line without its newline is an append that never finished,
--- so it isn't in the log yet.
-function store.readLog(dir: string): { LogEntry }
-	local file = store.logPath(dir)
-	local entries: { LogEntry } = {}
-
-	if not fs.exists(file) then
-		return entries
-	end
-
-	local lineNumber = 0
-
-	for line in fs.readFileToString(file):gmatch("([^\n]*)\n") do
-		lineNumber += 1
-
-		if line ~= "" then
-			local object = json.asObject(json.deserialize(line) :: json.Value)
-			assert(object, `log line {lineNumber} is not an object`)
-			table.insert(entries, decodeLogEntry(object))
-		end
-	end
-
-	return entries
-end
-
--- Appends one entry under the workspace lock. `build` gets the entries so far and the latest document, and returns
--- the entry to add. Only the log file changes, so the canvas revision stays the same.
-function store.appendLog(dir: string, build: ({ LogEntry }, Doc) -> LogEntry): LogEntry
+-- Runs `run` while holding the workspace lock, for writers that change files beside the data file.
+function store.withLock<T>(dir: string, run: () -> T): T
 	if not fs.exists(dir) then
 		fs.createDirectory(dir, { makeParents = true })
 	end
 
 	local lockPath = acquire(dir)
-	local succeeded, result = pcall(function(): LogEntry
-		local entry = build(store.readLog(dir), store.load(dir))
-		local line = json.serialize(store.encodeLogEntry(entry)) .. "\n"
-		local handle = fs.open(store.logPath(dir), "a")
-		local didWrite, message = pcall(fs.write, handle, line)
-		fs.close(handle)
-
-		if not didWrite then
-			error(message, 0)
-		end
-
-		return entry
-	end)
-
+	local succeeded, result = pcall(run)
 	release(lockPath)
 
 	if not succeeded then
 		error(result, 0)
 	end
 
-	return result :: LogEntry
+	return result
 end
 
 -- Saves app edits only if the latest file still has the revision the app read.

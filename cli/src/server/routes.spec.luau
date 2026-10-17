@@ -4,6 +4,7 @@ local net = require("@lute/net/server")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local appendLog = require("@root/log/appendLog")
 local insertFile = require("@root/media/insertFile")
 local routes = require("@root/server/routes")
 local store = require("@root/store")
@@ -292,7 +293,7 @@ end)
 test.case("GET /api/log returns the entries of the canvas it names, oldest first", function(assert)
 	local root, router = createRouter("routes-log")
 	store.createWorkspace(root, "planning", "Planning")
-	store.appendLog(store.getWorkspaceDir(root, "planning"), function()
+	appendLog(store.getWorkspaceDir(root, "planning"), function()
 		return {
 			id = "log-1",
 			text = "Planned",

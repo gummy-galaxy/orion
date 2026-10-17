@@ -1,6 +1,7 @@
 local task = require("@std/task")
 local test = require("@std/test")
 
+local appendLog = require("@root/log/appendLog")
 local store = require("@root/store")
 local testing = require("@root/testing")
 local watcher = require("@root/server/watcher")
@@ -88,7 +89,7 @@ test.case("watcher announces log appends for the canvas they land in, not docume
 	end)
 
 	monitor.start()
-	store.appendLog(root, function()
+	appendLog(root, function()
 		return {
 			id = "log-1",
 			text = "First",
@@ -107,7 +108,7 @@ test.case("watcher announces log appends for the canvas they land in, not docume
 	waitUntil(function()
 		return active == "other"
 	end)
-	store.appendLog(store.getWorkspaceDir(root, "other"), function()
+	appendLog(store.getWorkspaceDir(root, "other"), function()
 		return {
 			id = "log-1",
 			text = "Elsewhere",

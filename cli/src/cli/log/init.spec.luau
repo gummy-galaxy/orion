@@ -2,6 +2,7 @@ local json = require("@std/json")
 local process = require("@std/process")
 local test = require("@std/test")
 
+local readLog = require("@root/log/readLog")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -28,7 +29,7 @@ test.case("log add attaches one entry to several cards without touching the canv
 
 	testing.run(dir, { "log", "add", "Tested", "Moments", "--card", "moments,avatars" }, nil, NOW)
 
-	local entries = store.readLog(dir)
+	local entries = readLog(dir)
 	assert.eq(#entries, 1)
 	assert.eq(entries[1].id, "log-1")
 	assert.eq(entries[1].text, "Tested Moments")
@@ -51,7 +52,7 @@ test.case("log entries are appended as agents or people and never edited", funct
 		NOW
 	)
 
-	local entries = store.readLog(dir)
+	local entries = readLog(dir)
 	assert.eq(#entries, 2)
 	assert.eq(entries[1].text, "First")
 	assert.eq(#entries[1].targets, 0)
@@ -102,7 +103,7 @@ test.case("log add refuses empty text, groups, and unknown cards without writing
 		testing.run(dir, { "log", "add", "Nope", "--card", "missing" }, nil, NOW)
 	end)
 
-	assert.eq(#store.readLog(dir), 0)
+	assert.eq(#readLog(dir), 0)
 end)
 
 test.case("card show lists the card's most recent entries, newest first", function(assert)
