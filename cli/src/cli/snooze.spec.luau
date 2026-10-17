@@ -1,6 +1,7 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
+local parseUntil = require("@root/time/parseUntil")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -19,10 +20,12 @@ end)
 
 test.case("snooze reports the time it wakes in show and JSON", function(assert)
 	local _, run = testing.createHarness("snooze-show")
+	-- A date alone wakes at local midnight, so the UTC time depends on the machine's zone.
+	local wakes = parseUntil("2026-10-12")
 	run({ "card", "snooze", "ci", "--until", "2026-10-12" })
-	assert.strContains(run({ "node", "show", "ci" }), "snoozed  until 2026-10-12T07:00:00Z")
+	assert.strContains(run({ "node", "show", "ci" }), `snoozed  until {wakes}`)
 	local shown = json.asObject(json.deserialize(run({ "node", "show", "ci", "--json" })) :: json.Value)
-	assert.eq(shown and shown.snoozedUntil, "2026-10-12T07:00:00Z")
+	assert.eq(shown and shown.snoozedUntil, wakes)
 end)
 
 test.case("snooze takes --where and --json and reports the target", function(assert)
