@@ -297,7 +297,9 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	-- Commands with their own modules define their subcommands themselves.
-	for _, name in { "canvas", "log", "server", "source", "ingest", "media", "suggestion", "theme", "backup", "mcp", "focus" } do
+	for _, name in
+		{ "canvas", "log", "server", "source", "ingest", "media", "suggestion", "theme", "backup", "mcp", "focus" }
+	do
 		local module = COMMANDS[name]
 		local parser = addCommand(root, name, module.help)
 		commands[name] = parser
