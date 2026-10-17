@@ -23,4 +23,4 @@ Orion hasn't had its first release. Until it does, any command, option, tool, or
 
 The CLI and MCP pages are generated from the code that defines them, so they always match what Orion accepts.
 
-The [interface audit](/guide/interface-audit) lists what is expected to change on each surface before 0.1.0.
+The [interface audit](/development/engineering/interface-audit) lists what is expected to change on each surface before 0.1.0.

@@ -40,7 +40,6 @@ export default defineConfig({
             { text: 'Themes', link: '/guide/themes' },
             { text: 'Theme tokens', link: '/guide/tokens' },
             { text: 'Public surfaces', link: '/guide/surfaces' },
-            { text: 'Interface audit', link: '/guide/interface-audit' },
           ],
         },
       ],
@@ -52,7 +51,11 @@ export default defineConfig({
       '/development/': [
         { text: 'Development', link: '/development/' },
         { text: 'Design', link: '/development/design/' },
-        { text: 'Engineering', link: '/development/engineering/' },
+        {
+          text: 'Engineering',
+          link: '/development/engineering/',
+          items: [{ text: 'Interface audit', link: '/development/engineering/interface-audit' }],
+        },
       ],
     },
     search: { provider: 'local' },
