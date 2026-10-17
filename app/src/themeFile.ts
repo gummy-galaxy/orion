@@ -61,6 +61,7 @@ export function checkValue(token: Token, value: string): Problem {
       return WEIGHT.test(text) && Number(text) >= 100 && Number(text) <= 1000 ? null : 'must be a weight from 100 to 1000'
     case 'size':
     case 'space':
+    case 'border':
       return SIZE.test(text) && Number.parseFloat(text) <= MAX_VALUE_LENGTH ? null : 'must be a length in px, rem, or em'
     case 'radius':
       return RADIUS.test(text) && text.split(' ').every((part) => Number.parseFloat(part) <= MAX_RADIUS)
@@ -140,6 +141,7 @@ const PROPERTY_FOR_GROUP: Record<Token['group'], string> = {
   weight: 'font-weight',
   size: 'font-size',
   space: 'padding',
+  border: 'border-width',
   radius: 'border-radius',
   shadow: 'box-shadow',
   duration: 'transition-duration',

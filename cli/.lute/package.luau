@@ -8,6 +8,8 @@ local process = require("@std/process")
 local project = require("@repo/project")
 local system = require("@std/system")
 
+local runScript = require("@root/runScript")
+
 local binaryName = if system.win32 then "orion.exe" else "orion"
 local platformName = if system.win32 then "windows" elseif system.macos then "macos" else "linux"
 local binaryPath = tostring(path.join(project.BUILD_PATH, binaryName))
@@ -18,7 +20,9 @@ local command = if system.win32
 	then { "tar", "-a", "-cf", archivePath, "-C", tostring(project.BUILD_PATH), binaryName }
 	else { "zip", "-j", archivePath, binaryPath }
 
-local packed = process.run(command, { stdio = "inherit" })
-assert(packed.ok, `packaging failed ({packed.exitcode})`)
+runScript(function()
+	local packed = process.run(command, { stdio = "inherit" })
+	assert(packed.ok, `packaging failed ({packed.exitcode})`)
 
-print(`Packed {archivePath}`)
+	print(`Packed {archivePath}`)
+end)
