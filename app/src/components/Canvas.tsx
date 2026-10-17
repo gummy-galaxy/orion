@@ -95,9 +95,10 @@ import { CardSlot, type CardSlotData } from './CardSlot'
 import {
   createWorkspace,
   clearFocus,
+  adoptedPrint,
   compactDoc,
+  displayedDoc,
   fetchRemote,
-  fingerprint,
   getSyncStatus,
   getWorkspaces,
   importImage,
@@ -114,6 +115,7 @@ import {
   saveCanvasStyle,
   setActiveWorkspace,
   slim,
+  storedPrint,
   type FocusReport,
   type Remote,
   type Saved,
@@ -618,8 +620,7 @@ export function Canvas() {
     if (previousSize.width === cardSize.width && previousSize.height === cardSize.height) return
 
     tweenSequence.current++
-    const currentStored = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, previousSize) })
-    const wasSaved = fingerprint(currentStored) === savedPrint.current
+    const wasSaved = storedPrint(latest.current, previousSize) === savedPrint.current
     const mapped = toDisplayed(toStored(latest.current.nodes, previousSize), cardSize)
     const box = canvasRef.current?.getBoundingClientRect()
 
@@ -649,28 +650,21 @@ export function Canvas() {
 
     if (wasSaved) {
       base.current = compactDoc({ ...latest.current, nodes: toStored(mapped, cardSize) })
-      savedPrint.current = fingerprint(base.current)
+      savedPrint.current = storedPrint(latest.current, cardSize)
     }
   }, [cardSize, setNodes, reactFlow, focusPick, root])
 
   const adopt = useCallback(
     (doc: Remote, serverDoc: Remote = doc, preserveSelection = true, previous?: AppNode[]): Saved => {
-      const displayed = toDisplayed(normalize(doc.nodes), cardSizeRef.current)
+      const shown = displayedDoc(doc, cardSizeRef.current)
       // Another writer can grow a group, such as the CLI adding a card to it. Its neighbors move aside here, and
       // since that differs from the server's copy, the next save writes the new positions back.
-      const next = previous ? pushAside(previous, displayed, cardSizeRef.current) : displayed
-      const server = compactDoc({
-        nodes: normalize(serverDoc.nodes),
-        links: serverDoc.links,
-        stickers: serverDoc.stickers,
-        stickerLoadout: serverDoc.stickerLoadout,
-      })
+      const next = previous ? pushAside(previous, shown.nodes, cardSizeRef.current) : shown.nodes
 
       revision.current = doc.revision
-      base.current = server
-      savedPrint.current = fingerprint(server)
-      const stickerLoadout = loadoutOf(doc.stickerLoadout)
-      const adopted = { nodes: next, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout }
+      base.current = compactDoc({ ...serverDoc, nodes: normalize(serverDoc.nodes) })
+      savedPrint.current = adoptedPrint(serverDoc, cardSizeRef.current)
+      const adopted = { ...shown, nodes: next }
 
       rebaseHistory(adopted)
       latest.current = adopted
@@ -680,8 +674,8 @@ export function Canvas() {
         return picked.size ? next.map((node) => (picked.has(node.id) ? { ...node, selected: true } : node)) : next
       })
       setLinks(doc.links)
-      setStickers(doc.stickers ?? [])
-      setLoadout(stickerLoadout)
+      setStickers(shown.stickers)
+      setLoadout(shown.stickerLoadout)
       setGithub(doc.github ?? null)
       setCanvasStyle(readCanvasStyle(doc.settings))
 
@@ -707,10 +701,9 @@ export function Canvas() {
 
       if (!doc || doc.revision === revision.current) return
 
-      const local = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSizeRef.current) })
-
-      if (fingerprint(local) === savedPrint.current) adopt(doc, doc, true, latest.current.nodes)
+      if (storedPrint(latest.current, cardSizeRef.current) === savedPrint.current) adopt(doc, doc, true, latest.current.nodes)
       else {
+        const local = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSizeRef.current) })
         const merged = mergeDocs(base.current, local, compactDoc({ ...doc, nodes: normalize(doc.nodes) }))
 
         adopt({ ...doc, ...merged }, doc, true, latest.current.nodes)
@@ -820,7 +813,7 @@ export function Canvas() {
       // Stickers on cards or groups that are gone go with them.
       const ids = new Set(nodes.map((node) => node.id))
       const snapshot = { nodes, links, stickers: stickers.filter((sticker) => !sticker.on || ids.has(sticker.on)), stickerLoadout: loadout }
-      const print = fingerprint({ ...snapshot, nodes: toStored(nodes, cardSize) })
+      const print = storedPrint(snapshot, cardSize)
       const epoch = workspaceEpoch.current
       const name = workspace.current
 
@@ -839,7 +832,7 @@ export function Canvas() {
           if (result.ok) {
             revision.current = result.revision
             base.current = compactDoc({ ...pending, nodes: toStored(pending.nodes, cardSize) })
-            savedPrint.current = fingerprint({ ...pending, nodes: toStored(pending.nodes, cardSize) })
+            savedPrint.current = storedPrint(pending, cardSize)
 
             if (syncAfterSave.current) {
               syncAfterSave.current = false

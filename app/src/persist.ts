@@ -1,7 +1,7 @@
-import type { AppNode, GithubSnapshot, Link, TaskData } from './model'
+import { normalize, type AppNode, type GithubSnapshot, type Link, type TaskData } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
 import type { CardSize } from './cardSize'
-import { toStored } from './skinSpace'
+import { toDisplayed, toStored } from './skinSpace'
 
 /**
  * The canvas lives in orion.json, served by the Orion CLI so the CLI and the
@@ -235,6 +235,37 @@ export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) =
 /** The stored shape of a document, for comparing and merging. */
 export const compactDoc = (doc: Saved): Saved =>
   JSON.parse(fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) })) as Saved
+
+/** A document as the canvas shows it at this card size. */
+export function displayedDoc(doc: Saved, cardSize: CardSize): Saved & { stickers: Sticker[]; stickerLoadout: Loadout } {
+  return {
+    nodes: toDisplayed(normalize(doc.nodes), cardSize),
+    links: doc.links,
+    stickers: doc.stickers ?? [],
+    stickerLoadout: loadoutOf(doc.stickerLoadout),
+  }
+}
+
+/** The fingerprint of what saving this canvas would write. Stickers on cards or groups that are gone go with them. */
+export function storedPrint({ nodes, links, stickers = [], stickerLoadout }: Saved, cardSize: CardSize): string {
+  const ids = new Set(nodes.map((node) => node.id))
+
+  return fingerprint({
+    nodes: toStored(nodes, cardSize),
+    links,
+    stickers: stickers.filter((sticker) => !sticker.on || ids.has(sticker.on)),
+    stickerLoadout: loadoutOf(stickerLoadout),
+  })
+}
+
+/**
+ * The fingerprint of a server document once adopted, so the canvas saves only what differs from it. It goes through
+ * the same display and storage mapping as a save, since the CLI writes keys in its own order and a card size other
+ * than the classic one rounds positions on the way back.
+ */
+export function adoptedPrint(serverDoc: Saved, cardSize: CardSize): string {
+  return storedPrint(displayedDoc(serverDoc, cardSize), cardSize)
+}
 
 function isSaved(value: unknown): value is Saved {
   const saved = value as Saved | null
