@@ -169,6 +169,22 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   done: 'Done',
 }
 
+/** The statuses a person can record on a card, in the order the inspector lists them. */
+export const STATUS_CHOICES: { value: Status; label: string }[] = [
+  { value: 'todo', label: 'To do' },
+  { value: 'active', label: 'In progress' },
+  { value: 'review', label: 'In review' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'deferred', label: 'Deferred' },
+  { value: 'done', label: 'Done' },
+]
+
+export const WHO_CHOICES: { value: Who; label: string }[] = [
+  { value: 'you', label: 'You' },
+  { value: 'review', label: 'Reviewer' },
+  { value: 'ci', label: 'CI' },
+]
+
 export function getPrimaryRef(data: Pick<TaskData, 'refs'>): SourceRef | undefined {
   return data.refs?.find((ref) => ref.url) ?? data.refs?.[0]
 }

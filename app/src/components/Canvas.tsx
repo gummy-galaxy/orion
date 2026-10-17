@@ -47,6 +47,7 @@ import {
   isImage,
   isNote,
   isTask,
+  isWork,
   moveOutOfGroup,
   normalize,
   getItemKind,
@@ -128,6 +129,7 @@ import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keyb
 import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
 import { selectAllIds, selectNodes } from '../selectAll'
 import { stackNodes } from '../stack'
+import { patchWork, type BatchPatch } from '../batchEdit'
 import { reconnectLink } from '../reconnect'
 import { ActionBar } from './ActionBar'
 import { SnapGuides } from './SnapGuides'
@@ -172,6 +174,7 @@ import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
+import { SelectionStatus } from './SelectionStatus'
 import { TintSelect } from './TintSelect'
 
 type ViewNode = AppNode | GhostNode
@@ -2165,6 +2168,17 @@ export function Canvas() {
     [setNodes],
   )
 
+  /** Sets the same fields on every work item in the selection, as one edit. */
+  const patchSelection = (patch: BatchPatch) => {
+    const ids = new Set(selected.map((node) => node.id))
+
+    setNodes((currentNodes) => {
+      const next = patchWork(currentNodes, ids, patch)
+
+      return next === currentNodes ? currentNodes : normalize(next, cardSizeRef.current)
+    })
+  }
+
   // Card heights are measured from text, so measure again once the web fonts arrive.
   useEffect(() => {
     void document.fonts?.ready.then(() => {
@@ -2763,13 +2777,20 @@ export function Canvas() {
 
       const data = node.data as TaskData
       const url = getTaskUrl(data)
+      const selectedWork = node.selected ? selected.filter(isWork).map((item) => item.data as TaskData) : []
+      const markDone: MenuItem =
+        selectedWork.length > 1
+          ? selectedWork.every((item) => item.status === 'done')
+            ? { label: `Mark ${selectedWork.length} not done`, run: () => patchSelection({ status: 'todo' }) }
+            : { label: `Mark ${selectedWork.length} done`, run: () => patchSelection({ status: 'done' }) }
+          : data.status === 'done'
+            ? { label: 'Mark not done', run: () => updateData(node.id, { status: 'todo' }) }
+            : { label: 'Mark done', run: () => updateData(node.id, { status: 'done' }) }
 
       return [
         ...many,
         ...(url ? [{ label: `Open ${getTaskTag(data)}`, hint: '↗', run: () => openExternal(url) }] : []),
-        data.status === 'done'
-          ? { label: 'Mark not done', run: () => updateData(node.id, { status: 'todo' }) }
-          : { label: 'Mark done', run: () => updateData(node.id, { status: 'done' }) },
+        markDone,
         { label: 'Add a note after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id }) },
         { label: 'Turn into a component', run: () => updateData(node.id, { itemKind: 'component' }) },
         ...(node.parentId !== root ? [{ label: 'Open its group', run: () => jumpTo(node.id) }] : []),
@@ -2958,6 +2979,7 @@ export function Canvas() {
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
+  const selectedWorkData = selected.filter(isWork).map((node) => node.data as TaskData)
   const pickedLinkData = pickedLink ? links.find((link) => link.id === pickedLink) : undefined
   // An inspector's name field only auto-focuses when it mounts, so a rename of a card that is already selected remounts it.
   const inspectorKey = one && editing === one.id ? `${one.id}:editing` : one?.id
@@ -3467,6 +3489,7 @@ export function Canvas() {
                   ) : !one ? (
                     <div className="insp">
                       <strong>{selected.length} selected</strong>
+                      {selectedWorkData.length > 0 && <SelectionStatus items={selectedWorkData} update={patchSelection} />}
                       <button type="button" className="btn primary" onClick={doGroup}>
                         Group selection <kbd>⌘G</kbd>
                       </button>
