@@ -3208,6 +3208,9 @@ export function Canvas() {
                   return
                 }
 
+                // A card waiting to be closed out closes out instead of opening in focus.
+                if (node.type === 'task' && (node.data as TaskData).celebrate) return actions.celebrate(node.id)
+
                 if (node.type === 'task' || node.type === 'ghost') return focusOn(node.type === 'ghost' ? node.data.taskId : node.id)
 
                 if (node.type !== 'cluster') return
