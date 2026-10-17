@@ -25,7 +25,6 @@ local REF_DESCRIPTION =
 	"Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch."
 local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
 local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
-local GROUP_DESCRIPTION = "Group id, or its label when exactly one group has it."
 local NOTE_STYLE =
 	"Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card."
 local NOTE_DESCRIPTION = "Replaces the whole note. " .. NOTE_STYLE
@@ -190,7 +189,7 @@ local tools: { Tool } = {
 		fields = {
 			{ name = "title", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
-			{ name = "group", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
+			{ name = "group", kind = "id", at = "option" },
 			kindField,
 			shapeField,
 			colorField,
@@ -235,7 +234,7 @@ local tools: { Tool } = {
 		fields = {
 			{ name = "text", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
-			{ name = "group", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
+			{ name = "group", kind = "id", at = "option" },
 			{ name = "after", kind = "id", at = "option" },
 			{ name = "before", kind = "id", at = "option" },
 		},
@@ -264,7 +263,7 @@ local tools: { Tool } = {
 			},
 			{ name = "label", kind = "string", minLength = 1, at = "option" },
 			workspaceField,
-			{ name = "group", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
+			{ name = "group", kind = "id", at = "option" },
 		},
 	},
 	{
@@ -348,12 +347,24 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_create_group",
-		description = "Make an empty group, optionally inside another group. Add cards to it afterward with its id or label.",
+		description = "Make an empty group, optionally inside another group. Add cards to it afterward with its id.",
 		command = { "group", "create" },
 		json = true,
 		fields = {
-			{ name = "label", kind = "string", required = true, minLength = 1, at = "positional" },
-			{ name = "in", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
+			{
+				name = "label",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The group's name, shown on the canvas.",
+				at = "positional",
+			},
+			{
+				name = "in",
+				kind = "id",
+				description = "Id of the group to make it inside. Omit to make it at the top level.",
+				at = "option",
+			},
 			workspaceField,
 		},
 	},
@@ -364,7 +375,7 @@ local tools: { Tool } = {
 		fields = {
 			{ name = "id", kind = "id", required = true, at = "positional" },
 			workspaceField,
-			{ name = "group", kind = "id", description = GROUP_DESCRIPTION, at = "option" },
+			{ name = "group", kind = "id", at = "option" },
 		},
 		build = buildMoveArgv,
 	},

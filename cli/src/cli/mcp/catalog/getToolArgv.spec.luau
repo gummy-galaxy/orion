@@ -26,8 +26,8 @@ test.case("create group takes a label and an optional parent", function(assert)
 		"group create Week 1 --json"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_create_group", json.object({ label = "Monday", ["in"] = "Week 1" })), " "),
-		"group create Monday --in Week 1 --json"
+		table.concat(getToolArgv("orion_create_group", json.object({ label = "Monday", ["in"] = "week-1" })), " "),
+		"group create Monday --in week-1 --json"
 	)
 end)
 

@@ -12,7 +12,7 @@ return table.freeze({
 	define = function(parser: cli.Parser)
 		parser:add("file", "positional", { help = "Media file (PNG, JPEG, GIF, or WebP supported)" })
 		parser:add("label", "option", { help = "Node label" })
-		parser:add("group", "option", { help = "Group to put the node in, by id or label" })
+		parser:add("group", "option", { help = "Group to put the node in" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 	run = function(parser: cli.Parser, options: Context)

@@ -16,11 +16,11 @@ List work items with their derived status
 orion card list [options]
 ```
 
-| Argument          | Description                                  |
-| ----------------- | -------------------------------------------- |
-| `--group <value>` | Only items inside this group, by id or label |
-| `--all`           | Include done items                           |
-| `--json`          | Print JSON                                   |
+| Argument          | Description                  |
+| ----------------- | ---------------------------- |
+| `--group <value>` | Only items inside this group |
+| `--all`           | Include done items           |
+| `--json`          | Print JSON                   |
 
 ## orion card add
 
@@ -33,7 +33,7 @@ orion card add [options] [label...]
 | Argument           | Description                                                                                                  |
 | ------------------ | ------------------------------------------------------------------------------------------------------------ |
 | `[label...]`       | What the work is                                                                                             |
-| `--group <value>`  | Group to add it to, by id or label                                                                           |
+| `--group <value>`  | Group to add it to                                                                                           |
 | `--status <value>` | todo, active, review, blocked, deferred, or done                                                             |
 | `--repo <value>`   | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                        |
 | `--pr <value>`     | Pull request number. Deprecated: use --ref with the pull request URL                                         |
@@ -96,7 +96,7 @@ orion card import [options] [refs...]
 | ----------------------- | ----------------------------------------------------- |
 | `[refs...]`             | GitHub or Jira URLs, or source:key such as jira:ABC-1 |
 | `--stdin`               | Also read one reference per line from stdin           |
-| `--group <value>`       | Group to add the cards to, by id or label             |
+| `--group <value>`       | Group to add the cards to                             |
 | `--dry-run`             | Preview the cards without writing                     |
 | `--if-revision <value>` | Write only if the document has this revision          |
 | `--json`                | Print JSON                                            |

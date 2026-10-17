@@ -67,5 +67,5 @@ orion node move [options] [ids...]
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |
 | `--json`                | Print JSON                                           |
-| `--to <value>`          | Destination group, by id or label                    |
+| `--to <value>`          | Destination group                                    |
 | `--top`                 | Move to the top level                                |

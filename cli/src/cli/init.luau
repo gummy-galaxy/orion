@@ -26,7 +26,6 @@ local parseCommaList = require("@root/cli/parseCommaList")
 local render = require("@root/render")
 local renderGroup = require("@root/render/group")
 local requestedRevision = require("@root/cli/requestedRevision")
-local resolveNodeId = require("@root/resolveNodeId")
 local resolveRef = require("@root/adapters/resolveRef")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
@@ -161,13 +160,13 @@ local function createParsers(): Parsers
 	local card = addCommand(root, "card", "Work items on the canvas")
 
 	local cardList = addCommand(card, "list", "List work items with their derived status")
-	cardList:add("group", "option", { help = "Only items inside this group, by id or label" })
+	cardList:add("group", "option", { help = "Only items inside this group" })
 	cardList:add("all", "flag", { help = "Include done items" })
 	addJsonFlag(cardList)
 
 	local cardAdd = addCommand(card, "add", "Add a work item")
 	cardAdd:add("label", "variadic", { help = "What the work is" })
-	cardAdd:add("group", "option", { help = "Group to add it to, by id or label" })
+	cardAdd:add("group", "option", { help = "Group to add it to" })
 	addFieldOptions(cardAdd)
 	addRefOption(cardAdd)
 	addJsonFlag(cardAdd)
@@ -185,7 +184,7 @@ local function createParsers(): Parsers
 	local note = addCommand(root, "note", "Notes for context, decisions, and reminders")
 	local noteAdd = addCommand(note, "add", "Add a note, optionally between two linked items")
 	noteAdd:add("text", "variadic", { help = "Note text" })
-	noteAdd:add("group", "option", { help = "Group to add it to, by id or label" })
+	noteAdd:add("group", "option", { help = "Group to add it to" })
 	noteAdd:add("after", "option", { help = "Item the note follows" })
 	noteAdd:add("before", "option", { help = "Item the note leads into" })
 	addJsonFlag(noteAdd)
@@ -231,7 +230,7 @@ local function createParsers(): Parsers
 
 	local nodeMove = addCommand(node, "move", "Move items or groups into another group")
 	addBatchOptions(nodeMove, "Item or group ids")
-	nodeMove:add("to", "option", { help = "Destination group, by id or label" })
+	nodeMove:add("to", "option", { help = "Destination group" })
 	nodeMove:add("top", "flag", { help = "Move to the top level" })
 
 	local group = addCommand(root, "group", "Groups of items")
@@ -241,7 +240,7 @@ local function createParsers(): Parsers
 
 	local groupCreate = addCommand(group, "create", "Make an empty group, optionally inside another")
 	groupCreate:add("label", "variadic", { help = "Group name" })
-	groupCreate:add("in", "option", { help = "Group to make it inside, by id or label" })
+	groupCreate:add("in", "option", { help = "Group to make it inside" })
 	addJsonFlag(groupCreate)
 
 	local groupAdd = addCommand(group, "add", "Wrap items that share a parent in a new group")
@@ -667,7 +666,6 @@ local function execute(args: { string }, options: Dependencies?)
 		local groupId = parser:get("group")
 
 		if groupId then
-			groupId = resolveNodeId(doc, groupId)
 			graph.group(doc, groupId)
 		end
 
@@ -717,7 +715,7 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif key == "node show" then
 		local doc = store.load(dir)
-		local item = graph.get(doc, resolveNodeId(doc, required(parser, "id")))
+		local item = graph.get(doc, required(parser, "id"))
 
 		if asJson then
 			deps.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
@@ -728,9 +726,8 @@ local function execute(args: { string }, options: Dependencies?)
 		local label = joined(parser:variadics(), "<label>")
 		local added: Item
 		local options = fields(parser) :: graph.AddOptions
-		local group = parser:get("group")
+		options.group = parser:get("group")
 		local doc = store.transaction(dir, function(doc)
-			options.group = if group then resolveNodeId(doc, group) else nil
 			added = graph.addItem(doc, label, options)
 			attachRef(doc, added.id, parser:get("ref"))
 		end)
@@ -765,13 +762,12 @@ local function execute(args: { string }, options: Dependencies?)
 	elseif key == "note add" then
 		local text = joined(parser:variadics(), "<text>")
 		local added: Item
-		local group = parser:get("group")
 		local doc = store.transaction(dir, function(doc)
-			added = graph.addNote(doc, text, {
-				group = if group then resolveNodeId(doc, group) else nil,
-				after = parser:get("after"),
-				before = parser:get("before"),
-			})
+			added = graph.addNote(
+				doc,
+				text,
+				{ group = parser:get("group"), after = parser:get("after"), before = parser:get("before") }
+			)
 		end)
 
 		emitItem(deps, doc, added, asJson, "Added note")
@@ -875,7 +871,7 @@ local function execute(args: { string }, options: Dependencies?)
 		else
 			local id = ids[1]
 			store.transaction(dir, function(doc)
-				graph.remove(doc, resolveNodeId(doc, id))
+				graph.remove(doc, id)
 			end)
 
 			deps.write(`Removed {id}`)
@@ -889,11 +885,7 @@ local function execute(args: { string }, options: Dependencies?)
 			local to = parser:get("to")
 			assert(to or parser:has("top"), "say where with --to <group> or --top")
 			store.transaction(dir, function(doc)
-				graph.move(
-					doc,
-					resolveNodeId(doc, id),
-					if parser:has("top") then nil else resolveNodeId(doc, to :: string)
-				)
+				graph.move(doc, id, if parser:has("top") then nil else to)
 			end)
 
 			deps.write(`Moved {id} to {to or "the top level"}`)
@@ -902,22 +894,17 @@ local function execute(args: { string }, options: Dependencies?)
 		groupsReport(deps, store.load(dir), asJson)
 	elseif key == "group create" then
 		local label = joined(parser:variadics(), "<label>")
-		local parent = parser:get("in")
 		local made: Item
 		local doc = store.transaction(dir, function(doc)
-			made = graph.createGroup(doc, label, if parent then resolveNodeId(doc, parent) else nil)
+			made = graph.createGroup(doc, label, parser:get("in"))
 		end)
 
 		emitItem(deps, doc, made, asJson, "Created group")
 	elseif key == "group add" then
 		local label = joined(parser:variadics(), "<label>")
-		local items = parseCommaList(required(parser, "items"))
+		local ids = parseCommaList(required(parser, "items"))
 		local made: Item
 		local doc = store.transaction(dir, function(doc)
-			local ids = {}
-			for _, item in items do
-				table.insert(ids, resolveNodeId(doc, item))
-			end
 			made = graph.makeGroup(doc, label, ids)
 		end)
 
@@ -931,9 +918,8 @@ local function execute(args: { string }, options: Dependencies?)
 		checkStyleAssets(dir, values.background)
 		local changed: Item
 		local doc = store.transaction(dir, function(doc)
-			local groupId = resolveNodeId(doc, id)
-			requireGroup(doc, groupId)
-			changed = graph.setFields(doc, groupId, values)
+			requireGroup(doc, id)
+			changed = graph.setFields(doc, id, values)
 		end)
 
 		emitItem(deps, doc, changed, asJson, "Updated")
@@ -944,7 +930,7 @@ local function execute(args: { string }, options: Dependencies?)
 		else
 			local id = ids[1]
 			store.transaction(dir, function(doc)
-				graph.ungroup(doc, resolveNodeId(doc, id))
+				graph.ungroup(doc, id)
 			end)
 
 			deps.write(`Ungrouped {id}`)

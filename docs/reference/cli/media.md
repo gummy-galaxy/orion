@@ -20,7 +20,7 @@ orion media insert [file] [options]
 | ----------------- | ---------------------------------------------- |
 | `[file]`          | Media file (PNG, JPEG, GIF, or WebP supported) |
 | `--label <value>` | Node label                                     |
-| `--group <value>` | Group to put the node in, by id or label       |
+| `--group <value>` | Group to put the node in                       |
 | `--json`          | Print JSON                                     |
 
 ## orion media list

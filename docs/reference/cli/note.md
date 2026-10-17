@@ -16,10 +16,10 @@ Add a note, optionally between two linked items
 orion note add [options] [text...]
 ```
 
-| Argument           | Description                        |
-| ------------------ | ---------------------------------- |
-| `[text...]`        | Note text                          |
-| `--group <value>`  | Group to add it to, by id or label |
-| `--after <value>`  | Item the note follows              |
-| `--before <value>` | Item the note leads into           |
-| `--json`           | Print JSON                         |
+| Argument           | Description              |
+| ------------------ | ------------------------ |
+| `[text...]`        | Note text                |
+| `--group <value>`  | Group to add it to       |
+| `--after <value>`  | Item the note follows    |
+| `--before <value>` | Item the note leads into |
+| `--json`           | Print JSON               |

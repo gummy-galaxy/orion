@@ -36,7 +36,7 @@ Runs `orion card add`.
 | ----------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `title`     | string                                                                 | **Required.**                                                                                                                                         |
 | `workspace` | workspace                                                              | Canvas name. Omit to use the canvas selected in Orion.                                                                                                |
-| `group`     | id                                                                     | Group id, or its label when exactly one group has it.                                                                                                 |
+| `group`     | id                                                                     |                                                                                                                                                       |
 | `kind`      | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work. |
 | `shape`     | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                  |
 | `color`     | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                             |
@@ -77,7 +77,7 @@ Runs `orion note add`.
 | ----------- | --------- | ------------------------------------------------------ |
 | `text`      | string    | **Required.**                                          |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`     | id        | Group id, or its label when exactly one group has it.  |
+| `group`     | id        |                                                        |
 | `after`     | id        |                                                        |
 | `before`    | id        |                                                        |
 
@@ -102,7 +102,7 @@ Runs `orion media insert`.
 | `path`      | string    | **Required.** Absolute path to a local image file.     |
 | `label`     | string    |                                                        |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`     | id        | Group id, or its label when exactly one group has it.  |
+| `group`     | id        |                                                        |
 
 ## orion_themes
 
@@ -172,15 +172,15 @@ Runs `orion group add`.
 
 ## orion_create_group
 
-Make an empty group, optionally inside another group. Add cards to it afterward with its id or label.
+Make an empty group, optionally inside another group. Add cards to it afterward with its id.
 
 Runs `orion group create`.
 
-| Argument    | Type      | Description                                            |
-| ----------- | --------- | ------------------------------------------------------ |
-| `label`     | string    | **Required.**                                          |
-| `in`        | id        | Group id, or its label when exactly one group has it.  |
-| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
+| Argument    | Type      | Description                                                          |
+| ----------- | --------- | -------------------------------------------------------------------- |
+| `label`     | string    | **Required.** The group's name, shown on the canvas.                 |
+| `in`        | id        | Id of the group to make it inside. Omit to make it at the top level. |
+| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion.               |
 
 ## orion_move
 
@@ -192,7 +192,7 @@ Runs `orion node move`.
 | ----------- | --------- | ------------------------------------------------------ |
 | `id`        | id        | **Required.**                                          |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`     | id        | Group id, or its label when exactly one group has it.  |
+| `group`     | id        |                                                        |
 
 ## orion_remove
 

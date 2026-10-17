@@ -5,7 +5,6 @@ local graph = require("@root/graph")
 local importTypes = require("@root/import/types")
 local lookupRecords = require("@root/import/lookupRecords")
 local resolveInputs = require("@root/import/resolveInputs")
-local resolveNodeId = require("@root/resolveNodeId")
 local runEdit = require("@root/cli/runEdit")
 local store = require("@root/store")
 local types = require("@root/types")
@@ -29,10 +28,9 @@ export type Options = {
 -- are skipped and keep their card. The lookups run before the write, so the transaction stays short.
 local function importRefs(inputs: { string }, options: Options): Report
 	local doc = store.load(options.dir)
-	local groupId = if options.groupId then resolveNodeId(doc, options.groupId) else nil
 
-	if groupId then
-		graph.group(doc, groupId)
+	if options.groupId then
+		graph.group(doc, options.groupId)
 	end
 
 	local entries = resolveInputs(inputs, doc.settings.sources)
@@ -74,7 +72,7 @@ local function importRefs(inputs: { string }, options: Options): Report
 				outcome.status = "existing"
 				outcome.id, outcome.label = existing.id, graph.label(existing)
 			elseif entry.record then
-				local item = addCard(current, entry.record, groupId)
+				local item = addCard(current, entry.record, options.groupId)
 				outcome.status = "added"
 				outcome.id, outcome.label = item.id, graph.label(item)
 			else

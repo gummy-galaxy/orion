@@ -28,11 +28,11 @@ Make an empty group, optionally inside another
 orion group create [options] [label...]
 ```
 
-| Argument       | Description                             |
-| -------------- | --------------------------------------- |
-| `[label...]`   | Group name                              |
-| `--in <value>` | Group to make it inside, by id or label |
-| `--json`       | Print JSON                              |
+| Argument       | Description             |
+| -------------- | ----------------------- |
+| `[label...]`   | Group name              |
+| `--in <value>` | Group to make it inside |
+| `--json`       | Print JSON              |
 
 ## orion group add
 
