@@ -23,7 +23,7 @@ Orion is a prototype and hasn't had its first release, so anything can still cha
 | `design/`   | Logo sources                             |
 | `examples/` | Example theme files                      |
 
-[`CHARTER.md`](CHARTER.md) sets where Orion is headed, and [`DECISIONS.md`](DECISIONS.md) records the calls made along the way. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers building and testing. Agents start at [`AGENTS.md`](AGENTS.md).
+[The charter](docs/development/charter.md) sets where Orion is headed, and [the decisions log](docs/development/decisions.md) records the calls made along the way. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers building and testing. Agents start at [`AGENTS.md`](AGENTS.md).
 
 ## License
 

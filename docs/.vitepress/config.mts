@@ -50,6 +50,8 @@ export default defineConfig({
       ],
       '/development/': [
         { text: 'Development', link: '/development/' },
+        { text: 'Charter', link: '/development/charter' },
+        { text: 'Decisions', link: '/development/decisions' },
         { text: 'Design', link: '/development/design/' },
         { text: 'Engineering', link: '/development/engineering/' },
       ],
