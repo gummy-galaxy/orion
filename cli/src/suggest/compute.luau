@@ -107,11 +107,7 @@ local function getEligible(doc: Doc, scope: string): { Item }
 	local cards: { Item } = {}
 
 	for _, item in doc.nodes do
-		if
-			item.type == "task"
-			and not graph.isNote(item)
-			and (scope == "all" or item.parentId == nil or item.parentId == "unsorted")
-		then
+		if graph.isWork(item) and (scope == "all" or item.parentId == nil or item.parentId == "unsorted") then
 			table.insert(cards, item)
 		end
 	end

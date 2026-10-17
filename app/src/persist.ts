@@ -211,6 +211,7 @@ export function onSyncStatus(callback: (status: SyncStatus) => void) {
 }
 
 /** Only what's worth keeping; selection, measurements and handles are view state. */
+/** The stored fields of each node. A card's size comes from its kind and text, so only groups and images keep one. */
 export function slim(nodes: AppNode[]) {
   return nodes.map((node) => ({
     id: node.id,
@@ -218,8 +219,8 @@ export function slim(nodes: AppNode[]) {
     position: node.position,
     parentId: node.parentId,
     data: node.data,
-    width: node.width,
-    height: node.height,
+    width: node.type === 'task' ? undefined : node.width,
+    height: node.type === 'task' ? undefined : node.height,
   }))
 }
 
