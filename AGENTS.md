@@ -100,13 +100,23 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 - Look up ids with `orion card list --all` or `orion node show` rather than guessing them.
 - Group by outcome, not by repository.
 
+## Issues
+
+Write each issue so that one pull request can close it.
+
+- Give it one outcome. A title that lists several things, such as "X, Y, and Z", is several issues.
+- Say what done looks like, concretely enough that someone who reads only the issue can tell whether a pull request finishes it.
+- Settle open questions before filing, or file each question as its own issue. An issue that still has to decide what to build can't be closed by building it.
+- When work needs more than one pull request, file an issue for each one instead of a parent issue that tracks them. Direction and long-range plans belong in [`CHARTER.md`](CHARTER.md).
+- Write for someone who hasn't seen the conversation that led to it.
+
 ## Pull requests
 
 When a pull request changes what the app shows, attach before and after screenshots to its description. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures both sides the same way into `/tmp`, uploads them to GitHub through the comment box without posting, and writes the description with `gh`.
 
 CI's perf workflow compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. It skips drafts and runs once a pull request is ready for review. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment once it posts. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
 
-Put `Closes #<n>` in the description for each issue the pull request finishes, so merging it closes the issue. Mention issues it only advances without the keyword.
+A pull request that works on an issue closes it. Put `Closes #<n>` in the description, so merging it closes the issue. Don't point at an issue with "Part of", "Advances", "Related", or any other label instead. When the pull request leaves part of the issue undone, file what's left as a new issue that follows the rules above, and still close the original.
 
 Give each pull request a place on the canvas. When a card already tracks the work, attach the pull request to it with `orion card set <id> --ref https://github.com/vocksel/orion/pull/<n>`. Otherwise add a card for it in the outcome group it belongs to.
 
