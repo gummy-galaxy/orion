@@ -18,7 +18,7 @@ local function removeRuntime(root: string, expected: Runtime?)
 			not current
 			or current.pid ~= expected.pid
 			or current.url ~= expected.url
-			or current.workspace ~= expected.workspace
+			or current.canvas ~= expected.canvas
 			or current.dataFolder ~= expected.dataFolder
 			or current.startedAt ~= expected.startedAt
 		then

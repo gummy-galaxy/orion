@@ -9,6 +9,7 @@ local getRefs = require("@root/refs/getRefs")
 local isAssetId = require("@root/media/isAssetId")
 local removeRef = require("@root/refs/removeRef")
 local setRef = require("@root/refs/setRef")
+local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -540,12 +541,6 @@ function graph.derive(doc: Doc): Derived
 	return { status = status, flow = flow, leverage = leverage, upstream = upstream, rarity = rarity, groups = groups }
 end
 
-local function slug(text: string): string
-	local value = text:lower():gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
-	value = value:sub(1, 32):gsub("%-+$", "")
-	return if value == "" then "item" else value
-end
-
 local function uniqueId(doc: Doc, base: string): string
 	if not graph.find(doc, base) then
 		return base
@@ -707,7 +702,9 @@ function graph.addItem(doc: Doc, label: string, options: AddOptions): Item
 		graph.group(doc, options.group)
 	end
 
-	local base = if options.repo and options.pr then `{slug(options.repo :: string)}-{options.pr}` else slug(label)
+	local base = if options.repo and options.pr
+		then `{slugify(options.repo :: string)}-{options.pr}`
+		else slugify(label)
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
@@ -744,7 +741,7 @@ function graph.addImage(doc: Doc, label: string, extension: string, workspace: s
 	if group then
 		graph.group(doc, group)
 	end
-	local id = uniqueId(doc, `image-{slug(label)}`)
+	local id = uniqueId(doc, `image-{slugify(label)}`)
 	local item: Item = {
 		id = id,
 		type = "image",
@@ -999,32 +996,32 @@ function graph.insertBetween(doc: Doc, id: string, from: string, to: string)
 	graph.link(doc, id, to, existing.kind)
 end
 
--- Groups left with nothing inside disappear, as they do in the app.
-local function pruneEmptyGroups(doc: Doc)
-	local changed = true
+-- Removes a group that an edit left with nothing inside, then checks the group that holds it the same way. Only groups
+-- the edit emptied go, so a group made empty on purpose, such as by group create, stays until something lands in it.
+local function pruneEmptied(doc: Doc, groupId: string?)
+	local current = groupId
 
-	while changed do
-		changed = false
+	while current do
+		local group = graph.find(doc, current)
 
-		for index = #doc.nodes, 1, -1 do
-			local item = doc.nodes[index]
+		if group == nil or not graph.isGroup(group) then
+			return
+		end
 
-			if graph.isGroup(item) then
-				local hasChildren = false
-
-				for _, other in doc.nodes do
-					if other.parentId == item.id then
-						hasChildren = true
-						break
-					end
-				end
-
-				if not hasChildren then
-					table.remove(doc.nodes, index)
-					changed = true
-				end
+		for _, other in doc.nodes do
+			if other.parentId == current then
+				return
 			end
 		end
+
+		for index, node in doc.nodes do
+			if node.id == current then
+				table.remove(doc.nodes, index)
+				break
+			end
+		end
+
+		current = group.parentId
 	end
 end
 
@@ -1065,7 +1062,7 @@ function graph.addNote(doc: Doc, text: string, options: NoteOptions): Item
 	end
 
 	local note: Item = {
-		id = uniqueId(doc, `note-{slug(text):sub(1, 24)}`),
+		id = uniqueId(doc, `note-{slugify(text, 24)}`),
 		type = "task",
 		position = position,
 		parentId = parent,
@@ -1103,6 +1100,7 @@ end
 function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 	local item = graph.get(doc, id)
 	assert(not graph.isGroup(item), `"{id}" is a group; use group ungroup or group remove instead`)
+	local parentId = item.parentId
 	if reconnect then
 		graph.checkReconnect(doc, id)
 	end
@@ -1141,7 +1139,7 @@ function graph.remove(doc: Doc, id: string, reconnect: boolean?)
 		end
 	end
 
-	pruneEmptyGroups(doc)
+	pruneEmptied(doc, parentId)
 end
 
 -- Asks the app to tidy a group whose members changed. A pending marker already places it, so it is kept, and a
@@ -1191,7 +1189,7 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }, groupId: stri
 
 	local origin = { x = minimumX - GROUP_PADDING, y = minimumY - GROUP_HEADER_HEIGHT }
 	local group: Item = {
-		id = groupId or uniqueId(doc, slug(label)),
+		id = groupId or uniqueId(doc, slugify(label)),
 		type = "cluster",
 		position = origin,
 		parentId = parent,
@@ -1206,6 +1204,27 @@ function graph.makeGroup(doc: Doc, label: string, ids: { string }, groupId: stri
 	end
 
 	markForRefit(group)
+	table.insert(doc.nodes, group)
+	return group
+end
+
+-- Makes an empty group, inside `parentId` when given. Its size is one card's worth, so layout checks leave room for it.
+function graph.createGroup(doc: Doc, label: string, parentId: string?): Item
+	assert(label ~= "", "a group needs a name")
+
+	if parentId then
+		graph.group(doc, parentId)
+	end
+
+	local group: Item = {
+		id = uniqueId(doc, slugify(label)),
+		type = "cluster",
+		position = graph.nextSlot(doc, parentId),
+		parentId = parentId,
+		width = TASK_WIDTH + GROUP_PADDING * 2,
+		height = TASK_HEIGHT + GROUP_HEADER_HEIGHT + GROUP_PADDING,
+		data = json.object({ kind = "cluster", label = label }),
+	}
 	table.insert(doc.nodes, group)
 	return group
 end
@@ -1258,7 +1277,7 @@ end
 -- Removes a group with everything inside it. Each card goes the way `remove` takes it, so a note's links reconnect
 -- around it, and a parent left empty disappears.
 function graph.removeGroup(doc: Doc, id: string)
-	graph.group(doc, id)
+	local parentId = graph.group(doc, id).parentId
 	local groupIds = { [id] = true }
 
 	for _, item in graph.contents(doc, id) do
@@ -1275,7 +1294,7 @@ function graph.removeGroup(doc: Doc, id: string)
 		end
 	end
 
-	pruneEmptyGroups(doc)
+	pruneEmptied(doc, parentId)
 end
 
 -- Takes a ref off an item. A kind narrows the match when the same key could name an issue and a pull request.
@@ -1309,15 +1328,18 @@ function graph.recordedStatuses(doc: Doc): { [string]: string }
 	return statuses
 end
 
--- Sets `celebrate` on a card that changed to done, so the app can celebrate it, and clears it when the card is
+-- Sets `celebrate` on a card that changed to done, so it waits to be closed out, and clears it when the card is
 -- reopened. Cards created done and notes never get the flag, and cards finished before the flag existed don't have it.
+-- The app sends `celebrate = false` for a card it finished and closed out at once, so that card doesn't wait.
 function graph.markCelebrations(doc: Doc, previous: { [string]: string })
 	for _, item in doc.nodes do
 		if item.type == "task" and not graph.isNote(item) then
 			local status = field(item, "status")
 			local wasOpen = previous[item.id] ~= nil and previous[item.id] ~= "done"
 
-			if status == "done" and wasOpen then
+			if item.data.celebrate == false then
+				item.data.celebrate = nil
+			elseif status == "done" and wasOpen then
 				item.data.celebrate = true
 			elseif status ~= "done" then
 				item.data.celebrate = nil
@@ -1339,6 +1361,8 @@ function graph.move(doc: Doc, id: string, groupId: string?)
 		return
 	end
 
+	local previousParent = item.parentId
+
 	-- Node order doesn't matter here; the app sorts parents ahead of children on load.
 	item.position = graph.nextSlot(doc, groupId)
 	item.parentId = groupId
@@ -1347,7 +1371,7 @@ function graph.move(doc: Doc, id: string, groupId: string?)
 		markForRefit(graph.group(doc, groupId))
 	end
 
-	pruneEmptyGroups(doc)
+	pruneEmptied(doc, previousParent)
 end
 
 return table.freeze(graph)

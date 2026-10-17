@@ -2,6 +2,7 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local task = require("@std/task")
 
+local fileNames = require("@root/fileNames")
 local store = require("@root/store")
 local types = require("@root/types")
 
@@ -37,7 +38,7 @@ function watcher.create(
 )
 	local isClosed = false
 	local dataFile = store.filePath(store.getWorkspaceDir(root, active()))
-	local manifestFile = tostring(path.join(root, "workspaces.json"))
+	local manifestFile = tostring(path.join(root, fileNames.canvases))
 	local lastDataStamp = getStamp(dataFile)
 	local lastManifestStamp = getStamp(manifestFile)
 	local lastManifestActive = store.getWorkspaces(root).active
