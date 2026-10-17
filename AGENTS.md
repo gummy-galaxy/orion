@@ -106,7 +106,7 @@ Write each issue so that one pull request can close it.
 
 - Give it one outcome. A title that lists several things, such as "X, Y, and Z", is several issues.
 - Say what done looks like, concretely enough that someone who reads only the issue can tell whether a pull request finishes it.
-- Settle open questions before filing, or file each question as its own issue. An issue that still has to decide what to build can't be closed by building it.
+- Settle open questions before filing, or file each question as its own issue. An issue that still has to decide what to build can't be closed by building it. A question's issue is closed by the pull request that records the answer in [`DECISIONS.md`](DECISIONS.md) and files the issues it settles on.
 - When work needs more than one pull request, file an issue for each one instead of a parent issue that tracks them. Direction and long-range plans belong in [`CHARTER.md`](CHARTER.md).
 - Write for someone who hasn't seen the conversation that led to it.
 
