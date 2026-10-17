@@ -20,6 +20,13 @@
   --note-border: light-dark(#d9b94a, #8a7428);
   --note-text: light-dark(#7a6418, #d9c272);
   --snap-guide: light-dark(#e0457b, #ff6f9c);
+  --tint-teal: light-dark(#0d8a8f, #4fc1c4);
+  --tint-blue: light-dark(#2f6fd6, #6ea2f2);
+  --tint-purple: light-dark(#7a52cc, #a98bf0);
+  --tint-amber: light-dark(#c27a0e, #e2a34a);
+  --tint-rose: light-dark(#cc4a6a, #f07a95);
+  --tint-green: light-dark(#2f8a4f, #6cc28a);
+  --tint-slate: light-dark(#5f6f7a, #92a3aa);
   --sticker-edge: #fff;
   --window-close-background: #c42b1c;
   --window-close-text: #fff;

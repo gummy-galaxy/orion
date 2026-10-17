@@ -41,19 +41,23 @@ Runs `orion node find`.
 
 ## orion_add_item
 
-Add a work item to the canvas.
+Add a work item, or a component for a system diagram, to the canvas.
 
 Runs `orion card add`.
 
-| Argument    | Type                                                    | Description                                                                                               |
-| ----------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `title`     | string                                                  | **Required.**                                                                                             |
-| `workspace` | workspace                                               | Canvas name. Omit to use the canvas selected in Orion.                                                    |
-| `group`     | id                                                      |                                                                                                           |
-| `repo`      | string                                                  | Deprecated: with pr, use ref with the pull request URL instead.                                           |
-| `pr`        | int                                                     | Deprecated: use ref with the pull request URL instead.                                                    |
-| `ref`       | string                                                  | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch. |
-| `status`    | todo \| active \| review \| blocked \| deferred \| done |                                                                                                           |
+| Argument    | Type                                                                   | Description                                                                                                                                           |
+| ----------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`     | string                                                                 | **Required.**                                                                                                                                         |
+| `workspace` | workspace                                                              | Canvas name. Omit to use the canvas selected in Orion.                                                                                                |
+| `group`     | id                                                                     |                                                                                                                                                       |
+| `kind`      | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work. |
+| `shape`     | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                  |
+| `color`     | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                             |
+| `repo`      | string                                                                 | Deprecated: with pr, use ref with the pull request URL instead.                                                                                       |
+| `pr`        | int                                                                    | Deprecated: use ref with the pull request URL instead.                                                                                                |
+| `ref`       | string                                                                 | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                             |
+| `status`    | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                       |
+| `note`      | string                                                                 |                                                                                                                                                       |
 
 ## orion_update_item
 
@@ -61,17 +65,20 @@ Change fields on an existing Orion card.
 
 Runs `orion card set`.
 
-| Argument    | Type                                                    | Description                                                                                                                                                                                                                   |
-| ----------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`        | id                                                      | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item.                                                                                                |
-| `workspace` | workspace                                               | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                        |
-| `label`     | string                                                  |                                                                                                                                                                                                                               |
-| `status`    | todo \| active \| review \| blocked \| deferred \| done |                                                                                                                                                                                                                               |
-| `who`       | you \| review \| ci \|                                  | Whose move: you, review, or ci. Empty clears it.                                                                                                                                                                              |
-| `note`      | string                                                  | Replaces the whole note. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
-| `repo`      | string                                                  | Deprecated: with pr, use ref with the pull request URL instead.                                                                                                                                                               |
-| `pr`        | int                                                     | Deprecated: use ref with the pull request URL instead.                                                                                                                                                                        |
-| `ref`       | string                                                  | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                                                                                                     |
+| Argument    | Type                                                                   | Description                                                                                                                                                                                                                   |
+| ----------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`        | id                                                                     | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item.                                                                                                |
+| `workspace` | workspace                                                              | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                        |
+| `label`     | string                                                                 |                                                                                                                                                                                                                               |
+| `status`    | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                                                                                               |
+| `who`       | you \| review \| ci \|                                                 | Whose move: you, review, or ci. Empty clears it.                                                                                                                                                                              |
+| `note`      | string                                                                 | Replaces the whole note. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
+| `kind`      | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work.                                                                         |
+| `shape`     | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                                                                                          |
+| `color`     | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                                                                                                     |
+| `repo`      | string                                                                 | Deprecated: with pr, use ref with the pull request URL instead.                                                                                                                                                               |
+| `pr`        | int                                                                    | Deprecated: use ref with the pull request URL instead.                                                                                                                                                                        |
+| `ref`       | string                                                                 | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                                                                                                     |
 
 ## orion_add_note
 
@@ -112,7 +119,7 @@ Runs `orion media insert`.
 
 ## orion_link
 
-Connect two items, optionally as a related link that does not block work.
+Connect two items, optionally as a related link that does not block work. Linking an already linked pair updates that link.
 
 Runs `orion link add`.
 
@@ -122,6 +129,7 @@ Runs `orion link add`.
 | `to`        | id        | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion.                                                                         |
 | `related`   | boolean   |                                                                                                                                |
+| `label`     | string    | What the link carries, such as HTTP or WebSocket. Empty clears it.                                                             |
 
 ## orion_unlink
 

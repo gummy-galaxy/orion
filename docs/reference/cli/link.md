@@ -22,6 +22,7 @@ orion link add [from] [to] [options] [next...]
 | `[to]`                  | The item that waits on it                            |
 | `[next...]`             | Further items in the chain                           |
 | `--related`             | Link without blocking                                |
+| `--label <value>`       | What the link carries, such as HTTP (empty to clear) |
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |
 | `--json`                | Print JSON                                           |

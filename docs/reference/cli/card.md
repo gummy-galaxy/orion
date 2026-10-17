@@ -30,18 +30,20 @@ Add a work item
 orion card add [options] [label...]
 ```
 
-| Argument           | Description                                                                                           |
-| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `[label...]`       | What the work is                                                                                      |
-| `--group <value>`  | Group to add it to                                                                                    |
-| `--status <value>` | todo, active, review, blocked, deferred, or done                                                      |
-| `--repo <value>`   | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                 |
-| `--pr <value>`     | Pull request number. Deprecated: use --ref with the pull request URL                                  |
-| `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                       |
-| `--note <value>`   | Free-form note (empty to clear)                                                                       |
-| `--kind <value>`   | step, or gate for one that's done once everything it waits on is                                      |
-| `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch |
-| `--json`           | Print JSON                                                                                            |
+| Argument           | Description                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `[label...]`       | What the work is                                                                                             |
+| `--group <value>`  | Group to add it to                                                                                           |
+| `--status <value>` | todo, active, review, blocked, deferred, or done                                                             |
+| `--repo <value>`   | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                        |
+| `--pr <value>`     | Pull request number. Deprecated: use --ref with the pull request URL                                         |
+| `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                              |
+| `--note <value>`   | Free-form note (empty to clear)                                                                              |
+| `--shape <value>`  | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)     |
+| `--color <value>`  | A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                        |
+| `--kind <value>`   | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work |
+| `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch        |
+| `--json`           | Print JSON                                                                                                   |
 
 ## orion card set
 
@@ -51,18 +53,20 @@ Change an item's fields
 orion card set [id] [options]
 ```
 
-| Argument           | Description                                                                                           |
-| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `[id]`             | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86             |
-| `--label <value>`  | New label                                                                                             |
-| `--status <value>` | todo, active, review, blocked, deferred, or done                                                      |
-| `--repo <value>`   | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                 |
-| `--pr <value>`     | Pull request number. Deprecated: use --ref with the pull request URL                                  |
-| `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                       |
-| `--note <value>`   | Free-form note (empty to clear)                                                                       |
-| `--kind <value>`   | step, or gate for one that's done once everything it waits on is                                      |
-| `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch |
-| `--json`           | Print JSON                                                                                            |
+| Argument           | Description                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `[id]`             | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86                    |
+| `--label <value>`  | New label                                                                                                    |
+| `--status <value>` | todo, active, review, blocked, deferred, or done                                                             |
+| `--repo <value>`   | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                        |
+| `--pr <value>`     | Pull request number. Deprecated: use --ref with the pull request URL                                         |
+| `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                              |
+| `--note <value>`   | Free-form note (empty to clear)                                                                              |
+| `--shape <value>`  | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)     |
+| `--color <value>`  | A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                        |
+| `--kind <value>`   | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work |
+| `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch        |
+| `--json`           | Print JSON                                                                                                   |
 
 ## orion card done
 

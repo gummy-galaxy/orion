@@ -1,6 +1,6 @@
 import type { deriveWork } from '../derive'
 import type { AppNode, Link } from '../model'
-import { DIRECTION_LABEL } from '../linkDirection'
+import { directionLabels } from '../linkDirection'
 import { LinkAdd } from './LinkAdd'
 import { LinkSection } from './LinkSection'
 
@@ -32,12 +32,13 @@ export function LinkList({
   }
   const joined = new Set(ownLinks.map((link) => (link.from === node.id ? link.to : link.from)))
   const shared = { node, work, nodeMap, jumpTo, removeLink, flipLink }
+  const labels = directionLabels(node)
 
   return (
     <div className="link-sections">
-      <LinkSection title={DIRECTION_LABEL.waits} links={groups.waits} {...shared} />
-      <LinkSection title={DIRECTION_LABEL.unblocks} links={groups.unblocks} {...shared} />
-      <LinkSection title={DIRECTION_LABEL.related} links={groups.related} {...shared} />
+      <LinkSection title={labels.waits} links={groups.waits} {...shared} />
+      <LinkSection title={labels.unblocks} links={groups.unblocks} {...shared} />
+      <LinkSection title={labels.related} links={groups.related} {...shared} />
       <LinkAdd node={node} nodeMap={nodeMap} joined={joined} addLink={addLink} />
     </div>
   )

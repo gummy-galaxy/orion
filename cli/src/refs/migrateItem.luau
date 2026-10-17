@@ -190,7 +190,7 @@ local function migrateItem(item: Item, owner: string, sources: { Source })
 
 	local itemKind = getString(data.itemKind)
 
-	if itemKind ~= "gate" and itemKind ~= "note" then
+	if itemKind ~= "gate" and itemKind ~= "note" and itemKind ~= "component" then
 		if findRef(item, "pull") then
 			data.itemKind = "pr"
 		elseif itemKind == nil or itemKind == "pr" then

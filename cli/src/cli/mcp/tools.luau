@@ -34,6 +34,30 @@ local NOTE_DESCRIPTION = "Replaces the whole note. " .. NOTE_STYLE
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
 
+local shapeField: Field = {
+	name = "shape",
+	kind = "enum",
+	values = fieldValues.shapes,
+	description = "How a component is drawn. Giving a shape makes the item a component.",
+	at = "option",
+}
+
+local colorField: Field = {
+	name = "color",
+	kind = "enum",
+	values = fieldValues.colors,
+	description = "A component's tint. Components take their nearest group's tint unless they set their own.",
+	at = "option",
+}
+
+local kindField: Field = {
+	name = "kind",
+	kind = "enum",
+	values = fieldValues.kinds,
+	description = "step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work.",
+	at = "option",
+}
+
 local workspaceField: Field = {
 	name = "workspace",
 	kind = "workspace",
@@ -187,17 +211,21 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_add_item",
-		description = "Add a work item to the canvas.",
+		description = "Add a work item, or a component for a system diagram, to the canvas.",
 		command = { "card", "add" },
 		json = true,
 		fields = {
 			{ name = "title", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
 			{ name = "group", kind = "id", at = "option" },
+			kindField,
+			shapeField,
+			colorField,
 			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
 			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
 			{ name = "status", kind = "enum", values = fieldValues.statuses, at = "option" },
+			{ name = "note", kind = "string", at = "option" },
 		},
 	},
 	{
@@ -218,6 +246,9 @@ local tools: { Tool } = {
 				at = "option",
 			},
 			{ name = "note", kind = "string", description = NOTE_DESCRIPTION, at = "option" },
+			kindField,
+			shapeField,
+			colorField,
 			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
 			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
@@ -265,13 +296,19 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_link",
-		description = "Connect two items, optionally as a related link that does not block work.",
+		description = "Connect two items, optionally as a related link that does not block work. Linking an already linked pair updates that link.",
 		command = { "link", "add" },
 		fields = {
 			{ name = "from", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			{ name = "to", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			workspaceField,
 			{ name = "related", kind = "boolean", at = "flag", flag = "related" },
+			{
+				name = "label",
+				kind = "string",
+				description = "What the link carries, such as HTTP or WebSocket. Empty clears it.",
+				at = "option",
+			},
 		},
 	},
 	{

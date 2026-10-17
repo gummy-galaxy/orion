@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DIRECTION_LABEL, type Direction } from '../linkDirection'
+import { DIRECTION_LABEL, directionLabels, type Direction } from '../linkDirection'
 import { cardLabel, isTask, type AppNode, type ClusterData, type Link } from '../model'
 
 /** Searches for another card and links it to this one, in the direction picked. */
@@ -17,6 +17,7 @@ export function LinkAdd({
 }) {
   const [direction, setDirection] = useState<Direction>('waits')
   const [query, setQuery] = useState('')
+  const labels = directionLabels(node)
   const needle = query.trim().toLowerCase()
   const matches = needle
     ? [...nodeMap.values()]
@@ -41,7 +42,7 @@ export function LinkAdd({
         <select aria-label="Link kind" value={direction} onChange={(event) => setDirection(event.target.value as Direction)}>
           {(Object.keys(DIRECTION_LABEL) as Direction[]).map((key) => (
             <option key={key} value={key}>
-              {DIRECTION_LABEL[key]}
+              {labels[key]}
             </option>
           ))}
         </select>
