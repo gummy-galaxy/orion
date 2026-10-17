@@ -1,11 +1,11 @@
 ---
 name: file-issue
-description: Turn the person's spoken or stream-of-consciousness thoughts into an Orion intent issue labeled needs grooming. Use when the person talks through an idea, feature, or problem and asks to make it an issue, file it, write it up, or capture it.
+description: Turn the person's spoken or stream-of-consciousness thoughts into an Orion issue labeled needs grooming. Use when the person talks through an idea, feature, or problem and asks to make it an issue, file it, write it up, or capture it.
 ---
 
 # File an issue
 
-The person thinks out loud. Turn what they said into an intent issue that keeps what they want and why, so grooming can break it down later. It doesn't have to be buildable yet, and it can carry open questions. Grooming (`.claude/skills/groom-issue/SKILL.md`) turns it into task issues.
+The person thinks out loud. Turn what they said into an issue that keeps what they want and why. It doesn't have to be buildable yet, and it can carry open questions. The `needs grooming` label marks it until those questions are settled with the person.
 
 ## 1. Find the intent
 
@@ -26,7 +26,7 @@ Search open issues for overlap:
 gh issue list --repo vocksel/orion --state open --search '<keywords>'
 ```
 
-If an open intent issue already covers it, tell the person, recommend adding to that issue, and wait for their answer. Also read [`CHARTER.md`](../../../CHARTER.md) and [`DECISIONS.md`](../../../DECISIONS.md), and note any conflict in the issue's open questions.
+If an open issue already covers it, tell the person, recommend adding to that issue, and wait for their answer. Also read [`CHARTER.md`](../../../CHARTER.md) and [`DECISIONS.md`](../../../DECISIONS.md), and note any conflict in the issue's open questions.
 
 ## 3. Write it
 
@@ -46,4 +46,4 @@ When the person asked for the issue, file it without a separate draft review, un
 gh issue create --repo vocksel/orion --label "needs grooming" --title "<title>" --body-file <file>
 ```
 
-Write the body file in your scratchpad. Reply with the link and a one-line summary of the open questions. Don't file task issues here; grooming does that.
+Write the body file in your scratchpad. Reply with the link and a one-line summary of the open questions. File only this one issue. Don't break it into more.
