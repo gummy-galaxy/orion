@@ -19,7 +19,7 @@ body {
   color: var(--text-primary);
   font-family: var(--font-ui);
   font-size: var(--text-size-base);
-  line-height: 1.45;
+  line-height: var(--line-height-base);
 }
 button,
 input,
@@ -125,8 +125,8 @@ select {
   box-shadow: var(--shadow-image);
 }
 .react-flow__node-image.selected .image-node {
-  outline: 2px solid var(--accent-default);
-  outline-offset: 2px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-wide);
 }
 .image-node img {
   min-height: 0;
@@ -170,14 +170,14 @@ select {
   position: relative;
   width: 100%;
   height: 100%;
-  padding: var(--space-5) var(--space-6) var(--space-5) 15px;
+  padding: var(--space-5) var(--space-6) var(--space-5) var(--space-7-5);
   border-radius: var(--radius-card);
   border: var(--border-width-default) solid var(--card-border);
   background: var(--card-fill);
   display: grid;
   align-content: start;
-  gap: 3px;
-  box-shadow: inset 3px 0 0 var(--c);
+  gap: var(--space-1-5);
+  box-shadow: inset var(--stripe-width-default) 0 0 var(--c);
   transition:
     opacity var(--motion-duration-base),
     border-color var(--motion-duration-fast),
@@ -200,7 +200,7 @@ select {
   flex: none;
   width: 7px;
   height: 7px;
-  margin-right: 1px;
+  margin-right: var(--space-0-5);
   border: var(--border-width-strong) solid var(--c);
   transform: rotate(45deg);
 }
@@ -253,10 +253,10 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: var(--space-1-5);
   min-width: 18px;
   height: 18px;
-  padding: 0 3px;
+  padding: 0 var(--space-1-5);
   border: 0;
   border-radius: var(--radius-xs);
   background: var(--status-done);
@@ -266,7 +266,7 @@ select {
   font-weight: var(--weight-semibold);
   white-space: nowrap;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--status-done) 40%, transparent),
+    0 0 0 var(--ring-width-hairline) color-mix(in srgb, var(--status-done) 40%, transparent),
     var(--shadow-raised);
   cursor: pointer;
 }
@@ -278,8 +278,8 @@ select {
 }
 .merge-pull:hover,
 .merge-pull:focus-visible {
-  outline: 2px solid var(--status-done);
-  outline-offset: 1px;
+  outline: var(--ring-width-default) solid var(--status-done);
+  outline-offset: var(--ring-offset-default);
 }
 .merge-pull:disabled {
   cursor: wait;
@@ -301,13 +301,13 @@ select {
 .card .label {
   font-size: var(--text-size-label);
   font-weight: var(--weight-medium);
-  line-height: 1.25;
+  line-height: var(--line-height-label);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow-wrap: anywhere;
-  padding-right: 22px;
+  padding-right: var(--space-9-5);
 }
 .card:has(.vscode-open) .label {
   padding-right: 45px;
@@ -342,7 +342,7 @@ select {
   background: var(--st-done);
   color: var(--surface);
   box-shadow:
-    0 0 0 2px var(--card-fill),
+    0 0 0 var(--ring-width-default) var(--card-fill),
     var(--shadow-raised);
   cursor: pointer;
 }
@@ -351,14 +351,14 @@ select {
   height: 10px;
 }
 .finish-stamp:focus-visible {
-  outline: 2px solid var(--st-done);
-  outline-offset: 2px;
+  outline: var(--ring-width-default) solid var(--st-done);
+  outline-offset: var(--ring-offset-wide);
 }
 :where(:root[data-motion='on']) .finish-stamp:not(.is-clearing) {
   animation: finish-stamp-in var(--motion-duration-stamp) var(--motion-easing-pop) both;
 }
 :where(:root[data-motion='on']) .finish-stamp.is-clearing {
-  animation: finish-stamp-clear 420ms var(--motion-easing-exit) var(--clear-delay, 0ms) both;
+  animation: finish-stamp-clear var(--motion-duration-clear) var(--motion-easing-exit) var(--clear-delay, 0ms) both;
 }
 @keyframes finish-stamp-in {
   from {
@@ -382,7 +382,7 @@ select {
   background-position: 100% 0;
 }
 :where(:root[data-motion='on']) .card.is-waiting::after {
-  animation: done-shimmer 2.4s ease-in-out infinite;
+  animation: done-shimmer var(--motion-loop-shimmer) ease-in-out infinite;
 }
 @keyframes done-shimmer {
   0%,
@@ -400,14 +400,14 @@ select {
   bottom: var(--space-3);
   z-index: 1;
   padding: 0 var(--space-3);
-  border: 2.5px solid var(--status-done);
+  border: var(--border-width-stamp) solid var(--status-done);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--status-done) 10%, transparent);
   color: var(--status-done);
   font-size: var(--text-size-subheading);
   font-weight: var(--weight-bold);
   letter-spacing: 0.16em;
-  line-height: 1.4;
+  line-height: var(--line-height-preview);
   text-transform: uppercase;
   transform: rotate(-9deg);
   pointer-events: none;
@@ -459,8 +459,8 @@ select {
 }
 .vscode-open:hover,
 .vscode-open:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: 1px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-default);
 }
 .vscode-open:disabled {
   cursor: wait;
@@ -503,8 +503,8 @@ select {
   display: none;
 }
 .source-domain-many summary:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: 2px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-wide);
 }
 .source-favicon,
 .source-favicon svg,
@@ -602,7 +602,7 @@ select {
   --card-fill: color-mix(in srgb, var(--c) 8%, var(--surface-background));
   border-color: var(--c);
   box-shadow:
-    inset 4px 0 0 var(--c),
+    inset var(--stripe-width-strong) 0 0 var(--c),
     var(--shadow-raised);
 }
 .card.st-ready {
@@ -619,7 +619,7 @@ select {
 .card:is(.st-blocked, .st-done, .st-deferred) {
   --card-fill: var(--canvas-background);
   color: var(--text-muted);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 65%, var(--canvas-background));
+  box-shadow: inset var(--stripe-width-default) 0 0 color-mix(in srgb, var(--c) 65%, var(--canvas-background));
 }
 /* Ready to merge: the card turns the success color and glows, so it reads as the next thing to click. */
 .card.ready-to-merge {
@@ -627,8 +627,8 @@ select {
   --card-fill: color-mix(in srgb, var(--c) 12%, var(--surface-background));
   border-color: var(--c);
   box-shadow:
-    inset 4px 0 0 var(--c),
-    0 0 0 1px var(--c),
+    inset var(--stripe-width-strong) 0 0 var(--c),
+    0 0 0 var(--ring-width-hairline) var(--c),
     0 0 20px -2px color-mix(in srgb, var(--c) 60%, transparent),
     var(--shadow-raised);
 }
@@ -637,8 +637,8 @@ select {
   box-shadow: var(--shadow-selection);
 }
 .react-flow__node-task.selected .card {
-  outline: 3px solid var(--accent-default);
-  outline-offset: 3px;
+  outline: var(--ring-width-selection) solid var(--accent-default);
+  outline-offset: var(--ring-offset-selection);
 }
 .lev {
   position: absolute;
@@ -646,8 +646,8 @@ select {
   right: 8px;
   font-family: var(--font-data);
   font-size: var(--text-size-tiny);
-  line-height: 1;
-  padding: 3px var(--space-3);
+  line-height: var(--line-height-glyph);
+  padding: var(--space-1-5) var(--space-3);
   border-radius: var(--radius-pill);
   border: var(--border-width-default) solid var(--accent-default);
   background: var(--surface-background);
@@ -700,8 +700,8 @@ select {
 .canvas.is-linking .react-flow__node-task:hover:not(:has(.connectingfrom)) .card {
   border-color: var(--accent-default);
   box-shadow:
-    inset 3px 0 0 var(--c),
-    0 0 0 2px var(--accent-default);
+    inset var(--stripe-width-default) 0 0 var(--c),
+    0 0 0 var(--ring-width-default) var(--accent-default);
 }
 
 /*
@@ -723,25 +723,25 @@ select {
 :where(.canvas.is-tracing) .card:not(.tr-self, .tr-up, .tr-down, .tr-related) {
   --fade: 0.25;
   border-color: var(--border-default);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--c) 25%, var(--surface-background));
+  box-shadow: inset var(--stripe-width-default) 0 0 color-mix(in srgb, var(--c) 25%, var(--surface-background));
 }
 .card.tr-up {
   border-color: var(--status-review);
   box-shadow:
-    inset 3px 0 0 var(--c),
-    0 0 0 1px var(--status-review);
+    inset var(--stripe-width-default) 0 0 var(--c),
+    0 0 0 var(--ring-width-hairline) var(--status-review);
 }
 .card.tr-down {
   border-color: var(--accent-default);
   box-shadow:
-    inset 3px 0 0 var(--c),
-    0 0 0 1px var(--accent-default);
+    inset var(--stripe-width-default) 0 0 var(--c),
+    0 0 0 var(--ring-width-hairline) var(--accent-default);
 }
 .card.tr-related {
   border-color: var(--text-primary);
   box-shadow:
-    inset 3px 0 0 var(--c),
-    0 0 0 1px color-mix(in srgb, var(--text-primary) 40%, transparent);
+    inset var(--stripe-width-default) 0 0 var(--c),
+    0 0 0 var(--ring-width-hairline) color-mix(in srgb, var(--text-primary) 40%, transparent);
 }
 
 /* Hover lift. Only the hovered card changes: it grows a little from the middle of its title so the title barely moves,
@@ -770,13 +770,13 @@ select {
 /* Edges: motion everywhere but behind stuck work */
 .react-flow__edge .react-flow__edge-path {
   stroke: var(--edge-default);
-  stroke-width: 1.3;
+  stroke-width: var(--link-width-default);
   transition: opacity var(--motion-duration-base);
 }
 .react-flow__edge.e-live .react-flow__edge-path,
 .react-flow__edge.e-held .react-flow__edge-path {
   stroke: var(--edge-hot);
-  stroke-width: 1.7;
+  stroke-width: var(--link-width-held);
   stroke-dasharray: 5 5;
 }
 .react-flow__edge.e-held .react-flow__edge-path {
@@ -785,14 +785,14 @@ select {
 }
 .react-flow__edge.e-still .react-flow__edge-path {
   stroke: var(--edge-still);
-  stroke-width: 1.6;
+  stroke-width: var(--link-width-still);
 }
 .react-flow__edge.e-still .react-flow__edge-text {
   fill: var(--text-primary);
 }
 .react-flow__edge.e-rel .react-flow__edge-path {
   stroke: var(--text-muted);
-  stroke-width: 2.2;
+  stroke-width: var(--link-width-related);
   stroke-dasharray: 0.5 5;
   stroke-linecap: round;
 }
@@ -805,12 +805,12 @@ select {
 }
 /* Traced links keep their own look and stand out by weight while every other link fades. */
 .react-flow__edge:is(.tr-e-up, .tr-e-down) .react-flow__edge-path {
-  stroke-width: 2.6;
+  stroke-width: var(--link-width-traced);
   opacity: 1;
 }
 .react-flow__edge.tr-e-rel .react-flow__edge-path {
   stroke: var(--text-primary);
-  stroke-width: 2.6;
+  stroke-width: var(--link-width-traced);
   opacity: 1;
 }
 .react-flow__edge.tr-e-dim {
@@ -824,28 +824,29 @@ select {
 /* The link whose inspector is open. */
 .react-flow__edge.is-picked .react-flow__edge-path {
   stroke: var(--accent-default);
-  stroke-width: 2.8;
+  stroke-width: var(--link-width-picked);
   opacity: 1;
 }
 /* A link under the pointer firms up so it reads as something to right-click. */
 .react-flow__edge:not(.e-agg):hover .react-flow__edge-path {
-  stroke-width: 2.6;
+  stroke-width: var(--link-width-traced);
   opacity: 1;
 }
 /* Each frame these loops change repaints the canvas under them, so steps() holds them to 15 a second (one step
-   per 1/15 s of duration) rather than the display's 120. WebKit skips the frames between steps. */
+   per 1/15 s of the default period) rather than the display's 120. WebKit skips the frames between steps. A theme
+   that changes a loop's period changes its frame rate with it. */
 :where(:root[data-motion='on']) .react-flow__edge.e-live .react-flow__edge-path {
-  animation: flow 0.8s steps(12) infinite;
+  animation: flow var(--motion-loop-flow) steps(12) infinite;
 }
 :where(:root[data-motion='on']) .react-flow__edge.e-agg.e-live .react-flow__edge-path {
-  animation: flow-agg 1.2s steps(18) infinite;
+  animation: flow-agg var(--motion-loop-flow-group) steps(18) infinite;
 }
 :where(:root[data-motion='on']) .st-active {
-  animation: pulse 3.2s infinite;
+  animation: pulse var(--motion-loop-pulse) infinite;
 }
 /* Queued checks show hollow dots; once one starts, the dots fill and breathe. */
 :where(:root[data-motion='on']) .check-running {
-  animation: check-running 1.6s steps(24) infinite;
+  animation: check-running var(--motion-loop-check) steps(24) infinite;
 }
 /* Animations off in Accessibility stops every animation and transition. Reduced only drops the loops and
    entrances that need data-motion='on', keeping fades. */
@@ -905,31 +906,31 @@ select {
 @keyframes pulse {
   0% {
     box-shadow:
-      inset 4px 0 0 var(--c),
+      inset var(--stripe-width-strong) 0 0 var(--c),
       var(--shadow-raised),
       0 0 0 0 color-mix(in srgb, var(--status-active) 45%, transparent);
     animation-timing-function: steps(5);
   }
   10% {
     box-shadow:
-      inset 4px 0 0 var(--c),
+      inset var(--stripe-width-strong) 0 0 var(--c),
       var(--shadow-raised),
-      0 0 0 2.5px color-mix(in srgb, var(--status-active) 31%, transparent);
+      0 0 0 calc(var(--ring-width-pulse) * 0.3125) color-mix(in srgb, var(--status-active) 31%, transparent);
     animation-timing-function: steps(7);
   }
   25% {
     box-shadow:
-      inset 4px 0 0 var(--c),
+      inset var(--stripe-width-strong) 0 0 var(--c),
       var(--shadow-raised),
-      0 0 0 5.5px color-mix(in srgb, var(--status-active) 14%, transparent);
+      0 0 0 calc(var(--ring-width-pulse) * 0.6875) color-mix(in srgb, var(--status-active) 14%, transparent);
     animation-timing-function: steps(12);
   }
   50%,
   100% {
     box-shadow:
-      inset 4px 0 0 var(--c),
+      inset var(--stripe-width-strong) 0 0 var(--c),
       var(--shadow-raised),
-      0 0 0 8px color-mix(in srgb, var(--status-active) 0%, transparent);
+      0 0 0 var(--ring-width-pulse) color-mix(in srgb, var(--status-active) 0%, transparent);
     animation-timing-function: steps(1);
   }
 }
@@ -963,7 +964,7 @@ select {
 }
 /* A tinted group reads as one boundary: a tinted frame and wash, and a stripe on its header. */
 .cluster:is(.tint-teal, .tint-blue, .tint-purple, .tint-amber, .tint-rose, .tint-green, .tint-slate) {
-  border: 1.5px solid color-mix(in srgb, var(--tint) 45%, transparent);
+  border: var(--border-width-strong) solid color-mix(in srgb, var(--tint) 45%, transparent);
   background: color-mix(in srgb, var(--tint) 6%, transparent);
 }
 .cluster:is(.tint-teal, .tint-blue, .tint-purple, .tint-amber, .tint-rose, .tint-green, .tint-slate) .cluster-head {
@@ -1106,7 +1107,7 @@ select {
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: calc(5px * var(--inv, 1));
+  gap: calc(var(--space-2-5) * var(--inv, 1));
   padding: calc(var(--space-6) * var(--inv, 1));
   cursor: grab;
 }
@@ -1138,7 +1139,7 @@ select {
 .cluster-card-title {
   display: flex;
   align-items: center;
-  gap: calc(7px * var(--inv, 1));
+  gap: calc(var(--space-3-5) * var(--inv, 1));
   min-width: 0;
   max-width: 100%;
 }
@@ -1151,7 +1152,7 @@ select {
   min-width: 0;
   font-size: calc(var(--text-size-base) * var(--inv, 1));
   font-weight: var(--weight-semibold);
-  line-height: 1.25;
+  line-height: var(--line-height-label);
   overflow-wrap: anywhere;
 }
 .cluster-card-parts {
@@ -1163,7 +1164,7 @@ select {
   min-width: 0;
   max-width: 100%;
   font-size: calc(var(--text-size-detail) * var(--inv, 1));
-  line-height: 1.2;
+  line-height: var(--line-height-tight);
   color: var(--text-muted);
 }
 .cluster-card-parts li {
@@ -1172,8 +1173,8 @@ select {
 .cluster-card-stats {
   display: flex;
   flex-wrap: wrap;
-  column-gap: calc(7px * var(--inv, 1));
-  line-height: 1.2;
+  column-gap: calc(var(--space-3-5) * var(--inv, 1));
+  line-height: var(--line-height-tight);
   font-family: var(--font-data);
   font-size: calc(var(--text-size-detail) * var(--inv, 1));
   color: var(--text-muted);
@@ -1182,18 +1183,18 @@ select {
   top: calc(-9px * var(--inv, 1));
   right: calc(8px * var(--inv, 1));
   font-size: calc(var(--text-size-tiny) * var(--inv, 1));
-  padding: calc(3px * var(--inv, 1)) calc(7px * var(--inv, 1));
+  padding: calc(var(--space-1-5) * var(--inv, 1)) calc(var(--space-3-5) * var(--inv, 1));
   border-width: calc(var(--border-width-default) * var(--inv, 1));
 }
 .cluster-card.is-compact {
-  gap: calc(3px * var(--inv, 1));
+  gap: calc(var(--space-1-5) * var(--inv, 1));
 }
 .cluster-card.is-compact .cluster-card-stats {
   font-size: calc(var(--text-size-tiny) * var(--inv, 1));
 }
 .cluster-card.is-tiny {
   padding: calc(var(--space-3) * var(--inv, 1));
-  padding-top: calc(11px * var(--inv, 1));
+  padding-top: calc(var(--space-5-5) * var(--inv, 1));
 }
 .cluster-card.is-tiny .ring,
 .cluster-card.is-tiny .source-badges {
@@ -1243,7 +1244,7 @@ select {
   height: auto;
   gap: var(--space-2);
   box-shadow:
-    inset 3px 0 0 var(--c),
+    inset var(--stripe-width-default) 0 0 var(--c),
     var(--shadow-raised);
 }
 .far-card .meta {
@@ -1299,7 +1300,7 @@ select {
   padding-top: var(--space-3);
   border-top: var(--border-width-default) solid var(--line);
   font-size: var(--text-size-small);
-  line-height: 1.4;
+  line-height: var(--line-height-preview);
   color: var(--muted);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1373,7 +1374,7 @@ select {
   justify-items: center;
   gap: var(--space-4);
   max-width: min(360px, calc(100% - 32px));
-  padding: 18px var(--space-9);
+  padding: var(--space-8-5) var(--space-9);
   text-align: center;
   font: var(--text-size-body)/1.45 var(--font-ui);
 }
@@ -1400,7 +1401,7 @@ select {
 .crumb {
   border: 0;
   background: none;
-  padding: 5px var(--space-4);
+  padding: var(--space-2-5) var(--space-4);
   border-radius: var(--radius-sm);
   cursor: pointer;
   color: var(--text-muted);
@@ -1418,7 +1419,7 @@ select {
 .btn {
   border: var(--border-width-default) solid var(--border-default);
   background: var(--surface-background);
-  padding: 5px var(--space-5);
+  padding: var(--space-2-5) var(--space-5);
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: var(--text-size-label);
@@ -1486,8 +1487,8 @@ kbd {
 .insp select:focus,
 .btn:focus-visible,
 .crumb:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: 1px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-default);
 }
 .insp ul {
   margin: 0;
@@ -1540,10 +1541,10 @@ kbd {
 }
 .github-details {
   display: grid;
-  gap: 3px;
+  gap: var(--space-1-5);
 }
 .github-details .checks-icon {
-  margin-right: 5px;
+  margin-right: var(--space-2-5);
   vertical-align: -1px;
 }
 .review-requested {
@@ -1563,7 +1564,7 @@ kbd {
   white-space: nowrap;
 }
 .link-status .status-icon {
-  margin-right: 3px;
+  margin-right: var(--space-1-5);
   vertical-align: -1px;
 }
 .links li .link-where {
@@ -1580,7 +1581,7 @@ kbd {
 }
 .suggestions {
   display: grid;
-  gap: 7px;
+  gap: var(--space-3-5);
 }
 .suggestion {
   display: flex;
@@ -1616,7 +1617,7 @@ kbd {
   flex-direction: column;
 }
 :where(:root[data-motion='on']) .tool.sync.is-running svg {
-  animation: sync-spin 1.2s linear infinite;
+  animation: sync-spin var(--motion-loop-sync) linear infinite;
 }
 @keyframes sync-spin {
   to {
@@ -1647,8 +1648,8 @@ kbd {
   color: var(--surface-background);
 }
 .tool:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: 1px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-default);
 }
 .marquee {
   position: absolute;
@@ -1678,7 +1679,7 @@ kbd {
 }
 .tool-emoji {
   font-size: var(--text-size-heading);
-  line-height: 1;
+  line-height: var(--line-height-glyph);
 }
 
 /* Stickers */
@@ -1696,7 +1697,7 @@ kbd {
   left: 0;
   top: 0;
   font-size: var(--text-size-sticker-art);
-  line-height: 1;
+  line-height: var(--line-height-glyph);
   transform: translate(-50%, -50%) rotate(var(--tilt));
   /* A die-cut white edge and a little lift off the canvas. */
   filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge)) drop-shadow(0 1.5px 0 var(--sticker-edge))
@@ -1725,21 +1726,21 @@ kbd {
   width: 60px;
   height: 60px;
   border-radius: var(--radius-round);
-  border: 2px solid var(--accent-default);
+  border: var(--ring-width-default) solid var(--accent-default);
   opacity: 0;
   pointer-events: none;
 }
 /* A picked sticker gets the accent ring a selected card gets its outline in. */
 .sticker.is-selected::after {
   opacity: 1;
-  border-width: 3px;
+  border-width: var(--ring-width-selection);
   background: color-mix(in srgb, var(--accent) 16%, transparent);
 }
 :where(:root[data-motion='on']) .sticker.is-fresh .sticker-art {
-  animation: sticker-stamp 520ms var(--motion-easing-stamp) both;
+  animation: sticker-stamp var(--motion-duration-sticker-stamp) var(--motion-easing-stamp) both;
 }
 :where(:root[data-motion='on']) .sticker.is-fresh::after {
-  animation: sticker-ring 480ms var(--motion-easing-enter) 140ms;
+  animation: sticker-ring var(--motion-duration-sticker-ring) var(--motion-easing-enter) var(--motion-duration-quick);
 }
 @keyframes sticker-stamp {
   0% {
@@ -1802,7 +1803,7 @@ kbd {
   border-radius: var(--radius-round);
   background: none;
   font-size: var(--text-size-sticker);
-  line-height: 1;
+  line-height: var(--line-height-glyph);
   cursor: pointer;
   transform: translate(var(--x), var(--y));
   transition:
@@ -1810,14 +1811,14 @@ kbd {
     background var(--motion-duration-instant) var(--motion-easing-standard);
 }
 .wheel-item.current {
-  box-shadow: inset 0 0 0 1.5px var(--accent-default);
+  box-shadow: inset 0 0 0 var(--ring-width-inset) var(--accent-default);
 }
 .wheel-item.hover {
   background: var(--accent-subtle);
   transform: translate(var(--x), var(--y)) scale(1.2);
 }
 .wheel-item:focus-visible {
-  outline: 2px solid var(--accent-default);
+  outline: var(--ring-width-default) solid var(--accent-default);
 }
 .wheel-item.empty::after {
   content: '';
@@ -1831,7 +1832,7 @@ kbd {
 }
 .wheel-item.filling {
   background: var(--accent-subtle);
-  box-shadow: inset 0 0 0 1.5px var(--accent-default);
+  box-shadow: inset 0 0 0 var(--ring-width-inset) var(--accent-default);
 }
 .wheel-item.filling::after {
   border-color: var(--accent-default);
@@ -1905,7 +1906,7 @@ kbd {
 }
 .snap-guides line {
   stroke: var(--snap-guide);
-  stroke-width: 1;
+  stroke-width: var(--snap-guide-width);
   vector-effect: non-scaling-stroke;
 }
 .loading {
@@ -1944,8 +1945,8 @@ kbd {
   resize: vertical;
 }
 .insp textarea:focus {
-  outline: 2px solid var(--accent-default);
-  outline-offset: 1px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-default);
 }
 .blurb {
   margin: 0;
@@ -1995,27 +1996,67 @@ kbd {
 .task-insp .grid2 {
   gap: var(--space-5);
 }
+.timeline {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.timeline-entry {
+  display: grid;
+  gap: var(--space-2);
+  padding-left: var(--space-4);
+  border-left: var(--border-width-rule) solid var(--border-default);
+}
+.timeline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-size-label);
+  color: var(--text-muted);
+}
+.timeline-author {
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+.timeline-author.is-agent {
+  color: var(--accent-default);
+}
+.timeline-kind {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border: var(--border-width-default) solid currentColor;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: var(--weight-regular);
+  vertical-align: 1px;
+}
+.timeline-text {
+  font-size: var(--text-size-label);
+}
 .note-view {
   min-height: 3em;
   padding: var(--space-3) var(--space-4);
   margin: 0 calc(var(--space-4) * -1);
-  border: 1px solid transparent;
+  border: var(--border-width-default) solid transparent;
   border-radius: var(--radius-sm);
   cursor: text;
   font-size: var(--text-size-body);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 }
 .note-view:hover {
   border-color: var(--border-default);
 }
 .note-view:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: 1px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-default);
 }
 .insp .note-source {
   font-family: var(--font-data);
   font-size: var(--text-size-label);
-  line-height: 1.5;
+  line-height: var(--line-height-prose);
 }
 .markdown {
   overflow-wrap: anywhere;
@@ -2089,12 +2130,12 @@ kbd {
 }
 .markdown blockquote {
   padding-left: var(--space-5);
-  border-left: 2px solid var(--border-default);
+  border-left: var(--border-width-rule) solid var(--border-default);
   color: var(--text-muted);
 }
 .markdown hr {
   border: 0;
-  border-top: 1px solid var(--border-default);
+  border-top: var(--border-width-default) solid var(--border-default);
   margin: var(--space-5) 0;
 }
 .link-sections {
@@ -2102,7 +2143,7 @@ kbd {
   gap: var(--space-2);
 }
 .link-section {
-  border-top: 1px solid var(--border-default);
+  border-top: var(--border-width-default) solid var(--border-default);
   padding-top: var(--space-3);
 }
 .link-section > summary {
@@ -2127,8 +2168,8 @@ kbd {
   transform: rotate(90deg);
 }
 .link-section > summary:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: 1px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-default);
 }
 .link-count {
   color: var(--text-muted);
@@ -2207,7 +2248,7 @@ kbd {
   background: none;
   color: inherit;
   font-size: var(--text-size-base);
-  line-height: 1;
+  line-height: var(--line-height-glyph);
   cursor: pointer;
 }
 
@@ -2290,8 +2331,8 @@ kbd {
   color: var(--window-close-text);
 }
 .window-controls button:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: -2px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: calc(-1 * var(--ring-offset-wide));
 }
 :root[data-titlebar='custom'] .react-flow__panel.top-right {
   margin-top: 44px;
@@ -2301,7 +2342,7 @@ kbd {
   background: none;
   color: var(--text-muted);
   font-size: var(--text-size-glyph);
-  line-height: 1;
+  line-height: var(--line-height-glyph);
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -2327,7 +2368,7 @@ kbd {
   border: 0;
   background: none;
   text-align: left;
-  padding: 7px var(--space-5);
+  padding: var(--space-3-5) var(--space-5);
   border-radius: var(--radius-md);
   cursor: pointer;
 }
@@ -2342,8 +2383,8 @@ kbd {
 }
 .side-row:focus-visible,
 .side-hide:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: -2px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: calc(-1 * var(--ring-offset-wide));
 }
 .side-label {
   grid-area: label;
@@ -2439,7 +2480,7 @@ kbd {
   font-size: var(--text-size-subheading);
 }
 .settings-nav-item {
-  padding: 7px var(--space-5);
+  padding: var(--space-3-5) var(--space-5);
   border: 0;
   border-radius: var(--radius-md);
   background: none;
@@ -2458,8 +2499,8 @@ kbd {
 }
 .settings-nav-item:focus-visible,
 .settings-close:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: -2px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: calc(-1 * var(--ring-offset-wide));
 }
 .settings-body {
   flex: 1;
@@ -2480,7 +2521,7 @@ kbd {
   background: var(--surface-background);
   color: var(--text-muted);
   font-size: var(--text-size-glyph-large);
-  line-height: 1;
+  line-height: var(--line-height-glyph);
   cursor: pointer;
 }
 .settings-close:hover {
@@ -2516,7 +2557,7 @@ kbd {
 .settings-search {
   flex: 1;
   min-width: 0;
-  padding: 7px var(--space-5);
+  padding: var(--space-3-5) var(--space-5);
   border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--canvas-background);
@@ -2525,8 +2566,8 @@ kbd {
   font-size: var(--text-size-body);
 }
 .settings-search:focus {
-  outline: 2px solid var(--accent-default);
-  outline-offset: -1px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: calc(-1 * var(--ring-offset-default));
 }
 .settings-empty {
   margin: 0;
@@ -2535,7 +2576,7 @@ kbd {
 }
 .options {
   display: flex;
-  padding: 3px;
+  padding: var(--space-1-5);
   border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--canvas-background);
@@ -2543,7 +2584,7 @@ kbd {
 .options button {
   flex: 1;
   min-width: 0;
-  padding: 5px var(--space-1);
+  padding: var(--space-2-5) var(--space-1);
   border: 0;
   border-radius: var(--radius-sm);
   background: none;
@@ -2563,8 +2604,8 @@ kbd {
   opacity: 0.5;
 }
 .options button:focus-visible {
-  outline: 2px solid var(--accent-default);
-  outline-offset: 1px;
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-default);
 }
 .shortcut-tools {
   display: flex;
@@ -2597,12 +2638,12 @@ kbd {
 }
 .shortcut-table th,
 .shortcut-table td {
-  padding: 7px 0;
+  padding: var(--space-3-5) 0;
   vertical-align: middle;
 }
 .shortcut-table th {
   display: grid;
-  gap: 1px;
+  gap: var(--space-0-5);
   padding-right: var(--space-6);
   font-size: var(--text-size-body);
   font-weight: var(--weight-medium);
@@ -2639,7 +2680,7 @@ kbd {
 }
 .shortcut-table tr.recording .shortcut-chord {
   border-color: var(--accent-default);
-  outline: 2px solid color-mix(in srgb, var(--accent-default) 35%, transparent);
+  outline: var(--ring-width-default) solid color-mix(in srgb, var(--accent-default) 35%, transparent);
   color: var(--accent-default);
 }
 .shortcut-unbound {
@@ -2671,7 +2712,7 @@ kbd {
   height: 100%;
   display: grid;
   align-content: center;
-  gap: 1px;
+  gap: var(--space-0-5);
   padding: var(--space-3) var(--space-5);
   border: var(--border-width-default) dashed var(--edge-default);
   border-radius: var(--radius-md);
@@ -2692,11 +2733,11 @@ kbd {
 }
 .ghost.tr-up {
   border-color: var(--status-review);
-  box-shadow: 0 0 0 1px var(--status-review);
+  box-shadow: 0 0 0 var(--ring-width-hairline) var(--status-review);
 }
 .ghost.tr-down {
   border-color: var(--accent-default);
-  box-shadow: 0 0 0 1px var(--accent-default);
+  box-shadow: 0 0 0 var(--ring-width-hairline) var(--accent-default);
 }
 .ghost:hover {
   border-color: var(--accent-default);
@@ -2716,7 +2757,7 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding-right: 22px;
+  padding-right: var(--space-9-5);
 }
 .ghost-status {
   display: inline-flex;
@@ -2725,7 +2766,7 @@ kbd {
   font-family: var(--font-data);
   font-size: var(--text-size-tiny);
   color: var(--c, var(--text-muted));
-  padding-right: 22px;
+  padding-right: var(--space-9-5);
 }
 .ghost.st-ready {
   --c: var(--status-ready);
@@ -2802,7 +2843,7 @@ kbd {
 .shape-body,
 .shape-line {
   stroke: var(--shape-stroke);
-  stroke-width: 1.5;
+  stroke-width: var(--border-width-strong);
   vector-effect: non-scaling-stroke;
 }
 .shape-body {
@@ -2819,20 +2860,20 @@ kbd {
   fill: color-mix(in srgb, var(--shape-fill) 55%, transparent);
 }
 .card.component.shape-store {
-  padding-top: 22px;
+  padding-top: var(--space-9-5);
 }
 .card.component.shape-interface {
-  padding-top: 18px;
+  padding-top: var(--space-8-5);
 }
 .card.component.shape-actor {
-  padding-inline: 18px;
+  padding-inline: var(--space-8-5);
 }
 .card.component.shape-process {
   padding-left: var(--space-10);
   padding-right: 28px;
 }
 .card.component.shape-queue {
-  padding-top: 18px;
+  padding-top: var(--space-8-5);
   padding-right: var(--space-9);
 }
 .card.component.shape-queue .card-actions {
@@ -2849,7 +2890,7 @@ kbd {
   flex: none;
   width: var(--space-4);
   height: var(--space-4);
-  border: 1.5px solid var(--shape-stroke);
+  border: var(--border-width-strong) solid var(--shape-stroke);
   border-radius: var(--radius-hairline);
   background: var(--shape-fill);
 }
@@ -2859,10 +2900,10 @@ kbd {
 }
 .component-note {
   font-size: var(--text-size-detail);
-  line-height: 1.25;
+  line-height: var(--line-height-label);
   color: var(--text-muted);
   overflow-wrap: anywhere;
-  padding-right: 22px;
+  padding-right: var(--space-9-5);
 }
 .far-card .component-note {
   padding-right: 0;
@@ -2892,11 +2933,11 @@ kbd {
 /* Notes grow to fit their text, which cardSize.ts measures, so it isn't clamped. */
 .note-text {
   font-size: var(--text-size-small);
-  line-height: 1.3;
+  line-height: var(--line-height-note);
   overflow: hidden;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  padding-right: 22px;
+  padding-right: var(--space-9-5);
 }
 
 /* Context menu */
@@ -2932,14 +2973,14 @@ kbd {
 .palette-results {
   max-height: min(55vh, 460px);
   overflow-y: auto;
-  padding: 5px;
+  padding: var(--space-2-5);
 }
 .palette-result {
   display: flex;
   align-items: flex-start;
   gap: var(--space-6);
   width: 100%;
-  padding: 9px var(--space-5);
+  padding: var(--space-4-5) var(--space-5);
   border: 0;
   border-radius: var(--radius-sm);
   background: none;
@@ -2996,7 +3037,7 @@ kbd {
   position: fixed;
   z-index: 20;
   min-width: 210px;
-  padding: 5px;
+  padding: var(--space-2-5);
   display: grid;
 }
 .menu button {
@@ -3006,7 +3047,7 @@ kbd {
   border: 0;
   background: none;
   text-align: left;
-  padding: 7px var(--space-5);
+  padding: var(--space-3-5) var(--space-5);
   border-radius: var(--radius-sm);
   font-size: var(--text-size-body);
   cursor: pointer;
@@ -3038,7 +3079,7 @@ kbd {
 }
 .link-prompt input {
   width: 100%;
-  padding: 7px 9px;
+  padding: var(--space-3-5) var(--space-4-5);
   border: var(--border-width-default) solid var(--line);
   border-radius: var(--radius-sm);
   outline: none;
@@ -3080,8 +3121,8 @@ kbd {
 .cluster.is-collapsed.attn {
   border-color: var(--status-active);
   box-shadow:
-    inset 3px 0 0 var(--c, var(--status-active)),
-    0 0 0 2px var(--status-active);
+    inset var(--stripe-width-default) 0 0 var(--c, var(--status-active)),
+    0 0 0 var(--ring-width-default) var(--status-active);
 }
 .attention {
   position: absolute;
@@ -3096,7 +3137,7 @@ kbd {
 }
 .attn-line line {
   stroke: var(--status-active);
-  stroke-width: 2;
+  stroke-width: var(--link-width-attention);
   stroke-dasharray: 5 5;
 }
 .attn-line circle {
@@ -3106,7 +3147,7 @@ kbd {
   fill: var(--text-primary);
 }
 :where(:root[data-motion='on']) .attn-line line {
-  animation: attn-march 0.6s steps(9) infinite;
+  animation: attn-march var(--motion-loop-attention) steps(9) infinite;
 }
 @keyframes attn-march {
   to {
@@ -3119,7 +3160,7 @@ kbd {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: var(--space-2) 9px;
+  padding: var(--space-2) var(--space-4-5);
   border-radius: var(--radius-pill);
   border: var(--border-width-default) solid currentColor;
   background: var(--surface-background);
@@ -3130,7 +3171,7 @@ kbd {
 }
 .attn-tally {
   position: absolute;
-  padding: var(--space-2) 9px;
+  padding: var(--space-2) var(--space-4-5);
   border-radius: var(--radius-md);
   background: var(--text-primary);
   color: var(--surface-background);
@@ -3162,7 +3203,7 @@ kbd {
 }
 .canvas.is-focus .react-flow__node.is-focused .card {
   box-shadow:
-    inset 3px 0 0 var(--c),
+    inset var(--stripe-width-default) 0 0 var(--c),
     var(--shadow-raised);
 }
 .focus {
@@ -3179,7 +3220,7 @@ kbd {
 .focus-line {
   fill: none;
   stroke: var(--edge-default);
-  stroke-width: 1.5;
+  stroke-width: var(--link-width-focus);
   transition:
     opacity var(--motion-duration-fast),
     stroke-width var(--motion-duration-fast);
@@ -3187,7 +3228,7 @@ kbd {
 .focus-line.live,
 .focus-line.held {
   stroke: var(--edge-hot);
-  stroke-width: 1.8;
+  stroke-width: var(--link-width-focus-held);
   stroke-dasharray: 5 5;
 }
 .focus-line.held {
@@ -3196,11 +3237,11 @@ kbd {
 }
 .focus-line.still {
   stroke: var(--edge-still);
-  stroke-width: 1.8;
+  stroke-width: var(--link-width-focus-held);
 }
 .focus-line.related {
   stroke: var(--text-muted);
-  stroke-width: 1.6;
+  stroke-width: var(--link-width-still);
   stroke-dasharray: 0.5 6;
   stroke-linecap: round;
 }
@@ -3208,7 +3249,7 @@ kbd {
   opacity: 0.25;
 }
 .focus-line.hot {
-  stroke-width: 2.6;
+  stroke-width: var(--link-width-traced);
   opacity: 1;
 }
 .focus-arrow {
@@ -3253,13 +3294,13 @@ kbd {
   --c: var(--status-todo);
   flex: none;
   display: grid;
-  gap: 3px;
-  padding: 9px 11px 9px var(--space-7);
+  gap: var(--space-1-5);
+  padding: var(--space-4-5) var(--space-5-5) var(--space-4-5) var(--space-7);
   border-radius: var(--radius-md);
   border: var(--border-width-default) solid var(--border-default);
   background: var(--surface-background);
   box-shadow:
-    inset 3px 0 0 var(--c),
+    inset var(--stripe-width-default) 0 0 var(--c),
     var(--shadow-raised);
   text-align: left;
   cursor: pointer;
@@ -3305,7 +3346,7 @@ kbd {
 .focus-card .label {
   font-size: var(--text-size-body);
   font-weight: var(--weight-medium);
-  line-height: 1.3;
+  line-height: var(--line-height-note);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -3323,7 +3364,7 @@ kbd {
 }
 .focus-related {
   flex: none;
-  padding: 1px var(--space-3);
+  padding: var(--space-0-5) var(--space-3);
   border-radius: var(--radius-pill);
   border: var(--border-width-default) dotted var(--text-muted);
   font: var(--text-size-tiny) var(--font-data);
@@ -3358,7 +3399,7 @@ kbd {
   font-weight: var(--weight-medium);
 }
 :where(:root[data-motion='on']) .focus-line.live {
-  animation: flow 0.8s steps(12) infinite;
+  animation: flow var(--motion-loop-flow) steps(12) infinite;
 }
 :where(:root[data-motion='on']) .focus-side,
 :where(:root[data-motion='on']) .focus-bar,
@@ -3563,7 +3604,7 @@ kbd {
   position: fixed;
   z-index: 4000;
   max-width: 260px;
-  padding: var(--space-3) 9px;
+  padding: var(--space-3) var(--space-4-5);
   border-radius: var(--radius-sm);
   background: var(--ink);
   color: var(--surface);
@@ -3679,7 +3720,7 @@ kbd {
   transform-origin: center;
 }
 :where(:root[data-motion='on']) .companion .eye .spark {
-  animation: companion-twinkle 0.5s ease-in-out infinite alternate;
+  animation: companion-twinkle var(--motion-loop-twinkle) ease-in-out infinite alternate;
 }
 .companion-hint {
   position: absolute;
@@ -3689,7 +3730,7 @@ kbd {
   align-items: center;
   gap: var(--space-3);
   max-width: 220px;
-  padding: 5px 9px 5px 7px;
+  padding: var(--space-2-5) var(--space-4-5) var(--space-2-5) var(--space-3-5);
   border: var(--border-width-default) solid var(--line);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
@@ -3719,8 +3760,8 @@ kbd {
 }
 :where(:root[data-motion='on']) .companion-hint {
   transition:
-    opacity 0.18s,
-    scale 0.25s cubic-bezier(0.3, 1.6, 0.5, 1);
+    opacity var(--motion-duration-fade),
+    scale var(--motion-duration-hint) var(--motion-easing-spring);
 }
 :where(:root[data-motion='reduced']) .companion-hint {
   transition: opacity var(--motion-duration-fade);
@@ -3743,14 +3784,14 @@ kbd {
   opacity: 0;
 }
 :where(:root[data-motion='on']) .companion-snooze i {
-  animation: companion-snooze 2.4s ease-out infinite;
+  animation: companion-snooze var(--motion-loop-snooze) ease-out infinite;
 }
 .companion-snooze i:nth-child(2) {
-  animation-delay: 0.8s;
+  animation-delay: calc(var(--motion-loop-snooze) / 3);
   font-size: var(--text-size-tiny);
 }
 .companion-snooze i:nth-child(3) {
-  animation-delay: 1.6s;
+  animation-delay: calc(var(--motion-loop-snooze) * 2 / 3);
   font-size: var(--text-size-nano);
 }
 @keyframes companion-twinkle {

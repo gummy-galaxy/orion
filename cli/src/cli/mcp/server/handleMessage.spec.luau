@@ -3,8 +3,10 @@ local test = require("@std/test")
 
 local cli = require("@root/cli")
 local getVersion = require("@root/getVersion")
+local graph = require("@root/graph")
 local handleMessage = require("@root/cli/mcp/server/handleMessage")
 local mcpTypes = require("@root/cli/mcp/types")
+local store = require("@root/store")
 local testing = require("@root/testing")
 
 local need = assert
@@ -17,6 +19,8 @@ local function runner(dir: string): mcpTypes.Run
 			now = function()
 				return "2026-10-04T00:00:00Z"
 			end,
+			-- Matches mcp start, which keeps serving when a command reports findings through its status.
+			exit = function(_code: number) end,
 		})
 	end
 end
@@ -109,6 +113,45 @@ test.case("tools round-trip through the CLI and workspace storage", function(ass
 	local missing = call(run, "orion_inspect", json.object({ view = "show", workspace = "sample", id = "missing" }))
 	assert.eq(missing.isError, true)
 	assert.eq(string.find(firstText(missing), "%.luau:%d+:"), nil)
+end)
+
+test.case("tidy marks a group and check reports it waiting for layout without stopping the server", function(assert)
+	local group = testing.group("ws", "Release")
+	group.width = 600
+	group.height = 300
+	local first = testing.task("ci", "Report release health", "todo", "ws")
+	first.position = { x = 32, y = 78 }
+	local second = testing.task("pub", "Publish", "todo", "ws")
+	second.position = { x = 280, y = 78 }
+	local dir = testing.directory("mcp-layout")
+	store.write(dir, testing.createDoc({ group, first, second }))
+	local run = runner(dir)
+
+	local clean = call(run, "orion_check", json.object({ group = "ws" }))
+	assert.eq(clean.isError, nil)
+	assert.eq(#need(json.asArray(json.deserialize(firstText(clean)) :: json.Value)), 0)
+
+	local preview = call(run, "orion_tidy", json.object({ ids = { "ws" }, dryRun = true }))
+	assert.eq(preview.isError, nil)
+	assert.eq(graph.get(store.load(dir), "ws").data.layout, nil)
+
+	local tidied = call(run, "orion_tidy", json.object({ ids = { "ws" }, ifRevision = 0 }))
+	assert.eq(tidied.isError, nil)
+	local report = need(json.asObject(json.deserialize(firstText(tidied)) :: json.Value))
+	assert.eq(report.appConnected, false)
+	assert.eq(graph.get(store.load(dir), "ws").data.layout, "refit")
+
+	local stale = call(run, "orion_tidy", json.object({ ids = { "ws" }, ifRevision = 0 }))
+	assert.eq(stale.isError, true)
+	assert.strContains(firstText(stale), "revision changed")
+
+	local checked = call(run, "orion_check", json.object({}))
+	assert.eq(checked.isError, nil)
+	local issues = need(json.asArray(json.deserialize(firstText(checked)) :: json.Value))
+	assert.eq(#issues, 1)
+	local issue = need(json.asObject(issues[1]))
+	assert.eq(issue.kind, "waiting-for-layout")
+	assert.eq(issue.ids, { "ws" })
 end)
 
 test.case("protocol errors use JSON-RPC error codes", function(assert)
