@@ -938,7 +938,7 @@ function graph.createGroup(doc: Doc, label: string, parentId: string?): Item
 	end
 
 	local group: Item = {
-		id = uniqueId(doc, slug(label)),
+		id = uniqueId(doc, slugify(label)),
 		type = "cluster",
 		position = graph.nextSlot(doc, parentId),
 		parentId = parentId,
