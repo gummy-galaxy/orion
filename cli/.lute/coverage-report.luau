@@ -8,7 +8,9 @@ local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local publishPullRequestComment = require("./lib/publishPullRequestComment")
+local command = require("@root/command")
+local runScript = require("@root/runScript")
+local upsertComment = require("@root/github/upsertComment")
 
 type Metric = { total: number, covered: number, pct: number }
 
@@ -16,26 +18,33 @@ local MARKER = "<!-- orion-coverage -->"
 local METRICS = { "statements", "branches", "functions", "lines" }
 
 local env = process.env
-local coverageDir = path.resolve("../app/coverage")
-local summary = json.deserialize(fs.readFileToString(path.join(coverageDir, "coverage-summary.json"))) :: any
-local totals: { [string]: Metric } = summary.total
+local summaryPath = path.resolve("../app/coverage/coverage-summary.json")
+local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
+local pullRequest = assert(env.PR, "PR is not set")
 
-local rows = { "| | Covered | Total | % |", "| --- | ---: | ---: | ---: |" }
+runScript(function()
+	local summary = json.deserialize(fs.readFileToString(summaryPath)) :: any
+	local totals: { [string]: Metric } = summary.total
 
-for _, name in METRICS do
-	local metric = totals[name]
-	local label = string.upper(string.sub(name, 1, 1)) .. string.sub(name, 2)
-	table.insert(rows, `| {label} | {metric.covered} | {metric.total} | {string.format("%.2f", metric.pct)}% |`)
-end
+	local rows = { "| | Covered | Total | % |", "| --- | ---: | ---: | ---: |" }
 
-local sha = string.sub(env.SHA or "", 1, 7)
-local report = `### App coverage\n\n{table.concat(rows, "\n")}\n`
-local footer = `<sub>Measured {sha} in [run {env.GITHUB_RUN_NUMBER}]({env.RUN_URL}).</sub>`
+	for _, name in METRICS do
+		local metric = totals[name]
+		local label = string.upper(string.sub(name, 1, 1)) .. string.sub(name, 2)
+		table.insert(rows, `| {label} | {metric.covered} | {metric.total} | {string.format("%.2f", metric.pct)}% |`)
+	end
 
-if env.GITHUB_STEP_SUMMARY then
-	local stepSummary = fs.open(env.GITHUB_STEP_SUMMARY, "a")
-	fs.write(stepSummary, report)
-	fs.close(stepSummary)
-end
+	local report = `### App coverage\n\n{table.concat(rows, "\n")}\n`
 
-publishPullRequestComment(MARKER, `{report}\n{footer}\n`, path.join(coverageDir, "comment.md"))
+	if env.GITHUB_STEP_SUMMARY then
+		local stepSummary = fs.open(env.GITHUB_STEP_SUMMARY, "a")
+		fs.write(stepSummary, report)
+		fs.close(stepSummary)
+	end
+
+	local sha = string.sub(env.SHA or "", 1, 7)
+	local footer = `<sub>Measured {sha} in [run {env.GITHUB_RUN_NUMBER}]({env.RUN_URL}).</sub>`
+
+	local posted, problem = upsertComment(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)
+	assert(posted, problem)
+end)
