@@ -26,4 +26,4 @@ A **source** connects Orion to outside work: GitHub repositories, a Jira project
 
 ## Canvases
 
-A **canvas** is one board with its own data folder. Commands work on the active canvas unless you pass `--canvas <name>`. The app still calls it a workspace for now.
+A **canvas** is one board with its own data folder. Commands work on the active canvas unless you pass `--canvas <name>`.

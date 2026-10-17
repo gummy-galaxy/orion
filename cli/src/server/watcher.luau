@@ -2,6 +2,7 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local task = require("@std/task")
 
+local fileNames = require("@root/fileNames")
 local store = require("@root/store")
 
 type Stamp = { size: number, modified: number }
@@ -38,7 +39,7 @@ function watcher.create(
 	local dataFile = store.filePath(store.getWorkspaceDir(root, active()))
 	local logFile = store.logPath(store.getWorkspaceDir(root, active()))
 	local logName = active()
-	local manifestFile = tostring(path.join(root, "workspaces.json"))
+	local manifestFile = tostring(path.join(root, fileNames.canvases))
 	local lastDataStamp = getStamp(dataFile)
 	local lastLogStamp = getStamp(logFile)
 	local lastManifestStamp = getStamp(manifestFile)

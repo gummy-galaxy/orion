@@ -15,9 +15,9 @@ function log.handle(request: net.ReceivedRequest, root: string): Response
 		return shared.reply(405, json.object({ error = "method not allowed" }))
 	end
 
-	local workspace = request.query.workspace
+	local workspace = request.query.canvas
 	if not workspace or not shared.isKnownWorkspace(root, workspace) then
-		return shared.reply(404, json.object({ error = `unknown workspace: {workspace or ""}` }))
+		return shared.reply(404, json.object({ error = `unknown canvas: {workspace or ""}` }))
 	end
 
 	local didSucceed, result = pcall(store.readLog, store.getWorkspaceDir(root, workspace))

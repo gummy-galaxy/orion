@@ -35,6 +35,14 @@ test.case("query finds cards and groups using one derived snapshot", function(as
 	assert.strContains(run({ "node", "query", "--where", [[status = "done"]], "--all" }), "ci")
 end)
 
+test.case("card done leaves finished cards waiting to be closed out", function(assert)
+	local dir, run = testing.createHarness("done-waits")
+	run({ "card", "done", "ci", "pub" })
+	local doc = store.load(dir)
+	assert.eq(graph.get(doc, "ci").data.celebrate, true)
+	assert.eq(graph.get(doc, "pub").data.celebrate, true)
+end)
+
 test.case("batch done previews revision and applies all targets once", function(assert)
 	local dir, run = testing.createHarness("batch-done")
 	local before = store.load(dir).revision

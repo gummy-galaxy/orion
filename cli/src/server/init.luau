@@ -45,10 +45,10 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		assert(monitor).switchTo(name)
 		syncLoop.switchTo(name)
 		if runtime then
-			runtime.workspace = name
+			runtime.canvas = name
 			writeRuntime(root, runtime)
 		end
-		hub.publish("orion:workspace", json.object({ active = name }))
+		hub.publish("orion:canvas", json.object({ active = name }))
 		task.spawn(function()
 			syncLoop.run(true)
 		end)
@@ -56,9 +56,9 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number)
 		hub.publish("orion:changed", json.object({ revision = revision }))
 	end, function(list: store.WorkspaceList)
-		hub.publish("orion:workspaces", json.object({ active = list.active, workspaces = list.workspaces }))
+		hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
 	end, function(name: string)
-		hub.publish("orion:log", json.object({ workspace = name }))
+		hub.publish("orion:log", json.object({ canvas = name }))
 	end)
 
 	local running = net.serve({
@@ -86,7 +86,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	runtime = {
 		pid = process.pid(),
 		url = `http://{running.hostname}:{running.port}`,
-		workspace = workspace,
+		canvas = workspace,
 		dataFolder = root,
 		startedAt = startedAt,
 	}

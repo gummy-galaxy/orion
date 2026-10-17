@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { reparent } from './escape'
 import {
+  GROUP_HEADER_HEIGHT,
+  GROUP_PADDING,
   TASK_HEIGHT,
+  TASK_WIDTH,
   absolutePosition,
   byId,
   editPullRef,
@@ -14,8 +18,11 @@ import {
   getTaskUrl,
   moveOutOfGroup,
   normalize,
+  pruneEmptied,
+  removeNodes,
   sizeOf,
   tintOf,
+  ungroup,
   type AppNode,
   type PullDetails,
   type TaskData,
@@ -282,5 +289,85 @@ describe('moveOutOfGroup', () => {
     expect(moveOutOfGroup(base, 'keep')).toBe(base)
     expect(moveOutOfGroup(base, 'outer')).toBe(base)
     expect(moveOutOfGroup(base, 'missing')).toBe(base)
+  })
+})
+
+describe('empty groups', () => {
+  it('keeps a group with nothing inside, at the size of one card, where it was', () => {
+    const [group] = normalize([groupNode('kept', undefined, { x: 40, y: 80 })])
+
+    expect(group.id).toBe('kept')
+    expect(group.position).toEqual({ x: 40, y: 80 })
+    expect(group.width).toBe(TASK_WIDTH + GROUP_PADDING * 2)
+    expect(group.height).toBe(TASK_HEIGHT + GROUP_HEADER_HEIGHT + GROUP_PADDING)
+  })
+
+  it('leaves a group that was already empty alone', () => {
+    const before = normalize([groupNode('kept'), groupNode('other'), cardNode('card', 'other')])
+    const after = normalize([...before.filter((node) => node.id !== 'card'), cardNode('card')])
+
+    expect(byId(pruneEmptied(before, after)).has('kept')).toBe(true)
+  })
+
+  it('removes a group the edit took its last card out of, and returns the same nodes when nothing emptied', () => {
+    const before = normalize([groupNode('work'), cardNode('card', 'work')])
+    const after = normalize([groupNode('work'), cardNode('card')])
+    const pruned = pruneEmptied(before, after)
+
+    expect(byId(pruned).has('work')).toBe(false)
+    expect(byId(pruned).has('card')).toBe(true)
+
+    const steady = normalize([groupNode('work'), cardNode('card', 'work')])
+
+    expect(pruneEmptied(steady, steady)).toBe(steady)
+  })
+
+  it('removes a group the edit emptied and then the group holding it when that is empty too', () => {
+    const before = normalize([groupNode('outer'), groupNode('inner', 'outer'), cardNode('card', 'inner')])
+    const after = normalize([groupNode('outer'), groupNode('inner', 'outer'), cardNode('card')])
+    const pruned = byId(pruneEmptied(before, after))
+
+    expect(pruned.has('inner')).toBe(false)
+    expect(pruned.has('outer')).toBe(false)
+    expect(pruned.has('card')).toBe(true)
+  })
+
+  it('drops a group when its last card is removed, and keeps it while cards remain', () => {
+    const base = normalize([groupNode('work'), cardNode('one', 'work'), cardNode('two', 'work')])
+
+    expect(byId(removeNodes(base, ['one'])).has('work')).toBe(true)
+
+    const emptied = removeNodes(removeNodes(base, ['one']), ['two'])
+
+    expect(byId(emptied).has('work')).toBe(false)
+  })
+
+  it('drops a group whose last card is dropped somewhere else, and keeps one the card goes back into', () => {
+    const before = normalize([groupNode('work'), cardNode('card', 'work'), groupNode('other')])
+    const elsewhere = normalize(reparent(before, ['card'], 'other', 'work'))
+
+    expect(byId(pruneEmptied(before, elsewhere)).has('work')).toBe(false)
+
+    const back = normalize(reparent(before, ['card'], 'work', 'work'))
+
+    expect(byId(pruneEmptied(before, back)).has('work')).toBe(true)
+  })
+
+  it('drops the group a moved group leaves empty', () => {
+    const before = normalize([groupNode('outer'), groupNode('solo', 'outer'), cardNode('card', 'solo'), groupNode('empty')])
+    const after = moveOutOfGroup(before, 'solo')
+
+    expect(byId(after).has('outer')).toBe(false)
+    expect(byId(after).get('solo')?.parentId).toBeUndefined()
+    expect(byId(after).has('empty')).toBe(true)
+  })
+
+  it('drops the group that ungrouping leaves empty', () => {
+    const before = normalize([groupNode('outer'), groupNode('inner', 'outer'), groupNode('kept')])
+    const after = ungroup(before, ['inner'])
+
+    expect(byId(after).has('inner')).toBe(false)
+    expect(byId(after).has('outer')).toBe(false)
+    expect(byId(after).has('kept')).toBe(true)
   })
 })
