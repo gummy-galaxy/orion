@@ -1,0 +1,54 @@
+local cli = require("@batteries/cli")
+local json = require("@std/json")
+
+local context = require("@root/cli/context")
+local getRequired = require("@root/cli/getRequired")
+local graph = require("@root/graph")
+local requestedRevision = require("@root/cli/requestedRevision")
+local runEdit = require("@root/cli/runEdit")
+
+type Context = context.Context
+
+return table.freeze({
+	help = "Insert an item into an existing link",
+	define = function(parser: cli.Parser)
+		parser:add("id", "positional", { help = "Item to place in the link" })
+		parser:add("between", "option", { help = "Source item whose link is replaced", required = true })
+		parser:add("target", "variadic", { help = "Target item whose link is replaced" })
+		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
+		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
+		parser:add("json", "flag", { help = "Print JSON" })
+	end,
+
+	run = function(parser: cli.Parser, options: Context)
+		local id, from = getRequired(parser, "id"), getRequired(parser, "between")
+		local targets = parser:variadics()
+		assert(#targets == 1, "insert needs exactly one target after --between <from>")
+		local to = targets[1]
+		local dryRun = parser:has("dry-run")
+
+		local doc, baseRevision = runEdit(options.dir, dryRun, requestedRevision(parser), function(current)
+			graph.insertBetween(current, id, from, to)
+		end)
+
+		if options.asJson then
+			options.write(json.serialize(
+				json.object({
+					action = "insert",
+					dryRun = dryRun,
+					baseRevision = baseRevision,
+					revision = doc.revision,
+					items = { json.object({ id = id, label = graph.label(graph.get(doc, id)) }) },
+					from = from,
+					to = to,
+				}),
+				true
+			))
+		else
+			local revision = if dryRun then `{baseRevision}` else `{baseRevision} → {doc.revision}`
+			options.write(
+				`{if dryRun then "Would insert" else "Inserted"} {id} between {from} and {to} at revision {revision}`
+			)
+		end
+	end,
+})
