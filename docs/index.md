@@ -10,8 +10,8 @@ hero:
     alt: Three stars of Orion's belt
   actions:
     - theme: brand
-      text: Concepts
-      link: /guide/concepts
+      text: Get started
+      link: /guide/getting-started
     - theme: alt
       text: CLI reference
       link: /reference/cli/
