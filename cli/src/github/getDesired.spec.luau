@@ -1,35 +1,9 @@
 local test = require("@std/test")
 
 local getDesired = require("@root/github/getDesired")
-local githubTypes = require("@root/github/types")
+local testing = require("@root/testing")
 
-type PullState = githubTypes.PullState
-
-local function pull(
-	state: string,
-	extra: { draft: boolean?, reviewDecision: string?, reviewRequests: number? }?
-): PullState
-	local given: { draft: boolean?, reviewDecision: string?, reviewRequests: number? } = extra or {}
-	return {
-		owner = "flipbook-labs",
-		name = "flipbook",
-		number = 1,
-		state = state,
-		baseRefName = "main",
-		headRefName = "feature/a",
-		draft = given.draft == true,
-		reviewDecision = given.reviewDecision,
-		reviewRequests = given.reviewRequests or 0,
-		requestedReviewers = {},
-		title = "Title",
-		url = "https://github.com/flipbook-labs/flipbook/pull/1",
-		author = "vocksel",
-		updatedAt = "2026-10-04T00:00:00Z",
-		additions = 12,
-		deletions = 3,
-		checks = "SUCCESS",
-	}
-end
+local pull = testing.pull
 
 test.case("desired follows the pull request's state", function(assert)
 	assert.eq(getDesired(pull("MERGED"), "review", "review", "vocksel"), "done")

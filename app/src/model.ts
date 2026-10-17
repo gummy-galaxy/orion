@@ -5,6 +5,8 @@ export const TASK_WIDTH = 216
 export const TASK_HEIGHT = 72
 export const GROUP_PADDING = 32
 export const GROUP_HEADER_HEIGHT = 78
+/** The band a group's Markdown header takes under its title row, which pushes its cards down by the same amount. */
+export const GROUP_HEADER_BAND = 112
 
 /** `blocked` is set by hand for blockers outside the graph; dependency blocking is derived. */
 export type Status = 'todo' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
@@ -113,6 +115,8 @@ export type ClusterData = {
   cover?: string
   /** A hex color, a color token name such as `card.background`, or an image asset id. */
   background?: string
+  /** Markdown with a sanitized subset of HTML for layout, shown in a band under the group's title. */
+  header?: string
 }
 export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
 export type TaskNode = Node<TaskData, 'task'>
@@ -185,6 +189,9 @@ export const isCluster = (node: AppNode): node is ClusterNode => node.type === '
 export const isTask = (node: AppNode): node is TaskNode => node.type === 'task'
 export const isImage = (node: AppNode): node is ImageNode => node.type === 'image'
 export const isNote = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.itemKind === 'note'
+
+/** A card's label for lists and links, with notes falling back to the word Note. */
+export const cardLabel = (node: AppNode): string => (node.data as TaskData).label || 'Note'
 
 export function byId(nodes: AppNode[]): Map<string, AppNode> {
   return new Map(nodes.map((node) => [node.id, node]))
@@ -272,17 +279,23 @@ function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
       maxY = Math.max(maxY, child.position.y + size.height)
     }
 
+    const headerHeight = groupHeaderHeight(group.data as ClusterData)
     const deltaX = minX - GROUP_PADDING
-    const deltaY = minY - GROUP_HEADER_HEIGHT
+    const deltaY = minY - headerHeight
 
     for (const child of children) child.position = { x: child.position.x - deltaX, y: child.position.y - deltaY }
 
     group.position = { x: group.position.x + deltaX, y: group.position.y + deltaY }
     group.width = maxX - minX + GROUP_PADDING * 2
-    group.height = maxY - minY + GROUP_HEADER_HEIGHT + GROUP_PADDING
+    group.height = maxY - minY + headerHeight + GROUP_PADDING
   }
 
   return [...nodeMap.values()]
+}
+
+/** The height above a group's cards: the title row, plus the header band when the group has a header. */
+export function groupHeaderHeight(data: { header?: string } | undefined): number {
+  return GROUP_HEADER_HEIGHT + (data?.header?.trim() ? GROUP_HEADER_BAND : 0)
 }
 
 export function normalize(nodes: AppNode[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {

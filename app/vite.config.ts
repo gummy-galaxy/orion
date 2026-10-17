@@ -32,7 +32,7 @@ function orionServer(port: number): Plugin {
         return
       }
 
-      let child: ChildProcess | undefined = spawn(binary, ['serve', '--host', '127.0.0.1', '--port', String(port)], {
+      let child: ChildProcess | undefined = spawn(binary, ['server', 'start', '--host', '127.0.0.1', '--port', String(port)], {
         env: process.env,
         stdio: ['ignore', 'pipe', 'pipe'],
       })

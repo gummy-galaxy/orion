@@ -1,5 +1,5 @@
 import { GAP } from './layout'
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, normalize, type AppNode } from './model'
+import { GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, groupHeaderHeight, isCluster, normalize, type AppNode } from './model'
 import type { CardSize } from './cardSize'
 
 const CLASSIC_SIZE = { width: TASK_WIDTH, height: TASK_HEIGHT }
@@ -12,10 +12,11 @@ function mapPositions(nodes: AppNode[], size: CardSize, isInverse: boolean): App
   if (size.width === TASK_WIDTH && size.height === TASK_HEIGHT) return nodes
 
   const { x: pitchX, y: pitchY } = cardPitchOf(size)
+  const headers = new Map(nodes.filter(isCluster).map((group) => [group.id, groupHeaderHeight(group.data)]))
 
   return normalize(
     nodes.map((node) => {
-      const origin = node.parentId ? { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } : { x: 0, y: 0 }
+      const origin = node.parentId ? { x: GROUP_PADDING, y: headers.get(node.parentId) ?? groupHeaderHeight(undefined) } : { x: 0, y: 0 }
 
       return {
         ...node,
