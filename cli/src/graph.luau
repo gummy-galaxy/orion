@@ -1030,15 +1030,18 @@ function graph.recordedStatuses(doc: Doc): { [string]: string }
 	return statuses
 end
 
--- Sets `celebrate` on a card that changed to done, so the app can celebrate it, and clears it when the card is
+-- Sets `celebrate` on a card that changed to done, so it waits to be closed out, and clears it when the card is
 -- reopened. Cards created done and notes never get the flag, and cards finished before the flag existed don't have it.
+-- The app sends `celebrate = false` for a card it finished and closed out at once, so that card doesn't wait.
 function graph.markCelebrations(doc: Doc, previous: { [string]: string })
 	for _, item in doc.nodes do
 		if item.type == "task" and not graph.isNote(item) then
 			local status = field(item, "status")
 			local wasOpen = previous[item.id] ~= nil and previous[item.id] ~= "done"
 
-			if status == "done" and wasOpen then
+			if item.data.celebrate == false then
+				item.data.celebrate = nil
+			elseif status == "done" and wasOpen then
 				item.data.celebrate = true
 			elseif status ~= "done" then
 				item.data.celebrate = nil

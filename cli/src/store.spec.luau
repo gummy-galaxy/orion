@@ -316,3 +316,26 @@ test.case("a save flags the cards it finishes and leaves the rest without the fl
 	assert.eq(saved.nodes[1].data.celebrate, true)
 	assert.eq(saved.nodes[2].data.celebrate, nil)
 end)
+
+test.case("a save closes out the cards the app finished and closed out at once", function(assert)
+	local dir = testing.directory("celebrate-closed-out")
+	store.write(
+		dir,
+		testing.createDoc({
+			testing.task("a", "A", "active"),
+			testing.task("b", "B", "done", nil, { celebrate = true }),
+		})
+	)
+	local doc = store.load(dir)
+	doc.nodes[1].data.status = "done"
+	doc.nodes[1].data.celebrate = false
+	doc.nodes[2].data.celebrate = false
+	local root = store.toObject(doc)
+
+	local isSaved = store.put(dir, 0, json.asArray(root.nodes) or {}, json.asArray(root.links) or {})
+	assert.eq(isSaved, true)
+	local saved = store.load(dir)
+	assert.eq(saved.nodes[1].data.celebrate, nil)
+	assert.eq(saved.nodes[2].data.celebrate, nil)
+	assert.strNotContains(fs.readFileToString(store.filePath(dir)), "celebrate")
+end)

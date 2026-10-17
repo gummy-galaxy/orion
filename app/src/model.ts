@@ -56,8 +56,9 @@ export type TaskData = {
   /** Components only; otherwise the nearest group's tint applies. */
   color?: Tint
   /**
-   * Set when the card changes to done, until it is closed out or reopened. The CLI store sets
-   * it too, on every path that finishes a card, so it is saved with the card like the other fields.
+   * True while a card finished outside the app waits to be closed out. The CLI store sets it on every path that
+   * finishes a card and clears it on reopen. The app sends false when it finishes a card itself, so the store
+   * closes it out at once and drops the flag.
    */
   celebrate?: boolean
 }
