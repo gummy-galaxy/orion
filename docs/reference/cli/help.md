@@ -5,9 +5,9 @@
 Show help for Orion or one of its commands
 
 ```sh
-orion help [command] [options]
+orion help [options] [command...]
 ```
 
-| Argument    | Description         |
-| ----------- | ------------------- |
-| `[command]` | Command to describe |
+| Argument       | Description                            |
+| -------------- | -------------------------------------- |
+| `[command...]` | Command to describe, such as card list |

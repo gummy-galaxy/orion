@@ -27,3 +27,32 @@ test.case("authored pull requests include every page", function(assert)
 	assert.eq(authored[1].number, 1)
 	assert.eq(authored[2].number, 2)
 end)
+
+test.case("authored pull requests use light fields and halve a page that times out", function(assert)
+	local sizes: { string } = {}
+	local authored = getAuthoredOpen(function(argv)
+		local query = argv[#argv]
+		table.insert(sizes, query:match("pullRequests%(first: (%d+)") :: string)
+		assert.eq(query:find("mergeStateStatus", 1, true), nil)
+
+		if #sizes < 3 then
+			return testing.result(false, "", "gh: HTTP 502")
+		end
+
+		return testing.result(
+			true,
+			[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":1,"state":"OPEN","url":"u1","repository":{"name":"orion","owner":{"login":"vocksel"}}}],"pageInfo":{"hasNextPage":false}}}}}]]
+		)
+	end)
+
+	assert.eq(table.concat(sizes, ","), "100,50,25")
+	assert.eq(#authored, 1)
+end)
+
+test.case("authored pull requests raise once the smallest page times out", function(assert)
+	assert.throws(function()
+		getAuthoredOpen(function()
+			return testing.result(false, "", "gh: HTTP 502")
+		end)
+	end)
+end)

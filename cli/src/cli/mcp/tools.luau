@@ -12,10 +12,22 @@ type Tool = mcpTypes.Tool
 
 local VIEWS = { "list", "ready", "groups", "matches", "show" }
 
+-- The CLI command each view reads with. The view names stay as the MCP enum values.
+local VIEW_COMMANDS: { [string]: { string } } = {
+	list = { "card", "list" },
+	ready = { "next" },
+	groups = { "group", "list" },
+	matches = { "source", "matches" },
+	show = { "node", "show" },
+}
+
 local REF_DESCRIPTION =
 	"Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch."
 local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
 local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
+local NOTE_STYLE =
+	"Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card."
+local NOTE_DESCRIPTION = "Replaces the whole note. " .. NOTE_STYLE
 
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
@@ -23,15 +35,15 @@ table.insert(WHO, "")
 local workspaceField: Field = {
 	name = "workspace",
 	kind = "workspace",
-	description = "Workspace name. Omit to use the workspace selected in Orion.",
+	description = "Canvas name. Omit to use the canvas selected in Orion.",
 	at = "option",
-	flag = "workspace",
+	flag = "canvas",
 }
 
 -- Each view is its own read command, and only some take an id or a group.
 local function buildInspectArgv(arguments: json.Object): { string }
 	local view = getRequiredString(arguments, "view")
-	local argv = { view }
+	local argv = table.clone(assert(VIEW_COMMANDS[view], `unknown view: {view}`))
 
 	if view == "show" then
 		table.insert(argv, getRequiredString(arguments, "id"))
@@ -40,14 +52,14 @@ local function buildInspectArgv(arguments: json.Object): { string }
 		appendFlag(argv, "all", arguments.all)
 	end
 
-	appendOption(argv, "workspace", arguments.workspace)
+	appendOption(argv, "canvas", arguments.workspace)
 	table.insert(argv, "--json")
 	return argv
 end
 
 -- Workspace names are optional when a label is given, so the name is passed only when present.
 local function buildCreateWorkspaceArgv(arguments: json.Object): { string }
-	local argv = { "workspace", "create" }
+	local argv = { "canvas", "create" }
 	local name = getStringField(arguments.name)
 
 	if name then
@@ -60,7 +72,7 @@ end
 
 -- Without a group, the item moves to the top level.
 local function buildMoveArgv(arguments: json.Object): { string }
-	local argv = { "move", getRequiredString(arguments, "id") }
+	local argv = { "node", "move", getRequiredString(arguments, "id") }
 	local group = getStringField(arguments.group)
 
 	if group then
@@ -70,13 +82,13 @@ local function buildMoveArgv(arguments: json.Object): { string }
 		table.insert(argv, "--top")
 	end
 
-	appendOption(argv, "workspace", arguments.workspace)
+	appendOption(argv, "canvas", arguments.workspace)
 	return argv
 end
 
 -- Refs are one list argument, which the CLI takes as trailing positionals.
 local function buildImportArgv(arguments: json.Object): { string }
-	local argv = { "import" }
+	local argv = { "card", "import" }
 	local refs = json.asArray(arguments.refs) or {}
 
 	for _, ref in refs do
@@ -86,7 +98,7 @@ local function buildImportArgv(arguments: json.Object): { string }
 
 	appendOption(argv, "group", arguments.group)
 	appendFlag(argv, "dry-run", arguments.dryRun)
-	appendOption(argv, "workspace", arguments.workspace)
+	appendOption(argv, "canvas", arguments.workspace)
 	table.insert(argv, "--json")
 	return argv
 end
@@ -96,15 +108,15 @@ end
 local tools: { Tool } = {
 	{
 		name = "orion_workspaces",
-		description = "List Orion workspaces and the active workspace, or the archived ones.",
+		description = "List Orion canvases and the active canvas, or the archived ones.",
 		annotations = { readOnlyHint = true },
-		command = { "workspace", "list" },
+		command = { "canvas", "list" },
 		json = true,
 		fields = {
 			{
 				name = "archived",
 				kind = "boolean",
-				description = "List archived workspaces instead.",
+				description = "List archived canvases instead.",
 				at = "flag",
 				flag = "archived",
 			},
@@ -148,7 +160,7 @@ local tools: { Tool } = {
 	{
 		name = "orion_add_item",
 		description = "Add a work item to the canvas.",
-		command = { "add" },
+		command = { "card", "add" },
 		json = true,
 		fields = {
 			{ name = "title", kind = "string", required = true, minLength = 1, at = "positional" },
@@ -162,8 +174,8 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_update_item",
-		description = "Change fields on an existing Orion item or group.",
-		command = { "set" },
+		description = "Change fields on an existing Orion card.",
+		command = { "card", "set" },
 		json = true,
 		fields = {
 			{ name = "id", kind = "id", required = true, at = "positional" },
@@ -177,7 +189,7 @@ local tools: { Tool } = {
 				description = "Whose move: you, review, or ci. Empty clears it.",
 				at = "option",
 			},
-			{ name = "note", kind = "string", at = "option" },
+			{ name = "note", kind = "string", description = NOTE_DESCRIPTION, at = "option" },
 			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
 			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
@@ -185,8 +197,8 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_add_note",
-		description = "Add a canvas note, optionally inside a group or a dependency link.",
-		command = { "note" },
+		description = "Add a canvas note, optionally inside a group or a dependency link. " .. NOTE_STYLE,
+		command = { "note", "add" },
 		json = true,
 		fields = {
 			{ name = "text", kind = "string", required = true, minLength = 1, at = "positional" },
@@ -198,7 +210,7 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_images",
-		description = "List image nodes in an Orion workspace.",
+		description = "List image nodes in an Orion canvas.",
 		annotations = { readOnlyHint = true },
 		command = { "media", "list" },
 		json = true,
@@ -206,7 +218,7 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_add_image",
-		description = "Import a local PNG, JPEG, GIF, or WebP file as an image node. The CLI copies it into the workspace assets folder.",
+		description = "Import a local PNG, JPEG, GIF, or WebP file as an image node. The CLI copies it into the canvas assets folder.",
 		command = { "media", "insert" },
 		json = true,
 		fields = {
@@ -226,7 +238,7 @@ local tools: { Tool } = {
 	{
 		name = "orion_link",
 		description = "Connect two items, optionally as a related link that does not block work.",
-		command = { "link" },
+		command = { "link", "add" },
 		fields = {
 			{ name = "from", kind = "id", required = true, at = "positional" },
 			{ name = "to", kind = "id", required = true, at = "positional" },
@@ -237,7 +249,7 @@ local tools: { Tool } = {
 	{
 		name = "orion_unlink",
 		description = "Remove a dependency or related link between two items.",
-		command = { "unlink" },
+		command = { "link", "remove" },
 		fields = {
 			{ name = "from", kind = "id", required = true, at = "positional" },
 			{ name = "to", kind = "id", required = true, at = "positional" },
@@ -258,7 +270,7 @@ local tools: { Tool } = {
 	{
 		name = "orion_move",
 		description = "Move an item into a group or to the top level.",
-		command = { "move" },
+		command = { "node", "move" },
 		fields = {
 			{ name = "id", kind = "id", required = true, at = "positional" },
 			workspaceField,
@@ -270,7 +282,7 @@ local tools: { Tool } = {
 		name = "orion_remove",
 		description = "Delete an item from the canvas. Use orion_remove_group for a group.",
 		annotations = { destructiveHint = true },
-		command = { "remove" },
+		command = { "node", "remove" },
 		fields = {
 			{ name = "id", kind = "id", required = true, at = "positional" },
 			workspaceField,
@@ -301,13 +313,13 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_create_workspace",
-		description = "Create an Orion workspace. Without a name, one is derived from the label.",
-		command = { "workspace", "create" },
+		description = "Create an Orion canvas. Without a name, one is derived from the label.",
+		command = { "canvas", "create" },
 		fields = {
 			{
 				name = "name",
 				kind = "workspace",
-				description = "Workspace name. Omit it to derive one from label.",
+				description = "Canvas name. Omit it to derive one from label.",
 				at = "positional",
 			},
 			{
@@ -321,8 +333,8 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_rename_workspace",
-		description = "Change a workspace's display label. The name and folder stay the same.",
-		command = { "workspace", "rename" },
+		description = "Change a canvas's display label. The name and folder stay the same.",
+		command = { "canvas", "rename" },
 		fields = {
 			{ name = "name", kind = "workspace", required = true, at = "positional" },
 			{ name = "label", kind = "string", required = true, minLength = 1, at = "positional" },
@@ -330,31 +342,31 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_archive_workspace",
-		description = "Archive a workspace so it leaves the workspace list. Its data stays in place. The active workspace can't be archived.",
-		command = { "workspace", "archive" },
+		description = "Archive a canvas so it leaves the canvas list. Its data stays in place. The active canvas can't be archived.",
+		command = { "canvas", "archive" },
 		fields = {
 			{ name = "name", kind = "workspace", required = true, at = "positional" },
 		},
 	},
 	{
 		name = "orion_restore_workspace",
-		description = "Restore an archived Orion workspace with its data.",
-		command = { "workspace", "restore" },
+		description = "Restore an archived Orion canvas with its data.",
+		command = { "canvas", "restore" },
 		fields = {
 			{ name = "name", kind = "workspace", required = true, at = "positional" },
 		},
 	},
 	{
 		name = "orion_select_workspace",
-		description = "Set the active Orion workspace shown by the app.",
-		command = { "workspace", "use" },
+		description = "Set the active Orion canvas shown by the app.",
+		command = { "canvas", "use" },
 		fields = {
 			{ name = "name", kind = "workspace", required = true, at = "positional" },
 		},
 	},
 	{
 		name = "orion_ingest",
-		description = "Import work from the workspace's configured sources into Unsorted, and refresh the cards they track, such as pull request states from GitHub.",
+		description = "Import work from the canvas's configured sources into Unsorted, and refresh the cards they track, such as pull request states from GitHub.",
 		annotations = { openWorldHint = true },
 		command = { "ingest" },
 		json = true,
@@ -380,7 +392,7 @@ local tools: { Tool } = {
 		name = "orion_import",
 		description = "Add a card for each GitHub or Jira URL, or source:key, in one step. Refs already on the canvas are skipped. Refs that don't resolve are reported and skipped, and the call fails if any did.",
 		annotations = { openWorldHint = true },
-		command = { "import" },
+		command = { "card", "import" },
 		json = true,
 		build = buildImportArgv,
 		fields = {

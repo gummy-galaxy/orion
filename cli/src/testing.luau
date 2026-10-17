@@ -5,16 +5,45 @@ local process = require("@std/process")
 local system = require("@std/system")
 
 local cli = require("@root/cli")
+local githubTypes = require("@root/github/types")
 local store = require("@root/store")
 local types = require("@root/types")
 
 type Doc = types.Doc
 type Item = types.Item
+type PullState = githubTypes.PullState
 
 -- Shared fixtures for specs.
 local testing = {}
 
 local sequence = 0
+
+function testing.pull(
+	state: string,
+	extra: { draft: boolean?, reviewDecision: string?, reviewRequests: number? }?
+): PullState
+	local given: { draft: boolean?, reviewDecision: string?, reviewRequests: number? } = extra or {}
+
+	return {
+		owner = "flipbook-labs",
+		name = "flipbook",
+		number = 1,
+		state = state,
+		baseRefName = "main",
+		headRefName = "feature/a",
+		draft = given.draft == true,
+		reviewDecision = given.reviewDecision,
+		reviewRequests = given.reviewRequests or 0,
+		requestedReviewers = {},
+		title = "Title",
+		url = "https://github.com/flipbook-labs/flipbook/pull/1",
+		author = "vocksel",
+		updatedAt = "2026-10-04T00:00:00Z",
+		additions = 12,
+		deletions = 3,
+		checks = "SUCCESS",
+	}
+end
 
 function testing.directory(name: string): string
 	sequence += 1
@@ -65,8 +94,8 @@ function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 	}
 end
 
-function testing.result(succeeded: boolean, stdout: string): types.CommandResult
-	return { ok = succeeded, exitCode = if succeeded then 0 else 1, stdout = stdout, stderr = "" }
+function testing.result(succeeded: boolean, stdout: string, stderr: string?): types.CommandResult
+	return { ok = succeeded, exitCode = if succeeded then 0 else 1, stdout = stdout, stderr = stderr or "" }
 end
 
 function testing.run(

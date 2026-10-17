@@ -21,7 +21,8 @@ export type Record = {
 	createWho: string?,
 	findFallback: ((Doc) -> Item?)?,
 	shouldFindFallbackFirst: boolean?,
-	getStatus: ((string, string?) -> (string, string?))?,
+	-- Sets the item's status and whose move it is from the source, once the record is placed.
+	updateStatus: ((Item) -> ())?,
 	mentionText: string?,
 	setRepoOnUpdate: boolean?,
 	setLabelOnUpdate: boolean?,
@@ -36,7 +37,9 @@ export type Adapter = {
 	kind: string,
 	createSource: ({ [string]: { string } }) -> Source,
 	collect: (Source, CommandRunner, Context) -> { Record },
-	refresh: ((Doc, CommandRunner, RefreshOptions) -> githubTypes.Report)?,
+	-- Fetches against a snapshot of the workspace and returns the step that applies the results, so callers can fetch
+	-- outside the workspace lock and take it only to apply.
+	refresh: ((Doc, CommandRunner, RefreshOptions) -> (Doc) -> githubTypes.Report)?,
 	collectOrder: number?,
 	-- Recognizes a pasted URL for this kind; sources are the configured ones, of any kind.
 	refFromUrl: ((string, { Source }) -> ResolvedRef?)?,

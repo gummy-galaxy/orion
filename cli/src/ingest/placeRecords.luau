@@ -100,12 +100,11 @@ local function placeRecords(doc: Doc, results: { Result }): Report
 
 			if record.status then
 				item.data.status, item.data.who = record.status, record.who
+				item.data.deferredByClosedPull = nil
 			end
 
-			if record.getStatus then
-				local current = if type(item.data.status) == "string" then item.data.status else "todo"
-				local who = if type(item.data.who) == "string" then item.data.who else nil
-				item.data.status, item.data.who = record.getStatus(current, who)
+			if record.updateStatus then
+				record.updateStatus(item)
 			end
 
 			setRef(item, record.ref)

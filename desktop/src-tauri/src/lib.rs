@@ -81,7 +81,8 @@ fn start_server(app: &tauri::App) -> Option<(Child, WebviewUrl)> {
 
     let mut command = Command::new(binary);
     command.args([
-        "serve",
+        "server",
+        "start",
         "--host",
         "127.0.0.1",
         "--port",

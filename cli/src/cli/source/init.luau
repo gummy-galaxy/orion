@@ -2,28 +2,24 @@ local cli = require("@batteries/cli")
 
 local add = require("@root/cli/source/add")
 local context = require("@root/cli/context")
+local defineSubcommands = require("@root/cli/defineSubcommands")
 local list = require("@root/cli/source/list")
+local matches = require("@root/cli/source/matches")
 local remove = require("@root/cli/source/remove")
+local runSubcommand = require("@root/cli/runSubcommand")
 
 type Context = context.Context
 type Command = context.Command
 
-local COMMANDS: { [string]: Command } = { list = list, add = add, remove = remove }
+local COMMANDS: { [string]: Command } = { list = list, add = add, remove = remove, matches = matches }
 
 return table.freeze({
-	help = "List, add, or remove ingestion sources",
+	help = "Sources that ingest imports work from",
 	define = function(parser: cli.Parser)
-		for _, name in { "list", "add", "remove" } do
-			local subcommand = parser:subcommand(name, { help = COMMANDS[name].help })
-			subcommand:add("help", "flag", { help = "Show this help", aliases = { "h" } })
-			subcommand:add("workspace", "option", { help = "Use this workspace for this command" })
-			COMMANDS[name].define(subcommand)
-		end
+		defineSubcommands(parser, COMMANDS, { "list", "add", "remove", "matches" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local name, subcommand = parser:selected()
-		assert(name and subcommand, "choose list, add, or remove")
-		COMMANDS[name].run(subcommand, options)
+		runSubcommand(parser, COMMANDS, options)
 	end,
 })
