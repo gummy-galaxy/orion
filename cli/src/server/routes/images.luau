@@ -17,9 +17,9 @@ end
 function imageRoutes.handle(request: net.ReceivedRequest, root: string): Response
 	local route = request.path
 	local method = request.method
-	local workspace = request.query.workspace
+	local workspace = request.query.canvas
 	if not workspace or not shared.isKnownWorkspace(root, workspace) then
-		return shared.reply(404, json.object({ error = `unknown workspace: {workspace or ""}` }))
+		return shared.reply(404, json.object({ error = `unknown canvas: {workspace or ""}` }))
 	end
 
 	local dir = store.getWorkspaceDir(root, workspace)
