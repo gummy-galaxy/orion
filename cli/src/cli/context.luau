@@ -7,6 +7,7 @@ export type Dependencies = {
 	dataDir: string?,
 	workspace: string?,
 	now: (() -> string)?,
+	exit: ((code: number) -> ())?,
 }
 
 export type Context = {
@@ -19,6 +20,8 @@ export type Context = {
 	asJson: boolean,
 	runner: types.CommandRunner,
 	now: () -> string,
+	-- Ends the process with a status, for commands such as canvas check that report findings through it.
+	exit: (code: number) -> (),
 	-- Runs another CLI command in this process, for commands such as mcp that relay to the CLI.
 	execute: (argv: { string }, options: Dependencies?) -> (),
 }

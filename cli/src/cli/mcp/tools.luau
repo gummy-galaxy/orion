@@ -127,6 +127,24 @@ local function buildImportArgv(arguments: json.Object): { string }
 	return argv
 end
 
+-- Group ids are one list argument, which the CLI takes as trailing positionals.
+local function buildTidyArgv(arguments: json.Object): { string }
+	local argv = { "group", "tidy" }
+	local ids = json.asArray(arguments.ids) or {}
+
+	for _, id in ids do
+		assert(type(id) == "string" and id ~= "", "ids must be a list of strings")
+		table.insert(argv, id)
+	end
+
+	appendOption(argv, "where", arguments.where)
+	appendFlag(argv, "dry-run", arguments.dryRun)
+	appendOption(argv, "if-revision", arguments.ifRevision)
+	appendOption(argv, "canvas", arguments.workspace)
+	table.insert(argv, "--json")
+	return argv
+end
+
 -- Every tool the MCP server offers, in the order tools/list reports them. Tools map their
 -- fields onto a CLI command, and those that need more than that supply their own build.
 local tools: { Tool } = {
@@ -355,6 +373,59 @@ local tools: { Tool } = {
 			{ name = "group", kind = "id", at = "option" },
 		},
 		build = buildMoveArgv,
+	},
+	{
+		name = "orion_tidy",
+		description = "Mark groups for the app to lay out in place, deepest first, such as after adding cards in bulk. The app does the layout, so appConnected in the result says whether it runs now or when the app next opens. Custom groups keep their arrangement.",
+		command = { "group", "tidy" },
+		fields = {
+			{
+				name = "ids",
+				kind = "strings",
+				description = "Groups to tidy. Give ids or where, not both.",
+				at = "positional",
+			},
+			{
+				name = "where",
+				kind = "string",
+				minLength = 1,
+				description = 'Select groups with a query expression instead of ids, such as label ~ "release".',
+				at = "option",
+			},
+			workspaceField,
+			{
+				name = "dryRun",
+				kind = "boolean",
+				description = "List the groups and the current revision without marking them.",
+				at = "flag",
+				flag = "dry-run",
+			},
+			{
+				name = "ifRevision",
+				kind = "int",
+				minimum = 0,
+				description = "Mark only if the canvas is still at this revision, such as the one a dry run reported.",
+				at = "option",
+				flag = "if-revision",
+			},
+		},
+		build = buildTidyArgv,
+	},
+	{
+		name = "orion_check",
+		description = "Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.",
+		annotations = { readOnlyHint = true },
+		command = { "canvas", "check" },
+		json = true,
+		fields = {
+			workspaceField,
+			{
+				name = "group",
+				kind = "id",
+				description = "Only report problems in this group and what is inside it.",
+				at = "option",
+			},
+		},
 	},
 	{
 		name = "orion_remove",
