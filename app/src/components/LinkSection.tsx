@@ -1,5 +1,5 @@
 import type { deriveWork } from '../derive'
-import { STATUS_LABEL, cardLabel, type AppNode, type ClusterData, type Link } from '../model'
+import { STATUS_LABEL, cardLabel, isComponent, type AppNode, type ClusterData, type Link } from '../model'
 import { StatusIcon } from './StatusIcon'
 
 const ORIGIN_LABEL = { stack: 'stacked', mention: 'mentioned' }
@@ -42,10 +42,12 @@ export function LinkSection({
               <li key={link.id}>
                 <button type="button" className="link" onClick={() => jumpTo(id)}>
                   {cardLabel(other)}{' '}
-                  <span className="link-status">
-                    <StatusIcon status={status} />
-                    {STATUS_LABEL[status]}
-                  </span>
+                  {!isComponent(other) && (
+                    <span className="link-status">
+                      <StatusIcon status={status} />
+                      {STATUS_LABEL[status]}
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -63,9 +65,13 @@ export function LinkSection({
                 >
                   ×
                 </button>
-                {(parent && parent.id !== node.parentId) || link.origin ? (
+                {(parent && parent.id !== node.parentId) || link.origin || link.label ? (
                   <span className="link-where">
-                    {[parent && parent.id !== node.parentId && `in ${(parent.data as ClusterData).label}`, link.origin && ORIGIN_LABEL[link.origin]]
+                    {[
+                      link.label && `“${link.label}”`,
+                      parent && parent.id !== node.parentId && `in ${(parent.data as ClusterData).label}`,
+                      link.origin && ORIGIN_LABEL[link.origin],
+                    ]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>

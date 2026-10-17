@@ -4,7 +4,7 @@ import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext } from '../derive'
 import { GROUP_HEADER_BAND, GROUP_HEADER_HEIGHT, type ClusterNode } from '../model'
 import { SourceBadges } from './SourceBadges'
-import { useCollapsed, useIsDropTarget, useGroupStats, useMarked, useSources, useTraceRole, workspaceAtom } from '../state'
+import { useCollapsed, useGroupParts, useGroupStats, useIsDropTarget, useMarked, useSources, useTint, useTraceRole, workspaceAtom } from '../state'
 import { HEADER_MIN_ZOOM, groupLayers, headerText } from '../style'
 import { CoverImage } from './CoverImage'
 import { Markdown } from './Markdown'
@@ -20,6 +20,10 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   const trace = useTraceRole(id)
   const attention = useMarked(id)
   const sources = useSources(id)
+  const tint = useTint(id)
+  // Groups that hold no work, like the boundaries of a system diagram, have no progress to show.
+  const hasWork = stats.total > 0
+  const parts = useGroupParts(id)
   const isDropTarget = useIsDropTarget(id)
   const workspace = useAtomValue(workspaceAtom)
   const headerFolded = useStore((state) => state.transform[2] < HEADER_MIN_ZOOM)
@@ -29,7 +33,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
 
   return (
     <div
-      className={`cluster${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${isDropTarget ? ' is-drop-target' : ''}`}
+      className={`cluster${tint ? ' tint-' + tint : ''}${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${isDropTarget ? ' is-drop-target' : ''}`}
       style={layers.color ? { background: layers.color } : undefined}
     >
       <Handle type="target" position={Position.Left} isConnectable={false} />
@@ -47,28 +51,44 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
         <>
           <FoldPreview id={id} width={width ?? 320} height={height ?? 200} />
           <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">
-            <div className="cluster-card-title">
-              <Ring done={stats.done} total={stats.total} size={16} />
-              <strong>{data.label}</strong>
+            {/* The text wraps into all the room the group has and clips only at its edge. */}
+            <div className="cluster-card-body">
+              <div className="cluster-card-title">
+                {hasWork && <Ring done={stats.done} total={stats.total} size={16} />}
+                <strong>{data.label}</strong>
+              </div>
+              {hasWork ? (
+                <span className="cluster-card-stats">
+                  <span>
+                    {stats.done}/{stats.total} done
+                  </span>
+                  <span>{stats.ready} ready</span>
+                  <span>{stats.blocked} blocked</span>
+                </span>
+              ) : (
+                // A folded diagram group lists what it holds, so the system still reads from far out.
+                parts.length > 0 && (
+                  <ul className="cluster-card-parts">
+                    {parts.map((part, i) => (
+                      <li key={i}>{part}</li>
+                    ))}
+                  </ul>
+                )
+              )}
             </div>
-            <span className="cluster-card-stats">
-              <span>
-                {stats.done}/{stats.total} done
-              </span>
-              <span>{stats.ready} ready</span>
-              <span>{stats.blocked} blocked</span>
-            </span>
             {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
             <SourceBadges sources={sources} />
           </div>
         </>
       ) : (
         <div className="cluster-head drag" title="Double-click to open">
-          <Ring done={stats.done} total={stats.total} />
+          {hasWork && <Ring done={stats.done} total={stats.total} />}
           <strong>{data.label}</strong>
-          <span className="count">
-            {stats.done}/{stats.total}
-          </span>
+          {hasWork && (
+            <span className="count">
+              {stats.done}/{stats.total}
+            </span>
+          )}
           {stats.outside > 0 && <span className="lev-inline">unblocks {stats.outside}</span>}
           <span className="head-actions">
             {data.arrange !== 'custom' && (

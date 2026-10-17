@@ -113,7 +113,7 @@ export function mergeDocs(base: Saved, local: Saved, remote: Saved): Saved & { c
     base.links,
     local.links,
     remote.links,
-    (before, ours, theirs, found) => mergeFields(before, ours, theirs, ['from', 'to', 'kind', 'origin'], found),
+    (before, ours, theirs, found) => mergeFields(before, ours, theirs, ['from', 'to', 'kind', 'origin', 'label'], found),
     isEqual,
     conflicts,
   ).filter((link) => ids.has(link.from) && ids.has(link.to))

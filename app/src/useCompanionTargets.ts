@@ -2,7 +2,7 @@ import { useStoreApi } from '@xyflow/react'
 import { useStore } from 'jotai'
 import { useCallback } from 'react'
 import { describeCard, type Hint, type PerchTarget } from './companion'
-import { GROUP_PADDING, TASK_HEIGHT, groupHeaderHeight, isNote, type ClusterData } from './model'
+import { GROUP_PADDING, TASK_HEIGHT, groupHeaderHeight, isComponent, isNote, type ClusterData } from './model'
 import { collapsedAtom, nodesAtom, workAtom } from './state'
 
 /** How far into an open group, in canvas units, its top row of cards ends. The header band, if any, sits above that row. */
@@ -54,7 +54,7 @@ export function useCompanionTargets() {
     (id: string): Hint | null => {
       const node = store.get(nodesAtom).find((other) => other.id === id)
 
-      if (!node || isNote(node)) return null
+      if (!node || isNote(node) || isComponent(node)) return null
 
       const work = store.get(workAtom)
 

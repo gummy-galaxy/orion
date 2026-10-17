@@ -84,6 +84,9 @@ jobs:
   app:
     runs-on: beelink
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
     defaults:
       run:
         working-directory: app
@@ -103,7 +106,24 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test
+        run: npm run coverage
+
+      - name: Install Luau Tools with Rokit
+        if: github.event_name == 'pull_request'
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Publish Coverage
+        if: github.event_name == 'pull_request'
+        working-directory: cli
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: lute run coverage-report
 
       - name: Build
         run: npm run build
