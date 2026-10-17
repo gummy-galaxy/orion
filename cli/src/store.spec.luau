@@ -8,12 +8,9 @@ local applyOperations = require("@root/operations/applyOperations")
 local findRef = require("@root/refs/findRef")
 local getRefs = require("@root/refs/getRefs")
 local graph = require("@root/graph")
-local operationTypes = require("@root/operations/types")
-local operationTypes = require("@root/operations/types")
+local parseOperations = require("@root/operations/parseOperations")
 local store = require("@root/store")
 local testing = require("@root/testing")
-
-type Operation = operationTypes.Operation
 
 test.case("load reads a missing data file as an empty workspace without writing it", function(assert)
 	local dir = testing.directory("missing")
@@ -407,16 +404,16 @@ test.case("an operation list closes out the cards the app finished and closed ou
 	)
 	local nodes = json.asArray(store.toObject(store.load(dir)).nodes) or {}
 
-	local function closeOut(index: number): Operation
+	local function closeOut(index: number)
 		local node = json.asObject(nodes[index]) :: json.Object
 		local data = json.asObject(node.data) :: json.Object
 		data.status = "done"
 		data.celebrate = false
-		return { op = "setData", id = node.id :: string, data = data }
+		return json.object({ op = "setData", id = node.id, data = data })
 	end
 
 	store.transaction(dir, function(doc)
-		applyOperations(doc, { closeOut(1), closeOut(2) })
+		applyOperations(doc, parseOperations({ closeOut(1), closeOut(2) }))
 	end)
 	local saved = store.load(dir)
 	assert.eq(saved.nodes[1].data.celebrate, nil)
