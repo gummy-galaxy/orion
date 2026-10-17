@@ -29,7 +29,7 @@ import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, deriveWork, needsAttention, type AttentionMark, type Flow } from '../derive'
-import { CHAIN_STEP_MS, CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
+import { CHAIN_STEP_MS, CLEAR_MS, celebrationDelays, clearCelebrations, closesOut, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { forgetTextWidths } from '../cardHeight'
 import { layoutOrder, reflow } from '../layout'
@@ -2081,6 +2081,28 @@ export function Canvas() {
     [nodes, selected, root, map, openRoot, setNodes, cardSize],
   )
 
+  /** Lands the Done stamps on cards that were just closed out, each after its delay. */
+  const landStamps = useCallback(
+    (delays: Map<string, number>) => {
+      // Reduced and off motion clear the stamps at once; the stamps only animate while they're listed here.
+      if (motionReduced()) return
+
+      setCelebrating((current) => new Map([...current, ...delays]))
+      window.setTimeout(
+        () =>
+          setCelebrating((current) => {
+            const next = new Map(current)
+
+            for (const key of delays.keys()) next.delete(key)
+
+            return next
+          }),
+        Math.max(...delays.values()) + readDurationMs('--motion-duration-clear', CLEAR_MS),
+      )
+    },
+    [setCelebrating],
+  )
+
   const actions = useMemo(
     () => ({
       reflow: (groupId: string) => {
@@ -2107,25 +2129,10 @@ export function Canvas() {
         const cleared = new Set(delays.keys())
 
         setNodes((latestNodes) => clearCelebrations(latestNodes, cleared))
-
-        // Reduced and off motion clear the stamps at once; the stamps only animate while they're listed here.
-        if (motionReduced()) return
-
-        setCelebrating((current) => new Map([...current, ...delays]))
-        window.setTimeout(
-          () =>
-            setCelebrating((current) => {
-              const next = new Map(current)
-
-              for (const key of cleared) next.delete(key)
-
-              return next
-            }),
-          Math.max(...delays.values()) + readDurationMs('--motion-duration-clear', CLEAR_MS),
-        )
+        landStamps(delays)
       },
     }),
-    [tweenTo, openRoot, cardSize, setNodes, setCelebrating],
+    [tweenTo, openRoot, cardSize, setNodes, landStamps],
   )
 
   const arrangeGroup = useCallback(
@@ -2139,7 +2146,12 @@ export function Canvas() {
   )
 
   const updateData = useCallback(
-    (id: string, patch: Partial<TaskData> | Partial<ClusterData> | Partial<ImageNode['data']>) =>
+    (id: string, patch: Partial<TaskData> | Partial<ClusterData> | Partial<ImageNode['data']>) => {
+      const before = latest.current.nodes.find((node) => node.id === id)
+
+      // Finishing a card here closes it out at once, so its Done stamp lands now instead of after a click.
+      if (before && isTask(before) && closesOut(before.data, patch as Partial<TaskData>)) landStamps(new Map([[id, 0]]))
+
       setNodes((currentNodes) => {
         let resized = false
         const nextNodes = currentNodes.map((node) => {
@@ -2157,8 +2169,9 @@ export function Canvas() {
         })
 
         return resized ? normalize(nextNodes, cardSizeRef.current) : nextNodes
-      }),
-    [setNodes],
+      })
+    },
+    [setNodes, landStamps],
   )
 
   /** Sets the same fields on every work item in the selection, as one edit. */
@@ -3267,6 +3280,9 @@ export function Canvas() {
 
                   return
                 }
+
+                // A card waiting to be closed out closes out instead of opening in focus.
+                if (node.type === 'task' && (node.data as TaskData).celebrate) return actions.celebrate(node.id)
 
                 if (node.type === 'task' || node.type === 'ghost') return focusOn(node.type === 'ghost' ? node.data.taskId : node.id)
 

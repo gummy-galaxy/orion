@@ -206,6 +206,14 @@ A card that's done and closed out carries a Done stamp and fades only slightly. 
 
 2026-10-12 · #317
 
+### Finishing a card in the app closes it out
+
+Marking a card done from its menu or the inspector closes it out at once, and its Done stamp lands right away. Cards finished outside the app, by `orion card done` or a merged pull request, shimmer until someone closes them out.
+
+**Why:** in the app the badge click was an extra step after marking a card done, so finishing it there takes one move. Work finished elsewhere still waits for someone to see it.
+
+2026-10-17 · [#365](https://github.com/vocksel/orion/issues/365)
+
 ### Triage happens in a tray, and you do the placing
 
 New pull requests and issues land in a tray at the canvas edge, backed by the Inbox and Unsorted groups. You drag cards from the tray onto the canvas, and Orion learns from where they go. Heuristics and agents suggest where cards belong. Adding cards to the canvas automatically is held back.
