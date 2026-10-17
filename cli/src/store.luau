@@ -351,6 +351,7 @@ function store.decode(text: string): Doc
 	local sources: { Source } = {}
 	local cover = asString(settings.cover)
 	local background = asString(settings.background)
+	local header = asString(settings.header)
 	local checkSnoozes: { CheckSnooze } = {}
 
 	for _, raw in json.asArray(settings.checkSnoozes) or {} do
@@ -446,7 +447,13 @@ function store.decode(text: string): Doc
 	return {
 		version = 2,
 		revision = asNumber(root.revision) or 0,
-		settings = { sources = sources, cover = cover, background = background, checkSnoozes = checkSnoozes },
+		settings = {
+			sources = sources,
+			cover = cover,
+			background = background,
+			header = header,
+			checkSnoozes = checkSnoozes,
+		},
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
@@ -514,6 +521,7 @@ function store.toObject(doc: Doc): json.Object
 	settings.sources = sources
 	settings.cover = doc.settings.cover
 	settings.background = doc.settings.background
+	settings.header = doc.settings.header
 	local checkSnoozes: json.Array = {}
 
 	for _, snooze in doc.settings.checkSnoozes do

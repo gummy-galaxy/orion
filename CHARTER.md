@@ -51,6 +51,16 @@ Orion should feel gummy, sweet, and fair: a charming toy you can poke while you 
 6. **Simple parts, deep combinations.** Script cards, timers, and signal links are small on their own and combine into puzzles, contraptions, and whole computers, the way Minecraft's redstone does (#227, #228, #229).
 7. **Play can't break the machine.** Every script runs on a time and memory budget, so a runaway contraption stops itself instead of freezing the canvas (#224).
 
+## Made for the senses
+
+Orion should feel good to get your hands on, to look at, and to listen to. Games use every sense to make an action land, and OmmWriter shows how a calm screen and quiet music help someone settle into their work. Orion borrows from both, so working with your data is satisfying in itself.
+
+1. **Every sense, in its own measure.** Sight, sound, and touch each carry feedback sized to the moment. A press clicks, a finished chain climbs in pitch and bursts with light, and an idle canvas drifts too slowly to notice (#377, #378).
+2. **Rewards take time to savor.** A payoff lasts long enough to feel. A chain of finished work plays out beat by beat, not all at once (#379).
+3. **Room to focus.** Live backdrops and a focus mode can clear the screen down to the work and a calm scene, with sound to match (#380).
+4. **Meet people where they are.** Whoever they are and whatever their background, people should be able to work with their data in a way they understand. Orion adapts to them rather than asking them to adapt. Every sense can be turned up, down, or off, defaults follow the system's accessibility settings, and nothing depends on one sense alone (#381).
+5. **Flexible by construction.** Feedback runs through shared systems: tokens, one particle layer, one sound layer, and one settings path. Meeting a new need is then a setting or a theme, not a rewrite.
+
 ## Non-goals
 
 - A document editor. Notes stay short and link out to where long writing lives.

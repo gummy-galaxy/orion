@@ -24,6 +24,6 @@ A **group** holds cards, notes, and other groups, and shows its progress. Group 
 
 A **source** connects Orion to outside work: GitHub repositories, a Jira project, or local branches through hop. Ingesting a source files new cards in an Unsorted group and updates the ones already on the canvas.
 
-## Workspaces
+## Canvases
 
-A **workspace** is one canvas with its own data folder. Commands work in the active workspace unless you pass `--workspace <name>`.
+A **canvas** is one board with its own data folder. Commands work on the active canvas unless you pass `--canvas <name>`. The app still calls it a workspace for now.

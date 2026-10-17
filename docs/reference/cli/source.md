@@ -2,7 +2,7 @@
 
 # orion source
 
-List, add, or remove ingestion sources
+Sources that ingest imports work from
 
 ```sh
 orion source <command> [options]
@@ -82,3 +82,15 @@ orion source remove [id] [options]
 | Argument | Description |
 | -------- | ----------- |
 | `[id]`   | Source id   |
+
+## orion source matches
+
+List unplaced pull requests and the cards they likely belong to
+
+```sh
+orion source matches [options]
+```
+
+| Argument | Description |
+| -------- | ----------- |
+| `--json` | Print JSON  |

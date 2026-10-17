@@ -2,10 +2,18 @@
 
 # orion ci
 
-List, snooze, or unsnooze CI jobs whose failures cards leave out
+CI jobs whose failures cards leave out
 
 ```sh
 orion ci <command> [options]
+```
+
+## orion ci list
+
+List the CI jobs snoozed on the canvas
+
+```sh
+orion ci list [options]
 ```
 
 | Argument | Description |

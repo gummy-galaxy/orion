@@ -59,8 +59,14 @@ export type CheckSnooze = { repo: string, name: string, untilTime: string?, at: 
 export type Doc = {
 	version: number,
 	revision: number,
-	-- cover and background style the canvas itself: an image asset id, and a color, token name, or asset id.
-	settings: { sources: { Source }, cover: string?, background: string?, checkSnoozes: { CheckSnooze } },
+	-- cover, background, and header style the canvas itself: an image asset id, a color, token name, or asset id, and Markdown.
+	settings: {
+		sources: { Source },
+		cover: string?,
+		background: string?,
+		header: string?,
+		checkSnoozes: { CheckSnooze },
+	},
 	nodes: { Item },
 	links: { Link },
 	github: json.Object?,
