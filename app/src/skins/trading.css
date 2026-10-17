@@ -73,7 +73,7 @@
 
 /* The card is drawn at 264 by 380 and zoomed down to its size on the canvas, so it sits in scale with group
    headers. The far form keeps its own on-screen size. */
-.card.skin-trading:not(.far-card) .trading-frame {
+.card.skin-trading:not(.far-card) > .trading-frame {
   zoom: 0.75;
 }
 
@@ -415,17 +415,18 @@
 
 /* Below the compact breakpoint a card keeps its size and layout but drops to the parts that read from far out: the art,
    kind, facts, title, and the bottom row, each drawn larger. Status badges keep only their icon, and nothing casts a
-   blurred shadow. The rules reach only a card's own frame, so a hovered card's far tag keeps its own form. */
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame {
+   blurred shadow. A hovered or selected card's far tag draws the same way at its own size. The rules reach only a card's
+   own frame, so a resting card's look never reaches the peek card opened over it. */
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame {
   box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-facts {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-facts {
   scale: 1.5;
   transform-origin: 0 0;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-status-badge {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-status-badge {
   width: 46px;
   height: 46px;
   padding: 0;
@@ -433,74 +434,74 @@
   box-shadow: none;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-status-badge svg {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-status-badge svg {
   width: 26px;
   height: 26px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
   display: none;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-tile {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-tile {
   top: 112px;
   width: 70px;
   height: 70px;
   border-radius: 17px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-tile > svg {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-tile > svg {
   width: 38px;
   height: 38px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-lock svg {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-lock svg {
   width: 30px;
   height: 30px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-scrim {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-scrim {
   padding: 0 16px 16px;
   gap: 12px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-title {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-title {
   font-size: 25px;
   line-height: 1.15;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-bottom {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-bottom {
   min-height: 67px;
   grid-template-columns: 67px 1fr 67px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-blockers {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-blockers {
   width: 60px;
   height: 60px;
   border-radius: 24px 24px 24px 10px;
   font-size: 30px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-unblocks {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-unblocks {
   width: 67px;
   height: 67px;
   font-size: 35px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-motion:not(.trading-motion-counted) {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-motion:not(.trading-motion-counted) {
   width: 56px;
   height: 56px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-motion svg {
+.canvas[data-zoom='compact'] .card.skin-trading:not(.peek-card) > .trading-frame .trading-motion svg {
   width: 30px;
   height: 30px;
 }
 
-/* Far out, a card shrinks to its kind, title, and two numbers, at one on-screen size. It skips the pop-in and
-   blurred shadows, because far out every card on the canvas draws at once. */
+/* A hovered or selected card's far tag and inspect mode's peek each hold their own size and size themselves to the card.
+   They skip the pop-in and blurred shadows, because far out every card on the canvas draws at once. */
 .card.skin-trading.far-card {
-  width: 240px;
+  width: auto;
   min-width: 0;
   max-width: none;
   height: auto;
@@ -509,124 +510,28 @@
   animation: none;
 }
 
-.card.skin-trading.far-card .trading-frame {
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
+.card.skin-trading.far-card > .trading-frame {
+  width: 264px;
+  height: 380px;
 }
 
-.card.skin-trading.far-card .trading-art {
-  position: relative;
-  inset: auto;
-  flex: none;
-  height: 40px;
+/* The far tag draws the compact card above, about 240px across on screen. */
+.card.skin-trading.far-card:not(.peek-card) > .trading-frame {
+  zoom: 0.9;
 }
 
-.card.skin-trading.far-card .trading-facts {
-  display: none;
+/* Peek opens the full card at the size it's drawn at, with its note on a panel underneath. */
+.card.skin-trading.peek-card {
+  width: 264px;
 }
 
-.card.skin-trading.far-card .trading-tile {
-  top: 9px;
-  left: 10px;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  transform: none;
-  background: rgb(18 13 48 / 0.88);
-  box-shadow: none;
-}
-
-.card.skin-trading.far-card .trading-tile > svg {
-  width: 17px;
-  height: 17px;
-}
-
-.card.skin-trading.far-card .trading-lock svg {
-  width: 13px;
-  height: 13px;
-}
-
-.card.skin-trading.far-card .trading-status-badge {
-  top: 7px;
-  right: 8px;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  justify-content: center;
-  transform: none;
-}
-
-.card.skin-trading.far-card :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
-  display: none;
-}
-
-.card.skin-trading.far-card .trading-merge .merge-pull {
-  padding: 0;
-  justify-content: center;
-}
-
-.card.skin-trading.far-card .trading-scrim {
-  position: static;
-  padding: 10px 12px 10px;
-  gap: 8px;
-  background: none;
-}
-
-.card.skin-trading.far-card .trading-title {
-  -webkit-line-clamp: 2;
-  text-align: left;
-  font-size: 16px;
-  text-wrap: wrap;
-}
-
-.card.skin-trading.far-card .trading-bottom {
-  min-height: 0;
-  grid-template-columns: auto 1fr auto;
-  align-items: end;
-}
-
-.card.skin-trading.far-card :is(.trading-blockers, .trading-unblocks) {
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  background: none;
-  font-size: 32px;
-}
-
-.card.skin-trading.far-card .trading-blockers {
-  color: #a39bcc;
-}
-
-.card.skin-trading.far-card .trading-unblocks {
-  color: #18d6c0;
-  font-size: 36px;
-}
-
-.card.skin-trading.far-card .trading-motion {
-  width: 28px;
-  height: 28px;
-}
-
-.card.skin-trading.far-card .trading-motion svg {
-  width: 16px;
-  height: 16px;
-}
-
-.card.skin-trading.far-card .trading-motion-counted {
-  width: auto;
-  height: 32px;
-  padding: 0 10px 0 8px;
-}
-
-.card.skin-trading.far-card .trading-motion-count {
-  font-size: 20px;
-}
-
-.card.skin-trading.far-card .trading-note {
-  height: auto;
-  max-height: 170px;
+.card.skin-trading.peek-card > .peek-note {
+  margin: var(--space-2) 0 0;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: #251c57;
+  color: #d4cdf3;
 }
 
 /* The Done stamp sits across the art, where it reads against the dark card, and resolves to the dark status colors. */
