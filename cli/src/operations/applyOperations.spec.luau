@@ -40,6 +40,7 @@ local SAMPLES: { { name: string, edit: string } } = {
 	{ name = "setFields", edit = [=[{"op":"setFields","id":"pub","fields":{"status":"done","label":"Ship it"}}]=] },
 	{ name = "place", edit = [=[{"op":"place","id":"pub","x":300,"y":40}]=] },
 	{ name = "link", edit = [=[{"op":"link","from":"pub","to":"ci","kind":"related"}]=] },
+	{ name = "link with a label", edit = [=[{"op":"link","from":"ci","to":"pub","label":"HTTP"}]=] },
 	{ name = "unlink", edit = [=[{"op":"unlink","from":"ci","to":"pub"}]=] },
 	{ name = "insert", edit = [=[{"op":"insert","id":"docs","from":"ci","to":"pub"}]=] },
 	{ name = "group", edit = [=[{"op":"group","label":"Batch","items":["ci","pub"],"id":"batch"}]=] },
@@ -137,6 +138,8 @@ end)
 test.case("parsing turns a request into typed edits and names what's wrong", function(assert)
 	local linked = parse([=[[{"op":"link","from":"a","to":"b"}]]=])
 	assert.eq(linked[1].kind, "blocks")
+	assert.eq(linked[1].label, nil)
+	assert.eq(parse([=[[{"op":"link","from":"a","to":"b","label":"HTTP"}]]=])[1].label, "HTTP")
 	assert.eq(parse([=[[{"op":"move","id":"a"}]]=])[1].group, nil)
 	assert.throwsWith("operation 1: unknown operation: explode", function()
 		parse([=[[{"op":"explode"}]]=])
