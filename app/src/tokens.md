@@ -78,36 +78,38 @@ Groups and components in a system diagram take one of these colors. A group's ti
 
 ## Weight
 
-| Name              | CSS property        | Value |
-| ----------------- | ------------------- | ----- |
-| `weight.regular`  | `--weight-regular`  | 400   |
-| `weight.medium`   | `--weight-medium`   | 500   |
-| `weight.semibold` | `--weight-semibold` | 600   |
-| `weight.bold`     | `--weight-bold`     | 700   |
+| Name               | CSS property         | Value |
+| ------------------ | -------------------- | ----- |
+| `weight.regular`   | `--weight-regular`   | 400   |
+| `weight.medium`    | `--weight-medium`    | 500   |
+| `weight.semibold`  | `--weight-semibold`  | 600   |
+| `weight.bold`      | `--weight-bold`      | 700   |
+| `weight.extrabold` | `--weight-extrabold` | 800   |
 
 ## Text size
 
 Sizes are named for the role they most often play. A size is shared by every role that uses that exact value.
 
-| Name                    | CSS property              | Value  | Used for                                 |
-| ----------------------- | ------------------------- | ------ | ---------------------------------------- |
-| `text.size.mini`        | `--text-size-mini`        | 8px    | Smallest tags                            |
-| `text.size.tiny`        | `--text-size-tiny`        | 10px   | Level and status badges                  |
-| `text.size.micro`       | `--text-size-micro`       | 10.5px | Card meta and keyboard keys              |
-| `text.size.caption`     | `--text-size-caption`     | 11px   | Edge labels and counts                   |
-| `text.size.detail`      | `--text-size-detail`      | 11.5px | Secondary facts and footers              |
-| `text.size.small`       | `--text-size-small`       | 12px   | Helper text and image labels             |
-| `text.size.label`       | `--text-size-label`       | 12.5px | Card labels and buttons                  |
-| `text.size.body`        | `--text-size-body`        | 13px   | Most controls and settings text          |
-| `text.size.emphasis`    | `--text-size-emphasis`    | 13.5px | Group headings on the canvas             |
-| `text.size.base`        | `--text-size-base`        | 14px   | The page's base size                     |
-| `text.size.subheading`  | `--text-size-subheading`  | 15px   | Settings navigation headings             |
-| `text.size.input`       | `--text-size-input`       | 16px   | The command palette's input              |
-| `text.size.heading`     | `--text-size-heading`     | 17px   | Settings section headings and tool icons |
-| `text.size.glyph`       | `--text-size-glyph`       | 18px   | Small glyph buttons                      |
-| `text.size.glyph-large` | `--text-size-glyph-large` | 20px   | The settings close glyph                 |
-| `text.size.sticker`     | `--text-size-sticker`     | 28px   | Sticker wheel items                      |
-| `text.size.sticker-art` | `--text-size-sticker-art` | 40px   | Stickers on the canvas                   |
+| Name                    | CSS property              | Value  | Used for                                      |
+| ----------------------- | ------------------------- | ------ | --------------------------------------------- |
+| `text.size.mini`        | `--text-size-mini`        | 8px    | Smallest tags                                 |
+| `text.size.nano`        | `--text-size-nano`        | 9px    | The Plain skin's card meta and a snooze glyph |
+| `text.size.tiny`        | `--text-size-tiny`        | 10px   | Level and status badges                       |
+| `text.size.micro`       | `--text-size-micro`       | 10.5px | Card meta and keyboard keys                   |
+| `text.size.caption`     | `--text-size-caption`     | 11px   | Edge labels and counts                        |
+| `text.size.detail`      | `--text-size-detail`      | 11.5px | Secondary facts and footers                   |
+| `text.size.small`       | `--text-size-small`       | 12px   | Helper text and image labels                  |
+| `text.size.label`       | `--text-size-label`       | 12.5px | Card labels and buttons                       |
+| `text.size.body`        | `--text-size-body`        | 13px   | Most controls and settings text               |
+| `text.size.emphasis`    | `--text-size-emphasis`    | 13.5px | Group headings on the canvas                  |
+| `text.size.base`        | `--text-size-base`        | 14px   | The page's base size                          |
+| `text.size.subheading`  | `--text-size-subheading`  | 15px   | Settings navigation headings                  |
+| `text.size.input`       | `--text-size-input`       | 16px   | The command palette's input                   |
+| `text.size.heading`     | `--text-size-heading`     | 17px   | Settings section headings and tool icons      |
+| `text.size.glyph`       | `--text-size-glyph`       | 18px   | Small glyph buttons                           |
+| `text.size.glyph-large` | `--text-size-glyph-large` | 20px   | The settings close glyph                      |
+| `text.size.sticker`     | `--text-size-sticker`     | 28px   | Sticker wheel items                           |
+| `text.size.sticker-art` | `--text-size-sticker-art` | 40px   | Stickers on the canvas                        |
 
 ## Radius
 
@@ -122,6 +124,15 @@ Sizes are named for the role they most often play. A size is shared by every rol
 | `radius.round`       | `--radius-round`       | 50%         | Circles                        |
 | `radius.hairline`    | `--radius-hairline`    | 2px         | A thin bar                     |
 | `radius.note-corner` | `--radius-note-corner` | 0 7px 0 3px | A note's folded corner         |
+
+## Border
+
+Widths for borders that outline a box or frame it, such as a card, a group, or a control. Rings, outlines, and stamps keep their own widths (see Not named yet).
+
+| Name                   | CSS property             | Value | Used for                                                 |
+| ---------------------- | ------------------------ | ----- | -------------------------------------------------------- |
+| `border.width.default` | `--border-width-default` | 1px   | Cards, panels, menus, rows, and chips                    |
+| `border.width.strong`  | `--border-width-strong`  | 1.5px | Group frames, drop targets, handles, and card gate marks |
 
 ## Space
 
@@ -163,6 +174,7 @@ Durations and easings for transitions and one-shot animations. Like text sizes, 
 | Name                      | CSS property                | Value | Used for                                      |
 | ------------------------- | --------------------------- | ----- | --------------------------------------------- |
 | `motion.duration.stagger` | `--motion-duration-stagger` | 16ms  | The delay between sticker wheel items opening |
+| `motion.duration.blink`   | `--motion-duration-blink`   | 80ms  | The companion's eyes closing and opening      |
 | `motion.duration.instant` | `--motion-duration-instant` | 120ms | Tooltips and sticker wheel hovers             |
 | `motion.duration.quick`   | `--motion-duration-quick`   | 140ms | A sticker growing under the pointer           |
 | `motion.duration.fast`    | `--motion-duration-fast`    | 150ms | Handles, hover actions, and border changes    |
@@ -187,9 +199,10 @@ Durations and easings for transitions and one-shot animations. Like text sizes, 
 These are left for later passes, so they keep their literal values:
 
 - Sounds. The app plays none yet.
+- The companion's 250ms hint scale, which no token matches yet.
 - Looping animations, such as flowing links, the active pulse, and the sync spinner. Each `steps()` count is paired with its duration to hold 15 frames a second, so the two change together.
 - Durations a script waits on: the finish stamp clearing (420ms, `CLEAR_MS` in `celebrate.ts`) and a fresh sticker's stamp and ring (520ms, and 480ms after 140ms, inside `STICKER_FRESH_MS`). A theme that lengthened them would see them cut off.
-- Rings and stripes built from color tokens, such as a card's inset status stripe and the 1px tracing outlines. Their widths are part of the shape, not the elevation.
+- Rings and stripes built from color tokens, such as a card's inset status stripe and the 1px tracing outlines. Their widths are part of the shape, not the elevation. The same goes for outlines, the 2px and 3px sticker rings, and the 2.5px Done stamp border.
 - The trading card skin's frame, gate, sticker, and tile shadows, which belong to its art like its other literal colors.
 - Line heights, and layout sizes such as tool buttons and the space reserved beside panels.
 - Spacing values off the scale: 1, 3, 5, 7, 9, 11, 15, 18, and 22px. Extending the scale or naming each one is an open question.
