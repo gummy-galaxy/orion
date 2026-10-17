@@ -19,7 +19,7 @@ test.case("orientation keeps the canvas vocabulary and leaves CLI command names 
 	local text = table.concat(orientation.paragraphs, " ")
 
 	assert.strContains(text, "canvas")
-	assert.strContains(text, "workspace")
+	assert.strNotContains(text, "workspace")
 	assert.strNotContains(text, "orion add ")
 	assert.strNotContains(text, "orion set ")
 	assert.strNotContains(text, "orion link ")
@@ -29,7 +29,7 @@ test.case("help orientation keeps the vocabulary and leaves MCP tools and advice
 	local text = table.concat(orientation.help, " ")
 
 	assert.strContains(text, "canvas")
-	assert.strContains(text, "workspace")
+	assert.strNotContains(text, "workspace")
 	assert.strContains(text, "replaces its whole text")
 	assert.strNotContains(text, "orion_")
 	assert.strNotContains(text, "Prefer")

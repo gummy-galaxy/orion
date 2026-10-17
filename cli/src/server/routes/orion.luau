@@ -12,20 +12,20 @@ function orion.handle(request: net.ReceivedRequest, root: string, active: string
 	local didSucceed, response = pcall(function(): Response
 		local dir = store.getWorkspaceDir(root, active)
 		if request.method == "GET" then
-			local requested = request.headers["x-orion-workspace"] or active
+			local requested = request.headers["x-orion-canvas"] or active
 			if not shared.isKnownWorkspace(root, requested) then
-				return shared.reply(404, json.object({ error = `unknown workspace: {requested}` }))
+				return shared.reply(404, json.object({ error = `unknown canvas: {requested}` }))
 			end
 			local requestedDir = store.getWorkspaceDir(root, requested)
 			local doc = store.read(requestedDir)
 			if not doc then
-				return shared.reply(404, json.object({ path = store.filePath(requestedDir), workspace = requested }))
+				return shared.reply(404, json.object({ path = store.filePath(requestedDir), canvas = requested }))
 			end
 			return shared.reply(200, store.toObject(doc))
 		elseif request.method == "PUT" then
-			local tagged = request.headers["x-orion-workspace"]
+			local tagged = request.headers["x-orion-canvas"]
 			if tagged and tagged ~= active then
-				return shared.reply(409, json.object({ error = "workspace changed" }))
+				return shared.reply(409, json.object({ error = "canvas changed" }))
 			end
 			local change = shared.parseBody(request)
 			local base = change.baseRevision

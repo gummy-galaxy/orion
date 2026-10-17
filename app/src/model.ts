@@ -56,8 +56,9 @@ export type TaskData = {
   /** Components only; otherwise the nearest group's tint applies. */
   color?: Tint
   /**
-   * Set when the card changes to done, until it is closed out or reopened. The CLI store sets
-   * it too, on every path that finishes a card, so it is saved with the card like the other fields.
+   * True while a card finished outside the app waits to be closed out. The CLI store sets it on every path that
+   * finishes a card and clears it on reopen. The app sends false when it finishes a card itself, so the store
+   * closes it out at once and drops the flag.
    */
   celebrate?: boolean
 }
@@ -168,6 +169,22 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   deferred: 'Deferred',
   done: 'Done',
 }
+
+/** The statuses a person can record on a card, in the order the inspector lists them. */
+export const STATUS_CHOICES: { value: Status; label: string }[] = [
+  { value: 'todo', label: 'To do' },
+  { value: 'active', label: 'In progress' },
+  { value: 'review', label: 'In review' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'deferred', label: 'Deferred' },
+  { value: 'done', label: 'Done' },
+]
+
+export const WHO_CHOICES: { value: Who; label: string }[] = [
+  { value: 'you', label: 'You' },
+  { value: 'review', label: 'Reviewer' },
+  { value: 'ci', label: 'CI' },
+]
 
 export function getPrimaryRef(data: Pick<TaskData, 'refs'>): SourceRef | undefined {
   return data.refs?.find((ref) => ref.url) ?? data.refs?.[0]

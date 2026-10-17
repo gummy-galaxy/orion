@@ -3,6 +3,7 @@ local io = require("@lute/io")
 
 local context = require("@root/cli/context")
 local getBinaryFingerprint = require("@root/cli/mcp/server/getBinaryFingerprint")
+local queueBehindLock = require("@root/cli/mcp/server/queueBehindLock")
 local serve = require("@root/cli/mcp/server/serve")
 
 type Context = context.Context
@@ -18,8 +19,8 @@ return table.freeze({
 		local function runTool(argv: { string }, write: (string) -> ())
 			options.execute(argv, {
 				dataDir = options.root,
-				-- Without --canvas, each call resolves the selected workspace again, so
-				-- orion_select_workspace applies to later calls.
+				-- Without --canvas, each call resolves the selected canvas again, so
+				-- orion_select_canvas applies to later calls.
 				workspace = options.requestedWorkspace,
 				write = write,
 				runner = options.runner,
@@ -34,6 +35,6 @@ return table.freeze({
 			return started ~= nil and getBinaryFingerprint() ~= started
 		end
 
-		serve(io.read, io.write, runTool, isStale)
+		serve(io.read, io.write, queueBehindLock(runTool), isStale)
 	end,
 })

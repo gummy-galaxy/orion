@@ -13,7 +13,7 @@ test.case("removeRuntime keeps a newer server record", function(assert)
 	local runtime: readRuntime.Runtime = {
 		pid = 123,
 		url = "http://127.0.0.1:5198",
-		workspace = "default",
+		canvas = "default",
 		dataFolder = root,
 		startedAt = "2026-10-07T00:00:00Z",
 	}
@@ -24,7 +24,7 @@ test.case("removeRuntime keeps a newer server record", function(assert)
 	removeRuntime(root, older)
 	assert.eq(fs.exists(path.join(root, fileNames.runtime)), true)
 	local previousWorkspace = table.clone(runtime)
-	runtime.workspace = "ideas"
+	runtime.canvas = "ideas"
 	writeRuntime(root, runtime)
 	removeRuntime(root, previousWorkspace)
 	assert.eq(fs.exists(path.join(root, fileNames.runtime)), true)
