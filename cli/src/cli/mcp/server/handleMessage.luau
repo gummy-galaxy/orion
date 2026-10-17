@@ -3,20 +3,24 @@ local json = require("@std/json")
 local describeTools = require("@root/cli/mcp/catalog/describeTools")
 local findTool = require("@root/cli/mcp/catalog/findTool")
 local getToolArgv = require("@root/cli/mcp/catalog/getToolArgv")
+local getVersion = require("@root/getVersion")
 local mcpTypes = require("@root/cli/mcp/types")
+local orientation = require("@root/cli/orientation")
 
 type Run = mcpTypes.Run
 
-local SERVER_VERSION = "0.1.0"
 local PROTOCOL_VERSIONS = { "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05" }
--- Sent in the initialize response so every MCP client records where work starts, without per-machine setup.
-local INSTRUCTIONS =
-	'When you start work for an Orion card, record its branch on that card with orion_update_item and ref "branch:<owner>/<repo>@<branch>". Orion attaches a pull request you open from that branch to the card on the next sync. If no card exists for the work, add one first.'
+-- Sent in the initialize response so clients know what Orion is before they pick a tool.
+local INSTRUCTIONS = table.concat(orientation.paragraphs, " ")
 
 local PARSE_ERROR = -32700
 local INVALID_REQUEST = -32600
 local METHOD_NOT_FOUND = -32601
 local INVALID_PARAMS = -32602
+-- Implementation-defined server errors sit in -32000 to -32099.
+local SERVER_UPDATED = -32000
+local SERVER_UPDATED_MESSAGE =
+	"Orion was updated while this MCP server was running. Reconnect the MCP server to use the new build."
 
 local function createFailure(id: json.Value, code: number, message: string): json.Object
 	return json.object({
@@ -57,7 +61,7 @@ local function initialize(params: json.Object): json.Object
 	return json.object({
 		protocolVersion = version,
 		capabilities = json.object({ tools = json.object({ listChanged = false }) }),
-		serverInfo = json.object({ name = "orion", version = SERVER_VERSION }),
+		serverInfo = json.object({ name = "orion", version = getVersion() }),
 		instructions = INSTRUCTIONS,
 	})
 end
@@ -90,8 +94,8 @@ local function callTool(id: json.Value, params: json.Object, run: Run): json.Obj
 	return createSuccess(id, createToolResult(cleanErrorMessage(message), true))
 end
 
--- Answers one JSON-RPC message. Notifications get no response.
-local function handleMessage(line: string, run: Run): json.Object?
+-- Answers one JSON-RPC message. Notifications get no response. A stale server answers requests with an error.
+local function handleMessage(line: string, run: Run, stale: boolean?): json.Object?
 	local decoded, value = pcall(json.deserialize, line)
 
 	if not decoded then
@@ -108,6 +112,10 @@ local function handleMessage(line: string, run: Run): json.Object?
 
 	if id == nil then
 		return nil
+	end
+
+	if stale then
+		return createFailure(id, SERVER_UPDATED, SERVER_UPDATED_MESSAGE)
 	end
 
 	local params = if message.params == nil then json.object({}) else json.asObject(message.params :: json.Value)

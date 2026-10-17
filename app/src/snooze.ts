@@ -18,7 +18,7 @@ export function localDateValue(date: Date): string {
 
 /**
  * When a snooze ends. "Tomorrow", "next week", and a picked date all wake at the start of that local day, which is how
- * `orion snooze --until <date>` reads a plain date, so the app and the CLI agree.
+ * `orion card snooze --until <date>` reads a plain date, so the app and the CLI agree.
  */
 export function snoozeUntil(choice: SnoozeChoice, now: Date): string {
   if (choice === 'later') return toStoredTime(new Date(now.getTime() + LATER_MS))

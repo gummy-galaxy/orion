@@ -8,9 +8,12 @@ type Doc = types.Doc
 type CommandRunner = types.CommandRunner
 type RefreshOptions = adapterTypes.RefreshOptions
 
-local function refresh(doc: Doc, run: CommandRunner, options: RefreshOptions): githubTypes.Report
+local function refresh(doc: Doc, run: CommandRunner, options: RefreshOptions): (Doc) -> githubTypes.Report
 	local fetched = collectPulls(doc, run, options.discover)
-	return applyPulls(doc, fetched, options.now)
+
+	return function(current: Doc): githubTypes.Report
+		return applyPulls(current, fetched, options.now)
+	end
 end
 
 return refresh

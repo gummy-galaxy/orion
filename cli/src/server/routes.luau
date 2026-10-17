@@ -1,11 +1,13 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
+local canvasStyle = require("@root/server/routes/canvasStyle")
 local editor = require("@root/server/routes/editor")
 local focus = require("@root/server/routes/focus")
 local imageRoutes = require("@root/server/routes/images")
 local links = require("@root/server/routes/links")
 local merge = require("@root/server/routes/merge")
+local operations = require("@root/server/routes/operations")
 local orion = require("@root/server/routes/orion")
 local settings = require("@root/server/routes/settings")
 local shared = require("@root/server/routes/shared")
@@ -56,6 +58,12 @@ function routes.create(
 		end
 		if route == "/api/orion" then
 			return orion.handle(request, root, active)
+		end
+		if route == "/api/orion/style" then
+			return canvasStyle.handle(request, root, active)
+		end
+		if route == "/api/operations" then
+			return operations.handle(request, root, active)
 		end
 		if route == "/api/focus" then
 			return focus.handle(request, root, active)

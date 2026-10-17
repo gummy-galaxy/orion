@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { clearFocus, fetchRemote, reportFocus } from './persist'
+import { clearFocus, compactDoc, fetchRemote, fingerprint, reportFocus } from './persist'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -42,4 +42,18 @@ it('sends a closing report for the same workspace', async () => {
 
   expect(url).toBe('/api/focus')
   expect(JSON.parse(await (body as Blob).text())).toEqual({ tab: expect.any(String), workspace: 'planning', closed: true })
+})
+
+it('fingerprints a document the same however its position keys are ordered', () => {
+  // The server returns positions as y then x; the canvas builds x then y. Both are the same document.
+  const canvas = compactDoc({
+    nodes: [{ id: 'a', type: 'task', position: { x: 10, y: 20 }, data: { kind: 'task', label: 'a' } }] as never,
+    links: [],
+  })
+  const server = compactDoc({
+    nodes: [{ id: 'a', type: 'task', position: { y: 20, x: 10 }, data: { label: 'a', kind: 'task' } }] as never,
+    links: [],
+  })
+
+  expect(fingerprint(canvas)).toBe(fingerprint(server))
 })

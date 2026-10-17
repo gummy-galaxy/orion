@@ -1,6 +1,6 @@
 # Theme files
 
-A theme file sets token values from [tokens.md](./tokens.md) for the light and dark schemes. Install one by copying it into the `themes` folder inside Orion's data folder (`orion path` shows where that is). Orion reads the folder at startup and again when Settings or the command palette opens, so there is nothing to restart. The theme then sits beside Classic and Vibrant. Delete the file to remove the theme.
+A theme file sets token values from [tokens.md](./tokens.md) for the light and dark schemes. Install one by copying it into the `themes` folder inside Orion's data folder (`orion canvas path` shows where that is). Orion reads the folder at startup and again when Settings or the command palette opens, so there is nothing to restart. The theme then sits beside Classic and Vibrant. Delete the file to remove the theme.
 
 `examples/themes/dusk.json` in the repository is an example. It is not installed by default.
 
@@ -37,6 +37,7 @@ Each value must be plain CSS for its token's type:
 | Font (`font`)                      | A font family list, such as `'Schibsted Grotesk', system-ui, sans-serif`                                                                                                                                 |
 | Weight (`weight`)                  | A number from 100 to 1000                                                                                                                                                                                |
 | Size and spacing (`size`, `space`) | A length in `px`, `rem`, or `em`                                                                                                                                                                         |
+| Border (`border`)                  | A length in `px`, `rem`, or `em`, such as `1.5px`                                                                                                                                                        |
 | Radius (`radius`)                  | One to four lengths in `px`, `rem`, `em`, or `%`, such as `0 7px 0 3px`                                                                                                                                  |
 | Shadow (`shadow`)                  | `none`, or one or more shadows of lengths, `inset`, and colors under the color rules, such as `0 1px 2px rgb(0 0 0 / 0.3)`                                                                               |
 | Duration (`duration`)              | A time in `ms` or `s`, up to `10s`                                                                                                                                                                       |

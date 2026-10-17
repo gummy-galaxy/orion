@@ -96,6 +96,14 @@ Generated card art can be produced again from the same card. Later, people shoul
 
 2026-10-07 · [#234](https://github.com/vocksel/orion/issues/234)
 
+### Notes are short Markdown summaries, an experiment
+
+A card's note renders as Markdown: headings, lists, emphasis, links, and inline code. Clicking into it edits the Markdown source in place, and nothing richer is added. Notes stay a short summary that links out to where long writing lives. They're an experiment: the timeline is meant to take over the running record, so once both have been used for a while, decide whether notes stay, shrink to a short description, or go away.
+
+**Why:** a summary reads better rendered than as raw text, but a document editor is a non-goal in the charter, so editing stays plain source. Agents rewrote one note 12 times and once recorded a pass that hadn't happened, which is why the running record gets an append-only timeline rather than more note text. Rendering uses a Markdown library that emits React elements and no raw HTML, so a note can't run code.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
 ## Canvas and input
 
 ### Scrolling pans, for mouse and trackpad alike
@@ -156,6 +164,14 @@ Orion has a color palette for each major type of colorblindness, and status uses
 
 2026-10-11 · [#213](https://github.com/vocksel/orion/issues/213)
 
+### Hover lifts the card, and only a pinned card traces its chain
+
+Hovering a card lifts that card alone: it grows slightly from the middle of its title, gets a light ring and a deeper shadow, and rises above its neighbors. Nothing else on the canvas changes on hover. The chain trace, with its dimming, is for a pinned card only. Holding ⌥ keeps its attention fade.
+
+**Why:** tracing on every hover restyled the whole canvas on each pointer move and made hover heavy. Scaling from the title keeps the title readable.
+
+2026-10-12 · [#333](https://github.com/vocksel/orion/issues/333)
+
 ## Celebration and triage
 
 ### Finished work gets savored
@@ -173,6 +189,14 @@ The star companion shows on every canvas until it's turned off in Appearance. In
 **Why:** it makes the canvas feel alive and reads a card's status at a glance, so it earns its place by default. Keeping it small and out of the way respects the charter's calm work mode.
 
 2026-10-11 · [#292](https://github.com/vocksel/orion/issues/292)
+
+### A finished card carries a Done stamp
+
+A card that's done and closed out carries a Done stamp and fades only slightly. Until it's closed out, it shimmers. A done card has to read as finished on its own, without blocked or deferred cards beside it to compare against.
+
+**Why:** fading alone made done look like blocked and deferred work, so a group of finished cards gave no sign it was finished. A stamp says it in one word, which fits marks over words.
+
+2026-10-12 · #317
 
 ### Triage happens in a tray, and you do the placing
 
@@ -200,7 +224,7 @@ Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shap
 - **From 0.1.0:** breaking changes are still allowed, but each one is deliberate. Anything new must show why it has to widen the surface rather than fit what's already there.
 - **From 1.0.0:** the charter's stability promises apply, and breaking changes ship with aliases first.
 
-0.1.0 means the first tagged release, whatever version numbers the manifests carry before it, and it lands around when the repository goes public. 1.0.0 comes much later, likely once the charter's roadmap phases are complete, though an earlier gate may fit better. The HTTP API that `orion serve` exposes is internal to the app at every stage and carries no promise.
+0.1.0 means the first tagged release, whatever version numbers the manifests carry before it, and it lands around when the repository goes public. 1.0.0 comes much later, likely once the charter's roadmap phases are complete, though an earlier gate may fit better. The HTTP API that `orion server start` exposes is internal to the app at every stage and carries no promise.
 
 **Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release.
 
@@ -218,7 +242,7 @@ Commands name the thing they act on first, then the action: `orion node remove`,
 
 ### Files first, with a SQLite index
 
-A workspace lives as files that can be stored in a repository, like an Obsidian vault. SQLite does the heavy lifting as an index. Agents keep simple read and write commands through the CLI, and `orion serve` keeps one `sqlite3` process open instead of starting one per request.
+A workspace lives as files that can be stored in a repository, like an Obsidian vault. SQLite does the heavy lifting as an index. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
 
 **Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast.
 
@@ -248,6 +272,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 2026-10-08 · [#81](https://github.com/vocksel/orion/issues/81)
 
+### Ingest is the one command that pulls from outside
+
+`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. `orion sync` stays for one release as a deprecated way to run only the GitHub refresh, and `orion server start`'s background loop keeps running only the refresh.
+
+**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks.
+
+2026-10-12 · [#55](https://github.com/vocksel/orion/issues/55)
+
 ### Adapters are Lute packages
 
 Source adapters are Lute packages built on a shared core package. Long term, the official adapters live in their own repositories in an organization, Orion ships with them by default, and people copy them to make their own. Hop becomes a package Orion depends on, and it powers opening a pull request in VS Code.
@@ -266,7 +298,7 @@ Don't build concepts ahead of the features that need them, such as owners before
 
 ### MCP stays generic
 
-Orion documents how to register `orion mcp` with any client instead of shipping setup for each AI provider.
+Orion documents how to register `orion mcp start` with any client instead of shipping setup for each AI provider.
 
 **Why:** registering an MCP server is trivial for people to do themselves, and per-provider code is a lot to maintain for that convenience.
 
@@ -279,3 +311,11 @@ Canvas physics builds on an established library rather than a homegrown engine. 
 **Why:** bespoke physics is costly to keep up long term, and objects passing through each other or wobbling stacks are undesirable everywhere, not just in pinball.
 
 2026-10-11 · [#41](https://github.com/vocksel/orion/issues/41)
+
+### The desktop app installs to `/Applications`
+
+Orion installs to `/Applications/Orion.app` so every user on the machine gets it, and local builds replace that copy rather than one in `~/Applications`. The `orion` CLI link and MCP setup point there too.
+
+**Why:** every build shares one bundle id, so a second copy in `~/Applications` shows up as a duplicate Orion and leaves the CLI and the app running different builds.
+
+2026-10-13

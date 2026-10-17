@@ -168,6 +168,12 @@ describe('buildWork', () => {
 
     expect(work.status.get('a')).toBe('blocked')
   })
+
+  it('gives a component the server has not derived no status', () => {
+    const work = buildWork(toServerFacts(null), [task('api', 'todo', 'component')], [])
+
+    expect(work.status.has('api')).toBe(false)
+  })
 })
 
 describe('needsAttention', () => {

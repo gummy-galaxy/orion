@@ -39,6 +39,7 @@ export type Link = {
 	to: string,
 	kind: string,
 	origin: string?,
+	label: string?,
 }
 
 export type Source = {
@@ -55,7 +56,8 @@ export type Source = {
 export type Doc = {
 	version: number,
 	revision: number,
-	settings: { sources: { Source } },
+	-- cover, background, and header style the canvas itself: an image asset id, a color, token name, or asset id, and Markdown.
+	settings: { sources: { Source }, cover: string?, background: string?, header: string? },
 	nodes: { Item },
 	links: { Link },
 	github: json.Object?,

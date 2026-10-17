@@ -1,13 +1,25 @@
+local fs = require("@std/fs")
 local json = require("@std/json")
+local path = require("@std/path")
 local test = require("@std/test")
 
 local findRef = require("@root/refs/findRef")
+local getVersion = require("@root/getVersion")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
+test.case("help opens with the shared orientation and no MCP tool names", function(assert)
+	local _, run = testing.createHarness("help-orientation")
+	local text = run({ "help" })
+	assert.strContains(text, "canvas")
+	assert.strContains(text, "replaces its whole text")
+	assert.strContains(text, "branch:<owner>/<repo>@<branch>")
+	assert.strNotContains(text, "orion_")
+end)
+
 test.case("ready lists startable work, most unblocking first", function(assert)
 	local _, run = testing.createHarness("ready")
-	local text = run({ "ready" })
+	local text = run({ "next" })
 	assert.strContains(text, "ci")
 	assert.strContains(text, "unblocks 1")
 	assert.strNotContains(text, "pub")
@@ -15,45 +27,49 @@ end)
 
 test.case("add, link, and done change the shared data", function(assert)
 	local dir, run = testing.createHarness("edit")
-	assert.strContains(run({ "add", "Write", "release", "notes", "--group", "ws" }), "Added write-release-notes")
-	run({ "link", "pub", "write-release-notes" })
-	local shown = json.asObject(json.deserialize(run({ "show", "write-release-notes", "--json" })) :: json.Value)
+	assert.strContains(
+		run({ "card", "add", "Write", "release", "notes", "--group", "ws" }),
+		"Added write-release-notes"
+	)
+	run({ "link", "add", "pub", "write-release-notes" })
+	local shown =
+		json.asObject(json.deserialize(run({ "node", "show", "write-release-notes", "--json" })) :: json.Value)
 	assert.eq(shown and shown.status, "blocked")
-	run({ "done", "ci" })
-	run({ "done", "pub" })
+	run({ "card", "done", "ci" })
+	run({ "card", "done", "pub" })
 	assert.eq(store.load(dir).revision, 4)
-	assert.strContains(run({ "ready" }), "write-release-notes")
+	assert.strContains(run({ "next" }), "write-release-notes")
 end)
 
 test.case("group parses comma-separated ids with spaces and empty entries", function(assert)
 	local dir, run = testing.createHarness("group-items")
-	run({ "group", "Milestone", "--items", " ci, pub, , " })
+	run({ "group", "add", "Milestone", "--items", " ci, pub, , " })
 	local doc = store.load(dir)
 	assert.eq(doc.nodes[2].parentId, doc.nodes[3].parentId)
 	assert.eq(doc.nodes[2].parentId == "ws", false)
 end)
 
-test.case("set arranges a group and show reports it", function(assert)
+test.case("group set arranges a group and node show reports it", function(assert)
 	local dir, run = testing.createHarness("arrange")
-	local shown = json.asObject(json.deserialize(run({ "show", "ws", "--json" })) :: json.Value)
+	local shown = json.asObject(json.deserialize(run({ "node", "show", "ws", "--json" })) :: json.Value)
 	assert.eq(shown and shown.arrange, "auto")
-	run({ "set", "ws", "--arrange", "custom" })
-	shown = json.asObject(json.deserialize(run({ "show", "ws", "--json" })) :: json.Value)
+	run({ "group", "set", "ws", "--arrange", "custom" })
+	shown = json.asObject(json.deserialize(run({ "node", "show", "ws", "--json" })) :: json.Value)
 	assert.eq(shown and shown.arrange, "custom")
-	assert.strContains(run({ "show", "ws" }), "arrange  custom")
-	run({ "set", "ws", "--arrange", "auto" })
+	assert.strContains(run({ "node", "show", "ws" }), "arrange  custom")
+	run({ "group", "set", "ws", "--arrange", "auto" })
 	assert.eq(store.load(dir).nodes[1].data.layout, "refit")
-	assert.throwsWith("only groups take an arrangement", function()
-		run({ "set", "pub", "--arrange", "custom" })
+	assert.throwsWith("Unknown argument: arrange", function()
+		run({ "card", "set", "pub", "--arrange", "custom" })
 	end)
-	local item = json.asObject(json.deserialize(run({ "show", "pub", "--json" })) :: json.Value)
+	local item = json.asObject(json.deserialize(run({ "node", "show", "pub", "--json" })) :: json.Value)
 	assert.eq(item and item.arrange, nil)
 end)
 
 test.case("set renames items and groups and reports the new labels", function(assert)
 	local dir, run = testing.createHarness("set-label")
-	assert.eq(run({ "set", "pub", "--label", "New item name" }), "Updated pub · New item name")
-	assert.eq(run({ "set", "ws", "--label", "New group name" }), "Updated ws · New group name")
+	assert.eq(run({ "card", "set", "pub", "--label", "New item name" }), "Updated pub · New item name")
+	assert.eq(run({ "group", "set", "ws", "--label", "New group name" }), "Updated ws · New group name")
 	local doc = store.load(dir)
 	assert.eq(doc.nodes[1].data.label, "New group name")
 	assert.eq(doc.nodes[3].data.label, "New item name")
@@ -82,6 +98,78 @@ test.case("sync writes GitHub state through the command runner", function(assert
 	assert.eq(recorded and recorded.checks, "SUCCESS")
 	assert.eq(recorded and recorded.additions, 120)
 	assert.eq(recorded and recorded.mine, true)
+end)
+
+test.case("ingest refreshes pull request cards without any sources configured", function(assert)
+	local dir, run = testing.createHarness("ingest-refresh")
+	local text = run({ "ingest" }, function(argv)
+		if argv[5]:find("pullRequests", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
+		elseif argv[5]:find("search(", 1, true) then
+			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+		end
+
+		return testing.result(
+			true,
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,"reviewRequests":{"totalCount":0}}}}}]]
+		)
+	end)
+
+	assert.strContains(text, "Checked 1 pull requests on GitHub.")
+	assert.strContains(text, "ci: active → done")
+	assert.eq(store.load(dir).nodes[2].data.status, "done")
+end)
+
+-- Answers a refresh with flipbook #658 in the given state, which the harness card tracks.
+local function refreshRunner(state: string)
+	return function(argv: { string })
+		if argv[5]:find("pullRequests", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
+		elseif argv[5]:find("search(", 1, true) then
+			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+		end
+
+		return testing.result(
+			true,
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"]]
+				.. state
+				.. [[","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z","additions":1,"deletions":1,"reviewRequests":{"totalCount":0}}}}}]]
+		)
+	end
+end
+
+test.case("sync defers a card whose pull request closed and resumes it when the pull request reopens", function(assert)
+	local dir, run = testing.createHarness("sync-closed")
+	assert.strContains(run({ "sync" }, refreshRunner("CLOSED")), "ci: active → deferred")
+	assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, true)
+	assert.strContains(run({ "sync" }, refreshRunner("OPEN")), "ci: deferred → review")
+	assert.eq(store.load(dir).nodes[2].data.status, "review")
+	assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, nil)
+end)
+
+test.case(
+	"ingest defers a card whose pull request closed and resumes it when the pull request reopens",
+	function(assert)
+		local dir, run = testing.createHarness("ingest-closed")
+		assert.strContains(run({ "ingest" }, refreshRunner("CLOSED")), "ci: active → deferred")
+		assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, true)
+		assert.strContains(run({ "ingest" }, refreshRunner("OPEN")), "ci: deferred → review")
+		assert.eq(store.load(dir).nodes[2].data.status, "review")
+		assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, nil)
+	end
+)
+
+test.case("sync still works and points to ingest", function(assert)
+	local _, run = testing.createHarness("sync-deprecated")
+	local text = run({ "sync", "--dry-run" }, function(argv)
+		if argv[5]:find("pullRequests", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
+		end
+
+		return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+	end)
+
+	assert.strContains(text, "`orion ingest` refreshes pull requests too")
 end)
 
 test.case("sync --dry-run leaves the data alone", function(assert)
@@ -119,9 +207,9 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 		})
 	end)
 
-	assert.strContains(run({ "matches" }), "flipbook#670")
-	assert.strContains(run({ "matches" }), "pub")
-	local values = json.asArray(json.deserialize(run({ "matches", "--json" })) :: json.Value)
+	assert.strContains(run({ "source", "matches" }), "flipbook#670")
+	assert.strContains(run({ "source", "matches" }), "pub")
+	local values = json.asArray(json.deserialize(run({ "source", "matches", "--json" })) :: json.Value)
 	assert.eq(values and #values, 1)
 end)
 
@@ -149,13 +237,31 @@ test.case("sync records unplaced authored pulls without adding review request ca
 	local top = doc.github
 	local unplaced = if top then json.asArray(top.unplaced) else nil
 	assert.eq(unplaced and #unplaced, 1)
-	assert.strContains(run({ "matches" }), "flipbook#670")
+	assert.strContains(run({ "source", "matches" }), "flipbook#670")
+end)
+
+test.case("set puts a cover and background on a group, and needs the cover image in the workspace", function(assert)
+	local dir, run = testing.createHarness("set-group-style")
+	assert.throws(function()
+		run({ "group", "set", "ws", "--cover", "image-missing.png" })
+	end)
+	fs.createDirectory(path.join(dir, "assets"), { makeParents = true })
+	fs.writeStringToFile(path.join(dir, "assets", "image-logo.png"), "bytes")
+	run({ "group", "set", "ws", "--cover", "image-logo.png", "--background", "#1d1b2e" })
+	local group = store.load(dir).nodes[1]
+	assert.eq(group.data.cover, "image-logo.png")
+	assert.eq(group.data.background, "#1d1b2e")
+	assert.throws(function()
+		run({ "card", "set", "pub", "--background", "#1d1b2e" })
+	end)
+	run({ "group", "set", "ws", "--background", "" })
+	assert.eq(store.load(dir).nodes[1].data.background, nil)
 end)
 
 test.case("set attaches a GitHub issue from a URL and fills in an empty repository", function(assert)
 	local dir, run = testing.createHarness("attach-issue")
 	assert.strContains(
-		run({ "set", "pub", "--ref", "https://github.com/Roblox/avatar/issues/3" }),
+		run({ "card", "set", "pub", "--ref", "https://github.com/Roblox/avatar/issues/3" }),
 		"Updated pub · Publish v2.6.0"
 	)
 	local item = store.load(dir).nodes[3]
@@ -166,7 +272,7 @@ end)
 
 test.case("set keeps the repository an item already has when a ref names another", function(assert)
 	local dir, run = testing.createHarness("attach-keeps-repo")
-	run({ "set", "ci", "--ref", "https://github.com/Roblox/avatar/issues/3" })
+	run({ "card", "set", "ci", "--ref", "https://github.com/Roblox/avatar/issues/3" })
 	local item = store.load(dir).nodes[2]
 	assert.eq(item.data.repo, "flipbook-labs/flipbook")
 	assert.neq(findRef(item, "issue", "Roblox/avatar#3"), nil)
@@ -175,7 +281,7 @@ end)
 test.case("add attaches a pull request URL as a pr card", function(assert)
 	local dir, run = testing.createHarness("add-ref")
 	assert.strContains(
-		run({ "add", "Write", "notes", "--group", "ws", "--ref", "https://github.com/Roblox/avatar/pull/9" }),
+		run({ "card", "add", "Write", "notes", "--group", "ws", "--ref", "https://github.com/Roblox/avatar/pull/9" }),
 		"Added write-notes"
 	)
 	local item = store.load(dir).nodes[4]
@@ -195,8 +301,8 @@ test.case("set attaches Jira issues by source:key through a configured source", 
 		"--browse",
 		"https://jira.example.com/browse/",
 	})
-	run({ "set", "pub", "--ref", "jira:ABC-12" })
-	run({ "set", "ci", "--ref", "https://jira.example.com/browse/ABC-13" })
+	run({ "card", "set", "pub", "--ref", "jira:ABC-12" })
+	run({ "card", "set", "ci", "--ref", "https://jira.example.com/browse/ABC-13" })
 	local nodes = store.load(dir).nodes
 	local attached = findRef(nodes[3], "issue", "ABC-12")
 	assert.eq(attached and attached.url, "https://jira.example.com/browse/ABC-12")
@@ -211,47 +317,50 @@ test.case("a ref that cannot be resolved writes nothing", function(assert)
 	assert.throwsWith(
 		"no source recognizes https://git.example.org/a/b/pull/1; add its GitHub or Jira source first, or use source:key",
 		function()
-			run({ "set", "pub", "--ref", "https://git.example.org/a/b/pull/1" })
+			run({ "card", "set", "pub", "--ref", "https://git.example.org/a/b/pull/1" })
 		end
 	)
 	assert.throwsWith('no source with id "missing"', function()
-		run({ "add", "Write", "notes", "--ref", "missing:ABC-1" })
+		run({ "card", "add", "Write", "notes", "--ref", "missing:ABC-1" })
 	end)
 	assert.eq(store.load(dir).revision, before)
 	assert.eq(#store.load(dir).nodes, 3)
 end)
 
-test.case("set rejects item-only fields and refs on groups", function(assert)
+test.case("group set rejects item-only fields and card set rejects groups", function(assert)
 	local dir, run = testing.createHarness("set-groups")
-	assert.throwsWith("groups only take a label, blurb, and arrange", function()
-		run({ "set", "ws", "--note", "Remember" })
+	assert.throwsWith("Unknown argument: note", function()
+		run({ "group", "set", "ws", "--note", "Remember" })
 	end)
-	assert.throwsWith("groups don't take refs; attach it to an item", function()
-		run({ "set", "ws", "--ref", "https://github.com/Roblox/avatar/issues/3" })
+	assert.throwsWith("Unknown argument: ref", function()
+		run({ "group", "set", "ws", "--ref", "https://github.com/Roblox/avatar/issues/3" })
 	end)
-	assert.throwsWith("groups only take a label, blurb, and arrange", function()
-		run({ "set", "ws", "--status", "done" })
+	assert.throwsWith('"ws" is a group; use orion group set', function()
+		run({ "card", "set", "ws", "--status", "done" })
 	end)
-	assert.throwsWith('"pub" is an item; only groups take a blurb', function()
-		run({ "set", "pub", "--blurb", "Not for items" })
+	assert.throwsWith('"ws" is a group; use orion group set', function()
+		run({ "card", "set", "ws", "--ref", "https://github.com/Roblox/avatar/issues/3" })
+	end)
+	assert.throwsWith('"pub" is an item; use orion card set', function()
+		run({ "group", "set", "pub", "--blurb", "Not for items" })
 	end)
 	assert.eq(store.load(dir).nodes[1].data.blurb, nil)
 end)
 
 test.case("repo and pr still attach a pull request as deprecated aliases", function(assert)
 	local dir, run = testing.createHarness("deprecated-pr")
-	run({ "set", "pub", "--repo", "Roblox/avatar", "--pr", "4" })
+	run({ "card", "set", "pub", "--repo", "Roblox/avatar", "--pr", "4" })
 	local item = store.load(dir).nodes[3]
 	assert.eq(item.data.itemKind, "pr")
 	assert.neq(findRef(item, "pull", "Roblox/avatar#4"), nil)
-	assert.strContains(run({ "set", "--help" }), "Deprecated")
-	assert.strContains(run({ "set", "--help" }), "--ref")
-	assert.strContains(run({ "add", "--help" }), "--ref")
+	assert.strContains(run({ "card", "set", "--help" }), "Deprecated")
+	assert.strContains(run({ "card", "set", "--help" }), "--ref")
+	assert.strContains(run({ "card", "add", "--help" }), "--ref")
 end)
 
 test.case("sync attaches a new pull request to the card its branch was recorded on", function(assert)
 	local dir, run = testing.createHarness("attach-branch")
-	run({ "set", "pub", "--ref", "branch:flipbook-labs/flipbook@feature/a" })
+	run({ "card", "set", "pub", "--ref", "branch:flipbook-labs/flipbook@feature/a" })
 	local text = run({ "sync" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
@@ -262,19 +371,34 @@ test.case("sync attaches a new pull request to the card its branch was recorded 
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
 		end
 
+		-- The branch match is fetched in full before it's attached.
+		local alias = argv[5]:match(
+			'(p%d+): repository%(owner: "flipbook%-labs", name: "flipbook"%) { pullRequest%(number: 670%)'
+		)
+
+		if alias then
+			return testing.result(
+				true,
+				`\{"data":\{"{alias}":\{"pullRequest":\{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a","author":\{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z"}}}}`
+			)
+		end
+
 		return testing.result(true, [[{"data":{"p1":{"pullRequest":null}}}]])
 	end)
 
 	assert.strContains(text, "attached flipbook-labs/flipbook#670 to pub")
 	local item = store.load(dir).nodes[3]
 	assert.eq((findRef(item, "pull") :: any).key, "flipbook-labs/flipbook#670")
-	assert.strContains(run({ "matches" }), "No unplaced pull requests.")
+	assert.strContains(run({ "source", "matches" }), "No unplaced pull requests.")
 end)
 
-test.case("group add wraps items, and a bare group still means add", function(assert)
+test.case("group add wraps items, and the old bare group form is gone", function(assert)
 	local dir, run = testing.createHarness("group-add")
 	assert.strContains(run({ "group", "add", "Things", "to", "remove", "--items", "ci" }), "Grouped into")
-	assert.strContains(run({ "group", "Ship", "it", "--items", "pub" }), "Grouped into")
+	assert.strContains(run({ "group", "add", "Ship", "it", "--items", "pub" }), "Grouped into")
+	assert.throwsWith("Unknown command: Ship", function()
+		run({ "group", "Ship", "--items", "pub" })
+	end)
 	local labels: { [string]: boolean } = {}
 
 	for _, item in store.load(dir).nodes do
@@ -287,7 +411,7 @@ end)
 
 test.case("group remove previews and removes a group with everything inside", function(assert)
 	local dir, run = testing.createHarness("group-remove")
-	run({ "add", "Outside", "--group", "ws" })
+	run({ "card", "add", "Outside", "--group", "ws" })
 	run({ "group", "add", "Inner", "--items", "outside" })
 	local before = store.load(dir).revision
 	local preview = run({ "group", "remove", "ws", "--dry-run" })
@@ -305,16 +429,16 @@ test.case("group remove previews and removes a group with everything inside", fu
 	assert.eq(#doc.links, 0)
 end)
 
-test.case("remove still points groups at group remove", function(assert)
+test.case("node remove still points groups at group ungroup or group remove", function(assert)
 	local _, run = testing.createHarness("remove-group-hint")
-	assert.throwsWith('"ws" is a group; use ungroup or group remove instead', function()
-		run({ "remove", "ws" })
+	assert.throwsWith('"ws" is a group; use group ungroup or group remove instead', function()
+		run({ "node", "remove", "ws" })
 	end)
 end)
 
 test.case("ref remove takes a ref off by its key or URL", function(assert)
 	local dir, run = testing.createHarness("ref-remove")
-	run({ "set", "ci", "--ref", "https://github.com/Roblox/avatar/issues/3" })
+	run({ "card", "set", "ci", "--ref", "https://github.com/Roblox/avatar/issues/3" })
 	assert.eq(run({ "ref", "remove", "ci", "FLIPBOOK-LABS/flipbook#658" }), "Updated ci · Report release health")
 	local item = store.load(dir).nodes[2]
 	assert.eq(findRef(item, "pull"), nil)
@@ -329,4 +453,28 @@ test.case("ref remove takes a ref off by its key or URL", function(assert)
 	assert.throwsWith("groups don't take refs", function()
 		run({ "ref", "remove", "ws", "Roblox/avatar#3" })
 	end)
+end)
+
+test.case("flat command names and --workspace are gone, and help uses the noun form", function(assert)
+	local _, run = testing.createHarness("noun-names")
+	assert.throwsWith("Unknown command: list", function()
+		run({ "list" })
+	end)
+	assert.throwsWith("Unknown command: workspace", function()
+		run({ "workspace", "list" })
+	end)
+	assert.throwsWith("Unknown argument: workspace", function()
+		run({ "--workspace", "roblox", "card", "list" })
+	end)
+	assert.throwsWith("choose list, add, set, done, import, snooze, unsnooze", function()
+		run({ "card" })
+	end)
+	assert.strContains(run({ "help", "card", "list" }), "orion card list")
+	assert.strContains(run({ "help", "node", "query" }), "Fields: kind")
+	assert.strContains(run({ "card", "--help" }), "import")
+end)
+
+test.case("--version prints the version and build commit the MCP server reports", function(assert)
+	local _, run = testing.createHarness("version")
+	assert.eq(run({ "--version" }), `orion {getVersion()}`)
 end)

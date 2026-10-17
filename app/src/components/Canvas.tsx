@@ -31,25 +31,26 @@ import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '.
 import { localDateValue, snoozeUntil } from '../snooze'
 import { CLEAR_MS, celebrationDelays, clearCelebrations, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
-import { layoutOrder, reflow } from '../layout'
-import { mergeDocs } from '../merge'
+import { forgetTextWidths } from '../cardHeight'
+import { groupSelection, layoutOrder, moveOutOfGroup, reflow, ungroup } from '../layout'
+import { pushAside } from '../pushAside'
+import { diffOperations } from '../operations'
 import { glide, motionReduced, useSystemMotion } from '../motion'
 import {
   absolutePosition,
   ancestors,
   byId,
-  groupSelection,
   isCluster,
+  isComponent,
   isImage,
   isNote,
   isTask,
-  moveOutOfGroup,
   normalize,
+  getItemKind,
   getTaskUrl,
   sizeOf,
   getTaskTag,
   relativeTime,
-  ungroup,
   type AppNode,
   type ClusterData,
   type GhostNode,
@@ -61,7 +62,9 @@ import {
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { DetailStepper } from './DetailStepper'
 import { EmptyCanvas } from './EmptyCanvas'
+import { ComponentInspector } from './ComponentInspector'
 import { CurveEdge } from './CurveEdge'
+import { LinkInspector } from './LinkInspector'
 import { openExternal } from '../external'
 import { readFileSetting, saveFileSetting, saveSettings, type SavedSetting } from '../settings'
 import { addRecent, keepExistingNodes, readRecents, recentsKey, type Recent } from '../recents'
@@ -85,7 +88,7 @@ import { ClusterView } from './ClusterView'
 import { GhostView } from './GhostView'
 import { MiniMapNode } from './MiniMapNode'
 import { ImageView } from './ImageView'
-import { TaskView } from './TaskView'
+import { CardSlot, type CardSlotData } from './CardSlot'
 import {
   createWorkspace,
   clearFocus,
@@ -101,10 +104,10 @@ import {
   onSyncStatus,
   onWorkspaceChange,
   onWorkspaceListChange,
-  readBrowser,
   reportFocus,
   requestSync,
-  save,
+  commitOperations,
+  saveCanvasStyle,
   setActiveWorkspace,
   slim,
   type FocusReport,
@@ -131,7 +134,7 @@ import {
   collapsedAtom,
   derivedAtom,
   focusedAtom,
-  hoverAtom,
+  foldPreviewsAtom,
   inspectingAtom,
   linksAtom,
   nodesAtom,
@@ -140,25 +143,38 @@ import {
   skinStore,
   traceAtom,
   workAtom,
+  workspaceAtom,
 } from '../state'
+import { applyStyleChange, backgroundColor, headerText, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import { CoverImage } from './CoverImage'
+import { CoverSettings } from './CoverSettings'
+import { HeaderSettings } from './HeaderSettings'
+import { Markdown } from './Markdown'
 import { StickerLayer, type PlacedSticker, type PressModifiers, type StickerBounds, type StickerMove } from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
 import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedStickers, stickerCursor, type Loadout, type Sticker } from '../sticker'
 import { covers, MARQUEE_REACH, type Box } from '../marquee'
 import { Toolbar, type Tool } from './Toolbar'
 import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
+import { foldPreviews } from '../foldPreview'
 import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from '../viewport'
+import { subscribeCompactZoom, zoomLevel } from '../zoomLevel'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
+import { type DrawCard } from '../cardDraw'
+import { useDrawnCards } from '../useDrawnCards'
 import { GroupFacts } from './GroupFacts'
 import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
+import { TintSelect } from './TintSelect'
 
 type ViewNode = AppNode | GhostNode
 type FocusEntry = { viewport: Viewport; moved: boolean }
 
-const nodeTypes: NodeTypes = { task: TaskView, cluster: ClusterView, image: ImageView, ghost: GhostView }
+const nodeTypes: NodeTypes = { task: CardSlot, cluster: ClusterView, image: ImageView, ghost: GhostView }
 const edgeTypes: EdgeTypes = { default: CurveEdge }
+/** Whether a card view node was made away from the view, so it's drawn without its body. */
+const isAway = (node: AppNode) => isTask(node) && !!(node.data as CardSlotData).away
 const SIDEBAR_KEY = 'orion:sidebar'
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
@@ -219,7 +235,21 @@ const STICKER_FRESH_MS = 700
 
 /** How far above the toolbar the sticker wheel opens. */
 const WHEEL_LIFT = 140
-const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held' }
+const EDGE_COLOR: Record<Flow, string> = { live: '--edge-hot', held: '--edge-held', still: '--edge-still' }
+/** Space around a link's label, so it reads as a tag sitting on the line. */
+const EDGE_LABEL = { labelBgPadding: [6, 3] as [number, number], labelBgBorderRadius: 4 }
+
+/** Links between the same two drawn ends, drawn as one thicker arrow. */
+type Bundle = { a: string; b: string; count: number; flow: Flow; labels: (string | undefined)[] }
+
+/** A bundle whose links all say the same thing keeps saying it; otherwise it counts them. */
+function bundleLabel({ count, labels }: Bundle): string | undefined {
+  const [first] = labels
+
+  if (first && labels.every((label) => label === first)) return count > 1 ? `${first} ×${count}` : first
+
+  return count > 1 ? `${count} links` : undefined
+}
 
 type Menu = {
   x: number
@@ -264,6 +294,10 @@ function readFlag(key: string, fallback: boolean) {
 function writeFlag(key: SavedSetting, value: boolean) {
   saveSettings({ [key]: value ? '1' : '0' })
 }
+
+/** The server's copy in the form the canvas compares: stored positions, with the same defaults the canvas applies. */
+const serverCopyOf = (doc: Remote): Saved =>
+  compactDoc({ nodes: normalize(doc.nodes), links: doc.links, stickers: doc.stickers, stickerLoadout: doc.stickerLoadout })
 
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
@@ -336,13 +370,25 @@ export function Canvas() {
   const [root, setRoot] = useState<string | null>(null)
   // How many levels of nesting show below the open group; zoom no longer changes it.
   const [detail, setDetail] = useState<Detail>(DEFAULT_DETAIL)
-  const [hover, setHover] = useAtom(hoverAtom)
   const [pinned, setPinned] = useAtom(pinnedAtom)
   // A double-clicked card fills the view with what it waits on and leads to beside it.
   const [focusPick, setFocus] = useState<string | null>(null)
   // Where focus started, and whether it has since walked to another card or level.
   const focusEntry = useRef<FocusEntry | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+  /** The link whose inspector is showing, picked by clicking it. */
+  const [pickedLink, setPickedLink] = useState<string | null>(null)
+  /** The canvas's cover and background, as the workspace settings hold them. */
+  const [canvasStyle, setCanvasStyle] = useState<CanvasStyle>({})
+  /** The cover panel on show, for the canvas or the open group, or null while it's closed. */
+  const [coverTarget, setCoverTarget] = useState<{ kind: 'canvas' } | { kind: 'group'; id: string } | null>(null)
+  const setWorkspaceName = useSetAtom(workspaceAtom)
+  const canvasColor = backgroundColor(canvasStyle.background)
+  const canvasImage = isAssetId(canvasStyle.background) ? canvasStyle.background : undefined
+  // The canvas header is the top level's: inside a group, the group's own header takes its place.
+  const canvasHeader = root ? undefined : headerText(canvasStyle.header)
+
+  useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [appearance, setAppearance] = useState(readAppearance)
   /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
@@ -514,31 +560,42 @@ export function Canvas() {
   useLayoutEffect(() => {
     latest.current = { nodes, links, stickers, stickerLoadout: loadout }
   }, [nodes, links, stickers, loadout])
-  // Folded groups hold one on-screen size through --inv, set outside React so zooming doesn't re-render them.
+  // Folded groups hold one on-screen size through --inv, and the zoom level sits on the canvas as data-zoom. Both are
+  // set outside React so zooming doesn't re-render every card, and React never touches either.
   useEffect(() => {
     let shown = 0
+    let shownLevel = ''
 
     const apply = (zoom: number) => {
-      if (zoom === shown) return
+      const level = zoomLevel(zoom)
+
+      if (zoom === shown && level === shownLevel) return
 
       shown = zoom
+      shownLevel = level
       canvasRef.current?.style.setProperty('--inv', String(1 / zoom))
+      canvasRef.current?.setAttribute('data-zoom', level)
     }
 
     apply(store.getState().transform[2])
 
-    return store.subscribe((state) => apply(state.transform[2]))
+    const unsubscribeLevel = subscribeCompactZoom(() => apply(store.getState().transform[2]))
+    const unsubscribeStore = store.subscribe((state) => apply(state.transform[2]))
+
+    return () => {
+      unsubscribeLevel()
+      unsubscribeStore()
+    }
   }, [store])
 
   // ---- Persistence ----
-  const source = useRef<'file' | 'browser'>('file')
+  // The server's file is the only store. Edits are sent as operations, computed from what the server last had.
   const revision = useRef<number | null>(null)
   const savedPrint = useRef('')
+  // The canvas as the server last had it, in the stored form, which the next commit's operations are computed from.
   const base = useRef<Saved>({ nodes: [], links: [] })
-  const [mergeNotice, setMergeNotice] = useState<number | null>(null)
   const [imageError, setImageError] = useState<string | null>(null)
-  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Saves and reloads run one at a time so a reload never lands on a half-finished save.
+  // Commits and reloads run one at a time so a reload never lands on a half-finished commit.
   const queue = useRef<Promise<void>>(Promise.resolve())
   const workspace = useRef('default')
   const workspaceEpoch = useRef(0)
@@ -549,6 +606,18 @@ export function Canvas() {
   // The workspace the canvas is showing, so moves while switching aren't remembered for the next one.
   const viewFor = useRef<string | null>(null)
   const displayedCardSize = useRef(cardSize)
+
+  /** The canvas as the server stores it, with stickers on cards that are gone dropped. */
+  const storedOf = useCallback((doc: Saved): Saved => {
+    const ids = new Set(doc.nodes.map((node) => node.id))
+
+    return compactDoc({
+      nodes: toStored(doc.nodes, cardSizeRef.current),
+      links: doc.links,
+      stickers: (doc.stickers ?? []).filter((sticker) => !sticker.on || ids.has(sticker.on)),
+      stickerLoadout: doc.stickerLoadout,
+    })
+  }, [])
 
   useLayoutEffect(() => {
     const previousSize = displayedCardSize.current
@@ -592,14 +661,12 @@ export function Canvas() {
   }, [cardSize, setNodes, reactFlow, focusPick, root])
 
   const adopt = useCallback(
-    (doc: Remote, serverDoc: Remote = doc, preserveSelection = true): Saved => {
-      const next = toDisplayed(normalize(doc.nodes), cardSizeRef.current)
-      const server = compactDoc({
-        nodes: normalize(serverDoc.nodes),
-        links: serverDoc.links,
-        stickers: serverDoc.stickers,
-        stickerLoadout: serverDoc.stickerLoadout,
-      })
+    (doc: Remote, serverDoc: Remote = doc, preserveSelection = true, previous?: AppNode[]): Saved => {
+      const displayed = toDisplayed(normalize(doc.nodes), cardSizeRef.current)
+      // Another writer can grow a group, such as the CLI adding a card to it. Its neighbors move aside here, and
+      // since that differs from the server's copy, the next save writes the new positions back.
+      const next = previous ? pushAside(previous, displayed, cardSizeRef.current) : displayed
+      const server = serverCopyOf(serverDoc)
 
       revision.current = doc.revision
       base.current = server
@@ -619,39 +686,34 @@ export function Canvas() {
       setStickers(doc.stickers ?? [])
       setLoadout(stickerLoadout)
       setGithub(doc.github ?? null)
+      setCanvasStyle(readCanvasStyle(doc.settings))
 
       return adopted
     },
     [rebaseHistory, setDerived, setLinks, setNodes],
   )
 
-  useEffect(
-    () => () => {
-      if (noticeTimer.current) clearTimeout(noticeTimer.current)
-    },
-    [],
-  )
-
+  /**
+   * Takes the server's copy when it differs from what's shown. Unsaved edits win over it, since their commit is
+   * still on its way, unless `discard` says the server's copy replaces them, as after a refused commit.
+   */
   const reload = useCallback(
-    async (name: string, epoch: number) => {
+    async (name: string, epoch: number, discard = false) => {
       if (epoch !== workspaceEpoch.current) return
 
       const doc = await fetchRemote(name)
 
-      if (epoch !== workspaceEpoch.current) return
+      if (epoch !== workspaceEpoch.current || !doc) return
 
-      if (!doc || doc.revision === revision.current) return
+      const local = storedOf(latest.current)
 
-      const local = compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSizeRef.current) })
+      if (!discard && fingerprint(local) !== savedPrint.current) return
 
-      if (fingerprint(local) === savedPrint.current) adopt(doc)
-      else {
-        const merged = mergeDocs(base.current, local, compactDoc({ ...doc, nodes: normalize(doc.nodes) }))
+      if (!discard && doc.revision === revision.current && fingerprint(local) === fingerprint(serverCopyOf(doc))) return
 
-        adopt({ ...doc, ...merged }, doc)
-      }
+      adopt(doc, doc, true, latest.current.nodes)
     },
-    [adopt],
+    [adopt, storedOf],
   )
 
   const loadWorkspace = useCallback(
@@ -661,29 +723,23 @@ export function Canvas() {
       if (epoch !== workspaceEpoch.current) return
 
       if (loaded.source === 'file') {
-        source.current = 'file'
         resetHistory(adopt(loaded.doc, loaded.doc, !switched))
       } else {
-        source.current = loaded.source === 'missing' ? 'file' : 'browser'
-        const isDefault = name === 'default'
-        const kept = isDefault ? (loaded.source === 'browser' ? loaded.saved : readBrowser()) : null
-        const start = kept ? { nodes: toDisplayed(normalize(kept.nodes), cardSizeRef.current), links: kept.links } : { nodes: [], links: [] }
-        const initialStickers = kept?.stickers ?? []
-        const initialLoadout = loadoutOf(kept?.stickerLoadout)
-
-        if (epoch !== workspaceEpoch.current) return
+        // No file yet, or no server to read from: the canvas starts empty, and the first edit that saves creates the file.
+        const empty = compactDoc({ nodes: [], links: [] })
 
         revision.current = null
-        savedPrint.current = ''
-        base.current = { nodes: [], links: [] }
-        latest.current = { ...start, stickers: initialStickers, stickerLoadout: initialLoadout }
+        base.current = empty
+        savedPrint.current = fingerprint(empty)
+        latest.current = { nodes: [], links: [], stickers: [], stickerLoadout: loadoutOf() }
         resetHistory(latest.current)
-        setNodes(start.nodes)
-        setLinks(start.links)
+        setNodes([])
+        setLinks([])
         setDerived(null)
-        setStickers(initialStickers)
-        setLoadout(initialLoadout)
+        setStickers([])
+        setLoadout(loadoutOf())
         setGithub(null)
+        setCanvasStyle({})
       }
 
       const view = readViewport(workspace.current)
@@ -794,69 +850,51 @@ export function Canvas() {
     if (!ready) return
 
     const saveTimer = setTimeout(() => {
-      // Stickers on cards or groups that are gone go with them.
-      const ids = new Set(nodes.map((node) => node.id))
-      const snapshot = { nodes, links, stickers: stickers.filter((sticker) => !sticker.on || ids.has(sticker.on)), stickerLoadout: loadout }
-      const print = fingerprint({ ...snapshot, nodes: toStored(nodes, cardSize) })
       const epoch = workspaceEpoch.current
       const name = workspace.current
 
       queue.current = queue.current.then(async () => {
         if (epoch !== workspaceEpoch.current) return
 
+        // A drag keeps moving until it ends, and its edits commit then.
+        if (latest.current.nodes.some((node) => node.dragging)) return
+
+        const snapshot = storedOf(latest.current)
+        const print = fingerprint(snapshot)
+
         if (print === savedPrint.current) return
 
-        let pending: Saved = snapshot
+        const operations = diffOperations(base.current, snapshot)
 
-        for (let attempt = 0; attempt <= 2; attempt++) {
-          const result = await save(source.current, revision.current, pending, name, cardSize)
+        if (operations.length) {
+          const result = await commitOperations(name, revision.current, operations)
 
           if (epoch !== workspaceEpoch.current) return
 
-          if (result.ok) {
-            revision.current = result.revision
-            base.current = compactDoc({ ...pending, nodes: toStored(pending.nodes, cardSize) })
-            savedPrint.current = fingerprint({ ...pending, nodes: toStored(pending.nodes, cardSize) })
-
-            if (syncAfterSave.current) {
-              syncAfterSave.current = false
-              void requestSync(true).then((status) => status && setSyncStatus(status))
-            }
+          // A refused list means another writer got there first, or an edit no longer applies. The server's copy replaces this one.
+          if (!result.ok) {
+            await reload(name, epoch, true)
 
             return
           }
 
-          if (!result.conflict || attempt === 2) break
+          revision.current = result.revision
 
-          const remote = await fetchRemote(name)
-
-          if (epoch !== workspaceEpoch.current) return
-
-          if (!remote) break
-
-          const merged = mergeDocs(
-            base.current,
-            compactDoc({ ...latest.current, nodes: toStored(latest.current.nodes, cardSize) }),
-            compactDoc({ ...remote, nodes: normalize(remote.nodes) }),
-          )
-
-          pending = adopt({ ...remote, ...merged }, remote)
-
-          if (merged.conflicts.length) {
-            setMergeNotice(merged.conflicts.length)
-
-            if (noticeTimer.current) clearTimeout(noticeTimer.current)
-
-            noticeTimer.current = setTimeout(() => setMergeNotice(null), 4500)
+          if (syncAfterSave.current) {
+            syncAfterSave.current = false
+            void requestSync(true).then((status) => status && setSyncStatus(status))
           }
         }
 
-        await reload(name, epoch)
+        base.current = snapshot
+        savedPrint.current = print
+
+        if (operations.length) await reload(name, epoch)
       })
     }, 400)
 
     return () => clearTimeout(saveTimer)
-  }, [nodes, links, stickers, loadout, ready, reload, adopt, cardSize])
+  }, [nodes, links, stickers, loadout, ready, reload, storedOf])
 
   const pendingLayoutEpoch = useRef<number | null>(null)
 
@@ -877,7 +915,11 @@ export function Canvas() {
       let next = nodes
 
       try {
-        for (const group of marked) {
+        // Inner groups go first, so a group around them is laid out with their new sizes.
+        const nodeMap = byId(nodes)
+        const depth = (id: string) => ancestors(id, nodeMap).length
+
+        for (const group of [...marked].sort((a, b) => depth(b.id) - depth(a.id))) {
           try {
             next = await reflow(next, links, group.id, cardSize)
           } catch (error) {
@@ -885,7 +927,16 @@ export function Canvas() {
           }
         }
 
-        if (pending.length) next = placeBesideExisting(next, new Set(pending.map((group) => group.id)), cardSize)
+        const pendingIds = new Set(pending.map((group) => group.id))
+
+        // A new group is placed beside existing work below, so only groups that were already placed push their neighbors.
+        next = pushAside(
+          nodes.filter((node) => !pendingIds.has(node.id)),
+          next,
+          cardSize,
+        )
+
+        if (pending.length) next = placeBesideExisting(next, pendingIds, cardSize)
       } catch (error) {
         console.error('Could not lay out canvas', error)
       } finally {
@@ -918,11 +969,7 @@ export function Canvas() {
       focusEntry.current = null
       updateTrail(emptyTrail())
       setPinned(null)
-      setHover(null)
       setEditing(null)
-      setMergeNotice(null)
-
-      if (noticeTimer.current) clearTimeout(noticeTimer.current)
 
       queue.current = queue.current.then(async () => {
         const list = await getWorkspaces()
@@ -933,7 +980,7 @@ export function Canvas() {
         await loadWorkspace(name, epoch, true)
       })
     },
-    [loadWorkspace, updateTrail, setHover, setPinned],
+    [loadWorkspace, updateTrail, setPinned],
   )
 
   useEffect(() => onWorkspaceChange(changeWorkspace), [changeWorkspace])
@@ -1123,7 +1170,6 @@ export function Canvas() {
       const target = node.parentId ?? null
 
       remember()
-      setHover(null)
 
       if (target === root) {
         focusNode(id)
@@ -1132,7 +1178,7 @@ export function Canvas() {
         openRoot(target)
       }
     },
-    [root, focusNode, openRoot, remember, setHover],
+    [root, focusNode, openRoot, remember],
   )
 
   /** Moves nodes to new positions over a few frames so edges follow along. */
@@ -1207,6 +1253,8 @@ export function Canvas() {
   const smallSet = new Set(small)
   const collapsedKey = small.filter((id) => !ancestors(id, map).some((ancestor) => smallSet.has(ancestor))).join(',')
   const collapsed = useMemo(() => new Set(collapsedKey ? collapsedKey.split(',') : []), [collapsedKey])
+  // What each folded group hints at inside, in its own coordinates, so zooming never recomputes it.
+  const foldPreviewsShown = useMemo(() => foldPreviews(nodes, map, collapsed, cardSize, work.status), [nodes, map, collapsed, cardSize, work.status])
   const level = shownLevel(detail, levels)
 
   /** Shows one level less or more of the nesting below the open group, and remembers it for this workspace. */
@@ -1287,9 +1335,9 @@ export function Canvas() {
           data: {
             kind: 'ghost',
             taskId: id,
-            label: node.data.label || 'Note',
+            label: node.data.label || (isComponent(node) ? 'Untitled component' : 'Note'),
             where: parent ? (parent.data as ClusterData).label : 'loose work',
-            status: work.status.get(id) ?? 'ready',
+            status: isComponent(node) ? undefined : (work.status.get(id) ?? 'ready'),
             side,
           },
         })
@@ -1303,16 +1351,26 @@ export function Canvas() {
 
   // React Flow redraws a node whenever its object changes, so unchanged nodes keep last render's object.
   const [shownNodes] = useState(() => new WeakMap<AppNode, AppNode>())
+  // Cards far from the view keep their node but not their body, and get bodies a batch at a time, nearest the center first.
+  const drawCards = useMemo<DrawCard[]>(
+    () =>
+      nodes
+        .filter((node) => isTask(node) && !view.hidden.has(node.id))
+        .map((node) => ({ id: node.id, ...absolutePosition(node, map), ...sizeOf(node, cardSize) })),
+    [nodes, map, view, cardSize],
+  )
+  const drawn = useDrawnCards(drawCards)
   const viewNodes = useMemo<ViewNode[]>(
     () => [
       ...nodes.map((node) => {
         const hidden = view.hidden.has(node.id)
+        const away = isTask(node) && !hidden && !drawn.has(node.id)
         const className = [node.className, focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : ''].filter(Boolean).join(' ') || undefined
         const shown = shownNodes.get(node)
 
-        if (shown && shown.hidden === hidden && shown.className === className) return shown
+        if (shown && shown.hidden === hidden && shown.className === className && isAway(shown) === away) return shown
 
-        const next = { ...node, hidden, className }
+        const next = away && isTask(node) ? { ...node, hidden, className, data: { ...node.data, away: true } } : { ...node, hidden, className }
 
         shownNodes.set(node, next)
 
@@ -1320,7 +1378,7 @@ export function Canvas() {
       }),
       ...(focus ? ghosts.map((group) => ({ ...group, className: 'is-unfocused' })) : ghosts),
     ],
-    [nodes, view, ghosts, focus, shownNodes],
+    [nodes, view, ghosts, focus, shownNodes, drawn],
   )
 
   const trace = useAtomValue(traceAtom)
@@ -1330,7 +1388,7 @@ export function Canvas() {
     .map((node) => node.id)
     .join(',')
   /** Related links never block, so they stay faint except around the cards being looked at. */
-  const relatedFocus = useMemo(() => new Set([pinned, hover, ...selectedKey.split(',')].filter(Boolean)), [pinned, hover, selectedKey])
+  const relatedFocus = useMemo(() => new Set([pinned, ...selectedKey.split(',')].filter(Boolean)), [pinned, selectedKey])
 
   /** Where a link is drawn: the nodes standing in for its ends, ghosts for ends outside the open group, or null when it isn't drawn. */
   const drawnEnds = useCallback(
@@ -1353,7 +1411,7 @@ export function Canvas() {
   const edges = useMemo(() => {
     const resultEdges: Edge[] = []
     const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
-    const aggregates = new Map<string, { a: string; b: string; count: number; flow: Flow }>()
+    const aggregates = new Map<string, Bundle>()
 
     for (const link of links) {
       const ends = drawnEnds(link)
@@ -1379,21 +1437,26 @@ export function Canvas() {
           className += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
         }
 
+        if (link.id === pickedLink && !selectedKey) className += ' is-picked'
+
         resultEdges.push({
           id: link.id,
           source: source,
           target: target,
           className: className,
           markerEnd: link.kind === 'blocks' ? marker(flow) : undefined,
+          ...(link.label ? { label: link.label, ...EDGE_LABEL } : {}),
         })
       } else if (link.kind === 'blocks') {
         const key = source + '>' + target
-        const aggregate = aggregates.get(key) ?? { a: source, b: target, count: 0, flow: 'held' }
+        const aggregate = aggregates.get(key) ?? { a: source, b: target, count: 0, flow: 'still', labels: [] }
 
         aggregate.count++
+        aggregate.labels.push(link.label)
 
-        // A bundle moves if any of its links do.
+        // A bundle moves if any of its links do, and stays still only when all of them do.
         if (flow === 'live') aggregate.flow = 'live'
+        else if (flow === 'held' && aggregate.flow === 'still') aggregate.flow = 'held'
 
         aggregates.set(key, aggregate)
       }
@@ -1406,14 +1469,15 @@ export function Canvas() {
         target: aggregate.b,
         className: `e-agg e-${aggregate.flow}`,
         selectable: false,
-        label: aggregate.count > 1 ? `${aggregate.count} links` : undefined,
+        label: bundleLabel(aggregate),
+        ...EDGE_LABEL,
         markerEnd: marker(aggregate.flow),
         style: { strokeWidth: Math.min(6, 1.5 + aggregate.count * 0.8) },
       })
     }
 
     return keepDrawn(drawnEdges, resultEdges)
-  }, [links, drawnEnds, work, trace, relatedFocus, drawnEdges])
+  }, [links, drawnEnds, work, trace, relatedFocus, drawnEdges, pickedLink, selectedKey])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -1651,15 +1715,17 @@ export function Canvas() {
   }, [attention, map, transform, cardSize])
 
   const setCollapsedShown = useSetAtom(collapsedAtom)
+  const setFoldPreviewsShown = useSetAtom(foldPreviewsAtom)
   const setAttentionShown = useSetAtom(attentionAtom)
   const setFocusedShown = useSetAtom(focusedAtom)
 
   // Before paint, so cards that read these never show a stale frame.
   useLayoutEffect(() => {
     setCollapsedShown(collapsed)
+    setFoldPreviewsShown(foldPreviewsShown)
     setAttentionShown(attention?.marks ?? null)
     setFocusedShown(focus !== null)
-  }, [collapsed, attention, focus, setCollapsedShown, setAttentionShown, setFocusedShown])
+  }, [collapsed, foldPreviewsShown, attention, focus, setCollapsedShown, setFoldPreviewsShown, setAttentionShown, setFocusedShown])
 
   const getCurrentNodes = useCallback(() => latest.current.nodes, [])
   const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo, cardSize })
@@ -1711,7 +1777,6 @@ export function Canvas() {
         focusEntry.current.moved = true
       }
 
-      setHover(null)
       setPinned(null)
       setNodes((currentNodes) =>
         currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
@@ -1720,7 +1785,7 @@ export function Canvas() {
       setFocus(id)
       void reactFlow.setViewport(focusViewport(node, nodeMap, box, cardSize), focusMove())
     },
-    [reactFlow, focus, inView, remember, setHover, setNodes, setPinned, cardSize, clearStickerPicks],
+    [reactFlow, focus, inView, remember, setNodes, setPinned, cardSize, clearStickerPicks],
   )
 
   const exitFocus = useCallback(() => {
@@ -1753,7 +1818,6 @@ export function Canvas() {
       const picked = new Set(place.selected)
 
       pendingFocus.current = null
-      setHover(null)
       setPinned(null)
 
       if (place.root !== root) {
@@ -1768,7 +1832,7 @@ export function Canvas() {
       )
       void reactFlow.setViewport(place.viewport, place.focus || focus ? focusMove() : { duration: glide(450) })
     },
-    [root, focus, reactFlow, setHover, setNodes, setPinned],
+    [root, focus, reactFlow, setNodes, setPinned],
   )
 
   const travelTo = useCallback(
@@ -1831,7 +1895,7 @@ export function Canvas() {
       if (!node || !isTask(node)) return null
 
       const parent = node.parentId ? map.get(node.parentId) : undefined
-      const status = work.status.get(id) ?? 'ready'
+      const status = isComponent(node) ? undefined : (work.status.get(id) ?? 'ready')
 
       return {
         id,
@@ -1995,7 +2059,6 @@ export function Canvas() {
       },
       open: (groupId: string) => {
         openRoot(groupId)
-        setHover(null)
       },
       celebrate: (id: string) => {
         const { nodes: currentNodes, links: currentLinks } = latest.current
@@ -2025,7 +2088,7 @@ export function Canvas() {
         )
       },
     }),
-    [tweenTo, openRoot, setHover, cardSize, setNodes, setCelebrating, atomStore],
+    [tweenTo, openRoot, cardSize, setNodes, setCelebrating, atomStore],
   )
 
   const arrangeGroup = useCallback(
@@ -2040,23 +2103,78 @@ export function Canvas() {
 
   const updateData = useCallback(
     (id: string, patch: Partial<TaskData> | Partial<ClusterData> | Partial<ImageNode['data']>) =>
-      setNodes((currentNodes) =>
-        currentNodes.map((node) =>
-          node.id === id
-            ? ({ ...node, data: isTask(node) ? patchTaskData(node.data, patch as Partial<TaskData>) : { ...node.data, ...patch } } as AppNode)
-            : node,
-        ),
-      ),
+      setNodes((currentNodes) => {
+        let resized = false
+        const nextNodes = currentNodes.map((node) => {
+          if (node.id !== id) return node
+
+          const updated = {
+            ...node,
+            data: isTask(node) ? patchTaskData(node.data, patch as Partial<TaskData>) : { ...node.data, ...patch },
+          } as AppNode
+
+          // Notes and components grow with their text, and their group grows with them.
+          if (isTask(updated) && sizeOf(updated, cardSizeRef.current).height !== node.height) resized = true
+
+          return updated
+        })
+
+        return resized ? normalize(nextNodes, cardSizeRef.current) : nextNodes
+      }),
     [setNodes],
   )
 
+  // Card heights are measured from text, so measure again once the web fonts arrive.
+  useEffect(() => {
+    void document.fonts?.ready.then(() => {
+      forgetTextWidths()
+      setNodes((currentNodes) => normalize(currentNodes, cardSizeRef.current))
+    })
+  }, [setNodes])
+
+  /** A group's cover and background live on the group, so they save with it. A null clears one. */
+  const changeGroupStyle = useCallback(
+    (id: string, change: StyleChange) => {
+      const patch: Partial<ClusterData> = {}
+
+      if (change.cover !== undefined) patch.cover = change.cover ?? undefined
+
+      if (change.background !== undefined) patch.background = change.background ?? undefined
+
+      if (change.header === undefined) {
+        updateData(id, patch)
+
+        return
+      }
+
+      // A header adds or removes the band under the title, so the group refits and its cards keep their places.
+      patch.header = change.header ?? undefined
+      setNodes((currentNodes) =>
+        normalize(
+          currentNodes.map((node) => (node.id === id && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node)),
+          cardSize,
+        ),
+      )
+    },
+    [updateData, setNodes, cardSize],
+  )
+
+  /** The canvas's cover and background go to the server and show at once. The server bumps the revision, so the page reloads to match it. */
+  const changeCanvasStyle = useCallback((change: StyleChange) => {
+    setCanvasStyle((current) => applyStyleChange(current, change))
+    void saveCanvasStyle(workspace.current, change)
+  }, [])
+
   // ---- Notes and links ----
 
-  /** Adds a note, or a work item with `itemKind: 'step'`, with its top-left at `at` (flow coordinates), optionally spliced into links. */
+  /**
+   * Adds a note, or a work item with `itemKind: 'step'` or a component with `itemKind: 'component'`, with its top-left at
+   * `at` (flow coordinates), optionally spliced into links.
+   */
   const addNote = useCallback(
     (
       at: { x: number; y: number },
-      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' } = {},
+      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' | 'component' } = {},
     ) => {
       const { nodes: currentNodes, links: currentLinks } = latest.current
       const nodeMap = byId(currentNodes)
@@ -2064,7 +2182,7 @@ export function Canvas() {
       const parentNode = parent ? nodeMap.get(parent) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const itemKind = options.itemKind ?? 'note'
-      const id = newId(itemKind === 'note' ? 'note' : 'card')
+      const id = newId(itemKind === 'step' ? 'card' : itemKind)
       const note: AppNode = {
         id,
         type: 'task',
@@ -2080,7 +2198,11 @@ export function Canvas() {
 
       if (options.to) next.push({ id: `${id}>${options.to}`, from: id, to: options.to, kind })
 
-      const nextNodes = normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note], cardSize)
+      const nextNodes = pushAside(
+        currentNodes,
+        normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note], cardSize),
+        cardSize,
+      )
 
       setNodes(nextNodes)
       setLinks(next)
@@ -2145,7 +2267,11 @@ export function Canvas() {
             selected: true,
           }
 
-          return normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image], cardSize)
+          return pushAside(
+            currentNodes,
+            normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image], cardSize),
+            cardSize,
+          )
         })
       } catch (error) {
         setImageError(error instanceof Error ? error.message : 'Could not add the image.')
@@ -2197,7 +2323,9 @@ export function Canvas() {
       }
 
       syncAfterSave.current = true
-      setNodes((nodesNow) => normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize))
+      setNodes((nodesNow) =>
+        pushAside(nodesNow, normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize), cardSize),
+      )
     },
     [root, selectOnly, jumpTo, setNodes, cardSize],
   )
@@ -2453,7 +2581,23 @@ export function Canvas() {
     )
   }
 
+  /** Removes a component and its links. Unlike a note, nothing flows through it once it's gone. */
+  const deleteComponent = (id: string) => {
+    setLinks((currentLinks) => currentLinks.filter((link) => link.from !== id && link.to !== id))
+    setNodes((currentNodes) => normalize(currentNodes.filter((node) => node.id !== id)))
+  }
+
   const removeLink = (id: string) => setLinks((currentLinks) => currentLinks.filter((link) => link.id !== id))
+  const updateLink = (id: string, patch: Partial<Pick<Link, 'label'>>) =>
+    setLinks((currentLinks) => currentLinks.map((link) => (link.id === id ? { ...link, ...patch } : link)))
+
+  /** Shows a link's inspector with its label ready to type into. */
+  const editLink = (id: string) => {
+    setNodes((currentNodes) => currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)))
+    setPickedLink(id)
+    setEditing(`link:${id}`)
+  }
+
   /** One link per pair of cards: adding a link replaces whatever already joined them. */
   const addLink = (from: string, to: string, kind: Link['kind']) =>
     setLinks((currentLinks) => [
@@ -2512,6 +2656,7 @@ export function Canvas() {
       return [
         { label: 'Add card here', run: () => insertOnLink(link.id, 'step') },
         { label: 'Insert a note here', run: () => insertOnLink(link.id, 'note') },
+        { label: link.label ? 'Edit label' : 'Add a label', run: () => editLink(link.id) },
         { label: link.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link', run: () => flipLink(link.id) },
         'divider',
         { label: 'Remove link', danger: true, run: () => removeLink(link.id) },
@@ -2537,6 +2682,7 @@ export function Canvas() {
           ...many,
           { label: 'Open', hint: hintOf('open-group'), run: () => actions.open(node.id) },
           { label: 'Rename', hint: hintOf('rename'), run: () => (selectOnly(node.id), setEditing(node.id)) },
+          { label: 'Cover and background', run: () => selectOnly(node.id) },
           ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
           ...(node.parentId
             ? [{ label: 'Move out of group', run: () => setNodes((currentNodes) => moveOutOfGroup(currentNodes, node.id, cardSize)) }]
@@ -2573,6 +2719,20 @@ export function Canvas() {
           { label: 'Delete note', danger: true, run: () => deleteNote(node.id) },
         ]
 
+      if (isComponent(node))
+        return [
+          ...many,
+          { label: 'Rename component', run: () => (selectOnly(node.id), setEditing(node.id)) },
+          { label: 'Add a component after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id, itemKind: 'component' }) },
+          {
+            label: 'Turn into a work item',
+            run: () =>
+              updateData(node.id, { itemKind: getItemKind({ ...node.data, itemKind: 'step' }), status: 'todo', shape: undefined, color: undefined }),
+          },
+          'divider',
+          { label: 'Delete component', danger: true, run: () => deleteComponent(node.id) },
+        ]
+
       if (isImage(node))
         return [
           ...many,
@@ -2602,17 +2762,23 @@ export function Canvas() {
           ? { label: 'Mark not done', run: () => updateData(node.id, { status: 'todo' }) }
           : { label: 'Mark done', run: () => updateData(node.id, { status: 'done' }) },
         { label: 'Add a note after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id }) },
+        { label: 'Turn into a component', run: () => updateData(node.id, { itemKind: 'component' }) },
         ...(node.parentId !== root ? [{ label: 'Open its group', run: () => jumpTo(node.id) }] : []),
       ]
     }
 
     return [
       { label: 'Add a note here', hint: hintOf('add-note'), run: () => addNote(menu.flow) },
+      { label: 'Add a component here', run: () => addNote(menu.flow, { itemKind: 'component' }) },
       { label: 'Create from link…', run: () => setLinkPrompt({ x: menu.x, y: menu.y, flow: menu.flow }) },
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }] : []),
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
       { label: 'Fit to screen', hint: hintOf('fit'), run: () => fitTo(root) },
+      {
+        label: root ? 'Cover and background' : 'Canvas cover and background',
+        run: () => setCoverTarget(root ? { kind: 'group', id: root } : { kind: 'canvas' }),
+      },
       ...(root ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => openRoot(map.get(root)?.parentId ?? null) }] : []),
     ]
   }
@@ -2783,12 +2949,14 @@ export function Canvas() {
 
   const crumbs = root ? [...ancestors(root, map).reverse(), root] : []
   const one = selected.length === 1 ? selected[0] : null
+  const pickedLinkData = pickedLink ? links.find((link) => link.id === pickedLink) : undefined
   // An inspector's name field only auto-focuses when it mounts, so a rename of a card that is already selected remounts it.
   const inspectorKey = one && editing === one.id ? `${one.id}:editing` : one?.id
   const focused = focus ? map.get(focus) : undefined
   const focusPos = focused && absolutePosition(focused, map)
   const focusSize = focused && sizeOf(focused, cardSize)
-  const readyTotal = [...work.status.values()].filter((status) => status === 'ready').length
+  // Snoozed work isn't counted as ready, as in each group's progress.
+  const readyTotal = [...work.status].filter(([id, status]) => status === 'ready' && !work.snoozed.has(id)).length
 
   const commands: Command[] = [
     ...(trailSize.back
@@ -2998,8 +3166,13 @@ export function Canvas() {
           />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}`}
-          style={tool === 'sticker' ? ({ '--sticker-cursor': stickerCursor(sticker) } as CSSProperties) : undefined}
+          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}${canvasHeader ? ' has-header' : ''}`}
+          style={
+            {
+              ...(canvasColor ? { '--canvas-background': canvasColor } : {}),
+              ...(tool === 'sticker' ? { '--sticker-cursor': stickerCursor(sticker) } : {}),
+            } as CSSProperties
+          }
           ref={canvasRef}
           onPointerDown={startMarquee}
           onPointerDownCapture={(event) => {
@@ -3008,6 +3181,21 @@ export function Canvas() {
           onPointerMove={trackPointer}
           onClickCapture={claimNodeClick}
         >
+          {canvasImage && (
+            <div className="canvas-backdrop">
+              <CoverImage workspace={workspaces.active} asset={canvasImage} className="canvas-backdrop-image" />
+            </div>
+          )}
+          {canvasStyle.cover && (
+            <div className="canvas-cover">
+              <CoverImage workspace={workspaces.active} asset={canvasStyle.cover} className="canvas-cover-image" />
+            </div>
+          )}
+          {canvasHeader && (
+            <div className="canvas-header">
+              <Markdown source={canvasHeader} layout />
+            </div>
+          )}
           {ready && (
             <ReactFlow<ViewNode, Edge>
               fitView={!savedView}
@@ -3027,13 +3215,8 @@ export function Canvas() {
               onConnect={onConnect}
               onConnectStart={() => {
                 setLinking(true)
-                setHover(null)
               }}
               onConnectEnd={onConnectEnd}
-              onNodeMouseEnter={(_, node) =>
-                !focus && !linking && setHover(node.type === 'task' ? node.id : node.type === 'ghost' ? node.data.taskId : null)
-              }
-              onNodeMouseLeave={() => setHover(null)}
               onNodeClick={(event, node) => {
                 if (tool === 'sticker') return stamp(event)
 
@@ -3079,6 +3262,7 @@ export function Canvas() {
                 if (!event.metaKey && !event.shiftKey) clearStickerPicks()
 
                 setPinned(null)
+                setPickedLink(null)
 
                 // A double-click on empty canvas goes up out of the open group.
                 if (event.detail === 2 && root && tool === 'select') return openRoot(map.get(root)?.parentId ?? null)
@@ -3086,7 +3270,11 @@ export function Canvas() {
                 if (tool === 'comment') placeComment(event)
                 else if (tool === 'sticker') stamp(event)
               }}
-              onEdgeClick={() => setPinned(null)}
+              onEdgeClick={(_event, edge) => {
+                setPinned(null)
+                setPickedLink(edge.id.startsWith('agg:') ? null : edge.id)
+              }}
+              onEdgeDoubleClick={(_event, edge) => !edge.id.startsWith('agg:') && editLink(edge.id)}
               onPaneContextMenu={(event) => (focus ? event.preventDefault() : openMenu(event, { kind: 'pane' }))}
               onNodeContextMenu={(event, node) => {
                 if (focus) return event.preventDefault()
@@ -3137,15 +3325,6 @@ export function Canvas() {
               </Controls>
               {/* The desktop shell hides the native title bar, so this strip along the top drags the window. */}
               <div className="window-drag" data-tauri-drag-region aria-hidden="true" onPointerDown={(event) => event.stopPropagation()} />
-              {mergeNotice !== null && (
-                <Panel
-                  position="bottom-left"
-                  style={{ bottom: 100, margin: 15, padding: 'var(--space-4) var(--space-5)', maxWidth: 300, pointerEvents: 'none' }}
-                  role="status"
-                >
-                  Merged with changes made elsewhere; kept yours for {mergeNotice} {mergeNotice === 1 ? 'field' : 'fields'}
-                </Panel>
-              )}
               {imageError && (
                 <Panel
                   position="bottom-left"
@@ -3219,6 +3398,41 @@ export function Canvas() {
                 />
               </Panel>
 
+              {coverTarget && selected.length === 0 && pickedStickers.length === 0 && (
+                <Panel position="top-right" className="panel inspector cover-panel">
+                  {coverTarget.kind === 'canvas' ? (
+                    <>
+                      <CoverSettings
+                        title="Canvas cover and background"
+                        workspace={workspaces.active}
+                        current={canvasStyle}
+                        change={changeCanvasStyle}
+                      />
+                      <HeaderSettings title="Canvas header" value={canvasStyle.header} change={(header) => changeCanvasStyle({ header })} />
+                    </>
+                  ) : map.has(coverTarget.id) ? (
+                    <>
+                      <CoverSettings
+                        title="Group cover and background"
+                        workspace={workspaces.active}
+                        current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
+                        change={(change) => changeGroupStyle(coverTarget.id, change)}
+                      />
+                      <HeaderSettings
+                        title="Group header"
+                        value={(map.get(coverTarget.id)?.data as ClusterData | undefined)?.header}
+                        change={(header) => changeGroupStyle(coverTarget.id, { header })}
+                      />
+                    </>
+                  ) : null}
+                  <div className="row">
+                    <button type="button" className="btn" onClick={() => setCoverTarget(null)}>
+                      Done
+                    </button>
+                  </div>
+                </Panel>
+              )}
+
               {(selected.length > 0 || pickedStickers.length > 0) && (
                 <Panel position="top-right" className="panel inspector">
                   {!selected.length ? (
@@ -3245,6 +3459,22 @@ export function Canvas() {
                       doneEditing={() => setEditing(null)}
                       update={updateData}
                       remove={() => deleteNote(one.id)}
+                    />
+                  ) : isComponent(one) ? (
+                    <ComponentInspector
+                      key={one.id}
+                      node={one}
+                      focus={editing === one.id}
+                      doneEditing={() => setEditing(null)}
+                      work={work}
+                      map={map}
+                      update={updateData}
+                      remove={() => deleteComponent(one.id)}
+                      jumpTo={jumpTo}
+                      links={links}
+                      addLink={addLink}
+                      removeLink={removeLink}
+                      flipLink={flipLink}
                     />
                   ) : isTask(one) ? (
                     <TaskInspector
@@ -3303,7 +3533,25 @@ export function Canvas() {
                       />
                       {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
                       <GroupFacts stats={work.groups.get(one.id)} />
+                      <label htmlFor="g-color">Color</label>
+                      <TintSelect
+                        id="g-color"
+                        value={(one.data as ClusterData).color}
+                        inherit={one.parentId ? "Its group's" : 'None'}
+                        change={(color) => updateData(one.id, { color })}
+                      />
                       <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
+                      <CoverSettings
+                        title="Cover and background"
+                        workspace={workspaces.active}
+                        current={one.data as ClusterData}
+                        change={(change) => changeGroupStyle(one.id, change)}
+                      />
+                      <HeaderSettings
+                        title="Header"
+                        value={(one.data as ClusterData).header}
+                        change={(header) => changeGroupStyle(one.id, { header })}
+                      />
                       <div className="row">
                         <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
                           Open
@@ -3319,6 +3567,24 @@ export function Canvas() {
                       </div>
                     </div>
                   )}
+                </Panel>
+              )}
+              {selected.length === 0 && pickedLinkData && (
+                <Panel position="top-right" className="panel inspector">
+                  <LinkInspector
+                    key={pickedLinkData.id}
+                    link={pickedLinkData}
+                    map={map}
+                    focus={editing === `link:${pickedLinkData.id}`}
+                    doneEditing={() => setEditing(null)}
+                    update={updateLink}
+                    flip={flipLink}
+                    remove={() => {
+                      removeLink(pickedLinkData.id)
+                      setPickedLink(null)
+                    }}
+                    jumpTo={jumpTo}
+                  />
                 </Panel>
               )}
 
@@ -3368,6 +3634,25 @@ export function Canvas() {
                     exitFocus()
                     deleteNote(focused.id)
                   }}
+                />
+              ) : isComponent(focused) ? (
+                <ComponentInspector
+                  node={focused}
+                  focus={false}
+                  doneEditing={() => setEditing(null)}
+                  work={work}
+                  map={map}
+                  update={updateData}
+                  remove={() => {
+                    exitFocus()
+                    deleteComponent(focused.id)
+                  }}
+                  jumpTo={focusOn}
+                  connections={false}
+                  links={links}
+                  addLink={addLink}
+                  removeLink={removeLink}
+                  flipLink={flipLink}
                 />
               ) : (
                 <TaskInspector

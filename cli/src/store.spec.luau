@@ -45,6 +45,20 @@ test.case("store round-trips stack origins without adding one to hand-made links
 	assert.eq(manual and manual.origin, nil)
 end)
 
+test.case("store round-trips link labels", function(assert)
+	local doc = store.decode(
+		[[{"nodes":[],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks","label":"HTTP"},{"id":"b>c","from":"b","to":"c","kind":"blocks"}]}]]
+	)
+	assert.eq(doc.links[1].label, "HTTP")
+	assert.eq(doc.links[2].label, nil)
+	local encoded = json.asObject(json.deserialize(store.encode(doc)) :: json.Value)
+	local links = if encoded then json.asArray(encoded.links) else nil
+	local labeled = if links then json.asObject(links[1]) else nil
+	local plain = if links then json.asObject(links[2]) else nil
+	assert.eq(labeled and labeled.label, "HTTP")
+	assert.eq(plain and plain.label, nil)
+end)
+
 test.case("store round-trips top-level GitHub data and unknown fields", function(assert)
 	local doc = store.decode(
 		[[{"version":1,"revision":0,"settings":{"githubOwner":"flipbook-labs","futureSetting":{"kept":true}},"nodes":[],"links":[],"github":{"viewer":"vocksel","checkedAt":"now","unplaced":[]},"future":{"kept":true}}]]
@@ -247,6 +261,28 @@ test.case("pruning keeps recent backups and one newest backup per UTC day", func
 	assert.eq(fs.exists(path.join(folder, "orion-r10-20260904T010000Z.json")), true)
 end)
 
+test.case("store keeps the canvas cover and background across later saves", function(assert)
+	local dir = testing.directory("canvas-style-store")
+	fs.createDirectory(path.join(dir, "assets"), { makeParents = true })
+	fs.writeStringToFile(path.join(dir, "assets", "image-logo.png"), "bytes")
+	store.transaction(dir, function(doc)
+		doc.settings.cover = "image-logo.png"
+		doc.settings.background = "#1d1b2e"
+	end)
+	local reread = store.load(dir)
+	assert.eq(reread.settings.cover, "image-logo.png")
+	assert.eq(reread.settings.background, "#1d1b2e")
+	assert.eq(reread.revision, 1)
+	store.transaction(dir, function(doc)
+		doc.settings.background = nil
+	end)
+	local afterLaterSave = store.load(dir)
+	assert.eq(afterLaterSave.settings.background, nil)
+	assert.eq(afterLaterSave.settings.cover, "image-logo.png")
+	assert.eq(afterLaterSave.revision, 2)
+	assert.strContains(fs.readFileToString(store.filePath(dir)), '"cover": "image-logo.png"')
+end)
+
 test.case("a transaction flags a card that turns done and clears the flag on reopen", function(assert)
 	local dir = testing.directory("celebrate-transaction")
 	store.write(
@@ -270,12 +306,9 @@ end)
 test.case("a save flags the cards it finishes and leaves the rest without the flag", function(assert)
 	local dir = testing.directory("celebrate-save")
 	store.write(dir, testing.createDoc({ testing.task("a", "A", "active"), testing.task("b", "B", "todo") }))
-	local doc = store.load(dir)
-	doc.nodes[1].data.status = "done"
-	local root = store.toObject(doc)
-
-	local isSaved = store.put(dir, 0, json.asArray(root.nodes) or {}, json.asArray(root.links) or {})
-	assert.eq(isSaved, true)
+	store.transaction(dir, function(doc)
+		doc.nodes[1].data.status = "done"
+	end)
 	local saved = store.load(dir)
 	assert.eq(saved.nodes[1].data.celebrate, true)
 	assert.eq(saved.nodes[2].data.celebrate, nil)

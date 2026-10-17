@@ -1,10 +1,21 @@
 import { createContext } from 'react'
-import { descendants, isCluster, isNote, isTask, type AppNode, type Link, type SourceRef as RefData, type TaskNode, type ViewStatus } from './model'
+import {
+  descendants,
+  isCluster,
+  isComponent,
+  isTask,
+  isWork,
+  type AppNode,
+  type Link,
+  type SourceRef as RefData,
+  type TaskNode,
+  type ViewStatus,
+} from './model'
 import type { Rarity } from './rarity'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
-/** How a link out of a card reads: moving, or held behind work that's stuck. */
-export type Flow = 'live' | 'held'
+/** How a link out of a card reads: moving, held behind work that's stuck, or still, out of a component that carries no work. */
+export type Flow = 'live' | 'held' | 'still'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
 export type SourceRef = { domain: string; label: string; href?: string }
 
@@ -26,7 +37,7 @@ export type Derived = {
 export type Actions = {
   reflow: (groupId: string) => void
   open: (groupId: string) => void
-  /** Clears the finish stamp on a card and on the finished cards chained to it. */
+  /** Closes out a finished card and the finished cards chained to it. */
   celebrate: (id: string) => void
 }
 
@@ -171,7 +182,8 @@ export function buildWork(facts: ServerFacts, nodes: AppNode[], links: Link[]) {
   let status = facts.status
 
   for (const node of nodes) {
-    if (!isTask(node) || status.has(node.id)) continue
+    // Components have no status, so they never get one to fall back on.
+    if (!isTask(node) || isComponent(node) || status.has(node.id)) continue
 
     if (status === facts.status) status = new Map(facts.status)
 
@@ -203,7 +215,7 @@ export function needsAttention(nodes: AppNode[], status: Map<string, ViewStatus>
   const result: string[] = []
 
   for (const node of nodes) {
-    if (!isTask(node) || isNote(node) || node.data.who !== 'you' || snoozed.has(node.id)) continue
+    if (!isWork(node) || !isTask(node) || node.data.who !== 'you' || snoozed.has(node.id)) continue
 
     const statusValue = status.get(node.id)
 

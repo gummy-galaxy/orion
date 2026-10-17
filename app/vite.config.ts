@@ -32,11 +32,13 @@ function orionServer(port: number): Plugin {
         return
       }
 
-      let child: ChildProcess | undefined = spawn(binary, ['serve', '--host', '127.0.0.1', '--port', String(port)], {
+      let child: ChildProcess | undefined = spawn(binary, ['server', 'start', '--host', '127.0.0.1', '--port', String(port)], {
         env: process.env,
         stdio: ['ignore', 'pipe', 'pipe'],
       })
 
+      // Both streams are read: an unread pipe fills up and stalls the server once it logs enough.
+      child.stdout?.on('data', (chunk: Buffer) => server.config.logger.info(`[orion] ${chunk.toString().trim()}`))
       child.stderr?.on('data', (chunk: Buffer) => server.config.logger.error(`[orion] ${chunk.toString().trim()}`))
       child.on('error', (error) => server.config.logger.error(`[orion] ${error.message}`))
       server.httpServer?.once('close', () => {

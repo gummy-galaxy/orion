@@ -9,6 +9,8 @@
   --card-border: var(--border-default);
   /* Ready work wears the theme's accent unless the status colors replace it. */
   --status-ready: var(--accent-default);
+  /* Links out of components carry no work, so they read as plain wiring in any theme. */
+  --edge-still: color-mix(in srgb, var(--text-primary) 45%, var(--edge-default));
 
   /* The companion: white stars with dark eyes, outlined in near-black with a blue-violet undertone on light canvases. */
   --companion-body: #fff;
@@ -28,8 +30,10 @@
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
+  --weight-extrabold: 800;
 
   --text-size-mini: 8px;
+  --text-size-nano: 9px;
   --text-size-tiny: 10px;
   --text-size-micro: 10.5px;
   --text-size-caption: 11px;
@@ -57,6 +61,9 @@
   --radius-hairline: 2px;
   --radius-note-corner: 0 7px 0 3px;
 
+  --border-width-default: 1px;
+  --border-width-strong: 1.5px;
+
   --space-1: 2px;
   --space-2: 4px;
   --space-3: 6px;
@@ -71,10 +78,12 @@
   --shadow-image: 0 8px 24px #0002;
   --shadow-dialog: 0 14px 50px color-mix(in srgb, var(--text-primary) 20%, transparent);
   --shadow-selection: 0 0 0 9px color-mix(in srgb, var(--accent-default) 26%, transparent);
+  --shadow-lift: 0 0 0 3px color-mix(in srgb, var(--text-primary) 16%, transparent), 0 14px 28px -10px rgb(0 0 0 / 0.4);
   --shadow-sticker: 0 2px 2px rgb(23 36 43 / 0.25);
   --shadow-sticker-held: 0 9px 7px rgb(23 36 43 / 0.22);
 
   --motion-duration-stagger: 16ms;
+  --motion-duration-blink: 80ms;
   --motion-duration-instant: 120ms;
   --motion-duration-quick: 140ms;
   --motion-duration-fast: 150ms;

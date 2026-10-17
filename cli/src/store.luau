@@ -342,12 +342,16 @@ function store.decode(text: string): Doc
 				to = to,
 				kind = asString(object.kind) or "blocks",
 				origin = asString(object.origin),
+				label = asString(object.label),
 			})
 		end
 	end
 
 	local settings = json.asObject(root.settings) or json.object({})
 	local sources: { Source } = {}
+	local cover = asString(settings.cover)
+	local background = asString(settings.background)
+	local header = asString(settings.header)
 
 	for _, raw in json.asArray(settings.sources) or {} do
 		local source = json.asObject(raw)
@@ -420,7 +424,7 @@ function store.decode(text: string): Doc
 	return {
 		version = 2,
 		revision = asNumber(root.revision) or 0,
-		settings = { sources = sources },
+		settings = { sources = sources, cover = cover, background = background, header = header },
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
@@ -464,6 +468,7 @@ function store.toObject(doc: Doc): json.Object
 	for _, link in doc.links do
 		local object = json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind })
 		object.origin = link.origin
+		object.label = link.label
 		table.insert(links, object)
 	end
 
@@ -486,6 +491,9 @@ function store.toObject(doc: Doc): json.Object
 	end
 
 	settings.sources = sources
+	settings.cover = doc.settings.cover
+	settings.background = doc.settings.background
+	settings.header = doc.settings.header
 	root.settings = settings
 	root.nodes = nodes
 	root.links = links
@@ -695,65 +703,6 @@ function store.write(dir: string, doc: Doc)
 	if not succeeded then
 		error(failureMessage, 0)
 	end
-end
-
--- Saves app edits only if the latest file still has the revision the app read.
--- Work directly with the JSON object so fields owned by other writers survive.
-function store.put(
-	dir: string,
-	baseRevision: number?,
-	nodes: json.Array,
-	links: json.Array,
-	stickers: json.Array?,
-	stickerLoadout: json.Array?
-): (boolean, number?)
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
-
-	local lockPath = acquire(dir)
-	local didSucceed, isSaved, revision = pcall(function(): (boolean, number?)
-		local current = store.read(dir)
-		local previous = if current then current.revision else nil
-
-		if baseRevision ~= previous then
-			return false, previous
-		end
-
-		local previousStatuses = if current then graph.recordedStatuses(current) else {}
-
-		local root = json.object(if current
-			then store.toObject(current)
-			else {
-				version = 2,
-				settings = json.object({ sources = {} :: json.Array }),
-			})
-		local nextRevision = if previous then previous + 1 else 0
-		root.revision = nextRevision
-		root.nodes = nodes
-		root.links = links
-
-		if stickers then
-			root.stickers = stickers
-		end
-
-		if stickerLoadout then
-			root.stickerLoadout = stickerLoadout
-		end
-
-		local nextDoc = store.decode(json.serialize(root, true))
-		graph.markCelebrations(nextDoc, previousStatuses)
-		atomicWrite(store.filePath(dir), store.encode(nextDoc))
-		return true, nextRevision
-	end)
-
-	release(lockPath)
-
-	if not didSucceed then
-		error(isSaved, 0)
-	end
-
-	return isSaved :: boolean, revision
 end
 
 return table.freeze(store)

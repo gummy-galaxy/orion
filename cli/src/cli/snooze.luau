@@ -1,17 +1,21 @@
 local cli = require("@batteries/cli")
 
 local batchEdit = require("@root/cli/batchEdit")
-local batchOptions = require("@root/cli/batchOptions")
 local context = require("@root/cli/context")
 local parseUntil = require("@root/time/parseUntil")
+local requestedRevision = require("@root/cli/requestedRevision")
 
 type Context = context.Context
 
 return table.freeze({
-	help = "Hide items from attention and ready lists until a time",
+	help = "Hide items from attention and orion next until a time",
 	define = function(parser: cli.Parser)
-		batchOptions.define(parser, "Item ids")
+		parser:add("ids", "variadic", { help = "Item ids" })
 		parser:add("until", "option", { help = "When it wakes: an ISO 8601 date or date-time", required = true })
+		parser:add("where", "option", { help = "Select items with an expression instead of ids" })
+		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
+		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
+		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
@@ -26,7 +30,7 @@ return table.freeze({
 			where = parser:get("where"),
 			dryRun = parser:has("dry-run"),
 			asJson = options.asJson,
-			ifRevision = batchOptions.readRevision(parser),
+			ifRevision = requestedRevision(parser),
 			untilTime = untilTime,
 			now = now,
 			write = options.write,
