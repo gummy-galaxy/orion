@@ -370,36 +370,32 @@ select {
     transform: none;
   }
 }
-/* Finished work waiting to be closed out shimmers, so it reads as something to click. The band slides by transform on
-   its own layer, which WebKit animates without repainting the card or the canvas around it. */
-.card-shimmer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-}
-.card-shimmer::before {
+/* Finished work waiting to be closed out shimmers, so it reads as something to click. The sweep is painted, so
+   steps() holds it to 15 frames a second, and it rests for the first third of each loop. */
+.card.is-waiting::after {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 250%;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
   background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--status-done) 22%, transparent) 50%, transparent 65%);
-  transform: translateX(-60%);
+  background-size: 250% 100%;
+  background-position: 100% 0;
 }
-:where(:root[data-motion='on']) .card-shimmer::before {
-  will-change: transform;
-  animation: done-shimmer 2.4s ease-in-out infinite;
+:where(:root[data-motion='on']) .card.is-waiting::after {
+  animation: done-shimmer 2.4s infinite;
 }
 @keyframes done-shimmer {
-  0%,
+  0% {
+    background-position: 100% 0;
+    animation-timing-function: step-end;
+  }
   35% {
-    transform: translateX(-60%);
+    background-position: 100% 0;
+    animation-timing-function: steps(23);
   }
   100% {
-    transform: none;
+    background-position: 0 0;
   }
 }
 /* A closed-out card carries a Done stamp, so it reads as finished on its own, with nothing beside it to compare. */
@@ -867,7 +863,9 @@ select {
 /* Zoomed out, motion can't be read, so loops stop. */
 .canvas.is-quiet .react-flow__edge-path,
 .canvas.is-quiet .st-active,
-.canvas.is-quiet .check-running {
+.canvas.is-quiet .check-running,
+.canvas.is-quiet .card.is-waiting::after,
+.canvas.is-quiet .trading-motion-running circle {
   animation: none !important;
 }
 /* In the background, off screen, or dimmed by a trace, motion can't be seen, so loops pause. Moving the canvas
@@ -881,6 +879,10 @@ select {
 .canvas[data-moving] .st-active,
 .canvas.is-away .check-running,
 .canvas[data-moving] .check-running,
+.canvas.is-away .card.is-waiting::after,
+.canvas[data-moving] .card.is-waiting::after,
+.canvas.is-away .trading-motion-running circle,
+.canvas[data-moving] .trading-motion-running circle,
 .react-flow__edge.tr-e-dim .react-flow__edge-path,
 .react-flow__edge-path.is-offscreen {
   animation-play-state: paused !important;
