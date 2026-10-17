@@ -21,19 +21,35 @@ These captures show only the app's web content. Parts the desktop shell draws, s
 
 ## 2. Prepare two trees and two data copies
 
-Use the branch's worktree for after. Build before from where the branch left main:
+Keep data, images, and videos in a scratch folder, such as your session's scratchpad or `mktemp -d /tmp/orion-screenshots.XXXXXX`:
 
 ```sh
-SCRATCH=$(mktemp -d /tmp/orion-screenshots.XXXXXX)
-git fetch origin
-git worktree add --detach "$SCRATCH/before" "$(git merge-base origin/main HEAD)"
+SCRATCH=<scratch folder>
 ```
 
-Run `npm ci` in each tree's `app/`, which takes seconds with npm's cache. Don't link another checkout's `node_modules`: it may lack packages the branch added, and Vite would write its cache into that checkout.
+Put the two trees beside the repository instead, under your home directory, since Lute only bundles the CLI from a checkout there. After is the pull request's head: use your own worktree when you're working on its branch, and otherwise add a detached one, leaving anyone else's worktree on that branch alone. Before is where the branch left main:
+
+```sh
+git fetch origin
+BEFORE="$(git rev-parse --show-toplevel)/../orion-shots-<n>-before"
+AFTER="$(git rev-parse --show-toplevel)/../orion-shots-<n>-after"
+git worktree add --detach "$BEFORE" "$(git merge-base origin/main origin/<branch>)"
+git worktree add --detach "$AFTER" "origin/<branch>"
+```
+
+In each tree, install the app's packages and build the CLI, which takes seconds:
+
+```sh
+for tree in "$BEFORE" "$AFTER"; do
+  (cd "$tree/app" && npm ci) && (cd "$tree/cli" && lute pkg install && lute run build)
+done
+```
+
+Each side runs its own CLI because the app and the server change together. An app paired with an older server can lose edits without showing an error, such as a paste that disappears. Don't link another checkout's `node_modules` either: it may lack packages the branch added, and Vite would write its cache into that checkout.
 
 Give each app its own copy of the data. Never point either at the real data folder, since `orion server start` writes to it.
 
-Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once in `$SCRATCH/seed-data` with commands such as `orion card add`, `orion link add`, and `orion group add`, all run with `ORION_DATA_DIR="$SCRATCH/seed-data"`, then copy it to each side:
+Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once with the before tree's CLI, since newer builds read older data. Run `"$BEFORE/cli/build/orion" --help` for its commands, such as `card add`, `link add`, and `group add`, and run each with `ORION_DATA_DIR="$SCRATCH/seed-data"`. `canvas check` reports groups waiting for layout on a fresh sample, which the app settles when it opens. Then copy the sample to each side:
 
 ```sh
 for side in before after; do
@@ -43,14 +59,14 @@ done
 
 Recording changes the data: a paste adds cards and a drag moves them. Run that copy again before every take, including retakes, so each starts from the same state.
 
-When the change depends on real layout or data, copy only the `orion` canvas, which tracks Orion's own work, instead:
+When the change depends on real layout or data, copy only the `orion` canvas, which tracks Orion's own work, instead. These commands only read the real data folder:
 
 ```sh
 for side in before after; do
   mkdir -p "$SCRATCH/$side-data/canvases"
   cp ~/Library/Application\ Support/Orion/canvases.json "$SCRATCH/$side-data/"
   rsync -a --exclude backups ~/Library/Application\ Support/Orion/canvases/orion "$SCRATCH/$side-data/canvases/"
-  ORION_DATA_DIR="$SCRATCH/$side-data" /Applications/Orion.app/Contents/MacOS/orion canvas use orion
+  ORION_DATA_DIR="$SCRATCH/$side-data" "$BEFORE/cli/build/orion" canvas use orion
 done
 ```
 
@@ -58,11 +74,11 @@ Seed whatever the change needs, such as a gate card or a long label, with the sa
 
 ## 3. Start the apps
 
-Run Vite in each tree's `app/` on its own port. Use the installed `orion` binary for both unless the pull request changes the CLI or `orion server start`; then each side needs its own `cli/build/orion`.
+Run Vite in each tree's `app/` on its own port, each with its own tree's CLI and data:
 
 ```sh
-ORION_BIN=/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort
-ORION_BIN=/Applications/Orion.app/Contents/MacOS/orion ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort
+cd "$BEFORE/app" && ORION_BIN="$BEFORE/cli/build/orion" ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort
+cd "$AFTER/app" && ORION_BIN="$AFTER/cli/build/orion" ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort
 ```
 
 Run them in the background, and keep everything headless so nothing opens on the person's screen. Don't use a dev-server tool that opens a browser pane, such as Claude Code's `preview_start`.
@@ -79,13 +95,20 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
   --wait-for .react-flow__node --click-text Editing --delay 1200
 ```
 
-- `--click-text <text>` clicks the innermost visible element whose text starts with it. `--click`, `--right-click`, and `--middle-click` press that button on a target, `--hover` moves there without pressing, `--drag` presses the left button on a target and `--drop` carries it to another and lets go, `--key <keys>` presses a key or shortcut such as `Meta+C`, `Shift+Tab`, `Escape`, or `Delete`, `--type <text>` types into whatever has focus, `--pause <ms>` waits, and `--eval <js>` runs code in the page. They repeat and run in order. A target is a CSS selector, acted on at the element's center, or an `<x>,<y>` point such as empty canvas.
+- `--click-text <text>` clicks the innermost visible element whose text starts with it. `--click`, `--right-click`, and `--middle-click` press that button on a target, `--double-click` clicks twice, `--hover` moves there without pressing, `--drag` presses the left button on a target and `--drop` carries it to another and lets go, `--key <keys>` presses a key or shortcut such as `Meta+C`, `Shift+Tab`, `Escape`, or `Delete`, `--type <text>` types into whatever has focus, `--pause <ms>` waits, and `--eval <js>` runs code in the page and prints what it returns, which helps check state between steps. They repeat and run in order. A target is a CSS selector, acted on at the element's center, or an `<x>,<y>` point such as empty canvas.
 - The pointer glides to each target, sending moves along the way, so hovers and drags behave as they do by hand.
 - Pointer and keyboard steps send real input, so the app handles them as it would a person's. Prefer them over `--eval` for anything a person would do. Keys go to whatever has focus, so click the canvas or a field first. Use Mac shortcuts with `Meta`: the browser runs headless on a Mac, and `Meta+A`, `C`, `X`, `V`, and `Z` also edit text fields and the clipboard.
 - The image shows a cursor where the last pointer step acted: a ring at the point and a small mouse just below and to its right, where an arrow cursor would sit, with the pressed button filled in. Left clicks are blue, right clicks orange, middle clicks purple, and `--hover` a thin gray ring with no button pressed. It's drawn just before the capture and removed after, and it's skipped when the element it acted on is gone by then, such as a menu item that closed its menu. Prefer real pointer steps over `--eval` for clicks so the cursor shows what happened. When an `--eval` step does the clicking, add `--pointer <x>,<y>,<idle|left|right|middle>` after it to place the cursor. Use `--cursor off` only when the cursor would hide the change.
+- Page errors, console errors, and failed requests print to stderr during a take. Read them: one usually means a step didn't do what the image or video seems to show.
 - `--selector <css>` crops to one element, which suits menus, cards, and panels. The crop keeps 32 px of the page around the element so shadows, borders, and nearby context stay in the frame. Raise `--padding` when the surroundings help explain the change, and never set it to 0: a crop flush with the element's edges reads as cut off.
 - `--theme light|dark` sets the color scheme. Defaults are 1440×900 at 2× scale.
 - Raise `--delay` when the canvas is still animating or measuring groups.
+
+Getting around the canvas:
+
+- Cards inside a group aren't on the page until the group is open, so `--wait-for` and `data-id` selectors for them time out at the top level. Open the group first, such as by its entry in the sidebar, then `--pause` while it lays out.
+- `--click-text` takes the first match in page order, which is often the sidebar. Use a selector when the canvas shows the same text.
+- Clicking a card or group opens the details panel over the right side of the canvas. Close it with `--key Escape`, or select with a `--drag` and `--drop` across empty canvas instead.
 
 Name files `before-<view>.png` and `after-<view>.png`. Open every image and check that it shows the change and that both sides match apart from it. Recapture rather than attach a misleading pair.
 
@@ -168,4 +191,4 @@ Reread the live description first and change only this section. If it already ho
 
 ## 6. Clean up
 
-Stop any server still running and remove the before tree with `git worktree remove "$SCRATCH/before"`. Leave the images and videos in `/tmp` once they're attached.
+Stop both Vite servers and the `orion server start` each one launched, which can outlive it: `pkill -f "$BEFORE/cli/build/orion server start"`, and the same for `$AFTER`. Remove the trees you added with `git worktree remove`, never a worktree you didn't create. Leave the images and videos in the scratch folder once they're attached.

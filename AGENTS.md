@@ -110,7 +110,7 @@ Direction and long-range plans belong in [`CHARTER.md`](CHARTER.md).
 
 ## Pull requests
 
-When a pull request changes what the app shows, attach before and after screenshots to its description, or videos when the change is an interaction, an animation, or takes several steps to reach. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures or records both sides the same way, headless, into `/tmp`, uploads them to GitHub through the comment box without posting, and writes the description with `gh`.
+When a pull request changes what the app shows, attach before and after screenshots to its description, or videos when the change is an interaction, an animation, or takes several steps to reach. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures or records both sides the same way, headless, into a scratch folder, uploads them to GitHub through the comment box without posting, and writes the description with `gh`.
 
 CI's perf workflow compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. It skips drafts and runs once a pull request is ready for review. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment once it posts. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
 

@@ -6,19 +6,23 @@
 //   node capture.mjs --url http://localhost:5302 --out after-canvas.png \
 //     [--width 1440] [--height 900] [--scale 2] [--theme light|dark] \
 //     [--wait-for <selector>] [--click <target>] [--click-text <text>] \
-//     [--right-click <target>] [--middle-click <target>] [--hover <target>] \
+//     [--right-click <target>] [--middle-click <target>] [--double-click <target>] \
+//     [--hover <target>] \
 //     [--drag <target>] [--drop <target>] [--key <keys>] [--type <text>] [--pause <ms>] \
 //     [--pointer <x>,<y>[,idle|left|right|middle]] [--eval <js>] [--cursor on|off] \
 //     [--delay <ms>] [--glide <ms>] [--selector <selector>] [--padding <px>] \
 //     [--fps <n>] [--chrome <path>] [--ffmpeg <path>]
 //
-// Steps (--click, --click-text, --right-click, --middle-click, --hover, --drag, --drop,
-// --key, --type, --pause, --pointer, and --eval) can repeat and run in the order given,
+// Steps (--click, --click-text, --right-click, --middle-click, --double-click, --hover,
+// --drag, --drop, --key, --type, --pause, --pointer, and --eval) can repeat and run in the order given,
 // after the page loads and --wait-for matches. A <target> is a CSS selector, which the
 // pointer acts on at its center, or an `<x>,<y>` point in CSS pixels. --click-text
 // clicks the innermost visible element whose text starts with the given text. --drag
 // presses the left button on its target, and --drop moves there with it held and lets
-// go. --pause waits. --pointer marks where an --eval step acted, without sending input.
+// go. --pause waits. --eval runs code in the page and prints what it returns. --pointer
+// marks where an --eval step acted, without sending input.
+//
+// Page errors, console errors, and failed requests print to stderr as they happen.
 //
 // --key presses a key or shortcut as real input to whatever has focus, such as
 // `Meta+C`, `Shift+Tab`, `Escape`, or `Delete`, with modifiers joined by `+`. --type
@@ -59,6 +63,7 @@ const STEP_MS = 150;
 const VIDEO_STEP_MS = 450;
 const VIDEO_LEAD_MS = 600;
 const VIDEO_PRESS_MS = 220;
+const DOUBLE_CLICK_MS = 60;
 
 const SCREENSHOT_DEFAULTS = { scale: 2, delay: 500, glide: 120 };
 const VIDEO_DEFAULTS = { scale: 1, delay: 1500, glide: 600 };
@@ -95,6 +100,8 @@ function parseArguments(argv) {
       options.steps.push({ pointer: value, button: "right" });
     else if (name === "--middle-click")
       options.steps.push({ pointer: value, button: "middle" });
+    else if (name === "--double-click")
+      options.steps.push({ pointer: value, button: "left", count: 2 });
     else if (name === "--hover")
       options.steps.push({ pointer: value, button: "idle" });
     else if (name === "--drag") options.steps.push({ drag: value });
@@ -500,20 +507,20 @@ function createMouse(session, options) {
       }
     },
 
-    async press(button) {
+    async press(button, clickCount = 1) {
       mouse.held = button;
       mouse.button = button;
 
-      await dispatch("mousePressed", { clickCount: 1 });
+      await dispatch("mousePressed", { clickCount });
       await redraw();
     },
 
-    async release() {
+    async release(clickCount = 1) {
       const button = mouse.held;
 
       mouse.held = undefined;
 
-      await dispatch("mouseReleased", { button, buttons: 0, clickCount: 1 });
+      await dispatch("mouseReleased", { button, buttons: 0, clickCount });
     },
 
     // Shows the cursor back at rest after a press, in videos only. Screenshots keep the
@@ -526,12 +533,20 @@ function createMouse(session, options) {
       await redraw();
     },
 
-    async click(button) {
-      await this.press(button);
+    // Clicks `count` times in a row, so 2 is a double click. Videos hold a single click
+    // long enough to see, and keep a double click's presses quick enough to count.
+    async click(button, count = 1) {
+      for (let clickCount = 1; clickCount <= count; clickCount += 1) {
+        await this.press(button, clickCount);
 
-      if (mouse.drawn) await sleep(VIDEO_PRESS_MS);
+        if (mouse.drawn)
+          await sleep(count > 1 ? DOUBLE_CLICK_MS : VIDEO_PRESS_MS);
 
-      await this.release();
+        await this.release(clickCount);
+
+        if (clickCount < count) await sleep(DOUBLE_CLICK_MS);
+      }
+
       await this.settle();
     },
   };
@@ -791,7 +806,7 @@ async function runStep(session, mouse, step, options) {
 
     await mouse.moveTo(position);
 
-    if (button !== "idle") await mouse.click(button);
+    if (button !== "idle") await mouse.click(button, step.count);
 
     if (clear) {
       await clear();
@@ -839,7 +854,40 @@ async function runStep(session, mouse, step, options) {
   if (step.key) await pressKeys(session, step.key, options);
   else if (step.type !== undefined) await typeText(session, step.type, options);
   else if (step.pause !== undefined) await sleep(step.pause);
-  else await evaluate(session, step.evaluate);
+  else {
+    const value = await evaluate(session, step.evaluate);
+
+    if (value !== undefined)
+      console.log(`--eval ${step.evaluate}\n${JSON.stringify(value, null, 2)}`);
+  }
+}
+
+// Reports what the page doesn't show: uncaught errors, console errors, and requests
+// that fail. A step can look like it did nothing because the app hit one of these,
+// such as a server too old for the app sending it requests.
+async function watchPage(session) {
+  session.on("Runtime.exceptionThrown", ({ exceptionDetails }) =>
+    console.error(
+      `page error: ${exceptionDetails.exception?.description ?? exceptionDetails.text}`,
+    ),
+  );
+  session.on("Runtime.consoleAPICalled", ({ type, args }) => {
+    if (type !== "error") return;
+
+    console.error(
+      `console error: ${args.map((arg) => arg.value ?? arg.description).join(" ")}`,
+    );
+  });
+  session.on("Network.responseReceived", ({ response }) => {
+    if (response.status >= 400 && !response.url.endsWith("/favicon.ico"))
+      console.error(`request failed: ${response.status} ${response.url}`);
+  });
+  session.on("Network.loadingFailed", ({ errorText, canceled }) => {
+    if (!canceled) console.error(`request failed: ${errorText}`);
+  });
+
+  await session.send("Runtime.enable");
+  await session.send("Network.enable");
 }
 
 // Streams frames from Chrome into `directory` as JPEGs until stopped. Chrome sends a
@@ -1007,6 +1055,7 @@ async function capture(options) {
     const session = await connect(await chrome.endpoint);
 
     await session.send("Page.enable");
+    await watchPage(session);
     await session.send("Emulation.setDeviceMetricsOverride", {
       width: options.width,
       height: options.height,
