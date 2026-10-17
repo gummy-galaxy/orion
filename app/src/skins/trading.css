@@ -413,8 +413,8 @@
   color: #d4cdf3;
 }
 
-/* Far out, a card shrinks to its kind, title, and two numbers, at one on-screen size. It skips the pop-in and
-   blurred shadows, because far out every card on the canvas draws at once. */
+/* Far out, a card shrinks to its kind, title, and two numbers. It skips the pop-in and blurred shadows, because far
+   out every card on the canvas draws at once. A hovered or selected card's tag draws it at one on-screen size. */
 .card.skin-trading.far-card {
   width: 240px;
   min-width: 0;
@@ -425,25 +425,36 @@
   animation: none;
 }
 
-.card.skin-trading.far-card .trading-frame {
+/* Below the compact breakpoint every other card draws the same form in its slot. The form is 240px wide, zoomed down
+   to fill the slot's 198px, and centered in its height so links still meet its sides. */
+.canvas[data-zoom='compact'] .card.skin-trading {
+  display: flex;
+  align-items: center;
+}
+
+.canvas[data-zoom='compact'] .card.skin-trading .trading-frame {
+  zoom: 0.825;
+}
+
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-frame {
   height: auto;
   display: flex;
   flex-direction: column;
   box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
-.card.skin-trading.far-card .trading-art {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-art {
   position: relative;
   inset: auto;
   flex: none;
   height: 40px;
 }
 
-.card.skin-trading.far-card .trading-facts {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-facts {
   display: none;
 }
 
-.card.skin-trading.far-card .trading-tile {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-tile {
   top: 9px;
   left: 10px;
   width: 30px;
@@ -454,17 +465,17 @@
   box-shadow: none;
 }
 
-.card.skin-trading.far-card .trading-tile > svg {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-tile > svg {
   width: 17px;
   height: 17px;
 }
 
-.card.skin-trading.far-card .trading-lock svg {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-lock svg {
   width: 13px;
   height: 13px;
 }
 
-.card.skin-trading.far-card .trading-status-badge {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-status-badge {
   top: 7px;
   right: 8px;
   width: 26px;
@@ -474,36 +485,36 @@
   transform: none;
 }
 
-.card.skin-trading.far-card :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
   display: none;
 }
 
-.card.skin-trading.far-card .trading-merge .merge-pull {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-merge .merge-pull {
   padding: 0;
   justify-content: center;
 }
 
-.card.skin-trading.far-card .trading-scrim {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-scrim {
   position: static;
   padding: 10px 12px 10px;
   gap: 8px;
   background: none;
 }
 
-.card.skin-trading.far-card .trading-title {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-title {
   -webkit-line-clamp: 2;
   text-align: left;
   font-size: 16px;
   text-wrap: wrap;
 }
 
-.card.skin-trading.far-card .trading-bottom {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-bottom {
   min-height: 0;
   grid-template-columns: auto 1fr auto;
   align-items: end;
 }
 
-.card.skin-trading.far-card :is(.trading-blockers, .trading-unblocks) {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) :is(.trading-blockers, .trading-unblocks) {
   width: auto;
   height: auto;
   border-radius: 0;
@@ -511,36 +522,36 @@
   font-size: 32px;
 }
 
-.card.skin-trading.far-card .trading-blockers {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-blockers {
   color: #a39bcc;
 }
 
-.card.skin-trading.far-card .trading-unblocks {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-unblocks {
   color: #18d6c0;
   font-size: 36px;
 }
 
-.card.skin-trading.far-card .trading-motion {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-motion {
   width: 28px;
   height: 28px;
 }
 
-.card.skin-trading.far-card .trading-motion svg {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-motion svg {
   width: 16px;
   height: 16px;
 }
 
-.card.skin-trading.far-card .trading-motion-counted {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-motion-counted {
   width: auto;
   height: 32px;
   padding: 0 10px 0 8px;
 }
 
-.card.skin-trading.far-card .trading-motion-count {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-motion-count {
   font-size: 20px;
 }
 
-.card.skin-trading.far-card .trading-note {
+.card.skin-trading:is(.far-card, :where(.canvas[data-zoom='compact']) *) .trading-note {
   height: auto;
   max-height: 170px;
 }

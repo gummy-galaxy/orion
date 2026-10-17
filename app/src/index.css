@@ -1282,8 +1282,8 @@ select {
   }
 }
 /* Below the compact breakpoint (the canvas's data-zoom, set outside React), every card draws its far form: no
-   animations, no blurred shadows, no pop-in, and the trading card drops its facts. Related links stop drawing there too,
-   unless inspect mode asks for them. */
+   animations, no blurred shadows, and no pop-in. The trading skin draws its far-zoom card (trading.css). Related links
+   stop drawing there too, unless inspect mode asks for them. */
 .canvas[data-zoom='compact'] {
   --shadow-raised: none;
 }
@@ -1292,12 +1292,8 @@ select {
   animation: none !important;
   transition: none !important;
 }
-.canvas[data-zoom='compact'] .card,
-.canvas[data-zoom='compact'] .card .trading-frame {
+.canvas[data-zoom='compact'] .card {
   box-shadow: none;
-}
-.canvas[data-zoom='compact'] .card .trading-facts {
-  display: none;
 }
 .canvas[data-zoom='compact']:not(.is-inspecting) .react-flow__edge.e-rel {
   display: none;
