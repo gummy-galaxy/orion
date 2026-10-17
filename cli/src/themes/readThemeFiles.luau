@@ -2,11 +2,9 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 
 local fileNames = require("@root/fileNames")
+local themeLimits = require("@root/themes/themeLimits")
 
 export type ThemeFile = { file: string, text: string?, error: string? }
-
--- A theme file is a short list of token values. A larger file is reported instead of read whole.
-local MAX_BYTES = 256 * 1024
 
 -- Reads each .json file in the data folder's themes folder, sorted by name. A missing folder reads as none.
 -- The contents are returned as text, since the app checks what each file says.
@@ -29,7 +27,7 @@ return function(root: string): { ThemeFile }
 	for _, name in names do
 		local file = tostring(path.join(folder, name))
 		local didRead, result = pcall(function(): string
-			assert(fs.metadata(file).size <= MAX_BYTES, "larger than 256 KiB")
+			assert(fs.metadata(file).size <= themeLimits.maxBytes, "larger than 256 KiB")
 			return fs.readFileToString(file)
 		end)
 
