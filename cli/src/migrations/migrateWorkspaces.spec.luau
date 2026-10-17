@@ -3,7 +3,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
-local migrateWorkspaces = require("@root/migrateWorkspaces")
+local migrateWorkspaces = require("@root/migrations/migrateWorkspaces")
 local store = require("@root/store")
 local testing = require("@root/testing")
 

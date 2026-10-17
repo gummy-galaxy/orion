@@ -8,8 +8,8 @@ local deriveWorkspaceName = require("@root/deriveWorkspaceName")
 local fileNames = require("@root/fileNames")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
 local graph = require("@root/graph")
-local migrateItem = require("@root/refs/migrateItem")
-local migrateWorkspaces = require("@root/migrateWorkspaces")
+local migrateItem = require("@root/migrations/migrateItem")
+local migrateWorkspaces = require("@root/migrations/migrateWorkspaces")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -128,6 +128,7 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 end
 
 -- Every command resolves its canvas here first, so this is where an older data folder moves to the canvas layout.
+-- Remove at 0.1.0 with the rest of `migrations/`.
 function store.getActiveWorkspace(root: string, requested: string?, configured: string?): string
 	migrateWorkspaces(root)
 	local list = store.getWorkspaces(root)
@@ -405,6 +406,7 @@ function store.decode(text: string): Doc
 
 	owner = owner or "flipbook-labs"
 
+	-- Cards from before refs keep their old fields until read. Remove at 0.1.0 with the rest of `migrations/`.
 	for _, item in nodes do
 		if
 			item.type == "task"
