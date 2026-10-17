@@ -1,18 +1,27 @@
 #!/usr/bin/env node
-// Captures one PNG of a page in headless Chrome over the DevTools protocol.
-// Needs Node 22 or newer for the built-in WebSocket, and no npm packages.
+// Captures one PNG, or records one MP4, of a page in headless Chrome over the DevTools
+// protocol. Needs Node 22 or newer for the built-in WebSocket, and no npm packages.
+// Recording also needs ffmpeg with libx264.
 //
 //   node capture.mjs --url http://localhost:5302 --out after-canvas.png \
 //     [--width 1440] [--height 900] [--scale 2] [--theme light|dark] \
-//     [--wait-for <selector>] [--click <selector>] [--click-text <text>] \
-//     [--right-click <selector>] [--middle-click <selector>] [--hover <selector>] \
+//     [--wait-for <selector>] [--click <target>] [--click-text <text>] \
+//     [--right-click <target>] [--middle-click <target>] [--hover <target>] \
+//     [--drag <target>] [--drop <target>] [--pause <ms>] \
 //     [--pointer <x>,<y>[,idle|left|right|middle]] [--eval <js>] [--cursor on|off] \
-//     [--delay <ms>] [--selector <selector>] [--padding <px>] [--chrome <path>]
+//     [--delay <ms>] [--glide <ms>] [--selector <selector>] [--padding <px>] \
+//     [--fps <n>] [--chrome <path>] [--ffmpeg <path>]
 //
-// Steps (--click, --click-text, --right-click, --middle-click, --hover, --pointer, and
-// --eval) can repeat and run in the order given, after the page loads and --wait-for
-// matches. --click-text clicks the innermost visible element whose text starts with
-// the given text. --pointer marks where an --eval step acted, without sending input.
+// Steps (--click, --click-text, --right-click, --middle-click, --hover, --drag, --drop,
+// --pause, --pointer, and --eval) can repeat and run in the order given, after the page
+// loads and --wait-for matches. A <target> is a CSS selector, which the pointer acts on
+// at its center, or an `<x>,<y>` point in CSS pixels. --click-text clicks the innermost
+// visible element whose text starts with the given text. --drag presses the left button
+// on its target, and --drop moves there with it held and lets go. --pause waits. --pointer
+// marks where an --eval step acted, without sending input.
+//
+// The pointer glides to each target over --glide milliseconds, sending moves along the
+// way, so hovers and drags behave as they would by hand.
 //
 // The last pointer step leaves a cursor in the image: a ring at the point and a mouse
 // showing the pressed button, colored per button. It's drawn just before the capture
@@ -22,6 +31,12 @@
 // --selector crops the image to one element with --padding CSS pixels of the page
 // around it, 32 by default, so shadows and nearby context stay in the frame. The crop
 // grows to keep the cursor in it.
+//
+// An --out ending in .mp4 records a video instead. Recording starts once --wait-for
+// matches, runs through the steps, and stops --delay milliseconds after the last one.
+// The cursor stays on screen the whole time and shows each press as it happens. For
+// videos, --scale defaults to 1, --delay to 1500, and --glide to 600, and --selector
+// crops to where the element ends up.
 
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -31,17 +46,31 @@ import { join } from "node:path";
 const DEFAULT_CHROME =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const TIMEOUT_MS = 20000;
+const FRAME_MS = 16;
+
+// How long to wait between steps, at the start of a video, and while a button is down
+// on a click, so each action reads on its own in a video.
+const STEP_MS = 150;
+const VIDEO_STEP_MS = 450;
+const VIDEO_LEAD_MS = 600;
+const VIDEO_PRESS_MS = 220;
+
+const SCREENSHOT_DEFAULTS = { scale: 2, delay: 500, glide: 120 };
+const VIDEO_DEFAULTS = { scale: 1, delay: 1500, glide: 600 };
+
+const POINT_PATTERN = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
+const BUTTON_MASKS = { left: 1, right: 2, middle: 4 };
 
 function parseArguments(argv) {
   const options = {
     width: 1440,
     height: 900,
-    scale: 2,
-    delay: 500,
     padding: 32,
+    fps: 60,
     cursor: "on",
     steps: [],
     chrome: process.env.CHROME_PATH || DEFAULT_CHROME,
+    ffmpeg: process.env.FFMPEG_PATH || "ffmpeg",
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -60,12 +89,23 @@ function parseArguments(argv) {
       options.steps.push({ pointer: value, button: "middle" });
     else if (name === "--hover")
       options.steps.push({ pointer: value, button: "idle" });
+    else if (name === "--drag") options.steps.push({ drag: value });
+    else if (name === "--drop") options.steps.push({ drop: value });
+    else if (name === "--pause") options.steps.push({ pause: Number(value) });
     else if (name === "--pointer") options.steps.push({ mark: value });
     else if (name === "--click-text") options.steps.push({ clickText: value });
     else if (name === "--eval") options.steps.push({ evaluate: value });
     else if (name === "--wait-for") options.waitFor = value;
     else if (
-      ["--width", "--height", "--scale", "--delay", "--padding"].includes(name)
+      [
+        "--width",
+        "--height",
+        "--scale",
+        "--delay",
+        "--glide",
+        "--padding",
+        "--fps",
+      ].includes(name)
     )
       options[name.slice(2)] = Number(value);
     else if (
@@ -75,6 +115,7 @@ function parseArguments(argv) {
         "--theme",
         "--selector",
         "--chrome",
+        "--ffmpeg",
         "--cursor",
       ].includes(name)
     )
@@ -85,7 +126,16 @@ function parseArguments(argv) {
   if (!options.url || !options.out)
     throw new Error("--url and --out are required");
 
-  return options;
+  options.video = options.out.endsWith(".mp4");
+
+  return {
+    ...(options.video ? VIDEO_DEFAULTS : SCREENSHOT_DEFAULTS),
+    ...options,
+  };
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function launchChrome(chrome, profile) {
@@ -174,6 +224,16 @@ async function connect(endpoint) {
         listeners.add(listener);
       });
     },
+    // Calls `callback` with each event of `method` until the returned function is called.
+    on(method, callback) {
+      const listener = (message) => {
+        if (message.method === method) callback(message.params);
+      };
+
+      listeners.add(listener);
+
+      return () => listeners.delete(listener);
+    },
     close() {
       socket.close();
     },
@@ -208,7 +268,7 @@ async function waitFor(session, selector) {
     )
       return;
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await sleep(100);
   }
 
   throw new Error(`Timed out waiting for ${selector}`);
@@ -243,31 +303,20 @@ async function paddedBounds(session, selector, padding) {
   };
 }
 
-// Moves to the center of an element and presses `button` there, or only hovers for
-// "idle". Returns where the pointer ended up and what it did.
-async function point(session, selector, button) {
-  const rect = await bounds(session, selector);
-  const position = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+// Where a step's target is: the point it names, or the center of the element its
+// selector matches, along with what to look for later to tell whether it's still there.
+async function locate(session, target) {
+  const match = target.match(POINT_PATTERN);
 
-  await session.send("Input.dispatchMouseEvent", {
-    ...position,
-    type: "mouseMoved",
-  });
+  if (match) return { x: Number(match[1]), y: Number(match[2]) };
 
-  if (button !== "idle") {
-    const press = { ...position, button, clickCount: 1 };
+  const rect = await bounds(session, target);
 
-    await session.send("Input.dispatchMouseEvent", {
-      ...press,
-      type: "mousePressed",
-    });
-    await session.send("Input.dispatchMouseEvent", {
-      ...press,
-      type: "mouseReleased",
-    });
-  }
-
-  return { ...position, button, target: { selector } };
+  return {
+    x: rect.x + rect.width / 2,
+    y: rect.y + rect.height / 2,
+    target: { selector: target },
+  };
 }
 
 // Whether what a pointer step acted on is still on the page. React may swap in a new
@@ -330,23 +379,31 @@ function cursorSvg(button) {
   </svg>`;
 }
 
-async function showCursor(session, pointer) {
+// Draws the cursor at `pointer`, adding it on first use and moving it after that. The
+// drawing only changes when the button does, so moving it each frame stays cheap.
+async function drawCursor(session, pointer) {
   await evaluate(
     session,
     `(() => {
-      const cursor = document.createElement('div')
-      cursor.id = 'capture-cursor'
-      cursor.innerHTML = ${JSON.stringify(cursorSvg(pointer.button))}
-      Object.assign(cursor.style, {
-        position: 'fixed',
-        left: '${pointer.x - CURSOR_TIP}px',
-        top: '${pointer.y - CURSOR_TIP}px',
-        width: '${CURSOR_SIZE}px',
-        height: '${CURSOR_SIZE}px',
-        zIndex: '2147483647',
-        pointerEvents: 'none',
-      })
-      document.body.append(cursor)
+      let cursor = document.getElementById('capture-cursor')
+      if (!cursor) {
+        cursor = document.createElement('div')
+        cursor.id = 'capture-cursor'
+        Object.assign(cursor.style, {
+          position: 'fixed',
+          width: '${CURSOR_SIZE}px',
+          height: '${CURSOR_SIZE}px',
+          zIndex: '2147483647',
+          pointerEvents: 'none',
+        })
+        document.body.append(cursor)
+      }
+      if (cursor.dataset.button !== '${pointer.button}') {
+        cursor.dataset.button = '${pointer.button}'
+        cursor.innerHTML = ${JSON.stringify(cursorSvg(pointer.button))}
+      }
+      cursor.style.left = '${pointer.x - CURSOR_TIP}px'
+      cursor.style.top = '${pointer.y - CURSOR_TIP}px'
     })()`,
   );
 }
@@ -371,7 +428,108 @@ function withCursor(clip, pointer, margin) {
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
-async function clickText(session, text) {
+function easeInOut(progress) {
+  return progress < 0.5 ? 4 * progress ** 3 : 1 - (-2 * progress + 2) ** 3 / 2;
+}
+
+// The mouse, which knows where it is, which button it holds, and whether it draws its
+// cursor as it goes. Videos draw it throughout; screenshots draw it once at the end.
+function createMouse(session, options) {
+  const mouse = {
+    x: options.width / 2,
+    y: options.height / 2,
+    button: "idle",
+    held: undefined,
+    drawn: options.video && options.cursor !== "off",
+  };
+
+  function dispatch(type, extra = {}) {
+    return session.send("Input.dispatchMouseEvent", {
+      type,
+      x: mouse.x,
+      y: mouse.y,
+      ...(mouse.held
+        ? { button: mouse.held, buttons: BUTTON_MASKS[mouse.held] }
+        : {}),
+      ...extra,
+    });
+  }
+
+  async function redraw() {
+    if (mouse.drawn) await drawCursor(session, mouse);
+  }
+
+  return {
+    state: mouse,
+    redraw,
+
+    // Glides to `position` over --glide milliseconds, sending a move each frame unless
+    // `input` is false, which moves only the drawn cursor. Progress follows the clock,
+    // so slow round trips to Chrome drop frames instead of stretching the glide.
+    async moveTo(position, { input = true } = {}) {
+      const start = { x: mouse.x, y: mouse.y };
+      const startedAt = Date.now();
+      let progress = 0;
+
+      while (progress < 1) {
+        progress =
+          options.glide > 0
+            ? Math.min(1, (Date.now() - startedAt) / options.glide)
+            : 1;
+
+        const eased = easeInOut(progress);
+
+        mouse.x = start.x + (position.x - start.x) * eased;
+        mouse.y = start.y + (position.y - start.y) * eased;
+
+        if (input) await dispatch("mouseMoved");
+
+        await redraw();
+
+        if (progress < 1) await sleep(FRAME_MS);
+      }
+    },
+
+    async press(button) {
+      mouse.held = button;
+      mouse.button = button;
+
+      await dispatch("mousePressed", { clickCount: 1 });
+      await redraw();
+    },
+
+    async release() {
+      const button = mouse.held;
+
+      mouse.held = undefined;
+
+      await dispatch("mouseReleased", { button, buttons: 0, clickCount: 1 });
+    },
+
+    // Shows the cursor back at rest after a press, in videos only. Screenshots keep the
+    // last button pressed so the image shows what happened.
+    async settle() {
+      if (!mouse.drawn) return;
+
+      await sleep(VIDEO_PRESS_MS);
+      mouse.button = "idle";
+      await redraw();
+    },
+
+    async click(button) {
+      await this.press(button);
+
+      if (mouse.drawn) await sleep(VIDEO_PRESS_MS);
+
+      await this.release();
+      await this.settle();
+    },
+  };
+}
+
+// Marks the innermost visible element whose text starts with `text` so a selector can
+// find it, and returns a function that clears the mark.
+async function markText(session, text) {
   const found = await evaluate(
     session,
     `(() => {
@@ -388,21 +546,234 @@ async function clickText(session, text) {
   if (!found)
     throw new Error(`No visible element starts with ${JSON.stringify(text)}`);
 
-  const pointer = {
-    ...(await point(session, "[data-capture-target]", "left")),
-    target: { text },
+  return () =>
+    evaluate(
+      session,
+      `document.querySelector('[data-capture-target]')?.removeAttribute('data-capture-target')`,
+    );
+}
+
+// Runs one step and returns where the pointer acted and with which button, or nothing
+// for steps that don't move it.
+async function runStep(session, mouse, step) {
+  if (step.pointer || step.clickText) {
+    const clear = step.clickText && (await markText(session, step.clickText));
+    const position = await locate(
+      session,
+      step.pointer ?? "[data-capture-target]",
+    );
+    const button = step.button ?? "left";
+
+    await mouse.moveTo(position);
+
+    if (button !== "idle") await mouse.click(button);
+
+    if (clear) {
+      await clear();
+      position.target = { text: step.clickText };
+    }
+
+    return { ...position, button };
+  }
+
+  if (step.drag) {
+    const position = await locate(session, step.drag);
+
+    await mouse.moveTo(position);
+    await mouse.press("left");
+
+    return { ...position, button: "left" };
+  }
+
+  if (step.drop) {
+    if (!mouse.state.held) throw new Error("--drop needs a --drag before it");
+
+    const position = await locate(session, step.drop);
+
+    await mouse.moveTo(position);
+    await mouse.release();
+    await mouse.settle();
+
+    return { ...position, button: "left" };
+  }
+
+  if (step.mark) {
+    const mark = parseMark(step.mark);
+
+    await mouse.moveTo(mark, { input: false });
+
+    if (mark.button !== "idle") {
+      mouse.state.button = mark.button;
+      await mouse.redraw();
+      await mouse.settle();
+    }
+
+    return mark;
+  }
+
+  if (step.pause !== undefined) await sleep(step.pause);
+  else await evaluate(session, step.evaluate);
+}
+
+// Streams frames from Chrome into `directory` as JPEGs until stopped. Chrome sends a
+// frame only when the page repaints, so each one records when it was shown.
+async function startRecording(session, directory, options) {
+  const frames = [];
+  const stopListening = session.on("Page.screencastFrame", (params) => {
+    const file = join(
+      directory,
+      `${String(frames.length).padStart(6, "0")}.jpg`,
+    );
+
+    writeFileSync(file, Buffer.from(params.data, "base64"));
+    frames.push({
+      file,
+      shownAt: params.metadata.timestamp,
+      arrivedAt: Date.now(),
+    });
+    session.send("Page.screencastFrameAck", { sessionId: params.sessionId });
+  });
+
+  await session.send("Page.startScreencast", {
+    format: "jpeg",
+    quality: 95,
+    maxWidth: Math.round(options.width * options.scale),
+    maxHeight: Math.round(options.height * options.scale),
+    everyNthFrame: 1,
+  });
+
+  return {
+    frames,
+    async stop() {
+      const stoppedAt = Date.now();
+
+      await session.send("Page.stopScreencast");
+      stopListening();
+
+      return stoppedAt;
+    },
   };
+}
 
-  await evaluate(
-    session,
-    `document.querySelector('[data-capture-target]')?.removeAttribute('data-capture-target')`,
-  );
+// Encodes recorded frames into an H.264 MP4 at a steady frame rate, holding each frame
+// until the next one, and the last until recording stopped. `clip` crops, in CSS pixels.
+async function encodeVideo(frames, stoppedAt, directory, options, clip) {
+  if (frames.length === 0) throw new Error("Chrome sent no frames to record");
 
-  return pointer;
+  const lines = ["ffconcat version 1.0"];
+
+  frames.forEach((frame, index) => {
+    const next = frames[index + 1];
+    const seconds = next
+      ? next.shownAt - frame.shownAt
+      : (stoppedAt - frame.arrivedAt) / 1000;
+
+    lines.push(`file '${frame.file}'`, `duration ${Math.max(seconds, 0.001)}`);
+  });
+  lines.push(`file '${frames.at(-1).file}'`);
+
+  const list = join(directory, "frames.txt");
+  const filters = [];
+
+  writeFileSync(list, `${lines.join("\n")}\n`);
+
+  if (clip) {
+    const scaled = [clip.width, clip.height, clip.x, clip.y].map((value) =>
+      Math.round(value * options.scale),
+    );
+
+    filters.push(`crop=${scaled.join(":")}`);
+  }
+
+  filters.push("crop=trunc(iw/2)*2:trunc(ih/2)*2:0:0", "format=yuv420p");
+
+  await run(options.ffmpeg, [
+    "-y",
+    "-f",
+    "concat",
+    "-safe",
+    "0",
+    "-i",
+    list,
+    "-vf",
+    filters.join(","),
+    "-fps_mode",
+    "cfr",
+    "-r",
+    String(options.fps),
+    "-c:v",
+    "libx264",
+    "-preset",
+    "slow",
+    "-crf",
+    "20",
+    "-movflags",
+    "+faststart",
+    "-an",
+    options.out,
+  ]);
+}
+
+// Runs a command to completion, rejecting with the end of its error output on failure.
+function run(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: ["ignore", "ignore", "pipe"] });
+    let output = "";
+
+    child.stderr.on("data", (chunk) => {
+      output += chunk.toString();
+    });
+    child.once("error", reject);
+    child.once("exit", (code) => {
+      if (code === 0) resolve();
+      else
+        reject(
+          new Error(`${command} exited with ${code}: ${output.slice(-2000)}`),
+        );
+    });
+  });
+}
+
+async function screenshot(session, options, pointer) {
+  // A click that removed its target, such as a menu item, leaves nothing to point at.
+  const drawsCursor =
+    pointer &&
+    options.cursor !== "off" &&
+    (!pointer.target || (await hasTarget(session, pointer.target)));
+  let clip;
+
+  if (options.selector) {
+    const padded = await paddedBounds(
+      session,
+      options.selector,
+      options.padding,
+    );
+
+    clip = {
+      ...(drawsCursor
+        ? withCursor(padded, pointer, Math.min(options.padding, 12))
+        : padded),
+      scale: 1,
+    };
+  }
+
+  if (drawsCursor) await drawCursor(session, pointer);
+
+  const { data } = await session.send("Page.captureScreenshot", {
+    format: "png",
+    ...(clip ? { clip } : {}),
+  });
+
+  if (drawsCursor) await hideCursor(session);
+
+  writeFileSync(options.out, Buffer.from(data, "base64"));
 }
 
 async function capture(options) {
   const profile = mkdtempSync(join(tmpdir(), "pr-screenshots-"));
+  const frames = options.video
+    ? mkdtempSync(join(tmpdir(), "pr-videos-"))
+    : undefined;
   const chrome = launchChrome(options.chrome, profile);
 
   try {
@@ -429,53 +800,37 @@ async function capture(options) {
 
     if (options.waitFor) await waitFor(session, options.waitFor);
 
+    const mouse = createMouse(session, options);
+    let recording;
+
+    if (options.video) {
+      recording = await startRecording(session, frames, options);
+
+      await mouse.redraw();
+      await sleep(VIDEO_LEAD_MS);
+    }
+
     let pointer;
 
     for (const step of options.steps) {
-      if (step.pointer)
-        pointer = await point(session, step.pointer, step.button);
-      else if (step.mark) pointer = parseMark(step.mark);
-      else if (step.clickText)
-        pointer = await clickText(session, step.clickText);
-      else await evaluate(session, step.evaluate);
+      pointer = (await runStep(session, mouse, step)) ?? pointer;
 
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await sleep(options.video ? VIDEO_STEP_MS : STEP_MS);
     }
 
-    await new Promise((resolve) => setTimeout(resolve, options.delay));
+    await sleep(options.delay);
 
-    // A click that removed its target, such as a menu item, leaves nothing to point at.
-    const drawsCursor =
-      pointer &&
-      options.cursor !== "off" &&
-      (!pointer.target || (await hasTarget(session, pointer.target)));
-    let clip;
+    if (options.video) {
+      const clip =
+        options.selector &&
+        (await paddedBounds(session, options.selector, options.padding));
+      const stoppedAt = await recording.stop();
 
-    if (options.selector) {
-      const padded = await paddedBounds(
-        session,
-        options.selector,
-        options.padding,
-      );
-
-      clip = {
-        ...(drawsCursor
-          ? withCursor(padded, pointer, Math.min(options.padding, 12))
-          : padded),
-        scale: 1,
-      };
+      await encodeVideo(recording.frames, stoppedAt, frames, options, clip);
+    } else {
+      await screenshot(session, options, pointer);
     }
 
-    if (drawsCursor) await showCursor(session, pointer);
-
-    const { data } = await session.send("Page.captureScreenshot", {
-      format: "png",
-      ...(clip ? { clip } : {}),
-    });
-
-    if (drawsCursor) await hideCursor(session);
-
-    writeFileSync(options.out, Buffer.from(data, "base64"));
     session.close();
     console.log(options.out);
   } finally {
@@ -489,6 +844,8 @@ async function capture(options) {
     }
 
     rmSync(profile, { recursive: true, force: true });
+
+    if (frames) rmSync(frames, { recursive: true, force: true });
   }
 }
 
