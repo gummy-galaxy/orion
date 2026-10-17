@@ -73,6 +73,8 @@ jobs:
         run: lute run package
 
       - name: Upload CLI
+        # A full artifact storage quota shouldn't fail the build
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           path: cli/build/orion-*.zip
@@ -111,6 +113,8 @@ jobs:
 
       - name: Upload App
         if: github.ref == 'refs/heads/main'
+        # A full artifact storage quota shouldn't fail the build
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: orion-app
@@ -192,6 +196,9 @@ jobs:
           # Pull requests restore main's cache but don't save their own, since
           # each save uploads hundreds of megabytes from the self-hosted runner
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Save even when a later step fails, so one failed main run doesn't leave
+          # every pull request building from scratch
+          cache-on-failure: true
 
       - name: Install Tauri System Dependencies
         if: runner.os == 'Linux'
@@ -215,6 +222,8 @@ jobs:
 
       - name: Upload Desktop Installer
         if: github.ref == 'refs/heads/main'
+        # A full artifact storage quota shouldn't fail the build
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: orion-desktop-${{ runner.os }}

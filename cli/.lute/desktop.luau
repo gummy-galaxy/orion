@@ -7,6 +7,8 @@ local FlipbookBatteries = require("@flipbook-batteries")
 local path = require("@std/path")
 local system = require("@std/system")
 
+local runScript = require("@root/runScript")
+
 local run = FlipbookBatteries.run
 
 local root = path.resolve("..")
@@ -16,10 +18,12 @@ local shell = path.join(desktop, "src-tauri")
 local cliDir = path.join(root, "cli")
 local bundle = if system.macos then "dmg" elseif system.win32 then "nsis" else "deb"
 
-run("cargo", { "fmt", "--check" }, { cwd = shell })
+runScript(function()
+	run("cargo", { "fmt", "--check" }, { cwd = shell })
 
-run("npm", { "run", "build" }, { cwd = app })
-run("lute", { "run", "prepare-sidecar" }, { cwd = cliDir })
+	run("npm", { "run", "build" }, { cwd = app })
+	run("lute", { "run", "prepare-sidecar" }, { cwd = cliDir })
 
-run("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = shell })
-run("npx", { "tauri", "build", "--bundles", bundle }, { cwd = desktop })
+	run("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = shell })
+	run("npx", { "tauri", "build", "--bundles", bundle }, { cwd = desktop })
+end)

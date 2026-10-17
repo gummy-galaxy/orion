@@ -1,0 +1,97 @@
+name: Storybook
+
+# Chromatic publishes Storybook for main and for every pull request. UI Tests and UI Review stay off in the Chromatic
+# project, so these builds only publish and use no snapshots. Pushes to main deploy to the Storybook environment, which
+# links main's permalink, and pull requests deploy to Storybook Preview, which links that build. Each environment holds
+# its own CHROMATIC_PROJECT_TOKEN secret. Without it, every step after the token check skips.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: storybook-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: beelink
+    # A local install and Storybook build take about 9 seconds, but a cold runner also installs Rokit and uploads the build.
+    # Lower this after the first real run.
+    timeout-minutes: 5
+    environment:
+      name: ${{ github.event_name == 'push' && 'Storybook' || 'Storybook Preview' }}
+      url: ${{ github.event_name == 'push' && 'https://main--6acd7d37ef902af0d3845e73.chromatic.com' || steps.chromatic.outputs.storybookUrl }}
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Pull requests build their head commit rather than the merge commit. Chromatic records the commit it is given.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Check For Chromatic Token
+        id: token
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          ENVIRONMENT: ${{ github.event_name == 'push' && 'Storybook' || 'Storybook Preview' }}
+        run: 'if [ -n "$CHROMATIC_PROJECT_TOKEN" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; else echo "::notice title=Storybook publishing skipped::Add the CHROMATIC_PROJECT_TOKEN secret to the $ENVIRONMENT environment to publish Storybook."; fi'
+
+      - name: Set Up Node
+        if: steps.token.outputs.enabled == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install Dependencies
+        if: steps.token.outputs.enabled == 'true'
+        working-directory: app
+        run: npm ci
+
+      - name: Build Storybook
+        if: steps.token.outputs.enabled == 'true'
+        working-directory: app
+        run: npm run build-storybook
+
+      - name: Install Luau Tools with Rokit
+        if: steps.token.outputs.enabled == 'true'
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Publish Storybook
+        if: steps.token.outputs.enabled == 'true'
+        id: chromatic
+        uses: chromaui/action@38afd264ef2241136f12d039093c2724748bec08 # v18.11.0
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          # Empty on pushes, which leaves the action to read the branch and commit from the event.
+          CHROMATIC_BRANCH: ${{ github.head_ref }}
+          CHROMATIC_SHA: ${{ github.event.pull_request.head.sha }}
+          CHROMATIC_SLUG: ${{ github.repository }}
+        with:
+          # The action changes into workingDir before it reads package.json or resolves the build directory.
+          workingDir: app
+          storybookBuildDir: storybook-static
+          # Exit once the build is uploaded so the job never waits on UI Tests or UI Review.
+          exitOnceUploaded: true
+
+      - name: Comment on the Pull Request
+        if: ${{ steps.token.outputs.enabled == 'true' && github.event_name == 'pull_request' && steps.chromatic.outputs.storybookUrl != '' }}
+        working-directory: cli
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          STORYBOOK_URL: ${{ steps.chromatic.outputs.storybookUrl }}
+        run: lute run storybook-comment
