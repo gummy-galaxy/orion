@@ -2,6 +2,7 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 
 local canvasStyle = require("@root/server/routes/canvasStyle")
+local canvases = require("@root/server/routes/canvases")
 local editor = require("@root/server/routes/editor")
 local focus = require("@root/server/routes/focus")
 local imageRoutes = require("@root/server/routes/images")
@@ -14,7 +15,6 @@ local static = require("@root/server/routes/static")
 local store = require("@root/store")
 local sync = require("@root/server/routes/sync")
 local themes = require("@root/server/routes/themes")
-local workspaces = require("@root/server/routes/workspaces")
 
 type Request = net.ReceivedRequest
 type Response = shared.Response
@@ -80,8 +80,8 @@ function routes.create(
 			return themes.handle(request, root)
 		end
 
-		if route == "/api/workspaces" or route == "/api/workspaces/active" then
-			return workspaces.handle(request, root, router.getActive, router.switchTo)
+		if route == "/api/canvases" or route == "/api/canvases/active" then
+			return canvases.handle(request, root, router.getActive, router.switchTo)
 		end
 
 		if route == "/api/sync" then
