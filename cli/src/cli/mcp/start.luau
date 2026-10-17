@@ -3,6 +3,7 @@ local io = require("@lute/io")
 
 local context = require("@root/cli/context")
 local getBinaryFingerprint = require("@root/cli/mcp/server/getBinaryFingerprint")
+local queueBehindLock = require("@root/cli/mcp/server/queueBehindLock")
 local serve = require("@root/cli/mcp/server/serve")
 
 type Context = context.Context
@@ -31,6 +32,6 @@ return table.freeze({
 			return started ~= nil and getBinaryFingerprint() ~= started
 		end
 
-		serve(io.read, io.write, runTool, isStale)
+		serve(io.read, io.write, queueBehindLock(runTool), isStale)
 	end,
 })
