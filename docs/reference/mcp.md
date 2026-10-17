@@ -182,6 +182,31 @@ Runs `orion node move`.
 | `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion. |
 | `group`     | id        |                                                        |
 
+## orion_tidy
+
+Mark groups for the app to lay out in place, deepest first, such as after adding cards in bulk. The app does the layout, so appConnected in the result says whether it runs now or when the app next opens. Custom groups keep their arrangement.
+
+Runs `orion group tidy`.
+
+| Argument     | Type      | Description                                                                            |
+| ------------ | --------- | -------------------------------------------------------------------------------------- |
+| `ids`        | strings   | Groups to tidy. Give ids or where, not both.                                           |
+| `where`      | string    | Select groups with a query expression instead of ids, such as label ~ "release".       |
+| `workspace`  | workspace | Canvas name. Omit to use the canvas selected in Orion.                                 |
+| `dryRun`     | boolean   | List the groups and the current revision without marking them.                         |
+| `ifRevision` | int       | Mark only if the canvas is still at this revision, such as the one a dry run reported. |
+
+## orion_check
+
+Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.
+
+Runs `orion canvas check`.
+
+| Argument    | Type      | Description                                               |
+| ----------- | --------- | --------------------------------------------------------- |
+| `workspace` | workspace | Canvas name. Omit to use the canvas selected in Orion.    |
+| `group`     | id        | Only report problems in this group and what is inside it. |
+
 ## orion_remove
 
 Delete an item from the canvas. Use orion_remove_group for a group.
