@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CHAIN_STEP_MS, celebrationDelays, clearCelebrations, finishedHops, patchTaskData } from './celebrate'
+import { CHAIN_STEP_MS, celebrationDelays, clearCelebrations, closesOut, finishedHops, patchTaskData } from './celebrate'
 import { isTask, type AppNode, type ItemKind, type Link, type Status, type TaskData, type TaskNode } from './model'
 
 const task = (id: string, status: Status = 'todo', extra: Partial<TaskData> = {}, itemKind: ItemKind = 'step'): AppNode => ({
@@ -115,12 +115,12 @@ describe('clearCelebrations', () => {
 })
 
 describe('patchTaskData', () => {
-  it('sets the flag when a card changes to done and clears it when the card is reopened', () => {
+  it('closes a card out when it changes to done and clears the flag when the card is reopened', () => {
     const data = task('a', 'active').data as TaskData
 
     const finishedData = patchTaskData(data, { status: 'done' })
 
-    expect(finishedData.celebrate).toBe(true)
+    expect(finishedData.celebrate).toBe(false)
 
     const reopened = patchTaskData(finishedData, { status: 'todo' })
 
@@ -138,5 +138,38 @@ describe('patchTaskData', () => {
     const data = task('n', 'todo', {}, 'note').data as TaskData
 
     expect(patchTaskData(data, { status: 'done' }).celebrate).toBeUndefined()
+  })
+})
+
+// The card menu's Mark done and the inspector's Done both save `{ status: 'done' }` through the same patch.
+describe('finishing a card in the app', () => {
+  it('closes it out at once from the card menu', () => {
+    const data = task('a', 'active').data as TaskData
+    const patch = { status: 'done' } as const
+
+    expect(closesOut(data, patch)).toBe(true)
+    expect(patchTaskData(data, patch).celebrate).toBe(false)
+    expect(celebrationDelays('a', [task('a', 'done', patchTaskData(data, patch))], [], () => true).size).toBe(0)
+  })
+
+  it('closes it out at once from the inspector', () => {
+    const data = task('a', 'review').data as TaskData
+    const patch: Partial<TaskData> = { status: 'done' }
+
+    expect(closesOut(data, patch)).toBe(true)
+    expect(patchTaskData(data, patch).celebrate).toBe(false)
+  })
+
+  it('leaves cards finished outside the app waiting', () => {
+    const data = task('a', 'done', { celebrate: true }).data as TaskData
+
+    expect(closesOut(data, { status: 'done' })).toBe(false)
+    expect(closesOut(data, { label: 'Renamed' })).toBe(false)
+    expect(patchTaskData(data, { label: 'Renamed' }).celebrate).toBe(true)
+  })
+
+  it('does not land a stamp on notes or components', () => {
+    expect(closesOut(task('n', 'todo', {}, 'note').data as TaskData, { status: 'done' })).toBe(false)
+    expect(closesOut(task('c', 'todo', {}, 'component').data as TaskData, { status: 'done' })).toBe(false)
   })
 })

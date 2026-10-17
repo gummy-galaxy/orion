@@ -13,14 +13,14 @@ local orion = {}
 function orion.handle(request: net.ReceivedRequest, root: string, active: string): Response
 	local didSucceed, response = pcall(function(): Response
 		if request.method == "GET" then
-			local requested = request.headers["x-orion-workspace"] or active
+			local requested = request.headers["x-orion-canvas"] or active
 			if not shared.isKnownWorkspace(root, requested) then
-				return shared.reply(404, json.object({ error = `unknown workspace: {requested}` }))
+				return shared.reply(404, json.object({ error = `unknown canvas: {requested}` }))
 			end
 			local requestedDir = store.getWorkspaceDir(root, requested)
 			local doc = store.read(requestedDir)
 			if not doc then
-				return shared.reply(404, json.object({ path = store.filePath(requestedDir), workspace = requested }))
+				return shared.reply(404, json.object({ path = store.filePath(requestedDir), canvas = requested }))
 			end
 			local response = store.toObject(doc)
 			response.derived = serializeDerived(graph.derive(doc))

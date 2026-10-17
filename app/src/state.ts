@@ -153,6 +153,10 @@ export const useTint = (id: string) => useAtomValue(useMemo(() => selectAtom(tin
 const NO_PARTS: string[] = []
 
 /** The names of what's directly inside a group, in reading order, for a folded group that holds no work to list. */
+/** Whether a group holds nothing at all, not even notes, components, or images. */
+export const useIsEmptyGroup = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(nodesAtom, (nodes) => !nodes.some((node) => node.parentId === id)), [id]))
+
 export const useGroupParts = (id: string) =>
   useAtomValue(
     useMemo(

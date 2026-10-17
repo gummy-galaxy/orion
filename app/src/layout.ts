@@ -10,6 +10,7 @@ import {
   groupHeaderHeight,
   isCluster,
   normalize,
+  pruneEmptied,
   sizeOf,
   type AppNode,
   type ClusterNode,
@@ -485,7 +486,7 @@ export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { 
       )
   }
 
-  return normalize(next, cardSize)
+  return pruneEmptied(nodes, normalize(next, cardSize))
 }
 
 /** Gap between a moved group and the siblings it lands beside, matching `orion node move` in the CLI. */
@@ -532,11 +533,14 @@ export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize 
   const origin = grandparent ? absolutePosition(grandparent, nodeMap) : { x: 0, y: 0 }
   const absolute = absolutePosition(group, nodeMap)
   // Fitting first lets the old parent shrink to what remains, so the spot is checked against where it will actually be.
-  const lifted = normalize(
-    nodes.map((node) =>
-      node.id === id ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } } : node,
+  const lifted = pruneEmptied(
+    nodes,
+    normalize(
+      nodes.map((node) =>
+        node.id === id ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } } : node,
+      ),
+      cardSize,
     ),
-    cardSize,
   )
   const landed = lifted.find((node) => node.id === id)
 

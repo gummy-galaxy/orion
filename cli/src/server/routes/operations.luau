@@ -36,9 +36,9 @@ function operations.handle(request: net.ReceivedRequest, root: string, active: s
 		return shared.reply(405, json.object({ error = "method not allowed" }))
 	end
 
-	local tagged = request.headers["x-orion-workspace"]
+	local tagged = request.headers["x-orion-canvas"]
 	if tagged and tagged ~= active then
-		return shared.reply(409, json.object({ error = "workspace changed" }))
+		return shared.reply(409, json.object({ error = "canvas changed" }))
 	end
 
 	local parsed, change = pcall(function()

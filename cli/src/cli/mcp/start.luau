@@ -18,8 +18,8 @@ return table.freeze({
 		local function runTool(argv: { string }, write: (string) -> ())
 			options.execute(argv, {
 				dataDir = options.root,
-				-- Without --canvas, each call resolves the selected workspace again, so
-				-- orion_select_workspace applies to later calls.
+				-- Without --canvas, each call resolves the selected canvas again, so
+				-- orion_select_canvas applies to later calls.
 				workspace = options.requestedWorkspace,
 				write = write,
 				runner = options.runner,

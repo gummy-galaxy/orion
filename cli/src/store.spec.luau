@@ -4,9 +4,11 @@ local path = require("@std/path")
 local process = require("@std/process")
 local test = require("@std/test")
 
+local applyOperations = require("@root/operations/applyOperations")
 local findRef = require("@root/refs/findRef")
 local getRefs = require("@root/refs/getRefs")
 local graph = require("@root/graph")
+local parseOperations = require("@root/operations/parseOperations")
 local store = require("@root/store")
 local testing = require("@root/testing")
 
@@ -389,4 +391,32 @@ test.case("a save flags the cards it finishes and leaves the rest without the fl
 	local saved = store.load(dir)
 	assert.eq(saved.nodes[1].data.celebrate, true)
 	assert.eq(saved.nodes[2].data.celebrate, nil)
+end)
+
+test.case("an operation list closes out the cards the app finished and closed out at once", function(assert)
+	local dir = testing.directory("celebrate-closed-out")
+	store.write(
+		dir,
+		testing.createDoc({
+			testing.task("a", "A", "active"),
+			testing.task("b", "B", "done", nil, { celebrate = true }),
+		})
+	)
+	local nodes = json.asArray(store.toObject(store.load(dir)).nodes) or {}
+
+	local function closeOut(index: number)
+		local node = json.asObject(nodes[index]) :: json.Object
+		local data = json.asObject(node.data) :: json.Object
+		data.status = "done"
+		data.celebrate = false
+		return json.object({ op = "setData", id = node.id, data = data })
+	end
+
+	store.transaction(dir, function(doc)
+		applyOperations(doc, parseOperations({ closeOut(1), closeOut(2) }))
+	end)
+	local saved = store.load(dir)
+	assert.eq(saved.nodes[1].data.celebrate, nil)
+	assert.eq(saved.nodes[2].data.celebrate, nil)
+	assert.strNotContains(fs.readFileToString(store.filePath(dir)), "celebrate")
 end)
