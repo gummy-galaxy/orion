@@ -2,11 +2,12 @@ import { memo, useContext } from 'react'
 import { useAtomValue } from 'jotai'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext } from '../derive'
-import type { ClusterNode } from '../model'
+import { GROUP_HEADER_BAND, GROUP_HEADER_HEIGHT, type ClusterNode } from '../model'
 import { SourceBadges } from './SourceBadges'
 import { useCollapsed, useGroupParts, useGroupStats, useIsDropTarget, useMarked, useSources, useTint, useTraceRole, workspaceAtom } from '../state'
-import { groupLayers } from '../style'
+import { HEADER_MIN_ZOOM, groupLayers, headerText } from '../style'
 import { CoverImage } from './CoverImage'
+import { Markdown } from './Markdown'
 import { Ring } from './Ring'
 import { FoldPreview } from './FoldPreview'
 
@@ -25,7 +26,10 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   const parts = useGroupParts(id)
   const isDropTarget = useIsDropTarget(id)
   const workspace = useAtomValue(workspaceAtom)
+  const headerFolded = useStore((state) => state.transform[2] < HEADER_MIN_ZOOM)
   const layers = groupLayers(data, collapsed)
+  // A folded group, or one zoomed too far out to read, shows no header; its band stays reserved so nothing moves.
+  const header = collapsed || headerFolded ? undefined : headerText(data.header)
 
   return (
     <div
@@ -96,6 +100,11 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
               Open
             </button>
           </span>
+        </div>
+      )}
+      {header && (
+        <div className="cluster-header nodrag" style={{ top: GROUP_HEADER_HEIGHT, height: GROUP_HEADER_BAND }}>
+          <Markdown source={header} layout />
         </div>
       )}
       {!collapsed && <SourceBadges sources={sources} />}

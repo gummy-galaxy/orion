@@ -1,5 +1,5 @@
 /**
- * Preferences saved in the data folder through `orion serve`, so the browser and desktop app share
+ * Preferences saved in the data folder through `orion server start`, so the browser and desktop app share
  * them and they outlast either one's browser storage. Browser storage still caches each value for
  * code that reads it synchronously.
  */

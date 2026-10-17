@@ -1323,6 +1323,23 @@ select {
     opacity: 1;
   }
 }
+/* Below the compact breakpoint (the canvas's data-zoom, set outside React), every card draws its far form: no
+   animations, no blurred shadows, and no pop-in. The trading skin draws its far-zoom card (trading.css). Related links
+   stop drawing there too, unless inspect mode asks for them. */
+.canvas[data-zoom='compact'] {
+  --shadow-raised: none;
+}
+.canvas[data-zoom='compact'] .card,
+.canvas[data-zoom='compact'] .card * {
+  animation: none !important;
+  transition: none !important;
+}
+.canvas[data-zoom='compact'] .card {
+  box-shadow: none;
+}
+.canvas[data-zoom='compact']:not(.is-inspecting) .react-flow__edge.e-rel {
+  display: none;
+}
 .cluster .react-flow__handle {
   opacity: 0;
   pointer-events: none;
@@ -1422,8 +1439,9 @@ kbd {
   margin-left: var(--space-2);
 }
 .inspector {
-  width: 290px;
-  padding: var(--space-7);
+  /* Wider on wide windows, up to 480px, and never wider than the window allows. */
+  width: min(480px, max(380px, 30vw), calc(100vw - 48px));
+  padding: var(--space-9);
   max-height: calc(100vh - 120px);
   overflow-y: auto;
 }
@@ -1934,6 +1952,192 @@ kbd {
   font-size: var(--text-size-body);
 }
 
+/* Card details: the title leads, then status, notes, the pull request, and collapsible relationships. */
+.task-insp {
+  gap: var(--space-10);
+}
+.insp-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-6);
+}
+.insp .title-input {
+  flex: 1 1 180px;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border-color: transparent;
+  background: transparent;
+  font: var(--weight-semibold) var(--text-size-subheading)/1.3 var(--font-ui);
+}
+.insp .title-input:hover {
+  border-color: var(--border-default);
+}
+.insp .title-input:focus {
+  border-color: var(--border-default);
+  background: var(--canvas-background);
+}
+.ref-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+.insp-section {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+}
+.insp-heading {
+  margin: 0;
+  font: var(--weight-medium) var(--text-size-label)/1.2 var(--font-ui);
+  color: var(--text-muted);
+}
+.task-insp .grid2 {
+  gap: var(--space-5);
+}
+.note-view {
+  min-height: 3em;
+  padding: var(--space-3) var(--space-4);
+  margin: 0 calc(var(--space-4) * -1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: text;
+  font-size: var(--text-size-body);
+  line-height: 1.5;
+}
+.note-view:hover {
+  border-color: var(--border-default);
+}
+.note-view:focus-visible {
+  outline: 2px solid var(--accent-default);
+  outline-offset: 1px;
+}
+.insp .note-source {
+  font-family: var(--font-data);
+  font-size: var(--text-size-label);
+  line-height: 1.5;
+}
+.markdown {
+  overflow-wrap: anywhere;
+}
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown pre,
+.markdown blockquote {
+  margin: 0 0 var(--space-5);
+}
+.markdown ul,
+.markdown ol {
+  padding-left: 1.25em;
+}
+/* Lists reset their markers for the inspector's link lists, so bring them back inside a note. */
+.insp .markdown ul {
+  display: block;
+  list-style: disc;
+}
+.insp .markdown ol {
+  display: block;
+  list-style: decimal;
+}
+.insp .markdown ul ul {
+  list-style: circle;
+}
+.insp .markdown li {
+  display: list-item;
+}
+.markdown li + li {
+  margin-top: var(--space-2);
+}
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: var(--space-6) 0 var(--space-3);
+  font: var(--weight-semibold) var(--text-size-emphasis)/1.3 var(--font-ui);
+}
+.markdown h1 {
+  font-size: var(--text-size-subheading);
+}
+.markdown a {
+  color: var(--accent-default);
+}
+.markdown code {
+  font-family: var(--font-data);
+  font-size: 0.92em;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-xs);
+  background: var(--canvas-background);
+}
+.markdown pre {
+  overflow-x: auto;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-background);
+}
+.markdown pre code {
+  padding: 0;
+  background: none;
+}
+.markdown blockquote {
+  padding-left: var(--space-5);
+  border-left: 2px solid var(--border-default);
+  color: var(--text-muted);
+}
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--border-default);
+  margin: var(--space-5) 0;
+}
+.link-sections {
+  display: grid;
+  gap: var(--space-2);
+}
+.link-section {
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-3);
+}
+.link-section > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--text-size-label);
+  color: var(--text-primary);
+}
+.link-section > summary::-webkit-details-marker {
+  display: none;
+}
+.link-section > summary::before {
+  content: '▸';
+  color: var(--text-muted);
+  transition: transform var(--motion-duration-fast) var(--motion-easing-standard);
+}
+.link-section[open] > summary::before {
+  transform: rotate(90deg);
+}
+.link-section > summary:focus-visible {
+  outline: 2px solid var(--accent-default);
+  outline-offset: 1px;
+}
+.link-count {
+  color: var(--text-muted);
+  font: var(--text-size-detail) var(--font-data);
+}
+.link-section > :not(summary) {
+  margin-top: var(--space-4);
+}
+
 /* App frame */
 .app {
   display: flex;
@@ -1993,6 +2197,10 @@ kbd {
   align-items: center;
   gap: var(--space-2);
   cursor: pointer;
+}
+.debug-breakpoint {
+  width: 4.5em;
+  font: inherit;
 }
 .debug-close {
   border: 0;
@@ -3260,6 +3468,94 @@ kbd {
   margin: 0;
   color: var(--status-blocked);
   font-size: var(--text-size-caption);
+}
+
+.header-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.header-settings h3 {
+  margin: 0;
+  font-size: var(--text-size-emphasis);
+}
+.header-settings textarea {
+  resize: vertical;
+  font-family: var(--font-data);
+  font-size: var(--text-size-caption);
+}
+.header-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-size-caption);
+}
+
+/*
+ * Headers are Markdown with a sanitized subset of HTML for layout. A group's header sits in the band reserved under
+ * its title row, and a canvas's header sits over the top of the canvas. Both fold away below HEADER_MIN_ZOOM, and
+ * only their links take pointer events, so a header never steals a press from the canvas or its cards.
+ */
+.cluster-header {
+  position: absolute;
+  left: var(--space-8);
+  right: var(--space-8);
+  overflow: hidden;
+  padding-top: var(--space-4);
+  color: var(--text-primary);
+  font-size: var(--text-size-body);
+  pointer-events: none;
+  mask-image: linear-gradient(black calc(100% - var(--space-8)), transparent);
+}
+.canvas.has-header {
+  display: flex;
+  flex-direction: column;
+}
+.canvas.has-header > .react-flow {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+/* The top level's header takes its own band above the canvas, so it never covers a card. The top padding clears the breadcrumb. */
+.canvas-header {
+  position: relative;
+  z-index: 3;
+  flex: none;
+  max-height: 240px;
+  overflow: hidden;
+  padding: 72px var(--space-9) var(--space-6);
+  color: var(--text-primary);
+  font-size: var(--text-size-emphasis);
+  pointer-events: none;
+}
+.cluster-header a,
+.canvas-header a {
+  pointer-events: auto;
+}
+.markdown-layout .header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+}
+.markdown-layout .header-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.markdown-layout .header-center {
+  display: block;
+  text-align: center;
+}
+.markdown-layout .header-end {
+  display: block;
+  text-align: end;
+}
+.markdown-layout img {
+  display: block;
+  max-width: 100%;
+  max-height: 96px;
+  height: auto;
+  border-radius: var(--radius-sm);
 }
 
 /* Tooltip: drawn above its anchor in the page body, so cards and the canvas zoom leave it alone. */

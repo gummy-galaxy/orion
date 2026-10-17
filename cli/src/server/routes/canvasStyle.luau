@@ -9,7 +9,7 @@ type Response = shared.Response
 
 local canvasStyle = {}
 
--- The app writes the canvas's cover and background here. A null value clears one, and an absent one keeps it.
+-- The app writes the canvas's cover, background, and header here. A null value clears one, and an absent one keeps it.
 -- The write is a normal transaction, so it bumps the revision and open windows and `--if-revision` see it.
 local function changeFrom(value: json.Value?): string?
 	if value == nil then
@@ -20,7 +20,7 @@ local function changeFrom(value: json.Value?): string?
 		return ""
 	end
 
-	assert(type(value) == "string", "cover and background must be strings or null")
+	assert(type(value) == "string", "cover, background, and header must be strings or null")
 	return value
 end
 
@@ -41,6 +41,7 @@ function canvasStyle.handle(request: net.ReceivedRequest, root: string, active: 
 			applyCanvasStyle(doc, dir, {
 				cover = changeFrom(change.cover),
 				background = changeFrom(change.background),
+				header = changeFrom(change.header),
 			})
 		end)
 	end)

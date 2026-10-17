@@ -3,9 +3,9 @@ local json = require("@std/json")
 local adapterTypes = require("@root/adapters/types")
 local findBranch = require("@root/adapters/findBranch")
 local findRef = require("@root/refs/findRef")
-local getDesired = require("@root/github/getDesired")
 local getGithubKey = require("@root/refs/getGithubKey")
 local getInvolved = require("@root/github/getInvolved")
+local setDesired = require("@root/github/setDesired")
 local setPullRef = require("@root/github/setPullRef")
 local types = require("@root/types")
 
@@ -52,8 +52,8 @@ local function collect(source: Source, run: CommandRunner, context: Context): { 
 				local item = if pull.branch then findBranch(doc, repo, pull.branch) else nil
 				return if item and not findRef(item, "pull") then item else nil
 			end,
-			getStatus = function(status: string, who: string?): (string, string?)
-				return getDesired(pull, status, who, viewer)
+			updateStatus = function(item: Item)
+				setDesired(item, pull, viewer)
 			end,
 			mentionText = `{pull.title} {pull.branch or ""} {pull.body or ""}`,
 		})

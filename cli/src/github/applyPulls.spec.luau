@@ -13,31 +13,7 @@ type PullState = githubTypes.PullState
 type Fetched = githubTypes.Fetched
 type Doc = types.Doc
 
-local function pull(
-	state: string,
-	extra: { draft: boolean?, reviewDecision: string?, reviewRequests: number? }?
-): PullState
-	local given: { draft: boolean?, reviewDecision: string?, reviewRequests: number? } = extra or {}
-	return {
-		owner = "flipbook-labs",
-		name = "flipbook",
-		number = 1,
-		state = state,
-		baseRefName = "main",
-		headRefName = "feature/a",
-		draft = given.draft == true,
-		reviewDecision = given.reviewDecision,
-		reviewRequests = given.reviewRequests or 0,
-		requestedReviewers = {},
-		title = "Title",
-		url = "https://github.com/flipbook-labs/flipbook/pull/1",
-		author = "vocksel",
-		updatedAt = "2026-10-04T00:00:00Z",
-		additions = 12,
-		deletions = 3,
-		checks = "SUCCESS",
-	}
-end
+local pull = testing.pull
 
 local function stackFixture(): (Doc, Fetched)
 	local parent = pull("OPEN")
@@ -353,6 +329,90 @@ test.case("discover attaches a branch match to its card instead of filing it in 
 	assert.eq(#report.added, 0)
 	assert.eq(graph.find(doc, "inbox"), nil)
 	assert.eq(#unplacedOf(doc), 0)
+end)
+
+local function trackedDoc(status: string, closedDeferral: boolean?): Doc
+	return testing.createDoc({
+		testing.task("a", "Work", status, nil, {
+			repo = "flipbook-labs/flipbook",
+			deferredByClosedPull = closedDeferral,
+			refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#1" } },
+		}),
+	})
+end
+
+local function fetchedWith(state: string): Fetched
+	local tracked = pull(state)
+	return {
+		pulls = { [getKey(tracked)] = tracked },
+		checked = { [getKey(tracked)] = true },
+		authored = {},
+		viewer = "vocksel",
+		discover = false,
+		failures = {},
+	}
+end
+
+test.case("a refresh defers a card whose pull request closed and marks the deferral as its own", function(assert)
+	local doc = trackedDoc("active")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	assert.eq(doc.nodes[1].data.status, "deferred")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, true)
+end)
+
+test.case("a refresh moves a card deferred by a closed pull request back once it reopens", function(assert)
+	local doc = trackedDoc("active")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	local report = applyPulls(doc, fetchedWith("OPEN"), "later")
+	assert.eq(doc.nodes[1].data.status, "review")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+	assert.eq(report.changes[1].fromStatus, "deferred")
+	assert.eq(report.changes[1].toStatus, "review")
+end)
+
+test.case("a card deferred by a closed pull request follows a new open pull request it's pointed at", function(assert)
+	local doc = trackedDoc("active")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	local successor = pull("OPEN")
+	successor.number = 2
+	local refs: json.Array = { json.object({ source = "github", kind = "pull", key = "flipbook-labs/flipbook#2" }) }
+	doc.nodes[1].data.refs = refs
+	local fetched = fetchedWith("OPEN")
+	fetched.pulls = { [getKey(successor)] = successor }
+	applyPulls(doc, fetched, "later")
+	assert.eq(doc.nodes[1].data.status, "review")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+end)
+
+test.case("a deferral someone set stays deferred when its pull request closes or reopens", function(assert)
+	local doc = trackedDoc("deferred")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	assert.eq(doc.nodes[1].data.status, "deferred")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+	applyPulls(doc, fetchedWith("OPEN"), "later")
+	assert.eq(doc.nodes[1].data.status, "deferred")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+end)
+
+test.case("a deferral someone set stays when the card is pointed at another open pull request", function(assert)
+	local doc = trackedDoc("deferred")
+	local successor = pull("OPEN")
+	successor.number = 2
+	local refs: json.Array = { json.object({ source = "github", kind = "pull", key = "flipbook-labs/flipbook#2" }) }
+	doc.nodes[1].data.refs = refs
+	local fetched = fetchedWith("OPEN")
+	fetched.pulls = { [getKey(successor)] = successor }
+	applyPulls(doc, fetched, "now")
+	assert.eq(doc.nodes[1].data.status, "deferred")
+end)
+
+test.case("setting a status by hand takes over a refresh deferral", function(assert)
+	local doc = trackedDoc("active")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	graph.setFields(doc, "a", { status = "deferred" })
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+	applyPulls(doc, fetchedWith("OPEN"), "later")
+	assert.eq(doc.nodes[1].data.status, "deferred")
 end)
 
 test.case("a card that wasn't fetched keeps its state and isn't reported missing", function(assert)

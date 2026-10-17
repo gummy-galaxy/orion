@@ -56,8 +56,8 @@ export type Source = {
 export type Doc = {
 	version: number,
 	revision: number,
-	-- cover and background style the canvas itself: an image asset id, and a color, token name, or asset id.
-	settings: { sources: { Source }, cover: string?, background: string? },
+	-- cover, background, and header style the canvas itself: an image asset id, a color, token name, or asset id, and Markdown.
+	settings: { sources: { Source }, cover: string?, background: string?, header: string? },
 	nodes: { Item },
 	links: { Link },
 	github: json.Object?,
