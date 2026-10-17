@@ -67,6 +67,17 @@ export async function imageSource(workspace: string, asset: string): Promise<str
   return URL.createObjectURL(await response.blob())
 }
 
+/** Copies an image from one workspace's assets into another's, and returns its id there. */
+export async function copyImage(asset: string, from: string, to: string): Promise<string> {
+  const response = await fetch(`/api/images/${encodeURIComponent(asset)}?workspace=${encodeURIComponent(from)}`)
+
+  if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Image unavailable')
+
+  const blob = await response.blob()
+
+  return (await importImage(new File([blob], asset, { type: blob.type }), to)).asset
+}
+
 /** The card a pasted link names: one already on the canvas, or a new one that isn't saved until the app places it. */
 export type LinkLookup = { status: 'existing'; id: string; label: string } | { status: 'found'; id: string; data: TaskData }
 
