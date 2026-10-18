@@ -30,7 +30,21 @@ import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
 import { localDateValue, snoozeUntil } from '../snooze'
-import { CHAIN_STEP_MS, CLEAR_MS, celebrationDelays, clearCelebrations, closesOut, patchTaskData } from '../celebrate'
+import {
+  CHAIN_STEP_MS,
+  CLEAR_MS,
+  FADE_MS,
+  FLOURISH_MS,
+  STAMP_MS,
+  celebrationDelays,
+  chainBeats,
+  chainFinale,
+  chainPulses,
+  clearCelebrations,
+  closesOut,
+  patchTaskData,
+  type Pulse,
+} from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { forgetTextWidths } from '../cardHeight'
 import { groupSelection, layoutOrder, moveOutOfGroup, reflow, ungroup } from '../layout'
@@ -143,6 +157,8 @@ import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
   celebratingAtom,
+  chainFinaleAtom,
+  chainPulsesAtom,
   checkSnoozesAtom,
   collapsedAtom,
   derivedAtom,
@@ -408,6 +424,8 @@ export function Canvas() {
   const [links, setLinks] = useAtom(linksAtom)
   const setDerived = useSetAtom(derivedAtom)
   const setCelebrating = useSetAtom(celebratingAtom)
+  const setChainPulses = useSetAtom(chainPulsesAtom)
+  const setChainFinale = useSetAtom(chainFinaleAtom)
   const setCheckSnoozes = useSetAtom(checkSnoozesAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
@@ -2171,24 +2189,38 @@ export function Canvas() {
 
   /** Lands the Done stamps on cards that were just closed out, each after its delay. */
   const landStamps = useCallback(
-    (delays: Map<string, number>) => {
+    (delays: Map<string, number>, chain?: { pulses: Map<string, Pulse>; finale: Set<string> }) => {
       // Animations off clears the stamps at once. Reduced keeps the timing and fades them; they only animate while listed here.
       if (document.documentElement.dataset.motion === 'off') return
 
+      const pulses = chain?.pulses ?? new Map<string, Pulse>()
+      const finale = chain?.finale ?? new Set<string>()
+      // The flourish starts as the last Done stamp lands, so the chain stays listed until it finishes too.
+      const flourishMs = finale.size
+        ? readDurationMs('--motion-duration-fade', FADE_MS) +
+          readDurationMs('--motion-duration-stamp', STAMP_MS) +
+          readDurationMs('--motion-duration-flourish', FLOURISH_MS)
+        : 0
+
       setCelebrating((current) => new Map([...current, ...delays]))
+      setChainPulses((current) => new Map([...current, ...pulses]))
+      setChainFinale((current) => new Set([...current, ...finale]))
       window.setTimeout(
-        () =>
+        () => {
           setCelebrating((current) => {
             const next = new Map(current)
 
             for (const key of delays.keys()) next.delete(key)
 
             return next
-          }),
-        Math.max(...delays.values()) + readDurationMs('--motion-duration-clear', CLEAR_MS),
+          })
+          setChainPulses((current) => new Map([...current].filter(([key]) => !pulses.has(key))))
+          setChainFinale((current) => new Set([...current].filter((key) => !finale.has(key))))
+        },
+        Math.max(...delays.values()) + Math.max(readDurationMs('--motion-duration-clear', CLEAR_MS), flourishMs),
       )
     },
-    [setCelebrating],
+    [setCelebrating, setChainPulses, setChainFinale],
   )
 
   const actions = useMemo(
@@ -2204,20 +2236,19 @@ export function Canvas() {
       celebrate: (id: string) => {
         const { nodes: currentNodes, links: currentLinks } = latest.current
         const finished = atomStore.get(workAtom).status
-        const delays = celebrationDelays(
-          id,
-          currentNodes,
-          currentLinks,
-          (other) => finished.get(other) === 'done',
-          readDurationMs('--motion-duration-chain', CHAIN_STEP_MS),
-        )
+        const isFinished = (other: string) => finished.get(other) === 'done'
+        const stepMs = readDurationMs('--motion-duration-chain', CHAIN_STEP_MS)
+        const delays = celebrationDelays(id, currentNodes, currentLinks, isFinished, stepMs)
 
         if (!delays.size) return
 
         const cleared = new Set(delays.keys())
 
         setNodes((latestNodes) => clearCelebrations(latestNodes, cleared))
-        landStamps(delays)
+        landStamps(delays, {
+          pulses: chainPulses(chainBeats(id, currentLinks, isFinished, stepMs), currentLinks, Math.max(...delays.values())),
+          finale: chainFinale(delays),
+        })
       },
       resizeGroup,
     }),
