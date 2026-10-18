@@ -28,6 +28,36 @@ select {
   color: inherit;
 }
 
+/* Thin scrollbars in the theme's muted ink on a clear track. WebKit and Chromium read the pseudo-elements, which
+   the standard properties would switch off in Chromium, so the standard ones are only for engines without them. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-muted) 40%, transparent) padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text-muted) 40%, transparent) transparent;
+  }
+}
+/* Scrolls the app makes, such as keeping the palette's selection in view, glide unless motion is turned down. */
+:root[data-motion='on'],
+:root[data-motion='on'] * {
+  scroll-behavior: smooth;
+}
+
 /* React Flow theming */
 .react-flow {
   --xy-background-color: var(--canvas-background);
@@ -3332,7 +3362,6 @@ kbd {
   gap: var(--space-5);
   padding: var(--space-8) var(--space-2);
   pointer-events: auto;
-  scrollbar-width: thin;
   mask-image: linear-gradient(transparent, #000 16px, #000 calc(100% - 16px), transparent);
 }
 .focus-card {

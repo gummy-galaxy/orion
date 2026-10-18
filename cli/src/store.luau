@@ -7,6 +7,7 @@ local task = require("@std/task")
 local deriveWorkspaceName = require("@root/deriveWorkspaceName")
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
+local fillPullFacts = require("@root/github/fillPullFacts")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
 local graph = require("@root/graph")
 local isProcessAlive = require("@root/server/isProcessAlive")
@@ -425,6 +426,10 @@ function store.decode(text: string): Doc
 		then
 			migrateItem(item, owner, sources)
 		end
+
+		if item.type == "task" then
+			fillPullFacts(item)
+		end
 	end
 
 	return {
@@ -729,6 +734,23 @@ function store.write(dir: string, doc: Doc)
 	if not succeeded then
 		error(failureMessage, 0)
 	end
+end
+
+-- Runs `run` while holding the workspace lock, for writers that change files beside the data file.
+function store.withLock<T>(dir: string, run: () -> T): T
+	if not fs.exists(dir) then
+		fs.createDirectory(dir, { makeParents = true })
+	end
+
+	local lockPath = acquire(dir)
+	local succeeded, result = pcall(run)
+	release(lockPath)
+
+	if not succeeded then
+		error(result, 0)
+	end
+
+	return result
 end
 
 return table.freeze(store)

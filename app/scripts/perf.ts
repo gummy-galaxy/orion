@@ -101,6 +101,9 @@ function prepareBase(ref: string): { dir: string; sha: string } {
   const modules = join(dir, 'node_modules')
 
   if (!existsSync(modules)) {
+    // A persistent runner keeps this copy between jobs, and its link can outlive the node_modules it pointed at.
+    rmSync(modules, { force: true })
+
     const sameLock = readFileSync(join(dir, 'package-lock.json'), 'utf8') === readFileSync(join(APP, 'package-lock.json'), 'utf8')
 
     if (sameLock) symlinkSync(join(APP, 'node_modules'), modules, 'dir')
