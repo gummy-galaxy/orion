@@ -2,11 +2,11 @@ local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
 local getRequired = require("@root/cli/getRequired")
-local graph = require("@root/graph")
 local joinWords = require("@root/cli/joinWords")
+local makeGroup = require("@root/graph/makeGroup")
 local parseCommaList = require("@root/cli/parseCommaList")
 local resolveId = require("@root/query/resolveId")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 local writeItem = require("@root/cli/writeItem")
 
@@ -37,8 +37,8 @@ return table.freeze({
 		local ids = parseCommaList(getRequired(parser, "items"))
 
 		local made: Item
-		local doc = store.transaction(options.dir, function(doc)
-			made = graph.makeGroup(doc, label, resolveIds(doc, ids))
+		local doc = runTransaction(options.dir, function(doc)
+			made = makeGroup(doc, label, resolveIds(doc, ids))
 		end)
 
 		writeItem(options, doc, made, "Grouped into")

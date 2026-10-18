@@ -2,12 +2,13 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 
 local getErrorText = require("@root/getErrorText")
+local getLabel = require("@root/graph/getLabel")
 local getStringField = require("@root/getStringField")
-local graph = require("@root/graph")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local loadDoc = require("@root/store/loadDoc")
 local lookupCard = require("@root/import/lookupCard")
 local runCommand = require("@root/command")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
 local types = require("@root/types")
 
 type CommandRunner = types.CommandRunner
@@ -32,7 +33,7 @@ function links.handle(request: net.ReceivedRequest, root: string, runner: Comman
 		return shared.reply(400, json.object({ error = "expected a URL" }))
 	end
 
-	local doc = store.load(store.getWorkspaceDir(root, workspace))
+	local doc = loadDoc(getWorkspaceDir(root, workspace))
 	local now = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 	local succeeded, result = pcall(lookupCard, url, doc, now, runner or runCommand)
 	if not succeeded then
@@ -41,7 +42,7 @@ function links.handle(request: net.ReceivedRequest, root: string, runner: Comman
 
 	local item = result.item
 	if result.status == "existing" then
-		return shared.reply(200, json.object({ status = "existing", id = item.id, label = graph.label(item) }))
+		return shared.reply(200, json.object({ status = "existing", id = item.id, label = getLabel(item) }))
 	end
 
 	return shared.reply(200, json.object({ status = "found", id = item.id, data = item.data }))

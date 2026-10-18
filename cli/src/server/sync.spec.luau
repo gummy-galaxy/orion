@@ -1,7 +1,8 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local store = require("@root/store")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local loadDoc = require("@root/store/loadDoc")
 local sync = require("@root/server/sync")
 local testing = require("@root/testing")
 
@@ -51,7 +52,7 @@ end)
 
 test.case("sync ticks poll and sweep quietly between full passes and write only what changed", function(assert)
 	local root = testing.createHarness("sync-tick")
-	local dir = store.getWorkspaceDir(root, "default")
+	local dir = getWorkspaceDir(root, "default")
 	local now = 100
 	local calls: { string } = {}
 	local states: { string } = {}
@@ -88,7 +89,7 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 	end)
 
 	loop.tick()
-	local revision = store.load(dir).revision
+	local revision = loadDoc(dir).revision
 	assert.eq(table.concat(calls, ","), "authored,full")
 	assert.eq(table.concat(states, ","), "running,idle")
 
@@ -107,14 +108,14 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 	now += 60
 	loop.tick()
 	assert.eq(table.concat(calls, ","), "poll,sweep,authored")
-	assert.eq(store.load(dir).revision, revision)
+	assert.eq(loadDoc(dir).revision, revision)
 	assert.eq(table.find(states, "running"), nil)
 
 	table.clear(calls)
 	now = 100 + 15 * 60
 	loop.tick()
 	assert.eq(table.concat(calls, ","), "authored,full")
-	assert.eq(store.load(dir).revision, revision + 1)
+	assert.eq(loadDoc(dir).revision, revision + 1)
 end)
 
 test.case("an unforced sync request sweeps once a full pass has run", function(assert)

@@ -1,4 +1,9 @@
-local graph = require("@root/graph")
+local findItem = require("@root/graph/findItem")
+local getAncestors = require("@root/graph/getAncestors")
+local getGroup = require("@root/graph/getGroup")
+local getItem = require("@root/graph/getItem")
+local getSize = require("@root/graph/getSize")
+local isGroup = require("@root/graph/isGroup")
 local layoutTypes = require("@root/layout/types")
 local types = require("@root/types")
 
@@ -11,13 +16,13 @@ type Issue = layoutTypes.Issue
 local function canvasBox(doc: Doc, item: Item): Box
 	local x, y = item.position.x, item.position.y
 
-	for _, ancestorId in graph.ancestors(doc, item.id) do
-		local ancestor = graph.get(doc, ancestorId)
+	for _, ancestorId in getAncestors(doc, item.id) do
+		local ancestor = getItem(doc, ancestorId)
 		x += ancestor.position.x
 		y += ancestor.position.y
 	end
 
-	local width, height = graph.sizeOf(item)
+	local width, height = getSize(item)
 	return { x = x, y = y, width = width, height = height }
 end
 
@@ -39,11 +44,11 @@ end
 -- that involve the group or something inside it are reported.
 local function checkLayout(doc: Doc, groupId: string?): { Issue }
 	if groupId then
-		graph.group(doc, groupId)
+		getGroup(doc, groupId)
 	end
 
 	local function inScope(id: string): boolean
-		return groupId == nil or id == groupId or table.find(graph.ancestors(doc, id), groupId) ~= nil
+		return groupId == nil or id == groupId or table.find(getAncestors(doc, id), groupId) ~= nil
 	end
 
 	local boxes: { [string]: Box } = {}
@@ -68,11 +73,11 @@ local function checkLayout(doc: Doc, groupId: string?): { Issue }
 	end
 
 	for _, item in doc.nodes do
-		local parent = if item.parentId then graph.find(doc, item.parentId) else nil
+		local parent = if item.parentId then findItem(doc, item.parentId) else nil
 
 		if parent and (inScope(item.id) or inScope(parent.id)) then
-			local parentWidth, parentHeight = graph.sizeOf(parent)
-			local width, height = graph.sizeOf(item)
+			local parentWidth, parentHeight = getSize(parent)
+			local width, height = getSize(item)
 			local x, y = item.position.x, item.position.y
 			local outside = x < 0 or y < 0 or x + width > parentWidth or y + height > parentHeight
 
@@ -83,13 +88,13 @@ local function checkLayout(doc: Doc, groupId: string?): { Issue }
 	end
 
 	for _, item in doc.nodes do
-		if graph.isGroup(item) and item.data.layout ~= nil and inScope(item.id) then
+		if isGroup(item) and item.data.layout ~= nil and inScope(item.id) then
 			table.insert(issues, { kind = "waiting-for-layout", ids = { item.id }, bounds = boxes[item.id] })
 		end
 	end
 
 	for _, link in doc.links do
-		local missing = graph.find(doc, link.from) == nil or graph.find(doc, link.to) == nil
+		local missing = findItem(doc, link.from) == nil or findItem(doc, link.to) == nil
 
 		if missing and (groupId == nil or inScope(link.from) or inScope(link.to)) then
 			table.insert(issues, { kind = "dangling-link", ids = { link.from, link.to } })

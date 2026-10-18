@@ -1,9 +1,9 @@
 local cli = require("@batteries/cli")
 
-local graph = require("@root/graph")
+local graphTypes = require("@root/graph/types")
 
 -- The fields card and group commands set, read from their options.
-local function getItemFields(parser: cli.Parser): graph.ItemFields
+local function getItemFields(parser: cli.Parser): graphTypes.ItemFields
 	local pr = parser:get("pr")
 	local number = if pr then tonumber((pr:gsub("^#", ""))) else nil
 	assert(pr == nil or number, "pr must be a number")

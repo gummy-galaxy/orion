@@ -1,4 +1,4 @@
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
 local matchesExpression = require("@root/query/matchesExpression")
 local parseExpression = require("@root/query/parseExpression")
 local types = require("@root/types")
@@ -8,7 +8,7 @@ type Item = types.Item
 
 local function selectItems(doc: Doc, expression: string, includeDone: boolean, now: string?): { Item }
 	local parsed = parseExpression(expression)
-	local derived = graph.derive(doc, now)
+	local derived = derive(doc, now)
 	local selected: { Item } = {}
 
 	for _, item in doc.nodes do

@@ -95,4 +95,21 @@ describe('skin space', () => {
 
     expect(toStored(displayed, largeSize)).toEqual(stored)
   })
+
+  it('scales the room inside a group with a size and gives it back unchanged', () => {
+    const sized = normalize([
+      {
+        id: 'g',
+        type: 'cluster',
+        position: { x: 0, y: 0 },
+        data: { kind: 'cluster', label: 'G', arrange: 'custom', size: { width: 900, height: 600 } },
+      },
+      task('a', 'g', 32, 78),
+    ])
+    const shown = toDisplayed(sized, largeSize)
+    const group = shown.find((node) => node.id === 'g')!
+
+    expect(group.width).toBeGreaterThan(900)
+    expect(toStored(shown, largeSize).find((node) => node.id === 'g')!.data).toEqual(sized.find((node) => node.id === 'g')!.data)
+  })
 })

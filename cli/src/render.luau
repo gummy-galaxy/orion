@@ -1,7 +1,13 @@
 local json = require("@std/json")
 
+local findItem = require("@root/graph/findItem")
+local getLabel = require("@root/graph/getLabel")
 local getPrimaryRef = require("@root/refs/getPrimaryRef")
-local graph = require("@root/graph")
+local graphTypes = require("@root/graph/types")
+local isComponent = require("@root/graph/isComponent")
+local isGate = require("@root/graph/isGate")
+local isGroup = require("@root/graph/isGroup")
+local isNote = require("@root/graph/isNote")
 local pad = require("@root/render/pad")
 local types = require("@root/types")
 
@@ -22,11 +28,11 @@ function render.tag(item: Item): string
 		return primary.key
 	elseif repo then
 		return repo
-	elseif graph.isNote(item) then
+	elseif isNote(item) then
 		return "note"
-	elseif graph.isComponent(item) then
+	elseif isComponent(item) then
 		return "component"
-	elseif graph.isGate(item) then
+	elseif isGate(item) then
 		return "gate"
 	end
 
@@ -34,15 +40,15 @@ function render.tag(item: Item): string
 end
 
 local function groupLabel(doc: Doc, item: Item): string?
-	local parent = if item.parentId then graph.find(doc, item.parentId) else nil
-	return if parent then graph.label(parent) else nil
+	local parent = if item.parentId then findItem(doc, item.parentId) else nil
+	return if parent then getLabel(parent) else nil
 end
 
-function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Object
+function render.itemJson(doc: Doc, derived: graphTypes.Derived, item: Item): json.Object
 	if item.type == "image" then
 		return json.object({
 			id = item.id,
-			label = graph.label(item),
+			label = getLabel(item),
 			kind = "image",
 			asset = item.data.asset,
 			workspace = item.data.workspace,
@@ -51,12 +57,12 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 	end
 	local object: json.Object = json.object({
 		id = item.id,
-		label = graph.label(item),
+		label = getLabel(item),
 		kind = asString(item.data.itemKind) or "step",
 		unblocks = derived.leverage[item.id] or 0,
 	})
 
-	if not graph.isComponent(item) then
+	if not isComponent(item) then
 		object.status = derived.status[item.id] or "ready"
 		object.recordedStatus = asString(item.data.status) or "todo"
 	end
@@ -93,13 +99,13 @@ function render.itemJson(doc: Doc, derived: graph.Derived, item: Item): json.Obj
 		object.linkLabels = labels
 	end
 
-	if graph.isGroup(item) then
+	if isGroup(item) then
 		object.arrange = asString(item.data.arrange) or "auto"
 	end
 	return object
 end
 
-function render.table(doc: Doc, derived: graph.Derived, items: { Item }): string
+function render.table(doc: Doc, derived: graphTypes.Derived, items: { Item }): string
 	if #items == 0 then
 		return "Nothing matches."
 	end
@@ -107,13 +113,13 @@ function render.table(doc: Doc, derived: graph.Derived, items: { Item }): string
 	local lines = {}
 
 	for _, item in items do
-		local status = if graph.isComponent(item) then "-" else derived.status[item.id] or "ready"
+		local status = if isComponent(item) then "-" else derived.status[item.id] or "ready"
 		local leverage = derived.leverage[item.id] or 0
 		local extra = if leverage > 0 and status ~= "done" then `  unblocks {leverage}` else ""
 		local where = groupLabel(doc, item)
 		table.insert(
 			lines,
-			`{pad(status, 9)}{pad(item.id, 24)}{pad(graph.label(item), 44)}{pad(render.tag(item), 20)}{where or ""}{extra}`
+			`{pad(status, 9)}{pad(item.id, 24)}{pad(getLabel(item), 44)}{pad(render.tag(item), 20)}{where or ""}{extra}`
 		)
 	end
 
@@ -122,12 +128,12 @@ end
 
 -- Children without a status, such as components and images, show what they are instead.
 local function kindOf(child: Item): string
-	return if graph.isComponent(child) then "component" else child.type
+	return if isComponent(child) then "component" else child.type
 end
 
-function render.show(doc: Doc, derived: graph.Derived, item: Item): string
-	if graph.isGroup(item) then
-		local lines = { `{graph.label(item)}  ({item.id}, group)` }
+function render.show(doc: Doc, derived: graphTypes.Derived, item: Item): string
+	if isGroup(item) then
+		local lines = { `{getLabel(item)}  ({item.id}, group)` }
 		local blurb = asString(item.data.blurb)
 
 		if blurb then
@@ -148,7 +154,7 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 			if child.parentId == item.id then
 				table.insert(
 					lines,
-					`  {pad(derived.status[child.id] or kindOf(child), 10)}{child.id}  {graph.label(child)}`
+					`  {pad(derived.status[child.id] or kindOf(child), 10)}{child.id}  {getLabel(child)}`
 				)
 			end
 		end
@@ -157,7 +163,7 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 	end
 	if item.type == "image" then
 		local lines = {
-			graph.label(item),
+			getLabel(item),
 			`  id       {item.id}`,
 			"  kind     image",
 			`  asset    {asString(item.data.asset) or ""}`,
@@ -169,12 +175,12 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 		return table.concat(lines, "\n")
 	end
 	local lines = {
-		`{graph.label(item)}`,
+		`{getLabel(item)}`,
 		`  id       {item.id}`,
 		`  kind     {render.tag(item)}`,
 	}
 
-	if graph.isComponent(item) then
+	if isComponent(item) then
 		table.insert(lines, `  shape    {asString(item.data.shape) or "service"}`)
 
 		local color = asString(item.data.color)
@@ -214,14 +220,14 @@ function render.show(doc: Doc, derived: graph.Derived, item: Item): string
 		local other = if link.to == item.id then link.from elseif link.from == item.id then link.to else nil
 
 		if other then
-			local isComponent = graph.isComponent(item)
+			local isItemComponent = isComponent(item)
 			local direction = if link.kind ~= "blocks"
 				then "related"
-				elseif link.to == item.id then (if isComponent then "from" else "waits on")
-				else (if isComponent then "to" else "leads to")
-			local target = graph.find(doc, other)
+				elseif link.to == item.id then (if isItemComponent then "from" else "waits on")
+				else (if isItemComponent then "to" else "leads to")
+			local target = findItem(doc, other)
 			local label = if link.label then `  "{link.label}"` else ""
-			table.insert(lines, `  {pad(direction, 9)}{other}  {if target then graph.label(target) else ""}{label}`)
+			table.insert(lines, `  {pad(direction, 9)}{other}  {if target then getLabel(target) else ""}{label}`)
 		end
 	end
 

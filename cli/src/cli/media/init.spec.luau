@@ -3,8 +3,8 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
-local graph = require("@root/graph")
-local store = require("@root/store")
+local findItem = require("@root/graph/findItem")
+local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
 
 test.case("media commands insert validated images and list the selected workspace", function(assert)
@@ -17,8 +17,8 @@ test.case("media commands insert validated images and list the selected workspac
 	)
 	local id = if value then value.id else nil
 	assert.eq(value and value.label, "Concept")
-	local doc = store.load(root)
-	local item = if type(id) == "string" then graph.find(doc, id) else nil
+	local doc = loadDoc(root)
+	local item = if type(id) == "string" then findItem(doc, id) else nil
 	assert.eq(item and item.type, "image")
 	assert.eq(item and item.parentId, "ws")
 	assert.eq(item and item.data.workspace, "default")
@@ -33,7 +33,7 @@ test.case("media commands insert validated images and list the selected workspac
 	assert.throwsWith("image must be PNG, JPEG, GIF, or WebP", function()
 		run({ "media", "insert", tostring(invalid) })
 	end)
-	assert.eq(store.load(root).revision, doc.revision)
+	assert.eq(loadDoc(root).revision, doc.revision)
 	run({ "canvas", "create", "other" })
 	assert.eq(run({ "media", "list", "--canvas", "other" }), "No media.")
 	assert.throws(function()

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useReactFlow, type NodeChange } from '@xyflow/react'
 import { useSetAtom } from 'jotai'
-import { POP_DISTANCE, dropTarget, followEscape, reparent, startEscape, type Escape } from './escape'
+import { POP_DISTANCE, dropTarget, followEscape, landInside, reparent, startEscape, type Escape } from './escape'
 import { liftNodes, unliftNodes } from './lift'
 import { byId, isCluster, normalize, pruneEmptied, type AppNode } from './model'
 import { pushAside } from './pushAside'
@@ -71,11 +71,9 @@ export function useNodeSnapping({
 
         if (!session || !escape) return snapped
 
-        const followed = followEscape(snapped, escape, session.before, pop, cardSize)
+        session.escape = followEscape(snapped, escape, session.before, pop, cardSize)
 
-        session.escape = followed.escape
-
-        return followed.nodes
+        return snapped
       }
     },
     [reactFlow, cardSize],
@@ -150,10 +148,11 @@ export function useNodeSnapping({
         Math.hypot(lastSample.x - firstSample.x, lastSample.y - firstSample.y) / (lastSample.time - firstSample.time) >= THROW_SPEED
       const draggedIds = [...session.ids]
 
-      // The last position change lands a frame after drag stop, so where the work ended up is read then.
+      // The last position change lands a frame after drag stop, so where the work ended up is read then, and whether
+      // it got far enough to pop out is checked once more from there.
       requestAnimationFrame(() => {
         const currentNodes = getCurrentNodes()
-        const escape = session.escape
+        const escape = session.escape && followEscape(currentNodes, session.escape, session.before, POP_DISTANCE / reactFlow.getZoom(), cardSize)
         const target = escape ? dropTarget(currentNodes, escape, cardSize) : undefined
 
         // Work dropped into another group, or popped out of its own, lands where it was let go.
@@ -166,16 +165,18 @@ export function useNodeSnapping({
             ),
           )
 
-        if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes(released)
-
-        const finished = finishDrag(currentNodes, origins, draggedIds, session.free || event.ctrlKey, thrown, cardSize)
+        const free = session.free || event.ctrlKey
+        const settled =
+          !origins.size && (free || !draggedIds.length) ? currentNodes : finishDrag(currentNodes, origins, draggedIds, free, thrown, cardSize)
+        // Work that stays in its group lands within it, so a drop never grows the group.
+        const finished = landInside(settled, session.ids, cardSize)
         const result = released(finished)
 
         if (finished !== currentNodes) tweenTo(result)
         else setNodes(result)
       })
     },
-    [getCurrentNodes, setNodes, tweenTo, cardSize, setDropTarget],
+    [getCurrentNodes, setNodes, tweenTo, cardSize, setDropTarget, reactFlow],
   )
 
   // Zoom is read here, not subscribed to, so guides refresh its reach on the next node change.

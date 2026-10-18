@@ -2,20 +2,18 @@ local json = require("@std/json")
 
 local findRef = require("@root/refs/findRef")
 local getRefs = require("@root/refs/getRefs")
-local graph = require("@root/graph")
+local graphTypes = require("@root/graph/types")
+local isGroup = require("@root/graph/isGroup")
 local parseExpression = require("@root/query/parseExpression")
 local types = require("@root/types")
 
 type Item = types.Item
 type Expression = parseExpression.Expression
 
-local function getField(item: Item, derived: graph.Derived, field: string): string?
+local function getField(item: Item, derived: graphTypes.Derived, field: string): string?
 	local value: json.Value = nil
 	if field == "kind" then
-		value = if graph.isGroup(item)
-			then "group"
-			elseif item.type == "image" then "image"
-			else item.data.itemKind or "step"
+		value = if isGroup(item) then "group" elseif item.type == "image" then "image" else item.data.itemKind or "step"
 	elseif field == "status" then
 		value = derived.status[item.id]
 	elseif field == "recordedStatus" then
@@ -24,7 +22,7 @@ local function getField(item: Item, derived: graph.Derived, field: string): stri
 		value = item.parentId
 	elseif field == "snoozed" then
 		-- Groups can't be snoozed, so they have no value for this field.
-		value = if graph.isGroup(item) then nil else tostring(derived.snoozed[item.id] ~= nil)
+		value = if isGroup(item) then nil else tostring(derived.snoozed[item.id] ~= nil)
 	elseif field == "draft" then
 		local pull = findRef(item, "pull")
 		value = if pull and pull.details then pull.details.draft else nil
@@ -40,7 +38,7 @@ local function getField(item: Item, derived: graph.Derived, field: string): stri
 	return nil
 end
 
-local function matchesExpression(derived: graph.Derived, item: Item, expression: Expression): boolean
+local function matchesExpression(derived: graphTypes.Derived, item: Item, expression: Expression): boolean
 	local function evaluate(node: Expression): boolean?
 		if node.kind == "comparison" then
 			local field = node.field :: string

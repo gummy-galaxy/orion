@@ -1,13 +1,18 @@
+local addItem = require("@root/graph/addItem")
 local findBranchCards = require("@root/github/findBranchCards")
+local findItem = require("@root/graph/findItem")
 local getDesired = require("@root/github/getDesired")
 local getKey = require("@root/github/getKey")
+local getLabel = require("@root/graph/getLabel")
+local getNextSlot = require("@root/graph/getNextSlot")
 local getRefFor = require("@root/github/getRefFor")
 local getString = require("@root/github/getString")
 local githubTypes = require("@root/github/types")
-local graph = require("@root/graph")
 local isInSources = require("@root/github/isInSources")
 local json = require("@std/json")
+local linkItems = require("@root/graph/linkItems")
 local match = require("@root/match")
+local refreshItemKind = require("@root/graph/refreshItemKind")
 local setDesired = require("@root/github/setDesired")
 local setPullRef = require("@root/github/setPullRef")
 local types = require("@root/types")
@@ -29,7 +34,7 @@ local function applyDesired(item: Item, pull: PullState, viewer: string, report:
 	if nextStatus ~= status or nextWho ~= who then
 		table.insert(report.changes, {
 			id = item.id,
-			label = graph.label(item),
+			label = getLabel(item),
 			fromStatus = status,
 			toStatus = nextStatus,
 			fromWho = who,
@@ -49,16 +54,16 @@ local function attachByBranch(item: Item, pull: PullState, fetched: Fetched, che
 		item.data.repo = repo
 	end
 
-	graph.refreshItemKind(item)
+	refreshItemKind(item)
 	table.insert(report.attached, { id = item.id, pull = `{repo}#{pull.number}` })
 end
 
 local function ensureGroup(doc: Doc, id: string, label: string, blurb: string)
-	if not graph.find(doc, id) then
+	if not findItem(doc, id) then
 		table.insert(doc.nodes, {
 			id = id,
 			type = "cluster",
-			position = graph.nextSlot(doc, nil),
+			position = getNextSlot(doc, nil),
 			data = json.object({ kind = "cluster", label = label, blurb = blurb }),
 		})
 	end
@@ -127,7 +132,7 @@ local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 			end
 
 			if not isLinked then
-				graph.link(doc, parent.id, child.id, "blocks").origin = "stack"
+				linkItems(doc, parent.id, child.id, "blocks").origin = "stack"
 				table.insert(report.linked, { from = parent.id, to = child.id })
 			end
 		end
@@ -198,7 +203,7 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		if full and fetched.discover then
 			ensureGroup(doc, INBOX_ID, "Inbox", "Open pull requests found on GitHub that aren't placed yet.")
 			local status, who = getDesired(full, "todo", nil, fetched.viewer)
-			local item = graph.addItem(doc, full.title, {
+			local item = addItem(doc, full.title, {
 				group = INBOX_ID,
 				repo = repo,
 				pr = full.number,

@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 
 local applyCanvasStyle = require("@root/style/applyCanvasStyle")
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 
@@ -31,7 +31,7 @@ return table.freeze({
 		local background = parser:get("background")
 		local header = parser:get("header")
 		assert(cover ~= nil or background ~= nil or header ~= nil, "give --cover, --background, or --header")
-		store.transaction(options.dir, function(doc)
+		runTransaction(options.dir, function(doc)
 			applyCanvasStyle(doc, options.dir, { cover = cover, background = background, header = header })
 		end)
 		options.write(`Updated canvas {options.workspace}`)

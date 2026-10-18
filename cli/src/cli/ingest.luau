@@ -6,9 +6,10 @@ local context = require("@root/cli/context")
 local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getReportJson = require("@root/ingest/getReportJson")
 local ingestTypes = require("@root/ingest/types")
+local loadDoc = require("@root/store/loadDoc")
 local placeRecords = require("@root/ingest/placeRecords")
 local refreshAdapters = require("@root/ingest/refreshAdapters")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 
 type Context = context.Context
@@ -49,7 +50,7 @@ return table.freeze({
 		local isDryRun = parser:has("dry-run")
 		local now = options.now()
 		local selected = parser:get("source")
-		local snapshot = store.load(options.dir)
+		local snapshot = loadDoc(options.dir)
 		local fetched = collectSources(snapshot, options.runner, now, selected)
 		local applyRefreshes = refreshAdapters(snapshot, options.runner, now, selected)
 		local report: ingestTypes.Report
@@ -62,9 +63,9 @@ return table.freeze({
 		end
 
 		if isDryRun then
-			apply(store.load(options.dir))
+			apply(loadDoc(options.dir))
 		else
-			store.transaction(options.dir, apply)
+			runTransaction(options.dir, apply)
 		end
 
 		options.write(

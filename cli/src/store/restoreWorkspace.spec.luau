@@ -1,0 +1,21 @@
+local test = require("@std/test")
+
+local archiveWorkspace = require("@root/store/archiveWorkspace")
+local createWorkspace = require("@root/store/createWorkspace")
+local getWorkspaces = require("@root/store/getWorkspaces")
+local restoreWorkspace = require("@root/store/restoreWorkspace")
+local testing = require("@root/testing")
+
+test.case("restoreWorkspace puts an archived workspace back on the list", function(assert)
+	local root = testing.directory("restore")
+	createWorkspace(root, "work", nil)
+	archiveWorkspace(root, "work", "default")
+	restoreWorkspace(root, "work")
+
+	local list = getWorkspaces(root)
+	assert.eq(list.workspaces[2].name, "work")
+	assert.eq(#list.archived, 0)
+	assert.throwsWith("unknown archived canvas: work", function()
+		restoreWorkspace(root, "work")
+	end)
+end)
