@@ -1,9 +1,9 @@
-local fs = require("@std/fs")
 local json = require("@std/json")
 local net = require("@lute/net/server")
 local process = require("@std/process")
 local task = require("@std/task")
 
+local ensureDirectory = require("@root/platform/ensureDirectory")
 local events = require("@root/server/events")
 local graph = require("@root/graph")
 local readRuntime = require("@root/server/readRuntime")
@@ -23,15 +23,12 @@ local server = {}
 function server.start(root: string, workspace: string, host: string, port: number, staticDir: string?)
 	local startedAt = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 	local runtime: Runtime?
-	if not fs.exists(root) then
-		fs.createDirectory(root, { makeParents = true })
-	end
+	ensureDirectory(root)
 
 	local dir = store.getWorkspaceDir(root, workspace)
 
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
+	ensureDirectory(dir)
+
 	local function clearFocus()
 		for _, entry in store.getWorkspaces(root).workspaces do
 			store.clearFocus(store.getWorkspaceDir(root, entry.name))

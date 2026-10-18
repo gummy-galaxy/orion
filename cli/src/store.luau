@@ -5,6 +5,7 @@ local process = require("@std/process")
 local task = require("@std/task")
 
 local deriveWorkspaceName = require("@root/deriveWorkspaceName")
+local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
 local graph = require("@root/graph")
@@ -100,9 +101,7 @@ end
 local workspaceWriteSequence = 0
 
 local function writeWorkspaces(root: string, list: WorkspaceList)
-	if not fs.exists(root) then
-		fs.createDirectory(root, { makeParents = true })
-	end
+	ensureDirectory(root)
 
 	local entries: json.Array = {}
 
@@ -569,9 +568,7 @@ function store.putFocus(dir: string, tab: string, open: string?, selected: json.
 		end
 		return
 	end
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
+	ensureDirectory(dir)
 	focusWriteSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{focusWriteSequence}`
 	local value = json.object({
@@ -676,9 +673,7 @@ local function atomicWrite(file: string, contents: string)
 			local now = os.time()
 			local dir = path.dirname(file)
 			local folder = path.join(dir, fileNames.backups)
-			if not fs.exists(folder) then
-				fs.createDirectory(folder)
-			end
+			ensureDirectory(folder)
 
 			local previous = store.decode(fs.readFileToString(file))
 			local backup = path.join(folder, store.getBackupName(previous.revision, now))
@@ -701,9 +696,7 @@ end
 
 -- Reads the latest data under the lock, applies `mutate`, and writes the next revision.
 function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
+	ensureDirectory(dir)
 
 	local lockPath = acquire(dir)
 	local succeeded, result = pcall(function(): Doc
@@ -727,9 +720,7 @@ end
 
 -- Writes a whole document, used to seed data and in tests.
 function store.write(dir: string, doc: Doc)
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
+	ensureDirectory(dir)
 
 	local lockPath = acquire(dir)
 	local succeeded, failureMessage = pcall(atomicWrite, store.filePath(dir), store.encode(doc))

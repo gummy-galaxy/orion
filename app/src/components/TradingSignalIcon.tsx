@@ -18,7 +18,8 @@ const PATHS: Record<StatusBadge | Motion, ReactNode> = {
       <path d="M4 5v4a3.5 3.5 0 0 0 3.5 3.5H10" />
     </>
   ),
-  running: <path d="M8 2a6 6 0 1 1-6 6" />,
+  // Three quarters of a circle from the top, drawn as a dash so it can turn by its dash offset rather than a transform.
+  running: <circle cx="8" cy="8" r="6" pathLength="100" strokeDasharray="75 25" transform="rotate(-90 8 8)" />,
   queued: (
     <>
       <circle cx="8" cy="8" r="6" />
