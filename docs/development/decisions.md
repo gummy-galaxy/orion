@@ -1,6 +1,6 @@
 # Orion decisions
 
-[`CHARTER.md`](CHARTER.md) sets Orion's direction. This file records the specific calls made along the way and why, so the intent survives after the conversation that settled it is gone.
+[The charter](./charter.md) sets Orion's direction. This file records the specific calls made along the way and why, so the intent survives after the conversation that settled it is gone.
 
 Each entry gives the decision, the reason behind it, when it was made, and links to the issues or pull requests that carry it out.
 
@@ -290,6 +290,14 @@ Undo history persists across canvas switches, either as a full session history o
 
 2026-10-10 · [#1](https://github.com/vocksel/orion/issues/1), [#166](https://github.com/vocksel/orion/issues/166)
 
+### Shared logic lives in Luau, and the app gets it from `orion serve`
+
+Logic both the CLI and the app need is written once, in Luau. The app gets its results from `orion serve`, as fields on the document it receives or from an endpoint, the way #93 moves edits and #94 moves status. The app keeps only what it needs on every frame: a few geometry constants, generated from Luau, and small tree walks in TypeScript. A transpiler from Luau to TypeScript, or Luau running in WebAssembly, waits until that set grows.
+
+**Why:** one source for each rule keeps the two sides from drifting, and the server is fast enough for it. Measured against a local `orion serve` on a 61-card canvas at 60 Hz, a small request took about 1 ms at the median and a small committed edit about 1.4 ms, 4 ms at p99. Behind heavy requests, small ones reached about 14 ms at p99, which is why input feedback stays in the app. A transpiler would mean owning a compiler to share about a dozen small helpers.
+
+2026-10-17 · [#427](https://github.com/vocksel/orion/issues/427), [#93](https://github.com/vocksel/orion/issues/93), [#94](https://github.com/vocksel/orion/issues/94)
+
 ### Rich cards use link previews, not live embeds
 
 Cards for links show a static snapshot of the link's preview rather than embedding the live page.
@@ -350,7 +358,7 @@ Orion installs to `/Applications/Orion.app` so every user on the machine gets it
 
 ### The docs site has Guide, Reference, and Development sections
 
-Guide pages teach someone who has never used Orion. Reference pages are generated from the CLI's command table and the MCP tool catalog. Development holds pages about how Orion is made, split into Design and Engineering: audits, proposals, and studies. The top nav shows Guide, Reference, and Development, and each one is a link to a page rather than a menu, so content is always one click from the nav. Reference's homepage is generated with its other pages.
+Guide pages teach someone who has never used Orion. Reference pages are generated from the CLI's command table and the MCP tool catalog. Development holds pages about how Orion is made: this log, the charter, and Design and Engineering pages for audits, proposals, and studies. The top nav shows Guide, Reference, and Development, and each one is a link to a page rather than a menu, so content is always one click from the nav. Reference's homepage is generated with its other pages.
 
 **Why:** hand-written write-ups need a home that the reference generator doesn't own, since it removes any page in `docs/reference/` it didn't write. A Development section keeps them apart from the pages that describe what Orion does today, and one umbrella leaves room for Design and Engineering to grow without crowding the nav.
 

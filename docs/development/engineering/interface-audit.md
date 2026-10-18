@@ -3,7 +3,7 @@
 This audit lists what stays, what changes, and what goes on each of Orion's public surfaces before the first release. It's a snapshot of `main` on 2026-10-17 and the pull requests open that day, written for [#146](https://github.com/vocksel/orion/issues/146).
 
 ::: warning Recommendations
-Nothing here is settled. Each answer and change is a recommendation until it's confirmed, and confirmed calls move into [`DECISIONS.md`](https://github.com/vocksel/orion/blob/main/DECISIONS.md). [Public surfaces](/guide/surfaces) says what each surface promises today.
+Nothing here is settled. Each answer and change is a recommendation until it's confirmed, and confirmed calls move into the [decisions](/development/decisions). [Public surfaces](/guide/surfaces) says what each surface promises today.
 :::
 
 Each list uses three marks:
@@ -51,7 +51,7 @@ Data files are never a public interface for writing: tools go through the CLI. T
 
 ### How do breaking changes ship?
 
-**Recommendation: keep the three stages in `DECISIONS.md`, and apply them to what's left over.** Before 0.1.0, a breaking change lands in one pull request that updates the CLI, the MCP tools, the generated reference, `AGENTS.md`, and the app together, with no alias. From 0.1.0, each break is deliberate and the release notes list it. From 1.0, aliases come first.
+**Recommendation: keep the three stages in the [decisions](/development/decisions), and apply them to what's left over.** Before 0.1.0, a breaking change lands in one pull request that updates the CLI, the MCP tools, the generated reference, `AGENTS.md`, and the app together, with no alias. From 0.1.0, each break is deliberate and the release notes list it. From 1.0, aliases come first.
 
 Three deprecated forms predate the decision and still promise a release of overlap, which the decision replaced: `orion sync`, `--pr`, and `--repo` used with `--pr`. Remove them now, and rewrite the "Ingest is the one command that pulls from outside" entry, which still keeps `orion sync` for a release.
 
