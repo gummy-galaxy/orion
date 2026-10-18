@@ -13,7 +13,7 @@ local types = require("@root/types")
 
 type Runner = types.CommandRunner
 type PollState = githubTypes.PollState
-type Pass = "full" | "sweep" | "poll"
+type Want = githubTypes.Want
 
 -- An unforced request waits this long after the last sweep.
 local THROTTLE_SECONDS = 60
@@ -21,6 +21,9 @@ local THROTTLE_SECONDS = 60
 local SWEEP_SECONDS = 2 * 60
 -- Fetches everything, which catches mergeability: it changes when the base branch moves, and nothing else reports it.
 local FULL_SECONDS = 15 * 60
+-- Rereads the checks of cards whose checks are pending, since a finished check run moves neither `updatedAt` nor
+-- notifications.
+local CHECKS_SECONDS = 30
 local logger = archivist.getLogger("orion.sync")
 local sync = {}
 
@@ -29,8 +32,9 @@ sync.TICK_SECONDS = 15
 
 --[[
 	Keeps the active canvas's pull request cards current. A full pass fetches every open card, at startup, on a canvas
-	switch, when forced, and every 15 minutes. Between them, `tick` polls notifications as often as GitHub allows and
-	sweeps `updatedAt` every two minutes, fetching only the cards that changed and writing nothing when none did.
+	switch, when forced, and every 15 minutes. Between them, `tick` polls notifications as often as GitHub allows,
+	sweeps `updatedAt` every two minutes, and rereads pending checks every 30 seconds, fetching only the cards that
+	changed and writing nothing when none did.
 	Background passes don't report `running`, so they stay quiet in the app.
 ]]
 function sync.create(
@@ -46,6 +50,7 @@ function sync.create(
 	local lastFull = 0
 	local lastSweep = 0
 	local nextPoll = 0
+	local nextChecks = 0
 	local poll: PollState = { lastModified = {}, interval = 60 }
 	local status = json.object({ state = "idle" })
 	local now = clock or os.time
@@ -57,7 +62,13 @@ function sync.create(
 		publish(status)
 	end
 
-	local function runPass(pass: Pass, isQuiet: boolean): json.Object
+	-- Runs a full pass without `want`, or a pass limited to what changed with it.
+	local function runPass(want: Want?, isQuiet: boolean): json.Object
+		local pass = if want == nil
+			then "full"
+			elseif want.sweep then "sweep"
+			elseif want.notifications then "poll"
+			else "checks"
 		local started = generation
 		local target = workspace
 		local startedAt = time.now()
@@ -82,10 +93,10 @@ function sync.create(
 			local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 			local apply: ((types.Doc) -> githubTypes.Report)?
 
-			if pass == "full" then
+			if want == nil then
 				apply = assert(adapter.refresh)(snapshot, command, { discover = false, now = timestamp })
 			else
-				local changed = assert(adapter.refreshChanged)(snapshot, command, poll, pass == "sweep", timestamp)
+				local changed = assert(adapter.refreshChanged)(snapshot, command, poll, want, timestamp)
 				failures, fetched, apply = changed.failures, changed.fetched, changed.apply
 			end
 
@@ -95,7 +106,7 @@ function sync.create(
 				runTransaction(dir, function(doc)
 					local report = applyStep(doc)
 					failures = report.failures
-					fetched = if pass == "full" then report.checked else fetched
+					fetched = if want == nil then report.checked else fetched
 				end)
 				didWrite = true
 			end
@@ -123,15 +134,21 @@ function sync.create(
 
 			local finished = now()
 
-			if pass == "full" then
+			if want == nil then
 				lastFull = finished
 			end
 
-			if pass ~= "poll" then
+			if want == nil or want.sweep then
 				lastSweep = finished
 			end
 
-			nextPoll = finished + poll.interval
+			if want == nil or want.notifications then
+				nextPoll = finished + poll.interval
+			end
+
+			if want == nil or want.checks then
+				nextChecks = finished + CHECKS_SECONDS
+			end
 		end
 
 		isRunning = false
@@ -156,7 +173,7 @@ function sync.create(
 
 		workspace = name
 		generation += 1
-		lastFull, lastSweep, nextPoll = 0, 0, 0
+		lastFull, lastSweep, nextPoll, nextChecks = 0, 0, 0, 0
 		status = json.object({ state = "idle" })
 	end
 
@@ -167,14 +184,14 @@ function sync.create(
 		end
 
 		if isForced or lastFull == 0 then
-			return runPass("full", false)
+			return runPass(nil, false)
 		end
 
 		if now() - lastSweep < THROTTLE_SECONDS then
 			return status
 		end
 
-		return runPass("sweep", false)
+		return runPass({ notifications = true, sweep = true, checks = true }, false)
 	end
 
 	-- Runs whichever background pass is due, if any.
@@ -186,13 +203,21 @@ function sync.create(
 		local current = now()
 
 		if lastFull == 0 then
-			runPass("full", false)
+			runPass(nil, false)
+			return
 		elseif current - lastFull >= FULL_SECONDS then
-			runPass("full", true)
-		elseif current - lastSweep >= SWEEP_SECONDS then
-			runPass("sweep", true)
-		elseif current >= nextPoll then
-			runPass("poll", true)
+			runPass(nil, true)
+			return
+		end
+
+		local want: Want = {
+			notifications = current >= nextPoll,
+			sweep = current - lastSweep >= SWEEP_SECONDS,
+			checks = current >= nextChecks,
+		}
+
+		if want.notifications or want.sweep or want.checks then
+			runPass(want, true)
 		end
 	end
 

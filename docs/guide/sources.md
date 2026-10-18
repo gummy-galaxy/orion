@@ -27,7 +27,7 @@ orion ingest
 
 Ingest files new cards in an **Unsorted** group, updates matching cards in place, and links Jira or GitHub issues mentioned by pull requests. Cards a source stops returning are left alone. Move new cards into the groups they belong to.
 
-Ingest also refreshes every card with a pull request: merged ones are marked done, closed ones deferred, and each card records whose move it is from drafts and reviews. `orion server start` runs this refresh shortly after it starts and every 15 minutes. In between, it checks your GitHub notifications every minute and which open pull requests changed every two minutes, and refetches only those. The app asks for a check when you return to its window. Click the sync status in the toolbar to refresh everything now.
+Ingest also refreshes every card with a pull request: merged ones are marked done, closed ones deferred, and each card records whose move it is from drafts and reviews. `orion server start` runs this refresh shortly after it starts and every 15 minutes. In between, it checks your GitHub notifications every minute, which open pull requests changed every two minutes, and pending checks every 30 seconds, and refetches only what changed. The app asks for a check when you return to its window. Click the sync status in the toolbar to refresh everything now.
 
 Use `--source <id>` to run one source, and `--json` for a machine-readable report.
 

@@ -5,18 +5,13 @@ local types = require("@root/types")
 
 type ChangedRefresh = githubTypes.ChangedRefresh
 type PollState = githubTypes.PollState
+type Want = githubTypes.Want
 type Doc = types.Doc
 type CommandRunner = types.CommandRunner
 
 -- Like `refresh`, but fetches only the cards that changed and returns no apply step when nothing did.
-local function refreshChanged(
-	doc: Doc,
-	run: CommandRunner,
-	poll: PollState,
-	sweep: boolean,
-	now: string
-): ChangedRefresh
-	local changes = collectChanged(doc, run, poll, sweep)
+local function refreshChanged(doc: Doc, run: CommandRunner, poll: PollState, want: Want, now: string): ChangedRefresh
+	local changes = collectChanged(doc, run, poll, want)
 	local fetched = changes.fetched
 
 	return {

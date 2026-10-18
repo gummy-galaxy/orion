@@ -45,7 +45,7 @@ export type Adapter = {
 		Doc,
 		CommandRunner,
 		githubTypes.PollState,
-		sweep: boolean,
+		githubTypes.Want,
 		now: string
 	) -> githubTypes.ChangedRefresh)?,
 	collectOrder: number?,

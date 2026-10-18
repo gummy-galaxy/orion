@@ -71,6 +71,8 @@ export type Scope = { keys: { [string]: boolean }, listAuthored: boolean }
 -- What `orion server start` keeps between polls: each host's newest notification time, sent back as
 -- `If-Modified-Since`, and the longest interval GitHub asked for. It lives in memory, since startup refreshes everything.
 export type PollState = { lastModified: { [string]: string }, interval: number }
+-- Which checks a changes-only refresh runs: notifications, the `updatedAt` sweep, and cards with pending checks.
+export type Want = { notifications: boolean, sweep: boolean, checks: boolean }
 -- A refresh limited to what changed. `apply` is nil when nothing did, so the caller can skip writing.
 export type ChangedRefresh = { apply: ((Doc) -> Report)?, failures: { string }, fetched: number }
 export type IssueState = { owner: string, name: string, number: number, title: string, url: string, host: string? }
