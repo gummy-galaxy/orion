@@ -112,3 +112,9 @@ _Card text from other projects is blurred in the vibrant study images._
 - [Keep faded trading cards opaque](https://github.com/vocksel/orion/pull/393): links no longer show through a faded card.
 - [Draw every compact trading card as the poster card](https://github.com/vocksel/orion/pull/391): merged October 17.
 - [Cut the companion's and done shimmer's per-frame paint work](https://github.com/vocksel/orion/pull/394): in review.
+
+### October 18, 2026
+
+- [Add Gummy Galaxy concept art to the design docs](https://github.com/vocksel/orion/pull/460): seven draft worlds, their emblems, and the studies behind them.
+
+<img src="./images/gummy-galaxy/galaxy-map.webp" alt="The world map: seven worlds on a dotted route around the spiral sun." width="360">
