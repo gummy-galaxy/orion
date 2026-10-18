@@ -56,7 +56,7 @@ Card selection deserves [its own issue](https://github.com/vocksel/orion/issues/
 
 Having to hold a button at all to move around the canvas, like the middle click, really sucks. I don't like pressing it. I'd love a different default. Maybe holding right click lets you drag around, if we can get away with that without the context menu becoming a problem. Maybe you hold a button and the canvas follows the mouse. I need something better for selection, for movement, for getting around the canvas, and for being able to arbitrarily grab parts of the board and make sense of them. Almost like I could use my hands to pluck things out of the air, form little groups out of them, and orchestrate them in three-dimensional space, even though we're working on a two-dimensional board.
 
-I'd love to know more about gestures, and about making them feel good and intuitive both for someone with my kind of brain and for a more traditional brain. Maybe we need an autism mode.
+I'd love to know more about gestures, and about making them feel good and intuitive for different people.
 
 I want to prototype it, so I can quite literally get hands-on with it and see which one feels right. Very simple cards would do, matching the trading card skin's dimensions on a little fake board, so we can try different tools for selecting things and use modifier keys to change how they behave. It needs a lot of on-the-fly handling to feel good, especially since people will be using just a keyboard and a mouse. Ideally it's mostly the mouse, pressing a modifier key here and there to change some behavior while you work, but we can do something more complex if we have to.
 
@@ -71,7 +71,7 @@ Talking it through settled a few starting points. They're suggestions to build o
 
   > Gummy Galaxy is taking shape as a playful home for Luau projects. Our own projects are still in development, and we hope to share them here as they're ready. In time, we'd also like to support more Luau creators, by giving emerging projects a home or celebrating work wherever it lives.
 
-- **A name for the mode.** "Hands-on canvas" describes the experience without assuming everyone wants the same controls.
+- **Different people, different controls.** A "hands-on canvas" mode could offer other gestures without assuming everyone wants the same controls.
 - **Predictable gestures.** Keep each gesture visible and consistent. For example, a short right click opens the menu, a right drag always pans, and a gathering gesture previews exactly which cards it will pick up.
 - **An experiment before a decision.** The prototype is a fake board where you can switch between box selection, sweeping, and plucking a card with its linked cards, then try panning and modifier keys on the same layout. It records what each gesture lets you test, without picking a winner before you've tried them.
 - **A central board, maybe.** An organization-level GitHub Project can gather issues from several repositories and hold draft ideas, so a central Gummy Galaxy board wouldn't need an issue-only repository. Nothing has been set up.
