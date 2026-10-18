@@ -47,7 +47,7 @@ Three details follow from that design:
 
 ## The agent surface
 
-The CLI binary also serves an MCP server. `orion mcp start` speaks MCP over stdio, with no Node runtime, so a client can launch the binary directly, including the copy bundled in the desktop app ([#134](https://github.com/vocksel/orion/pull/134)). Each tool checks its arguments and then runs the matching CLI command in the same process. The CLI stays the one implementation of Orion's behavior.
+The CLI binary also serves an MCP server. `orion mcp start` speaks MCP over stdio, with no Node runtime, so a client can launch the binary directly, including the copy bundled in the desktop app ([#134](https://github.com/vocksel/orion/pull/134)). The tools are built from the command table, one per command, so each one checks its arguments against its command's options and then runs that command in the same process. The CLI stays the one implementation of Orion's behavior.
 
 The MCP server is kept generic. Orion documents how to register `orion mcp start` with any client rather than shipping setup for each AI provider, as the [decisions](/development/decisions) explain. [CLI and agents](/development/engineering/cli-and-agents) covers the tools and the reference.
 
