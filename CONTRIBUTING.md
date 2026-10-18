@@ -41,7 +41,7 @@ npm install
 npm run dev
 ```
 
-Vite starts `orion server start` and proxies `/api` to it. Set `ORION_BIN` to use another CLI binary. Without one, the app falls back to browser storage.
+Vite starts `orion server start` and proxies `/api` to it. Set `ORION_BIN` to use another CLI binary. Without one, Vite still runs, but the canvas shows empty and nothing is saved, since `orion server start` is the only store.
 
 PR cards show a **VS Code** button when `code` and [`hop`](https://github.com/vocksel/hop) are on the server's `PATH`.
 

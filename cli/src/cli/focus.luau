@@ -16,7 +16,7 @@ return table.freeze({
 	run = function(_parser: cli.Parser, options: Context)
 		local doc = store.load(options.dir)
 		local report = store.readFocus(options.dir)
-		local derived = graph.derive(doc)
+		local derived = graph.derive(doc, options.now())
 		if options.asJson then
 			options.write(json.serialize(renderFocus.serialize(doc, derived, report), true))
 		else
