@@ -26,10 +26,24 @@ function widthForHeight(plan: ReflowPlan, width: number, height: number): number
  * Lays an automatic group out for the box a resize asks for. A drag that moves its left or right edge lays the
  * contents out to fit the box's width; one that only moves its top or bottom picks the width whose layout comes
  * closest to the box's height. The group hugs the result, holding the edges the drag isn't moving, and remembers its
- * size so later layouts keep the shape. `start` is the group's box when the resize began.
+ * size so later layouts keep the shape. `start` is the group's box when the resize began, and `nodes` the canvas then.
+ *
+ * Until the box asks for a different layout than the group's starting width does, `nodes` comes back as it is. A
+ * press on an edge moves nothing, and a group the CLI placed keeps its spacing until its cards actually rearrange.
  */
-export function resizeAutoGroup(plan: ReflowPlan, groupId: string, start: Box, box: Box, edges: ResizeEdges, cardSize: CardSize): AppNode[] {
+export function resizeAutoGroup(
+  nodes: AppNode[],
+  plan: ReflowPlan,
+  groupId: string,
+  start: Box,
+  box: Box,
+  edges: ResizeEdges,
+  cardSize: CardSize,
+): AppNode[] {
   const maxWidth = edges.left || edges.right ? box.width - GROUP_PADDING * 2 : widthForHeight(plan, start.width, box.height)
+
+  if (plan.sameLayout(maxWidth, start.width - GROUP_PADDING * 2)) return nodes
+
   const size = plan.measure(maxWidth)
   const position = {
     x: edges.left ? start.x + start.width - size.width : start.x,

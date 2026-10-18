@@ -370,8 +370,13 @@ export function layoutOrder(nodes: AppNode[]): AppNode[] {
 /**
  * A group's layout, worked out once and placed for any width. `measure` gives the size the group would take with its
  * contents laid out within `maxWidth`, and `place` lays them out that way. At the top level the size is the contents'.
+ * `sameLayout` tells whether two widths put every child in the same place.
  */
-export type ReflowPlan = { measure: (maxWidth?: number) => Size; place: (maxWidth?: number) => AppNode[] }
+export type ReflowPlan = {
+  measure: (maxWidth?: number) => Size
+  place: (maxWidth?: number) => AppNode[]
+  sameLayout: (first: number | undefined, second: number | undefined) => boolean
+}
 
 /**
  * Plans the layout of the direct children of one group (or the top level when `groupId` is undefined) the way the
@@ -447,6 +452,12 @@ export async function planReflow(
       const { width, height } = arrangement(maxWidth)
 
       return groupId ? { width: width + GROUP_PADDING * 2, height: height + offset.y + GROUP_PADDING } : { width, height }
+    },
+    sameLayout: (first, second) => {
+      const a = arrangement(first).positions
+      const b = arrangement(second).positions
+
+      return [...a].every(([id, point]) => b.get(id)?.x === point.x && b.get(id)?.y === point.y)
     },
     place: (maxWidth) => {
       const { positions } = arrangement(maxWidth)

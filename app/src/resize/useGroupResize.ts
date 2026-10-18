@@ -59,7 +59,7 @@ export function useGroupResize({
       const sized = current.custom
         ? resizeCustomGroup(current.before, current.id, box, cardSize)
         : current.plan
-          ? resizeAutoGroup(current.plan, current.id, current.start, box, current.edges, cardSize)
+          ? resizeAutoGroup(current.before, current.plan, current.id, current.start, box, current.edges, cardSize)
           : current.before
       const pushed = pushAside(current.before, sized, cardSize)
 
