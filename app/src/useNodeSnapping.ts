@@ -148,10 +148,11 @@ export function useNodeSnapping({
         Math.hypot(lastSample.x - firstSample.x, lastSample.y - firstSample.y) / (lastSample.time - firstSample.time) >= THROW_SPEED
       const draggedIds = [...session.ids]
 
-      // The last position change lands a frame after drag stop, so where the work ended up is read then.
+      // The last position change lands a frame after drag stop, so where the work ended up is read then, and whether
+      // it got far enough to pop out is checked once more from there.
       requestAnimationFrame(() => {
         const currentNodes = getCurrentNodes()
-        const escape = session.escape
+        const escape = session.escape && followEscape(currentNodes, session.escape, session.before, POP_DISTANCE / reactFlow.getZoom(), cardSize)
         const target = escape ? dropTarget(currentNodes, escape, cardSize) : undefined
 
         // Work dropped into another group, or popped out of its own, lands where it was let go.
@@ -175,7 +176,7 @@ export function useNodeSnapping({
         else setNodes(result)
       })
     },
-    [getCurrentNodes, setNodes, tweenTo, cardSize, setDropTarget],
+    [getCurrentNodes, setNodes, tweenTo, cardSize, setDropTarget, reactFlow],
   )
 
   // Zoom is read here, not subscribed to, so guides refresh its reach on the next node change.

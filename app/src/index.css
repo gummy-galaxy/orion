@@ -1015,6 +1015,8 @@ select {
   position: absolute;
   z-index: 2;
   touch-action: none;
+  /* A group's body lets the pointer through to what's behind it, but its edges catch it. */
+  pointer-events: auto;
 }
 .group-resize-n,
 .group-resize-s {
