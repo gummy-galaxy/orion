@@ -1,4 +1,5 @@
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
+local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -15,12 +16,12 @@ local function runEdit(dir: string, dryRun: boolean, ifRevision: number?, mutate
 	end
 
 	if dryRun then
-		local doc = store.load(dir)
+		local doc = loadDoc(dir)
 		apply(doc)
 		return doc, baseRevision
 	end
 
-	local doc = store.transaction(dir, apply)
+	local doc = runTransaction(dir, apply)
 	return doc, baseRevision
 end
 

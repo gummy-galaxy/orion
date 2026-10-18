@@ -3,7 +3,9 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
-local store = require("@root/store")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local putFocus = require("@root/store/putFocus")
+local runTransaction = require("@root/store/runTransaction")
 local testing = require("@root/testing")
 
 test.case("focus says when the app isn't reporting", function(assert)
@@ -15,7 +17,7 @@ end)
 
 test.case("focus shows the open group and the selection the app reported", function(assert)
 	local dir, run = testing.createHarness("focus")
-	store.transaction(dir, function(doc)
+	runTransaction(dir, function(doc)
 		table.insert(doc.nodes, testing.group("top", "Roadmap"))
 		doc.nodes[1].parentId = "top"
 	end)
@@ -55,9 +57,9 @@ end)
 test.case("focus reads the requested workspace", function(assert)
 	local root, run = testing.createHarness("focus-workspace")
 	run({ "canvas", "create", "planning" })
-	local planning = store.getWorkspaceDir(root, "planning")
-	store.putFocus(root, "default-tab", nil, { "ws" })
-	store.putFocus(planning, "planning-tab", nil, {})
+	local planning = getWorkspaceDir(root, "planning")
+	putFocus(root, "default-tab", nil, { "ws" })
+	putFocus(planning, "planning-tab", nil, {})
 
 	local current = json.asObject(json.deserialize(run({ "focus", "--json" })) :: json.Value)
 	local selected = if current then json.asArray(current.selected) else nil

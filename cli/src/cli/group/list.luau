@@ -2,9 +2,10 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
+local isGroup = require("@root/graph/isGroup")
+local loadDoc = require("@root/store/loadDoc")
 local renderGroup = require("@root/render/group")
-local store = require("@root/store")
 
 type Context = context.Context
 
@@ -15,13 +16,13 @@ return table.freeze({
 	end,
 
 	run = function(_parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
-		local derived = graph.derive(doc, options.now())
+		local doc = loadDoc(options.dir)
+		local derived = derive(doc, options.now())
 		local values: json.Array = {}
 		local lines = {}
 
 		for _, group in doc.nodes do
-			if graph.isGroup(group) then
+			if isGroup(group) then
 				table.insert(values, renderGroup.serialize(derived, group))
 				table.insert(lines, `{group.id}  {renderGroup.formatLine(derived, group)}`)
 			end

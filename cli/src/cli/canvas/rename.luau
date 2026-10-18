@@ -1,7 +1,7 @@
 local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local renameWorkspace = require("@root/store/renameWorkspace")
 
 type Context = context.Context
 
@@ -15,7 +15,7 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local name = assert(parser:get("name"), "missing <name>")
 		local label = assert(parser:get("label"), "missing <label>")
-		store.renameWorkspace(options.root, name, label)
+		renameWorkspace(options.root, name, label)
 		options.write(`Renamed canvas {name} to {label}`)
 	end,
 })

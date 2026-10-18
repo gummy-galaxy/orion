@@ -2,8 +2,10 @@ local json = require("@std/json")
 local task = require("@std/task")
 
 local getAdapter = require("@root/adapters/getAdapter")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local loadDoc = require("@root/store/loadDoc")
 local runCommand = require("@root/command")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 
 type Runner = types.CommandRunner
@@ -63,14 +65,14 @@ function sync.create(
 
 		-- Fetch from a snapshot, then take the workspace lock only to apply, so edits don't wait on GitHub.
 		local didSucceed, failure = pcall(function()
-			local dir = store.getWorkspaceDir(root, target)
+			local dir = getWorkspaceDir(root, target)
 			local apply = assert(getAdapter("github").refresh)(
-				store.load(dir),
+				loadDoc(dir),
 				command,
 				{ discover = false, now = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string }
 			)
 
-			store.transaction(dir, function(doc)
+			runTransaction(dir, function(doc)
 				failures = apply(doc).failures
 			end)
 		end)

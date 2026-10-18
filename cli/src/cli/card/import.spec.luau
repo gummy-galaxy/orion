@@ -2,9 +2,10 @@ local cli = require("@root/cli")
 local json = require("@std/json")
 local test = require("@std/test")
 
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
 local types = require("@root/types")
+local writeDoc = require("@root/store/writeDoc")
 
 type Source = types.Source
 
@@ -50,14 +51,14 @@ end
 
 test.case("an issue URL adds a card with its GitHub title, repo, and ref", function(assert)
 	local dir = testing.directory("import-issue")
-	store.write(dir, testing.createDoc({}))
+	writeDoc(dir, testing.createDoc({}))
 
 	local report = parseJson(testing.run(dir, { "card", "import", ISSUE_URL, "--json" }, githubRunner, NOW))
 	assert.eq(report.added, 1)
 	assert.eq(report.failed, 0)
 	assert.eq(report.revision, 1)
 
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(#doc.nodes, 1)
 	local item = doc.nodes[1]
 	assert.eq(item.data.label, "Import a list of sources")
@@ -72,11 +73,11 @@ end)
 
 test.case("a pull request URL adds a pull request card", function(assert)
 	local dir = testing.directory("import-pull")
-	store.write(dir, testing.createDoc({}))
+	writeDoc(dir, testing.createDoc({}))
 
 	testing.run(dir, { "card", "import", PULL_URL }, githubRunner, NOW)
 
-	local item = store.load(dir).nodes[1]
+	local item = loadDoc(dir).nodes[1]
 	assert.eq(item.data.label, "Add --ref")
 	assert.eq(item.data.itemKind, "pr")
 	assert.eq(item.data.who, nil)
@@ -89,18 +90,18 @@ test.case("a ref already on the canvas is skipped without a lookup or a second c
 			refs = { { source = "github", kind = "issue", key = "vocksel/orion#91", url = ISSUE_URL } },
 		}),
 	})
-	store.write(dir, doc)
+	writeDoc(dir, doc)
 
 	local report = parseJson(testing.run(dir, { "card", "import", ISSUE_URL, "--json" }, unreachableRunner, NOW))
 	assert.eq(report.existing, 1)
 	assert.eq(report.added, 0)
 	assert.eq(report.revision, 0)
-	assert.eq(#store.load(dir).nodes, 1)
+	assert.eq(#loadDoc(dir).nodes, 1)
 end)
 
 test.case("a bad ref or a missing one is reported, the rest are added, and the command fails", function(assert)
 	local dir = testing.directory("import-partial")
-	store.write(dir, testing.createDoc({}))
+	writeDoc(dir, testing.createDoc({}))
 
 	local ok, failure = runFailing(
 		dir,
@@ -110,14 +111,14 @@ test.case("a bad ref or a missing one is reported, the rest are added, and the c
 
 	assert.eq(ok, false)
 	assert.strContains(failure, "2 of 3 refs could not be imported")
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(#doc.nodes, 1)
 	assert.eq(doc.revision, 1)
 end)
 
 test.case("a failed ref still prints every outcome before the command fails", function(assert)
 	local dir = testing.directory("import-report")
-	store.write(dir, testing.createDoc({}))
+	writeDoc(dir, testing.createDoc({}))
 
 	local printed: { string } = {}
 	local ok = pcall(function()
@@ -143,50 +144,50 @@ end)
 
 test.case("--group puts the new card inside the group", function(assert)
 	local dir = testing.directory("import-group")
-	store.write(dir, testing.createDoc({ testing.group("ws", "Release") }))
+	writeDoc(dir, testing.createDoc({ testing.group("ws", "Release") }))
 
 	testing.run(dir, { "card", "import", ISSUE_URL, "--group", "ws" }, githubRunner, NOW)
 
-	assert.eq(store.load(dir).nodes[2].parentId, "ws")
+	assert.eq(loadDoc(dir).nodes[2].parentId, "ws")
 end)
 
 test.case("--group must name a group", function(assert)
 	local dir = testing.directory("import-bad-group")
-	store.write(dir, testing.createDoc({ testing.task("one", "Item", "todo") }))
+	writeDoc(dir, testing.createDoc({ testing.task("one", "Item", "todo") }))
 
 	local ok, failure = runFailing(dir, { "card", "import", ISSUE_URL, "--group", "one" }, githubRunner)
 	assert.eq(ok, false)
 	assert.strContains(failure, "is an item, not a group")
-	assert.eq(store.load(dir).revision, 0)
+	assert.eq(loadDoc(dir).revision, 0)
 end)
 
 test.case("--dry-run previews cards and writes nothing", function(assert)
 	local dir = testing.directory("import-dry-run")
-	store.write(dir, testing.createDoc({}))
+	writeDoc(dir, testing.createDoc({}))
 
 	local output = testing.run(dir, { "card", "import", ISSUE_URL, "--dry-run" }, githubRunner, NOW)
 
 	assert.strContains(output, "Would add 1 card")
 	assert.strContains(output, "at revision 0")
-	assert.eq(store.load(dir).revision, 0)
-	assert.eq(#store.load(dir).nodes, 0)
+	assert.eq(loadDoc(dir).revision, 0)
+	assert.eq(#loadDoc(dir).nodes, 0)
 end)
 
 test.case("--if-revision refuses the write when the document has moved", function(assert)
 	local dir = testing.directory("import-if-revision")
-	store.write(dir, testing.createDoc({}))
+	writeDoc(dir, testing.createDoc({}))
 
 	local ok, failure = runFailing(dir, { "card", "import", ISSUE_URL, "--if-revision", "5" }, githubRunner)
 	assert.eq(ok, false)
 	assert.strContains(failure, "revision changed: expected 5, current 0")
-	assert.eq(#store.load(dir).nodes, 0)
+	assert.eq(#loadDoc(dir).nodes, 0)
 end)
 
 test.case("a configured Jira source imports a key from its results", function(assert)
 	local dir = testing.directory("import-jira")
 	local doc = testing.createDoc({})
 	doc.settings.sources = { JIRA }
-	store.write(dir, doc)
+	writeDoc(dir, doc)
 
 	local output = testing.run(dir, { "card", "import", "jira:ABC-9", "--json" }, function(argv)
 		assert.eq(argv[1], "acli")
@@ -194,7 +195,7 @@ test.case("a configured Jira source imports a key from its results", function(as
 	end, NOW)
 
 	assert.eq(parseJson(output).added, 1)
-	local item = store.load(dir).nodes[1]
+	local item = loadDoc(dir).nodes[1]
 	assert.eq(item.data.label, "Ship")
 	assert.eq(item.data.status, "todo")
 	assert.eq(item.data.who, "you")
@@ -207,7 +208,7 @@ test.case("a Jira key missing from the source's results fails with that reason",
 	local dir = testing.directory("import-jira-missing")
 	local doc = testing.createDoc({})
 	doc.settings.sources = { JIRA }
-	store.write(dir, doc)
+	writeDoc(dir, doc)
 
 	local ok, failure = runFailing(dir, { "card", "import", "jira:ABC-9" }, function()
 		return testing.result(true, "[]")
@@ -215,7 +216,7 @@ test.case("a Jira key missing from the source's results fails with that reason",
 
 	assert.eq(ok, false)
 	assert.strContains(failure, "1 of 1 refs could not be imported")
-	assert.eq(#store.load(dir).nodes, 0)
+	assert.eq(#loadDoc(dir).nodes, 0)
 end)
 
 return {}

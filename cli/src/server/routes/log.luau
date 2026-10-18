@@ -3,9 +3,9 @@ local net = require("@lute/net/server")
 
 local encodeEntry = require("@root/log/encodeEntry")
 local getErrorText = require("@root/getErrorText")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local readLog = require("@root/log/readLog")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
 
 type Response = shared.Response
 
@@ -22,7 +22,7 @@ function log.handle(request: net.ReceivedRequest, root: string): Response
 		return shared.reply(404, json.object({ error = `unknown canvas: {canvas or ""}` }))
 	end
 
-	local didSucceed, result = pcall(readLog, store.getWorkspaceDir(root, canvas))
+	local didSucceed, result = pcall(readLog, getWorkspaceDir(root, canvas))
 	if not didSucceed then
 		return shared.reply(500, json.object({ error = getErrorText(result) }))
 	end

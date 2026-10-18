@@ -1,4 +1,5 @@
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
+local getLabel = require("@root/graph/getLabel")
 local matchesExpression = require("@root/query/matchesExpression")
 local parseExpression = require("@root/query/parseExpression")
 local resolveRef = require("@root/adapters/resolveRef")
@@ -43,7 +44,7 @@ local function unquote(value: string): string
 	return value:match('^"(.*)"$') or value:match("^'(.*)'$") or value
 end
 
--- Resolves an id argument to the id of one item or group. A plain id passes through unchanged, and graph.get reports it
+-- Resolves an id argument to the id of one item or group. A plain id passes through unchanged, and getItem reports it
 -- if it's missing. A selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 matches the way --where does,
 -- and it has to match exactly one item, so an ambiguous selector lists its matches instead of picking one.
 local function resolveId(doc: Doc, input: string): string
@@ -58,7 +59,7 @@ local function resolveId(doc: Doc, input: string): string
 	assert(value ~= "", `{selector}: needs a value`)
 
 	local expression = selectorExpression(selector, value, doc)
-	local derived = graph.derive(doc)
+	local derived = derive(doc)
 	local matches: { Item } = {}
 
 	for _, item in doc.nodes do
@@ -73,7 +74,7 @@ local function resolveId(doc: Doc, input: string): string
 		local lines: { string } = {}
 
 		for _, item in matches do
-			table.insert(lines, `  {item.id} · {graph.label(item)}`)
+			table.insert(lines, `  {item.id} · {getLabel(item)}`)
 		end
 
 		error(`{input} matches {#matches} items; use one of their ids:\n{table.concat(lines, "\n")}`, 0)

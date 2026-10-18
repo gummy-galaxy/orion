@@ -2,8 +2,10 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local cli = require("@root/cli")
-local store = require("@root/store")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 test.case("configured agent command receives bounded context on stdin", function(assert)
 	local dir = testing.directory("suggest-command")
@@ -30,7 +32,7 @@ test.case("configured agent command receives bounded context on stdin", function
 		),
 	})
 	doc.raw = json.object({ settings = json.object({ agent = "claude", agentCommand = { "custom-agent", "--json" } }) })
-	store.write(dir, doc)
+	writeDoc(dir, doc)
 	local output = ""
 	cli.execute({ "suggestion", "find", "--dry-run", "--json" }, {
 		dataDir = dir,
@@ -48,14 +50,14 @@ test.case("configured agent command receives bounded context on stdin", function
 	local groups = if result then json.asArray(result.groups) else nil
 	local first = if groups then json.asObject(groups[1]) else nil
 	assert.eq(first and first.source, "agent")
-	assert.eq(store.load(dir).revision, 0)
+	assert.eq(loadDoc(dir).revision, 0)
 end)
 
 test.case("suggest reads and saves only the selected workspace", function(assert)
 	local root, run = testing.createHarness("suggest-workspace")
 	run({ "canvas", "create", "roblox" })
-	local dir = store.getWorkspaceDir(root, "roblox")
-	store.write(
+	local dir = getWorkspaceDir(root, "roblox")
+	writeDoc(
 		dir,
 		testing.createDoc({
 			testing.task(
@@ -82,7 +84,7 @@ test.case("suggest reads and saves only the selected workspace", function(assert
 	)
 	assert.strContains(run({ "suggestion", "find", "--dry-run" }), "0 group suggestions")
 	assert.strContains(run({ "suggestion", "find", "--canvas", "roblox" }), "1 group suggestions")
-	assert.eq(store.load(root).suggestions, nil)
+	assert.eq(loadDoc(root).suggestions, nil)
 	local saved =
 		json.asObject(json.deserialize(run({ "suggestion", "list", "--json", "--canvas", "roblox" })) :: json.Value)
 	assert.eq(saved and #(json.asArray(saved.groups) or {}), 1)

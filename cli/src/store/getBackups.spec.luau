@@ -1,0 +1,27 @@
+local fs = require("@std/fs")
+local path = require("@std/path")
+local test = require("@std/test")
+
+local getBackups = require("@root/store/getBackups")
+local testing = require("@root/testing")
+
+test.case("getBackups lists backups newest first and skips other files", function(assert)
+	local dir = testing.directory("list-backups")
+	local folder = path.join(dir, "backups")
+	fs.createDirectory(folder, { makeParents = true })
+	fs.writeStringToFile(path.join(folder, "orion-r1-20261003T120000Z.json"), "one")
+	fs.writeStringToFile(path.join(folder, "orion-r2-20261004T120000Z.json"), "second")
+	fs.writeStringToFile(path.join(folder, "notes.json"), "unrelated")
+	fs.createDirectory(path.join(folder, "orion-r3-20261005T120000Z.json"))
+
+	local backups = getBackups(dir)
+	assert.eq(#backups, 2)
+	assert.eq(backups[1].revision, 2)
+	assert.eq(backups[1].time, "20261004T120000Z")
+	assert.eq(backups[1].size, #"second")
+	assert.eq(backups[2].revision, 1)
+end)
+
+test.case("getBackups is empty without a backups folder", function(assert)
+	assert.eq(#getBackups(testing.directory("no-backups")), 0)
+end)

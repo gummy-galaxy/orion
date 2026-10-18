@@ -1,6 +1,10 @@
 local json = require("@std/json")
 
-local graph = require("@root/graph")
+local findItem = require("@root/graph/findItem")
+local getAncestors = require("@root/graph/getAncestors")
+local getLabel = require("@root/graph/getLabel")
+local graphTypes = require("@root/graph/types")
+local isGroup = require("@root/graph/isGroup")
 local pad = require("@root/render/pad")
 local renderGroup = require("@root/render/group")
 local renderItem = require("@root/render")
@@ -16,7 +20,7 @@ local focus = {}
 local function findSelectedItems(doc: Doc, report: Focus): { Item }
 	local items = {}
 	for _, id in report.selected do
-		local item = graph.find(doc, id)
+		local item = findItem(doc, id)
 		if item then
 			table.insert(items, item)
 		end
@@ -25,15 +29,15 @@ local function findSelectedItems(doc: Doc, report: Focus): { Item }
 end
 
 local function findOpenGroup(doc: Doc, report: Focus): Item?
-	local item = if report.open then graph.find(doc, report.open) else nil
-	return if item and graph.isGroup(item) then item else nil
+	local item = if report.open then findItem(doc, report.open) else nil
+	return if item and isGroup(item) then item else nil
 end
 
 -- The open group's ancestors, outermost first.
 local function findAncestorTrail(doc: Doc, group: Item): { Item }
 	local ancestors = {}
-	for _, id in graph.ancestors(doc, group.id) do
-		local parent = graph.find(doc, id)
+	for _, id in getAncestors(doc, group.id) do
+		local parent = findItem(doc, id)
 		if parent then
 			table.insert(ancestors, 1, parent)
 		end
@@ -41,7 +45,7 @@ local function findAncestorTrail(doc: Doc, group: Item): { Item }
 	return ancestors
 end
 
-function focus.serialize(doc: Doc, derived: graph.Derived, report: Focus?): json.Object
+function focus.serialize(doc: Doc, derived: graphTypes.Derived, report: Focus?): json.Object
 	local object: json.Object = json.object({ appOpen = report ~= nil })
 	local selected: json.Array = {}
 	object.selected = selected
@@ -54,13 +58,13 @@ function focus.serialize(doc: Doc, derived: graph.Derived, report: Focus?): json
 		local open = renderGroup.serialize(derived, group)
 		local path: json.Array = {}
 		for _, parent in findAncestorTrail(doc, group) do
-			table.insert(path, json.object({ id = parent.id, label = graph.label(parent) }))
+			table.insert(path, json.object({ id = parent.id, label = getLabel(parent) }))
 		end
 		open.path = path
 		object.open = open
 	end
 	for _, item in findSelectedItems(doc, report) do
-		if graph.isGroup(item) then
+		if isGroup(item) then
 			local entry = renderGroup.serialize(derived, item)
 			entry.kind = "group"
 			table.insert(selected, entry)
@@ -71,7 +75,7 @@ function focus.serialize(doc: Doc, derived: graph.Derived, report: Focus?): json
 	return object
 end
 
-function focus.format(doc: Doc, derived: graph.Derived, report: Focus?): string
+function focus.format(doc: Doc, derived: graphTypes.Derived, report: Focus?): string
 	if not report then
 		return "The Orion app isn't open, so nothing is in focus."
 	end
@@ -80,7 +84,7 @@ function focus.format(doc: Doc, derived: graph.Derived, report: Focus?): string
 	if group then
 		local within = {}
 		for _, parent in findAncestorTrail(doc, group) do
-			table.insert(within, graph.label(parent))
+			table.insert(within, getLabel(parent))
 		end
 		local inside = if #within > 0 then `, inside {table.concat(within, " › ")}` else ""
 		table.insert(lines, `Open: {group.id}  {renderGroup.formatLine(derived, group)}{inside}`)
@@ -93,7 +97,7 @@ function focus.format(doc: Doc, derived: graph.Derived, report: Focus?): string
 	else
 		table.insert(lines, "Selected:")
 		for _, item in items do
-			if graph.isGroup(item) then
+			if isGroup(item) then
 				table.insert(lines, `  {pad("group", 9)}{pad(item.id, 24)}{renderGroup.formatLine(derived, item)}`)
 			else
 				table.insert(lines, `  {renderItem.table(doc, derived, { item })}`)

@@ -1,7 +1,7 @@
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
+local graphTypes = require("@root/graph/types")
 local render = require("@root/render")
 local types = require("@root/types")
 
@@ -10,7 +10,7 @@ type Doc = types.Doc
 type Item = types.Item
 
 -- Lists items as a JSON array or as the table orion card list prints.
-local function writeItems(options: Context, doc: Doc, derived: graph.Derived, items: { Item })
+local function writeItems(options: Context, doc: Doc, derived: graphTypes.Derived, items: { Item })
 	if options.asJson then
 		local values: json.Array = {}
 

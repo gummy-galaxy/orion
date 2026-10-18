@@ -2,8 +2,9 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
-local store = require("@root/store")
+local findItem = require("@root/graph/findItem")
+local getLabel = require("@root/graph/getLabel")
+local loadDoc = require("@root/store/loadDoc")
 
 type Context = context.Context
 
@@ -14,7 +15,7 @@ return table.freeze({
 	end,
 
 	run = function(_parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
+		local doc = loadDoc(options.dir)
 		local unplaced = if doc.github then json.asArray(doc.github.unplaced) else nil
 		local values: json.Array = unplaced or {}
 
@@ -36,10 +37,10 @@ return table.freeze({
 					local candidate = json.asObject(entry)
 
 					if candidate then
-						local item = if type(candidate.id) == "string" then graph.find(doc, candidate.id) else nil
+						local item = if type(candidate.id) == "string" then findItem(doc, candidate.id) else nil
 						table.insert(
 							lines,
-							`  {candidate.id}  {if item then graph.label(item) else ""}  {candidate.score}`
+							`  {candidate.id}  {if item then getLabel(item) else ""}  {candidate.score}`
 						)
 					end
 				end

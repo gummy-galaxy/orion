@@ -3,20 +3,24 @@ local net = require("@lute/net/server")
 local process = require("@std/process")
 local task = require("@std/task")
 
+local clearFocus = require("@root/store/clearFocus")
+local derive = require("@root/graph/derive")
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local events = require("@root/server/events")
-local graph = require("@root/graph")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local getWorkspaces = require("@root/store/getWorkspaces")
 local readRuntime = require("@root/server/readRuntime")
 local removeRuntime = require("@root/server/removeRuntime")
 local routes = require("@root/server/routes")
 local serializeDerived = require("@root/server/serializeDerived")
-local store = require("@root/store")
+local storeTypes = require("@root/store/types")
 local sync = require("@root/server/sync")
 local types = require("@root/types")
 local watcher = require("@root/server/watcher")
 local writeRuntime = require("@root/server/writeRuntime")
 
 type Runtime = readRuntime.Runtime
+type WorkspaceList = storeTypes.WorkspaceList
 
 local server = {}
 
@@ -25,16 +29,16 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	local runtime: Runtime?
 	ensureDirectory(root)
 
-	local dir = store.getWorkspaceDir(root, workspace)
+	local dir = getWorkspaceDir(root, workspace)
 
 	ensureDirectory(dir)
 
-	local function clearFocus()
-		for _, entry in store.getWorkspaces(root).workspaces do
-			store.clearFocus(store.getWorkspaceDir(root, entry.name))
+	local function clearAllFocus()
+		for _, entry in getWorkspaces(root).workspaces do
+			clearFocus(getWorkspaceDir(root, entry.name))
 		end
 	end
-	clearFocus()
+	clearAllFocus()
 	local hub = events.create()
 	local syncLoop = sync.create(root, workspace, function(status: json.Object)
 		hub.publish("orion:sync", status)
@@ -54,11 +58,8 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		end)
 	end, staticDir)
 	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number, doc: types.Doc)
-		hub.publish(
-			"orion:changed",
-			json.object({ revision = revision, derived = serializeDerived(graph.derive(doc)) })
-		)
-	end, function(list: store.WorkspaceList)
+		hub.publish("orion:changed", json.object({ revision = revision, derived = serializeDerived(derive(doc)) }))
+	end, function(list: WorkspaceList)
 		hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
 	end, function(name: string)
 		hub.publish("orion:log", json.object({ canvas = name }))
@@ -113,7 +114,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			assert(monitor).close()
 			running.close()
 			removeRuntime(root, runtime)
-			clearFocus()
+			clearAllFocus()
 		end,
 	}
 end

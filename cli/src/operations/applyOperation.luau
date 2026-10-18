@@ -1,10 +1,23 @@
 local captureDoc = require("@root/operations/captureDoc")
 local diffDocs = require("@root/operations/diffDocs")
-local graph = require("@root/graph")
+local findItem = require("@root/graph/findItem")
+local getGroup = require("@root/graph/getGroup")
+local getItem = require("@root/graph/getItem")
+local insertBetween = require("@root/graph/insertBetween")
+local linkItems = require("@root/graph/linkItems")
+local makeGroup = require("@root/graph/makeGroup")
+local markForTidy = require("@root/graph/markForTidy")
+local moveItem = require("@root/graph/moveItem")
 local operationTypes = require("@root/operations/types")
+local placeItem = require("@root/graph/placeItem")
+local removeGroup = require("@root/graph/removeGroup")
+local removeItem = require("@root/graph/removeItem")
 local restoreDoc = require("@root/operations/restoreDoc")
+local setFields = require("@root/graph/setFields")
 local setRawValue = require("@root/operations/setRawValue")
 local types = require("@root/types")
+local ungroup = require("@root/graph/ungroup")
+local unlinkItems = require("@root/graph/unlinkItems")
 
 type Doc = types.Doc
 type Operation = operationTypes.Operation
@@ -18,16 +31,16 @@ local function required<T>(value: T?, name: string): T
 end
 
 handlers.setFields = function(doc: Doc, operation: Operation)
-	graph.setFields(doc, required(operation.id, "id"), required(operation.fields, "fields") :: any)
+	setFields(doc, required(operation.id, "id"), required(operation.fields, "fields") :: any)
 end
 
 handlers.place = function(doc: Doc, operation: Operation)
 	local position = { x = required(operation.x, "x"), y = required(operation.y, "y") }
-	graph.place(doc, required(operation.id, "id"), position)
+	placeItem(doc, required(operation.id, "id"), position)
 end
 
 handlers.link = function(doc: Doc, operation: Operation)
-	graph.link(
+	linkItems(
 		doc,
 		required(operation.from, "from"),
 		required(operation.to, "to"),
@@ -37,50 +50,45 @@ handlers.link = function(doc: Doc, operation: Operation)
 end
 
 handlers.unlink = function(doc: Doc, operation: Operation)
-	graph.unlink(doc, required(operation.from, "from"), required(operation.to, "to"))
+	unlinkItems(doc, required(operation.from, "from"), required(operation.to, "to"))
 end
 
 handlers.insert = function(doc: Doc, operation: Operation)
-	graph.insertBetween(
-		doc,
-		required(operation.id, "id"),
-		required(operation.from, "from"),
-		required(operation.to, "to")
-	)
+	insertBetween(doc, required(operation.id, "id"), required(operation.from, "from"), required(operation.to, "to"))
 end
 
 handlers.group = function(doc: Doc, operation: Operation)
-	graph.makeGroup(doc, required(operation.label, "label"), required(operation.items, "items"), operation.id)
+	makeGroup(doc, required(operation.label, "label"), required(operation.items, "items"), operation.id)
 end
 
 handlers.ungroup = function(doc: Doc, operation: Operation)
-	graph.ungroup(doc, required(operation.id, "id"))
+	ungroup(doc, required(operation.id, "id"))
 end
 
 handlers.remove = function(doc: Doc, operation: Operation)
-	graph.remove(doc, required(operation.id, "id"), operation.reconnect)
+	removeItem(doc, required(operation.id, "id"), operation.reconnect)
 end
 
 handlers.removeGroup = function(doc: Doc, operation: Operation)
-	graph.removeGroup(doc, required(operation.id, "id"))
+	removeGroup(doc, required(operation.id, "id"))
 end
 
 -- Moves an item or group into another group, or to the top level when `group` is absent.
 handlers.move = function(doc: Doc, operation: Operation)
-	graph.move(doc, required(operation.id, "id"), operation.group)
+	moveItem(doc, required(operation.id, "id"), operation.group)
 end
 
 handlers.tidy = function(doc: Doc, operation: Operation)
-	graph.markForTidy(doc, required(operation.id, "id"))
+	markForTidy(doc, required(operation.id, "id"))
 end
 
 -- Adds an item the app built, at the id and position it chose. The id must be free, and a group must be a group.
 local function addItem(doc: Doc, operation: Operation)
 	local id = required(operation.id, "id")
-	assert(graph.find(doc, id) == nil, `"{id}" is already taken`)
+	assert(findItem(doc, id) == nil, `"{id}" is already taken`)
 
 	if operation.group then
-		graph.group(doc, operation.group)
+		getGroup(doc, operation.group)
 	end
 
 	local item: types.Item = {
@@ -104,12 +112,12 @@ handlers.addGroup = addItem
 -- Replaces an item's data with the data the app holds for it.
 handlers.setData = function(doc: Doc, operation: Operation)
 	local data = required(operation.data, "data")
-	graph.get(doc, required(operation.id, "id")).data = data
+	getItem(doc, required(operation.id, "id")).data = data
 end
 
 -- Sets an item's stored size, or drops it when `clear` is set.
 handlers.resize = function(doc: Doc, operation: Operation)
-	local item = graph.get(doc, required(operation.id, "id"))
+	local item = getItem(doc, required(operation.id, "id"))
 
 	if operation.clear then
 		item.width = nil
