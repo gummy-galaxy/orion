@@ -53,6 +53,15 @@ export type Item = {
 	data: json.Object,
 }
 
+-- One more appearance of a node on the canvas (#122). A node's own record is its first placement, with its position and
+-- group; each placement here puts the same node in another group as well. Editing any copy edits the node.
+export type Placement = {
+	id: string,
+	node: string,
+	parentId: string?,
+	position: Position,
+}
+
 export type Link = {
 	id: string,
 	from: string,
@@ -98,6 +107,8 @@ export type Doc = {
 		checkSnoozes: { CheckSnooze },
 	},
 	nodes: { Item },
+	-- Extra placements of nodes in `nodes`. Absent until a node is placed twice.
+	placements: { Placement }?,
 	links: { Link },
 	github: json.Object?,
 	suggestions: json.Object?,

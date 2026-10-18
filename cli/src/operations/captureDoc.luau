@@ -21,6 +21,7 @@ local function captureDoc(doc: Doc): Snapshot
 
 	snapshot.stickers = copyValue(getRawValue(doc, "stickers"))
 	snapshot.stickerLoadout = copyValue(getRawValue(doc, "stickerLoadout"))
+	snapshot.placements = copyValue(doc.placements)
 
 	return snapshot
 end

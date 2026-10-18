@@ -46,6 +46,9 @@ local OPERATIONS = {
 	resize = true,
 	setStickers = true,
 	setStickerLoadout = true,
+	addPlacement = true,
+	movePlacement = true,
+	removePlacement = true,
 }
 
 local function requireString(object: json.Object, key: string): string
@@ -196,12 +199,21 @@ local function parseOperation(object: json.Object): Operation
 			operation.width = requireNumber(object, "width")
 			operation.height = requireNumber(object, "height")
 		end
+	elseif operation.op == "addPlacement" or operation.op == "movePlacement" then
+		operation.id = requireString(object, "id")
+		operation.group = optionalString(object, "group")
+		operation.x = requireNumber(object, "x")
+		operation.y = requireNumber(object, "y")
+
+		if operation.op == "addPlacement" then
+			operation.node = requireString(object, "node")
+		end
 	elseif operation.op == "setStickers" then
 		operation.stickers = requireArray(object, "stickers")
 	elseif operation.op == "setStickerLoadout" then
 		operation.stickerLoadout = requireArray(object, "stickerLoadout")
 	else
-		-- ungroup, removeGroup, and tidy each take only the id of the item they act on.
+		-- ungroup, removeGroup, removePlacement, and tidy each take only the id of the item they act on.
 		operation.id = requireString(object, "id")
 	end
 

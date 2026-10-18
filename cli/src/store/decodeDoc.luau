@@ -9,6 +9,7 @@ type CheckSnooze = types.CheckSnooze
 type Doc = types.Doc
 type Item = types.Item
 type Link = types.Link
+type Placement = types.Placement
 type Source = types.Source
 
 local function asNumber(value: json.Value): number?
@@ -55,6 +56,24 @@ local function decodeDoc(text: string): Doc
 				width = asNumber(object.width),
 				height = asNumber(object.height),
 				data = json.asObject(object.data) or json.object({}),
+			})
+		end
+	end
+
+	local placements: { Placement } = {}
+
+	for _, raw in json.asArray(root.placements) or {} do
+		local object = json.asObject(raw)
+		local id = if object then getStringField(object.id) else nil
+		local node = if object then getStringField(object.node) else nil
+
+		if object and id and node then
+			local position = json.asObject(object.position) or json.object({})
+			table.insert(placements, {
+				id = id,
+				node = node,
+				parentId = getStringField(object.parentId),
+				position = { x = asNumber(position.x) or 0, y = asNumber(position.y) or 0 },
 			})
 		end
 	end
@@ -173,6 +192,7 @@ local function decodeDoc(text: string): Doc
 			checkSnoozes = checkSnoozes,
 		},
 		nodes = nodes,
+		placements = if #placements > 0 then placements else nil,
 		links = links,
 		github = json.asObject(root.github),
 		suggestions = json.asObject(root.suggestions),

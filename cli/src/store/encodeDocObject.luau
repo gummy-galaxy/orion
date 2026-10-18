@@ -35,6 +35,18 @@ local function encodeDocObject(doc: Doc): json.Object
 		table.insert(nodes, object)
 	end
 
+	local placements: json.Array = {}
+
+	for _, placement in doc.placements or {} do
+		local object: json.Object = json.object({
+			id = placement.id,
+			node = placement.node,
+			position = json.object({ x = placement.position.x, y = placement.position.y }),
+		})
+		object.parentId = placement.parentId
+		table.insert(placements, object)
+	end
+
 	local links: json.Array = {}
 
 	for _, link in doc.links do
@@ -78,6 +90,7 @@ local function encodeDocObject(doc: Doc): json.Object
 	settings.checkSnoozes = if #checkSnoozes > 0 then checkSnoozes else nil
 	root.settings = settings
 	root.nodes = nodes
+	root.placements = if #placements > 0 then placements else nil
 	root.links = links
 	root.github = doc.github
 	root.suggestions = doc.suggestions

@@ -1,3 +1,4 @@
+local addPlacement = require("@root/graph/addPlacement")
 local captureDoc = require("@root/operations/captureDoc")
 local diffDocs = require("@root/operations/diffDocs")
 local findItem = require("@root/graph/findItem")
@@ -8,10 +9,12 @@ local linkItems = require("@root/graph/linkItems")
 local makeGroup = require("@root/graph/makeGroup")
 local markForTidy = require("@root/graph/markForTidy")
 local moveItem = require("@root/graph/moveItem")
+local movePlacement = require("@root/graph/movePlacement")
 local operationTypes = require("@root/operations/types")
 local placeItem = require("@root/graph/placeItem")
 local removeGroup = require("@root/graph/removeGroup")
 local removeItem = require("@root/graph/removeItem")
+local removePlacement = require("@root/graph/removePlacement")
 local restoreDoc = require("@root/operations/restoreDoc")
 local setFields = require("@root/graph/setFields")
 local setRawValue = require("@root/operations/setRawValue")
@@ -129,6 +132,20 @@ handlers.resize = function(doc: Doc, operation: Operation)
 	local height = required(operation.height, "height")
 	item.width = width
 	item.height = height
+end
+
+handlers.addPlacement = function(doc: Doc, operation: Operation)
+	local position = { x = required(operation.x, "x"), y = required(operation.y, "y") }
+	addPlacement(doc, required(operation.node, "node"), operation.group, position, required(operation.id, "id"))
+end
+
+handlers.movePlacement = function(doc: Doc, operation: Operation)
+	local position = { x = required(operation.x, "x"), y = required(operation.y, "y") }
+	movePlacement(doc, required(operation.id, "id"), operation.group, position)
+end
+
+handlers.removePlacement = function(doc: Doc, operation: Operation)
+	removePlacement(doc, required(operation.id, "id"))
 end
 
 handlers.setStickers = function(doc: Doc, operation: Operation)

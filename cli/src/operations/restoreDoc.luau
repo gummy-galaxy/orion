@@ -67,6 +67,10 @@ local function restoreDoc(doc: Doc, restore: Restore)
 		end
 	end
 
+	if restore.placements then
+		doc.placements = copyValue(restore.placements.value)
+	end
+
 	if restore.stickers then
 		setRawValue(doc, "stickers", restore.stickers.value)
 	end

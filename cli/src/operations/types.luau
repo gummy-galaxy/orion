@@ -4,6 +4,7 @@ local types = require("@root/types")
 
 type Item = types.Item
 type Link = types.Link
+type Placement = types.Placement
 
 -- One edit to the document. `op` names the edit; the other fields are what that edit reads, and each edit
 -- checks its own. A field an edit doesn't read is ignored.
@@ -28,9 +29,12 @@ export type Operation = {
 	clear: boolean?,
 	-- The add operations and setData: the item's data, as the app keeps it.
 	data: json.Object?,
+	-- addPlacement: the node the new placement shows.
+	node: string?,
 	-- setStickers and setStickerLoadout: the whole list, as the app keeps it.
 	stickers: json.Array?,
 	stickerLoadout: json.Array?,
+	placements: { Placement }?,
 }
 
 -- Undoes one operation: each item and link it changed, as it was before. Nodes and links put back keep their
@@ -42,6 +46,7 @@ export type Restore = {
 	removedLinks: { { from: string, to: string } },
 	stickers: { value: json.Array? }?,
 	stickerLoadout: { value: json.Array? }?,
+	placements: { value: { Placement }? }?,
 }
 
 -- Every node and link with its index, so a change can be compared and restored.
@@ -50,6 +55,7 @@ export type Snapshot = {
 	links: { [string]: { index: number, link: Link } },
 	stickers: json.Array?,
 	stickerLoadout: json.Array?,
+	placements: { Placement }?,
 }
 
 return {}

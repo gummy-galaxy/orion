@@ -376,6 +376,21 @@ local function derive(doc: Doc, now: string?): Derived
 		end
 	end
 
+	-- A copy counts toward every group it sits in, once per card however many copies a group holds.
+	for _, placement in doc.placements or {} do
+		local current = placement.parentId
+
+		for _ = 1, #doc.nodes do
+			if not current or not tasks[placement.node] then
+				break
+			end
+
+			members[current] = members[current] or {}
+			members[current][placement.node] = true
+			current = parentOf[current]
+		end
+	end
+
 	local groups: { [string]: GroupStats } = {}
 
 	for _, item in doc.nodes do
@@ -426,6 +441,18 @@ local function derive(doc: Doc, now: string?): Derived
 		end
 
 		groups[item.id] = stats
+	end
+
+	-- Copies read the same as the card they show, so the app can look each one up by the id it draws.
+	for _, placement in doc.placements or {} do
+		local node = placement.node
+		status[placement.id] = status[node]
+		flow[placement.id] = flow[node]
+		leverage[placement.id] = leverage[node]
+		upstream[placement.id] = upstream[node]
+		rarity[placement.id] = rarity[node]
+		snoozed[placement.id] = snoozed[node]
+		pulls[placement.id] = pulls[node]
 	end
 
 	return {

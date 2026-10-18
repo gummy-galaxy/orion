@@ -19,6 +19,9 @@ local COMMAND_EXCEPTIONS: { [string]: string } = {
 	["source add hop"] = "configures a source with adapter-specific settings, so setup stays in the CLI",
 	["source remove"] = "changes which sources ingest reads, so it stays with source add",
 	["mcp start"] = "is the MCP server itself",
+	["placement add"] = "is a #122 spike; the real build decides how tools place cards",
+	["placement remove"] = "is a #122 spike; the real build decides how tools place cards",
+	["placement list"] = "is a #122 spike; the real build decides how tools place cards",
 	["help"] = "prints help text, which MCP clients already get from tools/list",
 }
 

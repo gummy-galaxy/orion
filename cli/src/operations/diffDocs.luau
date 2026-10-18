@@ -61,6 +61,10 @@ local function diffDocs(before: Snapshot, doc: Doc): Restore
 		restore.stickerLoadout = { value = copyValue(before.stickerLoadout) }
 	end
 
+	if not sameValue(doc.placements, before.placements) then
+		restore.placements = { value = copyValue(before.placements) }
+	end
+
 	table.sort(restore.nodes, function(a: { index: number }, b: { index: number }): boolean
 		return a.index < b.index
 	end)

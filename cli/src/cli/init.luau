@@ -27,6 +27,7 @@ local nextCommand = require("@root/cli/next")
 local node = require("@root/cli/node")
 local note = require("@root/cli/note")
 local orientation = require("@root/cli/orientation")
+local placement = require("@root/cli/placement")
 local ref = require("@root/cli/ref")
 local reveal = require("@root/cli/reveal")
 local serializeCommands = require("@root/cli/serializeCommands")
@@ -70,6 +71,7 @@ local COMMANDS: { [string]: Command } = {
 	next = nextCommand,
 	node = node,
 	note = note,
+	placement = placement,
 	ref = ref,
 	reveal = reveal,
 	server = server,
@@ -85,6 +87,7 @@ local COMMAND_ORDER = {
 	"note",
 	"link",
 	"node",
+	"placement",
 	"group",
 	"ref",
 	"next",

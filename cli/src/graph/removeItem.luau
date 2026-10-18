@@ -7,9 +7,11 @@ local pruneEmptied = require("@root/graph/pruneEmptied")
 local types = require("@root/types")
 
 type Doc = types.Doc
+type Placement = types.Placement
 type Link = types.Link
 
--- A note's incoming and outgoing links are reconnected so nothing loses its blocker.
+-- A note's incoming and outgoing links are reconnected so nothing loses its blocker. Every placement of the item goes
+-- with it, and so does any group that leaves empty.
 local function removeItem(doc: Doc, id: string, reconnect: boolean?)
 	local item = getItem(doc, id)
 	assert(not isGroup(item), `"{id}" is a group; use group ungroup or group remove instead`)
@@ -54,7 +56,27 @@ local function removeItem(doc: Doc, id: string, reconnect: boolean?)
 		end
 	end
 
+	local placements: { Placement } = doc.placements or {}
+	local emptied: { string } = {}
+
+	for index = #placements, 1, -1 do
+		if placements[index].node == id then
+			local placementParent = placements[index].parentId
+
+			if placementParent then
+				table.insert(emptied, placementParent)
+			end
+
+			table.remove(placements, index)
+		end
+	end
+
+	doc.placements = if #placements > 0 then placements else nil
 	pruneEmptied(doc, parentId)
+
+	for _, groupId in emptied do
+		pruneEmptied(doc, groupId)
+	end
 end
 
 return removeItem

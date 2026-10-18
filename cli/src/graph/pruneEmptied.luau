@@ -22,6 +22,12 @@ local function pruneEmptied(doc: Doc, groupId: string?)
 			end
 		end
 
+		for _, placement in doc.placements or {} do
+			if placement.parentId == current then
+				return
+			end
+		end
+
 		for index, node in doc.nodes do
 			if node.id == current then
 				table.remove(doc.nodes, index)
