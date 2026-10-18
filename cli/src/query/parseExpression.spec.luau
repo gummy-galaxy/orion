@@ -15,6 +15,13 @@ test.case("parses escaped quote and backslash as literal text", function(assert)
 	assert.eq(expression.value, [[a"b\c]])
 end)
 
+test.case("note takes = and ~", function(assert)
+	local expression = parseExpression([[note ~ "checklist" and note = "Ask"]])
+	assert.eq(expression.left and expression.left.field, "note")
+	assert.eq(expression.left and expression.left.operator, "~")
+	assert.eq(expression.right and expression.right.operator, "=")
+end)
+
 test.case("reports unknown fields and syntax at a column", function(assert)
 	for _, expression in
 		{
@@ -24,6 +31,7 @@ test.case("reports unknown fields and syntax at a column", function(assert)
 			[[(repo = "x"]],
 			[[status = "todo" garbage]],
 			[[repo ~ "x"]],
+			[[kind ~ "step"]],
 			[[draft = "maybe"]],
 			[[label = "unfinished]],
 		}

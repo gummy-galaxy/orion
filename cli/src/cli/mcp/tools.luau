@@ -25,6 +25,8 @@ local REF_DESCRIPTION =
 	"Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch."
 local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
 local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
+local SELECTOR_DESCRIPTION =
+	'An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item.'
 local NOTE_STYLE =
 	"Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card."
 local NOTE_DESCRIPTION = "Replaces the whole note. " .. NOTE_STYLE
@@ -203,7 +205,7 @@ local tools: { Tool } = {
 			{
 				name = "id",
 				kind = "id",
-				description = "Required for show.",
+				description = `Required for show. {SELECTOR_DESCRIPTION}`,
 				at = "option",
 			},
 			{
@@ -220,6 +222,32 @@ local tools: { Tool } = {
 			},
 		},
 		build = buildInspectArgv,
+	},
+	{
+		name = "orion_find",
+		description = 'Find cards and groups whose label, note, or refs contain text, label matches first. Returns the total and up to limit matches with their ids. Use an id or a selector such as label:"..." or ref:... to act on one.',
+		annotations = { readOnlyHint = true },
+		command = { "node", "find" },
+		json = true,
+		fields = {
+			{
+				name = "text",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Text to find, matched case-insensitively.",
+				at = "positional",
+			},
+			workspaceField,
+			{ name = "limit", kind = "int", description = "Most matches to return. Defaults to 20.", at = "option" },
+			{
+				name = "allCanvases",
+				kind = "boolean",
+				description = "Search every canvas, not only the selected one.",
+				at = "flag",
+				flag = "all-canvases",
+			},
+		},
 	},
 	{
 		name = "orion_add_item",
@@ -246,7 +274,7 @@ local tools: { Tool } = {
 		command = { "card", "set" },
 		json = true,
 		fields = {
-			{ name = "id", kind = "id", required = true, at = "positional" },
+			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			workspaceField,
 			{ name = "label", kind = "string", at = "option" },
 			{ name = "status", kind = "enum", values = fieldValues.statuses, at = "option" },
@@ -412,8 +440,8 @@ local tools: { Tool } = {
 		description = "Connect two items, optionally as a related link that does not block work. Linking an already linked pair updates that link.",
 		command = { "link", "add" },
 		fields = {
-			{ name = "from", kind = "id", required = true, at = "positional" },
-			{ name = "to", kind = "id", required = true, at = "positional" },
+			{ name = "from", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
+			{ name = "to", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			workspaceField,
 			{ name = "related", kind = "boolean", at = "flag", flag = "related" },
 			{
@@ -429,8 +457,8 @@ local tools: { Tool } = {
 		description = "Remove a dependency or related link between two items.",
 		command = { "link", "remove" },
 		fields = {
-			{ name = "from", kind = "id", required = true, at = "positional" },
-			{ name = "to", kind = "id", required = true, at = "positional" },
+			{ name = "from", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
+			{ name = "to", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			workspaceField,
 		},
 	},
@@ -473,7 +501,7 @@ local tools: { Tool } = {
 		description = "Move an item into a group or to the top level.",
 		command = { "node", "move" },
 		fields = {
-			{ name = "id", kind = "id", required = true, at = "positional" },
+			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			workspaceField,
 			{ name = "group", kind = "id", at = "option" },
 		},
@@ -538,7 +566,7 @@ local tools: { Tool } = {
 		annotations = { destructiveHint = true },
 		command = { "node", "remove" },
 		fields = {
-			{ name = "id", kind = "id", required = true, at = "positional" },
+			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			workspaceField,
 		},
 	},
@@ -560,7 +588,7 @@ local tools: { Tool } = {
 		command = { "ref", "remove" },
 		json = true,
 		fields = {
-			{ name = "id", kind = "id", required = true, at = "positional" },
+			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			{ name = "ref", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
 		},

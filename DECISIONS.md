@@ -326,6 +326,14 @@ Undo history persists across canvas switches, either as a full session history o
 
 2026-10-10 · [#1](https://github.com/vocksel/orion/issues/1), [#166](https://github.com/vocksel/orion/issues/166)
 
+### Shared logic lives in Luau, and the app gets it from `orion serve`
+
+Logic both the CLI and the app need is written once, in Luau. The app gets its results from `orion serve`, as fields on the document it receives or from an endpoint, the way #93 moves edits and #94 moves status. The app keeps only what it needs on every frame: a few geometry constants, generated from Luau, and small tree walks in TypeScript. A transpiler from Luau to TypeScript, or Luau running in WebAssembly, waits until that set grows.
+
+**Why:** one source for each rule keeps the two sides from drifting, and the server is fast enough for it. Measured against a local `orion serve` on a 61-card canvas at 60 Hz, a small request took about 1 ms at the median and a small committed edit about 1.4 ms, 4 ms at p99. Behind heavy requests, small ones reached about 14 ms at p99, which is why input feedback stays in the app. A transpiler would mean owning a compiler to share about a dozen small helpers.
+
+2026-10-17 · [#427](https://github.com/vocksel/orion/issues/427), [#93](https://github.com/vocksel/orion/issues/93), [#94](https://github.com/vocksel/orion/issues/94)
+
 ### Rich cards use link previews, not live embeds
 
 Cards for links show a static snapshot of the link's preview rather than embedding the live page.
