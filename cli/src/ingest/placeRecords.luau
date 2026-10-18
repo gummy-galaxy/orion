@@ -1,7 +1,10 @@
 local json = require("@std/json")
 
+local addItem = require("@root/graph/addItem")
+local findItem = require("@root/graph/findItem")
 local findRef = require("@root/refs/findRef")
-local graph = require("@root/graph")
+local getItem = require("@root/graph/getItem")
+local getNextSlot = require("@root/graph/getNextSlot")
 local ingestTypes = require("@root/ingest/types")
 local linkMentions = require("@root/ingest/linkMentions")
 local setRef = require("@root/refs/setRef")
@@ -13,22 +16,22 @@ type Result = ingestTypes.Result
 type Report = ingestTypes.Report
 
 local function createItem(doc: Doc, label: string, repo: string?, status: string, who: string?): Item
-	if not graph.find(doc, "unsorted") then
+	if not findItem(doc, "unsorted") then
 		table.insert(doc.nodes, {
 			id = "unsorted",
 			type = "cluster",
-			position = graph.nextSlot(doc, nil),
+			position = getNextSlot(doc, nil),
 			data = json.object({ kind = "cluster", label = "Unsorted" }),
 		})
 	end
 
-	local unsorted = graph.get(doc, "unsorted")
+	local unsorted = getItem(doc, "unsorted")
 
 	if unsorted.data.layout == nil then
 		unsorted.data.layout = "refit"
 	end
 
-	return graph.addItem(doc, label, { group = "unsorted", repo = repo, status = status, who = who })
+	return addItem(doc, label, { group = "unsorted", repo = repo, status = status, who = who })
 end
 
 local function placeRecords(doc: Doc, results: { Result }): Report

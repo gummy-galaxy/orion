@@ -14,17 +14,21 @@ function mapPositions(nodes: AppNode[], size: CardSize, isInverse: boolean): App
   const { x: pitchX, y: pitchY } = cardPitchOf(size)
   const headers = new Map(nodes.filter(isCluster).map((group) => [group.id, groupHeaderHeight(group.data)]))
 
-  return normalize(
-    nodes.map((node) => {
-      const origin = node.parentId ? { x: GROUP_PADDING, y: headers.get(node.parentId) ?? groupHeaderHeight(undefined) } : { x: 0, y: 0 }
+  const scale = (offset: number, value: number, pitch: number) =>
+    isInverse ? Math.round(offset + (value - offset) / pitch) : offset + (value - offset) * pitch
 
-      return {
-        ...node,
-        position: {
-          x: isInverse ? Math.round(origin.x + (node.position.x - origin.x) / pitchX) : origin.x + (node.position.x - origin.x) * pitchX,
-          y: isInverse ? Math.round(origin.y + (node.position.y - origin.y) / pitchY) : origin.y + (node.position.y - origin.y) * pitchY,
-        },
-      }
+  return normalize(
+    nodes.map((node): AppNode => {
+      const origin = node.parentId ? { x: GROUP_PADDING, y: headers.get(node.parentId) ?? groupHeaderHeight(undefined) } : { x: 0, y: 0 }
+      const position = { x: scale(origin.x, node.position.x, pitchX), y: scale(origin.y, node.position.y, pitchY) }
+
+      // A group's size scales like the room inside it, so the padding and header stay as they are.
+      if (!isCluster(node) || !node.data.size) return { ...node, position }
+
+      const { width, height } = node.data.size
+      const frame = { x: GROUP_PADDING * 2, y: headers.get(node.id)! + GROUP_PADDING }
+
+      return { ...node, position, data: { ...node.data, size: { width: scale(frame.x, width, pitchX), height: scale(frame.y, height, pitchY) } } }
     }),
     isInverse ? CLASSIC_SIZE : size,
   )

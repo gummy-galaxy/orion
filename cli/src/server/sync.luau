@@ -4,9 +4,11 @@ local task = require("@std/task")
 local time = require("@std/time")
 
 local getAdapter = require("@root/adapters/getAdapter")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local githubTypes = require("@root/github/types")
+local loadDoc = require("@root/store/loadDoc")
 local runCommand = require("@root/command")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 
 type Runner = types.CommandRunner
@@ -85,9 +87,9 @@ function sync.create(
 
 		-- Fetch from a snapshot, then take the workspace lock only to apply, so edits don't wait on GitHub.
 		local didSucceed, failure = pcall(function()
-			local dir = store.getWorkspaceDir(root, target)
+			local dir = getWorkspaceDir(root, target)
 			local adapter = getAdapter("github")
-			local snapshot = store.load(dir)
+			local snapshot = loadDoc(dir)
 			local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 			local apply: ((types.Doc) -> githubTypes.Report)?
 
@@ -101,7 +103,7 @@ function sync.create(
 			local applyStep = apply
 
 			if applyStep then
-				store.transaction(dir, function(doc)
+				runTransaction(dir, function(doc)
 					local report = applyStep(doc)
 					failures = report.failures
 					fetched = if want == nil then report.checked else fetched

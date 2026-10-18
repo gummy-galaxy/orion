@@ -1,14 +1,15 @@
 local cli = require("@batteries/cli")
 
 local addFieldOptions = require("@root/cli/addFieldOptions")
+local addItem = require("@root/graph/addItem")
 local addRefOption = require("@root/cli/addRefOption")
 local attachRequestedRef = require("@root/cli/attachRequestedRef")
 local context = require("@root/cli/context")
 local getItemFields = require("@root/cli/getItemFields")
-local graph = require("@root/graph")
+local graphTypes = require("@root/graph/types")
 local joinWords = require("@root/cli/joinWords")
 local resolveOptionalId = require("@root/cli/resolveOptionalId")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 local writeItem = require("@root/cli/writeItem")
 
@@ -27,13 +28,13 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local label = joinWords(parser:variadics(), "<label>")
-		local fields = getItemFields(parser) :: graph.AddOptions
+		local fields = getItemFields(parser) :: graphTypes.AddOptions
 		local groupInput = parser:get("group")
 
 		local added: Item
-		local doc = store.transaction(options.dir, function(doc)
+		local doc = runTransaction(options.dir, function(doc)
 			fields.group = resolveOptionalId(doc, groupInput)
-			added = graph.addItem(doc, label, fields)
+			added = addItem(doc, label, fields)
 			attachRequestedRef(doc, added.id, parser:get("ref"))
 		end)
 

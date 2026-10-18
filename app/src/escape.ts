@@ -1,4 +1,4 @@
-import { absolutePosition, byId, descendants, isCluster, sizeOf, type AppNode } from './model'
+import { GROUP_PADDING, absolutePosition, byId, descendants, groupHeaderHeight, isCluster, sizeOf, type AppNode } from './model'
 import type { CardSize } from './cardSize'
 
 /** How far past a group's edge, in screen pixels, dragged work goes before it pops out. Stickers use the same distance. */
@@ -8,8 +8,7 @@ type Box = { x: number; y: number; width: number; height: number }
 
 /**
  * Where dragged work belongs while it moves. `from` is the group it started in, and `home` is the group it has
- * popped out to, or undefined at the top level. `walls` is the home's box when the drag started, so a group that
- * stretches to follow the drag doesn't move its own edges.
+ * popped out to, or undefined at the top level. `walls` is the home's box when the drag started.
  */
 export type Escape = { roots: string[]; from: string | undefined; home: string | undefined; walls: Box | null }
 
@@ -69,26 +68,19 @@ export function startEscape(nodes: AppNode[], ids: Iterable<string>, cardSize: C
 }
 
 /**
- * Follows a drag. While the dragged block stays within `pop` of its home's walls, the home stretches to follow it as
- * before. Past that it pops out to the next level, and the group it left goes back to the size and layout it had when
- * the drag started. Leaving several levels in one sweep pops through each. `before` is the canvas when the drag
- * started.
+ * Follows a drag. Groups keep their size while work inside them is dragged. Once the dragged block sticks out more
+ * than `pop` past its home's walls, it pops out to the next level, and leaving several levels in one sweep pops
+ * through each. `before` is the canvas when the drag started.
  */
-export function followEscape(
-  nodes: AppNode[],
-  escape: Escape,
-  before: AppNode[],
-  pop: number,
-  cardSize: CardSize,
-): { nodes: AppNode[]; escape: Escape } {
-  if (!escape.walls) return { nodes, escape }
+export function followEscape(nodes: AppNode[], escape: Escape, before: AppNode[], pop: number, cardSize: CardSize): Escape {
+  if (!escape.walls) return escape
 
   const nodeMap = byId(nodes)
   const block = boundsOf(escape.roots.flatMap((id) => (nodeMap.has(id) ? [boxOf(nodeMap.get(id)!, nodeMap, cardSize)] : [])))
+  const startMap = byId(before)
   let next = escape
 
   while (next.walls && overshoot(block, next.walls) > pop) {
-    const startMap = byId(before)
     const left = next.home ? startMap.get(next.home) : undefined
     const home = left?.parentId
     const homeNode = home ? startMap.get(home) : undefined
@@ -96,24 +88,49 @@ export function followEscape(
     next = { ...next, home, walls: homeNode ? boxOf(homeNode, startMap, cardSize) : null }
   }
 
-  if (next === escape) return { nodes, escape }
+  return next
+}
 
-  if (escape.home !== escape.from) return { nodes, escape: next }
+/**
+ * Moves dropped work that stayed in its group back within the group's bounds, so dropping it short of the pop
+ * distance never grows the group. Work dropped together in one group moves as one block, keeping its formation.
+ */
+export function landInside(nodes: AppNode[], ids: Iterable<string>, cardSize: CardSize): AppNode[] {
+  const nodeMap = byId(nodes)
+  const blocks = new Map<string, Box[]>()
+  const roots = dragRoots(nodes, ids)
 
-  // The first pop: the group the drag left takes back its starting box, and the dragged work stops stretching it.
-  const startMap = byId(before)
-  const roots = new Set(escape.roots)
-  const restored = nodes.map((node) => {
-    if (roots.has(node.id)) return { ...node, expandParent: false }
+  for (const id of roots) {
+    const node = nodeMap.get(id)
 
-    const start = startMap.get(node.id)
+    if (!node?.parentId || !nodeMap.has(node.parentId)) continue
 
-    if (!start || (node.id !== escape.from && node.parentId !== escape.from)) return node
+    blocks.set(node.parentId, [...(blocks.get(node.parentId) ?? []), { ...node.position, ...sizeOf(node, cardSize) }])
+  }
 
-    return { ...node, position: start.position, width: start.width, height: start.height }
+  const shifts = new Map<string, { x: number; y: number }>()
+
+  for (const [groupId, boxes] of blocks) {
+    const group = nodeMap.get(groupId)!
+    const size = sizeOf(group, cardSize)
+    const block = boundsOf(boxes)
+    const top = groupHeaderHeight(isCluster(group) ? group.data : undefined)
+    // A block too big for the group keeps to its top left corner.
+    const x = Math.max(GROUP_PADDING, Math.min(block.x, size.width - GROUP_PADDING - block.width))
+    const y = Math.max(top, Math.min(block.y, size.height - GROUP_PADDING - block.height))
+
+    if (x !== block.x || y !== block.y) shifts.set(groupId, { x: x - block.x, y: y - block.y })
+  }
+
+  if (!shifts.size) return nodes
+
+  const moving = new Set(roots)
+
+  return nodes.map((node) => {
+    const shift = moving.has(node.id) && node.parentId ? shifts.get(node.parentId) : undefined
+
+    return shift ? { ...node, position: { x: node.position.x + shift.x, y: node.position.y + shift.y } } : node
   })
-
-  return { nodes: restored, escape: next }
 }
 
 /**

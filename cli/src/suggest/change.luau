@@ -1,6 +1,9 @@
+local findItem = require("@root/graph/findItem")
+local getItem = require("@root/graph/getItem")
+local getNextSlot = require("@root/graph/getNextSlot")
 local getStored = require("@root/suggest/getStored")
-local graph = require("@root/graph")
 local json = require("@std/json")
+local moveItem = require("@root/graph/moveItem")
 local save = require("@root/suggest/save")
 local slugify = require("@root/slugify")
 local suggestTypes = require("@root/suggest/types")
@@ -33,10 +36,10 @@ local function change(doc: Doc, action: string, ids: { string }, isAll: boolean)
 		if isAll or selected[group.id] then
 			if action == "apply" then
 				for _, id in group.members do
-					assert(graph.find(doc, id), `no item with id "{id}"`)
+					assert(findItem(doc, id), `no item with id "{id}"`)
 				end
 
-				local position = graph.nextSlot(doc, nil)
+				local position = getNextSlot(doc, nil)
 				local made: Item = {
 					id = group.id,
 					type = "cluster",
@@ -49,7 +52,7 @@ local function change(doc: Doc, action: string, ids: { string }, isAll: boolean)
 				made.id = base
 				local suffix = 2
 
-				while graph.find(doc, made.id) do
+				while findItem(doc, made.id) do
 					made.id = `{base}-{suffix}`
 					suffix += 1
 				end
@@ -57,14 +60,14 @@ local function change(doc: Doc, action: string, ids: { string }, isAll: boolean)
 				table.insert(doc.nodes, made)
 
 				for index, id in group.members do
-					local from = graph.get(doc, id).parentId
+					local from = getItem(doc, id).parentId
 
 					if from then
 						left[from] = true
 					end
 
-					graph.move(doc, id, made.id)
-					graph.get(doc, id).position = { x = 32, y = 78 + (index - 1) * 96 }
+					moveItem(doc, id, made.id)
+					getItem(doc, id).position = { x = 32, y = 78 + (index - 1) * 96 }
 				end
 			end
 
@@ -76,7 +79,7 @@ local function change(doc: Doc, action: string, ids: { string }, isAll: boolean)
 
 	-- Groups that lost cards keep their old gaps until the app tidies them.
 	for id in left do
-		local group = graph.find(doc, id)
+		local group = findItem(doc, id)
 
 		if group and group.data.layout == nil then
 			group.data.layout = "refit"

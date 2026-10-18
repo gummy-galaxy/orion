@@ -2,20 +2,24 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
+local derive = require("@root/graph/derive")
+local findItem = require("@root/graph/findItem")
+local getLabel = require("@root/graph/getLabel")
 local getQueryValue = require("@root/cli/getQueryValue")
 local getRequired = require("@root/cli/getRequired")
-local graph = require("@root/graph")
+local graphTypes = require("@root/graph/types")
+local isGroup = require("@root/graph/isGroup")
+local loadDoc = require("@root/store/loadDoc")
 local pad = require("@root/render/pad")
 local render = require("@root/render")
 local selectItems = require("@root/query/selectItems")
-local store = require("@root/store")
 local types = require("@root/types")
 
 type Context = context.Context
 type Doc = types.Doc
 type Item = types.Item
 
-local function writeJson(options: Context, doc: Doc, derived: graph.Derived, items: { Item })
+local function writeJson(options: Context, doc: Doc, derived: graphTypes.Derived, items: { Item })
 	local values: json.Array = {}
 
 	for _, item in items do
@@ -25,15 +29,15 @@ local function writeJson(options: Context, doc: Doc, derived: graph.Derived, ite
 	options.write(json.serialize(values, true))
 end
 
-local function writeLines(options: Context, doc: Doc, derived: graph.Derived, items: { Item })
+local function writeLines(options: Context, doc: Doc, derived: graphTypes.Derived, items: { Item })
 	local lines: { string } = {}
 
 	for _, item in items do
-		if graph.isGroup(item) or item.type == "image" then
-			local kind = if graph.isGroup(item) then "group" else "image"
-			local parentItem = if item.parentId then graph.find(doc, item.parentId) else nil
-			local where = if parentItem then graph.label(parentItem) else ""
-			table.insert(lines, `{pad(kind, 9)}{pad(item.id, 24)}{pad(graph.label(item), 44)}{pad(kind, 20)}{where}`)
+		if isGroup(item) or item.type == "image" then
+			local kind = if isGroup(item) then "group" else "image"
+			local parentItem = if item.parentId then findItem(doc, item.parentId) else nil
+			local where = if parentItem then getLabel(parentItem) else ""
+			table.insert(lines, `{pad(kind, 9)}{pad(item.id, 24)}{pad(getLabel(item), 44)}{pad(kind, 20)}{where}`)
 		else
 			table.insert(lines, render.table(doc, derived, { item }))
 		end
@@ -51,9 +55,9 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
+		local doc = loadDoc(options.dir)
 		local items = selectItems(doc, getRequired(parser, "where"), parser:has("all"), options.now())
-		local derived = graph.derive(doc, options.now())
+		local derived = derive(doc, options.now())
 
 		if options.asJson then
 			writeJson(options, doc, derived, items)

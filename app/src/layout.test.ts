@@ -194,6 +194,15 @@ describe('reflow', () => {
     expect(distinct([...positions.values()].map((position) => position.y))).toBe(1)
   })
 
+  it('lays an automatic group with a size out within its width', async () => {
+    const cards = ids(9).map((id) => task(id))
+    const narrow = await placed([group({ size: { width: 2 * TASK_WIDTH + 32 + 64, height: 0 } }), ...cards])
+    const wide = await placed([group({ size: { width: 9 * TASK_WIDTH + 8 * 32 + 64, height: 0 } }), ...cards])
+
+    expect(distinct([...narrow.values()].map((position) => position.x))).toBe(2)
+    expect(distinct([...wide.values()].map((position) => position.y))).toBe(1)
+  })
+
   it('leaves a custom group alone', async () => {
     const nodes = [group({ arrange: 'custom' }), task('a', 'g', 500, 40), task('b', 'g', 3, 900)]
 

@@ -23,6 +23,7 @@ import {
   sizeOf,
   tintOf,
   type AppNode,
+  type ClusterData,
   type TaskData,
 } from './model'
 import { moveOutOfGroup, ungroup } from './layout'
@@ -355,5 +356,38 @@ describe('empty groups', () => {
     expect(byId(after).has('inner')).toBe(false)
     expect(byId(after).has('outer')).toBe(false)
     expect(byId(after).has('kept')).toBe(true)
+  })
+})
+
+describe('normalize with a group size', () => {
+  const sized = (arrange: 'auto' | 'custom'): AppNode => ({
+    id: 'g',
+    type: 'cluster',
+    position: { x: 100, y: 100 },
+    data: { kind: 'cluster', label: 'g', arrange, size: { width: 800, height: 500 } },
+  })
+
+  it('keeps a custom group at least its size, with its corner where it was', () => {
+    const group = byId(normalize([sized('custom'), cardNode('card', 'g', { x: 32, y: 78 })])).get('g')!
+
+    expect(group.position).toEqual({ x: 100, y: 100 })
+    expect({ width: group.width, height: group.height }).toEqual({ width: 800, height: 500 })
+  })
+
+  it('grows a custom group past its size to hold its contents, and remembers the new size', () => {
+    const card = { ...cardNode('card', 'g'), position: { x: -40, y: 600 } }
+    const nodes = normalize([sized('custom'), card])
+    const group = byId(nodes).get('g')!
+
+    expect(group.position.x).toBe(100 - 40 - 32)
+    expect(group.width).toBe(800 + 40 + 32)
+    expect((group.data as ClusterData).size).toEqual({ width: group.width, height: group.height })
+    expect(normalize(nodes)).toEqual(nodes)
+  })
+
+  it('lets an automatic group hug its contents', () => {
+    const group = byId(normalize([sized('auto'), cardNode('card', 'g')])).get('g')!
+
+    expect(group.width).toBeLessThan(800)
   })
 })
