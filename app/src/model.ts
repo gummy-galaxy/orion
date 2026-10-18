@@ -95,6 +95,8 @@ export type RefChecks = {
   total?: number
   finished?: number
   failed?: number
+  /** The jobs that failed, by name, while the work is open. */
+  failures?: FailedCheck[]
 }
 /** A commit's checks: how many have finished, and failed, out of all of them. Skipped and cancelled checks count as finished. */
 export type CheckCounts = { total: number; finished: number; failed: number }

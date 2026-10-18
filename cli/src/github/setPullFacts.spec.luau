@@ -72,6 +72,23 @@ test.case("setPullFacts keeps check counts and progress only while the pull requ
 	assert.eq(getFacts({}).checks, nil)
 end)
 
+test.case("setPullFacts lists the jobs that failed on an open pull request", function(assert)
+	local failedChecks = { json.object({ name = "test" }), json.object({ name = "docs", optional = true }) }
+	local open = getFacts({ checks = "FAILURE", failedChecks = failedChecks })
+	local failures = json.asArray((open.checks :: json.Object).failures) :: json.Array
+	local required = json.asObject(failures[1]) :: json.Object
+	local docs = json.asObject(failures[2]) :: json.Object
+
+	assert.eq(#failures, 2)
+	assert.eq(required.name, "test")
+	assert.eq(required.optional, nil)
+	assert.eq(docs.name, "docs")
+	assert.eq(docs.optional, true)
+
+	local merged = getFacts({ state = "MERGED", checks = "FAILURE", failedChecks = failedChecks })
+	assert.eq((merged.checks :: json.Object).failures, nil)
+end)
+
 test.case("setPullFacts carries who wrote it, the review ask, the size, and the head", function(assert)
 	local ref = getFacts({ reviewDecision = "CHANGES_REQUESTED", requestedFromYou = true })
 

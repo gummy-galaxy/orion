@@ -1,3 +1,5 @@
+local types = require("@root/types")
+
 -- components counts the components inside, which are parts of a system rather than work.
 export type GroupStats = {
 	total: number,
@@ -17,6 +19,8 @@ export type Derived = {
 	groups: { [string]: GroupStats },
 	-- Cards snoozed right now, mapped to the UTC time they wake.
 	snoozed: { [string]: string },
+	-- Pull request facts for cards where a CI job snooze leaves out a failure, which the app shows over the card's own.
+	pulls: { [string]: types.SnoozedFacts },
 }
 
 export type ItemFields = {

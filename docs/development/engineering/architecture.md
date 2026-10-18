@@ -33,6 +33,8 @@ Any route that doesn't match returns a JSON 404, so a typo in the app's API call
 
 The app is a React Flow canvas. Its state lives in Jotai atoms, and each card reads only the values it shows through its own selector, so an edit redraws the cards it touches and not the whole canvas ([#124](https://github.com/vocksel/orion/pull/124)). The app talks to the server over HTTP and the WebSocket. If the CLI binary is missing, the app falls back to browser storage, so it still opens for development without the CLI.
 
+The app draws cards and groups at sizes and spacing it imports from `app/src/geometry.ts`, which `lute run geometry` generates from the CLI's `cli/src/geometry.luau`, so cards the CLI places sit where the app's layout would put them ([#457](https://github.com/vocksel/orion/issues/457)).
+
 Components have their own stories in Storybook ([#128](https://github.com/vocksel/orion/pull/128)). The perf harness has a story of its own that seeds a generated canvas and drives it. See [performance](/development/engineering/performance).
 
 ## The desktop shell
