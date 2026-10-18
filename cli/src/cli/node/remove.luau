@@ -11,10 +11,12 @@ local runTransaction = require("@root/store/runTransaction")
 type Context = context.Context
 
 return table.freeze({
-	help = "Remove items; optionally reconnect a card's links",
+	help = "Remove items. Removing a note reconnects the links that ran through it",
 	define = function(parser: cli.Parser)
 		addBatchOptions(parser, "Item ids or selectors")
-		parser:add("reconnect", "flag", { help = "Reconnect at most one incoming and outgoing link per item" })
+		parser:add("reconnect", "flag", {
+			help = "Also reconnect cards with at most one incoming and one outgoing link; every selected card must qualify",
+		})
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
