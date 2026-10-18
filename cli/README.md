@@ -10,7 +10,7 @@ In `src/`:
 
 - `cli/`: commands. `cli/init.luau` registers and dispatches them, and each command module defines its own options.
 - `cli/mcp/`: the MCP server. `cli/mcp/tools.luau` lists every tool and the command it runs.
-- `cli/describeCommands.luau`: describes every command for the generated reference, which the root `.lute/docs.luau` writes.
+- `cli/describeCommands.luau`: describes every command for the generated reference, which the root `.lute/docs.luau` writes, and for `orion help --all`, which `cli/formatAllHelp.luau` prints.
 - `store.luau`: reading, locking, backing up, and writing the data file, and focus reports.
 - `graph.luau`: derived status and leverage, and every edit the commands make.
 - `server/`: HTTP routes, WebSocket events, file watching, and refresh scheduling for `orion server start`.

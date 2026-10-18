@@ -12,7 +12,7 @@ local runEdit = require("@root/cli/runEdit")
 type Context = context.Context
 
 return table.freeze({
-	help = "Insert an item into an existing link",
+	help = "Insert an item into an existing link, replacing it with two links of the same kind",
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
 		parser:add("between", "option", { help = "Source item whose link is replaced (required)" })

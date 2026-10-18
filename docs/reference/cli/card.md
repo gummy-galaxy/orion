@@ -123,14 +123,14 @@ Hide items from attention and orion next until a time
 orion card snooze [options] [ids...]
 ```
 
-| Argument                | Description                                                |
-| ----------------------- | ---------------------------------------------------------- |
-| `[ids...]`              | Item ids                                                   |
-| `--until <value>`       | **Required.** When it wakes: an ISO 8601 date or date-time |
-| `--where <value>`       | Select items with an expression instead of ids             |
-| `--dry-run`             | Preview changes and current revision without writing       |
-| `--if-revision <value>` | Write only if the document has this revision               |
-| `--json`                | Print JSON                                                 |
+| Argument                | Description                                                                                                |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `[ids...]`              | Item ids                                                                                                   |
+| `--until <value>`       | **Required.** When it wakes: an ISO 8601 date or date-time, in local time unless it ends in Z or an offset |
+| `--where <value>`       | Select items with an expression instead of ids                                                             |
+| `--dry-run`             | Preview changes and current revision without writing                                                       |
+| `--if-revision <value>` | Write only if the document has this revision                                                               |
+| `--json`                | Print JSON                                                                                                 |
 
 ## orion card unsnooze
 

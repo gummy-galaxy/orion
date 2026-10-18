@@ -52,20 +52,20 @@ orion node find [options] [text...]
 
 ## orion node remove
 
-Remove items; optionally reconnect a card's links
+Remove items. Removing a note reconnects the links that ran through it
 
 ```sh
 orion node remove [options] [ids...]
 ```
 
-| Argument                | Description                                               |
-| ----------------------- | --------------------------------------------------------- |
-| `[ids...]`              | Item ids or selectors                                     |
-| `--where <value>`       | Select targets with an expression instead of ids          |
-| `--dry-run`             | Preview changes and current revision without writing      |
-| `--if-revision <value>` | Write only if the document has this revision              |
-| `--json`                | Print JSON                                                |
-| `--reconnect`           | Reconnect at most one incoming and outgoing link per item |
+| Argument                | Description                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| `[ids...]`              | Item ids or selectors                                                                                  |
+| `--where <value>`       | Select targets with an expression instead of ids                                                       |
+| `--dry-run`             | Preview changes and current revision without writing                                                   |
+| `--if-revision <value>` | Write only if the document has this revision                                                           |
+| `--json`                | Print JSON                                                                                             |
+| `--reconnect`           | Also reconnect cards with at most one incoming and one outgoing link; every selected card must qualify |
 
 ## orion node move
 

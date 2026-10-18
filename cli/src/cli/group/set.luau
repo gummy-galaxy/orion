@@ -20,7 +20,9 @@ return table.freeze({
 		addIdPositional(parser, "id")
 		parser:add("label", "option", { help = "New label" })
 		parser:add("blurb", "option", { help = "Group description" })
-		parser:add("arrange", "option", { help = "How reflow arranges a group: auto or custom" })
+		parser:add("arrange", "option", {
+			help = "How reflow arranges a group: auto (default) flows by dependency, custom keeps items where they are",
+		})
 		parser:add(
 			"cover",
 			"option",

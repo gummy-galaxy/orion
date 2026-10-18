@@ -6,7 +6,7 @@ return table.freeze({
 	help = table.freeze({
 		`Orion is the user's local graph of work: items, notes, and groups linked by dependencies, shown on a canvas. Pass --canvas to pick one, or the active canvas is used.`,
 		`A link runs from the work that has to happen first to the work that waits on it. Setting a note replaces its whole text.`,
-		`Record the branch a card's work is on with \`orion set <id> --ref branch:<owner>/<repo>@<branch>\`. Orion attaches a pull request opened from that branch to the card on the next ingest.`,
+		`Record the branch a card's work is on with \`orion card set <id> --ref branch:<owner>/<repo>@<branch>\`. Orion attaches a pull request opened from that branch to the card on the next ingest.`,
 	}),
 	paragraphs = table.freeze({
 		`Orion is the user's local graph of work: items, notes, and groups linked by dependencies, shown on a canvas. People may say board or dashboard, often by name, as in "my focus", so call orion_canvases first to map that name to one.`,

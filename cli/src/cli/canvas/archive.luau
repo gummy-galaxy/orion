@@ -6,7 +6,7 @@ local store = require("@root/store")
 type Context = context.Context
 
 return table.freeze({
-	help = "Archive a canvas. Its data stays in place, and restore brings it back",
+	help = "Archive a canvas. Its data stays in place, and restore brings it back. The active canvas and default can't be archived",
 	define = function(parser: cli.Parser)
 		parser:add("name", "positional", { help = "Canvas name" })
 	end,
