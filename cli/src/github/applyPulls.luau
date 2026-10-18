@@ -74,7 +74,7 @@ end
 
 local function syncStackLinks(doc: Doc, fetched: Fetched, report: Report)
 	local pulls = table.clone(fetched.pulls)
-	for _, pull in fetched.authored do
+	for _, pull in fetched.authored or {} do
 		local key = getKey(pull)
 		if not pulls[key] then
 			pulls[key] = pull
@@ -172,9 +172,13 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		setPullRef(item, pull, "github", fetched.viewer, checkedAt)
 	end
 
-	local unplaced: json.Array = {}
+	local previous = json.asObject(doc.github)
+	-- Without a fresh authored list, the unplaced list recorded last time stands.
+	local unplaced: json.Array = if fetched.authored == nil and previous
+		then table.clone(json.asArray(previous.unplaced) or {})
+		else {}
 
-	for _, pull in fetched.authored do
+	for _, pull in fetched.authored or {} do
 		local key = getKey(pull)
 		if onCanvas[key] or not isInSources(doc, pull) then
 			continue

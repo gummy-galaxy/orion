@@ -448,3 +448,17 @@ test.case("a branch match without its full state stays unplaced until it's fetch
 	assert.eq(findRef(doc.nodes[1], "pull"), nil)
 	assert.eq(#unplacedOf(doc), 1)
 end)
+
+test.case("apply keeps the recorded unplaced list when the authored list wasn't fetched", function(assert)
+	local doc, fetched = stackFixture()
+	fetched.authored = nil
+	doc.github = json.object({
+		viewer = "vocksel",
+		unplaced = { json.object({ repo = "vocksel/orion", number = 9, title = "Unplaced", updatedAt = "now" }) },
+	})
+	applyPulls(doc, fetched, "later")
+	local recorded = json.asObject(doc.github)
+	local unplaced = if recorded then json.asArray(recorded.unplaced) else nil
+	assert.eq(unplaced and #unplaced, 1)
+	assert.eq(recorded and recorded.checkedAt, "later")
+end)

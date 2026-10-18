@@ -96,13 +96,9 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	writeRuntime(root, runtime)
 	monitor.start()
 	task.delay(5, function()
-		syncLoop.run()
-	end)
-
-	task.spawn(function()
 		while true do
-			task.wait(5 * 60)
-			syncLoop.run()
+			syncLoop.tick()
+			task.wait(sync.TICK_SECONDS)
 		end
 	end)
 
