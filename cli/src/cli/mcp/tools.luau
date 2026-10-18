@@ -932,6 +932,29 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_reveal",
+		description = "Select cards or groups in the open Orion app and zoom the canvas to them, opening the group they share. Opens the app when it's closed. Set selectOnly to select without moving the camera.",
+		command = { "reveal" },
+		json = true,
+		fields = {
+			{
+				name = "ids",
+				kind = "strings",
+				required = true,
+				description = "Card or group ids to reveal.",
+				at = "variadic",
+			},
+			workspaceField,
+			{
+				name = "selectOnly",
+				kind = "boolean",
+				description = "Select without moving the camera.",
+				at = "flag",
+				flag = "select-only",
+			},
+		},
+	},
+	{
 		name = "orion_check",
 		description = "Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.",
 		annotations = { readOnlyHint = true },

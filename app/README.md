@@ -9,7 +9,8 @@ Modules in `src/` hold logic and are tested beside themselves as `<module>.test.
 Data and state:
 
 - `vite.config.ts`: starts `orion server start` for development and proxies its API.
-- `src/persist.ts`: loading, saving, reacting to other writers, and reporting focus.
+- `src/persist.ts`: loading, saving, reacting to other writers, reporting focus, and receiving reveals.
+- `src/reveal.ts`: the group, detail level, and camera that `orion reveal` uses to show cards.
 - `src/state.ts`: the Jotai atoms the canvas shares.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.

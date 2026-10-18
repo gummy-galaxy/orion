@@ -29,6 +29,8 @@ The app reports its open group and selection to `orion server start`. `orion foc
 - Say which focus you assumed when it shaped the answer, so a wrong guess is easy to correct.
 - At the top level with nothing selected, or with the app closed, there's no focus to lean on.
 
+To point the person at cards, run `orion reveal <id…>`. The app selects them, opens the innermost group that holds them all, and zooms to them, and the step goes into its Back history. `--select-only` selects without moving the camera. With no app running, reveal opens the installed app first. Name the cards you revealed in your reply.
+
 Run `orion server status [--json]` to find the running server and its URL. It checks the recorded process and endpoint and clears stale server records.
 
 To show the person the app, or anything else served locally such as a dev server or Storybook, open its URL in the browser built into the tool you're running in. Fall back to an external browser only when that tool has none. Headless captures, such as PR screenshots and videos, are unaffected.
