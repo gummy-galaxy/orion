@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { getCardView } from './cardView'
 import type { SourceRef } from './derive'
+import type { Rarity } from './rarity'
 import type { TaskData, TaskNode, ViewStatus } from './model'
 
 const createTaskData = (overrides: Partial<TaskData> = {}): TaskData => ({
@@ -13,7 +14,7 @@ const createTaskData = (overrides: Partial<TaskData> = {}): TaskData => ({
 
 const createTaskNode = (taskData: TaskData): TaskNode => ({ id: 'card-1', type: 'task', position: { x: 0, y: 0 }, data: taskData })
 const sources: SourceRef[] = [{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }]
-const createFacts = (status: ViewStatus = 'ready', upstream = 0) => ({ status, leverage: 3, upstream, sources })
+const createFacts = (status: ViewStatus = 'ready', upstream = 0, rarity: Rarity = 'common') => ({ status, leverage: 3, upstream, rarity, sources })
 
 describe('getCardView', () => {
   it('passes through the kind, tag, URL, sources, and card identity', () => {
@@ -48,12 +49,12 @@ describe('getCardView', () => {
     expect(view.sources).toBe(sources)
   })
 
-  it('derives rarity for work and leaves it absent for notes', () => {
-    expect(getCardView(createTaskNode(createTaskData({ itemKind: 'gate' })), createFacts('ready', 14))).toMatchObject({
+  it('shows the rarity the server derived for work and leaves it absent for notes', () => {
+    expect(getCardView(createTaskNode(createTaskData({ itemKind: 'gate' })), createFacts('ready', 14, 'mythic'))).toMatchObject({
       upstream: 14,
       rarity: 'mythic',
     })
-    const note = getCardView(createTaskNode(createTaskData({ itemKind: 'note' })), createFacts('done', 14))
+    const note = getCardView(createTaskNode(createTaskData({ itemKind: 'note' })), createFacts('done', 14, 'mythic'))
 
     expect(note.upstream).toBe(14)
     expect(note).not.toHaveProperty('rarity')

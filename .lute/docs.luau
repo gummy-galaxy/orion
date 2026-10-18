@@ -115,6 +115,22 @@ local function renderIndex(root: CommandDescription): string
 	return table.concat(lines, "\n") .. "\n"
 end
 
+-- The Reference section's own page, so the nav's Reference link lands on content rather than a menu.
+local function renderHome(root: CommandDescription): string
+	local lines = {
+		HEADER,
+		"",
+		"# Reference",
+		"",
+		"These pages are generated from the code that defines each surface, so they always match what Orion accepts.",
+		"",
+		`- [CLI](./cli/): the {#root.commands} commands of \`orion\`, with every option they take.`,
+		`- [MCP](./mcp): the {#tools} tools \`orion mcp start\` serves to agents, each running a CLI command.`,
+	}
+
+	return table.concat(lines, "\n") .. "\n"
+end
+
 local function renderTool(tool: Tool): string
 	local parts = {
 		`## {tool.name}`,
@@ -177,6 +193,7 @@ end
 local function collectPages(): { Page }
 	local root = cliModule.describe()
 	local pages: { Page } = {
+		{ file = path.join(referenceDir, "index.md"), contents = renderHome(root) },
 		{ file = path.join(referenceDir, "cli", "index.md"), contents = renderIndex(root) },
 		{ file = path.join(referenceDir, "cli", "sidebar.json"), contents = renderSidebar(root) },
 		{ file = path.join(referenceDir, "mcp.md"), contents = renderMcp() },
