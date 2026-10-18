@@ -9,7 +9,7 @@ type Context = context.Context
 return table.freeze({
 	help = "Remove groups with everything inside them",
 	define = function(parser: cli.Parser)
-		addBatchOptions(parser, "Group ids")
+		addBatchOptions(parser, "Group ids or selectors")
 	end,
 
 	run = function(parser: cli.Parser, options: Context)

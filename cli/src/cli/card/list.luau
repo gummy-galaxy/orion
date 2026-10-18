@@ -2,6 +2,7 @@ local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
 local graph = require("@root/graph")
+local resolveId = require("@root/query/resolveId")
 local sortTasks = require("@root/cli/sortTasks")
 local store = require("@root/store")
 local types = require("@root/types")
@@ -29,6 +30,7 @@ return table.freeze({
 		local groupId = parser:get("group")
 
 		if groupId then
+			groupId = resolveId(doc, groupId)
 			graph.group(doc, groupId)
 		end
 

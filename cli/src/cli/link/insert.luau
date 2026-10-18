@@ -1,10 +1,12 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addIdPositional = require("@root/cli/addIdPositional")
 local context = require("@root/cli/context")
 local getRequired = require("@root/cli/getRequired")
 local graph = require("@root/graph")
 local requestedRevision = require("@root/cli/requestedRevision")
+local resolveId = require("@root/query/resolveId")
 local runEdit = require("@root/cli/runEdit")
 
 type Context = context.Context
@@ -12,7 +14,7 @@ type Context = context.Context
 return table.freeze({
 	help = "Insert an item into an existing link",
 	define = function(parser: cli.Parser)
-		parser:add("id", "positional", { help = "Item to place in the link" })
+		addIdPositional(parser, "id")
 		parser:add("between", "option", { help = "Source item whose link is replaced", required = true })
 		parser:add("target", "variadic", { help = "Target item whose link is replaced" })
 		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
@@ -28,6 +30,7 @@ return table.freeze({
 		local dryRun = parser:has("dry-run")
 
 		local doc, baseRevision = runEdit(options.dir, dryRun, requestedRevision(parser), function(current)
+			id, from, to = resolveId(current, id), resolveId(current, from), resolveId(current, to)
 			graph.insertBetween(current, id, from, to)
 		end)
 

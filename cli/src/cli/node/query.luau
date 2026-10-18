@@ -2,6 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
+local getQueryValue = require("@root/cli/getQueryValue")
 local getRequired = require("@root/cli/getRequired")
 local graph = require("@root/graph")
 local pad = require("@root/render/pad")
@@ -18,15 +19,7 @@ local function writeJson(options: Context, doc: Doc, derived: graph.Derived, ite
 	local values: json.Array = {}
 
 	for _, item in items do
-		local value = render.itemJson(doc, derived, item)
-
-		if graph.isGroup(item) then
-			value.kind = "group"
-			value.status = nil
-			value.recordedStatus = nil
-		end
-
-		table.insert(values, value)
+		table.insert(values, getQueryValue(doc, derived, item))
 	end
 
 	options.write(json.serialize(values, true))

@@ -95,6 +95,7 @@ Statuses: todo, active, review, blocked, deferred, done.
 Components (card add --kind component) draw a system: services, apps, and data stores linked
   by what flows between them (link add --label). They have no status and never count as work.
 Repositories are "owner/name".
+Items and groups take an id, or a selector that must match exactly one: label:"text", ref:key or URL, or pr:number.
 Data lives in Orion's user data folder (run orion canvas path to see it); set ORION_DATA_DIR to change it.
 Set ORION_CANVAS to pick a canvas, as --canvas does for a single command.
 The Orion app talks to orion server start, which watches the data files.
@@ -102,8 +103,8 @@ Use orion server status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
 
 local QUERY_HELP = [[
-Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, snoozed.
-Compare quoted values with = or !=; label and ref also support ~ for case-insensitive text.
+Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, note, snoozed.
+Compare quoted values with = or !=; label, ref, and note also support ~ for case-insensitive text.
 Combine with and, or, not, and parentheses. Missing fields never match.]]
 
 local function addHelpFlag(parser: cli.Parser)

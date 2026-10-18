@@ -18,13 +18,26 @@ Runs `orion canvas list`.
 
 Read the canvas: list items, ready work, groups, PR matches, or one item/group.
 
-| Argument | Type                                       | Description                                            |
-| -------- | ------------------------------------------ | ------------------------------------------------------ |
-| `view`   | list \| ready \| groups \| matches \| show | **Required.**                                          |
-| `canvas` | canvas                                     | Canvas name. Omit to use the canvas selected in Orion. |
-| `id`     | id                                         | Required for show.                                     |
-| `group`  | id                                         | Limit list to descendants of a group.                  |
-| `all`    | boolean                                    | Include completed items in list.                       |
+| Argument | Type                                       | Description                                                                                                                         |
+| -------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `view`   | list \| ready \| groups \| matches \| show | **Required.**                                                                                                                       |
+| `canvas` | canvas                                     | Canvas name. Omit to use the canvas selected in Orion.                                                                              |
+| `id`     | id                                         | Required for show. An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `group`  | id                                         | Limit list to descendants of a group.                                                                                               |
+| `all`    | boolean                                    | Include completed items in list.                                                                                                    |
+
+## orion_find
+
+Find cards and groups whose label, note, or refs contain text, label matches first. Returns the total and up to limit matches with their ids. Use an id or a selector such as label:"..." or ref:... to act on one.
+
+Runs `orion node find`.
+
+| Argument      | Type    | Description                                             |
+| ------------- | ------- | ------------------------------------------------------- |
+| `text`        | string  | **Required.** Text to find, matched case-insensitively. |
+| `canvas`      | canvas  | Canvas name. Omit to use the canvas selected in Orion.  |
+| `limit`       | int     | Most matches to return. Defaults to 20.                 |
+| `allCanvases` | boolean | Search every canvas, not only the selected one.         |
 
 ## orion_add_item
 
@@ -54,7 +67,7 @@ Runs `orion card set`.
 
 | Argument | Type                                                                   | Description                                                                                                                                                                                                                   |
 | -------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`     | id                                                                     | **Required.**                                                                                                                                                                                                                 |
+| `id`     | id                                                                     | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item.                                                                                                |
 | `canvas` | canvas                                                                 | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                        |
 | `label`  | string                                                                 |                                                                                                                                                                                                                               |
 | `status` | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                                                                                               |
@@ -138,13 +151,13 @@ Connect two items, optionally as a related link that does not block work. Linkin
 
 Runs `orion link add`.
 
-| Argument  | Type    | Description                                                        |
-| --------- | ------- | ------------------------------------------------------------------ |
-| `from`    | id      | **Required.**                                                      |
-| `to`      | id      | **Required.**                                                      |
-| `canvas`  | canvas  | Canvas name. Omit to use the canvas selected in Orion.             |
-| `related` | boolean |                                                                    |
-| `label`   | string  | What the link carries, such as HTTP or WebSocket. Empty clears it. |
+| Argument  | Type    | Description                                                                                                                    |
+| --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `from`    | id      | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `to`      | id      | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `canvas`  | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                                         |
+| `related` | boolean |                                                                                                                                |
+| `label`   | string  | What the link carries, such as HTTP or WebSocket. Empty clears it.                                                             |
 
 ## orion_unlink
 
@@ -152,11 +165,11 @@ Remove a dependency or related link between two items.
 
 Runs `orion link remove`.
 
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `from`   | id     | **Required.**                                          |
-| `to`     | id     | **Required.**                                          |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+| Argument | Type   | Description                                                                                                                    |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `from`   | id     | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `to`     | id     | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                                         |
 
 ## orion_group
 
@@ -188,11 +201,11 @@ Move an item into a group or to the top level.
 
 Runs `orion node move`.
 
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `id`     | id     | **Required.**                                          |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`  | id     |                                                        |
+| Argument | Type   | Description                                                                                                                    |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `id`     | id     | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                                         |
+| `group`  | id     |                                                                                                                                |
 
 ## orion_tidy
 
@@ -225,10 +238,10 @@ Delete an item from the canvas. Use orion_remove_group for a group.
 
 Runs `orion node remove`.
 
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `id`     | id     | **Required.**                                          |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+| Argument | Type   | Description                                                                                                                    |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `id`     | id     | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                                         |
 
 ## orion_remove_group
 
@@ -248,11 +261,11 @@ Take a GitHub, Jira, or branch ref off an item. Name it by the key orion_inspect
 
 Runs `orion ref remove`.
 
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `id`     | id     | **Required.**                                          |
-| `ref`    | string | **Required.**                                          |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+| Argument | Type   | Description                                                                                                                    |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `id`     | id     | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `ref`    | string | **Required.**                                                                                                                  |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                                         |
 
 ## orion_create_canvas
 

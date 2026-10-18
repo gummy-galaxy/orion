@@ -3,6 +3,7 @@ local cli = require("@batteries/cli")
 local context = require("@root/cli/context")
 local graph = require("@root/graph")
 local joinWords = require("@root/cli/joinWords")
+local resolveOptionalId = require("@root/cli/resolveOptionalId")
 local store = require("@root/store")
 local types = require("@root/types")
 local writeItem = require("@root/cli/writeItem")
@@ -25,11 +26,11 @@ return table.freeze({
 
 		local added: Item
 		local doc = store.transaction(options.dir, function(doc)
-			added = graph.addNote(
-				doc,
-				text,
-				{ group = parser:get("group"), after = parser:get("after"), before = parser:get("before") }
-			)
+			added = graph.addNote(doc, text, {
+				group = resolveOptionalId(doc, parser:get("group")),
+				after = resolveOptionalId(doc, parser:get("after")),
+				before = resolveOptionalId(doc, parser:get("before")),
+			})
 		end)
 
 		writeItem(options, doc, added, "Added note")

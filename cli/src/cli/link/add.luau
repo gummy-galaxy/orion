@@ -5,6 +5,7 @@ local context = require("@root/cli/context")
 local getRequired = require("@root/cli/getRequired")
 local graph = require("@root/graph")
 local requestedRevision = require("@root/cli/requestedRevision")
+local resolveId = require("@root/query/resolveId")
 local runEdit = require("@root/cli/runEdit")
 local types = require("@root/types")
 
@@ -107,10 +108,15 @@ return table.freeze({
 		local dryRun = parser:has("dry-run")
 		local linked: { Link } = {}
 		local doc, baseRevision = runEdit(options.dir, dryRun, requestedRevision(parser), function(current)
+			for index, input in ids do
+				ids[index] = resolveId(current, input)
+			end
+
 			for index = 1, #ids - 1 do
 				linked[index] = graph.link(current, ids[index], ids[index + 1], kind, parser:get("label"))
 			end
 		end)
+		from, to = ids[1], ids[2]
 
 		if options.asJson then
 			writeJson(options, doc, ids, linked, kind, dryRun, baseRevision)

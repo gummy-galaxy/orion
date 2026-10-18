@@ -1,9 +1,11 @@
 local cli = require("@batteries/cli")
 
+local addIdPositional = require("@root/cli/addIdPositional")
 local context = require("@root/cli/context")
 local getRefs = require("@root/refs/getRefs")
 local getRequired = require("@root/cli/getRequired")
 local graph = require("@root/graph")
+local resolveId = require("@root/query/resolveId")
 local resolveRef = require("@root/adapters/resolveRef")
 local store = require("@root/store")
 local types = require("@root/types")
@@ -33,7 +35,7 @@ end
 return table.freeze({
 	help = "Take a ref off an item",
 	define = function(parser: cli.Parser)
-		parser:add("id", "positional", { help = "Item id" })
+		addIdPositional(parser, "id")
 		parser:add(
 			"ref",
 			"positional",
@@ -43,12 +45,12 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local id = getRequired(parser, "id")
+		local idInput = getRequired(parser, "id")
 		local input = getRequired(parser, "ref")
 
 		local detached: Item
 		local doc = store.transaction(options.dir, function(doc)
-			detached = detachRef(doc, id, input)
+			detached = detachRef(doc, resolveId(doc, idInput), input)
 		end)
 
 		writeItem(options, doc, detached, "Updated")

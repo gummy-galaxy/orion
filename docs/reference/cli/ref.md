@@ -16,8 +16,8 @@ Take a ref off an item
 orion ref remove [id] [ref] [options]
 ```
 
-| Argument | Description                                                                              |
-| -------- | ---------------------------------------------------------------------------------------- |
-| `[id]`   | Item id                                                                                  |
-| `[ref]`  | The ref's key as orion node show lists it, such as owner/name#12, or a URL or source:key |
-| `--json` | Print JSON                                                                               |
+| Argument | Description                                                                               |
+| -------- | ----------------------------------------------------------------------------------------- |
+| `[id]`   | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `[ref]`  | The ref's key as orion node show lists it, such as owner/name#12, or a URL or source:key  |
+| `--json` | Print JSON                                                                                |

@@ -7,6 +7,7 @@ local context = require("@root/cli/context")
 local getItemFields = require("@root/cli/getItemFields")
 local graph = require("@root/graph")
 local joinWords = require("@root/cli/joinWords")
+local resolveOptionalId = require("@root/cli/resolveOptionalId")
 local store = require("@root/store")
 local types = require("@root/types")
 local writeItem = require("@root/cli/writeItem")
@@ -27,10 +28,11 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local label = joinWords(parser:variadics(), "<label>")
 		local fields = getItemFields(parser) :: graph.AddOptions
-		fields.group = parser:get("group")
+		local groupInput = parser:get("group")
 
 		local added: Item
 		local doc = store.transaction(options.dir, function(doc)
+			fields.group = resolveOptionalId(doc, groupInput)
 			added = graph.addItem(doc, label, fields)
 			attachRequestedRef(doc, added.id, parser:get("ref"))
 		end)

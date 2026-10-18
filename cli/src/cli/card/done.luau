@@ -5,6 +5,7 @@ local context = require("@root/cli/context")
 local graph = require("@root/graph")
 local isBatchEdit = require("@root/cli/isBatchEdit")
 local requireItem = require("@root/cli/requireItem")
+local resolveId = require("@root/query/resolveId")
 local runBatchEdit = require("@root/cli/runBatchEdit")
 local store = require("@root/store")
 
@@ -13,7 +14,7 @@ type Context = context.Context
 return table.freeze({
 	help = "Mark one or more items done",
 	define = function(parser: cli.Parser)
-		addBatchOptions(parser, "Item ids")
+		addBatchOptions(parser, "Item ids or selectors")
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
@@ -22,8 +23,9 @@ return table.freeze({
 			return
 		end
 
-		local id = parser:variadics()[1]
+		local id: string
 		local doc = store.transaction(options.dir, function(doc)
+			id = resolveId(doc, parser:variadics()[1])
 			requireItem(doc, id)
 			graph.setFields(doc, id, { status = "done" })
 		end)
