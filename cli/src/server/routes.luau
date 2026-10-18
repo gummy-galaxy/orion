@@ -8,6 +8,7 @@ local editor = require("@root/server/routes/editor")
 local focus = require("@root/server/routes/focus")
 local imageRoutes = require("@root/server/routes/images")
 local links = require("@root/server/routes/links")
+local log = require("@root/server/routes/log")
 local merge = require("@root/server/routes/merge")
 local operations = require("@root/server/routes/operations")
 local orion = require("@root/server/routes/orion")
@@ -80,6 +81,9 @@ function routes.create(
 		end
 		if route == "/api/links" then
 			return links.handle(request, root)
+		end
+		if route == "/api/log" then
+			return log.handle(request, root)
 		end
 		if route == "/api/settings" then
 			return settings.handle(request, root)

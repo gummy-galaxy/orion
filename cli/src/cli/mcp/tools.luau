@@ -119,6 +119,27 @@ local function buildCreateWorkspaceArgv(arguments: json.Object): { string }
 	return argv
 end
 
+-- Cards are one list argument, joined into the comma-separated --card the CLI takes. Entries are always by an agent.
+local function buildLogAddArgv(arguments: json.Object): { string }
+	local argv = { "log", "add", getRequiredString(arguments, "text") }
+	local ids: { string } = {}
+
+	for _, card in json.asArray(arguments.cards) or {} do
+		assert(type(card) == "string" and card ~= "", "cards must be a list of strings")
+		table.insert(ids, card)
+	end
+
+	if #ids > 0 then
+		table.insert(argv, "--card")
+		table.insert(argv, table.concat(ids, ","))
+	end
+
+	table.insert(argv, "--agent")
+	table.insert(argv, getRequiredString(arguments, "agent"))
+	appendOption(argv, "canvas", arguments.canvas)
+	return argv
+end
+
 -- Group ids are one list argument, which the CLI takes as trailing positionals.
 local function buildTidyArgv(arguments: json.Object): { string }
 	local argv = { "group", "tidy" }
@@ -387,6 +408,66 @@ local tools: { Tool } = {
 			{ name = "group", kind = "id", description = "Group to add it to.", at = "option" },
 			{ name = "after", kind = "id", description = "Item the note follows.", at = "option" },
 			{ name = "before", kind = "id", description = "Item the note leads into.", at = "option" },
+		},
+	},
+	{
+		name = "orion_log_add",
+		description = "Log what happened on the canvas, attached to any number of cards. Entries are append-only, so correct a mistake with a new entry. Pass the agent's name.",
+		command = { "log", "add" },
+		json = true,
+		fields = {
+			{ name = "text", kind = "string", required = true, minLength = 1, at = "positional" },
+			{
+				name = "cards",
+				kind = "strings",
+				description = "Card ids to attach the entry to. Omit to log it for the whole canvas.",
+				at = "csv",
+				flag = "card",
+			},
+			{
+				name = "agent",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The agent's name, such as claude.",
+				at = "option",
+			},
+			workspaceField,
+		},
+		build = buildLogAddArgv,
+	},
+	{
+		name = "orion_log_list",
+		description = "List the canvas log, newest first, optionally only the entries attached to one card.",
+		annotations = { readOnlyHint = true },
+		command = { "log", "list" },
+		json = true,
+		fields = {
+			workspaceField,
+			{ name = "card", kind = "id", description = "Only entries attached to this card.", at = "option" },
+			{
+				name = "limit",
+				kind = "int",
+				description = "Include at most this many of the newest entries.",
+				at = "option",
+			},
+		},
+	},
+	{
+		name = "orion_card_timeline",
+		description = "Show a card's timeline: its most recent log entries, newest first.",
+		annotations = { readOnlyHint = true },
+		command = { "card", "timeline" },
+		json = true,
+		fields = {
+			{ name = "id", kind = "id", required = true, at = "positional" },
+			workspaceField,
+			{
+				name = "limit",
+				kind = "int",
+				description = "How many recent entries to include. Defaults to 5.",
+				at = "option",
+			},
 		},
 	},
 	{
