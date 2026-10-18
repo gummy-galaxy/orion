@@ -16,6 +16,10 @@
     "link": "/reference/cli/node"
   },
   {
+    "text": "placement",
+    "link": "/reference/cli/placement"
+  },
+  {
     "text": "group",
     "link": "/reference/cli/group"
   },

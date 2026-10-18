@@ -16,6 +16,7 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion note`](./note)             | Notes for context, decisions, and reminders                          |
 | [`orion link`](./link)             | Dependencies between items                                           |
 | [`orion node`](./node)             | Any item or group                                                    |
+| [`orion placement`](./placement)   | Places a card appears on the canvas (spike for #122)                 |
 | [`orion group`](./group)           | Groups of items                                                      |
 | [`orion ref`](./ref)               | Outside work attached to cards                                       |
 | [`orion next`](./next)             | List items that can start now, most unblocking first                 |
