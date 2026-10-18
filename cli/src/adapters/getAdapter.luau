@@ -1,4 +1,6 @@
 local adapterTypes = require("@root/adapters/types")
+local claudeCollect = require("@root/adapters/claude/collect")
+local claudeCreateSource = require("@root/adapters/claude/createSource")
 local githubCollect = require("@root/adapters/github/collect")
 local githubCreateSource = require("@root/adapters/github/createSource")
 local githubLookupRefs = require("@root/adapters/github/lookupRefs")
@@ -34,6 +36,8 @@ local adapters: { [string]: Adapter } = {
 		lookupRefs = jiraLookupRefs,
 	},
 	hop = { kind = "hop", createSource = hopCreateSource, collect = hopCollect, collectOrder = 1 },
+	-- After hop, so a branch card hop adds this pass can take its sessions.
+	claude = { kind = "claude", createSource = claudeCreateSource, collect = claudeCollect, collectOrder = 2 },
 }
 
 local function getAdapter(kind: string): Adapter

@@ -40,6 +40,9 @@ export type Ref = {
 	deletions: number?,
 	-- The revision the facts describe, which an action taken from them, such as a merge, must still match.
 	head: string?,
+	-- An agent session's state: working, waiting (on you), or done, with the last thing it said.
+	sessionState: string?,
+	lastMessage: string?,
 }
 
 -- Mirrors a node as the app saves it. `data` stays raw JSON so fields the app adds survive a CLI write.
@@ -71,6 +74,8 @@ export type Source = {
 	exclude: { string }?,
 	command: { string }?,
 	browse: string?,
+	-- Where an agent keeps its data, such as `~/.claude` for Claude Code.
+	dir: string?,
 }
 
 -- A CI job whose failures cards leave out, across every card in its repository. `untilTime` ends it at a UTC time;

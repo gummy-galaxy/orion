@@ -20,7 +20,7 @@ type Kind = {
 
 -- Each kind has its own options, so help lists only the ones it takes. The adapter's
 -- createSource validates them.
-local KIND_ORDER = { "github", "jira", "hop" }
+local KIND_ORDER = { "github", "jira", "hop", "claude" }
 
 local KINDS: { [string]: Kind } = {
 	github = {
@@ -43,6 +43,12 @@ local KINDS: { [string]: Kind } = {
 		help = "Add a hop source",
 		options = {
 			{ name = "command", help = "JSON array naming an external command" },
+		},
+	},
+	claude = {
+		help = "Add a Claude Code session source",
+		options = {
+			{ name = "dir", help = "Claude Code's data folder, ~/.claude by default" },
 		},
 	},
 }
@@ -71,7 +77,7 @@ local function readValues(kind: string, parser: cli.Parser): { [string]: { strin
 end
 
 return table.freeze({
-	help = "Add a GitHub, Jira, or hop source",
+	help = "Add a GitHub, Jira, hop, or Claude Code source",
 	define = function(parser: cli.Parser)
 		for _, kind in KIND_ORDER do
 			local kindParser = parser:subcommand(kind, { help = KINDS[kind].help })

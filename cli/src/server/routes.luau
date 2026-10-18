@@ -15,6 +15,7 @@ local merge = require("@root/server/routes/merge")
 local operations = require("@root/server/routes/operations")
 local orion = require("@root/server/routes/orion")
 local reveal = require("@root/server/routes/reveal")
+local sessions = require("@root/server/routes/sessions")
 local settings = require("@root/server/routes/settings")
 local shared = require("@root/server/routes/shared")
 local static = require("@root/server/routes/static")
@@ -91,6 +92,9 @@ function routes.create(
 		end
 		if route == "/api/log" then
 			return log.handle(request, root)
+		end
+		if route == "/api/sessions/turns" then
+			return sessions.handle(request, root, active)
 		end
 		if route == "/api/settings" then
 			return settings.handle(request, root)

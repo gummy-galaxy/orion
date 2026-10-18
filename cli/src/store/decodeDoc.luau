@@ -120,6 +120,7 @@ local function decodeDoc(text: string): Doc
 				exclude = getStrings(source.exclude),
 				command = getStrings(source.command),
 				browse = getStringField(source.browse),
+				dir = getStringField(source.dir),
 			})
 		end
 	end
