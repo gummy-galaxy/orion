@@ -17,7 +17,7 @@ import { dirname, extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { chromium, type Browser, type Page } from 'playwright'
-import { buildReport, IDLE_MS, SLOW_FRAME_MS, type ReportInput, type Sample } from './perfReport.ts'
+import { buildReport, IDLE_MS, SLOW_FRAME_MS, type Renderer, type ReportInput, type Sample } from './perfReport.ts'
 
 type Side = 'base' | 'head'
 /** What the perf stories expose on the page, plus the frame gaps this script records there. */
@@ -30,6 +30,12 @@ const HARNESS = ['src/perf', '.storybook/main.ts']
 const VIEWPORT = { width: 1440, height: 900 }
 const SETTLE_MS = 800
 const TRACE_CATEGORIES = ['devtools.timeline', 'disabled-by-default-devtools.timeline']
+// Headless Chromium draws in software by default. These ANGLE backends reach the GPU without a display: Metal on macOS,
+// and OpenGL ES over EGL on Linux, the path desktop Chrome takes there. Without a GPU, Chromium falls back to software.
+const ANGLE_BACKENDS: Partial<Record<NodeJS.Platform, string>> = { darwin: 'metal', linux: 'gl-egl' }
+const CHROMIUM_ARGS = ANGLE_BACKENDS[process.platform]
+  ? ['--use-gl=angle', `--use-angle=${ANGLE_BACKENDS[process.platform]}`, '--ignore-gpu-blocklist']
+  : []
 const MIME: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',
@@ -164,7 +170,7 @@ function serve(dir: string): Promise<{ server: Server; url: string }> {
 
 type TraceEvent = { name: string; ph: string; pid: number; tid: number; dur?: number; args?: { name?: string } }
 
-/** Totals from a Chromium trace: frames the page drew, and time on its main thread and raster workers. */
+/** Totals from a Chromium trace: frames the page drew, and time on its main thread, raster workers, and GPU. */
 function readTrace(events: TraceEvent[]): Sample {
   const threads = new Map(
     events.filter((event) => event.ph === 'M' && event.name === 'thread_name').map((event) => [`${event.pid}:${event.tid}`, event.args?.name]),
@@ -179,7 +185,20 @@ function readTrace(events: TraceEvent[]): Sample {
     styleMs: total((event) => event.name === 'UpdateLayoutTree'),
     layoutMs: total((event) => event.name === 'Layout'),
     rasterMs: total((event) => event.name === 'RasterTask'),
+    gpuMs: total((event) => event.name === 'GPUTask'),
   }
+}
+
+/** The device Chromium draws with, and whether it composites on a GPU or in software. */
+async function readRenderer(browser: Browser): Promise<Renderer> {
+  const session = await browser.newBrowserCDPSession()
+  const { gpu } = (await session.send('SystemInfo.getInfo')) as {
+    gpu: { devices: { deviceString: string }[]; featureStatus: Record<string, string> }
+  }
+
+  await session.detach()
+
+  return { device: gpu.devices[0]?.deviceString ?? 'unknown', gpu: gpu.featureStatus.gpu_compositing === 'enabled' }
 }
 
 /** Times one interaction: React commits from the story's Profiler, browser work from a trace, and gaps between animation frames. */
@@ -350,7 +369,8 @@ async function main() {
       head: await timed('Building head Storybook', () => buildStorybook(dirs.head, 'head')),
     }
     const servers = { base: await serve(builds.base), head: await serve(builds.head) }
-    const browser = await chromium.launch()
+    const browser = await chromium.launch({ args: CHROMIUM_ARGS })
+    const renderer = await readRenderer(browser)
     const collected: Record<Side, Record<string, Record<string, Sample>[]>> = { base: {}, head: {} }
 
     try {
@@ -371,8 +391,11 @@ async function main() {
       servers.head.server.close()
     }
 
+    console.log(`Rendered ${renderer.gpu ? 'on the GPU' : 'in software'} with ${renderer.device}`)
+
     input.render = {
       runs,
+      renderer,
       stories: Object.fromEntries(stories.map((story) => [story, { base: collected.base[story], head: collected.head[story] }])),
     }
     raw.render = collected
