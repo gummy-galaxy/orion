@@ -22,7 +22,7 @@ orion source list [options]
 
 ## orion source add
 
-Add a GitHub, Jira, or hop source
+Add a GitHub, Jira, hop, or Claude Code source
 
 ```sh
 orion source add <command> [options]
@@ -70,6 +70,19 @@ orion source add hop [options]
 | ------------------- | ------------------------------------- |
 | `--command <value>` | JSON array naming an external command |
 | `--id <value>`      | Source id                             |
+
+### orion source add claude
+
+Add a Claude Code session source
+
+```sh
+orion source add claude [options]
+```
+
+| Argument        | Description                                     |
+| --------------- | ----------------------------------------------- |
+| `--dir <value>` | Claude Code's data folder, ~/.claude by default |
+| `--id <value>`  | Source id                                       |
 
 ## orion source remove
 
