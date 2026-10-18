@@ -25,6 +25,29 @@ const doc = (nodes: StoredNode[], links: Link[] = []): OperationDoc => ({ nodes,
 const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({ id: `${from}>${to}`, from, to, kind })
 
 describe('diffOperations', () => {
+  it('adds, moves, and removes the extra placements of cards', () => {
+    const base = {
+      ...doc([group('g'), group('h'), task('a', 'g'), task('b', 'g')]),
+      placements: [{ id: 'a-copy', node: 'a', parentId: 'h', position: { x: 0, y: 0 } }],
+    }
+    const current = {
+      ...doc([group('g'), group('h'), task('a', 'g'), task('b', 'g')]),
+      placements: [
+        { id: 'a-copy', node: 'a', parentId: 'h', position: { x: 10, y: 0 } },
+        { id: 'b-copy', node: 'b', parentId: 'h', position: { x: 0, y: 90 } },
+      ],
+    }
+
+    expect(diffOperations(base, current)).toEqual([
+      { op: 'movePlacement', id: 'a-copy', group: 'h', x: 10, y: 0 },
+      { op: 'addPlacement', node: 'b', id: 'b-copy', group: 'h', x: 0, y: 90 },
+    ])
+    expect(diffOperations(current, base)).toEqual([
+      { op: 'movePlacement', id: 'a-copy', group: 'h', x: 0, y: 0 },
+      { op: 'removePlacement', id: 'b-copy' },
+    ])
+  })
+
   it('sends nothing when the canvas matches what was saved', () => {
     const saved = doc([task('a'), group('g'), task('b', 'g')], [link('a', 'b')])
 

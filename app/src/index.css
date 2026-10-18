@@ -428,6 +428,28 @@ select {
     background-position: 0 0;
   }
 }
+/* A card shown in more than one place (#122): a quiet count of its places, and a ring on its other copies while one is hovered. */
+.card > .copy-mark {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-2);
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-size-caption);
+  font-weight: var(--weight-bold);
+  pointer-events: none;
+}
+.card > .copy-mark svg {
+  width: 11px;
+  height: 11px;
+}
+.card.is-sibling {
+  outline: var(--ring-width-selection) dashed var(--accent-default);
+  outline-offset: calc(var(--ring-width-selection) + var(--ring-offset-default));
+}
 /* A closed-out card carries a Done stamp, so it reads as finished on its own, with nothing beside it to compare. */
 .card > .done-stamp {
   position: absolute;

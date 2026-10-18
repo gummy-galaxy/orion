@@ -1,9 +1,22 @@
 import { memo, useContext, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { TASK_HEIGHT, TASK_WIDTH, type TaskNode } from '../model'
-import { useAtomValue } from 'jotai'
+import { useAtomValue, useSetAtom } from 'jotai'
 import { ActionsContext } from '../derive'
-import { useCardView, useCelebrating, useMarked, useSnoozed, useTint, useTraceRole, inspectingAtom, skinAtom, skinStore } from '../state'
+import {
+  useCardView,
+  useCelebrating,
+  useIsHoveredCard,
+  useMarked,
+  usePlacementCount,
+  useSnoozed,
+  useTint,
+  useTraceRole,
+  hoveredCardAtom,
+  inspectingAtom,
+  skinAtom,
+  skinStore,
+} from '../state'
 import { CardBody } from './CardBody'
 import { ComponentCard } from './ComponentCard'
 import { FarTag } from './FarTag'
@@ -44,7 +57,12 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   // Inspect mode opens the hovered card in full.
   const peeking = useAtomValue(inspectingAtom) && hovered
   const view = useCardView(id, data, parentId)
-  const trace = useTraceRole(id)
+  // A copy is the same card shown again, so it traces as the card and lights up while another copy is hovered (#122).
+  const card = data.copyOf ?? id
+  const places = usePlacementCount(card)
+  const sibling = useIsHoveredCard(card) && !hovered
+  const setHoveredCard = useSetAtom(hoveredCardAtom)
+  const trace = useTraceRole(card)
   const attention = useMarked(id)
   const snoozedUntil = useSnoozed(id)
   const actions = useContext(ActionsContext)!
@@ -58,16 +76,25 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   const skin = useAtomValue(skinAtom, { store: skinStore })
   const className =
     view.kind === 'note'
-      ? `card skin-${skin} note${trace ? ' tr-' + trace : ''}`
+      ? `card skin-${skin}${sibling ? ' is-sibling' : ''} note${trace ? ' tr-' + trace : ''}`
       : view.kind === 'component'
         ? `card component shape-${data.shape ?? 'service'}${tint ? ' tint-' + tint : ''}${trace ? ' tr-' + trace : ''}`
-        : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}${snoozedUntil ? ' snoozed' : ''}`
+        : `card skin-${skin}${sibling ? ' is-sibling' : ''} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}${snoozedUntil ? ' snoozed' : ''}`
   const body = (
     <>
       {view.kind === 'component' ? (
         <ComponentCard view={view} shape={data.shape ?? 'service'} width={width ?? TASK_WIDTH} height={height ?? TASK_HEIGHT} />
       ) : (
         <CardBody view={view} />
+      )}
+      {places > 1 && (
+        <span className="copy-mark" title={`Shown in ${places} places`} aria-label={`Shown in ${places} places`}>
+          <svg viewBox="0 0 12 12" aria-hidden="true">
+            <rect x="1.5" y="3.5" width="6" height="6" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+            <rect x="4.5" y="1" width="6" height="6" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+          </svg>
+          {places}
+        </span>
       )}
       {finished && !waiting && (
         <span
@@ -105,8 +132,14 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
       onPointerEnter={(event) => {
         event.currentTarget.style.transformOrigin = liftOrigin(event.currentTarget)
         setHovered(true)
+
+        if (places > 1) setHoveredCard(card)
       }}
-      onPointerLeave={() => setHovered(false)}
+      onPointerLeave={() => {
+        setHovered(false)
+
+        if (places > 1) setHoveredCard((current) => (current === card ? null : current))
+      }}
     >
       <Handle type="target" position={Position.Left} />
       {/* Only one card at a time grows into a tag, so tags never pile over their neighbors. */}

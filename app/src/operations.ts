@@ -1,4 +1,5 @@
 import type { Link } from './model'
+import type { Placement } from './placements/types'
 import { stableJson } from './stableJson'
 
 /** One edit the server applies, in the shape `POST /api/operations` reads. */
@@ -16,7 +17,7 @@ export type StoredNode = {
 }
 
 /** A document in the stored form the operations compare. */
-export type OperationDoc = { nodes: StoredNode[]; links: Link[]; stickers?: unknown[]; stickerLoadout?: unknown[] }
+export type OperationDoc = { nodes: StoredNode[]; links: Link[]; placements?: Placement[]; stickers?: unknown[]; stickerLoadout?: unknown[] }
 
 const isGroup = (node: StoredNode) => node.type === 'cluster'
 const keyOf = (from: string, to: string) => `${from}\0${to}`
@@ -199,6 +200,23 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
       // An empty label clears one the link had.
       operations.push({ op: 'link', from: link.from, to: link.to, kind: link.kind, ...(link.label || relabeled ? { label: link.label ?? '' } : {}) })
     }
+  }
+
+  // Extra placements of cards, once the groups they sit in exist. A placement goes on its own only while its card
+  // stays; removing the card removes every placement of it.
+  const beforePlacements = new Map((base.placements ?? []).map((placement) => [placement.id, placement]))
+  const afterPlacements = new Map((current.placements ?? []).map((placement) => [placement.id, placement]))
+
+  for (const placement of afterPlacements.values()) {
+    const previous = beforePlacements.get(placement.id)
+    const fields = { id: placement.id, group: placement.parentId, x: placement.position.x, y: placement.position.y }
+
+    if (!previous) operations.push({ op: 'addPlacement', node: placement.node, ...fields })
+    else if (!sameJson(previous, placement)) operations.push({ op: 'movePlacement', ...fields })
+  }
+
+  for (const placement of beforePlacements.values()) {
+    if (!afterPlacements.has(placement.id) && after.has(placement.node)) operations.push({ op: 'removePlacement', id: placement.id })
   }
 
   // Removals come last, so no group empties while a move still needs it. The server removes a group once it's empty.

@@ -36,6 +36,7 @@ import { forgetTextWidths } from '../cardHeight'
 import { groupSelection, layoutOrder, moveOutOfGroup, reflow, ungroup } from '../layout'
 import { pushAside } from '../pushAside'
 import { diffOperations } from '../operations'
+import { pickNearestEnds } from '../placements/pickNearestEnds'
 import { cameraGlide, focusGlide, motionReduced, useSystemMotion } from '../motion'
 import { readDurationMs } from '../readDurationMs'
 import {
@@ -1306,6 +1307,22 @@ export function Canvas() {
 
   // Which groups read as single bodies at this level of detail, and which nodes that hides.
   const inView = useCallback((id: string) => !root || id === root || ancestors(id, map).includes(root), [root, map])
+  // Every node that draws each card that appears more than once: its own node, then its copies (#122).
+  const appearances = useMemo(() => {
+    const result = new Map<string, string[]>()
+
+    for (const node of nodes) {
+      const card = isTask(node) ? node.data.copyOf : undefined
+
+      if (card) result.set(card, [...(result.get(card) ?? [card]), node.id])
+    }
+
+    return result
+  }, [nodes])
+  // A copy is inspected and edited as the card itself, so its links and log read the same as in the card's other places.
+  const cardOf = <T extends AppNode>(node: T): T => (isTask(node) && node.data.copyOf ? ((map.get(node.data.copyOf) as T | undefined) ?? node) : node)
+  const appearancesOf = useCallback((id: string) => appearances.get(id) ?? [id], [appearances])
+  const cardInView = useCallback((id: string) => appearancesOf(id).some(inView), [appearancesOf, inView])
 
   const depthInView = (id: string) => {
     const chain = ancestors(id, map)
@@ -1364,8 +1381,8 @@ export function Canvas() {
     const outgoing: string[] = []
 
     for (const link of links) {
-      const source = inView(link.from)
-      const target = inView(link.to)
+      const source = cardInView(link.from)
+      const target = cardInView(link.to)
 
       if (source && !target && !outgoing.includes(link.to)) outgoing.push(link.to)
 
@@ -1416,7 +1433,7 @@ export function Canvas() {
     place(outgoing, 'out')
 
     return ghostNodes
-  }, [root, map, links, inView, work, cardSize])
+  }, [root, map, links, cardInView, work, cardSize])
 
   // React Flow redraws a node whenever its object changes, so unchanged nodes keep last render's object.
   const [shownNodes] = useState(() => new WeakMap<AppNode, AppNode>())
@@ -1464,8 +1481,29 @@ export function Canvas() {
   /** Where a link is drawn: the nodes standing in for its ends, ghosts for ends outside the open group, or null when it isn't drawn. */
   const drawnEnds = useCallback(
     (link: Link) => {
-      let source = view.rep(link.from)
-      let target = view.rep(link.to)
+      // A card shown in several places draws each link once, to the copy nearest the link's other end.
+      const shown = (id: string) => [
+        ...new Set(
+          appearancesOf(id)
+            .map(view.rep)
+            .filter((rep): rep is string => !!rep),
+        ),
+      ]
+
+      const centerOf = (id: string) => {
+        const node = map.get(id)
+
+        if (!node) return undefined
+
+        const position = absolutePosition(node, map)
+        const size = sizeOf(node, cardSize)
+
+        return { x: position.x + size.width / 2, y: position.y + size.height / 2 }
+      }
+
+      const nearest = pickNearestEnds(shown(link.from), shown(link.to), centerOf)
+      let source = nearest?.source ?? shown(link.from)[0] ?? null
+      let target = nearest?.target ?? shown(link.to)[0] ?? null
 
       if (root && !source && target) source = `ghost:in:${link.from}`
 
@@ -1475,7 +1513,7 @@ export function Canvas() {
 
       return { source, target }
     },
-    [view, root],
+    [view, root, appearancesOf, map, cardSize],
   )
 
   const [drawnEdges] = useState(() => new Map<string, { edge: Edge; print: string }>())
@@ -1491,7 +1529,8 @@ export function Canvas() {
 
       const { source, target } = ends
       const flow = work.flow.get(link.from) ?? 'live'
-      const direct = (source === link.from || source.startsWith('ghost:')) && (target === link.to || target.startsWith('ghost:'))
+      const drawsCard = (end: string, card: string) => end.startsWith('ghost:') || appearancesOf(card).includes(end)
+      const direct = drawsCard(source, link.from) && drawsCard(target, link.to)
 
       if (direct) {
         let className = link.kind === 'related' ? 'e-rel' : `e-${flow}`
@@ -1552,7 +1591,7 @@ export function Canvas() {
     }
 
     return keepDrawn(drawnEdges, resultEdges)
-  }, [links, drawnEnds, work, trace, relatedFocus, drawnEdges, pickedLink, selectedKey])
+  }, [links, drawnEnds, appearancesOf, work, trace, relatedFocus, drawnEdges, pickedLink, selectedKey])
 
   // ---- Attention: hold ⌘ to see what needs you ----
   const [attending, setAttending] = useState(false)
@@ -3847,7 +3886,7 @@ export function Canvas() {
                   ) : isTask(one) ? (
                     <TaskInspector
                       key={inspectorKey}
-                      node={one}
+                      node={cardOf(one)}
                       focus={editing === one.id}
                       doneEditing={() => setEditing(null)}
                       work={work}
@@ -4013,7 +4052,7 @@ export function Canvas() {
                 />
               ) : (
                 <TaskInspector
-                  node={focused}
+                  node={cardOf(focused)}
                   work={work}
                   map={map}
                   github={github}

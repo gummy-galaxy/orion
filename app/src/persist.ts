@@ -5,13 +5,17 @@ import type { Operation } from './operations'
 import { stableJson } from './stableJson'
 import type { CardSize } from './cardSize'
 import { toDisplayed, toStored } from './skinSpace'
+import { expandPlacements } from './placements/expandPlacements'
+import { foldPlacements } from './placements/foldPlacements'
+import type { Placement } from './placements/types'
 
 /**
  * The canvas lives in orion.json, served by `orion serve`, which is the only store. The app reads it, and every
  * committed edit goes to the server as operations. Without a server the canvas shows empty and nothing is saved.
  */
 
-export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
+/** `placements` holds the extra appearances of cards (#122); the canvas draws each as a copy among `nodes`. */
+export type Saved = { nodes: AppNode[]; links: Link[]; placements?: Placement[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
 /** `derived` is what `orion serve` computed for this revision; a server without it leaves the field out. */
 export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot; derived?: Derived }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
@@ -285,8 +289,13 @@ export function slim(nodes: AppNode[]) {
   }))
 }
 
-/** A stable fingerprint, so view-only changes don't cause writes. */
-export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) => stableJson({ nodes: slim(nodes), links, stickers, stickerLoadout })
+/** A stable fingerprint, so view-only changes don't cause writes. Copies drawn among the nodes fold into placements. */
+export function fingerprint({ nodes, links, placements = [], stickers, stickerLoadout }: Saved) {
+  const folded = foldPlacements(slim(nodes))
+  const allPlacements = [...placements, ...folded.placements].sort((a, b) => a.id.localeCompare(b.id))
+
+  return stableJson({ nodes: folded.nodes, links, placements: allPlacements.length ? allPlacements : undefined, stickers, stickerLoadout })
+}
 
 /** The stored shape of a document, for comparing and merging. */
 export const compactDoc = (doc: Saved): Saved =>
@@ -295,7 +304,7 @@ export const compactDoc = (doc: Saved): Saved =>
 /** A document as the canvas shows it at this card size. */
 export function displayedDoc(doc: Saved, cardSize: CardSize): Saved & { stickers: Sticker[]; stickerLoadout: Loadout } {
   return {
-    nodes: toDisplayed(normalize(doc.nodes), cardSize),
+    nodes: toDisplayed(normalize(expandPlacements(doc.nodes, doc.placements)), cardSize),
     links: doc.links,
     stickers: doc.stickers ?? [],
     stickerLoadout: loadoutOf(doc.stickerLoadout),

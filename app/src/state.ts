@@ -1,4 +1,4 @@
-import { atom, getDefaultStore, useAtomValue } from 'jotai'
+import { atom, getDefaultStore, useAtomValue, type SetStateAction } from 'jotai'
 import { selectAtom } from 'jotai/utils'
 import { useMemo } from 'react'
 import { getCardView } from './cardView'
@@ -6,8 +6,38 @@ import { readAppearance } from './appearance'
 import { buildWork, toServerFacts, traceFrom, type AttentionMark, type Derived, type GroupStats, type SourceRef } from './derive'
 import { byId, isImage, isTask, tintOf, type AppNode, type Link, type TaskNode, type Tint, type ViewStatus } from './model'
 import { sameFoldPreview, type FoldPreviewItem } from './foldPreview'
+import { syncCopies } from './placements/syncCopies'
 
-export const nodesAtom = atom<AppNode[]>([])
+const storedNodesAtom = atom<AppNode[]>([])
+
+/** Every node the canvas draws. Writing it keeps the copies of a card in step, so an edit to one shows on all (#122). */
+export const nodesAtom = atom(
+  (get) => get(storedNodesAtom),
+  (get, set, update: SetStateAction<AppNode[]>) => {
+    const previous = get(storedNodesAtom)
+    const next = typeof update === 'function' ? update(previous) : update
+
+    set(storedNodesAtom, syncCopies(previous, next))
+  },
+)
+/** The card under the pointer, by the id of the card itself rather than the copy, so its other copies can light up. */
+export const hoveredCardAtom = atom<string | null>(null)
+/** How many places each card that appears more than once is shown in. */
+export const placementCountAtom = atom((get) => {
+  const counts = new Map<string, number>()
+
+  for (const node of get(storedNodesAtom)) {
+    if (!isTask(node)) continue
+
+    const card = node.data.copyOf ?? node.id
+
+    counts.set(card, (counts.get(card) ?? 0) + 1)
+  }
+
+  for (const [card, count] of counts) if (count < 2) counts.delete(card)
+
+  return counts
+})
 export const skinAtom = atom(readAppearance().skin)
 // The skin lives in Jotai's default store because this per-device preference is shared by every canvas and story store.
 export const skinStore = getDefaultStore()
@@ -195,3 +225,10 @@ export const useGroupParts = (id: string) =>
 // Only a group whose own preview changed redraws, so moving other work doesn't touch it.
 export const useFoldPreview = (id: string) =>
   useAtomValue(useMemo(() => selectAtom(foldPreviewsAtom, (previews) => previews.get(id), sameFoldPreview), [id]))
+
+/** How many places a card is shown in, or 0 when it appears only once. */
+export const usePlacementCount = (card: string) =>
+  useAtomValue(useMemo(() => selectAtom(placementCountAtom, (counts) => counts.get(card) ?? 0), [card]))
+
+/** Whether another appearance of this card is under the pointer. */
+export const useIsHoveredCard = (card: string) => useAtomValue(useMemo(() => selectAtom(hoveredCardAtom, (hovered) => hovered === card), [card]))

@@ -63,6 +63,11 @@ export type TaskData = {
    * closes it out at once and drops the flag.
    */
   celebrate?: boolean
+  /**
+   * View only, never stored: set on a copy of a card that appears in more than one place, naming the card (#122).
+   * The copy's node id is its placement's id.
+   */
+  copyOf?: string
 }
 /**
  * Outside work a card carries. The source's adapter in the CLI reads the source and fills in the source-neutral facts
@@ -446,9 +451,14 @@ export function pruneEmptied(before: AppNode[], after: AppNode[]): AppNode[] {
   }
 }
 
-/** Removes nodes from the canvas, dropping any group they were the last of. */
+/**
+ * Removes nodes from the canvas, dropping any group they were the last of. Removing a card's own node removes its
+ * copies too, while removing a copy takes only that placement (#122).
+ */
 export function removeNodes(nodes: AppNode[], ids: string[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
   const removed = new Set(ids)
+
+  for (const node of nodes) if (isTask(node) && node.data.copyOf && removed.has(node.data.copyOf)) removed.add(node.id)
 
   return pruneEmptied(
     nodes,

@@ -83,6 +83,22 @@ describe('adopting a server document', () => {
     })
   }
 
+  it('leaves nothing to save for a card shown in two places, and saves a moved copy as its placement', () => {
+    const placed = { ...serverDoc, placements: [{ id: 'inside-copy', node: 'inside', position: { x: 900, y: 300 } }] } as Remote
+    const shown = displayedDoc(placed, CLASSIC)
+
+    expect(storedPrint(shown, CLASSIC)).toBe(adoptedPrint(placed, CLASSIC))
+    expect(shown.nodes.find((node) => node.id === 'inside-copy')?.data).toMatchObject({ label: 'Inside', copyOf: 'inside' })
+
+    const saved = compactDoc({
+      ...shown,
+      nodes: shown.nodes.map((node) => (node.id === 'inside-copy' ? { ...node, position: { x: 950, y: 300 } } : node)),
+    })
+
+    expect(saved.nodes.some((node) => node.id === 'inside-copy')).toBe(false)
+    expect(saved.placements).toEqual([{ id: 'inside-copy', node: 'inside', position: { x: 950, y: 300 } }])
+  })
+
   it('saves positions that moved aside', () => {
     const shown = displayedDoc(serverDoc, TRADING)
     const nodes = shown.nodes.map((node) => (node.id === 'loose' ? { ...node, position: { x: node.position.x + 400, y: node.position.y } } : node))
