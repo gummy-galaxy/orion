@@ -5,7 +5,7 @@ local tools = require("@root/cli/mcp/tools")
 
 type Field = mcpTypes.Field
 
--- Matches store.isValidWorkspace, written as a JSON Schema pattern.
+-- Matches `isValidWorkspace`, written as a JSON Schema pattern.
 local CANVAS_PATTERN = "^[a-z0-9-]+$"
 
 local function getFieldSchema(field: Field): json.Object

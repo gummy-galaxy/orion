@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dragRoots, dropTarget, followEscape, reparent, startEscape } from './escape'
+import { dragRoots, dropTarget, followEscape, landInside, reparent, startEscape } from './escape'
 import { TASK_HEIGHT, TASK_WIDTH, byId, normalize, type AppNode, type ClusterData } from './model'
 
 const size = { width: TASK_WIDTH, height: TASK_HEIGHT }
@@ -54,29 +54,22 @@ describe('startEscape', () => {
 })
 
 describe('followEscape', () => {
-  it('lets the group stretch while the drag stays near its edge', () => {
+  it('keeps the work home while the drag stays near its edge', () => {
     const before = canvas()
     const escape = startEscape(before, ['inner'], size)!
     const nodeMap = byId(before)
     const inner = nodeMap.get('inner')!
     const near = moved(before, 'inner', nodeMap.get('outer')!.width! - (inner.position.x + inner.width!) + 40, 0)
-    const followed = followEscape(near, escape, before, POP, size)
 
-    expect(followed.escape.home).toBe('outer')
-    expect(followed.nodes).toBe(near)
+    expect(followEscape(near, escape, before, POP, size)).toBe(escape)
   })
 
-  it('pops out past the distance and puts the group it left back as it was', () => {
+  it('pops out past the distance', () => {
     const before = canvas()
     const escape = startEscape(before, ['inner'], size)!
     const outerWidth = byId(before).get('outer')!.width!
-    const stretched = moved(before, 'inner', outerWidth + POP, 0).map((node) => (node.id === 'outer' ? { ...node, width: node.width! + 500 } : node))
-    const followed = followEscape(stretched, escape, before, POP, size)
-    const nodeMap = byId(followed.nodes)
 
-    expect(followed.escape.home).toBeUndefined()
-    expect(nodeMap.get('outer')!.width).toBe(outerWidth)
-    expect(nodeMap.get('inner')!.expandParent).toBe(false)
+    expect(followEscape(moved(before, 'inner', outerWidth + POP, 0), escape, before, POP, size).home).toBeUndefined()
   })
 
   it('pops through several levels in one sweep', () => {
@@ -84,7 +77,35 @@ describe('followEscape', () => {
     const escape = startEscape(before, ['card'], size)!
     const far = moved(before, 'card', 0, 3000)
 
-    expect(followEscape(far, escape, before, POP, size).escape.home).toBeUndefined()
+    expect(followEscape(far, escape, before, POP, size).home).toBeUndefined()
+  })
+})
+
+describe('landInside', () => {
+  it('moves work dropped past its group edge back within the group', () => {
+    const before = canvas()
+    const outer = byId(before).get('outer')!
+    const landed = byId(landInside(moved(before, 'stay', outer.width!, 60), ['stay'], size))
+
+    expect(landed.get('stay')!.position).toEqual({ x: outer.width! - 32 - TASK_WIDTH, y: outer.height! - 32 - TASK_HEIGHT })
+  })
+
+  it('keeps the formation of work dropped together', () => {
+    const before = canvas()
+    const side = byId(before).get('side')!
+    const dropped = moved(moved(before, 'side-card', -100, 0), 'side-card-2', -100, 0)
+    const landed = byId(landInside(dropped, ['side-card', 'side-card-2'], size))
+
+    expect(landed.get('side-card')!.position.x).toBe(32)
+    expect(landed.get('side-card-2')!.position.x).toBe(32)
+    expect(landed.get('side-card-2')!.position.y - landed.get('side-card')!.position.y).toBe(322)
+    expect(side.width).toBe(byId(normalize(landInside(dropped, ['side-card', 'side-card-2'], size))).get('side')!.width)
+  })
+
+  it('leaves work that is already inside, and work at the top level', () => {
+    const before = canvas()
+
+    expect(landInside(before, ['card', 'side'], size)).toBe(before)
   })
 })
 

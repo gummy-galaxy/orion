@@ -1,7 +1,7 @@
 local cli = require("@batteries/cli")
 
+local archiveWorkspace = require("@root/store/archiveWorkspace")
 local context = require("@root/cli/context")
-local store = require("@root/store")
 
 type Context = context.Context
 
@@ -13,7 +13,7 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local name = assert(parser:get("name"), "missing <name>")
-		store.archiveWorkspace(options.root, name, options.workspace)
+		archiveWorkspace(options.root, name, options.workspace)
 		options.write(`Archived canvas {name}`)
 	end,
 })

@@ -3,8 +3,12 @@ local fs = require("@std/fs")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local decodeDoc = require("@root/store/decodeDoc")
+local getBackups = require("@root/store/getBackups")
+local runTransaction = require("@root/store/runTransaction")
+local storeTypes = require("@root/store/types")
 
+type Backup = storeTypes.Backup
 type Context = context.Context
 
 return table.freeze({
@@ -17,10 +21,10 @@ return table.freeze({
 		local value = assert(parser:get("revision"), "missing <revision>")
 		assert(value:match("^%d+$"), "revision must be a nonnegative integer")
 		local revision = tonumber(value)
-		local restored = store.transaction(options.dir, function(doc)
-			local selected: store.Backup?
+		local restored = runTransaction(options.dir, function(doc)
+			local selected: Backup?
 
-			for _, backup in store.getBackups(options.dir) do
+			for _, backup in getBackups(options.dir) do
 				if backup.revision == revision then
 					selected = backup
 					break
@@ -28,7 +32,7 @@ return table.freeze({
 			end
 
 			assert(selected, `no backup for revision {revision}`)
-			local snapshot = store.decode(fs.readFileToString(selected.file))
+			local snapshot = decodeDoc(fs.readFileToString(selected.file))
 			doc.nodes = snapshot.nodes
 			doc.links = snapshot.links
 			doc.settings = snapshot.settings

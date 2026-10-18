@@ -9,8 +9,11 @@ local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local formatAllHelp = require("@root/cli/formatAllHelp")
+local getActiveWorkspace = require("@root/store/getActiveWorkspace")
+local getDataRoot = require("@root/store/getDataRoot")
 local getErrorText = require("@root/getErrorText")
 local getVersion = require("@root/getVersion")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local group = require("@root/cli/group")
 local ingest = require("@root/cli/ingest")
 local json = require("@std/json")
@@ -26,7 +29,6 @@ local ref = require("@root/cli/ref")
 local serializeCommands = require("@root/cli/serializeCommands")
 local server = require("@root/cli/server")
 local source = require("@root/cli/source")
-local store = require("@root/store")
 local suggestion = require("@root/cli/suggestion")
 local sync = require("@root/cli/sync")
 local theme = require("@root/cli/theme")
@@ -259,7 +261,7 @@ local function dependencies(options: Dependencies?): Resolved
 	return {
 		runner = given.runner or defaultRun,
 		write = given.write or print,
-		dataDir = given.dataDir or store.defaultDir(),
+		dataDir = given.dataDir or getDataRoot(),
 		workspace = if given.workspace == nil then process.env.ORION_CANVAS else given.workspace,
 		now = given.now or function()
 			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
@@ -336,10 +338,10 @@ local function execute(args: { string }, options: Dependencies?)
 
 	local root = deps.dataDir
 	local selected = requestedCanvas(parsers.root)
-	local active = store.getActiveWorkspace(root, selected, deps.workspace)
+	local active = getActiveWorkspace(root, selected, deps.workspace)
 
 	local commandContext: Context = {
-		dir = store.getWorkspaceDir(root, active),
+		dir = getWorkspaceDir(root, active),
 		root = root,
 		workspace = active,
 		requestedWorkspace = selected,

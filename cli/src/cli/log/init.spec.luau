@@ -2,9 +2,10 @@ local json = require("@std/json")
 local process = require("@std/process")
 local test = require("@std/test")
 
+local loadDoc = require("@root/store/loadDoc")
 local readLog = require("@root/log/readLog")
-local store = require("@root/store")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 local NOW = "2026-10-12T18:00:00Z"
 -- Entries without --agent are by the user running the CLI, which is $USER when it is set.
@@ -12,7 +13,7 @@ local PERSON = process.env.USER or "person"
 
 local function createCanvas(name: string): string
 	local dir = testing.directory(name)
-	store.write(
+	writeDoc(
 		dir,
 		testing.createDoc({
 			testing.group("release", "Release"),
@@ -25,7 +26,7 @@ end
 
 test.case("log add attaches one entry to several cards without touching the canvas revision", function(assert)
 	local dir = createCanvas("log-attach")
-	local revision = store.load(dir).revision
+	local revision = loadDoc(dir).revision
 
 	testing.run(dir, { "log", "add", "Tested", "Moments", "--card", "moments,avatars" }, nil, NOW)
 
@@ -38,7 +39,7 @@ test.case("log add attaches one entry to several cards without touching the canv
 	assert.eq(#entries[1].targets, 2)
 	assert.eq(entries[1].targets[1].id, "moments")
 	assert.eq(entries[1].targets[2].id, "avatars")
-	assert.eq(store.load(dir).revision, revision)
+	assert.eq(loadDoc(dir).revision, revision)
 end)
 
 test.case("log entries are appended as agents or people and never edited", function(assert)

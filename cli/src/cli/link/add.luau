@@ -2,8 +2,11 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
+local getItem = require("@root/graph/getItem")
+local getLabel = require("@root/graph/getLabel")
 local getRequired = require("@root/cli/getRequired")
-local graph = require("@root/graph")
+local isWork = require("@root/graph/isWork")
+local linkItems = require("@root/graph/linkItems")
 local requestedRevision = require("@root/cli/requestedRevision")
 local resolveId = require("@root/query/resolveId")
 local runEdit = require("@root/cli/runEdit")
@@ -26,7 +29,7 @@ local function writeJson(
 	local links: json.Array = {}
 
 	for _, id in ids do
-		table.insert(items, json.object({ id = id, label = graph.label(graph.get(doc, id)) }))
+		table.insert(items, json.object({ id = id, label = getLabel(getItem(doc, id)) }))
 	end
 
 	for index = 1, #ids - 1 do
@@ -52,10 +55,10 @@ end
 local function describeLink(doc: Doc, from: string, to: string, link: Link, kind: string): string
 	local label = link.label
 	local suffix = if label then ` ("{label}")` else ""
-	local isWork = graph.isWork(graph.get(doc, from)) and graph.isWork(graph.get(doc, to))
+	local joinsWork = isWork(getItem(doc, from)) and isWork(getItem(doc, to))
 	local sentence = if kind ~= "blocks"
 		then `{from} and {to} are related`
-		elseif isWork then `{to} now waits on {from}`
+		elseif joinsWork then `{to} now waits on {from}`
 		else `{from} → {to}`
 
 	return `{sentence}{suffix}`
@@ -113,7 +116,7 @@ return table.freeze({
 			end
 
 			for index = 1, #ids - 1 do
-				linked[index] = graph.link(current, ids[index], ids[index + 1], kind, parser:get("label"))
+				linked[index] = linkItems(current, ids[index], ids[index + 1], kind, parser:get("label"))
 			end
 		end)
 		from, to = ids[1], ids[2]

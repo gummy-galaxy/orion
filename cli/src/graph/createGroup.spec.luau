@@ -1,0 +1,26 @@
+local test = require("@std/test")
+
+local countProgress = require("@root/graph/countProgress")
+local createGroup = require("@root/graph/createGroup")
+local derive = require("@root/graph/derive")
+local isGroup = require("@root/graph/isGroup")
+local testing = require("@root/testing")
+
+local task = testing.task
+
+test.case("create makes an empty group at the top or inside another group", function(assert)
+	local doc = testing.createDoc({ testing.group("ws", "Workspace"), task("a", "A", "todo") })
+	local weekly = createGroup(doc, "Week 1")
+	assert.eq(weekly.id, "week-1")
+	assert.eq(weekly.parentId, nil)
+	local inner = createGroup(doc, "Monday", "ws")
+	assert.eq(inner.parentId, "ws")
+	assert.eq(isGroup(inner), true)
+	assert.eq(countProgress(derive(doc), "week-1").total, 0)
+	assert.throwsWith('no item or group with id "missing"', function()
+		createGroup(doc, "Nowhere", "missing")
+	end)
+	assert.throwsWith("a group needs a name", function()
+		createGroup(doc, "")
+	end)
+end)

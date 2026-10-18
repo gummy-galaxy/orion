@@ -3,14 +3,15 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local derive = require("@root/graph/derive")
 local getStringField = require("@root/getStringField")
-local graph = require("@root/graph")
+local graphTypes = require("@root/graph/types")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
 -- Each case was produced by the app's previous derive over a seeded random canvas, so these checks hold the
 -- Luau port to the rules the app used to run. The fixture path is relative to the cli folder, where tests run.
-local FIXTURE = path.join("src", "graph.parity.json")
+local FIXTURE = path.join("src", "graph", "derive.parity.json")
 
 local function buildDoc(case: json.Object): types.Doc
 	local nodes: { types.Item } = {}
@@ -70,7 +71,7 @@ local function findMismatch<T>(label: string, expected: json.Object, actual: { [
 	return nil
 end
 
-local function findGroupMismatch(expected: json.Object, actual: { [string]: graph.GroupStats }): string?
+local function findGroupMismatch(expected: json.Object, actual: { [string]: graphTypes.GroupStats }): string?
 	for id, value in expected do
 		if type(id) ~= "string" then
 			continue
@@ -127,7 +128,7 @@ test.case("derive matches the app's previous rules on seeded canvases", function
 	for index, raw in cases do
 		local case = json.asObject(raw) :: json.Object
 		local expected = json.asObject(case.expected) :: json.Object
-		local derived = graph.derive(buildDoc(case))
+		local derived = derive(buildDoc(case))
 		local mismatch = findMismatch("status", json.asObject(expected.status) :: json.Object, derived.status)
 			or findMismatch("flow", json.asObject(expected.flow) :: json.Object, derived.flow)
 			or findMismatch("leverage", json.asObject(expected.leverage) :: json.Object, derived.leverage)

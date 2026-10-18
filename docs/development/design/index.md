@@ -6,6 +6,7 @@ A study explores an idea and recommends what to keep. It isn't a promise that th
 
 ## Threads
 
+- [Gummy Galaxy and Orion](/development/design/gummy-galaxy-and-orion): the Luau-centered vision around Orion and the hands-on canvas ideas it inspires.
 - [Logo](/development/design/logo): the icon's studies, its palettes, and the sources for drawing it again.
 - [Themes and skins](/development/design/themes-and-skins): the vibrant theme, swappable themes, and card skins.
 - [Card skins](/development/design/cards): each way a card can be drawn, embedded live from Storybook.
