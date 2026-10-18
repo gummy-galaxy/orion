@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
 
 type Context = context.Context
 
@@ -13,7 +13,7 @@ return table.freeze({
 	end,
 
 	run = function(_parser: cli.Parser, options: Context)
-		local snoozes = store.load(options.dir).settings.checkSnoozes
+		local snoozes = loadDoc(options.dir).settings.checkSnoozes
 
 		if options.asJson then
 			local values: json.Array = {}

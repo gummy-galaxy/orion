@@ -1,13 +1,13 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
 local serializeDerived = require("@root/server/serializeDerived")
 local testing = require("@root/testing")
 
 test.case("serializeDerived writes every map as an object, even when empty", function(assert)
 	local parsed = json.asObject(
-		json.deserialize(json.serialize(serializeDerived(graph.derive(testing.createDoc({}))))) :: json.Value
+		json.deserialize(json.serialize(serializeDerived(derive(testing.createDoc({}))))) :: json.Value
 	) :: json.Object
 	assert.eq(json.asObject(parsed.status) ~= nil, true)
 	assert.eq(json.asObject(parsed.flow) ~= nil, true)
@@ -24,7 +24,7 @@ test.case("serializeDerived keys values by item id and sends group counts", func
 		{ { "a", "b" } }
 	)
 	local parsed =
-		json.asObject(json.deserialize(json.serialize(serializeDerived(graph.derive(doc)))) :: json.Value) :: json.Object
+		json.asObject(json.deserialize(json.serialize(serializeDerived(derive(doc)))) :: json.Value) :: json.Object
 	local status = json.asObject(parsed.status) :: json.Object
 	local groups = json.asObject(parsed.groups) :: json.Object
 	local stats = json.asObject(groups.g) :: json.Object
@@ -55,7 +55,7 @@ test.case("serializeDerived sends snoozed pull request facts with when each snoo
 		passed = {},
 	})
 
-	local serialized = serializeDerived(graph.derive(doc, "2026-10-13T12:00:00Z"))
+	local serialized = serializeDerived(derive(doc, "2026-10-13T12:00:00Z"))
 	local parsed = json.asObject(json.deserialize(json.serialize(serialized)) :: json.Value) :: json.Object
 	local pulls = json.asObject(parsed.pulls) :: json.Object
 	local facts = json.asObject(pulls.a) :: json.Object

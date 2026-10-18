@@ -1,10 +1,13 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
+local encodeDocObject = require("@root/store/encodeDocObject")
+local getDocPath = require("@root/store/getDocPath")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local readDoc = require("@root/store/readDoc")
 local serializeDerived = require("@root/server/serializeDerived")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
 
 type Response = shared.Response
 
@@ -17,13 +20,13 @@ function orion.handle(request: net.ReceivedRequest, root: string, active: string
 			if not shared.isKnownWorkspace(root, requested) then
 				return shared.reply(404, json.object({ error = `unknown canvas: {requested}` }))
 			end
-			local requestedDir = store.getWorkspaceDir(root, requested)
-			local doc = store.read(requestedDir)
+			local requestedDir = getWorkspaceDir(root, requested)
+			local doc = readDoc(requestedDir)
 			if not doc then
-				return shared.reply(404, json.object({ path = store.filePath(requestedDir), canvas = requested }))
+				return shared.reply(404, json.object({ path = getDocPath(requestedDir), canvas = requested }))
 			end
-			local response = store.toObject(doc)
-			response.derived = serializeDerived(graph.derive(doc))
+			local response = encodeDocObject(doc)
+			response.derived = serializeDerived(derive(doc))
 			return shared.reply(200, response)
 		end
 		return shared.reply(405, json.object({ error = "method not allowed" }))

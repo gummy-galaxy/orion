@@ -2,9 +2,10 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 
 local changeCheckSnooze = require("@root/checks/changeCheckSnooze")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local normalizeUntil = require("@root/checks/normalizeUntil")
+local runTransaction = require("@root/store/runTransaction")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
 
 type Response = shared.Response
 
@@ -30,8 +31,8 @@ function checkSnoozes.handle(request: net.ReceivedRequest, root: string, active:
 		assert(given == nil or given == json.null or type(given) == "string", "until must be a time or null")
 
 		local untilTime = if type(given) == "string" then normalizeUntil(given) else nil
-		local dir = store.getWorkspaceDir(root, active)
-		store.transaction(dir, function(doc)
+		local dir = getWorkspaceDir(root, active)
+		runTransaction(dir, function(doc)
 			changeCheckSnooze(doc, {
 				repo = repo,
 				name = name,

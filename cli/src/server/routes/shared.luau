@@ -1,7 +1,8 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local store = require("@root/store")
+local getWorkspaces = require("@root/store/getWorkspaces")
+local isValidWorkspace = require("@root/store/isValidWorkspace")
 
 export type Response = { status: number, body: string, headers: { [string]: string } }
 
@@ -16,10 +17,10 @@ function shared.parseBody(request: net.ReceivedRequest): json.Object
 end
 
 function shared.isKnownWorkspace(root: string, name: string): boolean
-	if not store.isValidWorkspace(name) then
+	if not isValidWorkspace(name) then
 		return false
 	end
-	for _, entry in store.getWorkspaces(root).workspaces do
+	for _, entry in getWorkspaces(root).workspaces do
 		if entry.name == name then
 			return true
 		end

@@ -165,6 +165,12 @@ export type ClusterData = {
   background?: string
   /** Markdown with a sanitized subset of HTML for layout, shown in a band under the group's title. */
   header?: string
+  /**
+   * The size a person gave the group by dragging its edges. An automatic group lays its contents out to fit this
+   * width and hugs them. A custom group stays at least this big, growing only to hold what's inside. Without it, a
+   * group hugs what's inside.
+   */
+  size?: { width: number; height: number }
 }
 export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
 export type TaskNode = Node<TaskData, 'task'>
@@ -319,11 +325,11 @@ export function absolutePosition(node: AppNode, nodeMap: Map<string, AppNode>): 
 
 /** Fills in the React Flow fields every node needs, so saved data stays minimal. */
 function hydrate(node: AppNode, cardSize: CardSize): AppNode {
-  if (isTask(node)) return { ...node, ...sizeOf(node, cardSize), expandParent: !!node.parentId }
+  if (isTask(node)) return { ...node, ...sizeOf(node, cardSize) }
 
-  if (isImage(node)) return { ...node, width: node.width ?? 256, height: node.height ?? 256, expandParent: !!node.parentId }
+  if (isImage(node)) return { ...node, width: node.width ?? 256, height: node.height ?? 256 }
 
-  return { ...node, dragHandle: '.drag', expandParent: !!node.parentId }
+  return { ...node, dragHandle: '.drag' }
 }
 
 /** React Flow needs parents before children. */
@@ -336,7 +342,8 @@ function sortNodes(nodes: AppNode[]): AppNode[] {
 /**
  * Shrinks or grows every group to hug its children, deepest first. A group with nothing inside keeps its place and
  * takes the smallest size that fits one card, so an empty group made on purpose, such as by `orion group create`,
- * stays on the canvas. Children keep their place on screen.
+ * stays on the canvas. Children keep their place on screen. A custom group with a size keeps its corner and stays at
+ * least that big, and when its children reach past it, it grows and remembers the larger size.
  */
 function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
   const nodeMap = new Map(nodes.map((node) => [node.id, { ...node } as AppNode]))
@@ -344,11 +351,13 @@ function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
   const clusters = [...nodeMap.values()].filter(isCluster).sort((a, b) => depth(b.id) - depth(a.id))
 
   for (const group of clusters) {
+    const data = group.data as ClusterData
+    const floor = data.arrange === 'custom' ? data.size : undefined
     const children = [...nodeMap.values()].filter((node) => node.parentId === group.id)
 
     if (!children.length) {
-      group.width = cardSize.width + GROUP_PADDING * 2
-      group.height = cardSize.height + GROUP_HEADER_HEIGHT + GROUP_PADDING
+      group.width = Math.max(cardSize.width + GROUP_PADDING * 2, floor?.width ?? 0)
+      group.height = Math.max(cardSize.height + GROUP_HEADER_HEIGHT + GROUP_PADDING, floor?.height ?? 0)
       continue
     }
 
@@ -366,15 +375,28 @@ function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
       maxY = Math.max(maxY, child.position.y + size.height)
     }
 
-    const headerHeight = groupHeaderHeight(group.data as ClusterData)
-    const deltaX = minX - GROUP_PADDING
-    const deltaY = minY - headerHeight
+    const headerHeight = groupHeaderHeight(data)
+    let left = minX - GROUP_PADDING
+    let top = minY - headerHeight
+    let right = maxX + GROUP_PADDING
+    let bottom = maxY + GROUP_PADDING
 
-    for (const child of children) child.position = { x: child.position.x - deltaX, y: child.position.y - deltaY }
+    if (floor) {
+      left = Math.min(left, 0)
+      top = Math.min(top, 0)
+      right = Math.max(right, floor.width)
+      bottom = Math.max(bottom, floor.height)
+    }
 
-    group.position = { x: group.position.x + deltaX, y: group.position.y + deltaY }
-    group.width = maxX - minX + GROUP_PADDING * 2
-    group.height = maxY - minY + headerHeight + GROUP_PADDING
+    for (const child of children) child.position = { x: child.position.x - left, y: child.position.y - top }
+
+    group.position = { x: group.position.x + left, y: group.position.y + top }
+    group.width = right - left
+    group.height = bottom - top
+
+    // Remembering the size it grew to keeps the next fit from shrinking it back. Rounding noise isn't growth.
+    if (floor && (Math.abs(floor.width - group.width) > 0.5 || Math.abs(floor.height - group.height) > 0.5))
+      group.data = { ...data, size: { width: group.width, height: group.height } }
   }
 
   return [...nodeMap.values()]

@@ -1,11 +1,11 @@
-local graph = require("@root/graph")
+local graphTypes = require("@root/graph/types")
 local types = require("@root/types")
 
 type Doc = types.Doc
 type Item = types.Item
 
 -- The cards that pass keep, the ones that unblock the most first.
-local function sortTasks(doc: Doc, derived: graph.Derived, keep: (Item) -> boolean): { Item }
+local function sortTasks(doc: Doc, derived: graphTypes.Derived, keep: (Item) -> boolean): { Item }
 	local items: { Item } = {}
 
 	for _, item in doc.nodes do

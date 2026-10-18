@@ -16,7 +16,7 @@ The CLI reads and changes the same data as the app, and the app picks up every c
 orion help
 ```
 
-See the [CLI reference](/reference/cli/) for every command.
+See the [CLI reference](/reference/cli/) for every command, or run `orion help --all` to print them all in the terminal.
 
 ## Connect an agent over MCP
 

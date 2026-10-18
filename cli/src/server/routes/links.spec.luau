@@ -2,10 +2,13 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
 
+local createWorkspace = require("@root/store/createWorkspace")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local links = require("@root/server/routes/links")
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
 local types = require("@root/types")
+local writeDoc = require("@root/store/writeDoc")
 
 local PULL_URL = "https://github.com/Roblox/foundation/pull/2376"
 
@@ -32,8 +35,8 @@ end
 
 local function createRoot(name: string, nodes: { types.Item }): string
 	local root = testing.directory(name)
-	store.createWorkspace(root, "ideas")
-	store.write(store.getWorkspaceDir(root, "ideas"), testing.createDoc(nodes))
+	createWorkspace(root, "ideas")
+	writeDoc(getWorkspaceDir(root, "ideas"), testing.createDoc(nodes))
 	return root
 end
 
@@ -48,7 +51,7 @@ test.case("links route returns a new card's data without saving it", function(as
 	assert.eq(body.status, "found")
 	assert.eq(data.label, "Add a Chip component")
 	assert.eq(data.itemKind, "pr")
-	assert.eq(#store.load(store.getWorkspaceDir(root, "ideas")).nodes, 0)
+	assert.eq(#loadDoc(getWorkspaceDir(root, "ideas")).nodes, 0)
 end)
 
 test.case("links route points at the card that already tracks the link", function(assert)

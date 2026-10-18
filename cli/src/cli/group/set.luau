@@ -3,11 +3,13 @@ local cli = require("@batteries/cli")
 local addIdPositional = require("@root/cli/addIdPositional")
 local checkStyleAssets = require("@root/style/checkStyleAssets")
 local context = require("@root/cli/context")
+local getItem = require("@root/graph/getItem")
 local getItemFields = require("@root/cli/getItemFields")
 local getRequired = require("@root/cli/getRequired")
-local graph = require("@root/graph")
+local isGroup = require("@root/graph/isGroup")
 local resolveId = require("@root/query/resolveId")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
+local setFields = require("@root/graph/setFields")
 local types = require("@root/types")
 local writeItem = require("@root/cli/writeItem")
 
@@ -20,7 +22,9 @@ return table.freeze({
 		addIdPositional(parser, "id")
 		parser:add("label", "option", { help = "New label" })
 		parser:add("blurb", "option", { help = "Group description" })
-		parser:add("arrange", "option", { help = "How reflow arranges a group: auto or custom" })
+		parser:add("arrange", "option", {
+			help = "How reflow arranges a group: auto (default) flows by dependency, custom keeps items where they are",
+		})
 		parser:add(
 			"cover",
 			"option",
@@ -49,10 +53,10 @@ return table.freeze({
 		checkStyleAssets(options.dir, values.background)
 
 		local changed: Item
-		local doc = store.transaction(options.dir, function(doc)
+		local doc = runTransaction(options.dir, function(doc)
 			local id = resolveId(doc, idInput)
-			assert(graph.isGroup(graph.get(doc, id)), `"{id}" is an item; use orion card set`)
-			changed = graph.setFields(doc, id, values)
+			assert(isGroup(getItem(doc, id)), `"{id}" is an item; use orion card set`)
+			changed = setFields(doc, id, values)
 		end)
 
 		writeItem(options, doc, changed, "Updated")

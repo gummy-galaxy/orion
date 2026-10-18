@@ -134,6 +134,8 @@ import { SnapGuides } from './SnapGuides'
 import { useCompanionTargets } from '../useCompanionTargets'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
+import { useGroupResize } from '../resize/useGroupResize'
+import { groupEdgeAt } from '../resize/groupEdgeAt'
 import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
@@ -146,6 +148,7 @@ import {
   linksAtom,
   nodesAtom,
   pinnedAtom,
+  resizeHandlesAtom,
   skinAtom,
   skinStore,
   traceAtom,
@@ -224,6 +227,8 @@ function readMotion(): MotionSettings {
 const STILL_ZOOM = 0.45
 /** Zoom below which marching arrows and the active glow are too subtle to read, so they stop. */
 const QUIET_ZOOM = 0.6
+/** How near a group's edge, on screen, the pointer comes before the group shows its resize handles. */
+const RESIZE_REACH_PX = 14
 const GHOST_WIDTH = 200
 const GHOST_HEIGHT = 62
 const GHOST_GAP = 90
@@ -548,7 +553,12 @@ export function Canvas() {
     canRedo,
     rebase: rebaseHistory,
     reset: resetHistory,
-  } = useUndo({ doc: { nodes, links, stickers, stickerLoadout: loadout }, busy: nodes.some((node) => node.dragging), getDoc, apply: showStep })
+  } = useUndo({
+    doc: { nodes, links, stickers, stickerLoadout: loadout },
+    busy: nodes.some((node) => node.dragging || node.resizing),
+    getDoc,
+    apply: showStep,
+  })
 
   // A group's selection waits until a second click, which would open it, can no longer arrive.
   const plainClick = useRef<'defer' | null>(null)
@@ -897,8 +907,8 @@ export function Canvas() {
       queue.current = queue.current.then(async () => {
         if (epoch !== workspaceEpoch.current) return
 
-        // A drag keeps moving until it ends, and its edits commit then.
-        if (latest.current.nodes.some((node) => node.dragging)) return
+        // A drag or a resize keeps moving until it ends, and its edits commit then.
+        if (latest.current.nodes.some((node) => node.dragging || node.resizing)) return
 
         const snapshot = storedOf(latest.current)
         const print = fingerprint(snapshot)
@@ -1401,6 +1411,8 @@ export function Canvas() {
     [nodes, map, view, cardSize],
   )
   const drawn = useDrawnCards(drawCards)
+  // Folded groups show no handles, and hidden ones aren't on screen.
+  const resizableGroups = useMemo(() => nodes.filter((node) => isCluster(node) && !node.hidden && !collapsed.has(node.id)), [nodes, collapsed])
   const viewNodes = useMemo<ViewNode[]>(
     () => [
       ...nodes.map((node) => {
@@ -1702,6 +1714,14 @@ export function Canvas() {
     pointer.current = { x: event.clientX - rectangle.left, y: event.clientY - rectangle.top }
 
     if (attending) setCursor(pointer.current)
+
+    // Resize handles mount on the group whose edge the pointer nears, and stay put while it resizes.
+    if (!resizeGroup.active()) {
+      const point = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      const near = groupEdgeAt(map, resizableGroups, point, RESIZE_REACH_PX / reactFlow.getZoom(), cardSize)
+
+      if (near !== atomStore.get(resizeHandlesAtom)) atomStore.set(resizeHandlesAtom, near)
+    }
   }
 
   const needs = useMemo(() => needsAttention(nodes, work.status, work.snoozed), [nodes, work.status, work.snoozed])
@@ -1774,6 +1794,8 @@ export function Canvas() {
 
   const getCurrentNodes = useCallback(() => latest.current.nodes, [])
   const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo, cardSize })
+  const getLinks = useCallback(() => latest.current.links, [])
+  const resizeGroup = useGroupResize({ getCurrentNodes, getLinks, setNodes, cardSize })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
       // A plain press that selects a card replaces the stickers picked alongside it.
@@ -2183,8 +2205,9 @@ export function Canvas() {
         setNodes((latestNodes) => clearCelebrations(latestNodes, cleared))
         landStamps(delays)
       },
+      resizeGroup,
     }),
-    [tweenTo, openRoot, cardSize, setNodes, landStamps, atomStore],
+    [tweenTo, openRoot, cardSize, setNodes, landStamps, atomStore, resizeGroup],
   )
 
   const arrangeGroup = useCallback(

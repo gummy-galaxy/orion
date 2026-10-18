@@ -2,7 +2,7 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local compute = require("@root/suggest/compute")
-local graph = require("@root/graph")
+local linkItems = require("@root/graph/linkItems")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
@@ -23,7 +23,7 @@ end
 
 test.case("heuristics join linked cards", function(assert)
 	local doc = getPair()
-	graph.link(doc, "a", "b", "related")
+	linkItems(doc, "a", "b", "related")
 	local result = getSuggestions(doc)
 	assert.eq(#result.groups, 1)
 	assert.eq(result.groups[1].reason, "Linked work")
