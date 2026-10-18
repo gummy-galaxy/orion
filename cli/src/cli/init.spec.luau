@@ -19,6 +19,28 @@ test.case("help opens with the shared orientation and no MCP tool names", functi
 	assert.strNotContains(text, "orion_")
 end)
 
+test.case("help --all lists every command with its options, and as JSON", function(assert)
+	local _, run = testing.createHarness("help-all")
+	local text = run({ "help", "--all" })
+	assert.strContains(text, "replaces its whole text")
+	assert.strContains(text, "card: Work items on the canvas")
+	assert.strContains(text, "  orion card set [id]")
+	assert.strContains(text, "--if-revision <value>")
+	assert.strContains(text, "  orion source add github")
+	assert.strContains(text, "Fields: kind")
+	assert.strNotContains(text, "\27[")
+	assert.strNotContains(text, "orion_")
+
+	local described = json.asObject(json.deserialize(run({ "help", "--all", "--json" })) :: json.Value)
+	local commands = described and json.asArray(described.commands)
+	assert.eq(described and described.name, "orion")
+	assert.eq(commands and #commands > 0, true)
+
+	assert.throwsWith("leave out the command name", function()
+		run({ "help", "card", "--all" })
+	end)
+end)
+
 test.case("ready lists startable work, most unblocking first", function(assert)
 	local _, run = testing.createHarness("ready")
 	local text = run({ "next" })

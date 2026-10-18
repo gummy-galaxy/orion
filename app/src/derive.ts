@@ -12,6 +12,7 @@ import {
   type ViewStatus,
 } from './model'
 import type { Rarity } from './rarity'
+import type { GroupResize } from './resize/types'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
 /** How a link out of a card reads: moving, held behind work that's stuck, or still, out of a component that carries no work. */
@@ -39,6 +40,7 @@ export type Actions = {
   open: (groupId: string) => void
   /** Closes out a finished card and the finished cards chained to it. */
   celebrate: (id: string) => void
+  resizeGroup: GroupResize
 }
 
 export const ActionsContext = createContext<Actions | null>(null)

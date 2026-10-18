@@ -20,7 +20,7 @@ concurrency:
 jobs:
   # On a pull request, each job below runs only when a change touches what it builds or checks. A job skipped by its
   # condition reports as skipped, which still satisfies a required check, unlike a workflow skipped by `paths`.
-  changes:
+  ci-loading:
     runs-on: beelink
     timeout-minutes: 5
     permissions:
@@ -45,8 +45,8 @@ jobs:
           filters: .github/path-filters.yml
 
   analysis:
-    needs: changes
-    if: needs.changes.outputs.cli == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.cli == 'true'
     runs-on: beelink
     timeout-minutes: 5
     defaults:
@@ -71,8 +71,8 @@ jobs:
         run: lute run analyze
 
   cli:
-    needs: changes
-    if: needs.changes.outputs.cli == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.cli == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -117,8 +117,8 @@ jobs:
           retention-days: 14
 
   app:
-    needs: changes
-    if: needs.changes.outputs.app == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.app == 'true'
     runs-on: beelink
     timeout-minutes: 5
     permissions:
@@ -179,8 +179,8 @@ jobs:
           retention-days: 1
 
   docs:
-    needs: changes
-    if: needs.changes.outputs.docs == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.docs == 'true'
     runs-on: beelink
     timeout-minutes: 5
     defaults:
@@ -219,8 +219,8 @@ jobs:
         run: npm run build
 
   desktop:
-    needs: changes
-    if: needs.changes.outputs.desktop == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.desktop == 'true'
     strategy:
       fail-fast: false
       matrix:

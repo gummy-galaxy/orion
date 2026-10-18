@@ -9,6 +9,7 @@ local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
+local formatAllHelp = require("@root/cli/formatAllHelp")
 local getActiveWorkspace = require("@root/store/getActiveWorkspace")
 local getDataRoot = require("@root/store/getDataRoot")
 local getErrorText = require("@root/getErrorText")
@@ -16,6 +17,7 @@ local getVersion = require("@root/getVersion")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local group = require("@root/cli/group")
 local ingest = require("@root/cli/ingest")
+local json = require("@std/json")
 local link = require("@root/cli/link")
 local log = require("@root/cli/log")
 local mcp = require("@root/cli/mcp")
@@ -25,6 +27,7 @@ local node = require("@root/cli/node")
 local note = require("@root/cli/note")
 local orientation = require("@root/cli/orientation")
 local ref = require("@root/cli/ref")
+local serializeCommands = require("@root/cli/serializeCommands")
 local server = require("@root/cli/server")
 local source = require("@root/cli/source")
 local suggestion = require("@root/cli/suggestion")
@@ -112,7 +115,9 @@ While the app is open, orion focus shows its open group and selection.]]
 
 local QUERY_HELP = [[
 Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, note, snoozed.
-Compare quoted values with = or !=; label, ref, and note also support ~ for case-insensitive text.
+status is the derived status; snoozed is "true" while a card is snoozed and "false" otherwise.
+Compare quoted values with = or !=, quoting numbers and booleans too: pr = "86", draft = "true".
+label, ref, and note also support ~ for case-insensitive text.
 Combine with and, or, not, and parentheses. Missing fields never match.]]
 
 local function addHelpFlag(parser: cli.Parser)
@@ -152,6 +157,8 @@ local function createParsers(): Parsers
 
 	local helpCommand = addCommand("help", "Show help for Orion or one of its commands")
 	helpCommand:add("command", "variadic", { help = "Command to describe, such as card list" })
+	helpCommand:add("all", "flag", { help = "Describe every command and its options in one listing" })
+	helpCommand:add("json", "flag", { help = "With --all, print the command descriptions as JSON" })
 
 	return { root = root, commands = commands }
 end
@@ -167,6 +174,26 @@ local function rootHelp(parser: cli.Parser): string
 		parser:help(),
 		"",
 		ABOUT,
+	}, "\n")
+end
+
+-- Notes that only fit under one command, printed with its help.
+local DETAILS: formatAllHelp.Details = {
+	["orion node query"] = QUERY_HELP,
+}
+
+-- Everything orion help prints, with every command and its options in place of the top-level list.
+local function allHelp(parser: cli.Parser): string
+	return table.concat({
+		SUMMARY,
+		"",
+		table.concat(orientation.help, "\n\n"),
+		"",
+		ABOUT,
+		"",
+		"Every command also takes --canvas <value> to work on that canvas and --help (-h) to show its help.",
+		"",
+		formatAllHelp(describeCommands(parser, "orion", SUMMARY), DETAILS),
 	}, "\n")
 end
 
@@ -196,7 +223,8 @@ local function findCommand(root: cli.Parser, names: { string }): (cli.Parser?, s
 end
 
 local function commandHelp(name: string, help: string?, parser: cli.Parser): string
-	local syntax = if name == "node query" then `\n\n{QUERY_HELP}` else ""
+	local detail = DETAILS[`orion {name}`]
+	local syntax = if detail then `\n\n{detail}` else ""
 	return `{help or ""}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}{syntax}`
 end
 
@@ -280,6 +308,18 @@ local function execute(args: { string }, options: Dependencies?)
 
 	if command == "help" then
 		local topic = parser:variadics()
+
+		if parser:has("all") then
+			assert(#topic == 0, "help --all describes every command, so leave out the command name")
+
+			if parser:has("json") then
+				deps.write(json.serialize(serializeCommands(describeCommands(parsers.root, "orion", SUMMARY)), true))
+			else
+				deps.write(allHelp(parsers.root))
+			end
+
+			return
+		end
 
 		if #topic == 0 then
 			deps.write(rootHelp(parsers.root))
