@@ -1,18 +1,38 @@
+local archivist = require("@archivist")
 local json = require("@std/json")
 local task = require("@std/task")
+local time = require("@std/time")
 
 local getAdapter = require("@root/adapters/getAdapter")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local githubTypes = require("@root/github/types")
 local loadDoc = require("@root/store/loadDoc")
 local runCommand = require("@root/command")
 local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 
 type Runner = types.CommandRunner
+type PollState = githubTypes.PollState
+type Pass = "full" | "sweep" | "poll"
 
+-- An unforced request waits this long after the last sweep.
 local THROTTLE_SECONDS = 60
+-- Compares every open card's `updatedAt`, which catches the viewer's own and agents' activity.
+local SWEEP_SECONDS = 2 * 60
+-- Fetches everything, which catches mergeability: it changes when the base branch moves, and nothing else reports it.
+local FULL_SECONDS = 15 * 60
+local logger = archivist.getLogger("orion.sync")
 local sync = {}
 
+-- How often `orion server start` calls `tick`. Each tick runs at most one pass, and only when one is due.
+sync.TICK_SECONDS = 15
+
+--[[
+	Keeps the active canvas's pull request cards current. A full pass fetches every open card, at startup, on a canvas
+	switch, when forced, and every 15 minutes. Between them, `tick` polls notifications as often as GitHub allows and
+	sweeps `updatedAt` every two minutes, fetching only the cards that changed and writing nothing when none did.
+	Background passes don't report `running`, so they stay quiet in the app.
+]]
 function sync.create(
 	root: string,
 	initialWorkspace: string,
@@ -23,7 +43,10 @@ function sync.create(
 	local workspace = initialWorkspace
 	local generation = 0
 	local isRunning = false
-	local lastFinished = 0
+	local lastFull = 0
+	local lastSweep = 0
+	local nextPoll = 0
+	local poll: PollState = { lastModified = {}, interval = 60 }
 	local status = json.object({ state = "idle" })
 	local now = clock or os.time
 	local command = runner or runCommand
@@ -32,6 +55,94 @@ function sync.create(
 	local function setStatus(nextStatus: json.Object)
 		status = nextStatus
 		publish(status)
+	end
+
+	local function runPass(pass: Pass, isQuiet: boolean): json.Object
+		local started = generation
+		local target = workspace
+		local startedAt = time.now()
+		isRunning = true
+
+		if not isQuiet then
+			local running = json.object(status)
+			running.state = "running"
+			running.message = nil
+			setStatus(running)
+		end
+
+		local failures: { string } = {}
+		local fetched = 0
+		local didWrite = false
+
+		-- Fetch from a snapshot, then take the workspace lock only to apply, so edits don't wait on GitHub.
+		local didSucceed, failure = pcall(function()
+			local dir = getWorkspaceDir(root, target)
+			local adapter = getAdapter("github")
+			local snapshot = loadDoc(dir)
+			local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+			local apply: ((types.Doc) -> githubTypes.Report)?
+
+			if pass == "full" then
+				apply = assert(adapter.refresh)(snapshot, command, { discover = false, now = timestamp })
+			else
+				local changed = assert(adapter.refreshChanged)(snapshot, command, poll, pass == "sweep", timestamp)
+				failures, fetched, apply = changed.failures, changed.fetched, changed.apply
+			end
+
+			local applyStep = apply
+
+			if applyStep then
+				runTransaction(dir, function(doc)
+					local report = applyStep(doc)
+					failures = report.failures
+					fetched = if pass == "full" then report.checked else fetched
+				end)
+				didWrite = true
+			end
+		end)
+
+		local finishedAt = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+		local elapsed = math.floor(time.since(startedAt) * 1000)
+
+		if didSucceed then
+			logger.debug(pass, "refresh of", target, "fetched", fetched, "cards in", elapsed, "ms, wrote", didWrite)
+		end
+
+		if started == generation then
+			if didSucceed and #failures > 0 then
+				local first = failures[1]:match("^[^\r\n]*")
+				logger.warn(pass, "refresh of", target, "couldn't fetch", #failures, "parts:", first)
+				setStatus(json.object({ state = "error", lastRun = finishedAt, message = `Couldn't fetch {first}` }))
+			elseif didSucceed then
+				setStatus(json.object({ state = "idle", lastRun = finishedAt }))
+			else
+				local message = tostring(failure):match("([^\r\n]+)$") or tostring(failure)
+				logger.err(pass, "refresh of", target, "failed after", elapsed, "ms:", message)
+				setStatus(json.object({ state = "error", lastRun = finishedAt, message = message }))
+			end
+
+			local finished = now()
+
+			if pass == "full" then
+				lastFull = finished
+			end
+
+			if pass ~= "poll" then
+				lastSweep = finished
+			end
+
+			nextPoll = finished + poll.interval
+		end
+
+		isRunning = false
+
+		if started ~= generation then
+			task.defer(function()
+				loop.run(true)
+			end)
+		end
+
+		return status
 	end
 
 	function loop.getStatus(): json.Object
@@ -45,63 +156,44 @@ function sync.create(
 
 		workspace = name
 		generation += 1
-		lastFinished = 0
+		lastFull, lastSweep, nextPoll = 0, 0, 0
 		status = json.object({ state = "idle" })
 	end
 
+	-- Runs a pass someone asked for: a full one when forced or when the canvas hasn't had one, otherwise a sweep.
 	function loop.run(isForced: boolean?): json.Object
-		if isRunning or (not isForced and lastFinished > 0 and now() - lastFinished < THROTTLE_SECONDS) then
+		if isRunning then
 			return status
 		end
 
-		local started = generation
-		local target = workspace
-		isRunning = true
-		local running = json.object(status)
-		running.state = "running"
-		running.message = nil
-		setStatus(running)
-		local failures: { string } = {}
-
-		-- Fetch from a snapshot, then take the workspace lock only to apply, so edits don't wait on GitHub.
-		local didSucceed, failure = pcall(function()
-			local dir = getWorkspaceDir(root, target)
-			local apply = assert(getAdapter("github").refresh)(
-				loadDoc(dir),
-				command,
-				{ discover = false, now = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string }
-			)
-
-			runTransaction(dir, function(doc)
-				failures = apply(doc).failures
-			end)
-		end)
-
-		local finishedAt = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
-
-		if started == generation then
-			if didSucceed and #failures > 0 then
-				local first = failures[1]:match("^[^\r\n]*")
-				setStatus(json.object({ state = "error", lastRun = finishedAt, message = `Couldn't fetch {first}` }))
-			elseif didSucceed then
-				setStatus(json.object({ state = "idle", lastRun = finishedAt }))
-			else
-				local message = tostring(failure):match("([^\r\n]+)$") or tostring(failure)
-				setStatus(json.object({ state = "error", lastRun = finishedAt, message = message }))
-			end
-
-			lastFinished = now()
+		if isForced or lastFull == 0 then
+			return runPass("full", false)
 		end
 
-		isRunning = false
-
-		if started ~= generation then
-			task.defer(function()
-				loop.run(true)
-			end)
+		if now() - lastSweep < THROTTLE_SECONDS then
+			return status
 		end
 
-		return status
+		return runPass("sweep", false)
+	end
+
+	-- Runs whichever background pass is due, if any.
+	function loop.tick()
+		if isRunning then
+			return
+		end
+
+		local current = now()
+
+		if lastFull == 0 then
+			runPass("full", false)
+		elseif current - lastFull >= FULL_SECONDS then
+			runPass("full", true)
+		elseif current - lastSweep >= SWEEP_SECONDS then
+			runPass("sweep", true)
+		elseif current >= nextPoll then
+			runPass("poll", true)
+		end
 	end
 
 	return loop
