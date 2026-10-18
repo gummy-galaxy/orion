@@ -30,9 +30,12 @@ const HARNESS = ['src/perf', '.storybook/main.ts']
 const VIEWPORT = { width: 1440, height: 900 }
 const SETTLE_MS = 800
 const TRACE_CATEGORIES = ['devtools.timeline', 'disabled-by-default-devtools.timeline']
-// Headless Chromium draws in software by default. ANGLE over EGL reaches the machine's GPU without a display, the
-// same OpenGL path desktop Chrome takes on Linux. Where no GPU is available, Chromium falls back to software.
-const CHROMIUM_ARGS = ['--use-gl=angle', '--use-angle=gl-egl', '--ignore-gpu-blocklist']
+// Headless Chromium draws in software by default. These ANGLE backends reach the GPU without a display: Metal on macOS,
+// and OpenGL ES over EGL on Linux, the path desktop Chrome takes there. Without a GPU, Chromium falls back to software.
+const ANGLE_BACKENDS: Partial<Record<NodeJS.Platform, string>> = { darwin: 'metal', linux: 'gl-egl' }
+const CHROMIUM_ARGS = ANGLE_BACKENDS[process.platform]
+  ? ['--use-gl=angle', `--use-angle=${ANGLE_BACKENDS[process.platform]}`, '--ignore-gpu-blocklist']
+  : []
 const MIME: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',
