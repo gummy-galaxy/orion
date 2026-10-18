@@ -16,10 +16,10 @@ Show one item or group
 orion node show [id] [options]
 ```
 
-| Argument | Description      |
-| -------- | ---------------- |
-| `[id]`   | Item or group id |
-| `--json` | Print JSON       |
+| Argument | Description                                                                               |
+| -------- | ----------------------------------------------------------------------------------------- |
+| `[id]`   | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `--json` | Print JSON                                                                                |
 
 ## orion node query
 
@@ -35,6 +35,21 @@ orion node query [options]
 | `--all`           | Include done items                                 |
 | `--json`          | Print JSON                                         |
 
+## orion node find
+
+Find cards and groups whose label, note, or refs contain text
+
+```sh
+orion node find [options] [text...]
+```
+
+| Argument          | Description                              |
+| ----------------- | ---------------------------------------- |
+| `[text...]`       | Text to find, matched case-insensitively |
+| `--limit <value>` | Most matches to print (default 20)       |
+| `--all-canvases`  | Search every canvas, not only this one   |
+| `--json`          | Print JSON                               |
+
 ## orion node remove
 
 Remove items; optionally reconnect a card's links
@@ -45,7 +60,7 @@ orion node remove [options] [ids...]
 
 | Argument                | Description                                               |
 | ----------------------- | --------------------------------------------------------- |
-| `[ids...]`              | Item ids                                                  |
+| `[ids...]`              | Item ids or selectors                                     |
 | `--where <value>`       | Select targets with an expression instead of ids          |
 | `--dry-run`             | Preview changes and current revision without writing      |
 | `--if-revision <value>` | Write only if the document has this revision              |
@@ -62,7 +77,7 @@ orion node move [options] [ids...]
 
 | Argument                | Description                                          |
 | ----------------------- | ---------------------------------------------------- |
-| `[ids...]`              | Item or group ids                                    |
+| `[ids...]`              | Item or group ids or selectors                       |
 | `--where <value>`       | Select targets with an expression instead of ids     |
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |
