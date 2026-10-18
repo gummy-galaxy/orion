@@ -14,7 +14,9 @@ Set `ORION_DATA_DIR` to use another folder. The app's preferences, such as the t
 
 ## Canvases
 
-The `default` canvas is `orion.json` in the data folder. Every other canvas has its own folder under `workspaces/<name>/`, and `workspaces.json` records their names, labels, which one is active, and which are archived. Canvas names use lowercase letters, digits, and hyphens.
+The `default` canvas is `orion.json` in the data folder. Every other canvas has its own folder under `canvases/<name>/`, and `canvases.json` records their names, labels, which one is active, and which are archived. Canvas names use lowercase letters, digits, and hyphens.
+
+Older versions of Orion called canvases workspaces and kept them in `workspaces/` and `workspaces.json`. The first command a newer Orion runs moves them into place and keeps the old list as `workspaces.backup.json`. Quit an older Orion that is still open first, since it would keep writing to the old folders.
 
 ```sh
 orion canvas list

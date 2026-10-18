@@ -3,6 +3,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
+local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local readRuntime = require("@root/server/readRuntime")
 
@@ -11,9 +12,7 @@ type Runtime = readRuntime.Runtime
 local sequence = 0
 
 local function writeRuntime(root: string, runtime: Runtime)
-	if not fs.exists(root) then
-		fs.createDirectory(root, { makeParents = true })
-	end
+	ensureDirectory(root)
 
 	local file = path.join(root, fileNames.runtime)
 	sequence += 1
@@ -25,7 +24,7 @@ local function writeRuntime(root: string, runtime: Runtime)
 				json.object({
 					pid = runtime.pid,
 					url = runtime.url,
-					workspace = runtime.workspace,
+					canvas = runtime.canvas,
 					dataFolder = runtime.dataFolder,
 					startedAt = runtime.startedAt,
 				}),

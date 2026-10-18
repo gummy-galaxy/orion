@@ -1,9 +1,9 @@
 .card.skin-trading {
   padding: 0;
   border: 0;
-  border-radius: 16px;
+  border-radius: var(--trading-radius);
   background: transparent;
-  color: #f4f0ff;
+  color: var(--trading-text);
   box-shadow: none;
   display: block;
   font-family: var(--font-ui);
@@ -11,7 +11,7 @@
 
 .card.skin-trading:is(.st-ready, .st-active, .st-review, .st-blocked, .st-done, .st-deferred, .tr-up, .tr-down, .tr-related, .tr-self, .attn) {
   background: transparent;
-  color: #f4f0ff;
+  color: var(--trading-text);
   box-shadow: none;
 }
 
@@ -44,8 +44,6 @@
 /* The card is always dark, so status colors resolve to their dark-mode values in any theme or colorblind set. */
 .card.skin-trading .trading-frame {
   color-scheme: dark;
-  --trading-back: #120d30;
-  --trading-scrim: 18 13 48;
   --trading-art:
     radial-gradient(circle at 72% 28%, #ff8fa3 0, transparent 38%), radial-gradient(circle at 18% 82%, #3b6cff 0, transparent 52%),
     linear-gradient(160deg, #b45cff, #2a1577 70%);
@@ -53,11 +51,11 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  border-radius: 16px;
-  background: var(--trading-back);
+  border-radius: var(--trading-radius);
+  background: var(--trading-background);
   box-shadow:
-    0 18px 40px rgb(0 0 0 / 0.45),
-    0 0 0 1px rgb(255 255 255 / 0.1);
+    var(--trading-shadow-card),
+    0 0 0 var(--ring-width-hairline) var(--trading-edge);
 }
 
 .card.skin-trading .trading-frame[data-hue='1'] {
@@ -86,7 +84,7 @@
 
 /* The card is drawn at 264 by 380 and zoomed down to its size on the canvas, so it sits in scale with group
    headers. The far form keeps its own on-screen size. */
-.card.skin-trading:not(.far-card) .trading-frame {
+.card.skin-trading:not(.far-card) > .trading-frame {
   zoom: 0.75;
 }
 
@@ -118,14 +116,14 @@
 }
 
 .trading-expected {
-  outline: 2px dashed rgb(244 240 255 / 0.5);
+  outline: var(--ring-width-default) dashed color-mix(in srgb, var(--trading-text) 50%, transparent);
   outline-offset: -6px;
 }
 
 .trading-gate {
   box-shadow:
-    0 18px 40px rgb(0 0 0 / 0.45),
-    0 0 0 2px #ffd166;
+    var(--trading-shadow-card),
+    0 0 0 var(--ring-width-default) var(--trading-gate);
 }
 
 /* Top left: what a source set about the work, colored by severity, and off the card until it's known. */
@@ -147,8 +145,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #0c0920;
-  font: 700 14px/1 var(--font-ui);
+  color: var(--trading-ink);
+  font: var(--weight-bold) 14px/var(--line-height-glyph) var(--font-ui);
 }
 
 /* Severity borrows the status colors, so colorblind sets reach it too. */
@@ -182,9 +180,9 @@
   align-items: center;
   gap: 6px;
   transform: rotate(4deg);
-  font: 700 14px/1 var(--font-ui);
-  box-shadow: 0 4px 12px rgb(12 9 32 / 0.5);
-  color: #0c0920;
+  font: var(--weight-bold) 14px/var(--line-height-glyph) var(--font-ui);
+  box-shadow: var(--trading-shadow-badge);
+  color: var(--trading-ink);
 }
 
 .trading-status-badge svg {
@@ -213,8 +211,8 @@
 }
 
 .trading-link:focus-visible {
-  outline: 2px solid #f4f0ff;
-  outline-offset: 2px;
+  outline: var(--ring-width-default) solid var(--trading-text);
+  outline-offset: var(--ring-offset-wide);
 }
 
 /* A ready pull request's status badge is its merge button: the first click asks, the second merges. */
@@ -239,8 +237,8 @@
 }
 
 .card.skin-trading .trading-merge .merge-pull.is-confirm {
-  outline: 2px solid #f4f0ff;
-  outline-offset: 2px;
+  outline: var(--ring-width-default) solid var(--trading-text);
+  outline-offset: var(--ring-offset-wide);
 }
 
 /* Card actions wait under the status badge until the card is hovered or holds focus. */
@@ -262,7 +260,7 @@
   height: 30px;
   border: 0;
   border-radius: 8px;
-  background: rgb(18 13 48 / 0.86);
+  background: color-mix(in srgb, var(--trading-background) 86%, transparent);
 }
 
 .card.skin-trading .trading-actions .vscode-open img {
@@ -284,11 +282,11 @@
   align-items: center;
   justify-content: center;
   transform: translate(-50%, -50%);
-  background: #1b1442;
-  color: #f4f0ff;
+  background: var(--trading-tile);
+  color: var(--trading-text);
   box-shadow:
-    0 0 0 3px #f4f0ff,
-    0 5px 0 rgb(12 9 32 / 0.45);
+    0 0 0 3px var(--trading-text),
+    var(--trading-shadow-tile);
 }
 
 .trading-tile > svg {
@@ -303,7 +301,7 @@
   align-items: center;
   justify-content: center;
   background: color-mix(in srgb, var(--st-blocked) 45%, transparent);
-  color: #fff;
+  color: var(--trading-lock);
 }
 
 .trading-lock svg {
@@ -319,7 +317,7 @@
   flex-direction: column;
   justify-content: flex-end;
   gap: 10px;
-  background: linear-gradient(0deg, rgb(var(--trading-scrim) / 0.98) 62%, rgb(var(--trading-scrim) / 0));
+  background: linear-gradient(0deg, color-mix(in srgb, var(--trading-background) 98%, transparent) 62%, transparent);
 }
 
 .trading-title {
@@ -329,7 +327,7 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
   text-align: center;
-  font: 700 19px/1.2 var(--font-ui);
+  font: var(--weight-bold) 19px/var(--line-height-tight) var(--font-ui);
   letter-spacing: -0.01em;
   text-wrap: balance;
 }
@@ -348,14 +346,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 700 24px/1 var(--font-ui);
+  font: var(--weight-bold) 24px/var(--line-height-glyph) var(--font-ui);
 }
 
 .trading-blockers {
   width: 46px;
   height: 46px;
   border-radius: 12px 12px 12px 5px;
-  background: #3c3370;
+  background: var(--trading-blockers);
 }
 
 .trading-unblocks {
@@ -363,8 +361,8 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: #18d6c0;
-  color: #0c0920;
+  background: var(--trading-unblocks);
+  color: var(--trading-ink);
 }
 
 .trading-motion {
@@ -392,21 +390,21 @@
 }
 
 .trading-motion-count {
-  font: 700 15px/1 var(--font-ui);
+  font: var(--weight-bold) 15px/var(--line-height-glyph) var(--font-ui);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-/* The spinner gets its own layer, so turning it doesn't repaint the card under it every frame. The compact form
-   stands still, since it's how a whole canvas shows at once. */
-:where(:root[data-motion='on']) .card.skin-trading:not(.far-card) .trading-motion-running svg {
-  animation: trading-spin 1.4s linear infinite;
-  will-change: transform;
+/* The spinner turns by sliding its dash, which repaints only the spinner. A transform would give it a layer of its
+   own, which makes WebKit rasterize the whole zoomed canvas as one layer. steps() holds it to 15 frames a second. The
+   compact form stands still, since it's how a whole canvas shows at once. */
+:where(:root[data-motion='on']) .card.skin-trading:not(.far-card) > .trading-frame .trading-motion-running circle {
+  animation: trading-spin var(--motion-loop-spin) steps(21) infinite;
 }
 
 @keyframes trading-spin {
   to {
-    transform: rotate(1turn);
+    stroke-dashoffset: -100;
   }
 }
 
@@ -416,29 +414,30 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #251c57;
+  background: var(--trading-note-background);
 }
 
 .trading-note-text {
   flex: 1;
   overflow: hidden;
-  font: 500 17px/1.4 var(--font-ui);
-  color: #d4cdf3;
+  font: var(--weight-medium) 17px/var(--line-height-preview) var(--font-ui);
+  color: var(--trading-note-text);
 }
 
 /* Below the compact breakpoint a card keeps its size and layout but drops to the parts that read from far out: the art,
    kind, facts, title, and the bottom row, each drawn larger. Status badges keep only their icon, and nothing casts a
-   blurred shadow. The rules reach only a card's own frame, so a hovered card's far tag keeps its own form. */
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame {
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
+   blurred shadow. This is the one compact form: a hovered or selected card's far tag and inspect mode's peek draw it at any
+   zoom, each at its own size. */
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame {
+  box-shadow: 0 0 0 var(--ring-width-hairline) var(--trading-edge);
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-facts {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-facts {
   scale: 1.5;
   transform-origin: 0 0;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-status-badge {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-status-badge {
   width: 46px;
   height: 46px;
   padding: 0;
@@ -446,74 +445,76 @@
   box-shadow: none;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-status-badge svg {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-status-badge svg {
   width: 26px;
   height: 26px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card)
+  > .trading-frame
+  :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
   display: none;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-tile {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-tile {
   top: 112px;
   width: 70px;
   height: 70px;
   border-radius: 17px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-tile > svg {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-tile > svg {
   width: 38px;
   height: 38px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-lock svg {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-lock svg {
   width: 30px;
   height: 30px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-scrim {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-scrim {
   padding: 0 16px 16px;
   gap: 12px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-title {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-title {
   font-size: 25px;
-  line-height: 1.15;
+  line-height: var(--line-height-poster);
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-bottom {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-bottom {
   min-height: 67px;
   grid-template-columns: 67px 1fr 67px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-blockers {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-blockers {
   width: 60px;
   height: 60px;
   border-radius: 24px 24px 24px 10px;
   font-size: 30px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-unblocks {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-unblocks {
   width: 67px;
   height: 67px;
   font-size: 35px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-motion:not(.trading-motion-counted) {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-motion:not(.trading-motion-counted) {
   width: 56px;
   height: 56px;
 }
 
-.canvas[data-zoom='compact'] .card.skin-trading:not(.far-card) > .trading-frame .trading-motion svg {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-motion svg {
   width: 30px;
   height: 30px;
 }
 
-/* Far out, a card shrinks to its kind, title, and two numbers, at one on-screen size. It skips the pop-in and
-   blurred shadows, because far out every card on the canvas draws at once. */
+/* A hovered or selected card's far tag and inspect mode's peek each hold their own size and size themselves to the card.
+   They skip the pop-in and blurred shadows, because far out every card on the canvas draws at once. */
 .card.skin-trading.far-card {
-  width: 240px;
+  width: auto;
   min-width: 0;
   max-width: none;
   height: auto;
@@ -522,124 +523,28 @@
   animation: none;
 }
 
-.card.skin-trading.far-card .trading-frame {
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
+.card.skin-trading.far-card > .trading-frame {
+  width: 264px;
+  height: 380px;
 }
 
-.card.skin-trading.far-card .trading-art {
-  position: relative;
-  inset: auto;
-  flex: none;
-  height: 40px;
+/* The far tag is about 240px across on screen. */
+.card.skin-trading.far-card:not(.peek-card) > .trading-frame {
+  zoom: 0.9;
 }
 
-.card.skin-trading.far-card .trading-facts {
-  display: none;
+/* Peek draws the card at the size it's drawn at, larger than the far tag, with its note on a panel underneath. */
+.card.skin-trading.peek-card {
+  width: 264px;
 }
 
-.card.skin-trading.far-card .trading-tile {
-  top: 9px;
-  left: 10px;
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  transform: none;
-  background: rgb(18 13 48 / 0.88);
-  box-shadow: none;
-}
-
-.card.skin-trading.far-card .trading-tile > svg {
-  width: 17px;
-  height: 17px;
-}
-
-.card.skin-trading.far-card .trading-lock svg {
-  width: 13px;
-  height: 13px;
-}
-
-.card.skin-trading.far-card .trading-status-badge {
-  top: 7px;
-  right: 8px;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  justify-content: center;
-  transform: none;
-}
-
-.card.skin-trading.far-card :is(.trading-status-badge-word, .merge-pull span, .trading-actions) {
-  display: none;
-}
-
-.card.skin-trading.far-card .trading-merge .merge-pull {
-  padding: 0;
-  justify-content: center;
-}
-
-.card.skin-trading.far-card .trading-scrim {
-  position: static;
-  padding: 10px 12px 10px;
-  gap: 8px;
-  background: none;
-}
-
-.card.skin-trading.far-card .trading-title {
-  -webkit-line-clamp: 2;
-  text-align: left;
-  font-size: 16px;
-  text-wrap: wrap;
-}
-
-.card.skin-trading.far-card .trading-bottom {
-  min-height: 0;
-  grid-template-columns: auto 1fr auto;
-  align-items: end;
-}
-
-.card.skin-trading.far-card :is(.trading-blockers, .trading-unblocks) {
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  background: none;
-  font-size: 32px;
-}
-
-.card.skin-trading.far-card .trading-blockers {
-  color: #a39bcc;
-}
-
-.card.skin-trading.far-card .trading-unblocks {
-  color: #18d6c0;
-  font-size: 36px;
-}
-
-.card.skin-trading.far-card .trading-motion {
-  width: 28px;
-  height: 28px;
-}
-
-.card.skin-trading.far-card .trading-motion svg {
-  width: 16px;
-  height: 16px;
-}
-
-.card.skin-trading.far-card .trading-motion-counted {
-  width: auto;
-  height: 32px;
-  padding: 0 10px 0 8px;
-}
-
-.card.skin-trading.far-card .trading-motion-count {
-  font-size: 20px;
-}
-
-.card.skin-trading.far-card .trading-note {
-  height: auto;
-  max-height: 170px;
+.card.skin-trading.peek-card > .peek-note {
+  margin: var(--space-2) 0 0;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--trading-note-background);
+  color: var(--trading-note-text);
 }
 
 /* The Done stamp sits across the art, where it reads against the dark card, and resolves to the dark status colors. */
@@ -651,6 +556,6 @@
   left: 50%;
   translate: -50% -50%;
   border-width: 3px;
-  background: color-mix(in srgb, var(--status-done) 22%, rgb(18 13 48 / 0.55));
+  background: color-mix(in srgb, var(--status-done) 22%, color-mix(in srgb, var(--trading-background) 55%, transparent));
   font-size: 22px;
 }

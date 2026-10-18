@@ -19,7 +19,7 @@ export const Default: Story = {
         hide={() => {}}
         workspaces={{
           active: 'personal',
-          workspaces: [
+          canvases: [
             { name: 'personal', label: 'Personal' },
             { name: 'team', label: 'Team' },
           ],

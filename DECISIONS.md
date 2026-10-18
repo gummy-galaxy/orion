@@ -104,6 +104,14 @@ A card's note renders as Markdown: headings, lists, emphasis, links, and inline 
 
 2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
 
+### Empty groups stay until an edit empties them
+
+A group with nothing inside stays on the canvas, at the size of one card, with a faint "Empty group" hint. `orion group create` makes one, and the app keeps it through loads, saves, and writes from elsewhere. A group goes when an edit takes its last card out: a drop, a removal, or a move out. A group that was already empty is never removed by an edit that doesn't touch it, and a group the removal leaves empty goes too, cascading upward.
+
+**Why:** an agent often lays out the groups for a plan before it has cards to fill them. Dropping empty groups on load deleted them from the file on the next save, and pruning on every edit undid a group made on purpose. This replaced groups disappearing as soon as they were empty.
+
+2026-10-12 · [#304](https://github.com/vocksel/orion/issues/304)
+
 ## Canvas and input
 
 ### Scrolling pans, for mouse and trackpad alike
@@ -198,6 +206,14 @@ A card that's done and closed out carries a Done stamp and fades only slightly. 
 
 2026-10-12 · #317
 
+### Finishing a card in the app closes it out
+
+Marking a card done from its menu or the inspector closes it out at once, and its Done stamp lands right away. Cards finished outside the app, by `orion card done` or a merged pull request, shimmer until someone closes them out.
+
+**Why:** in the app the badge click was an extra step after marking a card done, so finishing it there takes one move. Work finished elsewhere still waits for someone to see it.
+
+2026-10-17 · [#365](https://github.com/vocksel/orion/issues/365)
+
 ### Triage happens in a tray, and you do the placing
 
 New pull requests and issues land in a tray at the canvas edge, backed by the Inbox and Unsorted groups. You drag cards from the tray onto the canvas, and Orion learns from where they go. Heuristics and agents suggest where cards belong. Adding cards to the canvas automatically is held back.
@@ -238,11 +254,21 @@ Commands name the thing they act on first, then the action: `orion node remove`,
 
 2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146), [#110](https://github.com/vocksel/orion/issues/110), [#55](https://github.com/vocksel/orion/issues/55), [#109](https://github.com/vocksel/orion/issues/109)
 
+### Data folders move to a new layout on their own
+
+When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and waits while an older Orion is still serving the folder.
+
+These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
+
+**Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases.
+
+2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110)
+
 ## Architecture
 
 ### Files first, with a SQLite index
 
-A workspace lives as files that can be stored in a repository, like an Obsidian vault. SQLite does the heavy lifting as an index. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
+A canvas lives as files that can be stored in a repository, like an Obsidian vault. SQLite does the heavy lifting as an index. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
 
 **Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast.
 
@@ -256,11 +282,11 @@ The target is at least 1000 cards with nested groups and dense links: every pull
 
 2026-10-07 · [#122](https://github.com/vocksel/orion/issues/122), [#102](https://github.com/vocksel/orion/issues/102)
 
-### Undo history outlives a workspace switch
+### Undo history outlives a canvas switch
 
-Undo history persists across workspace switches, either as a full session history or a rolling history capped at some number of steps. It may live in the SQLite index.
+Undo history persists across canvas switches, either as a full session history or a rolling history capped at some number of steps. It may live in the SQLite index.
 
-**Why:** history that disappears when you switch workspaces is too temporary to trust.
+**Why:** history that disappears when you switch canvases is too temporary to trust.
 
 2026-10-10 · [#1](https://github.com/vocksel/orion/issues/1), [#166](https://github.com/vocksel/orion/issues/166)
 
@@ -319,3 +345,13 @@ Orion installs to `/Applications/Orion.app` so every user on the machine gets it
 **Why:** every build shares one bundle id, so a second copy in `~/Applications` shows up as a duplicate Orion and leaves the CLI and the app running different builds.
 
 2026-10-13
+
+## Docs
+
+### The docs site has Guide, Reference, and Development sections
+
+Guide pages teach someone who has never used Orion. Reference pages are generated from the CLI's command table and the MCP tool catalog. Development holds pages about how Orion is made, split into Design and Engineering: audits, proposals, and studies. The top nav shows Guide, Reference, and Development, and each one is a link to a page rather than a menu, so content is always one click from the nav. Reference's homepage is generated with its other pages.
+
+**Why:** hand-written write-ups need a home that the reference generator doesn't own, since it removes any page in `docs/reference/` it didn't write. A Development section keeps them apart from the pages that describe what Orion does today, and one umbrella leaves room for Design and Engineering to grow without crowding the nav.
+
+2026-10-17
