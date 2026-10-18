@@ -95,6 +95,35 @@ Runs `orion card done`.
 | `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
 | `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
 
+## orion_snooze
+
+Hide items from attention and orion next until a time, by id or by a where expression.
+
+Runs `orion card snooze`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `ids`        | strings | Item ids to snooze.                                                                                        |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `until`      | string  | **Required.** When it wakes: an ISO 8601 date or date-time.                                                |
+| `where`      | string  | Select targets with an expression instead of ids, such as label ~ "text".                                  |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+
+## orion_unsnooze
+
+Show snoozed items again right away, by id or by a where expression.
+
+Runs `orion card unsnooze`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `ids`        | strings | Item ids to wake.                                                                                          |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `where`      | string  | Select targets with an expression instead of ids, such as label ~ "text".                                  |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+
 ## orion_add_note
 
 Add a canvas note, optionally inside a group or a dependency link. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card.
