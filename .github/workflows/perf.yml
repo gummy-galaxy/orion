@@ -1,7 +1,7 @@
 name: Perf
 
-# Drafts skip perf so the one Beelink machine isn't tied up measuring work in progress. Marking a pull request ready
-# runs it.
+# Drafts skip perf so the one perf machine isn't tied up measuring work in progress. Marking a pull request ready runs
+# it.
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -23,9 +23,9 @@ concurrency:
 jobs:
   perf:
     if: ${{ !github.event.pull_request.draft }}
-    # The Beelink's supervisor runs exclusive jobs one at a time on cores no other job uses, in rank order. The pin
-    # label gives this job its own runner, so no other job can take it.
-    runs-on: [exclusive, "pin-perf-${{ github.run_id }}-${{ github.run_attempt }}"]
+    # artemis, a machine that runs nothing but perf, has a single runner with this label, so measurements never share
+    # the machine with another job.
+    runs-on: perf
     timeout-minutes: 25
     permissions:
       contents: read
@@ -53,8 +53,9 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      # The runner account has no sudo, so Chromium's system libraries are installed on artemis ahead of time.
       - name: Install Chromium
-        run: npx playwright install --with-deps --only-shell chromium
+        run: npx playwright install --only-shell chromium
 
       # The checkout is the pull request's merge commit, whose first parent is the base it was built on. Comparing
       # against that rather than origin/<base> keeps both sides in step when the base branch moves while this job
