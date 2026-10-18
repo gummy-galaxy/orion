@@ -40,6 +40,10 @@
     "link": "/reference/cli/canvas"
   },
   {
+    "text": "log",
+    "link": "/reference/cli/log"
+  },
+  {
     "text": "server",
     "link": "/reference/cli/server"
   },

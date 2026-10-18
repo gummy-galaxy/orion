@@ -22,6 +22,7 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion apply`](./apply)           | Apply a plan of cards, notes, groups, and links in one step          |
 | [`orion sync`](./sync)             | Update pull request items from GitHub (deprecated: use ingest)       |
 | [`orion canvas`](./canvas)         | Canvases and their layout                                            |
+| [`orion log`](./log)               | Add to the canvas log, and list it                                   |
 | [`orion server`](./server)         | The server the app and agents talk to                                |
 | [`orion source`](./source)         | Sources that ingest imports work from                                |
 | [`orion ingest`](./ingest)         | Import work from configured sources and refresh the cards they track |
