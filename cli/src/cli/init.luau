@@ -5,6 +5,7 @@ local process = require("@std/process")
 local backup = require("@root/cli/backup")
 local batchEdit = require("@root/cli/batchEdit")
 local canvas = require("@root/cli/canvas")
+local cardTimeline = require("@root/cli/card/timeline")
 local checkStyleAssets = require("@root/style/checkStyleAssets")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
@@ -20,6 +21,7 @@ local githubTypes = require("@root/github/types")
 local graph = require("@root/graph")
 local importCommand = require("@root/cli/import")
 local ingest = require("@root/cli/ingest")
+local log = require("@root/cli/log")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
 local orientation = require("@root/cli/orientation")
@@ -69,6 +71,7 @@ local COMMANDS: { [string]: Command } = {
 	canvas = canvas,
 	focus = focus,
 	ingest = ingest,
+	log = log,
 	mcp = mcp,
 	media = media,
 	server = server,
@@ -189,6 +192,7 @@ local function createParsers(): Parsers
 	addRefOption(cardSet)
 	addJsonFlag(cardSet)
 
+	cardTimeline.define(addCommand(card, "timeline", cardTimeline.help))
 	addBatchOptions(addCommand(card, "done", "Mark one or more items done"), "Item ids or selectors")
 	importCommand.define(addCommand(card, "import", importCommand.help))
 	snooze.define(addCommand(card, "snooze", snooze.help))
@@ -319,7 +323,9 @@ local function createParsers(): Parsers
 	addJsonFlag(sync)
 
 	-- Commands with their own modules define their subcommands themselves.
-	for _, name in { "canvas", "server", "source", "ingest", "media", "suggestion", "theme", "backup", "mcp", "focus" } do
+	for _, name in
+		{ "canvas", "log", "server", "source", "ingest", "media", "suggestion", "theme", "backup", "mcp", "focus" }
+	do
 		local module = COMMANDS[name]
 		local parser = addCommand(root, name, module.help)
 		commands[name] = parser
@@ -876,6 +882,8 @@ local function execute(args: { string }, options: Dependencies?)
 		end
 	elseif key == "card import" then
 		importCommand.run(parser, commandContext)
+	elseif key == "card timeline" then
+		cardTimeline.run(parser, commandContext)
 	elseif key == "card snooze" then
 		snooze.run(parser, commandContext)
 	elseif key == "card unsnooze" then

@@ -68,6 +68,20 @@ orion card set [id] [options]
 | `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch        |
 | `--json`           | Print JSON                                                                                                   |
 
+## orion card timeline
+
+Show a card's timeline: its most recent log entries, newest first
+
+```sh
+orion card timeline [id] [options]
+```
+
+| Argument          | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `[id]`            | Card id                                     |
+| `--limit <value>` | How many recent entries to show (default 5) |
+| `--json`          | Print JSON                                  |
+
 ## orion card done
 
 Mark one or more items done
