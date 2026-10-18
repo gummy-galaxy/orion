@@ -19,8 +19,9 @@ concurrency:
 
 jobs:
   # Perf runs only when a change touches what it measures. A job skipped by its condition reports as skipped, which
-  # still satisfies a required check, unlike a workflow skipped by `paths`.
-  changes:
+  # still satisfies a required check, unlike a workflow skipped by `paths`. Required checks match by job name alone,
+  # so this can't share CI's `changes` name.
+  perf-changes:
     runs-on: beelink
     timeout-minutes: 5
     permissions:
@@ -38,8 +39,8 @@ jobs:
           filters: .github/path-filters.yml
 
   perf:
-    needs: changes
-    if: needs.changes.outputs.perf == 'true' && (github.event_name == 'push' || !github.event.pull_request.draft)
+    needs: perf-changes
+    if: needs.perf-changes.outputs.perf == 'true' && (github.event_name == 'push' || !github.event.pull_request.draft)
     # artemis, a machine that runs nothing but perf, has a single runner with this label, so measurements never share
     # the machine with another job.
     runs-on: perf
