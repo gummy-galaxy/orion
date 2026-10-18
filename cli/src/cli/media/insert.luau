@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
+local getLabel = require("@root/graph/getLabel")
 local insertFile = require("@root/media/insertFile")
 
 type Context = context.Context
@@ -27,14 +27,14 @@ return table.freeze({
 			options.write(json.serialize(
 				json.object({
 					id = item.id,
-					label = graph.label(item),
+					label = getLabel(item),
 					asset = item.data.asset,
 					canvas = options.workspace,
 				}),
 				true
 			))
 		else
-			options.write(`Inserted image {item.id} · {graph.label(item)}`)
+			options.write(`Inserted image {item.id} · {getLabel(item)}`)
 		end
 	end,
 })

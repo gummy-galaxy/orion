@@ -1,9 +1,11 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
+local createWorkspace = require("@root/store/createWorkspace")
 local getStringField = require("@root/getStringField")
+local getWorkspaces = require("@root/store/getWorkspaces")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
+local useWorkspace = require("@root/store/useWorkspace")
 
 type Response = shared.Response
 
@@ -17,7 +19,7 @@ function canvases.handle(
 ): Response
 	local didSucceed, response = pcall(function(): Response
 		if request.path == "/api/canvases" and request.method == "GET" then
-			local list = store.getWorkspaces(root)
+			local list = getWorkspaces(root)
 			return shared.reply(200, json.object({ active = getActive(), canvases = list.workspaces }))
 		elseif request.path == "/api/canvases" and request.method == "POST" then
 			local change = shared.parseBody(request)
@@ -25,12 +27,12 @@ function canvases.handle(
 			assert(name, `invalid canvas name: {tostring(change.name)}`)
 			local label = getStringField(change.label)
 			assert(change.label == nil or label, "label must be nonempty")
-			local list = store.createWorkspace(root, name, label)
+			local list = createWorkspace(root, name, label)
 			return shared.reply(201, json.object({ active = getActive(), canvases = list.workspaces }))
 		elseif request.path == "/api/canvases/active" and request.method == "POST" then
 			local name = getStringField(shared.parseBody(request).name)
 			assert(name, "invalid canvas name")
-			local list = store.useWorkspace(root, name)
+			local list = useWorkspace(root, name)
 			switchTo(name)
 			return shared.reply(200, json.object({ active = getActive(), canvases = list.workspaces }))
 		end

@@ -4,12 +4,12 @@ local test = require("@std/test")
 local appendLog = require("@root/log/appendLog")
 local getLogPath = require("@root/log/getLogPath")
 local readLog = require("@root/log/readLog")
-local store = require("@root/store")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 test.case("skips an append that never finished and refuses a damaged line", function(assert)
 	local dir = testing.directory("log-damaged")
-	store.write(dir, testing.createDoc({ testing.task("a", "Card", "todo") }))
+	writeDoc(dir, testing.createDoc({ testing.task("a", "Card", "todo") }))
 	appendLog(dir, function()
 		return {
 			id = "log-1",

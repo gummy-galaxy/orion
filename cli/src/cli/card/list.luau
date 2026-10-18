@@ -1,10 +1,12 @@
 local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
+local getAncestors = require("@root/graph/getAncestors")
+local getGroup = require("@root/graph/getGroup")
+local loadDoc = require("@root/store/loadDoc")
 local resolveId = require("@root/query/resolveId")
 local sortTasks = require("@root/cli/sortTasks")
-local store = require("@root/store")
 local types = require("@root/types")
 local writeItems = require("@root/cli/writeItems")
 
@@ -13,7 +15,7 @@ type Doc = types.Doc
 type Item = types.Item
 
 local function isInsideGroup(doc: Doc, item: Item, groupId: string): boolean
-	return table.find(graph.ancestors(doc, item.id), groupId) ~= nil
+	return table.find(getAncestors(doc, item.id), groupId) ~= nil
 end
 
 return table.freeze({
@@ -25,13 +27,13 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
-		local derived = graph.derive(doc, options.now())
+		local doc = loadDoc(options.dir)
+		local derived = derive(doc, options.now())
 		local groupId = parser:get("group")
 
 		if groupId then
 			groupId = resolveId(doc, groupId)
-			graph.group(doc, groupId)
+			getGroup(doc, groupId)
 		end
 
 		local all = parser:has("all")

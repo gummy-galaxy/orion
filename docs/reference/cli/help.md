@@ -8,6 +8,8 @@ Show help for Orion or one of its commands
 orion help [options] [command...]
 ```
 
-| Argument       | Description                            |
-| -------------- | -------------------------------------- |
-| `[command...]` | Command to describe, such as card list |
+| Argument       | Description                                           |
+| -------------- | ----------------------------------------------------- |
+| `[command...]` | Command to describe, such as card list                |
+| `--all`        | Describe every command and its options in one listing |
+| `--json`       | With --all, print the command descriptions as JSON    |

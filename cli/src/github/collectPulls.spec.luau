@@ -74,7 +74,7 @@ test.case("collect skips merged cards and fetches full state only for branch mat
 	assert.strContains(batches[1], "number: 2)")
 	assert.strContains(batches[1], "number: 7)")
 	assert.eq(batches[1]:find("number: 8)", 1, true), nil)
-	assert.eq(#fetched.authored, 2)
+	assert.eq(#(fetched.authored or {}), 2)
 	assert.eq(#fetched.failures, 0)
 end)
 
@@ -97,7 +97,7 @@ test.case("collect still refreshes cards when the authored list fails", function
 	end, false)
 
 	assert.eq(fetched.viewer, "vocksel")
-	assert.eq(#fetched.authored, 0)
+	assert.eq(fetched.authored, nil)
 	assert.eq(#fetched.failures, 1)
 	assert.strContains(fetched.failures[1], "your open pull requests")
 	assert.neq(fetched.pulls["vocksel/orion#2"], nil)

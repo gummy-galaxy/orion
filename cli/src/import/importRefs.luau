@@ -1,13 +1,14 @@
 local addCard = require("@root/import/addCard")
 local findExisting = require("@root/import/findExisting")
+local getGroup = require("@root/graph/getGroup")
+local getLabel = require("@root/graph/getLabel")
 local getSince = require("@root/import/getSince")
-local graph = require("@root/graph")
 local importTypes = require("@root/import/types")
+local loadDoc = require("@root/store/loadDoc")
 local lookupRecords = require("@root/import/lookupRecords")
 local resolveId = require("@root/query/resolveId")
 local resolveInputs = require("@root/import/resolveInputs")
 local runEdit = require("@root/cli/runEdit")
-local store = require("@root/store")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -28,11 +29,11 @@ export type Options = {
 -- Imports every ref in one transaction. Refs that don't resolve or can't be looked up fail alone; refs already on the canvas
 -- are skipped and keep their card. The lookups run before the write, so the transaction stays short.
 local function importRefs(inputs: { string }, options: Options): Report
-	local doc = store.load(options.dir)
+	local doc = loadDoc(options.dir)
 	local groupId = if options.groupId then resolveId(doc, options.groupId) else nil
 
 	if groupId then
-		graph.group(doc, groupId)
+		getGroup(doc, groupId)
 	end
 
 	local entries = resolveInputs(inputs, doc.settings.sources)
@@ -72,11 +73,11 @@ local function importRefs(inputs: { string }, options: Options): Report
 
 			if existing then
 				outcome.status = "existing"
-				outcome.id, outcome.label = existing.id, graph.label(existing)
+				outcome.id, outcome.label = existing.id, getLabel(existing)
 			elseif entry.record then
 				local item = addCard(current, entry.record, groupId)
 				outcome.status = "added"
-				outcome.id, outcome.label = item.id, graph.label(item)
+				outcome.id, outcome.label = item.id, getLabel(item)
 			else
 				outcome.error = "not found"
 			end

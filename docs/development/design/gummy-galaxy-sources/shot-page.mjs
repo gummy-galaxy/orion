@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const [file, out, width] = process.argv.slice(2);
+const browser = await chromium.launch();
+const page = await browser.newPage({ viewport: { width: Number(width || 1440), height: 1000 } });
+page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
+await page.goto('file://' + file);
+await page.waitForTimeout(2500);
+await page.screenshot({ path: out });
+console.log(await page.evaluate(() => document.documentElement.scrollWidth + ' ' + innerWidth));
+await browser.close();

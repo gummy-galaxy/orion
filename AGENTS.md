@@ -6,23 +6,18 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 
 [The decisions log](docs/development/decisions.md) records the specific calls made along the way and why. They're defaults that can be challenged, and the charter outranks them. Follow them, raise a change that goes against one rather than working around it, and add or rewrite an entry when the person settles a new call.
 
+## Commands
+
+Run `orion help --all` before working with the canvas. It prints every command and subcommand with its arguments, options, and help, from the same definitions the CLI parses, so it can't fall behind. `orion help <command>` prints one command, and `orion help --all --json` prints the listing as JSON. This guide covers what help can't: which command to reach for, and how they fit together. When you add or change a command, put its syntax and what its options mean in its help text rather than here.
+
 ## Reading the canvas
 
-- `orion next` lists work that can start now, the items that unblock the most first. Snoozed items are left out until they wake.
-- `orion group list` lists groups with their progress.
-- `orion card list [--group <id>] [--all]` lists open items, or everything with `--all`.
-- `orion node query --where '<expr>' [--all] [--json]` finds matching cards and groups. Done cards are omitted unless `--all` is set.
-- `orion node show <id>` shows one item with what it waits on and leads to, or a group with its contents.
-
-Add `--json` to any of these for structured output. Statuses in the output are derived: `ready` means nothing the item waits on is still open.
-
-`orion canvas check [--group <id>] [--json]` reports layout problems that come from stored positions and sizes: overlapping siblings, children outside their group's bounds, links to missing items, and groups waiting for layout. Bounds are in canvas coordinates. Use `--group` to limit the report to a group and what is inside it. It exits nonzero when it finds any problems, and `--json` prints a flat list of `{kind, ids, bounds}` entries, with `bounds` null for a dangling link.
-
-Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr` (pull request number), `ref` (any ref key), `note` (the card's note text), or `snoozed` (`"true"` while a card is snoozed, `"false"` otherwise). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"`, `ref ~ "text"`, or `note ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
-
-Pass `--canvas <name>` to work on a specific canvas, or rely on the active one. Use `orion canvas list` and `orion canvas current` to check the available and active canvases. `orion canvas create [name] [--label <label>]` makes one; without a name, the label names it, so `Focus areas` becomes `focus-areas`. `orion canvas rename <name> <label>` changes a canvas's display label. `orion canvas archive <name>` takes a canvas off the list and keeps its data; `orion canvas list --archived` lists archived ones, and `orion canvas restore <name>` brings one back. The active canvas and `default` can't be archived.
-
-`orion backup list [--json]` lists saved revisions for the selected canvas. If a change was a mistake, `orion backup restore <revision>` restores the newest backup with that revision in the selected canvas as a new revision and backs up the current file first.
+- Start with `orion next` for work that can start now, the items that unblock the most first. `orion group list`, `orion card list`, and `orion node show <id>` fill in the rest, and `orion node query --where '<expr>'` finds cards and groups by their fields.
+- Statuses in the output are derived: `ready` means nothing the item waits on is still open. Add `--json` for structured output.
+- Query values are quoted strings, numbers and booleans included: `pr = "86"`, `draft = "true"`. A missing field never matches, even under `not`. Quotes are syntax, not shell commands; expressions can't evaluate code or read arbitrary data paths. `orion help node query` lists the fields and operators.
+- `orion canvas check` reports layout problems that come from stored positions and sizes, in canvas coordinates. It exits nonzero when it finds any, and `--json` prints a flat list of `{kind, ids, bounds}` entries, with `bounds` null for a dangling link.
+- Pass `--canvas <name>` to work on a specific canvas, or rely on the active one. `orion canvas list` and `orion canvas current` show the available and active canvases.
+- If a change was a mistake, `orion backup restore <revision>` restores the newest backup with that revision as a new revision, and backs up the current file first.
 
 ## What the person is looking at
 
@@ -40,26 +35,17 @@ To show the person the app, or anything else served locally such as a dev server
 
 ## Changing it
 
-- `orion card add <title> [--group <id>] [--kind gate|component] [--shape …] [--color …] [--ref <url | source:key | branch:owner/name@branch>] [--status <status>] [--note …]` adds a work item. A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off. A component is a part of a system diagram rather than work; see below.
-- `orion card set <id> [--label …] [--status …] [--kind step|gate|component] [--shape …] [--color …] [--who you|review|ci] [--note …] [--ref <url | source:key | branch:owner/name@branch>]` changes an item's fields. Pass an empty value to clear `--who`, `--note`, `--shape`, or `--color`. `orion group set <id> [--label …] [--blurb …] [--arrange …] [--cover …] [--background …] [--color …]` changes a group's fields. Each takes only its own kind of node, and the error names the other command to use.
-- `--ref` attaches outside work to a card: a GitHub issue or pull request URL, a Jira issue URL under a configured Jira source, or `source:key` such as `jira:ABC-12`. The adapter of the matching source resolves it. `branch:owner/name@branch` (for example `branch:vocksel/orion@agent/196-attach`) records the branch work started on, as a branch ref keyed like hop's; GitHub Enterprise hosts go in front of the repository, as in `branch:github.example.com/owner/name@branch`. `--repo` and `--pr` still work as aliases for one release and are deprecated; use `--ref` with the pull request URL.
-- `orion ref remove <id> <ref>` takes a ref off a card. Name it by the key `orion node show` lists, such as `owner/name#12`, or by the URL or `source:key` that attached it.
-- `orion group set <group> --arrange auto|custom` picks how the app lays out a group. `auto` (the default) flows by dependency and wraps rows at about six; `custom` keeps items where they are.
-- `orion card import <url | source:key>… [--stdin] [--group <id>] [--dry-run] [--json] [--if-revision <n>]` adds a card for each listed ref in one transaction. `--stdin` also reads one ref per line. Refs resolve with `--ref`'s grammar. GitHub titles are fetched 25 refs per query, and Jira refs are read through their source's command, so a Jira key must appear in that source's results. A ref already on the canvas is skipped and keeps its card. A ref that doesn't resolve or can't be found is reported and skipped, the rest are still added, and the command exits nonzero if any failed.
-- `orion card done <id...> | --where '<expr>'` marks items done.
-- `orion card snooze <id...> --until <iso>` (or `--where '<expr>'`) hides work items from attention and `orion next` until a time. `--until` takes ISO 8601 only: a date such as `2026-10-12` means the start of that day in local time, a date-time without an offset is local too, and `Z` or an offset such as `-07:00` is converted to UTC. The time must be in the future. A snoozed card keeps its derived status and still blocks the cards that wait on it; it has no leverage and isn't counted as ready in group progress. It returns on its own once the time passes, and nothing is written to wake it. Stored as the `snoozedUntil` data field, a UTC time.
-- `orion card unsnooze <id...> | --where '<expr>'` wakes items now.
-- `orion link add <first> <second> [next…] [--label <text>]` links each adjacent pair in one transaction. Add `--related` for links that never block. A label names what the link carries; linking an already linked pair updates it, and `--label ""` clears it. `orion link remove` removes one link.
-- `orion link insert <id> --between <from> <to>` replaces an existing link with two links through the item, keeping its kind.
-- `orion note add <text> [--group <id>] [--after <id>] [--before <id>]` adds a note. With both `--after` and `--before`, it splits their existing link or adds two blocking links if they are unlinked.
-- `orion log add <text> [--card <id,…>] [--agent <name>]` appends to the canvas log, attached to any number of cards. `orion log list [--card <id>] [--limit <n>] [--json]` lists it, newest first. `orion card timeline <id>` shows a card's most recent entries. Entries are append-only, so a correction is a new entry.
-- `orion media insert <file> [--label <text>] [--group <id>]` inserts a media node. It currently accepts PNG, JPEG, GIF, and WebP images, identified from their contents. `orion media list` lists media nodes in the selected canvas. `orion server start` accepts raw bytes at `POST /api/images?canvas=<name>` and returns them at `GET /api/images/<asset>?canvas=<name>`.
-- `orion group add <label> --items <id,id,…>`, `orion group ungroup <id...> | --where '<expr>'`, and `orion node move <id...> | --where '<expr>' --to <group>` (or `--top`) organize work. The old bare `orion group <label> --items …` form is gone; use `group add`. `orion group create <label> [--in <group>]` makes an empty group to fill later.
-- `orion group tidy [<group>...] | --where '<expr>'` marks groups for the app to lay out in place, using the same markers the CLI sets when it changes a group's members. The app lays out marked groups deepest first, so nested groups settle before their parents. Custom groups keep their arrangement, and a group that already has a pending marker keeps it. The CLI never lays out groups itself: if `orion server start` isn't running, the output says the layout runs when the app opens.
-- `orion node remove <id...> | --where '<expr>'` deletes items. Removing a note reconnects the links that ran through it. Add `--reconnect` to reconnect cards with at most one incoming and one outgoing link; every selected card must qualify.
-- `orion group remove <id...> | --where '<expr>'` deletes groups with everything inside them, at any depth. Preview it with `--dry-run`, which lists each group and what's inside.
+- A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off. A component is a part of a system diagram rather than work; see below.
+- `orion card set` changes cards and `orion group set` changes groups. Each takes only its own kind of node, and the error names the other command to use.
+- `--ref` resolves through the adapter of the matching source, so a Jira URL works only under a configured Jira source. A branch ref such as `branch:vocksel/orion@agent/196-attach` records the branch work started on, keyed like hop's; GitHub Enterprise hosts go in front of the repository, as in `branch:github.example.com/owner/name@branch`. `--repo` and `--pr` are deprecated and stay for one release.
+- `orion card import` adds a card for every ref in one transaction. A ref already on the canvas is skipped and keeps its card. One that doesn't resolve is reported and skipped while the rest are added, and the command then exits nonzero. Jira refs are read through their source's command, so a Jira key must appear in that source's results.
+- Snoozing hides a card from attention and `orion next` until a time in the future; a bare date means the start of that day. A snoozed card keeps its derived status and still blocks the cards that wait on it, but has no leverage and isn't counted as ready in group progress. It wakes on its own with nothing written, and is stored as the `snoozedUntil` data field, in UTC.
+- Linking an already linked pair updates its label. With both `--after` and `--before`, `orion note add` splits their link, or adds two blocking links if they aren't linked.
+- `orion group add` wraps items that share a parent. `orion group remove` deletes everything inside a group at any depth, so preview it with `--dry-run`.
+- The CLI never lays out groups itself. `orion group tidy` and changes to a group's members mark it, and the app lays out marked groups deepest first, so nested groups settle before their parents. Custom groups keep their arrangement, and auto groups wrap rows at about six. If `orion server start` isn't running, the layout waits until the app opens.
+- `orion server start` accepts raw image bytes at `POST /api/images?canvas=<name>` and returns them at `GET /api/images/<asset>?canvas=<name>`.
 
-`card done`, `card snooze`, `card unsnooze`, `link add`, `link insert`, `node remove`, `group remove`, `node move`, `group ungroup`, and `group tidy` accept `--dry-run`, `--json`, and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion node remove --where 'repo = "unrelated"' --dry-run`, then run `orion node remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
+Most commands that edit take `--dry-run` and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion node remove --where 'repo = "unrelated"' --dry-run`, then run `orion node remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
 
 Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set `blocked` or `deferred` only for reasons the graph can't show, since waiting on open work already reads as blocked. Snoozing is not a status: use `orion card snooze` to hide a card for a while.
 
@@ -69,10 +55,10 @@ Run `orion suggestion find` to find related ungrouped cards, then review `orion 
 
 ## System diagrams
 
-A canvas can also draw a system: services, apps, files, and outside tools, linked by what flows between them. Make each part a component with `orion card add <name> --shape <shape> [--repo <owner/name>] [--note <what it does>]`; a shape makes the card a component. Components have no status, never count as work, and grow to show their whole name and note.
+A canvas can also draw a system: services, apps, files, and outside tools, linked by what flows between them. Make each part a component with `orion card add <name> --shape <shape> [--note <what it does>]`; a shape makes the card a component. Components have no status, never count as work, and grow to show their whole name and note.
 
 - Shapes: `service` (a box, the default), `store` (a cylinder, for files and databases), `actor` (a pill, for people and agents), `external` (a dashed box, for anything outside the system), `interface` (a window, for a UI), `process` (a chevron, for commands and jobs), and `queue` (a stack, for streams of events).
-- Colors: `teal`, `blue`, `purple`, `amber`, `rose`, `green`, and `slate`. Set one on a group with `orion group set <group> --color <color>`; the components and groups inside take it unless they set their own.
+- Colors: set one on a group with `orion group set <group> --color <color>`, and the components and groups inside take it unless they set their own.
 
 Link components with `orion link add <caller> <callee> --label <what travels>`, pointing from what starts a call to what it calls. Group them by boundary, such as an app, a process, or everything outside the system, and nest smaller groups inside for its parts. `orion group add` wraps items that share a parent, so make the inner groups first.
 
@@ -90,9 +76,9 @@ When a card has a branch ref for the pull request's head branch in its repositor
 
 ## Sources and ingestion
 
-Use `orion source list` to inspect configured GitHub, Jira, and hop sources. Add a GitHub source with `orion source add github --host <host> --owners <owner,owner>`; `--include` and `--exclude` also take comma-separated repository lists. Add Jira with `orion source add jira --command '<JSON array>' --browse <url>` and hop with `orion source add hop`. Each kind takes only its own options, so `orion source add <kind> --help` lists them. Keep credentials in `gh` and `acli`, never in the source command. Remove a source with `orion source remove <id>`.
+Use `orion source list` to inspect configured GitHub, Jira, and hop sources, and `orion source add <kind>` to add one; each kind takes only its own options. Keep credentials in `gh` and `acli`, never in the source command.
 
-Run `orion ingest --dry-run` before `orion ingest`; add `--json` for structured counts or `--source <id>` to limit the run. Ingestion files new cards in Unsorted, updates existing cards in place, and leaves cards that are no longer returned alone. Place cards into outcome groups after reviewing them.
+Run `orion ingest --dry-run` before `orion ingest`. Ingestion files new cards in Unsorted, updates existing cards in place, and leaves cards that are no longer returned alone. Place cards into outcome groups after reviewing them.
 
 Cards keep pull requests, issues, and local branches in `data.refs`. Each ref records its source, kind, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests. The source's adapter reads its details into source-neutral facts on the ref, such as `stateLabel`, `readiness`, and `checks`, and the app shows those rather than reading the details.
 
@@ -101,7 +87,7 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
 - Write a note as a plain-language summary of where the card stands. Use Markdown for structure, such as headings and lists. Put code, file paths, and identifiers in code formatting rather than running them through the prose. Keep pull requests and issues in the card's refs (`orion card set <id> --ref ...`) instead of links in the text.
 - Log each notable step on the card with `orion log add <text> --card <id> --agent <your agent name>`: a test run and its outcome, or a decision made. Keep the card's note as the short summary of where it stands rather than adding each step to it, and correct a logged mistake with a new entry.
-- Find ids with `orion node find <text>`, which matches labels, notes, and refs and prints the total with a capped list (`--limit`, `--all-canvases`). Where a command takes an id, a selector works too: `label:"Extract slider"`, `ref:jira:ABC-12` or `ref:<url>`, and `pr:86`. A selector must match exactly one item; when it matches several, the command lists them so you can pick an id.
+- Find ids with `orion node find <text>`, which matches labels, notes, and refs. Where a command takes an id, a selector works too: `label:"Extract slider"`, `ref:jira:ABC-12` or `ref:<url>`, and `pr:86`. A selector must match exactly one item; when it matches several, the command lists them so you can pick an id.
 - Group by outcome, not by repository.
 
 ## Issues
@@ -116,7 +102,7 @@ Direction and long-range plans belong in [the charter](docs/development/charter.
 
 When a pull request changes what the app shows, attach before and after screenshots to its description, or videos when the change is an interaction, an animation, or takes several steps to reach. Follow `.claude/skills/pr-screenshots/SKILL.md`, which captures or records both sides the same way, headless, into a scratch folder, uploads them to GitHub through the comment box without posting, and writes the description with `gh`.
 
-CI's perf workflow compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. It skips drafts and runs once a pull request is ready for review. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment once it posts. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
+CI's perf workflow compares every pull request that touches `app/` against its base branch and keeps the report in one pull request comment, replaced on each run. It skips drafts and runs once a pull request is ready for review. It also runs on every push to `main`, and each run records its medians in PostHog so performance can be charted over time. When a pull request touches canvas rendering, CSS animations or effects, `derive`, `layout`, `merge`, `snap`, the Jotai state, or `Canvas.tsx`, read that comment once it posts. Summarize any flagged regressions in the pull request's Testing section, or say why a flagged change is acceptable. To check before pushing, run `npm run perf` from `app/`. It takes several minutes and measures this machine, so run one at a time with no other heavy work going.
 
 A pull request that finishes an issue closes it. Put `Closes #<n>` in the description, so merging it closes the issue. Don't point at an issue with "Part of", "Advances", "Related", or any other label instead. When a pull request finishes only some of an issue, say in its description which items on the issue's Progress checklist it finishes. When it leaves concrete work undone, add that work to the checklist, or file it as one follow-up issue when it stands on its own.
 
@@ -146,6 +132,7 @@ To let someone try a change in the desktop app, run `npm run build` in `desktop/
 - Run a script's body through `runScript` from `cli/src/runScript.luau`. Lute exits 0 for some uncaught errors, such as a `process.run` whose program is missing, so without it a failed step can pass.
 - Reference actions from the `actions` organization by major tag, such as `actions/checkout@v7`. Pin every other action to a commit SHA with a version comment.
 - Set `timeout-minutes` to about one and a half times a measured run. Raise it only when real runs get close.
+- Write every job as a future required check, since most become required once the repository is public. Skip work with a job condition fed by a filter job, like `ci-loading` in `ci.yml`, rather than workflow-level `paths`, which leaves a required check waiting forever. Give each job a name no other workflow uses, because a required check matches the job name alone. Filter jobs are required too: when one fails, the jobs behind it are skipped, and a skipped job passes its check.
 
 ## Luau style
 

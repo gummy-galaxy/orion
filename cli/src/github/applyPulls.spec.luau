@@ -2,10 +2,11 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local applyPulls = require("@root/github/applyPulls")
+local findItem = require("@root/graph/findItem")
 local findRef = require("@root/refs/findRef")
 local getKey = require("@root/github/getKey")
 local githubTypes = require("@root/github/types")
-local graph = require("@root/graph")
+local setFields = require("@root/graph/setFields")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
@@ -137,7 +138,7 @@ test.case("apply keeps authored pull requests to the workspace's GitHub sources"
 		failures = {},
 	}, "2026-10-04T18:05:00Z")
 	assert.eq(#report.added, 1)
-	local added = graph.find(doc, report.added[1])
+	local added = findItem(doc, report.added[1])
 	assert.eq(added and (findRef(added, "pull") :: types.Ref).key, "vocksel/orion#1")
 end)
 
@@ -327,7 +328,7 @@ test.case("discover attaches a branch match to its card instead of filing it in 
 
 	assert.eq(#report.attached, 1)
 	assert.eq(#report.added, 0)
-	assert.eq(graph.find(doc, "inbox"), nil)
+	assert.eq(findItem(doc, "inbox"), nil)
 	assert.eq(#unplacedOf(doc), 0)
 end)
 
@@ -409,7 +410,7 @@ end)
 test.case("setting a status by hand takes over a refresh deferral", function(assert)
 	local doc = trackedDoc("active")
 	applyPulls(doc, fetchedWith("CLOSED"), "now")
-	graph.setFields(doc, "a", { status = "deferred" })
+	setFields(doc, "a", { status = "deferred" })
 	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
 	applyPulls(doc, fetchedWith("OPEN"), "later")
 	assert.eq(doc.nodes[1].data.status, "deferred")
@@ -447,4 +448,18 @@ test.case("a branch match without its full state stays unplaced until it's fetch
 	assert.eq(#report.added, 0)
 	assert.eq(findRef(doc.nodes[1], "pull"), nil)
 	assert.eq(#unplacedOf(doc), 1)
+end)
+
+test.case("apply keeps the recorded unplaced list when the authored list wasn't fetched", function(assert)
+	local doc, fetched = stackFixture()
+	fetched.authored = nil
+	doc.github = json.object({
+		viewer = "vocksel",
+		unplaced = { json.object({ repo = "vocksel/orion", number = 9, title = "Unplaced", updatedAt = "now" }) },
+	})
+	applyPulls(doc, fetched, "later")
+	local recorded = json.asObject(doc.github)
+	local unplaced = if recorded then json.asArray(recorded.unplaced) else nil
+	assert.eq(unplaced and #unplaced, 1)
+	assert.eq(recorded and recorded.checkedAt, "later")
 end)

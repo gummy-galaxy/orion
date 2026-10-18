@@ -4,9 +4,9 @@ local json = require("@std/json")
 local checkLayout = require("@root/layout/checkLayout")
 local context = require("@root/cli/context")
 local layoutTypes = require("@root/layout/types")
+local loadDoc = require("@root/store/loadDoc")
 local pad = require("@root/render/pad")
 local resolveId = require("@root/query/resolveId")
-local store = require("@root/store")
 
 type Context = context.Context
 type Issue = layoutTypes.Issue
@@ -45,7 +45,7 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
+		local doc = loadDoc(options.dir)
 		local group = parser:get("group")
 		local issues = checkLayout(doc, if group then resolveId(doc, group) else nil)
 

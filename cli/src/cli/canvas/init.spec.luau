@@ -3,7 +3,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
 
 test.case("workspace create and list use a temporary data root", function(assert)
@@ -13,7 +13,7 @@ test.case("workspace create and list use a temporary data root", function(assert
 	assert.eq(initial and #(json.asArray(initial.canvases) or {}), 1)
 	run({ "canvas", "create", "roblox", "--label", "Roblox" })
 	local dir = tostring(path.join(root, "canvases", "roblox"))
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(doc.version, 2)
 	assert.eq(doc.revision, 0)
 	assert.eq(#doc.settings.sources, 0)
@@ -103,12 +103,12 @@ test.case("workspace set stores the canvas cover and background and needs an ima
 	fs.createDirectory(path.join(root, "assets"), { makeParents = true })
 	fs.writeStringToFile(path.join(root, "assets", "image-logo.png"), "bytes")
 	run({ "canvas", "set", "--cover", "image-logo.png", "--background", "canvas.background" })
-	local doc = store.load(root)
+	local doc = loadDoc(root)
 	assert.eq(doc.settings.cover, "image-logo.png")
 	assert.eq(doc.settings.background, "canvas.background")
 	assert.eq(doc.revision, 1)
 	run({ "canvas", "set", "--cover", "" })
-	assert.eq(store.load(root).settings.cover, nil)
+	assert.eq(loadDoc(root).settings.cover, nil)
 end)
 
 -- Lists workspace names in the order the command reports them.
@@ -161,12 +161,12 @@ test.case("workspace archive hides a workspace and restore brings it back with i
 	run({ "canvas", "create", "roblox" })
 	run({ "--canvas", "roblox", "card", "add", "Kept on the canvas" })
 	local dir = tostring(path.join(root, "canvases", "roblox"))
-	assert.eq(#store.load(dir).nodes, 1)
+	assert.eq(#loadDoc(dir).nodes, 1)
 
 	assert.eq(run({ "canvas", "archive", "roblox" }), "Archived canvas roblox")
 	assert.eq(listNames(run({ "canvas", "list", "--json" })), "default,docs")
 	assert.eq(listNames(run({ "canvas", "list", "--archived", "--json" })), "roblox")
-	assert.eq(#store.load(dir).nodes, 1)
+	assert.eq(#loadDoc(dir).nodes, 1)
 
 	assert.throwsWith("unknown canvas: roblox", function()
 		run({ "canvas", "use", "roblox" })
@@ -183,7 +183,7 @@ test.case("workspace archive hides a workspace and restore brings it back with i
 	assert.eq(run({ "canvas", "restore", "roblox" }), "Restored canvas roblox")
 	assert.eq(listNames(run({ "canvas", "list", "--json" })), "default,docs,roblox")
 	assert.eq(listNames(run({ "canvas", "list", "--archived", "--json" })), "")
-	assert.eq(#store.load(dir).nodes, 1)
+	assert.eq(#loadDoc(dir).nodes, 1)
 
 	assert.throwsWith("unknown archived canvas: roblox", function()
 		run({ "canvas", "restore", "roblox" })

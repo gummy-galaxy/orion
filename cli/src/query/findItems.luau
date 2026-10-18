@@ -1,4 +1,6 @@
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
+local getLabel = require("@root/graph/getLabel")
+local graphTypes = require("@root/graph/types")
 local matchesExpression = require("@root/query/matchesExpression")
 local parseExpression = require("@root/query/parseExpression")
 local types = require("@root/types")
@@ -7,7 +9,7 @@ type Doc = types.Doc
 type Item = types.Item
 
 export type Canvas = { name: string, doc: Doc }
-export type Hit = { name: string, doc: Doc, derived: graph.Derived, item: Item }
+export type Hit = { name: string, doc: Doc, derived: graphTypes.Derived, item: Item }
 export type Result = { total: number, hits: { Hit } }
 
 type Entry = { hit: Hit, rank: number, sequence: number }
@@ -33,13 +35,13 @@ local function findItems(canvases: { Canvas }, text: string, limit: number): Res
 	local found: { Entry } = {}
 
 	for _, canvas in canvases do
-		local derived = graph.derive(canvas.doc)
+		local derived = derive(canvas.doc)
 
 		for _, item in canvas.doc.nodes do
 			if matchesExpression(derived, item, anywhere) then
 				local rank = NOTE
 
-				if graph.label(item):lower() == lowered then
+				if getLabel(item):lower() == lowered then
 					rank = EXACT_LABEL
 				elseif matchesExpression(derived, item, inLabel) then
 					rank = LABEL
