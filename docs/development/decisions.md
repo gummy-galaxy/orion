@@ -276,6 +276,14 @@ Entries from `orion log add` are by the person running the CLI, named by `$USER`
 
 ## Public interfaces
 
+### Reveal stays top level and opens the app
+
+`orion reveal <id…>` stays a top-level command rather than moving under `orion focus`. It also zooms the canvas to what it selects, which setting focus shouldn't do. When no app is running, reveal launches the installed app on the same data folder, then waits for the app to show the items before it reports success.
+
+**Why:** a reveal moves the camera as well as the selection, and focus only reports what the app shows. Agents asked to show someone a card shouldn't have to tell them to open the app first.
+
+2026-10-12 · [#299](https://github.com/vocksel/orion/issues/299)
+
 ### Public interfaces tighten in three stages
 
 Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shapes, and data files. How freely they change depends on the release:
