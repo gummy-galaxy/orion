@@ -135,6 +135,7 @@ import { useCompanionTargets } from '../useCompanionTargets'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
 import { useGroupResize } from '../resize/useGroupResize'
+import { groupEdgeAt } from '../resize/groupEdgeAt'
 import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
@@ -147,6 +148,7 @@ import {
   linksAtom,
   nodesAtom,
   pinnedAtom,
+  resizeHandlesAtom,
   skinAtom,
   skinStore,
   traceAtom,
@@ -225,6 +227,8 @@ function readMotion(): MotionSettings {
 const STILL_ZOOM = 0.45
 /** Zoom below which marching arrows and the active glow are too subtle to read, so they stop. */
 const QUIET_ZOOM = 0.6
+/** How near a group's edge, on screen, the pointer comes before the group shows its resize handles. */
+const RESIZE_REACH_PX = 14
 const GHOST_WIDTH = 200
 const GHOST_HEIGHT = 62
 const GHOST_GAP = 90
@@ -1403,6 +1407,8 @@ export function Canvas() {
     [nodes, map, view, cardSize],
   )
   const drawn = useDrawnCards(drawCards)
+  // Folded groups show no handles, and hidden ones aren't on screen.
+  const resizableGroups = useMemo(() => nodes.filter((node) => isCluster(node) && !node.hidden && !collapsed.has(node.id)), [nodes, collapsed])
   const viewNodes = useMemo<ViewNode[]>(
     () => [
       ...nodes.map((node) => {
@@ -1704,6 +1710,14 @@ export function Canvas() {
     pointer.current = { x: event.clientX - rectangle.left, y: event.clientY - rectangle.top }
 
     if (attending) setCursor(pointer.current)
+
+    // Resize handles mount on the group whose edge the pointer nears, and stay put while it resizes.
+    if (!resizeGroup.active()) {
+      const point = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      const near = groupEdgeAt(map, resizableGroups, point, RESIZE_REACH_PX / reactFlow.getZoom(), cardSize)
+
+      if (near !== atomStore.get(resizeHandlesAtom)) atomStore.set(resizeHandlesAtom, near)
+    }
   }
 
   const needs = useMemo(() => needsAttention(nodes, work.status, work.snoozed), [nodes, work.status, work.snoozed])

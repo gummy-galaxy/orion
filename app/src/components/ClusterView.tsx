@@ -11,6 +11,7 @@ import {
   useIsDropTarget,
   useIsEmptyGroup,
   useMarked,
+  useShowsResizeHandles,
   useSources,
   useTint,
   useTraceRole,
@@ -38,6 +39,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
   const parts = useGroupParts(id)
   const isEmpty = useIsEmptyGroup(id)
   const isDropTarget = useIsDropTarget(id)
+  const showsResizeHandles = useShowsResizeHandles(id)
   const workspace = useAtomValue(workspaceAtom)
   const headerFolded = useStore((state) => state.transform[2] < HEADER_MIN_ZOOM)
   const layers = groupLayers(data, collapsed)
@@ -126,7 +128,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
       )}
       {!collapsed && isEmpty && <span className="cluster-empty">Empty group</span>}
       {!collapsed && <SourceBadges sources={sources} />}
-      {!collapsed && <GroupResizeHandles id={id} />}
+      {!collapsed && showsResizeHandles && <GroupResizeHandles id={id} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
   )

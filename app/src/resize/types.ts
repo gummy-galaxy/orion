@@ -10,4 +10,6 @@ export type GroupResize = {
   start: (groupId: string, edges: ResizeEdges, point: Point) => void
   move: (point: Point) => void
   end: () => void
+  /** True from the start of a resize until it ends. */
+  active: () => boolean
 }

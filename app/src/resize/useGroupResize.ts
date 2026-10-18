@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useRef, type Dispatch, type SetStateAction } from 'react'
 import { useReactFlow } from '@xyflow/react'
+import { useSetAtom } from 'jotai'
 import { planReflow, type ReflowPlan } from '../layout'
 import { GROUP_PADDING, groupHeaderHeight, isCluster, sizeOf, type AppNode, type Link } from '../model'
 import { pushAside } from '../pushAside'
+import { resizeHandlesAtom } from '../state'
 import type { CardSize } from '../cardSize'
 import { resizeAutoGroup } from './resizeAutoGroup'
 import { resizeBox } from './resizeBox'
@@ -45,6 +47,7 @@ export function useGroupResize({
 }): GroupResize {
   const reactFlow = useReactFlow()
   const session = useRef<Session | null>(null)
+  const setHandlesShown = useSetAtom(resizeHandlesAtom)
 
   const show = useCallback(
     (current: Session) => {
@@ -89,6 +92,8 @@ export function useGroupResize({
       }
 
       session.current = current
+      // The handles stay on this group while it resizes, wherever the pointer goes.
+      setHandlesShown(groupId)
 
       if (custom) return
 
@@ -105,7 +110,7 @@ export function useGroupResize({
           if (current.ended || session.current === current) show(current)
         })
     },
-    [getCurrentNodes, getLinks, reactFlow, cardSize, show],
+    [getCurrentNodes, getLinks, reactFlow, cardSize, show, setHandlesShown],
   )
 
   const move = useCallback(
@@ -140,5 +145,7 @@ export function useGroupResize({
     if (current.plan !== undefined) show(current)
   }, [show])
 
-  return useMemo(() => ({ start, move, end }), [start, move, end])
+  const active = useCallback(() => session.current !== null, [])
+
+  return useMemo(() => ({ start, move, end, active }), [start, move, end, active])
 }

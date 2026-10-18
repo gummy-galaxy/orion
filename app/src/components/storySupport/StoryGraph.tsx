@@ -6,7 +6,7 @@ import type { AppNode, GhostNode } from '../../model'
 import { derivedAtom, linksAtom, nodesAtom } from '../../state'
 import { blocker, derived, links, task } from './data'
 
-const noResize = { start: () => {}, move: () => {}, end: () => {} }
+const noResize = { start: () => {}, move: () => {}, end: () => {}, active: () => false }
 
 export function StoryGraph({
   nodes = [task, blocker],
