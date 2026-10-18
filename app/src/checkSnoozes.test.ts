@@ -1,24 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { changeSnoozes, findSnooze, isSnoozedOn, readCheckSnoozes, repoOfPullKey, withSnoozes, type CheckSnooze } from './checkSnoozes'
-import type { PullDetails } from './model'
+import type { RefChecks, SourceRef } from './model'
 
 const NOW = Date.parse('2026-10-13T12:00:00Z')
 
-const failing = (overrides: Partial<PullDetails> = {}): PullDetails => ({
-  state: 'OPEN',
-  draft: true,
-  title: 'Title',
-  author: 'vocksel',
-  mine: true,
-  requestedFromYou: false,
-  updatedAt: '2026-10-13T00:00:00Z',
-  additions: 1,
-  deletions: 1,
-  checkedAt: '2026-10-13T00:00:00Z',
-  checks: 'FAILURE',
-  checkCounts: { total: 6, finished: 6, failed: 1 },
-  failedChecks: [{ name: 'docs' }],
-  ...overrides,
+const failing = (checks: Partial<RefChecks> = {}, failedChecks: { name: string }[] = [{ name: 'docs' }]): SourceRef => ({
+  source: 'github',
+  kind: 'pull',
+  key: 'vocksel/orion#12',
+  readiness: 'failing',
+  checks: { state: 'failing', total: 6, finished: 6, failed: 1, ...checks },
+  details: { failedChecks },
 })
 
 const docs = (overrides: Partial<CheckSnooze> = {}): CheckSnooze => ({
@@ -59,36 +51,33 @@ describe('check snoozes', () => {
   })
 
   it('reads as passing when the only failures are snoozed', () => {
-    const details = withSnoozes(failing(), 'vocksel/orion', 'card', [docs()], NOW)
+    const ref = withSnoozes(failing(), 'card', [docs()], NOW)
 
-    expect(details.checks).toBe('SUCCESS')
-    expect(details.checkCounts?.failed).toBe(0)
+    expect(ref.checks?.state).toBe('passing')
+    expect(ref.checks?.failed).toBe(0)
+    expect(ref.readiness).toBe('passing')
   })
 
   it('reads as running when snoozed failures leave jobs still running', () => {
-    const details = withSnoozes(failing({ checkCounts: { total: 6, finished: 4, failed: 1 } }), 'vocksel/orion', 'card', [docs()], NOW)
+    const ref = withSnoozes(failing({ finished: 4, progress: 'running' }), 'card', [docs()], NOW)
 
-    expect(details.checks).toBe('PENDING')
+    expect(ref.checks?.state).toBe('pending')
+    expect(ref.readiness).toBe('running')
   })
 
   it('keeps failing while another job fails, with one fewer failure', () => {
-    const details = withSnoozes(
-      failing({ checkCounts: { total: 6, finished: 6, failed: 2 }, failedChecks: [{ name: 'docs' }, { name: 'test' }] }),
-      'vocksel/orion',
-      'card',
-      [docs()],
-      NOW,
-    )
+    const ref = withSnoozes(failing({ failed: 2 }, [{ name: 'docs' }, { name: 'test' }]), 'card', [docs()], NOW)
 
-    expect(details.checks).toBe('FAILURE')
-    expect(details.checkCounts?.failed).toBe(1)
+    expect(ref.checks?.state).toBe('failing')
+    expect(ref.checks?.failed).toBe(1)
+    expect(ref.readiness).toBe('failing')
   })
 
-  it('leaves details alone without a matching snooze', () => {
-    const details = failing()
+  it('leaves the ref alone without a matching snooze', () => {
+    const ref = failing()
 
-    expect(withSnoozes(details, 'vocksel/orion', 'card', [], NOW)).toBe(details)
-    expect(withSnoozes(details, 'vocksel/hop', 'card', [docs()], NOW)).toBe(details)
+    expect(withSnoozes(ref, 'card', [], NOW)).toBe(ref)
+    expect(withSnoozes(ref, 'card', [docs({ repo: 'vocksel/hop' })], NOW)).toBe(ref)
   })
 
   it("replaces a job's snooze when it is snoozed again, and ends a timed one after its length", () => {

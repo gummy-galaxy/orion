@@ -1,4 +1,4 @@
-import type { PullDetails } from './model'
+import type { FailedCheck, PullReadiness, RefChecks, SourceRef } from './model'
 
 /**
  * A CI job whose failures cards leave out, for every card in its repository. With `until`, the snooze ends at that
@@ -47,27 +47,43 @@ export function isSnoozedOn(snoozes: CheckSnooze[], repo: string, name: string, 
   return !!snooze && (!!snooze.until || !snooze.passed?.includes(cardId))
 }
 
-/**
- * A pull request's details with snoozed jobs left out, so a card whose only failures are snoozed reads as running or
- * passing. Optional failures are already left out of the counts the CLI records.
- */
-export function withSnoozes(details: PullDetails, repo: string | undefined, cardId: string, snoozes: CheckSnooze[], now = Date.now()): PullDetails {
-  if (!repo || !snoozes.length || !details.failedChecks || (details.checks !== 'FAILURE' && details.checks !== 'ERROR')) return details
+/** The jobs that failed on a pull request ref, as the CLI records them with its GitHub details. */
+export function readFailedChecks(details: Record<string, unknown> | undefined): FailedCheck[] {
+  const raw = details?.failedChecks
 
-  const counted = details.failedChecks.filter((check) => !check.optional)
+  if (!Array.isArray(raw)) return []
+
+  return raw.filter((entry): entry is FailedCheck => !!entry && typeof entry === 'object' && typeof entry.name === 'string')
+}
+
+/**
+ * A pull request ref with snoozed jobs left out of its checks and readiness, so a card whose only failures are snoozed
+ * reads as running or passing. Optional failures are already left out of the counts the CLI records.
+ */
+export function withSnoozes(ref: SourceRef, cardId: string, snoozes: CheckSnooze[], now = Date.now()): SourceRef {
+  const repo = repoOfPullKey(ref.key)
+  const failedChecks = readFailedChecks(ref.details)
+
+  if (!repo || !snoozes.length || !failedChecks.length || ref.checks?.state !== 'failing') return ref
+
+  const counted = failedChecks.filter((check) => !check.optional)
   const snoozed = counted.filter((check) => isSnoozedOn(snoozes, repo, check.name, cardId, now)).length
 
-  if (!snoozed) return details
+  if (!snoozed) return ref
 
-  const counts = details.checkCounts
-  const failed = counts ? Math.max(0, counts.failed - snoozed) : counted.length - snoozed
-  const checkCounts = counts ? { ...counts, failed } : undefined
+  const { total, finished } = ref.checks
+  const failed = ref.checks.failed !== undefined ? Math.max(0, ref.checks.failed - snoozed) : counted.length - snoozed
+  const counts = ref.checks.failed !== undefined ? { failed } : {}
 
-  if (failed > 0) return { ...details, checkCounts }
+  if (failed > 0) return { ...ref, checks: { ...ref.checks, ...counts } }
 
-  const running = counts ? counts.finished < counts.total : false
+  const running = total !== undefined && finished !== undefined && finished < total
+  const checks: RefChecks = { ...ref.checks, ...counts, state: running ? 'pending' : 'passing' }
+  // Readiness follows the checks the way orion serve derives it, and a conflict still comes first.
+  const readiness: PullReadiness | undefined =
+    ref.readiness === 'failing' ? (running ? (ref.checks.progress === 'waiting' ? 'waiting' : 'running') : 'passing') : ref.readiness
 
-  return { ...details, checks: running ? 'PENDING' : 'SUCCESS', checkCounts }
+  return { ...ref, checks, ...(readiness ? { readiness } : {}) }
 }
 
 /**

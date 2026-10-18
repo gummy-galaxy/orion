@@ -96,7 +96,7 @@ Use `orion source list` to inspect configured GitHub, Jira, and hop sources. Add
 
 Run `orion ingest --dry-run` before `orion ingest`; add `--json` for structured counts or `--source <id>` to limit the run. Ingestion files new cards in Unsorted, updates existing cards in place, and leaves cards that are no longer returned alone. Place cards into outcome groups after reviewing them.
 
-Cards keep pull requests, issues, and local branches in `data.refs`. Each ref records its source, kind, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests.
+Cards keep pull requests, issues, and local branches in `data.refs`. Each ref records its source, kind, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests. The source's adapter reads its details into source-neutral facts on the ref, such as `stateLabel`, `readiness`, and `checks`, and the app shows those rather than reading the details.
 
 ## Habits
 

@@ -1,6 +1,6 @@
 import type { SourceRef } from './derive'
 import {
-  getPullReadiness,
+  getCheckCounts,
   getPullRef,
   getTaskTag,
   getTaskUrl,
@@ -8,14 +8,13 @@ import {
   STATUS_LABEL,
   type CheckCounts,
   type ItemKind,
-  type PullDetails,
   type PullReadiness,
   type TaskNode,
   type ViewStatus,
   type Who,
 } from './model'
 import type { Rarity } from './rarity'
-import { repoOfPullKey, withSnoozes, type CheckSnooze } from './checkSnoozes'
+import { withSnoozes, type CheckSnooze } from './checkSnoozes'
 
 export type CardView = {
   id: string
@@ -70,21 +69,6 @@ export type CardSizeLabel = 'S' | 'M' | 'L' | 'XL'
 
 const WHO_LABEL: Record<Who, string> = { you: 'Your move', review: 'Waiting on review', ci: 'Waiting on CI' }
 
-function getChecks(checks: PullDetails['checks'] | undefined): CardView['checks'] {
-  switch (checks) {
-    case 'SUCCESS':
-      return 'passing'
-    case 'FAILURE':
-    case 'ERROR':
-      return 'failing'
-    case 'PENDING':
-    case 'EXPECTED':
-      return 'pending'
-    default:
-      return undefined
-  }
-}
-
 export type CardFacts = {
   status: ViewStatus
   leverage: number
@@ -101,17 +85,15 @@ export type CardFacts = {
 export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
-  const pullRef = getPullRef(data)
-  const recorded = pullRef?.details as PullDetails | undefined
-  const pullDetails = recorded && pullRef ? withSnoozes(recorded, repoOfPullKey(pullRef.key), node.id, facts.snoozes ?? []) : recorded
-  const checks = getChecks(pullDetails?.checks)
-  const readiness = getPullReadiness(pullDetails)
-  const open = pullDetails?.state === 'OPEN'
-  const checkProgress = open ? pullDetails.checkProgress : undefined
-  const checkCounts = open ? pullDetails.checkCounts : undefined
+  const recorded = getPullRef(data)
+  const pullRef = recorded && withSnoozes(recorded, node.id, facts.snoozes ?? [])
+  const checks = pullRef?.checks?.state
+  const readiness = pullRef?.readiness
+  const checkProgress = pullRef?.checks?.progress
+  const checkCounts = getCheckCounts(pullRef?.checks)
   // Work parked or blocked by hand stays that way even when GitHub would merge it.
   const readyToMerge = readiness === 'mergeable' && (facts.status === 'review' || facts.status === 'ready' || facts.status === 'active')
-  const merge = readyToMerge && pullRef?.url && pullDetails?.head ? { url: pullRef.url, head: pullDetails.head } : undefined
+  const merge = readyToMerge && pullRef?.url && pullRef.head ? { url: pullRef.url, head: pullRef.head } : undefined
   // The primary ref's URL, so a badge for another GitHub ref can't change what opens from a pull request card.
   const url = getTaskUrl(data)
   const pullRequestUrl = data.itemKind === 'pr' && url?.startsWith('https://github.com/') ? url : undefined
@@ -143,7 +125,7 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     ...(facts.blockers !== undefined ? { blockers: facts.blockers } : {}),
     ...(facts.unblocks !== undefined ? { unblocks: facts.unblocks } : {}),
     ...(facts.group ? { group: facts.group } : {}),
-    ...(pullDetails?.reviewDecision === 'CHANGES_REQUESTED' ? { changesRequested: true as const } : {}),
-    ...(pullDetails?.updatedAt ? { updatedAt: pullDetails.updatedAt } : {}),
+    ...(pullRef?.changesRequested ? { changesRequested: true as const } : {}),
+    ...(pullRef?.updatedAt ? { updatedAt: pullRef.updatedAt } : {}),
   }
 }

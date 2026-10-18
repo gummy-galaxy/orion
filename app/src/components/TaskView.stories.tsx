@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { TaskView } from './TaskView'
 import { StoryGraph } from './storySupport/StoryGraph'
-import { COMPONENT_SHAPES, SHAPE_LABEL, TINTS, type PullDetails, type TaskNode } from '../model'
+import { COMPONENT_SHAPES, SHAPE_LABEL, TINTS, type SourceRef, type TaskNode } from '../model'
 import { component, note, task } from './storySupport/data'
 
 const meta = { title: 'Canvas/Cards and edges/TaskView' } satisfies Meta
@@ -23,28 +23,25 @@ const shapes: TaskNode[] = COMPONENT_SHAPES.map((shape, i) => ({
 /** Every component shape, each in its own tint. */
 export const ComponentShapes: Story = { render: () => <StoryGraph nodes={shapes} nodeTypes={{ task: TaskView }} /> }
 
-const OPEN_PULL: PullDetails = {
-  state: 'OPEN',
-  draft: false,
-  title: 'Make the canvas welcoming',
+const OPEN_PULL: Partial<SourceRef> = {
+  stateLabel: 'Open on GitHub',
   author: 'vocksel',
-  mine: true,
-  requestedFromYou: false,
+  isMine: true,
   updatedAt: '2026-10-08T12:00:00Z',
   additions: 120,
   deletions: 30,
   checkedAt: '2026-10-08T12:00:00Z',
   head: 'abc123',
 }
-const READINESS: [string, Partial<PullDetails>][] = [
-  ['Merge conflicts', { checks: 'SUCCESS', mergeable: 'CONFLICTING', mergeState: 'DIRTY' }],
-  ['Checks failing', { checks: 'FAILURE', mergeState: 'BLOCKED' }],
-  ['Checks running', { checks: 'PENDING', checkProgress: 'running', checkCounts: { total: 8, finished: 5, failed: 0 } }],
-  ['Checks queued', { checks: 'PENDING', checkProgress: 'waiting' }],
-  ['Checks passing, awaiting review', { checks: 'SUCCESS', mergeable: 'MERGEABLE', mergeState: 'BLOCKED' }],
-  ['Ready to merge', { checks: 'SUCCESS', mergeable: 'MERGEABLE', mergeState: 'CLEAN', reviewDecision: 'APPROVED' }],
+const READINESS: [string, Partial<SourceRef>][] = [
+  ['Merge conflicts', { readiness: 'conflict', checks: { state: 'passing' } }],
+  ['Checks failing', { readiness: 'failing', checks: { state: 'failing' } }],
+  ['Checks running', { readiness: 'running', checks: { state: 'pending', progress: 'running', total: 8, finished: 5, failed: 0 } }],
+  ['Checks queued', { readiness: 'waiting', checks: { state: 'pending', progress: 'waiting' } }],
+  ['Checks passing, awaiting review', { readiness: 'passing', checks: { state: 'passing' } }],
+  ['Ready to merge', { readiness: 'mergeable', checks: { state: 'passing' }, stateLabel: 'Approved on GitHub' }],
 ]
-const readinessCards: TaskNode[] = READINESS.map(([label, details], index) => ({
+const readinessCards: TaskNode[] = READINESS.map(([label, facts], index) => ({
   ...task,
   id: `pull-${index}`,
   position: { x: (index % 3) * 260, y: Math.floor(index / 3) * 120 },
@@ -52,7 +49,7 @@ const readinessCards: TaskNode[] = READINESS.map(([label, details], index) => ({
     ...task.data,
     label,
     status: 'review',
-    refs: [{ ...task.data.refs![0], key: `vocksel/orion#${127 + index}`, details: { ...OPEN_PULL, ...details } }],
+    refs: [{ ...task.data.refs![0], key: `vocksel/orion#${127 + index}`, ...OPEN_PULL, ...facts }],
   },
 }))
 
