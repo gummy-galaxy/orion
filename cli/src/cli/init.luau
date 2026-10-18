@@ -5,6 +5,7 @@ local apply = require("@root/cli/apply")
 local backup = require("@root/cli/backup")
 local canvas = require("@root/cli/canvas")
 local card = require("@root/cli/card")
+local ci = require("@root/cli/ci")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
@@ -57,6 +58,7 @@ local COMMANDS: { [string]: Command } = {
 	backup = backup,
 	canvas = canvas,
 	card = card,
+	ci = ci,
 	focus = focus,
 	group = group,
 	ingest = ingest,
@@ -93,6 +95,7 @@ local COMMAND_ORDER = {
 	"ingest",
 	"media",
 	"suggestion",
+	"ci",
 	"theme",
 	"backup",
 	"mcp",

@@ -3,6 +3,7 @@ local net = require("@lute/net/server")
 
 local canvasStyle = require("@root/server/routes/canvasStyle")
 local canvases = require("@root/server/routes/canvases")
+local checkSnoozes = require("@root/server/routes/checkSnoozes")
 local clearFocus = require("@root/store/clearFocus")
 local editor = require("@root/server/routes/editor")
 local focus = require("@root/server/routes/focus")
@@ -63,6 +64,9 @@ function routes.create(
 		end
 		if route == "/api/orion/style" then
 			return canvasStyle.handle(request, root, active)
+		end
+		if route == "/api/orion/check-snoozes" then
+			return checkSnoozes.handle(request, root, active)
 		end
 		if route == "/api/operations" then
 			return operations.handle(request, root, active)

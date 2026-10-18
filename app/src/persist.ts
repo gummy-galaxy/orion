@@ -62,6 +62,21 @@ export async function saveCanvasStyle(
   }
 }
 
+/** Snoozes a CI job for every card in its repository, or ends its snooze. The server bumps the revision, so open windows reload. */
+export async function saveCheckSnooze(workspace: string, change: { repo: string; name: string; snoozed: boolean; until?: string }): Promise<boolean> {
+  try {
+    const response = await fetch('/api/orion/check-snoozes', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
+      body: JSON.stringify(change),
+    })
+
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
 export async function imageSource(workspace: string, asset: string): Promise<string> {
   const response = await fetch(`/api/images/${encodeURIComponent(asset)}?canvas=${encodeURIComponent(workspace)}`)
 

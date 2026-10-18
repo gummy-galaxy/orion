@@ -143,6 +143,7 @@ import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
   celebratingAtom,
+  checkSnoozesAtom,
   collapsedAtom,
   derivedAtom,
   focusedAtom,
@@ -159,6 +160,7 @@ import {
   workspaceAtom,
 } from '../state'
 import { applyStyleChange, backgroundColor, headerText, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import { readCheckSnoozes } from '../checkSnoozes'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
 import { HeaderSettings } from './HeaderSettings'
@@ -406,6 +408,7 @@ export function Canvas() {
   const [links, setLinks] = useAtom(linksAtom)
   const setDerived = useSetAtom(derivedAtom)
   const setCelebrating = useSetAtom(celebratingAtom)
+  const setCheckSnoozes = useSetAtom(checkSnoozesAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', canvases: [{ name: 'default', label: 'Default' }] })
@@ -733,10 +736,11 @@ export function Canvas() {
       setLoadout(shown.stickerLoadout)
       setGithub(doc.github ?? null)
       setCanvasStyle(readCanvasStyle(doc.settings))
+      setCheckSnoozes(readCheckSnoozes(doc.settings))
 
       return adopted
     },
-    [rebaseHistory, setDerived, setLinks, setNodes],
+    [rebaseHistory, setDerived, setLinks, setNodes, setCheckSnoozes],
   )
 
   /**
@@ -786,6 +790,7 @@ export function Canvas() {
         setLoadout(loadoutOf())
         setGithub(null)
         setCanvasStyle({})
+        setCheckSnoozes([])
       }
 
       const view = readViewport(workspace.current)
@@ -798,7 +803,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, resetHistory, setDerived, setLinks, setNodes],
+    [adopt, resetHistory, setDerived, setLinks, setNodes, setCheckSnoozes],
   )
 
   useEffect(() => {

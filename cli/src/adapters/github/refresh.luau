@@ -2,6 +2,7 @@ local adapterTypes = require("@root/adapters/types")
 local applyPulls = require("@root/github/applyPulls")
 local collectPulls = require("@root/github/collectPulls")
 local githubTypes = require("@root/github/types")
+local trackCheckSnoozes = require("@root/checks/trackCheckSnoozes")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -12,7 +13,10 @@ local function refresh(doc: Doc, run: CommandRunner, options: RefreshOptions): (
 	local fetched = collectPulls(doc, run, options.discover)
 
 	return function(current: Doc): githubTypes.Report
-		return applyPulls(current, fetched, options.now)
+		local report = applyPulls(current, fetched, options.now)
+		trackCheckSnoozes(current, fetched, options.now)
+
+		return report
 	end
 end
 

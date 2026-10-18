@@ -28,6 +28,18 @@ local function getRecorded(pull: PullState, viewer: string, checkedAt: string): 
 			failed = pull.checkCounts.failed,
 		})
 		else nil
+	if pull.failedChecks then
+		local failedChecks: json.Array = {}
+
+		for _, check in pull.failedChecks do
+			local value = json.object({ name = check.name })
+			value.optional = if check.optional then true else nil
+			table.insert(failedChecks, value)
+		end
+
+		result.failedChecks = failedChecks
+	end
+
 	result.mergeable = pull.mergeable
 	result.mergeState = pull.mergeState
 	result.head = pull.head

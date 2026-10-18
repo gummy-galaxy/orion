@@ -73,6 +73,8 @@ The refresh records your unplaced open pull requests and likely matching cards; 
 
 When a card has a branch ref for the pull request's head branch in its repository, the refresh attaches the new pull request to that card and records it as its pull request. If more than one card has that branch, the pull request stays unplaced and `orion source matches` lists those cards. Record the branch when you start work (`orion card set <id> --ref branch:owner/name@branch`) so the refresh can attach the pull request you open.
 
+A failing job that isn't required doesn't make a card read as failing when the pull request has required jobs. To set aside a job that fails for a reason that doesn't matter, such as stale generated docs, snooze it for every card in its repository: `orion ci snooze <job> --repo <owner/name> [--until <UTC time or date>]`. Without `--until`, the snooze lasts on each card until the job next passes there. `orion ci list [--json]` lists snoozed jobs, and `orion ci unsnooze <job> --repo <owner/name>` counts the job again.
+
 `orion sync` is deprecated and runs only the GitHub refresh. Its `--discover` flag adds your unplaced open pull requests to an Inbox group; a GitHub source does the same through `orion ingest`, which files them in Unsorted. Only use `--discover` when asked, then move each new card into the group it belongs to.
 
 ## Sources and ingestion

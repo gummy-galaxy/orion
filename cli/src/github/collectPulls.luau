@@ -1,3 +1,5 @@
+local applyCheckRuns = require("@root/github/applyCheckRuns")
+local fetchCheckRuns = require("@root/github/fetchCheckRuns")
 local fetchPulls = require("@root/github/fetchPulls")
 local findBranchCards = require("@root/github/findBranchCards")
 local findRef = require("@root/refs/findRef")
@@ -86,6 +88,29 @@ local function collectPulls(doc: Doc, run: CommandRunner, discover: boolean, sco
 
 	for _, failure in result.failures do
 		table.insert(failures, failure)
+	end
+
+	local failing: { PullState } = {}
+
+	for _, pull in result.pulls do
+		if pull.state == "OPEN" and pull.checkCounts and pull.checkCounts.failed > 0 then
+			table.insert(failing, pull)
+		end
+	end
+
+	-- Only failing pull requests need their jobs by name, to tell optional failures and snoozed jobs apart.
+	local didFetchRuns, checkRuns = pcall(fetchCheckRuns, run, failing)
+
+	if not didFetchRuns then
+		table.insert(failures, `jobs of failing pull requests: {checkRuns}`)
+	else
+		for _, pull in failing do
+			local runs = checkRuns[getKey(pull)]
+
+			if runs then
+				applyCheckRuns(pull, runs)
+			end
+		end
 	end
 
 	return {

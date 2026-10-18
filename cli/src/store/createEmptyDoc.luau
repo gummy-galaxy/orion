@@ -6,7 +6,7 @@ local function createEmptyDoc(): Doc
 	return {
 		version = 2,
 		revision = 0,
-		settings = { sources = {} },
+		settings = { sources = {}, checkSnoozes = {} },
 		nodes = {},
 		links = {},
 	}

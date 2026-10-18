@@ -64,6 +64,10 @@
     "link": "/reference/cli/suggestion"
   },
   {
+    "text": "ci",
+    "link": "/reference/cli/ci"
+  },
+  {
     "text": "theme",
     "link": "/reference/cli/theme"
   },

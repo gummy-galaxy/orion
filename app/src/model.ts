@@ -104,6 +104,8 @@ export type RefChecks = {
 }
 /** A commit's checks: how many have finished, and failed, out of all of them. Skipped and cancelled checks count as finished. */
 export type CheckCounts = { total: number; finished: number; failed: number }
+/** A CI job that failed on a pull request, by the name GitHub shows for it. */
+export type FailedCheck = { name: string; optional?: boolean }
 
 /** A ref's check counts, when its source reported all three. */
 export function getCheckCounts(checks: RefChecks | undefined): CheckCounts | undefined {
