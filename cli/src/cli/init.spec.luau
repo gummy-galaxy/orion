@@ -501,6 +501,76 @@ test.case("flat command names and --workspace are gone, and help uses the noun f
 	assert.strContains(run({ "card", "--help" }), "import")
 end)
 
+test.case("node find matches labels, refs, and notes, label matches first", function(assert)
+	local _, run = testing.createHarness("find-rank")
+	run({ "card", "set", "pub", "--note", "Needs the release checklist" })
+	local found = json.asObject(json.deserialize(run({ "node", "find", "release", "--json" })) :: json.Value)
+	assert.eq(found and found.total, 3)
+	local items = if found then json.asArray(found.items) or {} else {}
+	local ids: { string } = {}
+
+	for _, value in items do
+		local item = json.asObject(value)
+		table.insert(ids, if item then tostring(item.id) else "")
+	end
+
+	assert.eq(table.concat(ids, ","), "ws,ci,pub")
+	assert.strContains(run({ "node", "find", "flipbook-labs/flipbook#658" }), "ci")
+	assert.strContains(run({ "node", "find", "release", "--limit", "1" }), "Showing 1 of 3 matches")
+	assert.strContains(run({ "node", "find", "publish" }), "pub")
+	assert.eq(run({ "node", "find", "nothing like this" }), "Nothing matches.")
+	assert.throws(function()
+		run({ "node", "find", "release", "--limit", "0" })
+	end)
+end)
+
+test.case("node find --all-canvases searches every canvas", function(assert)
+	local _, run, setWorkspace = testing.createHarness("find-canvases")
+	run({ "canvas", "create", "other" })
+	setWorkspace("other")
+	run({ "card", "add", "Release", "notes" })
+	setWorkspace("")
+	assert.strNotContains(run({ "node", "find", "release" }), "other")
+	local text = run({ "node", "find", "release", "--all-canvases" })
+	assert.strContains(text, "other")
+	local found =
+		json.asObject(json.deserialize(run({ "node", "find", "release", "--all-canvases", "--json" })) :: json.Value)
+	assert.eq(found and found.total, 3)
+end)
+
+test.case("selectors name an item by label, ref, or pr and must match exactly one", function(assert)
+	local _, run = testing.createHarness("selectors")
+	local function idOf(selector: string): any
+		local shown = json.asObject(json.deserialize(run({ "node", "show", selector, "--json" })) :: json.Value)
+		return shown and shown.id
+	end
+	assert.eq(idOf(`label:"Publish v2.6.0"`), "pub")
+	assert.eq(idOf("label:'Report release health'"), "ci")
+	assert.eq(idOf("ref:flipbook-labs/flipbook#658"), "ci")
+	assert.eq(idOf("pr:658"), "ci")
+	assert.eq(idOf("pub"), "pub")
+	assert.throws(function()
+		run({ "node", "show", `label:"Nothing like this"` })
+	end)
+	assert.throws(function()
+		run({ "node", "show", "owner:orion" })
+	end)
+	run({ "card", "add", "Publish v2.6.0" })
+	assert.throws(function()
+		run({ "node", "show", `label:"Publish v2.6.0"` })
+	end)
+end)
+
+test.case("selectors work in writes and report the ids they resolved to", function(assert)
+	local dir, run = testing.createHarness("selector-writes")
+	assert.eq(run({ "card", "set", `label:"Publish v2.6.0"`, "--label", "Ship v2.6.0" }), "Updated pub · Ship v2.6.0")
+	assert.eq(run({ "card", "done", "ref:flipbook-labs/flipbook#658" }), "Done: ci · Report release health")
+	assert.eq(run({ "link", "add", "ci", `label:"Ship v2.6.0"`, "--related" }), "ci and pub are related")
+	assert.eq(run({ "node", "move", `label:"Ship v2.6.0"`, "--to", "ws" }), "Moved pub to ws")
+	assert.eq(run({ "group", "set", `label:"Release"`, "--label", "Renamed" }), "Updated ws · Renamed")
+	assert.eq(store.load(dir).nodes[1].data.label, "Renamed")
+end)
+
 test.case("--version prints the version and build commit the MCP server reports", function(assert)
 	local _, run = testing.createHarness("version")
 	assert.eq(run({ "--version" }), `orion {getVersion()}`)
