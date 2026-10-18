@@ -129,6 +129,9 @@ jobs:
         working-directory: app
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Chromatic walks history to find the baseline build and which stories changed
+          fetch-depth: 0
 
       - uses: actions/setup-node@v7
         with:
@@ -167,6 +170,17 @@ jobs:
 
       - name: Build Storybook
         run: npm run build-storybook
+
+      # Publishes the Storybook the docs site embeds and starts Chromatic's visual tests. Scheduled and manual runs skip
+      # it to save snapshots, and so do pull requests from forks, which can't read the token.
+      - name: Publish to Chromatic
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          # A pull request checks out a merge commit, so report the branch head Chromatic should compare
+          CHROMATIC_BRANCH: ${{ github.head_ref || github.ref_name }}
+          CHROMATIC_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: npm run chromatic -- --storybook-build-dir storybook-static
 
       - name: Upload App
         if: github.ref == 'refs/heads/main'

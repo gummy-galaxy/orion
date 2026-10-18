@@ -50,7 +50,11 @@ export default defineConfig({
       ],
       '/development/': [
         { text: 'Development', link: '/development/' },
-        { text: 'Design', link: '/development/design/' },
+        {
+          text: 'Design',
+          link: '/development/design/',
+          items: [{ text: 'Card skins', link: '/development/design/cards' }],
+        },
         { text: 'Engineering', link: '/development/engineering/' },
       ],
     },
