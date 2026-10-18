@@ -3,9 +3,11 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
 
+local getDocPath = require("@root/store/getDocPath")
+local loadDoc = require("@root/store/loadDoc")
 local routes = require("@root/server/routes")
-local store = require("@root/store")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 local function createRequest(method: string, route: string, value: json.Object?): net.ReceivedRequest
 	return {
@@ -34,7 +36,7 @@ local function createRouter(name: string)
 		end,
 	}, function() end)
 
-	store.write(
+	writeDoc(
 		root,
 		testing.createDoc({
 			testing.group("ws", "Release"),
@@ -48,7 +50,7 @@ end
 
 -- The saved file's bytes, so a refused change is shown to leave the file alone.
 local function savedText(root: string): string
-	return fs.readFileToString(store.filePath(root))
+	return fs.readFileToString(getDocPath(root))
 end
 
 local function edits(text: string): json.Object
@@ -70,7 +72,7 @@ test.case("POST applies a list as one revision", function(assert)
 	assert.eq(response.status, 200)
 	assert.eq(body.revision, 1)
 	assert.eq(body.applied, 2)
-	local doc = store.load(root)
+	local doc = loadDoc(root)
 	assert.eq(doc.revision, 1)
 	assert.eq(doc.nodes[3].data.status, "done")
 	assert.eq(doc.nodes[2].position.x, 40)
@@ -110,7 +112,7 @@ test.case("POST refuses the whole list when one edit no longer applies", functio
 	assert.eq(body.index, 2)
 	assert.eq(body.op, "ungroup")
 	assert.strContains(body.error :: string, "gone")
-	assert.eq(store.load(root).revision, 0)
+	assert.eq(loadDoc(root).revision, 0)
 	assert.eq(savedText(root), before)
 end)
 

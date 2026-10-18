@@ -5,9 +5,10 @@ local cli = require("@root/cli")
 local getItem = require("@root/graph/getItem")
 local getVersion = require("@root/getVersion")
 local handleMessage = require("@root/cli/mcp/server/handleMessage")
+local loadDoc = require("@root/store/loadDoc")
 local mcpTypes = require("@root/cli/mcp/types")
-local store = require("@root/store")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 local need = assert
 
@@ -124,7 +125,7 @@ test.case("tidy marks a group and check reports it waiting for layout without st
 	local second = testing.task("pub", "Publish", "todo", "ws")
 	second.position = { x = 280, y = 78 }
 	local dir = testing.directory("mcp-layout")
-	store.write(dir, testing.createDoc({ group, first, second }))
+	writeDoc(dir, testing.createDoc({ group, first, second }))
 	local run = runner(dir)
 
 	local clean = call(run, "orion_check", json.object({ group = "ws" }))
@@ -133,13 +134,13 @@ test.case("tidy marks a group and check reports it waiting for layout without st
 
 	local preview = call(run, "orion_tidy", json.object({ ids = { "ws" }, dryRun = true }))
 	assert.eq(preview.isError, nil)
-	assert.eq(getItem(store.load(dir), "ws").data.layout, nil)
+	assert.eq(getItem(loadDoc(dir), "ws").data.layout, nil)
 
 	local tidied = call(run, "orion_tidy", json.object({ ids = { "ws" }, ifRevision = 0 }))
 	assert.eq(tidied.isError, nil)
 	local report = need(json.asObject(json.deserialize(firstText(tidied)) :: json.Value))
 	assert.eq(report.appConnected, false)
-	assert.eq(getItem(store.load(dir), "ws").data.layout, "refit")
+	assert.eq(getItem(loadDoc(dir), "ws").data.layout, "refit")
 
 	local stale = call(run, "orion_tidy", json.object({ ids = { "ws" }, ifRevision = 0 }))
 	assert.eq(stale.isError, true)

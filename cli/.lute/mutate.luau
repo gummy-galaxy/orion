@@ -3,7 +3,7 @@
 	the module's sibling spec against it. A change the spec still passes with is a survivor, a spot where the tests
 	don't pin the behavior down. The module is restored after every run, and on Ctrl-C.
 
-	lute run mutate src/store.luau [src/graph/derive.luau ...] [--spec <spec or folder>]...
+	lute run mutate src/store/pruneBackups.luau [src/graph.luau ...] [--spec <spec or folder>]...
 
 	Repeat --spec, or pass a folder such as src/cli, to count tests outside the sibling spec. Every module is checked
 	against the same specs then.

@@ -4,7 +4,7 @@ local json = require("@std/json")
 local context = require("@root/cli/context")
 local convertToJson = require("@root/suggest/convertToJson")
 local getStored = require("@root/suggest/getStored")
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
 
 type Context = context.Context
 
@@ -15,7 +15,7 @@ return table.freeze({
 	end,
 
 	run = function(_parser: cli.Parser, options: Context)
-		local result = getStored(store.load(options.dir))
+		local result = getStored(loadDoc(options.dir))
 
 		if options.asJson then
 			options.write(json.serialize(convertToJson(result), true))

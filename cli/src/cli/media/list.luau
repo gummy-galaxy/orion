@@ -3,7 +3,7 @@ local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local getLabel = require("@root/graph/getLabel")
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
 
 type Context = context.Context
 
@@ -15,7 +15,7 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local items: json.Array = {}
 		local lines: { string } = {}
-		for _, item in store.load(options.dir).nodes do
+		for _, item in loadDoc(options.dir).nodes do
 			if item.type == "image" then
 				table.insert(items, json.object({ id = item.id, label = getLabel(item), asset = item.data.asset }))
 				table.insert(lines, `{item.id}  {getLabel(item)}`)

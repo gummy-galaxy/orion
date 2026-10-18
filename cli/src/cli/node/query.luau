@@ -9,10 +9,10 @@ local getQueryValue = require("@root/cli/getQueryValue")
 local getRequired = require("@root/cli/getRequired")
 local graphTypes = require("@root/graph/types")
 local isGroup = require("@root/graph/isGroup")
+local loadDoc = require("@root/store/loadDoc")
 local pad = require("@root/render/pad")
 local render = require("@root/render")
 local selectItems = require("@root/query/selectItems")
-local store = require("@root/store")
 local types = require("@root/types")
 
 type Context = context.Context
@@ -55,7 +55,7 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
+		local doc = loadDoc(options.dir)
 		local items = selectItems(doc, getRequired(parser, "where"), parser:has("all"), options.now())
 		local derived = derive(doc, options.now())
 

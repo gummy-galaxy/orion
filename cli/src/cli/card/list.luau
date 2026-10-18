@@ -4,9 +4,9 @@ local context = require("@root/cli/context")
 local derive = require("@root/graph/derive")
 local getAncestors = require("@root/graph/getAncestors")
 local getGroup = require("@root/graph/getGroup")
+local loadDoc = require("@root/store/loadDoc")
 local resolveId = require("@root/query/resolveId")
 local sortTasks = require("@root/cli/sortTasks")
-local store = require("@root/store")
 local types = require("@root/types")
 local writeItems = require("@root/cli/writeItems")
 
@@ -27,7 +27,7 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
+		local doc = loadDoc(options.dir)
 		local derived = derive(doc, options.now())
 		local groupId = parser:get("group")
 

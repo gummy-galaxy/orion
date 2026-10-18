@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local getWorkspaces = require("@root/store/getWorkspaces")
 
 type Context = context.Context
 
@@ -14,7 +14,7 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local list = store.getWorkspaces(options.root)
+		local list = getWorkspaces(options.root)
 		list.active = options.workspace
 		local entries = if parser:has("archived") then list.archived else list.workspaces
 

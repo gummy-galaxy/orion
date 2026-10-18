@@ -6,9 +6,9 @@ local context = require("@root/cli/context")
 local derive = require("@root/graph/derive")
 local getItem = require("@root/graph/getItem")
 local getRequired = require("@root/cli/getRequired")
+local loadDoc = require("@root/store/loadDoc")
 local render = require("@root/render")
 local resolveId = require("@root/query/resolveId")
-local store = require("@root/store")
 
 type Context = context.Context
 
@@ -20,7 +20,7 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
+		local doc = loadDoc(options.dir)
 		local item = getItem(doc, resolveId(doc, getRequired(parser, "id")))
 
 		if options.asJson then

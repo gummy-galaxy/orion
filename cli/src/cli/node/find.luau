@@ -6,10 +6,12 @@ local findItem = require("@root/graph/findItem")
 local findItems = require("@root/query/findItems")
 local getLabel = require("@root/graph/getLabel")
 local getQueryValue = require("@root/cli/getQueryValue")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local getWorkspaces = require("@root/store/getWorkspaces")
 local isGroup = require("@root/graph/isGroup")
 local joinWords = require("@root/cli/joinWords")
+local loadDoc = require("@root/store/loadDoc")
 local pad = require("@root/render/pad")
-local store = require("@root/store")
 
 type Context = context.Context
 
@@ -75,12 +77,12 @@ return table.freeze({
 		local canvases: { findItems.Canvas } = {}
 
 		if allCanvases then
-			for _, entry in store.getWorkspaces(options.root).workspaces do
-				local doc = store.load(store.getWorkspaceDir(options.root, entry.name))
+			for _, entry in getWorkspaces(options.root).workspaces do
+				local doc = loadDoc(getWorkspaceDir(options.root, entry.name))
 				table.insert(canvases, { name = entry.name, doc = doc })
 			end
 		else
-			table.insert(canvases, { name = options.workspace, doc = store.load(options.dir) })
+			table.insert(canvases, { name = options.workspace, doc = loadDoc(options.dir) })
 		end
 
 		local result = findItems(canvases, text, limit)

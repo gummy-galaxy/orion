@@ -4,9 +4,12 @@ local test = require("@std/test")
 local cli = require("@root/cli")
 local findItem = require("@root/graph/findItem")
 local getStored = require("@root/suggest/getStored")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local loadDoc = require("@root/store/loadDoc")
+local runTransaction = require("@root/store/runTransaction")
 local save = require("@root/suggest/save")
-local store = require("@root/store")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 test.case("suggestions apply keeps links, marks layout pending, and prunes empty Unsorted", function(assert)
 	local dir = testing.directory("suggest-apply")
@@ -34,7 +37,7 @@ test.case("suggestions apply keeps links, marks layout pending, and prunes empty
 		),
 	}, { { "a", "b" } })
 	doc.links[1].origin = "mention"
-	store.write(dir, doc)
+	writeDoc(dir, doc)
 	local output = {}
 
 	local function run(args: { string })
@@ -49,11 +52,11 @@ test.case("suggestions apply keeps links, marks layout pending, and prunes empty
 	end
 
 	run({ "suggestion", "find", "--dry-run" })
-	assert.eq(store.load(dir).revision, 0)
+	assert.eq(loadDoc(dir).revision, 0)
 	run({ "suggestion", "find" })
 	assert.strContains(run({ "suggestion", "list" }), "s1")
 	run({ "suggestion", "apply", "s1" })
-	local after = store.load(dir)
+	local after = loadDoc(dir)
 	assert.eq(after.revision, 2)
 	assert.eq(findItem(after, "unsorted"), nil)
 	assert.eq(#after.links, 1)
@@ -67,17 +70,17 @@ end)
 test.case("suggestions apply and dismiss select their workspace", function(assert)
 	local root, run = testing.createHarness("suggestions-workspace")
 	run({ "canvas", "create", "roblox" })
-	local dir = store.getWorkspaceDir(root, "roblox")
+	local dir = getWorkspaceDir(root, "roblox")
 
 	local function saveSuggestion()
-		store.write(
+		writeDoc(
 			dir,
 			testing.createDoc({
 				testing.task("a", "First work", "todo"),
 				testing.task("b", "Second work", "todo"),
 			})
 		)
-		store.transaction(dir, function(doc)
+		runTransaction(dir, function(doc)
 			save(doc, {
 				createdAt = "2026-10-04T00:00:00Z",
 				groups = {
@@ -96,10 +99,10 @@ test.case("suggestions apply and dismiss select their workspace", function(asser
 	saveSuggestion()
 	assert.eq(run({ "suggestion", "list" }), "No group suggestions.")
 	assert.strContains(run({ "suggestion", "apply", "--all", "--canvas", "roblox" }), "Applied 1 suggestions")
-	assert.eq(#getStored(store.load(dir)).groups, 0)
-	assert.eq(#store.load(root).nodes, 3)
+	assert.eq(#getStored(loadDoc(dir)).groups, 0)
+	assert.eq(#loadDoc(root).nodes, 3)
 	saveSuggestion()
 	assert.strContains(run({ "--canvas", "roblox", "suggestion", "dismiss", "s1" }), "Dismissed 1 suggestions")
-	assert.eq(#getStored(store.load(dir)).groups, 0)
-	assert.eq(#store.load(dir).nodes, 2)
+	assert.eq(#getStored(loadDoc(dir)).groups, 0)
+	assert.eq(#loadDoc(dir).nodes, 2)
 end)

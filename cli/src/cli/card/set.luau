@@ -9,8 +9,8 @@ local getItemFields = require("@root/cli/getItemFields")
 local getRequired = require("@root/cli/getRequired")
 local requireItem = require("@root/cli/requireItem")
 local resolveId = require("@root/query/resolveId")
+local runTransaction = require("@root/store/runTransaction")
 local setFields = require("@root/graph/setFields")
-local store = require("@root/store")
 local types = require("@root/types")
 local writeItem = require("@root/cli/writeItem")
 
@@ -32,7 +32,7 @@ return table.freeze({
 		local values = getItemFields(parser)
 
 		local changed: Item
-		local doc = store.transaction(options.dir, function(doc)
+		local doc = runTransaction(options.dir, function(doc)
 			local id = resolveId(doc, idInput)
 			requireItem(doc, id)
 			changed = setFields(doc, id, values)

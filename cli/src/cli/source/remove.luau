@@ -1,7 +1,7 @@
 local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 
@@ -13,7 +13,7 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local id = assert(parser:get("id"), "missing <id>")
-		store.transaction(options.dir, function(doc)
+		runTransaction(options.dir, function(doc)
 			local found = false
 
 			for index = #doc.settings.sources, 1, -1 do
