@@ -9,6 +9,7 @@
 //     [--right-click <target>] [--middle-click <target>] [--double-click <target>] \
 //     [--hover <target>] \
 //     [--drag <target>] [--drop <target>] [--key <keys>] [--type <text>] [--pause <ms>] \
+//     [--caption <text>] \
 //     [--pointer <x>,<y>[,idle|left|right|middle]] [--eval <js>] [--cursor on|off] \
 //     [--delay <ms>] [--glide <ms>] [--selector <selector>] [--padding <px>] \
 //     [--fps <n>] [--chrome <path>] [--ffmpeg <path>]
@@ -23,6 +24,10 @@
 // marks where an --eval step acted, without sending input.
 //
 // Page errors, console errors, and failed requests print to stderr as they happen.
+//
+// --caption shows a line of text at the top of the frame until the next --caption, or
+// clears it when empty. Use it for what the page can't show, such as a CLI command
+// run while recording.
 //
 // --key presses a key or shortcut as real input to whatever has focus, such as
 // `Meta+C`, `Shift+Tab`, `Escape`, or `Delete`, with modifiers joined by `+`. --type
@@ -108,6 +113,7 @@ function parseArguments(argv) {
     else if (name === "--drop") options.steps.push({ drop: value });
     else if (name === "--key") options.steps.push({ key: parseKeys(value) });
     else if (name === "--type") options.steps.push({ type: value });
+    else if (name === "--caption") options.steps.push({ caption: value });
     else if (name === "--pause") options.steps.push({ pause: Number(value) });
     else if (name === "--pointer") options.steps.push({ mark: value });
     else if (name === "--click-text") options.steps.push({ clickText: value });
@@ -612,6 +618,22 @@ const EDITING_COMMANDS = {
   "Meta+Shift+z": "redo",
 };
 
+// Punctuation keys on a US layout, so shortcuts such as `Meta+[` carry the code apps
+// match on.
+const PUNCTUATION_KEYS = {
+  "[": { code: "BracketLeft", keyCode: 219 },
+  "]": { code: "BracketRight", keyCode: 221 },
+  ",": { code: "Comma", keyCode: 188 },
+  ".": { code: "Period", keyCode: 190 },
+  "/": { code: "Slash", keyCode: 191 },
+  "\\": { code: "Backslash", keyCode: 220 },
+  ";": { code: "Semicolon", keyCode: 186 },
+  "'": { code: "Quote", keyCode: 222 },
+  "`": { code: "Backquote", keyCode: 192 },
+  "-": { code: "Minus", keyCode: 189 },
+  "=": { code: "Equal", keyCode: 187 },
+};
+
 function describeCharacter(character) {
   const upper = character.toUpperCase();
 
@@ -633,7 +655,15 @@ function describeCharacter(character) {
       text: character,
     };
 
-  return { key: character, keyCode: 0, symbol: character, text: character };
+  const punctuation = PUNCTUATION_KEYS[character];
+
+  return {
+    key: character,
+    code: punctuation?.code,
+    keyCode: punctuation?.keyCode ?? 0,
+    symbol: character,
+    text: character,
+  };
 }
 
 // Splits a shortcut such as `Meta+Shift+Z` into its modifiers and the key they modify.
@@ -686,6 +716,36 @@ async function showKeys(session, keys) {
         pointerEvents: 'none',
       })
       document.body.append(badge)
+    })()`,
+  );
+}
+
+// Shows `text` in a bar at the top of the frame, replacing any caption already there, or
+// clears the caption when `text` is empty.
+async function showCaption(session, text) {
+  await evaluate(
+    session,
+    `(() => {
+      document.getElementById('capture-caption')?.remove()
+      if (!${JSON.stringify(text)}) return
+      const caption = document.createElement('div')
+      caption.id = 'capture-caption'
+      caption.textContent = ${JSON.stringify(text)}
+      Object.assign(caption.style, {
+        position: 'fixed',
+        left: '50%',
+        top: '20px',
+        transform: 'translateX(-50%)',
+        maxWidth: '70%',
+        padding: '10px 18px',
+        borderRadius: '12px',
+        background: 'rgba(27, 31, 36, 0.88)',
+        color: '#f6f8fa',
+        font: '500 20px ui-monospace, SFMono-Regular, Menlo, monospace',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+      })
+      document.body.append(caption)
     })()`,
   );
 }
@@ -852,6 +912,7 @@ async function runStep(session, mouse, step, options) {
   }
 
   if (step.key) await pressKeys(session, step.key, options);
+  else if (step.caption !== undefined) await showCaption(session, step.caption);
   else if (step.type !== undefined) await typeText(session, step.type, options);
   else if (step.pause !== undefined) await sleep(step.pause);
   else {

@@ -64,13 +64,28 @@ local function checkArguments(tool: Tool, arguments: json.Object)
 	end
 end
 
--- Places each field where its command expects it: positionals first, then options and flags.
+-- Appends a list field's entries as separate arguments, and fails when a required list is missing.
+local function appendVariadic(argv: { string }, field: Field, value: json.Value)
+	local list = if isAbsent(value) then nil else json.asArray(value)
+
+	if list then
+		for _, entry in list do
+			table.insert(argv, tostring(entry))
+		end
+	end
+
+	assert(not field.required or (list and #list > 0), `missing {field.name}`)
+end
+
+-- Places each field where its command expects it: positionals and variadic lists first, then options and flags.
 local function buildArgv(tool: Tool, arguments: json.Object): { string }
 	local argv = table.clone(tool.command)
 
 	for _, field in tool.fields do
 		if field.at == "positional" then
 			table.insert(argv, getRequiredString(arguments, field.name))
+		elseif field.at == "variadic" then
+			appendVariadic(argv, field, arguments[field.name])
 		end
 	end
 
@@ -101,10 +116,6 @@ local function buildArgv(tool: Tool, arguments: json.Object): { string }
 		end
 	end
 
-	if tool.json then
-		table.insert(argv, "--json")
-	end
-
 	return argv
 end
 
@@ -113,11 +124,13 @@ local function getToolArgv(name: string, arguments: json.Object): { string }
 	local tool = assert(findTool(name), `unknown tool: {name}`)
 	checkArguments(tool, arguments)
 
-	if tool.build then
-		return tool.build(arguments)
+	local argv = if tool.build then tool.build(arguments) else buildArgv(tool, arguments)
+
+	if tool.json then
+		table.insert(argv, "--json")
 	end
 
-	return buildArgv(tool, arguments)
+	return argv
 end
 
 return getToolArgv
