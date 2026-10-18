@@ -18,13 +18,26 @@ Runs `orion canvas list`.
 
 Read the canvas: list items, ready work, groups, PR matches, or one item/group.
 
-| Argument | Type                                       | Description                                            |
-| -------- | ------------------------------------------ | ------------------------------------------------------ |
-| `view`   | list \| ready \| groups \| matches \| show | **Required.**                                          |
-| `canvas` | canvas                                     | Canvas name. Omit to use the canvas selected in Orion. |
-| `id`     | id                                         | Required for show.                                     |
-| `group`  | id                                         | Limit list to descendants of a group.                  |
-| `all`    | boolean                                    | Include completed items in list.                       |
+| Argument | Type                                       | Description                                                                                                                         |
+| -------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `view`   | list \| ready \| groups \| matches \| show | **Required.**                                                                                                                       |
+| `canvas` | canvas                                     | Canvas name. Omit to use the canvas selected in Orion.                                                                              |
+| `id`     | id                                         | Required for show. An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `group`  | id                                         | Limit list to descendants of a group.                                                                                               |
+| `all`    | boolean                                    | Include completed items in list.                                                                                                    |
+
+## orion_find
+
+Find cards and groups whose label, note, or refs contain text, label matches first. Returns the total and up to limit matches with their ids. Use an id or a selector such as label:"..." or ref:... to act on one.
+
+Runs `orion node find`.
+
+| Argument      | Type    | Description                                             |
+| ------------- | ------- | ------------------------------------------------------- |
+| `text`        | string  | **Required.** Text to find, matched case-insensitively. |
+| `canvas`      | canvas  | Canvas name. Omit to use the canvas selected in Orion.  |
+| `limit`       | int     | Most matches to return. Defaults to 20.                 |
+| `allCanvases` | boolean | Search every canvas, not only the selected one.         |
 
 ## orion_add_item
 
@@ -34,17 +47,18 @@ Runs `orion card add`.
 
 | Argument | Type                                                                   | Description                                                                                                                                           |
 | -------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `title`  | string                                                                 | **Required.**                                                                                                                                         |
+| `title`  | string                                                                 | **Required.** What the work is.                                                                                                                       |
 | `canvas` | canvas                                                                 | Canvas name. Omit to use the canvas selected in Orion.                                                                                                |
-| `group`  | id                                                                     |                                                                                                                                                       |
+| `group`  | id                                                                     | Group to add it to.                                                                                                                                   |
+| `status` | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                       |
+| `who`    | you \| review \| ci                                                    | Whose move: you, review, or ci.                                                                                                                       |
+| `note`   | string                                                                 | Free-form note.                                                                                                                                       |
 | `kind`   | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work. |
 | `shape`  | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                  |
 | `color`  | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                             |
 | `repo`   | string                                                                 | Deprecated: with pr, use ref with the pull request URL instead.                                                                                       |
 | `pr`     | int                                                                    | Deprecated: use ref with the pull request URL instead.                                                                                                |
 | `ref`    | string                                                                 | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                             |
-| `status` | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                       |
-| `note`   | string                                                                 |                                                                                                                                                       |
 
 ## orion_update_item
 
@@ -52,20 +66,63 @@ Change fields on an existing Orion card.
 
 Runs `orion card set`.
 
-| Argument | Type                                                                   | Description                                                                                                                                                                                                                   |
-| -------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`     | id                                                                     | **Required.**                                                                                                                                                                                                                 |
-| `canvas` | canvas                                                                 | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                        |
-| `label`  | string                                                                 |                                                                                                                                                                                                                               |
-| `status` | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                                                                                               |
-| `who`    | you \| review \| ci \|                                                 | Whose move: you, review, or ci. Empty clears it.                                                                                                                                                                              |
-| `note`   | string                                                                 | Replaces the whole note. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
-| `kind`   | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work.                                                                         |
-| `shape`  | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                                                                                          |
-| `color`  | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                                                                                                     |
-| `repo`   | string                                                                 | Deprecated: with pr, use ref with the pull request URL instead.                                                                                                                                                               |
-| `pr`     | int                                                                    | Deprecated: use ref with the pull request URL instead.                                                                                                                                                                        |
-| `ref`    | string                                                                 | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                                                                                                     |
+| Argument | Type                                                                   | Description                                                                                                                                                                                                                                    |
+| -------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`     | id                                                                     | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item.                                                                                                                 |
+| `canvas` | canvas                                                                 | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                                         |
+| `label`  | string                                                                 |                                                                                                                                                                                                                                                |
+| `status` | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                                                                                                                |
+| `who`    | you \| review \| ci \|                                                 | Whose move: you, review, or ci. Empty clears it.                                                                                                                                                                                               |
+| `note`   | string                                                                 | Replaces the whole note. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. Empty clears it. |
+| `kind`   | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work.                                                                                          |
+| `shape`  | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                                                                                                           |
+| `color`  | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                                                                                                                      |
+| `repo`   | string                                                                 | Deprecated: with pr, use ref with the pull request URL instead.                                                                                                                                                                                |
+| `pr`     | int                                                                    | Deprecated: use ref with the pull request URL instead.                                                                                                                                                                                         |
+| `ref`    | string                                                                 | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                                                                                                                      |
+
+## orion_done
+
+Mark items done, by id or by a where expression. A dry run shows what would change.
+
+Runs `orion card done`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `ids`        | strings | Item ids to mark done.                                                                                     |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `where`      | string  | Select targets with an expression instead of ids, such as label ~ "text".                                  |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+
+## orion_snooze
+
+Hide items from attention and orion next until a time, by id or by a where expression.
+
+Runs `orion card snooze`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `ids`        | strings | Item ids to snooze.                                                                                        |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `until`      | string  | **Required.** When it wakes: an ISO 8601 date or date-time.                                                |
+| `where`      | string  | Select targets with an expression instead of ids, such as label ~ "text".                                  |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+
+## orion_unsnooze
+
+Show snoozed items again right away, by id or by a where expression.
+
+Runs `orion card unsnooze`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `ids`        | strings | Item ids to wake.                                                                                          |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `where`      | string  | Select targets with an expression instead of ids, such as label ~ "text".                                  |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
 
 ## orion_add_note
 
@@ -77,9 +134,9 @@ Runs `orion note add`.
 | -------- | ------ | ------------------------------------------------------ |
 | `text`   | string | **Required.**                                          |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`  | id     |                                                        |
-| `after`  | id     |                                                        |
-| `before` | id     |                                                        |
+| `group`  | id     | Group to add it to.                                    |
+| `after`  | id     | Item the note follows.                                 |
+| `before` | id     | Item the note leads into.                              |
 
 ## orion_images
 
@@ -100,9 +157,9 @@ Runs `orion media insert`.
 | Argument | Type   | Description                                            |
 | -------- | ------ | ------------------------------------------------------ |
 | `path`   | string | **Required.** Absolute path to a local image file.     |
-| `label`  | string |                                                        |
+| `label`  | string | Label for the image.                                   |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`  | id     |                                                        |
+| `group`  | id     | Group to add it to.                                    |
 
 ## orion_themes
 
@@ -134,17 +191,20 @@ Runs `orion theme remove`.
 
 ## orion_link
 
-Connect two items, optionally as a related link that does not block work. Linking an already linked pair updates that link.
+Link items so each waits on the one before it. Give more than two items to link a chain. Use related for a link that does not block work. Linking an already linked pair updates that link.
 
 Runs `orion link add`.
 
-| Argument  | Type    | Description                                                        |
-| --------- | ------- | ------------------------------------------------------------------ |
-| `from`    | id      | **Required.**                                                      |
-| `to`      | id      | **Required.**                                                      |
-| `canvas`  | canvas  | Canvas name. Omit to use the canvas selected in Orion.             |
-| `related` | boolean |                                                                    |
-| `label`   | string  | What the link carries, such as HTTP or WebSocket. Empty clears it. |
+| Argument     | Type    | Description                                                                                                                                                       |
+| ------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `from`       | id      | **Required.** The item that has to happen first. An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `to`         | id      | **Required.** The item that waits on it. An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item.         |
+| `next`       | strings | Further items in the chain, each waiting on the one before it.                                                                                                    |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                                                                            |
+| `related`    | boolean | Link without blocking.                                                                                                                                            |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                                                                                     |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written.                                                        |
+| `label`      | string  | What the link carries, such as HTTP or WebSocket. Empty clears it.                                                                                                |
 
 ## orion_unlink
 
@@ -152,11 +212,69 @@ Remove a dependency or related link between two items.
 
 Runs `orion link remove`.
 
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `from`   | id     | **Required.**                                          |
-| `to`     | id     | **Required.**                                          |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+| Argument | Type   | Description                                                                                                                                 |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `from`   | id     | **Required.** Link source. An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `to`     | id     | **Required.** Link target. An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                                                      |
+
+## orion_insert
+
+Put an item into an existing link: the link from between to its target is replaced by one through the item.
+
+Runs `orion link insert`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `id`         | id      | **Required.** Item to place in the link.                                                                   |
+| `between`    | id      | **Required.** Source item whose link is replaced.                                                          |
+| `targets`    | strings | Target items whose links are replaced.                                                                     |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+
+## orion_query
+
+Find cards and groups with an expression. Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref. Compare quoted values with = or !=; label and ref also take ~ for case-insensitive text.
+
+Runs `orion node query`.
+
+| Argument | Type    | Description                                                                     |
+| -------- | ------- | ------------------------------------------------------------------------------- |
+| `where`  | string  | **Required.** Expression selecting cards or groups, such as status = "blocked". |
+| `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion.                          |
+| `all`    | boolean | Include done items.                                                             |
+
+## orion_move
+
+Move items or groups into a group, or to the top level. Give group or top.
+
+Runs `orion node move`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `ids`        | strings | Item or group ids to move.                                                                                 |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `where`      | string  | Select targets with an expression instead of ids, such as label ~ "text".                                  |
+| `group`      | id      | Destination group.                                                                                         |
+| `top`        | boolean | Move to the top level.                                                                                     |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+
+## orion_remove
+
+Delete items from the canvas, by id or a where expression. Use orion_remove_group for a group.
+
+Runs `orion node remove`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `ids`        | strings | Item ids to delete.                                                                                        |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `where`      | string  | Select targets with an expression instead of ids, such as label ~ "text".                                  |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+| `reconnect`  | boolean | Reconnect the links through each removed item that has at most one incoming and one outgoing link.         |
 
 ## orion_group
 
@@ -182,17 +300,51 @@ Runs `orion group create`.
 | `in`     | id     | Id of the group to make it inside. Omit to make it at the top level. |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.               |
 
-## orion_move
+## orion_update_group
 
-Move an item into a group or to the top level.
+Change a group's label, blurb, arrangement, cover, or background. Empty cover or background clears it.
 
-Runs `orion node move`.
+Runs `orion group set`.
 
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `id`     | id     | **Required.**                                          |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-| `group`  | id     |                                                        |
+| Argument     | Type                                                         | Description                                                                                                                    |
+| ------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `id`         | id                                                           | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `canvas`     | canvas                                                       | Canvas name. Omit to use the canvas selected in Orion.                                                                         |
+| `label`      | string                                                       | New label.                                                                                                                     |
+| `blurb`      | string                                                       | Group description.                                                                                                             |
+| `arrange`    | auto \| custom                                               | How the app lays out the group: auto flows by dependency, custom keeps positions.                                              |
+| `cover`      | string                                                       | Image asset id for the cover, from orion_add_image. Empty clears it.                                                           |
+| `background` | string                                                       | Color, color token such as card.background, or image asset id. Empty clears it.                                                |
+| `header`     | string                                                       | Markdown with layout HTML shown under the group's title. Empty clears it.                                                      |
+| `color`      | teal \| blue \| purple \| amber \| rose \| green \| slate \| | The group's tint. Components inside take it unless they set their own. Empty clears it.                                        |
+
+## orion_remove_group
+
+Delete groups and everything inside them, by id or a where expression. A dry run lists what would go.
+
+Runs `orion group remove`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `ids`        | strings | Group ids to delete, with everything inside them.                                                          |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `where`      | string  | Select targets with an expression instead of ids, such as label ~ "text".                                  |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+
+## orion_ungroup
+
+Dissolve groups, keeping their items in place.
+
+Runs `orion group ungroup`.
+
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `ids`        | strings | Group ids to dissolve.                                                                                     |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `where`      | string  | Select targets with an expression instead of ids, such as label ~ "text".                                  |
+| `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
 
 ## orion_tidy
 
@@ -208,51 +360,17 @@ Runs `orion group tidy`.
 | `dryRun`     | boolean | List the groups and the current revision without marking them.                         |
 | `ifRevision` | int     | Mark only if the canvas is still at this revision, such as the one a dry run reported. |
 
-## orion_check
-
-Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.
-
-Runs `orion canvas check`.
-
-| Argument | Type   | Description                                               |
-| -------- | ------ | --------------------------------------------------------- |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.    |
-| `group`  | id     | Only report problems in this group and what is inside it. |
-
-## orion_remove
-
-Delete an item from the canvas. Use orion_remove_group for a group.
-
-Runs `orion node remove`.
-
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `id`     | id     | **Required.**                                          |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-
-## orion_remove_group
-
-Delete a group and everything inside it. A dry run lists what would go.
-
-Runs `orion group remove`.
-
-| Argument | Type    | Description                                            |
-| -------- | ------- | ------------------------------------------------------ |
-| `id`     | id      | **Required.**                                          |
-| `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion. |
-| `dryRun` | boolean |                                                        |
-
 ## orion_remove_ref
 
 Take a GitHub, Jira, or branch ref off an item. Name it by the key orion_inspect lists, or by its URL.
 
 Runs `orion ref remove`.
 
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `id`     | id     | **Required.**                                          |
-| `ref`    | string | **Required.**                                          |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+| Argument | Type   | Description                                                                                                                    |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `id`     | id     | **Required.** An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item. |
+| `ref`    | string | **Required.** The ref's key as orion_inspect lists it, such as owner/name#12, or a URL or source:key.                          |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                                         |
 
 ## orion_create_canvas
 
@@ -275,6 +393,19 @@ Runs `orion canvas rename`.
 | -------- | ------ | ------------- |
 | `name`   | canvas | **Required.** |
 | `label`  | string | **Required.** |
+
+## orion_update_canvas
+
+Set a canvas's cover or background. Empty clears it.
+
+Runs `orion canvas set`.
+
+| Argument     | Type   | Description                                                                     |
+| ------------ | ------ | ------------------------------------------------------------------------------- |
+| `canvas`     | canvas | Canvas name. Omit to use the canvas selected in Orion.                          |
+| `cover`      | string | Image asset id for the cover, from orion_add_image. Empty clears it.            |
+| `background` | string | Color, color token such as card.background, or image asset id. Empty clears it. |
+| `header`     | string | Markdown with layout HTML shown over the top of the canvas. Empty clears it.    |
 
 ## orion_archive_canvas
 
@@ -306,17 +437,28 @@ Runs `orion canvas use`.
 | -------- | ------ | ------------- |
 | `name`   | canvas | **Required.** |
 
+## orion_check
+
+Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.
+
+Runs `orion canvas check`.
+
+| Argument | Type   | Description                                               |
+| -------- | ------ | --------------------------------------------------------- |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.    |
+| `group`  | id     | Only report problems in this group and what is inside it. |
+
 ## orion_ingest
 
 Import work from the canvas's configured sources into Unsorted, and refresh the cards they track, such as pull request states from GitHub.
 
 Runs `orion ingest`.
 
-| Argument | Type    | Description                                            |
-| -------- | ------- | ------------------------------------------------------ |
-| `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion. |
-| `dryRun` | boolean |                                                        |
-| `source` | string  |                                                        |
+| Argument | Type    | Description                                                   |
+| -------- | ------- | ------------------------------------------------------------- |
+| `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion.        |
+| `dryRun` | boolean | Preview the changes and the current revision without writing. |
+| `source` | string  | Only ingest this source id.                                   |
 
 ## orion_sync
 
@@ -324,11 +466,21 @@ Deprecated: use orion_ingest. Refresh pull request cards from GitHub. Discovery 
 
 Runs `orion sync`.
 
-| Argument   | Type    | Description                                            |
-| ---------- | ------- | ------------------------------------------------------ |
-| `canvas`   | canvas  | Canvas name. Omit to use the canvas selected in Orion. |
-| `dryRun`   | boolean |                                                        |
-| `discover` | boolean |                                                        |
+| Argument   | Type    | Description                                                              |
+| ---------- | ------- | ------------------------------------------------------------------------ |
+| `canvas`   | canvas  | Canvas name. Omit to use the canvas selected in Orion.                   |
+| `dryRun`   | boolean | Preview the changes and the current revision without writing.            |
+| `discover` | boolean | Add your open pull requests that aren't on the canvas to an Inbox group. |
+
+## orion_sources
+
+List the canvas's ingestion sources: GitHub, Jira, and hop.
+
+Runs `orion source list`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
 ## orion_import
 
@@ -336,9 +488,96 @@ Add a card for each GitHub or Jira URL, or source:key, in one step. Refs already
 
 Runs `orion card import`.
 
+| Argument     | Type    | Description                                                                                                |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------------- |
+| `refs`       | strings | **Required.** GitHub or Jira URLs, or source:key such as jira:ABC-1.                                       |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                     |
+| `group`      | id      | Group to add the cards to.                                                                                 |
+| `dryRun`     | boolean | Preview the cards without writing.                                                                         |
+| `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
+
+## orion_suggest
+
+Suggest groups for ungrouped cards, using the given agent or the configured one. A dry run shows the suggestions without saving them.
+
+Runs `orion suggestion find`.
+
+| Argument | Type                    | Description                                                |
+| -------- | ----------------------- | ---------------------------------------------------------- |
+| `canvas` | canvas                  | Canvas name. Omit to use the canvas selected in Orion.     |
+| `agent`  | claude \| codex \| none | Agent that writes the suggestions: claude, codex, or none. |
+| `scope`  | unsorted \| all         | Cards to suggest groups for: unsorted, or all.             |
+| `dryRun` | boolean                 | Show suggestions without writing.                          |
+
+## orion_suggestions
+
+List pending group suggestions.
+
+Runs `orion suggestion list`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+
+## orion_apply_suggestions
+
+Apply group suggestions by id, or all of them.
+
+Runs `orion suggestion apply`.
+
 | Argument | Type    | Description                                            |
 | -------- | ------- | ------------------------------------------------------ |
+| `ids`    | strings | Suggestion ids.                                        |
 | `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion. |
-| `refs`   | strings | **Required.**                                          |
-| `group`  | id      |                                                        |
-| `dryRun` | boolean |                                                        |
+| `all`    | boolean | Apply every suggestion.                                |
+
+## orion_dismiss_suggestions
+
+Dismiss group suggestions by id, or all of them.
+
+Runs `orion suggestion dismiss`.
+
+| Argument | Type    | Description                                            |
+| -------- | ------- | ------------------------------------------------------ |
+| `ids`    | strings | Suggestion ids.                                        |
+| `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion. |
+| `all`    | boolean | Dismiss every suggestion.                              |
+
+## orion_backups
+
+List saved revisions of a canvas.
+
+Runs `orion backup list`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+
+## orion_restore_backup
+
+Restore a saved revision as a new revision. The current canvas is backed up first.
+
+Runs `orion backup restore`.
+
+| Argument   | Type   | Description                                            |
+| ---------- | ------ | ------------------------------------------------------ |
+| `revision` | string | **Required.** Revision to restore, from orion_backups. |
+| `canvas`   | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+
+## orion_focus
+
+Show the group open in the Orion app and what is selected, so you can answer questions about what the person is looking at.
+
+Runs `orion focus`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+
+## orion_server_status
+
+Report whether the Orion app's server is running, and where it listens.
+
+Runs `orion server status`.
+
+Takes no arguments.
