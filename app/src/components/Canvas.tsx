@@ -335,12 +335,17 @@ function serverCopyOf(doc: Remote, cardSize: CardSize): Saved {
 }
 
 /**
- * `copy` with each group at the size `stored` keeps for it. The canvas fits groups around their children, so a group
- * another writer grew shows larger than its stored size. A base that keeps the stored size lets the next commit send
- * the fitted one, as a whole-document save did, without writing anything just for adopting the document.
+ * `copy` with each group, note, and component at the size `stored` keeps for it. The canvas fits groups around their
+ * children and measures cards from their text, so a group another writer grew, or a note the CLI added, shows at a
+ * size the server doesn't have yet. A base that keeps the stored size lets the next commit, such as laying out a
+ * group, send the measured one, as a whole-document save did, without writing anything just for adopting the document.
  */
-function withStoredGroupSizes(copy: Saved, stored: Saved): Saved {
-  const sizes = new Map(stored.nodes.filter(isCluster).map((node) => [node.id, { width: node.width, height: node.height }]))
+function withStoredSizes(copy: Saved, stored: Saved): Saved {
+  const sizes = new Map(
+    stored.nodes
+      .filter((node) => isCluster(node) || isNote(node) || isComponent(node))
+      .map((node) => [node.id, { width: node.width, height: node.height }]),
+  )
 
   return { ...copy, nodes: copy.nodes.map((node) => (sizes.has(node.id) ? { ...node, ...sizes.get(node.id) } : node)) }
 }
@@ -705,7 +710,7 @@ export function Canvas() {
     if (wasSaved) {
       const shown = compactDoc({ ...latest.current, nodes: toStored(mapped, cardSize) })
 
-      base.current = withStoredGroupSizes(shown, base.current)
+      base.current = withStoredSizes(shown, base.current)
       savedPrint.current = fingerprint(shown)
     }
   }, [cardSize, setNodes, reactFlow, focusPick, root])
@@ -719,7 +724,7 @@ export function Canvas() {
       const server = serverCopyOf(serverDoc, cardSizeRef.current)
 
       revision.current = doc.revision
-      base.current = withStoredGroupSizes(server, serverDoc)
+      base.current = withStoredSizes(server, serverDoc)
       savedPrint.current = fingerprint(server)
       const adopted = { ...shown, nodes: next }
 

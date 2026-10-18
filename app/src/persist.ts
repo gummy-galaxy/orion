@@ -1,6 +1,6 @@
 import type { Derived } from './derive'
 import { IMAGE_MAX_BYTES } from './geometry'
-import { normalize, type AppNode, type GithubSnapshot, type Link, type TaskData } from './model'
+import { isComponent, isNote, normalize, type AppNode, type GithubSnapshot, type Link, type TaskData } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
 import type { Operation } from './operations'
 import { stableJson } from './stableJson'
@@ -263,18 +263,25 @@ export async function commitOperations(workspace: string, baseRevision: number |
   }
 }
 
-/** Only what's worth keeping; selection, measurements and handles are view state. */
-/** The stored fields of each node. A card's size comes from its kind and text, so only groups and images keep one. */
+/**
+ * The stored fields of each node; selection and handles are view state. Groups and images keep their size. Notes and
+ * components keep the size the app measured for their text, so the CLI places work around them without guessing; work
+ * cards are always one size, so they keep none.
+ */
 export function slim(nodes: AppNode[]) {
-  return nodes.map((node) => ({
-    id: node.id,
-    type: node.type,
-    position: node.position,
-    parentId: node.parentId,
-    data: node.data,
-    width: node.type === 'task' ? undefined : node.width,
-    height: node.type === 'task' ? undefined : node.height,
-  }))
+  return nodes.map((node) => {
+    const sized = node.type !== 'task' || isNote(node) || isComponent(node)
+
+    return {
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      parentId: node.parentId,
+      data: node.data,
+      width: sized ? node.width : undefined,
+      height: sized ? node.height : undefined,
+    }
+  })
 }
 
 /** A stable fingerprint, so view-only changes don't cause writes. */

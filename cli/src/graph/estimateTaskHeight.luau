@@ -2,7 +2,7 @@ local geometry = require("@root/geometry")
 local types = require("@root/types")
 
 type Item = types.Item
-type TextStyle = { size: number, lineHeight: number }
+type TextStyle = { read size: number, read lineHeight: number }
 
 local text = geometry.CARD_TEXT
 

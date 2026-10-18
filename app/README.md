@@ -12,6 +12,7 @@ Data and state:
 - `src/persist.ts`: loading, saving, reacting to other writers, and reporting focus.
 - `src/state.ts`: the Jotai atoms the canvas shares.
 - `src/model.ts`: node and link types, grouping, ungrouping, and fitting groups to their contents.
+- `src/geometry.ts`: card and group sizes, spacing, and input limits, generated from the CLI's `cli/src/geometry.luau` by `lute run geometry`. Edit the Luau module, not this file.
 - `src/derive.ts`: status, leverage, group progress, and hover tracing.
 - `src/settings.ts` and `src/keybindings.ts`: preferences, and each shortcut with its default.
 

@@ -1,7 +1,7 @@
 # Paths each CI job depends on, read by ci.yml's `ci-loading` job and perf.yml's `perf-loading` job through
 # dorny/paths-filter. A job runs when a change matches its filter. The app's tests read the token docs, the example
 # theme, and the CLI's token contract to check they agree. The docs reference is generated from the CLI, and the
-# desktop build bundles the app and the CLI sidecar.
+# desktop build bundles the app and the CLI sidecar. The CLI checks the app's geometry module, which it generates.
 
 # Every job reruns when the toolchain or the CI setup changes
 shared: &shared
@@ -14,6 +14,7 @@ cli:
   - "cli/**/!(*.md)"
   - .lute/**
   - .config.luau
+  - app/src/geometry.ts
 
 app:
   - *shared
