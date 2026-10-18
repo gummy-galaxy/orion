@@ -6,8 +6,8 @@ local system = require("@std/system")
 
 local cli = require("@root/cli")
 local githubTypes = require("@root/github/types")
-local store = require("@root/store")
 local types = require("@root/types")
+local writeDoc = require("@root/store/writeDoc")
 
 type Doc = types.Doc
 type Item = types.Item
@@ -123,7 +123,7 @@ end
 
 function testing.createHarness(name: string)
 	local dir = testing.directory(name)
-	store.write(
+	writeDoc(
 		dir,
 		testing.createDoc({
 			testing.group("ws", "Release"),

@@ -11,7 +11,10 @@ return table.freeze({
 	help = "Hide items from attention and orion next until a time",
 	define = function(parser: cli.Parser)
 		parser:add("ids", "variadic", { help = "Item ids" })
-		parser:add("until", "option", { help = "When it wakes: an ISO 8601 date or date-time", required = true })
+		parser:add("until", "option", {
+			help = "When it wakes: an ISO 8601 date or date-time, in local time unless it ends in Z or an offset",
+			required = true,
+		})
 		parser:add("where", "option", { help = "Select items with an expression instead of ids" })
 		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
 		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })

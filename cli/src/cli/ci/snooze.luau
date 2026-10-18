@@ -3,7 +3,7 @@ local cli = require("@batteries/cli")
 local changeCheckSnooze = require("@root/checks/changeCheckSnooze")
 local context = require("@root/cli/context")
 local normalizeUntil = require("@root/checks/normalizeUntil")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 
@@ -25,7 +25,7 @@ return table.freeze({
 		local now = options.now()
 		assert(untilTime == nil or untilTime > now, "--until must be in the future")
 
-		store.transaction(options.dir, function(doc)
+		runTransaction(options.dir, function(doc)
 			changeCheckSnooze(doc, { repo = repo, name = name, snoozed = true, untilTime = untilTime, at = now })
 		end)
 

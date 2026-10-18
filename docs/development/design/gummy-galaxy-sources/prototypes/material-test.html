@@ -1,0 +1,527 @@
+<title>Gummy Material Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Martian+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: three takes on one mark side by side, each with its small sizes, then what differs between them. */
+:root {
+  color-scheme: dark;
+  --page: #0b0719;
+  --raised: #150e2e;
+  --panel: #1c1340;
+  --line: rgb(255 255 255 / 0.09);
+  --text: #f6f0ff;
+  --muted: #a99fd0;
+  --lemon: #ffd84a;
+  --font-body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+body { background: var(--page); color: var(--text); font: 400 16px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 80px; display: flex; flex-direction: column; gap: 24px; }
+.eyebrow { font: 600 11px/1.3 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+header { display: flex; flex-direction: column; gap: 8px; max-width: 76ch; }
+h1 { margin: 0; font: 800 clamp(34px, 5vw, 54px)/1 var(--font-body); letter-spacing: -0.025em; }
+header p { margin: 0; color: var(--muted); }
+.takes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.take { background: var(--raised); border-radius: 20px; padding: 16px; box-shadow: inset 0 0 0 1px var(--line); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.take .big { width: 100%; aspect-ratio: 1; border-radius: 16px; display: block; }
+.take .small { display: flex; align-items: flex-end; gap: 10px; }
+.take .small canvas { display: block; }
+.take .small span { margin-left: auto; font: 10px/1.3 var(--font-mono); color: var(--muted); }
+.take h2 { margin: 0; display: flex; align-items: baseline; gap: 10px; font: 700 19px/1.2 var(--font-body); }
+.take h2 i { font: 800 12px/1 var(--font-mono); font-style: normal; color: var(--page); background: var(--lemon); padding: 5px 7px; border-radius: 6px; }
+.take p { margin: 0; font-size: 14px; color: var(--muted); }
+.diff { background: var(--raised); border-radius: 20px; padding: 18px; box-shadow: inset 0 0 0 1px var(--line); overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 10px/1.3 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+td:first-child { color: var(--muted); }
+.status { font: 12px var(--font-mono); color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Gummy Galaxy · material</span>
+    <h1>Gummy Material Test</h1>
+    <p>The Orbit badge mark three ways, on the same Tide background, to find what makes the art direction feel off. A is today's mark. B swaps only the material. C also cuts the flavors to two and lets the background's light and grain reach the candy.</p>
+  </header>
+  <p class="status" id="status">Rendering…</p>
+  <div class="takes">
+    <div class="take">
+      <canvas class="big" id="a" width="720" height="720" aria-label="Take A"></canvas>
+      <div class="small"><canvas data-for="a" width="96" height="96" style="width:48px;height:48px;border-radius:9px"></canvas><canvas data-for="a" width="48" height="48" style="width:24px;height:24px;border-radius:5px"></canvas><span>48 · 24 px</span></div>
+      <h2><i>A</i>Vector gloss, today</h2>
+      <p>Flat shapes under an SVG lighting filter, lit from the top left. Opaque, like molded plastic, with no grain on the candy and five flavors.</p>
+    </div>
+    <div class="take">
+      <canvas class="big" id="b" width="720" height="720" aria-label="Take B"></canvas>
+      <div class="small"><canvas data-for="b" width="96" height="96" style="width:48px;height:48px;border-radius:9px"></canvas><canvas data-for="b" width="48" height="48" style="width:24px;height:24px;border-radius:5px"></canvas><span>48 · 24 px</span></div>
+      <h2><i>B</i>Translucent gummy</h2>
+      <p>The ray-marched gummy from the shelf's card art: light passes through, color deepens where it's thick, and edges glow. Same five flavors and studio lighting.</p>
+    </div>
+    <div class="take">
+      <canvas class="big" id="c" width="720" height="720" aria-label="Take C"></canvas>
+      <div class="small"><canvas data-for="c" width="96" height="96" style="width:48px;height:48px;border-radius:9px"></canvas><canvas data-for="c" width="48" height="48" style="width:24px;height:24px;border-radius:5px"></canvas><span>48 · 24 px</span></div>
+      <h2><i>C</i>Translucent, two flavors, in the scene</h2>
+      <p>The same gummy in only lemon and cotton candy, lit by the Tide glows: violet from above, pink from below. One grain runs over candy and background alike.</p>
+    </div>
+  </div>
+  <div class="diff">
+    <table>
+      <thead><tr><th></th><th>A</th><th>B</th><th>C</th></tr></thead>
+      <tbody>
+        <tr><td>Material</td><td>Opaque gloss</td><td>Translucent gummy</td><td>Translucent gummy</td></tr>
+        <tr><td>Flavors</td><td>Five</td><td>Five</td><td>Two, plus their blends</td></tr>
+        <tr><td>Light</td><td>Top left, white</td><td>Top left, studio softboxes</td><td>Top left, plus violet and pink spill from the background</td></tr>
+        <tr><td>Grain</td><td>Background only</td><td>Background only</td><td>Everything</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script type="x-shader/x-fragment" id="fs">
+precision highp float;
+uniform vec2 uRes;
+uniform float uVariant;
+uniform float uScene;
+
+vec3 SUN0; vec3 ARM1; vec3 ARM2; vec3 ARM3; vec3 RING; vec3 PLANET; vec3 BAND; vec3 MOON;
+
+vec3 lin(vec3 c) { return pow(c, vec3(2.2)); }
+vec3 hex(float r, float g, float b) { return lin(vec3(r, g, b) / 255.0); }
+float hash1(vec3 p) { p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+mat2 rot(float a) { float c = cos(a); float s = sin(a); return mat2(c, -s, s, c); }
+
+float mapScene(vec3 p, out vec3 col) {
+  p.yz = rot(0.42) * p.yz;
+  p.xy = rot(-0.1) * p.xy;
+  float d = length(p) - 0.25;
+  col = SUN0;
+  for (int arm = 0; arm < 3; arm++) {
+    for (int k = 0; k < 16; k++) {
+      float t = float(k) / 15.0;
+      float a = float(arm) * 2.0944 + t * 2.3 + 0.4;
+      float r = 0.2 + t * 0.46;
+      vec3 c = vec3(cos(a) * r, sin(a) * r, 0.0);
+      float db = length(p - c) - (0.13 - t * 0.07);
+      vec3 cb = arm == 0 ? ARM1 : (arm == 1 ? ARM2 : ARM3);
+      float h = clamp(0.5 + 0.5 * (db - d) / 0.07, 0.0, 1.0);
+      d = mix(db, d, h) - 0.07 * h * (1.0 - h);
+      col = mix(cb, col, h);
+    }
+  }
+  float dr = length(vec2(length(p.xy) - 1.0, p.z)) - 0.085;
+  if (dr < d) { d = dr; col = RING; }
+  vec3 pc = vec3(0.766, -0.643, 0.0);
+  float dp = length(p - pc) - 0.25;
+  if (dp < d) {
+    d = dp;
+    vec3 q = p - pc;
+    float band = smoothstep(0.035, 0.0, abs(q.y - 0.02 + 0.07 * sin(q.x * 9.0)) - 0.035);
+    col = mix(PLANET, BAND, band);
+  }
+  vec3 mc = vec3(-0.94, 0.34, 0.0);
+  float dm = length(p - mc) - 0.13;
+  if (dm < d) { d = dm; col = MOON; }
+  return d;
+}
+float mapD(vec3 p) { vec3 c; return mapScene(p, c); }
+vec3 calcNormal(vec3 p) {
+  vec3 c; vec2 k = vec2(1.0, -1.0); float e = 0.0015;
+  return normalize(k.xyy * mapScene(p + k.xyy * e, c) + k.yyx * mapScene(p + k.yyx * e, c) + k.yxy * mapScene(p + k.yxy * e, c) + k.xxx * mapScene(p + k.xxx * e, c));
+}
+
+vec3 TOP_A; vec3 TOP_B; vec3 TOP_C; vec3 BOT_A; vec3 BOT_B; vec3 BOT_C;
+vec3 ramp(float t, vec3 a, vec3 b, vec3 c) {
+  vec3 x = t < 0.55 ? mix(a, b, t / 0.55) : mix(b, c, clamp((t - 0.55) / 0.27, 0.0, 1.0));
+  return x * (1.0 - smoothstep(0.76, 1.0, t));
+}
+vec3 tide(vec2 uv) {
+  vec3 col = hex(7.0, 20.0, 22.0);
+  col += hex(18.0, 52.0, 54.0) * exp(-dot(uv, uv) * 1.3);
+  col += ramp(length((uv - vec2(0.0, 2.15)) * vec2(0.62, 1.0)) / 1.75, TOP_A, TOP_B, TOP_C) * 0.85;
+  col += ramp(length((uv - vec2(0.0, -2.2)) * vec2(0.6, 1.0)) / 1.8, BOT_A, BOT_B, BOT_C) * 0.9;
+  return col;
+}
+vec3 envStudio(vec3 r) {
+  vec3 e = mix(vec3(0.02, 0.01, 0.05), vec3(0.45, 0.30, 0.85), smoothstep(-0.3, 0.8, r.y));
+  return e + vec3(1.0, 0.45, 0.75) * 0.35 * exp(-abs(r.y - 0.05) * 7.0);
+}
+vec3 envTide(vec3 r) {
+  vec3 e = mix(BOT_A * 0.9, TOP_B * 0.9, smoothstep(-0.7, 0.7, r.y));
+  return mix(e, hex(18.0, 60.0, 62.0), exp(-abs(r.y) * 3.0) * 0.8);
+}
+float softbox(vec3 r, vec3 dir, vec2 size) {
+  vec3 u = normalize(cross(dir, vec3(0.0, 1.0, 0.0))); vec3 v = cross(u, dir);
+  float c = dot(r, dir); if (c <= 0.0) return 0.0;
+  vec2 q = vec2(dot(r, u), dot(r, v)) / c; vec2 w = 1.0 - smoothstep(size * 0.7, size, abs(q));
+  return w.x * w.y;
+}
+vec3 shade(vec3 p, vec3 n, vec3 rd, vec3 base) {
+  vec3 L = normalize(vec3(-0.6, 0.8, 0.55));
+  float inScene = step(0.5, uVariant);
+  float th = 0.0; float thV = 0.0; float thL = 0.0;
+  for (int k = 1; k <= 5; k++) {
+    float s = 0.06 * float(k);
+    th += max(-mapD(p - n * s), 0.0);
+    thV += max(-mapD(p + rd * s), 0.0);
+    thL += max(-mapD(p + L * s), 0.0);
+  }
+  float trans = exp(-(th * 0.5 + thV) * 2.6);
+  float back = exp(-thL * 3.0) * clamp(0.6 - 0.6 * dot(n, L), 0.0, 1.0);
+  float ao = 0.0;
+  for (int k = 1; k <= 3; k++) { float h = 0.05 * float(k); ao += h - mapD(p + n * h); }
+  ao = clamp(1.0 - 2.2 * ao, 0.0, 1.0);
+  float wrap = clamp((dot(n, L) + 0.5) / 1.5, 0.0, 1.0);
+  vec3 deep = base * base * 1.2 + base * 0.05;
+  vec3 glow = base * 1.2 + 0.015;
+  vec3 body = mix(deep, glow, clamp(trans, 0.0, 1.0));
+  vec3 col = body * (0.22 + 0.9 * wrap) * mix(0.55, 1.0, ao);
+  col += base * 1.8 * back;
+  vec3 R = reflect(rd, n);
+  float fres = pow(1.0 - clamp(dot(n, -rd), 0.0, 1.0), 4.0);
+  float sp = pow(max(dot(R, L), 0.0), 90.0) * 1.5;
+  float box = softbox(R, normalize(vec3(-0.55, 0.65, 0.55)), vec2(0.32, 0.18)) + 0.6 * softbox(R, normalize(vec3(0.7, 0.35, 0.5)), vec2(0.08, 0.22));
+  col += vec3(1.0, 0.97, 0.99) * (sp + box * 1.1);
+  vec3 env = mix(envStudio(R), envTide(R), inScene);
+  col += env * fres * 0.7;
+  col += base * fres * 0.6;
+  // In the scene, the background's glows spill onto the candy: violet from above, pink from below.
+  col += inScene * (TOP_B * 0.5 * pow(clamp(n.y, 0.0, 1.0), 2.0) * (0.4 + fres) + BOT_A * 0.55 * pow(clamp(-n.y, 0.0, 1.0), 2.0) * (0.4 + fres)) * mix(1.0, 0.6, trans);
+  return col;
+}
+
+void main() {
+  TOP_A = hex(255.0, 143.0, 208.0); TOP_B = hex(139.0, 61.0, 255.0); TOP_C = hex(59.0, 108.0, 255.0);
+  BOT_A = hex(255.0, 143.0, 208.0); BOT_B = hex(180.0, 92.0, 255.0); BOT_C = hex(59.0, 108.0, 255.0);
+  if (uVariant < 0.5) {
+    SUN0 = hex(255.0, 216.0, 74.0); ARM1 = hex(255.0, 159.0, 69.0); ARM2 = hex(255.0, 61.0, 110.0); ARM3 = hex(255.0, 143.0, 208.0);
+    RING = hex(255.0, 143.0, 208.0); PLANET = hex(46.0, 125.0, 255.0); BAND = hex(143.0, 208.0, 255.0); MOON = hex(123.0, 225.0, 74.0);
+  } else {
+    SUN0 = hex(255.0, 216.0, 74.0); ARM1 = hex(255.0, 176.0, 140.0); ARM2 = hex(255.0, 143.0, 208.0); ARM3 = hex(255.0, 196.0, 120.0);
+    RING = hex(255.0, 143.0, 208.0); PLANET = hex(255.0, 120.0, 196.0); BAND = hex(255.0, 216.0, 74.0); MOON = hex(255.0, 216.0, 74.0);
+  }
+  vec2 uv = (2.0 * gl_FragCoord.xy - uRes) / uRes.y;
+  vec3 col = tide(uv);
+  bool hit = false;
+  if (uScene > 0.5) {
+    vec3 ro = vec3(0.0, 0.0, 4.2);
+    vec3 rd = normalize(vec3(uv, -2.3));
+    float t = 2.2;
+    vec3 mc = SUN0;
+    float minD = 1e3; vec3 glowCol = SUN0;
+    for (int i = 0; i < 140; i++) {
+      vec3 p = ro + rd * t;
+      float d = mapScene(p, mc);
+      if (d < minD) { minD = d; glowCol = mc; }
+      if (d < 0.001) { hit = true; break; }
+      t += d * 0.85;
+      if (t > 6.5) break;
+    }
+    if (hit) {
+      vec3 p = ro + rd * t;
+      col = shade(p, calcNormal(p), rd, mc);
+    } else {
+      col += glowCol * 0.12 * exp(-max(minD, 0.0) * 10.0) * step(0.5, uVariant);
+    }
+  }
+  col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
+  col = pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+  float grain = (hash2(floor(gl_FragCoord.xy / 2.0)) - 0.5) * 0.08;
+  if (!hit || uVariant > 0.5) col += grain;
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script type="module">
+/* ---------- Palette ---------- */
+const FLAVOR = {
+  cherry: '#ff3d6e', blueRaspberry: '#2e7dff', sourApple: '#7be14a', grape: '#8b3dff',
+  peach: '#ff9f45', lemon: '#ffd84a', cottonCandy: '#ff8fd0',
+};
+
+/* ---------- Gummy material, as SVG filters ---------- */
+function gumFilter(id, s, { goo = false, sugar = 0 } = {}) {
+  const src = goo ? 'goo' : 'SourceGraphic';
+  return `<filter id="${id}" x="-30%" y="-30%" width="160%" height="170%" color-interpolation-filters="sRGB">
+    ${goo ? `<feGaussianBlur in="SourceGraphic" stdDeviation="${s * 1.1}" result="gb"/><feColorMatrix in="gb" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="goo"/>` : ''}
+    <feGaussianBlur in="${src}" stdDeviation="${s}" result="soft"/>
+    <feSpecularLighting in="soft" surfaceScale="${s * 1.1}" specularConstant="1.15" specularExponent="32" lighting-color="#ffffff" result="spec"><feDistantLight azimuth="225" elevation="52"/></feSpecularLighting>
+    <feComposite in="spec" in2="${src}" operator="in" result="gloss"/>
+    <feOffset in="${src}" dx="${-s * 0.6}" dy="${-s * 0.9}" result="up"/>
+    <feGaussianBlur in="up" stdDeviation="${s * 0.9}" result="upBlur"/>
+    <feComposite in="${src}" in2="upBlur" operator="out" result="lowRim"/>
+    <feFlood flood-color="#1a0630" flood-opacity="0.4"/><feComposite in2="lowRim" operator="in" result="shadeIn"/>
+    <feOffset in="${src}" dx="${s * 0.5}" dy="${s * 0.7}" result="down"/>
+    <feGaussianBlur in="down" stdDeviation="${s * 0.7}" result="downBlur"/>
+    <feComposite in="${src}" in2="downBlur" operator="out" result="topRim"/>
+    <feFlood flood-color="#ffffff" flood-opacity="0.34"/><feComposite in2="topRim" operator="in" result="lightIn"/>
+    <feGaussianBlur in="${src}" stdDeviation="${s * 1.2}" result="shadowBlur"/><feOffset in="shadowBlur" dy="${s * 1.4}" result="shadowOffset"/>
+    <feFlood flood-color="#05010d" flood-opacity="0.55"/><feComposite in2="shadowOffset" operator="in" result="drop"/>
+    ${sugar ? `<feTurbulence type="fractalNoise" baseFrequency="${sugar}" numOctaves="1" seed="7" result="noise"/><feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  10 0 0 0 -6.1" result="specks"/><feComposite in="specks" in2="${src}" operator="in" result="sugar"/>` : ''}
+    <feMerge><feMergeNode in="drop"/><feMergeNode in="${src}"/><feMergeNode in="shadeIn"/><feMergeNode in="lightIn"/><feMergeNode in="gloss"/>${sugar ? '<feMergeNode in="sugar"/>' : ''}</feMerge>
+  </filter>`;
+}
+const DEFS = `<defs>
+  ${gumFilter('gum-mark', 5)}${gumFilter('gum-goo', 5, { goo: true })}${gumFilter('gum-sour', 5, { sugar: 0.42 })}${gumFilter('gum-crisp', 2)}
+  <clipPath id="planet-clip"><circle cx="100" cy="100" r="50"/></clipPath>
+  <clipPath id="drop-clip"><path d="M50 152C50 82 70 48 100 48C130 48 150 82 150 152Q100 164 50 152Z"/></clipPath>
+  <clipPath id="pop-clip"><circle cx="100" cy="86" r="60"/></clipPath>
+  <linearGradient id="trail-lemon" gradientUnits="userSpaceOnUse" x1="112" y1="100" x2="22" y2="182"><stop offset="0" stop-color="${FLAVOR.lemon}"/><stop offset="1" stop-color="${FLAVOR.lemon}" stop-opacity="0"/></linearGradient>
+  <linearGradient id="trail-pink" gradientUnits="userSpaceOnUse" x1="104" y1="88" x2="30" y2="150"><stop offset="0" stop-color="${FLAVOR.cottonCandy}"/><stop offset="1" stop-color="${FLAVOR.cottonCandy}" stop-opacity="0"/></linearGradient>
+  <linearGradient id="trail-blue" gradientUnits="userSpaceOnUse" x1="124" y1="110" x2="60" y2="190"><stop offset="0" stop-color="#8fd0ff"/><stop offset="1" stop-color="#8fd0ff" stop-opacity="0"/></linearGradient>
+</defs>`;
+
+/* ---------- Mark geometry ---------- */
+function star4(cx, cy, radius) {
+  const k = radius * 0.16;
+  return `M${cx} ${cy - radius}Q${cx + k} ${cy - k} ${cx + radius} ${cy}Q${cx + k} ${cy + k} ${cx} ${cy + radius}Q${cx - k} ${cy + k} ${cx - radius} ${cy}Q${cx - k} ${cy - k} ${cx} ${cy - radius}Z`;
+}
+const sparkle = (x, y, r, fill = '#fff') => `<path d="${star4(x, y, r)}" fill="${fill}"/>`;
+const gummyStar = (x, y, r, color) => `<path d="${star4(x, y, r)}" fill="${color}" stroke="${color}" stroke-width="${r * 0.28}" stroke-linejoin="round"/>`;
+function spiralBlobs() {
+  const armColors = [FLAVOR.cherry, FLAVOR.blueRaspberry, FLAVOR.sourApple];
+  let out = `<circle cx="100" cy="100" r="31" fill="${FLAVOR.grape}"/>`;
+  for (let arm = 0; arm < 3; arm++) {
+    for (let k = 0; k < 6; k++) {
+      const angle = arm * (Math.PI * 2 / 3) + k * 0.5, radius = 30 + k * 11, size = 16 - k * 1.9;
+      out += `<circle cx="${(100 + Math.cos(angle) * radius).toFixed(1)}" cy="${(100 + Math.sin(angle) * radius).toFixed(1)}" r="${size.toFixed(1)}" fill="${armColors[arm]}"/>`;
+    }
+  }
+  return out;
+}
+function crystalStar() {
+  const cx = 100, cy = 106, outer = 84, inner = 38, points = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = -Math.PI / 2 + i * Math.PI / 5, radius = i % 2 === 0 ? outer : inner;
+    points.push([cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius]);
+  }
+  const light = ['#c9ecff', '#8fd0ff'], dark = ['#2e7dff', '#4f9bff'];
+  let out = '';
+  for (let i = 0; i < 10; i++) {
+    const a = points[i], b = points[(i + 1) % 10];
+    const fill = i % 2 === 0 ? light[(i / 2) % 2] : dark[((i - 1) / 2) % 2];
+    out += `<path d="M${cx} ${cy}L${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}Z" fill="${fill}" stroke="${fill}" stroke-width="0.6" stroke-linejoin="round"/>`;
+  }
+  return out;
+}
+function spiralPath(cx, cy, maxRadius, turns, phase) {
+  const max = turns * Math.PI * 2;
+  let d = '';
+  for (let theta = 0; theta <= max; theta += 0.12) {
+    const r = 4 + (maxRadius - 4) * (theta / max);
+    d += `${d ? 'L' : 'M'}${(cx + Math.cos(theta + phase) * r).toFixed(1)} ${(cy + Math.sin(theta + phase) * r).toFixed(1)}`;
+  }
+  return d;
+}
+const SUN = [FLAVOR.lemon, FLAVOR.peach, FLAVOR.cherry, FLAVOR.cottonCandy];
+function spiralSun(cx, cy, scale, turn = 0) {
+  // Dense, overlapping beads under one filter read as three tapered gummy arms around a lemon core.
+  let out = '';
+  for (let arm = 0; arm < 3; arm++) {
+    for (let k = 0; k <= 32; k++) {
+      const t = k / 32, angle = turn + arm * (Math.PI * 2 / 3) + t * 2.3;
+      const radius = (24 + t * 54) * scale, size = (15 - t * 9) * scale;
+      out += `<circle cx="${(cx + Math.cos(angle) * radius).toFixed(1)}" cy="${(cy + Math.sin(angle) * radius).toFixed(1)}" r="${size.toFixed(1)}" fill="${SUN[arm + 1]}"/>`;
+    }
+  }
+  return out + `<circle cx="${cx}" cy="${cy}" r="${(30 * scale).toFixed(1)}" fill="${SUN[0]}"/>`;
+}
+let planetClip = 0;
+function bandedPlanet(cx, cy, r, color = FLAVOR.blueRaspberry, band = '#8fd0ff') {
+  const id = `band-${planetClip++}`;
+  return `<clipPath id="${id}"><circle cx="${cx}" cy="${cy}" r="${r}"/></clipPath><circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>
+    <g clip-path="url(#${id})"><path d="M${cx - r * 1.2} ${cy - r * 0.12}C${cx - r * 0.4} ${cy - r * 0.42} ${cx + r * 0.4} ${cy + r * 0.3} ${cx + r * 1.2} ${cy - r * 0.08}L${cx + r * 1.2} ${cy + r * 0.28}C${cx + r * 0.4} ${cy + r * 0.66} ${cx - r * 0.4} ${cy - r * 0.04} ${cx - r * 1.2} ${cy + r * 0.24}Z" fill="${band}"/></g>`;
+}
+function ellipseArc(cx, cy, rx, ry, rotate, front) {
+  return `<g transform="translate(${cx} ${cy}) rotate(${rotate})"><path d="${front ? `M${rx} 0A${rx} ${ry} 0 0 1 ${-rx} 0` : `M${-rx} 0A${rx} ${ry} 0 0 1 ${rx} 0`}" fill="none" stroke="${FLAVOR.cottonCandy}" stroke-width="7" stroke-linecap="round"/></g>`;
+}
+const G_CENTER = [100, 104], G_RADIUS = 56;
+const gPoint = (degrees, radius = G_RADIUS) => [G_CENTER[0] + Math.cos(degrees * Math.PI / 180) * radius, G_CENTER[1] + Math.sin(degrees * Math.PI / 180) * radius];
+function gummyG() {
+  const [sx, sy] = gPoint(-40), [ex, ey] = gPoint(8);
+  return `<path d="M${sx.toFixed(1)} ${sy.toFixed(1)}A${G_RADIUS} ${G_RADIUS} 0 1 0 ${ex.toFixed(1)} ${ey.toFixed(1)}L112 ${ey.toFixed(1)}" fill="none" stroke="${FLAVOR.grape}" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+function constellationG() {
+  const points = [-40, -95, -150, 155, 100, 45, 8].map((degrees) => gPoint(degrees, 60));
+  points.push([112, points[points.length - 1][1]]);
+  const line = points.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join('');
+  const colors = [FLAVOR.lemon, '#ffffff', FLAVOR.cottonCandy, '#ffffff', FLAVOR.lemon, '#ffffff', FLAVOR.cottonCandy, FLAVOR.lemon];
+  const sizes = [17, 11, 13, 10, 14, 10, 12, 15];
+  return `<path d="${line}" fill="none" stroke="#c9b8ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.75"/>
+    <g filter="url(#gum-crisp)">${points.map(([x, y], i) => gummyStar(+x.toFixed(1), +y.toFixed(1), sizes[i], colors[i])).join('')}</g>
+    ${sparkle(160, 42, 7)}${sparkle(44, 52, 5)}`;
+}
+
+const MARKS = [
+  { id: 'spiral', name: 'Chewy spiral', note: 'Three flavored arms melting into a grape core. The most literal galaxy, and it still reads at 24 pixels.',
+    body: `<g filter="url(#gum-goo)">${spiralBlobs()}</g>` },
+  { id: 'planet', name: 'Sour planet', note: 'A cherry planet with a sugar-dusted lemon ring. The sour branch.',
+    body: `<g filter="url(#gum-sour)"><g transform="translate(100 100) rotate(-20)"><path d="M-86 0A86 24 0 0 1 86 0" fill="none" stroke="${FLAVOR.lemon}" stroke-width="13" stroke-linecap="round"/></g><circle cx="100" cy="100" r="50" fill="${FLAVOR.cherry}"/><g clip-path="url(#planet-clip)"><path d="M40 92C70 80 120 118 160 96L160 116C120 138 70 100 40 114Z" fill="${FLAVOR.cottonCandy}"/></g><g transform="translate(100 100) rotate(-20)"><path d="M86 0A86 24 0 0 1 -86 0" fill="none" stroke="${FLAVOR.lemon}" stroke-width="13" stroke-linecap="round"/></g></g>` },
+  { id: 'crystal', name: 'Rock candy star', note: 'Cut facets and hard glints. The gem branch, for things that look like they would crunch.',
+    body: `<g filter="url(#gum-crisp)">${crystalStar()}</g>${sparkle(146, 52, 10)}${sparkle(62, 130, 6)}${sparkle(118, 92, 4)}` },
+  { id: 'g', name: 'Gummy G', note: 'The monogram, now drawn as one chewy stroke instead of a font, with its cherry moon. Built for avatars and favicons.',
+    body: `<g filter="url(#gum-mark)">${gummyG()}<circle cx="162" cy="40" r="17" fill="${FLAVOR.cherry}"/></g>` },
+  { id: 'belt', name: 'Belt drops', note: "Orion's belt as three gummy star drops on a cotton candy string, freed from the app icon square so the studio and the product can share it.", isNew: true,
+    body: `<g filter="url(#gum-mark)"><path d="M42 158L100 100L158 42" fill="none" stroke="${FLAVOR.cottonCandy}" stroke-width="8" stroke-linecap="round"/>${gummyStar(42, 158, 32, FLAVOR.cherry)}${gummyStar(100, 100, 40, FLAVOR.lemon)}${gummyStar(158, 42, 30, FLAVOR.sourApple)}</g>` },
+  { id: 'pop', name: 'Galaxy pop', note: 'A swirl lollipop whose swirl is a two-armed galaxy. Bright, round, and instantly candy, even at favicon size.', isNew: true,
+    body: `<g filter="url(#gum-mark)"><rect x="93" y="132" width="14" height="62" rx="7" fill="#f4eefc"/><circle cx="100" cy="86" r="60" fill="${FLAVOR.grape}"/><g clip-path="url(#pop-clip)"><path d="${spiralPath(100, 86, 62, 2.4, 0)}" fill="none" stroke="${FLAVOR.cottonCandy}" stroke-width="12" stroke-linecap="round"/><path d="${spiralPath(100, 86, 62, 2.4, Math.PI)}" fill="none" stroke="${FLAVOR.blueRaspberry}" stroke-width="12" stroke-linecap="round"/></g></g>${sparkle(158, 38, 8)}${sparkle(40, 140, 6)}` },
+  { id: 'bear', name: 'Star bear', note: 'A cherry gummy bear with a lemon star on its belly, from the Gummy drift backdrop. The friendliest mascot of the bunch.', isNew: true,
+    body: `<g filter="url(#gum-goo)" fill="${FLAVOR.cherry}"><circle cx="100" cy="66" r="34"/><circle cx="72" cy="38" r="14"/><circle cx="128" cy="38" r="14"/><circle cx="100" cy="126" r="40"/><circle cx="60" cy="110" r="15"/><circle cx="140" cy="110" r="15"/><circle cx="76" cy="164" r="18"/><circle cx="124" cy="164" r="18"/></g>
+      <g fill="#5a0820" opacity="0.55"><circle cx="88" cy="62" r="4.5"/><circle cx="112" cy="62" r="4.5"/><ellipse cx="100" cy="76" rx="6" ry="4"/></g>
+      <g filter="url(#gum-crisp)">${gummyStar(100, 128, 20, FLAVOR.lemon)}</g>` },
+  { id: 'constellation', name: 'Constellation G', note: 'The G drawn as a constellation, with gummy stars as nodes and a link between each. It nods to the graph and the Constellations backdrop.', isNew: true,
+    body: constellationG() },
+  { id: 'gumdrop', name: 'Gumdrop planet', note: 'A sugared sour apple gumdrop wearing a cotton candy ring, the planet branch made rounder and more edible.', isNew: true,
+    body: `<g filter="url(#gum-sour)"><g transform="translate(100 118) rotate(-12)"><path d="M-90 0A90 22 0 0 1 90 0" fill="none" stroke="${FLAVOR.cottonCandy}" stroke-width="12" stroke-linecap="round"/></g><path d="M50 152C50 82 70 48 100 48C130 48 150 82 150 152Q100 164 50 152Z" fill="${FLAVOR.sourApple}"/><g clip-path="url(#drop-clip)"><path d="M40 112C70 100 120 132 160 112L160 126C120 146 70 114 40 128Z" fill="#b9f28a"/></g><g transform="translate(100 118) rotate(-12)"><path d="M90 0A90 22 0 0 1 -90 0" fill="none" stroke="${FLAVOR.cottonCandy}" stroke-width="12" stroke-linecap="round"/></g></g>${sparkle(154, 46, 8)}` },
+  { id: 'orrery', name: 'Orrery', family: 'system', note: 'The chewy spiral as a sun, with one cotton candy orbit that passes behind it and in front of it. The planet rides the near side with its moon, so all three hang together as one tilted object.', isNew: true,
+    body: `<g filter="url(#gum-mark)">${ellipseArc(100, 100, 82, 26, -18, false)}</g><g filter="url(#gum-mark)">${spiralSun(100, 100, 0.62)}</g>
+      <g filter="url(#gum-mark)">${ellipseArc(100, 100, 82, 26, -18, true)}${bandedPlanet(154, 104, 20)}<circle cx="171" cy="76" r="8" fill="${FLAVOR.sourApple}"/></g>${sparkle(44, 46, 6)}` },
+  { id: 'badge', name: 'Orbit badge', family: 'system', note: 'The orbit becomes the outline: a gummy ring with the sun inside and the planet and moon threaded onto it. The silhouette is a plain circle, so it stays calm at 24 pixels.', isNew: true,
+    body: `<g filter="url(#gum-mark)"><circle cx="100" cy="100" r="82" fill="none" stroke="${FLAVOR.cottonCandy}" stroke-width="9"/></g><g filter="url(#gum-mark)">${spiralSun(100, 100, 0.54)}</g>
+      <g filter="url(#gum-mark)">${bandedPlanet(158, 152, 23)}<circle cx="24" cy="70" r="12" fill="${FLAVOR.sourApple}"/></g>` },
+  { id: 'chain', name: 'Gummy conjunction', family: 'system', note: 'Sun, planet, and moon lined up and squished together until they touch, largest to smallest. One silhouette, three flavors.', isNew: true,
+    body: `<g filter="url(#gum-mark)">${spiralSun(84, 114, 0.66, 0.6)}<circle cx="138" cy="72" r="27" fill="${FLAVOR.blueRaspberry}"/><circle cx="165" cy="41" r="12" fill="${FLAVOR.sourApple}"/></g>` },
+  { id: 'eclipse', name: 'Eclipse', family: 'system', note: "The planet passes in front of the sun, so the spiral's arms flare out around it like a corona, and the moon sits on the rim. The most compact of the four.", isNew: true,
+    body: `<g filter="url(#gum-mark)">${spiralSun(100, 100, 0.84, 0.3)}</g><g filter="url(#gum-mark)">${bandedPlanet(108, 106, 40)}<circle cx="150" cy="64" r="12" fill="${FLAVOR.sourApple}"/></g>` },
+  { id: 'comet', name: 'Jelly comet', note: 'A blue raspberry jelly bean streaking by with a candy trail, like the shooting stars in every backdrop. Motion in a still mark.', isNew: true,
+    body: `<g stroke-linecap="round" fill="none"><path d="M112 100L22 182" stroke="url(#trail-lemon)" stroke-width="16"/><path d="M104 88L30 150" stroke="url(#trail-pink)" stroke-width="10"/><path d="M124 110L60 190" stroke="url(#trail-blue)" stroke-width="8"/></g>
+      <g filter="url(#gum-mark)"><g transform="translate(128 76) rotate(-38)"><path d="M-52 6C-60 -26 -30 -42 -2 -30C8 -26 16 -26 28 -32C52 -44 72 -18 58 10C44 38 -44 38 -52 6Z" fill="${FLAVOR.blueRaspberry}"/></g></g>${sparkle(64, 70, 8)}${sparkle(170, 150, 6)}${sparkle(40, 120, 4)}` },
+];
+
+/* ---------- Tide-style backgrounds ---------- */
+const BACKGROUNDS = [
+  { id: 'tide', name: 'Tide', swatch: '#18d6c0', base: '#071416', core: '#0f2a2c', glows: [
+    { x: 0.5, y: -0.58, rx: 1.3, ry: 1, stops: [[0, '#ff8fd0', 0.95], [0.55, '#8b3dff', 0.9], [0.82, '#3b6cff', 0.75], [1, '#3b6cff', 0]] },
+    { x: 0.5, y: 1.62, rx: 1.35, ry: 1, stops: [[0, '#ff8fd0', 1], [0.55, '#b45cff', 0.9], [0.8, '#3b6cff', 0.7], [1, '#3b6cff', 0]] } ] },
+  { id: 'grape', name: 'Grape soda', swatch: '#8b3dff', base: '#110828', core: '#1d1046', glows: [
+    { x: 0.5, y: -0.6, rx: 1.3, ry: 1, stops: [[0, '#2e7dff', 0.9], [0.6, '#8b3dff', 0.9], [0.84, '#c04dff', 0.7], [1, '#c04dff', 0]] },
+    { x: 0.5, y: 1.62, rx: 1.35, ry: 1, stops: [[0, '#ff8fd0', 1], [0.6, '#8b3dff', 0.85], [0.82, '#5a2fd0', 0.6], [1, '#5a2fd0', 0]] } ] },
+  { id: 'cherry', name: 'Cherry cola', swatch: '#ff3d6e', base: '#1a0710', core: '#2c0d1c', glows: [
+    { x: 0.5, y: -0.6, rx: 1.3, ry: 1, stops: [[0, '#ffd84a', 0.8], [0.55, '#ff9f45', 0.85], [0.82, '#ff3d6e', 0.75], [1, '#ff3d6e', 0]] },
+    { x: 0.5, y: 1.62, rx: 1.35, ry: 1, stops: [[0, '#ff8fd0', 0.9], [0.55, '#ff3d6e', 0.85], [0.82, '#8b3dff', 0.7], [1, '#8b3dff', 0]] } ] },
+  { id: 'lagoon', name: 'Sour lagoon', swatch: '#7be14a', base: '#04161a', core: '#0a2a28', glows: [
+    { x: 0.5, y: -0.6, rx: 1.3, ry: 1, stops: [[0, '#d6ff6a', 0.85], [0.55, '#7be14a', 0.85], [0.82, '#18d6c0', 0.75], [1, '#18d6c0', 0]] },
+    { x: 0.5, y: 1.62, rx: 1.35, ry: 1, stops: [[0, '#8fd0ff', 0.9], [0.55, '#18d6c0', 0.85], [0.82, '#2e7dff', 0.7], [1, '#2e7dff', 0]] } ] },
+  { id: 'peach', name: 'Peach horizon', swatch: '#ff9f45', base: '#170c1f', core: '#24122c', glows: [
+    { x: 0.5, y: -0.72, rx: 1.3, ry: 1, stops: [[0, '#8b3dff', 0.6], [0.8, '#5a2fd0', 0.45], [1, '#5a2fd0', 0]] },
+    { x: 0.5, y: 1.5, rx: 1.4, ry: 1, stops: [[0, '#ffd84a', 1], [0.45, '#ff9f45', 0.95], [0.75, '#ff8fd0', 0.8], [1, '#ff8fd0', 0]] } ] },
+  { id: 'halo', name: 'Halo', swatch: '#ff8fd0', base: '#0b0920', core: '#0b0920', glows: [
+    { x: 0.5, y: 0.5, rx: 1, ry: 1, radius: 0.62, stops: [[0, '#0b0920', 0], [0.55, '#3b6cff', 0], [0.78, '#8b3dff', 0.75], [0.9, '#ff8fd0', 0.55], [1, '#ff8fd0', 0]] },
+    { x: 0.5, y: 1.7, rx: 1.4, ry: 1, stops: [[0, '#18d6c0', 0.5], [0.8, '#3b6cff', 0.35], [1, '#3b6cff', 0]] } ] },
+];
+const hexAlpha = (hex, alpha) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${alpha})`;
+function paintBackground(ctx, width, height, bg, grain, seed = 1) {
+  const size = Math.max(width, height);
+  ctx.fillStyle = bg.base;
+  ctx.fillRect(0, 0, width, height);
+  const core = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, size * 0.6);
+  core.addColorStop(0, bg.core); core.addColorStop(1, hexAlpha(bg.core, 0));
+  ctx.fillStyle = core;
+  ctx.fillRect(0, 0, width, height);
+  for (const glow of bg.glows) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.translate(glow.x * width, glow.y * height);
+    ctx.scale(glow.rx, glow.ry);
+    const radius = size * (glow.radius ?? 1);
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, radius);
+    for (const [offset, hex, alpha] of glow.stops) gradient.addColorStop(offset, hexAlpha(hex, alpha));
+    ctx.fillStyle = gradient;
+    ctx.fillRect(-radius * 2, -radius * 2, radius * 4, radius * 4);
+    ctx.restore();
+  }
+  if (grain > 0) {
+    const image = ctx.getImageData(0, 0, width, height), data = image.data;
+    let state = seed * 9301 + 49297;
+    for (let i = 0; i < data.length; i += 4) {
+      state = (state * 1103515245 + 12345) & 0x7fffffff;
+      const n = ((state / 0x7fffffff) - 0.5) * grain * 2;
+      data[i] += n; data[i + 1] += n; data[i + 2] += n;
+    }
+    ctx.putImageData(image, 0, 0);
+  }
+}
+
+/* ---------- Rendering marks as images ---------- */
+const imageCache = new Map();
+function markImage(mark, pixels) {
+  const key = `${mark.id}@${pixels}`;
+  if (!imageCache.has(key)) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${pixels}" height="${pixels}" viewBox="-20 -20 240 240">${DEFS}${mark.body}</svg>`;
+    imageCache.set(key, new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }));
+  }
+  return imageCache.get(key);
+}
+
+
+const status = document.getElementById('status');
+const glCanvas = document.createElement('canvas');
+glCanvas.width = glCanvas.height = 1440;
+const gl = glCanvas.getContext('webgl', { preserveDrawingBuffer: true, antialias: false });
+if (!gl) {
+  status.textContent = 'WebGL is unavailable here, so the takes can’t render.';
+} else {
+  const compile = (type, source) => {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+    return shader;
+  };
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, 'attribute vec2 a;void main(){gl_Position=vec4(a,0.0,1.0);}'));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, document.getElementById('fs').textContent));
+  gl.linkProgram(program);
+  gl.useProgram(program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const position = gl.getAttribLocation(program, 'a');
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  const uniform = (name) => gl.getUniformLocation(program, name);
+  const draw = (variant, scene) => {
+    gl.viewport(0, 0, 1440, 1440);
+    gl.uniform2f(uniform('uRes'), 1440, 1440);
+    gl.uniform1f(uniform('uVariant'), variant);
+    gl.uniform1f(uniform('uScene'), scene);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  };
+  const copyTo = (id) => {
+    const target = document.getElementById(id);
+    target.getContext('2d').drawImage(glCanvas, 0, 0, target.width, target.height);
+    return target;
+  };
+  const fillSmall = (id) => {
+    for (const small of document.querySelectorAll(`[data-for="${id}"]`)) {
+      const ctx = small.getContext('2d');
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(document.getElementById(id), 0, 0, small.width, small.height);
+    }
+  };
+  const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+
+  draw(0, 0);
+  const a = copyTo('a');
+  const badge = MARKS.find((mark) => mark.id === 'badge');
+  const pixels = Math.round(720 * 0.74 * 1.2);
+  const image = await markImage(badge, pixels);
+  a.getContext('2d').drawImage(image, (720 - pixels) / 2, (720 - pixels) / 2, pixels, pixels);
+  fillSmall('a');
+  await nextFrame();
+  draw(0, 1);
+  copyTo('b');
+  fillSmall('b');
+  await nextFrame();
+  draw(1, 1);
+  copyTo('c');
+  fillSmall('c');
+  status.remove();
+}
+</script>

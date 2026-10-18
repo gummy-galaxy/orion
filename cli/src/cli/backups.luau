@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local getBackups = require("@root/store/getBackups")
 
 type Context = context.Context
 
@@ -13,7 +13,7 @@ return table.freeze({
 	end,
 
 	run = function(_parser: cli.Parser, options: Context)
-		local backups = store.getBackups(options.dir)
+		local backups = getBackups(options.dir)
 
 		if options.asJson then
 			local values: json.Array = {}

@@ -7,9 +7,9 @@ local test = require("@std/test")
 
 local cli = require("@root/cli")
 local fileNames = require("@root/fileNames")
+local loadDoc = require("@root/store/loadDoc")
 local queueBehindLock = require("@root/cli/mcp/server/queueBehindLock")
 local serve = require("@root/cli/mcp/server/serve")
-local store = require("@root/store")
 local testing = require("@root/testing")
 
 local need = assert
@@ -76,7 +76,7 @@ test.case("overlapping write calls wait behind another process's lock and all ap
 
 	local labels: { string } = {}
 
-	for _, node in store.load(dir).nodes do
+	for _, node in loadDoc(dir).nodes do
 		table.insert(labels, node.data.label :: string)
 	end
 

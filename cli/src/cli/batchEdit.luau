@@ -1,7 +1,13 @@
 local json = require("@std/json")
 
 local applyOperations = require("@root/operations/applyOperations")
-local graph = require("@root/graph")
+local checkReconnect = require("@root/graph/checkReconnect")
+local getAncestors = require("@root/graph/getAncestors")
+local getContents = require("@root/graph/getContents")
+local getItem = require("@root/graph/getItem")
+local getLabel = require("@root/graph/getLabel")
+local isGroup = require("@root/graph/isGroup")
+local isWork = require("@root/graph/isWork")
 local operationTypes = require("@root/operations/types")
 local resolveId = require("@root/query/resolveId")
 local runEdit = require("@root/cli/runEdit")
@@ -74,7 +80,7 @@ local function batchEdit(options: Options)
 				local id = resolveId(doc, input)
 				assert(not seen[id], `duplicate id: {id}`)
 				seen[id] = true
-				local item = graph.get(doc, id)
+				local item = getItem(doc, id)
 				table.insert(targets, item)
 			end
 		end
@@ -87,20 +93,20 @@ local function batchEdit(options: Options)
 			if options.action == "done" then
 				assert(item.type == "task", `"{item.id}" is not a work item`)
 			elseif options.action == "remove" then
-				assert(not graph.isGroup(item), `"{item.id}" is a group; use group ungroup or group remove instead`)
+				assert(not isGroup(item), `"{item.id}" is a group; use group ungroup or group remove instead`)
 			elseif options.action == "ungroup" or options.action == "tidy" or options.action == "removeGroup" then
-				assert(graph.isGroup(item), `"{item.id}" is an item, not a group`)
+				assert(isGroup(item), `"{item.id}" is an item, not a group`)
 			end
 
 			if options.action == "snooze" or options.action == "unsnooze" then
-				assert(not graph.isGroup(item), `"{item.id}" is a group; snooze works on items`)
-				assert(graph.isWork(item), `"{item.id}" isn't work; snooze works on work items`)
+				assert(not isGroup(item), `"{item.id}" is a group; snooze works on items`)
+				assert(isWork(item), `"{item.id}" isn't work; snooze works on work items`)
 			end
-			table.insert(changes, { id = item.id, label = graph.label(item) })
+			table.insert(changes, { id = item.id, label = getLabel(item) })
 
 			if options.action == "removeGroup" then
-				for _, inside in graph.contents(doc, item.id) do
-					table.insert(changes, { id = inside.id, label = graph.label(inside), parent = item.id })
+				for _, inside in getContents(doc, item.id) do
+					table.insert(changes, { id = inside.id, label = getLabel(inside), parent = item.id })
 				end
 			end
 		end
@@ -108,7 +114,7 @@ local function batchEdit(options: Options)
 		assert(#targets > 0, "no items match")
 		if options.action == "remove" and options.reconnect then
 			for _, item in targets do
-				graph.checkReconnect(doc, item.id)
+				checkReconnect(doc, item.id)
 			end
 		end
 
@@ -126,7 +132,7 @@ local function batchEdit(options: Options)
 		for _, item in targets do
 			local insideTarget = false
 
-			for _, ancestor in graph.ancestors(doc, item.id) do
+			for _, ancestor in getAncestors(doc, item.id) do
 				insideTarget = insideTarget or targetedGroups[ancestor] == true
 			end
 

@@ -7,10 +7,10 @@ local attachRequestedRef = require("@root/cli/attachRequestedRef")
 local context = require("@root/cli/context")
 local getItemFields = require("@root/cli/getItemFields")
 local getRequired = require("@root/cli/getRequired")
-local graph = require("@root/graph")
 local requireItem = require("@root/cli/requireItem")
 local resolveId = require("@root/query/resolveId")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
+local setFields = require("@root/graph/setFields")
 local types = require("@root/types")
 local writeItem = require("@root/cli/writeItem")
 
@@ -32,10 +32,10 @@ return table.freeze({
 		local values = getItemFields(parser)
 
 		local changed: Item
-		local doc = store.transaction(options.dir, function(doc)
+		local doc = runTransaction(options.dir, function(doc)
 			local id = resolveId(doc, idInput)
 			requireItem(doc, id)
-			changed = graph.setFields(doc, id, values)
+			changed = setFields(doc, id, values)
 			attachRequestedRef(doc, id, parser:get("ref"))
 		end)
 

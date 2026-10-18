@@ -1,8 +1,8 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
+local loadDoc = require("@root/store/loadDoc")
 local parseUntil = require("@root/time/parseUntil")
-local store = require("@root/store")
 local testing = require("@root/testing")
 
 -- The harness's clock reads 2026-10-04, so these times are in the future.
@@ -36,7 +36,7 @@ test.case("snooze takes --where and --json and reports the target", function(ass
 	assert.eq(output.action, "snooze")
 	assert.eq(output["until"], LATER)
 	assert.eq(output.revision, 1)
-	assert.eq(store.load(dir).nodes[3].data.snoozedUntil, LATER)
+	assert.eq(loadDoc(dir).nodes[3].data.snoozedUntil, LATER)
 end)
 
 test.case("snooze --dry-run previews without writing", function(assert)
@@ -45,8 +45,8 @@ test.case("snooze --dry-run previews without writing", function(assert)
 		run({ "card", "snooze", "ci", "--until", LATER, "--dry-run" }),
 		"Would snooze 1 item until 2026-10-12T17:00:00Z at revision 0"
 	)
-	assert.eq(store.load(dir).revision, 0)
-	assert.eq(store.load(dir).nodes[2].data.snoozedUntil, nil)
+	assert.eq(loadDoc(dir).revision, 0)
+	assert.eq(loadDoc(dir).nodes[2].data.snoozedUntil, nil)
 end)
 
 test.case("snooze refuses past times, groups, notes, and bad dates", function(assert)
@@ -69,7 +69,7 @@ test.case("unsnooze wakes items at once and next lists them again", function(ass
 	local dir, run = testing.createHarness("unsnooze")
 	run({ "card", "snooze", "ci", "--until", LATER })
 	assert.strContains(run({ "card", "unsnooze", "ci" }), "Woke 1 item")
-	assert.eq(store.load(dir).nodes[2].data.snoozedUntil, nil)
+	assert.eq(loadDoc(dir).nodes[2].data.snoozedUntil, nil)
 	assert.strContains(run({ "next" }), "ci")
 end)
 

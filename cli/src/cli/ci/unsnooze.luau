@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 
 local changeCheckSnooze = require("@root/checks/changeCheckSnooze")
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 
@@ -17,7 +17,7 @@ return table.freeze({
 		local name = assert(parser:get("name"), "missing <name>")
 		local repo = assert(parser:get("repo"), "missing --repo <owner/name>")
 
-		store.transaction(options.dir, function(doc)
+		runTransaction(options.dir, function(doc)
 			changeCheckSnooze(doc, { repo = repo, name = name, snoozed = false, at = options.now() })
 		end)
 

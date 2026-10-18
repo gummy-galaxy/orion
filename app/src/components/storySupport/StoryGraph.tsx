@@ -6,6 +6,8 @@ import type { AppNode, GhostNode } from '../../model'
 import { derivedAtom, linksAtom, nodesAtom } from '../../state'
 import { blocker, derived, links, task } from './data'
 
+const noResize = { start: () => {}, move: () => {}, end: () => {}, active: () => false }
+
 export function StoryGraph({
   nodes = [task, blocker],
   edges = [],
@@ -34,7 +36,7 @@ export function StoryGraph({
 
   return (
     <Provider store={store}>
-      <ActionsContext.Provider value={{ open: () => {}, reflow: () => {}, celebrate: () => {} }}>
+      <ActionsContext.Provider value={{ open: () => {}, reflow: () => {}, celebrate: () => {}, resizeGroup: noResize }}>
         <ReactFlowProvider>
           <div style={{ width: 760, height: 470 }}>
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} fitView fitViewOptions={{ padding: 0.25 }}>

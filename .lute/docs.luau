@@ -11,6 +11,7 @@ local process = require("@std/process")
 
 local cliModule = require("@cli/cli")
 local describeCommands = require("@cli/cli/describeCommands")
+local getArgumentLabel = require("@cli/cli/getArgumentLabel")
 local mcpTypes = require("@cli/cli/mcp/types")
 local tools = require("@cli/cli/mcp/tools")
 
@@ -37,18 +38,6 @@ local function escape(text: string?): string
 	return escaped
 end
 
-local function argumentLabel(argument: Argument): string
-	if argument.kind == "positional" then
-		return if argument.required then `<{argument.name}>` else `[{argument.name}]`
-	elseif argument.kind == "variadic" then
-		return if argument.required then `<{argument.name}...>` else `[{argument.name}...]`
-	elseif argument.kind == "option" then
-		return `--{argument.name} <value>`
-	end
-
-	return `--{argument.name}`
-end
-
 local function renderArguments(arguments: { Argument }): string
 	if #arguments == 0 then
 		return ""
@@ -58,7 +47,7 @@ local function renderArguments(arguments: { Argument }): string
 
 	for _, argument in arguments do
 		local required = if argument.required then "**Required.** " else ""
-		table.insert(lines, `| \`{argumentLabel(argument)}\` | {required}{escape(argument.help)} |`)
+		table.insert(lines, `| \`{getArgumentLabel(argument)}\` | {required}{escape(argument.help)} |`)
 	end
 
 	return table.concat(lines, "\n") .. "\n"

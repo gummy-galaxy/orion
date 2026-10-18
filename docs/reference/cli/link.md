@@ -42,7 +42,7 @@ orion link remove [from] [to] [options]
 
 ## orion link insert
 
-Insert an item into an existing link
+Insert an item into an existing link, replacing it with two links of the same kind
 
 ```sh
 orion link insert [id] [options] [target...]

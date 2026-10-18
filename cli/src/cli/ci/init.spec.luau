@@ -1,7 +1,7 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
 
 test.case("ci snooze, list, and unsnooze change the canvas's snoozed jobs", function(assert)
@@ -19,7 +19,7 @@ test.case("ci snooze, list, and unsnooze change the canvas's snoozed jobs", func
 	assert.eq(#listed, 2)
 
 	run({ "ci", "unsnooze", "docs", "--repo", "vocksel/orion" })
-	local snoozes = store.load(dir).settings.checkSnoozes
+	local snoozes = loadDoc(dir).settings.checkSnoozes
 	assert.eq(#snoozes, 1)
 	assert.eq(snoozes[1].name, "lint")
 end)

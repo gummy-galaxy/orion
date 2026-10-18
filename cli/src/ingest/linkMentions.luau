@@ -1,8 +1,8 @@
 local adapterTypes = require("@root/adapters/types")
 local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
-local graph = require("@root/graph")
 local ingestTypes = require("@root/ingest/types")
+local linkItems = require("@root/graph/linkItems")
 local types = require("@root/types")
 
 type Record = adapterTypes.Record
@@ -35,7 +35,7 @@ local function linkMentions(doc: Doc, entries: { { record: Record, item: Item, r
 			end
 		end
 
-		graph.link(doc, from.id, to.id, "related").origin = "mention"
+		linkItems(doc, from.id, to.id, "related").origin = "mention"
 		report.linked += 1
 	end
 

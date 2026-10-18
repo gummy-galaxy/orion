@@ -23,6 +23,11 @@ export const pinnedAtom = atom<string | null>(null)
 export const focusedAtom = atom(false)
 /** The group dragged work would join if it were dropped now. */
 export const dropTargetAtom = atom<string | null>(null)
+/**
+ * The group whose edge the pointer is near, or that is being resized. Only it mounts resize handles, since handles on
+ * every group would slow down panning and hovering on a large canvas.
+ */
+export const resizeHandlesAtom = atom<string | null>(null)
 /** Cards whose close-out badge is clearing, each with the delay before its animation starts. */
 export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>())
 
@@ -152,6 +157,8 @@ export const useCelebrating = (id: string) => useAtomValue(useMemo(() => selectA
 export const useMarked = (id: string) => useAtomValue(useMemo(() => selectAtom(attentionAtom, (attention) => !!attention?.has(id)), [id]))
 
 export const useIsDropTarget = (id: string) => useAtomValue(useMemo(() => selectAtom(dropTargetAtom, (target) => target === id), [id]))
+
+export const useShowsResizeHandles = (id: string) => useAtomValue(useMemo(() => selectAtom(resizeHandlesAtom, (shown) => shown === id), [id]))
 
 export const useCollapsed = (id: string) => useAtomValue(useMemo(() => selectAtom(collapsedAtom, (collapsed) => collapsed.has(id)), [id]))
 
