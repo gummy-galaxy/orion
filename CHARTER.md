@@ -45,11 +45,12 @@ Orion should feel gummy, sweet, and fair: a charming toy you can poke while you 
 
 1. **Telegraph every move.** Incoming changes wind up before they land, with a glow where they'll appear, then animate in. Large changes from agents preview first (#230).
 2. **Never steal the input.** Nothing moves, appears, or reflows under the pointer during an interaction or just before one. A misclick caused by Orion is a bug.
-3. **Every action answers.** Presses squish, finishes pop, gestures end in a flourish, and the response is sized to the action's weight, so small things stay small (#112).
-4. **Something to poke.** Cards and the canvas offer small interactions that relieve restlessness and never change data by accident (#231).
-5. **Let Orion do the waiting.** Watch a card and Orion tells you when it turns over, so nobody bounces between tabs to check on CI (#218, #232).
-6. **Simple parts, deep combinations.** Script cards, timers, and signal links are small on their own and combine into puzzles, contraptions, and whole computers, the way Minecraft's redstone does (#227, #228, #229).
-7. **Play can't break the machine.** Every script runs on a time and memory budget, so a runaway contraption stops itself instead of freezing the canvas (#224).
+3. **Input never waits.** Feedback for a drag, a resize, a hover, or a key press lands on the next frame, from the app alone. It never waits on a round trip to the server or a recompute of the whole graph. Input that lags or drops frames is a bug to track down (#430).
+4. **Every action answers.** Presses squish, finishes pop, gestures end in a flourish, and the response is sized to the action's weight, so small things stay small (#112).
+5. **Something to poke.** Cards and the canvas offer small interactions that relieve restlessness and never change data by accident (#231).
+6. **Let Orion do the waiting.** Watch a card and Orion tells you when it turns over, so nobody bounces between tabs to check on CI (#218, #232).
+7. **Simple parts, deep combinations.** Script cards, timers, and signal links are small on their own and combine into puzzles, contraptions, and whole computers, the way Minecraft's redstone does (#227, #228, #229).
+8. **Play can't break the machine.** Every script runs on a time and memory budget, so a runaway contraption stops itself instead of freezing the canvas (#224).
 
 ## Made for the senses
 
