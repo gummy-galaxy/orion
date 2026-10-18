@@ -70,7 +70,32 @@ local function getReadiness(details: json.Object): string?
 	return if details.checks == "SUCCESS" then "passing" else nil
 end
 
--- Check counts and progress describe checks still to come, so they only matter while the pull request is open.
+-- The jobs that failed, by name, and whether each one is optional, so it doesn't count toward the checks failing.
+local function getFailures(details: json.Object): json.Array?
+	local recorded = json.asArray(details.failedChecks)
+
+	if not recorded then
+		return nil
+	end
+
+	local failures: json.Array = {}
+
+	for _, raw in recorded do
+		local check = json.asObject(raw)
+		local name = check and getString(check.name)
+
+		if check and name then
+			local failure = json.object({ name = name })
+			failure.optional = if check.optional == true then true else nil
+			table.insert(failures, failure)
+		end
+	end
+
+	return failures
+end
+
+-- Check counts, progress, and failed jobs describe checks still to come or still to fix, so they only matter while
+-- the pull request is open.
 local function getChecks(details: json.Object): json.Object?
 	local state = CHECK_STATE[getString(details.checks) or ""]
 
@@ -92,6 +117,8 @@ local function getChecks(details: json.Object): json.Object?
 		checks.finished = getNumber(counts.finished)
 		checks.failed = getNumber(counts.failed)
 	end
+
+	checks.failures = getFailures(details)
 
 	return checks
 end

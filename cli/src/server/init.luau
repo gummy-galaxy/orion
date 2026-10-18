@@ -56,7 +56,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		task.spawn(function()
 			syncLoop.run(true)
 		end)
-	end, staticDir)
+	end, staticDir, hub)
 	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number, doc: types.Doc)
 		hub.publish("orion:changed", json.object({ revision = revision, derived = serializeDerived(derive(doc)) }))
 	end, function(list: WorkspaceList)

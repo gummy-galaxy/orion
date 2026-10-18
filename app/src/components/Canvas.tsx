@@ -131,8 +131,10 @@ import {
   saveCanvasStyle,
   setActiveWorkspace,
   slim,
+  onReveal,
   type FocusReport,
   type Remote,
+  type Reveal,
   type Saved,
   type SyncStatus,
   type Workspaces,
@@ -142,6 +144,7 @@ import { Settings, type SettingsSection } from './Settings'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
 import { selectAllIds, selectNodes } from '../selectAll'
+import { framedViewport, revealBounds, revealDetail, revealRoot } from '../reveal'
 import { stackNodes } from '../stack'
 import { clipAssets, copySelection, cutClip, DUPLICATE_OFFSET, moveClipAssets, pasteClip, type Clip } from '../clipboard'
 import { patchWork, type BatchPatch } from '../batchEdit'
@@ -159,7 +162,6 @@ import {
   celebratingAtom,
   chainFinaleAtom,
   chainPulsesAtom,
-  checkSnoozesAtom,
   collapsedAtom,
   derivedAtom,
   focusedAtom,
@@ -176,7 +178,6 @@ import {
   workspaceAtom,
 } from '../state'
 import { applyStyleChange, backgroundColor, headerText, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
-import { readCheckSnoozes } from '../checkSnoozes'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
 import { HeaderSettings } from './HeaderSettings'
@@ -426,7 +427,6 @@ export function Canvas() {
   const setCelebrating = useSetAtom(celebratingAtom)
   const setChainPulses = useSetAtom(chainPulsesAtom)
   const setChainFinale = useSetAtom(chainFinaleAtom)
-  const setCheckSnoozes = useSetAtom(checkSnoozesAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', canvases: [{ name: 'default', label: 'Default' }] })
@@ -754,11 +754,10 @@ export function Canvas() {
       setLoadout(shown.stickerLoadout)
       setGithub(doc.github ?? null)
       setCanvasStyle(readCanvasStyle(doc.settings))
-      setCheckSnoozes(readCheckSnoozes(doc.settings))
 
       return adopted
     },
-    [rebaseHistory, setDerived, setLinks, setNodes, setCheckSnoozes],
+    [rebaseHistory, setDerived, setLinks, setNodes],
   )
 
   /**
@@ -808,7 +807,6 @@ export function Canvas() {
         setLoadout(loadoutOf())
         setGithub(null)
         setCanvasStyle({})
-        setCheckSnoozes([])
       }
 
       const view = readViewport(workspace.current)
@@ -821,7 +819,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, resetHistory, setDerived, setLinks, setNodes, setCheckSnoozes],
+    [adopt, resetHistory, setDerived, setLinks, setNodes],
   )
 
   useEffect(() => {
@@ -856,7 +854,8 @@ export function Canvas() {
     [reload, setDerived],
   )
 
-  // A snooze ends on its own, and the server doesn't push when it does, so the app asks again when the nearest one ends.
+  // A snooze ends on its own, and the server doesn't push when it does, so the app asks again when the nearest one ends:
+  // a card's, or a CI job's that a card's pull request facts leave out.
   const derivedStore = useAtomStore()
 
   useEffect(() => {
@@ -866,7 +865,10 @@ export function Canvas() {
     const schedule = () => {
       clearTimeout(timer)
 
-      const wakes = Object.values(derivedStore.get(derivedAtom)?.snoozed ?? {}).map((time) => Date.parse(time))
+      const derived = derivedStore.get(derivedAtom)
+      const cardWakes = Object.values(derived?.snoozed ?? {})
+      const jobWakes = Object.values(derived?.pulls ?? {}).flatMap((facts) => (facts.wakesAt ? [facts.wakesAt] : []))
+      const wakes = [...cardWakes, ...jobWakes].map((time) => Date.parse(time))
 
       if (wakes.length === 0) return
 
@@ -1986,6 +1988,70 @@ export function Canvas() {
       window.removeEventListener(NAVIGATE_EVENT, fromShell)
     }
   }, [travelTo])
+
+  // ---- Reveal, from orion reveal ----
+
+  // The server switches to the reveal's canvas before it sends the reveal, so the canvas named here is the one showing.
+  const [pendingReveal, setPendingReveal] = useState<Reveal | null>(null)
+  // The reveal most recently applied, so an effect rerun doesn't select and frame the same cards again.
+  const appliedReveal = useRef<Reveal | null>(null)
+
+  useEffect(
+    () =>
+      onReveal((reveal) => {
+        if (reveal.canvas === workspace.current) setPendingReveal({ ...reveal })
+      }),
+    [],
+  )
+
+  /** Selects the cards, opens the innermost group that holds them all, and frames them, as one step in history. */
+  const showReveal = useCallback(
+    (reveal: Reveal) => {
+      const found = reveal.ids.filter((id) => latest.current.nodes.some((node) => node.id === id))
+
+      if (!found.length) return
+
+      const target = revealRoot(latest.current.nodes, found)
+      const nextDetail = revealDetail(latest.current.nodes, target, found, detail)
+      const bounds = revealBounds(latest.current.nodes, found, cardSize)
+      const box = canvasRef.current?.getBoundingClientRect()
+
+      remember()
+      setPinned(null)
+      setFocus(null)
+      focusEntry.current = null
+      pendingFocus.current = null
+      // The fit to a whole canvas after a canvas switch would replace the framing below.
+      pendingWorkspaceFit.current = null
+      clearStickerPicks()
+
+      if (target !== root) {
+        // The root effect would fit the whole group, which is the framing this reveal replaces.
+        skipNextFit.current = true
+        setRoot(target)
+      }
+
+      if (nextDetail !== detail) {
+        setDetail(nextDetail)
+        writeDetail(workspace.current, nextDetail)
+      }
+
+      setNodes((currentNodes) => selectNodes(currentNodes, found))
+
+      if (reveal.selectOnly || !bounds || !box) return
+
+      void reactFlow.setViewport(framedViewport(bounds, box, { padding: 0.2, maxZoom: FIT_MAX_ZOOM }), { duration: cameraGlide() })
+    },
+    [remember, detail, cardSize, root, reactFlow, setPinned, setNodes, clearStickerPicks],
+  )
+
+  // Waits for the canvas to finish loading, since its cards aren't on screen before then.
+  useEffect(() => {
+    if (!pendingReveal || !ready || appliedReveal.current === pendingReveal) return
+
+    appliedReveal.current = pendingReveal
+    showReveal(pendingReveal)
+  }, [pendingReveal, ready, showReveal])
 
   const focusItems = useMemo(() => {
     if (!focus) return null
