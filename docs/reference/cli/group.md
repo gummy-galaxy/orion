@@ -42,11 +42,11 @@ Wrap items that share a parent in a new group
 orion group add [options] [label...]
 ```
 
-| Argument          | Description                                    |
-| ----------------- | ---------------------------------------------- |
-| `[label...]`      | Group name                                     |
-| `--items <value>` | **Required.** Comma-separated ids to put in it |
-| `--json`          | Print JSON                                     |
+| Argument          | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `[label...]`      | Group name                                  |
+| `--items <value>` | Comma-separated ids to put in it (required) |
+| `--json`          | Print JSON                                  |
 
 ## orion group remove
 
