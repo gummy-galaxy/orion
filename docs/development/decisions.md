@@ -286,9 +286,33 @@ Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shap
 
 0.1.0 means the first tagged release, whatever version numbers the manifests carry before it, and it lands around when the repository goes public. 1.0.0 comes much later, likely once the charter's roadmap phases are complete, though an earlier gate may fit better. The HTTP API that `orion server start` exposes is internal to the app at every stage and carries no promise.
 
-**Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release.
+**Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release. The forms that predate it, `orion sync`, `--pr`, and `--repo` used with `--pr`, go now with no alias rather than waiting out their release.
 
-2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146)
+2026-10-12, 2026-10-18 · [#146](https://github.com/vocksel/orion/issues/146), [#469](https://github.com/vocksel/orion/issues/469)
+
+### MCP tools follow the CLI
+
+Each CLI command gets one MCP tool, named `orion_<noun>_<verb>` after its command path, such as `orion_card_add` and `orion_group_tidy`, with arguments named after its options in camelCase. Top-level commands keep one word, such as `orion_next` and `orion_ingest`. A tool runs exactly one command, so `orion_inspect`, which picks among five reads with a `view` argument, splits into one tool for each. The catalog is built from the CLI's command table, which derives the names, so they can't drift.
+
+**Why:** people and agents use the same verbs, and an agent that knows the CLI already knows the tools. One tool per command gives each a precise schema, so a client can check a call before it runs; one tool per noun with a `verb` argument would trade that for a shorter list. This replaced names picked one tool at a time, which mixed verb-first, noun-first, and bare-verb patterns.
+
+2026-10-18 · [#146](https://github.com/vocksel/orion/issues/146), [#415](https://github.com/vocksel/orion/issues/415)
+
+### The HTTP API is internal, and the server enforces it
+
+The API that `orion server start` serves exists for the app alone. Agents and scripts use the CLI or MCP, and the docs don't describe its routes as something to call. The server refuses requests whose `Host` or `Origin` isn't its own address or the app's dev server, and serves the static app with a content security policy. A launch token for the app waits until that check proves too loose.
+
+**Why:** an internal API with no check is open to any web page in a browser on the same machine. `POST` routes read a cross-site `text/plain` body as JSON, which needs no CORS preflight, so a page could merge a pull request through `POST /api/merge` or change canvases and settings. The server answers any `Host`, so a DNS-rebinding page could read the canvas. Checking `Host` and `Origin` closes both without the app holding a secret.
+
+2026-10-18 · [#146](https://github.com/vocksel/orion/issues/146), [#468](https://github.com/vocksel/orion/issues/468)
+
+### No JSON shape is stable before 0.1.0
+
+`--json` output carries no promise until 0.1.0, so the shapes can be made consistent first: every command takes `--json`, failures print a JSON error, every write prints its revision, groups and notes get shapes of their own, times use RFC 3339, and an absent value is `null` or missing rather than an empty string. From 0.1.0, a short list is stable: the item shape that `card list`, `node show`, `node query`, and `next` print, the batch write envelope, `canvas check`'s list, `focus`, and `canvas list`. New fields may appear in them, and removing or renaming one is a breaking change. Everything else stays unpromised until a script needs it.
+
+**Why:** each fix for an inconsistency breaks the shape it touches, so promising a shape before fixing it would lock in the inconsistency. A short list covers what scripts and agents read most, and keeps the rest free to change.
+
+2026-10-18 · [#146](https://github.com/vocksel/orion/issues/146), [#470](https://github.com/vocksel/orion/issues/470)
 
 ### CLI commands are a noun, then a verb
 
@@ -352,11 +376,11 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 ### Ingest is the one command that pulls from outside
 
-`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. `orion sync` stays for one release as a deprecated way to run only the GitHub refresh, and `orion server start`'s background loop keeps running only the refresh.
+`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. `orion sync`, its `--discover` flag, and the `orion_sync` tool go with no alias, since a GitHub source already files new pull requests in Unsorted. `orion server start`'s background loop keeps running only the refresh.
 
-**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks.
+**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks. This replaced keeping `orion sync` for one release as a deprecated way to run only the GitHub refresh, which predated breaking changes landing with no alias before 0.1.0.
 
-2026-10-12 · [#55](https://github.com/vocksel/orion/issues/55)
+2026-10-12, 2026-10-18 · [#55](https://github.com/vocksel/orion/issues/55), [#469](https://github.com/vocksel/orion/issues/469)
 
 ### The background refresh fetches what changed
 
