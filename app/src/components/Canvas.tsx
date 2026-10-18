@@ -146,7 +146,6 @@ import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
   celebratingAtom,
-  checkSnoozesAtom,
   collapsedAtom,
   derivedAtom,
   focusedAtom,
@@ -163,7 +162,6 @@ import {
   workspaceAtom,
 } from '../state'
 import { applyStyleChange, backgroundColor, headerText, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
-import { readCheckSnoozes } from '../checkSnoozes'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
 import { HeaderSettings } from './HeaderSettings'
@@ -411,7 +409,6 @@ export function Canvas() {
   const [links, setLinks] = useAtom(linksAtom)
   const setDerived = useSetAtom(derivedAtom)
   const setCelebrating = useSetAtom(celebratingAtom)
-  const setCheckSnoozes = useSetAtom(checkSnoozesAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', canvases: [{ name: 'default', label: 'Default' }] })
@@ -739,11 +736,10 @@ export function Canvas() {
       setLoadout(shown.stickerLoadout)
       setGithub(doc.github ?? null)
       setCanvasStyle(readCanvasStyle(doc.settings))
-      setCheckSnoozes(readCheckSnoozes(doc.settings))
 
       return adopted
     },
-    [rebaseHistory, setDerived, setLinks, setNodes, setCheckSnoozes],
+    [rebaseHistory, setDerived, setLinks, setNodes],
   )
 
   /**
@@ -793,7 +789,6 @@ export function Canvas() {
         setLoadout(loadoutOf())
         setGithub(null)
         setCanvasStyle({})
-        setCheckSnoozes([])
       }
 
       const view = readViewport(workspace.current)
@@ -806,7 +801,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, resetHistory, setDerived, setLinks, setNodes, setCheckSnoozes],
+    [adopt, resetHistory, setDerived, setLinks, setNodes],
   )
 
   useEffect(() => {
@@ -841,7 +836,8 @@ export function Canvas() {
     [reload, setDerived],
   )
 
-  // A snooze ends on its own, and the server doesn't push when it does, so the app asks again when the nearest one ends.
+  // A snooze ends on its own, and the server doesn't push when it does, so the app asks again when the nearest one ends:
+  // a card's, or a CI job's that a card's pull request facts leave out.
   const derivedStore = useAtomStore()
 
   useEffect(() => {
@@ -851,7 +847,10 @@ export function Canvas() {
     const schedule = () => {
       clearTimeout(timer)
 
-      const wakes = Object.values(derivedStore.get(derivedAtom)?.snoozed ?? {}).map((time) => Date.parse(time))
+      const derived = derivedStore.get(derivedAtom)
+      const cardWakes = Object.values(derived?.snoozed ?? {})
+      const jobWakes = Object.values(derived?.pulls ?? {}).flatMap((facts) => (facts.wakesAt ? [facts.wakesAt] : []))
+      const wakes = [...cardWakes, ...jobWakes].map((time) => Date.parse(time))
 
       if (wakes.length === 0) return
 

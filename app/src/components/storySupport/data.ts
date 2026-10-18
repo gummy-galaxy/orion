@@ -79,6 +79,7 @@ export const derived: Derived = {
   rarity: { task: 'common', blocker: 'common' },
   groups: { group: { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 } },
   snoozed: {},
+  pulls: {},
 }
 export const work = buildWork(toServerFacts(derived), [task, blocker, note, group], links)
 export const nodeMap = new Map<string, AppNode>([task, blocker, note, group].map((node) => [node.id, node]))

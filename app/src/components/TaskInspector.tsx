@@ -4,11 +4,12 @@ import { CheckSnoozes } from './CheckSnoozes'
 import { LinkList } from './LinkList'
 import { NoteBody } from './NoteBody'
 import { StatusIcon } from './StatusIcon'
-import { readFailedChecks, repoOfPullKey, withSnoozes } from '../checkSnoozes'
+import { getPullRepo } from '../getPullRepo'
+import { withSnoozedFacts } from '../withSnoozedFacts'
 import { Timeline } from './Timeline'
 import { useCardLog } from '../useCardLog'
-import type { Work } from '../derive'
-import { checkSnoozesAtom, workspaceAtom } from '../state'
+import type { SnoozedJob, Work } from '../derive'
+import { workspaceAtom } from '../state'
 import {
   READINESS_LABEL,
   STATUS_CHOICES,
@@ -30,6 +31,9 @@ import {
   type TaskData,
   type Who,
 } from '../model'
+
+// One empty list, so the snooze checkboxes can tell when the server answers a toggle on a card with none snoozed yet.
+const NO_SNOOZED_JOBS: SnoozedJob[] = []
 
 export function TaskInspector({
   node,
@@ -69,11 +73,11 @@ export function TaskInspector({
   const leverage = work.leverage.get(node.id) ?? 0
   // Every link a card carries to its pull requests and issues, so each one opens from the header.
   const refLinks = (data.refs ?? []).filter((ref) => ref.url)
-  const snoozes = useAtomValue(checkSnoozesAtom)
   const recorded = getPullRef(data)
-  const pullRef = recorded && withSnoozes(recorded, node.id, snoozes)
-  const repo = pullRef ? repoOfPullKey(pullRef.key) : undefined
-  const failedChecks = readFailedChecks(pullRef?.details)
+  const snoozedFacts = work.pulls.get(node.id)
+  const pullRef = recorded && withSnoozedFacts(recorded, snoozedFacts)
+  const repo = pullRef ? getPullRepo(pullRef.key) : undefined
+  const failures = pullRef?.checks?.failures ?? []
   const readiness = pullRef?.readiness
   const checkCounts = getCheckCounts(pullRef?.checks)
   const checkCountsLabel = readiness && checkCounts && getCheckCountsLabel(checkCounts)
@@ -188,7 +192,9 @@ export function TaskInspector({
                 </>
               )}
             </p>
-            {repo && readiness && failedChecks.length ? <CheckSnoozes cardId={node.id} repo={repo} failedChecks={failedChecks} /> : null}
+            {repo && readiness && failures.length ? (
+              <CheckSnoozes repo={repo} failures={failures} snoozed={snoozedFacts?.snoozed ?? NO_SNOOZED_JOBS} />
+            ) : null}
             {pullRef.author && !pullRef.isMine && <p className="facts">By {pullRef.author}</p>}
             {pullRef.isReviewRequested && <p className="facts review-requested">Your review is requested</p>}
           </div>

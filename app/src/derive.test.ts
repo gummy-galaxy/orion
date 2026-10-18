@@ -130,6 +130,7 @@ describe('buildWork', () => {
     rarity: { a: 'rare', b: 'common' },
     groups: { g: { total: 2, done: 0, ready: 1, blocked: 1, outside: 0 } },
     snoozed: { b: '2026-10-12T17:00:00Z' },
+    pulls: { a: { readiness: 'passing', checks: { state: 'passing' }, snoozed: [{ name: 'docs' }] } },
   }
 
   it('reads the server values for each card and group', () => {
@@ -143,6 +144,7 @@ describe('buildWork', () => {
     expect(work.rarity.get('a')).toBe('rare')
     expect(work.groups.get('g')).toEqual({ total: 2, done: 0, ready: 1, blocked: 1, outside: 0 })
     expect(work.snoozed.get('b')).toBe('2026-10-12T17:00:00Z')
+    expect(work.pulls.get('a')?.readiness).toBe('passing')
   })
 
   it('keeps blocking links for hover tracing', () => {
