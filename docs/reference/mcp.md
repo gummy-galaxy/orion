@@ -138,6 +138,43 @@ Runs `orion note add`.
 | `after`  | id     | Item the note follows.                                 |
 | `before` | id     | Item the note leads into.                              |
 
+## orion_log_add
+
+Log what happened on the canvas, attached to any number of cards. Entries are append-only, so correct a mistake with a new entry. Pass the agent's name.
+
+Runs `orion log add`.
+
+| Argument | Type    | Description                                                           |
+| -------- | ------- | --------------------------------------------------------------------- |
+| `text`   | string  | **Required.**                                                         |
+| `cards`  | strings | Card ids to attach the entry to. Omit to log it for the whole canvas. |
+| `agent`  | string  | **Required.** The agent's name, such as claude.                       |
+| `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion.                |
+
+## orion_log_list
+
+List the canvas log, newest first, optionally only the entries attached to one card.
+
+Runs `orion log list`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+| `card`   | id     | Only entries attached to this card.                    |
+| `limit`  | int    | Include at most this many of the newest entries.       |
+
+## orion_card_timeline
+
+Show a card's timeline: its most recent log entries, newest first.
+
+Runs `orion card timeline`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `id`     | id     | **Required.**                                          |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+| `limit`  | int    | How many recent entries to include. Defaults to 5.     |
+
 ## orion_images
 
 List image nodes in an Orion canvas.

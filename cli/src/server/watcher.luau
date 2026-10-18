@@ -4,6 +4,7 @@ local task = require("@std/task")
 
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
+local getLogPath = require("@root/log/getLogPath")
 local store = require("@root/store")
 local types = require("@root/types")
 
@@ -35,12 +36,16 @@ function watcher.create(
 	active: () -> string,
 	switchTo: (string) -> (),
 	changed: (number, Doc) -> (),
-	workspacesChanged: (store.WorkspaceList) -> ()
+	workspacesChanged: (store.WorkspaceList) -> (),
+	logChanged: (string) -> ()
 )
 	local isClosed = false
 	local dataFile = store.filePath(store.getWorkspaceDir(root, active()))
+	local logFile = getLogPath(store.getWorkspaceDir(root, active()))
+	local logName = active()
 	local manifestFile = tostring(path.join(root, fileNames.canvases))
 	local lastDataStamp = getStamp(dataFile)
+	local lastLogStamp = getStamp(logFile)
 	local lastManifestStamp = getStamp(manifestFile)
 	local lastManifestActive = store.getWorkspaces(root).active
 	local folder = fs.watch(store.getWorkspaceDir(root, active()))
@@ -68,7 +73,10 @@ function watcher.create(
 
 		folder = fs.watch(dir)
 		dataFile = store.filePath(dir)
+		logFile = getLogPath(dir)
+		logName = name
 		lastDataStamp = getStamp(dataFile)
+		lastLogStamp = getStamp(logFile)
 		lastRevision = getRevision()
 		generation += 1
 	end
@@ -114,6 +122,16 @@ function watcher.create(
 		end
 	end
 
+	-- Log appends don't change the document, so they get their own stamp and announcement.
+	local function checkLog()
+		local current = getStamp(logFile)
+
+		if hasStampChanged(lastLogStamp, current) then
+			lastLogStamp = current
+			logChanged(logName)
+		end
+	end
+
 	local function checkWorkspace()
 		local current = getStamp(manifestFile)
 
@@ -151,6 +169,7 @@ function watcher.create(
 				end
 
 				checkChange()
+				checkLog()
 				task.wait(0.1)
 			end
 		end)

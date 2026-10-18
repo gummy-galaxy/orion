@@ -60,6 +60,8 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		)
 	end, function(list: store.WorkspaceList)
 		hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
+	end, function(name: string)
+		hub.publish("orion:log", json.object({ canvas = name }))
 	end)
 
 	local running = net.serve({
