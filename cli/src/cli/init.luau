@@ -1,53 +1,36 @@
 local cli = require("@batteries/cli")
-local json = require("@std/json")
 local process = require("@std/process")
 
 local backup = require("@root/cli/backup")
-local batchEdit = require("@root/cli/batchEdit")
 local canvas = require("@root/cli/canvas")
-local checkStyleAssets = require("@root/style/checkStyleAssets")
+local card = require("@root/cli/card")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
-local findItems = require("@root/query/findItems")
 local focus = require("@root/cli/focus")
-local formatRefreshReport = require("@root/github/formatRefreshReport")
-local getAdapter = require("@root/adapters/getAdapter")
 local getErrorText = require("@root/getErrorText")
-local getRefs = require("@root/refs/getRefs")
 local getVersion = require("@root/getVersion")
-local githubTypes = require("@root/github/types")
-local graph = require("@root/graph")
-local importCommand = require("@root/cli/import")
+local group = require("@root/cli/group")
 local ingest = require("@root/cli/ingest")
+local link = require("@root/cli/link")
+local log = require("@root/cli/log")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
+local nextCommand = require("@root/cli/next")
+local node = require("@root/cli/node")
+local note = require("@root/cli/note")
 local orientation = require("@root/cli/orientation")
-local pad = require("@root/render/pad")
-local parseCommaList = require("@root/cli/parseCommaList")
-local render = require("@root/render")
-local renderGroup = require("@root/render/group")
-local requestedRevision = require("@root/cli/requestedRevision")
-local resolveId = require("@root/query/resolveId")
-local resolveRef = require("@root/adapters/resolveRef")
+local ref = require("@root/cli/ref")
 local reveal = require("@root/cli/reveal")
-local runEdit = require("@root/cli/runEdit")
-local selectItems = require("@root/query/selectItems")
 local server = require("@root/cli/server")
-local snooze = require("@root/cli/snooze")
 local source = require("@root/cli/source")
 local store = require("@root/store")
 local suggestion = require("@root/cli/suggestion")
+local sync = require("@root/cli/sync")
 local theme = require("@root/cli/theme")
-local tidy = require("@root/cli/tidy")
 local types = require("@root/types")
-local unsnooze = require("@root/cli/unsnooze")
 
-type Doc = types.Doc
-type Item = types.Item
-type RefreshReport = githubTypes.Report
 type Context = context.Context
-
 type Command = context.Command
 
 export type Dependencies = context.Dependencies
@@ -62,21 +45,53 @@ type Resolved = {
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
-local SYNC_DEPRECATION = "`orion sync` is deprecated and will be removed. `orion ingest` refreshes pull requests too."
 
--- Commands with their own modules, each defining its subcommands and running them.
+-- Each top-level command's module defines its subcommands and runs them.
 local COMMANDS: { [string]: Command } = {
 	backup = backup,
 	canvas = canvas,
+	card = card,
 	focus = focus,
+	group = group,
 	ingest = ingest,
-	reveal = reveal,
+	link = link,
+	log = log,
 	mcp = mcp,
 	media = media,
+	next = nextCommand,
+	node = node,
+	note = note,
+	ref = ref,
+	reveal = reveal,
 	server = server,
 	source = source,
 	suggestion = suggestion,
+	sync = sync,
 	theme = theme,
+}
+
+-- The order orion --help lists them in.
+local COMMAND_ORDER = {
+	"card",
+	"note",
+	"link",
+	"node",
+	"group",
+	"ref",
+	"next",
+	"sync",
+	"canvas",
+	"log",
+	"server",
+	"source",
+	"ingest",
+	"media",
+	"suggestion",
+	"theme",
+	"backup",
+	"mcp",
+	"focus",
+	"reveal",
 }
 
 local ABOUT = [[
@@ -98,48 +113,12 @@ Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, note, 
 Compare quoted values with = or !=; label, ref, and note also support ~ for case-insensitive text.
 Combine with and, or, not, and parentheses. Missing fields never match.]]
 
-local DEFAULT_FIND_LIMIT = 20
-
-local ID_HELP = 'Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86'
-
 local function addHelpFlag(parser: cli.Parser)
 	parser:add("help", "flag", { help = "Show this help", aliases = { "h" } })
 end
 
-local function addJsonFlag(parser: cli.Parser)
-	parser:add("json", "flag", { help = "Print JSON" })
-end
-
 local function addCanvasOption(parser: cli.Parser)
 	parser:add("canvas", "option", { help = "Use this canvas for this command" })
-end
-
-local function addRefOption(parser: cli.Parser)
-	parser:add("ref", "option", {
-		help = "Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch",
-	})
-end
-
--- Item fields, which cards take. Groups take their own, set with group set.
-local function addFieldOptions(parser: cli.Parser)
-	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
-	parser:add(
-		"repo",
-		"option",
-		{ help = "Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL" }
-	)
-	parser:add("pr", "option", { help = "Pull request number. Deprecated: use --ref with the pull request URL" })
-	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
-	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
-	parser:add("shape", "option", {
-		help = "How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)",
-	})
-	parser:add("color", "option", {
-		help = "A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)",
-	})
-	parser:add("kind", "option", {
-		help = "step; gate for one that's done once everything it waits on is; or component for a part of a system, not work",
-	})
 end
 
 type Parsers = {
@@ -154,183 +133,22 @@ local function createParsers(): Parsers
 	addCanvasOption(root)
 	local commands: { [string]: cli.Parser } = {}
 
-	-- Adds a command under a parent, with the help flag and --canvas option every command takes.
-	local function addCommand(parent: cli.Parser, name: string, help: string): cli.Parser
-		local parser = parent:subcommand(name, { help = help })
+	-- Every command takes the help flag and --canvas option, then defines the rest itself.
+	local function addCommand(name: string, help: string): cli.Parser
+		local parser = root:subcommand(name, { help = help })
 		addHelpFlag(parser)
 		addCanvasOption(parser)
 		return parser
 	end
 
-	local function addBatchOptions(parser: cli.Parser, help: string)
-		parser:add("ids", "variadic", { help = help })
-		parser:add("where", "option", { help = "Select targets with an expression instead of ids" })
-		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
-		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
-		addJsonFlag(parser)
-	end
-
-	local card = addCommand(root, "card", "Work items on the canvas")
-
-	local cardList = addCommand(card, "list", "List work items with their derived status")
-	cardList:add("group", "option", { help = "Only items inside this group" })
-	cardList:add("all", "flag", { help = "Include done items" })
-	addJsonFlag(cardList)
-
-	local cardAdd = addCommand(card, "add", "Add a work item")
-	cardAdd:add("label", "variadic", { help = "What the work is" })
-	cardAdd:add("group", "option", { help = "Group to add it to" })
-	addFieldOptions(cardAdd)
-	addRefOption(cardAdd)
-	addJsonFlag(cardAdd)
-
-	local cardSet = addCommand(card, "set", "Change an item's fields")
-	cardSet:add("id", "positional", { help = ID_HELP })
-	cardSet:add("label", "option", { help = "New label" })
-	addFieldOptions(cardSet)
-	addRefOption(cardSet)
-	addJsonFlag(cardSet)
-
-	addBatchOptions(addCommand(card, "done", "Mark one or more items done"), "Item ids or selectors")
-	importCommand.define(addCommand(card, "import", importCommand.help))
-	snooze.define(addCommand(card, "snooze", snooze.help))
-	unsnooze.define(addCommand(card, "unsnooze", unsnooze.help))
-
-	local note = addCommand(root, "note", "Notes for context, decisions, and reminders")
-	local noteAdd = addCommand(note, "add", "Add a note, optionally between two linked items")
-	noteAdd:add("text", "variadic", { help = "Note text" })
-	noteAdd:add("group", "option", { help = "Group to add it to" })
-	noteAdd:add("after", "option", { help = "Item the note follows" })
-	noteAdd:add("before", "option", { help = "Item the note leads into" })
-	addJsonFlag(noteAdd)
-
-	local link = addCommand(root, "link", "Dependencies between items")
-
-	local linkAdd = addCommand(link, "add", "Link each adjacent pair of items")
-	linkAdd:add("from", "positional", { help = "The item that has to happen first" })
-	linkAdd:add("to", "positional", { help = "The item that waits on it" })
-	linkAdd:add("next", "variadic", { help = "Further items in the chain" })
-	linkAdd:add("related", "flag", { help = "Link without blocking" })
-	linkAdd:add("label", "option", { help = "What the link carries, such as HTTP (empty to clear)" })
-	linkAdd:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
-	linkAdd:add("if-revision", "option", { help = "Write only if the document has this revision" })
-	addJsonFlag(linkAdd)
-
-	local linkRemove = addCommand(link, "remove", "Remove the link between two items")
-	linkRemove:add("from", "positional", { help = ID_HELP })
-	linkRemove:add("to", "positional", { help = ID_HELP })
-
-	local linkInsert = addCommand(link, "insert", "Insert an item into an existing link")
-	linkInsert:add("id", "positional", { help = ID_HELP })
-	linkInsert:add("between", "option", { help = "Source item whose link is replaced (required)" })
-	linkInsert:add("target", "variadic", { help = "Target item whose link is replaced" })
-	linkInsert:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
-	linkInsert:add("if-revision", "option", { help = "Write only if the document has this revision" })
-	addJsonFlag(linkInsert)
-
-	local node = addCommand(root, "node", "Any item or group")
-
-	local nodeShow = addCommand(node, "show", "Show one item or group")
-	nodeShow:add("id", "positional", { help = ID_HELP })
-	addJsonFlag(nodeShow)
-
-	local nodeQuery = addCommand(node, "query", "Find cards and groups with an expression")
-	nodeQuery:add("where", "option", { help = "Expression selecting cards or groups (required)" })
-	nodeQuery:add("all", "flag", { help = "Include done items" })
-	addJsonFlag(nodeQuery)
-
-	local nodeFind = addCommand(node, "find", "Find cards and groups whose label, note, or refs contain text")
-	nodeFind:add("text", "variadic", { help = "Text to find, matched case-insensitively" })
-	nodeFind:add("limit", "option", { help = "Most matches to print (default 20)" })
-	nodeFind:add("all-canvases", "flag", { help = "Search every canvas, not only this one" })
-	addJsonFlag(nodeFind)
-
-	local nodeRemove = addCommand(node, "remove", "Remove items; optionally reconnect a card's links")
-	addBatchOptions(nodeRemove, "Item ids or selectors")
-	nodeRemove:add("reconnect", "flag", { help = "Reconnect at most one incoming and outgoing link per item" })
-
-	local nodeMove = addCommand(node, "move", "Move items or groups into another group")
-	addBatchOptions(nodeMove, "Item or group ids or selectors")
-	nodeMove:add("to", "option", { help = "Destination group" })
-	nodeMove:add("top", "flag", { help = "Move to the top level" })
-
-	local group = addCommand(root, "group", "Groups of items")
-
-	local groupList = addCommand(group, "list", "List groups with their progress")
-	addJsonFlag(groupList)
-
-	local groupCreate = addCommand(group, "create", "Make an empty group, optionally inside another")
-	groupCreate:add("label", "variadic", { help = "Group name" })
-	groupCreate:add("in", "option", { help = "Group to make it inside" })
-	addJsonFlag(groupCreate)
-
-	local groupAdd = addCommand(group, "add", "Wrap items that share a parent in a new group")
-	groupAdd:add("label", "variadic", { help = "Group name" })
-	groupAdd:add("items", "option", { help = "Comma-separated ids to put in it (required)" })
-	addJsonFlag(groupAdd)
-
-	addBatchOptions(addCommand(group, "remove", "Remove groups with everything inside them"), "Group ids or selectors")
-
-	local groupSet = addCommand(group, "set", "Change a group's fields")
-	groupSet:add("id", "positional", { help = ID_HELP })
-	groupSet:add("label", "option", { help = "New label" })
-	groupSet:add("blurb", "option", { help = "Group description" })
-	groupSet:add("arrange", "option", { help = "How reflow arranges a group: auto or custom" })
-	groupSet:add(
-		"cover",
-		"option",
-		{ help = "Image asset id for the cover, from orion media insert --json (empty to clear)" }
-	)
-	groupSet:add(
-		"background",
-		"option",
-		{ help = "Color, color token such as card.background, or image asset id (empty to clear)" }
-	)
-	groupSet:add(
-		"header",
-		"option",
-		{ help = "Markdown with layout HTML shown under the group's title (empty to clear)" }
-	)
-	groupSet:add("color", "option", {
-		help = "The group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)",
-	})
-	addJsonFlag(groupSet)
-
-	addBatchOptions(
-		addCommand(group, "ungroup", "Dissolve groups, keeping their items in place"),
-		"Group ids or selectors"
-	)
-	tidy.define(addCommand(group, "tidy", tidy.help))
-
-	local ref = addCommand(root, "ref", "Outside work attached to cards")
-	local refRemove = addCommand(ref, "remove", "Take a ref off an item")
-	refRemove:add("id", "positional", { help = ID_HELP })
-	refRemove:add(
-		"ref",
-		"positional",
-		{ help = "The ref's key as orion node show lists it, such as owner/name#12, or a URL or source:key" }
-	)
-	addJsonFlag(refRemove)
-
-	local nextCommand = addCommand(root, "next", "List items that can start now, most unblocking first")
-	addJsonFlag(nextCommand)
-
-	local sync = addCommand(root, "sync", "Update pull request items from GitHub (deprecated: use ingest)")
-	sync:add("discover", "flag", { help = "Add your open pull requests that aren't on the canvas to an Inbox group" })
-	sync:add("dry-run", "flag", { help = "Show what would change without writing" })
-	addJsonFlag(sync)
-
-	-- Commands with their own modules define their subcommands themselves.
-	for _, name in
-		{ "canvas", "server", "source", "ingest", "media", "suggestion", "theme", "backup", "mcp", "focus", "reveal" }
-	do
+	for _, name in COMMAND_ORDER do
 		local module = COMMANDS[name]
-		local parser = addCommand(root, name, module.help)
+		local parser = addCommand(name, module.help)
 		commands[name] = parser
 		module.define(parser)
 	end
 
-	local helpCommand = addCommand(root, "help", "Show help for Orion or one of its commands")
+	local helpCommand = addCommand("help", "Show help for Orion or one of its commands")
 	helpCommand:add("command", "variadic", { help = "Command to describe, such as card list" })
 
 	return { root = root, commands = commands }
@@ -427,112 +245,6 @@ local function dependencies(options: Dependencies?): Resolved
 	}
 end
 
-local function fields(parser: cli.Parser): graph.ItemFields
-	local pr = parser:get("pr")
-	local number = if pr then tonumber((pr:gsub("^#", ""))) else nil
-	assert(pr == nil or number, "pr must be a number")
-	return {
-		label = parser:get("label"),
-		blurb = parser:get("blurb"),
-		status = parser:get("status"),
-		repo = parser:get("repo"),
-		pr = number,
-		who = parser:get("who"),
-		note = parser:get("note"),
-		arrange = parser:get("arrange"),
-		cover = parser:get("cover"),
-		background = parser:get("background"),
-		header = parser:get("header"),
-		kind = parser:get("kind"),
-		shape = parser:get("shape"),
-		color = parser:get("color"),
-	}
-end
-
-local function joined(values: { string }, what: string): string
-	local text = table.concat(values, " ")
-	assert(text ~= "", `missing {what}`)
-	return text
-end
-
-local function required(parser: cli.Parser, name: string): string
-	return assert(parser:get(name), `missing <{name}>`)
-end
-
--- Card commands take items and group commands take groups. Each names the other when it gets the wrong one.
-local function requireItem(doc: Doc, id: string)
-	assert(not graph.isGroup(graph.get(doc, id)), `"{id}" is a group; use orion group set`)
-end
-
-local function requireGroup(doc: Doc, id: string)
-	assert(graph.isGroup(graph.get(doc, id)), `"{id}" is an item; use orion card set`)
-end
-
--- Resolves an optional id or selector, such as a --group, --after, or --before value.
-local function optionalId(doc: Doc, input: string?): string?
-	return if input then resolveId(doc, input) else nil
-end
-
-local function resolveIds(doc: Doc, inputs: { string }): { string }
-	local ids: { string } = {}
-
-	for _, input in inputs do
-		table.insert(ids, resolveId(doc, input))
-	end
-
-	return ids
-end
-
--- The most matches orion node find prints, unless --limit says otherwise.
-local function requestedLimit(parser: cli.Parser): number
-	local value = parser:get("limit")
-
-	if value == nil then
-		return DEFAULT_FIND_LIMIT
-	end
-
-	local number = tonumber(value)
-	assert(number and number >= 1 and number == math.floor(number), "limit must be a positive whole number")
-	return number
-end
-
--- A query result: the item's fields as JSON, with groups named as groups.
-local function queryValue(doc: Doc, derived: graph.Derived, item: Item): json.Object
-	local value = render.itemJson(doc, derived, item)
-
-	if graph.isGroup(item) then
-		value.kind = "group"
-		value.status = nil
-		value.recordedStatus = nil
-	end
-
-	return value
-end
-
--- Attaches the --ref given to add or set, resolving it against the document's sources.
-local function attachRef(doc: Doc, id: string, input: string?)
-	if input then
-		graph.attachRef(doc, id, resolveRef(input, doc.settings.sources))
-	end
-end
-
--- Takes a ref off an item by the key orion node show lists. A URL or source:key that isn't a key on the item resolves
--- the way --ref does, and then has to match that ref's kind too.
-local function detachRef(doc: Doc, id: string, input: string): Item
-	local item = graph.get(doc, id)
-	assert(not graph.isGroup(item), "groups don't take refs")
-
-	for _, ref in getRefs(item) do
-		if ref.key:lower() == input:lower() then
-			return graph.detachRef(doc, id, ref.key)
-		end
-	end
-
-	assert(input:find(":"), `"{id}" has no ref {input}`)
-	local resolved = resolveRef(input, doc.settings.sources)
-	return graph.detachRef(doc, id, resolved.ref.key, resolved.ref.kind)
-end
-
 -- The canvas comes from the root or the deepest subcommand that names one.
 local function requestedCanvas(root: cli.Parser): string?
 	local selected: string? = nil
@@ -545,100 +257,6 @@ local function requestedCanvas(root: cli.Parser): string?
 	end
 
 	return selected
-end
-
-local function emitItem(deps: Resolved, doc: Doc, item: Item, asJson: boolean, verb: string)
-	if asJson then
-		deps.write(json.serialize(render.itemJson(doc, graph.derive(doc, deps.now()), item), true))
-	else
-		deps.write(`{verb} {item.id} · {graph.label(item)}`)
-	end
-end
-
-local function sortedTasks(doc: Doc, derived: graph.Derived, keep: (Item) -> boolean): { Item }
-	local items: { Item } = {}
-
-	for _, item in doc.nodes do
-		if item.type == "task" and keep(item) then
-			table.insert(items, item)
-		end
-	end
-
-	table.sort(items, function(a, b)
-		local firstLeverage, secondLeverage = derived.leverage[a.id] or 0, derived.leverage[b.id] or 0
-
-		if firstLeverage ~= secondLeverage then
-			return firstLeverage > secondLeverage
-		end
-
-		return a.id < b.id
-	end)
-
-	return items
-end
-
-local function printItems(deps: Resolved, doc: Doc, derived: graph.Derived, items: { Item }, asJson: boolean)
-	if asJson then
-		local values: json.Array = {}
-
-		for _, item in items do
-			table.insert(values, render.itemJson(doc, derived, item))
-		end
-
-		deps.write(json.serialize(values, true))
-	else
-		deps.write(render.table(doc, derived, items))
-	end
-end
-
-local function insideGroup(doc: Doc, item: Item, groupId: string): boolean
-	return table.find(graph.ancestors(doc, item.id), groupId) ~= nil
-end
-
-local function isBatchEdit(parser: cli.Parser): boolean
-	return #parser:variadics() ~= 1
-		or parser:get("where") ~= nil
-		or parser:has("dry-run")
-		or parser:has("json")
-		or parser:get("if-revision") ~= nil
-		or parser:has("reconnect")
-end
-
-local function editMany(deps: Resolved, dir: string, command: string, parser: cli.Parser, action: string?)
-	local ids = parser:variadics()
-	local destination = parser:get("to")
-	if command == "move" then
-		assert(destination or parser:has("top"), "say where with --to <group> or --top")
-		assert(not (destination and parser:has("top")), "use --to or --top, not both")
-	end
-	batchEdit({
-		dir = dir,
-		action = action or command,
-		ids = ids,
-		where = parser:get("where"),
-		dryRun = parser:has("dry-run"),
-		asJson = parser:has("json"),
-		ifRevision = requestedRevision(parser),
-		destination = if parser:has("top") then nil else destination,
-		reconnect = parser:has("reconnect"),
-		now = deps.now(),
-		write = deps.write,
-	})
-end
-
-local function groupsReport(deps: Resolved, doc: Doc, asJson: boolean)
-	local derived = graph.derive(doc, deps.now())
-	local values: json.Array = {}
-	local lines = {}
-
-	for _, group in doc.nodes do
-		if graph.isGroup(group) then
-			table.insert(values, renderGroup.serialize(derived, group))
-			table.insert(lines, `{group.id}  {renderGroup.formatLine(derived, group)}`)
-		end
-	end
-
-	deps.write(if asJson then json.serialize(values, true) else table.concat(lines, "\n"))
 end
 
 local function execute(args: { string }, options: Dependencies?)
@@ -681,434 +299,22 @@ local function execute(args: { string }, options: Dependencies?)
 
 	local root = deps.dataDir
 	local selected = requestedCanvas(parsers.root)
-
 	local active = store.getActiveWorkspace(root, selected, deps.workspace)
-	local dir = store.getWorkspaceDir(root, active)
-	local asJson = parser:has("json")
 
 	local commandContext: Context = {
-		dir = dir,
+		dir = store.getWorkspaceDir(root, active),
 		root = root,
 		workspace = active,
 		requestedWorkspace = selected,
 		write = deps.write,
-		asJson = asJson,
+		asJson = parser:has("json"),
 		runner = deps.runner,
 		now = deps.now,
 		exit = deps.exit,
 		execute = execute,
 	}
 
-	local registered = COMMANDS[command]
-
-	if registered then
-		registered.run(assert(parsers.commands[command], `unknown command: {command}`), commandContext)
-		return
-	end
-
-	local key = table.concat(names, " ")
-
-	-- A noun with subcommands needs one of them.
-	if #parser.commands > 0 then
-		local choices: { string } = {}
-
-		for _, subcommand in parser.commands do
-			table.insert(choices, subcommand.name)
-		end
-
-		error(`choose {table.concat(choices, ", ")}`)
-	end
-
-	if key == "next" then
-		local doc = store.load(dir)
-		local derived = graph.derive(doc, deps.now())
-		printItems(
-			deps,
-			doc,
-			derived,
-			sortedTasks(doc, derived, function(item)
-				local status = derived.status[item.id]
-				return graph.isWork(item)
-					and not derived.snoozed[item.id]
-					and (status == "ready" or status == "active" or status == "review")
-			end),
-			asJson
-		)
-	elseif key == "card list" then
-		local doc = store.load(dir)
-		local derived = graph.derive(doc, deps.now())
-		local groupId = parser:get("group")
-
-		if groupId then
-			groupId = resolveId(doc, groupId)
-			graph.group(doc, groupId)
-		end
-
-		local all = parser:has("all")
-		printItems(
-			deps,
-			doc,
-			derived,
-			sortedTasks(doc, derived, function(item)
-				return (all or derived.status[item.id] ~= "done")
-					and (groupId == nil or insideGroup(doc, item, groupId))
-			end),
-			asJson
-		)
-	elseif key == "node query" then
-		local doc = store.load(dir)
-		local items = selectItems(doc, required(parser, "where"), parser:has("all"), deps.now())
-		local derived = graph.derive(doc, deps.now())
-		if asJson then
-			local values: json.Array = {}
-			for _, item in items do
-				table.insert(values, queryValue(doc, derived, item))
-			end
-			deps.write(json.serialize(values, true))
-		else
-			local lines: { string } = {}
-			for _, item in items do
-				if graph.isGroup(item) or item.type == "image" then
-					local kind = if graph.isGroup(item) then "group" else "image"
-					local parentItem = if item.parentId then graph.find(doc, item.parentId) else nil
-					local where = if parentItem then graph.label(parentItem) else ""
-					table.insert(
-						lines,
-						`{pad(kind, 9)}{pad(item.id, 24)}{pad(graph.label(item), 44)}{pad(kind, 20)}{where}`
-					)
-				else
-					table.insert(lines, render.table(doc, derived, { item }))
-				end
-			end
-			deps.write(if #lines > 0 then table.concat(lines, "\n") else "Nothing matches.")
-		end
-	elseif key == "node find" then
-		local text = joined(parser:variadics(), "<text>")
-		local limit = requestedLimit(parser)
-		local canvases: { findItems.Canvas } = {}
-
-		if parser:has("all-canvases") then
-			for _, entry in store.getWorkspaces(root).workspaces do
-				table.insert(canvases, { name = entry.name, doc = store.load(store.getWorkspaceDir(root, entry.name)) })
-			end
-		else
-			table.insert(canvases, { name = active, doc = store.load(dir) })
-		end
-
-		local result = findItems(canvases, text, limit)
-
-		if asJson then
-			local values: json.Array = {}
-
-			for _, hit in result.hits do
-				local value = queryValue(hit.doc, hit.derived, hit.item)
-				value.canvas = hit.name
-				table.insert(values, value)
-			end
-
-			deps.write(json.serialize(json.object({ total = result.total, limit = limit, items = values }), true))
-		else
-			local lines: { string } = {}
-
-			for _, hit in result.hits do
-				local item = hit.item
-				local state = if graph.isGroup(item) then "group" else hit.derived.status[item.id] or "ready"
-				local parentItem = if item.parentId then graph.find(hit.doc, item.parentId) else nil
-				local where = if parentItem then `in {graph.label(parentItem)}` else "top level"
-				local canvasColumn = if parser:has("all-canvases") then pad(hit.name, 16) else ""
-				table.insert(
-					lines,
-					`{canvasColumn}{pad(item.id, 28)}{pad(graph.label(item), 44)}{pad(state, 10)}{where}`
-				)
-			end
-
-			if result.total > #result.hits then
-				table.insert(
-					lines,
-					`Showing {#result.hits} of {result.total} matches; narrow the text or raise --limit.`
-				)
-			end
-
-			deps.write(if #lines > 0 then table.concat(lines, "\n") else "Nothing matches.")
-		end
-	elseif key == "node show" then
-		local doc = store.load(dir)
-		local item = graph.get(doc, resolveId(doc, required(parser, "id")))
-
-		if asJson then
-			deps.write(json.serialize(render.itemJson(doc, graph.derive(doc, deps.now()), item), true))
-		else
-			deps.write(render.show(doc, graph.derive(doc, deps.now()), item))
-		end
-	elseif key == "card add" then
-		local label = joined(parser:variadics(), "<label>")
-		local added: Item
-		local options = fields(parser) :: graph.AddOptions
-		local groupInput = parser:get("group")
-		local doc = store.transaction(dir, function(doc)
-			options.group = optionalId(doc, groupInput)
-			added = graph.addItem(doc, label, options)
-			attachRef(doc, added.id, parser:get("ref"))
-		end)
-
-		emitItem(deps, doc, added, asJson, "Added")
-	elseif key == "card set" then
-		local idInput = required(parser, "id")
-		local values = fields(parser)
-		local changed: Item
-		local doc = store.transaction(dir, function(doc)
-			local id = resolveId(doc, idInput)
-			requireItem(doc, id)
-			changed = graph.setFields(doc, id, values)
-			attachRef(doc, id, parser:get("ref"))
-		end)
-
-		emitItem(deps, doc, changed, asJson, "Updated")
-	elseif key == "card done" then
-		local ids = parser:variadics()
-		if isBatchEdit(parser) then
-			editMany(deps, dir, "done", parser)
-		else
-			local id: string
-			local doc = store.transaction(dir, function(doc)
-				id = resolveId(doc, ids[1])
-				requireItem(doc, id)
-				graph.setFields(doc, id, { status = "done" })
-			end)
-
-			deps.write(`Done: {id} · {graph.label(graph.get(doc, id))}`)
-		end
-	elseif key == "card import" then
-		importCommand.run(parser, commandContext)
-	elseif key == "card snooze" then
-		snooze.run(parser, commandContext)
-	elseif key == "card unsnooze" then
-		unsnooze.run(parser, commandContext)
-	elseif key == "note add" then
-		local text = joined(parser:variadics(), "<text>")
-		local added: Item
-		local doc = store.transaction(dir, function(doc)
-			added = graph.addNote(doc, text, {
-				group = optionalId(doc, parser:get("group")),
-				after = optionalId(doc, parser:get("after")),
-				before = optionalId(doc, parser:get("before")),
-			})
-		end)
-
-		emitItem(deps, doc, added, asJson, "Added note")
-	elseif key == "link add" then
-		local from, to = required(parser, "from"), required(parser, "to")
-		local kind = if parser:has("related") then "related" else "blocks"
-		local ids = { from, to }
-		for _, id in parser:variadics() do
-			table.insert(ids, id)
-		end
-		local dryRun = parser:has("dry-run")
-		local linked: { types.Link } = {}
-		local doc, baseRevision = runEdit(dir, dryRun, requestedRevision(parser), function(current)
-			for index, input in ids do
-				ids[index] = resolveId(current, input)
-			end
-
-			for index = 1, #ids - 1 do
-				linked[index] = graph.link(current, ids[index], ids[index + 1], kind, parser:get("label"))
-			end
-		end)
-		from, to = ids[1], ids[2]
-
-		if asJson then
-			local links: json.Array = {}
-			local items: json.Array = {}
-			for _, id in ids do
-				table.insert(items, json.object({ id = id, label = graph.label(graph.get(doc, id)) }))
-			end
-			for index = 1, #ids - 1 do
-				local object = json.object({ from = ids[index], to = ids[index + 1], kind = kind })
-				object.label = linked[index].label
-				table.insert(links, object)
-			end
-			deps.write(json.serialize(
-				json.object({
-					action = "link",
-					dryRun = dryRun,
-					baseRevision = baseRevision,
-					revision = doc.revision,
-					items = items,
-					links = links,
-				}),
-				true
-			))
-		elseif #ids == 2 and not dryRun then
-			local label = linked[1].label
-			local suffix = if label then ` ("{label}")` else ""
-			local isWork = graph.isWork(graph.get(doc, from)) and graph.isWork(graph.get(doc, to))
-			local sentence = if kind ~= "blocks"
-				then `{from} and {to} are related`
-				elseif isWork then `{to} now waits on {from}`
-				else `{from} → {to}`
-			deps.write(`{sentence}{suffix}`)
-		else
-			local count = #ids - 1
-			local revision = if dryRun then `{baseRevision}` else `{baseRevision} → {doc.revision}`
-			local lines = {
-				`{if dryRun then "Would link" else "Linked"} {count} {if count == 1 then "pair" else "pairs"} at revision {revision}`,
-			}
-			for index = 1, count do
-				local label = linked[index].label
-				table.insert(lines, `  {ids[index]} → {ids[index + 1]} ({kind}){if label then ` "{label}"` else ""}`)
-			end
-			deps.write(table.concat(lines, "\n"))
-		end
-	elseif key == "link insert" then
-		local id, from = required(parser, "id"), required(parser, "between")
-		local targets = parser:variadics()
-		assert(#targets == 1, "insert needs exactly one target after --between <from>")
-		local to = targets[1]
-		local dryRun = parser:has("dry-run")
-		local doc, baseRevision = runEdit(dir, dryRun, requestedRevision(parser), function(current)
-			id, from, to = resolveId(current, id), resolveId(current, from), resolveId(current, to)
-			graph.insertBetween(current, id, from, to)
-		end)
-		if asJson then
-			deps.write(json.serialize(
-				json.object({
-					action = "insert",
-					dryRun = dryRun,
-					baseRevision = baseRevision,
-					revision = doc.revision,
-					items = { json.object({ id = id, label = graph.label(graph.get(doc, id)) }) },
-					from = from,
-					to = to,
-				}),
-				true
-			))
-		else
-			local revision = if dryRun then `{baseRevision}` else `{baseRevision} → {doc.revision}`
-			deps.write(
-				`{if dryRun then "Would insert" else "Inserted"} {id} between {from} and {to} at revision {revision}`
-			)
-		end
-	elseif key == "link remove" then
-		local from, to = required(parser, "from"), required(parser, "to")
-		store.transaction(dir, function(doc)
-			from, to = resolveId(doc, from), resolveId(doc, to)
-			graph.unlink(doc, from, to)
-		end)
-
-		deps.write(`Removed the link from {from} to {to}`)
-	elseif key == "node remove" then
-		local ids = parser:variadics()
-		if isBatchEdit(parser) then
-			editMany(deps, dir, "remove", parser)
-		else
-			local id: string
-			store.transaction(dir, function(doc)
-				id = resolveId(doc, ids[1])
-				graph.remove(doc, id)
-			end)
-
-			deps.write(`Removed {id}`)
-		end
-	elseif key == "node move" then
-		local ids = parser:variadics()
-		if isBatchEdit(parser) then
-			editMany(deps, dir, "move", parser)
-		else
-			local input = ids[1]
-			local to = parser:get("to")
-			assert(to or parser:has("top"), "say where with --to <group> or --top")
-			local id: string
-			local target: string?
-			store.transaction(dir, function(doc)
-				id = resolveId(doc, input)
-				target = if parser:has("top") then nil else optionalId(doc, to)
-				graph.move(doc, id, target)
-			end)
-
-			deps.write(`Moved {id} to {target or "the top level"}`)
-		end
-	elseif key == "group list" then
-		groupsReport(deps, store.load(dir), asJson)
-	elseif key == "group create" then
-		local label = joined(parser:variadics(), "<label>")
-		local made: Item
-		local doc = store.transaction(dir, function(doc)
-			made = graph.createGroup(doc, label, parser:get("in"))
-		end)
-
-		emitItem(deps, doc, made, asJson, "Created group")
-	elseif key == "group add" then
-		local label = joined(parser:variadics(), "<label>")
-		local ids = parseCommaList(required(parser, "items"))
-		local made: Item
-		local doc = store.transaction(dir, function(doc)
-			made = graph.makeGroup(doc, label, resolveIds(doc, ids))
-		end)
-
-		emitItem(deps, doc, made, asJson, "Grouped into")
-	elseif key == "group remove" then
-		editMany(deps, dir, "group", parser, "removeGroup")
-	elseif key == "group set" then
-		local idInput = required(parser, "id")
-		local values = fields(parser)
-		checkStyleAssets(dir, values.cover)
-		checkStyleAssets(dir, values.background)
-		local changed: Item
-		local doc = store.transaction(dir, function(doc)
-			local id = resolveId(doc, idInput)
-			requireGroup(doc, id)
-			changed = graph.setFields(doc, id, values)
-		end)
-
-		emitItem(deps, doc, changed, asJson, "Updated")
-	elseif key == "group ungroup" then
-		local ids = parser:variadics()
-		if isBatchEdit(parser) then
-			editMany(deps, dir, "ungroup", parser)
-		else
-			local id = ids[1]
-			store.transaction(dir, function(doc)
-				graph.ungroup(doc, id)
-			end)
-
-			deps.write(`Ungrouped {id}`)
-		end
-	elseif key == "group tidy" then
-		tidy.run(parser, commandContext)
-	elseif key == "ref remove" then
-		local idInput = required(parser, "id")
-		local input = required(parser, "ref")
-		local detached: Item
-		local doc = store.transaction(dir, function(doc)
-			detached = detachRef(doc, resolveId(doc, idInput), input)
-		end)
-
-		emitItem(deps, doc, detached, asJson, "Updated")
-	elseif key == "sync" then
-		local dryRun = parser:has("dry-run")
-		local report: RefreshReport
-
-		local snapshot = store.load(dir)
-		local apply = assert(getAdapter("github").refresh)(
-			snapshot,
-			deps.runner,
-			{ discover = parser:has("discover"), now = deps.now() }
-		)
-
-		if dryRun then
-			report = apply(snapshot)
-		else
-			store.transaction(dir, function(doc)
-				report = apply(doc)
-			end)
-		end
-
-		if asJson then
-			deps.write(json.serialize(report :: any, true))
-		else
-			deps.write(`{formatRefreshReport(report, dryRun)}\n{SYNC_DEPRECATION}`)
-		end
-	end
+	COMMANDS[command].run(assert(parsers.commands[command], `unknown command: {command}`), commandContext)
 end
 
 -- Lute passes the program path as the first argument.

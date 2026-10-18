@@ -200,6 +200,34 @@ test.case("orion_reveal passes each id as a trailing positional and selectOnly a
 	end)
 end)
 
+test.case("log tools attach entries to cards and name the agent that wrote them", function(assert)
+	assert.eq(
+		table.concat(
+			getToolArgv(
+				"orion_log_add",
+				json.object({ text = "Tested Moments", cards = { "moments", "avatars" }, agent = "claude" })
+			),
+			" "
+		),
+		"log add Tested Moments --card moments,avatars --agent claude --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_log_add", json.object({ text = "Canvas-wide", agent = "claude" })), " "),
+		"log add Canvas-wide --agent claude --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_log_list", json.object({ card = "moments", limit = 2 })), " "),
+		"log list --card moments --limit 2 --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_card_timeline", json.object({ id = "moments", limit = 3 })), " "),
+		"card timeline moments --limit 3 --json"
+	)
+	assert.throwsWith("missing agent", function()
+		getToolArgv("orion_log_add", json.object({ text = "No name" }))
+	end)
+end)
+
 test.case("layout tools map onto group tidy and canvas check", function(assert)
 	assert.eq(
 		getToolArgv("orion_tidy", json.object({ ids = { "ws", "release" }, dryRun = true, canvas = "focus" })),

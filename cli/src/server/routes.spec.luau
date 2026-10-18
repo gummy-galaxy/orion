@@ -4,6 +4,7 @@ local net = require("@lute/net/server")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local appendLog = require("@root/log/appendLog")
 local insertFile = require("@root/media/insertFile")
 local routes = require("@root/server/routes")
 local store = require("@root/store")
@@ -327,6 +328,37 @@ test.case("GET reads the workspace a request names", function(assert)
 	assert.eq(decodeResponse(missing).canvas, "default")
 	assert.eq(router.handle(createRequest("GET", "/api/orion", nil, "unknown")).status, 404)
 	assert.eq(router.getActive(), "default")
+end)
+
+test.case("GET /api/log returns the entries of the canvas it names, oldest first", function(assert)
+	local root, router = createRouter("routes-log")
+	store.createWorkspace(root, "planning", "Planning")
+	appendLog(store.getWorkspaceDir(root, "planning"), function()
+		return {
+			id = "log-1",
+			text = "Planned",
+			time = "2026-10-12T18:00:00Z",
+			author = { kind = "person", name = "marin" },
+			targets = {},
+		}
+	end)
+
+	local request = createRequest("GET", "/api/log")
+	request.query = { canvas = "planning" }
+	local response = router.handle(request)
+	assert.eq(response.status, 200)
+	local entries = json.asArray(decodeResponse(response).entries) :: json.Array
+	assert.eq(#entries, 1)
+	assert.eq((json.asObject(entries[1]) :: json.Object).text, "Planned")
+
+	local empty = createRequest("GET", "/api/log")
+	empty.query = { canvas = "default" }
+	local emptyEntries = json.asArray(decodeResponse(router.handle(empty)).entries) :: json.Array
+	assert.eq(#emptyEntries, 0)
+	assert.eq(router.handle(createRequest("POST", "/api/log")).status, 405)
+	local unknown = createRequest("GET", "/api/log")
+	unknown.query = { canvas = "unknown" }
+	assert.eq(router.handle(unknown).status, 404)
 end)
 
 test.case("static route serves files and falls back to index outside the API", function(assert)
