@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { ComponentInspector } from './ComponentInspector'
-import { deriveWork } from '../derive'
+import { buildWork, toServerFacts } from '../derive'
 import type { AppNode, Link, TaskData } from '../model'
 import { component, componentLink, store } from './storySupport/data'
 
@@ -21,7 +21,7 @@ function ComponentDemo() {
         node={node}
         focus={false}
         doneEditing={() => {}}
-        work={deriveWork([node, store], links)}
+        work={buildWork(toServerFacts(null), [node, store], links)}
         map={map}
         update={(_id, patch) => setNode({ ...node, data: { ...node.data, ...patch } as TaskData })}
         remove={() => {}}

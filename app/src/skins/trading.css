@@ -395,16 +395,16 @@
   white-space: nowrap;
 }
 
-/* The spinner gets its own layer, so turning it doesn't repaint the card under it every frame. The compact form
-   stands still, since it's how a whole canvas shows at once. */
-:where(:root[data-motion='on']) .card.skin-trading:not(.far-card) > .trading-frame .trading-motion-running svg {
-  animation: trading-spin var(--motion-loop-spin) linear infinite;
-  will-change: transform;
+/* The spinner turns by sliding its dash, which repaints only the spinner. A transform would give it a layer of its
+   own, which makes WebKit rasterize the whole zoomed canvas as one layer. steps() holds it to 15 frames a second. The
+   compact form stands still, since it's how a whole canvas shows at once. */
+:where(:root[data-motion='on']) .card.skin-trading:not(.far-card) > .trading-frame .trading-motion-running circle {
+  animation: trading-spin var(--motion-loop-spin) steps(21) infinite;
 }
 
 @keyframes trading-spin {
   to {
-    transform: rotate(1turn);
+    stroke-dashoffset: -100;
   }
 }
 
