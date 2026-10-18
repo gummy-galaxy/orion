@@ -1,10 +1,16 @@
 # Data and sync
 
-A canvas is one JSON document. The CLI and the server write it under a shared lock, and every write produces a new revision. Around that core are backups, a merge for saves that lose a race, undo in the app, and a plan to move to files with a SQLite index.
+A canvas is a folder of JSON files. The CLI and the server write it under a shared lock, and every write produces a new revision. Around that core are backups, a merge for saves that lose a race, undo in the app, and a plan to read through a SQLite index.
 
-## One document per canvas, under a lock
+## A folder of files per canvas, under a lock
 
-Each canvas has its own folder and its own `orion.json`. Its backups sit beside it, so a canvas can be copied or backed up as a unit. The document carries a revision number that rises with every write.
+Each canvas has its own folder ([#475](https://github.com/vocksel/orion/issues/475)). `canvas.json` holds its settings, its revision, and the order of its nodes and links. Each node is `nodes/<id>.json` and each link is `links/<id>.json`, so editing a link never rewrites a node file. Keys are sorted and formatting is stable. An id keeps lowercase letters, digits, hyphens, and underscores in its file name and escapes every other byte as `%` and two hex digits, uppercase letters included, so ids that differ only in case don't share a file on a case-insensitive disk.
+
+Fields that record one machine's view of the canvas, the GitHub refresh's records and the stored suggestions, go in `local.json` instead. The lock, backups, focus report, and log sit beside the files for now, so a canvas can still be copied or backed up as a unit.
+
+A write splits the whole canvas into files and rewrites only those whose text changed, removes node and link files the canvas no longer has, and replaces `canvas.json` last. Each file is written to a temporary file and moved into place. While a write runs, an `orion.writing` marker sits in the folder. A reader that sees the marker, or finds `canvas.json` changed by the time it finishes, reads again, so it never returns a write half done. A marker left by a writer that crashed doesn't hold readers up once its lock is gone. The server's watcher looks at `canvas.json`, since a change to it marks a finished write.
+
+The first command a newer Orion runs splits every canvas's `orion.json` into files, keeping the original as `orion.backup.json`. It refuses while an older `orion server start` still serves the folder, since that server would keep writing `orion.json`; a server that reads folders says so in its `serve.json`.
 
 Every writer takes the same lock. The lock is an `orion.lock` directory, created with `mkdir`, which either succeeds for one process or fails for the rest. A writer waits up to 5 seconds for it. Writes of view state skip the lock. The app's report of its open group and selection never changes the revision ([#33](https://github.com/vocksel/orion/pull/33)).
 
@@ -19,7 +25,7 @@ Callers that read a revision can refuse a write when the document has moved on. 
 
 ## Rolling backups
 
-Before a write replaces `orion.json`, the writer copies the current file into the canvas's `backups` folder, named with the revision it replaces and a UTC timestamp. Backups are kept for the last 24 hours, plus the newest backup from each UTC day for 30 days. Pruning only removes files that match that name pattern. A backup that fails doesn't stop the write.
+Before a write, the writer saves the whole canvas it replaces as one JSON file in the canvas's `backups` folder, named with the revision it replaces and a UTC timestamp. Backups are kept for the last 24 hours, plus the newest backup from each UTC day for 30 days. Pruning only removes files that match that name pattern. A backup that fails doesn't stop the write.
 
 `orion backup list` shows the saved revisions, newest first. `orion backup restore <revision>` brings one back as a new revision, after backing up the current file first ([#18](https://github.com/vocksel/orion/pull/18)). A restore is never destructive, so a mistaken restore can be undone the same way.
 
@@ -76,4 +82,4 @@ Several changes exist to protect the data:
 
 ## Where it's headed
 
-The charter's first phase has a storage bet: a canvas becomes a folder of text files that can live in a repository, like an Obsidian vault, and SQLite becomes a rebuildable index for reads ([#246](https://github.com/vocksel/orion/pull/246)). The decision keeps simple read and write commands in the CLI and keeps one `sqlite3` process open in the server. Files stay easy to inspect and diff, and the index keeps large canvases fast.
+The charter's first phase has a storage bet: a canvas becomes a folder of text files that can live in a repository, like an Obsidian vault, and SQLite becomes a rebuildable index for reads ([#246](https://github.com/vocksel/orion/pull/246), [#121](https://github.com/vocksel/orion/issues/121)). The files came first. The index, a journal for writes that touch several files, re-indexing after a `git pull`, and merge-friendly ids and ordering follow. The decision keeps simple read and write commands in the CLI and keeps one `sqlite3` process open in the server. Files stay easy to inspect and diff, and the index keeps large canvases fast.
