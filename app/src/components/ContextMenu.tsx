@@ -1,6 +1,11 @@
 import { useEffect, useRef } from 'react'
 
-export type MenuItem = { label: string; hint?: string; danger?: boolean; run: () => void } | 'divider'
+/** A date picked from a date field in the menu; `run` gets it as YYYY-MM-DD. `min` is the earliest date allowed. */
+export type MenuDate = { label: string; min: string; run: (date: string) => void }
+
+export type MenuItem = { label: string; hint?: string; danger?: boolean; run: () => void } | MenuDate | 'divider'
+
+const isDate = (item: Exclude<MenuItem, 'divider'>): item is MenuDate => 'min' in item
 
 type Props = { x: number; y: number; items: MenuItem[]; close: () => void }
 
@@ -32,10 +37,30 @@ export function ContextMenu({ x, y, items, close }: Props) {
 
   return (
     <div ref={ref} className="menu panel" role="menu" style={{ left, top }}>
-      {items.map((item, i) =>
-        item === 'divider' ? (
-          <hr key={i} />
-        ) : (
+      {items.map((item, i) => {
+        if (item === 'divider') return <hr key={i} />
+
+        if (isDate(item))
+          return (
+            <label key={i} className="menu-date">
+              <span>{item.label}</span>
+              <input
+                type="date"
+                min={item.min}
+                aria-label={item.label}
+                onChange={(event) => {
+                  const date = event.target.value
+
+                  if (!date) return
+
+                  close()
+                  item.run(date)
+                }}
+              />
+            </label>
+          )
+
+        return (
           <button
             key={i}
             type="button"
@@ -49,8 +74,8 @@ export function ContextMenu({ x, y, items, close }: Props) {
             <span>{item.label}</span>
             {item.hint && <kbd>{item.hint}</kbd>}
           </button>
-        ),
-      )}
+        )
+      })}
     </div>
   )
 }
