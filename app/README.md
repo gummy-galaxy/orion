@@ -20,6 +20,7 @@ Layout and interaction:
 
 - `src/layout.ts`: laying out one group or the top level with ELK, leaving custom groups alone.
 - `src/pushAside.ts`: moving neighbors out of the way when a group grows.
+- `src/resize/` and `components/GroupResizeHandles.tsx`: resizing a group from its edges and corners, reflowing an automatic group to the new width and pushing a custom group's cards ahead of an edge.
 - `src/snap.ts`, `src/useNodeSnapping.ts`, and `components/SnapGuides.tsx`: drag geometry and alignment guides.
 - `src/escape.ts`: dragging work out of its group, and the group a drop lands in.
 - `src/cardDraw.ts`, `src/useDrawnCards.ts`, and `components/CardSlot.tsx`: which cards mount their bodies. Cards far from the view keep their node and size but skip the body.

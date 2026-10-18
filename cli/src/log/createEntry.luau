@@ -1,4 +1,5 @@
-local graph = require("@root/graph")
+local findItem = require("@root/graph/findItem")
+local isGroup = require("@root/graph/isGroup")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -21,9 +22,9 @@ local function createEntry(entries: { LogEntry }, doc: Doc, input: Input): LogEn
 	local attached: { [string]: boolean } = {}
 
 	for _, id in input.cards do
-		local item = graph.find(doc, id)
+		local item = findItem(doc, id)
 		assert(item, `no item with id "{id}"`)
-		assert(not graph.isGroup(item), `"{id}" is a group; log against a card`)
+		assert(not isGroup(item), `"{id}" is a group; log against a card`)
 
 		if not attached[id] then
 			attached[id] = true

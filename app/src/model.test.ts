@@ -8,12 +8,13 @@ import {
   absolutePosition,
   byId,
   editPullRef,
+  getCheckCounts,
   getCheckCountsLabel,
   getItemKind,
   getPrimaryRef,
-  getPullReadiness,
   getPullRef,
   getPullRequestNumber,
+  getRefSummary,
   getTaskTag,
   getTaskUrl,
   normalize,
@@ -22,7 +23,7 @@ import {
   sizeOf,
   tintOf,
   type AppNode,
-  type PullDetails,
+  type ClusterData,
   type TaskData,
 } from './model'
 import { moveOutOfGroup, ungroup } from './layout'
@@ -165,38 +166,25 @@ describe('tintOf', () => {
   })
 })
 
-describe('getPullReadiness', () => {
-  const open: PullDetails = {
-    state: 'OPEN',
-    draft: false,
-    title: 'Title',
-    author: 'vocksel',
-    mine: true,
-    requestedFromYou: false,
-    updatedAt: '2026-10-08T12:00:00Z',
-    additions: 1,
-    deletions: 0,
-    checkedAt: '2026-10-08T12:00:00Z',
-  }
+describe('getRefSummary', () => {
+  const ref = { source: 'github', kind: 'pull', key: 'vocksel/orion#1' }
 
-  it('turns red for a merge conflict even while checks pass', () => {
-    expect(getPullReadiness({ ...open, checks: 'SUCCESS', mergeable: 'CONFLICTING', mergeState: 'DIRTY' })).toBe('conflict')
-    expect(getPullReadiness({ ...open, checks: 'FAILURE', mergeState: 'BLOCKED' })).toBe('failing')
+  it('names the state its adapter read and when it read it', () => {
+    const now = Date.parse('2026-10-08T14:00:00Z')
+
+    expect(getRefSummary({ ...ref, stateLabel: 'Merged on GitHub', checkedAt: '2026-10-08T12:00:00Z' }, now)).toBe(
+      'Merged on GitHub · checked 2h ago',
+    )
+    expect(getRefSummary({ ...ref, stateLabel: 'Open on GitHub' }, now)).toBe('Open on GitHub')
+    expect(getRefSummary(ref, now)).toBeUndefined()
   })
+})
 
-  it('tells running checks from ones that are all still queued', () => {
-    expect(getPullReadiness({ ...open, checks: 'PENDING', checkProgress: 'running' })).toBe('running')
-    expect(getPullReadiness({ ...open, checks: 'PENDING', checkProgress: 'waiting' })).toBe('waiting')
-    expect(getPullReadiness({ ...open, checks: 'PENDING' })).toBe('running')
-  })
-
-  it('saves ready to merge for an open pull request GitHub would merge now', () => {
-    expect(getPullReadiness({ ...open, checks: 'SUCCESS', mergeable: 'MERGEABLE', mergeState: 'CLEAN' })).toBe('mergeable')
-    expect(getPullReadiness({ ...open, mergeState: 'HAS_HOOKS' })).toBe('mergeable')
-    expect(getPullReadiness({ ...open, checks: 'SUCCESS', mergeState: 'BLOCKED' })).toBe('passing')
-    expect(getPullReadiness({ ...open, draft: true, checks: 'SUCCESS', mergeState: 'CLEAN' })).toBe('passing')
-    expect(getPullReadiness({ ...open, state: 'MERGED', checks: 'SUCCESS', mergeState: 'CLEAN' })).toBeUndefined()
-    expect(getPullReadiness(undefined)).toBeUndefined()
+describe('getCheckCounts', () => {
+  it('returns counts only when the source reported all three', () => {
+    expect(getCheckCounts({ state: 'pending', total: 8, finished: 5, failed: 0 })).toEqual({ total: 8, finished: 5, failed: 0 })
+    expect(getCheckCounts({ state: 'pending', total: 8 })).toBeUndefined()
+    expect(getCheckCounts(undefined)).toBeUndefined()
   })
 })
 
@@ -368,5 +356,38 @@ describe('empty groups', () => {
     expect(byId(after).has('inner')).toBe(false)
     expect(byId(after).has('outer')).toBe(false)
     expect(byId(after).has('kept')).toBe(true)
+  })
+})
+
+describe('normalize with a group size', () => {
+  const sized = (arrange: 'auto' | 'custom'): AppNode => ({
+    id: 'g',
+    type: 'cluster',
+    position: { x: 100, y: 100 },
+    data: { kind: 'cluster', label: 'g', arrange, size: { width: 800, height: 500 } },
+  })
+
+  it('keeps a custom group at least its size, with its corner where it was', () => {
+    const group = byId(normalize([sized('custom'), cardNode('card', 'g', { x: 32, y: 78 })])).get('g')!
+
+    expect(group.position).toEqual({ x: 100, y: 100 })
+    expect({ width: group.width, height: group.height }).toEqual({ width: 800, height: 500 })
+  })
+
+  it('grows a custom group past its size to hold its contents, and remembers the new size', () => {
+    const card = { ...cardNode('card', 'g'), position: { x: -40, y: 600 } }
+    const nodes = normalize([sized('custom'), card])
+    const group = byId(nodes).get('g')!
+
+    expect(group.position.x).toBe(100 - 40 - 32)
+    expect(group.width).toBe(800 + 40 + 32)
+    expect((group.data as ClusterData).size).toEqual({ width: group.width, height: group.height })
+    expect(normalize(nodes)).toEqual(nodes)
+  })
+
+  it('lets an automatic group hug its contents', () => {
+    const group = byId(normalize([sized('auto'), cardNode('card', 'g')])).get('g')!
+
+    expect(group.width).toBeLessThan(800)
   })
 })

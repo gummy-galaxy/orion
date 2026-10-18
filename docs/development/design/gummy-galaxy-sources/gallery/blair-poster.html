@@ -1,0 +1,111 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Josefin+Sans:wght@600;700&display=swap">
+<style>
+  html, body { margin: 0; background: #2a2150; }
+  svg { display: block; }
+</style>
+<svg id="art" width="1080" height="1350" viewBox="0 0 1080 1350" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gouache: wobbly edges from displacement, then paper grain multiplied over everything. -->
+    <filter id="wobble" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="7"/>
+    </filter>
+    <filter id="paper" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="2" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0.45  0 0 0 0 0.4  0 0 0 0 0.35  0 0 0 0.22 0" result="tint"/>
+      <feComposite in="tint" in2="SourceGraphic" operator="in" result="grainOnArt"/>
+      <feBlend in="SourceGraphic" in2="grainOnArt" mode="multiply"/>
+    </filter>
+    <filter id="brush" x="-10%" y="-10%" width="120%" height="120%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02 0.4" numOctaves="2" seed="9" result="streak"/>
+      <feColorMatrix in="streak" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 -0.12" result="light"/>
+      <feComposite in="light" in2="SourceGraphic" operator="in" result="strokes"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="strokes"/></feMerge>
+    </filter>
+    <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="9" cy="9" r="3.4" fill="#ffe7b0"/></pattern>
+    <pattern id="stripes" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(-30)"><rect width="11" height="22" fill="#f2547d"/></pattern>
+    <pattern id="checks" width="28" height="28" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#2a2150"/><rect x="14" y="14" width="14" height="14" fill="#2a2150"/></pattern>
+  </defs>
+  <g filter="url(#paper)">
+    <rect width="1080" height="1350" fill="#2a2150"/>
+    <g filter="url(#wobble)">
+      <!-- Sky bands -->
+      <path d="M0 520 C220 470 420 560 640 500 C820 452 960 500 1080 470 L1080 1350 L0 1350 Z" fill="#3b2d6e"/>
+      <path d="M0 760 C260 700 520 800 780 730 C900 698 1000 720 1080 700 L1080 1350 L0 1350 Z" fill="#4a3a86"/>
+      <!-- Far stars -->
+      <g fill="#ffe7b0">
+        <circle cx="96" cy="140" r="5"/><circle cx="260" cy="88" r="3.5"/><circle cx="410" cy="190" r="4"/><circle cx="760" cy="96" r="5"/><circle cx="930" cy="200" r="3.5"/>
+        <circle cx="560" cy="330" r="3"/><circle cx="160" cy="420" r="4"/><circle cx="980" cy="420" r="5"/><circle cx="640" cy="60" r="3"/>
+        <path d="M330 300 l8 22 l22 8 l-22 8 l-8 22 l-8 -22 l-22 -8 l22 -8 Z"/>
+        <path d="M880 330 l6 16 l16 6 l-16 6 l-6 16 l-6 -16 l-16 -6 l16 -6 Z"/>
+        <path d="M70 640 l7 18 l18 7 l-18 7 l-7 18 l-7 -18 l-18 -7 l18 -7 Z"/>
+      </g>
+      <!-- The sun: a flat spiral of three arms, gouache coral and mustard -->
+      <g transform="translate(300 330)">
+        <circle r="132" fill="none" stroke="#ffe7b0" stroke-width="3" stroke-dasharray="2 14" stroke-linecap="round"/>
+        <path d="M0 0 C60 -10 90 -70 60 -120 C40 -150 0 -160 -30 -150 C10 -140 30 -110 20 -80 C10 -50 -20 -30 0 0 Z" fill="#f2547d" filter="url(#brush)"/>
+        <path d="M0 0 C60 -10 90 -70 60 -120 C40 -150 0 -160 -30 -150 C10 -140 30 -110 20 -80 C10 -50 -20 -30 0 0 Z" fill="#ff9a5a" transform="rotate(120)" filter="url(#brush)"/>
+        <path d="M0 0 C60 -10 90 -70 60 -120 C40 -150 0 -160 -30 -150 C10 -140 30 -110 20 -80 C10 -50 -20 -30 0 0 Z" fill="#f78fc6" transform="rotate(240)" filter="url(#brush)"/>
+        <circle r="58" fill="#f7d33c" filter="url(#brush)"/>
+        <circle r="58" fill="url(#dots)" opacity="0.5"/>
+      </g>
+      <!-- Ringed planet with stripes -->
+      <g transform="translate(800 470) rotate(-14)">
+        <ellipse rx="190" ry="40" fill="none" stroke="#ffe7b0" stroke-width="16"/>
+        <circle r="104" fill="#3ec4b5" filter="url(#brush)"/>
+        <path d="M-104 0 A104 104 0 0 0 104 0 Z" fill="#2f9f95"/>
+        <rect x="-110" y="-24" width="220" height="30" fill="url(#stripes)"/>
+        <path d="M-190 0 A190 40 0 0 0 190 0" fill="none" stroke="#ffe7b0" stroke-width="16"/>
+      </g>
+      <!-- A tiny world with a cottage and a lollipop tree -->
+      <g transform="translate(250 930)">
+        <circle r="150" fill="#f2547d" filter="url(#brush)"/>
+        <path d="M-150 0 A150 150 0 0 0 150 0 C100 40 -100 40 -150 0 Z" fill="#c93e68"/>
+        <g transform="translate(-30 -146)">
+          <rect x="-34" y="-58" width="68" height="58" fill="#ffe7b0"/>
+          <path d="M-46 -56 L0 -100 L46 -56 Z" fill="#3ec4b5"/>
+          <rect x="-12" y="-30" width="22" height="30" fill="#2a2150"/>
+          <rect x="16" y="-46" width="14" height="14" fill="#f7d33c"/>
+        </g>
+        <g transform="translate(70 -136) rotate(14)">
+          <rect x="-4" y="-80" width="8" height="80" fill="#ffe7b0"/>
+          <circle cy="-104" r="34" fill="#f7d33c"/>
+          <path d="M0 -104 m-20 0 a20 20 0 1 1 20 20 a12 12 0 1 1 -12 -12" fill="none" stroke="#f2547d" stroke-width="7"/>
+        </g>
+        <circle cx="-80" cy="40" r="12" fill="#ffe7b0" opacity="0.7"/><circle cx="40" cy="70" r="9" fill="#ffe7b0" opacity="0.7"/><circle cx="90" cy="10" r="14" fill="#ffe7b0" opacity="0.7"/>
+      </g>
+      <!-- Gumdrop moon -->
+      <g transform="translate(860 830)">
+        <path d="M-70 60 C-70 -10 -40 -60 0 -60 C40 -60 70 -10 70 60 Q0 74 -70 60 Z" fill="#f7d33c" filter="url(#brush)"/>
+        <rect x="-70" y="-60" width="140" height="130" fill="url(#dots)" opacity="0.35"/>
+      </g>
+      <!-- The companion: three stars on noodles, flat and round-eyed -->
+      <g transform="translate(600 760)">
+        <path d="M-30 18 C-60 60 -100 60 -130 30" fill="none" stroke="#ffe7b0" stroke-width="7" stroke-linecap="round"/>
+        <path d="M30 18 C60 60 100 60 130 30" fill="none" stroke="#ffe7b0" stroke-width="7" stroke-linecap="round"/>
+        <path d="M0 -150 L18 -26 L84 0 L18 26 L0 150 L-18 26 L-84 0 L-18 -26 Z" fill="#fff6ea"/>
+        <circle r="56" fill="#fff6ea"/>
+        <path d="M-140 -50 L-133 18 L-104 30 L-133 42 L-140 110 L-147 42 L-176 30 L-147 18 Z" fill="#fff6ea" transform="translate(10 0) scale(0.95)"/>
+        <path d="M140 -50 L147 18 L176 30 L147 42 L140 110 L133 42 L104 30 L133 18 Z" fill="#fff6ea" transform="translate(-10 0) scale(0.95)"/>
+        <circle cx="-20" cy="-6" r="8" fill="#2a2150"/><circle cx="20" cy="-6" r="8" fill="#2a2150"/>
+        <ellipse cx="-36" cy="12" rx="11" ry="7" fill="#f78fc6"/><ellipse cx="36" cy="12" rx="11" ry="7" fill="#f78fc6"/>
+        <path d="M-8 14 Q0 22 8 14" fill="none" stroke="#2a2150" stroke-width="4" stroke-linecap="round"/>
+      </g>
+      <!-- Jelly comet -->
+      <g transform="translate(860 170) rotate(-30)">
+        <path d="M-40 0 L-300 -14 L-300 14 Z" fill="#f78fc6" opacity="0.6"/>
+        <path d="M-40 0 L-240 -26 L-240 -8 Z" fill="#f7d33c" opacity="0.6"/>
+        <ellipse rx="56" ry="30" fill="#3ec4b5"/>
+      </g>
+      <!-- Foreground candy hills -->
+      <path d="M0 1130 C160 1060 300 1120 460 1080 C640 1036 780 1110 1080 1060 L1080 1350 L0 1350 Z" fill="#f78fc6"/>
+      <path d="M0 1130 C160 1060 300 1120 460 1080 C640 1036 780 1110 1080 1060 L1080 1110 C780 1160 640 1086 460 1130 C300 1170 160 1110 0 1180 Z" fill="url(#dots)" opacity="0.6"/>
+      <path d="M0 1220 C200 1180 420 1240 620 1200 C820 1160 940 1210 1080 1190 L1080 1350 L0 1350 Z" fill="#f2547d"/>
+    </g>
+    <!-- Title -->
+    <text x="540" y="1270" text-anchor="middle" font-family="Shrikhand, serif" font-size="96" fill="#ffe7b0">Gummy Galaxy</text>
+    <text x="540" y="1318" text-anchor="middle" font-family="'Josefin Sans', sans-serif" font-weight="700" font-size="22" letter-spacing="8" fill="#2a2150">A CONFECTIONERY OF WORLDS</text>
+  </g>
+</svg>

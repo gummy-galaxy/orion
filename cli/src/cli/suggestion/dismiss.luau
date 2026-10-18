@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 
 local change = require("@root/suggest/change")
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 
@@ -15,7 +15,7 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local changed: { string } = {}
-		store.transaction(options.dir, function(doc)
+		runTransaction(options.dir, function(doc)
 			changed = change(doc, "dismiss", parser:variadics(), parser:has("all"))
 		end)
 

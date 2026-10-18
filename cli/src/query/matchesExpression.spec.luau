@@ -1,7 +1,7 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
 local matchesExpression = require("@root/query/matchesExpression")
 local parseExpression = require("@root/query/parseExpression")
 local testing = require("@root/testing")
@@ -20,7 +20,7 @@ test.case("matches derived status and source references", function(assert)
 		},
 	})
 	local doc = testing.createDoc({ testing.group("scope", "Scope"), item })
-	local derived = graph.derive(doc)
+	local derived = derive(doc)
 	for _, expression in
 		{
 			[[kind = "step"]],
@@ -44,7 +44,7 @@ test.case("note matches the card's note text, and a missing note never matches",
 	local item = testing.task("noted", "Noted", "todo", nil, { note = "Confirm the release date" })
 	local bare = testing.task("bare", "Bare", "todo")
 	local doc = testing.createDoc({ item, bare })
-	local derived = graph.derive(doc)
+	local derived = derive(doc)
 	assert.eq(matchesExpression(derived, item, parseExpression([[note ~ "RELEASE"]])), true)
 	assert.eq(matchesExpression(derived, item, parseExpression([[note = "Confirm the release date"]])), true)
 	assert.eq(matchesExpression(derived, bare, parseExpression([[note ~ "release"]])), false)
@@ -54,7 +54,7 @@ end)
 test.case("missing fields stay unmatched under inequality and not", function(assert)
 	local item = testing.task("plain", "Plain", "todo")
 	local doc = testing.createDoc({ item })
-	local derived = graph.derive(doc)
+	local derived = derive(doc)
 	for _, expression in
 		{
 			[[repo != "orion"]],

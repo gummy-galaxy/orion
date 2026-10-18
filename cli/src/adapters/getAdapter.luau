@@ -4,6 +4,7 @@ local githubCreateSource = require("@root/adapters/github/createSource")
 local githubLookupRefs = require("@root/adapters/github/lookupRefs")
 local githubRefFromUrl = require("@root/adapters/github/refFromUrl")
 local githubRefresh = require("@root/adapters/github/refresh")
+local githubRefreshChanged = require("@root/adapters/github/refreshChanged")
 local hopCollect = require("@root/adapters/hop/collect")
 local hopCreateSource = require("@root/adapters/hop/createSource")
 local jiraCollect = require("@root/adapters/jira/collect")
@@ -20,6 +21,7 @@ local adapters: { [string]: Adapter } = {
 		createSource = githubCreateSource,
 		collect = githubCollect,
 		refresh = githubRefresh,
+		refreshChanged = githubRefreshChanged,
 		refFromUrl = githubRefFromUrl,
 		lookupRefs = githubLookupRefs,
 	},

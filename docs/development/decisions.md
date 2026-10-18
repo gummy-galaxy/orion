@@ -358,6 +358,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 2026-10-12 · [#55](https://github.com/vocksel/orion/issues/55)
 
+### The background refresh fetches what changed
+
+`orion server start` fetches every open pull request card in full only at startup, on a canvas switch, when you ask, and every 15 minutes. In between, it polls GitHub notifications as often as GitHub allows, 60 seconds today, and refetches the pull requests they name. Every two minutes it also sweeps the open cards' `updatedAt` and refetches only the ones that moved. Cards with pending checks are refetched every 30 seconds. What the loop remembers between polls lives in memory, and a pass that finds nothing writes nothing.
+
+**Why:** a full refresh costs what's on the canvas, and GitHub ends a query after about 10 seconds. Notifications cover other people's activity for free, since an unchanged poll answers 304. They never include the viewer's own or agents' activity, which the `updatedAt` sweep catches. Neither reports a finished check run or a change in mergeability, so checks get their own short timer and mergeability waits for the full pass. Startup runs a full pass anyway, so persisting poll state would add writes for nothing.
+
+2026-10-18 · [#366](https://github.com/vocksel/orion/issues/366)
+
 ### Adapters are Lute packages
 
 Source adapters are Lute packages built on a shared core package. Long term, the official adapters live in their own repositories in an organization, Orion ships with them by default, and people copy them to make their own. Hop becomes a package Orion depends on, and it powers opening a pull request in VS Code.
