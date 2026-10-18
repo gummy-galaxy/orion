@@ -51,6 +51,17 @@ local function createRouter(name: string)
 	return root, router
 end
 
+-- One addCard edit for a card with `id`, as the app sends it.
+local function createOperation(id: string): json.Object
+	return json.object({
+		op = "addCard",
+		id = id,
+		x = 0,
+		y = 0,
+		data = json.object({ kind = "task", label = id, itemKind = "step", status = "todo" }),
+	})
+end
+
 test.case("GET returns migrated document with unknown root data", function(assert)
 	local root, router = createRouter("routes-migration")
 	fs.createDirectory(root, { makeParents = true })
@@ -70,6 +81,24 @@ test.case("GET returns migrated document with unknown root data", function(asser
 	assert.eq(data and data.repo, "Vocksel/orion")
 	assert.eq(data and data.pr, nil)
 	assert.eq(data and #(json.asArray(data.refs) or {}), 1)
+end)
+
+test.case("GET sends derived values beside the document without storing them", function(assert)
+	local root, router = createRouter("routes-derived")
+	fs.createDirectory(root, { makeParents = true })
+	fs.writeStringToFile(
+		store.filePath(root),
+		[[{"version":2,"revision":3,"settings":{"sources":[]},"nodes":[{"id":"a","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"A","itemKind":"step","status":"todo"}},{"id":"b","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","itemKind":"step","status":"todo"}}],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks"}]}]]
+	)
+	local response = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
+	local derived = json.asObject(response.derived) :: json.Object
+	local status = json.asObject(derived.status) :: json.Object
+	local leverage = json.asObject(derived.leverage) :: json.Object
+	assert.eq(status.a, "ready")
+	assert.eq(status.b, "blocked")
+	assert.eq(leverage.a, 1)
+	assert.eq(response.revision, 3)
+	assert.eq(fs.readFileToString(store.filePath(root)):find("derived"), nil)
 end)
 
 test.case("image routes import and serve workspace-local bytes", function(assert)
@@ -119,66 +148,72 @@ test.case("image routes import and serve workspace-local bytes", function(assert
 	assert.eq(router.handle(request("GET", `/api/images/{cliAsset}`, "ideas")).body, bytes)
 end)
 
-test.case("GET reports a missing file and PUT creates it with a guarded revision", function(assert)
+test.case("GET reports a missing file and an operation list creates it, guarded by its revision", function(assert)
 	local root, router = createRouter("routes-missing")
 	local missing = router.handle(createRequest("GET", "/api/orion"))
 	assert.eq(missing.status, 404)
 	assert.eq(decodeResponse(missing).path, store.filePath(root))
 	assert.eq(decodeResponse(missing).canvas, "default")
-	local change = json.object({ baseRevision = json.null, nodes = {}, links = {} })
-	local saved = router.handle(createRequest("PUT", "/api/orion", change))
+	local saved = router.handle(
+		createRequest(
+			"POST",
+			"/api/operations",
+			json.object({ baseRevision = json.null, operations = { createOperation("a") } })
+		)
+	)
 	assert.eq(saved.status, 200)
-	assert.eq(decodeResponse(saved).revision, 0)
-	assert.eq(router.handle(createRequest("PUT", "/api/orion", change)).status, 409)
-	assert.eq(decodeResponse(router.handle(createRequest("PUT", "/api/orion", change))).revision, 0)
+	assert.eq(decodeResponse(saved).revision, 1)
+	local stale = json.object({ baseRevision = 0, operations = { createOperation("b") } })
+	assert.eq(router.handle(createRequest("POST", "/api/operations", stale)).status, 409)
+	assert.eq(decodeResponse(router.handle(createRequest("GET", "/api/orion"))).revision, 1)
 end)
 
-test.case("PUT retains unknown top-level fields and rejects a stale workspace", function(assert)
+test.case("an operation list retains unknown top-level fields and rejects a stale workspace", function(assert)
 	local root, router = createRouter("routes-preserve")
 	local doc = testing.createDoc({}, {})
 	doc.raw = json.object({ extra = json.object({ held = true }) })
 	store.write(root, doc)
-	local change = json.object({ baseRevision = 0, nodes = {}, links = {} })
-	assert.eq(router.handle(createRequest("PUT", "/api/orion", change, "other")).status, 409)
-	assert.eq(router.handle(createRequest("PUT", "/api/orion", change, "default")).status, 200)
+	local change = json.object({ baseRevision = 0, operations = { createOperation("a") } })
+	assert.eq(router.handle(createRequest("POST", "/api/operations", change, "other")).status, 409)
+	assert.eq(router.handle(createRequest("POST", "/api/operations", change, "default")).status, 200)
 	local updated = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
 	assert.eq(updated.revision, 1)
 	local extra = json.asObject(updated.extra)
 	assert.eq(if extra then extra.held else nil, true)
-	assert.eq(#store.getBackups(root), 1)
 end)
 
-test.case("PUT saves stickers when present and preserves them when omitted", function(assert)
+test.case("sticker operations save stickers, and other edits leave them alone", function(assert)
 	local root, router = createRouter("routes-stickers")
 	store.write(root, testing.createDoc({}, {}))
 	local stickers: json.Array = { json.object({ id = "one", emoji = "⭐" }) }
 	local loadout: json.Array = { "one", json.null }
-	local first =
-		json.object({ baseRevision = 0, nodes = {}, links = {}, stickers = stickers, stickerLoadout = loadout })
-	assert.eq(router.handle(createRequest("PUT", "/api/orion", first)).status, 200)
+	local first = json.object({
+		baseRevision = 0,
+		operations = {
+			json.object({ op = "setStickers", stickers = stickers }),
+			json.object({ op = "setStickerLoadout", stickerLoadout = loadout }),
+		},
+	})
+	assert.eq(router.handle(createRequest("POST", "/api/operations", first)).status, 200)
 	local saved = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
 	assert.eq(#(json.asArray(saved.stickers) or {}), 1)
 	assert.eq(#(json.asArray(saved.stickerLoadout) or {}), 2)
-	assert.eq(
-		router.handle(createRequest("PUT", "/api/orion", json.object({ baseRevision = 1, nodes = {}, links = {} }))).status,
-		200
-	)
+	local other = json.object({ baseRevision = 1, operations = { createOperation("a") } })
+	assert.eq(router.handle(createRequest("POST", "/api/operations", other)).status, 200)
 	local preserved = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
 	assert.eq(#(json.asArray(preserved.stickers) or {}), 1)
 	assert.eq(#(json.asArray(preserved.stickerLoadout) or {}), 2)
-	assert.eq(
-		router.handle(
-			createRequest(
-				"PUT",
-				"/api/orion",
-				json.object({ baseRevision = 2, nodes = {}, links = {}, stickers = {}, stickerLoadout = {} })
-			)
-		).status,
-		200
-	)
-	local cleared = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
-	assert.eq(#(json.asArray(cleared.stickers) or {}), 0)
-	assert.eq(#(json.asArray(cleared.stickerLoadout) or {}), 0)
+	local cleared = json.object({
+		baseRevision = 2,
+		operations = {
+			json.object({ op = "setStickers", stickers = {} }),
+			json.object({ op = "setStickerLoadout", stickerLoadout = {} }),
+		},
+	})
+	assert.eq(router.handle(createRequest("POST", "/api/operations", cleared)).status, 200)
+	local empty = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
+	assert.eq(#(json.asArray(empty.stickers) or {}), 0)
+	assert.eq(#(json.asArray(empty.stickerLoadout) or {}), 0)
 end)
 
 test.case("focus reports use the workspace and tab without changing the document", function(assert)
@@ -271,7 +306,12 @@ test.case("workspace routes create, list, and switch", function(assert)
 	assert.eq(decodeResponse(router.handle(createRequest("GET", "/api/canvases"))).active, "planning")
 	assert.eq(
 		router.handle(
-			createRequest("PUT", "/api/orion", json.object({ baseRevision = 0, nodes = {}, links = {} }), "default")
+			createRequest(
+				"POST",
+				"/api/operations",
+				json.object({ baseRevision = 0, operations = { createOperation("late") } }),
+				"default"
+			)
 		).status,
 		409
 	)
@@ -380,8 +420,8 @@ test.case("PUT /api/orion/style sets and clears the canvas cover and bumps the r
 	assert.eq(store.load(root).settings.background, "#1d1b2e")
 	assert.eq(store.load(root).revision, 1)
 	-- A window that read the file before the style change has a stale revision, so its save is refused and it reloads.
-	local stale = json.object({ baseRevision = 0, nodes = {}, links = {} })
-	assert.eq(router.handle(createRequest("PUT", "/api/orion", stale)).status, 409)
+	local stale = json.object({ baseRevision = 0, operations = { createOperation("late") } })
+	assert.eq(router.handle(createRequest("POST", "/api/operations", stale)).status, 409)
 	local cleared = router.handle(createRequest("PUT", "/api/orion/style", json.object({ cover = json.null })))
 	assert.eq(cleared.status, 200)
 	assert.eq(store.load(root).settings.cover, nil)

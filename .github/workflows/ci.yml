@@ -1,9 +1,14 @@
 name: CI
 
+# Pull requests run only the jobs their changes touch. Pushes to main, the nightly schedule, and manual runs from the
+# Actions tab run every job, so a job a pull request skipped still runs regularly.
 on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,7 +18,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # On a pull request, each job below runs only when a change touches what it builds or checks. A job skipped by its
+  # condition reports as skipped, which still satisfies a required check, unlike a workflow skipped by `paths`.
+  changes:
+    runs-on: beelink
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    # Other events skip the filter, which leaves its outputs empty, so every job runs
+    outputs:
+      cli: ${{ steps.filter.outputs.cli || 'true' }}
+      app: ${{ steps.filter.outputs.app || 'true' }}
+      docs: ${{ steps.filter.outputs.docs || 'true' }}
+      desktop: ${{ steps.filter.outputs.desktop || 'true' }}
+    steps:
+      # Checked out for the filters file. Pull requests list their changed files through the API.
+      - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request'
+
+      - name: Filter Changed Paths
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: .github/path-filters.yml
+
   analysis:
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
     runs-on: beelink
     timeout-minutes: 5
     defaults:
@@ -38,6 +71,8 @@ jobs:
         run: lute run analyze
 
   cli:
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -82,6 +117,8 @@ jobs:
           retention-days: 14
 
   app:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: beelink
     timeout-minutes: 5
     permissions:
@@ -142,6 +179,8 @@ jobs:
           retention-days: 1
 
   docs:
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     runs-on: beelink
     timeout-minutes: 5
     defaults:
@@ -180,6 +219,8 @@ jobs:
         run: npm run build
 
   desktop:
+    needs: changes
+    if: needs.changes.outputs.desktop == 'true'
     strategy:
       fail-fast: false
       matrix:

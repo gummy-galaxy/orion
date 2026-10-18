@@ -370,7 +370,8 @@ select {
     transform: none;
   }
 }
-/* Finished work waiting to be closed out shimmers, so it reads as something to click. */
+/* Finished work waiting to be closed out shimmers, so it reads as something to click. The sweep is painted, so
+   steps() holds it to 15 frames a second, and it rests for the first third of each loop. */
 .card.is-waiting::after {
   content: '';
   position: absolute;
@@ -382,12 +383,16 @@ select {
   background-position: 100% 0;
 }
 :where(:root[data-motion='on']) .card.is-waiting::after {
-  animation: done-shimmer var(--motion-loop-shimmer) ease-in-out infinite;
+  animation: done-shimmer var(--motion-loop-shimmer) infinite;
 }
 @keyframes done-shimmer {
-  0%,
+  0% {
+    background-position: 100% 0;
+    animation-timing-function: step-end;
+  }
   35% {
     background-position: 100% 0;
+    animation-timing-function: steps(23);
   }
   100% {
     background-position: 0 0;
@@ -621,6 +626,11 @@ select {
   color: var(--text-muted);
   box-shadow: inset var(--stripe-width-default) 0 0 color-mix(in srgb, var(--c) 65%, var(--canvas-background));
 }
+/* Snoozed work sits back until it wakes: its contents fade and its border goes dotted, so it reads as set aside. */
+.card.snoozed {
+  --fade: 0.5;
+  border-style: dotted;
+}
 /* Ready to merge: the card turns the success color and glows, so it reads as the next thing to click. */
 .card.ready-to-merge {
   --c: var(--status-done);
@@ -833,13 +843,14 @@ select {
   opacity: 1;
 }
 /* Each frame these loops change repaints the canvas under them, so steps() holds them to 15 a second (one step
-   per 1/15 s of the default period) rather than the display's 120. WebKit skips the frames between steps. A theme
-   that changes a loop's period changes its frame rate with it. */
+   per 1/15 s of the default period) rather than the display's 120. WebKit skips the frames between steps. Arrows run
+   long across the canvas and repaint the most, so they step at 10 a second. A theme that changes a loop's period
+   changes its frame rate with it. */
 :where(:root[data-motion='on']) .react-flow__edge.e-live .react-flow__edge-path {
-  animation: flow var(--motion-loop-flow) steps(12) infinite;
+  animation: flow var(--motion-loop-flow) steps(8) infinite;
 }
 :where(:root[data-motion='on']) .react-flow__edge.e-agg.e-live .react-flow__edge-path {
-  animation: flow-agg var(--motion-loop-flow-group) steps(18) infinite;
+  animation: flow-agg var(--motion-loop-flow-group) steps(12) infinite;
 }
 :where(:root[data-motion='on']) .st-active {
   animation: pulse var(--motion-loop-pulse) infinite;
@@ -859,7 +870,9 @@ select {
 /* Zoomed out, motion can't be read, so loops stop. */
 .canvas.is-quiet .react-flow__edge-path,
 .canvas.is-quiet .st-active,
-.canvas.is-quiet .check-running {
+.canvas.is-quiet .check-running,
+.canvas.is-quiet .card.is-waiting::after,
+.canvas.is-quiet .trading-motion-running circle {
   animation: none !important;
 }
 /* In the background, off screen, or dimmed by a trace, motion can't be seen, so loops pause. Moving the canvas
@@ -873,6 +886,10 @@ select {
 .canvas[data-moving] .st-active,
 .canvas.is-away .check-running,
 .canvas[data-moving] .check-running,
+.canvas.is-away .card.is-waiting::after,
+.canvas[data-moving] .card.is-waiting::after,
+.canvas.is-away .trading-motion-running circle,
+.canvas[data-moving] .trading-motion-running circle,
 .react-flow__edge.tr-e-dim .react-flow__edge-path,
 .react-flow__edge-path.is-offscreen {
   animation-play-state: paused !important;
@@ -3072,6 +3089,22 @@ kbd {
 .menu button.danger {
   color: var(--status-blocked);
 }
+.menu-date {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 5px 10px;
+  font-size: 13px;
+}
+.menu-date input {
+  font: inherit;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 2px 4px;
+}
 .menu hr {
   border: 0;
   border-top: var(--border-width-default) solid var(--border-default);
@@ -3411,7 +3444,7 @@ kbd {
   font-weight: var(--weight-medium);
 }
 :where(:root[data-motion='on']) .focus-line.live {
-  animation: flow var(--motion-loop-flow) steps(12) infinite;
+  animation: flow var(--motion-loop-flow) steps(8) infinite;
 }
 :where(:root[data-motion='on']) .focus-side,
 :where(:root[data-motion='on']) .focus-bar,
@@ -3683,10 +3716,10 @@ kbd {
 }
 .companion-tethers {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: 0;
+  top: 0;
   overflow: visible;
+  will-change: transform;
 }
 .companion-tethers path {
   fill: none;
@@ -3738,6 +3771,7 @@ kbd {
   position: absolute;
   left: 0;
   top: 0;
+  will-change: transform;
   display: flex;
   align-items: center;
   gap: var(--space-3);

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { TaskInspector } from './TaskInspector'
-import { deriveWork } from '../derive'
-import { blocker, links, nodeMap, task } from './storySupport/data'
+import { buildWork, toServerFacts } from '../derive'
+import { blocker, derived, links, nodeMap, task } from './storySupport/data'
 
 const meta = { title: 'Details/Inspectors/TaskInspector' } satisfies Meta
 
@@ -11,7 +11,7 @@ type Story = StoryObj<typeof meta>
 
 function TaskDemo() {
   const [node, setNode] = useState(task)
-  const currentWork = deriveWork([node, blocker], links)
+  const currentWork = buildWork(toServerFacts(derived), [node, blocker], links)
   const currentMap = new Map(nodeMap).set(node.id, node)
 
   return (
