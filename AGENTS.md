@@ -18,7 +18,7 @@ Add `--json` to any of these for structured output. Statuses in the output are d
 
 `orion canvas check [--group <id>] [--json]` reports layout problems that come from stored positions and sizes: overlapping siblings, children outside their group's bounds, links to missing items, and groups waiting for layout. Bounds are in canvas coordinates. Use `--group` to limit the report to a group and what is inside it. It exits nonzero when it finds any problems, and `--json` prints a flat list of `{kind, ids, bounds}` entries, with `bounds` null for a dangling link.
 
-Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr` (pull request number), `ref` (any ref key), or `snoozed` (`"true"` while a card is snoozed, `"false"` otherwise). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"` or `ref ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
+Queries compare `kind`, `repo`, derived `status`, `recordedStatus`, `group` (parent id), `draft`, `label`, `pr` (pull request number), `ref` (any ref key), `note` (the card's note text), or `snoozed` (`"true"` while a card is snoozed, `"false"` otherwise). Values must be quoted strings, including numbers and booleans: `pr = "86"`, `draft = "true"`. Use `=`, `!=`, and `label ~ "text"`, `ref ~ "text"`, or `note ~ "text"` for a case-insensitive substring; combine comparisons with `and`, `or`, `not`, and parentheses. Missing fields never match, even under `not`. Quotes are syntax, not shell commands; expressions cannot evaluate code or read arbitrary data paths.
 
 Pass `--canvas <name>` to work on a specific canvas, or rely on the active one. Use `orion canvas list` and `orion canvas current` to check the available and active canvases. `orion canvas create [name] [--label <label>]` makes one; without a name, the label names it, so `Focus areas` becomes `focus-areas`. `orion canvas rename <name> <label>` changes a canvas's display label. `orion canvas archive <name>` takes a canvas off the list and keeps its data; `orion canvas list --archived` lists archived ones, and `orion canvas restore <name>` brings one back. The active canvas and `default` can't be archived.
 
@@ -100,7 +100,7 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 
 - Prefer notes for context, decisions, and reminders. Make an item only for work someone will do.
 - Write a note as a plain-language summary of where the card stands. Use Markdown for structure, such as headings and lists. Put code, file paths, and identifiers in code formatting rather than running them through the prose. Keep pull requests and issues in the card's refs (`orion card set <id> --ref ...`) instead of links in the text. A work log for the running record is coming, so a note doesn't need to narrate each step.
-- Look up ids with `orion card list --all` or `orion node show` rather than guessing them.
+- Find ids with `orion node find <text>`, which matches labels, notes, and refs and prints the total with a capped list (`--limit`, `--all-canvases`). Where a command takes an id, a selector works too: `label:"Extract slider"`, `ref:jira:ABC-12` or `ref:<url>`, and `pr:86`. A selector must match exactly one item; when it matches several, the command lists them so you can pick an id.
 - Group by outcome, not by repository.
 
 ## Issues
@@ -154,3 +154,15 @@ To let someone try a change in the desktop app, run `npm run build` in `desktop/
 - Name a required module after the module itself, such as `local cli = require("@batteries/cli")` and `local io = require("@lute/io")`, without prefixing the package.
 - Within functions, use blank lines between logical steps: setup, guards, loops and branches, state changes, and the final result. Keep statements that form one step together.
 - Run StyLua after editing Luau, then review the spacing yourself. StyLua sorts requires and formats statements, but does not add these logical blank lines.
+
+## TypeScript style
+
+The app's TypeScript mirrors the CLI's Luau layout. New and split modules follow these rules, and #427 brings the rest of `app/src` over.
+
+- Export one function per module, from a file named after it with a verb first, such as `refs/getPrimaryRef.ts`. Group modules into folders by concept, put shared types in a sibling `types.ts`, and keep constant tables and data lists as one module.
+- Keep a helper that only one module uses local to it, and move it into its own module once a second module needs it.
+- Keep pure logic out of components and hooks. Components render and wire up state, and the logic moves into function modules that can be tested without React.
+- When a function also exists in the CLI, give it the same name. Its folder can differ.
+- Import each module directly by path, with no barrel files. Once #427 adds the `@/` alias for `app/src`, use it instead of relative paths.
+- Put tests in `<function>.test.ts` beside the module, testing only that function. Keep them flat: use `test` rather than `it`, and leave out a `describe` that only repeats the file's name. Shared builders live in a folder of fixture modules, one per builder.
+- Logic the CLI also needs belongs in Luau, with the app reading the result from `orion serve`. See "Shared logic lives in Luau" in [`DECISIONS.md`](DECISIONS.md).
