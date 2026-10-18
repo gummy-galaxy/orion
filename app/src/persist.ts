@@ -1,4 +1,5 @@
 import type { Derived } from './derive'
+import { IMAGE_MAX_BYTES } from './geometry'
 import { normalize, type AppNode, type GithubSnapshot, type Link, type TaskData } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
 import type { Operation } from './operations'
@@ -26,12 +27,11 @@ const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:canvas'
 const WORKSPACES_EVENT = 'orion:canvases'
 const LOG_EVENT = 'orion:log'
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 export type ImageAsset = { asset: string; mime: string }
 
 export async function importImage(file: File, workspace: string): Promise<ImageAsset> {
-  if (file.size === 0 || file.size > MAX_IMAGE_BYTES) throw new Error('Choose an image smaller than 5 MB.')
+  if (file.size === 0 || file.size > IMAGE_MAX_BYTES) throw new Error('Choose an image smaller than 5 MB.')
 
   const response = await fetch(`/api/images?canvas=${encodeURIComponent(workspace)}`, { method: 'POST', body: file })
 

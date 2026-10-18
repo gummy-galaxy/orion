@@ -1,4 +1,4 @@
-local sizes = require("@root/graph/sizes")
+local geometry = require("@root/geometry")
 local types = require("@root/types")
 
 type Item = types.Item
@@ -8,10 +8,10 @@ local function getHeaderHeight(item: Item): number
 	local header = item.data.header
 
 	if type(header) == "string" and header:match("%S") then
-		return sizes.GROUP_HEADER_HEIGHT + sizes.GROUP_HEADER_BAND
+		return geometry.GROUP_HEADER_HEIGHT + geometry.GROUP_HEADER_BAND
 	end
 
-	return sizes.GROUP_HEADER_HEIGHT
+	return geometry.GROUP_HEADER_HEIGHT
 end
 
 return getHeaderHeight

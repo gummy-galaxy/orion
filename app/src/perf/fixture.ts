@@ -1,15 +1,5 @@
-import {
-  GROUP_HEADER_HEIGHT,
-  GROUP_PADDING,
-  TASK_HEIGHT,
-  TASK_WIDTH,
-  normalize,
-  type AppNode,
-  type ClusterNode,
-  type Link,
-  type Status,
-  type TaskNode,
-} from '../model'
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from '../geometry'
+import { normalize, type AppNode, type ClusterNode, type Link, type Status, type TaskNode } from '../model'
 import type { Saved } from '../persist'
 
 export type FixtureOptions = {

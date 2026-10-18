@@ -1,6 +1,6 @@
+import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { THEMES, applyAppearance, colorModeOf, readAppearance, themeOf, writeAppearance, type Appearance, type Theme } from './appearance'
-import { TASK_HEIGHT, TASK_WIDTH } from './model'
 import { SKINS, skinOf } from './skins'
 import { parseThemeFile } from './themeFile'
 

@@ -1,6 +1,7 @@
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { describe, expect, it } from 'vitest'
 import { clipAssets, copySelection, cutClip, DUPLICATE_OFFSET, moveClipAssets, pasteClip, type Clip } from './clipboard'
-import { absolutePosition, byId, GROUP_HEADER_HEIGHT, GROUP_PADDING, normalize, TASK_HEIGHT, TASK_WIDTH, type AppNode, type Link } from './model'
+import { absolutePosition, byId, normalize, type AppNode, type Link } from './model'
 import type { Sticker } from './sticker'
 import { isAssetId } from './style'
 

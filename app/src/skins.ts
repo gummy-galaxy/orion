@@ -1,4 +1,4 @@
-import { TASK_HEIGHT, TASK_WIDTH } from './model'
+import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 
 export type Skin = { id: string; label: string; size: { width: number; height: number } }
 

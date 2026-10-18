@@ -1,4 +1,5 @@
-import { GROUP_PADDING, isCluster, normalize, type AppNode } from '../model'
+import { GROUP_PADDING } from '../geometry'
+import { isCluster, normalize, type AppNode } from '../model'
 import type { CardSize } from '../cardSize'
 import type { ReflowPlan } from '../layout'
 import type { Box, ResizeEdges } from './types'

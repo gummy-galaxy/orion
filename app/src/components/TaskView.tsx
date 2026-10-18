@@ -1,6 +1,7 @@
+import { TASK_HEIGHT, TASK_WIDTH } from '../geometry'
 import { memo, useContext, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import { TASK_HEIGHT, TASK_WIDTH, type TaskNode } from '../model'
+import { type TaskNode } from '../model'
 import { useAtomValue } from 'jotai'
 import { ActionsContext } from '../derive'
 import { useCardView, useCelebrating, useMarked, useSnoozed, useTint, useTraceRole, inspectingAtom, skinAtom, skinStore } from '../state'

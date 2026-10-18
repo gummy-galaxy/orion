@@ -1,5 +1,6 @@
 local json = require("@std/json")
 
+local geometry = require("@root/geometry")
 local getGroup = require("@root/graph/getGroup")
 local getNextSlot = require("@root/graph/getNextSlot")
 local getUniqueId = require("@root/graph/getUniqueId")
@@ -22,8 +23,8 @@ local function addImage(doc: Doc, label: string, extension: string, workspace: s
 		type = "image",
 		position = getNextSlot(doc, group),
 		parentId = group,
-		width = 256,
-		height = 256,
+		width = geometry.IMAGE_SIZE.width,
+		height = geometry.IMAGE_SIZE.height,
 		data = json.object({ kind = "image", label = label, asset = `{id}.{extension}`, workspace = workspace }),
 	}
 	table.insert(doc.nodes, item)

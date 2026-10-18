@@ -1,5 +1,5 @@
+import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { TASK_HEIGHT, TASK_WIDTH } from './model'
 import { adoptedPrint, clearFocus, compactDoc, displayedDoc, fetchRemote, fingerprint, reportFocus, storedPrint, type Remote } from './persist'
 import { pushAside } from './pushAside'
 import { skinOf } from './skins'

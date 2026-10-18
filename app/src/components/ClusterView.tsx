@@ -1,8 +1,9 @@
+import { GROUP_HEADER_BAND, GROUP_HEADER_HEIGHT } from '../geometry'
 import { memo, useContext } from 'react'
 import { useAtomValue } from 'jotai'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { ActionsContext } from '../derive'
-import { GROUP_HEADER_BAND, GROUP_HEADER_HEIGHT, type ClusterNode } from '../model'
+import { type ClusterNode } from '../model'
 import { SourceBadges } from './SourceBadges'
 import {
   useCollapsed,

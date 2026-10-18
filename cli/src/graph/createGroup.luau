@@ -1,9 +1,9 @@
 local json = require("@std/json")
 
+local geometry = require("@root/geometry")
 local getGroup = require("@root/graph/getGroup")
 local getNextSlot = require("@root/graph/getNextSlot")
 local getUniqueId = require("@root/graph/getUniqueId")
-local sizes = require("@root/graph/sizes")
 local slugify = require("@root/slugify")
 local types = require("@root/types")
 
@@ -23,8 +23,8 @@ local function createGroup(doc: Doc, label: string, parentId: string?): Item
 		type = "cluster",
 		position = getNextSlot(doc, parentId),
 		parentId = parentId,
-		width = sizes.TASK_WIDTH + sizes.GROUP_PADDING * 2,
-		height = sizes.TASK_HEIGHT + sizes.GROUP_HEADER_HEIGHT + sizes.GROUP_PADDING,
+		width = geometry.TASK_WIDTH + geometry.GROUP_PADDING * 2,
+		height = geometry.TASK_HEIGHT + geometry.GROUP_HEADER_HEIGHT + geometry.GROUP_PADDING,
 		data = json.object({ kind = "cluster", label = label }),
 	}
 	table.insert(doc.nodes, group)
