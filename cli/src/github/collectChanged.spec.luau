@@ -137,16 +137,24 @@ test.case("a sweep that finds nothing new writes nothing", function(assert)
 end)
 
 local function pendingCard(id: string, number: number, finished: number): types.Item
-	local item = card(id, number, "open")
-	local ref = (item.data.refs :: { any })[1]
-	ref.checks = json.object({ state = "pending" })
-	ref.details = json.object({
-		checks = "PENDING",
-		checkProgress = "running",
-		checkCounts = json.object({ total = 2, finished = finished, failed = 0 }),
-		head = "abc",
+	return testing.task(id, `Card {number}`, "review", nil, {
+		refs = {
+			{
+				source = "github",
+				kind = "pull",
+				key = `vocksel/orion#{number}`,
+				status = "open",
+				updatedAt = RECORDED,
+				checks = json.object({ state = "pending" }),
+				details = json.object({
+					checks = "PENDING",
+					checkProgress = "running",
+					checkCounts = json.object({ total = 2, finished = finished, failed = 0 }),
+					head = "abc",
+				}),
+			},
+		},
 	})
-	return item
 end
 
 local function checksResponse(finished: number): string
