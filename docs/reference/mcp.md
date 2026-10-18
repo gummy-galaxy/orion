@@ -124,6 +124,41 @@ Runs `orion card unsnooze`.
 | `dryRun`     | boolean | Preview the changes and the current revision without writing.                                              |
 | `ifRevision` | int     | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written. |
 
+## orion_snoozed_jobs
+
+List the CI jobs snoozed on the canvas, whose failures cards leave out.
+
+Runs `orion ci list`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+
+## orion_snooze_job
+
+Leave a CI job's failures off every card in a repository until it passes there, or until a time.
+
+Runs `orion ci snooze`.
+
+| Argument | Type   | Description                                                                                                                                 |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`   | string | **Required.** The job's name, as GitHub shows it.                                                                                           |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                                                      |
+| `repo`   | string | **Required.** Repository the job runs in, as owner/name.                                                                                    |
+| `until`  | string | End the snooze at a UTC time such as 2026-10-14T18:00:00Z, or a date. Without it, the snooze lasts on each card until the job passes there. |
+
+## orion_unsnooze_job
+
+Count a snoozed CI job's failures on cards again.
+
+Runs `orion ci unsnooze`.
+
+| Argument | Type   | Description                                              |
+| -------- | ------ | -------------------------------------------------------- |
+| `name`   | string | **Required.** The job's name, as GitHub shows it.        |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.   |
+| `repo`   | string | **Required.** Repository the job runs in, as owner/name. |
+
 ## orion_add_note
 
 Add a canvas note, optionally inside a group or a dependency link. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card.

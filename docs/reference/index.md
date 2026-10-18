@@ -5,4 +5,4 @@
 These pages are generated from the code that defines each surface, so they always match what Orion accepts.
 
 - [CLI](./cli/): the 20 commands of `orion`, with every option they take.
-- [MCP](./mcp): the 46 tools `orion mcp start` serves to agents, each running a CLI command.
+- [MCP](./mcp): the 49 tools `orion mcp start` serves to agents, each running a CLI command.
