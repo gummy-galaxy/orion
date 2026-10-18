@@ -88,6 +88,14 @@ Sources and their data are one layer, and cards are the presentation attached to
 
 2026-10-09 · [#152](https://github.com/vocksel/orion/issues/152), [#154](https://github.com/vocksel/orion/issues/154)
 
+### Snoozed and optional jobs don't make a card fail
+
+A pull request reads as failing only for a job that counts. When some of its jobs are required, a failing job that isn't required doesn't count. A failing job can also be snoozed, by name, for every card in its repository: either until it next passes on each card, so a later failure there shows again, or until a set time. Cards list their failing jobs with a checkbox each, and unchecking one snoozes it.
+
+**Why:** one boring failure, such as stale generated docs, turns every open pull request red at once. Fixing it on each branch means a CI run per pull request, while snoozing it once clears it everywhere and still catches the job breaking again.
+
+2026-10-13
+
 ### Card art is reproducible
 
 Generated card art can be produced again from the same card. Later, people should be able to reroll art, keep favorites, and give a card its own color.
@@ -267,6 +275,14 @@ Entries from `orion log add` are by the person running the CLI, named by `$USER`
 2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
 
 ## Public interfaces
+
+### Reveal stays top level and opens the app
+
+`orion reveal <id…>` stays a top-level command rather than moving under `orion focus`. It also zooms the canvas to what it selects, which setting focus shouldn't do. When no app is running, reveal launches the installed app on the same data folder, then waits for the app to show the items before it reports success.
+
+**Why:** a reveal moves the camera as well as the selection, and focus only reports what the app shows. Agents asked to show someone a card shouldn't have to tell them to open the app first.
+
+2026-10-12 · [#299](https://github.com/vocksel/orion/issues/299)
 
 ### Public interfaces tighten in three stages
 

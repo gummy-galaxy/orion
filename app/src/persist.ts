@@ -18,6 +18,8 @@ export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; 
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string }
 export type CommitResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
 export type Workspaces = { active: string; canvases: { name: string; label: string }[] }
+/** What `orion reveal` asked the open app to select and frame, on the canvas named. */
+export type Reveal = { canvas: string; ids: string[]; selectOnly: boolean }
 
 const API = '/api/orion'
 const OPERATIONS_API = '/api/operations'
@@ -25,6 +27,7 @@ const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
 const WORKSPACE_EVENT = 'orion:canvas'
 const WORKSPACES_EVENT = 'orion:canvases'
+const REVEAL_EVENT = 'orion:reveal'
 const LOG_EVENT = 'orion:log'
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
@@ -62,12 +65,38 @@ export async function saveCanvasStyle(
   }
 }
 
+/** Snoozes a CI job for every card in its repository, or ends its snooze. The server bumps the revision, so open windows reload. */
+export async function saveCheckSnooze(workspace: string, change: { repo: string; name: string; snoozed: boolean; until?: string }): Promise<boolean> {
+  try {
+    const response = await fetch('/api/orion/check-snoozes', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
+      body: JSON.stringify(change),
+    })
+
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
 export async function imageSource(workspace: string, asset: string): Promise<string> {
   const response = await fetch(`/api/images/${encodeURIComponent(asset)}?canvas=${encodeURIComponent(workspace)}`)
 
   if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Image unavailable')
 
   return URL.createObjectURL(await response.blob())
+}
+
+/** Copies an image from one workspace's assets into another's, and returns its id there. */
+export async function copyImage(asset: string, from: string, to: string): Promise<string> {
+  const response = await fetch(`/api/images/${encodeURIComponent(asset)}?workspace=${encodeURIComponent(from)}`)
+
+  if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Image unavailable')
+
+  const blob = await response.blob()
+
+  return (await importImage(new File([blob], asset, { type: blob.type }), to)).asset
 }
 
 /** The card a pasted link names: one already on the canvas, or a new one that isn't saved until the app places it. */
@@ -93,7 +122,7 @@ export async function lookupLink(url: string, workspace: string): Promise<LinkLo
   return body
 }
 
-type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT | typeof LOG_EVENT
+type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT | typeof REVEAL_EVENT | typeof LOG_EVENT
 const listeners = new Map<EventName, Set<(data: never) => void>>()
 let socket: WebSocket | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
@@ -186,6 +215,11 @@ export function onWorkspaceChange(callback: (active: string) => void) {
 /** Updates the list when another client creates or edits a workspace. */
 export function onWorkspaceListChange(callback: (list: Workspaces) => void) {
   return subscribe<Workspaces>(WORKSPACES_EVENT, callback)
+}
+
+/** Calls back when `orion reveal` (or an agent) asks this page to select cards and zoom to them. */
+export function onReveal(callback: (reveal: Reveal) => void) {
+  return subscribe<Reveal>(REVEAL_EVENT, callback)
 }
 
 /** Runs when another writer appends to a canvas's log, with that canvas's name. Appends don't change the document. */

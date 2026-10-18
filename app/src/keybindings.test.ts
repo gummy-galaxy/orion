@@ -101,6 +101,10 @@ describe('keybindings', () => {
 
   it('lists each new action once in the Editing or Navigation category', () => {
     const ids = [
+      'copy',
+      'cut',
+      'paste',
+      'duplicate',
       'select-all',
       'rename',
       'bring-forward',

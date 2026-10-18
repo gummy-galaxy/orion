@@ -94,6 +94,9 @@ export const useStatus = (id: string) => useAtomValue(useMemo(() => selectAtom(w
 
 export const useLeverage = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.leverage.get(id) ?? 0), [id]))
 
+/** The card's pull request facts with its snoozed CI jobs left out, or undefined when no snooze leaves one out. */
+export const useSnoozedFacts = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.pulls.get(id)), [id]))
+
 /** When a snooze ends for this card, or undefined when it isn't snoozed. */
 export const useSnoozed = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.snoozed.get(id)), [id]))
 
@@ -123,11 +126,15 @@ export function useCardView(id: string, data: TaskNode['data'], group?: string) 
   const sources = useSources(id)
   const blockers = useBlockers(id)
   const unblocks = useUnblocks(id)
+  const snoozedFacts = useSnoozedFacts(id)
 
   return useMemo(
     () =>
-      getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, rarity, sources, blockers, unblocks, group }),
-    [id, data, status, leverage, upstream, rarity, sources, blockers, unblocks, group],
+      getCardView(
+        { id, type: 'task', position: { x: 0, y: 0 }, data },
+        { status, leverage, upstream, rarity, sources, blockers, unblocks, group, snoozedFacts },
+      ),
+    [id, data, status, leverage, upstream, rarity, sources, blockers, unblocks, group, snoozedFacts],
   )
 }
 

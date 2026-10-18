@@ -73,11 +73,30 @@ export type Source = {
 	browse: string?,
 }
 
+-- A CI job whose failures cards leave out, across every card in its repository. `untilTime` ends it at a UTC time;
+-- without one it lasts on each card until the job next passes there, and `passed` lists the cards where it has.
+export type CheckSnooze = { repo: string, name: string, untilTime: string?, at: string, passed: { string } }
+
+-- A card's pull request facts with its snoozed jobs left out. `snoozed` lists those jobs, with when each timed snooze
+-- ends, and `wakesAt` is the soonest of those times, when the facts change again.
+export type SnoozedFacts = {
+	readiness: string?,
+	checks: json.Object?,
+	snoozed: { { name: string, untilTime: string? } },
+	wakesAt: string?,
+}
+
 export type Doc = {
 	version: number,
 	revision: number,
 	-- cover, background, and header style the canvas itself: an image asset id, a color, token name, or asset id, and Markdown.
-	settings: { sources: { Source }, cover: string?, background: string?, header: string? },
+	settings: {
+		sources: { Source },
+		cover: string?,
+		background: string?,
+		header: string?,
+		checkSnoozes: { CheckSnooze },
+	},
 	nodes: { Item },
 	links: { Link },
 	github: json.Object?,

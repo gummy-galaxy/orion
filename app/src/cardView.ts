@@ -1,4 +1,4 @@
-import type { SourceRef } from './derive'
+import type { SnoozedFacts, SourceRef } from './derive'
 import {
   getCheckCounts,
   getPullRef,
@@ -14,6 +14,7 @@ import {
   type Who,
 } from './model'
 import type { Rarity } from './rarity'
+import { withSnoozedFacts } from './withSnoozedFacts'
 
 export type CardView = {
   id: string
@@ -77,12 +78,15 @@ export type CardFacts = {
   blockers?: number
   unblocks?: number
   group?: string
+  /** The card's pull request facts with its snoozed CI jobs left out, when a snooze leaves one out. */
+  snoozedFacts?: SnoozedFacts
 }
 
 export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const { data } = node
   const who = facts.status === 'done' ? undefined : data.who
-  const pullRef = getPullRef(data)
+  const recorded = getPullRef(data)
+  const pullRef = recorded && withSnoozedFacts(recorded, facts.snoozedFacts)
   const checks = pullRef?.checks?.state
   const readiness = pullRef?.readiness
   const checkProgress = pullRef?.checks?.progress

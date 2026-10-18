@@ -115,6 +115,23 @@ test.case("orion_import passes each ref as a trailing positional", function(asse
 	end)
 end)
 
+test.case("orion_apply passes the plan inline with its dry run and revision", function(assert)
+	local steps = json.asArray(json.deserialize([=[[{"op":"addCard","label":"Ship"}]]=]) :: json.Value)
+	assert.eq(
+		table.concat(
+			getToolArgv(
+				"orion_apply",
+				json.object({ operations = steps, dryRun = true, ifRevision = 4, canvas = "release" })
+			),
+			" "
+		),
+		'apply --plan [{"op":"addCard","label":"Ship"}] --dry-run --if-revision 4 --canvas release --json'
+	)
+	assert.throwsWith("operations must be a list of operations", function()
+		getToolArgv("orion_apply", json.object({ operations = {} }))
+	end)
+end)
+
 test.case("tools reject arguments their schemas do not allow", function(assert)
 	assert.throwsWith("unknown argument: colour", function()
 		getToolArgv("orion_add_item", json.object({ title = "A", colour = "red" }))
@@ -180,6 +197,23 @@ test.case("canvas tools map onto the canvas commands", function(assert)
 	)
 	assert.throwsWith("missing name", function()
 		getToolArgv("orion_archive_canvas", json.object({}))
+	end)
+end)
+
+test.case("orion_reveal passes each id as a trailing positional and selectOnly as a flag", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_reveal", json.object({ ids = { "ci", "pub" } })), " "),
+		"reveal ci pub --json"
+	)
+	assert.eq(
+		table.concat(
+			getToolArgv("orion_reveal", json.object({ ids = { "ci" }, selectOnly = true, canvas = "planning" })),
+			" "
+		),
+		"reveal ci --canvas planning --select-only --json"
+	)
+	assert.throwsWith("ids must be a list of strings", function()
+		getToolArgv("orion_reveal", json.object({ ids = { "" } }))
 	end)
 end)
 

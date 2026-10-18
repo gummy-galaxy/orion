@@ -66,6 +66,16 @@ local function encodeDocObject(doc: Doc): json.Object
 	settings.cover = doc.settings.cover
 	settings.background = doc.settings.background
 	settings.header = doc.settings.header
+	local checkSnoozes: json.Array = {}
+
+	for _, snooze in doc.settings.checkSnoozes do
+		local value = json.object({ repo = snooze.repo, name = snooze.name, at = snooze.at })
+		value["until"] = snooze.untilTime
+		value.passed = getStringArray(snooze.passed)
+		table.insert(checkSnoozes, value)
+	end
+
+	settings.checkSnoozes = if #checkSnoozes > 0 then checkSnoozes else nil
 	root.settings = settings
 	root.nodes = nodes
 	root.links = links

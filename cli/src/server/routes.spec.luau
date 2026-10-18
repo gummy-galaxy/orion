@@ -445,6 +445,41 @@ test.case("PUT /api/orion/style sets and clears the canvas cover and bumps the r
 	)
 end)
 
+test.case("PUT /api/orion/check-snoozes snoozes and unsnoozes a job and bumps the revision", function(assert)
+	local root, router = createRouter("routes-check-snoozes")
+	writeDoc(root, testing.createDoc({}))
+	local snoozed = router.handle(createRequest(
+		"PUT",
+		"/api/orion/check-snoozes",
+		json.object({
+			repo = "vocksel/orion",
+			name = "docs",
+			snoozed = true,
+			["until"] = "2099-01-01T00:00:00.000Z",
+		})
+	))
+	assert.eq(snoozed.status, 200)
+	local snoozes = loadDoc(root).settings.checkSnoozes
+	assert.eq(#snoozes, 1)
+	assert.eq(snoozes[1].untilTime, "2099-01-01T00:00:00Z")
+	assert.eq(loadDoc(root).revision, 1)
+
+	local unsnoozed = router.handle(
+		createRequest(
+			"PUT",
+			"/api/orion/check-snoozes",
+			json.object({ repo = "vocksel/orion", name = "docs", snoozed = false })
+		)
+	)
+	assert.eq(unsnoozed.status, 200)
+	assert.eq(#loadDoc(root).settings.checkSnoozes, 0)
+	assert.eq(
+		router.handle(createRequest("PUT", "/api/orion/check-snoozes", json.object({ repo = "vocksel/orion" }))).status,
+		400
+	)
+	assert.eq(router.handle(createRequest("GET", "/api/orion/check-snoozes")).status, 405)
+end)
+
 test.case("the theme list route serves theme files from the data folder", function(assert)
 	local root, router = createRouter("routes-theme-files")
 	local folder = path.join(root, "themes")
@@ -456,4 +491,61 @@ test.case("the theme list route serves theme files from the data folder", functi
 	local entries = json.asArray(decodeResponse(response).themes) :: json.Array
 	assert.eq((json.asObject(entries[1]) :: json.Object).file, "dusk.json")
 	assert.eq(router.handle(createRequest("POST", "/api/themes")).status, 405)
+end)
+
+local function createRevealRouter(name: string, openClients: number)
+	local root = testing.directory(name)
+	local published: { { name: string, data: json.Object } } = {}
+	local hub = {
+		count = function()
+			return openClients
+		end,
+
+		publish = function(eventName: string, data: json.Object)
+			table.insert(published, { name = eventName, data = data })
+		end,
+	}
+	local router = routes.create(root, "default", {
+		getStatus = function()
+			return json.object({ state = "idle" })
+		end,
+
+		run = function()
+			return json.object({ state = "idle" })
+		end,
+	}, function() end, nil, hub)
+	writeDoc(getWorkspaceDir(root, "default"), testing.createDoc({ testing.task("ci", "Ship it", "todo") }))
+	return root, router, published
+end
+
+test.case("reveal needs a known canvas and items on it, and an open app", function(assert)
+	local _, router = createRevealRouter("routes-reveal-checks", 0)
+	local ids = json.object({ canvas = "default", ids = { "ci" } })
+	assert.eq(router.handle(createRequest("POST", "/api/reveal", ids)).status, 409)
+	assert.eq(
+		router.handle(createRequest("POST", "/api/reveal", json.object({ canvas = "default", ids = { "gone" } }))).status,
+		404
+	)
+	assert.eq(
+		router.handle(createRequest("POST", "/api/reveal", json.object({ canvas = "nope", ids = { "ci" } }))).status,
+		404
+	)
+	assert.eq(router.handle(createRequest("GET", "/api/reveal")).status, 405)
+	assert.eq(router.getActive(), "default")
+end)
+
+test.case("reveal publishes to the open app and switches to the item's canvas", function(assert)
+	local root, router, published = createRevealRouter("routes-reveal-switch", 1)
+	createWorkspace(root, "planning", "Planning")
+	writeDoc(getWorkspaceDir(root, "planning"), testing.createDoc({ testing.group("plan", "Plan") }))
+	local response = router.handle(
+		createRequest("POST", "/api/reveal", json.object({ canvas = "planning", ids = { "plan" }, selectOnly = true }))
+	)
+	assert.eq(response.status, 200)
+	assert.eq(router.getActive(), "planning")
+	assert.eq(#published, 1)
+	assert.eq(published[1].name, "orion:reveal")
+	assert.eq(published[1].data.canvas, "planning")
+	assert.eq(published[1].data.selectOnly, true)
+	assert.eq(decodeResponse(response).canvas, "planning")
 end)

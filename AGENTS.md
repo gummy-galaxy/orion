@@ -29,6 +29,8 @@ The app reports its open group and selection to `orion server start`. `orion foc
 - Say which focus you assumed when it shaped the answer, so a wrong guess is easy to correct.
 - At the top level with nothing selected, or with the app closed, there's no focus to lean on.
 
+To point the person at cards, run `orion reveal <id…>`. The app selects them, opens the innermost group that holds them all, and zooms to them, and the step goes into its Back history. `--select-only` selects without moving the camera. With no app running, reveal opens the installed app first. Name the cards you revealed in your reply.
+
 Run `orion server status [--json]` to find the running server and its URL. It checks the recorded process and endpoint and clears stale server records.
 
 To show the person the app, or anything else served locally such as a dev server or Storybook, open its URL in the browser built into the tool you're running in. Fall back to an external browser only when that tool has none. Headless captures, such as PR screenshots and videos, are unaffected.
@@ -38,6 +40,7 @@ To show the person the app, or anything else served locally such as a dev server
 - A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off. A component is a part of a system diagram rather than work; see below.
 - `orion card set` changes cards and `orion group set` changes groups. Each takes only its own kind of node, and the error names the other command to use.
 - `--ref` resolves through the adapter of the matching source, so a Jira URL works only under a configured Jira source. A branch ref such as `branch:vocksel/orion@agent/196-attach` records the branch work started on, keyed like hop's; GitHub Enterprise hosts go in front of the repository, as in `branch:github.example.com/owner/name@branch`. `--repo` and `--pr` are deprecated and stay for one release.
+- `orion apply` runs a plan in one write, so a timeline of many cards, notes, groups, and links takes one call instead of one per change. A plan is a JSON list of operations that run in order and land whole or not at all. `addCard` and `addNote` take a `handle`, and later steps refer to it as `"@handle"`; refer to existing cards and groups by id. The output maps each handle to the id it got.
 - `orion card import` adds a card for every ref in one transaction. A ref already on the canvas is skipped and keeps its card. One that doesn't resolve is reported and skipped while the rest are added, and the command then exits nonzero. Jira refs are read through their source's command, so a Jira key must appear in that source's results.
 - Snoozing hides a card from attention and `orion next` until a time in the future; a bare date means the start of that day. A snoozed card keeps its derived status and still blocks the cards that wait on it, but has no leverage and isn't counted as ready in group progress. It wakes on its own with nothing written, and is stored as the `snoozedUntil` data field, in UTC.
 - Linking an already linked pair updates its label. With both `--after` and `--before`, `orion note add` splits their link, or adds two blocking links if they aren't linked.
@@ -71,6 +74,8 @@ Cards with a pull request ref stay in step with GitHub through `orion ingest`, w
 The refresh records your unplaced open pull requests and likely matching cards; inspect them with `orion source matches`. When the canvas has GitHub sources, only pull requests in their repositories count. Link one to an existing card with `orion card set <id> --ref <pull request URL>`.
 
 When a card has a branch ref for the pull request's head branch in its repository, the refresh attaches the new pull request to that card and records it as its pull request. If more than one card has that branch, the pull request stays unplaced and `orion source matches` lists those cards. Record the branch when you start work (`orion card set <id> --ref branch:owner/name@branch`) so the refresh can attach the pull request you open.
+
+A failing job that isn't required doesn't make a card read as failing when the pull request has required jobs. To set aside a job that fails for a reason that doesn't matter, such as stale generated docs, snooze it for every card in its repository: `orion ci snooze <job> --repo <owner/name> [--until <UTC time or date>]`. Without `--until`, the snooze lasts on each card until the job next passes there. `orion ci list [--json]` lists snoozed jobs, and `orion ci unsnooze <job> --repo <owner/name>` counts the job again.
 
 `orion sync` is deprecated and runs only the GitHub refresh. Its `--discover` flag adds your unplaced open pull requests to an Inbox group; a GitHub source does the same through `orion ingest`, which files them in Unsorted. Only use `--discover` when asked, then move each new card into the group it belongs to.
 

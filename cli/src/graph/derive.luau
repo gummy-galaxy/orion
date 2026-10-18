@@ -1,3 +1,4 @@
+local getSnoozedFacts = require("@root/github/getSnoozedFacts")
 local getStringField = require("@root/getStringField")
 local graphTypes = require("@root/graph/types")
 local isComponent = require("@root/graph/isComponent")
@@ -11,6 +12,7 @@ type Derived = graphTypes.Derived
 type Doc = types.Doc
 type GroupStats = graphTypes.GroupStats
 type Item = types.Item
+type SnoozedFacts = types.SnoozedFacts
 
 local UNCOMMON_UPSTREAM = 4
 local RARE_UPSTREAM = 8
@@ -139,10 +141,12 @@ local function derive(doc: Doc, now: string?): Derived
 	local tasks: { [string]: Item } = {}
 	local parentOf: { [string]: string } = {}
 	local snoozed: { [string]: string } = {}
+	local pulls: { [string]: SnoozedFacts } = {}
 
 	for _, item in doc.nodes do
 		if item.type == "task" then
 			tasks[item.id] = item
+			pulls[item.id] = getSnoozedFacts(item, doc.settings.checkSnoozes, clock)
 		end
 
 		if item.parentId then
@@ -432,6 +436,7 @@ local function derive(doc: Doc, now: string?): Derived
 		rarity = rarity,
 		groups = groups,
 		snoozed = snoozed,
+		pulls = pulls,
 	}
 end
 

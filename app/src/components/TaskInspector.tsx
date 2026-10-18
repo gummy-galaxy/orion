@@ -1,12 +1,15 @@
 import { useAtomValue } from 'jotai'
 import { ChecksIcon } from './ChecksIcon'
+import { CheckSnoozes } from './CheckSnoozes'
 import { LinkList } from './LinkList'
 import { NoteBody } from './NoteBody'
 import { StatusIcon } from './StatusIcon'
+import { getPullRepo } from '../getPullRepo'
+import { withSnoozedFacts } from '../withSnoozedFacts'
 import { Timeline } from './Timeline'
 import { useCardLog } from '../useCardLog'
+import type { SnoozedJob, Work } from '../derive'
 import { workspaceAtom } from '../state'
-import type { Work } from '../derive'
 import {
   READINESS_LABEL,
   STATUS_CHOICES,
@@ -28,6 +31,9 @@ import {
   type TaskData,
   type Who,
 } from '../model'
+
+// One empty list, so the snooze checkboxes can tell when the server answers a toggle on a card with none snoozed yet.
+const NO_SNOOZED_JOBS: SnoozedJob[] = []
 
 export function TaskInspector({
   node,
@@ -67,7 +73,11 @@ export function TaskInspector({
   const leverage = work.leverage.get(node.id) ?? 0
   // Every link a card carries to its pull requests and issues, so each one opens from the header.
   const refLinks = (data.refs ?? []).filter((ref) => ref.url)
-  const pullRef = getPullRef(data)
+  const recorded = getPullRef(data)
+  const snoozedFacts = work.pulls.get(node.id)
+  const pullRef = recorded && withSnoozedFacts(recorded, snoozedFacts)
+  const repo = pullRef ? getPullRepo(pullRef.key) : undefined
+  const failures = pullRef?.checks?.failures ?? []
   const readiness = pullRef?.readiness
   const checkCounts = getCheckCounts(pullRef?.checks)
   const checkCountsLabel = readiness && checkCounts && getCheckCountsLabel(checkCounts)
@@ -182,6 +192,9 @@ export function TaskInspector({
                 </>
               )}
             </p>
+            {repo && readiness && failures.length ? (
+              <CheckSnoozes repo={repo} failures={failures} snoozed={snoozedFacts?.snoozed ?? NO_SNOOZED_JOBS} />
+            ) : null}
             {pullRef.author && !pullRef.isMine && <p className="facts">By {pullRef.author}</p>}
             {pullRef.isReviewRequested && <p className="facts review-requested">Your review is requested</p>}
           </div>

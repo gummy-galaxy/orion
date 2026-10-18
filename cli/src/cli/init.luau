@@ -1,9 +1,11 @@
 local cli = require("@batteries/cli")
 local process = require("@std/process")
 
+local apply = require("@root/cli/apply")
 local backup = require("@root/cli/backup")
 local canvas = require("@root/cli/canvas")
 local card = require("@root/cli/card")
+local ci = require("@root/cli/ci")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
@@ -26,6 +28,7 @@ local node = require("@root/cli/node")
 local note = require("@root/cli/note")
 local orientation = require("@root/cli/orientation")
 local ref = require("@root/cli/ref")
+local reveal = require("@root/cli/reveal")
 local serializeCommands = require("@root/cli/serializeCommands")
 local server = require("@root/cli/server")
 local source = require("@root/cli/source")
@@ -52,9 +55,11 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 
 -- Each top-level command's module defines its subcommands and runs them.
 local COMMANDS: { [string]: Command } = {
+	apply = apply,
 	backup = backup,
 	canvas = canvas,
 	card = card,
+	ci = ci,
 	focus = focus,
 	group = group,
 	ingest = ingest,
@@ -66,6 +71,7 @@ local COMMANDS: { [string]: Command } = {
 	node = node,
 	note = note,
 	ref = ref,
+	reveal = reveal,
 	server = server,
 	source = source,
 	suggestion = suggestion,
@@ -82,6 +88,7 @@ local COMMAND_ORDER = {
 	"group",
 	"ref",
 	"next",
+	"apply",
 	"sync",
 	"canvas",
 	"log",
@@ -90,10 +97,12 @@ local COMMAND_ORDER = {
 	"ingest",
 	"media",
 	"suggestion",
+	"ci",
 	"theme",
 	"backup",
 	"mcp",
 	"focus",
+	"reveal",
 }
 
 local ABOUT = [[
@@ -108,7 +117,7 @@ Data lives in Orion's user data folder (run orion canvas path to see it); set OR
 Set ORION_CANVAS to pick a canvas, as --canvas does for a single command.
 The Orion app talks to orion server start, which watches the data files.
 Use orion server status [--json] to find the running server.
-While the app is open, orion focus shows its open group and selection.]]
+While the app is open, orion focus shows its open group and selection, and orion reveal selects items in it and zooms to them.]]
 
 local QUERY_HELP = [[
 Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, note, snoozed.

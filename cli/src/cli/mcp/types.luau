@@ -1,6 +1,6 @@
 local json = require("@std/json")
 
-export type FieldKind = "string" | "id" | "canvas" | "enum" | "boolean" | "strings" | "int"
+export type FieldKind = "string" | "id" | "canvas" | "enum" | "boolean" | "strings" | "int" | "operations"
 
 -- positional: one value before the options. variadic: a list of values after the positionals.
 -- option and flag: named, and csv: a list joined with commas behind a named option.

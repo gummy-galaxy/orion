@@ -5,6 +5,7 @@ local getStringField = require("@root/getStringField")
 local migrateItem = require("@root/migrations/migrateItem")
 local types = require("@root/types")
 
+type CheckSnooze = types.CheckSnooze
 type Doc = types.Doc
 type Item = types.Item
 type Link = types.Link
@@ -82,6 +83,29 @@ local function decodeDoc(text: string): Doc
 	local cover = getStringField(settings.cover)
 	local background = getStringField(settings.background)
 	local header = getStringField(settings.header)
+	local checkSnoozes: { CheckSnooze } = {}
+
+	for _, raw in json.asArray(settings.checkSnoozes) or {} do
+		local snooze = json.asObject(raw)
+		local repo = if snooze then getStringField(snooze.repo) else nil
+		local name = if snooze then getStringField(snooze.name) else nil
+		local at = if snooze then getStringField(snooze.at) else nil
+
+		if snooze and repo and name and at then
+			local passed: { string } = {}
+
+			for _, id in json.asArray(snooze.passed) or {} do
+				if type(id) == "string" then
+					table.insert(passed, id)
+				end
+			end
+
+			table.insert(
+				checkSnoozes,
+				{ repo = repo, name = name, untilTime = getStringField(snooze["until"]), at = at, passed = passed }
+			)
+		end
+	end
 
 	for _, raw in json.asArray(settings.sources) or {} do
 		local source = json.asObject(raw)
@@ -141,7 +165,13 @@ local function decodeDoc(text: string): Doc
 	return {
 		version = 2,
 		revision = asNumber(root.revision) or 0,
-		settings = { sources = sources, cover = cover, background = background, header = header },
+		settings = {
+			sources = sources,
+			cover = cover,
+			background = background,
+			header = header,
+			checkSnoozes = checkSnoozes,
+		},
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),

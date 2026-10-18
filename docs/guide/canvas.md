@@ -22,6 +22,7 @@ The toolbar at the bottom switches tools. Esc returns to Select.
 
 - Click a card to edit it, add a note, or open its pull request.
 - Press N to add a note. Notes can become work items later.
+- ⌘C copies the selection, ⌘X cuts it, and ⌘V pastes it at the cursor, inside the open group. A copy takes groups with everything in them, stickers stuck to what you copied, and the links between copied items. Paste into another group or another canvas, as often as you like; each paste is a new, separate copy. ⌘D duplicates the selection beside itself.
 - Right-click empty canvas and choose **Create from link** to paste a GitHub pull request or issue, or a Jira issue, and get its card where you clicked. A link that already has a card takes you to it.
 - Check **Gate** in a card's inspector to make it a gate. Gates show a diamond.
 - Dashed cards are pull requests that aren't opened yet.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CHAIN_STEP_MS, celebrationDelays, clearCelebrations, closesOut, finishedHops, patchTaskData } from './celebrate'
+import { CHAIN_BEATS_MS, CHAIN_STEP_MS, celebrationDelays, clearCelebrations, closesOut, finishedHops, patchTaskData } from './celebrate'
 import { isTask, type AppNode, type ItemKind, type Link, type Status, type TaskData, type TaskNode } from './model'
 
 const task = (id: string, status: Status = 'todo', extra: Partial<TaskData> = {}, itemKind: ItemKind = 'step'): AppNode => ({
@@ -57,7 +57,7 @@ describe('finishedHops', () => {
 })
 
 describe('celebrationDelays', () => {
-  it('lists only waiting cards in the chain, each delayed by its distance from the click', () => {
+  it('lists only waiting cards in the chain, each delayed by the beat its distance from the click lands on', () => {
     const nodes = [
       task('a', 'done', { celebrate: true }),
       task('b', 'done', { celebrate: true }),
@@ -70,17 +70,39 @@ describe('celebrationDelays', () => {
     const delays = celebrationDelays('a', nodes, links, finished(nodes))
 
     expect([...delays]).toEqual([
-      ['a', 0],
-      ['b', CHAIN_STEP_MS],
-      ['d', 3 * CHAIN_STEP_MS],
+      ['a', 150],
+      ['b', 500],
+      ['d', 1250],
     ])
+  })
+
+  it('times the click and the first three hops as climbing beats, then spaces later hops evenly', () => {
+    const ids = Array.from({ length: 7 }, (_, index) => `t${index}`)
+    const nodes = ids.map((id) => task(id, 'done', { celebrate: true }))
+    const links = ids.slice(1).map((id, index) => link(ids[index], id))
+
+    const delays = [...celebrationDelays('t0', nodes, links, finished(nodes)).values()]
+
+    expect(delays.slice(0, 4)).toEqual(CHAIN_BEATS_MS)
+    expect(delays.slice(4)).toEqual([1250 + CHAIN_STEP_MS, 1250 + 2 * CHAIN_STEP_MS, 1250 + 3 * CHAIN_STEP_MS])
+  })
+
+  it('spaces hops past the finale by the step it is given, leaving the beats alone', () => {
+    const ids = Array.from({ length: 5 }, (_, index) => `t${index}`)
+    const nodes = ids.map((id) => task(id, 'done', { celebrate: true }))
+    const links = ids.slice(1).map((id, index) => link(ids[index], id))
+
+    const delays = celebrationDelays('t0', nodes, links, finished(nodes), 100)
+
+    expect(delays.get('t3')).toBe(1250)
+    expect(delays.get('t4')).toBe(1350)
   })
 
   it('leaves out cards that a related link connects', () => {
     const nodes = [task('a', 'done', { celebrate: true }), task('b', 'done', { celebrate: true })]
     const links = [link('a', 'b', 'related')]
 
-    expect([...celebrationDelays('a', nodes, links, finished(nodes))]).toEqual([['a', 0]])
+    expect([...celebrationDelays('a', nodes, links, finished(nodes))]).toEqual([['a', 150]])
   })
 
   it('does nothing when the clicked card is not waiting', () => {
@@ -90,14 +112,14 @@ describe('celebrationDelays', () => {
     expect(celebrationDelays('a', nodes, links, finished(nodes)).size).toBe(0)
   })
 
-  it('caps the delay so a long chain still clears in about a second', () => {
+  it('caps the delay so a long chain still finishes in about three seconds', () => {
     const ids = Array.from({ length: 20 }, (_, index) => `t${index}`)
     const nodes = ids.map((id) => task(id, 'done', { celebrate: true }))
     const links = ids.slice(1).map((id, index) => link(ids[index], id))
 
     const delays = celebrationDelays('t0', nodes, links, finished(nodes))
 
-    expect(Math.max(...delays.values())).toBe(8 * CHAIN_STEP_MS)
+    expect(Math.max(...delays.values())).toBe(1250 + 5 * CHAIN_STEP_MS)
   })
 })
 
