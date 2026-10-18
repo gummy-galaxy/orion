@@ -474,6 +474,22 @@ select {
     transform: scale(0.2);
   }
 }
+/* Reduced motion keeps a chain's timing and drops the movement: each finish stamp fades out on its beat, and its Done
+   stamp fades in after it. */
+:where(:root[data-motion='reduced']) .finish-stamp.is-clearing {
+  animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-exit) var(--clear-delay, 0ms) reverse both;
+}
+:where(:root[data-motion='reduced']) .card > .done-stamp.is-landing {
+  animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-enter) calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
+}
+@keyframes stamp-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .vscode-open {
   display: grid;
   place-items: center;
