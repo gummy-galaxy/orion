@@ -501,7 +501,7 @@ select {
   opacity: 0;
 }
 :where(:root[data-motion='on']) .chain-pulse {
-  stroke-dasharray: 0.2 1.2;
+  stroke-dasharray: 0.35 1.35;
   animation: chain-pulse var(--pulse-duration) var(--motion-easing-standard) var(--pulse-delay) both;
 }
 :where(:root[data-motion='on']) .chain-pulse.is-reverse {
@@ -510,7 +510,7 @@ select {
 @keyframes chain-pulse {
   0% {
     opacity: 0;
-    stroke-dashoffset: 0.2;
+    stroke-dashoffset: 0.35;
   }
   15%,
   85% {
@@ -522,7 +522,8 @@ select {
   }
 }
 /* The last beat of a chain closes it out with a flourish as its Done stamp lands: the card flashes and two rings spread
-   from it. Only the rings move, and they sit outside the card, so nothing shifts under the pointer. */
+   from it. Only the rings move, and they sit outside the card, so nothing shifts under the pointer. The rings fill
+   forwards only, so they don't outline the card while they wait for their beat. */
 .card > .chain-flourish,
 .card > .chain-flourish::after {
   position: absolute;
@@ -546,11 +547,11 @@ select {
   --flourish-delay: calc(var(--clear-delay, 0ms) + var(--motion-duration-fade) + var(--motion-duration-stamp) / 2);
 }
 :where(:root[data-motion='on']) .card > .chain-flourish {
-  animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter) var(--flourish-delay) both;
+  animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter) var(--flourish-delay) forwards;
 }
 :where(:root[data-motion='on']) .card > .chain-flourish::after {
   animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter)
-    calc(var(--flourish-delay) + var(--motion-duration-flourish) * 0.25) both;
+    calc(var(--flourish-delay) + var(--motion-duration-flourish) * 0.25) forwards;
 }
 :where(:root[data-motion='on'], :root[data-motion='reduced']) .card > .chain-flourish::before {
   animation: chain-flourish-glow var(--motion-duration-flourish) var(--motion-easing-standard) var(--flourish-delay) both;
