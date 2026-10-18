@@ -13,6 +13,7 @@ local getVersion = require("@root/getVersion")
 local group = require("@root/cli/group")
 local ingest = require("@root/cli/ingest")
 local link = require("@root/cli/link")
+local log = require("@root/cli/log")
 local mcp = require("@root/cli/mcp")
 local media = require("@root/cli/media")
 local nextCommand = require("@root/cli/next")
@@ -53,6 +54,7 @@ local COMMANDS: { [string]: Command } = {
 	group = group,
 	ingest = ingest,
 	link = link,
+	log = log,
 	mcp = mcp,
 	media = media,
 	next = nextCommand,
@@ -77,6 +79,7 @@ local COMMAND_ORDER = {
 	"next",
 	"sync",
 	"canvas",
+	"log",
 	"server",
 	"source",
 	"ingest",

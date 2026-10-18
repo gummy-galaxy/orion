@@ -9,6 +9,7 @@ local list = require("@root/cli/card/list")
 local runSubcommand = require("@root/cli/runSubcommand")
 local set = require("@root/cli/card/set")
 local snooze = require("@root/cli/card/snooze")
+local timeline = require("@root/cli/card/timeline")
 local unsnooze = require("@root/cli/card/unsnooze")
 
 type Context = context.Context
@@ -18,6 +19,7 @@ local COMMANDS: { [string]: Command } = {
 	list = list,
 	add = add,
 	set = set,
+	timeline = timeline,
 	done = done,
 	import = import,
 	snooze = snooze,
@@ -27,7 +29,11 @@ local COMMANDS: { [string]: Command } = {
 return table.freeze({
 	help = "Work items on the canvas",
 	define = function(parser: cli.Parser)
-		defineSubcommands(parser, COMMANDS, { "list", "add", "set", "done", "import", "snooze", "unsnooze" })
+		defineSubcommands(
+			parser,
+			COMMANDS,
+			{ "list", "add", "set", "timeline", "done", "import", "snooze", "unsnooze" }
+		)
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
