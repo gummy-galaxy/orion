@@ -35,6 +35,8 @@ local DRY_RUN = "Preview the changes and the current revision without writing."
 local IF_REVISION =
 	"Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written."
 local WHERE = 'Select targets with an expression instead of ids, such as label ~ "text".'
+local SELECTOR_DESCRIPTION =
+	'An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item.'
 local NOTE_STYLE =
 	"Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card."
 local NOTE_DESCRIPTION = "Replaces the whole note. " .. NOTE_STYLE
@@ -172,7 +174,7 @@ local tools: { Tool } = {
 			{
 				name = "id",
 				kind = "id",
-				description = "Required for show.",
+				description = `Required for show. {SELECTOR_DESCRIPTION}`,
 				at = "option",
 			},
 			{
@@ -189,6 +191,32 @@ local tools: { Tool } = {
 			},
 		},
 		build = buildInspectArgv,
+	},
+	{
+		name = "orion_find",
+		description = 'Find cards and groups whose label, note, or refs contain text, label matches first. Returns the total and up to limit matches with their ids. Use an id or a selector such as label:"..." or ref:... to act on one.',
+		annotations = { readOnlyHint = true },
+		command = { "node", "find" },
+		json = true,
+		fields = {
+			{
+				name = "text",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Text to find, matched case-insensitively.",
+				at = "positional",
+			},
+			workspaceField,
+			{ name = "limit", kind = "int", description = "Most matches to return. Defaults to 20.", at = "option" },
+			{
+				name = "allCanvases",
+				kind = "boolean",
+				description = "Search every canvas, not only the selected one.",
+				at = "flag",
+				flag = "all-canvases",
+			},
+		},
 	},
 	{
 		name = "orion_add_item",
@@ -230,7 +258,7 @@ local tools: { Tool } = {
 		command = { "card", "set" },
 		json = true,
 		fields = {
-			{ name = "id", kind = "id", required = true, at = "positional" },
+			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			workspaceField,
 			{ name = "label", kind = "string", at = "option" },
 			{ name = "status", kind = "enum", values = fieldValues.statuses, at = "option" },
@@ -350,14 +378,14 @@ local tools: { Tool } = {
 				name = "from",
 				kind = "id",
 				required = true,
-				description = "The item that has to happen first.",
+				description = `The item that has to happen first. {SELECTOR_DESCRIPTION}`,
 				at = "positional",
 			},
 			{
 				name = "to",
 				kind = "id",
 				required = true,
-				description = "The item that waits on it.",
+				description = `The item that waits on it. {SELECTOR_DESCRIPTION}`,
 				at = "positional",
 			},
 			{
@@ -388,8 +416,20 @@ local tools: { Tool } = {
 		description = "Remove a dependency or related link between two items.",
 		command = { "link", "remove" },
 		fields = {
-			{ name = "from", kind = "id", required = true, description = "Link source.", at = "positional" },
-			{ name = "to", kind = "id", required = true, description = "Link target.", at = "positional" },
+			{
+				name = "from",
+				kind = "id",
+				required = true,
+				description = `Link source. {SELECTOR_DESCRIPTION}`,
+				at = "positional",
+			},
+			{
+				name = "to",
+				kind = "id",
+				required = true,
+				description = `Link target. {SELECTOR_DESCRIPTION}`,
+				at = "positional",
+			},
 			workspaceField,
 		},
 	},
@@ -519,7 +559,7 @@ local tools: { Tool } = {
 		command = { "group", "set" },
 		json = true,
 		fields = {
-			{ name = "id", kind = "id", required = true, description = "Group id.", at = "positional" },
+			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			workspaceField,
 			{ name = "label", kind = "string", minLength = 1, description = "New label.", at = "option" },
 			{ name = "blurb", kind = "string", description = "Group description.", at = "option" },
@@ -616,7 +656,7 @@ local tools: { Tool } = {
 		command = { "ref", "remove" },
 		json = true,
 		fields = {
-			{ name = "id", kind = "id", required = true, description = "Item id.", at = "positional" },
+			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			{
 				name = "ref",
 				kind = "string",
