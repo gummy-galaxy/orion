@@ -21,6 +21,12 @@ local function getFieldSchema(field: Field): json.Object
 			items = json.object({ type = "string", minLength = 1 }),
 			minItems = 1,
 		})
+	elseif field.kind == "operations" then
+		schema = json.object({
+			type = "array",
+			items = json.object({ type = "object" }),
+			minItems = 1,
+		})
 	elseif field.kind == "enum" then
 		local values: json.Array = {}
 

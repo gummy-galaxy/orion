@@ -21,6 +21,7 @@ import {
   pruneEmptied,
   removeNodes,
   sizeOf,
+  survivingRoot,
   tintOf,
   type AppNode,
   type ClusterData,
@@ -276,6 +277,45 @@ describe('moveOutOfGroup', () => {
     expect(moveOutOfGroup(base, 'keep')).toBe(base)
     expect(moveOutOfGroup(base, 'outer')).toBe(base)
     expect(moveOutOfGroup(base, 'missing')).toBe(base)
+  })
+})
+
+describe('survivingRoot', () => {
+  const nested = () =>
+    normalize([
+      groupNode('top'),
+      cardNode('keep', 'top'),
+      groupNode('middle', 'top', { x: 300, y: 0 }),
+      groupNode('inner', 'middle'),
+      cardNode('deep', 'inner'),
+    ])
+
+  it('keeps the open group while it is still there', () => {
+    const before = nested()
+
+    expect(survivingRoot('inner', byId(before), byId(before))).toBe('inner')
+  })
+
+  it('opens the parent when moving a group out empties the open group', () => {
+    const before = nested()
+    const after = moveOutOfGroup(before, 'inner')
+
+    expect(byId(after).has('middle')).toBe(false)
+    expect(survivingRoot('middle', byId(before), byId(after))).toBe('top')
+  })
+
+  it('skips ancestors that went with it', () => {
+    const before = nested()
+    const after = removeNodes(before, ['middle', 'inner', 'deep'])
+
+    expect(survivingRoot('inner', byId(before), byId(after))).toBe('top')
+  })
+
+  it('falls back to the top level when nothing above survives', () => {
+    const before = nested()
+
+    expect(survivingRoot('middle', byId(before), byId(ungroup(before, ['top', 'middle'])))).toBeNull()
+    expect(survivingRoot('missing', byId(before), byId(before))).toBeNull()
   })
 })
 

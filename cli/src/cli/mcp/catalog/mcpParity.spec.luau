@@ -25,6 +25,7 @@ local COMMAND_EXCEPTIONS: { [string]: string } = {
 -- Single options MCP leaves out, keyed by the command and the option.
 local OPTION_EXCEPTIONS: { [string]: string } = {
 	["card import --stdin"] = "reads refs from stdin, which a tool call can't pipe; orion_import takes them as a list",
+	["apply --file"] = "reads the plan from a file or stdin, which a tool call can't pass; orion_apply takes it inline",
 }
 
 -- Tool fields that aren't CLI options, keyed by the tool and the field. view picks the command orion_inspect runs.

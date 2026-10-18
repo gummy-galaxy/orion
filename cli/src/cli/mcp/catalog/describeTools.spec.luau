@@ -21,6 +21,7 @@ test.case("each tool is described with an input schema", function(assert)
 	assert.eq(names.orion_add_item, true)
 	assert.eq(names.orion_inspect, true)
 	assert.eq(names.orion_add_image, true)
+	assert.eq(names.orion_apply, true)
 end)
 
 test.case("note tools ask agents for a plain-language summary with code formatting", function(assert)

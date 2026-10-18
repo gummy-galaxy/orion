@@ -581,6 +581,19 @@ Runs `orion suggestion find`.
 | `scope`  | unsorted \| all         | Cards to suggest groups for: unsorted, or all.             |
 | `dryRun` | boolean                 | Show suggestions without writing.                          |
 
+## orion_apply
+
+Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link, unlink, insert, move, ungroup, tidy, remove, removeGroup. Use dryRun to preview the plan and the ids each handle gets.
+
+Runs `orion apply`.
+
+| Argument     | Type       | Description                                                                                                                                                 |
+| ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operations` | operations | **Required.** Operations in order. Each has an op field, such as addCard with label, or link with from and to. Move needs group, or null for the top level. |
+| `canvas`     | canvas     | Canvas name. Omit to use the canvas selected in Orion.                                                                                                      |
+| `dryRun`     | boolean    | Preview the changes and the current revision without writing.                                                                                               |
+| `ifRevision` | int        | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written.                                                  |
+
 ## orion_suggestions
 
 List pending group suggestions.

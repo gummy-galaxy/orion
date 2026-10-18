@@ -28,6 +28,9 @@ local function checkValue(field: Field, value: json.Value)
 		for _, entry in list do
 			assert(type(entry) == "string" and entry ~= "", `{name} must be a list of strings`)
 		end
+	elseif field.kind == "operations" then
+		local steps = json.asArray(value)
+		assert(steps and #steps > 0, `{name} must be a list of operations`)
 	elseif field.kind == "enum" then
 		local values = field.values or {}
 		assert(
