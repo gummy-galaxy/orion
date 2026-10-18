@@ -15,6 +15,7 @@ local FIELDS = {
 	group = true,
 	draft = true,
 	label = true,
+	note = true,
 	pr = true,
 	ref = true,
 	snoozed = true,
@@ -114,8 +115,8 @@ local function parseExpression(input: string): Expression
 			end
 			cursor += 1
 		end
-		if operator == "~" and field ~= "label" and field ~= "ref" then
-			fail("'~' is only supported for label and ref")
+		if operator == "~" and field ~= "label" and field ~= "note" and field ~= "ref" then
+			fail("'~' is only supported for label, note, and ref")
 		end
 		local value = readValue()
 		if field == "draft" and value ~= "true" and value ~= "false" then
