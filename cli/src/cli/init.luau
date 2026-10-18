@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local process = require("@std/process")
 
+local apply = require("@root/cli/apply")
 local backup = require("@root/cli/backup")
 local canvas = require("@root/cli/canvas")
 local card = require("@root/cli/card")
@@ -52,6 +53,7 @@ local SUMMARY = "orion — keep a graph of work up to date from the command line
 
 -- Each top-level command's module defines its subcommands and runs them.
 local COMMANDS: { [string]: Command } = {
+	apply = apply,
 	backup = backup,
 	canvas = canvas,
 	card = card,
@@ -82,6 +84,7 @@ local COMMAND_ORDER = {
 	"group",
 	"ref",
 	"next",
+	"apply",
 	"sync",
 	"canvas",
 	"log",

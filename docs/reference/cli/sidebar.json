@@ -28,6 +28,10 @@
     "link": "/reference/cli/next"
   },
   {
+    "text": "apply",
+    "link": "/reference/cli/apply"
+  },
+  {
     "text": "sync",
     "link": "/reference/cli/sync"
   },
