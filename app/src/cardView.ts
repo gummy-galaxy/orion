@@ -14,7 +14,7 @@ import {
   type ViewStatus,
   type Who,
 } from './model'
-import { getRarity, type Rarity } from './rarity'
+import type { Rarity } from './rarity'
 import { repoOfPullKey, withSnoozes, type CheckSnooze } from './checkSnoozes'
 
 export type CardView = {
@@ -89,6 +89,7 @@ export type CardFacts = {
   status: ViewStatus
   leverage: number
   upstream: number
+  rarity?: Rarity
   sources: SourceRef[]
   blockers?: number
   unblocks?: number
@@ -128,7 +129,7 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     leverage: facts.leverage,
     upstream: facts.upstream,
     // Notes and components aren't work, so nothing about them is rare.
-    ...(data.itemKind === 'note' || data.itemKind === 'component' ? {} : { rarity: getRarity(facts.upstream) }),
+    ...(data.itemKind === 'note' || data.itemKind === 'component' ? {} : { rarity: facts.rarity ?? 'common' }),
     ...(checks ? { checks } : {}),
     ...(readiness ? { readiness } : {}),
     ...(checkProgress ? { checkProgress } : {}),
