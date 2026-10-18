@@ -1,8 +1,20 @@
+local addItem = require("@root/graph/addItem")
+local addNote = require("@root/graph/addNote")
 local applyTypes = require("@root/apply/types")
+local attachRef = require("@root/graph/attachRef")
 local getErrorText = require("@root/getErrorText")
-local graph = require("@root/graph")
+local insertBetween = require("@root/graph/insertBetween")
+local linkItems = require("@root/graph/linkItems")
+local makeGroup = require("@root/graph/makeGroup")
+local markForTidy = require("@root/graph/markForTidy")
+local moveItem = require("@root/graph/moveItem")
+local removeGroup = require("@root/graph/removeGroup")
+local removeItem = require("@root/graph/removeItem")
 local resolveRef = require("@root/adapters/resolveRef")
+local setFields = require("@root/graph/setFields")
 local types = require("@root/types")
+local ungroup = require("@root/graph/ungroup")
+local unlinkItems = require("@root/graph/unlinkItems")
 
 type Doc = types.Doc
 type Operation = applyTypes.Operation
@@ -41,17 +53,17 @@ local handlers: { [string]: Handler } = {}
 handlers.addCard = function(doc: Doc, operation: Operation, handles: Handles)
 	local options = table.clone(operation.fields or {}) :: any
 	options.group = resolveOptional(handles, operation.group)
-	local item = graph.addItem(doc, required(operation.label, "label"), options)
+	local item = addItem(doc, required(operation.label, "label"), options)
 
 	if operation.ref then
-		graph.attachRef(doc, item.id, resolveRef(operation.ref, doc.settings.sources))
+		attachRef(doc, item.id, resolveRef(operation.ref, doc.settings.sources))
 	end
 
 	declare(handles, operation.handle, item.id)
 end
 
 handlers.addNote = function(doc: Doc, operation: Operation, handles: Handles)
-	local note = graph.addNote(doc, required(operation.text, "text"), {
+	local note = addNote(doc, required(operation.text, "text"), {
 		group = resolveOptional(handles, operation.group),
 		after = resolveOptional(handles, operation.after),
 		before = resolveOptional(handles, operation.before),
@@ -67,52 +79,52 @@ handlers.group = function(doc: Doc, operation: Operation, handles: Handles)
 		table.insert(ids, resolve(handles, id))
 	end
 
-	local made = graph.makeGroup(doc, required(operation.label, "label"), ids)
+	local made = makeGroup(doc, required(operation.label, "label"), ids)
 	declare(handles, operation.handle, made.id)
 end
 
 handlers.setFields = function(doc: Doc, operation: Operation, handles: Handles)
-	graph.setFields(doc, resolve(handles, required(operation.id, "id")), required(operation.fields, "fields") :: any)
+	setFields(doc, resolve(handles, required(operation.id, "id")), required(operation.fields, "fields") :: any)
 end
 
 handlers.link = function(doc: Doc, operation: Operation, handles: Handles)
 	local from = resolve(handles, required(operation.from, "from"))
 	local to = resolve(handles, required(operation.to, "to"))
-	graph.link(doc, from, to, operation.kind or "blocks")
+	linkItems(doc, from, to, operation.kind or "blocks")
 end
 
 handlers.unlink = function(doc: Doc, operation: Operation, handles: Handles)
 	local from = resolve(handles, required(operation.from, "from"))
 	local to = resolve(handles, required(operation.to, "to"))
-	graph.unlink(doc, from, to)
+	unlinkItems(doc, from, to)
 end
 
 handlers.insert = function(doc: Doc, operation: Operation, handles: Handles)
 	local id = resolve(handles, required(operation.id, "id"))
 	local from = resolve(handles, required(operation.from, "from"))
 	local to = resolve(handles, required(operation.to, "to"))
-	graph.insertBetween(doc, id, from, to)
+	insertBetween(doc, id, from, to)
 end
 
 -- A move without a group goes to the top level.
 handlers.move = function(doc: Doc, operation: Operation, handles: Handles)
-	graph.move(doc, resolve(handles, required(operation.id, "id")), resolveOptional(handles, operation.group))
+	moveItem(doc, resolve(handles, required(operation.id, "id")), resolveOptional(handles, operation.group))
 end
 
 handlers.remove = function(doc: Doc, operation: Operation, handles: Handles)
-	graph.remove(doc, resolve(handles, required(operation.id, "id")), operation.reconnect)
+	removeItem(doc, resolve(handles, required(operation.id, "id")), operation.reconnect)
 end
 
 handlers.removeGroup = function(doc: Doc, operation: Operation, handles: Handles)
-	graph.removeGroup(doc, resolve(handles, required(operation.id, "id")))
+	removeGroup(doc, resolve(handles, required(operation.id, "id")))
 end
 
 handlers.ungroup = function(doc: Doc, operation: Operation, handles: Handles)
-	graph.ungroup(doc, resolve(handles, required(operation.id, "id")))
+	ungroup(doc, resolve(handles, required(operation.id, "id")))
 end
 
 handlers.tidy = function(doc: Doc, operation: Operation, handles: Handles)
-	graph.markForTidy(doc, resolve(handles, required(operation.id, "id")))
+	markForTidy(doc, resolve(handles, required(operation.id, "id")))
 end
 
 -- Applies the steps in order to the document. A step that fails raises an error naming its position. The caller's
