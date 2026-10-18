@@ -8,6 +8,7 @@ local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
+local getErrorText = require("@root/getErrorText")
 local getVersion = require("@root/getVersion")
 local group = require("@root/cli/group")
 local ingest = require("@root/cli/ingest")
@@ -101,7 +102,7 @@ Use orion server status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection.]]
 
 local QUERY_HELP = [[
-Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref.
+Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, snoozed.
 Compare quoted values with = or !=; label and ref also support ~ for case-insensitive text.
 Combine with and, or, not, and parentheses. Missing fields never match.]]
 
@@ -314,8 +315,7 @@ local function run(argv: { string })
 	local succeeded, message = pcall(execute, { table.unpack(argv, 2) }, nil)
 
 	if not succeeded then
-		local text = tostring(message):gsub("^[^\n]-:%d+: ", "", 1)
-		print(`Error: {text}`)
+		print(`Error: {getErrorText(message)}`)
 		process.exit(1)
 	end
 end

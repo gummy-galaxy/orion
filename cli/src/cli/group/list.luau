@@ -16,14 +16,14 @@ return table.freeze({
 
 	run = function(_parser: cli.Parser, options: Context)
 		local doc = store.load(options.dir)
-		local derived = graph.derive(doc)
+		local derived = graph.derive(doc, options.now())
 		local values: json.Array = {}
 		local lines = {}
 
 		for _, group in doc.nodes do
 			if graph.isGroup(group) then
-				table.insert(values, renderGroup.serialize(doc, derived, group))
-				table.insert(lines, `{group.id}  {renderGroup.formatLine(doc, derived, group)}`)
+				table.insert(values, renderGroup.serialize(derived, group))
+				table.insert(lines, `{group.id}  {renderGroup.formatLine(derived, group)}`)
 			end
 		end
 

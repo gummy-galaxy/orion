@@ -59,8 +59,8 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local doc = store.load(options.dir)
-		local items = selectItems(doc, getRequired(parser, "where"), parser:has("all"))
-		local derived = graph.derive(doc)
+		local items = selectItems(doc, getRequired(parser, "where"), parser:has("all"), options.now())
+		local derived = graph.derive(doc, options.now())
 
 		if options.asJson then
 			writeJson(options, doc, derived, items)

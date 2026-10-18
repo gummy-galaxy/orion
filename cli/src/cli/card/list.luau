@@ -25,7 +25,7 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local doc = store.load(options.dir)
-		local derived = graph.derive(doc)
+		local derived = graph.derive(doc, options.now())
 		local groupId = parser:get("group")
 
 		if groupId then

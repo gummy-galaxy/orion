@@ -21,9 +21,9 @@ return table.freeze({
 		local item = graph.get(doc, getRequired(parser, "id"))
 
 		if options.asJson then
-			options.write(json.serialize(render.itemJson(doc, graph.derive(doc), item), true))
+			options.write(json.serialize(render.itemJson(doc, graph.derive(doc, options.now()), item), true))
 		else
-			options.write(render.show(doc, graph.derive(doc), item))
+			options.write(render.show(doc, graph.derive(doc, options.now()), item))
 		end
 	end,
 })

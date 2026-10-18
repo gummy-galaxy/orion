@@ -16,10 +16,12 @@ return table.freeze({
 
 	run = function(_parser: cli.Parser, options: Context)
 		local doc = store.load(options.dir)
-		local derived = graph.derive(doc)
+		local derived = graph.derive(doc, options.now())
 		local items = sortTasks(doc, derived, function(item)
 			local status = derived.status[item.id]
-			return graph.isWork(item) and (status == "ready" or status == "active" or status == "review")
+			return graph.isWork(item)
+				and not derived.snoozed[item.id]
+				and (status == "ready" or status == "active" or status == "review")
 		end)
 
 		writeItems(options, doc, derived, items)

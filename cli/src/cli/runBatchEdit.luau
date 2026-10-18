@@ -25,6 +25,7 @@ local function runBatchEdit(parser: cli.Parser, options: Context, action: string
 		ifRevision = requestedRevision(parser),
 		destination = if parser:has("top") then nil else destination,
 		reconnect = parser:has("reconnect"),
+		now = options.now(),
 		write = options.write,
 	})
 end

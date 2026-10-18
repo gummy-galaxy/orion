@@ -51,7 +51,7 @@ function focus.serialize(doc: Doc, derived: graph.Derived, report: Focus?): json
 	object.updatedAt = report.updatedAt
 	local group = findOpenGroup(doc, report)
 	if group then
-		local open = renderGroup.serialize(doc, derived, group)
+		local open = renderGroup.serialize(derived, group)
 		local path: json.Array = {}
 		for _, parent in findAncestorTrail(doc, group) do
 			table.insert(path, json.object({ id = parent.id, label = graph.label(parent) }))
@@ -61,7 +61,7 @@ function focus.serialize(doc: Doc, derived: graph.Derived, report: Focus?): json
 	end
 	for _, item in findSelectedItems(doc, report) do
 		if graph.isGroup(item) then
-			local entry = renderGroup.serialize(doc, derived, item)
+			local entry = renderGroup.serialize(derived, item)
 			entry.kind = "group"
 			table.insert(selected, entry)
 		else
@@ -83,7 +83,7 @@ function focus.format(doc: Doc, derived: graph.Derived, report: Focus?): string
 			table.insert(within, graph.label(parent))
 		end
 		local inside = if #within > 0 then `, inside {table.concat(within, " › ")}` else ""
-		table.insert(lines, `Open: {group.id}  {renderGroup.formatLine(doc, derived, group)}{inside}`)
+		table.insert(lines, `Open: {group.id}  {renderGroup.formatLine(derived, group)}{inside}`)
 	else
 		table.insert(lines, "Open: the top level")
 	end
@@ -94,7 +94,7 @@ function focus.format(doc: Doc, derived: graph.Derived, report: Focus?): string
 		table.insert(lines, "Selected:")
 		for _, item in items do
 			if graph.isGroup(item) then
-				table.insert(lines, `  {pad("group", 9)}{pad(item.id, 24)}{renderGroup.formatLine(doc, derived, item)}`)
+				table.insert(lines, `  {pad("group", 9)}{pad(item.id, 24)}{renderGroup.formatLine(derived, item)}`)
 			else
 				table.insert(lines, `  {renderItem.table(doc, derived, { item })}`)
 			end

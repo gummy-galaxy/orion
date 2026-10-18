@@ -3,7 +3,7 @@ import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
 import { TASK_HEIGHT, TASK_WIDTH, type TaskNode } from '../model'
 import { useAtomValue } from 'jotai'
 import { ActionsContext } from '../derive'
-import { useCardView, useCelebrating, useMarked, useTint, useTraceRole, inspectingAtom, skinAtom, skinStore } from '../state'
+import { useCardView, useCelebrating, useMarked, useSnoozed, useTint, useTraceRole, inspectingAtom, skinAtom, skinStore } from '../state'
 import { CardBody } from './CardBody'
 import { ComponentCard } from './ComponentCard'
 import { FarTag } from './FarTag'
@@ -46,6 +46,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   const view = useCardView(id, data, parentId)
   const trace = useTraceRole(id)
   const attention = useMarked(id)
+  const snoozedUntil = useSnoozed(id)
   const actions = useContext(ActionsContext)!
   const tint = useTint(id)
   // A card keeps its badge while the badge clears, after the flag itself is already gone.
@@ -60,7 +61,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
       ? `card skin-${skin} note${trace ? ' tr-' + trace : ''}`
       : view.kind === 'component'
         ? `card component shape-${data.shape ?? 'service'}${tint ? ' tint-' + tint : ''}${trace ? ' tr-' + trace : ''}`
-        : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}`
+        : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}${snoozedUntil ? ' snoozed' : ''}`
   const body = (
     <>
       {view.kind === 'component' ? (
@@ -100,6 +101,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   return (
     <div
       className={className}
+      title={snoozedUntil ? `Snoozed until ${new Date(snoozedUntil).toLocaleString()}` : undefined}
       onPointerEnter={(event) => {
         event.currentTarget.style.transformOrigin = liftOrigin(event.currentTarget)
         setHovered(true)
