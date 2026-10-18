@@ -34,7 +34,7 @@ Components:
 - `components/TaskInspector.tsx`, `components/NoteBody.tsx`, and `components/LinkSection.tsx`: a card's details, note, and links in the inspector.
 - `components/Timeline.tsx`, `src/useCardLog.ts`, and `src/log.ts`: a card's timeline, its entries from the canvas log newest first, read from `GET /api/log` and refetched when `orion:log` announces an append.
 - `components/Markdown.tsx`: the shared Markdown renderer, with no raw HTML.
-- `src/checkSnoozes.ts` and `components/CheckSnoozes.tsx`: CI jobs snoozed across every card in a repository, and the inspector's list of a card's failing jobs, where unchecking one snoozes it.
+- `components/CheckSnoozes.tsx`: the inspector's list of a card's failing CI jobs, where unchecking one snoozes it across every card in the repository. `orion serve` sends each card's pull request facts with its snoozed jobs left out, which `src/withSnoozedFacts.ts` shows over the card's own.
 - `components/Sidebar.tsx`, `components/ContextMenu.tsx`, and `components/Palette.tsx`: the group list, right-click menu, and ⌘K search.
 - `components/Settings.tsx`: the settings dialog and its pages.
 - `components/SourceBadges.tsx`: source favicons on cards and groups, and the links behind them.

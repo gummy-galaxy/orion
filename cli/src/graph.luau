@@ -6,6 +6,7 @@ local fieldValues = require("@root/fieldValues")
 local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
 local getRefs = require("@root/refs/getRefs")
+local getSnoozedFacts = require("@root/github/getSnoozedFacts")
 local isAssetId = require("@root/media/isAssetId")
 local removeRef = require("@root/refs/removeRef")
 local setRef = require("@root/refs/setRef")
@@ -16,6 +17,7 @@ type Doc = types.Doc
 type Item = types.Item
 type Link = types.Link
 type Position = types.Position
+type SnoozedFacts = types.SnoozedFacts
 
 -- Card and group sizes match the app so CLI placements line up with its layout.
 local TASK_WIDTH = 216
@@ -45,6 +47,8 @@ export type Derived = {
 	groups: { [string]: GroupStats },
 	-- Cards snoozed right now, mapped to the UTC time they wake.
 	snoozed: { [string]: string },
+	-- Pull request facts for cards where a CI job snooze leaves out a failure, which the app shows over the card's own.
+	pulls: { [string]: SnoozedFacts },
 }
 
 export type ItemFields = {
@@ -278,10 +282,12 @@ function graph.derive(doc: Doc, now: string?): Derived
 	local tasks: { [string]: Item } = {}
 	local parentOf: { [string]: string } = {}
 	local snoozed: { [string]: string } = {}
+	local pulls: { [string]: SnoozedFacts } = {}
 
 	for _, item in doc.nodes do
 		if item.type == "task" then
 			tasks[item.id] = item
+			pulls[item.id] = getSnoozedFacts(item, doc.settings.checkSnoozes, clock)
 		end
 
 		if item.parentId then
@@ -565,6 +571,7 @@ function graph.derive(doc: Doc, now: string?): Derived
 		rarity = rarity,
 		groups = groups,
 		snoozed = snoozed,
+		pulls = pulls,
 	}
 end
 

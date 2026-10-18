@@ -7,6 +7,8 @@ import {
   isWork,
   type AppNode,
   type Link,
+  type PullReadiness,
+  type RefChecks,
   type SourceRef as RefData,
   type TaskNode,
   type ViewStatus,
@@ -32,7 +34,18 @@ export type Derived = {
   groups: Record<string, GroupStats>
   /** Cards snoozed right now, mapped to the UTC time they wake. */
   snoozed: Record<string, string>
+  /** Pull request facts for cards where a CI job snooze leaves out a failure, shown over the card's own. */
+  pulls: Record<string, SnoozedFacts>
 }
+
+/** A failed CI job a snooze leaves out on a card, and when the snooze ends if it's timed. */
+export type SnoozedJob = { name: string; until?: string }
+
+/**
+ * A card's pull request facts with its snoozed CI jobs left out, so a card whose only failures are snoozed reads as
+ * running or passing. `wakesAt` is when the soonest timed snooze ends and the facts change again.
+ */
+export type SnoozedFacts = { readiness?: PullReadiness; checks?: RefChecks; snoozed: SnoozedJob[]; wakesAt?: string }
 
 export type Actions = {
   reflow: (groupId: string) => void
@@ -159,6 +172,7 @@ export type ServerFacts = {
   rarity: Map<string, Rarity>
   groups: Map<string, GroupStats>
   snoozed: Map<string, string>
+  pulls: Map<string, SnoozedFacts>
 }
 
 export function toServerFacts(derived: Derived | null): ServerFacts {
@@ -170,6 +184,7 @@ export function toServerFacts(derived: Derived | null): ServerFacts {
     rarity: new Map(Object.entries(derived?.rarity ?? {})),
     groups: new Map(Object.entries(derived?.groups ?? {})),
     snoozed: new Map(Object.entries(derived?.snoozed ?? {})),
+    pulls: new Map(Object.entries(derived?.pulls ?? {})),
   }
 }
 

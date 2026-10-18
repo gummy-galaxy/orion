@@ -28,6 +28,24 @@ local function serializeDerived(derived: Derived): json.Object
 		})
 	end
 
+	local pulls = json.object({})
+
+	for id, facts in derived.pulls do
+		local snoozed: json.Array = {}
+
+		for _, job in facts.snoozed do
+			local value = json.object({ name = job.name })
+			value["until"] = job.untilTime
+			table.insert(snoozed, value)
+		end
+
+		local value = json.object({ snoozed = snoozed })
+		value.readiness = facts.readiness
+		value.checks = facts.checks
+		value.wakesAt = facts.wakesAt
+		pulls[id] = value
+	end
+
 	return json.object({
 		status = copyValues(derived.status),
 		flow = copyValues(derived.flow),
@@ -36,6 +54,7 @@ local function serializeDerived(derived: Derived): json.Object
 		rarity = copyValues(derived.rarity),
 		groups = groups,
 		snoozed = copyValues(derived.snoozed),
+		pulls = pulls,
 	})
 end
 
