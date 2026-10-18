@@ -45,7 +45,7 @@ end
 return table.freeze({
 	help = "Find cards and groups with an expression",
 	define = function(parser: cli.Parser)
-		parser:add("where", "option", { help = "Expression selecting cards or groups", required = true })
+		parser:add("where", "option", { help = "Expression selecting cards or groups (required)" })
 		parser:add("all", "flag", { help = "Include done items" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

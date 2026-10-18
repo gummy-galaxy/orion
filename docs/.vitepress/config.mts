@@ -7,6 +7,7 @@ export default defineConfig({
   // The vibrant theme is dark only, like the app's.
   appearance: 'force-dark',
   cleanUrls: true,
+  markdown: { image: { lazyLoading: true } },
   lastUpdated: true,
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/logo.png' }],
@@ -50,8 +51,33 @@ export default defineConfig({
       ],
       '/development/': [
         { text: 'Development', link: '/development/' },
-        { text: 'Design', link: '/development/design/' },
-        { text: 'Engineering', link: '/development/engineering/' },
+        { text: 'Charter', link: '/development/charter' },
+        { text: 'Decisions', link: '/development/decisions' },
+        {
+          text: 'Design',
+          link: '/development/design/',
+          collapsed: false,
+          items: [
+            { text: 'Logo', link: '/development/design/logo' },
+            { text: 'Themes and skins', link: '/development/design/themes-and-skins' },
+            { text: 'Card skins', link: '/development/design/cards' },
+            { text: 'Trading cards', link: '/development/design/trading-cards' },
+            { text: 'Companion', link: '/development/design/companion' },
+            { text: 'Motion and feel', link: '/development/design/motion-and-feel' },
+            { text: 'Canvas and layout', link: '/development/design/canvas-and-layout' },
+          ],
+        },
+        {
+          text: 'Engineering',
+          link: '/development/engineering/',
+          collapsed: false,
+          items: [
+            { text: 'Architecture', link: '/development/engineering/architecture' },
+            { text: 'Data and sync', link: '/development/engineering/data-and-sync' },
+            { text: 'Performance', link: '/development/engineering/performance' },
+            { text: 'CLI and agents', link: '/development/engineering/cli-and-agents' },
+          ],
+        },
       ],
     },
     search: { provider: 'local' },

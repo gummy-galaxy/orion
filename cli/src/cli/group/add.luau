@@ -28,7 +28,7 @@ return table.freeze({
 	help = "Wrap items that share a parent in a new group",
 	define = function(parser: cli.Parser)
 		parser:add("label", "variadic", { help = "Group name" })
-		parser:add("items", "option", { help = "Comma-separated ids to put in it", required = true })
+		parser:add("items", "option", { help = "Comma-separated ids to put in it (required)" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 

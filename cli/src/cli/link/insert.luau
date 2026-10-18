@@ -15,7 +15,7 @@ return table.freeze({
 	help = "Insert an item into an existing link",
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
-		parser:add("between", "option", { help = "Source item whose link is replaced", required = true })
+		parser:add("between", "option", { help = "Source item whose link is replaced (required)" })
 		parser:add("target", "variadic", { help = "Target item whose link is replaced" })
 		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
 		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
