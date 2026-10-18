@@ -3,7 +3,7 @@ local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local graph = require("@root/graph")
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
 
 type Context = context.Context
 
@@ -14,7 +14,7 @@ return table.freeze({
 	end,
 
 	run = function(_parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
+		local doc = loadDoc(options.dir)
 		local unplaced = if doc.github then json.asArray(doc.github.unplaced) else nil
 		local values: json.Array = unplaced or {}
 

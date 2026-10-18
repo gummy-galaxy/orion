@@ -4,7 +4,7 @@ local path = require("@std/path")
 local detectImageFormat = require("@root/media/detectImageFormat")
 local graph = require("@root/graph")
 local resolveId = require("@root/query/resolveId")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 local validateImageSize = require("@root/media/validateImageSize")
 local writeImageAsset = require("@root/media/writeImageAsset")
@@ -18,7 +18,7 @@ return function(dir: string, workspace: string, file: string, label: string?, gr
 	local extension = detectImageFormat(bytes)
 	local name = label or ((path.basename(file) or ""):gsub("%.[^.]+$", ""))
 	local added: Item? = nil
-	store.transaction(dir, function(doc)
+	runTransaction(dir, function(doc)
 		local parent = if group then resolveId(doc, group) else nil
 		local item = graph.addImage(doc, name, extension, workspace, parent)
 		writeImageAsset(dir, item.data.asset :: string, bytes)

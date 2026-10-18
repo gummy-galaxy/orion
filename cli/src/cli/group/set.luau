@@ -7,7 +7,7 @@ local getItemFields = require("@root/cli/getItemFields")
 local getRequired = require("@root/cli/getRequired")
 local graph = require("@root/graph")
 local resolveId = require("@root/query/resolveId")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 local writeItem = require("@root/cli/writeItem")
 
@@ -49,7 +49,7 @@ return table.freeze({
 		checkStyleAssets(options.dir, values.background)
 
 		local changed: Item
-		local doc = store.transaction(options.dir, function(doc)
+		local doc = runTransaction(options.dir, function(doc)
 			local id = resolveId(doc, idInput)
 			assert(graph.isGroup(graph.get(doc, id)), `"{id}" is an item; use orion card set`)
 			changed = graph.setFields(doc, id, values)

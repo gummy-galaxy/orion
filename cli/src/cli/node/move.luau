@@ -7,7 +7,7 @@ local isBatchEdit = require("@root/cli/isBatchEdit")
 local resolveId = require("@root/query/resolveId")
 local resolveOptionalId = require("@root/cli/resolveOptionalId")
 local runBatchEdit = require("@root/cli/runBatchEdit")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 
@@ -30,7 +30,7 @@ return table.freeze({
 
 		local id: string
 		local target: string?
-		store.transaction(options.dir, function(doc)
+		runTransaction(options.dir, function(doc)
 			id = resolveId(doc, parser:variadics()[1])
 			target = if parser:has("top") then nil else resolveOptionalId(doc, to)
 			graph.move(doc, id, target)

@@ -5,7 +5,8 @@ local context = require("@root/cli/context")
 local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getAdapter = require("@root/adapters/getAdapter")
 local githubTypes = require("@root/github/types")
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 type RefreshReport = githubTypes.Report
@@ -26,7 +27,7 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local dryRun = parser:has("dry-run")
-		local snapshot = store.load(options.dir)
+		local snapshot = loadDoc(options.dir)
 		local apply = assert(getAdapter("github").refresh)(
 			snapshot,
 			options.runner,
@@ -38,7 +39,7 @@ return table.freeze({
 		if dryRun then
 			report = apply(snapshot)
 		else
-			store.transaction(options.dir, function(doc)
+			runTransaction(options.dir, function(doc)
 				report = apply(doc)
 			end)
 		end

@@ -4,8 +4,9 @@ local json = require("@std/json")
 local compute = require("@root/suggest/compute")
 local context = require("@root/cli/context")
 local convertToJson = require("@root/suggest/convertToJson")
+local loadDoc = require("@root/store/loadDoc")
+local runTransaction = require("@root/store/runTransaction")
 local save = require("@root/suggest/save")
-local store = require("@root/store")
 
 type Context = context.Context
 
@@ -19,14 +20,14 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local current = store.load(options.dir)
+		local current = loadDoc(options.dir)
 		local settings = if current.raw then json.asObject(current.raw.settings) else nil
 		local configured = if settings and type(settings.agent) == "string" then settings.agent else nil
 		local agent = parser:get("agent") or configured or "none"
 		local result, didFallback =
 			compute(current, parser:get("scope") or "unsorted", agent, options.runner, options.now())
 		if not parser:has("dry-run") then
-			store.transaction(options.dir, function(doc)
+			runTransaction(options.dir, function(doc)
 				save(doc, result)
 			end)
 		end

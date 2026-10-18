@@ -7,7 +7,7 @@ local getRequired = require("@root/cli/getRequired")
 local graph = require("@root/graph")
 local resolveId = require("@root/query/resolveId")
 local resolveRef = require("@root/adapters/resolveRef")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 local writeItem = require("@root/cli/writeItem")
 
@@ -49,7 +49,7 @@ return table.freeze({
 		local input = getRequired(parser, "ref")
 
 		local detached: Item
-		local doc = store.transaction(options.dir, function(doc)
+		local doc = runTransaction(options.dir, function(doc)
 			detached = detachRef(doc, resolveId(doc, idInput), input)
 		end)
 
