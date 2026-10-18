@@ -325,7 +325,7 @@ async function main() {
     base: { ref: options.base, sha: base.sha },
     head: { ref: process.env.GITHUB_HEAD_REF || git('rev-parse', '--abbrev-ref', 'HEAD'), sha: git('rev-parse', 'HEAD') },
   }
-  const raw: Record<string, unknown> = {}
+  const raw: Record<string, unknown> = { base: input.base, head: input.head }
 
   mkdirSync(OUT, { recursive: true })
 
