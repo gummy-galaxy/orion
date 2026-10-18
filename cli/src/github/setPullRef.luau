@@ -2,6 +2,7 @@ local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
 local getRecorded = require("@root/github/getRecorded")
 local githubTypes = require("@root/github/types")
+local setPullFacts = require("@root/github/setPullFacts")
 local setRef = require("@root/refs/setRef")
 local types = require("@root/types")
 
@@ -13,7 +14,7 @@ local function setPullRef(item: Item, pull: PullState, source: string, viewer: s
 	local existing = findRef(item, "pull", getGithubKey(pull.owner, pull.name, `#{pull.number}`, pull.host))
 	details.branch = pull.branch or (if existing and existing.details then existing.details.branch else nil)
 
-	setRef(item, {
+	local recorded = setRef(item, {
 		source = if existing then existing.source else source,
 		kind = "pull",
 		key = getGithubKey(pull.owner, pull.name, `#{pull.number}`, pull.host),
@@ -23,6 +24,8 @@ local function setPullRef(item: Item, pull: PullState, source: string, viewer: s
 		updatedAt = pull.updatedAt,
 		details = details,
 	})
+
+	setPullFacts(recorded, details)
 end
 
 return setPullRef
