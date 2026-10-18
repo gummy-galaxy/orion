@@ -5,6 +5,7 @@ local checkLayout = require("@root/layout/checkLayout")
 local context = require("@root/cli/context")
 local layoutTypes = require("@root/layout/types")
 local pad = require("@root/render/pad")
+local resolveId = require("@root/query/resolveId")
 local store = require("@root/store")
 
 type Context = context.Context
@@ -44,7 +45,9 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local issues = checkLayout(store.load(options.dir), parser:get("group"))
+		local doc = store.load(options.dir)
+		local group = parser:get("group")
+		local issues = checkLayout(doc, if group then resolveId(doc, group) else nil)
 
 		if options.asJson then
 			local values: json.Array = {}
