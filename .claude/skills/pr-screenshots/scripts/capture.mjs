@@ -42,15 +42,15 @@
 // and removed after, and skipped when the element it acted on is gone, such as a
 // clicked menu item. --cursor off leaves it out.
 //
-// --selector crops the image to one element with --padding CSS pixels of the page
-// around it, 32 by default, so shadows and nearby context stay in the frame. The crop
-// grows to keep the cursor in it.
+// --selector crops the image to the elements it matches with --padding CSS pixels of
+// the page around them, 32 by default, so shadows and nearby context stay in the
+// frame. The crop grows to keep the cursor in it.
 //
 // An --out ending in .mp4 records a video instead. Recording starts once --wait-for
 // matches, runs through the steps, and stops --delay milliseconds after the last one.
 // The cursor stays on screen the whole time and shows each press as it happens. For
 // videos, --scale defaults to 1, --delay to 1500, and --glide to 600, and --selector
-// crops to where the element ends up.
+// crops to where the elements end up.
 
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -161,7 +161,9 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function launchChrome(chrome, profile) {
+// Chrome renders at `scale` itself, not only through emulation, because the screencast
+// sends frames no larger than the window's own pixels.
+function launchChrome(chrome, profile, scale) {
   const child = spawn(
     chrome,
     [
@@ -171,6 +173,7 @@ function launchChrome(chrome, profile) {
       "--no-first-run",
       "--no-default-browser-check",
       "--hide-scrollbars",
+      `--force-device-scale-factor=${scale}`,
       "about:blank",
     ],
     { stdio: ["ignore", "ignore", "pipe"] },
@@ -309,8 +312,31 @@ async function bounds(session, selector) {
   );
 }
 
+// The box around every element the selector matches that takes up space, so
+// `.react-flow__node` frames all the cards on the canvas.
+async function unionBounds(session, selector) {
+  await waitFor(session, selector);
+
+  return evaluate(
+    session,
+    `(() => {
+      const rects = [...document.querySelectorAll(${JSON.stringify(selector)})].map((element) =>
+        element.getBoundingClientRect()
+      ).filter((rect) => rect.width > 0 || rect.height > 0)
+      const x = Math.min(...rects.map((rect) => rect.left))
+      const y = Math.min(...rects.map((rect) => rect.top))
+      return {
+        x,
+        y,
+        width: Math.max(...rects.map((rect) => rect.right)) - x,
+        height: Math.max(...rects.map((rect) => rect.bottom)) - y,
+      }
+    })()`,
+  );
+}
+
 async function paddedBounds(session, selector, padding) {
-  const rect = await bounds(session, selector);
+  const rect = await unionBounds(session, selector);
   const page = await evaluate(
     session,
     `({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight })`,
@@ -1013,12 +1039,15 @@ async function encodeVideo(frames, stoppedAt, directory, options, clip) {
 
   writeFileSync(list, `${lines.join("\n")}\n`);
 
+  // Scale the crop by the frames' own size, since Chrome can send frames smaller than
+  // the viewport at --scale.
   if (clip) {
-    const scaled = [clip.width, clip.height, clip.x, clip.y].map((value) =>
-      Math.round(value * options.scale),
-    );
+    const across = (value) => `${value}*iw/${options.width}`;
+    const down = (value) => `${value}*ih/${options.height}`;
 
-    filters.push(`crop=${scaled.join(":")}`);
+    filters.push(
+      `crop=${[across(clip.width), down(clip.height), across(clip.x), down(clip.y)].join(":")}`,
+    );
   }
 
   filters.push("crop=trunc(iw/2)*2:trunc(ih/2)*2:0:0", "format=yuv420p");
@@ -1110,7 +1139,7 @@ async function capture(options) {
   const frames = options.video
     ? mkdtempSync(join(tmpdir(), "pr-videos-"))
     : undefined;
-  const chrome = launchChrome(options.chrome, profile);
+  const chrome = launchChrome(options.chrome, profile, options.scale);
 
   try {
     const session = await connect(await chrome.endpoint);
