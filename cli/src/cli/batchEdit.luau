@@ -3,6 +3,7 @@ local json = require("@std/json")
 local applyOperations = require("@root/operations/applyOperations")
 local graph = require("@root/graph")
 local operationTypes = require("@root/operations/types")
+local resolveId = require("@root/query/resolveId")
 local runEdit = require("@root/cli/runEdit")
 local selectItems = require("@root/query/selectItems")
 local types = require("@root/types")
@@ -35,7 +36,7 @@ export type Options = {
 type Change = { id: string, label: string, parent: string? }
 
 -- The operation one target gets. The app sends the same operations, so both paths edit the document one way.
-local function editFor(options: Options, id: string): operationTypes.Operation
+local function editFor(options: Options, id: string, destination: string?): operationTypes.Operation
 	if options.action == "done" then
 		return { op = "setFields", id = id, fields = { status = "done" } }
 	elseif options.action == "remove" then
@@ -52,7 +53,7 @@ local function editFor(options: Options, id: string): operationTypes.Operation
 		return { op = "setFields", id = id, fields = { snoozedUntil = "" } }
 	end
 
-	return { op = "move", id = id, group = options.destination }
+	return { op = "move", id = id, group = destination }
 end
 
 local function batchEdit(options: Options)
@@ -61,6 +62,7 @@ local function batchEdit(options: Options)
 	assert(options.action ~= "snooze" or options.untilTime ~= nil, "say when it wakes with --until <iso>")
 
 	local changes: { Change } = {}
+	local destination = options.destination
 
 	local function apply(doc: Doc)
 		local targets: { Item } = {}
@@ -68,12 +70,17 @@ local function batchEdit(options: Options)
 			targets = selectItems(doc, options.where, true, options.now)
 		else
 			local seen: { [string]: boolean } = {}
-			for _, id in options.ids do
+			for _, input in options.ids do
+				local id = resolveId(doc, input)
 				assert(not seen[id], `duplicate id: {id}`)
 				seen[id] = true
 				local item = graph.get(doc, id)
 				table.insert(targets, item)
 			end
+		end
+
+		if options.destination then
+			destination = resolveId(doc, options.destination)
 		end
 
 		for _, item in targets do
@@ -124,7 +131,7 @@ local function batchEdit(options: Options)
 			end
 
 			if not insideTarget then
-				table.insert(edits, editFor(options, item.id))
+				table.insert(edits, editFor(options, item.id, destination))
 			end
 		end
 
@@ -144,7 +151,7 @@ local function batchEdit(options: Options)
 			baseRevision = baseRevision,
 			revision = result.revision,
 			items = entries,
-			destination = if options.action == "move" then options.destination or json.null else nil,
+			destination = if options.action == "move" then destination or json.null else nil,
 			["until"] = if options.action == "snooze" then options.untilTime else nil,
 		})
 
@@ -192,10 +199,8 @@ local function batchEdit(options: Options)
 	elseif options.action == "tidy" then
 		summary = if options.dryRun then `Would tidy {count} {noun}` else `Marked {count} {noun} to tidy`
 	else
-		local destination = options.destination or "the top level"
-		summary = if options.dryRun
-			then `Would move {count} {noun} to {destination}`
-			else `Moved {count} {noun} to {destination}`
+		local target = destination or "the top level"
+		summary = if options.dryRun then `Would move {count} {noun} to {target}` else `Moved {count} {noun} to {target}`
 	end
 	local revision = if options.dryRun then `{baseRevision}` else `{baseRevision} → {result.revision}`
 	local lines = { `{summary} at revision {revision}` }
