@@ -1009,9 +1009,11 @@ select {
   border: var(--border-width-strong) dashed var(--accent-default);
   background: color-mix(in srgb, var(--accent-subtle) 60%, transparent);
 }
-/* The edges and corners a group is resized by. They straddle its border and keep their size on screen at any zoom. */
+/*
+ * The edges and corners a group is resized by. They straddle its border and keep their size on screen at any zoom.
+ * A transform does the scaling, so zooming never lays them out again.
+ */
 .group-resize {
-  --grip: calc(10px * var(--inv, 1));
   position: absolute;
   z-index: 2;
   touch-action: none;
@@ -1020,36 +1022,40 @@ select {
 }
 .group-resize-n,
 .group-resize-s {
-  left: var(--grip);
-  right: var(--grip);
-  height: var(--grip);
+  left: 0;
+  right: 0;
+  height: 10px;
+  transform: scaleY(var(--inv, 1));
   cursor: ns-resize;
 }
 .group-resize-n {
-  top: calc(var(--grip) / -2);
+  top: -5px;
 }
 .group-resize-s {
-  bottom: calc(var(--grip) / -2);
+  bottom: -5px;
 }
 .group-resize-e,
 .group-resize-w {
-  top: var(--grip);
-  bottom: var(--grip);
-  width: var(--grip);
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  transform: scaleX(var(--inv, 1));
   cursor: ew-resize;
 }
 .group-resize-e {
-  right: calc(var(--grip) / -2);
+  right: -5px;
 }
 .group-resize-w {
-  left: calc(var(--grip) / -2);
+  left: -5px;
 }
+/* Corners come after the edges, so they sit on top where the two meet. */
 .group-resize-ne,
 .group-resize-nw,
 .group-resize-se,
 .group-resize-sw {
-  width: calc(var(--grip) * 1.6);
-  height: calc(var(--grip) * 1.6);
+  width: 16px;
+  height: 16px;
+  transform: scale(var(--inv, 1));
 }
 .group-resize-ne,
 .group-resize-sw {
@@ -1061,19 +1067,19 @@ select {
 }
 .group-resize-ne,
 .group-resize-nw {
-  top: calc(var(--grip) * -0.8);
+  top: -8px;
 }
 .group-resize-se,
 .group-resize-sw {
-  bottom: calc(var(--grip) * -0.8);
+  bottom: -8px;
 }
 .group-resize-ne,
 .group-resize-se {
-  right: calc(var(--grip) * -0.8);
+  right: -8px;
 }
 .group-resize-nw,
 .group-resize-sw {
-  left: calc(var(--grip) * -0.8);
+  left: -8px;
 }
 /* The edge or corner under the pointer lights up, and stays lit while it's held. */
 .group-resize::after {
@@ -1092,18 +1098,18 @@ select {
 .group-resize-s::after {
   left: 0;
   right: 0;
-  top: calc(50% - var(--grip) / 6);
-  height: calc(var(--grip) / 3);
+  top: 4px;
+  height: 2px;
 }
 .group-resize-e::after,
 .group-resize-w::after {
   top: 0;
   bottom: 0;
-  left: calc(50% - var(--grip) / 6);
-  width: calc(var(--grip) / 3);
+  left: 4px;
+  width: 2px;
 }
 .group-resize:is(.group-resize-ne, .group-resize-nw, .group-resize-se, .group-resize-sw)::after {
-  inset: calc(var(--grip) * 0.4);
+  inset: 5px;
 }
 /* A tinted group reads as one boundary: a tinted frame and wash, and a stripe on its header. */
 .cluster:is(.tint-teal, .tint-blue, .tint-purple, .tint-amber, .tint-rose, .tint-green, .tint-slate) {
