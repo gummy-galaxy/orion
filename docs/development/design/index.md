@@ -8,10 +8,21 @@ A study explores an idea and recommends what to keep. It isn't a promise that th
 
 - [Logo](/development/design/logo): the icon's studies, its palettes, and the sources for drawing it again.
 - [Themes and skins](/development/design/themes-and-skins): the vibrant theme, swappable themes, and card skins.
+- [Card skins](/development/design/cards): each way a card can be drawn, embedded live from Storybook.
 - [Trading cards](/development/design/trading-cards): the card skin, its rarity and kinds, and its compact form at far zoom.
 - [Companion](/development/design/companion): the star guide that perches on the card nearest the pointer.
 - [Motion and feel](/development/design/motion-and-feel): what moves and what stays still, and the effects for finished work.
 - [Canvas and layout](/development/design/canvas-and-layout): layout explorations, window chrome, system diagrams, and card details.
+
+## Live components
+
+Components on these pages are the app's own, embedded from its [Storybook](https://main--6acd7d37ef902af0d3845e73.chromatic.com). The Storybook workflow publishes it to Chromatic whenever a change to the app lands on `main`, so the pages always show what `main` draws. To embed a story, use its id from the Storybook URL:
+
+```md
+<Story id="canvas-cards-and-edges-tradingcard--playground" title="A pull request in review" :height="440" />
+```
+
+Locally, `npm run dev` in `docs/` embeds from `npm run storybook` in `app/` instead, so stories you're editing show up as you change them.
 
 ## Timeline
 
