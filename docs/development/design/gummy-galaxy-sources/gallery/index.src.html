@@ -1,0 +1,138 @@
+<title>Gummy Galaxy Concepts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Martian+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a portfolio header, filter chips, a masonry wall of pieces, and a lightbox for each one. */
+:root {
+  color-scheme: dark;
+  --page: #0c0b12;
+  --raised: #16141f;
+  --panel: #201d2c;
+  --line: rgb(255 255 255 / 0.08);
+  --text: #f4f1fa;
+  --muted: #9d97b3;
+  --accent: #ff8fd0;
+  --lemon: #ffd84a;
+  --font-body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+body { background: var(--page); color: var(--text); font: 400 16px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--lemon); outline-offset: 3px; }
+.cover { position: relative; height: clamp(220px, 34vw, 380px); overflow: hidden; }
+.cover img { width: 100%; height: 100%; object-fit: cover; filter: saturate(1.1); }
+.cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgb(12 11 18 / 0.15) 0%, rgb(12 11 18 / 0.35) 45%, var(--page) 96%); }
+.profile { max-width: 1400px; margin: -86px auto 0; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); position: relative; z-index: 1; display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; }
+.profile img { width: 132px; height: 132px; border-radius: 28px; box-shadow: 0 0 0 4px var(--page), 0 20px 40px rgb(0 0 0 / 0.5); object-fit: cover; }
+.profile-text { flex: 1 1 320px; display: flex; flex-direction: column; gap: 6px; padding-bottom: 6px; }
+.profile h1 { margin: 0; font: 800 clamp(30px, 4.4vw, 48px)/1 var(--font-body); letter-spacing: -0.02em; }
+.profile p { margin: 0; color: var(--muted); max-width: 70ch; }
+.stats { display: flex; gap: 18px; font: 12px var(--font-mono); color: var(--muted); padding-bottom: 10px; }
+.stats b { color: var(--text); font-weight: 600; }
+.bar { max-width: 1400px; margin: 22px auto 14px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); display: flex; flex-wrap: wrap; gap: 8px; }
+.bar button { appearance: none; border: 0; cursor: pointer; padding: 8px 14px; border-radius: 999px; background: var(--panel); color: var(--text); font: 600 13px/1 var(--font-body); box-shadow: inset 0 0 0 1px var(--line); }
+.bar button[aria-pressed='true'] { background: var(--text); color: var(--page); }
+.bar button span { font: 11px var(--font-mono); color: var(--muted); margin-left: 4px; }
+.bar button[aria-pressed='true'] span { color: #55506a; }
+.wall { max-width: 1400px; margin: 0 auto 80px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); columns: 4 280px; column-gap: 14px; }
+.piece { break-inside: avoid; margin: 0 0 14px; display: block; width: 100%; position: relative; border: 0; padding: 0; cursor: zoom-in; border-radius: 12px; overflow: hidden; background: var(--raised); text-align: left; color: var(--text); }
+.piece img, .piece video { width: 100%; display: block; transition: transform 400ms cubic-bezier(.2,.8,.2,1); }
+.piece:hover img, .piece:hover video { transform: scale(1.035); }
+.piece .caption { position: absolute; inset: auto 0 0; padding: 40px 14px 12px; background: linear-gradient(0deg, rgb(8 7 14 / 0.88), rgb(8 7 14 / 0)); opacity: 0; transition: opacity 200ms; display: flex; flex-direction: column; gap: 2px; }
+.piece:hover .caption, .piece:focus-visible .caption { opacity: 1; }
+.caption b { font: 700 15px/1.25 var(--font-body); }
+.caption span { font: 11px/1.3 var(--font-mono); color: #c9c3dd; }
+.badge { position: absolute; top: 10px; right: 10px; padding: 4px 8px; border-radius: 6px; font: 600 10px/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; background: rgb(8 7 14 / 0.6); backdrop-filter: blur(6px); color: #fff; }
+@media (hover: none) { .piece .caption { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .piece img, .piece video, .piece .caption { transition: none; } .piece:hover img { transform: none; } }
+
+dialog { width: min(1400px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0; padding: 0; border: 0; background: rgb(6 5 10 / 0.96); color: var(--text); }
+dialog::backdrop { background: rgb(0 0 0 / 0.7); }
+dialog[open] { display: grid; grid-template-columns: minmax(0, 1fr) 340px; inset: 0; width: 100vw; }
+@media (max-width: 900px) { dialog[open] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; } }
+.view { position: relative; display: flex; align-items: center; justify-content: center; padding: 24px; min-height: 0; }
+.view img, .view video { max-width: 100%; max-height: calc(100dvh - 48px); object-fit: contain; border-radius: 8px; box-shadow: 0 30px 80px rgb(0 0 0 / 0.6); }
+@media (max-width: 900px) { .view img, .view video { max-height: 62dvh; } }
+.nav { position: absolute; top: 50%; translate: 0 -50%; appearance: none; border: 0; width: 44px; height: 44px; border-radius: 50%; background: rgb(255 255 255 / 0.1); color: #fff; font-size: 20px; cursor: pointer; }
+.nav.prev { left: 12px; } .nav.next { right: 12px; }
+.side { background: var(--raised); padding: 24px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.side h2 { margin: 0; font: 800 26px/1.1 var(--font-body); letter-spacing: -0.01em; }
+.side p { margin: 0; color: #d4cfe4; font-size: 15px; }
+.side dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+.side dt { font: 600 10px/1.8 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.side dd { margin: 0; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags span { padding: 4px 9px; border-radius: 999px; background: var(--panel); font: 11px var(--font-mono); color: var(--muted); }
+.close { align-self: flex-end; appearance: none; border: 0; background: var(--panel); color: var(--text); border-radius: 999px; padding: 8px 14px; font: 600 13px var(--font-body); cursor: pointer; }
+footer { max-width: 1400px; margin: 0 auto 60px; padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); color: var(--muted); font-size: 14px; }
+</style>
+
+<header>
+  <div class="cover"><img id="cover" alt=""></div>
+  <div class="profile">
+    <img id="avatar" alt="Gummy Galaxy avatar">
+    <div class="profile-text">
+      <h1>Gummy Galaxy</h1>
+      <p>Concept art for Gummy Galaxy as a game, and for Orion as its first world. Seven worlds in one orbit, the emblem each one leaves behind, and the little star who travels between them. Rendered in gummy, clay, felt, gouache, riso, and pixels.</p>
+    </div>
+    <div class="stats"><span><b id="count"></b> pieces</span><span><b id="mediums"></b> sets</span></div>
+  </div>
+</header>
+<nav class="bar" id="bar" aria-label="Filter by set"></nav>
+<main class="wall" id="wall"></main>
+<footer>Rendered locally in Blender's Cycles, painted as hand-written SVG, separated into riso inks and pixel art with Pillow, and finished with grain. Kitbash pieces use CC0 models and HDRIs from Poly Haven and KayKit by Kay Lousberg as a base.</footer>
+
+<dialog id="lightbox" aria-label="Piece">
+  <div class="view" id="view"><button type="button" class="nav prev" id="prev" aria-label="Previous piece">‹</button><button type="button" class="nav next" id="next" aria-label="Next piece">›</button></div>
+  <aside class="side">
+    <button type="button" class="close" id="close">Close</button>
+    <h2 id="title"></h2>
+    <p id="about"></p>
+    <dl id="facts"></dl>
+    <div class="tags" id="tags"></div>
+  </aside>
+</dialog>
+
+<script>
+const PIECES = /*PIECES*/[];
+const wall = document.getElementById('wall'), bar = document.getElementById('bar');
+const mediums = [...new Set(PIECES.map((piece) => piece.set))];
+let filter = 'All', shown = PIECES, current = 0;
+document.getElementById('count').textContent = PIECES.length;
+document.getElementById('mediums').textContent = mediums.length;
+const coverPiece = PIECES.find((piece) => piece.cover) || PIECES[0];
+document.getElementById('cover').src = coverPiece.src;
+document.getElementById('avatar').src = (PIECES.find((piece) => piece.avatar) || PIECES[0]).src;
+function media(piece, attrs = '') {
+  return piece.video ? `<video src="${piece.src}" muted loop playsinline autoplay ${attrs}></video>` : `<img src="${piece.src}" alt="${piece.title}" loading="lazy" ${attrs}>`;
+}
+function renderBar() {
+  bar.innerHTML = ['All', ...mediums].map((name) => `<button type="button" aria-pressed="${filter === name}" data-filter="${name}">${name}<span>${name === 'All' ? PIECES.length : PIECES.filter((piece) => piece.set === name).length}</span></button>`).join('');
+}
+function renderWall() {
+  shown = filter === 'All' ? PIECES : PIECES.filter((piece) => piece.set === filter);
+  wall.innerHTML = shown.map((piece, index) => `<button type="button" class="piece" data-index="${index}" aria-label="${piece.title}">${media(piece)}<span class="badge">${piece.medium}</span><span class="caption"><b>${piece.title}</b><span>${piece.subject}</span></span></button>`).join('');
+}
+const lightbox = document.getElementById('lightbox'), view = document.getElementById('view');
+function open(index) {
+  current = (index + shown.length) % shown.length;
+  const piece = shown[current];
+  view.querySelectorAll('img, video').forEach((node) => node.remove());
+  view.insertAdjacentHTML('afterbegin', media(piece));
+  document.getElementById('title').textContent = piece.title;
+  document.getElementById('about').textContent = piece.about;
+  document.getElementById('facts').innerHTML = [['Set', piece.set], ['Medium', piece.medium], ['Subject', piece.subject], ['Made with', piece.tool], ['Size', piece.size]].map(([key, value]) => `<dt>${key}</dt><dd>${value}</dd>`).join('');
+  document.getElementById('tags').innerHTML = piece.tags.map((tag) => `<span>#${tag}</span>`).join('');
+  if (!lightbox.open) lightbox.showModal();
+}
+bar.addEventListener('click', (event) => { const button = event.target.closest('button'); if (!button) return; filter = button.dataset.filter; renderBar(); renderWall(); });
+wall.addEventListener('click', (event) => { const button = event.target.closest('.piece'); if (button) open(Number(button.dataset.index)); });
+document.getElementById('prev').addEventListener('click', () => open(current - 1));
+document.getElementById('next').addEventListener('click', () => open(current + 1));
+document.getElementById('close').addEventListener('click', () => lightbox.close());
+lightbox.addEventListener('click', (event) => { if (event.target === lightbox || event.target === view) lightbox.close(); });
+document.addEventListener('keydown', (event) => { if (!lightbox.open) return; if (event.key === 'ArrowLeft') open(current - 1); if (event.key === 'ArrowRight') open(current + 1); });
+renderBar();
+renderWall();
+</script>
