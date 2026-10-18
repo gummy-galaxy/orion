@@ -4056,3 +4056,227 @@ kbd {
     transform: translate(14px, -26px);
   }
 }
+/* Spike #102: the table view beside the canvas. */
+.crumb.table-toggle {
+  margin-left: var(--space-3);
+  border-left: var(--border-width-default) solid var(--border-default);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.crumb.table-toggle.current {
+  color: var(--accent-default);
+  background: var(--accent-subtle);
+}
+.database-view {
+  flex: none;
+  width: min(900px, 58vw);
+  display: flex;
+  flex-direction: column;
+  border-left: var(--border-width-default) solid var(--border-default);
+  background: var(--surface-background);
+  color: var(--text-primary);
+  font-size: var(--text-size-small);
+  min-height: 0;
+}
+.db-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 var(--space-3) 0 var(--space-5);
+}
+.db-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.db-count,
+.db-muted {
+  color: var(--text-muted);
+}
+.db-filter {
+  flex: none;
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 var(--space-5) var(--space-4);
+  border-bottom: var(--border-width-default) solid var(--border-default);
+}
+.db-where {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-data);
+  font-size: var(--text-size-small);
+  padding: var(--space-2-5) var(--space-3);
+  border: var(--border-width-default) solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-background);
+  color: var(--text-primary);
+}
+.db-where:focus {
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: calc(-1 * var(--ring-width-default));
+}
+.db-where.has-error {
+  border-color: var(--status-blocked);
+}
+.db-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+}
+.db-preset {
+  border: var(--border-width-default) solid var(--border-default);
+  background: none;
+  color: var(--text-muted);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-size-caption);
+  cursor: pointer;
+}
+.db-preset:hover {
+  color: var(--text-primary);
+}
+.db-preset.is-on {
+  border-color: var(--accent-default);
+  background: var(--accent-subtle);
+  color: var(--text-primary);
+}
+.db-error {
+  margin: 0;
+  color: var(--status-blocked);
+  font-family: var(--font-data);
+  font-size: var(--text-size-caption);
+}
+.db-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.db-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.db-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-background);
+  border-bottom: var(--border-width-default) solid var(--border-default);
+  text-align: left;
+  padding: 0;
+  white-space: nowrap;
+}
+.db-table th button {
+  width: 100%;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--text-muted);
+  font-size: var(--text-size-caption);
+  font-weight: var(--weight-medium);
+  padding: var(--space-2-5) var(--space-3);
+  cursor: pointer;
+}
+.db-table th button:hover,
+.db-table th[aria-sort] button {
+  color: var(--text-primary);
+}
+.db-sort {
+  display: inline-block;
+  width: 1.2em;
+  margin-left: var(--space-1);
+  font-size: var(--text-size-micro);
+}
+.db-table td {
+  padding: var(--space-1-5) var(--space-3);
+  border-bottom: var(--border-width-default) solid var(--border-default);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.db-table tbody tr {
+  cursor: default;
+}
+.db-table tbody tr:hover {
+  background: var(--canvas-background);
+}
+.db-table tbody tr.is-selected {
+  background: var(--accent-subtle);
+}
+.db-label {
+  min-width: 220px;
+}
+.db-group {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.db-label input,
+.db-who select {
+  width: 100%;
+  box-sizing: border-box;
+  border: var(--border-width-default) solid transparent;
+  background: none;
+  color: inherit;
+  font: inherit;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  text-overflow: ellipsis;
+}
+.db-label input:hover,
+.db-who select:hover {
+  border-color: var(--border-default);
+}
+.db-label input:focus {
+  border-color: var(--accent-default);
+  background: var(--canvas-background);
+  outline: none;
+}
+.db-status-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-pill);
+  border: var(--border-width-default) solid transparent;
+  cursor: pointer;
+}
+.db-status-pill:hover,
+.db-status-pill:focus-within {
+  border-color: var(--border-default);
+}
+.db-status-pill select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.db-refs {
+  font-family: var(--font-data);
+  font-size: var(--text-size-caption);
+}
+.db-refs a,
+.db-refs span {
+  margin-right: var(--space-2);
+}
+.db-refs a {
+  color: var(--accent-default);
+  text-decoration: none;
+}
+.db-refs a:hover {
+  text-decoration: underline;
+}
+.db-size strong {
+  font-weight: var(--weight-medium);
+}
+.db-who {
+  min-width: 96px;
+}
+.db-empty {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+.db-none {
+  padding: var(--space-6) var(--space-5);
+  color: var(--text-muted);
+}

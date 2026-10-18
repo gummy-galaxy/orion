@@ -64,6 +64,7 @@ import {
   type Link,
   type TaskData,
 } from '../model'
+import { DatabaseView } from './DatabaseView'
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { DetailStepper } from './DetailStepper'
 import { EmptyCanvas } from './EmptyCanvas'
@@ -201,6 +202,8 @@ function cardAt(event: MouseEvent | TouchEvent): string | undefined {
 }
 
 const SIDEBAR_KEY = 'orion:sidebar'
+/** Spike #102: whether the table view shows beside the canvas. A per-device convenience, so it stays in this browser. */
+const TABLE_KEY = 'orion:table'
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
 const DEFAULT_MOTION: MotionSettings = { arrows: true, glow: true, pauseWhileMoving: true }
@@ -437,6 +440,7 @@ export function Canvas() {
 
   useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
+  const [table, setTable] = useState(() => readFlag(TABLE_KEY, false))
   const [appearance, setAppearance] = useState(readAppearance)
   /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
   const [themes, setThemes] = useState<Theme[]>(cachedThemes)
@@ -3484,6 +3488,19 @@ export function Canvas() {
     writeFlag('sidebar', value)
   }
 
+  const toggleTable = (value: boolean) => {
+    setTable(value)
+
+    try {
+      localStorage.setItem(TABLE_KEY, value ? '1' : '0')
+    } catch {
+      // Private windows can refuse storage; the table still toggles for this visit.
+    }
+  }
+
+  // A card the table points at lands in view where it is, or opens the group it's in when it sits outside the open one.
+  const revealFromTable = (id: string) => (inView(id) ? focusNode(id) : jumpTo(id))
+
   const toggleDebug = (v: boolean) => {
     setDebug(v)
     writeFlag('debug', v)
@@ -3736,6 +3753,15 @@ export function Canvas() {
                     </button>
                   </span>
                 ))}
+                <button
+                  type="button"
+                  className={table ? 'crumb table-toggle current' : 'crumb table-toggle'}
+                  onClick={() => toggleTable(!table)}
+                  aria-pressed={table}
+                  title={table ? 'Hide the table' : 'Show these cards as a table'}
+                >
+                  ▤ Table
+                </button>
               </Panel>
               <Panel position="center-left">
                 <ActionBar
@@ -3800,7 +3826,8 @@ export function Canvas() {
                 </Panel>
               )}
 
-              {(selected.length > 0 || pickedStickers.length > 0) && (
+              {/* Spike #102: while the table shows, it's where cards are edited, so the inspector stays out of the narrower canvas. */}
+              {!table && (selected.length > 0 || pickedStickers.length > 0) && (
                 <Panel position="top-right" className="panel inspector">
                   {!selected.length ? (
                     <div className="insp">
@@ -4047,6 +4074,17 @@ export function Canvas() {
             />
           )}
         </div>
+        {table && ready && (
+          <DatabaseView
+            nodes={nodes}
+            work={work}
+            root={root}
+            title={root ? ((map.get(root)?.data as ClusterData | undefined)?.label ?? 'Group') : 'All work'}
+            update={updateData}
+            reveal={revealFromTable}
+            close={() => toggleTable(false)}
+          />
+        )}
         {paletteQuery !== null && (
           <Palette
             nodes={nodes}
