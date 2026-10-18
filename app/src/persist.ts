@@ -1,27 +1,31 @@
-import type { AppNode, GithubSnapshot, Link, TaskData } from './model'
+import type { Derived } from './derive'
+import { normalize, type AppNode, type GithubSnapshot, type Link, type TaskData } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
+import type { Operation } from './operations'
+import { stableJson } from './stableJson'
 import type { CardSize } from './cardSize'
-import { toStored } from './skinSpace'
+import { toDisplayed, toStored } from './skinSpace'
 
 /**
- * The canvas lives in orion.json, served by the Orion CLI so the CLI and the
- * app share one copy. Without that server (a static build), it falls back to
- * this browser's storage.
+ * The canvas lives in orion.json, served by `orion serve`, which is the only store. The app reads it, and every
+ * committed edit goes to the server as operations. Without a server the canvas shows empty and nothing is saved.
  */
 
 export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
-export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot }
+/** `derived` is what `orion serve` computed for this revision; a server without it leaves the field out. */
+export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot; derived?: Derived }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
-export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string } | { source: 'browser'; saved: Saved | null }
-export type SaveResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
-export type Workspaces = { active: string; workspaces: { name: string; label: string }[] }
+export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string }
+export type CommitResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
+export type Workspaces = { active: string; canvases: { name: string; label: string }[] }
 
 const API = '/api/orion'
-const STORAGE_KEY = 'orion:v2'
+const OPERATIONS_API = '/api/operations'
 const CHANGED_EVENT = 'orion:changed'
 const SYNC_EVENT = 'orion:sync'
-const WORKSPACE_EVENT = 'orion:workspace'
-const WORKSPACES_EVENT = 'orion:workspaces'
+const WORKSPACE_EVENT = 'orion:canvas'
+const WORKSPACES_EVENT = 'orion:canvases'
+const LOG_EVENT = 'orion:log'
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 export type ImageAsset = { asset: string; mime: string }
@@ -29,7 +33,7 @@ export type ImageAsset = { asset: string; mime: string }
 export async function importImage(file: File, workspace: string): Promise<ImageAsset> {
   if (file.size === 0 || file.size > MAX_IMAGE_BYTES) throw new Error('Choose an image smaller than 5 MB.')
 
-  const response = await fetch(`/api/images?workspace=${encodeURIComponent(workspace)}`, { method: 'POST', body: file })
+  const response = await fetch(`/api/images?canvas=${encodeURIComponent(workspace)}`, { method: 'POST', body: file })
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string }
@@ -41,11 +45,14 @@ export async function importImage(file: File, workspace: string): Promise<ImageA
 }
 
 /** Saves a canvas's cover or background. The server bumps the revision and announces it, so open windows reload. */
-export async function saveCanvasStyle(workspace: string, change: { cover?: string | null; background?: string | null }): Promise<boolean> {
+export async function saveCanvasStyle(
+  workspace: string,
+  change: { cover?: string | null; background?: string | null; header?: string | null },
+): Promise<boolean> {
   try {
     const response = await fetch('/api/orion/style', {
       method: 'PUT',
-      headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
+      headers: { 'content-type': 'application/json', 'x-orion-canvas': workspace },
       body: JSON.stringify(change),
     })
 
@@ -56,7 +63,7 @@ export async function saveCanvasStyle(workspace: string, change: { cover?: strin
 }
 
 export async function imageSource(workspace: string, asset: string): Promise<string> {
-  const response = await fetch(`/api/images/${encodeURIComponent(asset)}?workspace=${encodeURIComponent(workspace)}`)
+  const response = await fetch(`/api/images/${encodeURIComponent(asset)}?canvas=${encodeURIComponent(workspace)}`)
 
   if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Image unavailable')
 
@@ -67,8 +74,8 @@ export async function imageSource(workspace: string, asset: string): Promise<str
 export type LinkLookup = { status: 'existing'; id: string; label: string } | { status: 'found'; id: string; data: TaskData }
 
 export async function lookupLink(url: string, workspace: string): Promise<LinkLookup> {
-  const unserved = new Error('Creating from a link needs orion serve.')
-  const response = await fetch(`/api/links?workspace=${encodeURIComponent(workspace)}`, {
+  const unserved = new Error('Creating from a link needs orion server start.')
+  const response = await fetch(`/api/links?canvas=${encodeURIComponent(workspace)}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ url }),
@@ -86,7 +93,7 @@ export async function lookupLink(url: string, workspace: string): Promise<LinkLo
   return body
 }
 
-type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT
+type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT | typeof LOG_EVENT
 const listeners = new Map<EventName, Set<(data: never) => void>>()
 let socket: WebSocket | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
@@ -150,27 +157,27 @@ function subscribe<T>(event: EventName, callback: (data: T) => void) {
 
 export async function getWorkspaces(): Promise<Workspaces> {
   try {
-    const response = await fetch('/api/workspaces')
+    const response = await fetch('/api/canvases')
 
     if (response.ok) return (await response.json()) as Workspaces
   } catch {
     // A static build has only browser storage for the default workspace.
   }
 
-  return { active: 'default', workspaces: [{ name: 'default', label: 'Default' }] }
+  return { active: 'default', canvases: [{ name: 'default', label: 'Default' }] }
 }
 
 async function workspaceRequest(url: string, value: object): Promise<Workspaces> {
   const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) })
   const result = await response.json()
 
-  if (!response.ok) throw new Error(result.error || `Workspace request failed (${response.status})`)
+  if (!response.ok) throw new Error(result.error || `Canvas request failed (${response.status})`)
 
   return result as Workspaces
 }
 
-export const setActiveWorkspace = (name: string) => workspaceRequest('/api/workspaces/active', { name })
-export const createWorkspace = (name: string, label: string) => workspaceRequest('/api/workspaces', { name, label })
+export const setActiveWorkspace = (name: string) => workspaceRequest('/api/canvases/active', { name })
+export const createWorkspace = (name: string, label: string) => workspaceRequest('/api/canvases', { name, label })
 
 export function onWorkspaceChange(callback: (active: string) => void) {
   return subscribe<{ active: string }>(WORKSPACE_EVENT, (data) => callback(data.active))
@@ -179,6 +186,11 @@ export function onWorkspaceChange(callback: (active: string) => void) {
 /** Updates the list when another client creates or edits a workspace. */
 export function onWorkspaceListChange(callback: (list: Workspaces) => void) {
   return subscribe<Workspaces>(WORKSPACES_EVENT, callback)
+}
+
+/** Runs when another writer appends to a canvas's log, with that canvas's name. Appends don't change the document. */
+export function onLogChange(callback: (workspace: string) => void) {
+  return subscribe<{ canvas: string }>(LOG_EVENT, (data) => callback(data.canvas))
 }
 
 export async function getSyncStatus(): Promise<SyncStatus | null> {
@@ -205,7 +217,28 @@ export function onSyncStatus(callback: (status: SyncStatus) => void) {
   return subscribe(SYNC_EVENT, callback)
 }
 
+/**
+ * Sends a list of edits the server applies as one change. `baseRevision` is the revision the edits were made against,
+ * or null when the file doesn't exist yet. A conflict means the file changed since, and the list was not applied.
+ */
+export async function commitOperations(workspace: string, baseRevision: number | null, operations: Operation[]): Promise<CommitResult> {
+  try {
+    const response = await fetch(OPERATIONS_API, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-orion-canvas': workspace },
+      body: JSON.stringify({ baseRevision, operations }),
+    })
+
+    if (response.ok) return { ok: true, revision: (await response.json()).revision }
+
+    return { ok: false, conflict: response.status === 409 }
+  } catch {
+    return { ok: false, conflict: false }
+  }
+}
+
 /** Only what's worth keeping; selection, measurements and handles are view state. */
+/** The stored fields of each node. A card's size comes from its kind and text, so only groups and images keep one. */
 export function slim(nodes: AppNode[]) {
   return nodes.map((node) => ({
     id: node.id,
@@ -213,18 +246,48 @@ export function slim(nodes: AppNode[]) {
     position: node.position,
     parentId: node.parentId,
     data: node.data,
-    width: node.width,
-    height: node.height,
+    width: node.type === 'task' ? undefined : node.width,
+    height: node.type === 'task' ? undefined : node.height,
   }))
 }
 
 /** A stable fingerprint, so view-only changes don't cause writes. */
-export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) =>
-  JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout })
+export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) => stableJson({ nodes: slim(nodes), links, stickers, stickerLoadout })
 
 /** The stored shape of a document, for comparing and merging. */
 export const compactDoc = (doc: Saved): Saved =>
   JSON.parse(fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) })) as Saved
+
+/** A document as the canvas shows it at this card size. */
+export function displayedDoc(doc: Saved, cardSize: CardSize): Saved & { stickers: Sticker[]; stickerLoadout: Loadout } {
+  return {
+    nodes: toDisplayed(normalize(doc.nodes), cardSize),
+    links: doc.links,
+    stickers: doc.stickers ?? [],
+    stickerLoadout: loadoutOf(doc.stickerLoadout),
+  }
+}
+
+/** The fingerprint of what saving this canvas would write. Stickers on cards or groups that are gone go with them. */
+export function storedPrint({ nodes, links, stickers = [], stickerLoadout }: Saved, cardSize: CardSize): string {
+  const ids = new Set(nodes.map((node) => node.id))
+
+  return fingerprint({
+    nodes: toStored(nodes, cardSize),
+    links,
+    stickers: stickers.filter((sticker) => !sticker.on || ids.has(sticker.on)),
+    stickerLoadout: loadoutOf(stickerLoadout),
+  })
+}
+
+/**
+ * The fingerprint of a server document once adopted, so the canvas saves only what differs from it. It goes through
+ * the same display and storage mapping as a save, since the CLI writes keys in its own order and a card size other
+ * than the classic one rounds positions on the way back.
+ */
+export function adoptedPrint(serverDoc: Saved, cardSize: CardSize): string {
+  return storedPrint(displayedDoc(serverDoc, cardSize), cardSize)
+}
 
 function isSaved(value: unknown): value is Saved {
   const saved = value as Saved | null
@@ -232,33 +295,14 @@ function isSaved(value: unknown): value is Saved {
   return !!saved && Array.isArray(saved.nodes) && Array.isArray(saved.links)
 }
 
-export function readBrowser(): Saved | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const saved = raw ? JSON.parse(raw) : null
-
-    return isSaved(saved) ? saved : null
-  } catch {
-    return null
-  }
-}
-
-function writeBrowser({ nodes, links, stickers, stickerLoadout }: Saved) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes: slim(nodes), links, stickers, stickerLoadout }))
-  } catch {
-    // Saving is a convenience; the canvas keeps working without it.
-  }
-}
-
 export async function load(workspace = 'default'): Promise<Loaded> {
   try {
-    const response = await fetch(API, { headers: { 'x-orion-workspace': workspace } })
+    const response = await fetch(API, { headers: { 'x-orion-canvas': workspace } })
 
     if (response.status === 404) {
-      const body = (await response.json()) as { workspace?: string }
+      const body = (await response.json()) as { canvas?: string }
 
-      return { source: 'missing', workspace: body.workspace ?? 'default' }
+      return { source: 'missing', workspace: body.canvas ?? 'default' }
     }
 
     if (response.ok && response.headers.get('content-type')?.includes('json')) {
@@ -270,50 +314,13 @@ export async function load(workspace = 'default'): Promise<Loaded> {
     // No dev server.
   }
 
-  return workspace === 'default' ? { source: 'browser', saved: readBrowser() } : { source: 'missing', workspace }
+  return { source: 'missing', workspace }
 }
 
 export async function fetchRemote(workspace = 'default'): Promise<Remote | null> {
   const loaded = await load(workspace)
 
   return loaded.source === 'file' ? loaded.doc : null
-}
-
-/** `baseRevision` is null when creating the file. */
-export async function save(
-  source: 'file' | 'browser',
-  baseRevision: number | null,
-  saved: Saved,
-  workspace = 'default',
-  cardSize: CardSize,
-): Promise<SaveResult> {
-  saved = { ...saved, nodes: toStored(saved.nodes, cardSize) }
-
-  if (source === 'browser') {
-    writeBrowser(saved)
-
-    return { ok: true, revision: 0 }
-  }
-
-  try {
-    const response = await fetch(API, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
-      body: JSON.stringify({
-        baseRevision,
-        nodes: slim(saved.nodes),
-        links: saved.links,
-        stickers: saved.stickers,
-        stickerLoadout: saved.stickerLoadout,
-      }),
-    })
-
-    if (response.ok) return { ok: true, revision: (await response.json()).revision }
-
-    return { ok: false, conflict: response.status === 409 }
-  } catch {
-    return { ok: false, conflict: false }
-  }
 }
 
 export type FocusReport = { open: string | null; selected: string[] }
@@ -327,7 +334,7 @@ export function reportFocus(report: FocusReport, workspace: string) {
   void fetch(FOCUS_API, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ tab: TAB_ID, workspace, ...report }),
+    body: JSON.stringify({ tab: TAB_ID, canvas: workspace, ...report }),
   }).catch(() => {
     // No server is available to record this page.
   })
@@ -335,12 +342,12 @@ export function reportFocus(report: FocusReport, workspace: string) {
 
 /** Withdraws this page's focus as it goes away. */
 export function clearFocus(workspace: string) {
-  navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB_ID, workspace, closed: true })], { type: 'application/json' }))
+  navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB_ID, canvas: workspace, closed: true })], { type: 'application/json' }))
 }
 
-/** Calls back when another writer (the CLI, an agent, another window) changes the file. */
-export function onRemoteChange(callback: (revision: number) => void) {
-  return subscribe<{ revision: number }>(CHANGED_EVENT, (data) => callback(data.revision))
+/** Calls back when another writer (the CLI, an agent, another window) changes the file, with the derived values for that revision. */
+export function onRemoteChange(callback: (revision: number, derived?: Derived) => void) {
+  return subscribe<{ revision: number; derived?: Derived }>(CHANGED_EVENT, (data) => callback(data.revision, data.derived))
 }
 
 import.meta.hot?.dispose(() => {

@@ -7,7 +7,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - app/**
+      - "!app/**/*.md"
+      - "!app/**/*.test.ts"
+      - "!app/**/*.test.tsx"
       - cli/.lute/perf-report.luau
+      - .github/workflows/perf.yml
 
 permissions:
   contents: read
@@ -57,15 +61,6 @@ jobs:
       # waits for the runner, since the base side runs this checkout's harness.
       - name: Compare Against the Base Branch
         run: npm run perf -- --base HEAD^1
-
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: perf
-          path: |
-            app/.perf/report.md
-            app/.perf/raw.json
-          if-no-files-found: ignore
 
       - name: Publish Report
         if: always() && job.status != 'cancelled'

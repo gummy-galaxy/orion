@@ -17,17 +17,17 @@ function focus.handle(request: net.ReceivedRequest, root: string, active: string
 	local didSucceed, response = pcall(function(): Response
 		local report = shared.parseBody(request)
 		local tab = getStringField(report.tab)
-		local workspace = getStringField(report.workspace)
+		local workspace = getStringField(report.canvas)
 		assert(tab and tab ~= "", "tab must be a nonempty string")
-		assert(workspace, "workspace must be a string")
+		assert(workspace, "canvas must be a string")
 
 		if not shared.isKnownWorkspace(root, workspace) then
-			return shared.reply(404, json.object({ error = `unknown workspace: {workspace}` }))
+			return shared.reply(404, json.object({ error = `unknown canvas: {workspace}` }))
 		end
 
 		local isClosed = report.closed == true
 		if not isClosed and workspace ~= active then
-			return shared.reply(409, json.object({ error = "workspace changed" }))
+			return shared.reply(409, json.object({ error = "canvas changed" }))
 		end
 
 		local open = if report.open == json.null then nil else getStringField(report.open)

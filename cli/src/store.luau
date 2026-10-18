@@ -5,10 +5,13 @@ local process = require("@std/process")
 local task = require("@std/task")
 
 local deriveWorkspaceName = require("@root/deriveWorkspaceName")
+local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
 local graph = require("@root/graph")
-local migrateItem = require("@root/refs/migrateItem")
+local isProcessAlive = require("@root/server/isProcessAlive")
+local migrateItem = require("@root/migrations/migrateItem")
+local migrateWorkspaces = require("@root/migrations/migrateWorkspaces")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -21,6 +24,7 @@ local DAY_SECONDS = 24 * 60 * 60
 local DAILY_DAYS = 30
 local LOCK_TIMEOUT_SECONDS = 5
 local STALE_LOCK_SECONDS = 30
+local ABANDONED_LOCK_SECONDS = 10 * 60
 
 export type Workspace = { name: string, label: string }
 export type WorkspaceList = { active: string, workspaces: { Workspace }, archived: { Workspace } }
@@ -47,12 +51,12 @@ function store.isValidWorkspace(name: string): boolean
 end
 
 function store.getWorkspaceDir(root: string, name: string): string
-	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
-	return if name == "default" then root else tostring(path.join(root, "workspaces", name))
+	assert(store.isValidWorkspace(name), `invalid canvas name: {name}`)
+	return if name == "default" then root else tostring(path.join(root, "canvases", name))
 end
 
 function store.getWorkspaces(root: string): WorkspaceList
-	local file = tostring(path.join(root, fileNames.workspaces))
+	local file = tostring(path.join(root, fileNames.canvases))
 	local result: WorkspaceList =
 		{ active = "default", workspaces = { { name = "default", label = "Default" } }, archived = {} }
 
@@ -61,14 +65,14 @@ function store.getWorkspaces(root: string): WorkspaceList
 	end
 
 	local raw = json.asObject(json.deserialize(fs.readFileToString(file)) :: json.Value)
-	assert(raw, `invalid workspace list at {file}`)
+	assert(raw, `invalid canvas list at {file}`)
 	local names: { [string]: boolean } = { default = true }
 
-	for _, entry in json.asArray(raw.workspaces) or {} do
+	for _, entry in json.asArray(raw.canvases) or {} do
 		local item = json.asObject(entry)
 		local name = if item then asString(item.name) else nil
 		local label = if item then asString(item.label) else nil
-		assert(name and store.isValidWorkspace(name) and label and label ~= "", `invalid workspace in {file}`)
+		assert(name and store.isValidWorkspace(name) and label and label ~= "", `invalid canvas in {file}`)
 
 		if name == "default" then
 			result.workspaces[1].label = label
@@ -82,14 +86,14 @@ function store.getWorkspaces(root: string): WorkspaceList
 		local item = json.asObject(entry)
 		local name = if item then asString(item.name) else nil
 		local label = if item then asString(item.label) else nil
-		assert(name and store.isValidWorkspace(name) and label and label ~= "", `invalid archived workspace in {file}`)
-		assert(not names[name], `workspace listed twice in {file}: {name}`)
+		assert(name and store.isValidWorkspace(name) and label and label ~= "", `invalid archived canvas in {file}`)
+		assert(not names[name], `canvas listed twice in {file}: {name}`)
 		names[name] = true
 		table.insert(result.archived, { name = name, label = label })
 	end
 
 	local active = asString(raw.active) or "default"
-	assert(names[active], `unknown workspace: {active}`)
+	assert(names[active], `unknown canvas: {active}`)
 	result.active = active
 	return result
 end
@@ -97,9 +101,7 @@ end
 local workspaceWriteSequence = 0
 
 local function writeWorkspaces(root: string, list: WorkspaceList)
-	if not fs.exists(root) then
-		fs.createDirectory(root, { makeParents = true })
-	end
+	ensureDirectory(root)
 
 	local entries: json.Array = {}
 
@@ -107,7 +109,7 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 		table.insert(entries, json.object({ name = workspace.name, label = workspace.label }))
 	end
 
-	local value = json.object({ active = list.active, workspaces = entries })
+	local value = json.object({ active = list.active, canvases = entries })
 
 	if #list.archived > 0 then
 		local archived: json.Array = {}
@@ -119,17 +121,20 @@ local function writeWorkspaces(root: string, list: WorkspaceList)
 		value.archived = archived
 	end
 
-	local file = tostring(path.join(root, fileNames.workspaces))
+	local file = tostring(path.join(root, fileNames.canvases))
 	workspaceWriteSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{workspaceWriteSequence}`
 	fs.writeStringToFile(temporary, json.serialize(value, true))
 	fs.move(temporary, file)
 end
 
+-- Every command resolves its canvas here first, so this is where an older data folder moves to the canvas layout.
+-- Remove at 0.1.0 with the rest of `migrations/`.
 function store.getActiveWorkspace(root: string, requested: string?, configured: string?): string
+	migrateWorkspaces(root)
 	local list = store.getWorkspaces(root)
 	local name = requested or (if configured ~= "" then configured else nil) or list.active
-	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
+	assert(store.isValidWorkspace(name), `invalid canvas name: {name}`)
 
 	for _, workspace in list.workspaces do
 		if workspace.name == name then
@@ -137,7 +142,7 @@ function store.getActiveWorkspace(root: string, requested: string?, configured: 
 		end
 	end
 
-	error(`unknown workspace: {name}`)
+	error(`unknown canvas: {name}`)
 end
 
 -- Without a name, the label names the workspace. An explicit name must be a lowercase slug.
@@ -145,15 +150,15 @@ function store.createWorkspace(root: string, name: string?, label: string?): Wor
 	assert(label == nil or label:match("%S"), "label must be nonempty")
 	assert(name or label, "give a name or a label")
 	local workspaceName = name or deriveWorkspaceName(label :: string)
-	assert(store.isValidWorkspace(workspaceName), `invalid workspace name: {workspaceName}`)
+	assert(store.isValidWorkspace(workspaceName), `invalid canvas name: {workspaceName}`)
 	local list = store.getWorkspaces(root)
 
 	for _, workspace in list.workspaces do
-		assert(workspace.name ~= workspaceName, `workspace already exists: {workspaceName}`)
+		assert(workspace.name ~= workspaceName, `canvas already exists: {workspaceName}`)
 	end
 
 	local dir = store.getWorkspaceDir(root, workspaceName)
-	assert(not fs.exists(dir), `workspace folder already exists: {dir}`)
+	assert(not fs.exists(dir), `canvas folder already exists: {dir}`)
 	store.write(dir, store.createEmptyDoc())
 	table.insert(list.workspaces, { name = workspaceName, label = label or workspaceName })
 	writeWorkspaces(root, list)
@@ -162,21 +167,21 @@ end
 
 function store.useWorkspace(root: string, name: string): WorkspaceList
 	local list = store.getWorkspaces(root)
-	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
+	assert(store.isValidWorkspace(name), `invalid canvas name: {name}`)
 	local isKnown = false
 
 	for _, workspace in list.workspaces do
 		isKnown = isKnown or workspace.name == name
 	end
 
-	assert(isKnown, `unknown workspace: {name}`)
+	assert(isKnown, `unknown canvas: {name}`)
 	list.active = name
 	writeWorkspaces(root, list)
 	return list
 end
 
 function store.renameWorkspace(root: string, name: string, label: string): WorkspaceList
-	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
+	assert(store.isValidWorkspace(name), `invalid canvas name: {name}`)
 	assert(label:match("%S"), "label must be nonempty")
 	local list = store.getWorkspaces(root)
 
@@ -188,19 +193,19 @@ function store.renameWorkspace(root: string, name: string, label: string): Works
 		end
 	end
 
-	error(`unknown workspace: {name}`)
+	error(`unknown canvas: {name}`)
 end
 
 -- Takes a workspace off the list without touching its folder. The default workspace is the data root
 -- itself and is always listed, so it can't be archived, and neither can the one in use.
 function store.archiveWorkspace(root: string, name: string, inUse: string): WorkspaceList
-	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
-	assert(name ~= "default", "the default workspace can't be archived")
+	assert(store.isValidWorkspace(name), `invalid canvas name: {name}`)
+	assert(name ~= "default", "the default canvas can't be archived")
 	local list = store.getWorkspaces(root)
-	assert(name ~= list.active and name ~= inUse, `can't archive the active workspace: {name}`)
+	assert(name ~= list.active and name ~= inUse, `can't archive the active canvas: {name}`)
 
 	for _, workspace in list.archived do
-		assert(workspace.name ~= name, `workspace already archived: {name}`)
+		assert(workspace.name ~= name, `canvas already archived: {name}`)
 	end
 
 	for index, workspace in list.workspaces do
@@ -212,18 +217,18 @@ function store.archiveWorkspace(root: string, name: string, inUse: string): Work
 		end
 	end
 
-	error(`unknown workspace: {name}`)
+	error(`unknown canvas: {name}`)
 end
 
 -- Puts an archived workspace back on the list. Its folder is still in place, so it returns with its data.
 function store.restoreWorkspace(root: string, name: string): WorkspaceList
-	assert(store.isValidWorkspace(name), `invalid workspace name: {name}`)
+	assert(store.isValidWorkspace(name), `invalid canvas name: {name}`)
 	local list = store.getWorkspaces(root)
 
 	for index, workspace in list.archived do
 		if workspace.name == name then
 			local dir = store.getWorkspaceDir(root, name)
-			assert(fs.exists(dir), `workspace folder is missing: {dir}`)
+			assert(fs.exists(dir), `canvas folder is missing: {dir}`)
 			table.remove(list.archived, index)
 			table.insert(list.workspaces, workspace)
 			writeWorkspaces(root, list)
@@ -231,7 +236,7 @@ function store.restoreWorkspace(root: string, name: string): WorkspaceList
 		end
 	end
 
-	error(`unknown archived workspace: {name}`)
+	error(`unknown archived canvas: {name}`)
 end
 
 function store.filePath(dir: string): string
@@ -342,6 +347,7 @@ function store.decode(text: string): Doc
 				to = to,
 				kind = asString(object.kind) or "blocks",
 				origin = asString(object.origin),
+				label = asString(object.label),
 			})
 		end
 	end
@@ -350,6 +356,7 @@ function store.decode(text: string): Doc
 	local sources: { Source } = {}
 	local cover = asString(settings.cover)
 	local background = asString(settings.background)
+	local header = asString(settings.header)
 
 	for _, raw in json.asArray(settings.sources) or {} do
 		local source = json.asObject(raw)
@@ -400,6 +407,7 @@ function store.decode(text: string): Doc
 
 	owner = owner or "flipbook-labs"
 
+	-- Cards from before refs keep their old fields until read. Remove at 0.1.0 with the rest of `migrations/`.
 	for _, item in nodes do
 		if
 			item.type == "task"
@@ -422,7 +430,7 @@ function store.decode(text: string): Doc
 	return {
 		version = 2,
 		revision = asNumber(root.revision) or 0,
-		settings = { sources = sources, cover = cover, background = background },
+		settings = { sources = sources, cover = cover, background = background, header = header },
 		nodes = nodes,
 		links = links,
 		github = json.asObject(root.github),
@@ -466,6 +474,7 @@ function store.toObject(doc: Doc): json.Object
 	for _, link in doc.links do
 		local object = json.object({ id = link.id, from = link.from, to = link.to, kind = link.kind })
 		object.origin = link.origin
+		object.label = link.label
 		table.insert(links, object)
 	end
 
@@ -490,6 +499,7 @@ function store.toObject(doc: Doc): json.Object
 	settings.sources = sources
 	settings.cover = doc.settings.cover
 	settings.background = doc.settings.background
+	settings.header = doc.settings.header
 	root.settings = settings
 	root.nodes = nodes
 	root.links = links
@@ -558,9 +568,7 @@ function store.putFocus(dir: string, tab: string, open: string?, selected: json.
 		end
 		return
 	end
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
+	ensureDirectory(dir)
 	focusWriteSequence += 1
 	local temporary = `{file}.tmp.{process.pid()}.{focusWriteSequence}`
 	local value = json.object({
@@ -600,6 +608,37 @@ local function release(lockPath: string)
 	end)
 end
 
+-- A lock is abandoned once its owner stamp is stale and its writer is gone. A
+-- writer that crashes right after creating the lock leaves no readable stamp, so
+-- the lock directory's own age stands in for it. A stamp far past stale is
+-- abandoned even if its process id is alive, since the id may have been reused.
+local function isLockAbandoned(lockPath: string, ownerPath: path.Path): boolean
+	local succeeded, owner = pcall(fs.readFileToString, ownerPath)
+	local processId, stamp = nil, nil
+
+	if succeeded then
+		local processText, stampText = owner:match("^(%d+)%s(%d+)")
+		processId, stamp = tonumber(processText), tonumber(stampText)
+	end
+
+	if not stamp then
+		local found, metadata = pcall(fs.metadata, lockPath)
+		stamp = if found then metadata.modified:toSeconds() else nil
+	end
+
+	if not stamp then
+		return false
+	end
+
+	local age = os.time() - stamp
+
+	if age <= STALE_LOCK_SECONDS then
+		return false
+	end
+
+	return age > ABANDONED_LOCK_SECONDS or not processId or not isProcessAlive(processId)
+end
+
 local function acquire(dir: string): string
 	local lockPath = tostring(path.join(dir, fileNames.lock))
 	local ownerPath = path.join(lockPath, "owner")
@@ -612,10 +651,7 @@ local function acquire(dir: string): string
 		end
 
 		-- Reclaim a lock left behind by a writer that crashed.
-		local succeeded, owner = pcall(fs.readFileToString, ownerPath)
-		local stamp = if succeeded then tonumber(owner:match("%s(%d+)")) else nil
-
-		if stamp and os.time() - stamp > STALE_LOCK_SECONDS then
+		if isLockAbandoned(lockPath, ownerPath) then
 			release(lockPath)
 			continue
 		end
@@ -637,9 +673,7 @@ local function atomicWrite(file: string, contents: string)
 			local now = os.time()
 			local dir = path.dirname(file)
 			local folder = path.join(dir, fileNames.backups)
-			if not fs.exists(folder) then
-				fs.createDirectory(folder)
-			end
+			ensureDirectory(folder)
 
 			local previous = store.decode(fs.readFileToString(file))
 			local backup = path.join(folder, store.getBackupName(previous.revision, now))
@@ -662,9 +696,7 @@ end
 
 -- Reads the latest data under the lock, applies `mutate`, and writes the next revision.
 function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
+	ensureDirectory(dir)
 
 	local lockPath = acquire(dir)
 	local succeeded, result = pcall(function(): Doc
@@ -688,9 +720,7 @@ end
 
 -- Writes a whole document, used to seed data and in tests.
 function store.write(dir: string, doc: Doc)
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
+	ensureDirectory(dir)
 
 	local lockPath = acquire(dir)
 	local succeeded, failureMessage = pcall(atomicWrite, store.filePath(dir), store.encode(doc))
@@ -699,65 +729,6 @@ function store.write(dir: string, doc: Doc)
 	if not succeeded then
 		error(failureMessage, 0)
 	end
-end
-
--- Saves app edits only if the latest file still has the revision the app read.
--- Work directly with the JSON object so fields owned by other writers survive.
-function store.put(
-	dir: string,
-	baseRevision: number?,
-	nodes: json.Array,
-	links: json.Array,
-	stickers: json.Array?,
-	stickerLoadout: json.Array?
-): (boolean, number?)
-	if not fs.exists(dir) then
-		fs.createDirectory(dir, { makeParents = true })
-	end
-
-	local lockPath = acquire(dir)
-	local didSucceed, isSaved, revision = pcall(function(): (boolean, number?)
-		local current = store.read(dir)
-		local previous = if current then current.revision else nil
-
-		if baseRevision ~= previous then
-			return false, previous
-		end
-
-		local previousStatuses = if current then graph.recordedStatuses(current) else {}
-
-		local root = json.object(if current
-			then store.toObject(current)
-			else {
-				version = 2,
-				settings = json.object({ sources = {} :: json.Array }),
-			})
-		local nextRevision = if previous then previous + 1 else 0
-		root.revision = nextRevision
-		root.nodes = nodes
-		root.links = links
-
-		if stickers then
-			root.stickers = stickers
-		end
-
-		if stickerLoadout then
-			root.stickerLoadout = stickerLoadout
-		end
-
-		local nextDoc = store.decode(json.serialize(root, true))
-		graph.markCelebrations(nextDoc, previousStatuses)
-		atomicWrite(store.filePath(dir), store.encode(nextDoc))
-		return true, nextRevision
-	end)
-
-	release(lockPath)
-
-	if not didSucceed then
-		error(isSaved, 0)
-	end
-
-	return isSaved :: boolean, revision
 end
 
 return table.freeze(store)

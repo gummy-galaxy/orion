@@ -1,9 +1,14 @@
 name: CI
 
+# Pull requests run only the jobs their changes touch. Pushes to main, the nightly schedule, and manual runs from the
+# Actions tab run every job, so a job a pull request skipped still runs regularly.
 on:
   pull_request:
   push:
     branches: [main]
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,7 +18,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # On a pull request, each job below runs only when a change touches what it builds or checks. A job skipped by its
+  # condition reports as skipped, which still satisfies a required check, unlike a workflow skipped by `paths`.
+  changes:
+    runs-on: beelink
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    # Other events skip the filter, which leaves its outputs empty, so every job runs
+    outputs:
+      cli: ${{ steps.filter.outputs.cli || 'true' }}
+      app: ${{ steps.filter.outputs.app || 'true' }}
+      docs: ${{ steps.filter.outputs.docs || 'true' }}
+      desktop: ${{ steps.filter.outputs.desktop || 'true' }}
+    steps:
+      # Checked out for the filters file. Pull requests list their changed files through the API.
+      - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request'
+
+      - name: Filter Changed Paths
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: .github/path-filters.yml
+
   analysis:
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
     runs-on: beelink
     timeout-minutes: 5
     defaults:
@@ -38,6 +71,8 @@ jobs:
         run: lute run analyze
 
   cli:
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -73,6 +108,8 @@ jobs:
         run: lute run package
 
       - name: Upload CLI
+        # A full artifact storage quota shouldn't fail the build
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           path: cli/build/orion-*.zip
@@ -80,8 +117,13 @@ jobs:
           retention-days: 14
 
   app:
+    needs: changes
+    if: needs.changes.outputs.app == 'true'
     runs-on: beelink
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
     defaults:
       run:
         working-directory: app
@@ -101,7 +143,24 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test
+        run: npm run coverage
+
+      - name: Install Luau Tools with Rokit
+        if: github.event_name == 'pull_request'
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - name: Publish Coverage
+        if: github.event_name == 'pull_request'
+        working-directory: cli
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: lute run coverage-report
 
       - name: Build
         run: npm run build
@@ -110,13 +169,18 @@ jobs:
         run: npm run build-storybook
 
       - name: Upload App
+        if: github.ref == 'refs/heads/main'
+        # A full artifact storage quota shouldn't fail the build
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: orion-app
           path: app/dist
-          retention-days: 14
+          retention-days: 1
 
   docs:
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     runs-on: beelink
     timeout-minutes: 5
     defaults:
@@ -155,6 +219,8 @@ jobs:
         run: npm run build
 
   desktop:
+    needs: changes
+    if: needs.changes.outputs.desktop == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -191,6 +257,9 @@ jobs:
           # Pull requests restore main's cache but don't save their own, since
           # each save uploads hundreds of megabytes from the self-hosted runner
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Save even when a later step fails, so one failed main run doesn't leave
+          # every pull request building from scratch
+          cache-on-failure: true
 
       - name: Install Tauri System Dependencies
         if: runner.os == 'Linux'
@@ -213,6 +282,9 @@ jobs:
         run: lute run desktop
 
       - name: Upload Desktop Installer
+        if: github.ref == 'refs/heads/main'
+        # A full artifact storage quota shouldn't fail the build
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: orion-desktop-${{ runner.os }}
@@ -220,4 +292,4 @@ jobs:
             desktop/src-tauri/target/release/bundle/deb/*.deb
             desktop/src-tauri/target/release/bundle/dmg/*.dmg
             desktop/src-tauri/target/release/bundle/nsis/*.exe
-          retention-days: 14
+          retention-days: 1

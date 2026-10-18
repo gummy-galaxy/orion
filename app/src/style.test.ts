@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyStyleChange, backgroundColor, groupLayers, isAssetId, readCanvasStyle } from './style'
+import { applyStyleChange, backgroundColor, groupLayers, headerText, isAssetId, readCanvasStyle } from './style'
 
 describe('isAssetId', () => {
   it('accepts lowercase names with an image extension', () => {
@@ -68,5 +68,26 @@ describe('groupLayers', () => {
   it('leaves the cover off a folded group, and paints nothing for a stock group', () => {
     expect(groupLayers({ cover: 'image-cover.png' }, true)).toEqual({})
     expect(groupLayers({}, false)).toEqual({})
+  })
+})
+
+describe('headers', () => {
+  it('reads a header from canvas settings and ignores blank or non-text ones', () => {
+    expect(readCanvasStyle({ header: '# Orion' })).toEqual({ header: '# Orion' })
+    expect(readCanvasStyle({ header: '   ' })).toEqual({})
+    expect(readCanvasStyle({ header: 3 })).toEqual({})
+  })
+
+  it('sets and clears a header without touching the cover or background', () => {
+    const styled = applyStyleChange({ cover: 'image-a.png', background: '#1d1b2e' }, { header: 'Hello' })
+
+    expect(styled).toEqual({ cover: 'image-a.png', background: '#1d1b2e', header: 'Hello' })
+    expect(applyStyleChange(styled, { header: null })).toEqual({ cover: 'image-a.png', background: '#1d1b2e' })
+  })
+
+  it('shows no header for whitespace', () => {
+    expect(headerText('  \n ')).toBeUndefined()
+    expect(headerText(undefined)).toBeUndefined()
+    expect(headerText('Plan')).toBe('Plan')
   })
 })

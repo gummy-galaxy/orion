@@ -96,6 +96,22 @@ Generated card art can be produced again from the same card. Later, people shoul
 
 2026-10-07 · [#234](https://github.com/vocksel/orion/issues/234)
 
+### Notes are short Markdown summaries, an experiment
+
+A card's note renders as Markdown: headings, lists, emphasis, links, and inline code. Clicking into it edits the Markdown source in place, and nothing richer is added. Notes stay a short summary that links out to where long writing lives. They're an experiment: the timeline is meant to take over the running record, so once both have been used for a while, decide whether notes stay, shrink to a short description, or go away.
+
+**Why:** a summary reads better rendered than as raw text, but a document editor is a non-goal in the charter, so editing stays plain source. Agents rewrote one note 12 times and once recorded a pass that hadn't happened, which is why the running record gets an append-only timeline rather than more note text. Rendering uses a Markdown library that emits React elements and no raw HTML, so a note can't run code.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
+### Empty groups stay until an edit empties them
+
+A group with nothing inside stays on the canvas, at the size of one card, with a faint "Empty group" hint. `orion group create` makes one, and the app keeps it through loads, saves, and writes from elsewhere. A group goes when an edit takes its last card out: a drop, a removal, or a move out. A group that was already empty is never removed by an edit that doesn't touch it, and a group the removal leaves empty goes too, cascading upward.
+
+**Why:** an agent often lays out the groups for a plan before it has cards to fill them. Dropping empty groups on load deleted them from the file on the next save, and pruning on every edit undid a group made on purpose. This replaced groups disappearing as soon as they were empty.
+
+2026-10-12 · [#304](https://github.com/vocksel/orion/issues/304)
+
 ## Canvas and input
 
 ### Scrolling pans, for mouse and trackpad alike
@@ -156,6 +172,14 @@ Orion has a color palette for each major type of colorblindness, and status uses
 
 2026-10-11 · [#213](https://github.com/vocksel/orion/issues/213)
 
+### Hover lifts the card, and only a pinned card traces its chain
+
+Hovering a card lifts that card alone: it grows slightly from the middle of its title, gets a light ring and a deeper shadow, and rises above its neighbors. Nothing else on the canvas changes on hover. The chain trace, with its dimming, is for a pinned card only. Holding ⌥ keeps its attention fade.
+
+**Why:** tracing on every hover restyled the whole canvas on each pointer move and made hover heavy. Scaling from the title keeps the title readable.
+
+2026-10-12 · [#333](https://github.com/vocksel/orion/issues/333)
+
 ## Celebration and triage
 
 ### Finished work gets savored
@@ -181,6 +205,14 @@ A card that's done and closed out carries a Done stamp and fades only slightly. 
 **Why:** fading alone made done look like blocked and deferred work, so a group of finished cards gave no sign it was finished. A stamp says it in one word, which fits marks over words.
 
 2026-10-12 · #317
+
+### Finishing a card in the app closes it out
+
+Marking a card done from its menu or the inspector closes it out at once, and its Done stamp lands right away. Cards finished outside the app, by `orion card done` or a merged pull request, shimmer until someone closes them out.
+
+**Why:** in the app the badge click was an extra step after marking a card done, so finishing it there takes one move. Work finished elsewhere still waits for someone to see it.
+
+2026-10-17 · [#365](https://github.com/vocksel/orion/issues/365)
 
 ### Triage happens in a tray, and you do the placing
 
@@ -208,7 +240,7 @@ Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shap
 - **From 0.1.0:** breaking changes are still allowed, but each one is deliberate. Anything new must show why it has to widen the surface rather than fit what's already there.
 - **From 1.0.0:** the charter's stability promises apply, and breaking changes ship with aliases first.
 
-0.1.0 means the first tagged release, whatever version numbers the manifests carry before it, and it lands around when the repository goes public. 1.0.0 comes much later, likely once the charter's roadmap phases are complete, though an earlier gate may fit better. The HTTP API that `orion serve` exposes is internal to the app at every stage and carries no promise.
+0.1.0 means the first tagged release, whatever version numbers the manifests carry before it, and it lands around when the repository goes public. 1.0.0 comes much later, likely once the charter's roadmap phases are complete, though an earlier gate may fit better. The HTTP API that `orion server start` exposes is internal to the app at every stage and carries no promise.
 
 **Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release.
 
@@ -222,11 +254,21 @@ Commands name the thing they act on first, then the action: `orion node remove`,
 
 2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146), [#110](https://github.com/vocksel/orion/issues/110), [#55](https://github.com/vocksel/orion/issues/55), [#109](https://github.com/vocksel/orion/issues/109)
 
+### Data folders move to a new layout on their own
+
+When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and waits while an older Orion is still serving the folder.
+
+These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
+
+**Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases.
+
+2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110)
+
 ## Architecture
 
 ### Files first, with a SQLite index
 
-A workspace lives as files that can be stored in a repository, like an Obsidian vault. SQLite does the heavy lifting as an index. Agents keep simple read and write commands through the CLI, and `orion serve` keeps one `sqlite3` process open instead of starting one per request.
+A canvas lives as files that can be stored in a repository, like an Obsidian vault. SQLite does the heavy lifting as an index. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
 
 **Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast.
 
@@ -240,11 +282,11 @@ The target is at least 1000 cards with nested groups and dense links: every pull
 
 2026-10-07 · [#122](https://github.com/vocksel/orion/issues/122), [#102](https://github.com/vocksel/orion/issues/102)
 
-### Undo history outlives a workspace switch
+### Undo history outlives a canvas switch
 
-Undo history persists across workspace switches, either as a full session history or a rolling history capped at some number of steps. It may live in the SQLite index.
+Undo history persists across canvas switches, either as a full session history or a rolling history capped at some number of steps. It may live in the SQLite index.
 
-**Why:** history that disappears when you switch workspaces is too temporary to trust.
+**Why:** history that disappears when you switch canvases is too temporary to trust.
 
 2026-10-10 · [#1](https://github.com/vocksel/orion/issues/1), [#166](https://github.com/vocksel/orion/issues/166)
 
@@ -258,7 +300,7 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 ### Ingest is the one command that pulls from outside
 
-`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. `orion sync` stays for one release as a deprecated way to run only the GitHub refresh, and `orion serve`'s background loop keeps running only the refresh.
+`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. `orion sync` stays for one release as a deprecated way to run only the GitHub refresh, and `orion server start`'s background loop keeps running only the refresh.
 
 **Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks.
 
@@ -282,7 +324,7 @@ Don't build concepts ahead of the features that need them, such as owners before
 
 ### MCP stays generic
 
-Orion documents how to register `orion mcp` with any client instead of shipping setup for each AI provider.
+Orion documents how to register `orion mcp start` with any client instead of shipping setup for each AI provider.
 
 **Why:** registering an MCP server is trivial for people to do themselves, and per-provider code is a lot to maintain for that convenience.
 
@@ -303,3 +345,13 @@ Orion installs to `/Applications/Orion.app` so every user on the machine gets it
 **Why:** every build shares one bundle id, so a second copy in `~/Applications` shows up as a duplicate Orion and leaves the CLI and the app running different builds.
 
 2026-10-13
+
+## Docs
+
+### The docs site has Guide, Reference, and Development sections
+
+Guide pages teach someone who has never used Orion. Reference pages are generated from the CLI's command table and the MCP tool catalog. Development holds pages about how Orion is made, split into Design and Engineering: audits, proposals, and studies. The top nav shows Guide, Reference, and Development, and each one is a link to a page rather than a menu, so content is always one click from the nav. Reference's homepage is generated with its other pages.
+
+**Why:** hand-written write-ups need a home that the reference generator doesn't own, since it removes any page in `docs/reference/` it didn't write. A Development section keeps them apart from the pages that describe what Orion does today, and one umbrella leaves room for Design and Engineering to grow without crowding the nav.
+
+2026-10-17

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { reparent } from './escape'
 import {
+  GROUP_HEADER_HEIGHT,
+  GROUP_PADDING,
   TASK_HEIGHT,
+  TASK_WIDTH,
   absolutePosition,
   byId,
   editPullRef,
@@ -12,13 +16,16 @@ import {
   getPullRequestNumber,
   getTaskTag,
   getTaskUrl,
-  moveOutOfGroup,
   normalize,
+  pruneEmptied,
+  removeNodes,
   sizeOf,
+  tintOf,
   type AppNode,
   type PullDetails,
   type TaskData,
 } from './model'
+import { moveOutOfGroup, ungroup } from './layout'
 
 const task = (overrides: Partial<TaskData> = {}): TaskData => ({
   kind: 'task',
@@ -120,6 +127,41 @@ describe('editPullRef', () => {
     expect(editPullRef(data, 'vocksel/orion', undefined)).toEqual({ repo: 'vocksel/orion', refs: [issue], itemKind: 'placeholder' })
     expect(editPullRef(data, undefined, 42)).toEqual({ repo: undefined, refs: [issue], itemKind: 'step' })
     expect(editPullRef(task(), undefined, undefined)).toEqual({ repo: undefined, refs: undefined, itemKind: 'step' })
+  })
+})
+
+describe('tintOf', () => {
+  const group = (id: string, color?: 'teal' | 'rose', parentId?: string): AppNode => ({
+    id,
+    type: 'cluster',
+    parentId,
+    position: { x: 0, y: 0 },
+    data: { kind: 'cluster', label: id, color },
+  })
+  const card = (id: string, data: Partial<TaskData>): AppNode => ({
+    id,
+    type: 'task',
+    parentId: 'inner',
+    position: { x: 0, y: 0 },
+    data: { kind: 'task', label: id, itemKind: 'component', status: 'todo', ...data },
+  })
+  const nodes = [
+    group('outer', 'teal'),
+    group('inner', undefined, 'outer'),
+    card('plain', {}),
+    card('own', { color: 'rose' }),
+    card('work', { itemKind: 'step' }),
+  ]
+  const nodeMap = byId(nodes)
+
+  it("takes a component's own tint, or else its nearest tinted group's", () => {
+    expect(tintOf(nodeMap.get('own')!, nodeMap)).toBe('rose')
+    expect(tintOf(nodeMap.get('plain')!, nodeMap)).toBe('teal')
+    expect(tintOf(nodeMap.get('inner')!, nodeMap)).toBe('teal')
+  })
+
+  it('never tints work', () => {
+    expect(tintOf(nodeMap.get('work')!, nodeMap)).toBeUndefined()
   })
 })
 
@@ -246,5 +288,85 @@ describe('moveOutOfGroup', () => {
     expect(moveOutOfGroup(base, 'keep')).toBe(base)
     expect(moveOutOfGroup(base, 'outer')).toBe(base)
     expect(moveOutOfGroup(base, 'missing')).toBe(base)
+  })
+})
+
+describe('empty groups', () => {
+  it('keeps a group with nothing inside, at the size of one card, where it was', () => {
+    const [group] = normalize([groupNode('kept', undefined, { x: 40, y: 80 })])
+
+    expect(group.id).toBe('kept')
+    expect(group.position).toEqual({ x: 40, y: 80 })
+    expect(group.width).toBe(TASK_WIDTH + GROUP_PADDING * 2)
+    expect(group.height).toBe(TASK_HEIGHT + GROUP_HEADER_HEIGHT + GROUP_PADDING)
+  })
+
+  it('leaves a group that was already empty alone', () => {
+    const before = normalize([groupNode('kept'), groupNode('other'), cardNode('card', 'other')])
+    const after = normalize([...before.filter((node) => node.id !== 'card'), cardNode('card')])
+
+    expect(byId(pruneEmptied(before, after)).has('kept')).toBe(true)
+  })
+
+  it('removes a group the edit took its last card out of, and returns the same nodes when nothing emptied', () => {
+    const before = normalize([groupNode('work'), cardNode('card', 'work')])
+    const after = normalize([groupNode('work'), cardNode('card')])
+    const pruned = pruneEmptied(before, after)
+
+    expect(byId(pruned).has('work')).toBe(false)
+    expect(byId(pruned).has('card')).toBe(true)
+
+    const steady = normalize([groupNode('work'), cardNode('card', 'work')])
+
+    expect(pruneEmptied(steady, steady)).toBe(steady)
+  })
+
+  it('removes a group the edit emptied and then the group holding it when that is empty too', () => {
+    const before = normalize([groupNode('outer'), groupNode('inner', 'outer'), cardNode('card', 'inner')])
+    const after = normalize([groupNode('outer'), groupNode('inner', 'outer'), cardNode('card')])
+    const pruned = byId(pruneEmptied(before, after))
+
+    expect(pruned.has('inner')).toBe(false)
+    expect(pruned.has('outer')).toBe(false)
+    expect(pruned.has('card')).toBe(true)
+  })
+
+  it('drops a group when its last card is removed, and keeps it while cards remain', () => {
+    const base = normalize([groupNode('work'), cardNode('one', 'work'), cardNode('two', 'work')])
+
+    expect(byId(removeNodes(base, ['one'])).has('work')).toBe(true)
+
+    const emptied = removeNodes(removeNodes(base, ['one']), ['two'])
+
+    expect(byId(emptied).has('work')).toBe(false)
+  })
+
+  it('drops a group whose last card is dropped somewhere else, and keeps one the card goes back into', () => {
+    const before = normalize([groupNode('work'), cardNode('card', 'work'), groupNode('other')])
+    const elsewhere = normalize(reparent(before, ['card'], 'other', 'work'))
+
+    expect(byId(pruneEmptied(before, elsewhere)).has('work')).toBe(false)
+
+    const back = normalize(reparent(before, ['card'], 'work', 'work'))
+
+    expect(byId(pruneEmptied(before, back)).has('work')).toBe(true)
+  })
+
+  it('drops the group a moved group leaves empty', () => {
+    const before = normalize([groupNode('outer'), groupNode('solo', 'outer'), cardNode('card', 'solo'), groupNode('empty')])
+    const after = moveOutOfGroup(before, 'solo')
+
+    expect(byId(after).has('outer')).toBe(false)
+    expect(byId(after).get('solo')?.parentId).toBeUndefined()
+    expect(byId(after).has('empty')).toBe(true)
+  })
+
+  it('drops the group that ungrouping leaves empty', () => {
+    const before = normalize([groupNode('outer'), groupNode('inner', 'outer'), groupNode('kept')])
+    const after = ungroup(before, ['inner'])
+
+    expect(byId(after).has('inner')).toBe(false)
+    expect(byId(after).has('outer')).toBe(false)
+    expect(byId(after).has('kept')).toBe(true)
   })
 })

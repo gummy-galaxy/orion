@@ -27,23 +27,35 @@ export default defineConfig({
   themeConfig: {
     logo: '/logo.png',
     nav: [
-      { text: 'Guide', link: '/guide/concepts' },
-      { text: 'CLI', link: '/reference/cli/' },
-      { text: 'MCP', link: '/reference/mcp' },
+      { text: 'Guide', link: '/guide/getting-started' },
+      { text: 'Reference', link: '/reference/', activeMatch: '^/reference/' },
+      { text: 'Development', link: '/development/', activeMatch: '^/development/' },
     ],
     sidebar: {
       '/guide/': [
         {
           text: 'Guide',
           items: [
+            { text: 'Getting started', link: '/guide/getting-started' },
             { text: 'Concepts', link: '/guide/concepts' },
+            { text: 'Using the canvas', link: '/guide/canvas' },
+            { text: 'Sources', link: '/guide/sources' },
+            { text: 'Data and canvases', link: '/guide/data' },
+            { text: 'Themes', link: '/guide/themes' },
+            { text: 'Theme tokens', link: '/guide/tokens' },
             { text: 'Public surfaces', link: '/guide/surfaces' },
           ],
         },
       ],
       '/reference/': [
+        { text: 'Reference', link: '/reference/' },
         { text: 'CLI', link: '/reference/cli/', items: cliCommands, collapsed: false },
         { text: 'MCP', link: '/reference/mcp' },
+      ],
+      '/development/': [
+        { text: 'Development', link: '/development/' },
+        { text: 'Design', link: '/development/design/' },
+        { text: 'Engineering', link: '/development/engineering/' },
       ],
     },
     search: { provider: 'local' },

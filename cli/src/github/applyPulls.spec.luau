@@ -13,31 +13,7 @@ type PullState = githubTypes.PullState
 type Fetched = githubTypes.Fetched
 type Doc = types.Doc
 
-local function pull(
-	state: string,
-	extra: { draft: boolean?, reviewDecision: string?, reviewRequests: number? }?
-): PullState
-	local given: { draft: boolean?, reviewDecision: string?, reviewRequests: number? } = extra or {}
-	return {
-		owner = "flipbook-labs",
-		name = "flipbook",
-		number = 1,
-		state = state,
-		baseRefName = "main",
-		headRefName = "feature/a",
-		draft = given.draft == true,
-		reviewDecision = given.reviewDecision,
-		reviewRequests = given.reviewRequests or 0,
-		requestedReviewers = {},
-		title = "Title",
-		url = "https://github.com/flipbook-labs/flipbook/pull/1",
-		author = "vocksel",
-		updatedAt = "2026-10-04T00:00:00Z",
-		additions = 12,
-		deletions = 3,
-		checks = "SUCCESS",
-	}
-end
+local pull = testing.pull
 
 local function stackFixture(): (Doc, Fetched)
 	local parent = pull("OPEN")
@@ -58,9 +34,11 @@ local function stackFixture(): (Doc, Fetched)
 	return doc,
 		{
 			pulls = { [getKey(parent)] = parent, [getKey(child)] = child },
+			checked = { [getKey(parent)] = true, [getKey(child)] = true },
 			authored = {},
 			viewer = "vocksel",
 			discover = false,
+			failures = {},
 		}
 end
 
@@ -123,9 +101,11 @@ test.case("apply stores unplaced authored pull requests with matches", function(
 	authored.title = "Add release health dashboard"
 	local report = applyPulls(doc, {
 		pulls = {},
+		checked = {},
 		authored = { authored },
 		viewer = "vocksel",
 		discover = false,
+		failures = {},
 	}, "2026-10-04T18:05:00Z")
 	assert.eq(#report.added, 0)
 	local top = doc.github
@@ -149,10 +129,12 @@ test.case("apply keeps authored pull requests to the workspace's GitHub sources"
 	local otherOwner = pull("OPEN")
 	otherOwner.owner, otherOwner.name, otherOwner.number = "flipbook-labs", "orion", 3
 	local report = applyPulls(doc, {
-		pulls = {},
+		pulls = { [getKey(inside)] = inside, [getKey(otherRepo)] = otherRepo, [getKey(otherOwner)] = otherOwner },
+		checked = {},
 		authored = { inside, otherRepo, otherOwner },
 		viewer = "vocksel",
 		discover = true,
+		failures = {},
 	}, "2026-10-04T18:05:00Z")
 	assert.eq(#report.added, 1)
 	local added = graph.find(doc, report.added[1])
@@ -163,10 +145,12 @@ test.case("discover files authored pulls in Inbox and clears unplaced", function
 	local doc = testing.createDoc({})
 	local authored = pull("OPEN", { draft = true })
 	local report = applyPulls(doc, {
-		pulls = {},
+		pulls = { [getKey(authored)] = authored },
+		checked = {},
 		authored = { authored },
 		viewer = "vocksel",
 		discover = true,
+		failures = {},
 	}, "2026-10-04T18:05:00Z")
 	assert.eq(report.added[1], "flipbook-labs-flipbook-1")
 	assert.eq(doc.nodes[2].data.itemKind, "pr")
@@ -191,9 +175,11 @@ test.case("apply updates statuses, reports what's missing, and files new pull re
 	local merged = pull("MERGED")
 	local report = applyPulls(doc, {
 		pulls = { ["flipbook-labs/flipbook#1"] = merged },
+		checked = { ["flipbook-labs/flipbook#1"] = true, ["flipbook-labs/flipbook#2"] = true },
 		authored = {},
 		viewer = "vocksel",
 		discover = false,
+		failures = {},
 	}, "2026-10-04T00:00:00Z")
 	assert.eq(#report.changes, 1)
 	assert.eq(report.changes[1].toStatus, "done")
@@ -228,8 +214,17 @@ local function unplacedOf(doc: Doc): { json.Object }
 	return found
 end
 
-local function authoredOnly(authored: PullState): Fetched
-	return { pulls = {}, authored = { authored }, viewer = "vocksel", discover = false }
+-- Your own open pull requests are listed with light fields, and collectPulls fetches the full state of the ones that
+-- can become cards.
+local function authoredOnly(authored: PullState, discover: boolean?): Fetched
+	return {
+		pulls = { [getKey(authored)] = authored },
+		checked = {},
+		authored = { authored },
+		viewer = "vocksel",
+		discover = discover == true,
+		failures = {},
+	}
 end
 
 test.case("a new pull request attaches to the one card recorded on its head branch", function(assert)
@@ -253,8 +248,8 @@ test.case("an attached pull request is tracked by the next sync instead of attac
 	local authored = pull("OPEN")
 	applyPulls(doc, authoredOnly(authored), "2026-10-04T18:05:00Z")
 
-	local fetched: Fetched = { pulls = {}, authored = { authored }, viewer = "vocksel", discover = false }
-	fetched.pulls["flipbook-labs/flipbook#1"] = authored
+	local fetched = authoredOnly(authored)
+	fetched.checked["flipbook-labs/flipbook#1"] = true
 	local report = applyPulls(doc, fetched, "2026-10-04T19:00:00Z")
 
 	assert.eq(#report.attached, 0)
@@ -328,11 +323,128 @@ end)
 
 test.case("discover attaches a branch match to its card instead of filing it in the Inbox", function(assert)
 	local doc = testing.createDoc({ branchCard("work", "Dashboard work", "todo") })
-	local fetched: Fetched = { pulls = {}, authored = { pull("OPEN") }, viewer = "vocksel", discover = true }
-	local report = applyPulls(doc, fetched, "2026-10-04T18:05:00Z")
+	local report = applyPulls(doc, authoredOnly(pull("OPEN"), true), "2026-10-04T18:05:00Z")
 
 	assert.eq(#report.attached, 1)
 	assert.eq(#report.added, 0)
 	assert.eq(graph.find(doc, "inbox"), nil)
 	assert.eq(#unplacedOf(doc), 0)
+end)
+
+local function trackedDoc(status: string, closedDeferral: boolean?): Doc
+	return testing.createDoc({
+		testing.task("a", "Work", status, nil, {
+			repo = "flipbook-labs/flipbook",
+			deferredByClosedPull = closedDeferral,
+			refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#1" } },
+		}),
+	})
+end
+
+local function fetchedWith(state: string): Fetched
+	local tracked = pull(state)
+	return {
+		pulls = { [getKey(tracked)] = tracked },
+		checked = { [getKey(tracked)] = true },
+		authored = {},
+		viewer = "vocksel",
+		discover = false,
+		failures = {},
+	}
+end
+
+test.case("a refresh defers a card whose pull request closed and marks the deferral as its own", function(assert)
+	local doc = trackedDoc("active")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	assert.eq(doc.nodes[1].data.status, "deferred")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, true)
+end)
+
+test.case("a refresh moves a card deferred by a closed pull request back once it reopens", function(assert)
+	local doc = trackedDoc("active")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	local report = applyPulls(doc, fetchedWith("OPEN"), "later")
+	assert.eq(doc.nodes[1].data.status, "review")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+	assert.eq(report.changes[1].fromStatus, "deferred")
+	assert.eq(report.changes[1].toStatus, "review")
+end)
+
+test.case("a card deferred by a closed pull request follows a new open pull request it's pointed at", function(assert)
+	local doc = trackedDoc("active")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	local successor = pull("OPEN")
+	successor.number = 2
+	local refs: json.Array = { json.object({ source = "github", kind = "pull", key = "flipbook-labs/flipbook#2" }) }
+	doc.nodes[1].data.refs = refs
+	local fetched = fetchedWith("OPEN")
+	fetched.pulls = { [getKey(successor)] = successor }
+	applyPulls(doc, fetched, "later")
+	assert.eq(doc.nodes[1].data.status, "review")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+end)
+
+test.case("a deferral someone set stays deferred when its pull request closes or reopens", function(assert)
+	local doc = trackedDoc("deferred")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	assert.eq(doc.nodes[1].data.status, "deferred")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+	applyPulls(doc, fetchedWith("OPEN"), "later")
+	assert.eq(doc.nodes[1].data.status, "deferred")
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+end)
+
+test.case("a deferral someone set stays when the card is pointed at another open pull request", function(assert)
+	local doc = trackedDoc("deferred")
+	local successor = pull("OPEN")
+	successor.number = 2
+	local refs: json.Array = { json.object({ source = "github", kind = "pull", key = "flipbook-labs/flipbook#2" }) }
+	doc.nodes[1].data.refs = refs
+	local fetched = fetchedWith("OPEN")
+	fetched.pulls = { [getKey(successor)] = successor }
+	applyPulls(doc, fetched, "now")
+	assert.eq(doc.nodes[1].data.status, "deferred")
+end)
+
+test.case("setting a status by hand takes over a refresh deferral", function(assert)
+	local doc = trackedDoc("active")
+	applyPulls(doc, fetchedWith("CLOSED"), "now")
+	graph.setFields(doc, "a", { status = "deferred" })
+	assert.eq(doc.nodes[1].data.deferredByClosedPull, nil)
+	applyPulls(doc, fetchedWith("OPEN"), "later")
+	assert.eq(doc.nodes[1].data.status, "deferred")
+end)
+
+test.case("a card that wasn't fetched keeps its state and isn't reported missing", function(assert)
+	local doc = testing.createDoc({
+		testing.task("merged", "Merged", "done", nil, {
+			repo = "flipbook-labs/flipbook",
+			refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#1", status = "merged" } },
+		}),
+	})
+	local report = applyPulls(doc, {
+		pulls = {},
+		checked = {},
+		authored = {},
+		viewer = "vocksel",
+		discover = false,
+		failures = { "2 pull requests on github.com: gh: HTTP 502" },
+	}, "2026-10-04T18:05:00Z")
+
+	assert.eq(#report.missing, 0)
+	assert.eq(report.checked, 0)
+	assert.eq(#report.changes, 0)
+	assert.eq(report.failures[1], "2 pull requests on github.com: gh: HTTP 502")
+end)
+
+test.case("a branch match without its full state stays unplaced until it's fetched", function(assert)
+	local doc = testing.createDoc({ branchCard("work", "Dashboard work", "todo") })
+	local fetched = authoredOnly(pull("OPEN"), true)
+	fetched.pulls = {}
+	local report = applyPulls(doc, fetched, "2026-10-04T18:05:00Z")
+
+	assert.eq(#report.attached, 0)
+	assert.eq(#report.added, 0)
+	assert.eq(findRef(doc.nodes[1], "pull"), nil)
+	assert.eq(#unplacedOf(doc), 1)
 end)
