@@ -44,6 +44,9 @@ jobs:
     # artemis, a machine that runs nothing but perf, has a single runner with this label, so measurements never share
     # the machine with another job.
     runs-on: perf
+    # A fork's pull request waits for a maintainer to approve the perf-fork environment, since its code runs on
+    # artemis. Pushes and pull requests from this repository's branches run right away.
+    environment: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository && 'perf-fork' || '' }}
     timeout-minutes: 25
     permissions:
       contents: read
@@ -83,7 +86,7 @@ jobs:
         run: npm run perf -- --base HEAD^1
 
       - name: Publish Report
-        if: always() && job.status != 'cancelled'
+        if: always() && job.status != 'cancelled' && !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
         working-directory: cli
         env:
           GH_TOKEN: ${{ github.token }}
@@ -92,6 +95,17 @@ jobs:
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           STATUS: ${{ job.status }}
         run: lute run perf-report
+
+      # A fork's token can't comment, so the Perf Report workflow posts what this uploads.
+      - name: Upload Report for Perf Report
+        if: always() && job.status != 'cancelled' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        uses: actions/upload-artifact@v7
+        with:
+          name: perf-report
+          path: app/.perf/report.md
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 1
 
       # Recording history is a side benefit, so a PostHog outage or missing token never fails the job.
       - name: Record Perf History
