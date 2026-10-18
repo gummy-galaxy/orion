@@ -3,7 +3,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
-local graph = require("@root/graph")
+local findItem = require("@root/graph/findItem")
 local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
 
@@ -18,7 +18,7 @@ test.case("media commands insert validated images and list the selected workspac
 	local id = if value then value.id else nil
 	assert.eq(value and value.label, "Concept")
 	local doc = loadDoc(root)
-	local item = if type(id) == "string" then graph.find(doc, id) else nil
+	local item = if type(id) == "string" then findItem(doc, id) else nil
 	assert.eq(item and item.type, "image")
 	assert.eq(item and item.parentId, "ws")
 	assert.eq(item and item.data.workspace, "default")

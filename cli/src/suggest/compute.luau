@@ -1,6 +1,7 @@
 local findRef = require("@root/refs/findRef")
+local getLabel = require("@root/graph/getLabel")
 local getRefs = require("@root/refs/getRefs")
-local graph = require("@root/graph")
+local isWork = require("@root/graph/isWork")
 local json = require("@std/json")
 local match = require("@root/match")
 local suggestTypes = require("@root/suggest/types")
@@ -78,7 +79,7 @@ local function getReferences(item: Item): { [string]: boolean }
 		end
 	end
 
-	for _, value in { graph.label(item), getBranch(item) or "" } do
+	for _, value in { getLabel(item), getBranch(item) or "" } do
 		for key in value:upper():gmatch("[A-Z][A-Z0-9]+%-%d+") do
 			result[`key:{key}`] = true
 		end
@@ -107,7 +108,7 @@ local function getEligible(doc: Doc, scope: string): { Item }
 	local cards: { Item } = {}
 
 	for _, item in doc.nodes do
-		if graph.isWork(item) and (scope == "all" or item.parentId == nil or item.parentId == "unsorted") then
+		if isWork(item) and (scope == "all" or item.parentId == nil or item.parentId == "unsorted") then
 			table.insert(cards, item)
 		end
 	end
@@ -146,7 +147,7 @@ local function getComponentTitle(items: { Item }): string
 			sharedRepo = nil
 		end
 
-		for word in match.words(graph.label(item)) do
+		for word in match.words(getLabel(item)) do
 			counts[word] = (counts[word] or 0) + 1
 		end
 	end
@@ -171,7 +172,7 @@ local function getComponentTitle(items: { Item }): string
 		table.remove(words)
 	end
 
-	local title = if #words > 0 then table.concat(words, " ") else graph.label(items[1])
+	local title = if #words > 0 then table.concat(words, " ") else getLabel(items[1])
 	return if sharedRepo and sharedRepo ~= "" then `{sharedRepo}: {title}` else title
 end
 
@@ -272,7 +273,7 @@ local function getHeuristicGroups(doc: Doc, cards: { Item }): { Group }
 
 			if
 				isSameRepo(firstItem, secondItem)
-				and match.overlap(graph.label(firstItem), graph.label(secondItem)) >= 0.5
+				and match.overlap(getLabel(firstItem), getLabel(secondItem)) >= 0.5
 			then
 				join(firstItem.id, secondItem.id, "Strong title overlap", true)
 			end
@@ -369,7 +370,7 @@ local function getAgentGroups(
 			contextCards,
 			json.object({
 				id = item.id,
-				label = getBounded(graph.label(item), 160),
+				label = getBounded(getLabel(item), 160),
 				repo = getBounded(getField(item, "repo"), 100),
 				branch = getBounded(getBranch(item), 120),
 				key = getBounded(if type(key) == "string" then key else nil, 50),

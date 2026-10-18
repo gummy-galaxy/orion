@@ -1,7 +1,7 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local graph = require("@root/graph")
+local getItem = require("@root/graph/getItem")
 local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
 local writeDoc = require("@root/store/writeDoc")
@@ -17,11 +17,11 @@ test.case("tidy marks groups for the app and says the layout runs when it opens"
 	assert.strContains(text, "Would tidy 1 group at revision 1")
 	assert.eq(loadDoc(dir).revision, 1)
 	local doc = loadDoc(dir)
-	assert.eq(graph.get(doc, "ws").data.layout, "refit")
+	assert.eq(getItem(doc, "ws").data.layout, "refit")
 	local tidied = report(testing.run(dir, { "group", "tidy", "ws", "--json" }))
 	assert.eq(tidied.appConnected, false)
 	assert.eq(tidied.revision, 2)
-	assert.eq(graph.get(loadDoc(dir), "ws").data.layout, "refit")
+	assert.eq(getItem(loadDoc(dir), "ws").data.layout, "refit")
 end)
 
 test.case("tidy previews without marking, and text output names the app's next step", function(assert)
@@ -29,7 +29,7 @@ test.case("tidy previews without marking, and text output names the app's next s
 	local preview = run({ "group", "tidy", "ws", "--dry-run" })
 	assert.strContains(preview, "Would tidy 1 group at revision 0")
 	assert.strNotContains(preview, "No app is connected")
-	assert.eq(graph.get(loadDoc(dir), "ws").data.layout, nil)
+	assert.eq(getItem(loadDoc(dir), "ws").data.layout, nil)
 	assert.strContains(run({ "group", "tidy", "ws" }), "No app is connected, so the layout runs when the app opens.")
 end)
 
@@ -39,9 +39,9 @@ test.case("tidy keeps a pending marker and accepts a where expression", function
 	pending.data.layout = "pending"
 	writeDoc(dir, testing.createDoc({ pending, testing.group("other", "Other") }))
 	assert.strContains(testing.run(dir, { "group", "tidy", "--where", [[label = "Other"]] }), "Marked 1 group")
-	assert.eq(graph.get(loadDoc(dir), "other").data.layout, "refit")
+	assert.eq(getItem(loadDoc(dir), "other").data.layout, "refit")
 	testing.run(dir, { "group", "tidy", "pending" })
-	assert.eq(graph.get(loadDoc(dir), "pending").data.layout, "pending")
+	assert.eq(getItem(loadDoc(dir), "pending").data.layout, "pending")
 end)
 
 test.case("tidy rejects cards, unknown ids, and stale revisions without writing", function(assert)
@@ -59,5 +59,5 @@ test.case("tidy rejects cards, unknown ids, and stale revisions without writing"
 		run({ "group", "tidy", "ws", "--if-revision", "x" })
 	end)
 	assert.eq(loadDoc(dir).revision, 0)
-	assert.eq(graph.get(loadDoc(dir), "ws").data.layout, nil)
+	assert.eq(getItem(loadDoc(dir), "ws").data.layout, nil)
 end)

@@ -2,7 +2,8 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
+local findItem = require("@root/graph/findItem")
+local getLabel = require("@root/graph/getLabel")
 local loadDoc = require("@root/store/loadDoc")
 
 type Context = context.Context
@@ -36,10 +37,10 @@ return table.freeze({
 					local candidate = json.asObject(entry)
 
 					if candidate then
-						local item = if type(candidate.id) == "string" then graph.find(doc, candidate.id) else nil
+						local item = if type(candidate.id) == "string" then findItem(doc, candidate.id) else nil
 						table.insert(
 							lines,
-							`  {candidate.id}  {if item then graph.label(item) else ""}  {candidate.score}`
+							`  {candidate.id}  {if item then getLabel(item) else ""}  {candidate.score}`
 						)
 					end
 				end

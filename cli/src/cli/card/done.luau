@@ -2,12 +2,14 @@ local cli = require("@batteries/cli")
 
 local addBatchOptions = require("@root/cli/addBatchOptions")
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
+local getItem = require("@root/graph/getItem")
+local getLabel = require("@root/graph/getLabel")
 local isBatchEdit = require("@root/cli/isBatchEdit")
 local requireItem = require("@root/cli/requireItem")
 local resolveId = require("@root/query/resolveId")
 local runBatchEdit = require("@root/cli/runBatchEdit")
 local runTransaction = require("@root/store/runTransaction")
+local setFields = require("@root/graph/setFields")
 
 type Context = context.Context
 
@@ -27,9 +29,9 @@ return table.freeze({
 		local doc = runTransaction(options.dir, function(doc)
 			id = resolveId(doc, parser:variadics()[1])
 			requireItem(doc, id)
-			graph.setFields(doc, id, { status = "done" })
+			setFields(doc, id, { status = "done" })
 		end)
 
-		options.write(`Done: {id} · {graph.label(graph.get(doc, id))}`)
+		options.write(`Done: {id} · {getLabel(getItem(doc, id))}`)
 	end,
 })

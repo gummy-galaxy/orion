@@ -1,10 +1,10 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
+local derive = require("@root/graph/derive")
 local encodeDocObject = require("@root/store/encodeDocObject")
 local getDocPath = require("@root/store/getDocPath")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local graph = require("@root/graph")
 local readDoc = require("@root/store/readDoc")
 local serializeDerived = require("@root/server/serializeDerived")
 local shared = require("@root/server/routes/shared")
@@ -26,7 +26,7 @@ function orion.handle(request: net.ReceivedRequest, root: string, active: string
 				return shared.reply(404, json.object({ path = getDocPath(requestedDir), canvas = requested }))
 			end
 			local response = encodeDocObject(doc)
-			response.derived = serializeDerived(graph.derive(doc))
+			response.derived = serializeDerived(derive(doc))
 			return shared.reply(200, response)
 		end
 		return shared.reply(405, json.object({ error = "method not allowed" }))

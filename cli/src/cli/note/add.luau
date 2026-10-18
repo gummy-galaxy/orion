@@ -1,7 +1,7 @@
 local cli = require("@batteries/cli")
 
+local addNote = require("@root/graph/addNote")
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
 local joinWords = require("@root/cli/joinWords")
 local resolveOptionalId = require("@root/cli/resolveOptionalId")
 local runTransaction = require("@root/store/runTransaction")
@@ -26,7 +26,7 @@ return table.freeze({
 
 		local added: Item
 		local doc = runTransaction(options.dir, function(doc)
-			added = graph.addNote(doc, text, {
+			added = addNote(doc, text, {
 				group = resolveOptionalId(doc, parser:get("group")),
 				after = resolveOptionalId(doc, parser:get("after")),
 				before = resolveOptionalId(doc, parser:get("before")),

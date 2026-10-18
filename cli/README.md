@@ -12,7 +12,7 @@ In `src/`:
 - `cli/mcp/`: the MCP server. `cli/mcp/tools.luau` lists every tool and the command it runs.
 - `cli/describeCommands.luau`: describes every command for the generated reference, which the root `.lute/docs.luau` writes.
 - `store/`: the canvas list, the data file and its backups, and focus reports. `runWithLock` is the one place that holds a canvas's lock, and `runTransaction` and `writeDoc` are the only writers of the data file.
-- `graph.luau`: derived status and leverage, and every edit the commands make.
+- `graph/`: derived status and leverage in `graph/derive.luau`, and every edit the commands make, one function per module. Shared types are in `graph/types.luau` and card and group sizes in `graph/sizes.luau`.
 - `server/`: HTTP routes, WebSocket events, file watching, and refresh scheduling for `orion server start`.
 - `adapters/`: one adapter per source kind (`github`, `jira`, `hop`). Each validates its options, collects records for ingest, and resolves `--ref` values through `adapters/resolveRef.luau`.
 - `ingest/`: running sources, placing their records, and linking mentioned issues.

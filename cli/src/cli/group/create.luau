@@ -1,7 +1,7 @@
 local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
+local createGroup = require("@root/graph/createGroup")
 local joinWords = require("@root/cli/joinWords")
 local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
@@ -23,7 +23,7 @@ return table.freeze({
 
 		local made: Item
 		local doc = runTransaction(options.dir, function(doc)
-			made = graph.createGroup(doc, label, parser:get("in"))
+			made = createGroup(doc, label, parser:get("in"))
 		end)
 
 		writeItem(options, doc, made, "Created group")
