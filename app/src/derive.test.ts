@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildWork, deriveSources, needsAttention, sourcesOf, sourcesOfGroup, toServerFacts, type Derived } from './derive'
-import type { AppNode, ItemKind, Link, Status, TaskNode, ViewStatus } from './model'
+import { buildWork, deriveSources, sourcesOf, sourcesOfGroup, toServerFacts, type Derived } from './derive'
+import type { AppNode, ItemKind, Link, Status, TaskNode } from './model'
 
 const task = (id: string, status: Status = 'todo', itemKind: ItemKind = 'step'): AppNode => ({
   id,
@@ -129,7 +129,9 @@ describe('buildWork', () => {
     upstream: { a: 3, b: 0 },
     rarity: { a: 'rare', b: 'common' },
     groups: { g: { total: 2, done: 0, ready: 1, blocked: 1, outside: 0 } },
+    canvas: { total: 2, done: 0, ready: 1, blocked: 1, outside: 0 },
     snoozed: { b: '2026-10-12T17:00:00Z' },
+    attention: { a: true },
   }
 
   it('reads the server values for each card and group', () => {
@@ -143,6 +145,8 @@ describe('buildWork', () => {
     expect(work.rarity.get('a')).toBe('rare')
     expect(work.groups.get('g')).toEqual({ total: 2, done: 0, ready: 1, blocked: 1, outside: 0 })
     expect(work.snoozed.get('b')).toBe('2026-10-12T17:00:00Z')
+    expect(work.canvas).toEqual({ total: 2, done: 0, ready: 1, blocked: 1, outside: 0 })
+    expect([...work.attention]).toEqual(['a'])
   })
 
   it('keeps blocking links for hover tracing', () => {
@@ -173,27 +177,5 @@ describe('buildWork', () => {
     const work = buildWork(toServerFacts(null), [task('api', 'todo', 'component')], [])
 
     expect(work.status.has('api')).toBe(false)
-  })
-})
-
-describe('needsAttention', () => {
-  const yours = (id: string): AppNode => ({ ...task(id), data: { ...task(id).data, who: 'you' } }) as AppNode
-
-  it('lists open work where it is your move', () => {
-    const status = new Map<string, ViewStatus>([
-      ['a', 'ready'],
-      ['b', 'active'],
-    ])
-
-    expect(needsAttention([yours('a'), yours('b')], status, new Map())).toEqual(['a', 'b'])
-  })
-
-  it('leaves out snoozed work until it wakes', () => {
-    const status = new Map<string, ViewStatus>([
-      ['a', 'ready'],
-      ['b', 'ready'],
-    ])
-
-    expect(needsAttention([yours('a'), yours('b')], status, new Map([['a', '2026-10-12T17:00:00Z']]))).toEqual(['b'])
   })
 })

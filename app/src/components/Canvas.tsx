@@ -28,7 +28,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
-import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { ActionsContext, type AttentionMark, type Flow } from '../derive'
 import { localDateValue, snoozeUntil } from '../snooze'
 import { CHAIN_STEP_MS, CLEAR_MS, celebrationDelays, clearCelebrations, closesOut, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
@@ -1740,7 +1740,7 @@ export function Canvas() {
     }
   }
 
-  const needs = useMemo(() => needsAttention(nodes, work.status, work.snoozed), [nodes, work.status, work.snoozed])
+  const needs = work.attention
 
   // Work that needs you, gathered onto whatever shows it: the card, or the folded group around it.
   const attention = useMemo(() => {
@@ -1763,7 +1763,7 @@ export function Canvas() {
       marks.set(shown, nodeMap)
     }
 
-    return { marks, count: needs.length - elsewhere, elsewhere }
+    return { marks, count: needs.size - elsewhere, elsewhere }
   }, [attending, needs, view])
 
   const transform = useStore((state) => (attending ? state.transform : null))
@@ -3241,8 +3241,7 @@ export function Canvas() {
   const focused = focus ? map.get(focus) : undefined
   const focusPos = focused && absolutePosition(focused, map)
   const focusSize = focused && sizeOf(focused, cardSize)
-  // Snoozed work isn't counted as ready, as in each group's progress.
-  const readyTotal = [...work.status].filter(([id, status]) => status === 'ready' && !work.snoozed.has(id)).length
+  const readyTotal = work.canvas.ready
 
   const commands: Command[] = [
     ...(trailSize.back

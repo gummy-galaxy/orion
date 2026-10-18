@@ -15,6 +15,8 @@ test.case("serializeDerived writes every map as an object, even when empty", fun
 	assert.eq(json.asObject(parsed.upstream) ~= nil, true)
 	assert.eq(json.asObject(parsed.rarity) ~= nil, true)
 	assert.eq(json.asObject(parsed.groups) ~= nil, true)
+	assert.eq(json.asObject(parsed.canvas) ~= nil, true)
+	assert.eq(json.asObject(parsed.attention) ~= nil, true)
 end)
 
 test.case("serializeDerived keys values by item id and sends group counts", function(assert)
@@ -35,4 +37,18 @@ test.case("serializeDerived keys values by item id and sends group counts", func
 	assert.eq(stats.total, 1)
 	assert.eq(stats.ready, 1)
 	assert.eq(stats.outside, 1)
+	local canvas = json.asObject(parsed.canvas) :: json.Object
+	assert.eq(canvas.total, 2)
+	assert.eq(canvas.ready, 1)
+	assert.eq(canvas.blocked, 1)
+end)
+
+test.case("serializeDerived sends the work where it's your move", function(assert)
+	local doc =
+		testing.createDoc({ testing.task("a", "A", "todo", nil, { who = "you" }), testing.task("b", "B", "todo") })
+	local parsed =
+		json.asObject(json.deserialize(json.serialize(serializeDerived(derive(doc)))) :: json.Value) :: json.Object
+	local attention = json.asObject(parsed.attention) :: json.Object
+	assert.eq(attention.a, true)
+	assert.eq(attention.b, nil)
 end)

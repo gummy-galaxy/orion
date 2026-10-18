@@ -15,8 +15,12 @@ export type Derived = {
 	upstream: { [string]: number },
 	rarity: { [string]: string },
 	groups: { [string]: GroupStats },
+	-- Progress across every card on the canvas, counted the way each group's is.
+	canvas: GroupStats,
 	-- Cards snoozed right now, mapped to the UTC time they wake.
 	snoozed: { [string]: string },
+	-- Open work where it's your move and that isn't blocked or snoozed.
+	attention: { [string]: boolean },
 }
 
 export type ItemFields = {
