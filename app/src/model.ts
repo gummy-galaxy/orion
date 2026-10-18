@@ -91,6 +91,9 @@ export type SourceRef = {
   deletions?: number
   /** The revision the facts describe, which a merge from the card must still match. */
   head?: string
+  /** An agent session's state, working, waiting, or done, and the last thing it said. */
+  sessionState?: string
+  lastMessage?: string
   details?: Record<string, unknown>
 }
 /** A ref's checks. Progress and counts describe checks still to come, so they're only there while the work is open. */

@@ -183,6 +183,7 @@ import { GroupArrange } from './GroupArrange'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
 import { SelectionStatus } from './SelectionStatus'
+import { SelectedSessionChat } from './SelectedSessionChat'
 import { TintSelect } from './TintSelect'
 
 type ViewNode = AppNode | GhostNode
@@ -3952,6 +3953,13 @@ export function Canvas() {
           )}
           {ready && appearance.companion && !focus && (
             <Companion targets={companion.targets} describe={companion.describe} syncing={syncStatus?.state === 'running'} paused={away} />
+          )}
+          {ready && !focus && (
+            <SelectedSessionChat
+              workspace={workspaces.active}
+              cardId={selected.length === 1 && isTask(selected[0]) ? selected[0].id : undefined}
+              refs={selected.length === 1 && isTask(selected[0]) ? selected[0].data.refs : undefined}
+            />
           )}
           {attending && cursor && (
             <AttentionOverlay

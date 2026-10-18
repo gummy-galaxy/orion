@@ -1,0 +1,248 @@
+/* Agent sessions on cards and in the companion's chat (spike for #293). */
+
+.session-state-icon {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  --session-icon-ink: var(--surface);
+}
+
+.session-state-icon-working {
+  color: var(--status-active);
+}
+
+.session-state-icon-waiting {
+  color: var(--status-blocked);
+}
+
+.session-state-icon-done {
+  color: var(--status-done);
+}
+
+:where(:root[data-motion='on']) .session-state-icon-working {
+  animation: session-spin 1.1s linear infinite;
+}
+
+@keyframes session-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* On a trading card, the bubble sits over the art between the top badges and the title, in place of the kind tile.
+   Where the tile's lock should go is an open question for the real build. */
+.card.skin-trading .trading-frame:has(.session-bubble) .trading-tile {
+  display: none;
+}
+
+.session-bubble {
+  position: absolute;
+  top: 58px;
+  left: 12px;
+  right: 12px;
+  z-index: 3;
+  padding: 8px 10px 9px;
+  border-radius: 12px 12px 12px 4px;
+  background: var(--trading-background);
+  box-shadow: var(--trading-shadow-badge);
+  color: var(--trading-text);
+  font: var(--weight-medium) 12.5px/1.3 var(--font-ui);
+  --session-icon-ink: var(--trading-background);
+}
+
+.session-bubble-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: var(--weight-bold);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.session-bubble-waiting {
+  box-shadow:
+    var(--trading-shadow-badge),
+    0 0 0 2px var(--status-blocked);
+}
+
+.session-bubble-message {
+  margin: 5px 0 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  color: var(--trading-text-muted);
+}
+
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) .session-bubble-message {
+  display: none;
+}
+
+/* The chat opens beside the companion's resting spot, above the minimap. */
+.companion-chat {
+  position: absolute;
+  right: 96px;
+  bottom: 150px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  width: 360px;
+  max-height: min(520px, calc(100% - 200px));
+  border: var(--border-width-default) solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-dialog);
+  color: var(--ink);
+  font: var(--weight-regular) var(--text-size-small) / var(--line-height-prose) var(--font-ui);
+  pointer-events: auto;
+}
+
+.companion-chat-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-bottom: var(--border-width-default) solid var(--line);
+}
+
+.companion-chat-avatar {
+  flex: none;
+  width: 20px;
+  height: 34px;
+}
+
+.companion-chat-avatar svg {
+  width: 100%;
+  height: 100%;
+}
+
+.companion-chat-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.companion-chat-heading h2 {
+  margin: 0;
+  overflow: hidden;
+  font: var(--weight-bold) var(--text-size-body) var(--font-ui);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companion-chat-state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  color: var(--muted);
+  font-size: var(--text-size-caption);
+}
+
+.companion-chat-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.companion-chat-close:hover {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
+}
+
+.companion-chat-turns {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2-5);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.companion-chat-turn {
+  max-width: 88%;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 12px 12px 12px 4px;
+  background: color-mix(in srgb, var(--ink) 6%, var(--surface));
+  overflow-wrap: anywhere;
+}
+
+.companion-chat-turn.is-you {
+  align-self: flex-end;
+  border-radius: 12px 12px 4px;
+  background: color-mix(in srgb, var(--status-active) 22%, var(--surface));
+}
+
+.companion-chat-turn .markdown > :first-child {
+  margin-top: 0;
+}
+
+.companion-chat-turn .markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.companion-chat-turn.is-unsent {
+  opacity: 0.7;
+  outline: 1px dashed var(--line);
+}
+
+.companion-chat-unsent {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--muted);
+  font-size: var(--text-size-caption);
+}
+
+.companion-chat-empty {
+  color: var(--muted);
+}
+
+.companion-chat-notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--border-width-default) solid var(--line);
+  background: color-mix(in srgb, var(--status-blocked) 12%, var(--surface));
+  font-size: var(--text-size-caption);
+}
+
+.companion-chat-composer {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: var(--border-width-default) solid var(--line);
+}
+
+.companion-chat-composer textarea {
+  flex: 1;
+  resize: none;
+  padding: var(--space-2) var(--space-2-5);
+  border: var(--border-width-default) solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.companion-chat-composer button {
+  align-self: flex-end;
+  padding: var(--space-2) var(--space-3-5);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--status-active);
+  color: var(--surface);
+  font: var(--weight-bold) var(--text-size-small) var(--font-ui);
+  cursor: pointer;
+}
+
+.companion-chat-composer button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

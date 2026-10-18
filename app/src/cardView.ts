@@ -14,6 +14,8 @@ import {
   type Who,
 } from './model'
 import type { Rarity } from './rarity'
+import { getCardSession } from './sessions/getCardSession'
+import type { CardSession } from './sessions/types'
 import { withSnoozedFacts } from './withSnoozedFacts'
 
 export type CardView = {
@@ -62,6 +64,8 @@ export type CardView = {
   priority?: Priority
   /** Size set by a source. No source sets one yet. */
   size?: CardSizeLabel
+  /** The agent session working on the card, when one ran on its branch. */
+  session?: CardSession
 }
 
 export type Priority = 0 | 1 | 2 | 3
@@ -97,6 +101,7 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   // The primary ref's URL, so a badge for another GitHub ref can't change what opens from a pull request card.
   const url = getTaskUrl(data)
   const pullRequestUrl = data.itemKind === 'pr' && url?.startsWith('https://github.com/') ? url : undefined
+  const session = getCardSession(data.refs)
 
   return {
     id: node.id,
@@ -127,5 +132,6 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
     ...(facts.group ? { group: facts.group } : {}),
     ...(pullRef?.changesRequested ? { changesRequested: true as const } : {}),
     ...(pullRef?.updatedAt ? { updatedAt: pullRef.updatedAt } : {}),
+    ...(session ? { session } : {}),
   }
 }

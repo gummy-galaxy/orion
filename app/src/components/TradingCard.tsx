@@ -6,6 +6,7 @@ import { TradingSignalIcon } from './TradingSignalIcon'
 import { SourceBadges } from './SourceBadges'
 import { MergePullRequest } from './MergePullRequest'
 import { OpenInVscode } from './OpenInVscode'
+import { SessionBubble } from './SessionBubble'
 import { Tooltip } from './Tooltip'
 import { TradingKindIcon } from './TradingKindIcon'
 
@@ -104,6 +105,7 @@ export function TradingCard({ view }: { view: CardView }) {
           </Tooltip>
         )}
       </div>
+      {view.session && <SessionBubble session={view.session} />}
       <div className="trading-scrim">
         <Tooltip label={view.title}>
           <h3 className="trading-title">{view.title}</h3>
