@@ -1,4 +1,4 @@
-import type { deriveWork } from '../derive'
+import type { Work } from '../derive'
 import type { AppNode, Link } from '../model'
 import { directionLabels } from '../linkDirection'
 import { LinkAdd } from './LinkAdd'
@@ -16,7 +16,7 @@ export function LinkList({
   flipLink,
 }: {
   node: AppNode
-  work: ReturnType<typeof deriveWork>
+  work: Work
   nodeMap: Map<string, AppNode>
   links: Link[]
   jumpTo: (id: string) => void
