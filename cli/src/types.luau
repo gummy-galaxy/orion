@@ -91,6 +91,21 @@ export type ResolvedRef = {
 	repo: string?,
 }
 
+-- Who wrote a log entry: the person running the CLI, or an agent they named.
+export type LogAuthor = { kind: "person" | "agent", name: string }
+
+-- What a log entry is attached to. Cards are the only kind so far; pull requests and issues join later.
+export type LogTarget = { kind: "card", id: string }
+
+-- One line of the canvas log. Entries are only ever appended, so a mistake is corrected by a new entry.
+export type LogEntry = {
+	id: string,
+	text: string,
+	time: string,
+	author: LogAuthor,
+	targets: { LogTarget },
+}
+
 -- What the app has open and selected, as it last reported.
 export type Focus = {
 	open: string?,
