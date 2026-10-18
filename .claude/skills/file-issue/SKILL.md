@@ -26,7 +26,7 @@ Search open issues for overlap:
 gh issue list --repo vocksel/orion --state open --search '<keywords>'
 ```
 
-If an open issue already covers it, tell the person, recommend adding to that issue, and wait for their answer. Also read [`CHARTER.md`](../../../CHARTER.md) and [`DECISIONS.md`](../../../DECISIONS.md), and note any conflict in the issue's open questions.
+If an open issue already covers it, tell the person, recommend adding to that issue, and wait for their answer. Also read [the charter](../../../docs/development/charter.md) and [the decisions log](../../../docs/development/decisions.md), and note any conflict in the issue's open questions.
 
 ## 3. Write it
 
