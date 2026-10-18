@@ -382,8 +382,17 @@ test.case("static route serves files and falls back to index outside the API", f
 			return json.object({ state = "idle" })
 		end,
 	}, function() end, folder)
-	assert.eq(router.handle(createRequest("GET", "/app.js")).body, "code")
-	assert.eq(router.handle(createRequest("GET", "/deep/link")).body, "home")
+	local script = router.handle(createRequest("GET", "/app.js"))
+	assert.eq(script.body, "code")
+	assert.eq(script.headers["content-security-policy"], nil)
+	local page = createRequest("GET", "/deep/link")
+	page.headers.host = "127.0.0.1:5198"
+	local served = router.handle(page)
+	assert.eq(served.body, "home")
+	local policy = served.headers["content-security-policy"]
+	assert.neq(policy:find("script-src 'self';", 1, true), nil)
+	assert.neq(policy:find("ws://127.0.0.1:5198", 1, true), nil)
+	assert.neq(policy:find("frame-ancestors 'none'", 1, true), nil)
 	assert.eq(router.handle(createRequest("GET", "/api/unknown")).status, 404)
 end)
 
