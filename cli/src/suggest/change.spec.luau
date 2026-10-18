@@ -3,8 +3,8 @@ local test = require("@std/test")
 
 local change = require("@root/suggest/change")
 local compute = require("@root/suggest/compute")
+local getItem = require("@root/graph/getItem")
 local getStored = require("@root/suggest/getStored")
-local graph = require("@root/graph")
 local save = require("@root/suggest/save")
 local testing = require("@root/testing")
 local types = require("@root/types")
@@ -36,9 +36,9 @@ test.case("suggestions apply asks the app to tidy groups that lost cards", funct
 		groups = { { id = "s1", title = "Avatars", members = { "a", "b" }, reason = "", source = "agent" } },
 	})
 	change(doc, "apply", { "s1" }, false)
-	local unsorted = graph.get(doc, "unsorted")
+	local unsorted = getItem(doc, "unsorted")
 	assert.eq(unsorted.data.layout, "refit")
-	assert.eq(graph.get(doc, "c").parentId, "unsorted")
+	assert.eq(getItem(doc, "c").parentId, "unsorted")
 end)
 
 test.case("suggestions dismiss removes chosen suggestions without moving cards", function(assert)

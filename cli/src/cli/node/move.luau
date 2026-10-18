@@ -2,8 +2,8 @@ local cli = require("@batteries/cli")
 
 local addBatchOptions = require("@root/cli/addBatchOptions")
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
 local isBatchEdit = require("@root/cli/isBatchEdit")
+local moveItem = require("@root/graph/moveItem")
 local resolveId = require("@root/query/resolveId")
 local resolveOptionalId = require("@root/cli/resolveOptionalId")
 local runBatchEdit = require("@root/cli/runBatchEdit")
@@ -33,7 +33,7 @@ return table.freeze({
 		store.transaction(options.dir, function(doc)
 			id = resolveId(doc, parser:variadics()[1])
 			target = if parser:has("top") then nil else resolveOptionalId(doc, to)
-			graph.move(doc, id, target)
+			moveItem(doc, id, target)
 		end)
 
 		options.write(`Moved {id} to {target or "the top level"}`)

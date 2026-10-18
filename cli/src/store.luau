@@ -9,8 +9,9 @@ local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local fillPullFacts = require("@root/github/fillPullFacts")
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
-local graph = require("@root/graph")
+local getRecordedStatuses = require("@root/graph/getRecordedStatuses")
 local isProcessAlive = require("@root/server/isProcessAlive")
+local markCelebrations = require("@root/graph/markCelebrations")
 local migrateItem = require("@root/migrations/migrateItem")
 local migrateWorkspaces = require("@root/migrations/migrateWorkspaces")
 local types = require("@root/types")
@@ -706,9 +707,9 @@ function store.transaction(dir: string, mutate: (Doc) -> ()): Doc
 	local lockPath = acquire(dir)
 	local succeeded, result = pcall(function(): Doc
 		local doc = store.load(dir)
-		local previous = graph.recordedStatuses(doc)
+		local previous = getRecordedStatuses(doc)
 		mutate(doc)
-		graph.markCelebrations(doc, previous)
+		markCelebrations(doc, previous)
 		doc.revision += 1
 		atomicWrite(store.filePath(dir), store.encode(doc))
 		return doc

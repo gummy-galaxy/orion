@@ -2,10 +2,10 @@ local cli = require("@batteries/cli")
 
 local addBatchOptions = require("@root/cli/addBatchOptions")
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
 local isBatchEdit = require("@root/cli/isBatchEdit")
 local runBatchEdit = require("@root/cli/runBatchEdit")
 local store = require("@root/store")
+local ungroup = require("@root/graph/ungroup")
 
 type Context = context.Context
 
@@ -24,7 +24,7 @@ return table.freeze({
 		local id = parser:variadics()[1]
 
 		store.transaction(options.dir, function(doc)
-			graph.ungroup(doc, id)
+			ungroup(doc, id)
 		end)
 
 		options.write(`Ungrouped {id}`)

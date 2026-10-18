@@ -3,9 +3,9 @@ local net = require("@lute/net/server")
 local process = require("@std/process")
 local task = require("@std/task")
 
+local derive = require("@root/graph/derive")
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local events = require("@root/server/events")
-local graph = require("@root/graph")
 local readRuntime = require("@root/server/readRuntime")
 local removeRuntime = require("@root/server/removeRuntime")
 local routes = require("@root/server/routes")
@@ -54,10 +54,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		end)
 	end, staticDir)
 	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number, doc: types.Doc)
-		hub.publish(
-			"orion:changed",
-			json.object({ revision = revision, derived = serializeDerived(graph.derive(doc)) })
-		)
+		hub.publish("orion:changed", json.object({ revision = revision, derived = serializeDerived(derive(doc)) }))
 	end, function(list: store.WorkspaceList)
 		hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
 	end, function(name: string)

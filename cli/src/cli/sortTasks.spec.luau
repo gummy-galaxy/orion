@@ -1,6 +1,6 @@
 local test = require("@std/test")
 
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
 local sortTasks = require("@root/cli/sortTasks")
 local testing = require("@root/testing")
 
@@ -13,7 +13,7 @@ test.case("sortTasks keeps cards that pass, the ones that unblock the most first
 		testing.group("group", "Group"),
 	}, { { "root", "a" }, { "root", "b" } })
 
-	local items = sortTasks(doc, graph.derive(doc), function(item)
+	local items = sortTasks(doc, derive(doc), function(item)
 		return item.id ~= "skip"
 	end)
 	local ids = {}

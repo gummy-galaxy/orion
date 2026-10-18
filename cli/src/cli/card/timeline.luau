@@ -5,7 +5,8 @@ local context = require("@root/cli/context")
 local encodeEntry = require("@root/log/encodeEntry")
 local formatEntry = require("@root/log/formatEntry")
 local getCardEntries = require("@root/log/getCardEntries")
-local graph = require("@root/graph")
+local getItem = require("@root/graph/getItem")
+local isGroup = require("@root/graph/isGroup")
 local newestFirst = require("@root/log/newestFirst")
 local parseLimit = require("@root/cli/parseLimit")
 local readLog = require("@root/log/readLog")
@@ -27,8 +28,8 @@ return table.freeze({
 		local id = assert(parser:get("id"), "missing <id>")
 		local limit = parseLimit(parser:get("limit")) or DEFAULT_LIMIT
 
-		local item = graph.get(store.load(options.dir), id)
-		assert(not graph.isGroup(item), `"{id}" is a group; only cards have a timeline`)
+		local item = getItem(store.load(options.dir), id)
+		assert(not isGroup(item), `"{id}" is a group; only cards have a timeline`)
 
 		local recent = newestFirst(getCardEntries(readLog(options.dir), id), limit)
 

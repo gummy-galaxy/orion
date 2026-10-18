@@ -2,8 +2,8 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 
 local getErrorText = require("@root/getErrorText")
+local getLabel = require("@root/graph/getLabel")
 local getStringField = require("@root/getStringField")
-local graph = require("@root/graph")
 local lookupCard = require("@root/import/lookupCard")
 local runCommand = require("@root/command")
 local shared = require("@root/server/routes/shared")
@@ -41,7 +41,7 @@ function links.handle(request: net.ReceivedRequest, root: string, runner: Comman
 
 	local item = result.item
 	if result.status == "existing" then
-		return shared.reply(200, json.object({ status = "existing", id = item.id, label = graph.label(item) }))
+		return shared.reply(200, json.object({ status = "existing", id = item.id, label = getLabel(item) }))
 	end
 
 	return shared.reply(200, json.object({ status = "found", id = item.id, data = item.data }))

@@ -2,8 +2,8 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local cli = require("@root/cli")
+local getItem = require("@root/graph/getItem")
 local getVersion = require("@root/getVersion")
-local graph = require("@root/graph")
 local handleMessage = require("@root/cli/mcp/server/handleMessage")
 local mcpTypes = require("@root/cli/mcp/types")
 local store = require("@root/store")
@@ -133,13 +133,13 @@ test.case("tidy marks a group and check reports it waiting for layout without st
 
 	local preview = call(run, "orion_tidy", json.object({ ids = { "ws" }, dryRun = true }))
 	assert.eq(preview.isError, nil)
-	assert.eq(graph.get(store.load(dir), "ws").data.layout, nil)
+	assert.eq(getItem(store.load(dir), "ws").data.layout, nil)
 
 	local tidied = call(run, "orion_tidy", json.object({ ids = { "ws" }, ifRevision = 0 }))
 	assert.eq(tidied.isError, nil)
 	local report = need(json.asObject(json.deserialize(firstText(tidied)) :: json.Value))
 	assert.eq(report.appConnected, false)
-	assert.eq(graph.get(store.load(dir), "ws").data.layout, "refit")
+	assert.eq(getItem(store.load(dir), "ws").data.layout, "refit")
 
 	local stale = call(run, "orion_tidy", json.object({ ids = { "ws" }, ifRevision = 0 }))
 	assert.eq(stale.isError, true)

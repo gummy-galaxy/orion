@@ -1,0 +1,67 @@
+local test = require("@std/test")
+
+local addItem = require("@root/graph/addItem")
+local getItem = require("@root/graph/getItem")
+local setFields = require("@root/graph/setFields")
+local testing = require("@root/testing")
+
+local task = testing.task
+
+test.case("a shape makes a component, and components and groups take a color", function(assert)
+	local doc = testing.createDoc({ testing.group("g", "System") })
+	local item = addItem(doc, "orion.json", { shape = "store", color = "amber" })
+	assert.eq(item.data.itemKind, "component")
+	assert.eq(item.data.shape, "store")
+	assert.eq(item.data.color, "amber")
+
+	setFields(doc, item.id, { shape = "", color = "" })
+	assert.eq(item.data.shape, nil)
+	assert.eq(item.data.color, nil)
+
+	local step = addItem(doc, "Write the docs", {})
+	setFields(doc, step.id, { shape = "process" })
+	assert.eq(step.data.itemKind, "component")
+	setFields(doc, step.id, { kind = "step" })
+	assert.eq(step.data.shape, nil)
+
+	setFields(doc, "g", { color = "teal" })
+	assert.eq(getItem(doc, "g").data.color, "teal")
+	assert.throwsWith("only components and groups take a color", function()
+		setFields(doc, step.id, { color = "rose" })
+	end)
+	assert.throwsWith("shape must be one of service, store, actor, external, interface, process, queue", function()
+		addItem(doc, "Blob", { shape = "blob" })
+	end)
+end)
+
+test.case("addItem names pull requests after the repository and number", function(assert)
+	local doc = testing.createDoc({ testing.group("g", "Group"), task("x", "X", "todo", "g") })
+	local item = addItem(doc, "Ship it", { group = "g", repo = "flipbook-labs/flipbook", pr = 700 })
+	assert.eq(item.id, "flipbook-labs-flipbook-700")
+	assert.eq(item.data.itemKind, "pr")
+	assert.eq(item.parentId, "g")
+	assert.eq(item.position.x > 0, true)
+	assert.eq(addItem(doc, "Ship it", {}).id, "ship-it")
+	assert.eq(addItem(doc, "Ship it", {}).id, "ship-it-2")
+end)
+
+test.case("addItem cuts long ids at a word boundary and suffixes collisions", function(assert)
+	local doc = testing.createDoc({})
+	local label = "Pick the next slider family piece to build"
+	assert.eq(addItem(doc, label, {}).id, "pick-the-next-slider-family")
+	assert.eq(addItem(doc, label, {}).id, "pick-the-next-slider-family-2")
+end)
+
+test.case("addItem rejects unknown statuses", function(assert)
+	local doc = testing.createDoc({})
+	assert.throws(function()
+		addItem(doc, "X", { status = "maybe" })
+	end)
+end)
+
+test.case("a card added to a group with a header starts below the header band", function(assert)
+	local doc = testing.createDoc({ testing.group("ws", "Workspace", nil) })
+	setFields(doc, "ws", { header = "# Sprint 14" })
+	local added = addItem(doc, "Next", { group = "ws" })
+	assert.eq(added.position.y, 78 + 112)
+end)

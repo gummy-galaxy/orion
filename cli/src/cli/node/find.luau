@@ -2,9 +2,11 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
+local findItem = require("@root/graph/findItem")
 local findItems = require("@root/query/findItems")
+local getLabel = require("@root/graph/getLabel")
 local getQueryValue = require("@root/cli/getQueryValue")
-local graph = require("@root/graph")
+local isGroup = require("@root/graph/isGroup")
 local joinWords = require("@root/cli/joinWords")
 local pad = require("@root/render/pad")
 local store = require("@root/store")
@@ -43,11 +45,11 @@ local function writeLines(options: Context, result: findItems.Result, showCanvas
 
 	for _, hit in result.hits do
 		local item = hit.item
-		local state = if graph.isGroup(item) then "group" else hit.derived.status[item.id] or "ready"
-		local parentItem = if item.parentId then graph.find(hit.doc, item.parentId) else nil
-		local where = if parentItem then `in {graph.label(parentItem)}` else "top level"
+		local state = if isGroup(item) then "group" else hit.derived.status[item.id] or "ready"
+		local parentItem = if item.parentId then findItem(hit.doc, item.parentId) else nil
+		local where = if parentItem then `in {getLabel(parentItem)}` else "top level"
 		local canvasColumn = if showCanvas then pad(hit.name, 16) else ""
-		table.insert(lines, `{canvasColumn}{pad(item.id, 28)}{pad(graph.label(item), 44)}{pad(state, 10)}{where}`)
+		table.insert(lines, `{canvasColumn}{pad(item.id, 28)}{pad(getLabel(item), 44)}{pad(state, 10)}{where}`)
 	end
 
 	if result.total > #result.hits then

@@ -2,8 +2,8 @@ local cli = require("@batteries/cli")
 
 local addBatchOptions = require("@root/cli/addBatchOptions")
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
 local isBatchEdit = require("@root/cli/isBatchEdit")
+local removeItem = require("@root/graph/removeItem")
 local resolveId = require("@root/query/resolveId")
 local runBatchEdit = require("@root/cli/runBatchEdit")
 local store = require("@root/store")
@@ -27,7 +27,7 @@ return table.freeze({
 
 		store.transaction(options.dir, function(doc)
 			id = resolveId(doc, parser:variadics()[1])
-			graph.remove(doc, id)
+			removeItem(doc, id)
 		end)
 
 		options.write(`Removed {id}`)

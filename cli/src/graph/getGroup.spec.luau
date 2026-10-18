@@ -1,0 +1,15 @@
+local test = require("@std/test")
+
+local getGroup = require("@root/graph/getGroup")
+local testing = require("@root/testing")
+
+test.case("getGroup returns a group and refuses an item", function(assert)
+	local doc = testing.createDoc({ testing.group("g", "Group"), testing.task("a", "A", "todo") })
+	assert.eq(getGroup(doc, "g"), doc.nodes[1])
+	assert.throwsWith('"a" is an item, not a group', function()
+		getGroup(doc, "a")
+	end)
+	assert.throwsWith('no item or group with id "missing"', function()
+		getGroup(doc, "missing")
+	end)
+end)
