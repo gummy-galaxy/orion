@@ -27,44 +27,14 @@ jobs:
       docs: ${{ steps.filter.outputs.docs }}
       desktop: ${{ steps.filter.outputs.desktop }}
     steps:
-      # Pull requests list their files through the API, but pushes compare commits with git
+      # The filters live in a file, and pushes compare commits with git. Pull requests list their files through the API.
       - uses: actions/checkout@v7
-        if: github.event_name == 'push'
 
       - name: Filter Changed Paths
         id: filter
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
-          # The app's tests read the token docs, the example theme, and the CLI's token contract to check they agree.
-          # The docs reference is generated from the CLI, and the desktop build bundles the app and the CLI sidecar.
-          filters: |
-            cli:
-              - "cli/**/!(*.md)"
-              - .lute/**
-              - .config.luau
-              - rokit.toml
-              - .github/workflows/ci.yml
-            app:
-              - "app/**/!(*.md)"
-              - docs/guide/tokens.md
-              - examples/themes/**
-              - cli/src/themes/tokenContract.luau
-              - cli/.lute/coverage-report.luau
-              - rokit.toml
-              - .github/workflows/ci.yml
-            docs:
-              - docs/**
-              - "cli/**/!(*.md)"
-              - .lute/docs.luau
-              - .config.luau
-              - rokit.toml
-              - .github/workflows/ci.yml
-            desktop:
-              - "desktop/**/!(*.md)"
-              - "app/**/!(*.md|*.test.ts|*.test.tsx|*.stories.tsx|*.bench.ts)"
-              - "cli/**/!(*.md|*.spec.luau)"
-              - rokit.toml
-              - .github/workflows/ci.yml
+          filters: .github/path-filters.yml
 
   analysis:
     needs: changes
