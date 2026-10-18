@@ -100,3 +100,36 @@ orion card import [options] [refs...]
 | `--dry-run`             | Preview the cards without writing                     |
 | `--if-revision <value>` | Write only if the document has this revision          |
 | `--json`                | Print JSON                                            |
+
+## orion card snooze
+
+Hide items from attention and orion next until a time
+
+```sh
+orion card snooze [options] [ids...]
+```
+
+| Argument                | Description                                                |
+| ----------------------- | ---------------------------------------------------------- |
+| `[ids...]`              | Item ids                                                   |
+| `--until <value>`       | **Required.** When it wakes: an ISO 8601 date or date-time |
+| `--where <value>`       | Select items with an expression instead of ids             |
+| `--dry-run`             | Preview changes and current revision without writing       |
+| `--if-revision <value>` | Write only if the document has this revision               |
+| `--json`                | Print JSON                                                 |
+
+## orion card unsnooze
+
+Show snoozed items again right away
+
+```sh
+orion card unsnooze [options] [ids...]
+```
+
+| Argument                | Description                                          |
+| ----------------------- | ---------------------------------------------------- |
+| `[ids...]`              | Item ids                                             |
+| `--where <value>`       | Select items with an expression instead of ids       |
+| `--dry-run`             | Preview changes and current revision without writing |
+| `--if-revision <value>` | Write only if the document has this revision         |
+| `--json`                | Print JSON                                           |

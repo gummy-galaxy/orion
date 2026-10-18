@@ -33,6 +33,11 @@ const MAX_FRAME_SECONDS = 0.033
 const CHOOSE_INTERVAL_MS = 120
 /** How far below the body's center the tethers attach: under its side points, partway down its core. */
 const TETHER_ATTACH = 4
+/**
+ * The tethers draw in a box this wide that rides along with the body, so a frame repaints only that box rather than an
+ * SVG the size of the canvas. They may draw past it while a star trails far behind.
+ */
+const TETHER_BOX = 160
 /** Where it rests when nothing shows: just above the minimap in the bottom-right corner. */
 const REST_RIGHT = 56
 const REST_BOTTOM = 196
@@ -57,6 +62,7 @@ export function Companion({ targets, describe, syncing = false, paused = false }
   const bodyRef = useRef<HTMLDivElement>(null)
   const leftRef = useRef<HTMLDivElement>(null)
   const rightRef = useRef<HTMLDivElement>(null)
+  const tethersRef = useRef<SVGSVGElement>(null)
   const leftTetherRef = useRef<SVGPathElement>(null)
   const rightTetherRef = useRef<SVGPathElement>(null)
   const hintRef = useRef<HTMLDivElement>(null)
@@ -79,10 +85,13 @@ export function Companion({ targets, describe, syncing = false, paused = false }
     const hintElement = hintRef.current
     const snooze = snoozeRef.current
     const stars = { main: bodyRef.current, left: leftRef.current, right: rightRef.current }
+    const tetherBox = tethersRef.current
     const tethers = { left: leftTetherRef.current, right: rightTetherRef.current }
     const eyes = stars.main?.querySelector('.eyes')
 
-    if (!root || !hintElement || !snooze || !stars.main || !stars.left || !stars.right || !tethers.left || !tethers.right || !eyes) return
+    if (!root || !hintElement || !snooze || !stars.main || !stars.left || !stars.right || !tetherBox || !tethers.left || !tethers.right || !eyes) {
+      return
+    }
 
     let perch: string | null = null
     let perchTarget: PerchTarget | null = null
@@ -102,6 +111,16 @@ export function Companion({ targets, describe, syncing = false, paused = false }
     let pointer: [number, number] | null = null
     let view = root.getBoundingClientRect()
     let frame = 0
+    // Read when the hint resizes rather than each frame, since reading it forces a layout.
+    let hintWidth = hintElement.offsetWidth
+    let shownEyes = ''
+    let shownSnooze = ''
+    let shownHint = ''
+    const hintSize = new ResizeObserver(() => {
+      hintWidth = hintElement.offsetWidth
+    })
+
+    hintSize.observe(hintElement)
     const timers = new Set<ReturnType<typeof setTimeout>>()
 
     const later = (callback: () => void, ms: number) => {
@@ -285,6 +304,10 @@ export function Companion({ targets, describe, syncing = false, paused = false }
       const angle = (main.lean * Math.PI) / 180
       const attachX = main.x - Math.sin(angle) * TETHER_ATTACH
       const attachY = main.y + Math.cos(angle) * TETHER_ATTACH
+      const boxLeft = main.x - TETHER_BOX / 2
+      const boxTop = main.y - TETHER_BOX / 2
+
+      tetherBox.style.transform = `translate(${boxLeft}px, ${boxTop}px)`
 
       for (const side of SIDES) {
         const body = bodies[side]
@@ -302,7 +325,7 @@ export function Companion({ targets, describe, syncing = false, paused = false }
         const drag = Math.max(-6, Math.min(6, relative * -0.004)) * slack
         const first = amplitude + drag
         const second = -amplitude * 0.8 + drag
-        const point = (x: number, y: number) => `${x.toFixed(1)} ${y.toFixed(1)}`
+        const point = (x: number, y: number) => `${(x - boxLeft).toFixed(1)} ${(y - boxTop).toFixed(1)}`
 
         tethers[side]!.setAttribute(
           'd',
@@ -325,7 +348,13 @@ export function Companion({ targets, describe, syncing = false, paused = false }
       const lookX = speed > 60 ? (main.velocityX / speed) * 6 : sway * 5
       const lookY = speed > 60 ? (main.velocityY / speed) * 5 : 0
 
-      eyes.setAttribute('transform', `translate(${lookX.toFixed(1)} ${lookY.toFixed(1)})`)
+      const eyesTransform = `translate(${lookX.toFixed(1)} ${lookY.toFixed(1)})`
+
+      // Moving the eyes repaints the body and its glow, so only when they actually move.
+      if (eyesTransform !== shownEyes) {
+        eyes.setAttribute('transform', eyesTransform)
+        shownEyes = eyesTransform
+      }
 
       // Once it lands, the hint shows along with the mood that goes with it.
       const still = speed < 30 && Math.hypot(goalX - main.x, goalY - main.y) < 10
@@ -350,15 +379,23 @@ export function Companion({ targets, describe, syncing = false, paused = false }
         if (pendingMood === 'excited' && !reduced) wave(900)
       }
 
-      snooze.style.transform = `translate(${main.x + 14}px, ${main.y - 36}px)`
+      const snoozeTransform = `translate(${(main.x + 14).toFixed(1)}px, ${(main.y - 36).toFixed(1)}px)`
+
+      if (sleeping && snoozeTransform !== shownSnooze) {
+        snooze.style.transform = snoozeTransform
+        shownSnooze = snoozeTransform
+      }
 
       // The hint sits to the body's left, over its own perch rather than a neighbor, and flips right near the edge.
-      const hintWidth = hintElement.offsetWidth
       const flipped = main.x - HINT_GAP - hintWidth < EDGE_GAP
       const hintX = flipped ? main.x + HINT_GAP : main.x - HINT_GAP - hintWidth
+      const hintTransform = `translate(${hintX.toFixed(1)}px, ${(main.y - 13).toFixed(1)}px)`
 
-      hintElement.style.transformOrigin = flipped ? '0% 50%' : '100% 50%'
-      hintElement.style.transform = `translate(${hintX}px, ${main.y - 13}px)`
+      if (hintTransform !== shownHint) {
+        hintElement.style.transformOrigin = flipped ? '0% 50%' : '100% 50%'
+        hintElement.style.transform = hintTransform
+        shownHint = hintTransform
+      }
 
       if (!paused) frame = requestAnimationFrame(step)
     }
@@ -418,6 +455,7 @@ export function Companion({ targets, describe, syncing = false, paused = false }
     return () => {
       cancelAnimationFrame(frame)
       clearTimeout(impatience)
+      hintSize.disconnect()
 
       for (const timer of timers) clearTimeout(timer)
 
@@ -431,7 +469,7 @@ export function Companion({ targets, describe, syncing = false, paused = false }
 
   return (
     <div className="companion" ref={rootRef} aria-hidden="true">
-      <svg className="companion-tethers">
+      <svg className="companion-tethers" ref={tethersRef} width={TETHER_BOX} height={TETHER_BOX}>
         <path ref={leftTetherRef} />
         <path ref={rightTetherRef} />
       </svg>
