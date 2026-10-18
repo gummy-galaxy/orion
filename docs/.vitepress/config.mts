@@ -60,6 +60,7 @@ export default defineConfig({
           items: [
             { text: 'Logo', link: '/development/design/logo' },
             { text: 'Themes and skins', link: '/development/design/themes-and-skins' },
+            { text: 'Card skins', link: '/development/design/cards' },
             { text: 'Trading cards', link: '/development/design/trading-cards' },
             { text: 'Companion', link: '/development/design/companion' },
             { text: 'Motion and feel', link: '/development/design/motion-and-feel' },
