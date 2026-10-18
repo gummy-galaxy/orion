@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { deriveWork, sourcesOf, sourcesOfGroup } from './derive'
-import type { AppNode, ItemKind, Link, Status, TaskNode } from './model'
+import { buildWork, deriveSources, needsAttention, sourcesOf, sourcesOfGroup, toServerFacts, type Derived } from './derive'
+import type { AppNode, ItemKind, Link, Status, TaskNode, ViewStatus } from './model'
 
 const task = (id: string, status: Status = 'todo', itemKind: ItemKind = 'step'): AppNode => ({
   id,
@@ -105,135 +105,95 @@ describe('group sources', () => {
 
     expect(sourcesOfGroup([planning]).map((source) => source.label)).toEqual(['vocksel/orion#153', 'vocksel/orion#187'])
   })
-})
 
-describe('deriveWork gates', () => {
-  it('finishes a gate once everything it waits on is done', () => {
-    const links = [link('a', 'g'), link('b', 'g'), link('g', 'c')]
-    const waiting = deriveWork([task('a', 'done'), task('b', 'active'), task('g', 'todo', 'gate'), task('c', 'todo')], links)
+  it('gives each group the badges of the cards inside it', () => {
+    const group: AppNode = { id: 'group', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
+    const inside = { ...taskNode('inside'), parentId: 'group' } as TaskNode
+    const outside = taskNode('outside')
 
-    expect(waiting.status.get('g')).toBe('blocked')
-    expect(waiting.status.get('c')).toBe('blocked')
-    expect(waiting.leverage.get('b')).toBe(2)
+    inside.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }]
+    outside.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-13', url: 'https://jira.example.com/browse/ORN-13' }]
 
-    const finished = deriveWork([task('a', 'done'), task('b', 'done'), task('g', 'todo', 'gate'), task('c', 'todo')], links)
+    const sources = deriveSources([group, inside, outside])
 
-    expect(finished.status.get('g')).toBe('done')
-    expect(finished.status.get('c')).toBe('ready')
-  })
-
-  it('treats a gate with nothing to wait on as ordinary work', () => {
-    expect(deriveWork([task('g', 'todo', 'gate')], []).status.get('g')).toBe('ready')
+    expect(sources.get('group')).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
+    expect(sources.get('outside')).toEqual([{ domain: 'jira.example.com', label: 'ORN-13', href: 'https://jira.example.com/browse/ORN-13' }])
   })
 })
 
-describe('deriveWork flow', () => {
-  it('moves out of work that can start and holds after work that waits', () => {
-    const { flow } = deriveWork([task('a'), task('b'), task('c')], [link('a', 'b'), link('b', 'c')])
+describe('buildWork', () => {
+  const derived: Derived = {
+    status: { a: 'blocked', b: 'ready' },
+    flow: { a: 'held', b: 'live' },
+    leverage: { a: 2, b: 0 },
+    upstream: { a: 3, b: 0 },
+    rarity: { a: 'rare', b: 'common' },
+    groups: { g: { total: 2, done: 0, ready: 1, blocked: 1, outside: 0 } },
+    snoozed: { b: '2026-10-12T17:00:00Z' },
+  }
 
-    expect(flow.get('a')).toBe('live')
-    expect(flow.get('b')).toBe('held')
+  it('reads the server values for each card and group', () => {
+    const group: AppNode = { id: 'g', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
+    const work = buildWork(toServerFacts(derived), [task('a', 'blocked'), task('b'), group], [link('a', 'b')])
+
+    expect(work.status.get('a')).toBe('blocked')
+    expect(work.flow.get('a')).toBe('held')
+    expect(work.leverage.get('a')).toBe(2)
+    expect(work.upstream.get('a')).toBe(3)
+    expect(work.rarity.get('a')).toBe('rare')
+    expect(work.groups.get('g')).toEqual({ total: 2, done: 0, ready: 1, blocked: 1, outside: 0 })
+    expect(work.snoozed.get('b')).toBe('2026-10-12T17:00:00Z')
   })
 
-  it('holds after blocked or deferred work and keeps moving after done work', () => {
-    const { flow } = deriveWork([task('blocked', 'blocked'), task('deferred', 'deferred'), task('done', 'done')], [])
+  it('keeps blocking links for hover tracing', () => {
+    const work = buildWork(toServerFacts(derived), [task('a'), task('b')], [link('a', 'b')])
 
-    expect(flow.get('blocked')).toBe('held')
-    expect(flow.get('deferred')).toBe('held')
-    expect(flow.get('done')).toBe('live')
+    expect(work.succs.get('a')).toEqual(['b'])
+    expect(work.preds.get('b')).toEqual(['a'])
   })
 
-  it('passes flow through notes', () => {
-    const nodes = [task('ready'), task('waiting'), task('n1', 'todo', 'note'), task('n2', 'todo', 'note'), task('x'), task('y')]
-    const { flow } = deriveWork(nodes, [link('ready', 'n1'), link('n1', 'x'), link('ready', 'waiting'), link('waiting', 'n2'), link('n2', 'y')])
+  it('shows recorded status for cards the server has not derived, without blocking or rarity', () => {
+    const work = buildWork(toServerFacts(null), [task('todo'), task('finished', 'done'), task('waiting')], [link('finished', 'waiting')])
 
-    expect(flow.get('n1')).toBe('live')
-    expect(flow.get('n2')).toBe('held')
+    expect(work.status.get('todo')).toBe('ready')
+    expect(work.status.get('finished')).toBe('done')
+    expect(work.status.get('waiting')).toBe('ready')
+    expect(work.flow.get('todo')).toBeUndefined()
+    expect(work.rarity.get('todo')).toBeUndefined()
+    expect(work.leverage.get('finished')).toBeUndefined()
   })
-})
 
-describe('deriveWork components', () => {
-  const group: AppNode = { id: 'system', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'System' } }
-  const inside = (node: AppNode): AppNode => ({ ...node, parentId: 'system' })
+  it('prefers the server status over the recorded one', () => {
+    const work = buildWork(toServerFacts({ ...derived, status: { a: 'blocked' } }), [task('a', 'todo')], [])
 
-  it('gives components no status, passes blocking through them, and leaves them out of progress', () => {
-    const nodes = [group, inside(task('a', 'active')), inside(task('api', 'todo', 'component')), inside(task('b'))]
-    const work = deriveWork(nodes, [link('a', 'api'), link('api', 'b')])
+    expect(work.status.get('a')).toBe('blocked')
+  })
+
+  it('gives a component the server has not derived no status', () => {
+    const work = buildWork(toServerFacts(null), [task('api', 'todo', 'component')], [])
 
     expect(work.status.has('api')).toBe(false)
-    expect(work.status.get('b')).toBe('blocked')
-    expect(work.leverage.get('a')).toBe(1)
-    expect(work.leverage.has('api')).toBe(false)
-    expect(work.groups.get('system')).toMatchObject({ total: 2 })
-  })
-
-  it('keeps links out of components still, and notes fed only by components pass that on', () => {
-    const nodes = [task('app', 'todo', 'component'), task('server', 'todo', 'component'), task('why', 'todo', 'note'), task('a')]
-    const work = deriveWork(nodes, [link('app', 'server'), link('server', 'why'), link('a', 'why')])
-
-    expect(work.flow.get('app')).toBe('still')
-    expect(work.flow.get('server')).toBe('still')
-    expect(work.flow.get('why')).toBe('live')
-
-    const quiet = deriveWork(nodes, [link('app', 'server'), link('server', 'why')])
-
-    expect(quiet.flow.get('why')).toBe('still')
   })
 })
 
-describe('deriveWork upstream', () => {
-  it('counts a chain including completed work and gates', () => {
-    const { upstream } = deriveWork([task('a', 'done'), task('b'), task('gate', 'todo', 'gate')], [link('a', 'b'), link('b', 'gate')])
+describe('needsAttention', () => {
+  const yours = (id: string): AppNode => ({ ...task(id), data: { ...task(id).data, who: 'you' } }) as AppNode
 
-    expect([...upstream]).toEqual([
-      ['a', 0],
-      ['b', 1],
-      ['gate', 2],
+  it('lists open work where it is your move', () => {
+    const status = new Map<string, ViewStatus>([
+      ['a', 'ready'],
+      ['b', 'active'],
     ])
+
+    expect(needsAttention([yours('a'), yours('b')], status, new Map())).toEqual(['a', 'b'])
   })
 
-  it('counts a shared ancestor once in a diamond', () => {
-    const { upstream } = deriveWork([task('a'), task('b'), task('c'), task('d')], [link('a', 'b'), link('a', 'c'), link('b', 'd'), link('c', 'd')])
+  it('leaves out snoozed work until it wakes', () => {
+    const status = new Map<string, ViewStatus>([
+      ['a', 'ready'],
+      ['b', 'ready'],
+    ])
 
-    expect(upstream.get('d')).toBe(3)
-  })
-
-  it('passes through notes without counting them', () => {
-    const { upstream } = deriveWork([task('a'), task('note', 'todo', 'note'), task('b')], [link('a', 'note'), link('note', 'b')])
-
-    expect(upstream.get('b')).toBe(1)
-  })
-
-  it('ignores related links', () => {
-    const { upstream } = deriveWork([task('a'), task('b')], [{ ...link('a', 'b'), kind: 'related' }])
-
-    expect(upstream.get('b')).toBe(0)
-  })
-
-  it('terminates a cycle and excludes the card itself', () => {
-    const { upstream } = deriveWork(
-      [task('a'), task('b'), task('note', 'todo', 'note'), task('c')],
-      [link('a', 'b'), link('b', 'note'), link('note', 'a'), link('b', 'c')],
-    )
-
-    expect(upstream.get('a')).toBe(1)
-    expect(upstream.get('b')).toBe(1)
-    expect(upstream.get('c')).toBe(2)
-  })
-})
-
-describe('deriveWork group progress', () => {
-  it('leaves deferred work out of the total', () => {
-    const group: AppNode = { id: 'group', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
-    const inGroup = (node: AppNode) => ({ ...node, parentId: 'group' }) as AppNode
-    const nodes = [
-      group,
-      inGroup(task('shipped', 'done')),
-      inGroup(task('next')),
-      inGroup(task('parked', 'deferred')),
-      inGroup(task('note', 'todo', 'note')),
-    ]
-
-    expect(deriveWork(nodes, []).groups.get('group')).toEqual({ total: 2, done: 1, ready: 1, blocked: 0, outside: 0 })
+    expect(needsAttention([yours('a'), yours('b')], status, new Map([['a', '2026-10-12T17:00:00Z']]))).toEqual(['b'])
   })
 })

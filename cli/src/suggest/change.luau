@@ -2,6 +2,7 @@ local getStored = require("@root/suggest/getStored")
 local graph = require("@root/graph")
 local json = require("@std/json")
 local save = require("@root/suggest/save")
+local slugify = require("@root/slugify")
 local suggestTypes = require("@root/suggest/types")
 local types = require("@root/types")
 
@@ -44,17 +45,12 @@ local function change(doc: Doc, action: string, ids: { string }, isAll: boolean)
 					height = 110 + #group.members * 96,
 					data = json.object({ kind = "cluster", label = group.title, layout = "pending" }),
 				}
-				local base = group.title:lower():gsub("[^%w]+", "-"):gsub("^%-+", ""):gsub("%-+$", "")
-
-				if base == "" then
-					base = "group"
-				end
-
-				made.id = base:sub(1, 32)
+				local base = slugify(group.title, nil, "group")
+				made.id = base
 				local suffix = 2
 
 				while graph.find(doc, made.id) do
-					made.id = `{base:sub(1, 32)}-{suffix}`
+					made.id = `{base}-{suffix}`
 					suffix += 1
 				end
 

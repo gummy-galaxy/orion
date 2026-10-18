@@ -17,6 +17,7 @@ local FIELDS = {
 	label = true,
 	pr = true,
 	ref = true,
+	snoozed = true,
 }
 
 local function parseExpression(input: string): Expression

@@ -37,6 +37,8 @@ function orionServer(port: number): Plugin {
         stdio: ['ignore', 'pipe', 'pipe'],
       })
 
+      // Both streams are read: an unread pipe fills up and stalls the server once it logs enough.
+      child.stdout?.on('data', (chunk: Buffer) => server.config.logger.info(`[orion] ${chunk.toString().trim()}`))
       child.stderr?.on('data', (chunk: Buffer) => server.config.logger.error(`[orion] ${chunk.toString().trim()}`))
       child.on('error', (error) => server.config.logger.error(`[orion] ${error.message}`))
       server.httpServer?.once('close', () => {

@@ -13,7 +13,7 @@ test.case("getRunningRuntime checks process and endpoint before reporting", func
 	local runtime: readRuntime.Runtime = {
 		pid = 123,
 		url = "http://127.0.0.1:5198",
-		workspace = "default",
+		canvas = "default",
 		dataFolder = root,
 		startedAt = "2026-10-07T00:00:00Z",
 	}
@@ -27,7 +27,7 @@ test.case("getRunningRuntime checks process and endpoint before reporting", func
 		checkedEndpoint = true
 		return true
 	end)
-	assert.eq(running and running.workspace, "default")
+	assert.eq(running and running.canvas, "default")
 	assert.eq(checkedEndpoint, true)
 	assert.eq(
 		getRunningRuntime(root, function()

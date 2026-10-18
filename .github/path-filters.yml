@@ -1,0 +1,36 @@
+# Paths each CI job depends on, read by the `changes` job in ci.yml through dorny/paths-filter. A job runs when a change
+# matches its filter. The app's tests read the token docs, the example theme, and the CLI's token contract to check they
+# agree. The docs reference is generated from the CLI, and the desktop build bundles the app and the CLI sidecar.
+
+# Every job reruns when the toolchain or the CI setup changes
+shared: &shared
+  - rokit.toml
+  - .github/workflows/ci.yml
+  - .github/path-filters.yml
+
+cli:
+  - *shared
+  - "cli/**/!(*.md)"
+  - .lute/**
+  - .config.luau
+
+app:
+  - *shared
+  - "app/**/!(*.md)"
+  - docs/guide/tokens.md
+  - examples/themes/**
+  - cli/src/themes/tokenContract.luau
+  - cli/.lute/coverage-report.luau
+
+docs:
+  - *shared
+  - docs/**
+  - "cli/**/!(*.md)"
+  - .lute/docs.luau
+  - .config.luau
+
+desktop:
+  - *shared
+  - "desktop/**/!(*.md)"
+  - "app/**/!(*.md|*.test.ts|*.test.tsx|*.stories.tsx|*.bench.ts)"
+  - "cli/**/!(*.md|*.spec.luau)"

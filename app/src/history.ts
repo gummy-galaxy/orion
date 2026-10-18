@@ -1,4 +1,4 @@
-import { mergeDocs } from './merge'
+import type { AppNode, Link } from './model'
 import type { Saved } from './persist'
 
 /** One edit, as the stored document before and after it. */
@@ -14,15 +14,98 @@ export function record(history: History, step: Step, limit = HISTORY_LIMIT): His
   return { undo: [...history.undo, step].slice(-limit), redo: [] }
 }
 
+type Fields = Record<string, unknown>
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
+
+/** A node or link as flat fields, so each one can be carried on its own. Data keys are prefixed. */
+function fieldsOf(item: AppNode | Link | undefined): Fields | undefined {
+  if (!item) return undefined
+
+  if (!('type' in item)) return { kind: item.kind }
+
+  const fields: Fields = { type: item.type, position: item.position, parentId: item.parentId, width: item.width, height: item.height }
+
+  for (const [key, value] of Object.entries(item.data)) fields[`data.${key}`] = value
+
+  return fields
+}
+
 /**
- * Applies the change from `from` to `to` on top of `current`. Everything else in
- * `current`, such as writes from the CLI or another window, stays, and where both
- * touched the same field, `current` wins.
+ * Applies one field-level change: a field the step left alone keeps `current`'s value, and a field `current` changed since
+ * the step keeps `current`'s value. Only a field that still holds what the step left is moved back to what it was.
+ */
+function carryFields(from: Fields = {}, to: Fields = {}, current: Fields = {}): Fields {
+  const result: Fields = {}
+
+  for (const key of new Set([...Object.keys(from), ...Object.keys(to), ...Object.keys(current)])) {
+    const value = same(from[key], to[key]) || !same(current[key], from[key]) ? current[key] : to[key]
+
+    if (value !== undefined) result[key] = value
+  }
+
+  return result
+}
+
+function carryNode(from: AppNode | undefined, to: AppNode | undefined, current: AppNode | undefined): AppNode | undefined {
+  const fields = carryFields(fieldsOf(from), fieldsOf(to), fieldsOf(current))
+  const id = (current ?? to ?? from)?.id
+
+  if (!id || typeof fields.type !== 'string') return undefined
+
+  const data: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(fields)) if (key.startsWith('data.')) data[key.slice('data.'.length)] = value
+
+  const node = { id, type: fields.type, position: fields.position, data } as AppNode
+
+  if (fields.parentId !== undefined) node.parentId = fields.parentId as string
+
+  if (fields.width !== undefined) node.width = fields.width as number
+
+  if (fields.height !== undefined) node.height = fields.height as number
+
+  return node
+}
+
+/**
+ * Applies the change from `from` to `to` on top of `current`, field by field. Writes from elsewhere, such as the CLI or
+ * another window, stay, and where both touched the same field, `current` wins.
  */
 function carry(from: Saved, to: Saved, current: Saved): Saved {
-  const { conflicts: _, ...doc } = mergeDocs(from, current, to)
+  const fromNodes = new Map(from.nodes.map((node) => [node.id, node]))
+  const toNodes = new Map(to.nodes.map((node) => [node.id, node]))
+  const currentNodes = new Map(current.nodes.map((node) => [node.id, node]))
+  const ids = [...new Set([...current.nodes.map((node) => node.id), ...to.nodes.map((node) => node.id), ...from.nodes.map((node) => node.id)])]
+  const nodes: AppNode[] = []
 
-  return doc
+  for (const id of ids) {
+    const node = carryNode(fromNodes.get(id), toNodes.get(id), currentNodes.get(id))
+
+    if (node) nodes.push(node)
+  }
+
+  const linkKey = (link: Link) => `${link.from}\0${link.to}`
+  const fromLinks = new Map(from.links.map((link) => [linkKey(link), link]))
+  const toLinks = new Map(to.links.map((link) => [linkKey(link), link]))
+  const currentLinks = new Map(current.links.map((link) => [linkKey(link), link]))
+  const keys = [...new Set([...current.links.map(linkKey), ...to.links.map(linkKey), ...from.links.map(linkKey)])]
+  const links: Link[] = []
+
+  for (const key of keys) {
+    const kept = carryFields(fieldsOf(fromLinks.get(key)), fieldsOf(toLinks.get(key)), fieldsOf(currentLinks.get(key)))
+    const link = currentLinks.get(key) ?? toLinks.get(key)
+
+    if (link && kept.kind !== undefined) links.push({ ...link, kind: kept.kind as Link['kind'] })
+  }
+
+  return {
+    ...current,
+    nodes,
+    links,
+    stickers: same(from.stickers, to.stickers) ? current.stickers : to.stickers,
+    stickerLoadout: same(from.stickerLoadout, to.stickerLoadout) ? current.stickerLoadout : to.stickerLoadout,
+  }
 }
 
 export function undo(history: History, current: Saved): { history: History; doc: Saved } | null {
