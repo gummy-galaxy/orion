@@ -731,4 +731,21 @@ function store.write(dir: string, doc: Doc)
 	end
 end
 
+-- Runs `run` while holding the workspace lock, for writers that change files beside the data file.
+function store.withLock<T>(dir: string, run: () -> T): T
+	if not fs.exists(dir) then
+		fs.createDirectory(dir, { makeParents = true })
+	end
+
+	local lockPath = acquire(dir)
+	local succeeded, result = pcall(run)
+	release(lockPath)
+
+	if not succeeded then
+		error(result, 0)
+	end
+
+	return result
+end
+
 return table.freeze(store)
