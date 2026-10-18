@@ -119,6 +119,18 @@ local function buildCreateWorkspaceArgv(arguments: json.Object): { string }
 	return argv
 end
 
+-- The plan goes inline as --plan, since an MCP call has no stdin to read it from.
+local function buildApplyArgv(arguments: json.Object): { string }
+	local steps = json.asArray(arguments.operations :: json.Value)
+	assert(steps and #steps > 0, "missing operations")
+	local argv = { "apply", "--plan", json.serialize(steps) }
+
+	appendFlag(argv, "dry-run", arguments.dryRun)
+	appendOption(argv, "if-revision", arguments.ifRevision)
+	appendOption(argv, "canvas", arguments.canvas)
+	return argv
+end
+
 -- Cards are one list argument, joined into the comma-separated --card the CLI takes. Entries are always by an agent.
 local function buildLogAddArgv(arguments: json.Object): { string }
 	local argv = { "log", "add", getRequiredString(arguments, "text") }
@@ -333,6 +345,69 @@ local tools: { Tool } = {
 		command = { "card", "unsnooze" },
 		json = true,
 		fields = batchFields("Item ids to wake."),
+	},
+	{
+		name = "orion_snoozed_jobs",
+		description = "List the CI jobs snoozed on the canvas, whose failures cards leave out.",
+		annotations = { readOnlyHint = true },
+		command = { "ci", "list" },
+		json = true,
+		fields = { workspaceField },
+	},
+	{
+		name = "orion_snooze_job",
+		description = "Leave a CI job's failures off every card in a repository until it passes there, or until a time.",
+		command = { "ci", "snooze" },
+		fields = {
+			{
+				name = "name",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The job's name, as GitHub shows it.",
+				at = "positional",
+			},
+			workspaceField,
+			{
+				name = "repo",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Repository the job runs in, as owner/name.",
+				at = "option",
+			},
+			{
+				name = "until",
+				kind = "string",
+				minLength = 1,
+				description = "End the snooze at a UTC time such as 2026-10-14T18:00:00Z, or a date. Without it, the snooze lasts on each card until the job passes there.",
+				at = "option",
+			},
+		},
+	},
+	{
+		name = "orion_unsnooze_job",
+		description = "Count a snoozed CI job's failures on cards again.",
+		command = { "ci", "unsnooze" },
+		fields = {
+			{
+				name = "name",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The job's name, as GitHub shows it.",
+				at = "positional",
+			},
+			workspaceField,
+			{
+				name = "repo",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Repository the job runs in, as owner/name.",
+				at = "option",
+			},
+		},
 	},
 	{
 		name = "orion_add_note",
@@ -987,6 +1062,27 @@ local tools: { Tool } = {
 				at = "flag",
 				flag = "dry-run",
 			},
+		},
+	},
+	{
+		name = "orion_apply",
+		description = 'Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link, unlink, insert, move, ungroup, tidy, remove, removeGroup. Use dryRun to preview the plan and the ids each handle gets.',
+		annotations = { destructiveHint = true },
+		command = { "apply" },
+		json = true,
+		build = buildApplyArgv,
+		fields = {
+			{
+				name = "operations",
+				kind = "operations",
+				required = true,
+				description = "Operations in order. Each has an op field, such as addCard with label, or link with from and to. Move needs group, or null for the top level.",
+				at = "option",
+				flag = "plan",
+			},
+			workspaceField,
+			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+			{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
 		},
 	},
 	{

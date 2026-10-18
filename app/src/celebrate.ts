@@ -1,9 +1,15 @@
 import { isTask, type AppNode, type Link, type TaskData } from './model'
 
-/** How far apart, in milliseconds, each hop down a chain starts its stamp clearing. `motion.duration.chain` overrides it. */
-export const CHAIN_STEP_MS = 90
+/**
+ * When, in milliseconds after the click, each beat of a chain starts its stamp clearing: the clicked card, then the
+ * first three hops. The gaps climb a little toward the third hop, the finale, which holds slightly longer.
+ */
+export const CHAIN_BEATS_MS = [150, 500, 850, 1250]
 
-/** Chains stop spreading after this many hops, so a long chain still clears in about a second. */
+/** How far apart each hop past the finale starts, without climbing further. `motion.duration.chain` overrides it. */
+export const CHAIN_STEP_MS = 300
+
+/** Chains stop spreading after this many hops, so a long chain still finishes in about three seconds. */
 const MAX_HOPS = 8
 
 /** How long one stamp's clearing animation runs. `motion.duration.clear` overrides it, in the CSS too. */
@@ -41,6 +47,16 @@ export function finishedHops(startId: string, links: Link[], isFinished: (id: st
   return hops
 }
 
+/** The delay before the stamp a number of hops from the click starts clearing, following the chain's beats. */
+function chainDelay(hops: number, stepMs = CHAIN_STEP_MS): number {
+  const finale = CHAIN_BEATS_MS.length - 1
+  const capped = Math.min(hops, MAX_HOPS)
+
+  if (capped <= finale) return CHAIN_BEATS_MS[capped]
+
+  return CHAIN_BEATS_MS[finale] + (capped - finale) * stepMs
+}
+
 /**
  * The waiting cards a click on `startId` clears, each with the delay before its stamp starts clearing.
  * Empty unless the clicked card is itself waiting. Cards without the flag are never included.
@@ -61,7 +77,7 @@ export function celebrationDelays(
   for (const [id, hops] of finishedHops(startId, links, isFinished)) {
     const node = byId.get(id)
 
-    if (node && isTask(node) && node.data.celebrate) delays.set(id, Math.min(hops, MAX_HOPS) * stepMs)
+    if (node && isTask(node) && node.data.celebrate) delays.set(id, chainDelay(hops, stepMs))
   }
 
   return delays

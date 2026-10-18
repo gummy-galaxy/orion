@@ -138,4 +138,27 @@ describe('getCardView', () => {
     expect(getCardView(taskNode, createFacts('blocked'))).not.toHaveProperty('readyToMerge')
     expect(getCardView(taskNode, createFacts('blocked'))).not.toHaveProperty('merge')
   })
+
+  it('leaves a snoozed job out of whether the checks are failing', () => {
+    const node = createTaskNode(
+      createTaskData({
+        itemKind: 'pr',
+        refs: [
+          {
+            source: 'github',
+            kind: 'pull',
+            key: 'vocksel/orion#341',
+            url: 'https://github.com/vocksel/orion/pull/341',
+            readiness: 'failing',
+            checks: { state: 'failing', total: 3, finished: 3, failed: 1 },
+            details: { failedChecks: [{ name: 'docs' }] },
+          },
+        ],
+      }),
+    )
+    const snoozes = [{ repo: 'vocksel/orion', name: 'docs', at: '2026-10-13T00:00:00Z' }]
+
+    expect(getCardView(node, createFacts('review')).readiness).toBe('failing')
+    expect(getCardView(node, { ...createFacts('review'), snoozes }).readiness).toBe('passing')
+  })
 })

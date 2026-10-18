@@ -445,6 +445,41 @@ test.case("PUT /api/orion/style sets and clears the canvas cover and bumps the r
 	)
 end)
 
+test.case("PUT /api/orion/check-snoozes snoozes and unsnoozes a job and bumps the revision", function(assert)
+	local root, router = createRouter("routes-check-snoozes")
+	writeDoc(root, testing.createDoc({}))
+	local snoozed = router.handle(createRequest(
+		"PUT",
+		"/api/orion/check-snoozes",
+		json.object({
+			repo = "vocksel/orion",
+			name = "docs",
+			snoozed = true,
+			["until"] = "2099-01-01T00:00:00.000Z",
+		})
+	))
+	assert.eq(snoozed.status, 200)
+	local snoozes = loadDoc(root).settings.checkSnoozes
+	assert.eq(#snoozes, 1)
+	assert.eq(snoozes[1].untilTime, "2099-01-01T00:00:00Z")
+	assert.eq(loadDoc(root).revision, 1)
+
+	local unsnoozed = router.handle(
+		createRequest(
+			"PUT",
+			"/api/orion/check-snoozes",
+			json.object({ repo = "vocksel/orion", name = "docs", snoozed = false })
+		)
+	)
+	assert.eq(unsnoozed.status, 200)
+	assert.eq(#loadDoc(root).settings.checkSnoozes, 0)
+	assert.eq(
+		router.handle(createRequest("PUT", "/api/orion/check-snoozes", json.object({ repo = "vocksel/orion" }))).status,
+		400
+	)
+	assert.eq(router.handle(createRequest("GET", "/api/orion/check-snoozes")).status, 405)
+end)
+
 test.case("the theme list route serves theme files from the data folder", function(assert)
 	local root, router = createRouter("routes-theme-files")
 	local folder = path.join(root, "themes")

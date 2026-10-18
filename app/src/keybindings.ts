@@ -11,6 +11,10 @@ export type ShortcutId =
   | 'settings'
   | 'undo'
   | 'redo'
+  | 'copy'
+  | 'cut'
+  | 'paste'
+  | 'duplicate'
   | 'go-back'
   | 'go-forward'
   | 'group'
@@ -46,6 +50,10 @@ export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'settings', label: 'Open settings', detail: 'Appearance, accessibility, and keyboard shortcuts', category: 'General', chord: 'Mod+,' },
   { id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', category: 'Editing', chord: 'Mod+Z' },
   { id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', category: 'Editing', chord: 'Mod+Shift+Z' },
+  { id: 'copy', label: 'Copy', detail: 'Copy the selection with the links between it', category: 'Editing', chord: 'Mod+C' },
+  { id: 'cut', label: 'Cut', detail: 'Copy the selection and take it off the canvas', category: 'Editing', chord: 'Mod+X' },
+  { id: 'paste', label: 'Paste', detail: 'Place a copy at the cursor, in the open group', category: 'Editing', chord: 'Mod+V' },
+  { id: 'duplicate', label: 'Duplicate', detail: 'Place a copy of the selection beside it', category: 'Editing', chord: 'Mod+D' },
   { id: 'group', label: 'Group selection', detail: 'Put the selected items in a new group', category: 'Editing', chord: 'Mod+G' },
   { id: 'ungroup', label: 'Ungroup', detail: 'Release the selected groups’ contents', category: 'Editing', chord: 'Mod+Shift+G' },
   {

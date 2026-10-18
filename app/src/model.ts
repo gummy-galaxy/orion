@@ -104,6 +104,8 @@ export type RefChecks = {
 }
 /** A commit's checks: how many have finished, and failed, out of all of them. Skipped and cancelled checks count as finished. */
 export type CheckCounts = { total: number; finished: number; failed: number }
+/** A CI job that failed on a pull request, by the name GitHub shows for it. */
+export type FailedCheck = { name: string; optional?: boolean }
 
 /** A ref's check counts, when its source reported all three. */
 export function getCheckCounts(checks: RefChecks | undefined): CheckCounts | undefined {
@@ -280,6 +282,22 @@ export function ancestors(id: string, nodeMap: Map<string, AppNode>): string[] {
   }
 
   return result
+}
+
+/**
+ * The group to show once the nodes change from `before` to `after`: the open group while it's still there, or else its
+ * nearest ancestor that is, or null for the top level.
+ */
+export function survivingRoot(root: string, before: Map<string, AppNode>, after: Map<string, AppNode>): string | null {
+  const isGroup = (id: string) => {
+    const node = after.get(id)
+
+    return !!node && isCluster(node)
+  }
+
+  if (isGroup(root)) return root
+
+  return ancestors(root, before).find(isGroup) ?? null
 }
 
 /** A component's own tint, or else its nearest group's. Work cards and notes have none. */

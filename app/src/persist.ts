@@ -65,12 +65,38 @@ export async function saveCanvasStyle(
   }
 }
 
+/** Snoozes a CI job for every card in its repository, or ends its snooze. The server bumps the revision, so open windows reload. */
+export async function saveCheckSnooze(workspace: string, change: { repo: string; name: string; snoozed: boolean; until?: string }): Promise<boolean> {
+  try {
+    const response = await fetch('/api/orion/check-snoozes', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', 'x-orion-workspace': workspace },
+      body: JSON.stringify(change),
+    })
+
+    return response.ok
+  } catch {
+    return false
+  }
+}
+
 export async function imageSource(workspace: string, asset: string): Promise<string> {
   const response = await fetch(`/api/images/${encodeURIComponent(asset)}?canvas=${encodeURIComponent(workspace)}`)
 
   if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Image unavailable')
 
   return URL.createObjectURL(await response.blob())
+}
+
+/** Copies an image from one workspace's assets into another's, and returns its id there. */
+export async function copyImage(asset: string, from: string, to: string): Promise<string> {
+  const response = await fetch(`/api/images/${encodeURIComponent(asset)}?workspace=${encodeURIComponent(from)}`)
+
+  if (!response.ok || !response.headers.get('content-type')?.startsWith('image/')) throw new Error('Image unavailable')
+
+  const blob = await response.blob()
+
+  return (await importImage(new File([blob], asset, { type: blob.type }), to)).asset
 }
 
 /** The card a pasted link names: one already on the canvas, or a new one that isn't saved until the app places it. */

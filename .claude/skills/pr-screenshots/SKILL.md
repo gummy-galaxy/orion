@@ -103,7 +103,7 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
 - Pointer and keyboard steps send real input, so the app handles them as it would a person's. Prefer them over `--eval` for anything a person would do. Keys go to whatever has focus, so click the canvas or a field first. Use Mac shortcuts with `Meta`: the browser runs headless on a Mac, and `Meta+A`, `C`, `X`, `V`, and `Z` also edit text fields and the clipboard.
 - The image shows a cursor where the last pointer step acted: a ring at the point and a small mouse just below and to its right, where an arrow cursor would sit, with the pressed button filled in. Left clicks are blue, right clicks orange, middle clicks purple, and `--hover` a thin gray ring with no button pressed. It's drawn just before the capture and removed after, and it's skipped when the element it acted on is gone by then, such as a menu item that closed its menu. Prefer real pointer steps over `--eval` for clicks so the cursor shows what happened. When an `--eval` step does the clicking, add `--pointer <x>,<y>,<idle|left|right|middle>` after it to place the cursor. Use `--cursor off` only when the cursor would hide the change.
 - Page errors, console errors, and failed requests print to stderr during a take. Read them: one usually means a step didn't do what the image or video seems to show.
-- `--selector <css>` crops to one element, which suits menus, cards, and panels. The crop keeps 32 px of the page around the element so shadows, borders, and nearby context stay in the frame. Raise `--padding` when the surroundings help explain the change, and never set it to 0: a crop flush with the element's edges reads as cut off.
+- `--selector <css>` crops to the elements it matches, which suits menus, cards, and panels. Use `.react-flow__node` to frame every card on the canvas, not `.react-flow__nodes`, a layer the size of the canvas that starts at the canvas's origin rather than around its cards. The crop keeps 32 px of the page around the elements so shadows, borders, and nearby context stay in the frame. Raise `--padding` when the surroundings help explain the change, and never set it to 0: a crop flush with the element's edges reads as cut off.
 - `--theme light|dark` sets the color scheme. Defaults are 1440×900 at 2× scale.
 - Raise `--delay` when the canvas is still animating or measuring groups.
 
@@ -128,9 +128,9 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
 ```
 
 - The cursor stays on screen throughout and shows each press as it happens, in the colors above. Each `--key` press shows in a badge at the bottom of the frame, such as `⌘ C`, so shortcuts read as clearly as clicks.
-- Videos default to 1× scale, which keeps text readable at a fraction of the size, a 1500 ms `--delay`, and a 600 ms `--glide` between targets. Pass `--scale 2` when small text matters.
+- Videos default to 1× scale, which keeps text readable at a fraction of the size, a 1500 ms `--delay`, and a 600 ms `--glide` between targets. Pass `--scale 2` when small text matters. It records at twice the resolution, which makes the file several times larger, so crop with `--selector` when the change is small.
 - Start with a `--pause` so the opening state reads before anything moves.
-- `--selector` crops to where the element ends up.
+- `--selector` crops to where the elements end up.
 
 When the change adds something to click, such as a new menu item, the before side has nothing there. Give its take the same steps up to that point, then a `--pause` as long as the after side's click and what follows, so both play in step.
 
