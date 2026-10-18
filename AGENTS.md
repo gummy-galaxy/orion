@@ -2,9 +2,9 @@
 
 Orion is a canvas of work items, notes, and groups linked by dependencies. Use the `orion` CLI to read and change it. Never edit `orion.json` directly: the Luau CLI owns the data and its lock. The app talks to `orion server start` over HTTP and WebSocket and picks up every change while it's open.
 
-[`CHARTER.md`](CHARTER.md) sets Orion's direction: its principles, what it won't do, and the roadmap. Check new work against it, and call out a change that conflicts with it.
+[The charter](docs/development/charter.md) sets Orion's direction: its principles, what it won't do, and the roadmap. Check new work against it, and call out a change that conflicts with it.
 
-[`DECISIONS.md`](DECISIONS.md) records the specific calls made along the way and why. They're defaults that can be challenged, and the charter outranks them. Follow them, raise a change that goes against one rather than working around it, and add or rewrite an entry when the person settles a new call.
+[The decisions log](docs/development/decisions.md) records the specific calls made along the way and why. They're defaults that can be challenged, and the charter outranks them. Follow them, raise a change that goes against one rather than working around it, and add or rewrite an entry when the person settles a new call.
 
 ## Reading the canvas
 
@@ -110,7 +110,7 @@ Cards keep pull requests, issues, and local branches in `data.refs`. Each ref re
 - **Writing.** Give an issue one outcome, and say what done looks like concretely enough that someone who reads only the issue can tell whether a pull request finishes it. Write for someone who hasn't seen the conversation that led to it.
 - **Progress.** When more than one pull request works on an issue, keep a **Progress** checklist at the end of its body. Check off each item with the pull request that shipped it, and add an unchecked item for any concrete work that turns up.
 
-Direction and long-range plans belong in [`CHARTER.md`](CHARTER.md).
+Direction and long-range plans belong in [the charter](docs/development/charter.md).
 
 ## Pull requests
 
@@ -166,4 +166,4 @@ The app's TypeScript mirrors the CLI's Luau layout. New and split modules follow
 - When a function also exists in the CLI, give it the same name. Its folder can differ.
 - Import each module directly by path, with no barrel files. Once #427 adds the `@/` alias for `app/src`, use it instead of relative paths.
 - Put tests in `<function>.test.ts` beside the module, testing only that function. Keep them flat: use `test` rather than `it`, and leave out a `describe` that only repeats the file's name. Shared builders live in a folder of fixture modules, one per builder.
-- Logic the CLI also needs belongs in Luau, with the app reading the result from `orion serve`. See "Shared logic lives in Luau" in [`DECISIONS.md`](DECISIONS.md).
+- Logic the CLI also needs belongs in Luau, with the app reading the result from `orion serve`. See "Shared logic lives in Luau" in [the decisions log](docs/development/decisions.md).
