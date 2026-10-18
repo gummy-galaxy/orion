@@ -98,6 +98,7 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 	loop.tick()
 	assert.eq(#calls, 0)
 
+	table.clear(states)
 	now += 31
 	loop.tick()
 	assert.eq(table.concat(calls, ","), "poll")

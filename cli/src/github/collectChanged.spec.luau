@@ -11,6 +11,8 @@ type Doc = types.Doc
 
 local LAST_MODIFIED = "Sun, 18 Oct 2026 15:53:33 GMT"
 local RECORDED = "2026-10-01T00:00:00Z"
+local NOTIFICATIONS = { notifications = true, sweep = false, checks = false }
+local SWEEP = { notifications = true, sweep = true, checks = false }
 local AUTHORED =
 	[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}}]]
 
@@ -35,8 +37,8 @@ local function fixture(): (Doc, PollState)
 end
 
 -- Answers notifications with `notifications` and records every GraphQL query by what it asks for.
-local function createRunner(notifications: string?, sweep: string?)
-	local queries: { [string]: { string } } = { full = {}, sweep = {}, authored = {} }
+local function createRunner(notifications: string?, sweep: string?, checks: string?)
+	local queries: { [string]: { string } } = { full = {}, sweep = {}, authored = {}, checks = {} }
 
 	local function run(argv: { string }): types.CommandResult
 		if argv[3] == "--include" then
@@ -59,6 +61,9 @@ local function createRunner(notifications: string?, sweep: string?)
 		elseif query:find("{ updatedAt }", 1, true) then
 			table.insert(queries.sweep, query)
 			return testing.result(true, sweep or [[{"data":{}}]])
+		elseif query:find("{ number state url headRefOid commits", 1, true) then
+			table.insert(queries.checks, query)
+			return testing.result(true, checks or [[{"data":{}}]])
 		end
 
 		table.insert(queries.full, query)
@@ -71,7 +76,7 @@ end
 test.case("a quiet poll fetches nothing and keeps the time it sent", function(assert)
 	local doc, poll = fixture()
 	local run, queries = createRunner(nil)
-	local changes = collectChanged(doc, run, poll, false)
+	local changes = collectChanged(doc, run, poll, NOTIFICATIONS)
 
 	assert.eq(changes.fetched, nil)
 	assert.eq(#changes.failures, 0)
@@ -85,7 +90,7 @@ test.case("notifications refetch only the cards they name", function(assert)
 		{"subject":{"type":"PullRequest","url":"https://api.github.com/repos/vocksel/orion/pulls/2"}},
 		{"subject":{"type":"PullRequest","url":"https://api.github.com/repos/vocksel/orion/pulls/99"}}
 	]]=])
-	local changes = collectChanged(doc, run, poll, false)
+	local changes = collectChanged(doc, run, poll, NOTIFICATIONS)
 	assert.neq(changes.fetched, nil)
 	local fetched = changes.fetched :: githubTypes.Fetched
 
@@ -106,7 +111,7 @@ test.case("a sweep refetches the open cards whose updatedAt moved", function(ass
 		nil,
 		`\{"data":\{"p1":\{"pullRequest":\{"updatedAt":"{RECORDED}"}},"p2":\{"pullRequest":\{"updatedAt":"2026-10-18T00:00:00Z"}}}}`
 	)
-	local changes = collectChanged(doc, run, poll, true)
+	local changes = collectChanged(doc, run, poll, SWEEP)
 
 	assert.neq(changes.fetched, nil)
 	assert.eq(#queries.sweep, 1)
@@ -123,10 +128,51 @@ test.case("a sweep that finds nothing new writes nothing", function(assert)
 		nil,
 		`\{"data":\{"p1":\{"pullRequest":\{"updatedAt":"{RECORDED}"}},"p2":\{"pullRequest":\{"updatedAt":"{RECORDED}"}}}}`
 	)
-	local changes = collectChanged(doc, run, poll, true)
+	local changes = collectChanged(doc, run, poll, SWEEP)
 
 	assert.eq(changes.fetched, nil)
 	assert.eq(changes.refetched, 0)
 	assert.eq(#queries.authored, 1)
 	assert.eq(#queries.full, 0)
+end)
+
+local function pendingCard(id: string, number: number, finished: number): types.Item
+	local item = card(id, number, "open")
+	local ref = (item.data.refs :: { any })[1]
+	ref.checks = json.object({ state = "pending" })
+	ref.details = json.object({
+		checks = "PENDING",
+		checkProgress = "running",
+		checkCounts = json.object({ total = 2, finished = finished, failed = 0 }),
+		head = "abc",
+	})
+	return item
+end
+
+local function checksResponse(finished: number): string
+	local states = if finished == 2
+		then [[{"state":"SUCCESS","count":2}]]
+		else `\{"state":"SUCCESS","count":{finished}},\{"state":"IN_PROGRESS","count":{2 - finished}}`
+	return `\{"data":\{"p1":\{"pullRequest":\{"number":4,"state":"OPEN","url":"u4","headRefOid":"abc","commits":\{"nodes":[\{"commit":\{"statusCheckRollup":\{"state":"PENDING","contexts":\{"checkRunCountsByState":[{states}],"statusContextCountsByState":[]}}}}]}}}}}`
+end
+
+test.case("a checks pass refetches only pending cards whose checks moved", function(assert)
+	local doc = testing.createDoc({ card("a", 1, "open"), pendingCard("p", 4, 1) })
+	doc.github = json.object({ viewer = "vocksel", unplaced = {} })
+	local poll = { lastModified = {}, interval = 60 }
+	local want = { notifications = false, sweep = false, checks = true }
+
+	local run, queries = createRunner(nil, nil, checksResponse(1))
+	local changes = collectChanged(doc, run, poll, want)
+	assert.eq(changes.fetched, nil)
+	assert.eq(#queries.checks, 1)
+	assert.strContains(queries.checks[1], "number: 4)")
+	assert.eq(queries.checks[1]:find("number: 1)", 1, true), nil)
+	assert.eq(#queries.full, 0)
+
+	run, queries = createRunner(nil, nil, checksResponse(2))
+	changes = collectChanged(doc, run, poll, want)
+	assert.neq(changes.fetched, nil)
+	assert.eq(changes.refetched, 1)
+	assert.strContains(queries.full[1], "number: 4)")
 end)
