@@ -2159,8 +2159,8 @@ export function Canvas() {
   /** Lands the Done stamps on cards that were just closed out, each after its delay. */
   const landStamps = useCallback(
     (delays: Map<string, number>) => {
-      // Reduced and off motion clear the stamps at once; the stamps only animate while they're listed here.
-      if (motionReduced()) return
+      // Animations off clears the stamps at once. Reduced keeps the timing and fades them; they only animate while listed here.
+      if (document.documentElement.dataset.motion === 'off') return
 
       setCelebrating((current) => new Map([...current, ...delays]))
       window.setTimeout(

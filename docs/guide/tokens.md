@@ -237,26 +237,26 @@ Spacing for gaps, padding, and margins follows a 2px rhythm. A step ending in `.
 
 Durations and easings for transitions and one-shot animations. When Orion waits for an animation to finish, it reads the token, so a longer value is never cut off. Like text sizes, each exact value is one token, named for the role it most often plays. The Animations setting still decides whether anything moves.
 
-| Name                            | Default | Used for                                                           |
-| ------------------------------- | ------- | ------------------------------------------------------------------ |
-| `motion.duration.stagger`       | `16ms`  | The delay between sticker wheel items opening                      |
-| `motion.duration.blink`         | `80ms`  | The companion's eyes closing and opening                           |
-| `motion.duration.chain`         | `90ms`  | The delay between each card down a chain clearing its finish stamp |
-| `motion.duration.instant`       | `120ms` | Tooltips and sticker wheel hovers                                  |
-| `motion.duration.quick`         | `140ms` | A sticker growing under the pointer                                |
-| `motion.duration.fast`          | `150ms` | Handles, hover actions, and border changes                         |
-| `motion.duration.open`          | `160ms` | The sticker wheel opening                                          |
-| `motion.duration.fade`          | `180ms` | Nodes and panels fading in and out                                 |
-| `motion.duration.base`          | `200ms` | Card, group, and link fades                                        |
-| `motion.duration.reveal`        | `240ms` | Sticker wheel items popping in                                     |
-| `motion.duration.hint`          | `250ms` | The companion's hint growing in                                    |
-| `motion.duration.camera-focus`  | `260ms` | The camera heading for a card it's focusing                        |
-| `motion.duration.pop`           | `340ms` | A far-zoom card popping up                                         |
-| `motion.duration.stamp`         | `360ms` | The finish stamp landing                                           |
-| `motion.duration.clear`         | `420ms` | A finish stamp clearing                                            |
-| `motion.duration.camera`        | `450ms` | The camera panning and zooming, such as to fit the canvas          |
-| `motion.duration.sticker-ring`  | `480ms` | The ring around a fresh sticker                                    |
-| `motion.duration.sticker-stamp` | `520ms` | A fresh sticker stamping down                                      |
+| Name                            | Default | Used for                                                                |
+| ------------------------------- | ------- | ----------------------------------------------------------------------- |
+| `motion.duration.stagger`       | `16ms`  | The delay between sticker wheel items opening                           |
+| `motion.duration.blink`         | `80ms`  | The companion's eyes closing and opening                                |
+| `motion.duration.instant`       | `120ms` | Tooltips and sticker wheel hovers                                       |
+| `motion.duration.quick`         | `140ms` | A sticker growing under the pointer                                     |
+| `motion.duration.fast`          | `150ms` | Handles, hover actions, and border changes                              |
+| `motion.duration.open`          | `160ms` | The sticker wheel opening                                               |
+| `motion.duration.fade`          | `180ms` | Nodes and panels fading in and out                                      |
+| `motion.duration.base`          | `200ms` | Card, group, and link fades                                             |
+| `motion.duration.reveal`        | `240ms` | Sticker wheel items popping in                                          |
+| `motion.duration.hint`          | `250ms` | The companion's hint growing in                                         |
+| `motion.duration.camera-focus`  | `260ms` | The camera heading for a card it's focusing                             |
+| `motion.duration.chain`         | `300ms` | The delay between each card past the third hop down a chain closing out |
+| `motion.duration.pop`           | `340ms` | A far-zoom card popping up                                              |
+| `motion.duration.stamp`         | `360ms` | The finish stamp landing                                                |
+| `motion.duration.clear`         | `420ms` | A finish stamp clearing                                                 |
+| `motion.duration.camera`        | `450ms` | The camera panning and zooming, such as to fit the canvas               |
+| `motion.duration.sticker-ring`  | `480ms` | The ring around a fresh sticker                                         |
+| `motion.duration.sticker-stamp` | `520ms` | A fresh sticker stamping down                                           |
 
 | Name                     | Default                             | Used for                                 |
 | ------------------------ | ----------------------------------- | ---------------------------------------- |

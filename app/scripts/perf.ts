@@ -29,6 +29,9 @@ const OUT = join(APP, '.perf')
 const HARNESS = ['src/perf', '.storybook/main.ts']
 const VIEWPORT = { width: 1440, height: 900 }
 const SETTLE_MS = 800
+// V8 picks a random hash seed per process, and how the seed lays out string-keyed Maps can move a benchmark like
+// needsAttention by 20% from one round to the next. Fixing it gives every round, on both sides, the same layout.
+const HASH_SEED = 1
 const TRACE_CATEGORIES = ['devtools.timeline', 'disabled-by-default-devtools.timeline']
 // Headless Chromium draws in software by default. These ANGLE backends reach the GPU without a display: Metal on macOS,
 // and OpenGL ES over EGL on Linux, the path desktop Chrome takes there. Without a GPU, Chromium falls back to software.
@@ -121,7 +124,11 @@ function runBenchmarks(dir: string, side: Side, round: number): Map<string, numb
   const file = join(OUT, side, `bench-${round}.json`)
 
   mkdirSync(dirname(file), { recursive: true })
-  run(join(dir, 'node_modules/.bin/vitest'), ['bench', '--root', 'src', '--run', '--reporter=json', `--outputFile=${file}`], dir)
+  run(
+    join(dir, 'node_modules/.bin/vitest'),
+    ['bench', '--root', 'src', '--run', `--execArgv=--hash-seed=${HASH_SEED}`, '--reporter=json', `--outputFile=${file}`],
+    dir,
+  )
 
   type Report = {
     testResults: { assertionResults: { title: string; benchmarks?: { tasks: { name: string; latency: { p50: number } }[] }[] }[] }[]

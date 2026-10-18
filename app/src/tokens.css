@@ -147,7 +147,6 @@
 
   --motion-duration-stagger: 16ms;
   --motion-duration-blink: 80ms;
-  --motion-duration-chain: 90ms;
   --motion-duration-instant: 120ms;
   --motion-duration-quick: 140ms;
   --motion-duration-fast: 150ms;
@@ -157,6 +156,7 @@
   --motion-duration-reveal: 240ms;
   --motion-duration-hint: 250ms;
   --motion-duration-camera-focus: 260ms;
+  --motion-duration-chain: 300ms;
   --motion-duration-pop: 340ms;
   --motion-duration-stamp: 360ms;
   --motion-duration-clear: 420ms;
