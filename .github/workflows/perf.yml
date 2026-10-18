@@ -89,13 +89,13 @@ jobs:
           STATUS: ${{ job.status }}
         run: lute run perf-report
 
-      # Recording history is a side benefit, so a PostHog outage or missing key never fails the job.
+      # Recording history is a side benefit, so a PostHog outage or missing token never fails the job.
       - name: Record Perf History
         if: success()
         continue-on-error: true
         working-directory: cli
         env:
-          POSTHOG_KEY: ${{ secrets.POSTHOG_PROJECT_KEY }}
+          POSTHOG_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: lute run perf-history

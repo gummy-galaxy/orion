@@ -1,6 +1,6 @@
 --[[
 	Records CI's perf run in PostHog so results can be charted across commits. It reads app/.perf/raw.json and sends
-	one `perf_run` event per side. Without a PostHog key, or when PostHog refuses or can't be reached, it warns and
+	one `perf_run` event per side. Without a PostHog token, or when PostHog refuses or can't be reached, it warns and
 	leaves the job alone.
 ]]
 local fs = require("@std/fs")
@@ -23,10 +23,10 @@ local function warn(message: string)
 end
 
 runScript(function()
-	local key = env.POSTHOG_KEY
+	local token = env.POSTHOG_TOKEN
 
-	if key == nil or key == "" then
-		warn("POSTHOG_KEY isn't set, so this run isn't recorded.")
+	if token == nil or token == "" then
+		warn("POSTHOG_TOKEN isn't set, so this run isn't recorded.")
 		return
 	end
 
@@ -63,7 +63,7 @@ runScript(function()
 	end
 
 	local host = if env.POSTHOG_HOST and env.POSTHOG_HOST ~= "" then env.POSTHOG_HOST else DEFAULT_HOST
-	local body = json.serialize(json.object({ api_key = key, batch = batch }))
+	local body = json.serialize(json.object({ api_key = token, batch = batch }))
 	local metadata: net.Metadata = {
 		method = "POST",
 		headers = { ["Content-Type"] = "application/json" },
