@@ -44,7 +44,7 @@ Data files are never a public interface for writing: tools go through the CLI. T
 
 ### How do breaking changes ship?
 
-**In the three stages the [decisions](/development/decisions) already set.** Before 0.1.0, a breaking change lands in one pull request that updates the CLI, the MCP tools, the generated reference, `AGENTS.md`, and the app together, with no alias. From 0.1.0, each break is deliberate and the release notes list it. From 1.0, aliases come first.
+**In the three stages the [decisions](/development/decisions) already set.** Before 0.1.0, a breaking change lands in one pull request that updates the CLI, the MCP tools, the generated reference, the agent guide, and the app together, with no alias. From 0.1.0, each break is deliberate and the release notes list it. From 1.0, aliases come first.
 
 Three deprecated forms predate that decision and still promise a release of overlap: `orion sync`, `--pr`, and `--repo` used with `--pr`. They go now, with no alias, in [#469](https://github.com/vocksel/orion/issues/469).
 
@@ -53,7 +53,7 @@ Three deprecated forms predate that decision and still promise a release of over
 |            |                                                                                                                                                                                                                                                                                                                   |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Keep**   | The noun-verb shape and its nouns: `card`, `note`, `link`, `node`, `group`, `ref`, `canvas`, `source`, `media`, `suggestion`, `theme`, `backup`, `log`, `ci`, `server`, and `mcp`.                                                                                                                                |
-| **Keep**   | Top-level `next`, `focus`, `ingest`, `apply`, and `help`. `apply` spans every noun, and `help` comes from the same command table as `--help`, so it costs nothing to keep.                                                                                                                                        |
+| **Keep**   | Top-level `next`, `focus`, `ingest`, `apply`, `reveal`, and `help`. `apply` and `reveal` span every noun, and `help` comes from the same command table as `--help`, so it costs nothing to keep.                                                                                                                  |
 | **Keep**   | `--where`, `--dry-run`, `--if-revision`, and `--json` on batch commands, and selectors wherever a command takes an id.                                                                                                                                                                                            |
 | **Keep**   | `--canvas`, `--help`, and `--version` on every command.                                                                                                                                                                                                                                                           |
 | **Keep**   | `ORION_DATA_DIR` and `ORION_CANVAS`, with the option winning over the variable.                                                                                                                                                                                                                                   |
@@ -64,8 +64,6 @@ Three deprecated forms predate that decision and still promise a release of over
 | **Change** | One verb for making groups. `group create` makes an empty group and `group add` wraps items; fold them into `group create <label> [--items …] [--in …]`.                                                                                                                                                          |
 | **Remove** | `orion sync` and `--discover` ([#469](https://github.com/vocksel/orion/issues/469)). `orion ingest` refreshes pull requests too, and a GitHub source files new ones in Unsorted.                                                                                                                                  |
 | **Remove** | `--pr` on `card add` and `set`, and `--repo` as its partner ([#469](https://github.com/vocksel/orion/issues/469)). Components may still want `--repo` for the repository they belong to, or a repository URL through `--ref`; #469 settles which.                                                                 |
-
-[#354](https://github.com/vocksel/orion/pull/354) adds top-level `reveal`, which fits the shape.
 
 The variables `ORION_BIN`, `ORION_PERF`, `ORION_STORYBOOK`, and `ORION_COMMIT` belong to the app's dev server, perf, Storybook, and desktop builds. They stay contributor-only and out of the public docs. `ORION_WORKSPACE` is already gone.
 
@@ -82,54 +80,51 @@ The variables `ORION_BIN`, `ORION_PERF`, `ORION_STORYBOOK`, and `ORION_COMMIT` b
 | **Change** | `orion_inspect` splits into one tool per command it runs, with #415. Its `view` argument switches between five commands, so its schema can't say which arguments go with which. |
 | **Remove** | `orion_sync`, and the `repo` and `pr` arguments, with their CLI forms in [#469](https://github.com/vocksel/orion/issues/469).                                                   |
 
-| Today                                                                                                                         | With #415                                                                                                        |
-| ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `orion_canvases`                                                                                                              | `orion_canvas_list`                                                                                              |
-| `orion_create_canvas`, `orion_rename_canvas`, `orion_update_canvas`, `orion_archive_canvas`, `orion_restore_canvas`           | `orion_canvas_create`, `orion_canvas_rename`, `orion_canvas_set`, `orion_canvas_archive`, `orion_canvas_restore` |
-| `orion_select_canvas`, `orion_check`                                                                                          | `orion_canvas_use`, `orion_canvas_check`                                                                         |
-| `orion_inspect` with `view` set to `list`, `ready`, `groups`, `matches`, or `show`                                            | `orion_card_list`, `orion_next`, `orion_group_list`, `orion_source_matches`, and `orion_node_show`               |
-| `orion_find`, `orion_query`, `orion_move`, `orion_remove`                                                                     | `orion_node_find`, `orion_node_query`, `orion_node_move`, `orion_node_remove`                                    |
-| `orion_add_item`, `orion_update_item`, `orion_done`, `orion_import`                                                           | `orion_card_add`, `orion_card_set`, `orion_card_done`, `orion_card_import`                                       |
-| `orion_snooze`, `orion_unsnooze`                                                                                              | `orion_card_snooze`, `orion_card_unsnooze`                                                                       |
-| `orion_snoozed_jobs`, `orion_snooze_job`, `orion_unsnooze_job`                                                                | `orion_ci_list`, `orion_ci_snooze`, `orion_ci_unsnooze`                                                          |
-| `orion_add_note`                                                                                                              | `orion_note_add`                                                                                                 |
-| `orion_link`, `orion_unlink`, `orion_insert`                                                                                  | `orion_link_add`, `orion_link_remove`, `orion_link_insert`                                                       |
-| `orion_group`, `orion_create_group`                                                                                           | `orion_group_create`, once `group add` folds into it                                                             |
-| `orion_update_group`, `orion_remove_group`, `orion_ungroup`, `orion_tidy`                                                     | `orion_group_set`, `orion_group_remove`, `orion_group_ungroup`, `orion_group_tidy`                               |
-| `orion_remove_ref`                                                                                                            | `orion_ref_remove`                                                                                               |
-| `orion_images`, `orion_add_image`                                                                                             | `orion_media_list`, `orion_media_insert`                                                                         |
-| `orion_themes`, `orion_add_theme`, `orion_remove_theme`                                                                       | `orion_theme_list`, `orion_theme_add`, `orion_theme_remove`                                                      |
-| `orion_sources`                                                                                                               | `orion_source_list`                                                                                              |
-| `orion_suggest`, `orion_suggestions`, `orion_apply_suggestions`, `orion_dismiss_suggestions`                                  | `orion_suggestion_find`, `orion_suggestion_list`, `orion_suggestion_apply`, `orion_suggestion_dismiss`           |
-| `orion_backups`, `orion_restore_backup`                                                                                       | `orion_backup_list`, `orion_backup_restore`                                                                      |
-| `orion_log_add`, `orion_log_list`, `orion_card_timeline`, `orion_ingest`, `orion_apply`, `orion_focus`, `orion_server_status` | Already match                                                                                                    |
-| `orion_sync`                                                                                                                  | Removed in #469                                                                                                  |
-
-#354 adds `orion_reveal`, which already matches.
+| Today                                                                                                                                         | With #415                                                                                                        |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `orion_canvases`                                                                                                                              | `orion_canvas_list`                                                                                              |
+| `orion_create_canvas`, `orion_rename_canvas`, `orion_update_canvas`, `orion_archive_canvas`, `orion_restore_canvas`                           | `orion_canvas_create`, `orion_canvas_rename`, `orion_canvas_set`, `orion_canvas_archive`, `orion_canvas_restore` |
+| `orion_select_canvas`, `orion_check`                                                                                                          | `orion_canvas_use`, `orion_canvas_check`                                                                         |
+| `orion_inspect` with `view` set to `list`, `ready`, `groups`, `matches`, or `show`                                                            | `orion_card_list`, `orion_next`, `orion_group_list`, `orion_source_matches`, and `orion_node_show`               |
+| `orion_find`, `orion_query`, `orion_move`, `orion_remove`                                                                                     | `orion_node_find`, `orion_node_query`, `orion_node_move`, `orion_node_remove`                                    |
+| `orion_add_item`, `orion_update_item`, `orion_done`, `orion_import`                                                                           | `orion_card_add`, `orion_card_set`, `orion_card_done`, `orion_card_import`                                       |
+| `orion_snooze`, `orion_unsnooze`                                                                                                              | `orion_card_snooze`, `orion_card_unsnooze`                                                                       |
+| `orion_snoozed_jobs`, `orion_snooze_job`, `orion_unsnooze_job`                                                                                | `orion_ci_list`, `orion_ci_snooze`, `orion_ci_unsnooze`                                                          |
+| `orion_add_note`                                                                                                                              | `orion_note_add`                                                                                                 |
+| `orion_link`, `orion_unlink`, `orion_insert`                                                                                                  | `orion_link_add`, `orion_link_remove`, `orion_link_insert`                                                       |
+| `orion_group`, `orion_create_group`                                                                                                           | `orion_group_create`, once `group add` folds into it                                                             |
+| `orion_update_group`, `orion_remove_group`, `orion_ungroup`, `orion_tidy`                                                                     | `orion_group_set`, `orion_group_remove`, `orion_group_ungroup`, `orion_group_tidy`                               |
+| `orion_remove_ref`                                                                                                                            | `orion_ref_remove`                                                                                               |
+| `orion_images`, `orion_add_image`                                                                                                             | `orion_media_list`, `orion_media_insert`                                                                         |
+| `orion_themes`, `orion_add_theme`, `orion_remove_theme`                                                                                       | `orion_theme_list`, `orion_theme_add`, `orion_theme_remove`                                                      |
+| `orion_sources`                                                                                                                               | `orion_source_list`                                                                                              |
+| `orion_suggest`, `orion_suggestions`, `orion_apply_suggestions`, `orion_dismiss_suggestions`                                                  | `orion_suggestion_find`, `orion_suggestion_list`, `orion_suggestion_apply`, `orion_suggestion_dismiss`           |
+| `orion_backups`, `orion_restore_backup`                                                                                                       | `orion_backup_list`, `orion_backup_restore`                                                                      |
+| `orion_log_add`, `orion_log_list`, `orion_card_timeline`, `orion_ingest`, `orion_apply`, `orion_reveal`, `orion_focus`, `orion_server_status` | Already match                                                                                                    |
+| `orion_sync`                                                                                                                                  | Removed in #469                                                                                                  |
 
 ## HTTP API
 
 The app is the only client. Agents and scripts use the CLI or MCP.
 
-| Route                                   | Methods       | What it's for                                                                    |
-| --------------------------------------- | ------------- | -------------------------------------------------------------------------------- |
-| `/api/orion`                            | `GET`         | The canvas document                                                              |
-| `/api/operations`                       | `POST`        | Edits to the canvas, applied by the server                                       |
-| `/api/orion/style`                      | `PUT`         | The canvas's cover, background, and header                                       |
-| `/api/orion/check-snoozes`              | `PUT`         | CI jobs snoozed from the inspector                                               |
-| `/api/focus`                            | `POST`        | The app's open group and selection                                               |
-| `/api/canvases`, `/api/canvases/active` | `GET`, `POST` | List, create, and switch canvases                                                |
-| `/api/images`, `/api/images/<asset>`    | `POST`, `GET` | Upload and serve images                                                          |
-| `/api/log`                              | `GET`         | The canvas log                                                                   |
-| `/api/settings`                         | `GET`, `POST` | The app's settings                                                               |
-| `/api/themes`                           | `GET`         | Theme files                                                                      |
-| `/api/sync`                             | `GET`, `POST` | Refresh status, and a refresh now                                                |
-| `/api/merge`                            | `POST`        | Merge a pull request through `gh`                                                |
-| `/api/editor`                           | `GET`, `POST` | Whether an editor is available, and open a pull request in it through hop        |
-| `/api/links`                            | `POST`        | Link previews                                                                    |
-| `/api/events`                           | WebSocket     | `orion:changed`, `orion:canvas`, `orion:canvases`, `orion:log`, and `orion:sync` |
-
-#354 adds `POST /api/reveal`.
+| Route                                   | Methods       | What it's for                                                                                    |
+| --------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| `/api/orion`                            | `GET`         | The canvas document                                                                              |
+| `/api/operations`                       | `POST`        | Edits to the canvas, applied by the server                                                       |
+| `/api/orion/style`                      | `PUT`         | The canvas's cover, background, and header                                                       |
+| `/api/orion/check-snoozes`              | `PUT`         | CI jobs snoozed from the inspector                                                               |
+| `/api/focus`                            | `POST`        | The app's open group and selection                                                               |
+| `/api/canvases`, `/api/canvases/active` | `GET`, `POST` | List, create, and switch canvases                                                                |
+| `/api/images`, `/api/images/<asset>`    | `POST`, `GET` | Upload and serve images                                                                          |
+| `/api/log`                              | `GET`         | The canvas log                                                                                   |
+| `/api/settings`                         | `GET`, `POST` | The app's settings                                                                               |
+| `/api/themes`                           | `GET`         | Theme files                                                                                      |
+| `/api/sync`                             | `GET`, `POST` | Refresh status, and a refresh now                                                                |
+| `/api/merge`                            | `POST`        | Merge a pull request through `gh`                                                                |
+| `/api/editor`                           | `GET`, `POST` | Whether an editor is available, and open a pull request in it through hop                        |
+| `/api/links`                            | `POST`        | Link previews                                                                                    |
+| `/api/reveal`                           | `POST`        | Reveal cards in the app for `orion reveal`                                                       |
+| `/api/events`                           | WebSocket     | `orion:changed`, `orion:canvas`, `orion:canvases`, `orion:log`, `orion:reveal`, and `orion:sync` |
 
 |            |                                                                                                                                                                                                                                                                                                       |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -181,17 +176,17 @@ The desktop app keeps its server port in `server-port` under its own app data fo
 
 The shell starts the bundled `orion server start --static` on a saved port and opens a web view on it. The `orion` command links to the binary inside the bundle.
 
-|            |                                                                                                                                                                                                      |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Keep**   | One IPC command, `process_usage`, for the debug bar. Everything else goes through the server.                                                                                                        |
-| **Keep**   | The opener and window-state plugins, and the Acknowledgements window.                                                                                                                                |
-| **Keep**   | No URL scheme or deep links yet. When [#176](https://github.com/vocksel/orion/issues/176) adds links to cards, an `orion://` scheme should open them through the same path as `orion reveal` (#354). |
-| **Change** | The capability that lets pages call IPC covers every port on `127.0.0.1`. Narrow it to the server's port if Tauri allows it at runtime.                                                              |
-| **Change** | #354 launches `~/Applications/Orion.app` when no app is open, but Orion installs to `/Applications`.                                                                                                 |
+|            |                                                                                                                                                                                               |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Keep**   | One IPC command, `process_usage`, for the debug bar. Everything else goes through the server.                                                                                                 |
+| **Keep**   | The opener and window-state plugins, and the Acknowledgements window.                                                                                                                         |
+| **Keep**   | No URL scheme or deep links yet. When [#176](https://github.com/vocksel/orion/issues/176) adds links to cards, an `orion://` scheme should open them through the same path as `orion reveal`. |
+| **Change** | The capability that lets pages call IPC covers every port on `127.0.0.1`. Narrow it to the server's port if Tauri allows it at runtime.                                                       |
+| **Change** | `orion reveal` launches `~/Applications/Orion.app` when no app is open, but Orion installs to `/Applications`.                                                                                |
 
 ## Where the docs differ
 
-`README.md` matches this audit. `AGENTS.md` matches the code today, and these lines change with the follow-ups:
+`README.md` matches this audit. The agent guide in `AGENTS.md` and `agents/` matches the code today, and these lines change with the follow-ups:
 
 - `--repo` and `--pr` "stay for one release", and `orion sync` and `--discover` are described as deprecated. Both go with [#469](https://github.com/vocksel/orion/issues/469).
 - `POST /api/images?canvas=<name>` and `GET /api/images/<asset>` are documented for agents, though the API is internal. Agents should use `orion media insert`, and [#468](https://github.com/vocksel/orion/issues/468) drops those lines.

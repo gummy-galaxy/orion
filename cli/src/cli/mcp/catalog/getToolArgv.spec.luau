@@ -200,6 +200,23 @@ test.case("canvas tools map onto the canvas commands", function(assert)
 	end)
 end)
 
+test.case("orion_reveal passes each id as a trailing positional and selectOnly as a flag", function(assert)
+	assert.eq(
+		table.concat(getToolArgv("orion_reveal", json.object({ ids = { "ci", "pub" } })), " "),
+		"reveal ci pub --json"
+	)
+	assert.eq(
+		table.concat(
+			getToolArgv("orion_reveal", json.object({ ids = { "ci" }, selectOnly = true, canvas = "planning" })),
+			" "
+		),
+		"reveal ci --canvas planning --select-only --json"
+	)
+	assert.throwsWith("ids must be a list of strings", function()
+		getToolArgv("orion_reveal", json.object({ ids = { "" } }))
+	end)
+end)
+
 test.case("log tools attach entries to cards and name the agent that wrote them", function(assert)
 	assert.eq(
 		table.concat(

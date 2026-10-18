@@ -509,6 +509,18 @@ Runs `orion canvas use`.
 | -------- | ------ | ------------- |
 | `name`   | canvas | **Required.** |
 
+## orion_reveal
+
+Select cards or groups in the open Orion app and zoom the canvas to them, opening the group they share. Opens the app when it's closed. Set selectOnly to select without moving the camera.
+
+Runs `orion reveal`.
+
+| Argument     | Type    | Description                                            |
+| ------------ | ------- | ------------------------------------------------------ |
+| `ids`        | strings | **Required.** Card or group ids to reveal.             |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion. |
+| `selectOnly` | boolean | Select without moving the camera.                      |
+
 ## orion_check
 
 Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.

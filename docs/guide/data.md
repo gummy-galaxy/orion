@@ -53,4 +53,4 @@ Restoring brings a backup back as a new revision, and backs up the current file 
 
 `orion server start` serves the app's data over HTTP and sends changes over WebSocket. The desktop app runs it for you. Its API is internal to the app; other tools should use the CLI or [MCP](./getting-started#connect-an-agent-over-mcp).
 
-While the app is open, it reports its open group and selection to the server, and `orion focus` prints that report. Agents use it to know what "this" means.
+While the app is open, it reports its open group and selection to the server, and `orion focus` prints that report. Agents use it to know what "this" means. `orion reveal <id…>` works the other way: it selects cards or groups in the open app and zooms the canvas to them, opening the innermost group that holds them all. With no app running, it opens the installed app on the same data folder first.

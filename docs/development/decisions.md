@@ -276,6 +276,14 @@ Entries from `orion log add` are by the person running the CLI, named by `$USER`
 
 ## Public interfaces
 
+### Reveal stays top level and opens the app
+
+`orion reveal <id…>` stays a top-level command rather than moving under `orion focus`. It also zooms the canvas to what it selects, which setting focus shouldn't do. When no app is running, reveal launches the installed app on the same data folder, then waits for the app to show the items before it reports success.
+
+**Why:** a reveal moves the camera as well as the selection, and focus only reports what the app shows. Agents asked to show someone a card shouldn't have to tell them to open the app first.
+
+2026-10-12 · [#299](https://github.com/vocksel/orion/issues/299)
+
 ### Public interfaces tighten in three stages
 
 Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shapes, and data files. How freely they change depends on the release:
@@ -331,6 +339,16 @@ These moves live in `cli/src/migrations/`, whose README dates each one. Nobody o
 **Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases.
 
 2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110)
+
+## Roadmap
+
+### Spikes open phase 2, and an exploration track runs alongside it
+
+Phase 2 starts by prototyping its riskiest bets, placements, database views, and agent sessions on cards, before building them for real. Alongside it, an exploration track prototypes ideas from later phases: selection and layout, a home page, ink, ambience, and script cards. Each spike is time-boxed, ends in something to try, and closes with a verdict that feeds the roadmap. Spikes don't merge.
+
+**Why:** the filed ideas pull Orion in many directions, and trying the options by hand beats choosing between them from issue text. Opening phase 2 with its own spikes keeps the data model first, since placements change what selecting and clustering mean. Running the rest alongside, rather than as a phase of its own, gets phase 2 started sooner. Script cards that agents write give them an escape hatch for freeform logic, and what they write shows which features deserve to be first-class.
+
+2026-10-18 · [#122](https://github.com/vocksel/orion/issues/122), [#102](https://github.com/vocksel/orion/issues/102), [#293](https://github.com/vocksel/orion/issues/293), [#456](https://github.com/vocksel/orion/issues/456), [#227](https://github.com/vocksel/orion/issues/227)
 
 ## Architecture
 
