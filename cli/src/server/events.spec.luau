@@ -29,3 +29,19 @@ test.case("event hub sends the custom event payload and drops closed clients", f
 	hub.publish("orion:changed", json.object({ revision = 5 }))
 	expect.eq(#sent, 1)
 end)
+
+test.case("event hub counts the clients that are connected", function(expect)
+	local hub = events.create()
+	local socket: net.ServerWebSocket = {
+		send = function(_self: net.ServerWebSocket, _message: string | buffer): number
+			return 1
+		end,
+
+		close = function(_self: net.ServerWebSocket, _code: number?, _message: string?) end,
+	}
+	expect.eq(hub.count(), 0)
+	hub.open(socket)
+	expect.eq(hub.count(), 1)
+	hub.close(socket)
+	expect.eq(hub.count(), 0)
+end)

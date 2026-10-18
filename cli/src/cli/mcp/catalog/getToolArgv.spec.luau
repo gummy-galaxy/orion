@@ -183,6 +183,20 @@ test.case("canvas tools map onto the canvas commands", function(assert)
 	end)
 end)
 
+test.case("orion_reveal passes each id as a trailing positional and selectOnly as a flag", function(assert)
+	assert.eq(argv("orion_reveal", { ids = { "ci", "pub" } }), "reveal ci pub --json")
+	assert.eq(
+		argv("orion_reveal", { ids = { "ci" }, selectOnly = true, canvas = "planning" }),
+		"reveal ci --canvas planning --select-only --json"
+	)
+	assert.throwsWith("ids must be a list of strings", function()
+		argv("orion_reveal", { ids = { "" } })
+	end)
+	assert.throwsWith("missing ids", function()
+		argv("orion_reveal", {})
+	end)
+end)
+
 test.case("log tools attach entries to cards and name the agent that wrote them", function(assert)
 	assert.eq(
 		argv("orion_log_add", { text = "Tested Moments", card = { "moments", "avatars" }, agent = "claude" }),
