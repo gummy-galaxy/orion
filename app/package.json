@@ -10,11 +10,10 @@
     "coverage": "vitest run --root src --coverage.enabled --coverage.include=\"**/*.{ts,tsx}\" --coverage.exclude=\"**/*.{test,stories}.{ts,tsx}\" --coverage.exclude=\"perf/**\" --coverage.reporter=text-summary --coverage.reporter=json-summary --coverage.reporter=html --coverage.reportsDirectory=../coverage",
     "lint": "oxlint",
     "storybook": "ORION_STORYBOOK=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook dev -p 6006",
-    "build-storybook": "ORION_STORYBOOK=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook build --stats-json",
+    "build-storybook": "ORION_STORYBOOK=1 STORYBOOK_DISABLE_TELEMETRY=1 storybook build",
     "preview": "vite preview",
     "format": "prettier --write src scripts",
-    "perf": "node scripts/perf.ts",
-    "chromatic": "chromatic"
+    "perf": "node scripts/perf.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.12.1",
@@ -36,7 +35,6 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^5.0.3",
-    "chromatic": "^18.12.2",
     "oxlint": "^1.81.0",
     "playwright": "^1.64.0",
     "prettier": "^3.9.9",
