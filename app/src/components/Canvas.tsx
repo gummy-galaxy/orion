@@ -53,6 +53,7 @@ import {
   getTaskUrl,
   removeNodes,
   sizeOf,
+  survivingRoot,
   getTaskTag,
   relativeTime,
   type AppNode,
@@ -529,7 +530,6 @@ export function Canvas() {
 
         return JSON.stringify(slim([previous])) === JSON.stringify(slim([node])) ? previous : { ...node, selected: previous.selected }
       })
-      const ids = new Set(nodes.map((node) => node.id))
       const next = { nodes, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) }
 
       latest.current = next
@@ -538,12 +538,9 @@ export function Canvas() {
       setStickers(next.stickers)
       setLoadout(next.stickerLoadout)
 
-      // The open group can go with the step, such as when undoing its creation from inside it.
-      if (root && !ids.has(root)) openRoot(ancestors(root, shown).find((id) => ids.has(id)) ?? null)
-
       return next
     },
-    [root, openRoot, setLinks, setNodes],
+    [setLinks, setNodes],
   )
   const getDoc = useCallback(() => latest.current, [])
   const {
@@ -1273,6 +1270,22 @@ export function Canvas() {
   )
 
   const map = useMemo(() => byId(nodes), [nodes])
+  const shownMap = useRef(map)
+
+  // An edit from anywhere can remove the open group, such as moving its last group out or undoing its creation, so the
+  // view steps out to the nearest group that's left. Before paint, so the empty level never shows.
+  useLayoutEffect(() => {
+    const before = shownMap.current
+
+    shownMap.current = map
+
+    if (!root) return
+
+    const target = survivingRoot(root, before, map)
+
+    if (target !== root) openRoot(target)
+  }, [root, map, openRoot])
+
   // Focus ends on its own if someone else removes the card.
   const focus = focusPick && map.has(focusPick) ? focusPick : null
 
@@ -2144,11 +2157,9 @@ export function Canvas() {
 
       if (!targets.length) return
 
-      if (root && targets.includes(root)) openRoot(map.get(root)?.parentId ?? null)
-
       setNodes(ungroup(nodes, targets, cardSize))
     },
-    [nodes, selected, root, map, openRoot, setNodes, cardSize],
+    [nodes, selected, setNodes, cardSize],
   )
 
   /** Lands the Done stamps on cards that were just closed out, each after its delay. */
