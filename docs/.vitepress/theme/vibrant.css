@@ -190,3 +190,18 @@
 .custom-block.info {
   border-radius: 8px;
 }
+
+/* Side-by-side image sets, such as the logo palettes or the companion's moods. */
+.vp-doc .gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.vp-doc .gallery img {
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 12px;
+}
