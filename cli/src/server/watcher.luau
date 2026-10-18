@@ -2,6 +2,7 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local task = require("@std/task")
 
+local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local store = require("@root/store")
 local types = require("@root/types")
@@ -63,9 +64,7 @@ function watcher.create(
 		folder:close()
 		local dir = store.getWorkspaceDir(root, name)
 
-		if not fs.exists(dir) then
-			fs.createDirectory(dir, { makeParents = true })
-		end
+		ensureDirectory(dir)
 
 		folder = fs.watch(dir)
 		dataFile = store.filePath(dir)

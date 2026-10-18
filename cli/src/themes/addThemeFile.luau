@@ -2,6 +2,7 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 
 local checkThemeFile = require("@root/themes/checkThemeFile")
+local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local themeLimits = require("@root/themes/themeLimits")
 
@@ -26,10 +27,7 @@ local function addThemeFile(root: string, source: string): AddedTheme
 	assert(check.error == nil, `{name} {check.error}`)
 
 	local folder = path.join(root, fileNames.themes)
-
-	if not fs.exists(folder) then
-		fs.createDirectory(folder, { makeParents = true })
-	end
+	ensureDirectory(folder)
 
 	local target = path.join(folder, name)
 	local replaced = fs.exists(target)

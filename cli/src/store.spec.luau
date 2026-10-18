@@ -393,6 +393,138 @@ test.case("a save flags the cards it finishes and leaves the rest without the fl
 	assert.eq(saved.nodes[2].data.celebrate, nil)
 end)
 
+test.case("concurrent CLI writers never lose a change", function(assert)
+	local root = testing.directory("concurrent-writers")
+	local writers, writesEach = 6, 3
+	local environment: { [string]: string } = {}
+
+	for key, value in process.env do
+		environment[key] = value
+	end
+
+	environment.ORION_DATA_DIR = root
+	environment.ORION_CANVAS = nil
+
+	-- Each writer adds its cards one at a time while the others do the same.
+	local script = [[
+for writer in $(seq 1 "$3"); do
+	(for write in $(seq 1 "$4"); do output=$("$1" run "$2" card add "card-$writer-$write" --canvas default 2>&1) || { echo "$output" >&2; exit 1; }; done) &
+done
+failed=0
+for job in $(jobs -p); do wait "$job" || failed=1; done
+exit "$failed"
+]]
+	local result = process.run({
+		"sh",
+		"-c",
+		script,
+		"sh",
+		tostring(process.execPath()),
+		tostring(path.join(process.cwd(), "cli.luau")),
+		tostring(writers),
+		tostring(writesEach),
+	}, { env = environment })
+	assert.eq(result.stderr, "")
+	assert.eq(result.ok, true)
+
+	local doc = store.load(store.getWorkspaceDir(root, "default"))
+	local labels: { [string]: boolean } = {}
+
+	for _, node in doc.nodes do
+		labels[tostring(node.data.label)] = true
+	end
+
+	assert.eq(doc.revision, writers * writesEach)
+	assert.eq(#doc.nodes, writers * writesEach)
+
+	for writer = 1, writers do
+		for write = 1, writesEach do
+			assert.eq(labels[`card-{writer}-{write}`], true)
+		end
+	end
+end)
+
+test.case("a data file that can't be read refuses writes and stays as it was", function(assert)
+	local unreadable: { [string]: string } = { truncated = '{"nodes": [', empty = "", array = "[]", null = "null" }
+
+	for name, contents in unreadable do
+		local dir = testing.directory(`unreadable-{name}`)
+		fs.createDirectory(dir, { makeParents = true })
+		fs.writeStringToFile(store.filePath(dir), contents)
+
+		assert.throws(function()
+			store.transaction(dir, function(doc)
+				table.insert(doc.nodes, testing.task("a", "A", "todo"))
+			end)
+		end)
+
+		assert.eq(fs.readFileToString(store.filePath(dir)), contents)
+		assert.eq(fs.exists(path.join(dir, "orion.lock")), false)
+		assert.eq(#store.getBackups(dir), 0)
+	end
+end)
+
+test.case("an operation list from the app keeps what other writers own", function(assert)
+	local dir = testing.directory("save-keeps-others")
+	fs.createDirectory(dir, { makeParents = true })
+	fs.writeStringToFile(
+		store.filePath(dir),
+		[[{"version":2,"revision":4,"settings":{"sources":[{"id":"gh","kind":"github","owners":["vocksel"]}]},"github":{"viewer":"vocksel"},"future":{"kept":true},"nodes":[],"links":[]}]]
+	)
+
+	local doc = store.transaction(dir, function(current)
+		applyOperations(
+			current,
+			parseOperations({
+				json.object({ op = "addCard", id = "a", x = 0, y = 0, data = json.object({ label = "A" }) }),
+			})
+		)
+	end)
+	assert.eq(doc.revision, 5)
+
+	local saved = json.asObject(json.deserialize(fs.readFileToString(store.filePath(dir))) :: json.Value) :: json.Object
+	local settings = json.asObject(saved.settings) :: json.Object
+	local sources = json.asArray(settings.sources) :: json.Array
+	assert.eq((json.asObject(sources[1]) :: json.Object).id, "gh")
+	assert.eq((json.asObject(saved.github) :: json.Object).viewer, "vocksel")
+	assert.eq((json.asObject(saved.future) :: json.Object).kept, true)
+	assert.eq(#(json.asArray(saved.nodes) :: json.Array), 1)
+end)
+
+test.case("each backup holds the exact revision it replaced", function(assert)
+	local dir = testing.directory("backup-chain")
+	local written: { [number]: string } = {}
+	store.write(dir, testing.createDoc({}))
+	written[0] = fs.readFileToString(store.filePath(dir))
+
+	for revision = 1, 4 do
+		store.transaction(dir, function(doc)
+			table.insert(doc.nodes, testing.task(`card-{revision}`, `Card {revision}`, "todo"))
+		end)
+		written[revision] = fs.readFileToString(store.filePath(dir))
+	end
+
+	local backups = store.getBackups(dir)
+	assert.eq(#backups, 4)
+
+	for _, backup in backups do
+		assert.eq(fs.readFileToString(backup.file), written[backup.revision])
+	end
+end)
+
+test.case("a backup that can't be written never blocks the write", function(assert)
+	local dir = testing.directory("backup-blocked")
+	store.write(dir, testing.createDoc({}))
+	fs.writeStringToFile(path.join(dir, "backups"), "not a folder")
+
+	local doc = store.transaction(dir, function(current)
+		table.insert(current.nodes, testing.task("a", "A", "todo"))
+	end)
+
+	assert.eq(doc.revision, 1)
+	assert.eq(store.load(dir).nodes[1].id, "a")
+end)
+
 test.case("an operation list closes out the cards the app finished and closed out at once", function(assert)
 	local dir = testing.directory("celebrate-closed-out")
 	store.write(
