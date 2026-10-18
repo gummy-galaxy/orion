@@ -10,6 +10,7 @@ Orion is a prototype and hasn't had its first release, so anything can still cha
 - [Concepts](docs/guide/concepts.md): cards, links, groups, and sources.
 - [Using the canvas](docs/guide/canvas.md), [Sources](docs/guide/sources.md), and [Data and canvases](docs/guide/data.md).
 - [CLI](docs/reference/cli/index.md) and [MCP](docs/reference/mcp.md) reference.
+- [Development](docs/development/index.md): design and engineering write-ups on how Orion is made.
 
 ## Repository
 

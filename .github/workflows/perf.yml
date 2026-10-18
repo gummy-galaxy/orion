@@ -7,7 +7,11 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - app/**
+      - "!app/**/*.md"
+      - "!app/**/*.test.ts"
+      - "!app/**/*.test.tsx"
       - cli/.lute/perf-report.luau
+      - .github/workflows/perf.yml
 
 permissions:
   contents: read

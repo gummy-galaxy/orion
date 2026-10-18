@@ -3,6 +3,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
+local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local readSettings = require("@root/settings/readSettings")
 
@@ -19,9 +20,7 @@ return function(root: string, changes: json.Object): json.Object
 		end
 	end
 
-	if not fs.exists(root) then
-		fs.createDirectory(root, { makeParents = true })
-	end
+	ensureDirectory(root)
 
 	local file = tostring(path.join(root, fileNames.settings))
 	writeSequence += 1

@@ -2,9 +2,12 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local task = require("@std/task")
 
+local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local store = require("@root/store")
+local types = require("@root/types")
 
+type Doc = types.Doc
 type Stamp = { size: number, modified: number }
 
 local watcher = {}
@@ -31,7 +34,7 @@ function watcher.create(
 	root: string,
 	active: () -> string,
 	switchTo: (string) -> (),
-	changed: (number) -> (),
+	changed: (number, Doc) -> (),
 	workspacesChanged: (store.WorkspaceList) -> ()
 )
 	local isClosed = false
@@ -45,9 +48,14 @@ function watcher.create(
 	local generation = 0
 	local monitor = {}
 
-	local function getRevision(): number?
+	local function getDoc(): Doc?
 		local didSucceed, doc = pcall(store.read, store.getWorkspaceDir(root, active()))
-		return if didSucceed and doc then doc.revision else nil
+		return if didSucceed then doc else nil
+	end
+
+	local function getRevision(): number?
+		local doc = getDoc()
+		return if doc then doc.revision else nil
 	end
 
 	local lastRevision = getRevision()
@@ -56,9 +64,7 @@ function watcher.create(
 		folder:close()
 		local dir = store.getWorkspaceDir(root, name)
 
-		if not fs.exists(dir) then
-			fs.createDirectory(dir, { makeParents = true })
-		end
+		ensureDirectory(dir)
 
 		folder = fs.watch(dir)
 		dataFile = store.filePath(dir)
@@ -87,17 +93,17 @@ function watcher.create(
 				return
 			end
 
-			local revision = getRevision()
+			local doc = getDoc()
 
-			if revision == nil then
+			if doc == nil then
 				return -- A writer may still be finishing; retry on the next check.
 			end
 
 			lastDataStamp = current
 
-			if revision ~= lastRevision then
-				lastRevision = revision
-				changed(revision)
+			if doc.revision ~= lastRevision then
+				lastRevision = doc.revision
+				changed(doc.revision, doc)
 			end
 		end)
 	end
