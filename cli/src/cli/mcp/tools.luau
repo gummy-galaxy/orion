@@ -21,10 +21,20 @@ local VIEW_COMMANDS: { [string]: { string } } = {
 	show = { "node", "show" },
 }
 
+local INSPECT_COMMANDS: { { string } } = {}
+
+for _, command in VIEW_COMMANDS do
+	table.insert(INSPECT_COMMANDS, command)
+end
+
 local REF_DESCRIPTION =
 	"Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch."
 local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
 local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
+local DRY_RUN = "Preview the changes and the current revision without writing."
+local IF_REVISION =
+	"Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written."
+local WHERE = 'Select targets with an expression instead of ids, such as label ~ "text".'
 local SELECTOR_DESCRIPTION =
 	'An id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 that must match exactly one item.'
 local NOTE_STYLE =
@@ -33,6 +43,9 @@ local NOTE_DESCRIPTION = "Replaces the whole note. " .. NOTE_STYLE
 
 local WHO = table.clone(fieldValues.who)
 table.insert(WHO, "")
+
+local CLEARABLE_COLORS = table.clone(fieldValues.colors)
+table.insert(CLEARABLE_COLORS, "")
 
 local shapeField: Field = {
 	name = "shape",
@@ -66,6 +79,17 @@ local workspaceField: Field = {
 	flag = "canvas",
 }
 
+-- Batch commands take ids or a where expression, and share the preview and revision guard.
+local function batchFields(idsDescription: string): { Field }
+	return {
+		{ name = "ids", kind = "strings", description = idsDescription, at = "variadic" },
+		workspaceField,
+		{ name = "where", kind = "string", minLength = 1, description = WHERE, at = "option" },
+		{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+		{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
+	}
+end
+
 -- Each view is its own read command, and only some take an id or a group.
 local function buildInspectArgv(arguments: json.Object): { string }
 	local view = getRequiredString(arguments, "view")
@@ -79,7 +103,6 @@ local function buildInspectArgv(arguments: json.Object): { string }
 	end
 
 	appendOption(argv, "canvas", arguments.canvas)
-	table.insert(argv, "--json")
 	return argv
 end
 
@@ -96,36 +119,36 @@ local function buildCreateWorkspaceArgv(arguments: json.Object): { string }
 	return argv
 end
 
--- Without a group, the item moves to the top level.
-local function buildMoveArgv(arguments: json.Object): { string }
-	local argv = { "node", "move", getRequiredString(arguments, "id") }
-	local group = getStringField(arguments.group)
+-- The plan goes inline as --plan, since an MCP call has no stdin to read it from.
+local function buildApplyArgv(arguments: json.Object): { string }
+	local steps = json.asArray(arguments.operations :: json.Value)
+	assert(steps and #steps > 0, "missing operations")
+	local argv = { "apply", "--plan", json.serialize(steps) }
 
-	if group then
-		table.insert(argv, "--to")
-		table.insert(argv, group)
-	else
-		table.insert(argv, "--top")
-	end
-
+	appendFlag(argv, "dry-run", arguments.dryRun)
+	appendOption(argv, "if-revision", arguments.ifRevision)
 	appendOption(argv, "canvas", arguments.canvas)
 	return argv
 end
 
--- Refs are one list argument, which the CLI takes as trailing positionals.
-local function buildImportArgv(arguments: json.Object): { string }
-	local argv = { "card", "import" }
-	local refs = json.asArray(arguments.refs) or {}
+-- Cards are one list argument, joined into the comma-separated --card the CLI takes. Entries are always by an agent.
+local function buildLogAddArgv(arguments: json.Object): { string }
+	local argv = { "log", "add", getRequiredString(arguments, "text") }
+	local ids: { string } = {}
 
-	for _, ref in refs do
-		assert(type(ref) == "string" and ref ~= "", "refs must be a list of strings")
-		table.insert(argv, ref)
+	for _, card in json.asArray(arguments.cards) or {} do
+		assert(type(card) == "string" and card ~= "", "cards must be a list of strings")
+		table.insert(ids, card)
 	end
 
-	appendOption(argv, "group", arguments.group)
-	appendFlag(argv, "dry-run", arguments.dryRun)
+	if #ids > 0 then
+		table.insert(argv, "--card")
+		table.insert(argv, table.concat(ids, ","))
+	end
+
+	table.insert(argv, "--agent")
+	table.insert(argv, getRequiredString(arguments, "agent"))
 	appendOption(argv, "canvas", arguments.canvas)
-	table.insert(argv, "--json")
 	return argv
 end
 
@@ -143,7 +166,6 @@ local function buildTidyArgv(arguments: json.Object): { string }
 	appendFlag(argv, "dry-run", arguments.dryRun)
 	appendOption(argv, "if-revision", arguments.ifRevision)
 	appendOption(argv, "canvas", arguments.canvas)
-	table.insert(argv, "--json")
 	return argv
 end
 
@@ -171,6 +193,8 @@ local tools: { Tool } = {
 		description = "Read the canvas: list items, ready work, groups, PR matches, or one item/group.",
 		annotations = { readOnlyHint = true },
 		command = {},
+		commands = INSPECT_COMMANDS,
+		json = true,
 		fields = {
 			{
 				name = "view",
@@ -233,17 +257,32 @@ local tools: { Tool } = {
 		command = { "card", "add" },
 		json = true,
 		fields = {
-			{ name = "title", kind = "string", required = true, minLength = 1, at = "positional" },
+			{
+				name = "title",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "What the work is.",
+				at = "positional",
+				flag = "label",
+			},
 			workspaceField,
-			{ name = "group", kind = "id", at = "option" },
+			{ name = "group", kind = "id", description = "Group to add it to.", at = "option" },
+			{ name = "status", kind = "enum", values = fieldValues.statuses, at = "option" },
+			{
+				name = "who",
+				kind = "enum",
+				values = fieldValues.who,
+				description = "Whose move: you, review, or ci.",
+				at = "option",
+			},
+			{ name = "note", kind = "string", description = "Free-form note.", at = "option" },
 			kindField,
 			shapeField,
 			colorField,
 			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
 			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
-			{ name = "status", kind = "enum", values = fieldValues.statuses, at = "option" },
-			{ name = "note", kind = "string", at = "option" },
 		},
 	},
 	{
@@ -263,13 +302,111 @@ local tools: { Tool } = {
 				description = "Whose move: you, review, or ci. Empty clears it.",
 				at = "option",
 			},
-			{ name = "note", kind = "string", description = NOTE_DESCRIPTION, at = "option" },
+			{ name = "note", kind = "string", description = NOTE_DESCRIPTION .. " Empty clears it.", at = "option" },
 			kindField,
 			shapeField,
 			colorField,
 			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
 			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
+		},
+	},
+	{
+		name = "orion_done",
+		description = "Mark items done, by id or by a where expression. A dry run shows what would change.",
+		command = { "card", "done" },
+		json = true,
+		fields = batchFields("Item ids to mark done."),
+	},
+	{
+		name = "orion_snooze",
+		description = "Hide items from attention and orion next until a time, by id or by a where expression.",
+		command = { "card", "snooze" },
+		json = true,
+		fields = {
+			{ name = "ids", kind = "strings", description = "Item ids to snooze.", at = "variadic" },
+			workspaceField,
+			{
+				name = "until",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "When it wakes: an ISO 8601 date or date-time.",
+				at = "option",
+			},
+			{ name = "where", kind = "string", minLength = 1, description = WHERE, at = "option" },
+			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+			{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
+		},
+	},
+	{
+		name = "orion_unsnooze",
+		description = "Show snoozed items again right away, by id or by a where expression.",
+		command = { "card", "unsnooze" },
+		json = true,
+		fields = batchFields("Item ids to wake."),
+	},
+	{
+		name = "orion_snoozed_jobs",
+		description = "List the CI jobs snoozed on the canvas, whose failures cards leave out.",
+		annotations = { readOnlyHint = true },
+		command = { "ci", "list" },
+		json = true,
+		fields = { workspaceField },
+	},
+	{
+		name = "orion_snooze_job",
+		description = "Leave a CI job's failures off every card in a repository until it passes there, or until a time.",
+		command = { "ci", "snooze" },
+		fields = {
+			{
+				name = "name",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The job's name, as GitHub shows it.",
+				at = "positional",
+			},
+			workspaceField,
+			{
+				name = "repo",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Repository the job runs in, as owner/name.",
+				at = "option",
+			},
+			{
+				name = "until",
+				kind = "string",
+				minLength = 1,
+				description = "End the snooze at a UTC time such as 2026-10-14T18:00:00Z, or a date. Without it, the snooze lasts on each card until the job passes there.",
+				at = "option",
+			},
+		},
+	},
+	{
+		name = "orion_unsnooze_job",
+		description = "Count a snoozed CI job's failures on cards again.",
+		command = { "ci", "unsnooze" },
+		fields = {
+			{
+				name = "name",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The job's name, as GitHub shows it.",
+				at = "positional",
+			},
+			workspaceField,
+			{
+				name = "repo",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Repository the job runs in, as owner/name.",
+				at = "option",
+			},
 		},
 	},
 	{
@@ -280,9 +417,69 @@ local tools: { Tool } = {
 		fields = {
 			{ name = "text", kind = "string", required = true, minLength = 1, at = "positional" },
 			workspaceField,
-			{ name = "group", kind = "id", at = "option" },
-			{ name = "after", kind = "id", at = "option" },
-			{ name = "before", kind = "id", at = "option" },
+			{ name = "group", kind = "id", description = "Group to add it to.", at = "option" },
+			{ name = "after", kind = "id", description = "Item the note follows.", at = "option" },
+			{ name = "before", kind = "id", description = "Item the note leads into.", at = "option" },
+		},
+	},
+	{
+		name = "orion_log_add",
+		description = "Log what happened on the canvas, attached to any number of cards. Entries are append-only, so correct a mistake with a new entry. Pass the agent's name.",
+		command = { "log", "add" },
+		json = true,
+		fields = {
+			{ name = "text", kind = "string", required = true, minLength = 1, at = "positional" },
+			{
+				name = "cards",
+				kind = "strings",
+				description = "Card ids to attach the entry to. Omit to log it for the whole canvas.",
+				at = "csv",
+				flag = "card",
+			},
+			{
+				name = "agent",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The agent's name, such as claude.",
+				at = "option",
+			},
+			workspaceField,
+		},
+		build = buildLogAddArgv,
+	},
+	{
+		name = "orion_log_list",
+		description = "List the canvas log, newest first, optionally only the entries attached to one card.",
+		annotations = { readOnlyHint = true },
+		command = { "log", "list" },
+		json = true,
+		fields = {
+			workspaceField,
+			{ name = "card", kind = "id", description = "Only entries attached to this card.", at = "option" },
+			{
+				name = "limit",
+				kind = "int",
+				description = "Include at most this many of the newest entries.",
+				at = "option",
+			},
+		},
+	},
+	{
+		name = "orion_card_timeline",
+		description = "Show a card's timeline: its most recent log entries, newest first.",
+		annotations = { readOnlyHint = true },
+		command = { "card", "timeline" },
+		json = true,
+		fields = {
+			{ name = "id", kind = "id", required = true, at = "positional" },
+			workspaceField,
+			{
+				name = "limit",
+				kind = "int",
+				description = "How many recent entries to include. Defaults to 5.",
+				at = "option",
+			},
 		},
 	},
 	{
@@ -306,10 +503,11 @@ local tools: { Tool } = {
 				minLength = 1,
 				description = "Absolute path to a local image file.",
 				at = "positional",
+				flag = "file",
 			},
-			{ name = "label", kind = "string", minLength = 1, at = "option" },
+			{ name = "label", kind = "string", minLength = 1, description = "Label for the image.", at = "option" },
 			workspaceField,
-			{ name = "group", kind = "id", at = "option" },
+			{ name = "group", kind = "id", description = "Group to add it to.", at = "option" },
 		},
 	},
 	{
@@ -333,6 +531,7 @@ local tools: { Tool } = {
 				minLength = 1,
 				description = "Absolute path to a local .json theme file.",
 				at = "positional",
+				flag = "file",
 			},
 		},
 	},
@@ -355,13 +554,39 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_link",
-		description = "Connect two items, optionally as a related link that does not block work. Linking an already linked pair updates that link.",
+		description = "Link items so each waits on the one before it. Give more than two items to link a chain. Use related for a link that does not block work. Linking an already linked pair updates that link.",
 		command = { "link", "add" },
+		json = true,
 		fields = {
-			{ name = "from", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
-			{ name = "to", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
+			{
+				name = "from",
+				kind = "id",
+				required = true,
+				description = `The item that has to happen first. {SELECTOR_DESCRIPTION}`,
+				at = "positional",
+			},
+			{
+				name = "to",
+				kind = "id",
+				required = true,
+				description = `The item that waits on it. {SELECTOR_DESCRIPTION}`,
+				at = "positional",
+			},
+			{
+				name = "next",
+				kind = "strings",
+				description = "Further items in the chain, each waiting on the one before it.",
+				at = "variadic",
+			},
 			workspaceField,
-			{ name = "related", kind = "boolean", at = "flag", flag = "related" },
+			{
+				name = "related",
+				kind = "boolean",
+				description = "Link without blocking.",
+				at = "flag",
+			},
+			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+			{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
 			{
 				name = "label",
 				kind = "string",
@@ -375,9 +600,107 @@ local tools: { Tool } = {
 		description = "Remove a dependency or related link between two items.",
 		command = { "link", "remove" },
 		fields = {
-			{ name = "from", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
-			{ name = "to", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
+			{
+				name = "from",
+				kind = "id",
+				required = true,
+				description = `Link source. {SELECTOR_DESCRIPTION}`,
+				at = "positional",
+			},
+			{
+				name = "to",
+				kind = "id",
+				required = true,
+				description = `Link target. {SELECTOR_DESCRIPTION}`,
+				at = "positional",
+			},
 			workspaceField,
+		},
+	},
+	{
+		name = "orion_insert",
+		description = "Put an item into an existing link: the link from between to its target is replaced by one through the item.",
+		command = { "link", "insert" },
+		json = true,
+		fields = {
+			{
+				name = "id",
+				kind = "id",
+				required = true,
+				description = "Item to place in the link.",
+				at = "positional",
+			},
+			{
+				name = "between",
+				kind = "id",
+				required = true,
+				description = "Source item whose link is replaced.",
+				at = "option",
+			},
+			{
+				name = "targets",
+				kind = "strings",
+				description = "Target items whose links are replaced.",
+				at = "variadic",
+				flag = "target",
+			},
+			workspaceField,
+			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+			{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
+		},
+	},
+	{
+		name = "orion_query",
+		description = "Find cards and groups with an expression. Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref. Compare quoted values with = or !=; label and ref also take ~ for case-insensitive text.",
+		annotations = { readOnlyHint = true },
+		command = { "node", "query" },
+		json = true,
+		fields = {
+			{
+				name = "where",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = 'Expression selecting cards or groups, such as status = "blocked".',
+				at = "option",
+			},
+			workspaceField,
+			{ name = "all", kind = "boolean", description = "Include done items.", at = "flag" },
+		},
+	},
+	{
+		name = "orion_move",
+		description = "Move items or groups into a group, or to the top level. Give group or top.",
+		command = { "node", "move" },
+		json = true,
+		fields = {
+			{ name = "ids", kind = "strings", description = "Item or group ids to move.", at = "variadic" },
+			workspaceField,
+			{ name = "where", kind = "string", minLength = 1, description = WHERE, at = "option" },
+			{ name = "group", kind = "id", description = "Destination group.", at = "option", flag = "to" },
+			{ name = "top", kind = "boolean", description = "Move to the top level.", at = "flag" },
+			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+			{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
+		},
+	},
+	{
+		name = "orion_remove",
+		description = "Delete items from the canvas, by id or a where expression. Use orion_remove_group for a group.",
+		annotations = { destructiveHint = true },
+		command = { "node", "remove" },
+		json = true,
+		fields = {
+			{ name = "ids", kind = "strings", description = "Item ids to delete.", at = "variadic" },
+			workspaceField,
+			{ name = "where", kind = "string", minLength = 1, description = WHERE, at = "option" },
+			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+			{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
+			{
+				name = "reconnect",
+				kind = "boolean",
+				description = "Reconnect the links through each removed item that has at most one incoming and one outgoing link.",
+				at = "flag",
+			},
 		},
 	},
 	{
@@ -415,20 +738,69 @@ local tools: { Tool } = {
 		},
 	},
 	{
-		name = "orion_move",
-		description = "Move an item into a group or to the top level.",
-		command = { "node", "move" },
+		name = "orion_update_group",
+		description = "Change a group's label, blurb, arrangement, cover, or background. Empty cover or background clears it.",
+		command = { "group", "set" },
+		json = true,
 		fields = {
 			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
 			workspaceField,
-			{ name = "group", kind = "id", at = "option" },
+			{ name = "label", kind = "string", minLength = 1, description = "New label.", at = "option" },
+			{ name = "blurb", kind = "string", description = "Group description.", at = "option" },
+			{
+				name = "arrange",
+				kind = "enum",
+				values = fieldValues.arrangements,
+				description = "How the app lays out the group: auto flows by dependency, custom keeps positions.",
+				at = "option",
+			},
+			{
+				name = "cover",
+				kind = "string",
+				description = "Image asset id for the cover, from orion_add_image. Empty clears it.",
+				at = "option",
+			},
+			{
+				name = "background",
+				kind = "string",
+				description = "Color, color token such as card.background, or image asset id. Empty clears it.",
+				at = "option",
+			},
+			{
+				name = "header",
+				kind = "string",
+				description = "Markdown with layout HTML shown under the group's title. Empty clears it.",
+				at = "option",
+			},
+			{
+				name = "color",
+				kind = "enum",
+				values = CLEARABLE_COLORS,
+				description = "The group's tint. Components inside take it unless they set their own. Empty clears it.",
+				at = "option",
+			},
 		},
-		build = buildMoveArgv,
+	},
+	{
+		name = "orion_remove_group",
+		description = "Delete groups and everything inside them, by id or a where expression. A dry run lists what would go.",
+		annotations = { destructiveHint = true },
+		command = { "group", "remove" },
+		json = true,
+		fields = batchFields("Group ids to delete, with everything inside them."),
+	},
+	{
+		name = "orion_ungroup",
+		description = "Dissolve groups, keeping their items in place.",
+		command = { "group", "ungroup" },
+		json = true,
+		fields = batchFields("Group ids to dissolve."),
 	},
 	{
 		name = "orion_tidy",
 		description = "Mark groups for the app to lay out in place, deepest first, such as after adding cards in bulk. The app does the layout, so appConnected in the result says whether it runs now or when the app next opens. Custom groups keep their arrangement.",
 		command = { "group", "tidy" },
+		json = true,
 		fields = {
 			{
 				name = "ids",
@@ -463,51 +835,20 @@ local tools: { Tool } = {
 		build = buildTidyArgv,
 	},
 	{
-		name = "orion_check",
-		description = "Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.",
-		annotations = { readOnlyHint = true },
-		command = { "canvas", "check" },
-		json = true,
-		fields = {
-			workspaceField,
-			{
-				name = "group",
-				kind = "id",
-				description = "Only report problems in this group and what is inside it.",
-				at = "option",
-			},
-		},
-	},
-	{
-		name = "orion_remove",
-		description = "Delete an item from the canvas. Use orion_remove_group for a group.",
-		annotations = { destructiveHint = true },
-		command = { "node", "remove" },
-		fields = {
-			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
-			workspaceField,
-		},
-	},
-	{
-		name = "orion_remove_group",
-		description = "Delete a group and everything inside it. A dry run lists what would go.",
-		annotations = { destructiveHint = true },
-		command = { "group", "remove" },
-		json = true,
-		fields = {
-			{ name = "id", kind = "id", required = true, at = "positional" },
-			workspaceField,
-			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
-		},
-	},
-	{
 		name = "orion_remove_ref",
 		description = "Take a GitHub, Jira, or branch ref off an item. Name it by the key orion_inspect lists, or by its URL.",
 		command = { "ref", "remove" },
 		json = true,
 		fields = {
 			{ name = "id", kind = "id", required = true, description = SELECTOR_DESCRIPTION, at = "positional" },
-			{ name = "ref", kind = "string", required = true, minLength = 1, at = "positional" },
+			{
+				name = "ref",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "The ref's key as orion_inspect lists it, such as owner/name#12, or a URL or source:key.",
+				at = "positional",
+			},
 			workspaceField,
 		},
 	},
@@ -541,6 +882,32 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_update_canvas",
+		description = "Set a canvas's cover or background. Empty clears it.",
+		command = { "canvas", "set" },
+		fields = {
+			workspaceField,
+			{
+				name = "cover",
+				kind = "string",
+				description = "Image asset id for the cover, from orion_add_image. Empty clears it.",
+				at = "option",
+			},
+			{
+				name = "background",
+				kind = "string",
+				description = "Color, color token such as card.background, or image asset id. Empty clears it.",
+				at = "option",
+			},
+			{
+				name = "header",
+				kind = "string",
+				description = "Markdown with layout HTML shown over the top of the canvas. Empty clears it.",
+				at = "option",
+			},
+		},
+	},
+	{
 		name = "orion_archive_canvas",
 		description = "Archive a canvas so it leaves the canvas list. Its data stays in place. The active canvas can't be archived.",
 		command = { "canvas", "archive" },
@@ -565,6 +932,22 @@ local tools: { Tool } = {
 		},
 	},
 	{
+		name = "orion_check",
+		description = "Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.",
+		annotations = { readOnlyHint = true },
+		command = { "canvas", "check" },
+		json = true,
+		fields = {
+			workspaceField,
+			{
+				name = "group",
+				kind = "id",
+				description = "Only report problems in this group and what is inside it.",
+				at = "option",
+			},
+		},
+	},
+	{
 		name = "orion_ingest",
 		description = "Import work from the canvas's configured sources into Unsorted, and refresh the cards they track, such as pull request states from GitHub.",
 		annotations = { openWorldHint = true },
@@ -572,8 +955,8 @@ local tools: { Tool } = {
 		json = true,
 		fields = {
 			workspaceField,
-			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
-			{ name = "source", kind = "string", at = "option" },
+			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+			{ name = "source", kind = "string", description = "Only ingest this source id.", at = "option" },
 		},
 	},
 	{
@@ -584,9 +967,22 @@ local tools: { Tool } = {
 		json = true,
 		fields = {
 			workspaceField,
-			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
-			{ name = "discover", kind = "boolean", at = "flag", flag = "discover" },
+			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+			{
+				name = "discover",
+				kind = "boolean",
+				description = "Add your open pull requests that aren't on the canvas to an Inbox group.",
+				at = "flag",
+			},
 		},
+	},
+	{
+		name = "orion_sources",
+		description = "List the canvas's ingestion sources: GitHub, Jira, and hop.",
+		annotations = { readOnlyHint = true },
+		command = { "source", "list" },
+		json = true,
+		fields = { workspaceField },
 	},
 	{
 		name = "orion_import",
@@ -594,13 +990,145 @@ local tools: { Tool } = {
 		annotations = { openWorldHint = true },
 		command = { "card", "import" },
 		json = true,
-		build = buildImportArgv,
+		fields = {
+			{
+				name = "refs",
+				kind = "strings",
+				required = true,
+				description = "GitHub or Jira URLs, or source:key such as jira:ABC-1.",
+				at = "variadic",
+			},
+			workspaceField,
+			{ name = "group", kind = "id", description = "Group to add the cards to.", at = "option" },
+			{
+				name = "dryRun",
+				kind = "boolean",
+				description = "Preview the cards without writing.",
+				at = "flag",
+				flag = "dry-run",
+			},
+			{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
+		},
+	},
+	{
+		name = "orion_suggest",
+		description = "Suggest groups for ungrouped cards, using the given agent or the configured one. A dry run shows the suggestions without saving them.",
+		annotations = { openWorldHint = true },
+		command = { "suggestion", "find" },
+		json = true,
 		fields = {
 			workspaceField,
-			{ name = "refs", kind = "strings", required = true, at = "positional" },
-			{ name = "group", kind = "id", at = "option" },
-			{ name = "dryRun", kind = "boolean", at = "flag", flag = "dry-run" },
+			{
+				name = "agent",
+				kind = "enum",
+				values = { "claude", "codex", "none" },
+				description = "Agent that writes the suggestions: claude, codex, or none.",
+				at = "option",
+			},
+			{
+				name = "scope",
+				kind = "enum",
+				values = { "unsorted", "all" },
+				description = "Cards to suggest groups for: unsorted, or all.",
+				at = "option",
+			},
+			{
+				name = "dryRun",
+				kind = "boolean",
+				description = "Show suggestions without writing.",
+				at = "flag",
+				flag = "dry-run",
+			},
 		},
+	},
+	{
+		name = "orion_apply",
+		description = 'Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link, unlink, insert, move, ungroup, tidy, remove, removeGroup. Use dryRun to preview the plan and the ids each handle gets.',
+		annotations = { destructiveHint = true },
+		command = { "apply" },
+		json = true,
+		build = buildApplyArgv,
+		fields = {
+			{
+				name = "operations",
+				kind = "operations",
+				required = true,
+				description = "Operations in order. Each has an op field, such as addCard with label, or link with from and to. Move needs group, or null for the top level.",
+				at = "option",
+				flag = "plan",
+			},
+			workspaceField,
+			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
+			{ name = "ifRevision", kind = "int", description = IF_REVISION, at = "option", flag = "if-revision" },
+		},
+	},
+	{
+		name = "orion_suggestions",
+		description = "List pending group suggestions.",
+		annotations = { readOnlyHint = true },
+		command = { "suggestion", "list" },
+		json = true,
+		fields = { workspaceField },
+	},
+	{
+		name = "orion_apply_suggestions",
+		description = "Apply group suggestions by id, or all of them.",
+		command = { "suggestion", "apply" },
+		fields = {
+			{ name = "ids", kind = "strings", description = "Suggestion ids.", at = "variadic" },
+			workspaceField,
+			{ name = "all", kind = "boolean", description = "Apply every suggestion.", at = "flag" },
+		},
+	},
+	{
+		name = "orion_dismiss_suggestions",
+		description = "Dismiss group suggestions by id, or all of them.",
+		command = { "suggestion", "dismiss" },
+		fields = {
+			{ name = "ids", kind = "strings", description = "Suggestion ids.", at = "variadic" },
+			workspaceField,
+			{ name = "all", kind = "boolean", description = "Dismiss every suggestion.", at = "flag" },
+		},
+	},
+	{
+		name = "orion_backups",
+		description = "List saved revisions of a canvas.",
+		annotations = { readOnlyHint = true },
+		command = { "backup", "list" },
+		json = true,
+		fields = { workspaceField },
+	},
+	{
+		name = "orion_restore_backup",
+		description = "Restore a saved revision as a new revision. The current canvas is backed up first.",
+		command = { "backup", "restore" },
+		fields = {
+			{
+				name = "revision",
+				kind = "string",
+				required = true,
+				minLength = 1,
+				description = "Revision to restore, from orion_backups.",
+				at = "positional",
+			},
+			workspaceField,
+		},
+	},
+	{
+		name = "orion_focus",
+		description = "Show the group open in the Orion app and what is selected, so you can answer questions about what the person is looking at.",
+		annotations = { readOnlyHint = true },
+		command = { "focus" },
+		json = true,
+		fields = { workspaceField },
+	},
+	{
+		name = "orion_server_status",
+		description = "Report whether the Orion app's server is running, and where it listens.",
+		annotations = { readOnlyHint = true },
+		command = { "server", "status" },
+		json = true,
+		fields = {},
 	},
 }
 

@@ -40,6 +40,14 @@ export type Adapter = {
 	-- Fetches against a snapshot of the workspace and returns the step that applies the results, so callers can fetch
 	-- outside the workspace lock and take it only to apply.
 	refresh: ((Doc, CommandRunner, RefreshOptions) -> (Doc) -> githubTypes.Report)?,
+	-- Like `refresh`, limited to what changed since the last poll, with no apply step when nothing did.
+	refreshChanged: ((
+		Doc,
+		CommandRunner,
+		githubTypes.PollState,
+		githubTypes.Want,
+		now: string
+	) -> githubTypes.ChangedRefresh)?,
 	collectOrder: number?,
 	-- Recognizes a pasted URL for this kind; sources are the configured ones, of any kind.
 	refFromUrl: ((string, { Source }) -> ResolvedRef?)?,

@@ -1,10 +1,10 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local importImageBytes = require("@root/media/importImageBytes")
 local readImageAsset = require("@root/media/readImageAsset")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
 
 type Response = shared.Response
 
@@ -22,7 +22,7 @@ function imageRoutes.handle(request: net.ReceivedRequest, root: string): Respons
 		return shared.reply(404, json.object({ error = `unknown canvas: {workspace or ""}` }))
 	end
 
-	local dir = store.getWorkspaceDir(root, workspace)
+	local dir = getWorkspaceDir(root, workspace)
 	if route == "/api/images" then
 		if method ~= "POST" then
 			return shared.reply(405, json.object({ error = "method not allowed" }))

@@ -19,6 +19,7 @@ Layout and interaction:
 
 - `src/layout.ts`: laying out one group or the top level with ELK, leaving custom groups alone.
 - `src/pushAside.ts`: moving neighbors out of the way when a group grows.
+- `src/resize/` and `components/GroupResizeHandles.tsx`: resizing a group from its edges and corners, reflowing an automatic group to the new width and pushing a custom group's cards ahead of an edge.
 - `src/snap.ts`, `src/useNodeSnapping.ts`, and `components/SnapGuides.tsx`: drag geometry and alignment guides.
 - `src/escape.ts`: dragging work out of its group, and the group a drop lands in.
 - `src/cardDraw.ts`, `src/useDrawnCards.ts`, and `components/CardSlot.tsx`: which cards mount their bodies. Cards far from the view keep their node and size but skip the body.
@@ -34,6 +35,7 @@ Components:
 - `components/TaskInspector.tsx`, `components/NoteBody.tsx`, and `components/LinkSection.tsx`: a card's details, note, and links in the inspector.
 - `components/Timeline.tsx`, `src/useCardLog.ts`, and `src/log.ts`: a card's timeline, its entries from the canvas log newest first, read from `GET /api/log` and refetched when `orion:log` announces an append.
 - `components/Markdown.tsx`: the shared Markdown renderer, with no raw HTML.
+- `src/checkSnoozes.ts` and `components/CheckSnoozes.tsx`: CI jobs snoozed across every card in a repository, and the inspector's list of a card's failing jobs, where unchecking one snoozes it.
 - `components/Sidebar.tsx`, `components/ContextMenu.tsx`, and `components/Palette.tsx`: the group list, right-click menu, and ⌘K search.
 - `components/Settings.tsx`: the settings dialog and its pages.
 - `components/SourceBadges.tsx`: source favicons on cards and groups, and the links behind them.

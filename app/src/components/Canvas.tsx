@@ -53,6 +53,7 @@ import {
   getTaskUrl,
   removeNodes,
   sizeOf,
+  survivingRoot,
   getTaskTag,
   relativeTime,
   type AppNode,
@@ -97,6 +98,7 @@ import {
   createWorkspace,
   clearFocus,
   compactDoc,
+  copyImage,
   displayedDoc,
   fetchRemote,
   fingerprint,
@@ -127,6 +129,7 @@ import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keyb
 import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
 import { selectAllIds, selectNodes } from '../selectAll'
 import { stackNodes } from '../stack'
+import { clipAssets, copySelection, cutClip, DUPLICATE_OFFSET, moveClipAssets, pasteClip, type Clip } from '../clipboard'
 import { patchWork, type BatchPatch } from '../batchEdit'
 import { reconnectLink } from '../reconnect'
 import { ActionBar } from './ActionBar'
@@ -134,10 +137,13 @@ import { SnapGuides } from './SnapGuides'
 import { useCompanionTargets } from '../useCompanionTargets'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
+import { useGroupResize } from '../resize/useGroupResize'
+import { groupEdgeAt } from '../resize/groupEdgeAt'
 import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
   celebratingAtom,
+  checkSnoozesAtom,
   collapsedAtom,
   derivedAtom,
   focusedAtom,
@@ -146,6 +152,7 @@ import {
   linksAtom,
   nodesAtom,
   pinnedAtom,
+  resizeHandlesAtom,
   skinAtom,
   skinStore,
   traceAtom,
@@ -153,6 +160,7 @@ import {
   workspaceAtom,
 } from '../state'
 import { applyStyleChange, backgroundColor, headerText, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import { readCheckSnoozes } from '../checkSnoozes'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
 import { HeaderSettings } from './HeaderSettings'
@@ -224,6 +232,8 @@ function readMotion(): MotionSettings {
 const STILL_ZOOM = 0.45
 /** Zoom below which marching arrows and the active glow are too subtle to read, so they stop. */
 const QUIET_ZOOM = 0.6
+/** How near a group's edge, on screen, the pointer comes before the group shows its resize handles. */
+const RESIZE_REACH_PX = 14
 const GHOST_WIDTH = 200
 const GHOST_HEIGHT = 62
 const GHOST_GAP = 90
@@ -398,6 +408,7 @@ export function Canvas() {
   const [links, setLinks] = useAtom(linksAtom)
   const setDerived = useSetAtom(derivedAtom)
   const setCelebrating = useSetAtom(celebratingAtom)
+  const setCheckSnoozes = useSetAtom(checkSnoozesAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', canvases: [{ name: 'default', label: 'Default' }] })
@@ -524,7 +535,6 @@ export function Canvas() {
 
         return JSON.stringify(slim([previous])) === JSON.stringify(slim([node])) ? previous : { ...node, selected: previous.selected }
       })
-      const ids = new Set(nodes.map((node) => node.id))
       const next = { nodes, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) }
 
       latest.current = next
@@ -533,12 +543,9 @@ export function Canvas() {
       setStickers(next.stickers)
       setLoadout(next.stickerLoadout)
 
-      // The open group can go with the step, such as when undoing its creation from inside it.
-      if (root && !ids.has(root)) openRoot(ancestors(root, shown).find((id) => ids.has(id)) ?? null)
-
       return next
     },
-    [root, openRoot, setLinks, setNodes],
+    [setLinks, setNodes],
   )
   const getDoc = useCallback(() => latest.current, [])
   const {
@@ -548,7 +555,12 @@ export function Canvas() {
     canRedo,
     rebase: rebaseHistory,
     reset: resetHistory,
-  } = useUndo({ doc: { nodes, links, stickers, stickerLoadout: loadout }, busy: nodes.some((node) => node.dragging), getDoc, apply: showStep })
+  } = useUndo({
+    doc: { nodes, links, stickers, stickerLoadout: loadout },
+    busy: nodes.some((node) => node.dragging || node.resizing),
+    getDoc,
+    apply: showStep,
+  })
 
   // A group's selection waits until a second click, which would open it, can no longer arrive.
   const plainClick = useRef<'defer' | null>(null)
@@ -724,10 +736,11 @@ export function Canvas() {
       setLoadout(shown.stickerLoadout)
       setGithub(doc.github ?? null)
       setCanvasStyle(readCanvasStyle(doc.settings))
+      setCheckSnoozes(readCheckSnoozes(doc.settings))
 
       return adopted
     },
-    [rebaseHistory, setDerived, setLinks, setNodes],
+    [rebaseHistory, setDerived, setLinks, setNodes, setCheckSnoozes],
   )
 
   /**
@@ -777,6 +790,7 @@ export function Canvas() {
         setLoadout(loadoutOf())
         setGithub(null)
         setCanvasStyle({})
+        setCheckSnoozes([])
       }
 
       const view = readViewport(workspace.current)
@@ -789,7 +803,7 @@ export function Canvas() {
       viewFor.current = workspace.current
       setReady(true)
     },
-    [adopt, resetHistory, setDerived, setLinks, setNodes],
+    [adopt, resetHistory, setDerived, setLinks, setNodes, setCheckSnoozes],
   )
 
   useEffect(() => {
@@ -893,8 +907,8 @@ export function Canvas() {
       queue.current = queue.current.then(async () => {
         if (epoch !== workspaceEpoch.current) return
 
-        // A drag keeps moving until it ends, and its edits commit then.
-        if (latest.current.nodes.some((node) => node.dragging)) return
+        // A drag or a resize keeps moving until it ends, and its edits commit then.
+        if (latest.current.nodes.some((node) => node.dragging || node.resizing)) return
 
         const snapshot = storedOf(latest.current)
         const print = fingerprint(snapshot)
@@ -1263,6 +1277,22 @@ export function Canvas() {
   )
 
   const map = useMemo(() => byId(nodes), [nodes])
+  const shownMap = useRef(map)
+
+  // An edit from anywhere can remove the open group, such as moving its last group out or undoing its creation, so the
+  // view steps out to the nearest group that's left. Before paint, so the empty level never shows.
+  useLayoutEffect(() => {
+    const before = shownMap.current
+
+    shownMap.current = map
+
+    if (!root) return
+
+    const target = survivingRoot(root, before, map)
+
+    if (target !== root) openRoot(target)
+  }, [root, map, openRoot])
+
   // Focus ends on its own if someone else removes the card.
   const focus = focusPick && map.has(focusPick) ? focusPick : null
 
@@ -1397,6 +1427,8 @@ export function Canvas() {
     [nodes, map, view, cardSize],
   )
   const drawn = useDrawnCards(drawCards)
+  // Folded groups show no handles, and hidden ones aren't on screen.
+  const resizableGroups = useMemo(() => nodes.filter((node) => isCluster(node) && !node.hidden && !collapsed.has(node.id)), [nodes, collapsed])
   const viewNodes = useMemo<ViewNode[]>(
     () => [
       ...nodes.map((node) => {
@@ -1698,6 +1730,14 @@ export function Canvas() {
     pointer.current = { x: event.clientX - rectangle.left, y: event.clientY - rectangle.top }
 
     if (attending) setCursor(pointer.current)
+
+    // Resize handles mount on the group whose edge the pointer nears, and stay put while it resizes.
+    if (!resizeGroup.active()) {
+      const point = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      const near = groupEdgeAt(map, resizableGroups, point, RESIZE_REACH_PX / reactFlow.getZoom(), cardSize)
+
+      if (near !== atomStore.get(resizeHandlesAtom)) atomStore.set(resizeHandlesAtom, near)
+    }
   }
 
   const needs = useMemo(() => needsAttention(nodes, work.status, work.snoozed), [nodes, work.status, work.snoozed])
@@ -1770,6 +1810,8 @@ export function Canvas() {
 
   const getCurrentNodes = useCallback(() => latest.current.nodes, [])
   const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo, cardSize })
+  const getLinks = useCallback(() => latest.current.links, [])
+  const resizeGroup = useGroupResize({ getCurrentNodes, getLinks, setNodes, cardSize })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
       // A plain press that selects a card replaces the stickers picked alongside it.
@@ -2122,18 +2164,16 @@ export function Canvas() {
 
       if (!targets.length) return
 
-      if (root && targets.includes(root)) openRoot(map.get(root)?.parentId ?? null)
-
       setNodes(ungroup(nodes, targets, cardSize))
     },
-    [nodes, selected, root, map, openRoot, setNodes, cardSize],
+    [nodes, selected, setNodes, cardSize],
   )
 
   /** Lands the Done stamps on cards that were just closed out, each after its delay. */
   const landStamps = useCallback(
     (delays: Map<string, number>) => {
-      // Reduced and off motion clear the stamps at once; the stamps only animate while they're listed here.
-      if (motionReduced()) return
+      // Animations off clears the stamps at once. Reduced keeps the timing and fades them; they only animate while listed here.
+      if (document.documentElement.dataset.motion === 'off') return
 
       setCelebrating((current) => new Map([...current, ...delays]))
       window.setTimeout(
@@ -2179,8 +2219,9 @@ export function Canvas() {
         setNodes((latestNodes) => clearCelebrations(latestNodes, cleared))
         landStamps(delays)
       },
+      resizeGroup,
     }),
-    [tweenTo, openRoot, cardSize, setNodes, landStamps, atomStore],
+    [tweenTo, openRoot, cardSize, setNodes, landStamps, atomStore, resizeGroup],
   )
 
   const arrangeGroup = useCallback(
@@ -2442,6 +2483,118 @@ export function Canvas() {
     },
     [root, selectOnly, jumpTo, setNodes, cardSize],
   )
+
+  // ---- Copy and paste ----
+
+  /** What Copy or Cut took last. It stays in the app, so the system clipboard keeps whatever was copied elsewhere. */
+  const [clip, setClip] = useState<Clip | null>(null)
+
+  const copySelected = useCallback(() => {
+    const { nodes: currentNodes, links: currentLinks, stickers: currentStickers = [] } = latest.current
+
+    return copySelection(
+      { nodes: currentNodes, links: currentLinks, stickers: currentStickers },
+      { nodes: new Set(selected.map((node) => node.id)), stickers: stickerPicks },
+      workspace.current,
+      cardSize,
+    )
+  }, [selected, stickerPicks, cardSize])
+
+  const copy = useCallback(() => {
+    const copied = copySelected()
+
+    if (copied) setClip(copied)
+
+    return copied
+  }, [copySelected])
+
+  const cut = useCallback(() => {
+    const copied = copy()
+
+    if (!copied) return
+
+    const { nodes: currentNodes, links: currentLinks, stickers: currentStickers = [] } = latest.current
+    const next = cutClip({ nodes: currentNodes, links: currentLinks, stickers: currentStickers }, copied, cardSize)
+    const ids = new Set(next.nodes.map((node) => node.id))
+
+    // The open group can go with the cut when it held only what was cut.
+    if (root && !ids.has(root)) openRoot(ancestors(root, map).find((id) => ids.has(id)) ?? null)
+
+    setNodes(next.nodes)
+    setLinks(next.links)
+    setStickers(next.stickers)
+    clearStickerPicks()
+  }, [copy, root, map, openRoot, setNodes, setLinks, clearStickerPicks, cardSize])
+
+  /**
+   * Places a fresh copy of a clip with its top-left at `at`, inside `parent`. A clip from another workspace copies its
+   * images and group covers over first, so they keep showing if the workspace it came from goes away.
+   */
+  const place = useCallback(
+    async (from: Clip, at: { x: number; y: number }, parent: string | null) => {
+      let placing = from
+
+      if (from.workspace !== workspace.current) {
+        const workspaceEpochAtStart = workspaceEpoch.current
+        const target = workspace.current
+        const copied = new Map<string, string>()
+
+        await Promise.all(
+          clipAssets(from, isAssetId).map(async (asset) => {
+            try {
+              copied.set(asset, await copyImage(asset, from.workspace, target))
+            } catch {
+              // An image that can't be copied keeps showing from the workspace it came from.
+            }
+          }),
+        )
+
+        if (workspaceEpochAtStart !== workspaceEpoch.current) return
+
+        placing = moveClipAssets(from, target, copied)
+      }
+
+      const { nodes: currentNodes, links: currentLinks, stickers: currentStickers = [] } = latest.current
+      const pasted = pasteClip({ nodes: currentNodes, links: currentLinks, stickers: currentStickers }, placing, {
+        at,
+        parent: parent && currentNodes.some((node) => node.id === parent) ? parent : null,
+        makeId: newId,
+        cardSize,
+      })
+
+      setNodes(pasted.nodes)
+      setLinks(pasted.links)
+      setStickers(pasted.stickers)
+      setStickerPicks(new Set(pasted.stickerIds))
+    },
+    [setNodes, setLinks, cardSize],
+  )
+
+  /** The canvas point under the cursor, or the middle of the view when the cursor is off the canvas. */
+  const pastePoint = useCallback(() => {
+    const rectangle = canvasRef.current?.getBoundingClientRect()
+
+    if (!rectangle) return { x: 0, y: 0 }
+
+    const position = pointer.current ?? { x: rectangle.width / 2, y: rectangle.height / 2 }
+
+    return reactFlow.screenToFlowPosition({ x: rectangle.left + position.x, y: rectangle.top + position.y })
+  }, [reactFlow])
+
+  /** Pastes what was copied centered on a canvas point, inside the open group. */
+  const paste = useCallback(
+    (point = pastePoint()) => {
+      if (clip) void place(clip, { x: point.x - clip.bounds.width / 2, y: point.y - clip.bounds.height / 2 }, root)
+    },
+    [clip, place, pastePoint, root],
+  )
+
+  /** Copies the selection beside itself, leaving what Copy took alone. */
+  const duplicate = useCallback(() => {
+    const copied = copySelected()
+
+    if (copied) void place(copied, { x: copied.bounds.x + DUPLICATE_OFFSET, y: copied.bounds.y + DUPLICATE_OFFSET }, copied.parent)
+  }, [copySelected, place])
 
   /** The innermost visible card or group under a canvas point that `accept` allows. */
   const nodeAt = useCallback(
@@ -2883,6 +3036,7 @@ export function Canvas() {
       { label: 'Add a note here', hint: hintOf('add-note'), run: () => addNote(menu.flow) },
       { label: 'Add a component here', run: () => addNote(menu.flow, { itemKind: 'component' }) },
       { label: 'Create from link…', run: () => setLinkPrompt({ x: menu.x, y: menu.y, flow: menu.flow }) },
+      ...(clip ? [{ label: 'Paste here', hint: hintOf('paste'), run: () => paste(menu.flow) }] : []),
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }] : []),
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
@@ -2979,7 +3133,21 @@ export function Canvas() {
         return
       }
 
-      if (pressed('group')) {
+      if (pressed('copy') || pressed('cut')) {
+        // Text picked out on the page copies as text, as it would anywhere else.
+        if (!(window.getSelection()?.isCollapsed ?? true)) return
+
+        event.preventDefault()
+
+        if (pressed('cut')) cut()
+        else copy()
+      } else if (pressed('paste') && clip) {
+        event.preventDefault()
+        paste()
+      } else if (pressed('duplicate')) {
+        event.preventDefault()
+        duplicate()
+      } else if (pressed('group')) {
         event.preventDefault()
         doGroup()
       } else if (pressed('ungroup')) {
@@ -3029,6 +3197,11 @@ export function Canvas() {
   }, [
     keybindings,
     clearStickerPicks,
+    clip,
+    copy,
+    cut,
+    paste,
+    duplicate,
     doGroup,
     doUngroup,
     fitSelection,
@@ -3108,6 +3281,14 @@ export function Canvas() {
           },
         ]
       : []),
+    ...(selected.length || pickedStickers.length
+      ? [
+          { id: 'copy', label: 'Copy', detail: 'Copy the selection', hint: hintOf('copy'), run: copy },
+          { id: 'cut', label: 'Cut', detail: 'Copy the selection and take it off the canvas', hint: hintOf('cut'), run: cut },
+          { id: 'duplicate', label: 'Duplicate', detail: 'Place a copy of the selection beside it', hint: hintOf('duplicate'), run: duplicate },
+        ]
+      : []),
+    ...(clip ? [{ id: 'paste', label: 'Paste', detail: 'Place what you copied in the open group', hint: hintOf('paste'), run: () => paste() }] : []),
     ...(canUndo ? [{ id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', hint: hintOf('undo'), run: undo }] : []),
     ...(canRedo ? [{ id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', hint: hintOf('redo'), run: redo }] : []),
     {
@@ -3292,6 +3473,7 @@ export function Canvas() {
             pressModifiers.current = event.metaKey || event.shiftKey
           }}
           onPointerMove={trackPointer}
+          onPointerLeave={() => (pointer.current = null)}
           onClickCapture={claimNodeClick}
         >
           {canvasImage && (

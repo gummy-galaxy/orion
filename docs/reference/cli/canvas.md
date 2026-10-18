@@ -63,7 +63,7 @@ orion canvas set [options]
 
 ## orion canvas archive
 
-Archive a canvas. Its data stays in place, and restore brings it back
+Archive a canvas. Its data stays in place, and restore brings it back. The active canvas and default can't be archived
 
 ```sh
 orion canvas archive [name] [options]

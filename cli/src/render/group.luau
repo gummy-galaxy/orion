@@ -1,17 +1,19 @@
 local json = require("@std/json")
 
-local graph = require("@root/graph")
+local countProgress = require("@root/graph/countProgress")
+local getLabel = require("@root/graph/getLabel")
+local graphTypes = require("@root/graph/types")
 local types = require("@root/types")
 
 type Item = types.Item
 
 local group = {}
 
-function group.serialize(derived: graph.Derived, item: Item): json.Object
-	local progress = graph.countProgress(derived, item.id)
+function group.serialize(derived: graphTypes.Derived, item: Item): json.Object
+	local progress = countProgress(derived, item.id)
 	local object: json.Object = json.object({
 		id = item.id,
-		label = graph.label(item),
+		label = getLabel(item),
 		total = progress.total,
 		done = progress.done,
 		ready = progress.ready,
@@ -22,8 +24,8 @@ function group.serialize(derived: graph.Derived, item: Item): json.Object
 	return object
 end
 
-function group.formatLine(derived: graph.Derived, item: Item): string
-	local progress = graph.countProgress(derived, item.id)
+function group.formatLine(derived: graphTypes.Derived, item: Item): string
+	local progress = countProgress(derived, item.id)
 	local parts = {}
 
 	if progress.total > 0 or progress.components == 0 then
@@ -34,7 +36,7 @@ function group.formatLine(derived: graph.Derived, item: Item): string
 		table.insert(parts, `{progress.components} {if progress.components == 1 then "component" else "components"}`)
 	end
 
-	return `{graph.label(item)}  {table.concat(parts, ", ")}`
+	return `{getLabel(item)}  {table.concat(parts, ", ")}`
 end
 
 return table.freeze(group)

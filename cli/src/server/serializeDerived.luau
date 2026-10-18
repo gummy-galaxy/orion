@@ -1,8 +1,8 @@
 local json = require("@std/json")
 
-local graph = require("@root/graph")
+local graphTypes = require("@root/graph/types")
 
-type Derived = graph.Derived
+type Derived = graphTypes.Derived
 
 local function copyValues<T>(values: { [string]: T }): json.Object
 	local object = json.object({})

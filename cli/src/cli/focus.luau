@@ -2,9 +2,10 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local graph = require("@root/graph")
+local derive = require("@root/graph/derive")
+local loadDoc = require("@root/store/loadDoc")
+local readFocus = require("@root/store/readFocus")
 local renderFocus = require("@root/render/focus")
-local store = require("@root/store")
 
 type Context = context.Context
 
@@ -14,9 +15,9 @@ return table.freeze({
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 	run = function(_parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
-		local report = store.readFocus(options.dir)
-		local derived = graph.derive(doc, options.now())
+		local doc = loadDoc(options.dir)
+		local report = readFocus(options.dir)
+		local derived = derive(doc, options.now())
 		if options.asJson then
 			options.write(json.serialize(renderFocus.serialize(doc, derived, report), true))
 		else

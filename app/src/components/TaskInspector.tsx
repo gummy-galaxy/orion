@@ -1,30 +1,31 @@
 import { useAtomValue } from 'jotai'
 import { ChecksIcon } from './ChecksIcon'
+import { CheckSnoozes } from './CheckSnoozes'
 import { LinkList } from './LinkList'
 import { NoteBody } from './NoteBody'
 import { StatusIcon } from './StatusIcon'
+import { readFailedChecks, repoOfPullKey, withSnoozes } from '../checkSnoozes'
 import { Timeline } from './Timeline'
 import { useCardLog } from '../useCardLog'
-import { workspaceAtom } from '../state'
 import type { Work } from '../derive'
+import { checkSnoozesAtom, workspaceAtom } from '../state'
 import {
   READINESS_LABEL,
   STATUS_CHOICES,
   STATUS_LABEL,
   WHO_CHOICES,
   editPullRef,
+  getCheckCounts,
   getCheckCountsLabel,
   getItemKind,
-  getPullReadiness,
   getPullRef,
   getPullRequestNumber,
-  githubSummary,
+  getRefSummary,
   isTask,
   relativeTime,
   type AppNode,
   type GithubSnapshot,
   type Link,
-  type PullDetails,
   type Status,
   type TaskData,
   type Who,
@@ -68,10 +69,15 @@ export function TaskInspector({
   const leverage = work.leverage.get(node.id) ?? 0
   // Every link a card carries to its pull requests and issues, so each one opens from the header.
   const refLinks = (data.refs ?? []).filter((ref) => ref.url)
-  const pullRef = getPullRef(data)
-  const pullDetails = pullRef?.details as PullDetails | undefined
-  const readiness = getPullReadiness(pullDetails)
-  const checkCountsLabel = readiness && pullDetails?.checkCounts && getCheckCountsLabel(pullDetails.checkCounts)
+  const snoozes = useAtomValue(checkSnoozesAtom)
+  const recorded = getPullRef(data)
+  const pullRef = recorded && withSnoozes(recorded, node.id, snoozes)
+  const repo = pullRef ? repoOfPullKey(pullRef.key) : undefined
+  const failedChecks = readFailedChecks(pullRef?.details)
+  const readiness = pullRef?.readiness
+  const checkCounts = getCheckCounts(pullRef?.checks)
+  const checkCountsLabel = readiness && checkCounts && getCheckCountsLabel(checkCounts)
+  const summary = pullRef && getRefSummary(pullRef)
   const linked = new Set(
     [...map.values()].filter(isTask).flatMap((node) => {
       const ref = getPullRef(node.data)
@@ -164,9 +170,9 @@ export function TaskInspector({
 
       <section className="insp-section">
         <h3 className="insp-heading">Pull request</h3>
-        {pullDetails && (
+        {pullRef && summary && (
           <div className="github-details">
-            <p className="facts">{githubSummary(pullDetails)}</p>
+            <p className="facts">{summary}</p>
             <p className="facts">
               {readiness && (
                 <>
@@ -175,14 +181,16 @@ export function TaskInspector({
                   {checkCountsLabel && `, ${checkCountsLabel}`} ·{' '}
                 </>
               )}
-              {typeof pullDetails.additions === 'number' && (
+              {typeof pullRef.additions === 'number' && (
                 <>
-                  +{pullDetails.additions} −{pullDetails.deletions} · updated {relativeTime(pullDetails.updatedAt)}
+                  +{pullRef.additions} −{pullRef.deletions}
+                  {pullRef.updatedAt && <> · updated {relativeTime(pullRef.updatedAt)}</>}
                 </>
               )}
             </p>
-            {pullDetails.author && !pullDetails.mine && <p className="facts">By {pullDetails.author}</p>}
-            {pullDetails.requestedFromYou && <p className="facts review-requested">Your review is requested</p>}
+            {repo && readiness && failedChecks.length ? <CheckSnoozes cardId={node.id} repo={repo} failedChecks={failedChecks} /> : null}
+            {pullRef.author && !pullRef.isMine && <p className="facts">By {pullRef.author}</p>}
+            {pullRef.isReviewRequested && <p className="facts review-requested">Your review is requested</p>}
           </div>
         )}
         <div className="grid2">

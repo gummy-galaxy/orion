@@ -9,6 +9,7 @@
 //     [--right-click <target>] [--middle-click <target>] [--double-click <target>] \
 //     [--hover <target>] \
 //     [--drag <target>] [--drop <target>] [--key <keys>] [--type <text>] [--pause <ms>] \
+//     [--caption <text>] \
 //     [--pointer <x>,<y>[,idle|left|right|middle]] [--eval <js>] [--cursor on|off] \
 //     [--delay <ms>] [--glide <ms>] [--selector <selector>] [--padding <px>] \
 //     [--fps <n>] [--chrome <path>] [--ffmpeg <path>]
@@ -24,6 +25,10 @@
 //
 // Page errors, console errors, and failed requests print to stderr as they happen.
 //
+// --caption shows a line of text at the top of the frame until the next --caption, or
+// clears it when empty. Use it for what the page can't show, such as a CLI command
+// run while recording.
+//
 // --key presses a key or shortcut as real input to whatever has focus, such as
 // `Meta+C`, `Shift+Tab`, `Escape`, or `Delete`, with modifiers joined by `+`. --type
 // types text into whatever has focus. Videos show each --key press in a badge at the
@@ -37,15 +42,15 @@
 // and removed after, and skipped when the element it acted on is gone, such as a
 // clicked menu item. --cursor off leaves it out.
 //
-// --selector crops the image to one element with --padding CSS pixels of the page
-// around it, 32 by default, so shadows and nearby context stay in the frame. The crop
-// grows to keep the cursor in it.
+// --selector crops the image to the elements it matches with --padding CSS pixels of
+// the page around them, 32 by default, so shadows and nearby context stay in the
+// frame. The crop grows to keep the cursor in it.
 //
 // An --out ending in .mp4 records a video instead. Recording starts once --wait-for
 // matches, runs through the steps, and stops --delay milliseconds after the last one.
 // The cursor stays on screen the whole time and shows each press as it happens. For
 // videos, --scale defaults to 1, --delay to 1500, and --glide to 600, and --selector
-// crops to where the element ends up.
+// crops to where the elements end up.
 
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -108,6 +113,7 @@ function parseArguments(argv) {
     else if (name === "--drop") options.steps.push({ drop: value });
     else if (name === "--key") options.steps.push({ key: parseKeys(value) });
     else if (name === "--type") options.steps.push({ type: value });
+    else if (name === "--caption") options.steps.push({ caption: value });
     else if (name === "--pause") options.steps.push({ pause: Number(value) });
     else if (name === "--pointer") options.steps.push({ mark: value });
     else if (name === "--click-text") options.steps.push({ clickText: value });
@@ -155,7 +161,9 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function launchChrome(chrome, profile) {
+// Chrome renders at `scale` itself, not only through emulation, because the screencast
+// sends frames no larger than the window's own pixels.
+function launchChrome(chrome, profile, scale) {
   const child = spawn(
     chrome,
     [
@@ -165,6 +173,7 @@ function launchChrome(chrome, profile) {
       "--no-first-run",
       "--no-default-browser-check",
       "--hide-scrollbars",
+      `--force-device-scale-factor=${scale}`,
       "about:blank",
     ],
     { stdio: ["ignore", "ignore", "pipe"] },
@@ -303,8 +312,31 @@ async function bounds(session, selector) {
   );
 }
 
+// The box around every element the selector matches that takes up space, so
+// `.react-flow__node` frames all the cards on the canvas.
+async function unionBounds(session, selector) {
+  await waitFor(session, selector);
+
+  return evaluate(
+    session,
+    `(() => {
+      const rects = [...document.querySelectorAll(${JSON.stringify(selector)})].map((element) =>
+        element.getBoundingClientRect()
+      ).filter((rect) => rect.width > 0 || rect.height > 0)
+      const x = Math.min(...rects.map((rect) => rect.left))
+      const y = Math.min(...rects.map((rect) => rect.top))
+      return {
+        x,
+        y,
+        width: Math.max(...rects.map((rect) => rect.right)) - x,
+        height: Math.max(...rects.map((rect) => rect.bottom)) - y,
+      }
+    })()`,
+  );
+}
+
 async function paddedBounds(session, selector, padding) {
-  const rect = await bounds(session, selector);
+  const rect = await unionBounds(session, selector);
   const page = await evaluate(
     session,
     `({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight })`,
@@ -612,6 +644,22 @@ const EDITING_COMMANDS = {
   "Meta+Shift+z": "redo",
 };
 
+// Punctuation keys on a US layout, so shortcuts such as `Meta+[` carry the code apps
+// match on.
+const PUNCTUATION_KEYS = {
+  "[": { code: "BracketLeft", keyCode: 219 },
+  "]": { code: "BracketRight", keyCode: 221 },
+  ",": { code: "Comma", keyCode: 188 },
+  ".": { code: "Period", keyCode: 190 },
+  "/": { code: "Slash", keyCode: 191 },
+  "\\": { code: "Backslash", keyCode: 220 },
+  ";": { code: "Semicolon", keyCode: 186 },
+  "'": { code: "Quote", keyCode: 222 },
+  "`": { code: "Backquote", keyCode: 192 },
+  "-": { code: "Minus", keyCode: 189 },
+  "=": { code: "Equal", keyCode: 187 },
+};
+
 function describeCharacter(character) {
   const upper = character.toUpperCase();
 
@@ -633,7 +681,15 @@ function describeCharacter(character) {
       text: character,
     };
 
-  return { key: character, keyCode: 0, symbol: character, text: character };
+  const punctuation = PUNCTUATION_KEYS[character];
+
+  return {
+    key: character,
+    code: punctuation?.code,
+    keyCode: punctuation?.keyCode ?? 0,
+    symbol: character,
+    text: character,
+  };
 }
 
 // Splits a shortcut such as `Meta+Shift+Z` into its modifiers and the key they modify.
@@ -686,6 +742,36 @@ async function showKeys(session, keys) {
         pointerEvents: 'none',
       })
       document.body.append(badge)
+    })()`,
+  );
+}
+
+// Shows `text` in a bar at the top of the frame, replacing any caption already there, or
+// clears the caption when `text` is empty.
+async function showCaption(session, text) {
+  await evaluate(
+    session,
+    `(() => {
+      document.getElementById('capture-caption')?.remove()
+      if (!${JSON.stringify(text)}) return
+      const caption = document.createElement('div')
+      caption.id = 'capture-caption'
+      caption.textContent = ${JSON.stringify(text)}
+      Object.assign(caption.style, {
+        position: 'fixed',
+        left: '50%',
+        top: '20px',
+        transform: 'translateX(-50%)',
+        maxWidth: '70%',
+        padding: '10px 18px',
+        borderRadius: '12px',
+        background: 'rgba(27, 31, 36, 0.88)',
+        color: '#f6f8fa',
+        font: '500 20px ui-monospace, SFMono-Regular, Menlo, monospace',
+        zIndex: '2147483647',
+        pointerEvents: 'none',
+      })
+      document.body.append(caption)
     })()`,
   );
 }
@@ -852,6 +938,7 @@ async function runStep(session, mouse, step, options) {
   }
 
   if (step.key) await pressKeys(session, step.key, options);
+  else if (step.caption !== undefined) await showCaption(session, step.caption);
   else if (step.type !== undefined) await typeText(session, step.type, options);
   else if (step.pause !== undefined) await sleep(step.pause);
   else {
@@ -952,12 +1039,15 @@ async function encodeVideo(frames, stoppedAt, directory, options, clip) {
 
   writeFileSync(list, `${lines.join("\n")}\n`);
 
+  // Scale the crop by the frames' own size, since Chrome can send frames smaller than
+  // the viewport at --scale.
   if (clip) {
-    const scaled = [clip.width, clip.height, clip.x, clip.y].map((value) =>
-      Math.round(value * options.scale),
-    );
+    const across = (value) => `${value}*iw/${options.width}`;
+    const down = (value) => `${value}*ih/${options.height}`;
 
-    filters.push(`crop=${scaled.join(":")}`);
+    filters.push(
+      `crop=${[across(clip.width), down(clip.height), across(clip.x), down(clip.y)].join(":")}`,
+    );
   }
 
   filters.push("crop=trunc(iw/2)*2:trunc(ih/2)*2:0:0", "format=yuv420p");
@@ -1049,7 +1139,7 @@ async function capture(options) {
   const frames = options.video
     ? mkdtempSync(join(tmpdir(), "pr-videos-"))
     : undefined;
-  const chrome = launchChrome(options.chrome, profile);
+  const chrome = launchChrome(options.chrome, profile, options.scale);
 
   try {
     const session = await connect(await chrome.endpoint);

@@ -64,6 +64,10 @@ export type TaskData = {
    */
   celebrate?: boolean
 }
+/**
+ * Outside work a card carries. The source's adapter in the CLI reads the source and fills in the source-neutral facts
+ * below, so the app shows them as they are. `details` is the source's own record, which only its adapter reads.
+ */
 export type SourceRef = {
   source: string
   kind: string
@@ -72,32 +76,44 @@ export type SourceRef = {
   status?: string
   isDone?: boolean
   updatedAt?: string
+  /** When the adapter last read the source. */
+  checkedAt?: string
+  /** The source's word for the ref's state, with its name, such as "Approved on GitHub". */
+  stateLabel?: string
+  /** How close open work is to landing. */
+  readiness?: PullReadiness
+  checks?: RefChecks
+  changesRequested?: boolean
+  author?: string
+  isMine?: boolean
+  isReviewRequested?: boolean
+  additions?: number
+  deletions?: number
+  /** The revision the facts describe, which a merge from the card must still match. */
+  head?: string
   details?: Record<string, unknown>
 }
-export type PullDetails = {
-  state: 'OPEN' | 'MERGED' | 'CLOSED'
-  draft: boolean
-  reviewDecision?: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED'
-  title: string
-  author: string
-  mine: boolean
-  requestedFromYou: boolean
-  updatedAt: string
-  additions: number
-  deletions: number
-  checks?: 'SUCCESS' | 'FAILURE' | 'ERROR' | 'PENDING' | 'EXPECTED'
+/** A ref's checks. Progress and counts describe checks still to come, so they're only there while the work is open. */
+export type RefChecks = {
+  state: 'passing' | 'failing' | 'pending'
   /** Whether any unfinished check has started, or all of them are still queued. */
-  checkProgress?: 'running' | 'waiting'
-  checkCounts?: CheckCounts
-  mergeable?: 'MERGEABLE' | 'CONFLICTING' | 'UNKNOWN'
-  mergeState?: 'BEHIND' | 'BLOCKED' | 'CLEAN' | 'DIRTY' | 'DRAFT' | 'HAS_HOOKS' | 'UNKNOWN' | 'UNSTABLE'
-  /** The head commit the details describe, which a merge from the card must still match. */
-  head?: string
-  checkedAt: string
-  branch?: string
+  progress?: 'running' | 'waiting'
+  total?: number
+  finished?: number
+  failed?: number
 }
 /** A commit's checks: how many have finished, and failed, out of all of them. Skipped and cancelled checks count as finished. */
 export type CheckCounts = { total: number; finished: number; failed: number }
+/** A CI job that failed on a pull request, by the name GitHub shows for it. */
+export type FailedCheck = { name: string; optional?: boolean }
+
+/** A ref's check counts, when its source reported all three. */
+export function getCheckCounts(checks: RefChecks | undefined): CheckCounts | undefined {
+  if (checks?.total === undefined || checks.finished === undefined || checks.failed === undefined) return undefined
+
+  return { total: checks.total, finished: checks.finished, failed: checks.failed }
+}
+
 /** How close an open pull request is to merging, from what stops it to nothing at all. */
 export type PullReadiness = 'conflict' | 'failing' | 'running' | 'waiting' | 'passing' | 'mergeable'
 
@@ -147,6 +163,12 @@ export type ClusterData = {
   background?: string
   /** Markdown with a sanitized subset of HTML for layout, shown in a band under the group's title. */
   header?: string
+  /**
+   * The size a person gave the group by dragging its edges. An automatic group lays its contents out to fit this
+   * width and hugs them. A custom group stays at least this big, growing only to hold what's inside. Without it, a
+   * group hugs what's inside.
+   */
+  size?: { width: number; height: number }
 }
 export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
 export type TaskNode = Node<TaskData, 'task'>
@@ -262,6 +284,22 @@ export function ancestors(id: string, nodeMap: Map<string, AppNode>): string[] {
   return result
 }
 
+/**
+ * The group to show once the nodes change from `before` to `after`: the open group while it's still there, or else its
+ * nearest ancestor that is, or null for the top level.
+ */
+export function survivingRoot(root: string, before: Map<string, AppNode>, after: Map<string, AppNode>): string | null {
+  const isGroup = (id: string) => {
+    const node = after.get(id)
+
+    return !!node && isCluster(node)
+  }
+
+  if (isGroup(root)) return root
+
+  return ancestors(root, before).find(isGroup) ?? null
+}
+
 /** A component's own tint, or else its nearest group's. Work cards and notes have none. */
 export function tintOf(node: AppNode, nodeMap: Map<string, AppNode>): Tint | undefined {
   if (isTask(node) && node.data.itemKind !== 'component') return undefined
@@ -301,11 +339,11 @@ export function absolutePosition(node: AppNode, nodeMap: Map<string, AppNode>): 
 
 /** Fills in the React Flow fields every node needs, so saved data stays minimal. */
 function hydrate(node: AppNode, cardSize: CardSize): AppNode {
-  if (isTask(node)) return { ...node, ...sizeOf(node, cardSize), expandParent: !!node.parentId }
+  if (isTask(node)) return { ...node, ...sizeOf(node, cardSize) }
 
-  if (isImage(node)) return { ...node, width: node.width ?? 256, height: node.height ?? 256, expandParent: !!node.parentId }
+  if (isImage(node)) return { ...node, width: node.width ?? 256, height: node.height ?? 256 }
 
-  return { ...node, dragHandle: '.drag', expandParent: !!node.parentId }
+  return { ...node, dragHandle: '.drag' }
 }
 
 /** React Flow needs parents before children. */
@@ -318,7 +356,8 @@ function sortNodes(nodes: AppNode[]): AppNode[] {
 /**
  * Shrinks or grows every group to hug its children, deepest first. A group with nothing inside keeps its place and
  * takes the smallest size that fits one card, so an empty group made on purpose, such as by `orion group create`,
- * stays on the canvas. Children keep their place on screen.
+ * stays on the canvas. Children keep their place on screen. A custom group with a size keeps its corner and stays at
+ * least that big, and when its children reach past it, it grows and remembers the larger size.
  */
 function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
   const nodeMap = new Map(nodes.map((node) => [node.id, { ...node } as AppNode]))
@@ -326,11 +365,13 @@ function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
   const clusters = [...nodeMap.values()].filter(isCluster).sort((a, b) => depth(b.id) - depth(a.id))
 
   for (const group of clusters) {
+    const data = group.data as ClusterData
+    const floor = data.arrange === 'custom' ? data.size : undefined
     const children = [...nodeMap.values()].filter((node) => node.parentId === group.id)
 
     if (!children.length) {
-      group.width = cardSize.width + GROUP_PADDING * 2
-      group.height = cardSize.height + GROUP_HEADER_HEIGHT + GROUP_PADDING
+      group.width = Math.max(cardSize.width + GROUP_PADDING * 2, floor?.width ?? 0)
+      group.height = Math.max(cardSize.height + GROUP_HEADER_HEIGHT + GROUP_PADDING, floor?.height ?? 0)
       continue
     }
 
@@ -348,15 +389,28 @@ function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
       maxY = Math.max(maxY, child.position.y + size.height)
     }
 
-    const headerHeight = groupHeaderHeight(group.data as ClusterData)
-    const deltaX = minX - GROUP_PADDING
-    const deltaY = minY - headerHeight
+    const headerHeight = groupHeaderHeight(data)
+    let left = minX - GROUP_PADDING
+    let top = minY - headerHeight
+    let right = maxX + GROUP_PADDING
+    let bottom = maxY + GROUP_PADDING
 
-    for (const child of children) child.position = { x: child.position.x - deltaX, y: child.position.y - deltaY }
+    if (floor) {
+      left = Math.min(left, 0)
+      top = Math.min(top, 0)
+      right = Math.max(right, floor.width)
+      bottom = Math.max(bottom, floor.height)
+    }
 
-    group.position = { x: group.position.x + deltaX, y: group.position.y + deltaY }
-    group.width = maxX - minX + GROUP_PADDING * 2
-    group.height = maxY - minY + headerHeight + GROUP_PADDING
+    for (const child of children) child.position = { x: child.position.x - left, y: child.position.y - top }
+
+    group.position = { x: group.position.x + left, y: group.position.y + top }
+    group.width = right - left
+    group.height = bottom - top
+
+    // Remembering the size it grew to keeps the next fit from shrinking it back. Rounding noise isn't growth.
+    if (floor && (Math.abs(floor.width - group.width) > 0.5 || Math.abs(floor.height - group.height) > 0.5))
+      group.data = { ...data, size: { width: group.width, height: group.height } }
   }
 
   return [...nodeMap.values()]
@@ -419,30 +473,11 @@ export function descendants(id: string, nodes: AppNode[]): Set<string> {
   return result
 }
 
-/** "Merged · checked 2h ago" for a synced pull request. */
-export function getPullReadiness(details: PullDetails | undefined): PullReadiness | undefined {
-  if (details?.state !== 'OPEN') return undefined
+/** "Merged on GitHub · checked 2h ago" for a ref its adapter has read. */
+export function getRefSummary(ref: SourceRef, now = Date.now()): string | undefined {
+  if (!ref.stateLabel) return undefined
 
-  if (details.mergeable === 'CONFLICTING' || details.mergeState === 'DIRTY') return 'conflict'
-
-  if (details.checks === 'FAILURE' || details.checks === 'ERROR') return 'failing'
-
-  if (details.checks === 'PENDING' || details.checks === 'EXPECTED') return details.checkProgress === 'waiting' ? 'waiting' : 'running'
-
-  if (!details.draft && (details.mergeState === 'CLEAN' || details.mergeState === 'HAS_HOOKS')) return 'mergeable'
-
-  return details.checks === 'SUCCESS' ? 'passing' : undefined
-}
-
-export function githubSummary(github: PullDetails, now = Date.now()) {
-  const state =
-    github.state === 'OPEN'
-      ? github.draft
-        ? 'Draft'
-        : (REVIEW_LABEL[github.reviewDecision ?? ''] ?? 'Open')
-      : github.state.charAt(0) + github.state.slice(1).toLowerCase()
-
-  return `${state} on GitHub · checked ${relativeTime(github.checkedAt, now)}`
+  return ref.checkedAt ? `${ref.stateLabel} · checked ${relativeTime(ref.checkedAt, now)}` : ref.stateLabel
 }
 
 export function relativeTime(timestamp: string, now = Date.now()) {
@@ -458,5 +493,3 @@ export function relativeTime(timestamp: string, now = Date.now()) {
 
   return ago
 }
-
-const REVIEW_LABEL: Record<string, string> = { APPROVED: 'Approved', CHANGES_REQUESTED: 'Changes requested', REVIEW_REQUIRED: 'Awaiting review' }

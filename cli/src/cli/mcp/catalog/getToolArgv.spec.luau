@@ -10,11 +10,17 @@ test.case("tool arguments map onto the command each tool runs", function(assert)
 		table.concat(getToolArgv("orion_inspect", json.object({ view = "show", id = "ci" })), " "),
 		"node show ci --json"
 	)
-	assert.eq(table.concat(getToolArgv("orion_move", json.object({ id = "ci" })), " "), "node move ci --top")
 	assert.eq(
-		table.concat(getToolArgv("orion_move", json.object({ id = "ci", group = "release" })), " "),
-		"node move ci --to release"
+		table.concat(getToolArgv("orion_move", json.object({ ids = { "ci" }, top = true })), " "),
+		"node move ci --top --json"
 	)
+	assert.eq(
+		table.concat(getToolArgv("orion_move", json.object({ ids = { "ci", "pub" }, group = "release" })), " "),
+		"node move ci pub --to release --json"
+	)
+	assert.throwsWith("missing where", function()
+		getToolArgv("orion_query", json.object({}))
+	end)
 	assert.throwsWith("missing id", function()
 		getToolArgv("orion_inspect", json.object({ view = "show" }))
 	end)
@@ -51,12 +57,41 @@ test.case("group and ref tools run their subcommands", function(assert)
 		"group add Ship --items ci,pub --json"
 	)
 	assert.eq(
-		table.concat(getToolArgv("orion_remove_group", json.object({ id = "ws", dryRun = true })), " "),
+		table.concat(getToolArgv("orion_remove_group", json.object({ ids = { "ws" }, dryRun = true })), " "),
 		"group remove ws --dry-run --json"
 	)
 	assert.eq(
 		table.concat(getToolArgv("orion_remove_ref", json.object({ id = "ci", ref = "owner/name#1" })), " "),
 		"ref remove ci owner/name#1 --json"
+	)
+end)
+
+test.case("batch and link tools pass ids, chains, and revision guards through", function(assert)
+	assert.eq(
+		table.concat(
+			getToolArgv("orion_remove", json.object({ ids = { "a", "b" }, reconnect = true, ifRevision = 12 })),
+			" "
+		),
+		"node remove a b --if-revision 12 --reconnect --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_done", json.object({ where = 'label ~ "ship"', dryRun = true })), " "),
+		'card done --where label ~ "ship" --dry-run --json'
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_link", json.object({ from = "a", to = "b", next = { "c" } })), " "),
+		"link add a b c --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_insert", json.object({ id = "x", between = "a", targets = { "b" } })), " "),
+		"link insert x b --between a --json"
+	)
+	assert.eq(
+		table.concat(
+			getToolArgv("orion_update_group", json.object({ id = "g", label = "New", arrange = "custom" })),
+			" "
+		),
+		"group set g --label New --arrange custom --json"
 	)
 end)
 
@@ -77,6 +112,23 @@ test.case("orion_import passes each ref as a trailing positional", function(asse
 	)
 	assert.throwsWith("refs must be a list of strings", function()
 		getToolArgv("orion_import", json.object({ refs = { "" } }))
+	end)
+end)
+
+test.case("orion_apply passes the plan inline with its dry run and revision", function(assert)
+	local steps = json.asArray(json.deserialize([=[[{"op":"addCard","label":"Ship"}]]=]) :: json.Value)
+	assert.eq(
+		table.concat(
+			getToolArgv(
+				"orion_apply",
+				json.object({ operations = steps, dryRun = true, ifRevision = 4, canvas = "release" })
+			),
+			" "
+		),
+		'apply --plan [{"op":"addCard","label":"Ship"}] --dry-run --if-revision 4 --canvas release --json'
+	)
+	assert.throwsWith("operations must be a list of operations", function()
+		getToolArgv("orion_apply", json.object({ operations = {} }))
 	end)
 end)
 
@@ -145,6 +197,34 @@ test.case("canvas tools map onto the canvas commands", function(assert)
 	)
 	assert.throwsWith("missing name", function()
 		getToolArgv("orion_archive_canvas", json.object({}))
+	end)
+end)
+
+test.case("log tools attach entries to cards and name the agent that wrote them", function(assert)
+	assert.eq(
+		table.concat(
+			getToolArgv(
+				"orion_log_add",
+				json.object({ text = "Tested Moments", cards = { "moments", "avatars" }, agent = "claude" })
+			),
+			" "
+		),
+		"log add Tested Moments --card moments,avatars --agent claude --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_log_add", json.object({ text = "Canvas-wide", agent = "claude" })), " "),
+		"log add Canvas-wide --agent claude --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_log_list", json.object({ card = "moments", limit = 2 })), " "),
+		"log list --card moments --limit 2 --json"
+	)
+	assert.eq(
+		table.concat(getToolArgv("orion_card_timeline", json.object({ id = "moments", limit = 3 })), " "),
+		"card timeline moments --limit 3 --json"
+	)
+	assert.throwsWith("missing agent", function()
+		getToolArgv("orion_log_add", json.object({ text = "No name" }))
 	end)
 end)
 

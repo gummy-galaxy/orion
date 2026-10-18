@@ -1,5 +1,6 @@
 local findRef = require("@root/refs/findRef")
-local graph = require("@root/graph")
+local getLabel = require("@root/graph/getLabel")
+local isWork = require("@root/graph/isWork")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -56,13 +57,13 @@ function match.candidates(doc: Doc, title: string, owner: string, name: string):
 	local candidates: { Candidate } = {}
 
 	for _, item in doc.nodes do
-		if not graph.isWork(item) or findRef(item, "pull") or item.data.status == "done" then
+		if not isWork(item) or findRef(item, "pull") or item.data.status == "done" then
 			continue
 		end
 
 		local repo = stringField(item, "repo")
 		local agreement = if repo == nil then 0.3 elseif repo:lower() == string.lower(`{owner}/{name}`) then 1 else 0
-		local score = 0.65 * overlap(title, `{graph.label(item)} {stringField(item, "note") or ""}`) + 0.35 * agreement
+		local score = 0.65 * overlap(title, `{getLabel(item)} {stringField(item, "note") or ""}`) + 0.35 * agreement
 
 		if score >= 0.2 then
 			table.insert(candidates, { id = item.id, score = math.floor(score * 100 + 0.5) / 100 })

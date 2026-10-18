@@ -4,10 +4,17 @@ local net = require("@lute/net/server")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local appendLog = require("@root/log/appendLog")
+local createWorkspace = require("@root/store/createWorkspace")
+local getBackups = require("@root/store/getBackups")
+local getDocPath = require("@root/store/getDocPath")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local insertFile = require("@root/media/insertFile")
+local loadDoc = require("@root/store/loadDoc")
+local readDoc = require("@root/store/readDoc")
 local routes = require("@root/server/routes")
-local store = require("@root/store")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 local function createRequest(
 	method: string,
@@ -65,7 +72,7 @@ test.case("GET returns migrated document with unknown root data", function(asser
 	local root, router = createRouter("routes-migration")
 	fs.createDirectory(root, { makeParents = true })
 	fs.writeStringToFile(
-		store.filePath(root),
+		getDocPath(root),
 		[[{"version":1,"settings":{"githubOwner":"Vocksel","theme":"dark"},"nodes":[{"id":"a","type":"task","data":{"repo":"orion","pr":12}}],"links":[],"extra":"kept"}]]
 	)
 	local response = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
@@ -86,7 +93,7 @@ test.case("GET sends derived values beside the document without storing them", f
 	local root, router = createRouter("routes-derived")
 	fs.createDirectory(root, { makeParents = true })
 	fs.writeStringToFile(
-		store.filePath(root),
+		getDocPath(root),
 		[[{"version":2,"revision":3,"settings":{"sources":[]},"nodes":[{"id":"a","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"A","itemKind":"step","status":"todo"}},{"id":"b","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","itemKind":"step","status":"todo"}}],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks"}]}]]
 	)
 	local response = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
@@ -97,12 +104,12 @@ test.case("GET sends derived values beside the document without storing them", f
 	assert.eq(status.b, "blocked")
 	assert.eq(leverage.a, 1)
 	assert.eq(response.revision, 3)
-	assert.eq(fs.readFileToString(store.filePath(root)):find("derived"), nil)
+	assert.eq(fs.readFileToString(getDocPath(root)):find("derived"), nil)
 end)
 
 test.case("image routes import and serve workspace-local bytes", function(assert)
 	local root, router = createRouter("routes-images")
-	store.createWorkspace(root, "ideas")
+	createWorkspace(root, "ideas")
 	local bytes = string.char(137, 80, 78, 71, 13, 10, 26, 10) .. "image bytes"
 	local function request(method: string, route: string, workspace: string, body: string?): net.ReceivedRequest
 		local req = createRequest(method, route)
@@ -126,7 +133,7 @@ test.case("image routes import and serve workspace-local bytes", function(assert
 	assert.eq(router.handle(request("GET", "/api/images/../orion.json", "ideas")).status, 400)
 	assert.eq(router.handle(request("GET", "/api/images/missing.png", "ideas")).status, 404)
 	assert.eq(router.handle(request("POST", `/api/images/{asset}`, "ideas")).status, 405)
-	assert.eq(fs.readFileToString(path.join(store.getWorkspaceDir(root, "ideas"), "assets", asset)), bytes)
+	assert.eq(fs.readFileToString(path.join(getWorkspaceDir(root, "ideas"), "assets", asset)), bytes)
 	local formats = {
 		{ bytes = string.char(255, 216, 255) .. "jpeg", mime = "image/jpeg", extension = "jpg" },
 		{ bytes = "GIF89a" .. "gif", mime = "image/gif", extension = "gif" },
@@ -142,7 +149,7 @@ test.case("image routes import and serve workspace-local bytes", function(assert
 	end
 	local source = path.join(root, "from-cli.png")
 	fs.writeStringToFile(source, bytes)
-	local cliItem = insertFile(store.getWorkspaceDir(root, "ideas"), "ideas", tostring(source), "From CLI")
+	local cliItem = insertFile(getWorkspaceDir(root, "ideas"), "ideas", tostring(source), "From CLI")
 	local cliAsset = cliItem.data.asset :: string
 	assert.eq(router.handle(request("GET", `/api/images/{cliAsset}`, "ideas")).body, bytes)
 end)
@@ -151,7 +158,7 @@ test.case("GET reports a missing file and an operation list creates it, guarded 
 	local root, router = createRouter("routes-missing")
 	local missing = router.handle(createRequest("GET", "/api/orion"))
 	assert.eq(missing.status, 404)
-	assert.eq(decodeResponse(missing).path, store.filePath(root))
+	assert.eq(decodeResponse(missing).path, getDocPath(root))
 	assert.eq(decodeResponse(missing).canvas, "default")
 	local saved = router.handle(
 		createRequest(
@@ -171,7 +178,7 @@ test.case("an operation list retains unknown top-level fields and rejects a stal
 	local root, router = createRouter("routes-preserve")
 	local doc = testing.createDoc({}, {})
 	doc.raw = json.object({ extra = json.object({ held = true }) })
-	store.write(root, doc)
+	writeDoc(root, doc)
 	local change = json.object({ baseRevision = 0, operations = { createOperation("a") } })
 	assert.eq(router.handle(createRequest("POST", "/api/operations", change, "other")).status, 409)
 	assert.eq(router.handle(createRequest("POST", "/api/operations", change, "default")).status, 200)
@@ -183,7 +190,7 @@ end)
 
 test.case("sticker operations save stickers, and other edits leave them alone", function(assert)
 	local root, router = createRouter("routes-stickers")
-	store.write(root, testing.createDoc({}, {}))
+	writeDoc(root, testing.createDoc({}, {}))
 	local stickers: json.Array = { json.object({ id = "one", emoji = "⭐" }) }
 	local loadout: json.Array = { "one", json.null }
 	local first = json.object({
@@ -217,9 +224,9 @@ end)
 
 test.case("focus reports use the workspace and tab without changing the document", function(assert)
 	local root, router = createRouter("routes-focus")
-	store.write(root, testing.createDoc({}, {}))
-	store.createWorkspace(root, "other")
-	local other = store.getWorkspaceDir(root, "other")
+	writeDoc(root, testing.createDoc({}, {}))
+	createWorkspace(root, "other")
+	local other = getWorkspaceDir(root, "other")
 	local focusFile = tostring(path.join(root, "focus.json"))
 	assert.eq(
 		router.handle(
@@ -286,9 +293,9 @@ test.case("focus reports use the workspace and tab without changing the document
 	router.switchTo("other")
 	assert.eq(fs.exists(focusFile), false)
 	assert.eq(fs.exists(path.join(other, "focus.json")), false)
-	local doc = store.read(root)
+	local doc = readDoc(root)
 	assert.eq(if doc then doc.revision else nil, 0)
-	assert.eq(#store.getBackups(root), 0)
+	assert.eq(#getBackups(root), 0)
 end)
 
 test.case("workspace routes create, list, and switch", function(assert)
@@ -297,7 +304,7 @@ test.case("workspace routes create, list, and switch", function(assert)
 		router.handle(createRequest("POST", "/api/canvases", json.object({ name = "planning", label = "Planning" })))
 	assert.eq(created.status, 201)
 	assert.eq(decodeResponse(created).active, "default")
-	local createdDoc = store.read(store.getWorkspaceDir(root, "planning"))
+	local createdDoc = readDoc(getWorkspaceDir(root, "planning"))
 	assert.eq(if createdDoc then createdDoc.revision else nil, 0)
 	local switched = router.handle(createRequest("POST", "/api/canvases/active", json.object({ name = "planning" })))
 	assert.eq(switched.status, 200)
@@ -318,7 +325,7 @@ end)
 
 test.case("GET reads the workspace a request names", function(assert)
 	local root, router = createRouter("routes-requested")
-	store.createWorkspace(root, "planning", "Planning")
+	createWorkspace(root, "planning", "Planning")
 	local planning = router.handle(createRequest("GET", "/api/orion", nil, "planning"))
 	assert.eq(planning.status, 200)
 	assert.eq(decodeResponse(planning).revision, 0)
@@ -327,6 +334,37 @@ test.case("GET reads the workspace a request names", function(assert)
 	assert.eq(decodeResponse(missing).canvas, "default")
 	assert.eq(router.handle(createRequest("GET", "/api/orion", nil, "unknown")).status, 404)
 	assert.eq(router.getActive(), "default")
+end)
+
+test.case("GET /api/log returns the entries of the canvas it names, oldest first", function(assert)
+	local root, router = createRouter("routes-log")
+	createWorkspace(root, "planning", "Planning")
+	appendLog(getWorkspaceDir(root, "planning"), function()
+		return {
+			id = "log-1",
+			text = "Planned",
+			time = "2026-10-12T18:00:00Z",
+			author = { kind = "person", name = "marin" },
+			targets = {},
+		}
+	end)
+
+	local request = createRequest("GET", "/api/log")
+	request.query = { canvas = "planning" }
+	local response = router.handle(request)
+	assert.eq(response.status, 200)
+	local entries = json.asArray(decodeResponse(response).entries) :: json.Array
+	assert.eq(#entries, 1)
+	assert.eq((json.asObject(entries[1]) :: json.Object).text, "Planned")
+
+	local empty = createRequest("GET", "/api/log")
+	empty.query = { canvas = "default" }
+	local emptyEntries = json.asArray(decodeResponse(router.handle(empty)).entries) :: json.Array
+	assert.eq(#emptyEntries, 0)
+	assert.eq(router.handle(createRequest("POST", "/api/log")).status, 405)
+	local unknown = createRequest("GET", "/api/log")
+	unknown.query = { canvas = "unknown" }
+	assert.eq(router.handle(unknown).status, 404)
 end)
 
 test.case("static route serves files and falls back to index outside the API", function(assert)
@@ -377,34 +415,69 @@ end)
 
 test.case("PUT /api/orion/style sets and clears the canvas cover and bumps the revision like a save", function(assert)
 	local root, router = createRouter("routes-canvas-style")
-	store.write(root, testing.createDoc({ testing.group("ws", "Workspace", nil) }))
+	writeDoc(root, testing.createDoc({ testing.group("ws", "Workspace", nil) }))
 	fs.createDirectory(path.join(root, "assets"), { makeParents = true })
 	fs.writeStringToFile(path.join(root, "assets", "image-logo.png"), "bytes")
 	local set = router.handle(
 		createRequest("PUT", "/api/orion/style", json.object({ cover = "image-logo.png", background = "#1d1b2e" }))
 	)
 	assert.eq(set.status, 200)
-	assert.eq(store.load(root).settings.cover, "image-logo.png")
-	assert.eq(store.load(root).settings.background, "#1d1b2e")
-	assert.eq(store.load(root).revision, 1)
+	assert.eq(loadDoc(root).settings.cover, "image-logo.png")
+	assert.eq(loadDoc(root).settings.background, "#1d1b2e")
+	assert.eq(loadDoc(root).revision, 1)
 	-- A window that read the file before the style change has a stale revision, so its save is refused and it reloads.
 	local stale = json.object({ baseRevision = 0, operations = { createOperation("late") } })
 	assert.eq(router.handle(createRequest("POST", "/api/operations", stale)).status, 409)
 	local cleared = router.handle(createRequest("PUT", "/api/orion/style", json.object({ cover = json.null })))
 	assert.eq(cleared.status, 200)
-	assert.eq(store.load(root).settings.cover, nil)
-	assert.eq(store.load(root).settings.background, "#1d1b2e")
-	assert.eq(store.load(root).revision, 2)
+	assert.eq(loadDoc(root).settings.cover, nil)
+	assert.eq(loadDoc(root).settings.background, "#1d1b2e")
+	assert.eq(loadDoc(root).revision, 2)
 	assert.eq(
 		router.handle(createRequest("PUT", "/api/orion/style", json.object({ cover = "image-missing.png" }))).status,
 		400
 	)
-	assert.eq(store.load(root).revision, 2)
+	assert.eq(loadDoc(root).revision, 2)
 	assert.eq(router.handle(createRequest("GET", "/api/orion/style")).status, 405)
 	assert.eq(
 		router.handle(createRequest("PUT", "/api/orion/style", json.object({ cover = "x" }), "ideas")).status,
 		409
 	)
+end)
+
+test.case("PUT /api/orion/check-snoozes snoozes and unsnoozes a job and bumps the revision", function(assert)
+	local root, router = createRouter("routes-check-snoozes")
+	writeDoc(root, testing.createDoc({}))
+	local snoozed = router.handle(createRequest(
+		"PUT",
+		"/api/orion/check-snoozes",
+		json.object({
+			repo = "vocksel/orion",
+			name = "docs",
+			snoozed = true,
+			["until"] = "2099-01-01T00:00:00.000Z",
+		})
+	))
+	assert.eq(snoozed.status, 200)
+	local snoozes = loadDoc(root).settings.checkSnoozes
+	assert.eq(#snoozes, 1)
+	assert.eq(snoozes[1].untilTime, "2099-01-01T00:00:00Z")
+	assert.eq(loadDoc(root).revision, 1)
+
+	local unsnoozed = router.handle(
+		createRequest(
+			"PUT",
+			"/api/orion/check-snoozes",
+			json.object({ repo = "vocksel/orion", name = "docs", snoozed = false })
+		)
+	)
+	assert.eq(unsnoozed.status, 200)
+	assert.eq(#loadDoc(root).settings.checkSnoozes, 0)
+	assert.eq(
+		router.handle(createRequest("PUT", "/api/orion/check-snoozes", json.object({ repo = "vocksel/orion" }))).status,
+		400
+	)
+	assert.eq(router.handle(createRequest("GET", "/api/orion/check-snoozes")).status, 405)
 end)
 
 test.case("the theme list route serves theme files from the data folder", function(assert)

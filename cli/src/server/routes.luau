@@ -3,17 +3,20 @@ local net = require("@lute/net/server")
 
 local canvasStyle = require("@root/server/routes/canvasStyle")
 local canvases = require("@root/server/routes/canvases")
+local checkSnoozes = require("@root/server/routes/checkSnoozes")
+local clearFocus = require("@root/store/clearFocus")
 local editor = require("@root/server/routes/editor")
 local focus = require("@root/server/routes/focus")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local imageRoutes = require("@root/server/routes/images")
 local links = require("@root/server/routes/links")
+local log = require("@root/server/routes/log")
 local merge = require("@root/server/routes/merge")
 local operations = require("@root/server/routes/operations")
 local orion = require("@root/server/routes/orion")
 local settings = require("@root/server/routes/settings")
 local shared = require("@root/server/routes/shared")
 local static = require("@root/server/routes/static")
-local store = require("@root/store")
 local sync = require("@root/server/routes/sync")
 local themes = require("@root/server/routes/themes")
 
@@ -45,8 +48,8 @@ function routes.create(
 		if name == active then
 			return
 		end
-		store.clearFocus(store.getWorkspaceDir(root, active))
-		store.clearFocus(store.getWorkspaceDir(root, name))
+		clearFocus(getWorkspaceDir(root, active))
+		clearFocus(getWorkspaceDir(root, name))
 		active = name
 		onSwitch(name)
 	end
@@ -62,6 +65,9 @@ function routes.create(
 		if route == "/api/orion/style" then
 			return canvasStyle.handle(request, root, active)
 		end
+		if route == "/api/orion/check-snoozes" then
+			return checkSnoozes.handle(request, root, active)
+		end
 		if route == "/api/operations" then
 			return operations.handle(request, root, active)
 		end
@@ -76,6 +82,9 @@ function routes.create(
 		end
 		if route == "/api/links" then
 			return links.handle(request, root)
+		end
+		if route == "/api/log" then
+			return log.handle(request, root)
 		end
 		if route == "/api/settings" then
 			return settings.handle(request, root)

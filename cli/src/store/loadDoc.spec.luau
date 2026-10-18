@@ -1,0 +1,15 @@
+local fs = require("@std/fs")
+local test = require("@std/test")
+
+local getDocPath = require("@root/store/getDocPath")
+local loadDoc = require("@root/store/loadDoc")
+local testing = require("@root/testing")
+
+test.case("load reads a missing data file as an empty workspace without writing it", function(assert)
+	local dir = testing.directory("missing")
+	local doc = loadDoc(dir)
+	assert.eq(doc.revision, 0)
+	assert.eq(#doc.nodes, 0)
+	assert.eq(#doc.links, 0)
+	assert.eq(fs.exists(getDocPath(dir)), false)
+end)

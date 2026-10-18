@@ -1,7 +1,7 @@
 local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
-local store = require("@root/store")
+local useWorkspace = require("@root/store/useWorkspace")
 
 type Context = context.Context
 
@@ -13,7 +13,7 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local name = assert(parser:get("name"), "missing <name>")
-		store.useWorkspace(options.root, name)
+		useWorkspace(options.root, name)
 		options.write(`Using canvas {name}`)
 	end,
 })

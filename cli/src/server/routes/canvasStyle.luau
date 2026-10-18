@@ -2,8 +2,9 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 
 local applyCanvasStyle = require("@root/style/applyCanvasStyle")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local runTransaction = require("@root/store/runTransaction")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
 
 type Response = shared.Response
 
@@ -36,8 +37,8 @@ function canvasStyle.handle(request: net.ReceivedRequest, root: string, active: 
 
 	local didSucceed, failure = pcall(function()
 		local change = shared.parseBody(request)
-		local dir = store.getWorkspaceDir(root, active)
-		store.transaction(dir, function(doc)
+		local dir = getWorkspaceDir(root, active)
+		runTransaction(dir, function(doc)
 			applyCanvasStyle(doc, dir, {
 				cover = changeFrom(change.cover),
 				background = changeFrom(change.background),

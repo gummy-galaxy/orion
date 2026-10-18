@@ -88,6 +88,14 @@ Sources and their data are one layer, and cards are the presentation attached to
 
 2026-10-09 · [#152](https://github.com/vocksel/orion/issues/152), [#154](https://github.com/vocksel/orion/issues/154)
 
+### Snoozed and optional jobs don't make a card fail
+
+A pull request reads as failing only for a job that counts. When some of its jobs are required, a failing job that isn't required doesn't count. A failing job can also be snoozed, by name, for every card in its repository: either until it next passes on each card, so a later failure there shows again, or until a set time. Cards list their failing jobs with a checkbox each, and unchecking one snoozes it.
+
+**Why:** one boring failure, such as stale generated docs, turns every open pull request red at once. Fixing it on each branch means a CI run per pull request, while snoozing it once clears it everywhere and still catches the job breaking again.
+
+2026-10-13
+
 ### Card art is reproducible
 
 Generated card art can be produced again from the same card. Later, people should be able to reroll art, keep favorites, and give a card its own color.
@@ -230,6 +238,42 @@ When an agent opens a pull request from a card's work, the pull request attaches
 
 2026-10-10 · [#196](https://github.com/vocksel/orion/issues/196)
 
+## Card timeline
+
+### One append-only log per canvas, with cards as targets
+
+Each canvas keeps one log in `log.jsonl`, one JSON line per entry. Each entry records its text, its time, who logged it, and the targets it's attached to. A card's timeline is the log filtered to entries that name the card, so no card stores its own history. An entry that names no card is for the whole canvas and stays in the log only. Entries are never edited or removed. A mistake is corrected by a new entry.
+
+Adding an entry appends a line under the canvas lock and leaves the canvas revision alone. The app's saves check that revision, so logging something never makes an open app's save fail.
+
+**Why:** one stream serves every card, and an entry that concerns several cards is stored once. Appending keeps the record stable, and a correction that sits beside the mistake is more trustworthy than an edit that hides it. This replaces rewriting a card's note to add a line, which lost earlier records and once recorded a pass that hadn't happened.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
+### Undo leaves log entries in place
+
+Log entries aren't canvas edits, so they have no inverses. When undo lands (#1), it restores the canvas and leaves log entries in place as a record of what was done.
+
+**Why:** the log says what happened, including what was later undone. Charter principle 8 asks that every edit be an operation with an inverse. Log appends are records rather than canvas edits, so they sit outside that rule. If the log should be undoable, that is a change to this entry.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
+### Entries record a person or an agent
+
+Entries from `orion log add` are by the person running the CLI, named by `$USER`, unless `--agent <name>` marks them as an agent's. MCP log tools always pass the agent's name, and the tool requires it.
+
+**Why:** a shell command can't tell whether a person or an agent is running it, since agents run the same CLI. Naming the agent is the one signal that holds. Detecting the client from the environment is fragile, and the MCP server doesn't pass its client name through to commands. Both are open to challenge.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
+### The log is read newest first, and stored oldest first
+
+`orion log list`, `orion card timeline`, and the MCP log tools list entries newest first. The file and `GET /api/log` keep append order, oldest first.
+
+**Why:** a timeline is read from its latest entry. The stored order matches the file, so anyone replaying it sees entries as they were written.
+
+2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
+
 ## Public interfaces
 
 ### Public interfaces tighten in three stages
@@ -313,6 +357,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 **Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks.
 
 2026-10-12 · [#55](https://github.com/vocksel/orion/issues/55)
+
+### The background refresh fetches what changed
+
+`orion server start` fetches every open pull request card in full only at startup, on a canvas switch, when you ask, and every 15 minutes. In between, it polls GitHub notifications as often as GitHub allows, 60 seconds today, and refetches the pull requests they name. Every two minutes it also sweeps the open cards' `updatedAt` and refetches only the ones that moved. Cards with pending checks are refetched every 30 seconds. What the loop remembers between polls lives in memory, and a pass that finds nothing writes nothing.
+
+**Why:** a full refresh costs what's on the canvas, and GitHub ends a query after about 10 seconds. Notifications cover other people's activity for free, since an unchanged poll answers 304. They never include the viewer's own or agents' activity, which the `updatedAt` sweep catches. Neither reports a finished check run or a change in mergeability, so checks get their own short timer and mergeability waits for the full pass. Startup runs a full pass anyway, so persisting poll state would add writes for nothing.
+
+2026-10-18 · [#366](https://github.com/vocksel/orion/issues/366)
 
 ### Adapters are Lute packages
 

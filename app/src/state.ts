@@ -2,6 +2,7 @@ import { atom, getDefaultStore, useAtomValue } from 'jotai'
 import { selectAtom } from 'jotai/utils'
 import { useMemo } from 'react'
 import { getCardView } from './cardView'
+import type { CheckSnooze } from './checkSnoozes'
 import { readAppearance } from './appearance'
 import { buildWork, toServerFacts, traceFrom, type AttentionMark, type Derived, type GroupStats, type SourceRef } from './derive'
 import { byId, isImage, isTask, tintOf, type AppNode, type Link, type TaskNode, type Tint, type ViewStatus } from './model'
@@ -13,6 +14,8 @@ export const skinAtom = atom(readAppearance().skin)
 export const skinStore = getDefaultStore()
 /** The workspace the canvas shows, which names where its cover and background images are kept. */
 export const workspaceAtom = atom('default')
+/** The CI jobs the canvas has snoozed, from its settings. */
+export const checkSnoozesAtom = atom<CheckSnooze[]>([])
 export const linksAtom = atom<Link[]>([])
 /** A double-clicked card keeps its trace while you pan around; any click lets it go. */
 export const pinnedAtom = atom<string | null>(null)
@@ -20,6 +23,11 @@ export const pinnedAtom = atom<string | null>(null)
 export const focusedAtom = atom(false)
 /** The group dragged work would join if it were dropped now. */
 export const dropTargetAtom = atom<string | null>(null)
+/**
+ * The group whose edge the pointer is near, or that is being resized. Only it mounts resize handles, since handles on
+ * every group would slow down panning and hovering on a large canvas.
+ */
+export const resizeHandlesAtom = atom<string | null>(null)
 /** Cards whose close-out badge is clearing, each with the delay before its animation starts. */
 export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>())
 
@@ -118,11 +126,15 @@ export function useCardView(id: string, data: TaskNode['data'], group?: string) 
   const sources = useSources(id)
   const blockers = useBlockers(id)
   const unblocks = useUnblocks(id)
+  const snoozes = useAtomValue(checkSnoozesAtom)
 
   return useMemo(
     () =>
-      getCardView({ id, type: 'task', position: { x: 0, y: 0 }, data }, { status, leverage, upstream, rarity, sources, blockers, unblocks, group }),
-    [id, data, status, leverage, upstream, rarity, sources, blockers, unblocks, group],
+      getCardView(
+        { id, type: 'task', position: { x: 0, y: 0 }, data },
+        { status, leverage, upstream, rarity, sources, blockers, unblocks, group, snoozes },
+      ),
+    [id, data, status, leverage, upstream, rarity, sources, blockers, unblocks, group, snoozes],
   )
 }
 
@@ -145,6 +157,8 @@ export const useCelebrating = (id: string) => useAtomValue(useMemo(() => selectA
 export const useMarked = (id: string) => useAtomValue(useMemo(() => selectAtom(attentionAtom, (attention) => !!attention?.has(id)), [id]))
 
 export const useIsDropTarget = (id: string) => useAtomValue(useMemo(() => selectAtom(dropTargetAtom, (target) => target === id), [id]))
+
+export const useShowsResizeHandles = (id: string) => useAtomValue(useMemo(() => selectAtom(resizeHandlesAtom, (shown) => shown === id), [id]))
 
 export const useCollapsed = (id: string) => useAtomValue(useMemo(() => selectAtom(collapsedAtom, (collapsed) => collapsed.has(id)), [id]))
 

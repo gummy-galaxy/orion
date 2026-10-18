@@ -2,8 +2,9 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 
 local getStringField = require("@root/getStringField")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local putFocus = require("@root/store/putFocus")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
 
 type Response = shared.Response
 
@@ -40,7 +41,7 @@ function focus.handle(request: net.ReceivedRequest, root: string, active: string
 			end
 		end
 
-		store.putFocus(store.getWorkspaceDir(root, workspace), tab, open, selected, isClosed)
+		putFocus(getWorkspaceDir(root, workspace), tab, open, selected, isClosed)
 		return shared.reply(200, json.object({}))
 	end)
 

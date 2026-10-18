@@ -4,9 +4,10 @@ local path = require("@std/path")
 local test = require("@std/test")
 
 local findRef = require("@root/refs/findRef")
+local getItem = require("@root/graph/getItem")
 local getVersion = require("@root/getVersion")
-local graph = require("@root/graph")
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
+local runTransaction = require("@root/store/runTransaction")
 local testing = require("@root/testing")
 
 test.case("help opens with the shared orientation and no MCP tool names", function(assert)
@@ -16,6 +17,28 @@ test.case("help opens with the shared orientation and no MCP tool names", functi
 	assert.strContains(text, "replaces its whole text")
 	assert.strContains(text, "branch:<owner>/<repo>@<branch>")
 	assert.strNotContains(text, "orion_")
+end)
+
+test.case("help --all lists every command with its options, and as JSON", function(assert)
+	local _, run = testing.createHarness("help-all")
+	local text = run({ "help", "--all" })
+	assert.strContains(text, "replaces its whole text")
+	assert.strContains(text, "card: Work items on the canvas")
+	assert.strContains(text, "  orion card set [id]")
+	assert.strContains(text, "--if-revision <value>")
+	assert.strContains(text, "  orion source add github")
+	assert.strContains(text, "Fields: kind")
+	assert.strNotContains(text, "\27[")
+	assert.strNotContains(text, "orion_")
+
+	local described = json.asObject(json.deserialize(run({ "help", "--all", "--json" })) :: json.Value)
+	local commands = described and json.asArray(described.commands)
+	assert.eq(described and described.name, "orion")
+	assert.eq(commands and #commands > 0, true)
+
+	assert.throwsWith("leave out the command name", function()
+		run({ "help", "card", "--all" })
+	end)
 end)
 
 test.case("ready lists startable work, most unblocking first", function(assert)
@@ -38,7 +61,7 @@ test.case("add, link, and done change the shared data", function(assert)
 	assert.eq(shown and shown.status, "blocked")
 	run({ "card", "done", "ci" })
 	run({ "card", "done", "pub" })
-	assert.eq(store.load(dir).revision, 4)
+	assert.eq(loadDoc(dir).revision, 4)
 	assert.strContains(run({ "next" }), "write-release-notes")
 end)
 
@@ -48,10 +71,10 @@ test.case("group create makes an empty group that cards can be added to by its i
 	assert.strContains(run({ "group", "create", "Monday", "--in", "week-1" }), "Created group monday · Monday")
 	run({ "card", "add", "Ship", "--group", "week-1" })
 	run({ "card", "add", "Plan", "--group", "monday" })
-	local doc = store.load(dir)
-	assert.eq(graph.get(doc, "monday").parentId, "week-1")
-	assert.eq(graph.get(doc, "ship").parentId, "week-1")
-	assert.eq(graph.get(doc, "plan").parentId, "monday")
+	local doc = loadDoc(dir)
+	assert.eq(getItem(doc, "monday").parentId, "week-1")
+	assert.eq(getItem(doc, "ship").parentId, "week-1")
+	assert.eq(getItem(doc, "plan").parentId, "monday")
 end)
 
 test.case("group create prints the new group as JSON", function(assert)
@@ -71,7 +94,7 @@ end)
 test.case("group parses comma-separated ids with spaces and empty entries", function(assert)
 	local dir, run = testing.createHarness("group-items")
 	run({ "group", "add", "Milestone", "--items", " ci, pub, , " })
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(doc.nodes[2].parentId, doc.nodes[3].parentId)
 	assert.eq(doc.nodes[2].parentId == "ws", false)
 end)
@@ -85,7 +108,7 @@ test.case("group set arranges a group and node show reports it", function(assert
 	assert.eq(shown and shown.arrange, "custom")
 	assert.strContains(run({ "node", "show", "ws" }), "arrange  custom")
 	run({ "group", "set", "ws", "--arrange", "auto" })
-	assert.eq(store.load(dir).nodes[1].data.layout, "refit")
+	assert.eq(loadDoc(dir).nodes[1].data.layout, "refit")
 	assert.throwsWith("Unknown argument: arrange", function()
 		run({ "card", "set", "pub", "--arrange", "custom" })
 	end)
@@ -97,7 +120,7 @@ test.case("set renames items and groups and reports the new labels", function(as
 	local dir, run = testing.createHarness("set-label")
 	assert.eq(run({ "card", "set", "pub", "--label", "New item name" }), "Updated pub · New item name")
 	assert.eq(run({ "group", "set", "ws", "--label", "New group name" }), "Updated ws · New group name")
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(doc.nodes[1].data.label, "New group name")
 	assert.eq(doc.nodes[3].data.label, "New item name")
 end)
@@ -118,7 +141,7 @@ test.case("sync writes GitHub state through the command runner", function(assert
 	end)
 
 	assert.strContains(text, "ci: active → done")
-	local item = store.load(dir).nodes[2]
+	local item = loadDoc(dir).nodes[2]
 	assert.eq(item.data.status, "done")
 	local recorded = (findRef(item, "pull") :: any).details
 	assert.eq(recorded and recorded.state, "MERGED")
@@ -144,7 +167,7 @@ test.case("ingest refreshes pull request cards without any sources configured", 
 
 	assert.strContains(text, "Checked 1 pull requests on GitHub.")
 	assert.strContains(text, "ci: active → done")
-	assert.eq(store.load(dir).nodes[2].data.status, "done")
+	assert.eq(loadDoc(dir).nodes[2].data.status, "done")
 end)
 
 -- Answers a refresh with flipbook #658 in the given state, which the harness card tracks.
@@ -168,10 +191,10 @@ end
 test.case("sync defers a card whose pull request closed and resumes it when the pull request reopens", function(assert)
 	local dir, run = testing.createHarness("sync-closed")
 	assert.strContains(run({ "sync" }, refreshRunner("CLOSED")), "ci: active → deferred")
-	assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, true)
+	assert.eq(loadDoc(dir).nodes[2].data.deferredByClosedPull, true)
 	assert.strContains(run({ "sync" }, refreshRunner("OPEN")), "ci: deferred → review")
-	assert.eq(store.load(dir).nodes[2].data.status, "review")
-	assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, nil)
+	assert.eq(loadDoc(dir).nodes[2].data.status, "review")
+	assert.eq(loadDoc(dir).nodes[2].data.deferredByClosedPull, nil)
 end)
 
 test.case(
@@ -179,10 +202,10 @@ test.case(
 	function(assert)
 		local dir, run = testing.createHarness("ingest-closed")
 		assert.strContains(run({ "ingest" }, refreshRunner("CLOSED")), "ci: active → deferred")
-		assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, true)
+		assert.eq(loadDoc(dir).nodes[2].data.deferredByClosedPull, true)
 		assert.strContains(run({ "ingest" }, refreshRunner("OPEN")), "ci: deferred → review")
-		assert.eq(store.load(dir).nodes[2].data.status, "review")
-		assert.eq(store.load(dir).nodes[2].data.deferredByClosedPull, nil)
+		assert.eq(loadDoc(dir).nodes[2].data.status, "review")
+		assert.eq(loadDoc(dir).nodes[2].data.deferredByClosedPull, nil)
 	end
 )
 
@@ -214,12 +237,12 @@ test.case("sync --dry-run leaves the data alone", function(assert)
 		)
 	end)
 
-	assert.eq(store.load(dir).revision, 0)
+	assert.eq(loadDoc(dir).revision, 0)
 end)
 
 test.case("matches reads stored suggestions without a runner", function(assert)
 	local dir, run = testing.createHarness("matches")
-	store.transaction(dir, function(doc)
+	runTransaction(dir, function(doc)
 		doc.github = json.object({
 			viewer = "vocksel",
 			checkedAt = "now",
@@ -257,7 +280,7 @@ test.case("sync records unplaced authored pulls without adding review request ca
 	end)
 	assert.eq(isSearched, false)
 	assert.eq(output:find("Review requests", 1, true), nil)
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	for _, item in doc.nodes do
 		assert.neq(item.id, "reviews")
 	end
@@ -275,14 +298,14 @@ test.case("set puts a cover and background on a group, and needs the cover image
 	fs.createDirectory(path.join(dir, "assets"), { makeParents = true })
 	fs.writeStringToFile(path.join(dir, "assets", "image-logo.png"), "bytes")
 	run({ "group", "set", "ws", "--cover", "image-logo.png", "--background", "#1d1b2e" })
-	local group = store.load(dir).nodes[1]
+	local group = loadDoc(dir).nodes[1]
 	assert.eq(group.data.cover, "image-logo.png")
 	assert.eq(group.data.background, "#1d1b2e")
 	assert.throws(function()
 		run({ "card", "set", "pub", "--background", "#1d1b2e" })
 	end)
 	run({ "group", "set", "ws", "--background", "" })
-	assert.eq(store.load(dir).nodes[1].data.background, nil)
+	assert.eq(loadDoc(dir).nodes[1].data.background, nil)
 end)
 
 test.case("set attaches a GitHub issue from a URL and fills in an empty repository", function(assert)
@@ -291,7 +314,7 @@ test.case("set attaches a GitHub issue from a URL and fills in an empty reposito
 		run({ "card", "set", "pub", "--ref", "https://github.com/Roblox/avatar/issues/3" }),
 		"Updated pub · Publish v2.6.0"
 	)
-	local item = store.load(dir).nodes[3]
+	local item = loadDoc(dir).nodes[3]
 	assert.eq(item.data.repo, "Roblox/avatar")
 	assert.eq(item.data.itemKind, "placeholder")
 	assert.neq(findRef(item, "issue", "Roblox/avatar#3"), nil)
@@ -300,7 +323,7 @@ end)
 test.case("set keeps the repository an item already has when a ref names another", function(assert)
 	local dir, run = testing.createHarness("attach-keeps-repo")
 	run({ "card", "set", "ci", "--ref", "https://github.com/Roblox/avatar/issues/3" })
-	local item = store.load(dir).nodes[2]
+	local item = loadDoc(dir).nodes[2]
 	assert.eq(item.data.repo, "flipbook-labs/flipbook")
 	assert.neq(findRef(item, "issue", "Roblox/avatar#3"), nil)
 end)
@@ -311,7 +334,7 @@ test.case("add attaches a pull request URL as a pr card", function(assert)
 		run({ "card", "add", "Write", "notes", "--group", "ws", "--ref", "https://github.com/Roblox/avatar/pull/9" }),
 		"Added write-notes"
 	)
-	local item = store.load(dir).nodes[4]
+	local item = loadDoc(dir).nodes[4]
 	assert.eq(item.data.repo, "Roblox/avatar")
 	assert.eq(item.data.itemKind, "pr")
 	assert.neq(findRef(item, "pull", "Roblox/avatar#9"), nil)
@@ -330,7 +353,7 @@ test.case("set attaches Jira issues by source:key through a configured source", 
 	})
 	run({ "card", "set", "pub", "--ref", "jira:ABC-12" })
 	run({ "card", "set", "ci", "--ref", "https://jira.example.com/browse/ABC-13" })
-	local nodes = store.load(dir).nodes
+	local nodes = loadDoc(dir).nodes
 	local attached = findRef(nodes[3], "issue", "ABC-12")
 	assert.eq(attached and attached.url, "https://jira.example.com/browse/ABC-12")
 	local retitled = findRef(nodes[2], "issue", "ABC-13")
@@ -340,7 +363,7 @@ end)
 
 test.case("a ref that cannot be resolved writes nothing", function(assert)
 	local dir, run = testing.createHarness("attach-invalid")
-	local before = store.load(dir).revision
+	local before = loadDoc(dir).revision
 	assert.throwsWith(
 		"no source recognizes https://git.example.org/a/b/pull/1; add its GitHub or Jira source first, or use source:key",
 		function()
@@ -350,8 +373,8 @@ test.case("a ref that cannot be resolved writes nothing", function(assert)
 	assert.throwsWith('no source with id "missing"', function()
 		run({ "card", "add", "Write", "notes", "--ref", "missing:ABC-1" })
 	end)
-	assert.eq(store.load(dir).revision, before)
-	assert.eq(#store.load(dir).nodes, 3)
+	assert.eq(loadDoc(dir).revision, before)
+	assert.eq(#loadDoc(dir).nodes, 3)
 end)
 
 test.case("group set rejects item-only fields and card set rejects groups", function(assert)
@@ -371,13 +394,13 @@ test.case("group set rejects item-only fields and card set rejects groups", func
 	assert.throwsWith('"pub" is an item; use orion card set', function()
 		run({ "group", "set", "pub", "--blurb", "Not for items" })
 	end)
-	assert.eq(store.load(dir).nodes[1].data.blurb, nil)
+	assert.eq(loadDoc(dir).nodes[1].data.blurb, nil)
 end)
 
 test.case("repo and pr still attach a pull request as deprecated aliases", function(assert)
 	local dir, run = testing.createHarness("deprecated-pr")
 	run({ "card", "set", "pub", "--repo", "Roblox/avatar", "--pr", "4" })
-	local item = store.load(dir).nodes[3]
+	local item = loadDoc(dir).nodes[3]
 	assert.eq(item.data.itemKind, "pr")
 	assert.neq(findRef(item, "pull", "Roblox/avatar#4"), nil)
 	assert.strContains(run({ "card", "set", "--help" }), "Deprecated")
@@ -414,7 +437,7 @@ test.case("sync attaches a new pull request to the card its branch was recorded 
 	end)
 
 	assert.strContains(text, "attached flipbook-labs/flipbook#670 to pub")
-	local item = store.load(dir).nodes[3]
+	local item = loadDoc(dir).nodes[3]
 	assert.eq((findRef(item, "pull") :: any).key, "flipbook-labs/flipbook#670")
 	assert.strContains(run({ "source", "matches" }), "No unplaced pull requests.")
 end)
@@ -428,7 +451,7 @@ test.case("group add wraps items, and the old bare group form is gone", function
 	end)
 	local labels: { [string]: boolean } = {}
 
-	for _, item in store.load(dir).nodes do
+	for _, item in loadDoc(dir).nodes do
 		labels[item.data.label :: string] = true
 	end
 
@@ -440,18 +463,18 @@ test.case("group remove previews and removes a group with everything inside", fu
 	local dir, run = testing.createHarness("group-remove")
 	run({ "card", "add", "Outside", "--group", "ws" })
 	run({ "group", "add", "Inner", "--items", "outside" })
-	local before = store.load(dir).revision
+	local before = loadDoc(dir).revision
 	local preview = run({ "group", "remove", "ws", "--dry-run" })
 	assert.strContains(preview, "Would remove 1 group and 4 things inside")
 	assert.strContains(preview, "    pub · Publish v2.6.0")
-	assert.eq(store.load(dir).revision, before)
+	assert.eq(loadDoc(dir).revision, before)
 
 	assert.throwsWith('"pub" is an item, not a group', function()
 		run({ "group", "remove", "pub" })
 	end)
 
 	run({ "group", "remove", "ws" })
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(#doc.nodes, 0)
 	assert.eq(#doc.links, 0)
 end)
@@ -467,12 +490,12 @@ test.case("ref remove takes a ref off by its key or URL", function(assert)
 	local dir, run = testing.createHarness("ref-remove")
 	run({ "card", "set", "ci", "--ref", "https://github.com/Roblox/avatar/issues/3" })
 	assert.eq(run({ "ref", "remove", "ci", "FLIPBOOK-LABS/flipbook#658" }), "Updated ci · Report release health")
-	local item = store.load(dir).nodes[2]
+	local item = loadDoc(dir).nodes[2]
 	assert.eq(findRef(item, "pull"), nil)
 	assert.eq(item.data.itemKind, "placeholder")
 
 	run({ "ref", "remove", "ci", "https://github.com/Roblox/avatar/issues/3" })
-	assert.eq(store.load(dir).nodes[2].data.refs, nil)
+	assert.eq(loadDoc(dir).nodes[2].data.refs, nil)
 
 	assert.throwsWith('"ci" has no ref Roblox/avatar#3', function()
 		run({ "ref", "remove", "ci", "Roblox/avatar#3" })
@@ -493,7 +516,7 @@ test.case("flat command names and --workspace are gone, and help uses the noun f
 	assert.throwsWith("Unknown argument: workspace", function()
 		run({ "--workspace", "roblox", "card", "list" })
 	end)
-	assert.throwsWith("choose list, add, set, done, import, snooze, unsnooze", function()
+	assert.throwsWith("choose list, add, set, timeline, done, import, snooze, unsnooze", function()
 		run({ "card" })
 	end)
 	assert.strContains(run({ "help", "card", "list" }), "orion card list")
@@ -568,7 +591,7 @@ test.case("selectors work in writes and report the ids they resolved to", functi
 	assert.eq(run({ "link", "add", "ci", `label:"Ship v2.6.0"`, "--related" }), "ci and pub are related")
 	assert.eq(run({ "node", "move", `label:"Ship v2.6.0"`, "--to", "ws" }), "Moved pub to ws")
 	assert.eq(run({ "group", "set", `label:"Release"`, "--label", "Renamed" }), "Updated ws · Renamed")
-	assert.eq(store.load(dir).nodes[1].data.label, "Renamed")
+	assert.eq(loadDoc(dir).nodes[1].data.label, "Renamed")
 end)
 
 test.case("--version prints the version and build commit the MCP server reports", function(assert)

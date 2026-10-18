@@ -19,13 +19,16 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion group`](./group)           | Groups of items                                                      |
 | [`orion ref`](./ref)               | Outside work attached to cards                                       |
 | [`orion next`](./next)             | List items that can start now, most unblocking first                 |
+| [`orion apply`](./apply)           | Apply a plan of cards, notes, groups, and links in one step          |
 | [`orion sync`](./sync)             | Update pull request items from GitHub (deprecated: use ingest)       |
 | [`orion canvas`](./canvas)         | Canvases and their layout                                            |
+| [`orion log`](./log)               | Add to the canvas log, and list it                                   |
 | [`orion server`](./server)         | The server the app and agents talk to                                |
 | [`orion source`](./source)         | Sources that ingest imports work from                                |
 | [`orion ingest`](./ingest)         | Import work from configured sources and refresh the cards they track |
 | [`orion media`](./media)           | Media on the canvas                                                  |
 | [`orion suggestion`](./suggestion) | Suggested groups for related cards                                   |
+| [`orion ci`](./ci)                 | CI jobs whose failures cards leave out                               |
 | [`orion theme`](./theme)           | Add, list, or remove theme files                                     |
 | [`orion backup`](./backup)         | Saved revisions of a canvas                                          |
 | [`orion mcp`](./mcp)               | Agent tools over MCP                                                 |

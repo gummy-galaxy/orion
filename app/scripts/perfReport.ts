@@ -3,13 +3,19 @@
  * lists only the changes beyond noise, and the full measurements sit in collapsed sections below.
  */
 export type Sample = Record<string, number>
+/** The device Chromium drew with, and whether it composited on a GPU rather than in software. */
+export type Renderer = { device: string; gpu: boolean }
 export type ReportInput = {
   base: { ref: string; sha: string }
   head: { ref: string; sha: string }
   /** Median time per call for each benchmark, one per round on each side. */
   bench?: { rounds: number; base: Record<string, number[]>; head: Record<string, number[]> }
   /** Samples per story and scenario, one per run on each side. */
-  render?: { runs: number; stories: Record<string, { base: Record<string, Sample>[]; head: Record<string, Sample>[] }> }
+  render?: {
+    runs: number
+    renderer?: Renderer
+    stories: Record<string, { base: Record<string, Sample>[]; head: Record<string, Sample>[] }>
+  }
 }
 
 type Kind = 'count' | 'ms'
@@ -37,6 +43,7 @@ const METRICS: Metric[] = [
   { key: 'styleMs', label: 'Style time', kind: 'ms' },
   { key: 'layoutMs', label: 'Layout time', kind: 'ms' },
   { key: 'rasterMs', label: 'Raster time', kind: 'ms', paced: true },
+  { key: 'gpuMs', label: 'GPU time', kind: 'ms', paced: true },
   { key: 'slowFrames', label: `Frames over ${SLOW_FRAME_MS} ms`, kind: 'count', paced: true },
   { key: 'frames', label: 'Frames drawn', kind: 'count', paced: true, neutral: true },
 ]
@@ -156,7 +163,14 @@ function benchSection(bench: NonNullable<ReportInput['bench']>): { rows: Row[]; 
   return { rows, text }
 }
 
-function storySection(story: string, runs: number, base: Record<string, Sample>[], head: Record<string, Sample>[], label: string) {
+function storySection(
+  story: string,
+  runs: number,
+  base: Record<string, Sample>[],
+  head: Record<string, Sample>[],
+  label: string,
+  renderer?: Renderer,
+) {
   const scenarios = Object.keys(head[0] ?? {}).filter((scenario) => scenario !== 'load')
   const values = (samples: Record<string, Sample>[], scenario: string, key: string) => samples.flatMap((sample) => sample[scenario]?.[key] ?? [])
   // A machine that can't keep up with the display drops frames instead of doing more work, so paced rows would
@@ -176,7 +190,7 @@ function storySection(story: string, runs: number, base: Record<string, Sample>[
   const grid = metrics.map((metric) => scenarios.map((scenario) => row(metric, scenario)))
   const rows = [...load, ...grid.flat()]
   const body = [
-    `Medians of ${runs} runs in headless Chromium at 2x scale. Idle waits ${IDLE_MS / 1000} s with motion on; the others pan, pinch-zoom, hover across cards, and drag one card.`,
+    `Medians of ${runs} runs in headless Chromium at 2x scale${renderer ? `, drawn ${renderer.gpu ? 'on' : 'in software by'} \`${renderer.device}\`` : ''}. Idle waits ${IDLE_MS / 1000} s with motion on; the others pan, pinch-zoom, hover across cards, and drag one card.`,
     '',
     table(
       ['Loading', 'Base → head'],
@@ -221,7 +235,7 @@ export function buildReport(input: ReportInput): string {
 
     for (const [story, { base, head }] of stories) {
       const label = stories.length > 1 ? story.replace(/^perf-canvas--/, '') : ''
-      const section = storySection(story, input.render.runs, base, head, label)
+      const section = storySection(story, input.render.runs, base, head, label, input.render.renderer)
 
       sections.push(section)
 
@@ -231,6 +245,10 @@ export function buildReport(input: ReportInput): string {
         )
       }
     }
+  }
+
+  if (input.render?.renderer && !input.render.renderer.gpu) {
+    notes.push('Chromium had no GPU on this machine and drew in software, so raster and GPU time measure the CPU.')
   }
 
   const rows = sections.flatMap((section) => section.rows)

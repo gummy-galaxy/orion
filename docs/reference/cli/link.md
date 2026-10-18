@@ -42,7 +42,7 @@ orion link remove [from] [to] [options]
 
 ## orion link insert
 
-Insert an item into an existing link
+Insert an item into an existing link, replacing it with two links of the same kind
 
 ```sh
 orion link insert [id] [options] [target...]
@@ -51,7 +51,7 @@ orion link insert [id] [options] [target...]
 | Argument                | Description                                                                               |
 | ----------------------- | ----------------------------------------------------------------------------------------- |
 | `[id]`                  | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
-| `--between <value>`     | **Required.** Source item whose link is replaced                                          |
+| `--between <value>`     | Source item whose link is replaced (required)                                             |
 | `[target...]`           | Target item whose link is replaced                                                        |
 | `--dry-run`             | Preview changes and current revision without writing                                      |
 | `--if-revision <value>` | Write only if the document has this revision                                              |

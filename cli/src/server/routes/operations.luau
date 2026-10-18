@@ -4,9 +4,10 @@ local net = require("@lute/net/server")
 
 local applyOperations = require("@root/operations/applyOperations")
 local getErrorText = require("@root/getErrorText")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local parseOperations = require("@root/operations/parseOperations")
+local runTransaction = require("@root/store/runTransaction")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -60,9 +61,9 @@ function operations.handle(request: net.ReceivedRequest, root: string, active: s
 		return shared.reply(400, json.object({ error = getErrorText(change) }))
 	end
 
-	local dir = store.getWorkspaceDir(root, active)
+	local dir = getWorkspaceDir(root, active)
 	local started = os.clock()
-	local succeeded, result = xpcall(store.transaction, captureFailure, dir, function(doc: Doc)
+	local succeeded, result = xpcall(runTransaction, captureFailure, dir, function(doc: Doc)
 		if change.baseRevision ~= nil and change.baseRevision ~= doc.revision then
 			error({ stale = true, revision = doc.revision }, 0)
 		end

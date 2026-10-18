@@ -3,10 +3,10 @@ local test = require("@std/test")
 
 local applyOperations = require("@root/operations/applyOperations")
 local copyValue = require("@root/operations/copyValue")
+local encodeDocObject = require("@root/store/encodeDocObject")
 local parseOperations = require("@root/operations/parseOperations")
 local restoreDoc = require("@root/operations/restoreDoc")
 local sameValue = require("@root/operations/sameValue")
-local store = require("@root/store")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
@@ -14,11 +14,11 @@ type Doc = types.Doc
 
 -- Compares the canvas as plain data, since key order isn't part of what a document says.
 local function snapshot(doc: Doc): any
-	return copyValue(store.toObject(doc))
+	return copyValue(encodeDocObject(doc))
 end
 
 local function isSame(doc: Doc, saved: any): boolean
-	return sameValue(store.toObject(doc), saved)
+	return sameValue(encodeDocObject(doc), saved)
 end
 
 -- A release group holding two cards, one blocking the other, plus a loose card for the insert case.
@@ -217,9 +217,9 @@ test.case("a sticker list is restored only when the list changed", function(asse
 		parse([=[[{"op":"setStickers","stickers":[{"id":"s1","kind":"star","x":1,"y":2,"tilt":0}]}]]=])
 	)
 	assert.eq(sticker[1].stickers ~= nil, true)
-	assert.eq(#(json.asArray(store.toObject(doc).stickers :: json.Value) :: json.Array), 1)
+	assert.eq(#(json.asArray(encodeDocObject(doc).stickers :: json.Value) :: json.Array), 1)
 	restoreDoc(doc, sticker[1])
-	assert.eq(store.toObject(doc).stickers, nil)
+	assert.eq(encodeDocObject(doc).stickers, nil)
 end)
 
 test.case("a resize keeps the stored size, and clear drops it", function(assert)

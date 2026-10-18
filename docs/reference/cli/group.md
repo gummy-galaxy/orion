@@ -42,11 +42,11 @@ Wrap items that share a parent in a new group
 orion group add [options] [label...]
 ```
 
-| Argument          | Description                                    |
-| ----------------- | ---------------------------------------------- |
-| `[label...]`      | Group name                                     |
-| `--items <value>` | **Required.** Comma-separated ids to put in it |
-| `--json`          | Print JSON                                     |
+| Argument          | Description                                 |
+| ----------------- | ------------------------------------------- |
+| `[label...]`      | Group name                                  |
+| `--items <value>` | Comma-separated ids to put in it (required) |
+| `--json`          | Print JSON                                  |
 
 ## orion group remove
 
@@ -72,17 +72,17 @@ Change a group's fields
 orion group set [id] [options]
 ```
 
-| Argument               | Description                                                                               |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| `[id]`                 | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
-| `--label <value>`      | New label                                                                                 |
-| `--blurb <value>`      | Group description                                                                         |
-| `--arrange <value>`    | How reflow arranges a group: auto or custom                                               |
-| `--cover <value>`      | Image asset id for the cover, from orion media insert --json (empty to clear)             |
-| `--background <value>` | Color, color token such as card.background, or image asset id (empty to clear)            |
-| `--header <value>`     | Markdown with layout HTML shown under the group's title (empty to clear)                  |
-| `--color <value>`      | The group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)       |
-| `--json`               | Print JSON                                                                                |
+| Argument               | Description                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| `[id]`                 | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86          |
+| `--label <value>`      | New label                                                                                          |
+| `--blurb <value>`      | Group description                                                                                  |
+| `--arrange <value>`    | How reflow arranges a group: auto (default) flows by dependency, custom keeps items where they are |
+| `--cover <value>`      | Image asset id for the cover, from orion media insert --json (empty to clear)                      |
+| `--background <value>` | Color, color token such as card.background, or image asset id (empty to clear)                     |
+| `--header <value>`     | Markdown with layout HTML shown under the group's title (empty to clear)                           |
+| `--color <value>`      | The group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                |
+| `--json`               | Print JSON                                                                                         |
 
 ## orion group ungroup
 

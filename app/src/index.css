@@ -28,6 +28,36 @@ select {
   color: inherit;
 }
 
+/* Thin scrollbars in the theme's muted ink on a clear track. WebKit and Chromium read the pseudo-elements, which
+   the standard properties would switch off in Chromium, so the standard ones are only for engines without them. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text-muted) 40%, transparent) padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--text-muted) 70%, transparent);
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text-muted) 40%, transparent) transparent;
+  }
+}
+/* Scrolls the app makes, such as keeping the palette's selection in view, glide unless motion is turned down. */
+:root[data-motion='on'],
+:root[data-motion='on'] * {
+  scroll-behavior: smooth;
+}
+
 /* React Flow theming */
 .react-flow {
   --xy-background-color: var(--canvas-background);
@@ -442,6 +472,22 @@ select {
   100% {
     opacity: 0;
     transform: scale(0.2);
+  }
+}
+/* Reduced motion keeps a chain's timing and drops the movement: each finish stamp fades out on its beat, and its Done
+   stamp fades in after it. */
+:where(:root[data-motion='reduced']) .finish-stamp.is-clearing {
+  animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-exit) var(--clear-delay, 0ms) reverse both;
+}
+:where(:root[data-motion='reduced']) .card > .done-stamp.is-landing {
+  animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-enter) calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
+}
+@keyframes stamp-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 .vscode-open {
@@ -978,6 +1024,108 @@ select {
 .cluster.is-drop-target {
   border: var(--border-width-strong) dashed var(--accent-default);
   background: color-mix(in srgb, var(--accent-subtle) 60%, transparent);
+}
+/*
+ * The edges and corners a group is resized by. They straddle its border and keep their size on screen at any zoom.
+ * A transform does the scaling, so zooming never lays them out again.
+ */
+.group-resize {
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+  /* A group's body lets the pointer through to what's behind it, but its edges catch it. */
+  pointer-events: auto;
+}
+.group-resize-n,
+.group-resize-s {
+  left: 0;
+  right: 0;
+  height: 10px;
+  transform: scaleY(var(--inv, 1));
+  cursor: ns-resize;
+}
+.group-resize-n {
+  top: -5px;
+}
+.group-resize-s {
+  bottom: -5px;
+}
+.group-resize-e,
+.group-resize-w {
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  transform: scaleX(var(--inv, 1));
+  cursor: ew-resize;
+}
+.group-resize-e {
+  right: -5px;
+}
+.group-resize-w {
+  left: -5px;
+}
+/* Corners come after the edges, so they sit on top where the two meet. */
+.group-resize-ne,
+.group-resize-nw,
+.group-resize-se,
+.group-resize-sw {
+  width: 16px;
+  height: 16px;
+  transform: scale(var(--inv, 1));
+}
+.group-resize-ne,
+.group-resize-sw {
+  cursor: nesw-resize;
+}
+.group-resize-nw,
+.group-resize-se {
+  cursor: nwse-resize;
+}
+.group-resize-ne,
+.group-resize-nw {
+  top: -8px;
+}
+.group-resize-se,
+.group-resize-sw {
+  bottom: -8px;
+}
+.group-resize-ne,
+.group-resize-se {
+  right: -8px;
+}
+.group-resize-nw,
+.group-resize-sw {
+  left: -8px;
+}
+/* The edge or corner under the pointer lights up, and stays lit while it's held. */
+.group-resize::after {
+  content: '';
+  position: absolute;
+  border-radius: var(--radius-pill);
+  background: var(--accent-default);
+  opacity: 0;
+  transition: opacity var(--motion-duration-fast);
+  pointer-events: none;
+}
+.group-resize:is(:hover, :active)::after {
+  opacity: 1;
+}
+.group-resize-n::after,
+.group-resize-s::after {
+  left: 0;
+  right: 0;
+  top: 4px;
+  height: 2px;
+}
+.group-resize-e::after,
+.group-resize-w::after {
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: 2px;
+}
+.group-resize:is(.group-resize-ne, .group-resize-nw, .group-resize-se, .group-resize-sw)::after {
+  inset: 5px;
 }
 /* A tinted group reads as one boundary: a tinted frame and wash, and a stripe on its header. */
 .cluster:is(.tint-teal, .tint-blue, .tint-purple, .tint-amber, .tint-rose, .tint-green, .tint-slate) {
@@ -1578,6 +1726,57 @@ kbd {
 }
 .review-requested {
   color: var(--status-review);
+}
+.check-snoozes {
+  margin-top: var(--space-1);
+  font-size: var(--text-size-label);
+  color: var(--text-muted);
+}
+.check-snoozes summary {
+  cursor: pointer;
+  color: var(--status-blocked);
+}
+.check-snoozes summary:focus-visible {
+  outline: 2px solid var(--accent-default);
+  outline-offset: 2px;
+}
+.check-snoozes-hint {
+  margin: var(--space-1) 0;
+}
+.check-snoozes-length {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.check-snoozes ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.check-snoozes li label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  cursor: pointer;
+}
+.insp .check-snoozes input {
+  width: auto;
+  margin: 0;
+}
+.insp .check-snoozes select {
+  flex: 1;
+  width: auto;
+}
+.check-snoozes-name {
+  color: var(--text-primary);
+  font-family: var(--font-data);
+}
+.check-snoozes-note {
+  margin-left: auto;
+  font-size: var(--text-size-caption);
 }
 .links {
   display: grid;
@@ -3332,7 +3531,6 @@ kbd {
   gap: var(--space-5);
   padding: var(--space-8) var(--space-2);
   pointer-events: auto;
-  scrollbar-width: thin;
   mask-image: linear-gradient(transparent, #000 16px, #000 calc(100% - 16px), transparent);
 }
 .focus-card {

@@ -58,8 +58,11 @@ export default defineConfig({
           link: '/development/design/',
           collapsed: false,
           items: [
+            { text: 'Gummy Galaxy and Orion', link: '/development/design/gummy-galaxy-and-orion' },
+            { text: 'Gummy Galaxy concept art', link: '/development/design/gummy-galaxy-concept-art' },
             { text: 'Logo', link: '/development/design/logo' },
             { text: 'Themes and skins', link: '/development/design/themes-and-skins' },
+            { text: 'Card skins', link: '/development/design/cards' },
             { text: 'Trading cards', link: '/development/design/trading-cards' },
             { text: 'Companion', link: '/development/design/companion' },
             { text: 'Motion and feel', link: '/development/design/motion-and-feel' },

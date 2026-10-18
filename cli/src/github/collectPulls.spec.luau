@@ -74,7 +74,7 @@ test.case("collect skips merged cards and fetches full state only for branch mat
 	assert.strContains(batches[1], "number: 2)")
 	assert.strContains(batches[1], "number: 7)")
 	assert.eq(batches[1]:find("number: 8)", 1, true), nil)
-	assert.eq(#fetched.authored, 2)
+	assert.eq(#(fetched.authored or {}), 2)
 	assert.eq(#fetched.failures, 0)
 end)
 
@@ -97,8 +97,41 @@ test.case("collect still refreshes cards when the authored list fails", function
 	end, false)
 
 	assert.eq(fetched.viewer, "vocksel")
-	assert.eq(#fetched.authored, 0)
+	assert.eq(fetched.authored, nil)
 	assert.eq(#fetched.failures, 1)
 	assert.strContains(fetched.failures[1], "your open pull requests")
 	assert.neq(fetched.pulls["vocksel/orion#2"], nil)
+end)
+
+test.case("collect asks for the jobs of failing pull requests and leaves optional failures out", function(assert)
+	local doc = testing.createDoc({
+		testing.task("failing", "Failing", "review", nil, {
+			repo = "vocksel/orion",
+			refs = { { source = "github", kind = "pull", key = "vocksel/orion#341" } },
+		}),
+	})
+	local jobQueries = 0
+	local fetched = collectPulls(doc, function(argv)
+		local query = argv[#argv]
+
+		if query:find("pullRequests(first:", 1, true) then
+			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
+		elseif query:find("isRequired", 1, true) then
+			jobQueries += 1
+			return testing.result(
+				true,
+				[[{"data":{"c1":{"pullRequest":{"commits":{"nodes":[{"commit":{"statusCheckRollup":{"contexts":{"nodes":[{"__typename":"CheckRun","name":"docs","conclusion":"FAILURE","isRequired":false},{"__typename":"CheckRun","name":"test","conclusion":"SUCCESS","isRequired":true}]}}}}]}}}}}]]
+			)
+		end
+
+		return testing.result(
+			true,
+			[[{"data":{"p1":{"pullRequest":{"number":341,"title":"t","url":"u","state":"OPEN","isDraft":true,"author":{"login":"vocksel"},"updatedAt":"now","additions":1,"deletions":1,"reviewRequests":{"totalCount":0},"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"FAILURE","count":1},{"state":"SUCCESS","count":1}]}}}}]}}}}}]]
+		)
+	end, false)
+	local pull = fetched.pulls["vocksel/orion#341"]
+
+	assert.eq(jobQueries, 1)
+	assert.eq(pull and pull.checks, "SUCCESS")
+	assert.eq(pull and pull.failedChecks and pull.failedChecks[1].optional, true)
 end)
