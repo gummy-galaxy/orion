@@ -7,9 +7,12 @@ local task = require("@std/task")
 
 local context = require("@root/cli/context")
 local getRunningRuntime = require("@root/server/getRunningRuntime")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local getWorkspaces = require("@root/store/getWorkspaces")
 local isProcessAlive = require("@root/server/isProcessAlive")
+local loadDoc = require("@root/store/loadDoc")
+local readFocus = require("@root/store/readFocus")
 local readRuntime = require("@root/server/readRuntime")
-local store = require("@root/store")
 local types = require("@root/types")
 
 type Context = context.Context
@@ -37,7 +40,7 @@ local function chooseCanvas(options: Context, ids: { string }): string
 	else
 		table.insert(candidates, options.workspace)
 
-		for _, entry in store.getWorkspaces(options.root).workspaces do
+		for _, entry in getWorkspaces(options.root).workspaces do
 			if entry.name ~= options.workspace then
 				table.insert(candidates, entry.name)
 			end
@@ -49,7 +52,7 @@ local function chooseCanvas(options: Context, ids: { string }): string
 	for _, name in candidates do
 		local present: { [string]: boolean } = {}
 
-		for _, node in store.load(store.getWorkspaceDir(options.root, name)).nodes do
+		for _, node in loadDoc(getWorkspaceDir(options.root, name)).nodes do
 			present[node.id] = true
 		end
 
@@ -110,7 +113,7 @@ end
 -- The focus the app reports once it has shown the ids, or nil if it never reports them. Older reports don't count.
 local function confirmReveal(dir: string, ids: { string }, requestedAt: string): Focus?
 	for _ = 1, CONFIRM_ATTEMPTS do
-		local focus = store.readFocus(dir)
+		local focus = readFocus(dir)
 
 		if focus and focus.updatedAt and focus.updatedAt >= requestedAt then
 			local selected: { [string]: boolean } = {}
@@ -157,7 +160,7 @@ return table.freeze({
 
 		local body =
 			json.serialize(json.object({ canvas = canvas, ids = list, selectOnly = parser:has("select-only") }))
-		local dir = store.getWorkspaceDir(options.root, canvas)
+		local dir = getWorkspaceDir(options.root, canvas)
 		local requestedAt = options.now()
 		local launched = false
 		local accepted = false

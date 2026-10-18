@@ -1,6 +1,7 @@
 local test = require("@std/test")
 
-local store = require("@root/store")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local runTransaction = require("@root/store/runTransaction")
 local testing = require("@root/testing")
 
 local function failure(run, args: { string }, runner): string
@@ -47,7 +48,7 @@ end)
 test.case("reveal finds an item on another canvas before it opens the app", function(assert)
 	local root, run = testing.createHarness("reveal-other-canvas")
 	run({ "canvas", "create", "planning" })
-	store.transaction(store.getWorkspaceDir(root, "planning"), function(doc)
+	runTransaction(getWorkspaceDir(root, "planning"), function(doc)
 		table.insert(doc.nodes, testing.task("plan", "Plan the release", "todo"))
 	end)
 	local launches = 0

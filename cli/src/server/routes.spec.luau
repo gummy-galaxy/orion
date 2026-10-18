@@ -479,7 +479,7 @@ local function createRevealRouter(name: string, openClients: number)
 			return json.object({ state = "idle" })
 		end,
 	}, function() end, nil, hub)
-	store.write(store.getWorkspaceDir(root, "default"), testing.createDoc({ testing.task("ci", "Ship it", "todo") }))
+	writeDoc(getWorkspaceDir(root, "default"), testing.createDoc({ testing.task("ci", "Ship it", "todo") }))
 	return root, router, published
 end
 
@@ -501,8 +501,8 @@ end)
 
 test.case("reveal publishes to the open app and switches to the item's canvas", function(assert)
 	local root, router, published = createRevealRouter("routes-reveal-switch", 1)
-	store.createWorkspace(root, "planning", "Planning")
-	store.write(store.getWorkspaceDir(root, "planning"), testing.createDoc({ testing.group("plan", "Plan") }))
+	createWorkspace(root, "planning", "Planning")
+	writeDoc(getWorkspaceDir(root, "planning"), testing.createDoc({ testing.group("plan", "Plan") }))
 	local response = router.handle(
 		createRequest("POST", "/api/reveal", json.object({ canvas = "planning", ids = { "plan" }, selectOnly = true }))
 	)

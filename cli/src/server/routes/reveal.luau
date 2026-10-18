@@ -2,8 +2,10 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 
 local getStringField = require("@root/getStringField")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local loadDoc = require("@root/store/loadDoc")
 local shared = require("@root/server/routes/shared")
-local store = require("@root/store")
+local useWorkspace = require("@root/store/useWorkspace")
 
 type Response = shared.Response
 
@@ -43,7 +45,7 @@ function reveal.handle(
 
 		local present: { [string]: boolean } = {}
 
-		for _, node in store.load(store.getWorkspaceDir(root, canvas)).nodes do
+		for _, node in loadDoc(getWorkspaceDir(root, canvas)).nodes do
 			present[node.id] = true
 		end
 
@@ -59,7 +61,7 @@ function reveal.handle(
 		end
 
 		if canvas ~= getActive() then
-			store.useWorkspace(root, canvas)
+			useWorkspace(root, canvas)
 			switchTo(canvas)
 		end
 
