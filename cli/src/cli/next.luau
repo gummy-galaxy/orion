@@ -2,8 +2,8 @@ local cli = require("@batteries/cli")
 
 local context = require("@root/cli/context")
 local graph = require("@root/graph")
+local loadDoc = require("@root/store/loadDoc")
 local sortTasks = require("@root/cli/sortTasks")
-local store = require("@root/store")
 local writeItems = require("@root/cli/writeItems")
 
 type Context = context.Context
@@ -15,7 +15,7 @@ return table.freeze({
 	end,
 
 	run = function(_parser: cli.Parser, options: Context)
-		local doc = store.load(options.dir)
+		local doc = loadDoc(options.dir)
 		local derived = graph.derive(doc, options.now())
 		local items = sortTasks(doc, derived, function(item)
 			local status = derived.status[item.id]

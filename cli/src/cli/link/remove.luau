@@ -5,7 +5,7 @@ local context = require("@root/cli/context")
 local getRequired = require("@root/cli/getRequired")
 local graph = require("@root/graph")
 local resolveId = require("@root/query/resolveId")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 
@@ -19,7 +19,7 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local from, to = getRequired(parser, "from"), getRequired(parser, "to")
 
-		store.transaction(options.dir, function(doc)
+		runTransaction(options.dir, function(doc)
 			from, to = resolveId(doc, from), resolveId(doc, to)
 			graph.unlink(doc, from, to)
 		end)

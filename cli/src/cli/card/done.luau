@@ -7,7 +7,7 @@ local isBatchEdit = require("@root/cli/isBatchEdit")
 local requireItem = require("@root/cli/requireItem")
 local resolveId = require("@root/query/resolveId")
 local runBatchEdit = require("@root/cli/runBatchEdit")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 
@@ -24,7 +24,7 @@ return table.freeze({
 		end
 
 		local id: string
-		local doc = store.transaction(options.dir, function(doc)
+		local doc = runTransaction(options.dir, function(doc)
 			id = resolveId(doc, parser:variadics()[1])
 			requireItem(doc, id)
 			graph.setFields(doc, id, { status = "done" })

@@ -2,10 +2,13 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local collectSources = require("@root/ingest/collectSources")
+local decodeDoc = require("@root/store/decodeDoc")
+local encodeDoc = require("@root/store/encodeDoc")
 local findRef = require("@root/refs/findRef")
+local loadDoc = require("@root/store/loadDoc")
 local placeRecords = require("@root/ingest/placeRecords")
-local store = require("@root/store")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 local NOW = "2026-10-04T00:00:00Z"
 
@@ -63,8 +66,8 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 	assert.eq(#doc.links, 2)
 	assert.eq(doc.links[1].origin, "mention")
 	local dir = testing.directory("mention-links")
-	store.write(dir, doc)
-	assert.eq(store.load(dir).links[1].origin, "mention")
+	writeDoc(dir, doc)
+	assert.eq(loadDoc(dir).links[1].origin, "mention")
 	assert.eq(doc.nodes[1].id, "unsorted")
 	assert.eq(doc.nodes[1].data.layout, "refit")
 	local count = #doc.nodes
@@ -266,7 +269,7 @@ test.case("hop observes GitHub cards collected later in source configuration", f
 end)
 
 test.case("hop attaches worktree activity to migrated pull cards", function(assert)
-	local doc = store.decode(
+	local doc = decodeDoc(
 		[[{"version":1,"settings":{"sources":[{"id":"gh-flipbook-labs","kind":"github","host":"github.com","owners":["flipbook-labs"]},{"id":"hop","kind":"hop","command":["hop"]}]},"nodes":[{"id":"st-161","type":"task","position":{"x":24,"y":240},"data":{"label":"Batch matching discovery queries","status":"done","kind":"task","itemKind":"pr","sources":[{"kind":"github-pr","repo":"storyteller","number":161,"branch":"batch-discovery-queries","state":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/161"}}]}},{"id":"st-162","type":"task","position":{"x":24,"y":150},"data":{"label":"Reference-count Storyteller consumers","status":"done","kind":"task","itemKind":"pr","sources":[{"kind":"github-pr","repo":"storyteller","number":162,"branch":"reference-count-storyteller-runtime","state":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/162"}}]}}]}]]
 	)
 	for _, branch in { "batch-discovery-queries", "reference-count-storyteller-runtime" } do
@@ -288,7 +291,7 @@ test.case("hop attaches worktree activity to migrated pull cards", function(asse
 	local report = placeRecords(doc, collectSources(doc, runHop, "2026-10-09T01:30:00Z", "hop"))
 	assert.eq(report.sources[1].updated, 2)
 
-	doc = store.decode(store.encode(doc))
+	doc = decodeDoc(encodeDoc(doc))
 
 	for index = 1, 2 do
 		local item = doc.nodes[index]

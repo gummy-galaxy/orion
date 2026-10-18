@@ -3,11 +3,11 @@ local findExisting = require("@root/import/findExisting")
 local getSince = require("@root/import/getSince")
 local graph = require("@root/graph")
 local importTypes = require("@root/import/types")
+local loadDoc = require("@root/store/loadDoc")
 local lookupRecords = require("@root/import/lookupRecords")
 local resolveId = require("@root/query/resolveId")
 local resolveInputs = require("@root/import/resolveInputs")
 local runEdit = require("@root/cli/runEdit")
-local store = require("@root/store")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -28,7 +28,7 @@ export type Options = {
 -- Imports every ref in one transaction. Refs that don't resolve or can't be looked up fail alone; refs already on the canvas
 -- are skipped and keep their card. The lookups run before the write, so the transaction stays short.
 local function importRefs(inputs: { string }, options: Options): Report
-	local doc = store.load(options.dir)
+	local doc = loadDoc(options.dir)
 	local groupId = if options.groupId then resolveId(doc, options.groupId) else nil
 
 	if groupId then

@@ -1,8 +1,9 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local store = require("@root/store")
+local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 local function report(output: string): json.Object
 	return json.asObject(json.deserialize(output) :: json.Value) :: json.Object
@@ -10,7 +11,7 @@ end
 
 local function chainDir(name: string): string
 	local dir = testing.directory(name)
-	store.write(
+	writeDoc(
 		dir,
 		testing.createDoc({
 			testing.task("a", "A", "todo"),
@@ -30,12 +31,12 @@ test.case("link keeps two-item output and writes a chain in one revision", funct
 	assert.eq(preview.baseRevision, 1)
 	assert.eq(preview.revision, 1)
 	assert.eq(#(json.asArray(preview.links) :: json.Array), 2)
-	assert.eq(#store.load(dir).links, 1)
+	assert.eq(#loadDoc(dir).links, 1)
 	assert.strContains(
 		testing.run(dir, { "link", "add", "b", "c", "d", "--if-revision", "1" }),
 		"Linked 2 pairs at revision 1 → 2"
 	)
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(doc.revision, 2)
 	assert.eq(#doc.links, 3)
 	assert.eq(doc.links[3].to, "d")
@@ -52,8 +53,8 @@ test.case("invalid link chain and stale revision leave every edge untouched", fu
 	assert.throwsWith("revision changed: expected 2, current 0", function()
 		testing.run(dir, { "link", "add", "a", "b", "--if-revision", "2" })
 	end)
-	assert.eq(#store.load(dir).links, 0)
-	assert.eq(store.load(dir).revision, 0)
+	assert.eq(#loadDoc(dir).links, 0)
+	assert.eq(loadDoc(dir).revision, 0)
 end)
 
 test.case("link reuses an existing pair without duplicating it", function(assert)
@@ -61,7 +62,7 @@ test.case("link reuses an existing pair without duplicating it", function(assert
 	testing.run(dir, { "link", "add", "a", "b" })
 	local applied = report(testing.run(dir, { "link", "add", "a", "b", "c", "--related", "--json" }))
 	assert.eq(applied.revision, 2)
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(#doc.links, 2)
 	assert.eq(doc.links[1].kind, "related")
 	assert.eq(doc.links[2].kind, "related")
@@ -74,12 +75,12 @@ test.case("insert previews and preserves the replaced link kind", function(asser
 	assert.eq(preview.action, "insert")
 	assert.eq(preview.baseRevision, 1)
 	assert.eq(preview.revision, 1)
-	assert.eq(#store.load(dir).links, 1)
+	assert.eq(#loadDoc(dir).links, 1)
 	assert.strContains(
 		testing.run(dir, { "link", "insert", "b", "--between", "a", "c", "--if-revision", "1" }),
 		"Inserted b between a and c at revision 1 → 2"
 	)
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(doc.revision, 2)
 	assert.eq(#doc.links, 2)
 	assert.eq(doc.links[1].from, "a")
@@ -99,8 +100,8 @@ test.case("insert refuses absent and self links without writing", function(asser
 	assert.throwsWith("an item can't link to itself", function()
 		testing.run(dir, { "link", "insert", "a", "--between", "a", "c" })
 	end)
-	assert.eq(store.load(dir).revision, 1)
-	assert.eq(#store.load(dir).links, 1)
+	assert.eq(loadDoc(dir).revision, 1)
+	assert.eq(#loadDoc(dir).links, 1)
 end)
 
 test.case("remove reconnects cards and previews batch selections", function(assert)
@@ -111,12 +112,12 @@ test.case("remove reconnects cards and previews batch selections", function(asse
 	assert.eq(preview.baseRevision, 1)
 	assert.eq(preview.revision, 1)
 	assert.eq(#(json.asArray(preview.items) :: json.Array), 2)
-	assert.eq(#store.load(dir).nodes, 4)
+	assert.eq(#loadDoc(dir).nodes, 4)
 	assert.strContains(
 		testing.run(dir, { "node", "remove", "b", "c", "--reconnect", "--if-revision", "1" }),
 		"Removed 2 items at revision 1 → 2"
 	)
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(doc.revision, 2)
 	assert.eq(#doc.nodes, 2)
 	assert.eq(#doc.links, 1)
@@ -134,7 +135,7 @@ test.case("remove reconnect refuses a branching card before any target is remove
 	assert.throwsWith('"b" needs at most one incoming and one outgoing link to reconnect', function()
 		testing.run(dir, { "node", "remove", "--where", [[label = "B"]], "--reconnect" })
 	end)
-	local doc = store.load(dir)
+	local doc = loadDoc(dir)
 	assert.eq(doc.revision, 2)
 	assert.eq(#doc.nodes, 4)
 	assert.eq(#doc.links, 3)
@@ -144,5 +145,5 @@ test.case("remove without reconnect keeps the original card behavior", function(
 	local dir = chainDir("remove-plain")
 	testing.run(dir, { "link", "add", "a", "b", "c" })
 	assert.eq(testing.run(dir, { "node", "remove", "b" }), "Removed b")
-	assert.eq(#store.load(dir).links, 0)
+	assert.eq(#loadDoc(dir).links, 0)
 end)

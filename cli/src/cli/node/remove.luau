@@ -6,7 +6,7 @@ local graph = require("@root/graph")
 local isBatchEdit = require("@root/cli/isBatchEdit")
 local resolveId = require("@root/query/resolveId")
 local runBatchEdit = require("@root/cli/runBatchEdit")
-local store = require("@root/store")
+local runTransaction = require("@root/store/runTransaction")
 
 type Context = context.Context
 
@@ -25,7 +25,7 @@ return table.freeze({
 
 		local id: string
 
-		store.transaction(options.dir, function(doc)
+		runTransaction(options.dir, function(doc)
 			id = resolveId(doc, parser:variadics()[1])
 			graph.remove(doc, id)
 		end)
