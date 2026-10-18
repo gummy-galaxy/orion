@@ -81,6 +81,7 @@ export const derived: Derived = {
   canvas: { total: 2, done: 0, ready: 0, blocked: 1, outside: 0 },
   snoozed: {},
   attention: {},
+  pulls: {},
 }
 export const work = buildWork(toServerFacts(derived), [task, blocker, note, group], links)
 export const nodeMap = new Map<string, AppNode>([task, blocker, note, group].map((node) => [node.id, node]))

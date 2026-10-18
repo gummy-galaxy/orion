@@ -6,6 +6,8 @@ import {
   isTask,
   type AppNode,
   type Link,
+  type PullReadiness,
+  type RefChecks,
   type SourceRef as RefData,
   type TaskNode,
   type ViewStatus,
@@ -36,7 +38,18 @@ export type Derived = {
   snoozed: Record<string, string>
   /** Open work where it's your move. Blocked work waits, and snoozed work is set aside until it wakes. */
   attention: Record<string, true>
+  /** Pull request facts for cards where a CI job snooze leaves out a failure, shown over the card's own. */
+  pulls: Record<string, SnoozedFacts>
 }
+
+/** A failed CI job a snooze leaves out on a card, and when the snooze ends if it's timed. */
+export type SnoozedJob = { name: string; until?: string }
+
+/**
+ * A card's pull request facts with its snoozed CI jobs left out, so a card whose only failures are snoozed reads as
+ * running or passing. `wakesAt` is when the soonest timed snooze ends and the facts change again.
+ */
+export type SnoozedFacts = { readiness?: PullReadiness; checks?: RefChecks; snoozed: SnoozedJob[]; wakesAt?: string }
 
 export type Actions = {
   reflow: (groupId: string) => void
@@ -166,6 +179,7 @@ export type ServerFacts = {
   canvas: GroupStats
   snoozed: Map<string, string>
   attention: Set<string>
+  pulls: Map<string, SnoozedFacts>
 }
 
 const NO_PROGRESS: GroupStats = { total: 0, done: 0, ready: 0, blocked: 0, outside: 0 }
@@ -181,6 +195,7 @@ export function toServerFacts(derived: Derived | null): ServerFacts {
     canvas: derived?.canvas ?? NO_PROGRESS,
     snoozed: new Map(Object.entries(derived?.snoozed ?? {})),
     attention: new Set(Object.keys(derived?.attention ?? {})),
+    pulls: new Map(Object.entries(derived?.pulls ?? {})),
   }
 }
 

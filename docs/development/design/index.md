@@ -6,15 +6,15 @@ A study explores an idea and recommends what to keep. It isn't a promise that th
 
 ## Threads
 
+- [Canvas and layout](/development/design/canvas-and-layout): layout explorations, window chrome, system diagrams, and card details.
+- [Card skins](/development/design/cards): each way a card can be drawn, embedded live from Storybook.
+- [Companion](/development/design/companion): the star guide that perches on the card nearest the pointer.
 - [Gummy Galaxy and Orion](/development/design/gummy-galaxy-and-orion): the Luau-centered vision around Orion and the hands-on canvas ideas it inspires.
 - [Gummy Galaxy concept art](/development/design/gummy-galaxy-concept-art): Gummy Galaxy drawn as a game, with its worlds, their emblems, the companion, and the sources to render them again.
 - [Logo](/development/design/logo): the icon's studies, its palettes, and the sources for drawing it again.
-- [Themes and skins](/development/design/themes-and-skins): the vibrant theme, swappable themes, and card skins.
-- [Card skins](/development/design/cards): each way a card can be drawn, embedded live from Storybook.
-- [Trading cards](/development/design/trading-cards): the card skin, its rarity and kinds, and its compact form at far zoom.
-- [Companion](/development/design/companion): the star guide that perches on the card nearest the pointer.
 - [Motion and feel](/development/design/motion-and-feel): what moves and what stays still, and the effects for finished work.
-- [Canvas and layout](/development/design/canvas-and-layout): layout explorations, window chrome, system diagrams, and card details.
+- [Themes and skins](/development/design/themes-and-skins): the vibrant theme, swappable themes, and card skins.
+- [Trading cards](/development/design/trading-cards): the card skin, its rarity and kinds, and its compact form at far zoom.
 
 ## Live components
 

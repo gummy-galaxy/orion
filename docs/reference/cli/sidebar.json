@@ -84,6 +84,10 @@
     "link": "/reference/cli/focus"
   },
   {
+    "text": "reveal",
+    "link": "/reference/cli/reveal"
+  },
+  {
     "text": "help",
     "link": "/reference/cli/help"
   }

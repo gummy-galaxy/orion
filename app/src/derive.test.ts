@@ -132,6 +132,7 @@ describe('buildWork', () => {
     canvas: { total: 2, done: 0, ready: 1, blocked: 1, outside: 0 },
     snoozed: { b: '2026-10-12T17:00:00Z' },
     attention: { a: true },
+    pulls: { a: { readiness: 'passing', checks: { state: 'passing' }, snoozed: [{ name: 'docs' }] } },
   }
 
   it('reads the server values for each card and group', () => {
@@ -147,6 +148,7 @@ describe('buildWork', () => {
     expect(work.snoozed.get('b')).toBe('2026-10-12T17:00:00Z')
     expect(work.canvas).toEqual({ total: 2, done: 0, ready: 1, blocked: 1, outside: 0 })
     expect([...work.attention]).toEqual(['a'])
+    expect(work.pulls.get('a')?.readiness).toBe('passing')
   })
 
   it('keeps blocking links for hover tracing', () => {

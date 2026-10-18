@@ -1,6 +1,6 @@
 # Contributing
 
-Read [the charter](docs/development/charter.md) for where Orion is headed and [the decisions log](docs/development/decisions.md) for the calls made along the way. [`AGENTS.md`](AGENTS.md) holds the code style and pull request conventions that people and agents both follow.
+Read [the charter](docs/development/charter.md) for where Orion is headed and [the decisions log](docs/development/decisions.md) for the calls made along the way. [`AGENTS.md`](AGENTS.md) indexes the guides in [`agents/`](agents/), which hold the code style and pull request conventions that people and agents both follow.
 
 ## Toolchain
 
