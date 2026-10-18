@@ -9,7 +9,7 @@ Each module exports one function and has its spec beside it as `<module>.spec.lu
 In `src/`:
 
 - `cli/`: commands. `cli/init.luau` registers and dispatches them, and each command module defines its own options.
-- `cli/mcp/`: the MCP server. `cli/mcp/tools.luau` lists every tool and the command it runs.
+- `cli/mcp/`: the MCP server. `cli/mcp/catalog/buildTools.luau` makes a tool for every command from its `mcp` declaration and its options, which `cli/addArgument.luau` gives value types.
 - `cli/describeCommands.luau`: describes every command for the generated reference, which the root `.lute/docs.luau` writes, and for `orion help --all`, which `cli/formatAllHelp.luau` prints.
 - `store/`: the canvas list, the data file and its backups, and focus reports. `runWithLock` is the one place that holds a canvas's lock, and `runTransaction` and `writeDoc` are the only writers of the data file.
 - `graph/`: derived status and leverage in `graph/derive.luau`, and every edit the commands make, one function per module. Shared types are in `graph/types.luau` and card and group sizes in `graph/sizes.luau`.

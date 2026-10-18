@@ -8,7 +8,7 @@ Orion is a canvas of work items, notes, and groups linked by dependencies. Use t
 
 ## Commands
 
-Run `orion help --all` before working with the canvas. It prints every command and subcommand with its arguments, options, and help, from the same definitions the CLI parses, so it can't fall behind. `orion help <command>` prints one command, and `orion help --all --json` prints the listing as JSON. This guide covers what help can't: which command to reach for, and how they fit together. When you add or change a command, put its syntax and what its options mean in its help text rather than here.
+Run `orion help --all` before working with the canvas. It prints every command and subcommand with its arguments, options, and help, from the same definitions the CLI parses, so it can't fall behind. `orion help <command>` prints one command, and `orion help --all --json` prints the listing as JSON. This guide covers what help can't: which command to reach for, and how they fit together. When you add or change a command, put its syntax and what its options mean in its help text rather than here. The same definition is its MCP tool: give the command an `mcp` declaration beside `define`, and define an option whose value isn't plain text, such as an id, an enum, or an integer, with `addArgument` and its type. `lute test` fails for a command that declares no tool.
 
 ## Reading the canvas
 

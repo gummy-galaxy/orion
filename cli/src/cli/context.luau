@@ -1,4 +1,7 @@
 local cli = require("@batteries/cli")
+
+local cliTypes = require("@root/cli/types")
+local describeCommands = require("@root/cli/describeCommands")
 local types = require("@root/types")
 
 export type Dependencies = {
@@ -24,12 +27,16 @@ export type Context = {
 	exit: (code: number) -> (),
 	-- Runs another CLI command in this process, for commands such as mcp that relay to the CLI.
 	execute: (argv: { string }, options: Dependencies?) -> (),
+	-- Describes every command, for commands such as mcp that build on the command table.
+	describe: () -> describeCommands.CommandDescription,
 }
 
 export type Command = {
 	read help: string,
 	read define: (cli.Parser) -> (),
 	read run: (cli.Parser, Context) -> (),
+	-- Every command with no subcommands declares its MCP tool, or why it has none.
+	read mcp: cliTypes.ToolDeclaration?,
 }
 
 return nil
