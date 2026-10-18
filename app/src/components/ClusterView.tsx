@@ -21,6 +21,7 @@ import { CoverImage } from './CoverImage'
 import { Markdown } from './Markdown'
 import { Ring } from './Ring'
 import { FoldPreview } from './FoldPreview'
+import { GroupResizeHandles } from './GroupResizeHandles'
 
 export const ClusterView = memo(function ClusterView({ id, data, width, height }: NodeProps<ClusterNode>) {
   const actions = useContext(ActionsContext)!
@@ -125,6 +126,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
       )}
       {!collapsed && isEmpty && <span className="cluster-empty">Empty group</span>}
       {!collapsed && <SourceBadges sources={sources} />}
+      {!collapsed && <GroupResizeHandles id={id} />}
       <Handle type="source" position={Position.Right} isConnectable={false} />
     </div>
   )

@@ -134,6 +134,7 @@ import { SnapGuides } from './SnapGuides'
 import { useCompanionTargets } from '../useCompanionTargets'
 import { useNodeSnapping } from '../useNodeSnapping'
 import { useUndo } from '../useUndo'
+import { useGroupResize } from '../resize/useGroupResize'
 import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
@@ -548,7 +549,12 @@ export function Canvas() {
     canRedo,
     rebase: rebaseHistory,
     reset: resetHistory,
-  } = useUndo({ doc: { nodes, links, stickers, stickerLoadout: loadout }, busy: nodes.some((node) => node.dragging), getDoc, apply: showStep })
+  } = useUndo({
+    doc: { nodes, links, stickers, stickerLoadout: loadout },
+    busy: nodes.some((node) => node.dragging || node.resizing),
+    getDoc,
+    apply: showStep,
+  })
 
   // A group's selection waits until a second click, which would open it, can no longer arrive.
   const plainClick = useRef<'defer' | null>(null)
@@ -893,8 +899,8 @@ export function Canvas() {
       queue.current = queue.current.then(async () => {
         if (epoch !== workspaceEpoch.current) return
 
-        // A drag keeps moving until it ends, and its edits commit then.
-        if (latest.current.nodes.some((node) => node.dragging)) return
+        // A drag or a resize keeps moving until it ends, and its edits commit then.
+        if (latest.current.nodes.some((node) => node.dragging || node.resizing)) return
 
         const snapshot = storedOf(latest.current)
         const print = fingerprint(snapshot)
@@ -1770,6 +1776,8 @@ export function Canvas() {
 
   const getCurrentNodes = useCallback(() => latest.current.nodes, [])
   const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo, cardSize })
+  const getLinks = useCallback(() => latest.current.links, [])
+  const resizeGroup = useGroupResize({ getCurrentNodes, getLinks, setNodes, cardSize })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
       // A plain press that selects a card replaces the stickers picked alongside it.
@@ -2179,8 +2187,9 @@ export function Canvas() {
         setNodes((latestNodes) => clearCelebrations(latestNodes, cleared))
         landStamps(delays)
       },
+      resizeGroup,
     }),
-    [tweenTo, openRoot, cardSize, setNodes, landStamps, atomStore],
+    [tweenTo, openRoot, cardSize, setNodes, landStamps, atomStore, resizeGroup],
   )
 
   const arrangeGroup = useCallback(

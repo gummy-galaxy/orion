@@ -82,10 +82,10 @@ export function grid(sizes: Size[], columns: number, gap: number): { at: Point[]
 
 /**
  * Cuts a left-to-right layout into strips of at most `WRAP` layers, each no wider than `ROW_WIDTH` unless a single
- * layer is wider on its own, and stacks them top to bottom, so a long chain reads like lines of text. Returns null
- * when the layout already fits.
+ * layer is wider on its own, and stacks them top to bottom, so a long chain reads like lines of text. A `rowWidth`
+ * replaces both limits, as when a person sized the group. Returns null when the layout already fits.
  */
-export function wrapLayers(boxes: Map<string, Box>, gap: number): Map<string, Box> | null {
+export function wrapLayers(boxes: Map<string, Box>, gap: number, rowWidth?: number): Map<string, Box> | null {
   const layers: { x: number; right: number; ids: string[] }[] = []
 
   for (const [id, box] of [...boxes].sort(([, a], [, b]) => a.x - b.x)) {
@@ -102,7 +102,10 @@ export function wrapLayers(boxes: Map<string, Box>, gap: number): Map<string, Bo
   for (const layer of layers) {
     const strip = strips[strips.length - 1]
 
-    if (strip && strip.length < WRAP && layer.right - strip[0].x <= ROW_WIDTH) strip.push(layer)
+    const fits =
+      rowWidth === undefined ? strip && strip.length < WRAP && layer.right - strip[0].x <= ROW_WIDTH : strip && layer.right - strip[0].x <= rowWidth
+
+    if (strip && fits) strip.push(layer)
     else strips.push([layer])
   }
 
@@ -184,8 +187,8 @@ function linkRoots(ids: string[], edges: Edge[]): Map<string, string> {
 }
 
 /** Wraps a linked block that runs too wide, then moves its top left corner to the origin. */
-function frameBlock(boxes: Map<string, Box>, gap: number): { boxes: Map<string, Box>; size: Size } {
-  const wrapped = wrapLayers(boxes, gap) ?? boxes
+function frameBlock(boxes: Map<string, Box>, gap: number, rowWidth?: number): { boxes: Map<string, Box>; size: Size } {
+  const wrapped = wrapLayers(boxes, gap, rowWidth) ?? boxes
   const frame = bounds([...wrapped.values()])
 
   return {
@@ -194,13 +197,27 @@ function frameBlock(boxes: Map<string, Box>, gap: number): { boxes: Map<string, 
   }
 }
 
+/** Where a flow puts each child, and the size of what it laid out. */
+type Arrangement = { positions: Map<string, Point> } & Size
+
+/** The most columns, at least one, that keep a grid of `sizes` within `maxWidth`. */
+function columnsWithin(sizes: Size[], maxWidth: number, gap: number): number {
+  for (let columns = sizes.length; columns > 1; columns--) if (grid(sizes, columns, gap).width <= maxWidth) return columns
+
+  return 1
+}
+
 /**
  * The default flow. Siblings that link to each other form a block, laid out by ELK's layered algorithm with two
  * limits on width: a run of more than `WRAP` interchangeable siblings is laid out as a grid of its own, and chains
  * longer than `WRAP` steps wrap onto further rows. Every block and every sibling with no links then goes into one
  * grid, in reading order, so unrelated pieces line up in rows and columns.
+ *
+ * ELK runs once, here. The arrangement it returns places the blocks for a width: without one, the grid's columns
+ * follow the square root of its count; with one, chains wrap and the grid takes as many columns as fit in it. That
+ * part is quick, so a resize can try widths as it goes.
  */
-async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: CardSize): Promise<Map<string, Point>> {
+async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: CardSize): Promise<(maxWidth?: number) => Arrangement> {
   const ends = new Map(children.map((child) => [child.id, { in: [] as string[], out: [] as string[] }]))
 
   for (const [source, target] of edges) {
@@ -292,47 +309,47 @@ async function flow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: Card
   }
 
   const earliest = (ids: string[]) => ids.flatMap((id) => members.get(id)!).reduce((first, node) => (reading(node, first) < 0 ? node : first))
-  const shapes: { ids: string[]; first: AppNode; boxes: Map<string, Box>; size: Size }[] = []
-
-  for (const part of parts.values()) {
-    const ids = [...part.keys()]
-
-    shapes.push({ ids, first: earliest(ids), ...frameBlock(part, gap.layer) })
-  }
+  const blocks = [...parts.values()].map((part) => ({ ids: [...part.keys()], first: earliest([...part.keys()]), part }))
+  const singles: { ids: string[]; first: AppNode; boxes: Map<string, Box>; size: Size }[] = []
 
   for (const id of members.keys()) {
     if (linked.has(id)) continue
 
     const size = sizes.get(id)!
 
-    shapes.push({ ids: [id], first: earliest([id]), boxes: new Map([[id, { x: 0, y: 0, ...size }]]), size })
+    singles.push({ ids: [id], first: earliest([id]), boxes: new Map([[id, { x: 0, y: 0, ...size }]]), size })
   }
 
-  shapes.sort((a, b) => reading(a.first, b.first))
+  return (maxWidth) => {
+    const shapes = [...blocks.map((block) => ({ ids: block.ids, first: block.first, ...frameBlock(block.part, gap.layer, maxWidth) })), ...singles]
 
-  const laidOut = grid(
-    shapes.map((shape) => shape.size),
-    Math.ceil(Math.sqrt(shapes.length)),
-    gap.component,
-  )
-  const positions = new Map<string, Point>()
+    shapes.sort((a, b) => reading(a.first, b.first))
 
-  shapes.forEach((shape, i) => {
-    for (const id of shape.ids) {
-      const box = shape.boxes.get(id)!
+    const shapeSizes = shapes.map((shape) => shape.size)
+    const laidOut = grid(
+      shapeSizes,
+      maxWidth === undefined ? Math.ceil(Math.sqrt(shapes.length)) : columnsWithin(shapeSizes, maxWidth, gap.component),
+      gap.component,
+    )
+    const positions = new Map<string, Point>()
 
-      for (const member of members.get(id)!) {
-        const offset = offsetOf.get(member.id) ?? { x: 0, y: 0 }
+    shapes.forEach((shape, i) => {
+      for (const id of shape.ids) {
+        const box = shape.boxes.get(id)!
 
-        positions.set(member.id, {
-          x: laidOut.at[i].x + box.x + offset.x,
-          y: laidOut.at[i].y + box.y + offset.y,
-        })
+        for (const member of members.get(id)!) {
+          const offset = offsetOf.get(member.id) ?? { x: 0, y: 0 }
+
+          positions.set(member.id, {
+            x: laidOut.at[i].x + box.x + offset.x,
+            y: laidOut.at[i].y + box.y + offset.y,
+          })
+        }
       }
-    }
-  })
+    })
 
-  return positions
+    return { positions, width: laidOut.width, height: laidOut.height }
+  }
 }
 
 /**
@@ -351,25 +368,31 @@ export function layoutOrder(nodes: AppNode[]): AppNode[] {
 }
 
 /**
- * Lays out the direct children of one group (or the top level when `groupId` is undefined) the way the group asks
- * to be arranged. Links between deeper descendants are lifted to the child that contains them, so nested groups are
- * placed as single boxes.
+ * A group's layout, worked out once and placed for any width. `measure` gives the size the group would take with its
+ * contents laid out within `maxWidth`, and `place` lays them out that way. At the top level the size is the contents'.
  */
-export async function reflow(
+export type ReflowPlan = { measure: (maxWidth?: number) => Size; place: (maxWidth?: number) => AppNode[] }
+
+/**
+ * Plans the layout of the direct children of one group (or the top level when `groupId` is undefined) the way the
+ * group asks to be arranged. Links between deeper descendants are lifted to the child that contains them, so nested
+ * groups are placed as single boxes. Returns null for a custom group or one with nothing in it.
+ */
+export async function planReflow(
   nodes: AppNode[],
   links: Link[],
   groupId: string | undefined,
   cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
-): Promise<AppNode[]> {
+): Promise<ReflowPlan | null> {
   const nodeMap = byId(nodes)
   const group = groupId ? nodeMap.get(groupId) : undefined
   const arrange = group && isCluster(group) ? (group.data.arrange ?? 'auto') : 'auto'
 
-  if (arrange === 'custom') return nodes
+  if (arrange === 'custom') return null
 
   const children = nodes.filter((node) => node.parentId === groupId)
 
-  if (!children.length) return nodes
+  if (!children.length) return null
 
   const lift = (id: string): string | null => {
     let current: string | undefined = id
@@ -403,17 +426,60 @@ export async function reflow(
     edges.push(source === link.from && target === link.to && link.label ? [source, target, link.label] : [source, target])
   }
 
-  const positions = await flow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize)
+  const arrangeFor = await planFlow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize)
   const offset = groupId ? { x: GROUP_PADDING, y: groupHeaderHeight(group && isCluster(group) ? group.data : undefined) } : { x: 0, y: 0 }
+  const measured = new Map<number | undefined, Arrangement>()
 
-  return normalize(
-    nodes.map((node) => {
-      const position = positions.get(node.id)
+  const arrangement = (maxWidth?: number) => {
+    const known = measured.get(maxWidth)
 
-      return position ? { ...node, position: { x: position.x + offset.x, y: position.y + offset.y } } : node
-    }),
-    cardSize,
-  )
+    if (known) return known
+
+    const fresh = arrangeFor(maxWidth)
+
+    measured.set(maxWidth, fresh)
+
+    return fresh
+  }
+
+  return {
+    measure: (maxWidth) => {
+      const { width, height } = arrangement(maxWidth)
+
+      return groupId ? { width: width + GROUP_PADDING * 2, height: height + offset.y + GROUP_PADDING } : { width, height }
+    },
+    place: (maxWidth) => {
+      const { positions } = arrangement(maxWidth)
+
+      return normalize(
+        nodes.map((node) => {
+          const position = positions.get(node.id)
+
+          return position ? { ...node, position: { x: position.x + offset.x, y: position.y + offset.y } } : node
+        }),
+        cardSize,
+      )
+    },
+  }
+}
+
+/** The widest a group with a size lets its contents run. */
+export function sizedWidth(group: AppNode | undefined): number | undefined {
+  const size = group && isCluster(group) ? group.data.size : undefined
+
+  return size ? size.width - GROUP_PADDING * 2 : undefined
+}
+
+/** Lays out the direct children of one group, or the top level, as `planReflow` plans them, within the group's size. */
+export async function reflow(
+  nodes: AppNode[],
+  links: Link[],
+  groupId: string | undefined,
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): Promise<AppNode[]> {
+  const plan = await planReflow(nodes, links, groupId, cardSize)
+
+  return plan ? plan.place(sizedWidth(groupId ? nodes.find((node) => node.id === groupId) : undefined)) : nodes
 }
 
 // Group changes show at once with this geometry. Which items belong to a group is the server's rule, applied through operations.

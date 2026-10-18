@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { useReactFlow, type NodeChange } from '@xyflow/react'
 import { useSetAtom } from 'jotai'
-import { POP_DISTANCE, dropTarget, followEscape, reparent, startEscape, type Escape } from './escape'
+import { POP_DISTANCE, dropTarget, followEscape, landInside, reparent, startEscape, type Escape } from './escape'
 import { liftNodes, unliftNodes } from './lift'
 import { byId, isCluster, normalize, pruneEmptied, type AppNode } from './model'
 import { pushAside } from './pushAside'
@@ -71,11 +71,9 @@ export function useNodeSnapping({
 
         if (!session || !escape) return snapped
 
-        const followed = followEscape(snapped, escape, session.before, pop, cardSize)
+        session.escape = followEscape(snapped, escape, session.before, pop, cardSize)
 
-        session.escape = followed.escape
-
-        return followed.nodes
+        return snapped
       }
     },
     [reactFlow, cardSize],
@@ -166,9 +164,11 @@ export function useNodeSnapping({
             ),
           )
 
-        if (!origins.size && (session.free || event.ctrlKey || !draggedIds.length)) return setNodes(released)
-
-        const finished = finishDrag(currentNodes, origins, draggedIds, session.free || event.ctrlKey, thrown, cardSize)
+        const free = session.free || event.ctrlKey
+        const settled =
+          !origins.size && (free || !draggedIds.length) ? currentNodes : finishDrag(currentNodes, origins, draggedIds, free, thrown, cardSize)
+        // Work that stays in its group lands within it, so a drop never grows the group.
+        const finished = landInside(settled, session.ids, cardSize)
         const result = released(finished)
 
         if (finished !== currentNodes) tweenTo(result)

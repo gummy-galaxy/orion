@@ -21,9 +21,9 @@ const overlapsColumns = (a: Box, b: Box) => a.x < right(b) && b.x < right(a)
 /**
  * Moves siblings out of the way of boxes that grew or moved. A sibling that sat to the right of a box's earlier
  * extent, in the rows its new extent covers, moves right until the gap it had is back, up to the standard gap. One
- * that sat below, in the columns it covers, moves down the same way. Each sibling that moves pushes its own
- * neighbors in turn. Gaps are measured from `earlier`, so running this again changes nothing. Returns the boxes
- * that moved.
+ * that sat to the left moves left the same way, and ones above or below, in the columns it covers, move up or down.
+ * Each sibling that moves pushes its own neighbors in turn. Gaps are measured from `earlier`, so running this again
+ * changes nothing. Returns the boxes that moved.
  */
 function pushSiblings(boxes: Map<string, Box>, earlier: Map<string, Box>, movers: string[], gap: { x: number; y: number }): Set<string> {
   const pushed = new Set<string>()
@@ -44,10 +44,18 @@ function pushSiblings(boxes: Map<string, Box>, earlier: Map<string, Box>, movers
         const wanted = right(after) + Math.min(was.x - right(before), gap.x)
 
         if (other.x < wanted) shift = { x: wanted - other.x, y: 0 }
+      } else if (right(was) <= before.x && overlapsRows(other, after)) {
+        const wanted = after.x - Math.min(before.x - right(was), gap.x)
+
+        if (right(other) > wanted) shift = { x: wanted - right(other), y: 0 }
       } else if (was.y >= bottom(before) && overlapsColumns(other, after)) {
         const wanted = bottom(after) + Math.min(was.y - bottom(before), gap.y)
 
         if (other.y < wanted) shift = { x: 0, y: wanted - other.y }
+      } else if (bottom(was) <= before.y && overlapsColumns(other, after)) {
+        const wanted = after.y - Math.min(before.y - bottom(was), gap.y)
+
+        if (bottom(other) > wanted) shift = { x: 0, y: wanted - bottom(other) }
       }
 
       if (!shift.x && !shift.y) continue
@@ -62,8 +70,8 @@ function pushSiblings(boxes: Map<string, Box>, earlier: Map<string, Box>, movers
 }
 
 /**
- * Keeps a group that grew from `previous` to `next` from covering its neighbors. Siblings to its right or below move
- * aside, and each parent that grows as a result does the same at its own level, up to the top. Only a group that got
+ * Keeps a group that grew from `previous` to `next` from covering its neighbors. Siblings on the side it grew toward
+ * move aside, and each parent that grows as a result does the same at its own level, up to the top. Only a group that got
  * bigger pushes; one that was dragged somewhere else doesn't, and neither do nodes that only appear in `next`.
  * Returns `next` itself when nothing had to move.
  */
