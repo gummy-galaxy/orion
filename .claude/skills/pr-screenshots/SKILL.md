@@ -7,7 +7,7 @@ description: Capture before and after screenshots or videos of the Orion app and
 
 Every pull request that changes what the app shows gets before and after screenshots in its description. Skip pull requests whose changes can't be seen: CLI-only work, tests, tooling, docs, and refactors with no visible change.
 
-Capture both sides the same way: same data, window size, theme, and steps. Only the code should differ.
+Capture both sides the same way: same data, window size, theme, and steps. Only the code should differ. `capture.mjs` pins the Vibrant theme and Trading cards on both sides by default, so a branch from before they became the defaults renders the same as one after.
 
 ## 1. Pick what to show
 
@@ -104,7 +104,8 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
 - The image shows a cursor where the last pointer step acted: a ring at the point and a small mouse just below and to its right, where an arrow cursor would sit, with the pressed button filled in. Left clicks are blue, right clicks orange, middle clicks purple, and `--hover` a thin gray ring with no button pressed. It's drawn just before the capture and removed after, and it's skipped when the element it acted on is gone by then, such as a menu item that closed its menu. Prefer real pointer steps over `--eval` for clicks so the cursor shows what happened. When an `--eval` step does the clicking, add `--pointer <x>,<y>,<idle|left|right|middle>` after it to place the cursor. Use `--cursor off` only when the cursor would hide the change.
 - Page errors, console errors, and failed requests print to stderr during a take. Read them: one usually means a step didn't do what the image or video seems to show.
 - `--selector <css>` crops to the elements it matches, which suits menus, cards, and panels. Use `.react-flow__node` to frame every card on the canvas, not `.react-flow__nodes`, a layer the size of the canvas that starts at the canvas's origin rather than around its cards. The crop keeps 32 px of the page around the elements so shadows, borders, and nearby context stay in the frame. Raise `--padding` when the surroundings help explain the change, and never set it to 0: a crop flush with the element's edges reads as cut off.
-- `--theme light|dark` sets the color scheme. Defaults are 1440×900 at 2× scale.
+- `--appearance <theme>,<skin>` pins Orion's theme and card skin, `vibrant,trading` by default, on every side and branch. It sets them in browser storage before the page loads, over the theme and skin the data folder's settings hold, and in a Storybook iframe's `globals` unless the URL already sets them. Pass another pair, such as `--appearance classic,plain`, when the change is about a deprecated theme or skin, and `--appearance off` when it's about the defaults or Settings themselves, so each side shows what the app picks on its own. Both sides take the same value. The pin never writes to the data folder.
+- `--theme light|dark` sets the color scheme. `light` has no effect on Vibrant, which is dark only. Defaults are 1440×900 at 2× scale.
 - Raise `--delay` when the canvas is still animating or measuring groups.
 
 Getting around the canvas:

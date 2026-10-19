@@ -1,6 +1,6 @@
 # Themes
 
-A theme sets Orion's colors, type, spacing, and motion. Orion ships with Classic and Vibrant, and you can add your own as a theme file: a small JSON file of [token](/guide/tokens) values for the light and dark schemes. Pick a theme in Settings, under Appearance.
+A theme sets Orion's colors, type, spacing, and motion. Orion ships with Vibrant, the default, and Classic, which is deprecated and will be removed. You can add your own as a theme file: a small JSON file of [token](/guide/tokens) values for the light and dark schemes. Pick a theme in Settings, under Appearance.
 
 ## Adding a theme
 
@@ -8,7 +8,7 @@ A theme sets Orion's colors, type, spacing, and motion. Orion ships with Classic
 orion theme add dusk.json
 ```
 
-`orion theme add` checks the file against the token names and copies it into the `themes` folder inside Orion's [data folder](./data). Copying the file there by hand works too, and Orion checks it when it reads the folder. Orion reads the folder at startup and again whenever Settings or the command palette opens, so there's nothing to restart. The theme then sits beside Classic and Vibrant.
+`orion theme add` checks the file against the token names and copies it into the `themes` folder inside Orion's [data folder](./data). Copying the file there by hand works too, and Orion checks it when it reads the folder. Orion reads the folder at startup and again whenever Settings or the command palette opens, so there's nothing to restart. The theme then sits beside the built-in themes.
 
 `orion theme list` lists installed theme files, and `orion theme remove dusk.json` removes one. Deleting the file works too. The [`orion theme`](/reference/cli/theme) reference has every option.
 
@@ -59,6 +59,6 @@ A value is refused when it contains anything else. That includes `url()`, `image
 
 ## Broken files
 
-A file that isn't JSON, isn't an object, has no `light` or `dark` object, or has a value that breaks the rules above is a broken theme. The picker lists it with the reason and doesn't let you pick it. If it was the selected theme, Orion shows Classic instead, and the theme comes back once the file is fixed. A bad file never stops the app from opening, and `orion theme add` refuses one without copying anything.
+A file that isn't JSON, isn't an object, has no `light` or `dark` object, or has a value that breaks the rules above is a broken theme. The picker lists it with the reason and doesn't let you pick it. If it was the selected theme, Orion shows Vibrant instead, and the theme comes back once the file is fixed. A bad file never stops the app from opening, and `orion theme add` refuses one without copying anything.
 
 `orion theme add` can't ask a browser whether it accepts a value, so the app checks once more when the theme is picked. A value that passes `orion theme add` can still be refused there.

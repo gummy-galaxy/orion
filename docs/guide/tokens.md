@@ -1,6 +1,6 @@
 # Theme tokens
 
-Every color, font, size, spacing step, shadow, and timing in the app reads a named token. A [theme file](/guide/themes) sets tokens by name, and anything it leaves out keeps its default. The defaults below are what Orion's Classic theme uses.
+Every color, font, size, spacing step, shadow, and timing in the app reads a named token. A [theme file](/guide/themes) sets tokens by name, and anything it leaves out keeps its default. The defaults below are what Orion's Classic theme uses. Vibrant, the default theme, sets its own colors over them, but a theme file builds on these.
 
 Names describe the role a value plays, such as `card.background`, rather than the value itself. Each token is also a CSS custom property, named by swapping the dots for dashes and adding two in front: `card.background` is `--card-background`. A theme file uses the name. A value that refers to another token uses the property, as in `var(--surface-background)`.
 
