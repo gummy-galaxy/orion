@@ -10,6 +10,14 @@ Each list uses three marks:
 
 Each change links to the issue that carries it.
 
+## Since the snapshot
+
+Some of the changes below have landed. The lists still describe `main` as it was on 2026-10-18.
+
+- [#485](https://github.com/vocksel/orion/pull/485) builds the MCP tools from the CLI's command table, named after their commands, which settles [#415](https://github.com/vocksel/orion/issues/415). `orion_inspect` and `orion_sync` are gone.
+- [#525](https://github.com/vocksel/orion/pull/525) refuses HTTP requests from other sites and drops the image routes from the agent guide, which settles [#468](https://github.com/vocksel/orion/issues/468).
+- [#486](https://github.com/vocksel/orion/pull/486) and [#533](https://github.com/vocksel/orion/pull/533) store each canvas as a folder of node and link files read through a SQLite index, for [#121](https://github.com/vocksel/orion/issues/121). `orion.json` becomes `canvas.json`, so the [data files](#data-files) table no longer matches.
+
 ## The four questions
 
 ### Should the MCP tools follow the CLI structure?
