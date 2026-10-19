@@ -50,6 +50,8 @@ Runs `orion card add`.
 | `title`  | string                                                                 | **Required.** What the work is.                                                                                                                       |
 | `canvas` | canvas                                                                 | Canvas name. Omit to use the canvas selected in Orion.                                                                                                |
 | `group`  | id                                                                     | Group to add it to.                                                                                                                                   |
+| `after`  | id                                                                     | Item the card follows. It's linked and lands beside it, in its group.                                                                                 |
+| `before` | id                                                                     | Item the card leads into. It's linked and lands beside it, in its group.                                                                              |
 | `status` | todo \| active \| review \| blocked \| deferred \| done                |                                                                                                                                                       |
 | `who`    | you \| review \| ci                                                    | Whose move: you, review, or ci.                                                                                                                       |
 | `note`   | string                                                                 | Free-form note.                                                                                                                                       |
@@ -599,12 +601,12 @@ Apply a plan of cards, notes, groups, and links in one call. The plan is a list 
 
 Runs `orion apply`.
 
-| Argument     | Type       | Description                                                                                                                                                 |
-| ------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `operations` | operations | **Required.** Operations in order. Each has an op field, such as addCard with label, or link with from and to. Move needs group, or null for the top level. |
-| `canvas`     | canvas     | Canvas name. Omit to use the canvas selected in Orion.                                                                                                      |
-| `dryRun`     | boolean    | Preview the changes and the current revision without writing.                                                                                               |
-| `ifRevision` | int        | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written.                                                  |
+| Argument     | Type       | Description                                                                                                                                                                                                                                         |
+| ------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operations` | operations | **Required.** Operations in order. Each has an op field, such as addCard with label, or link with from and to. New cards and notes are placed after the last operation, beside the items they link to. Move needs group, or null for the top level. |
+| `canvas`     | canvas     | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                                              |
+| `dryRun`     | boolean    | Preview the changes and the current revision without writing.                                                                                                                                                                                       |
+| `ifRevision` | int        | Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written.                                                                                                                                          |
 
 ## orion_suggestions
 

@@ -21,6 +21,8 @@ return table.freeze({
 	define = function(parser: cli.Parser)
 		parser:add("label", "variadic", { help = "What the work is" })
 		parser:add("group", "option", { help = "Group to add it to" })
+		parser:add("after", "option", { help = "Item the card follows; it lands beside it, in its group" })
+		parser:add("before", "option", { help = "Item the card leads into; it lands beside it, in its group" })
 		addFieldOptions(parser)
 		addRefOption(parser)
 		parser:add("json", "flag", { help = "Print JSON" })
@@ -34,6 +36,8 @@ return table.freeze({
 		local added: Item
 		local doc = runTransaction(options.dir, function(doc)
 			fields.group = resolveOptionalId(doc, groupInput)
+			fields.after = resolveOptionalId(doc, parser:get("after"))
+			fields.before = resolveOptionalId(doc, parser:get("before"))
 			added = addItem(doc, label, fields)
 			attachRequestedRef(doc, added.id, parser:get("ref"))
 		end)

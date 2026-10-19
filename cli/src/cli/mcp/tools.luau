@@ -268,6 +268,18 @@ local tools: { Tool } = {
 			},
 			workspaceField,
 			{ name = "group", kind = "id", description = "Group to add it to.", at = "option" },
+			{
+				name = "after",
+				kind = "id",
+				description = "Item the card follows. It's linked and lands beside it, in its group.",
+				at = "option",
+			},
+			{
+				name = "before",
+				kind = "id",
+				description = "Item the card leads into. It's linked and lands beside it, in its group.",
+				at = "option",
+			},
 			{ name = "status", kind = "enum", values = fieldValues.statuses, at = "option" },
 			{
 				name = "who",
@@ -1076,7 +1088,7 @@ local tools: { Tool } = {
 				name = "operations",
 				kind = "operations",
 				required = true,
-				description = "Operations in order. Each has an op field, such as addCard with label, or link with from and to. Move needs group, or null for the top level.",
+				description = "Operations in order. Each has an op field, such as addCard with label, or link with from and to. New cards and notes are placed after the last operation, beside the items they link to. Move needs group, or null for the top level.",
 				at = "option",
 				flag = "plan",
 			},
