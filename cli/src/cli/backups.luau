@@ -8,6 +8,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List saved Orion data revisions",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

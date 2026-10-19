@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local findItem = require("@root/graph/findItem")
 local findItems = require("@root/query/findItems")
@@ -63,9 +64,10 @@ end
 
 return table.freeze({
 	help = "Find cards and groups whose label, note, or refs contain text",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
-		parser:add("text", "variadic", { help = "Text to find, matched case-insensitively" })
-		parser:add("limit", "option", { help = "Most matches to print (default 20)" })
+		addArgument(parser, "text", "variadic", { help = "Text to find, matched case-insensitively", type = "words" })
+		addArgument(parser, "limit", "option", { help = "Most matches to print (default 20)", type = "integer" })
 		parser:add("all-canvases", "flag", { help = "Search every canvas, not only this one" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

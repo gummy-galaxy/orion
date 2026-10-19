@@ -6,7 +6,7 @@ local getItemFields = require("@root/cli/getItemFields")
 
 local function parse(args: { string }): cli.Parser
 	local parser = cli.parser()
-	addFieldOptions(parser)
+	addFieldOptions(parser, true)
 	parser:parse(args)
 	return parser
 end

@@ -40,6 +40,7 @@ end
 
 return table.freeze({
 	help = "Import work from configured sources and refresh the cards they track",
+	mcp = { annotations = { openWorldHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("dry-run", "flag", { help = "Show changes without writing" })
 		parser:add("source", "option", { help = "Only ingest this source id" })

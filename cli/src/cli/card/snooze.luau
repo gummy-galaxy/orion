@@ -1,5 +1,6 @@
 local cli = require("@batteries/cli")
 
+local addArgument = require("@root/cli/addArgument")
 local batchEdit = require("@root/cli/batchEdit")
 local context = require("@root/cli/context")
 local parseUntil = require("@root/time/parseUntil")
@@ -9,6 +10,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Hide items from attention and orion next until a time",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		parser:add("ids", "variadic", { help = "Item ids" })
 		parser:add("until", "option", {
@@ -17,7 +19,11 @@ return table.freeze({
 		})
 		parser:add("where", "option", { help = "Select items with an expression instead of ids" })
 		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
-		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
+		addArgument(parser, "if-revision", "option", {
+			help = "Write only if the document has this revision",
+			type = "integer",
+			minimum = 0,
+		})
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 

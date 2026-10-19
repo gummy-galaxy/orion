@@ -3,6 +3,9 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local buildTools = require("@root/cli/mcp/catalog/buildTools")
+local cli = require("@root/cli")
+local describeCommands = require("@root/cli/describeCommands")
 local findRef = require("@root/refs/findRef")
 local getItem = require("@root/graph/getItem")
 local getVersion = require("@root/getVersion")
@@ -39,6 +42,51 @@ test.case("help --all lists every command with its options, and as JSON", functi
 	assert.throwsWith("leave out the command name", function()
 		run({ "help", "card", "--all" })
 	end)
+end)
+
+-- Collects each command's declaration problems: a leaf with none, and a skip or omission with no reason.
+local function findUndeclared(command: describeCommands.CommandDescription, problems: { string })
+	local declaration = command.mcp
+
+	if declaration and declaration.skip ~= nil then
+		if declaration.skip == "" then
+			table.insert(problems, `{command.name} skips MCP without a reason`)
+		end
+
+		return
+	elseif #command.commands == 0 and command.name ~= "orion" then
+		if declaration == nil then
+			table.insert(problems, `{command.name} declares no MCP tool`)
+		end
+
+		for _, omission in if declaration then declaration.omit or {} else {} do
+			if omission.reason == "" then
+				table.insert(problems, `{command.name} omits --{omission.option} without a reason`)
+			end
+		end
+	end
+
+	for _, child in command.commands do
+		findUndeclared(child, problems)
+	end
+end
+
+test.case("every command declares its MCP tool, or why it has none", function(assert)
+	local problems: { string } = {}
+	findUndeclared(cli.describe(), problems)
+	assert.eq(table.concat(problems, "\n"), "")
+
+	local tools = buildTools(cli.describe())
+	local names: { [string]: boolean } = {}
+
+	for _, tool in tools do
+		names[tool.name] = true
+	end
+
+	assert.eq(names.orion_card_add, true)
+	assert.eq(names.orion_next, true)
+	assert.eq(names.orion_help, nil)
+	assert.eq(names.orion_source_add_github, nil)
 end)
 
 test.case("ready lists startable work, most unblocking first", function(assert)

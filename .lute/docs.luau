@@ -9,16 +9,17 @@ local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
+local buildTools = require("@cli/cli/mcp/catalog/buildTools")
 local cliModule = require("@cli/cli")
 local describeCommands = require("@cli/cli/describeCommands")
 local getArgumentLabel = require("@cli/cli/getArgumentLabel")
 local mcpTypes = require("@cli/cli/mcp/types")
-local tools = require("@cli/cli/mcp/tools")
 
 local runScript = require("@cli/runScript")
 
 type CommandDescription = describeCommands.CommandDescription
 type Argument = describeCommands.Argument
+type Field = mcpTypes.Field
 type Tool = mcpTypes.Tool
 
 type Page = {
@@ -105,7 +106,7 @@ local function renderIndex(root: CommandDescription): string
 end
 
 -- The Reference section's own page, so the nav's Reference link lands on content rather than a menu.
-local function renderHome(root: CommandDescription): string
+local function renderHome(root: CommandDescription, tools: { Tool }): string
 	local lines = {
 		HEADER,
 		"",
@@ -120,6 +121,29 @@ local function renderHome(root: CommandDescription): string
 	return table.concat(lines, "\n") .. "\n"
 end
 
+-- How each value type reads in a tool's argument table, as the JSON its schema takes.
+local TYPE_LABELS: { [string]: string } = {
+	text = "string",
+	words = "string",
+	list = "string list",
+	commaList = "string list",
+	jsonList = "object list",
+}
+
+local function getTypeLabel(field: Field): string
+	if field.values == nil then
+		return TYPE_LABELS[field.type] or field.type
+	end
+
+	local values: { string } = {}
+
+	for _, value in field.values do
+		table.insert(values, if value == "" then '""' else value)
+	end
+
+	return table.concat(values, " \\| ")
+end
+
 local function renderTool(tool: Tool): string
 	local parts = {
 		`## {tool.name}`,
@@ -128,10 +152,7 @@ local function renderTool(tool: Tool): string
 		"",
 	}
 
-	-- A tool with its own build picks the command from its arguments.
-	if #tool.command > 0 then
-		table.insert(parts, `Runs \`orion {table.concat(tool.command, " ")}\`.\n`)
-	end
+	table.insert(parts, `Runs \`orion {table.concat(tool.command, " ")}\`.\n`)
 
 	if #tool.fields == 0 then
 		table.insert(parts, "Takes no arguments.\n")
@@ -140,7 +161,7 @@ local function renderTool(tool: Tool): string
 		table.insert(parts, "| --- | --- | --- |")
 
 		for _, field in tool.fields do
-			local kind = if field.values then table.concat(field.values, " \\| ") else field.kind
+			local kind = getTypeLabel(field)
 			local required = if field.required then "**Required.** " else ""
 			table.insert(parts, `| \`{field.name}\` | {kind} | {required}{escape(field.description)} |`)
 		end
@@ -151,7 +172,7 @@ local function renderTool(tool: Tool): string
 	return table.concat(parts, "\n")
 end
 
-local function renderMcp(): string
+local function renderMcp(tools: { Tool }): string
 	local parts = {
 		HEADER,
 		"",
@@ -181,11 +202,12 @@ end
 
 local function collectPages(): { Page }
 	local root = cliModule.describe()
+	local tools = buildTools(root)
 	local pages: { Page } = {
-		{ file = path.join(referenceDir, "index.md"), contents = renderHome(root) },
+		{ file = path.join(referenceDir, "index.md"), contents = renderHome(root, tools) },
 		{ file = path.join(referenceDir, "cli", "index.md"), contents = renderIndex(root) },
 		{ file = path.join(referenceDir, "cli", "sidebar.json"), contents = renderSidebar(root) },
-		{ file = path.join(referenceDir, "mcp.md"), contents = renderMcp() },
+		{ file = path.join(referenceDir, "mcp.md"), contents = renderMcp(tools) },
 	}
 
 	for _, command in root.commands do

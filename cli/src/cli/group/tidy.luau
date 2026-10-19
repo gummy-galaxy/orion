@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local batchEdit = require("@root/cli/batchEdit")
 local context = require("@root/cli/context")
 local getRunningRuntime = require("@root/server/getRunningRuntime")
@@ -18,11 +19,18 @@ end
 
 return table.freeze({
 	help = "Mark groups for the app to lay out in place",
+	mcp = {
+		description = "Mark groups for the app to lay out in place, deepest first, such as after adding cards in bulk. The app does the layout, so appConnected in the result says whether it runs now or when the app next opens. Custom groups keep their arrangement.",
+	},
 	define = function(parser: cli.Parser)
 		parser:add("ids", "variadic", { help = "Group ids" })
 		parser:add("where", "option", { help = "Select groups with an expression instead of ids" })
 		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
-		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
+		addArgument(parser, "if-revision", "option", {
+			help = "Write only if the document has this revision",
+			type = "integer",
+			minimum = 0,
+		})
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
