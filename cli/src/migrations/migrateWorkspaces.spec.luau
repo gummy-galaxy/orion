@@ -3,6 +3,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local findOtherServer = require("@root/server/findOtherServer")
 local getActiveWorkspace = require("@root/store/getActiveWorkspace")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
@@ -10,11 +11,11 @@ local loadDoc = require("@root/store/loadDoc")
 local migrateWorkspaces = require("@root/migrations/migrateWorkspaces")
 local testing = require("@root/testing")
 
-local function noServer(_root: string): number?
+local function noServer(_root: string): findOtherServer.Server?
 	return nil
 end
 
-local OPTIONS: migrateWorkspaces.Options = { findLegacyServer = noServer }
+local OPTIONS: migrateWorkspaces.Options = { findOtherServer = noServer }
 
 local LEGACY_LIST = [[{
 	"active": "planning",
@@ -115,15 +116,25 @@ test.case("a canvas folder on both sides is reported instead of overwritten", fu
 	assert.eq(fs.exists(path.join(root, "workspaces", "planning", "orion.json")), true)
 end)
 
-test.case("an older Orion still serving the folder stops the move", function(assert)
+test.case("another Orion still serving the folder stops the move", function(assert)
 	local root = legacyRoot("migrate-serving")
 
 	assert.throwsWith(
-		`an older Orion is serving {root} (pid 42); quit it so Orion can move this data folder to canvases`,
+		`another Orion 0.1.0+abc1234 is serving {root} (pid 42); quit it so Orion can move this data folder to canvases`,
 		function()
 			migrateWorkspaces(root, {
-				findLegacyServer = function(_root: string): number?
-					return 42
+				findOtherServer = function(_root: string): findOtherServer.Server?
+					return { pid = 42, version = "0.1.0+abc1234" }
+				end,
+			})
+		end
+	)
+	assert.throwsWith(
+		`another Orion is serving {root} (pid 7); quit it so Orion can move this data folder to canvases`,
+		function()
+			migrateWorkspaces(root, {
+				findOtherServer = function(_root: string): findOtherServer.Server?
+					return { pid = 7 }
 				end,
 			})
 		end

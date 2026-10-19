@@ -9,4 +9,4 @@ Each module here upgrades data written by an Orion from before 0.1.0. Everyone w
 | `migrateItem.luau` | 2026-10-09, [#152](https://github.com/vocksel/orion/pull/152) | Moves a card's `repo`, `pr`, `issue`, `branch`, `host`, `github`, `external`, `activity`, and `sources` fields onto its list of refs. | `store/decodeDoc.luau`, when reading a document below version 2 or a card that still has one of those fields |
 | `migrateWorkspaces.luau` | 2026-10-17, [#409](https://github.com/vocksel/orion/pull/409) | Moves `workspaces.json` and `workspaces/<name>/` to `canvases.json` and `canvases/<name>/`. | `store/getActiveWorkspace.luau`, before every command resolves its canvas |
 
-Add a row for each new migration, with the date and pull request that added it.
+Add a row for each new migration, with the date and pull request that added it. A migration that moves or rewrites files calls `server/findOtherServer` first and refuses while it returns a server, since a server from another build keeps writing the layout it knows.

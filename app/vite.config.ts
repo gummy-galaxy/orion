@@ -1,11 +1,40 @@
 import react from '@vitejs/plugin-react'
-import { spawn, type ChildProcess } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
+import { existsSync, rmSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, type Logger, type Plugin } from 'vite'
 
 const binary = process.env.ORION_BIN || fileURLToPath(new URL('../cli/build/orion', import.meta.url))
+const scratchDataDir = fileURLToPath(new URL('.dev-data', import.meta.url))
+const seedPlan = fileURLToPath(new URL('fixtures/dev-canvas.json', import.meta.url))
+
+/**
+ * The data folder the dev server's CLI serves. A branch's CLI can migrate the folder it touches to a layout the
+ * installed app can't read, so it gets a scratch folder unless `ORION_DATA_DIR` names one or `ORION_REAL_DATA=1` asks
+ * for the real one.
+ */
+function getDataDir(logger: Logger): string | undefined {
+  if (process.env.ORION_DATA_DIR) return process.env.ORION_DATA_DIR
+
+  if (process.env.ORION_REAL_DATA === '1') {
+    logger.warn('[orion] ORION_REAL_DATA=1: serving your real data folder, which this CLI may migrate')
+
+    return undefined
+  }
+
+  // The sample plan goes through the CLI, so it lands in whatever layout this branch writes.
+  if (!existsSync(scratchDataDir)) {
+    try {
+      execFileSync(binary, ['apply', seedPlan], { env: { ...process.env, ORION_DATA_DIR: scratchDataDir }, stdio: 'pipe' })
+    } catch (error) {
+      rmSync(scratchDataDir, { recursive: true, force: true })
+      logger.error(`[orion] couldn't seed ${scratchDataDir}: ${(error as Error).message}`)
+    }
+  }
+
+  return scratchDataDir
+}
 
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -33,6 +62,9 @@ function orionServer(port: number): Plugin {
       }
 
       let child: ChildProcess | undefined
+      const dataDir = getDataDir(server.config.logger)
+
+      server.config.logger.info(`[orion] data folder: ${dataDir ?? "this platform's default"}`)
 
       // The server answers only its own address and the dev server's, so it starts once Vite knows its port.
       server.httpServer?.once('listening', () => {
@@ -40,7 +72,7 @@ function orionServer(port: number): Plugin {
         const devPort = typeof address === 'object' && address ? address.port : server.config.server.port
 
         child = spawn(binary, ['server', 'start', '--host', '127.0.0.1', '--port', String(port), '--dev-port', String(devPort)], {
-          env: process.env,
+          env: dataDir ? { ...process.env, ORION_DATA_DIR: dataDir } : process.env,
           stdio: ['ignore', 'pipe', 'pipe'],
         })
 
@@ -62,7 +94,8 @@ export default defineConfig(async ({ command }) => {
   // The desktop build lists these licenses on its Acknowledgements page.
   if (command === 'build') return { plugins: [react()], build: { license: { fileName: '.vite/licenses.json' } } }
 
-  if (process.env.ORION_STORYBOOK === '1') return { plugins: [react()] }
+  // Stories and tests don't read from the server, so they never start a CLI.
+  if (process.env.ORION_STORYBOOK === '1' || process.env.VITEST) return { plugins: [react()] }
 
   const port = await freePort()
 
@@ -70,6 +103,8 @@ export default defineConfig(async ({ command }) => {
     plugins: [react(), orionServer(port)],
     server: {
       proxy: { '/api': { target: `http://127.0.0.1:${port}`, ws: true } },
+      // The server writes its scratch data folder on every change, which isn't app source.
+      watch: { ignored: ['**/.dev-data/**'] },
     },
   }
 })

@@ -10,6 +10,8 @@ export type Runtime = {
 	canvas: string,
 	dataFolder: string,
 	startedAt: string,
+	-- The build serving the folder, from `getVersion`. Servers from before it was recorded leave it out.
+	version: string?,
 }
 
 local function readRuntime(root: string): Runtime?
@@ -31,6 +33,7 @@ local function readRuntime(root: string): Runtime?
 	local canvas = object.canvas
 	local dataFolder = object.dataFolder
 	local startedAt = object.startedAt
+	local version = object.version
 	if type(pid) ~= "number" or pid < 1 or pid % 1 ~= 0 then
 		return nil
 	end
@@ -39,11 +42,19 @@ local function readRuntime(root: string): Runtime?
 		or type(canvas) ~= "string"
 		or type(dataFolder) ~= "string"
 		or type(startedAt) ~= "string"
+		or (version ~= nil and type(version) ~= "string")
 	then
 		return nil
 	end
 
-	return { pid = pid, url = url, canvas = canvas, dataFolder = dataFolder, startedAt = startedAt }
+	return {
+		pid = pid,
+		url = url,
+		canvas = canvas,
+		dataFolder = dataFolder,
+		startedAt = startedAt,
+		version = version :: string?,
+	}
 end
 
 return readRuntime

@@ -27,6 +27,7 @@ local function writeRuntime(root: string, runtime: Runtime)
 					canvas = runtime.canvas,
 					dataFolder = runtime.dataFolder,
 					startedAt = runtime.startedAt,
+					version = runtime.version,
 				}),
 				true
 			)
