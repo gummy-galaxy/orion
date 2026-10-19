@@ -8,7 +8,7 @@ local runSqlite = require("@root/sqlite/runSqlite")
 local logger = archivist.getLogger("orion.index")
 
 -- Bump when the tables change. An index of any other version is deleted and built again from the files.
-local SCHEMA_VERSION = 1
+local SCHEMA_VERSION = 2
 
 local SCHEMA = [[
 BEGIN IMMEDIATE;
@@ -23,6 +23,14 @@ CREATE TABLE IF NOT EXISTS files (
 	text TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS filesByEntry ON files (folder, entry);
+CREATE TABLE IF NOT EXISTS operations (
+	id INTEGER PRIMARY KEY,
+	revision INTEGER,
+	startedAt TEXT NOT NULL,
+	finishedAt TEXT,
+	isAbandoned INTEGER NOT NULL DEFAULT 0,
+	batch TEXT NOT NULL
+);
 PRAGMA user_version = %d;
 COMMIT;
 ]]
