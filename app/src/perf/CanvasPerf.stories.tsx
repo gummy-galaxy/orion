@@ -64,6 +64,9 @@ function stubServer() {
 function seed(cards: number) {
   served = { ...generateCanvas({ cards }), revision: 1, settings: {} }
   localStorage.setItem('orion:viewport:default', JSON.stringify({ x: 40, y: 40, zoom: 0.8 }))
+  // Named rather than left to the defaults, since this harness also runs over base revisions with older defaults.
+  localStorage.setItem('orion:theme', 'vibrant')
+  localStorage.setItem('orion:skin', 'trading')
   writeDetail('default', null)
   counters.reset()
   window.orionPerf = counters

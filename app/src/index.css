@@ -2831,6 +2831,12 @@ kbd {
 .options button:disabled:not([aria-pressed='true']) {
   opacity: 0.5;
 }
+.options .option-tag {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-size-micro);
+  font-weight: var(--weight-regular);
+}
 .options button:focus-visible {
   outline: var(--ring-width-default) solid var(--accent-default);
   outline-offset: var(--ring-offset-default);
