@@ -40,8 +40,8 @@ end
 	all match skips comparing them field by field.
 ]]
 local function stampEntry(entry: json.Object, key: string, file: string, previous: CanvasSnapshot?, now: string): string
-	local stored = if previous then previous.entries[file] else nil
-	local previousText = if previous then previous.files[file] else nil
+	local stored = if previous and previous.entries then previous.entries[file] else nil
+	local previousText = if previous and previous.files then previous.files[file] else nil
 	entry.order = key
 
 	if stored and stored.order == key and previousText then
@@ -96,7 +96,7 @@ local function splitEntries(
 			entry.changedAt = nil
 
 			local file = `{folder}/{getEntryFileName(id)}`
-			local stored = if previous then previous.entries[file] else nil
+			local stored = if previous and previous.entries then previous.entries[file] else nil
 			table.insert(kept, { entry = entry, file = file })
 			previousKeys[#kept] = if stored then stored.order else nil
 		end

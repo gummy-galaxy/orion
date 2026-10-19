@@ -12,7 +12,7 @@ local testing = require("@root/testing")
 local writeDoc = require("@root/store/writeDoc")
 
 -- What stays on this machine, as a canvas folder in a repository would ignore it.
-local IGNORED = "local.json\norion.lock\norion.writing\nbackups/\n"
+local IGNORED = "local.json\nindex.sqlite*\norion.lock\norion.writing\nbackups/\n"
 
 local function git(dir: string, arguments: { string }): string
 	local command =

@@ -3,6 +3,7 @@ return table.freeze({
 	nodes = "nodes",
 	links = "links",
 	localState = "local.json",
+	index = "index.sqlite",
 	pendingWrite = "orion.writing",
 	legacyDocument = "orion.json",
 	legacyBackup = "orion.backup.json",

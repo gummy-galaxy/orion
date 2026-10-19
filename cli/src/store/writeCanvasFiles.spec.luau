@@ -14,7 +14,7 @@ local testing = require("@root/testing")
 local writeCanvasFiles = require("@root/store/writeCanvasFiles")
 
 local function write(dir: string, doc)
-	writeCanvasFiles(dir, encodeDocObject(doc), readCanvasFiles(dir))
+	writeCanvasFiles(dir, encodeDocObject(doc), readCanvasFiles(dir, true))
 end
 
 local function modifiedAt(file: path.Pathlike): number
