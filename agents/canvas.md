@@ -40,7 +40,7 @@ To show the person the app, or anything else served locally such as a dev server
 - Linking an already linked pair updates its label. With both `--after` and `--before`, `orion note add` splits their link, or adds two blocking links if they aren't linked.
 - `orion group add` wraps items that share a parent. `orion group remove` deletes everything inside a group at any depth, so preview it with `--dry-run`.
 - The CLI never lays out groups itself. `orion group tidy` and changes to a group's members mark it, and the app lays out marked groups deepest first, so nested groups settle before their parents. Custom groups keep their arrangement, and auto groups wrap rows at about six. If `orion server start` isn't running, the layout waits until the app opens.
-- `orion server start` accepts raw image bytes at `POST /api/images?canvas=<name>` and returns them at `GET /api/images/<asset>?canvas=<name>`.
+- `orion media insert <file>` adds an image to the canvas, and `orion media list` lists them. Don't call `orion server start`'s HTTP API; it's internal to the app.
 
 With `--json`, every write prints the `revision` it made, and a failure prints `{"error": {"message": …}}`. Most commands that edit take `--dry-run` and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion node remove --where 'repo = "unrelated"' --dry-run`, then run `orion node remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
 

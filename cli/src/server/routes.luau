@@ -28,8 +28,8 @@ type RevealHub = reveal.Hub
 
 local routes = {}
 
-function routes.serveStatic(folder: string, requestPath: string): Response
-	return static.serve(folder, requestPath)
+function routes.serveStatic(folder: string, requestPath: string, host: string?): Response
+	return static.serve(folder, requestPath, host)
 end
 
 function routes.create(
@@ -111,7 +111,7 @@ function routes.create(
 			return shared.reply(404, json.object({ error = "not found" }))
 		end
 		if staticDir and request.method == "GET" then
-			return routes.serveStatic(staticDir, route)
+			return routes.serveStatic(staticDir, route, request.headers.host)
 		end
 		return shared.reply(404, json.object({ error = "not found" }))
 	end

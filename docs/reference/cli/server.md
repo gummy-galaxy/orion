@@ -16,12 +16,13 @@ Serve the Orion API for the app and agents
 orion server start [options]
 ```
 
-| Argument           | Description                   |
-| ------------------ | ----------------------------- |
-| `--port <value>`   | HTTP port (default 5198)      |
-| `--host <value>`   | HTTP host (default 127.0.0.1) |
-| `--static <value>` | Built app directory           |
-| `--json`           | Print JSON                    |
+| Argument             | Description                                                    |
+| -------------------- | -------------------------------------------------------------- |
+| `--port <value>`     | HTTP port (default 5198)                                       |
+| `--host <value>`     | HTTP host (default 127.0.0.1)                                  |
+| `--static <value>`   | Built app directory                                            |
+| `--dev-port <value>` | Port of the app's dev server, whose requests are also answered |
+| `--json`             | Print JSON                                                     |
 
 ## orion server status
 

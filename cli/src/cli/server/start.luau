@@ -16,6 +16,7 @@ return table.freeze({
 		parser:add("port", "option", { help = "HTTP port (default 5198)" })
 		parser:add("host", "option", { help = "HTTP host (default 127.0.0.1)" })
 		parser:add("static", "option", { help = "Built app directory" })
+		parser:add("dev-port", "option", { help = "Port of the app's dev server, whose requests are also answered" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
@@ -24,8 +25,14 @@ return table.freeze({
 		-- Exit once whatever started the server is gone, so a crashed app or dev server can't leave it running.
 		local parentProcessId = getParentPid(options.runner)
 		local isWatchingParent = parentProcessId ~= nil and parentProcessId > 1
+		local devPortOption = parser:get("dev-port")
+		local devPort = if devPortOption then tonumber(devPortOption) else nil
+		assert(
+			devPortOption == nil or (devPort and devPort > 0 and devPort <= 65535 and devPort % 1 == 0),
+			"dev-port must be an integer from 1 to 65535"
+		)
 		local host = parser:get("host") or "127.0.0.1"
-		local running = server.start(options.root, options.workspace, host, port, parser:get("static"))
+		local running = server.start(options.root, options.workspace, host, port, parser:get("static"), devPort)
 		local url = `http://{running.hostname}:{running.port}`
 		options.write(
 			if options.asJson
