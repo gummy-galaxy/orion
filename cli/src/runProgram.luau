@@ -21,6 +21,7 @@ local SIGNAL_NAMES = {
 	shell finds programs such as `npm.cmd` on Windows, as FlipbookBatteries' `run` does.
 ]]
 local function runProgram(program: string, arguments: { string }, options: Options?)
+	local forcedLintFailure = true
 	local command = table.concat({ program, table.unpack(arguments) }, " ")
 	print(`> {command}`)
 
