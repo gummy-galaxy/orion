@@ -40,7 +40,7 @@ test.case("addItem names pull requests after the repository and number", functio
 	assert.eq(item.id, "flipbook-labs-flipbook-700")
 	assert.eq(item.data.itemKind, "pr")
 	assert.eq(item.parentId, "g")
-	assert.eq(item.position.x > 0, true)
+	assert.eq(item.position.y > 0, true)
 	assert.eq(addItem(doc, "Ship it", {}).id, "ship-it")
 	assert.eq(addItem(doc, "Ship it", {}).id, "ship-it-2")
 end)

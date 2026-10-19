@@ -25,3 +25,15 @@ test.case("getNextSlot goes to the right of the rightmost sibling, at the topmos
 		{ x = 10 + geometry.TASK_WIDTH + geometry.GAP.top.component, y = 20 }
 	)
 end)
+
+test.case("getNextSlot leaves out skipped siblings", function(assert)
+	local first = testing.task("a", "A", "todo", "g")
+	first.position = { x = 32, y = 100 }
+	local second = testing.task("b", "B", "todo", "g")
+	second.position = { x = 300, y = 80 }
+	local doc = testing.createDoc({ testing.group("g", "G"), first, second })
+	assert.eq(
+		getNextSlot(doc, "g", { b = true }),
+		{ x = 32 + geometry.TASK_WIDTH + geometry.GAP.inner.component, y = 100 }
+	)
+end)
