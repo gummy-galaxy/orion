@@ -1,12 +1,19 @@
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, type AppNode, type Link, type TaskData } from '../../model'
+import { GAP } from '../../layout'
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, type AppNode, type Link, type TaskData } from '../../model'
 import type { Remote } from '../../persist'
 import type { Placement } from '../../placements/types'
 
-const card = (id: string, label: string, parentId: string, slot: number, extra: Partial<TaskData> = {}): AppNode => ({
+/** Where a card sits in its group's grid, in the stored form that each skin scales to its own card size. */
+const slot = (column: number, row: number) => ({
+  x: GROUP_PADDING + column * (TASK_WIDTH + GAP.inner.x),
+  y: GROUP_HEADER_HEIGHT + row * (TASK_HEIGHT + GAP.inner.y),
+})
+
+const card = (id: string, label: string, parentId: string, column: number, row: number, extra: Partial<TaskData> = {}): AppNode => ({
   id,
   type: 'task',
   parentId,
-  position: { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT + slot * 110 },
+  position: slot(column, row),
   data: { kind: 'task', label, itemKind: 'step', status: 'todo', ...extra },
 })
 
@@ -27,17 +34,17 @@ const link = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, t
 export function placementsCanvas(): Remote {
   const nodes: AppNode[] = [
     group('accounts', 'Accounts', 0, 0, 'Where sign-in is built'),
-    group('launch', 'Launch', 760, 0, 'What 1.0 waits on'),
-    group('docs', 'Docs', 760, 520, 'What readers get'),
-    card('session', 'Session design', 'accounts', 0, { status: 'done' }),
-    card('sign-in', 'Sign-in flow', 'accounts', 1, { status: 'active', repo: 'vocksel/orion' }),
-    card('ship', 'Ship 1.0', 'launch', 1, { itemKind: 'gate' }),
-    card('notes', 'Release notes', 'launch', 2),
-    card('guide', 'Getting started guide', 'docs', 0),
+    group('launch', 'Launch', 380, 0, 'What 1.0 waits on'),
+    group('docs', 'Docs', 1020, 0, 'What readers get'),
+    card('session', 'Session design', 'accounts', 0, 0, { status: 'done' }),
+    card('sign-in', 'Sign-in flow', 'accounts', 0, 1, { status: 'active', repo: 'vocksel/orion' }),
+    card('ship', 'Ship 1.0', 'launch', 1, 0, { itemKind: 'gate' }),
+    card('notes', 'Release notes', 'launch', 1, 1),
+    card('guide', 'Getting started guide', 'docs', 0, 0),
   ]
   const placements: Placement[] = [
-    { id: 'sign-in-copy', node: 'sign-in', parentId: 'launch', position: { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT } },
-    { id: 'notes-copy', node: 'notes', parentId: 'docs', position: { x: GROUP_PADDING, y: GROUP_HEADER_HEIGHT + 110 } },
+    { id: 'sign-in-copy', node: 'sign-in', parentId: 'launch', position: slot(0, 0) },
+    { id: 'notes-copy', node: 'notes', parentId: 'docs', position: slot(0, 1) },
   ]
 
   return {

@@ -56,13 +56,13 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   const far = useStore((state) => (hovered || selected) && state.transform[2] < breakpoint)
   // Inspect mode opens the hovered card in full.
   const peeking = useAtomValue(inspectingAtom) && hovered
-  const view = useCardView(id, data, parentId)
   // A copy is the same card shown again, so it traces as the card and lights up while another copy is hovered (#122).
   const card = data.copyOf ?? id
   const places = usePlacementCount(card)
   const sibling = useIsHoveredCard(card) && !hovered
   const setHoveredCard = useSetAtom(hoveredCardAtom)
   const trace = useTraceRole(card)
+  const view = useCardView(card, data, parentId)
   const attention = useMarked(id)
   const snoozedUntil = useSnoozed(id)
   const actions = useContext(ActionsContext)!

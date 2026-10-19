@@ -442,6 +442,16 @@ select {
   font-weight: var(--weight-bold);
   pointer-events: none;
 }
+/* Trading cards keep their bottom corners for facts, so the count sits as a chip over the art's top corner. */
+.card.skin-trading > .copy-mark {
+  top: var(--space-4);
+  right: var(--space-4);
+  bottom: auto;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--surface-background);
+  color: var(--text-primary);
+}
 .card > .copy-mark svg {
   width: 11px;
   height: 11px;

@@ -40,7 +40,10 @@ function stubServer() {
 function seed() {
   served = placementsCanvas()
   localStorage.removeItem('orion:v2')
-  localStorage.setItem('orion:viewport:default', JSON.stringify({ x: 60, y: 60, zoom: 0.85 }))
+  // Orion's default look: the Vibrant theme with trading cards.
+  localStorage.setItem('orion:theme', 'vibrant')
+  localStorage.setItem('orion:skin', 'trading')
+  localStorage.setItem('orion:viewport:default', JSON.stringify({ x: 40, y: 80, zoom: 0.72 }))
   writeDetail('default', null)
 
   return {}
@@ -54,6 +57,7 @@ function seed() {
 const meta = {
   title: 'Spikes/Placements',
   parameters: { layout: 'fullscreen' },
+  globals: { theme: 'vibrant', skin: 'trading' },
   beforeEach: stubServer,
   loaders: [seed],
   decorators: [
