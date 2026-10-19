@@ -1,8 +1,6 @@
 import {
   GROUP_HEADER_HEIGHT,
   GROUP_PADDING,
-  TASK_HEIGHT,
-  TASK_WIDTH,
   normalize,
   type AppNode,
   type ClusterNode,
@@ -12,10 +10,13 @@ import {
   type TaskNode,
 } from '../../model'
 import type { Saved } from '../../persist'
+import { skinOf } from '../../skins'
 
 // Spike #102: a canvas shaped like Orion's own work, with pull requests, Jira issues, a gate, notes, and a nested group.
 
-const COLUMNS = 3
+// The story shows the Trading Card skin, so cards are laid out at its size.
+const CARD = skinOf('trading').size
+const COLUMNS = 4
 const GAP_X = 48
 const GAP_Y = 40
 
@@ -54,15 +55,15 @@ const group = (id: string, label: string, x: number, y: number, parentId?: strin
   data: { kind: 'cluster', label },
 })
 
-/** Cards in rows of three inside their group, starting `rowOffset` rows down. */
+/** Cards in rows of four inside their group, starting `rowOffset` rows down. */
 function cards(parentId: string, specs: CardSpec[], rowOffset = 0): TaskNode[] {
   return specs.map(({ id, ...data }, index) => ({
     id,
     type: 'task',
     parentId,
     position: {
-      x: GROUP_PADDING + (index % COLUMNS) * (TASK_WIDTH + GAP_X),
-      y: GROUP_HEADER_HEIGHT + (Math.floor(index / COLUMNS) + rowOffset) * (TASK_HEIGHT + GAP_Y),
+      x: GROUP_PADDING + (index % COLUMNS) * (CARD.width + GAP_X),
+      y: GROUP_HEADER_HEIGHT + (Math.floor(index / COLUMNS) + rowOffset) * (CARD.height + GAP_Y),
     },
     data: {
       kind: 'task',
@@ -124,13 +125,13 @@ const docs = cards('docs', [
 const nodes: AppNode[] = [
   group('engine', 'Phase 1: One engine', 0, 0),
   ...engine,
-  group('parity', 'Server parity', GROUP_PADDING, GROUP_HEADER_HEIGHT + 3 * (TASK_HEIGHT + GAP_Y), 'engine'),
+  group('parity', 'Server parity', GROUP_PADDING, GROUP_HEADER_HEIGHT + 2 * (CARD.height + GAP_Y), 'engine'),
   ...parity,
-  group('spikes', 'Phase 2 spikes', 960, 0),
+  group('spikes', 'Phase 2 spikes', 1120, 0),
   ...spikes,
-  group('support', 'Support', 960, 420),
+  group('support', 'Support', 1120, 840),
   ...support,
-  group('docs', 'Docs site', 0, 820),
+  group('docs', 'Docs site', 0, 1280),
   ...docs,
 ]
 
@@ -157,4 +158,4 @@ const links: Link[] = [
   blocks('docs-themes', 'docs-tour'),
 ]
 
-export const databaseCanvas = (): Saved => ({ nodes: normalize(structuredClone(nodes)), links: structuredClone(links) })
+export const databaseCanvas = (): Saved => ({ nodes: normalize(structuredClone(nodes), CARD), links: structuredClone(links) })

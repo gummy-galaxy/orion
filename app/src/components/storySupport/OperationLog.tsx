@@ -3,10 +3,10 @@ import { sentOperations, type SentOperations } from './fakeServe'
 
 const STYLE: CSSProperties = {
   position: 'fixed',
-  left: 280,
-  top: 72,
+  left: 300,
+  bottom: 180,
   zIndex: 20,
-  maxWidth: 520,
+  maxWidth: 380,
   padding: 'var(--space-3) var(--space-4)',
   borderRadius: 'var(--radius-md)',
   border: 'var(--border-width-default) solid var(--border-default)',
@@ -16,6 +16,9 @@ const STYLE: CSSProperties = {
   fontFamily: 'var(--font-data)',
   fontSize: 'var(--text-size-caption)',
 }
+
+// Group resizes and moves are the canvas fitting its own layout, so the log leaves them out.
+const LAYOUT = new Set(['resize', 'place'])
 
 const describe = (operation: SentOperations['operations'][number]) => {
   const { op, id, data } = operation
@@ -31,7 +34,8 @@ const describe = (operation: SentOperations['operations'][number]) => {
 
 /** Spike #102: the operations the stand-in server received, so a story shows each edit reaching `orion serve`. */
 export function OperationLog() {
-  const sent = useSyncExternalStore(sentOperations.subscribe, sentOperations.get)
+  const all = useSyncExternalStore(sentOperations.subscribe, sentOperations.get)
+  const sent = all.filter((entry) => entry.operations.some((operation) => !LAYOUT.has(operation.op)))
 
   return (
     <aside style={STYLE} aria-label="Operations sent to orion serve">
@@ -40,7 +44,11 @@ export function OperationLog() {
         <ol style={{ margin: 'var(--space-2) 0 0', paddingLeft: 'var(--space-5)' }}>
           {sent.slice(-4).map((entry) => (
             <li key={entry.revision}>
-              <span style={{ color: 'var(--text-muted)' }}>r{entry.revision}</span> {entry.operations.map(describe).join('; ')}
+              <span style={{ color: 'var(--text-muted)' }}>r{entry.revision}</span>{' '}
+              {entry.operations
+                .filter((operation) => !LAYOUT.has(operation.op))
+                .map(describe)
+                .join('; ')}
             </li>
           ))}
         </ol>

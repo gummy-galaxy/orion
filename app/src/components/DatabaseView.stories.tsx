@@ -13,12 +13,16 @@ import { OperationLog } from './storySupport/OperationLog'
 const meta = {
   title: 'Spikes/Database view',
   parameters: { layout: 'fullscreen' },
+  // Orion's defaults: the Vibrant theme and the Trading Card skin.
+  globals: { theme: 'vibrant', skin: 'trading' },
   beforeEach: () => fakeServe(databaseCanvas()),
   loaders: [
     () => {
       localStorage.removeItem('orion:v2')
       localStorage.removeItem('orion:viewport:default')
       localStorage.setItem('orion:table', '1')
+      localStorage.setItem('orion:theme', 'vibrant')
+      localStorage.setItem('orion:skin', 'trading')
       writeDetail('default', null)
 
       return {}
