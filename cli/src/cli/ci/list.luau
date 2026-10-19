@@ -8,6 +8,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List the CI jobs snoozed on the canvas",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

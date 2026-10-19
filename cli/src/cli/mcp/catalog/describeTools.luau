@@ -1,9 +1,9 @@
 local json = require("@std/json")
 
 local mcpTypes = require("@root/cli/mcp/types")
-local tools = require("@root/cli/mcp/tools")
 
 type Field = mcpTypes.Field
+type Tool = mcpTypes.Tool
 
 -- Matches `isValidWorkspace`, written as a JSON Schema pattern.
 local CANVAS_PATTERN = "^[a-z0-9-]+$"
@@ -11,23 +11,23 @@ local CANVAS_PATTERN = "^[a-z0-9-]+$"
 local function getFieldSchema(field: Field): json.Object
 	local schema: json.Object
 
-	if field.kind == "boolean" then
+	if field.type == "boolean" then
 		schema = json.object({ type = "boolean" })
-	elseif field.kind == "int" then
+	elseif field.type == "integer" then
 		schema = json.object({ type = "integer", minimum = field.minimum or 1 })
-	elseif field.kind == "strings" then
+	elseif field.type == "list" or field.type == "commaList" or field.type == "command" then
 		schema = json.object({
 			type = "array",
 			items = json.object({ type = "string", minLength = 1 }),
 			minItems = 1,
 		})
-	elseif field.kind == "operations" then
+	elseif field.type == "jsonList" then
 		schema = json.object({
 			type = "array",
 			items = json.object({ type = "object" }),
 			minItems = 1,
 		})
-	elseif field.kind == "enum" then
+	elseif field.type == "enum" then
 		local values: json.Array = {}
 
 		for _, value in field.values or {} do
@@ -35,13 +35,13 @@ local function getFieldSchema(field: Field): json.Object
 		end
 
 		schema = json.object({ type = "string", enum = values })
-	elseif field.kind == "canvas" then
+	elseif field.type == "canvas" then
 		schema = json.object({ type = "string", pattern = CANVAS_PATTERN })
 	else
 		schema = json.object({ type = "string" })
 
-		if field.minLength or field.kind == "id" then
-			schema.minLength = field.minLength or 1
+		if field.required or field.type == "id" then
+			schema.minLength = 1
 		end
 	end
 
@@ -53,7 +53,7 @@ local function getFieldSchema(field: Field): json.Object
 end
 
 -- Lists every tool in the shape MCP's tools/list expects.
-local function describeTools(): json.Array
+local function describeTools(tools: { Tool }): json.Array
 	local descriptions: json.Array = {}
 
 	for _, tool in tools do
@@ -87,7 +87,7 @@ local function describeTools(): json.Array
 		if tool.annotations then
 			local annotations: { [string]: json.Value } = {}
 
-			for key, value in tool.annotations do
+			for key, value in tool.annotations :: { [string]: boolean } do
 				annotations[key] = value
 			end
 

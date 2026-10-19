@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local compute = require("@root/suggest/compute")
 local context = require("@root/cli/context")
 local convertToJson = require("@root/suggest/convertToJson")
@@ -15,13 +16,21 @@ local FALLBACK = "The command failed or returned no valid groups; kept heuristic
 
 return table.freeze({
 	help = "Compute group suggestions",
+	mcp = { annotations = { openWorldHint = true } },
 	define = function(parser: cli.Parser)
-		parser:add(
-			"command",
+		addArgument(parser, "command", "option", {
+			help = "JSON array naming a command that groups the cards it reads on stdin",
+			type = "command",
+			mcp = {
+				description = 'A command and its arguments, such as ["claude", "-p", "--output-format", "json"]. It reads the cards as a prompt on stdin and replies with JSON groups.',
+			},
+		})
+		addArgument(
+			parser,
+			"scope",
 			"option",
-			{ help = "JSON array naming a command that groups the cards it reads on stdin" }
+			{ help = "unsorted or all", type = "enum", values = { "unsorted", "all" } }
 		)
-		parser:add("scope", "option", { help = "unsorted or all" })
 		parser:add("dry-run", "flag", { help = "Show suggestions without writing" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

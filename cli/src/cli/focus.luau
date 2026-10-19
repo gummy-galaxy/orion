@@ -11,6 +11,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Show the group open in the app and what's selected",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

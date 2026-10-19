@@ -15,6 +15,7 @@ local DEPRECATION = "`orion sync` is deprecated and will be removed. `orion inge
 
 return table.freeze({
 	help = "Update pull request items from GitHub (deprecated: use ingest)",
+	mcp = { skip = "is deprecated in favor of ingest" },
 	define = function(parser: cli.Parser)
 		parser:add(
 			"discover",

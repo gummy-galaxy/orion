@@ -1,15 +1,18 @@
 local test = require("@std/test")
 
+local buildTools = require("@root/cli/mcp/catalog/buildTools")
+local cli = require("@root/cli")
 local findTool = require("@root/cli/mcp/catalog/findTool")
 local orientation = require("@root/cli/orientation")
 
 test.case("orientation names only MCP tools that exist in the catalog", function(assert)
 	local text = table.concat(orientation.paragraphs, " ")
+	local tools = buildTools(cli.describe())
 	local named = 0
 
 	for name in string.gmatch(text, "orion_[%w_]+") do
 		named += 1
-		assert.neq(findTool(name), nil)
+		assert.neq(findTool(tools, name), nil)
 	end
 
 	assert.eq(named > 0, true)

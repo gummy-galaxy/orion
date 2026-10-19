@@ -1,5 +1,6 @@
 local cli = require("@batteries/cli")
 
+local addArgument = require("@root/cli/addArgument")
 local addBatchOptions = require("@root/cli/addBatchOptions")
 local context = require("@root/cli/context")
 local isBatchEdit = require("@root/cli/isBatchEdit")
@@ -13,9 +14,10 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Move items or groups into another group",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		addBatchOptions(parser, "Item or group ids or selectors")
-		parser:add("to", "option", { help = "Destination group" })
+		addArgument(parser, "to", "option", { help = "Destination group", type = "id" })
 		parser:add("top", "flag", { help = "Move to the top level" })
 	end,
 

@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local encodeEntry = require("@root/log/encodeEntry")
 local formatEntry = require("@root/log/formatEntry")
@@ -13,9 +14,15 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List the canvas log, newest first",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
-		parser:add("card", "option", { help = "Only entries attached to this card" })
-		parser:add("limit", "option", { help = "Show at most this many of the newest entries" })
+		addArgument(parser, "card", "option", { help = "Only entries attached to this card", type = "id" })
+		addArgument(
+			parser,
+			"limit",
+			"option",
+			{ help = "Show at most this many of the newest entries", type = "integer" }
+		)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
