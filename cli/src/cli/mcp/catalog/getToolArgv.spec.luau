@@ -132,6 +132,20 @@ test.case("orion_apply passes the plan inline with its dry run and revision", fu
 	end)
 end)
 
+test.case("orion_suggest passes its command as one JSON array", function(assert)
+	assert.eq(
+		table.concat(
+			getToolArgv(
+				"orion_suggest",
+				json.object({ command = { "claude", "-p" }, scope = "all", dryRun = true, canvas = "release" })
+			),
+			" "
+		),
+		'suggestion find --command ["claude","-p"] --scope all --dry-run --canvas release --json'
+	)
+	assert.eq(table.concat(getToolArgv("orion_suggest", json.object({})), " "), "suggestion find --json")
+end)
+
 test.case("tools reject arguments their schemas do not allow", function(assert)
 	assert.throwsWith("unknown argument: colour", function()
 		getToolArgv("orion_add_item", json.object({ title = "A", colour = "red" }))

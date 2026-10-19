@@ -48,7 +48,7 @@ Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set 
 
 ## Organizing work
 
-Run `orion suggestion find` to find related ungrouped cards, then review `orion suggestion list`. Apply only suggestions that clearly fit with `orion suggestion apply <id...>`; use `orion suggestion dismiss <id...>` for the rest.
+Run `orion suggestion find` to find related ungrouped cards, then review `orion suggestion list`. It groups by links, epics, branches, and refs; to have an agent name the groups instead, pass its command as a JSON array with `--command`. Apply only suggestions that clearly fit with `orion suggestion apply <id...>`; use `orion suggestion dismiss <id...>` for the rest.
 
 ## Habits
 

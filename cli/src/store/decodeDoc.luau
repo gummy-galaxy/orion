@@ -2,7 +2,6 @@ local json = require("@std/json")
 
 local fillPullFacts = require("@root/github/fillPullFacts")
 local getStringField = require("@root/getStringField")
-local migrateItem = require("@root/migrations/migrateItem")
 local types = require("@root/types")
 
 type CheckSnooze = types.CheckSnooze
@@ -33,10 +32,16 @@ local function getStrings(value: json.Value): { string }?
 	return result
 end
 
--- Reads a data file's text into a document, filling in defaults and moving older card fields onto refs.
+-- Version 1 kept a card's pull request, issue, and branch in their own fields instead of refs.
+local VERSION_ONE_MESSAGE = "This canvas was saved as data version 1, which Orion no longer reads. "
+	.. "To upgrade it, make one change to it with an Orion built from commit 40320db6 or earlier, "
+	.. "such as moving a card, then try again."
+
+-- Reads a data file's text into a document, filling in defaults.
 local function decodeDoc(text: string): Doc
 	local root = json.asObject(json.deserialize(text) :: json.Value)
 	assert(root, "Orion data must be a JSON object")
+	assert((asNumber(root.version) or 1) >= 2, VERSION_ONE_MESSAGE)
 
 	local nodes: { Item } = {}
 
@@ -124,39 +129,7 @@ local function decodeDoc(text: string): Doc
 		end
 	end
 
-	local version = asNumber(root.version) or 1
-	local owner = getStringField(settings.githubOwner)
-
-	if not owner then
-		for _, source in sources do
-			if source.kind == "github" then
-				owner = if source.owners then source.owners[1] else nil
-				break
-			end
-		end
-	end
-
-	owner = owner or "flipbook-labs"
-
-	-- Cards from before refs keep their old fields until read. Remove at 0.1.0 with the rest of `migrations/`.
 	for _, item in nodes do
-		if
-			item.type == "task"
-			and (
-				version < 2
-				or item.data.pr ~= nil
-				or item.data.external ~= nil
-				or item.data.github ~= nil
-				or item.data.activity ~= nil
-				or item.data.sources ~= nil
-				or item.data.issue ~= nil
-				or item.data.branch ~= nil
-				or item.data.host ~= nil
-			)
-		then
-			migrateItem(item, owner, sources)
-		end
-
 		if item.type == "task" then
 			fillPullFacts(item)
 		end

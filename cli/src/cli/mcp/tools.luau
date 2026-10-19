@@ -169,6 +169,22 @@ local function buildTidyArgv(arguments: json.Object): { string }
 	return argv
 end
 
+-- The command is a list here and one JSON array on the CLI.
+local function buildSuggestArgv(arguments: json.Object): { string }
+	local argv = { "suggestion", "find" }
+	local command = json.asArray(arguments.command)
+
+	if command then
+		table.insert(argv, "--command")
+		table.insert(argv, json.serialize(command))
+	end
+
+	appendOption(argv, "scope", arguments.scope)
+	appendFlag(argv, "dry-run", arguments.dryRun)
+	appendOption(argv, "canvas", arguments.canvas)
+	return argv
+end
+
 -- Every tool the MCP server offers, in the order tools/list reports them. Tools map their
 -- fields onto a CLI command, and those that need more than that supply their own build.
 local tools: { Tool } = {
@@ -1035,17 +1051,17 @@ local tools: { Tool } = {
 	},
 	{
 		name = "orion_suggest",
-		description = "Suggest groups for ungrouped cards, using the given agent or the configured one. A dry run shows the suggestions without saving them.",
+		description = "Suggest groups for ungrouped cards from links, epics, branches, and refs. Give a command to have it name the groups instead. A dry run shows the suggestions without saving them.",
 		annotations = { openWorldHint = true },
 		command = { "suggestion", "find" },
 		json = true,
+		build = buildSuggestArgv,
 		fields = {
 			workspaceField,
 			{
-				name = "agent",
-				kind = "enum",
-				values = { "claude", "codex", "none" },
-				description = "Agent that writes the suggestions: claude, codex, or none.",
+				name = "command",
+				kind = "strings",
+				description = 'A command and its arguments, such as ["claude", "-p", "--output-format", "json"]. It reads the cards as a prompt on stdin and replies with JSON groups.',
 				at = "option",
 			},
 			{

@@ -18,6 +18,8 @@ The `default` canvas is `orion.json` in the data folder. Every other canvas has 
 
 Older versions of Orion called canvases workspaces and kept them in `workspaces/` and `workspaces.json`. The first command a newer Orion runs moves them into place and keeps the old list as `workspaces.backup.json`. Quit an older Orion that is still open first, since it would keep writing to the old folders.
 
+Data files from Orion's first weeks, saved as data version 1, aren't read anymore, and commands on one stop with a message saying so. To upgrade one, make a single change to it with an Orion built from commit `40320db6` or earlier, such as moving a card, which saves it as version 2.
+
 ```sh
 orion canvas list
 orion canvas create --label "Focus areas"   # named focus-areas

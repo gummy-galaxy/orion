@@ -45,6 +45,6 @@ To add cards for many refs at once, pass them to `orion card import`, or pipe on
 
 ## Organize what came in
 
-`orion suggestion find` proposes groups for ungrouped cards by following links, Jira epics, shared branches, and refs. Add `--agent codex` or `--agent claude` to have that agent name the groups and split them by outcome; its CLI must already be signed in.
+`orion suggestion find` proposes groups for ungrouped cards by following links, Jira epics, shared branches, and refs. To have an agent name the groups and split them by outcome, pass its command as a JSON array with `--command`, such as `--command '["claude","-p","--output-format","json"]'`. Orion sends the cards as a prompt on stdin and reads the groups from the JSON it prints. The agent's CLI must already be signed in, and if it fails or replies with no usable groups, Orion keeps the groups it found itself.
 
 Review with `orion suggestion list`, then `orion suggestion apply` or `orion suggestion dismiss` by id, or `--all`.

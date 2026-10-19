@@ -582,16 +582,16 @@ Runs `orion card import`.
 
 ## orion_suggest
 
-Suggest groups for ungrouped cards, using the given agent or the configured one. A dry run shows the suggestions without saving them.
+Suggest groups for ungrouped cards from links, epics, branches, and refs. Give a command to have it name the groups instead. A dry run shows the suggestions without saving them.
 
 Runs `orion suggestion find`.
 
-| Argument | Type                    | Description                                                |
-| -------- | ----------------------- | ---------------------------------------------------------- |
-| `canvas` | canvas                  | Canvas name. Omit to use the canvas selected in Orion.     |
-| `agent`  | claude \| codex \| none | Agent that writes the suggestions: claude, codex, or none. |
-| `scope`  | unsorted \| all         | Cards to suggest groups for: unsorted, or all.             |
-| `dryRun` | boolean                 | Show suggestions without writing.                          |
+| Argument  | Type            | Description                                                                                                                                             |
+| --------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `canvas`  | canvas          | Canvas name. Omit to use the canvas selected in Orion.                                                                                                  |
+| `command` | strings         | A command and its arguments, such as ["claude", "-p", "--output-format", "json"]. It reads the cards as a prompt on stdin and replies with JSON groups. |
+| `scope`   | unsorted \| all | Cards to suggest groups for: unsorted, or all.                                                                                                          |
+| `dryRun`  | boolean         | Show suggestions without writing.                                                                                                                       |
 
 ## orion_apply
 
