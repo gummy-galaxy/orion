@@ -253,3 +253,41 @@ test.case("derive leaves a snoozed card out of its group's ready count", functio
 	assert.eq(stats.total, 2)
 	assert.eq(stats.ready, 1)
 end)
+
+test.case("derive counts progress across the whole canvas the way it does for a group", function(assert)
+	local doc = testing.createDoc({
+		testing.group("g", "G"),
+		task("a", "A", "todo", "g"),
+		task("b", "B", "done"),
+		task("c", "C", "todo"),
+		task("d", "D", "deferred"),
+		task("n", "Note", "todo", nil, { itemKind = "note" }),
+	}, { { "a", "c" } })
+	snooze(doc, "a", "2026-10-12T17:00:00Z")
+	local canvas = derive(doc, "2026-10-04T00:00:00Z").canvas
+	assert.eq(canvas.total, 3)
+	assert.eq(canvas.done, 1)
+	assert.eq(canvas.ready, 0)
+	assert.eq(canvas.blocked, 1)
+	assert.eq(canvas.outside, 0)
+end)
+
+test.case(
+	"derive lists open work where it's your move, leaving out blocked, finished, and snoozed work",
+	function(assert)
+		local yours = { who = "you" }
+		local doc = testing.createDoc({
+			task("ready", "Ready", "todo", nil, yours),
+			task("active", "Active", "active", nil, yours),
+			task("blocked", "Blocked", "todo", nil, yours),
+			task("done", "Done", "done", nil, yours),
+			task("deferred", "Deferred", "deferred", nil, yours),
+			task("snoozed", "Snoozed", "todo", nil, yours),
+			task("theirs", "Theirs", "todo", nil, { who = "review" }),
+			task("note", "Note", "todo", nil, { itemKind = "note", who = "you" }),
+		}, { { "active", "blocked" } })
+		snooze(doc, "snoozed", "2026-10-12T17:00:00Z")
+		local attention = derive(doc, "2026-10-04T00:00:00Z").attention
+		assert.eq(attention, { ready = true, active = true })
+	end
+)
