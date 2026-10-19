@@ -1,10 +1,10 @@
-local archivist = require("@archivist")
 local fs = require("@std/fs")
 local path = require("@std/path")
 local task = require("@std/task")
 
 local fileNames = require("@root/fileNames")
 local getDocPath = require("@root/store/getDocPath")
+local hasSqlite = require("@root/sqlite/hasSqlite")
 local joinCanvasFiles = require("@root/store/joinCanvasFiles")
 local readCanvasFolder = require("@root/store/readCanvasFolder")
 local readCanvasIndex = require("@root/store/readCanvasIndex")
@@ -12,14 +12,9 @@ local storeTypes = require("@root/store/types")
 
 type CanvasSnapshot = storeTypes.CanvasSnapshot
 
-local logger = archivist.getLogger("orion.index")
-
 -- Long enough to outlast a writer, since writers give up waiting for the lock after five seconds.
 local ATTEMPTS = 200
 local RETRY_SECONDS = 0.025
-
--- Whether `sqlite3` can be run here. Without it, every read opens every file.
-local hasSqlite = true
 
 local function getStamp(file: string): string?
 	local succeeded, metadata = pcall(fs.metadata, file)
@@ -31,26 +26,13 @@ local function isWriting(dir: string): boolean
 	return fs.exists(path.join(dir, fileNames.pendingWrite)) and fs.exists(path.join(dir, fileNames.lock))
 end
 
-local function readFromFolder(dir: string): CanvasSnapshot
-	local files = readCanvasFolder(dir)
-	return { files = files, document = joinCanvasFiles(files) }
-end
-
 local function read(dir: string, includeFiles: boolean): CanvasSnapshot
-	if hasSqlite then
-		local succeeded, snapshot = pcall(readCanvasIndex, dir, includeFiles)
-
-		if succeeded then
-			return assert(snapshot, `{dir} has no {fileNames.document}`)
-		elseif type(snapshot) == "string" and snapshot:find("Failed to spawn process", 1, true) then
-			hasSqlite = false
-			logger.warn("sqlite3 isn't installed, so canvases are read from every file:", snapshot)
-		else
-			error(snapshot, 0)
-		end
+	if hasSqlite() then
+		return assert(readCanvasIndex(dir, includeFiles), `{dir} has no {fileNames.document}`)
 	end
 
-	return readFromFolder(dir)
+	local files = readCanvasFolder(dir)
+	return { files = files, document = joinCanvasFiles(files) }
 end
 
 --[[
