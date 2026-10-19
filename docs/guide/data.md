@@ -27,6 +27,8 @@ Keys are sorted and formatting is stable, so a change rewrites only the files it
 
 Orion reads a canvas through `index.sqlite` beside its files, which it builds from them with the `sqlite3` command and keeps up to date. It holds nothing the files don't, so deleting it is safe. Without `sqlite3` installed, Orion reads every file instead, which is slower on large canvases.
 
+A canvas folder can sit in a git repository. While the app is open, files a `git pull` or an editor changes show up without a restart. A note with a git conflict shows both versions between the conflict markers. Edit it to the version you want, and Orion writes the file without them. Any other card file that doesn't parse shows as a note holding its text.
+
 Older versions of Orion kept each canvas in one `orion.json`. The first command a newer Orion runs splits it into files and keeps the original beside them as `orion.backup.json`.
 
 Older versions of Orion called canvases workspaces and kept them in `workspaces/` and `workspaces.json`. The first command a newer Orion runs moves them into place and keeps the old list as `workspaces.backup.json`. Quit an older Orion that is still open first, since it would keep writing to the old folders.

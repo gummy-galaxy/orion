@@ -15,6 +15,10 @@ local function read(dir: string): json.Object
 	return (assert(readCanvasIndex(dir, false))).document
 end
 
+local function readSnapshot(dir: string)
+	return assert(readCanvasIndex(dir, false))
+end
+
 local function readWithFiles(dir: string)
 	return assert(readCanvasIndex(dir, true))
 end
@@ -102,11 +106,72 @@ test.case("readCanvasIndex builds a damaged index again from the files", functio
 	assert.eq(getLabel(read(dir), 1), "B")
 end)
 
-test.case("readCanvasIndex names a file that isn't a JSON object", function(assert)
-	local dir = createCanvas("index-invalid")
-	fs.writeStringToFile(path.join(dir, "nodes", "b.json"), "<<<<<<< HEAD\n{}")
+local CONFLICTED = [[{
+  "data": {
+    "itemKind": "note",
+    "kind": "task",
+<<<<<<< HEAD
+    "label": "B here",
+    "note": "Ours",
+=======
+    "label": "B there",
+    "note": "Theirs",
+>>>>>>> origin/main
+    "status": "todo"
+  },
+  "id": "b",
+  "position": {"x": 0, "y": 0},
+  "type": "task"
+}]]
+
+test.case("readCanvasIndex shows a note with a git conflict as a conflicted note", function(assert)
+	local dir = createCanvas("index-conflict")
+	fs.writeStringToFile(path.join(dir, "nodes", "b.json"), CONFLICTED)
+
+	local snapshot = readSnapshot(dir)
+	local node = json.asObject((json.asArray(snapshot.document.nodes) :: json.Array)[1]) :: json.Object
+	local data = json.asObject(node.data) :: json.Object
+
+	assert.eq(node.id, "b")
+	assert.eq(data.label, "B here")
+	assert.eq(data.note, "<<<<<<< HEAD\nOurs\n=======\nTheirs\n>>>>>>> origin/main")
+	assert.eq(
+		(snapshot.problems :: { string })[1],
+		"nodes/b.json has a git conflict; kept HEAD's fields and both versions of its note"
+	)
+end)
+
+test.case("readCanvasIndex keeps a node file that doesn't parse as a note holding its text", function(assert)
+	local dir = createCanvas("index-unreadable")
+	fs.writeStringToFile(path.join(dir, "nodes", "b.json"), "{ not json")
+
+	local snapshot = readSnapshot(dir)
+	local node = json.asObject((json.asArray(snapshot.document.nodes) :: json.Array)[1]) :: json.Object
+	local data = json.asObject(node.data) :: json.Object
+
+	assert.eq(node.id, "b")
+	assert.eq(data.label, "Unreadable nodes/b.json")
+	assert.strContains(data.note :: string, "{ not json")
+	assert.strContains((snapshot.problems :: { string })[1], "nodes/b.json isn't a JSON object")
+end)
+
+test.case("readCanvasIndex still fails on a canvas.json that doesn't parse", function(assert)
+	local dir = createCanvas("index-unreadable-canvas")
+	fs.writeStringToFile(path.join(dir, "canvas.json"), '{"revision": ')
 
 	local succeeded, failure = pcall(readCanvasIndex, dir, false)
 	assert.eq(succeeded, false)
-	assert.strContains(tostring(failure), "nodes/b.json must be a JSON object")
+	assert.strContains(tostring(failure), "canvas.json isn't a JSON object")
+end)
+
+test.case("readCanvasIndex's fingerprint follows file changes the revision doesn't show", function(assert)
+	local dir = createCanvas("index-fingerprint")
+	local before = readSnapshot(dir).fingerprint
+	local file = path.join(dir, "nodes", "a.json")
+	fs.writeStringToFile(file, (fs.readFileToString(file):gsub('"A"', '"Pulled"')))
+
+	local after = readSnapshot(dir)
+	assert.neq(after.fingerprint, before)
+	assert.eq(after.document.revision, 0)
+	assert.eq(readSnapshot(dir).fingerprint, after.fingerprint)
 end)

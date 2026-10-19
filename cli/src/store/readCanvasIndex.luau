@@ -4,9 +4,11 @@ local json = require("@std/json")
 local path = require("@std/path")
 
 local fileNames = require("@root/fileNames")
+local joinCanvasFiles = require("@root/store/joinCanvasFiles")
 local openCanvasIndex = require("@root/store/openCanvasIndex")
 local quoteSqlString = require("@root/sqlite/quoteSqlString")
 local readSqliteValue = require("@root/sqlite/readSqliteValue")
+local resolveCanvasFiles = require("@root/store/resolveCanvasFiles")
 local storeTypes = require("@root/store/types")
 
 type CanvasSnapshot = storeTypes.CanvasSnapshot
@@ -74,6 +76,7 @@ json((SELECT json_group_array(json(text)) FROM (
 local QUERY = [[
 SELECT json_object(
 	'invalid', json((SELECT json_group_array(path) FROM files WHERE NOT isValid)),
+	'fingerprint', (SELECT hex(sha3(group_concat(path || ':' || hash, ','))) FROM (SELECT path, hash FROM files ORDER BY path)),
 	'document', json(json_set(
 		json_remove((SELECT text FROM files WHERE path = 'canvas.json' AND isValid), '$.order'),
 		'$.nodes', %s,
@@ -110,7 +113,9 @@ local function buildScript(dir: string, includeFiles: boolean): string
 	end
 
 	local prefix = quoteSqlString(dir .. "/")
-	local files = if includeFiles then "json((SELECT json_group_object(path, text) FROM files))" else "NULL"
+	-- A file that doesn't parse sends the read down the slower path through every file's text.
+	local condition = if includeFiles then "1" else "EXISTS (SELECT 1 FROM files WHERE NOT isValid)"
+	local files = `CASE WHEN {condition} THEN json((SELECT json_group_object(path, text) FROM files)) END`
 
 	return SYNC:format(table.concat(scans, " UNION ALL "), prefix)
 		.. QUERY:format(ENTRIES:format("nodes", "nodes"), ENTRIES:format("links", "links"), files)
@@ -145,8 +150,9 @@ end
 --[[
 	Brings a canvas folder's index up to date with its files and reads the canvas from it, or nil when the folder
 	has no `canvas.json`. Only files whose time changed are read again. With `includeFiles`, the snapshot also maps
-	each file's path to its text, which a write compares against to rewrite only what changed. A file that isn't a
-	JSON object raises an error naming it, as reading the files does.
+	each file's path to its text, which a write compares against to rewrite only what changed. Files that don't
+	parse, such as ones with git's conflict markers, are worked around by `resolveCanvasFiles`, and the snapshot
+	lists the problems. Its fingerprint changes whenever any file's text does, revision or not.
 ]]
 local function readCanvasIndex(dir: string, includeFiles: boolean): CanvasSnapshot?
 	if not fs.exists(path.join(dir, fileNames.document)) then
@@ -155,10 +161,6 @@ local function readCanvasIndex(dir: string, includeFiles: boolean): CanvasSnapsh
 
 	local row = query(dir, includeFiles)
 	local invalid = json.asArray(row.invalid) or {}
-
-	if #invalid > 0 then
-		error(`{dir}/{invalid[1]} must be a JSON object`, 0)
-	end
 
 	logger.debug(
 		"indexed",
@@ -174,19 +176,9 @@ local function readCanvasIndex(dir: string, includeFiles: boolean): CanvasSnapsh
 		"files"
 	)
 
-	local document = getObject(row.document, fileNames.document)
-
-	if row.localState ~= nil and row.localState ~= json.null then
-		for key, value in getObject(row.localState, fileNames.localState) do
-			if type(key) == "string" then
-				document[key] = value
-			end
-		end
-	end
-
 	local files: { [string]: string }? = nil
 
-	if includeFiles then
+	if includeFiles or #invalid > 0 then
 		local object = getObject(row.files, "the index's files")
 		local texts: { [string]: string } = {}
 
@@ -199,7 +191,36 @@ local function readCanvasIndex(dir: string, includeFiles: boolean): CanvasSnapsh
 		files = texts
 	end
 
-	return { document = document, files = files }
+	local fingerprint = if type(row.fingerprint) == "string" then row.fingerprint else nil
+
+	-- Files that don't parse are rare, such as after a git merge that conflicted, so their canvas is joined from
+	-- every file's text rather than in SQL.
+	if #invalid > 0 then
+		local resolved, problems = resolveCanvasFiles(files :: { [string]: string })
+
+		for _, problem in problems do
+			logger.warn(dir, problem)
+		end
+
+		return {
+			document = joinCanvasFiles(resolved),
+			files = if includeFiles then files else nil,
+			problems = problems,
+			fingerprint = fingerprint,
+		}
+	end
+
+	local document = getObject(row.document, fileNames.document)
+
+	if row.localState ~= nil and row.localState ~= json.null then
+		for key, value in getObject(row.localState, fileNames.localState) do
+			if type(key) == "string" then
+				document[key] = value
+			end
+		end
+	end
+
+	return { document = document, files = files, problems = {}, fingerprint = fingerprint }
 end
 
 return readCanvasIndex

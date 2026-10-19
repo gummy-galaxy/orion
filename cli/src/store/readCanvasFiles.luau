@@ -8,6 +8,7 @@ local getDocPath = require("@root/store/getDocPath")
 local joinCanvasFiles = require("@root/store/joinCanvasFiles")
 local readCanvasFolder = require("@root/store/readCanvasFolder")
 local readCanvasIndex = require("@root/store/readCanvasIndex")
+local resolveCanvasFiles = require("@root/store/resolveCanvasFiles")
 local storeTypes = require("@root/store/types")
 
 type CanvasSnapshot = storeTypes.CanvasSnapshot
@@ -33,7 +34,8 @@ end
 
 local function readFromFolder(dir: string): CanvasSnapshot
 	local files = readCanvasFolder(dir)
-	return { files = files, document = joinCanvasFiles(files) }
+	local resolved, problems = resolveCanvasFiles(files)
+	return { files = files, document = joinCanvasFiles(resolved), problems = problems }
 end
 
 local function read(dir: string, includeFiles: boolean): CanvasSnapshot

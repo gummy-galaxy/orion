@@ -823,7 +823,7 @@ export function Canvas() {
 
   useEffect(
     () =>
-      onRemoteChange((next, derived) => {
+      onRemoteChange((next, derived, reindexed) => {
         const name = workspace.current
         const epoch = workspaceEpoch.current
 
@@ -831,7 +831,10 @@ export function Canvas() {
         // here too, so a card's status catches up with an edit a moment after it saves.
         if (derived && next >= (revision.current ?? -1)) setDerived(derived)
 
-        queue.current = queue.current.then(() => (epoch === workspaceEpoch.current && next !== revision.current ? reload(name, epoch) : undefined))
+        // Files changed outside Orion keep their revision, so they reload whatever the revision says.
+        queue.current = queue.current.then(() =>
+          epoch === workspaceEpoch.current && (reindexed || next !== revision.current) ? reload(name, epoch) : undefined,
+        )
       }),
     [reload, setDerived],
   )

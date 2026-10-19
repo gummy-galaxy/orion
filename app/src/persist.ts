@@ -379,9 +379,14 @@ export function clearFocus(workspace: string) {
   navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB_ID, canvas: workspace, closed: true })], { type: 'application/json' }))
 }
 
-/** Calls back when another writer (the CLI, an agent, another window) changes the file, with the derived values for that revision. */
-export function onRemoteChange(callback: (revision: number, derived?: Derived) => void) {
-  return subscribe<{ revision: number; derived?: Derived }>(CHANGED_EVENT, (data) => callback(data.revision, data.derived))
+/**
+ * Calls back when another writer (the CLI, an agent, another window) changes the file, with the derived values for that
+ * revision. `reindexed` means the canvas's files changed outside Orion, such as by a `git pull`, without a new revision.
+ */
+export function onRemoteChange(callback: (revision: number, derived?: Derived, reindexed?: boolean) => void) {
+  return subscribe<{ revision: number; derived?: Derived; reindexed?: boolean }>(CHANGED_EVENT, (data) =>
+    callback(data.revision, data.derived, data.reindexed === true),
+  )
 }
 
 import.meta.hot?.dispose(() => {
