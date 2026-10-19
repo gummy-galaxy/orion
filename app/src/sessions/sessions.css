@@ -236,8 +236,8 @@
   padding: var(--space-2) var(--space-3-5);
   border: 0;
   border-radius: var(--radius-sm);
-  background: var(--status-active);
-  color: var(--surface);
+  background: var(--accent-default);
+  color: var(--surface-background);
   font: var(--weight-bold) var(--text-size-small) var(--font-ui);
   cursor: pointer;
 }

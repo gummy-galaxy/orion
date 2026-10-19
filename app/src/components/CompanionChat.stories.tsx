@@ -8,7 +8,12 @@ import { Companion } from './Companion'
 import { CompanionChat } from './CompanionChat'
 import { TradingCard } from './TradingCard'
 
-const meta = { title: 'Interaction/Overlays/CompanionChat', parameters: { layout: 'fullscreen' } } satisfies Meta
+// Orion's default appearance: the Vibrant theme and trading cards.
+const meta = {
+  title: 'Interaction/Overlays/CompanionChat',
+  parameters: { layout: 'fullscreen' },
+  globals: { theme: 'vibrant', skin: 'trading' },
+} satisfies Meta
 
 export default meta
 type Story = StoryObj<typeof meta>
