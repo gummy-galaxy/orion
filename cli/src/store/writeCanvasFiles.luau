@@ -40,12 +40,13 @@ local function backUp(dir: string, previous: CanvasSnapshot)
 	pcall(function()
 		local now = os.time()
 		local folder = path.join(dir, fileNames.backups)
-		local document = joinCanvasFiles(previous.files)
-		local revision = if type(document.revision) == "number" then document.revision else 0
+		local revision = if type(previous.document.revision) == "number" then previous.document.revision else 0
 		local backup = path.join(folder, getBackupName(revision, now))
 		ensureDirectory(folder)
 
+		-- The snapshot's document may have been decoded and changed since, so the files are joined again.
 		if not fs.exists(backup) then
+			local document = if previous.files then joinCanvasFiles(previous.files) else previous.document
 			fs.writeStringToFile(backup, json.serialize(document, true))
 		end
 
@@ -57,11 +58,11 @@ end
 	Writes a whole canvas, in the shape `encodeDocObject` returns, as the files of its folder. Only files whose
 	text differs from `previous` are rewritten, node and link files the canvas no longer has are removed, and
 	`canvas.json` goes last. A marker stays down for the length of the write so readers wait it out. Callers hold
-	the lock, and pass what they read under it as `previous`, whose canvas is backed up first.
+	the lock, and pass what they read under it as `previous`, with its files, whose canvas is backed up first.
 ]]
 local function writeCanvasFiles(dir: string, document: json.Object, previous: CanvasSnapshot?)
 	local files = splitDocObject(document)
-	local previousFiles = if previous then previous.files else {}
+	local previousFiles = if previous and previous.files then previous.files else {}
 	local marker = path.join(dir, fileNames.pendingWrite)
 
 	if previous then

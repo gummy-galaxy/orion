@@ -1,3 +1,4 @@
+local archivist = require("@archivist")
 local fs = require("@std/fs")
 local path = require("@std/path")
 local task = require("@std/task")
@@ -5,13 +6,20 @@ local task = require("@std/task")
 local fileNames = require("@root/fileNames")
 local getDocPath = require("@root/store/getDocPath")
 local joinCanvasFiles = require("@root/store/joinCanvasFiles")
+local readCanvasFolder = require("@root/store/readCanvasFolder")
+local readCanvasIndex = require("@root/store/readCanvasIndex")
 local storeTypes = require("@root/store/types")
 
 type CanvasSnapshot = storeTypes.CanvasSnapshot
 
+local logger = archivist.getLogger("orion.index")
+
 -- Long enough to outlast a writer, since writers give up waiting for the lock after five seconds.
 local ATTEMPTS = 200
 local RETRY_SECONDS = 0.025
+
+-- Whether `sqlite3` can be run here. Without it, every read opens every file.
+local hasSqlite = true
 
 local function getStamp(file: string): string?
 	local succeeded, metadata = pcall(fs.metadata, file)
@@ -23,41 +31,35 @@ local function isWriting(dir: string): boolean
 	return fs.exists(path.join(dir, fileNames.pendingWrite)) and fs.exists(path.join(dir, fileNames.lock))
 end
 
-local function readFolder(dir: string, folder: string, files: { [string]: string })
-	local full = path.join(dir, folder)
-
-	if not fs.exists(full) then
-		return
-	end
-
-	for _, entry in fs.listDirectory(full) do
-		if entry.type == "file" and entry.name:match("%.json$") then
-			files[`{folder}/{entry.name}`] = fs.readFileToString(path.join(full, entry.name))
-		end
-	end
+local function readFromFolder(dir: string): CanvasSnapshot
+	local files = readCanvasFolder(dir)
+	return { files = files, document = joinCanvasFiles(files) }
 end
 
-local function readFiles(dir: string): { [string]: string }
-	local files: { [string]: string } = {}
-	files[fileNames.document] = fs.readFileToString(getDocPath(dir))
-	readFolder(dir, fileNames.nodes, files)
-	readFolder(dir, fileNames.links, files)
+local function read(dir: string, includeFiles: boolean): CanvasSnapshot
+	if hasSqlite then
+		local succeeded, snapshot = pcall(readCanvasIndex, dir, includeFiles)
 
-	local localState = path.join(dir, fileNames.localState)
-
-	if fs.exists(localState) then
-		files[fileNames.localState] = fs.readFileToString(localState)
+		if succeeded then
+			return assert(snapshot, `{dir} has no {fileNames.document}`)
+		elseif type(snapshot) == "string" and snapshot:find("Failed to spawn process", 1, true) then
+			hasSqlite = false
+			logger.warn("sqlite3 isn't installed, so canvases are read from every file:", snapshot)
+		else
+			error(snapshot, 0)
+		end
 	end
 
-	return files
+	return readFromFolder(dir)
 end
 
 --[[
-	Reads a canvas folder's files, or nil when it has none yet. A write replaces several files, `canvas.json` last,
-	while its marker is down, so a read that saw the marker or a different `canvas.json` by the time it finished
-	reads again rather than return a write half done.
+	Reads a canvas folder through its index, or nil when it has no files yet. The index catches up with the files
+	first, so a read always sees what's on disk. A write replaces several files, `canvas.json` last, while its
+	marker is down, so a read that saw the marker or a different `canvas.json` by the time it finished reads again
+	rather than return a write half done. With `includeFiles`, the snapshot also maps each file's path to its text.
 ]]
-local function readCanvasFiles(dir: string): CanvasSnapshot?
+local function readCanvasFiles(dir: string, includeFiles: boolean?): CanvasSnapshot?
 	local canvasFile = getDocPath(dir)
 
 	for attempt = 1, ATTEMPTS do
@@ -74,12 +76,16 @@ local function readCanvasFiles(dir: string): CanvasSnapshot?
 		local isLast = attempt == ATTEMPTS
 
 		if isLast or not isWriting(dir) then
-			local succeeded, files = pcall(readFiles, dir)
+			local succeeded, snapshot = pcall(read, dir, includeFiles == true)
 
-			if succeeded and (isLast or (not isWriting(dir) and getStamp(canvasFile) == before)) then
-				return { files = files, document = joinCanvasFiles(files) }
-			elseif not succeeded and isLast then
-				error(files, 0)
+			-- A read that failed with no write in its way, such as on a file that doesn't parse, fails the same way
+			-- the next time.
+			if isLast or (not isWriting(dir) and getStamp(canvasFile) == before) then
+				if not succeeded then
+					error(snapshot, 0)
+				end
+
+				return snapshot
 			end
 		end
 

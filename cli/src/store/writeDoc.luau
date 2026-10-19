@@ -10,7 +10,7 @@ type Doc = types.Doc
 -- can't be read are replaced without a backup.
 local function writeDoc(dir: string, doc: Doc)
 	runWithLock(dir, function(): nil
-		local succeeded, previous = pcall(readCanvasFiles, dir)
+		local succeeded, previous = pcall(readCanvasFiles, dir, true)
 		writeCanvasFiles(dir, encodeDocObject(doc), if succeeded then previous else nil)
 		return nil
 	end)

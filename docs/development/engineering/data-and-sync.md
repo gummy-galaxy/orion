@@ -1,6 +1,6 @@
 # Data and sync
 
-A canvas is a folder of JSON files. The CLI and the server write it under a shared lock, and every write produces a new revision. Around that core are backups, a merge for saves that lose a race, undo in the app, and a plan to read through a SQLite index.
+A canvas is a folder of JSON files. The CLI and the server write it under a shared lock, and every write produces a new revision. Reads go through a SQLite index built from the files. Around that core are backups, a merge for saves that lose a race, and undo in the app.
 
 ## A folder of files per canvas, under a lock
 
@@ -22,6 +22,16 @@ A lock can outlive its writer if the writer crashes. [Reclaiming those locks](ht
 Before this change, any lock older than 30 seconds was reclaimed, even while its writer was still running. A second writer could then overwrite the first one's result.
 
 Callers that read a revision can refuse a write when the document has moved on. `--if-revision` does this for the batch commands, and the same check is what lets an agent preview a change and then apply it safely ([CLI and agents](/development/engineering/cli-and-agents)).
+
+## A SQLite index for reads
+
+Opening every file of a canvas gets slow once it holds thousands of ingested records, so reads go through a SQLite index beside the files, `index.sqlite` ([#476](https://github.com/vocksel/orion/issues/476)). The files stay the source of truth. Deleting the index loses nothing, and a damaged one, or one made for an older layout, is deleted and built again.
+
+Lute has no SQLite binding, so the CLI runs the `sqlite3` command with `-json` and WAL mode on. A batch goes in as one JSON string, through a file since Linux caps one command-line argument at 128 KB, and `json_each()` unpacks it. The canvas itself comes back as one JSON value printed as it is, so it's parsed once rather than as a string inside `-json`'s rows. Without `sqlite3`, Orion reads every file as before and logs a warning.
+
+Each read first brings the index up to date. `sqlite3`'s `fsdir()` lists the folder's file times, and only files that are new, have a different time, or changed in the same second they were last read are read again. Times come in whole seconds, so that last rule catches a change the time can't show. Files that are gone are dropped. The index then joins the canvas the way the files do: entries in `canvas.json`'s order first, then the rest by id. A file that doesn't parse fails the read and names the file.
+
+On a generated canvas of 5,000 cards, opening it and answering `orion next` took about 140 ms from the index against about 590 ms from every file, and about 350 ms when building the index from nothing. `lute run bench-index` in `cli/` measures it.
 
 ## Rolling backups
 
@@ -82,4 +92,4 @@ Several changes exist to protect the data:
 
 ## Where it's headed
 
-The charter's first phase has a storage bet: a canvas becomes a folder of text files that can live in a repository, like an Obsidian vault, and SQLite becomes a rebuildable index for reads ([#246](https://github.com/vocksel/orion/pull/246), [#121](https://github.com/vocksel/orion/issues/121)). The files came first. The index, a journal for writes that touch several files, re-indexing after a `git pull`, and merge-friendly ids and ordering follow. The decision keeps simple read and write commands in the CLI and keeps one `sqlite3` process open in the server. Files stay easy to inspect and diff, and the index keeps large canvases fast.
+The charter's first phase has a storage bet: a canvas becomes a folder of text files that can live in a repository, like an Obsidian vault, and SQLite becomes a rebuildable index for reads ([#246](https://github.com/vocksel/orion/pull/246), [#121](https://github.com/vocksel/orion/issues/121)). The files and the index came first. A journal for writes that touch several files, re-indexing after a `git pull`, and merge-friendly ids and ordering follow. The decision keeps simple read and write commands in the CLI and keeps one `sqlite3` process open in the server. Files stay easy to inspect and diff, and the index keeps large canvases fast.
