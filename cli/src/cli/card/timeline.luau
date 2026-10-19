@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local encodeEntry = require("@root/log/encodeEntry")
 local formatEntry = require("@root/log/formatEntry")
@@ -18,9 +19,15 @@ local DEFAULT_LIMIT = 5
 
 return table.freeze({
 	help = "Show a card's timeline: its most recent log entries, newest first",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
-		parser:add("id", "positional", { help = "Card id" })
-		parser:add("limit", "option", { help = `How many recent entries to show (default {DEFAULT_LIMIT})` })
+		addArgument(parser, "id", "positional", { help = "Card id", type = "id" })
+		addArgument(
+			parser,
+			"limit",
+			"option",
+			{ help = `How many recent entries to show (default {DEFAULT_LIMIT})`, type = "integer" }
+		)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 

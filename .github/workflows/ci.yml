@@ -95,6 +95,11 @@ jobs:
       - name: Install Dependencies
         run: lute pkg install
 
+      # The CLI's index specs run the `sqlite3` command, which the runner's image doesn't have
+      - name: Install SQLite
+        if: runner.os == 'Linux'
+        run: lute run install-sqlite
+
       - name: Test
         run: lute test
 
