@@ -7,12 +7,13 @@ local testing = require("@root/testing")
 local types = require("@root/types")
 
 type PollState = githubTypes.PollState
+type Want = githubTypes.Want
 type Doc = types.Doc
 
 local LAST_MODIFIED = "Sun, 18 Oct 2026 15:53:33 GMT"
 local RECORDED = "2026-10-01T00:00:00Z"
-local NOTIFICATIONS = { notifications = true, sweep = false, checks = false }
-local SWEEP = { notifications = true, sweep = true, checks = false }
+local NOTIFICATIONS: Want = { notifications = true, sweep = false, checks = false }
+local SWEEP: Want = { notifications = true, sweep = true, checks = false }
 local AUTHORED =
 	[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}}]]
 
@@ -136,6 +137,32 @@ test.case("a sweep that finds nothing new writes nothing", function(assert)
 	assert.eq(#queries.full, 0)
 end)
 
+test.case("a sweep of chosen cards compares only theirs and lists nothing", function(assert)
+	local doc, poll = fixture()
+	local run, queries = createRunner(nil, [[{"data":{"p1":{"pullRequest":{"updatedAt":"2026-10-18T00:00:00Z"}}}}]])
+	local want: Want = { notifications = false, sweep = false, checks = false, sweepCards = { b = true, m = true } }
+	local changes = collectChanged(doc, run, poll, want)
+
+	assert.neq(changes.fetched, nil)
+	assert.eq(changes.refetched, 1)
+	assert.eq(#queries.sweep, 1)
+	assert.strContains(queries.sweep[1], "number: 2)")
+	assert.eq(queries.sweep[1]:find("number: 1)", 1, true), nil)
+	assert.eq(queries.sweep[1]:find("number: 3)", 1, true), nil)
+	assert.eq(#queries.authored, 0)
+	assert.strContains(queries.full[1], "number: 2)")
+end)
+
+test.case("a sweep of chosen cards with none on the canvas fetches nothing", function(assert)
+	local doc, poll = fixture()
+	local run, queries = createRunner(nil)
+	local want: Want = { notifications = false, sweep = false, checks = false, sweepCards = { gone = true } }
+	local changes = collectChanged(doc, run, poll, want)
+
+	assert.eq(changes.fetched, nil)
+	assert.eq(#queries.full + #queries.sweep + #queries.authored, 0)
+end)
+
 local function pendingCard(id: string, number: number, finished: number): types.Item
 	return testing.task(id, `Card {number}`, "review", nil, {
 		refs = {
@@ -168,7 +195,7 @@ test.case("a checks pass refetches only pending cards whose checks moved", funct
 	local doc = testing.createDoc({ card("a", 1, "open"), pendingCard("p", 4, 1) })
 	doc.github = json.object({ viewer = "vocksel", unplaced = {} })
 	local poll = { lastModified = {}, interval = 60 }
-	local want = { notifications = false, sweep = false, checks = true }
+	local want: Want = { notifications = false, sweep = false, checks = true }
 
 	local run, queries = createRunner(nil, nil, checksResponse(1))
 	local changes = collectChanged(doc, run, poll, want)
