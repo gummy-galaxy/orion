@@ -358,6 +358,7 @@ local tools: { Tool } = {
 		name = "orion_snooze_job",
 		description = "Leave a CI job's failures off every card in a repository until it passes there, or until a time.",
 		command = { "ci", "snooze" },
+		json = true,
 		fields = {
 			{
 				name = "name",
@@ -389,6 +390,7 @@ local tools: { Tool } = {
 		name = "orion_unsnooze_job",
 		description = "Count a snoozed CI job's failures on cards again.",
 		command = { "ci", "unsnooze" },
+		json = true,
 		fields = {
 			{
 				name = "name",
@@ -599,6 +601,7 @@ local tools: { Tool } = {
 		name = "orion_unlink",
 		description = "Remove a dependency or related link between two items.",
 		command = { "link", "remove" },
+		json = true,
 		fields = {
 			{
 				name = "from",
@@ -856,6 +859,7 @@ local tools: { Tool } = {
 		name = "orion_create_canvas",
 		description = "Create an Orion canvas. Without a name, one is derived from the label.",
 		command = { "canvas", "create" },
+		json = true,
 		fields = {
 			{
 				name = "name",
@@ -876,6 +880,7 @@ local tools: { Tool } = {
 		name = "orion_rename_canvas",
 		description = "Change a canvas's display label. The name and folder stay the same.",
 		command = { "canvas", "rename" },
+		json = true,
 		fields = {
 			{ name = "name", kind = "canvas", required = true, at = "positional" },
 			{ name = "label", kind = "string", required = true, minLength = 1, at = "positional" },
@@ -885,6 +890,7 @@ local tools: { Tool } = {
 		name = "orion_update_canvas",
 		description = "Set a canvas's cover or background. Empty clears it.",
 		command = { "canvas", "set" },
+		json = true,
 		fields = {
 			workspaceField,
 			{
@@ -911,6 +917,7 @@ local tools: { Tool } = {
 		name = "orion_archive_canvas",
 		description = "Archive a canvas so it leaves the canvas list. Its data stays in place. The active canvas can't be archived.",
 		command = { "canvas", "archive" },
+		json = true,
 		fields = {
 			{ name = "name", kind = "canvas", required = true, at = "positional" },
 		},
@@ -919,6 +926,7 @@ local tools: { Tool } = {
 		name = "orion_restore_canvas",
 		description = "Restore an archived Orion canvas with its data.",
 		command = { "canvas", "restore" },
+		json = true,
 		fields = {
 			{ name = "name", kind = "canvas", required = true, at = "positional" },
 		},
@@ -927,6 +935,7 @@ local tools: { Tool } = {
 		name = "orion_select_canvas",
 		description = "Set the active Orion canvas shown by the app.",
 		command = { "canvas", "use" },
+		json = true,
 		fields = {
 			{ name = "name", kind = "canvas", required = true, at = "positional" },
 		},
@@ -1097,6 +1106,7 @@ local tools: { Tool } = {
 		name = "orion_apply_suggestions",
 		description = "Apply group suggestions by id, or all of them.",
 		command = { "suggestion", "apply" },
+		json = true,
 		fields = {
 			{ name = "ids", kind = "strings", description = "Suggestion ids.", at = "variadic" },
 			workspaceField,
@@ -1107,6 +1117,7 @@ local tools: { Tool } = {
 		name = "orion_dismiss_suggestions",
 		description = "Dismiss group suggestions by id, or all of them.",
 		command = { "suggestion", "dismiss" },
+		json = true,
 		fields = {
 			{ name = "ids", kind = "strings", description = "Suggestion ids.", at = "variadic" },
 			workspaceField,
@@ -1125,6 +1136,7 @@ local tools: { Tool } = {
 		name = "orion_restore_backup",
 		description = "Restore a saved revision as a new revision. The current canvas is backed up first.",
 		command = { "backup", "restore" },
+		json = true,
 		fields = {
 			{
 				name = "revision",

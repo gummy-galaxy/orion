@@ -1,8 +1,10 @@
 local cli = require("@batteries/cli")
+local json = require("@std/json")
 
 local changeCheckSnooze = require("@root/checks/changeCheckSnooze")
 local context = require("@root/cli/context")
 local runTransaction = require("@root/store/runTransaction")
+local writeResult = require("@root/cli/writeResult")
 
 type Context = context.Context
 
@@ -17,10 +19,14 @@ return table.freeze({
 		local name = assert(parser:get("name"), "missing <name>")
 		local repo = assert(parser:get("repo"), "missing --repo <owner/name>")
 
-		runTransaction(options.dir, function(doc)
-			changeCheckSnooze(doc, { repo = repo, name = name, snoozed = false, at = options.now() })
+		local doc = runTransaction(options.dir, function(current)
+			changeCheckSnooze(current, { repo = repo, name = name, snoozed = false, at = options.now() })
 		end)
 
-		options.write(`Unsnoozed {name} in {repo}`)
+		writeResult(
+			options,
+			json.object({ revision = doc.revision, repo = repo, name = name }),
+			`Unsnoozed {name} in {repo}`
+		)
 	end,
 })

@@ -21,6 +21,7 @@ orion server start [options]
 | `--port <value>`   | HTTP port (default 5198)      |
 | `--host <value>`   | HTTP host (default 127.0.0.1) |
 | `--static <value>` | Built app directory           |
+| `--json`           | Print JSON                    |
 
 ## orion server status
 

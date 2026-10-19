@@ -1,7 +1,9 @@
 local cli = require("@batteries/cli")
+local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local createWorkspace = require("@root/store/createWorkspace")
+local writeResult = require("@root/cli/writeResult")
 
 type Context = context.Context
 
@@ -15,6 +17,10 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local list = createWorkspace(options.root, parser:get("name"), parser:get("label"))
 		local created = list.workspaces[#list.workspaces]
-		options.write(`Created canvas {created.name}`)
+		writeResult(
+			options,
+			json.object({ name = created.name, label = created.label }),
+			`Created canvas {created.name}`
+		)
 	end,
 })

@@ -26,14 +26,17 @@ return table.freeze({
 		local agent = parser:get("agent") or configured or "none"
 		local result, didFallback =
 			compute(current, parser:get("scope") or "unsorted", agent, options.runner, options.now())
+		local revision = current.revision
+
 		if not parser:has("dry-run") then
-			runTransaction(options.dir, function(doc)
+			revision = runTransaction(options.dir, function(doc)
 				save(doc, result)
-			end)
+			end).revision
 		end
 
 		if options.asJson then
 			local value = convertToJson(result)
+			value.revision = revision
 
 			if didFallback then
 				value.warning = "Agent unavailable or returned no valid groups; kept heuristic suggestions."

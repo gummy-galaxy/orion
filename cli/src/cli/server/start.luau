@@ -1,4 +1,5 @@
 local cli = require("@batteries/cli")
+local json = require("@std/json")
 local process = require("@std/process")
 local task = require("@std/task")
 
@@ -25,7 +26,12 @@ return table.freeze({
 		local isWatchingParent = parentProcessId ~= nil and parentProcessId > 1
 		local host = parser:get("host") or "127.0.0.1"
 		local running = server.start(options.root, options.workspace, host, port, parser:get("static"))
-		options.write(`Orion serving on http://{running.hostname}:{running.port}`)
+		local url = `http://{running.hostname}:{running.port}`
+		options.write(
+			if options.asJson
+				then json.serialize(json.object({ url = url, canvas = options.workspace }))
+				else `Orion serving on {url}`
+		)
 		local isClosing = false
 		local signalHandles: { process.SignalHandle } = {}
 		local function close()

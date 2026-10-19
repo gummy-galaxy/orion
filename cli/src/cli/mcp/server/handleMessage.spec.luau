@@ -104,7 +104,7 @@ test.case("tools round-trip through the CLI and workspace storage", function(ass
 
 	local added = call(run, "orion_add_item", json.object({ title = "MCP smoke test", canvas = "sample" }))
 	assert.eq(added.isError, nil)
-	local item = need(json.asObject(json.deserialize(firstText(added)) :: json.Value))
+	local item = need(json.asObject(need(json.asObject(json.deserialize(firstText(added)) :: json.Value)).item))
 	assert.eq(item.label, "MCP smoke test")
 
 	local shown = call(run, "orion_inspect", json.object({ view = "show", canvas = "sample", id = item.id }))

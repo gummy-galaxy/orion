@@ -5,13 +5,13 @@ local context = require("@root/cli/context")
 local findItem = require("@root/graph/findItem")
 local findItems = require("@root/query/findItems")
 local getLabel = require("@root/graph/getLabel")
-local getQueryValue = require("@root/cli/getQueryValue")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
 local isGroup = require("@root/graph/isGroup")
 local joinWords = require("@root/cli/joinWords")
 local loadDoc = require("@root/store/loadDoc")
 local pad = require("@root/render/pad")
+local render = require("@root/render")
 
 type Context = context.Context
 
@@ -34,7 +34,7 @@ local function writeJson(options: Context, result: findItems.Result, limit: numb
 	local values: json.Array = {}
 
 	for _, hit in result.hits do
-		local value = getQueryValue(hit.doc, hit.derived, hit.item)
+		local value = render.itemJson(hit.doc, hit.derived, hit.item)
 		value.canvas = hit.name
 		table.insert(values, value)
 	end

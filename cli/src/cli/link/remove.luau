@@ -1,4 +1,5 @@
 local cli = require("@batteries/cli")
+local json = require("@std/json")
 
 local addIdPositional = require("@root/cli/addIdPositional")
 local context = require("@root/cli/context")
@@ -6,6 +7,7 @@ local getRequired = require("@root/cli/getRequired")
 local resolveId = require("@root/query/resolveId")
 local runTransaction = require("@root/store/runTransaction")
 local unlinkItems = require("@root/graph/unlinkItems")
+local writeResult = require("@root/cli/writeResult")
 
 type Context = context.Context
 
@@ -19,11 +21,15 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local from, to = getRequired(parser, "from"), getRequired(parser, "to")
 
-		runTransaction(options.dir, function(doc)
-			from, to = resolveId(doc, from), resolveId(doc, to)
-			unlinkItems(doc, from, to)
+		local doc = runTransaction(options.dir, function(current)
+			from, to = resolveId(current, from), resolveId(current, to)
+			unlinkItems(current, from, to)
 		end)
 
-		options.write(`Removed the link from {from} to {to}`)
+		writeResult(
+			options,
+			json.object({ revision = doc.revision, from = from, to = to }),
+			`Removed the link from {from} to {to}`
+		)
 	end,
 })

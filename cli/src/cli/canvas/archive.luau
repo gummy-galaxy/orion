@@ -1,7 +1,9 @@
 local cli = require("@batteries/cli")
+local json = require("@std/json")
 
 local archiveWorkspace = require("@root/store/archiveWorkspace")
 local context = require("@root/cli/context")
+local writeResult = require("@root/cli/writeResult")
 
 type Context = context.Context
 
@@ -14,6 +16,6 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local name = assert(parser:get("name"), "missing <name>")
 		archiveWorkspace(options.root, name, options.workspace)
-		options.write(`Archived canvas {name}`)
+		writeResult(options, json.object({ name = name }), `Archived canvas {name}`)
 	end,
 })

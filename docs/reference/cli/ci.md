@@ -33,6 +33,7 @@ orion ci snooze [name] [options]
 | `[name]`          | The job's name, as GitHub shows it                                                                                                         |
 | `--repo <value>`  | Repository the job runs in, as owner/name (required)                                                                                       |
 | `--until <value>` | End the snooze at a UTC time such as 2026-10-14T18:00:00Z, or a date. Without it, the snooze lasts on each card until the job passes there |
+| `--json`          | Print JSON                                                                                                                                 |
 
 ## orion ci unsnooze
 
@@ -46,3 +47,4 @@ orion ci unsnooze [name] [options]
 | ---------------- | ---------------------------------------------------- |
 | `[name]`         | The job's name, as GitHub shows it                   |
 | `--repo <value>` | Repository the job runs in, as owner/name (required) |
+| `--json`         | Print JSON                                           |

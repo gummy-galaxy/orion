@@ -7,6 +7,7 @@ local decodeDoc = require("@root/store/decodeDoc")
 local getBackups = require("@root/store/getBackups")
 local runTransaction = require("@root/store/runTransaction")
 local storeTypes = require("@root/store/types")
+local writeResult = require("@root/cli/writeResult")
 
 type Backup = storeTypes.Backup
 type Context = context.Context
@@ -42,6 +43,10 @@ return table.freeze({
 			doc.raw = raw
 		end)
 
-		options.write(`Restored revision {revision} as revision {restored.revision}`)
+		writeResult(
+			options,
+			json.object({ revision = restored.revision, restored = revision }),
+			`Restored revision {revision} as revision {restored.revision}`
+		)
 	end,
 })

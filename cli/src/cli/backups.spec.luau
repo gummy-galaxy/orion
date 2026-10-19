@@ -18,9 +18,9 @@ test.case("backups lists newest first with revision, time, and size", function(a
 	local first = if values then json.asObject(values[1]) else nil
 	assert.eq(values and #values, 2)
 	assert.eq(first and first.revision, 1)
-	assert.eq(first and first.time, "20261003T010000Z")
+	assert.eq(first and first.time, "2026-10-03T01:00:00Z")
 	assert.eq(first and first.size, 5)
-	assert.strContains(run({ "backup", "list" }), "r1  20261003T010000Z  5 bytes")
+	assert.strContains(run({ "backup", "list" }), "r1  2026-10-03T01:00:00Z  5 bytes")
 end)
 
 test.case("--canvas lists backups from the selected canvas", function(assert)

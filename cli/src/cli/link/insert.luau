@@ -4,8 +4,8 @@ local json = require("@std/json")
 local addIdPositional = require("@root/cli/addIdPositional")
 local context = require("@root/cli/context")
 local getItem = require("@root/graph/getItem")
-local getLabel = require("@root/graph/getLabel")
 local getRequired = require("@root/cli/getRequired")
+local getStringField = require("@root/getStringField")
 local insertBetween = require("@root/graph/insertBetween")
 local requestedRevision = require("@root/cli/requestedRevision")
 local resolveId = require("@root/query/resolveId")
@@ -43,7 +43,7 @@ return table.freeze({
 					dryRun = dryRun,
 					baseRevision = baseRevision,
 					revision = doc.revision,
-					items = { json.object({ id = id, label = getLabel(getItem(doc, id)) }) },
+					items = { json.object({ id = id, label = getStringField(getItem(doc, id).data.label) }) },
 					from = from,
 					to = to,
 				}),

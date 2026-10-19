@@ -173,23 +173,23 @@ end)
 test.case("canvas tools map onto the canvas commands", function(assert)
 	assert.eq(
 		table.concat(getToolArgv("orion_create_canvas", json.object({ label = "Focus areas" })), " "),
-		"canvas create --label Focus areas"
+		"canvas create --label Focus areas --json"
 	)
 	assert.eq(
 		table.concat(getToolArgv("orion_create_canvas", json.object({ name = "focus", label = "Focus" })), " "),
-		"canvas create focus --label Focus"
+		"canvas create focus --label Focus --json"
 	)
 	assert.eq(
 		table.concat(getToolArgv("orion_rename_canvas", json.object({ name = "focus", label = "Focus" })), " "),
-		"canvas rename focus Focus"
+		"canvas rename focus Focus --json"
 	)
 	assert.eq(
 		table.concat(getToolArgv("orion_archive_canvas", json.object({ name = "focus" })), " "),
-		"canvas archive focus"
+		"canvas archive focus --json"
 	)
 	assert.eq(
 		table.concat(getToolArgv("orion_restore_canvas", json.object({ name = "focus" })), " "),
-		"canvas restore focus"
+		"canvas restore focus --json"
 	)
 	assert.eq(
 		table.concat(getToolArgv("orion_canvases", json.object({ archived = true })), " "),

@@ -16,7 +16,7 @@ return table.freeze({
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 	run = function(parser: cli.Parser, options: Context)
-		local item = insertFile(
+		local item, revision = insertFile(
 			options.dir,
 			options.workspace,
 			assert(parser:get("file"), "file is required"),
@@ -26,6 +26,7 @@ return table.freeze({
 		if parser:has("json") then
 			options.write(json.serialize(
 				json.object({
+					revision = revision,
 					id = item.id,
 					label = getLabel(item),
 					asset = item.data.asset,

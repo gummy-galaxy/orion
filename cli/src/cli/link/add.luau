@@ -3,8 +3,8 @@ local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local getItem = require("@root/graph/getItem")
-local getLabel = require("@root/graph/getLabel")
 local getRequired = require("@root/cli/getRequired")
+local getStringField = require("@root/getStringField")
 local isWork = require("@root/graph/isWork")
 local linkItems = require("@root/graph/linkItems")
 local requestedRevision = require("@root/cli/requestedRevision")
@@ -29,7 +29,7 @@ local function writeJson(
 	local links: json.Array = {}
 
 	for _, id in ids do
-		table.insert(items, json.object({ id = id, label = getLabel(getItem(doc, id)) }))
+		table.insert(items, json.object({ id = id, label = getStringField(getItem(doc, id).data.label) }))
 	end
 
 	for index = 1, #ids - 1 do
