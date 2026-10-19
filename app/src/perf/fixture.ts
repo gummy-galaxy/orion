@@ -1,5 +1,4 @@
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from '../geometry'
-import { normalize, type AppNode, type ClusterNode, type Link, type Status, type TaskNode } from '../model'
+import { groupHeaderHeight, normalize, sizeOf, type AppNode, type ClusterNode, type Link, type Status, type TaskNode } from '../model'
 import type { Saved } from '../persist'
 
 export type FixtureOptions = {
@@ -14,6 +13,19 @@ export type FixtureOptions = {
 
 const ROW = 6
 const GAP = 40
+
+// `npm run perf` lays this harness over the base branch's app, so it reads sizes through functions every revision
+// exports rather than importing the constants, which have moved between modules before.
+const { width: TASK_WIDTH, height: TASK_HEIGHT } = sizeOf({
+  id: 'size',
+  type: 'task',
+  position: { x: 0, y: 0 },
+  data: { kind: 'task', label: '', itemKind: 'step', status: 'todo' },
+} as TaskNode)
+const GROUP_HEADER_HEIGHT = groupHeaderHeight(undefined)
+// An empty group is one card wide plus its padding on each side.
+const GROUP_PADDING =
+  ((normalize([{ id: 'size', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: '' } }])[0].width ?? 0) - TASK_WIDTH) / 2
 const AREA_COLUMNS = 2
 const TOP_COLUMNS = 4
 const STATUSES: [Status, number][] = [
