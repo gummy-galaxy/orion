@@ -4,6 +4,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 
 local fileNames = require("@root/fileNames")
+local indexStatements = require("@root/store/indexStatements")
 local openCanvasIndex = require("@root/store/openCanvasIndex")
 local quoteSqlString = require("@root/sqlite/quoteSqlString")
 local readSqliteValue = require("@root/sqlite/readSqliteValue")
@@ -32,23 +33,6 @@ CREATE TEMP TABLE counts AS SELECT
 	(SELECT count(*) FROM files WHERE path NOT IN (SELECT path FROM disk)
 		OR path IN (SELECT path FROM fresh WHERE text IS NULL)) AS removed;
 DELETE FROM files WHERE path NOT IN (SELECT path FROM disk) OR path IN (SELECT path FROM fresh WHERE text IS NULL);
-INSERT OR REPLACE INTO files (path, folder, entry, isValid, mtime, checked, hash, text)
-	SELECT
-		path,
-		CASE WHEN path GLOB 'nodes/*' THEN 'nodes' WHEN path GLOB 'links/*' THEN 'links' ELSE '' END,
-		CASE WHEN isValid THEN
-			CASE WHEN json_type(text, '$.id') = 'text' THEN json_extract(text, '$.id') END
-		END,
-		isValid,
-		mtime,
-		CAST(strftime('%%s', 'now') AS INTEGER),
-		hex(sha3(text)),
-		text
-	FROM (
-		SELECT path, mtime, text, CASE WHEN json_valid(text) THEN json_type(text) = 'object' ELSE 0 END AS isValid
-		FROM fresh WHERE text IS NOT NULL
-	);
-COMMIT;
 ]]
 
 -- Joins the index back into one canvas object, the way `joinCanvasFiles` joins the files: entries listed in the
@@ -113,6 +97,8 @@ local function buildScript(dir: string, includeFiles: boolean): string
 	local files = if includeFiles then "json((SELECT json_group_object(path, text) FROM files))" else "NULL"
 
 	return SYNC:format(table.concat(scans, " UNION ALL "), prefix)
+		.. indexStatements.upsertFresh
+		.. "COMMIT;\n"
 		.. QUERY:format(ENTRIES:format("nodes", "nodes"), ENTRIES:format("links", "links"), files)
 end
 
