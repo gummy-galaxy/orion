@@ -12,6 +12,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Serve the Orion API for the app and agents",
+	mcp = { skip = "runs the long-lived app server, which belongs in a terminal" },
 	define = function(parser: cli.Parser)
 		parser:add("port", "option", { help = "HTTP port (default 5198)" })
 		parser:add("host", "option", { help = "HTTP host (default 127.0.0.1)" })

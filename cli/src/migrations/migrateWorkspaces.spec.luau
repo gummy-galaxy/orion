@@ -3,10 +3,10 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local decodeDoc = require("@root/store/decodeDoc")
 local getActiveWorkspace = require("@root/store/getActiveWorkspace")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
-local loadDoc = require("@root/store/loadDoc")
 local migrateWorkspaces = require("@root/migrations/migrateWorkspaces")
 local testing = require("@root/testing")
 
@@ -15,6 +15,11 @@ local function noServer(_root: string): number?
 end
 
 local OPTIONS: migrateWorkspaces.Options = { findLegacyServer = noServer }
+
+-- The revision of the `orion.json` a folder moved with, before it moves to files of its own.
+local function readRevision(dir: string): number
+	return decodeDoc(fs.readFileToString(path.join(dir, "orion.json"))).revision
+end
 
 local LEGACY_LIST = [[{
 	"active": "planning",
@@ -58,7 +63,7 @@ test.case("an older data folder moves to canvases with its data, backups, and li
 	for _, canvas in { "planning", "old" } do
 		local dir = getWorkspaceDir(root, canvas)
 		assert.eq(dir, tostring(path.join(root, "canvases", canvas)))
-		assert.eq(loadDoc(dir).revision, 3)
+		assert.eq(readRevision(dir), 3)
 		assert.eq(fs.exists(path.join(dir, "backups", "orion-r2-20261001T000000Z.json")), true)
 	end
 
@@ -79,7 +84,7 @@ test.case("running the migration twice leaves the moved data alone", function(as
 
 	assert.eq(migrateWorkspaces(root, OPTIONS), false)
 	assert.eq(fs.readFileToString(path.join(root, "canvases.json")), listed)
-	assert.eq(loadDoc(getWorkspaceDir(root, "planning")).revision, 3)
+	assert.eq(readRevision(getWorkspaceDir(root, "planning")), 3)
 end)
 
 test.case("a migration that stopped partway finishes on the next run", function(assert)
@@ -89,8 +94,8 @@ test.case("a migration that stopped partway finishes on the next run", function(
 
 	assert.eq(migrateWorkspaces(root, OPTIONS), true)
 	assert.eq(fs.exists(path.join(root, "workspaces")), false)
-	assert.eq(loadDoc(getWorkspaceDir(root, "planning")).revision, 3)
-	assert.eq(loadDoc(getWorkspaceDir(root, "old")).revision, 3)
+	assert.eq(readRevision(getWorkspaceDir(root, "planning")), 3)
+	assert.eq(readRevision(getWorkspaceDir(root, "old")), 3)
 	assert.eq(getWorkspaces(root).active, "planning")
 end)
 
@@ -102,7 +107,7 @@ test.case("stray files in the old folder don't stop later runs", function(assert
 	fs.writeStringToFile(path.join(root, "canvases", ".DS_Store"), "")
 
 	assert.eq(migrateWorkspaces(root, OPTIONS), true)
-	assert.eq(loadDoc(getWorkspaceDir(root, "planning")).revision, 3)
+	assert.eq(readRevision(getWorkspaceDir(root, "planning")), 3)
 end)
 
 test.case("a canvas folder on both sides is reported instead of overwritten", function(assert)

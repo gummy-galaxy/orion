@@ -9,6 +9,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Remove an ingestion source",
+	mcp = { skip = "changes which sources ingest reads, so it stays with source add" },
 	define = function(parser: cli.Parser)
 		parser:add("id", "positional", { help = "Source id" })
 	end,

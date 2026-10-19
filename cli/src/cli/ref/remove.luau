@@ -36,6 +36,7 @@ end
 
 return table.freeze({
 	help = "Take a ref off an item",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
 		parser:add(

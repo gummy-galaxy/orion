@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local useWorkspace = require("@root/store/useWorkspace")
 local writeResult = require("@root/cli/writeResult")
@@ -9,8 +10,9 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Make a canvas the active one",
+	mcp = { omit = { { option = "canvas", reason = "names the canvas it selects" } } },
 	define = function(parser: cli.Parser)
-		parser:add("name", "positional", { help = "Canvas name" })
+		addArgument(parser, "name", "positional", { help = "Canvas name", type = "canvas" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)

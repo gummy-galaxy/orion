@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local changeCheckSnooze = require("@root/checks/changeCheckSnooze")
 local context = require("@root/cli/context")
 local normalizeUntil = require("@root/checks/normalizeUntil")
@@ -11,9 +12,15 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Leave a CI job's failures off every card in a repository until it passes, or until a time",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		parser:add("name", "positional", { help = "The job's name, as GitHub shows it" })
-		parser:add("repo", "option", { help = "Repository the job runs in, as owner/name (required)" })
+		addArgument(
+			parser,
+			"repo",
+			"option",
+			{ help = "Repository the job runs in, as owner/name (required)", mcp = { required = true } }
+		)
 		parser:add("until", "option", {
 			help = "End the snooze at a UTC time such as 2026-10-14T18:00:00Z, or a date. Without it, the snooze lasts on each card until the job passes there",
 		})

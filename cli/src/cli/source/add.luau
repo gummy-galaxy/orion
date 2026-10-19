@@ -74,6 +74,7 @@ end
 
 return table.freeze({
 	help = "Add a GitHub, Jira, or hop source",
+	mcp = { skip = "configures a source with adapter-specific settings, so setup stays in the CLI" },
 	define = function(parser: cli.Parser)
 		for _, kind in KIND_ORDER do
 			local kindParser = parser:subcommand(kind, { help = KINDS[kind].help })

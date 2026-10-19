@@ -5,6 +5,7 @@ local process = require("@std/process")
 local task = require("@std/task")
 local test = require("@std/test")
 
+local buildTools = require("@root/cli/mcp/catalog/buildTools")
 local cli = require("@root/cli")
 local fileNames = require("@root/fileNames")
 local loadDoc = require("@root/store/loadDoc")
@@ -13,6 +14,7 @@ local serve = require("@root/cli/mcp/server/serve")
 local testing = require("@root/testing")
 
 local need = assert
+local TOOLS = buildTools(cli.describe())
 
 -- Longer than the store waits for its lock, so a call made while the lock is held times out at least once.
 local HOLD_SECONDS = 5.2
@@ -22,7 +24,7 @@ local function addItem(id: number, title: string): string
 		jsonrpc = "2.0",
 		id = id,
 		method = "tools/call",
-		params = json.object({ name = "orion_add_item", arguments = json.object({ title = title }) }),
+		params = json.object({ name = "orion_card_add", arguments = json.object({ label = title }) }),
 	}))
 end
 
@@ -63,7 +65,7 @@ test.case("overlapping write calls wait behind another process's lock and all ap
 		return chunk
 	end, function(text: string)
 		table.insert(written, text)
-	end, run)
+	end, TOOLS, run)
 
 	assert.eq(#written, 3)
 

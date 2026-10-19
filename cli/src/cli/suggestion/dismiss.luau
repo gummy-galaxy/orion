@@ -10,6 +10,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Dismiss group suggestions",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		parser:add("ids", "variadic", { help = "Suggestion ids" })
 		parser:add("all", "flag", { help = "Dismiss every suggestion" })

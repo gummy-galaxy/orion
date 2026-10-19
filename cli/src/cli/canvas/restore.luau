@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local restoreWorkspace = require("@root/store/restoreWorkspace")
 local writeResult = require("@root/cli/writeResult")
@@ -9,8 +10,9 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Restore an archived canvas with its data",
+	mcp = { omit = { { option = "canvas", reason = "names the canvas it restores" } } },
 	define = function(parser: cli.Parser)
-		parser:add("name", "positional", { help = "Archived canvas name" })
+		addArgument(parser, "name", "positional", { help = "Archived canvas name", type = "canvas" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)

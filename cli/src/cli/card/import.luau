@@ -2,6 +2,7 @@ local cli = require("@batteries/cli")
 local fs = require("@std/fs")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local getInputs = require("@root/import/getInputs")
 local importRefs = require("@root/import/importRefs")
@@ -97,12 +98,30 @@ end
 
 return table.freeze({
 	help = "Add a card for each URL or source:key in one step",
+	mcp = {
+		annotations = { openWorldHint = true },
+		omit = {
+			{
+				option = "stdin",
+				reason = "reads refs from stdin, which a tool call can't pipe; the tool takes them as a list",
+			},
+		},
+	},
 	define = function(parser: cli.Parser)
-		parser:add("refs", "variadic", { help = "GitHub or Jira URLs, or source:key such as jira:ABC-1" })
+		addArgument(
+			parser,
+			"refs",
+			"variadic",
+			{ help = "GitHub or Jira URLs, or source:key such as jira:ABC-1", mcp = { required = true } }
+		)
 		parser:add("stdin", "flag", { help = "Also read one reference per line from stdin" })
-		parser:add("group", "option", { help = "Group to add the cards to" })
+		addArgument(parser, "group", "option", { help = "Group to add the cards to", type = "id" })
 		parser:add("dry-run", "flag", { help = "Preview the cards without writing" })
-		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
+		addArgument(parser, "if-revision", "option", {
+			help = "Write only if the document has this revision",
+			type = "integer",
+			minimum = 0,
+		})
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 

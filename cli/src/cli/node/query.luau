@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local derive = require("@root/graph/derive")
 local findItem = require("@root/graph/findItem")
@@ -47,8 +48,17 @@ end
 
 return table.freeze({
 	help = "Find cards and groups with an expression",
+	mcp = {
+		description = "Find cards and groups with an expression. Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, note, snoozed. Compare quoted values with = or !=, quoting numbers and booleans too; label, ref, and note also take ~ for case-insensitive text.",
+		annotations = { readOnlyHint = true },
+	},
 	define = function(parser: cli.Parser)
-		parser:add("where", "option", { help = "Expression selecting cards or groups (required)" })
+		addArgument(
+			parser,
+			"where",
+			"option",
+			{ help = "Expression selecting cards or groups (required)", mcp = { required = true } }
+		)
 		parser:add("all", "flag", { help = "Include done items" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

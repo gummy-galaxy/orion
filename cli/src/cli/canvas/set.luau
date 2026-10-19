@@ -10,6 +10,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Set a canvas's cover or background",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		parser:add(
 			"cover",
