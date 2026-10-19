@@ -57,7 +57,7 @@ local function getText(report: Report, added: number, existing: number, failed: 
 			table.insert(lines, `  {pad("failed", STATUS_WIDTH)}{outcome.input}: {outcome.error}`)
 		else
 			local status = if outcome.status == "added" and report.dryRun then "would add" else outcome.status
-			table.insert(lines, `  {pad(status, STATUS_WIDTH)}{pad(outcome.id or "", 26)}{outcome.label or ""}`)
+			table.insert(lines, `  {pad(status, STATUS_WIDTH)}{pad(outcome.id or "", 38)}{outcome.label or ""}`)
 		end
 	end
 

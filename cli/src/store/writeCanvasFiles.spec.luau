@@ -70,7 +70,7 @@ test.case("canvas files keep node order and sorted keys", function(assert)
 
 	local text = fs.readFileToString(path.join(dir, "nodes", "a.json"))
 	assert.eq(text:sub(-1), "\n")
-	local data, id, position = text:find('"data"'), text:find('"id"'), text:find('"position"')
+	local data, id, position = text:find('\n  "data"'), text:find('\n  "id"'), text:find('\n  "position"')
 	assert.eq((data :: number) < (id :: number) and (id :: number) < (position :: number), true)
 end)
 

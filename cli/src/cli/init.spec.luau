@@ -10,6 +10,11 @@ local loadDoc = require("@root/store/loadDoc")
 local runTransaction = require("@root/store/runTransaction")
 local testing = require("@root/testing")
 
+-- The first capture of `pattern` in `text`, such as the id a command printed.
+local function capture(text: string, pattern: string): string
+	return (text:match(pattern) or error(`"{pattern}" isn't in "{text}"`)) :: string
+end
+
 test.case("help opens with the shared orientation and no MCP tool names", function(assert)
 	local _, run = testing.createHarness("help-orientation")
 	local text = run({ "help" })
@@ -51,36 +56,33 @@ end)
 
 test.case("add, link, and done change the shared data", function(assert)
 	local dir, run = testing.createHarness("edit")
-	assert.strContains(
-		run({ "card", "add", "Write", "release", "notes", "--group", "ws" }),
-		"Added write-release-notes"
-	)
-	run({ "link", "add", "pub", "write-release-notes" })
-	local shown =
-		json.asObject(json.deserialize(run({ "node", "show", "write-release-notes", "--json" })) :: json.Value)
+	local added = run({ "card", "add", "Write", "release", "notes", "--group", "ws" })
+	local id = capture(added, "^Added (%S+) · Write release notes")
+	run({ "link", "add", "pub", id })
+	local shown = json.asObject(json.deserialize(run({ "node", "show", id, "--json" })) :: json.Value)
 	assert.eq(shown and shown.status, "blocked")
 	run({ "card", "done", "ci" })
 	run({ "card", "done", "pub" })
 	assert.eq(loadDoc(dir).revision, 4)
-	assert.strContains(run({ "next" }), "write-release-notes")
+	assert.strContains(run({ "next" }), id)
 end)
 
 test.case("group create makes an empty group that cards can be added to by its id", function(assert)
 	local dir, run = testing.createHarness("group-create")
-	assert.strContains(run({ "group", "create", "Week", "1" }), "Created group week-1 · Week 1")
-	assert.strContains(run({ "group", "create", "Monday", "--in", "week-1" }), "Created group monday · Monday")
-	run({ "card", "add", "Ship", "--group", "week-1" })
-	run({ "card", "add", "Plan", "--group", "monday" })
+	local week = capture(run({ "group", "create", "Week", "1" }), "^Created group (%S+) · Week 1")
+	local monday = capture(run({ "group", "create", "Monday", "--in", week }), "^Created group (%S+) · Monday")
+	local ship = capture(run({ "card", "add", "Ship", "--group", week }), "^Added (%S+)")
+	local plan = capture(run({ "card", "add", "Plan", "--group", monday }), "^Added (%S+)")
 	local doc = loadDoc(dir)
-	assert.eq(getItem(doc, "monday").parentId, "week-1")
-	assert.eq(getItem(doc, "ship").parentId, "week-1")
-	assert.eq(getItem(doc, "plan").parentId, "monday")
+	assert.eq(getItem(doc, monday).parentId, week)
+	assert.eq(getItem(doc, ship).parentId, week)
+	assert.eq(getItem(doc, plan).parentId, monday)
 end)
 
 test.case("group create prints the new group as JSON", function(assert)
 	local _, run = testing.createHarness("group-create-json")
 	local made = json.asObject(json.deserialize(run({ "group", "create", "Foundation", "--json" })) :: json.Value)
-	assert.eq(made and made.id, "foundation")
+	assert.eq(testing.isRandomId(made and made.id), true)
 end)
 
 test.case("a bare group label is not looked up as an id", function(assert)
@@ -332,7 +334,7 @@ test.case("add attaches a pull request URL as a pr card", function(assert)
 	local dir, run = testing.createHarness("add-ref")
 	assert.strContains(
 		run({ "card", "add", "Write", "notes", "--group", "ws", "--ref", "https://github.com/Roblox/avatar/pull/9" }),
-		"Added write-notes"
+		"· Write notes"
 	)
 	local item = loadDoc(dir).nodes[4]
 	assert.eq(item.data.repo, "Roblox/avatar")
@@ -461,8 +463,8 @@ end)
 
 test.case("group remove previews and removes a group with everything inside", function(assert)
 	local dir, run = testing.createHarness("group-remove")
-	run({ "card", "add", "Outside", "--group", "ws" })
-	run({ "group", "add", "Inner", "--items", "outside" })
+	local outside = capture(run({ "card", "add", "Outside", "--group", "ws" }), "^Added (%S+)")
+	run({ "group", "add", "Inner", "--items", outside })
 	local before = loadDoc(dir).revision
 	local preview = run({ "group", "remove", "ws", "--dry-run" })
 	assert.strContains(preview, "Would remove 1 group and 4 things inside")

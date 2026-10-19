@@ -13,7 +13,7 @@ type CanvasSnapshot = storeTypes.CanvasSnapshot
 local ATTEMPTS = 200
 local RETRY_SECONDS = 0.025
 
-local function getStamp(file: string): string?
+local function getStamp(file: path.Pathlike): string?
 	local succeeded, metadata = pcall(fs.metadata, file)
 	return if succeeded then `{metadata.size}:{metadata.modified:toNanoseconds()}` else nil
 end
@@ -53,17 +53,16 @@ local function readFiles(dir: string): { [string]: string }
 end
 
 --[[
-	Reads a canvas folder's files, or nil when it has none yet. A write replaces several files, `canvas.json` last,
-	while its marker is down, so a read that saw the marker or a different `canvas.json` by the time it finished
+	Reads a canvas folder's files, or nil when it has none yet. A write replaces several files, `local.json` last,
+	while its marker is down, so a read that saw the marker or a different `local.json` by the time it finished
 	reads again rather than return a write half done.
 ]]
 local function readCanvasFiles(dir: string): CanvasSnapshot?
 	local canvasFile = getDocPath(dir)
+	local lastFile = path.join(dir, fileNames.localState)
 
 	for attempt = 1, ATTEMPTS do
-		local before = getStamp(canvasFile)
-
-		if before == nil then
+		if not fs.exists(canvasFile) then
 			assert(
 				not fs.exists(path.join(dir, fileNames.legacyDocument)),
 				`{dir} still keeps its canvas in {fileNames.legacyDocument}; run any orion command to move it to files`
@@ -71,13 +70,15 @@ local function readCanvasFiles(dir: string): CanvasSnapshot?
 			return nil
 		end
 
+		local before = getStamp(lastFile)
 		local isLast = attempt == ATTEMPTS
 
 		if isLast or not isWriting(dir) then
 			local succeeded, files = pcall(readFiles, dir)
 
-			if succeeded and (isLast or (not isWriting(dir) and getStamp(canvasFile) == before)) then
-				return { files = files, document = joinCanvasFiles(files) }
+			if succeeded and (isLast or (not isWriting(dir) and getStamp(lastFile) == before)) then
+				local document, entries = joinCanvasFiles(files)
+				return { files = files, document = document, entries = entries }
 			elseif not succeeded and isLast then
 				error(files, 0)
 			end

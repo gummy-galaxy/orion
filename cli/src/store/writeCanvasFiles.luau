@@ -56,11 +56,12 @@ end
 --[[
 	Writes a whole canvas, in the shape `encodeDocObject` returns, as the files of its folder. Only files whose
 	text differs from `previous` are rewritten, node and link files the canvas no longer has are removed, and
-	`canvas.json` goes last. A marker stays down for the length of the write so readers wait it out. Callers hold
-	the lock, and pass what they read under it as `previous`, whose canvas is backed up first.
+	`local.json`, which holds the revision, goes last. A marker stays down for the length of the write so readers
+	wait it out. Callers hold the lock, and pass what they read under it as `previous`, whose canvas is backed up
+	first. Fields that changed since `previous` are stamped with the current time.
 ]]
 local function writeCanvasFiles(dir: string, document: json.Object, previous: CanvasSnapshot?)
-	local files = splitDocObject(document)
+	local files = splitDocObject(document, previous, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
 	local previousFiles = if previous then previous.files else {}
 	local marker = path.join(dir, fileNames.pendingWrite)
 
@@ -73,7 +74,7 @@ local function writeCanvasFiles(dir: string, document: json.Object, previous: Ca
 	fs.writeStringToFile(marker, `{process.pid()}`)
 
 	for file, contents in files do
-		if file ~= fileNames.document and previousFiles[file] ~= contents then
+		if file ~= fileNames.document and file ~= fileNames.localState and previousFiles[file] ~= contents then
 			replaceFile(dir, file, contents)
 		end
 	end
@@ -86,13 +87,12 @@ local function writeCanvasFiles(dir: string, document: json.Object, previous: Ca
 		end
 	end
 
-	local localState = path.join(dir, fileNames.localState)
-
-	if not files[fileNames.localState] and fs.exists(localState) then
-		fs.remove(localState)
+	if previousFiles[fileNames.document] ~= files[fileNames.document] then
+		replaceFile(dir, fileNames.document, files[fileNames.document])
 	end
 
-	replaceFile(dir, fileNames.document, files[fileNames.document])
+	-- Replaced on every write, even unchanged, so a reader that started before it can tell the files moved under it.
+	replaceFile(dir, fileNames.localState, files[fileNames.localState] or "{}\n")
 	fs.remove(marker)
 end
 
