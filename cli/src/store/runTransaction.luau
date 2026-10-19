@@ -13,7 +13,7 @@ type Doc = types.Doc
 -- Reads the latest data under the lock, applies `mutate`, and writes the next revision.
 local function runTransaction(dir: string, mutate: (Doc) -> ()): Doc
 	return runWithLock(dir, function(): Doc
-		local snapshot = readCanvasFiles(dir)
+		local snapshot = readCanvasFiles(dir, true)
 		local doc = if snapshot then decodeDocObject(snapshot.document) else createEmptyDoc()
 		local previous = getRecordedStatuses(doc)
 		mutate(doc)
