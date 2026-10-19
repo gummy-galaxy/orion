@@ -4,16 +4,11 @@ local graphTypes = require("@root/graph/types")
 
 -- The fields card and group commands set, read from their options.
 local function getItemFields(parser: cli.Parser): graphTypes.ItemFields
-	local pr = parser:get("pr")
-	local number = if pr then tonumber((pr:gsub("^#", ""))) else nil
-	assert(pr == nil or number, "pr must be a number")
-
 	return {
 		label = parser:get("label"),
 		blurb = parser:get("blurb"),
 		status = parser:get("status"),
 		repo = parser:get("repo"),
-		pr = number,
 		who = parser:get("who"),
 		note = parser:get("note"),
 		arrange = parser:get("arrange"),

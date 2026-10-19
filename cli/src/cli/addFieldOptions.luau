@@ -3,12 +3,7 @@ local cli = require("@batteries/cli")
 -- Item fields, which cards take. Groups take their own, set with group set.
 local function addFieldOptions(parser: cli.Parser)
 	parser:add("status", "option", { help = "todo, active, review, blocked, deferred, or done" })
-	parser:add(
-		"repo",
-		"option",
-		{ help = "Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL" }
-	)
-	parser:add("pr", "option", { help = "Pull request number. Deprecated: use --ref with the pull request URL" })
+	parser:add("repo", "option", { help = "Repository it belongs to, as owner/name (empty to clear)" })
 	parser:add("who", "option", { help = "Whose move: you, review, or ci (empty to clear)" })
 	parser:add("note", "option", { help = "Free-form note (empty to clear)" })
 	parser:add("shape", "option", {

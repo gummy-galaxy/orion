@@ -36,11 +36,11 @@ end
 --[[
 	Fetches what a refresh needs from GitHub, reading `doc` without changing it so the caller can fetch outside the
 	workspace lock. Merged pull requests can't change, so their cards aren't fetched again. Your open pull requests are
-	listed with light fields, and only the ones about to become cards, by branch or by `discover`, fetch the full set.
+	listed with light fields, and only the ones about to become cards by branch fetch the full set.
 	A failed authored list is reported in `failures` and the cards still refresh. A `scope` limits the cards fetched to
 	its keys and skips the authored list unless it asks for it.
 ]]
-local function collectPulls(doc: Doc, run: CommandRunner, discover: boolean, scope: Scope?): Fetched
+local function collectPulls(doc: Doc, run: CommandRunner, scope: Scope?): Fetched
 	local refs: { Ref } = {}
 	local onCanvas: { [string]: boolean } = {}
 	local failures: { string } = {}
@@ -79,7 +79,7 @@ local function collectPulls(doc: Doc, run: CommandRunner, discover: boolean, sco
 			continue
 		end
 
-		if discover or #findBranchCards(doc, pull) == 1 then
+		if #findBranchCards(doc, pull) == 1 then
 			table.insert(refs, { owner = pull.owner, name = pull.name, number = pull.number })
 		end
 	end
@@ -118,7 +118,6 @@ local function collectPulls(doc: Doc, run: CommandRunner, discover: boolean, sco
 		checked = result.checked,
 		authored = authored,
 		viewer = viewer or getViewer(doc, run),
-		discover = discover,
 		failures = failures,
 	}
 end

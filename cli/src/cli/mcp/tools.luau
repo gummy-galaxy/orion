@@ -29,8 +29,7 @@ end
 
 local REF_DESCRIPTION =
 	"Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch."
-local DEPRECATED_REPO = "Deprecated: with pr, use ref with the pull request URL instead."
-local DEPRECATED_PR = "Deprecated: use ref with the pull request URL instead."
+local REPO_DESCRIPTION = "Repository it belongs to, as owner/name."
 local DRY_RUN = "Preview the changes and the current revision without writing."
 local IF_REVISION =
 	"Write only if the canvas is still at this revision, as a dry run printed it. Otherwise nothing is written."
@@ -280,8 +279,7 @@ local tools: { Tool } = {
 			kindField,
 			shapeField,
 			colorField,
-			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
-			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
+			{ name = "repo", kind = "string", description = REPO_DESCRIPTION, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
 		},
 	},
@@ -306,8 +304,7 @@ local tools: { Tool } = {
 			kindField,
 			shapeField,
 			colorField,
-			{ name = "repo", kind = "string", description = DEPRECATED_REPO, at = "option" },
-			{ name = "pr", kind = "int", description = DEPRECATED_PR, at = "option" },
+			{ name = "repo", kind = "string", description = REPO_DESCRIPTION, at = "option" },
 			{ name = "ref", kind = "string", description = REF_DESCRIPTION, at = "option" },
 		},
 	},
@@ -980,23 +977,6 @@ local tools: { Tool } = {
 			workspaceField,
 			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
 			{ name = "source", kind = "string", description = "Only ingest this source id.", at = "option" },
-		},
-	},
-	{
-		name = "orion_sync",
-		description = "Deprecated: use orion_ingest. Refresh pull request cards from GitHub. Discovery adds open authored PRs to Inbox when requested.",
-		annotations = { openWorldHint = true },
-		command = { "sync" },
-		json = true,
-		fields = {
-			workspaceField,
-			{ name = "dryRun", kind = "boolean", description = DRY_RUN, at = "flag", flag = "dry-run" },
-			{
-				name = "discover",
-				kind = "boolean",
-				description = "Add your open pull requests that aren't on the canvas to an Inbox group.",
-				at = "flag",
-			},
 		},
 	},
 	{

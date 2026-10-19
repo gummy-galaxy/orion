@@ -12,7 +12,6 @@ local function checkFields(fields: ItemFields)
 		fields.repo == nil or fields.repo == "" or fields.repo:match("^[%w_.%-]+/[%w_.%-]+$"),
 		"repo must be owner/name"
 	)
-	assert(fields.pr == nil or fields.repo ~= "", "pr needs a repository as owner/name")
 	assert(
 		fields.status == nil or table.find(fieldValues.statuses, fields.status),
 		`status must be one of {table.concat(fieldValues.statuses, ", ")}`
@@ -21,7 +20,6 @@ local function checkFields(fields: ItemFields)
 		fields.who == nil or fields.who == "" or table.find(fieldValues.who, fields.who),
 		`who must be one of {table.concat(fieldValues.who, ", ")}`
 	)
-	assert(fields.pr == nil or (fields.pr > 0 and fields.pr % 1 == 0), "pr must be a positive whole number")
 	assert(
 		fields.kind == nil or table.find(fieldValues.kinds, fields.kind),
 		`kind must be one of {table.concat(fieldValues.kinds, ", ")}`

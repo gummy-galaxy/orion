@@ -58,7 +58,6 @@ export type Attachment = { id: string, pull: string }
 export type Report = {
 	changes: { Change },
 	missing: { string },
-	added: { string },
 	attached: { Attachment },
 	linked: { StackLink },
 	unlinked: { StackLink },
@@ -74,7 +73,6 @@ export type Fetched = {
 	checked: { [string]: boolean },
 	authored: { PullState }?,
 	viewer: string,
-	discover: boolean,
 	failures: { string },
 }
 -- Limits a refresh to the cards in `keys`, and lists the viewer's open pull requests only when `listAuthored` is set.

@@ -94,7 +94,7 @@ function sync.create(
 			local apply: ((types.Doc) -> githubTypes.Report)?
 
 			if want == nil then
-				apply = assert(adapter.refresh)(snapshot, command, { discover = false, now = timestamp })
+				apply = assert(adapter.refresh)(snapshot, command, { now = timestamp })
 			else
 				local changed = assert(adapter.refreshChanged)(snapshot, command, poll, want, timestamp)
 				failures, fetched, apply = changed.failures, changed.fetched, changed.apply

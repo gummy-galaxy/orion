@@ -139,8 +139,8 @@ test.case("tools reject arguments their schemas do not allow", function(assert)
 	assert.throwsWith("status must be one of: todo, active, review, blocked, deferred, done", function()
 		getToolArgv("orion_add_item", json.object({ title = "A", status = "later" }))
 	end)
-	assert.throwsWith("pr must be a positive integer", function()
-		getToolArgv("orion_add_item", json.object({ title = "A", pr = 1.5 }))
+	assert.throwsWith("unknown argument: pr", function()
+		getToolArgv("orion_add_item", json.object({ title = "A", pr = 4 }))
 	end)
 	assert.throwsWith("items must be a list of strings", function()
 		getToolArgv("orion_group", json.object({ label = "G", items = { 1 } }))
@@ -159,14 +159,14 @@ test.case("mcp tool arguments run the existing command", function(assert)
 	assert.strContains(table.concat(output, "\n"), "From the catalog")
 end)
 
-test.case("update_item passes ref through as --ref and keeps repo and pr as aliases", function(assert)
+test.case("update_item passes ref through as --ref and add_item passes repo through as --repo", function(assert)
 	assert.eq(
 		getToolArgv("orion_update_item", json.object({ id = "pub", ref = "jira:ABC-1" })),
 		{ "card", "set", "pub", "--ref", "jira:ABC-1", "--json" }
 	)
 	assert.eq(
-		getToolArgv("orion_add_item", json.object({ title = "Review", repo = "Roblox/avatar", pr = 4 })),
-		{ "card", "add", "Review", "--repo", "Roblox/avatar", "--pr", "4", "--json" }
+		getToolArgv("orion_add_item", json.object({ title = "Ingest", repo = "Roblox/avatar", kind = "component" })),
+		{ "card", "add", "Ingest", "--kind", "component", "--repo", "Roblox/avatar", "--json" }
 	)
 end)
 

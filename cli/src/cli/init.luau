@@ -33,7 +33,6 @@ local serializeCommands = require("@root/cli/serializeCommands")
 local server = require("@root/cli/server")
 local source = require("@root/cli/source")
 local suggestion = require("@root/cli/suggestion")
-local sync = require("@root/cli/sync")
 local theme = require("@root/cli/theme")
 local types = require("@root/types")
 
@@ -75,7 +74,6 @@ local COMMANDS: { [string]: Command } = {
 	server = server,
 	source = source,
 	suggestion = suggestion,
-	sync = sync,
 	theme = theme,
 }
 
@@ -89,7 +87,6 @@ local COMMAND_ORDER = {
 	"ref",
 	"next",
 	"apply",
-	"sync",
 	"canvas",
 	"log",
 	"server",

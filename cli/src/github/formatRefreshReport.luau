@@ -1,6 +1,6 @@
 local githubTypes = require("@root/github/types")
 
--- Describes what a pull request refresh changed, for `orion ingest` and `orion sync`.
+-- Describes what a pull request refresh changed, for `orion ingest`.
 local function formatRefreshReport(report: githubTypes.Report, isDryRun: boolean): string
 	local lines = { `{if isDryRun then "Would update" else "Checked"} {report.checked} pull requests on GitHub.` }
 
@@ -14,13 +14,7 @@ local function formatRefreshReport(report: githubTypes.Report, isDryRun: boolean
 		table.insert(lines, `  {change.id}: {change.fromStatus} → {change.toStatus}{who}{closed}`)
 	end
 
-	if
-		#report.changes == 0
-		and #report.added == 0
-		and #report.attached == 0
-		and #report.linked == 0
-		and #report.unlinked == 0
-	then
+	if #report.changes == 0 and #report.attached == 0 and #report.linked == 0 and #report.unlinked == 0 then
 		table.insert(lines, "  Everything already matches.")
 	end
 
@@ -34,10 +28,6 @@ local function formatRefreshReport(report: githubTypes.Report, isDryRun: boolean
 
 	for _, link in report.unlinked do
 		table.insert(lines, `  unlinked {link.from} → {link.to} (stacked)`)
-	end
-
-	for _, id in report.added do
-		table.insert(lines, `  added {id} to Inbox`)
 	end
 
 	if #report.missing > 0 then

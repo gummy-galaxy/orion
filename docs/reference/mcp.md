@@ -56,8 +56,7 @@ Runs `orion card add`.
 | `kind`   | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work. |
 | `shape`  | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                  |
 | `color`  | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                             |
-| `repo`   | string                                                                 | Deprecated: with pr, use ref with the pull request URL instead.                                                                                       |
-| `pr`     | int                                                                    | Deprecated: use ref with the pull request URL instead.                                                                                                |
+| `repo`   | string                                                                 | Repository it belongs to, as owner/name.                                                                                                              |
 | `ref`    | string                                                                 | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                             |
 
 ## orion_update_item
@@ -77,8 +76,7 @@ Runs `orion card set`.
 | `kind`   | step \| gate \| component                                              | step for ordinary work, gate for a milestone that's done once everything it waits on is, or component for a part of a system diagram that isn't work.                                                                                          |
 | `shape`  | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn. Giving a shape makes the item a component.                                                                                                                                                                           |
 | `color`  | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint. Components take their nearest group's tint unless they set their own.                                                                                                                                                      |
-| `repo`   | string                                                                 | Deprecated: with pr, use ref with the pull request URL instead.                                                                                                                                                                                |
-| `pr`     | int                                                                    | Deprecated: use ref with the pull request URL instead.                                                                                                                                                                                         |
+| `repo`   | string                                                                 | Repository it belongs to, as owner/name.                                                                                                                                                                                                       |
 | `ref`    | string                                                                 | Outside work to attach: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch.                                                                                                                                      |
 
 ## orion_done
@@ -543,18 +541,6 @@ Runs `orion ingest`.
 | `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion.        |
 | `dryRun` | boolean | Preview the changes and the current revision without writing. |
 | `source` | string  | Only ingest this source id.                                   |
-
-## orion_sync
-
-Deprecated: use orion_ingest. Refresh pull request cards from GitHub. Discovery adds open authored PRs to Inbox when requested.
-
-Runs `orion sync`.
-
-| Argument   | Type    | Description                                                              |
-| ---------- | ------- | ------------------------------------------------------------------------ |
-| `canvas`   | canvas  | Canvas name. Omit to use the canvas selected in Orion.                   |
-| `dryRun`   | boolean | Preview the changes and the current revision without writing.            |
-| `discover` | boolean | Add your open pull requests that aren't on the canvas to an Inbox group. |
 
 ## orion_sources
 
