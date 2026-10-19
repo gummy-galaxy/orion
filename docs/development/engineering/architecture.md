@@ -29,6 +29,8 @@ A file watcher checks the data folder. When a canvas changes, the server sends `
 
 Any route that doesn't match returns a JSON 404, so a typo in the app's API calls fails loudly instead of returning the static page.
 
+The API is internal to the app, and the server refuses anything else a browser sends it ([#468](https://github.com/vocksel/orion/issues/468)). A request's `Host`, and its `Origin` when it has one, must name the server's own address or the app's dev server, which Vite passes as `--dev-port`. That stops another site from posting to the API or reading it through DNS rebinding. The built app is served with a content security policy, since the desktop shell sets none.
+
 ## The app
 
 The app is a React Flow canvas. Its state lives in Jotai atoms, and each card reads only the values it shows through its own selector, so an edit redraws the cards it touches and not the whole canvas ([#124](https://github.com/vocksel/orion/pull/124)). The app talks to the server over HTTP and the WebSocket. If the CLI binary is missing, the app falls back to browser storage, so it still opens for development without the CLI.
