@@ -4,6 +4,7 @@ local path = require("@std/path")
 local project = require("@repo/project")
 local system = require("@std/system")
 
+local runProgram = require("@root/runProgram")
 local runScript = require("@root/runScript")
 
 local run = FlipbookBatteries.run
@@ -16,7 +17,7 @@ runScript(function()
 	local triple = string.match(rustcVersion, "host: (%S+)")
 	assert(triple, "Could not determine the Rust host target triple")
 
-	run("lute", { "run", "build" })
+	runProgram("lute", { "run", "build" })
 
 	local extension = if system.win32 then ".exe" else ""
 	local builtPath = tostring(project.BUILD_OUTPUT) .. extension

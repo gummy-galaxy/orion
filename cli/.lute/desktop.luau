@@ -3,13 +3,11 @@
 	built canvas and the CLI sidecar in place, so those are built first. The build makes one installer for this
 	platform: a disk image on macOS, an NSIS setup program on Windows, and a Debian package on Linux.
 ]]
-local FlipbookBatteries = require("@flipbook-batteries")
 local path = require("@std/path")
 local system = require("@std/system")
 
+local runProgram = require("@root/runProgram")
 local runScript = require("@root/runScript")
-
-local run = FlipbookBatteries.run
 
 local root = path.resolve("..")
 local app = path.join(root, "app")
@@ -19,11 +17,11 @@ local cliDir = path.join(root, "cli")
 local bundle = if system.macos then "dmg" elseif system.win32 then "nsis" else "deb"
 
 runScript(function()
-	run("cargo", { "fmt", "--check" }, { cwd = shell })
+	runProgram("cargo", { "fmt", "--check" }, { cwd = shell })
 
-	run("npm", { "run", "build" }, { cwd = app })
-	run("lute", { "run", "prepare-sidecar" }, { cwd = cliDir })
+	runProgram("npm", { "run", "build" }, { cwd = app })
+	runProgram("lute", { "run", "prepare-sidecar" }, { cwd = cliDir })
 
-	run("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = shell })
-	run("npx", { "tauri", "build", "--bundles", bundle }, { cwd = desktop })
+	runProgram("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = shell })
+	runProgram("npx", { "tauri", "build", "--bundles", bundle }, { cwd = desktop })
 end)
