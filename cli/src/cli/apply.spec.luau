@@ -135,3 +135,32 @@ test.case("a plan file is read from its path, and a missing plan is refused", fu
 		run({ "apply" })
 	end)
 end)
+
+test.case("a plan places its new cards once their links are in, so a chain lands in a row", function(assert)
+	local dir, run = testing.createHarness("apply-place")
+	run({
+		"apply",
+		"--plan",
+		[=[[
+			{"op":"addCard","handle":"one","label":"One","group":"ws"},
+			{"op":"addCard","handle":"two","label":"Two","group":"ws"},
+			{"op":"addCard","handle":"three","label":"Three","after":"@two"},
+			{"op":"link","from":"pub","to":"@one"},
+			{"op":"link","from":"@one","to":"@two"}
+		]]=],
+	})
+	local doc = loadDoc(dir)
+	local positions = {}
+
+	for _, item in doc.nodes do
+		positions[item.id] = item.position
+	end
+
+	assert.eq(positions.one.y, positions.pub.y)
+	assert.eq(positions.two.y, positions.pub.y)
+	assert.eq(positions.three.y, positions.pub.y)
+	assert.eq(positions.one.x > positions.pub.x, true)
+	assert.eq(positions.two.x > positions.one.x, true)
+	assert.eq(positions.three.x > positions.two.x, true)
+	assert.eq(doc.nodes[#doc.nodes].parentId, "ws")
+end)
