@@ -128,7 +128,7 @@ New installs get the Vibrant theme and Trading cards, and so does anyone whose s
 
 **Why:** Vibrant and Trading cards carry Orion's visual direction, and each extra built-in look is one more that every visual change has to be designed, checked, and captured in. One default lets that work target one look.
 
-2026-10-18
+2026-10-18 · [#532](https://github.com/vocksel/orion/pull/532)
 
 ## Canvas and input
 
