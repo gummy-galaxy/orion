@@ -14,7 +14,20 @@ Set `ORION_DATA_DIR` to use another folder. The app's preferences, such as the t
 
 ## Canvases
 
-The `default` canvas is `orion.json` in the data folder. Every other canvas has its own folder under `canvases/<name>/`, and `canvases.json` records their names, labels, which one is active, and which are archived. Canvas names use lowercase letters, digits, and hyphens.
+The `default` canvas lives in the data folder itself. Every other canvas has its own folder under `canvases/<name>/`, and `canvases.json` records their names, labels, which one is active, and which are archived. Canvas names use lowercase letters, digits, and hyphens.
+
+A canvas is a folder of small JSON files:
+
+- `canvas.json` holds its revision, settings, and the order of its nodes and links.
+- `nodes/<id>.json` holds each card, note, group, and image.
+- `links/<id>.json` holds each link.
+- `local.json` holds what this machine recorded about it, such as the last GitHub check.
+
+Keys are sorted and formatting is stable, so a change rewrites only the files it touches. Change them through the CLI rather than by hand.
+
+Orion reads a canvas through `index.sqlite` beside its files, which it builds from them with the `sqlite3` command and keeps up to date. It holds nothing the files don't, so deleting it is safe. Without `sqlite3` installed, Orion reads every file instead, which is slower on large canvases.
+
+Older versions of Orion kept each canvas in one `orion.json`. The first command a newer Orion runs splits it into files and keeps the original beside them as `orion.backup.json`.
 
 Older versions of Orion called canvases workspaces and kept them in `workspaces/` and `workspaces.json`. The first command a newer Orion runs moves them into place and keeps the old list as `workspaces.backup.json`. Quit an older Orion that is still open first, since it would keep writing to the old folders.
 
@@ -42,14 +55,14 @@ Orion accepts PNG, JPEG, GIF, and WebP images up to 5 MB.
 
 ## Backups
 
-Before every write, Orion copies the current file to the canvas's `backups/` folder. It keeps every backup from the last day and the newest from each of the last 30 days.
+Before every write, Orion saves the whole canvas as one file in its `backups/` folder. It keeps every backup from the last day and the newest from each of the last 30 days.
 
 ```sh
 orion backup list
 orion backup restore <revision>
 ```
 
-Restoring brings a backup back as a new revision, and backs up the current file first.
+Restoring brings a backup back as a new revision, and backs up the current canvas first.
 
 ## The server
 

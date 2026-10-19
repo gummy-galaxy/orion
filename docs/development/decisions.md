@@ -386,6 +386,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 2026-10-18 · [#366](https://github.com/vocksel/orion/issues/366)
 
+### Cards in view refresh sooner
+
+The background refresh sweeps `updatedAt` every 30 seconds, instead of every two minutes, for one set of cards that refresh sooner. The cards in view feed it: the open group and everything inside it, or the selection when no group is open, plus the cards one link away that block them. The server reads them from the focus report the app already sends. Watched cards ([#232](https://github.com/vocksel/orion/issues/232)) join the same set rather than adding a cadence of their own. Pending checks stay at 30 seconds and the full pass at 15 minutes for every card.
+
+**Why:** what someone is looking at matters most, and a sweep of a handful of cards costs one small query. Speeding up only the sweep keeps the rest of the canvas on the cadences GitHub's limits allow.
+
+2026-10-18 · [#450](https://github.com/vocksel/orion/issues/450)
+
 ### Adapters are Lute packages
 
 Source adapters are Lute packages built on a shared core package. Long term, the official adapters live in their own repositories in an organization, Orion ships with them by default, and people copy them to make their own. Hop becomes a package Orion depends on, and it powers opening a pull request in VS Code.

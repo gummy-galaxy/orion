@@ -7,5 +7,6 @@ Each module here upgrades data written by an Orion from before 0.1.0. Everyone w
 | Module | Added | What it upgrades | Called from |
 | --- | --- | --- | --- |
 | `migrateWorkspaces.luau` | 2026-10-17, [#409](https://github.com/vocksel/orion/pull/409) | Moves `workspaces.json` and `workspaces/<name>/` to `canvases.json` and `canvases/<name>/`. | `store/getActiveWorkspace.luau`, before every command resolves its canvas |
+| `migrateCanvasFiles.luau` | 2026-10-18, [#486](https://github.com/vocksel/orion/pull/486) | Splits each canvas's `orion.json` into `canvas.json`, `nodes/`, `links/`, and `local.json`, keeping the original as `orion.backup.json`. | `store/getActiveWorkspace.luau`, before every command resolves its canvas |
 
 Add a row for each new migration, with the date and pull request that added it.
