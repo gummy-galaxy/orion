@@ -9,6 +9,10 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List the theme files in the data folder",
+	mcp = {
+		annotations = { readOnlyHint = true },
+		omit = { { option = "canvas", reason = "theme files are shared by every canvas" } },
+	},
 	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local checkLayout = require("@root/layout/checkLayout")
 local context = require("@root/cli/context")
 local layoutTypes = require("@root/layout/types")
@@ -39,8 +40,12 @@ end
 
 return table.freeze({
 	help = "Report layout problems: overlaps, items outside their group, dangling links, and groups waiting for layout",
+	mcp = {
+		description = "Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.",
+		annotations = { readOnlyHint = true },
+	},
 	define = function(parser: cli.Parser)
-		parser:add("group", "option", { help = "Only problems in this group or inside it" })
+		addArgument(parser, "group", "option", { help = "Only problems in this group or inside it", type = "id" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 

@@ -8,6 +8,7 @@ local card = require("@root/cli/card")
 local ci = require("@root/cli/ci")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
+local definitions = require("@root/cli/definitions")
 local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local formatAllHelp = require("@root/cli/formatAllHelp")
@@ -158,10 +159,12 @@ local function createParsers(): Parsers
 		local module = COMMANDS[name]
 		local parser = addCommand(name, module.help)
 		commands[name] = parser
+		definitions.tools[parser] = module.mcp
 		module.define(parser)
 	end
 
 	local helpCommand = addCommand("help", "Show help for Orion or one of its commands")
+	definitions.tools[helpCommand] = { skip = "prints help text, which MCP clients already get from tools/list" }
 	helpCommand:add("command", "variadic", { help = "Command to describe, such as card list" })
 	helpCommand:add("all", "flag", { help = "Describe every command and its options in one listing" })
 	helpCommand:add("json", "flag", { help = "With --all, print the command descriptions as JSON" })
@@ -295,6 +298,11 @@ local function requestedCanvas(root: cli.Parser): string?
 	return selected
 end
 
+-- Describes every command and option, for the generated reference in docs/ and the MCP tools.
+local function describe(): describeCommands.CommandDescription
+	return describeCommands(createParsers().root, "orion", SUMMARY)
+end
+
 local function execute(args: { string }, options: Dependencies?)
 	local parsers = createParsers()
 	parsers.root:parse(args)
@@ -360,6 +368,7 @@ local function execute(args: { string }, options: Dependencies?)
 		now = deps.now,
 		exit = deps.exit,
 		execute = execute,
+		describe = describe,
 	}
 
 	COMMANDS[command].run(assert(parsers.commands[command], `unknown command: {command}`), commandContext)
@@ -373,11 +382,6 @@ local function run(argv: { string })
 		print(`Error: {getErrorText(message)}`)
 		process.exit(1)
 	end
-end
-
--- Describes every command and option, for the generated reference in docs/.
-local function describe(): describeCommands.CommandDescription
-	return describeCommands(createParsers().root, "orion", SUMMARY)
 end
 
 return table.freeze({
