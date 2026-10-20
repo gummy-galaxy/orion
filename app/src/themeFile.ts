@@ -37,7 +37,7 @@ type Problem = string | null
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const tokensByName = new Map(TOKENS.map((token) => [token.name, token]))
-const cssVars = new Set(TOKENS.flatMap((token) => [token.cssVar, ...(token.legacy ? [token.legacy] : [])]))
+const cssVars = new Set(TOKENS.map((token) => token.cssVar))
 
 const fileLabel = (file: string) => file.replace(/\.json$/, '')
 

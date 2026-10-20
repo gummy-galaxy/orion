@@ -56,7 +56,6 @@ function documentedRows(markdown: string): Map<string, string[]> {
 
 const sharedCss = read('./tokens.css')
 const themeCss = Object.fromEntries(THEMES.map((theme) => [theme.id, read(`./themes/${theme.id}.css`)]))
-const legacyNames = TOKENS.flatMap((token) => (token.legacy ? [token.legacy] : []))
 
 it('gives every token a unique name and custom property', () => {
   const names = TOKENS.map((token) => token.name)
@@ -64,8 +63,6 @@ it('gives every token a unique name and custom property', () => {
 
   expect(new Set(names).size).toBe(names.length)
   expect(new Set(cssVars).size).toBe(cssVars.length)
-  expect(new Set(legacyNames).size).toBe(legacyNames.length)
-  expect(legacyNames.filter((legacy) => cssVars.includes(legacy))).toEqual([])
 })
 
 describe.each(THEMES.map((theme) => theme.id))('theme %s', (themeId) => {
@@ -77,16 +74,8 @@ describe.each(THEMES.map((theme) => theme.id))('theme %s', (themeId) => {
   })
 })
 
-it('aliases every legacy name to its token in tokens.css', () => {
-  const missing = TOKENS.filter((token) => token.legacy).filter(
-    (token) => !new RegExp(`${token.legacy}\\s*:\\s*var\\(${token.cssVar}\\)`).test(sharedCss),
-  )
-
-  expect(missing.map((token) => token.legacy)).toEqual([])
-})
-
 it('declares no custom property that the token list does not name', () => {
-  const known = new Set([...TOKENS.map((token) => token.cssVar), ...legacyNames])
+  const known = new Set(TOKENS.map((token) => token.cssVar))
   const sheets = { 'tokens.css': sharedCss, ...Object.fromEntries(THEMES.map((theme) => [`${theme.id}.css`, themeCss[theme.id]])) }
   const unknown = Object.entries(sheets).flatMap(([file, css]) =>
     [...declaredProperties(css)].filter((property) => !known.has(property)).map((property) => `${file}: ${property}`),
@@ -114,19 +103,15 @@ describe('the tokens page in the docs', () => {
 
     expect(mismatched).toEqual([])
   })
-
-  it('lists every legacy name as an alias of its token', () => {
-    const missing = TOKENS.filter((token) => token.legacy && rows.get(token.legacy)?.[0] !== token.name)
-
-    expect(missing.map((token) => token.legacy)).toEqual([])
-  })
 })
 
 it('matches the token contract that the CLI checks theme files against', () => {
   const contract = read('../../cli/src/themes/tokenContract.luau')
-  const entries = [...contract.matchAll(/\["([^"]+)"\] = \{ group = "([^"]+)", cssVar = "([^"]+)"(?:, legacy = "([^"]+)")? \}/g)].map(
-    ([, name, group, cssVar, legacy]) => ({ name, group, cssVar, legacy }),
-  )
+  const entries = [...contract.matchAll(/\["([^"]+)"\] = \{ group = "([^"]+)", cssVar = "([^"]+)" \}/g)].map(([, name, group, cssVar]) => ({
+    name,
+    group,
+    cssVar,
+  }))
 
-  expect(entries).toEqual(TOKENS.map(({ name, group, cssVar, legacy }) => ({ name, group, cssVar, legacy })))
+  expect(entries).toEqual(TOKENS.map(({ name, group, cssVar }) => ({ name, group, cssVar })))
 })

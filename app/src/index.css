@@ -369,8 +369,8 @@ select {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--st-done);
-  color: var(--surface);
+  background: var(--status-done);
+  color: var(--surface-background);
   box-shadow:
     0 0 0 var(--ring-width-default) var(--card-fill),
     var(--shadow-raised);
@@ -381,7 +381,7 @@ select {
   height: 10px;
 }
 .finish-stamp:focus-visible {
-  outline: var(--ring-width-default) solid var(--st-done);
+  outline: var(--ring-width-default) solid var(--status-done);
   outline-offset: var(--ring-offset-wide);
 }
 :where(:root[data-motion='on']) .finish-stamp:not(.is-clearing) {
@@ -1266,7 +1266,7 @@ select {
   top: 50%;
   transform: translate(-50%, -50%);
   font-size: var(--text-size-caption);
-  color: var(--muted);
+  color: var(--text-muted);
   opacity: 0.7;
   white-space: nowrap;
   pointer-events: none;
@@ -1574,10 +1574,10 @@ select {
 .peek-note {
   margin: var(--space-2) 0 0;
   padding-top: var(--space-3);
-  border-top: var(--border-width-default) solid var(--line);
+  border-top: var(--border-width-default) solid var(--border-default);
   font-size: var(--text-size-small);
   line-height: var(--line-height-preview);
-  color: var(--muted);
+  color: var(--text-muted);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -2061,7 +2061,7 @@ kbd {
 .sticker.is-selected::after {
   opacity: 1;
   border-width: var(--ring-width-selection);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: color-mix(in srgb, var(--accent-default) 16%, transparent);
 }
 :where(:root[data-motion='on']) .sticker.is-fresh .sticker-art {
   animation: sticker-stamp var(--motion-duration-sticker-stamp) var(--motion-easing-stamp) both;
@@ -3346,7 +3346,7 @@ kbd {
 }
 .palette-heading {
   padding: var(--space-4) var(--space-5) var(--space-2);
-  color: var(--muted);
+  color: var(--text-muted);
   font: var(--text-size-micro) var(--font-data);
 }
 .palette mark {
@@ -3398,8 +3398,8 @@ kbd {
 .menu-date input {
   font: inherit;
   color: inherit;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: var(--surface-background);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   padding: 2px 4px;
 }
@@ -3417,28 +3417,28 @@ kbd {
   gap: var(--space-3);
 }
 .link-prompt label {
-  color: var(--muted);
+  color: var(--text-muted);
   font: var(--text-size-micro) var(--font-data);
 }
 .link-prompt input {
   width: 100%;
   padding: var(--space-3-5) var(--space-4-5);
-  border: var(--border-width-default) solid var(--line);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-sm);
   outline: none;
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--surface-background);
+  color: var(--text-primary);
   font-size: var(--text-size-body);
 }
 .link-prompt input:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-default);
 }
 .link-prompt-status {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--text-size-small);
 }
 .link-prompt-error {
-  color: var(--st-blocked);
+  color: var(--status-blocked);
   font-size: var(--text-size-small);
   overflow-wrap: anywhere;
 }
@@ -3948,8 +3948,8 @@ kbd {
   max-width: 260px;
   padding: var(--space-3) var(--space-4-5);
   border-radius: var(--radius-sm);
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--text-primary);
+  color: var(--surface-background);
   box-shadow: var(--shadow-raised);
   font: var(--weight-semibold) var(--text-size-small)/1.35 var(--font-ui);
   pointer-events: none;
@@ -3961,7 +3961,7 @@ kbd {
   top: 100%;
   left: calc(50% - var(--tooltip-shift, 0px));
   border: 5px solid transparent;
-  border-top-color: var(--ink);
+  border-top-color: var(--text-primary);
   transform: translateX(-50%);
 }
 :where(:root[data-motion='on']) .tooltip {
@@ -4074,12 +4074,12 @@ kbd {
   gap: var(--space-3);
   max-width: 220px;
   padding: var(--space-2-5) var(--space-4-5) var(--space-2-5) var(--space-3-5);
-  border: var(--border-width-default) solid var(--line);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-background) 92%, transparent);
   box-shadow: var(--shadow-raised);
   font: var(--weight-bold) var(--text-size-small) var(--font-ui);
-  color: var(--ink);
+  color: var(--text-primary);
   white-space: nowrap;
   opacity: 0;
   scale: 0.6;
@@ -4123,7 +4123,7 @@ kbd {
   position: absolute;
   font: var(--weight-extrabold) var(--text-size-small) var(--font-ui);
   font-style: normal;
-  color: var(--muted);
+  color: var(--text-muted);
   opacity: 0;
 }
 :where(:root[data-motion='on']) .companion-snooze i {
