@@ -6,7 +6,7 @@
 local path = require("@std/path")
 local system = require("@std/system")
 
-local runProgram = require("@root/runProgram")
+local run = require("@root/run")
 local runScript = require("@root/runScript")
 
 local root = path.resolve("..")
@@ -17,11 +17,11 @@ local cliDir = path.join(root, "cli")
 local bundle = if system.macos then "dmg" elseif system.win32 then "nsis" else "deb"
 
 runScript(function()
-	runProgram("cargo", { "fmt", "--check" }, { cwd = shell })
+	run("cargo", { "fmt", "--check" }, { cwd = shell })
 
-	runProgram("npm", { "run", "build" }, { cwd = app })
-	runProgram("lute", { "run", "prepare-sidecar" }, { cwd = cliDir })
+	run("npm", { "run", "build" }, { cwd = app })
+	run("lute", { "run", "prepare-sidecar" }, { cwd = cliDir })
 
-	runProgram("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = shell })
-	runProgram("npx", { "tauri", "build", "--bundles", bundle }, { cwd = desktop })
+	run("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = shell })
+	run("npx", { "tauri", "build", "--bundles", bundle }, { cwd = desktop })
 end)

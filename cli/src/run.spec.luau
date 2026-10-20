@@ -1,17 +1,17 @@
 local system = require("@std/system")
 local test = require("@std/test")
 
-local runProgram = require("@root/runProgram")
+local run = require("@root/run")
 
 -- These rely on a POSIX shell, which Windows runners don't have.
 if not system.win32 then
 	test.case("returns when the program succeeds", function()
-		runProgram("exit", { "0" })
+		run("exit", { "0" })
 	end)
 
 	test.case("names the command and its exit code when it fails", function(assert)
 		local succeeded, failure = pcall(function()
-			runProgram("exit", { "3" })
+			run("exit", { "3" })
 		end)
 		assert.eq(succeeded, false)
 		assert.eq(failure, "exit 3 exited with code 3")
@@ -19,9 +19,21 @@ if not system.win32 then
 
 	test.case("names the signal that killed the program", function(assert)
 		local succeeded, failure = pcall(function()
-			runProgram("kill", { "-SEGV", "$$" })
+			run("kill", { "-SEGV", "$$" })
 		end)
 		assert.eq(succeeded, false)
 		assert.eq(failure, "kill -SEGV $$ was killed by signal 11 (SIGSEGV)")
+	end)
+
+	test.case("returns stdout without its surrounding newlines when capturing output", function(assert)
+		assert.eq(run("printf", { "'\\nhello\\n\\n'" }, { captureOutput = true }), "hello")
+	end)
+
+	test.case("includes stderr in the error when capturing output", function(assert)
+		local succeeded, failure = pcall(function()
+			run("echo", { "oops", ">&2;", "exit", "4" }, { captureOutput = true })
+		end)
+		assert.eq(succeeded, false)
+		assert.eq(failure, "echo oops >&2; exit 4 exited with code 4:\noops\n")
 	end)
 end

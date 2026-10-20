@@ -4,7 +4,7 @@ local process = require("@std/process")
 local project = require("@repo/project")
 local system = require("@std/system")
 
-local runProgram = require("@root/runProgram")
+local run = require("@root/run")
 local runScript = require("@root/runScript")
 
 local BUILD_INFO_PATH = path.join("src", "buildInfo.luau")
@@ -60,7 +60,7 @@ runScript(function()
 	local compiled, compileError = pcall(function()
 		fs.writeStringToFile(BUILD_INFO_PATH, setCommit(checkedIn, getCommit()))
 
-		runProgram("lute", {
+		run("lute", {
 			"compile",
 			"cli.luau",
 			"--output",

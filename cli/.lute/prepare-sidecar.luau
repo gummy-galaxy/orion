@@ -1,13 +1,10 @@
-local FlipbookBatteries = require("@flipbook-batteries")
 local fs = require("@std/fs")
 local path = require("@std/path")
 local project = require("@repo/project")
 local system = require("@std/system")
 
-local runProgram = require("@root/runProgram")
+local run = require("@root/run")
 local runScript = require("@root/runScript")
-
-local run = FlipbookBatteries.run
 
 local root = path.resolve("..")
 local binariesPath = path.join(root, "desktop", "src-tauri", "binaries")
@@ -17,7 +14,7 @@ runScript(function()
 	local triple = string.match(rustcVersion, "host: (%S+)")
 	assert(triple, "Could not determine the Rust host target triple")
 
-	runProgram("lute", { "run", "build" })
+	run("lute", { "run", "build" })
 
 	local extension = if system.win32 then ".exe" else ""
 	local builtPath = tostring(project.BUILD_OUTPUT) .. extension
