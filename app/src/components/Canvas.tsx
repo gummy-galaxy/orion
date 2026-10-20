@@ -250,6 +250,9 @@ const DOUBLE_CLICK_MS = 280
 const FOCUS_SIDE_WIDTH = 248
 const FOCUS_INSET = 20
 const FOCUS_ZOOM = 1.2
+/** The focused card keeps this much room between it and each column of its links. */
+const FOCUS_COLUMN_GAP = 48
+const FOCUS_MIN_ZOOM = 0.5
 /** Focus moves head straight for the card and start fast. */
 const focusMove = () => ({ duration: focusGlide(), ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' }) as const
 const PLACE_GAP = 80
@@ -358,7 +361,9 @@ function groupOpenViewport(group: AppNode, map: Map<string, AppNode>, box: { wid
 function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
   const position = absolutePosition(card, map)
   const size = sizeOf(card, cardSize)
-  const zoom = FOCUS_ZOOM
+  // A narrow canvas zooms out so the card fits between the two columns instead of running under them.
+  const room = box.width - 2 * (FOCUS_INSET + FOCUS_SIDE_WIDTH + FOCUS_COLUMN_GAP)
+  const zoom = Math.max(FOCUS_MIN_ZOOM, Math.min(FOCUS_ZOOM, room / size.width))
 
   return { x: box.width / 2 - (position.x + size.width / 2) * zoom, y: box.height / 2 - (position.y + size.height / 2) * zoom, zoom }
 }
