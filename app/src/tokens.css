@@ -106,6 +106,7 @@
   --link-width-related: 2.2px;
   --link-width-traced: 2.6px;
   --link-width-picked: 2.8px;
+  --link-width-pulse: 4px;
   --snap-guide-width: 1px;
 
   --line-height-glyph: 1;
@@ -163,6 +164,7 @@
   --motion-duration-camera: 450ms;
   --motion-duration-sticker-ring: 480ms;
   --motion-duration-sticker-stamp: 520ms;
+  --motion-duration-flourish: 640ms;
 
   /* One cycle of each looping animation. Scripts read the one-shot durations above that they wait on, so a theme can
      lengthen those without cutting them off. */

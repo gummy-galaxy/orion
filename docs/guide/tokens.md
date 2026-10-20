@@ -191,6 +191,7 @@ Stroke widths for lines drawn on the canvas. A link's dash pattern shows what ki
 | `link.width.related`    | `2.2px` | Related links, drawn as dots                                 |
 | `link.width.traced`     | `2.6px` | Traced, hovered, and live links in the focus view            |
 | `link.width.picked`     | `2.8px` | A picked link                                                |
+| `link.width.pulse`      | `4px`   | The pulse running down a chain closing out                   |
 | `snap.guide.width`      | `1px`   | Alignment guides while dragging                              |
 
 ## Space
@@ -257,6 +258,7 @@ Durations and easings for transitions and one-shot animations. When Orion waits 
 | `motion.duration.camera`        | `450ms` | The camera panning and zooming, such as to fit the canvas               |
 | `motion.duration.sticker-ring`  | `480ms` | The ring around a fresh sticker                                         |
 | `motion.duration.sticker-stamp` | `520ms` | A fresh sticker stamping down                                           |
+| `motion.duration.flourish`      | `640ms` | The rings around the last card of a chain closing out                   |
 
 | Name                     | Default                             | Used for                                 |
 | ------------------------ | ----------------------------------- | ---------------------------------------- |
