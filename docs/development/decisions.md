@@ -338,11 +338,11 @@ Phase 2 starts by prototyping its riskiest bets, placements, database views, and
 
 ### Files first, with a SQLite index
 
-A canvas lives as files that can be stored in a repository, like an Obsidian vault. SQLite does the heavy lifting as an index. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
+A workspace is a folder of files that can live anywhere, including a repository, and opening the folder opens the workspace, like an Obsidian vault. It holds its canvases, the cards and links they place, its sources, and its themes. Cards and links belong to the workspace rather than to one canvas, so a card can appear on several canvases. SQLite does the heavy lifting as an index that can be rebuilt from the files. The index lives outside the folder with the rest of a machine's local state, such as focus and backups, so nothing in the folder needs ignoring. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
 
-**Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast.
+**Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast. A canvas can't be the vault once a card appears in more than one place, since the card would have to live in one canvas's folder. This replaced storing each canvas as its own vault (2026-10-08), which came before a workspace could hold several canvases.
 
-2026-10-08, 2026-10-11 · [#121](https://github.com/vocksel/orion/issues/121)
+2026-10-08, 2026-10-11, 2026-10-19 · [#121](https://github.com/vocksel/orion/issues/121), [#122](https://github.com/vocksel/orion/issues/122)
 
 ### Built for a thousand cards and more
 
