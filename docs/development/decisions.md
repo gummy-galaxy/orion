@@ -120,6 +120,16 @@ A group with nothing inside stays on the canvas, at the size of one card, with a
 
 2026-10-12 · [#304](https://github.com/vocksel/orion/issues/304)
 
+## Appearance
+
+### Vibrant and Trading Card are the defaults
+
+New installs get the Vibrant theme and Trading cards, and so does anyone whose saved theme or skin is empty or unknown. A choice someone already made stays. Every other built-in theme and skin, Classic and Plain, is deprecated: Settings tags it, it keeps working for now, and it will be removed later. Pull request screenshots and recordings pin Vibrant and Trading cards on both sides, so captures show the look people get.
+
+**Why:** Vibrant and Trading cards carry Orion's visual direction, and each extra built-in look is one more that every visual change has to be designed, checked, and captured in. One default lets that work target one look.
+
+2026-10-18 · [#532](https://github.com/vocksel/orion/pull/532)
+
 ## Canvas and input
 
 ### Scrolling pans, for mouse and trackpad alike
