@@ -50,22 +50,21 @@ local function getRemovals(dir: string, files: { [string]: string }): { string }
 		end
 	end
 
-	if not files[fileNames.localState] and fs.exists(path.join(dir, fileNames.localState)) then
-		table.insert(removes, fileNames.localState)
-	end
-
 	return removes
 end
 
 --[[
 	Writes a whole canvas, in the shape `encodeDocObject` returns, as the files of its folder. Only files whose
 	text differs from `previous` are rewritten, node and link files the canvas no longer has are removed, and
-	`canvas.json` goes last. A marker stays down for the length of the write so readers wait it out, and the index
-	journals the write before any file moves, so `recoverCanvasWrite` can finish one that stops partway. Callers
-	hold the lock, and pass what they read under it as `previous`, with its files, whose canvas is backed up first.
+	`local.json`, which holds the revision, goes last. A marker stays down for the length of the write so readers
+	wait it out, and the index journals the write before any file moves, so `recoverCanvasWrite` can finish one that
+	stops partway. Callers hold the lock, and pass what they read under it as `previous`, with its files, whose
+	canvas is backed up first. Fields that changed since `previous` are stamped with the current time.
 ]]
 local function writeCanvasFiles(dir: string, document: json.Object, previous: CanvasSnapshot?)
-	local files = splitDocObject(document)
+	local files = splitDocObject(document, previous, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
+	-- Replaced on every write, even unchanged, so a reader that started before it can tell the files moved under it.
+	files[fileNames.localState] = files[fileNames.localState] or "{}\n"
 	local previousFiles = if previous and previous.files then previous.files else {}
 	local marker = path.join(dir, fileNames.pendingWrite)
 	local writes: { [string]: string } = {}
@@ -75,7 +74,7 @@ local function writeCanvasFiles(dir: string, document: json.Object, previous: Ca
 	end
 
 	for file, contents in files do
-		if file == fileNames.document or previousFiles[file] ~= contents then
+		if file == fileNames.localState or previousFiles[file] ~= contents then
 			writes[file] = contents
 		end
 	end

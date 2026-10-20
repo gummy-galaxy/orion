@@ -15,7 +15,7 @@ test.case("a single-item write prints the revision it made with the item", funct
 	assert.eq(item and item.label, "Ship")
 	assert.eq(item and item.status, "ready")
 
-	local changed = decode(run({ "card", "set", "ship", "--status", "active", "--json" }))
+	local changed = decode(run({ "card", "set", (item :: json.Object).id :: string, "--status", "active", "--json" }))
 	assert.eq(changed.revision, 2)
 end)
 

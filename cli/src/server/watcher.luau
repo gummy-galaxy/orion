@@ -4,7 +4,6 @@ local task = require("@std/task")
 
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
-local getDocPath = require("@root/store/getDocPath")
 local getLogPath = require("@root/log/getLogPath")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
@@ -17,6 +16,11 @@ type WorkspaceList = storeTypes.WorkspaceList
 type Stamp = { size: number, modified: number }
 
 local watcher = {}
+
+-- Every write replaces the canvas's local.json last, so its stamp moves once per write.
+local function getWrittenPath(dir: string): string
+	return tostring(path.join(dir, fileNames.localState))
+end
 
 local function getStamp(file: string): Stamp?
 	local didSucceed, metadata = pcall(fs.metadata, file)
@@ -45,7 +49,7 @@ function watcher.create(
 	logChanged: (string) -> ()
 )
 	local isClosed = false
-	local dataFile = getDocPath(getWorkspaceDir(root, active()))
+	local dataFile = getWrittenPath(getWorkspaceDir(root, active()))
 	local logFile = getLogPath(getWorkspaceDir(root, active()))
 	local logName = active()
 	local manifestFile = tostring(path.join(root, fileNames.canvases))
@@ -77,7 +81,7 @@ function watcher.create(
 		ensureDirectory(dir)
 
 		folder = fs.watch(dir)
-		dataFile = getDocPath(dir)
+		dataFile = getWrittenPath(dir)
 		logFile = getLogPath(dir)
 		logName = name
 		lastDataStamp = getStamp(dataFile)

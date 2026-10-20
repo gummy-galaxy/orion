@@ -1,3 +1,4 @@
+local createId = require("@root/graph/createId")
 local getItem = require("@root/graph/getItem")
 local isGroup = require("@root/graph/isGroup")
 local types = require("@root/types")
@@ -28,8 +29,7 @@ local function linkItems(doc: Doc, from: string, to: string, kind: string, label
 		end
 	end
 
-	local link: Link =
-		{ id = if kind == "blocks" then `{from}>{to}` else `{from}~{to}`, from = from, to = to, kind = kind }
+	local link: Link = { id = createId(), from = from, to = to, kind = kind }
 
 	if text and text ~= "" then
 		link.label = text

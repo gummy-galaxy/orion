@@ -92,7 +92,7 @@ function focus.format(doc: Doc, derived: graphTypes.Derived, report: Focus?): st
 		table.insert(lines, "Selected:")
 		for _, item in items do
 			if isGroup(item) then
-				table.insert(lines, `  {pad("group", 9)}{pad(item.id, 24)}{renderGroup.formatLine(derived, item)}`)
+				table.insert(lines, `  {pad("group", 9)}{pad(item.id, 38)}{renderGroup.formatLine(derived, item)}`)
 			else
 				table.insert(lines, `  {renderItem.table(doc, derived, { item })}`)
 			end
