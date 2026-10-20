@@ -31,3 +31,4 @@ orion backup restore [revision] [options]
 | Argument     | Description         |
 | ------------ | ------------------- |
 | `[revision]` | Revision to restore |
+| `--json`     | Print JSON          |

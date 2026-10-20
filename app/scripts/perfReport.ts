@@ -1,6 +1,7 @@
 /**
  * Turns a perf comparison into Markdown that leads with what got slower. A colored callout gives the verdict, a table
- * lists only the changes beyond noise, and the full measurements sit in collapsed sections below.
+ * lists only the changes beyond noise, and the full measurements sit in collapsed sections below. An emoji leads each
+ * heading and verdict so the comment reads at a glance.
  */
 export type Sample = Record<string, number>
 /** The device Chromium drew with, and whether it composited on a GPU rather than in software. */
@@ -150,7 +151,7 @@ function benchSection(bench: NonNullable<ReportInput['bench']>): { rows: Row[]; 
 
     return { name: `\`${name}\``, where, kind: 'ms', ...judge(bench.base[full] ?? [], bench.head[full] ?? [], 'ms', { floor: false }) }
   })
-  const text = details(`<b>Data benchmarks</b> · ${tally(rows)}`, [
+  const text = details(`🧮 <b>Data benchmarks</b> · ${tally(rows)}`, [
     `Median time per call over generated canvases, then the median of ${bench.rounds} rounds on each side.`,
     '',
     table(
@@ -205,7 +206,7 @@ function storySection(
     ),
   ]
 
-  return { rows, saturated, idleFrames, text: details(`<b>Rendering: ${story}</b> · ${tally(rows)}`, body) }
+  return { rows, saturated, idleFrames, text: details(`🎨 <b>Rendering: ${story}</b> · ${tally(rows)}`, body) }
 }
 
 /** Lists changes beyond noise, largest first. */
@@ -256,32 +257,38 @@ export function buildReport(input: ReportInput): string {
   const better = rows.filter((row) => row.verdict === 'better').sort((a, b) => (a.change ?? 0) - (b.change ?? 0))
   const large = worse.filter((row) => mark(row) === '🔴').length
   const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
+  const within = rows.length - worse.length - better.length
+  const counts = [worse.length && `${worse.length} slower`, better.length && `${better.length} faster`, within && `${within} within noise`]
   const callout = large
-    ? ['> [!CAUTION]', `> **${plural(worse.length, 'measurement')} got slower**, ${large} of them by ${LARGE * 100}% or more.`]
+    ? [
+        '> [!CAUTION]',
+        `> 🐢 **${plural(worse.length, 'measurement')} got slower**${worse.length === 1 ? '' : large === worse.length ? ', all' : `, ${large} of them`} by ${LARGE * 100}% or more.`,
+      ]
     : worse.length
       ? [
           '> [!WARNING]',
-          `> **${plural(worse.length, 'measurement')} got slower** by less than ${LARGE * 100}%. Small changes can be noise, so check whether they repeat.`,
+          `> 🐌 **${plural(worse.length, 'measurement')} got a little slower**, by less than ${LARGE * 100}%. Small changes can be noise, so see whether ${worse.length === 1 ? 'it repeats' : 'they repeat'} on the next run.`,
         ]
-      : [
-          '> [!TIP]',
-          `> **Nothing got slower.** ${better.length ? `${plural(better.length, 'measurement')} got faster.` : 'Every measurement is within noise.'}`,
-        ]
+      : better.length
+        ? ['> [!TIP]', `> 🚀 **Nothing got slower, and ${plural(better.length, 'measurement')} got faster.** Nice!`]
+        : ['> [!TIP]', `> 🧘 **Smooth sailing.** Every measurement is within noise of \`${input.base.ref}\`.`]
   const lines = [
-    '## Performance',
+    '## ⏱️ Performance',
     '',
-    `\`${input.head.ref}\` (${input.head.sha.slice(0, 7)}) against \`${input.base.ref}\` (${input.base.sha.slice(0, 7)}) · ${rows.length} measurements, ${rows.length - worse.length - better.length} within noise`,
+    `Comparing \`${input.head.ref}\` (${input.head.sha.slice(0, 7)}) with \`${input.base.ref}\` (${input.base.sha.slice(0, 7)}) across ${plural(rows.length, 'measurement')}: ${
+      within === rows.length ? 'all within noise' : counts.filter(Boolean).join(', ')
+    }.`,
     '',
     ...callout,
   ]
 
-  if (worse.length) lines.push('', '### Slower', '', changeTable(worse))
+  if (worse.length) lines.push('', '### 🐢 Slower', '', changeTable(worse))
 
-  if (better.length) lines.push('', '### Faster', '', changeTable(better))
+  if (better.length) lines.push('', '### 🚀 Faster', '', changeTable(better))
 
   for (const note of notes) lines.push('', '> [!NOTE]', `> ${note}`)
 
-  lines.push('', '### All measurements', '', ...sections.flatMap((section) => [section.text, '']))
+  lines.push('', '### 🔬 All measurements', '', ...sections.flatMap((section) => [section.text, '']))
 
   return lines.join('\n').trimEnd() + '\n'
 }

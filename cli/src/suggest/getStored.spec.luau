@@ -32,6 +32,6 @@ end)
 
 test.case("stored suggestions are empty before any were saved", function(assert)
 	local result = getStored(testing.createDoc({}))
-	assert.eq(result.createdAt, "")
+	assert.eq(result.createdAt, nil)
 	assert.eq(#result.groups, 0)
 end)
