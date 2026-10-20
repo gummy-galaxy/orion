@@ -31,7 +31,7 @@ local function getStored(doc: Doc): Result
 		end
 	end
 
-	return { createdAt = if saved and type(saved.createdAt) == "string" then saved.createdAt else "", groups = groups }
+	return { createdAt = if saved and type(saved.createdAt) == "string" then saved.createdAt else nil, groups = groups }
 end
 
 return getStored

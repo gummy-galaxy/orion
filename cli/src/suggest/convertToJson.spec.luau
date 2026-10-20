@@ -20,3 +20,14 @@ test.case("converted suggestions keep each group's fields", function(assert)
 	assert.eq(group.reason, "Shared branch")
 	assert.eq(group.source, "heuristic")
 end)
+
+test.case("absent values are left out rather than empty", function(assert)
+	local value = convertToJson({
+		groups = { { id = "s1", title = "Avatars", members = { "a" }, reason = "", source = "heuristic" } },
+	})
+	local groups = json.asArray(value.groups) :: json.Array
+	local group = json.asObject(groups[1] :: json.Value) :: json.Object
+
+	assert.eq(value.createdAt, nil)
+	assert.eq(group.reason, nil)
+end)

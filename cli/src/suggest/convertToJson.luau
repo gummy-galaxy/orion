@@ -7,16 +7,14 @@ local function convertToJson(result: Result): json.Object
 	local groups: json.Array = {}
 
 	for _, group in result.groups do
-		table.insert(
-			groups,
-			json.object({
-				id = group.id,
-				title = group.title,
-				members = group.members,
-				reason = group.reason,
-				source = group.source,
-			})
-		)
+		local value = json.object({
+			id = group.id,
+			title = group.title,
+			members = group.members,
+			source = group.source,
+		})
+		value.reason = if group.reason ~= "" then group.reason else nil
+		table.insert(groups, value)
 	end
 
 	return json.object({ createdAt = result.createdAt, groups = groups })
