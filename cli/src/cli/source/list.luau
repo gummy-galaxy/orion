@@ -9,6 +9,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List configured sources",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

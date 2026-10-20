@@ -8,6 +8,7 @@ local mcpTypes = require("@root/cli/mcp/types")
 local orientation = require("@root/cli/orientation")
 
 type Run = mcpTypes.Run
+type Tool = mcpTypes.Tool
 
 local PROTOCOL_VERSIONS = { "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05" }
 -- Sent in the initialize response so clients know what Orion is before they pick a tool.
@@ -67,10 +68,10 @@ local function initialize(params: json.Object): json.Object
 end
 
 -- Command failures become tool results marked as errors so the client can show them to the model.
-local function callTool(id: json.Value, params: json.Object, run: Run): json.Object
+local function callTool(id: json.Value, params: json.Object, tools: { Tool }, run: Run): json.Object
 	local name = params.name
 
-	if type(name) ~= "string" or findTool(name) == nil then
+	if type(name) ~= "string" or findTool(tools, name) == nil then
 		return createFailure(id, INVALID_PARAMS, `Unknown tool: {tostring(name)}`)
 	end
 
@@ -82,7 +83,7 @@ local function callTool(id: json.Value, params: json.Object, run: Run): json.Obj
 
 	local lines: { string } = {}
 	local ok, message = pcall(function()
-		run(getToolArgv(name, arguments), function(line: string)
+		run(getToolArgv(tools, name, arguments), function(line: string)
 			table.insert(lines, line)
 		end)
 	end)
@@ -94,8 +95,9 @@ local function callTool(id: json.Value, params: json.Object, run: Run): json.Obj
 	return createSuccess(id, createToolResult(cleanErrorMessage(message), true))
 end
 
--- Answers one JSON-RPC message. Notifications get no response. A stale server answers requests with an error.
-local function handleMessage(line: string, run: Run, stale: boolean?): json.Object?
+-- Answers one JSON-RPC message, calling tools with run. Notifications get no response. A stale server answers
+-- requests with an error.
+local function handleMessage(line: string, tools: { Tool }, run: Run, stale: boolean?): json.Object?
 	local decoded, value = pcall(json.deserialize, line)
 
 	if not decoded then
@@ -131,9 +133,9 @@ local function handleMessage(line: string, run: Run, stale: boolean?): json.Obje
 	elseif method == "ping" then
 		return createSuccess(id, json.object({}))
 	elseif method == "tools/list" then
-		return createSuccess(id, json.object({ tools = describeTools() }))
+		return createSuccess(id, json.object({ tools = describeTools(tools) }))
 	elseif method == "tools/call" then
-		return callTool(id, params, run)
+		return callTool(id, params, tools, run)
 	end
 
 	return createFailure(id, METHOD_NOT_FOUND, `Method not found: {method}`)

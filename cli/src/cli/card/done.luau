@@ -15,6 +15,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Mark one or more items done",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		addBatchOptions(parser, "Item ids or selectors")
 	end,

@@ -1,5 +1,12 @@
 return table.freeze({
-	document = "orion.json",
+	document = "canvas.json",
+	nodes = "nodes",
+	links = "links",
+	localState = "local.json",
+	index = "index.sqlite",
+	pendingWrite = "orion.writing",
+	legacyDocument = "orion.json",
+	legacyBackup = "orion.backup.json",
 	focus = "focus.json",
 	log = "log.jsonl",
 	lock = "orion.lock",

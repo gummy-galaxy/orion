@@ -19,10 +19,11 @@ type Item = types.Item
 
 return table.freeze({
 	help = "Change an item's fields",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
 		parser:add("label", "option", { help = "New label" })
-		addFieldOptions(parser)
+		addFieldOptions(parser, true)
 		addRefOption(parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

@@ -1,37 +1,42 @@
 local json = require("@std/json")
 
-local appendFlag = require("@root/cli/mcp/catalog/appendFlag")
-local appendOption = require("@root/cli/mcp/catalog/appendOption")
 local findTool = require("@root/cli/mcp/catalog/findTool")
-local getRequiredString = require("@root/cli/mcp/catalog/getRequiredString")
 local isAbsent = require("@root/cli/mcp/catalog/isAbsent")
 local mcpTypes = require("@root/cli/mcp/types")
 
 type Field = mcpTypes.Field
 type Tool = mcpTypes.Tool
 
+local function isList(field: Field): boolean
+	return field.type == "list" or field.type == "commaList"
+end
+
 local function checkValue(field: Field, value: json.Value)
 	local name = field.name
 
-	if field.kind == "boolean" then
+	if field.type == "boolean" then
 		assert(type(value) == "boolean", `{name} must be a boolean`)
-	elseif field.kind == "int" then
+	elseif field.type == "integer" then
 		local minimum = field.minimum or 1
 		assert(
 			type(value) == "number" and value >= minimum and value == math.floor(value),
 			if minimum == 0 then `{name} must be a nonnegative integer` else `{name} must be a positive integer`
 		)
-	elseif field.kind == "strings" then
+	elseif isList(field) then
 		local list = json.asArray(value)
 		assert(list, `{name} must be a list of strings`)
 
 		for _, entry in list do
 			assert(type(entry) == "string" and entry ~= "", `{name} must be a list of strings`)
 		end
-	elseif field.kind == "operations" then
-		local steps = json.asArray(value)
-		assert(steps and #steps > 0, `{name} must be a list of operations`)
-	elseif field.kind == "enum" then
+	elseif field.type == "jsonList" then
+		local list = json.asArray(value)
+		assert(list and #list > 0, `{name} must be a list of objects`)
+
+		for _, entry in list do
+			assert(json.asObject(entry), `{name} must be a list of objects`)
+		end
+	elseif field.type == "enum" then
 		local values = field.values or {}
 		assert(
 			type(value) == "string" and table.find(values, value),
@@ -39,7 +44,7 @@ local function checkValue(field: Field, value: json.Value)
 		)
 	else
 		assert(type(value) == "string", `{name} must be a string`)
-		assert(#value >= (field.minLength or if field.kind == "id" then 1 else 0), `{name} must not be empty`)
+		assert(value ~= "" or not (field.required or field.type == "id"), `{name} must not be empty`)
 	end
 end
 
@@ -64,28 +69,44 @@ local function checkArguments(tool: Tool, arguments: json.Object)
 	end
 end
 
--- Appends a list field's entries as separate arguments, and fails when a required list is missing.
-local function appendVariadic(argv: { string }, field: Field, value: json.Value)
-	local list = if isAbsent(value) then nil else json.asArray(value)
-
-	if list then
-		for _, entry in list do
-			table.insert(argv, tostring(entry))
-		end
+-- The text an option carries: lists joined with commas, and JSON lists serialized.
+local function getOptionText(field: Field, value: json.Value): string
+	if field.type == "commaList" then
+		return table.concat(json.asArray(value) :: json.Array, ",")
+	elseif field.type == "jsonList" then
+		return json.serialize(value)
 	end
 
-	assert(not field.required or (list and #list > 0), `missing {field.name}`)
+	return tostring(value)
 end
 
--- Places each field where its command expects it: positionals and variadic lists first, then options and flags.
+-- An empty list counts as no value, as leaving the argument out would.
+local function hasValue(field: Field, value: json.Value): boolean
+	if isAbsent(value) then
+		return false
+	end
+
+	local list = if isList(field) then json.asArray(value) else nil
+	return list == nil or #list > 0
+end
+
+-- Places each field where its command expects it: positionals and variadics first, then options and flags.
 local function buildArgv(tool: Tool, arguments: json.Object): { string }
 	local argv = table.clone(tool.command)
 
 	for _, field in tool.fields do
-		if field.at == "positional" then
-			table.insert(argv, getRequiredString(arguments, field.name))
-		elseif field.at == "variadic" then
-			appendVariadic(argv, field, arguments[field.name])
+		local value = arguments[field.name]
+
+		if field.at ~= "positional" and field.at ~= "variadic" then
+			continue
+		elseif not hasValue(field, value) then
+			assert(not field.required, `missing {field.name}`)
+		elseif isList(field) then
+			for _, entry in json.asArray(value) :: json.Array do
+				table.insert(argv, tostring(entry))
+			end
+		else
+			table.insert(argv, tostring(value))
 		end
 	end
 
@@ -93,44 +114,29 @@ local function buildArgv(tool: Tool, arguments: json.Object): { string }
 		local value = arguments[field.name]
 
 		if field.at == "option" then
-			if isAbsent(value) then
-				assert(not field.required, `missing {field.name}`)
+			if hasValue(field, value) then
+				table.insert(argv, `--{field.argument}`)
+				table.insert(argv, getOptionText(field, value))
 			else
-				appendOption(argv, field.flag or field.name, value)
+				assert(not field.required, `missing {field.name}`)
 			end
-		elseif field.at == "flag" then
-			appendFlag(argv, field.flag or field.name, value)
-		elseif field.at == "csv" then
-			local list = if isAbsent(value) then nil else json.asArray(value)
-			assert(list and #list > 0, `missing {field.name}`)
-
-			local ids: { string } = {}
-
-			for _, id in list do
-				assert(type(id) == "string" and id ~= "", `missing {field.name}`)
-				table.insert(ids, id)
-			end
-
-			table.insert(argv, `--{field.flag or field.name}`)
-			table.insert(argv, table.concat(ids, ","))
+		elseif field.at == "flag" and value == true then
+			table.insert(argv, `--{field.argument}`)
 		end
 	end
-
-	return argv
-end
-
--- Turns a tool call into the CLI arguments for the command it delegates to.
-local function getToolArgv(name: string, arguments: json.Object): { string }
-	local tool = assert(findTool(name), `unknown tool: {name}`)
-	checkArguments(tool, arguments)
-
-	local argv = if tool.build then tool.build(arguments) else buildArgv(tool, arguments)
 
 	if tool.json then
 		table.insert(argv, "--json")
 	end
 
 	return argv
+end
+
+-- Turns a tool call into the CLI arguments for the command it runs.
+local function getToolArgv(tools: { Tool }, name: string, arguments: json.Object): { string }
+	local tool = assert(findTool(tools, name), `unknown tool: {name}`)
+	checkArguments(tool, arguments)
+	return buildArgv(tool, arguments)
 end
 
 return getToolArgv

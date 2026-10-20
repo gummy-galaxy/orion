@@ -1,8 +1,10 @@
 local cli = require("@batteries/cli")
 
+local addArgument = require("@root/cli/addArgument")
 local addNote = require("@root/graph/addNote")
 local context = require("@root/cli/context")
 local joinWords = require("@root/cli/joinWords")
+local noteStyle = require("@root/cli/noteStyle")
 local resolveOptionalId = require("@root/cli/resolveOptionalId")
 local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
@@ -13,11 +15,17 @@ type Item = types.Item
 
 return table.freeze({
 	help = "Add a note, optionally between two linked items",
+	mcp = {},
 	define = function(parser: cli.Parser)
-		parser:add("text", "variadic", { help = "Note text" })
-		parser:add("group", "option", { help = "Group to add it to" })
-		parser:add("after", "option", { help = "Item the note follows" })
-		parser:add("before", "option", { help = "Item the note leads into" })
+		addArgument(
+			parser,
+			"text",
+			"variadic",
+			{ help = "Note text", type = "words", mcp = { description = `Note text. {noteStyle}` } }
+		)
+		addArgument(parser, "group", "option", { help = "Group to add it to", type = "id" })
+		addArgument(parser, "after", "option", { help = "Item the note follows", type = "id" })
+		addArgument(parser, "before", "option", { help = "Item the note leads into", type = "id" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
