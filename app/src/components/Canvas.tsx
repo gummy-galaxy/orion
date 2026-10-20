@@ -352,7 +352,8 @@ function withStoredSizes(copy: Saved, stored: Saved): Saved {
 }
 
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
-const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
+/** Random, so cards added on two branches of a canvas in git never take the same id. */
+const newId = () => crypto.randomUUID()
 
 /** Opens a group at the same zoom as every other, with the connections outside it peeking in from the sides. */
 function groupOpenViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
@@ -2098,7 +2099,7 @@ export function Canvas() {
       setLinks((currentLinks) =>
         currentLinks.some((link) => (link.from === from && link.to === to) || (link.from === to && link.to === from))
           ? currentLinks
-          : [...currentLinks, { id: `${from}>${to}`, from, to, kind: 'blocks' }],
+          : [...currentLinks, { id: newId(), from, to, kind: 'blocks' }],
       )
     },
     [setLinks],
@@ -2407,7 +2408,7 @@ export function Canvas() {
       const parentNode = parent ? nodeMap.get(parent) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const itemKind = options.itemKind ?? 'note'
-      const id = newId(itemKind === 'step' ? 'card' : itemKind)
+      const id = newId()
       const note: AppNode = {
         id,
         type: 'task',
@@ -2482,7 +2483,7 @@ export function Canvas() {
           const parentNode = parentId ? nodeMap.get(parentId) : undefined
           const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
           const image: ImageNode = {
-            id: newId('image'),
+            id: newId(),
             type: 'image',
             parentId: parentNode?.id,
             position: { x: position.x - 20 - origin.x, y: position.y - 92 - origin.y },
@@ -2539,7 +2540,7 @@ export function Canvas() {
       const parentNode = parentId ? nodeMap.get(parentId) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const card: AppNode = {
-        id: nodeMap.has(found.id) ? newId('card') : found.id,
+        id: nodeMap.has(found.id) ? newId() : found.id,
         type: 'task',
         parentId: parentNode?.id,
         position: { x: at.x - origin.x, y: at.y - origin.y },
@@ -2728,7 +2729,7 @@ export function Canvas() {
 
   const stamp = useCallback(
     (event: React.MouseEvent) => {
-      const id = newId('sticker')
+      const id = newId()
       const at = anchorAt(reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }))
 
       setStickers((stickers) => [...stickers, { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at }])

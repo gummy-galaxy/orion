@@ -11,6 +11,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Remove the link between two items",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "from")
 		addIdPositional(parser, "to")

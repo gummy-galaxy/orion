@@ -1,15 +1,14 @@
 local json = require("@std/json")
 
+local createId = require("@root/graph/createId")
 local geometry = require("@root/geometry")
 local getGroup = require("@root/graph/getGroup")
 local getItem = require("@root/graph/getItem")
 local getNextSlot = require("@root/graph/getNextSlot")
 local getSize = require("@root/graph/getSize")
-local getUniqueId = require("@root/graph/getUniqueId")
 local graphTypes = require("@root/graph/types")
 local insertBetween = require("@root/graph/insertBetween")
 local linkItems = require("@root/graph/linkItems")
-local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -81,7 +80,7 @@ local function addNote(doc: Doc, text: string, options: NoteOptions): Item
 	end
 
 	local note: Item = {
-		id = getUniqueId(doc, `note-{slugify(text, 24)}`),
+		id = createId(),
 		type = "task",
 		position = getNextSlot(doc, parent),
 		parentId = parent,

@@ -1,20 +1,13 @@
-local fs = require("@std/fs")
-
-local decodeDoc = require("@root/store/decodeDoc")
-local getDocPath = require("@root/store/getDocPath")
+local decodeDocObject = require("@root/store/decodeDocObject")
+local readCanvasFiles = require("@root/store/readCanvasFiles")
 local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Nil when the workspace has no data file yet.
+-- Nil when the canvas has no files yet.
 local function readDoc(dir: string): Doc?
-	local file = getDocPath(dir)
-
-	if not fs.exists(file) then
-		return nil
-	end
-
-	return decodeDoc(fs.readFileToString(file))
+	local snapshot = readCanvasFiles(dir)
+	return if snapshot then decodeDocObject(snapshot.document) else nil
 end
 
 return readDoc

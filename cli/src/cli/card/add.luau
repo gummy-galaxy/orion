@@ -1,5 +1,6 @@
 local cli = require("@batteries/cli")
 
+local addArgument = require("@root/cli/addArgument")
 local addFieldOptions = require("@root/cli/addFieldOptions")
 local addItem = require("@root/graph/addItem")
 local addRefOption = require("@root/cli/addRefOption")
@@ -18,10 +19,11 @@ type Item = types.Item
 
 return table.freeze({
 	help = "Add a work item",
+	mcp = {},
 	define = function(parser: cli.Parser)
-		parser:add("label", "variadic", { help = "What the work is" })
-		parser:add("group", "option", { help = "Group to add it to" })
-		addFieldOptions(parser)
+		addArgument(parser, "label", "variadic", { help = "What the work is", type = "words" })
+		addArgument(parser, "group", "option", { help = "Group to add it to", type = "id" })
+		addFieldOptions(parser, false)
 		addRefOption(parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

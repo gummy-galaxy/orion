@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local compute = require("@root/suggest/compute")
 local context = require("@root/cli/context")
 local convertToJson = require("@root/suggest/convertToJson")
@@ -12,9 +13,20 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Compute group suggestions",
+	mcp = { annotations = { openWorldHint = true } },
 	define = function(parser: cli.Parser)
-		parser:add("agent", "option", { help = "claude, codex, or none" })
-		parser:add("scope", "option", { help = "unsorted or all" })
+		addArgument(
+			parser,
+			"agent",
+			"option",
+			{ help = "claude, codex, or none", type = "enum", values = { "claude", "codex", "none" } }
+		)
+		addArgument(
+			parser,
+			"scope",
+			"option",
+			{ help = "unsorted or all", type = "enum", values = { "unsorted", "all" } }
+		)
 		parser:add("dry-run", "flag", { help = "Show suggestions without writing" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

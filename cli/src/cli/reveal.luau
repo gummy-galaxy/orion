@@ -5,6 +5,7 @@ local path = require("@std/path")
 local process = require("@std/process")
 local task = require("@std/task")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local getRunningRuntime = require("@root/server/getRunningRuntime")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
@@ -141,8 +142,11 @@ end
 
 return table.freeze({
 	help = "Select cards or groups in the app and zoom the canvas to them",
+	mcp = {
+		description = "Select cards or groups in the open Orion app and zoom the canvas to them, opening the group they share. Opens the app when it's closed. Set selectOnly to select without moving the camera.",
+	},
 	define = function(parser: cli.Parser)
-		parser:add("ids", "variadic", { help = "Item or group ids to reveal" })
+		addArgument(parser, "ids", "variadic", { help = "Item or group ids to reveal", mcp = { required = true } })
 		parser:add("select-only", "flag", { help = "Select them without moving the camera" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

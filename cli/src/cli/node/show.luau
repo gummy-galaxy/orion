@@ -14,6 +14,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Show one item or group",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
 		parser:add("json", "flag", { help = "Print JSON" })

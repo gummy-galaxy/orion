@@ -1,10 +1,9 @@
 local json = require("@std/json")
 
+local createId = require("@root/graph/createId")
 local geometry = require("@root/geometry")
 local getGroup = require("@root/graph/getGroup")
 local getNextSlot = require("@root/graph/getNextSlot")
-local getUniqueId = require("@root/graph/getUniqueId")
-local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -19,7 +18,7 @@ local function createGroup(doc: Doc, label: string, parentId: string?): Item
 	end
 
 	local group: Item = {
-		id = getUniqueId(doc, slugify(label)),
+		id = createId(),
 		type = "cluster",
 		position = getNextSlot(doc, parentId),
 		parentId = parentId,

@@ -12,6 +12,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Remove items. Removing a note reconnects the links that ran through it",
+	mcp = { annotations = { destructiveHint = true } },
 	define = function(parser: cli.Parser)
 		addBatchOptions(parser, "Item ids or selectors")
 		parser:add("reconnect", "flag", {

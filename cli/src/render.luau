@@ -119,7 +119,7 @@ function render.table(doc: Doc, derived: graphTypes.Derived, items: { Item }): s
 		local where = groupLabel(doc, item)
 		table.insert(
 			lines,
-			`{pad(status, 9)}{pad(item.id, 24)}{pad(getLabel(item), 44)}{pad(render.tag(item), 20)}{where or ""}{extra}`
+			`{pad(status, 9)}{pad(item.id, 38)}{pad(getLabel(item), 44)}{pad(render.tag(item), 20)}{where or ""}{extra}`
 		)
 	end
 

@@ -13,6 +13,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Restore a saved revision as a new revision",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		parser:add("revision", "positional", { help = "Revision to restore" })
 	end,
