@@ -6,8 +6,15 @@ local getBackups = require("@root/store/getBackups")
 
 type Context = context.Context
 
+-- Backup file names carry a compact UTC time such as 20261017T164600Z; output spells it in RFC 3339.
+local function formatTime(compact: string): string
+	local year, month, day, hour, minute, second = compact:match("^(%d%d%d%d)(%d%d)(%d%d)T(%d%d)(%d%d)(%d%d)Z$")
+	return `{year}-{month}-{day}T{hour}:{minute}:{second}Z`
+end
+
 return table.freeze({
 	help = "List saved Orion data revisions",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
@@ -21,7 +28,7 @@ return table.freeze({
 			for _, backup in backups do
 				table.insert(
 					values,
-					json.object({ revision = backup.revision, time = backup.time, size = backup.size })
+					json.object({ revision = backup.revision, time = formatTime(backup.time), size = backup.size })
 				)
 			end
 
@@ -30,7 +37,7 @@ return table.freeze({
 			local lines: { string } = {}
 
 			for _, backup in backups do
-				table.insert(lines, `r{backup.revision}  {backup.time}  {backup.size} bytes`)
+				table.insert(lines, `r{backup.revision}  {formatTime(backup.time)}  {backup.size} bytes`)
 			end
 
 			options.write(if #lines > 0 then table.concat(lines, "\n") else "No backups.")

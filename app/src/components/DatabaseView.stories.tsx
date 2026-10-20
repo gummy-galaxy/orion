@@ -21,6 +21,8 @@ const meta = {
       localStorage.removeItem('orion:v2')
       localStorage.removeItem('orion:viewport:default')
       localStorage.setItem('orion:table', '1')
+      localStorage.setItem('orion:details', '1')
+      localStorage.removeItem('orion:table-width')
       localStorage.setItem('orion:theme', 'vibrant')
       localStorage.setItem('orion:skin', 'trading')
       writeDetail('default', null)

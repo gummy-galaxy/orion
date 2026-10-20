@@ -33,7 +33,7 @@ const describe = (id: string): Hint | null => {
 /** Move the pointer between the cards to see each mood; leave it still for 15 seconds and it dozes off. */
 export const Default: Story = {
   render: () => (
-    <div style={{ position: 'relative', width: 1140, height: 480, margin: '40px auto', border: '1px solid var(--line)' }}>
+    <div style={{ position: 'relative', width: 1140, height: 480, margin: '40px auto', border: '1px solid var(--border-default)' }}>
       {TARGETS.map((target, i) => (
         <div
           key={target.id}
@@ -44,11 +44,11 @@ export const Default: Story = {
             width: CARD_WIDTH,
             height: CARD_HEIGHT,
             borderRadius: 'var(--radius-md)',
-            background: 'var(--surface)',
-            border: '1px solid var(--line)',
+            background: 'var(--surface-background)',
+            border: '1px solid var(--border-default)',
             padding: 12,
             font: '600 13px var(--font-ui)',
-            color: 'var(--ink)',
+            color: 'var(--text-primary)',
           }}
         >
           {describeCard(CARDS[i].status, CARDS[i].who).text}

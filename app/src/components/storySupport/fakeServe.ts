@@ -171,21 +171,36 @@ function derive(doc: Saved): Derived {
 
   for (const id of tasks.keys()) statusOf(id)
 
+  const statsOf = (ids: string[]): GroupStats => ({
+    total: ids.length,
+    done: ids.filter((id) => status[id] === 'done').length,
+    ready: ids.filter((id) => status[id] === 'ready').length,
+    blocked: ids.filter((id) => status[id] === 'blocked').length,
+    outside: 0,
+  })
   const groups: Record<string, GroupStats> = {}
 
   for (const node of doc.nodes) {
     if (node.type !== 'cluster') continue
 
-    const inside = doc.nodes.filter((child) => child.parentId === node.id && status[child.id])
-
-    groups[node.id] = {
-      total: inside.length,
-      done: inside.filter((child) => status[child.id] === 'done').length,
-      ready: inside.filter((child) => status[child.id] === 'ready').length,
-      blocked: inside.filter((child) => status[child.id] === 'blocked').length,
-      outside: 0,
-    }
+    groups[node.id] = statsOf(doc.nodes.filter((child) => child.parentId === node.id && status[child.id]).map((child) => child.id))
   }
 
-  return { status, flow: {}, leverage: {}, upstream: {}, rarity: {}, groups, snoozed: {}, pulls: {} }
+  const attention: Record<string, true> = {}
+
+  for (const [id, data] of tasks)
+    if (data.who === 'you' && status[id] !== undefined && !['done', 'blocked', 'deferred'].includes(status[id])) attention[id] = true
+
+  return {
+    status,
+    flow: {},
+    leverage: {},
+    upstream: {},
+    rarity: {},
+    groups,
+    canvas: statsOf(Object.keys(status)),
+    snoozed: {},
+    attention,
+    pulls: {},
+  }
 }

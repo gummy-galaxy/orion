@@ -1,10 +1,11 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local getItem = require("@root/graph/getItem")
-local getLabel = require("@root/graph/getLabel")
 local getRequired = require("@root/cli/getRequired")
+local getStringField = require("@root/getStringField")
 local isWork = require("@root/graph/isWork")
 local linkItems = require("@root/graph/linkItems")
 local requestedRevision = require("@root/cli/requestedRevision")
@@ -29,7 +30,7 @@ local function writeJson(
 	local links: json.Array = {}
 
 	for _, id in ids do
-		table.insert(items, json.object({ id = id, label = getLabel(getItem(doc, id)) }))
+		table.insert(items, json.object({ id = id, label = getStringField(getItem(doc, id).data.label) }))
 	end
 
 	for index = 1, #ids - 1 do
@@ -88,14 +89,19 @@ end
 
 return table.freeze({
 	help = "Link each adjacent pair of items",
+	mcp = {},
 	define = function(parser: cli.Parser)
-		parser:add("from", "positional", { help = "The item that has to happen first" })
-		parser:add("to", "positional", { help = "The item that waits on it" })
+		addArgument(parser, "from", "positional", { help = "The item that has to happen first", type = "id" })
+		addArgument(parser, "to", "positional", { help = "The item that waits on it", type = "id" })
 		parser:add("next", "variadic", { help = "Further items in the chain" })
 		parser:add("related", "flag", { help = "Link without blocking" })
 		parser:add("label", "option", { help = "What the link carries, such as HTTP (empty to clear)" })
 		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
-		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
+		addArgument(parser, "if-revision", "option", {
+			help = "Write only if the document has this revision",
+			type = "integer",
+			minimum = 0,
+		})
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 

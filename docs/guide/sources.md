@@ -27,7 +27,7 @@ orion ingest
 
 Ingest files new cards in an **Unsorted** group, updates matching cards in place, and links Jira or GitHub issues mentioned by pull requests. Cards a source stops returning are left alone. Move new cards into the groups they belong to.
 
-Ingest also refreshes every card with a pull request: merged ones are marked done, closed ones deferred, and each card records whose move it is from drafts and reviews. `orion server start` runs this refresh shortly after it starts and every 15 minutes. In between, it checks your GitHub notifications every minute, which open pull requests changed every two minutes, and pending checks every 30 seconds, and refetches only what changed. The app asks for a check when you return to its window. Click the sync status in the toolbar to refresh everything now.
+Ingest also refreshes every card with a pull request: merged ones are marked done, closed ones deferred, and each card records whose move it is from drafts and reviews. `orion server start` runs this refresh shortly after it starts and every 15 minutes. In between, it checks your GitHub notifications every minute, which open pull requests changed every two minutes, and pending checks every 30 seconds, and refetches only what changed. The cards you're looking at, in the open group or the selection along with the cards blocking them, are checked for changes every 30 seconds instead. The app asks for a check when you return to its window. Click the sync status in the toolbar to refresh everything now.
 
 Use `--source <id>` to run one source, and `--json` for a machine-readable report.
 
@@ -45,6 +45,6 @@ To add cards for many refs at once, pass them to `orion card import`, or pipe on
 
 ## Organize what came in
 
-`orion suggestion find` proposes groups for ungrouped cards by following links, Jira epics, shared branches, and refs. Add `--agent codex` or `--agent claude` to have that agent name the groups and split them by outcome; its CLI must already be signed in.
+`orion suggestion find` proposes groups for ungrouped cards by following links, Jira epics, shared branches, and refs. To have an agent name the groups and split them by outcome, pass its command as a JSON array with `--command`, such as `--command '["claude","-p","--output-format","json"]'`. Orion sends the cards as a prompt on stdin and reads the groups from the JSON it prints. The agent's CLI must already be signed in, and if it fails or replies with no usable groups, Orion keeps the groups it found itself.
 
 Review with `orion suggestion list`, then `orion suggestion apply` or `orion suggestion dismiss` by id, or `--all`.

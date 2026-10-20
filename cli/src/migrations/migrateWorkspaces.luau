@@ -1,11 +1,12 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
-local net = require("@std/net")
 local path = require("@std/path")
 local process = require("@std/process")
 
 local fileNames = require("@root/fileNames")
-local isProcessAlive = require("@root/server/isProcessAlive")
+local findOtherServer = require("@root/server/findOtherServer")
+
+type Server = findOtherServer.Server
 
 -- Canvases were called workspaces before 0.1.0, and their list and folders were named for it.
 local LEGACY_LIST = "workspaces.json"
@@ -14,34 +15,9 @@ local LEGACY_BACKUP = "workspaces.backup.json"
 local CANVAS_FOLDER = "canvases"
 
 export type Options = {
-	-- Returns the pid of an older `orion server start` still serving the data folder.
-	findLegacyServer: ((root: string) -> number?)?,
+	-- Returns the `orion server start` from another build still serving the data folder.
+	findOtherServer: ((root: string) -> Server?)?,
 }
-
-local function findLegacyServer(root: string): number?
-	local file = path.join(root, fileNames.runtime)
-
-	if not fs.exists(file) then
-		return nil
-	end
-
-	local succeeded, record = pcall(function()
-		return json.asObject(json.deserialize(fs.readFileToString(file)) :: json.Value)
-	end)
-	local pid = if succeeded and record then record.pid else nil
-	local url = if succeeded and record then record.url else nil
-
-	if type(pid) ~= "number" or type(url) ~= "string" or not isProcessAlive(pid) then
-		return nil
-	end
-
-	-- Only an older server answers on the old route; anything else holding the pid is a stale record.
-	local responded, response = pcall(function()
-		return net.request(`{url}/api/workspaces`)
-	end)
-
-	return if responded and response.status == 200 then pid else nil
-end
 
 -- Another process migrating at the same time may get there first, which counts as done.
 local function moveOnce(from: string, to: string)
@@ -108,8 +84,8 @@ end
 	Moves a data folder from the workspace layout to the canvas one: `workspaces.json` becomes `canvases.json`,
 	and `workspaces/<name>/` becomes `canvases/<name>/`. Folders move whole, so each keeps its data and backups,
 	and the old list stays beside the new one as `workspaces.backup.json`. Each step checks what's left, so a run
-	that stopped partway, or one racing another process, finishes the move. It refuses while an older Orion is
-	still serving the folder, since that server would keep writing to the old paths. Returns whether it moved
+	that stopped partway, or one racing another process, finishes the move. It refuses while another build of Orion
+	is still serving the folder, since that server would keep writing to the old paths. Returns whether it moved
 	anything.
 ]]
 local function migrateWorkspaces(root: string, options: Options?): boolean
@@ -122,12 +98,15 @@ local function migrateWorkspaces(root: string, options: Options?): boolean
 		return false
 	end
 
-	local find = if options and options.findLegacyServer then options.findLegacyServer else findLegacyServer
-	local pid = find(root)
-	assert(
-		pid == nil,
-		`an older Orion is serving {root} (pid {pid}); quit it so Orion can move this data folder to canvases`
-	)
+	local find = if options and options.findOtherServer then options.findOtherServer else findOtherServer
+	local server = find(root)
+	if server then
+		local build = if server.version then ` {server.version}` else ""
+		error(
+			`another Orion{build} is serving {root} (pid {server.pid}); quit it so Orion can move this data folder to canvases`,
+			0
+		)
+	end
 
 	if hasList then
 		writeCanvasList(root, legacyList)

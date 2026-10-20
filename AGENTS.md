@@ -1,6 +1,6 @@
 # Orion agent guide
 
-Orion is a canvas of work items, notes, and groups linked by dependencies. Use the `orion` CLI to read and change it. Never edit `orion.json` directly: the Luau CLI owns the data and its lock. The app talks to `orion server start` over HTTP and WebSocket and picks up every change while it's open.
+Orion is a canvas of work items, notes, and groups linked by dependencies. Use the `orion` CLI to read and change it. Never edit a canvas's files directly: the Luau CLI owns the data and its lock. The app talks to `orion server start` over HTTP and WebSocket and picks up every change while it's open.
 
 [The charter](docs/development/charter.md) sets Orion's direction: its principles, what it won't do, and the roadmap. Check new work against it, and call out a change that conflicts with it.
 
@@ -13,6 +13,7 @@ The guides below hold the rest of the rules, one topic per file, so changes to d
 - @agents/canvas.md: reading and changing the canvas with the CLI, and what the person is looking at.
 - @agents/code-style.md: naming, components, and logging.
 - @agents/desktop-build.md: building the desktop app and installing it for someone to try.
+- @agents/dev-data.md: the scratch data folder dev servers use, and keeping branch builds off the real one.
 - @agents/docs.md: the docs site and its generated reference.
 - @agents/issues.md: filing and writing issues, and tracking their progress.
 - @agents/luau-style.md: Luau modules and spacing.

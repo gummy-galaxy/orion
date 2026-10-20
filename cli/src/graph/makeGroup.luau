@@ -1,12 +1,11 @@
 local json = require("@std/json")
 
+local createId = require("@root/graph/createId")
 local findItem = require("@root/graph/findItem")
+local geometry = require("@root/geometry")
 local getItem = require("@root/graph/getItem")
 local getSize = require("@root/graph/getSize")
-local getUniqueId = require("@root/graph/getUniqueId")
 local markForRefit = require("@root/graph/markForRefit")
-local sizes = require("@root/graph/sizes")
-local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -39,14 +38,14 @@ local function makeGroup(doc: Doc, label: string, ids: { string }, groupId: stri
 		maximumY = math.max(maximumY, member.position.y + height)
 	end
 
-	local origin = { x = minimumX - sizes.GROUP_PADDING, y = minimumY - sizes.GROUP_HEADER_HEIGHT }
+	local origin = { x = minimumX - geometry.GROUP_PADDING, y = minimumY - geometry.GROUP_HEADER_HEIGHT }
 	local group: Item = {
-		id = groupId or getUniqueId(doc, slugify(label)),
+		id = groupId or createId(),
 		type = "cluster",
 		position = origin,
 		parentId = parent,
-		width = maximumX - minimumX + sizes.GROUP_PADDING * 2,
-		height = maximumY - minimumY + sizes.GROUP_HEADER_HEIGHT + sizes.GROUP_PADDING,
+		width = maximumX - minimumX + geometry.GROUP_PADDING * 2,
+		height = maximumY - minimumY + geometry.GROUP_HEADER_HEIGHT + geometry.GROUP_PADDING,
 		data = json.object({ kind = "cluster", label = label }),
 	}
 

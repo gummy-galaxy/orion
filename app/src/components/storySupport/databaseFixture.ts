@@ -1,14 +1,5 @@
-import {
-  GROUP_HEADER_HEIGHT,
-  GROUP_PADDING,
-  normalize,
-  type AppNode,
-  type ClusterNode,
-  type Link,
-  type SourceRef,
-  type TaskData,
-  type TaskNode,
-} from '../../model'
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING } from '../../geometry'
+import { normalize, type AppNode, type ClusterNode, type Link, type SourceRef, type TaskData, type TaskNode } from '../../model'
 import type { Saved } from '../../persist'
 import { skinOf } from '../../skins'
 

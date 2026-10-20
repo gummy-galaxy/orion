@@ -1,9 +1,11 @@
 local cli = require("@batteries/cli")
+local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local createSource = require("@root/sources/createSource")
 local parseCommaList = require("@root/cli/parseCommaList")
 local runTransaction = require("@root/store/runTransaction")
+local writeResult = require("@root/cli/writeResult")
 
 type Context = context.Context
 
@@ -72,6 +74,7 @@ end
 
 return table.freeze({
 	help = "Add a GitHub, Jira, or hop source",
+	mcp = { skip = "configures a source with adapter-specific settings, so setup stays in the CLI" },
 	define = function(parser: cli.Parser)
 		for _, kind in KIND_ORDER do
 			local kindParser = parser:subcommand(kind, { help = KINDS[kind].help })
@@ -94,14 +97,14 @@ return table.freeze({
 		end
 
 		local source = createSource(kind, readValues(kind, kindParser))
-		runTransaction(options.dir, function(doc)
-			for _, existing in doc.settings.sources do
+		local doc = runTransaction(options.dir, function(current)
+			for _, existing in current.settings.sources do
 				assert(existing.id ~= source.id, `source id "{source.id}" already exists`)
 			end
 
-			table.insert(doc.settings.sources, source)
+			table.insert(current.settings.sources, source)
 		end)
 
-		options.write(`Added source {source.id}`)
+		writeResult(options, json.object({ revision = doc.revision, id = source.id }), `Added source {source.id}`)
 	end,
 })

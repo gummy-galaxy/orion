@@ -11,10 +11,10 @@ local function parseCommand(value: string): { string }
 		local lower = part:lower()
 
 		for _, secret in { "--token", "--password", "--secret", "--api-key", "--auth" } do
-			assert(not lower:find(secret, 1, true), "do not store credentials in source commands")
+			assert(not lower:find(secret, 1, true), "do not put credentials in --command")
 		end
 
-		assert(not lower:match("https?://[^/]*@"), "do not store credentials in source commands")
+		assert(not lower:match("https?://[^/]*@"), "do not put credentials in --command")
 		table.insert(result, part)
 	end
 

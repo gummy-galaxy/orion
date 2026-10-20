@@ -1,9 +1,6 @@
+import { GAP, GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import ELK from 'elkjs/lib/elk.bundled.js'
 import {
-  GROUP_HEADER_HEIGHT,
-  GROUP_PADDING,
-  TASK_HEIGHT,
-  TASK_WIDTH,
   absolutePosition,
   ancestors,
   byId,
@@ -32,11 +29,8 @@ type Box = Point & Size
 /** A link between two laid-out boxes, with the label it's drawn with, if any. */
 type Edge = [string, string, string?]
 
-/** Space between neighbors inside groups and at the top level. */
-export const GAP = { inner: { x: 56, y: 24 }, top: { x: 120, y: 72 } }
-
-const INNER_GAP: Gap = { node: GAP.inner.y, layer: GAP.inner.x, component: 32 }
-const TOP_GAP: Gap = { node: GAP.top.y, layer: GAP.top.x, component: 96 }
+const INNER_GAP: Gap = { node: GAP.inner.y, layer: GAP.inner.x, component: GAP.inner.component }
+const TOP_GAP: Gap = { node: GAP.top.y, layer: GAP.top.x, component: GAP.top.component }
 
 const elkOptions = (gap: Gap) => ({
   'elk.algorithm': 'layered',
@@ -566,11 +560,17 @@ export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { 
   return pruneEmptied(nodes, normalize(next, cardSize))
 }
 
-/** Gap between a moved group and the siblings it lands beside, matching `orion node move` in the CLI. */
-const ITEM_GAP = 48
-
-/** The first spot at or below `preferred` that no sibling overlaps, so a moved group keeps its place when it's free. */
-function freeSpotBelow(siblings: AppNode[], preferred: { x: number; y: number }, size: { width: number; height: number }, cardSize: CardSize) {
+/**
+ * The first spot at or below `preferred` that no sibling overlaps, `gap` below any in the way, so a moved group keeps its
+ * place when it's free.
+ */
+function freeSpotBelow(
+  siblings: AppNode[],
+  preferred: { x: number; y: number },
+  size: { width: number; height: number },
+  gap: number,
+  cardSize: CardSize,
+) {
   const spot = { ...preferred }
 
   const clashes = (sibling: AppNode) => {
@@ -587,7 +587,7 @@ function freeSpotBelow(siblings: AppNode[], preferred: { x: number; y: number },
   let clash = siblings.find(clashes)
 
   while (clash) {
-    spot.y = clash.position.y + sizeOf(clash, cardSize).height + ITEM_GAP
+    spot.y = clash.position.y + sizeOf(clash, cardSize).height + gap
     clash = siblings.find(clashes)
   }
 
@@ -624,7 +624,7 @@ export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize 
   if (!landed) return lifted
 
   const siblings = lifted.filter((node) => node.parentId === landed.parentId && node.id !== id)
-  const position = freeSpotBelow(siblings, landed.position, sizeOf(landed, cardSize), cardSize)
+  const position = freeSpotBelow(siblings, landed.position, sizeOf(landed, cardSize), (grandparent ? GAP.inner : GAP.top).component, cardSize)
 
   return normalize(
     lifted.map((node) => (node.id === id ? { ...node, position } : node)),

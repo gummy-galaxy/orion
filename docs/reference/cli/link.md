@@ -39,6 +39,7 @@ orion link remove [from] [to] [options]
 | -------- | ----------------------------------------------------------------------------------------- |
 | `[from]` | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
 | `[to]`   | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `--json` | Print JSON                                                                                |
 
 ## orion link insert
 

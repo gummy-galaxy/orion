@@ -20,13 +20,21 @@ export type Theme = {
   error?: string
   /** Problems that did not stop a shareable theme, such as tokens it does not name. */
   notes?: string[]
+  /** A built-in theme that still works but is slated for removal. Settings tags it. */
+  deprecated?: boolean
 }
 
-/** Each built-in theme's colors live in themes/<id>.css. The first one is the default and needs no attribute. */
+/**
+ * Each built-in theme's colors live in themes/<id>.css. The first one is the default, for anyone who hasn't picked a
+ * theme or whose pick is gone.
+ */
 export const THEMES: readonly Theme[] = [
-  { id: 'classic', label: 'Classic', schemes: ['light', 'dark'] },
   { id: 'vibrant', label: 'Vibrant', schemes: ['dark'] },
+  { id: 'classic', label: 'Classic', schemes: ['light', 'dark'], deprecated: true },
 ]
+
+/** Classic's colors sit on :root, under every other theme and theme file, so it needs no attribute. */
+const BASE_THEME = 'classic'
 
 export const COLOR_MODES: readonly ColorMode[] = ['light', 'dark', 'system']
 
@@ -58,7 +66,7 @@ export type Appearance = {
   companion: boolean
 }
 
-// index.html reads these keys before the first paint, so keep them in step.
+// public/appearance.js reads these keys before the first paint, so keep them in step.
 const THEME_KEY = 'orion:theme'
 const SKIN_KEY = 'orion:skin'
 const COLOR_MODE_KEY = 'orion:color-mode'
@@ -84,7 +92,7 @@ export function readAppearance(): Appearance {
 
     return {
       // Kept as saved, even when its file is gone; applyAppearance falls back to the default.
-      theme: localStorage.getItem(THEME_KEY) ?? THEMES[0].id,
+      theme: localStorage.getItem(THEME_KEY) || THEMES[0].id,
       skin: skinOf(localStorage.getItem(SKIN_KEY) ?? '').id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
       statusColors: STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
@@ -111,7 +119,7 @@ export function applyAppearance(appearance: Appearance, root = document.document
   const theme = themeOf(appearance.theme, themes)
 
   // A shareable theme sets its values on the root instead, so it needs no attribute.
-  if (theme.id === THEMES[0].id || theme.values) delete root.dataset.theme
+  if (theme.id === BASE_THEME || theme.values) delete root.dataset.theme
   else root.dataset.theme = theme.id
 
   if (appearance.skin === SKINS[0].id) delete root.dataset.skin

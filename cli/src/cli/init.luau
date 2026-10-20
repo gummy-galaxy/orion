@@ -8,12 +8,13 @@ local card = require("@root/cli/card")
 local ci = require("@root/cli/ci")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
+local definitions = require("@root/cli/definitions")
 local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local formatAllHelp = require("@root/cli/formatAllHelp")
+local formatFailure = require("@root/cli/formatFailure")
 local getActiveWorkspace = require("@root/store/getActiveWorkspace")
 local getDataRoot = require("@root/store/getDataRoot")
-local getErrorText = require("@root/getErrorText")
 local getVersion = require("@root/getVersion")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local group = require("@root/cli/group")
@@ -33,7 +34,6 @@ local serializeCommands = require("@root/cli/serializeCommands")
 local server = require("@root/cli/server")
 local source = require("@root/cli/source")
 local suggestion = require("@root/cli/suggestion")
-local sync = require("@root/cli/sync")
 local theme = require("@root/cli/theme")
 local types = require("@root/types")
 
@@ -75,7 +75,6 @@ local COMMANDS: { [string]: Command } = {
 	server = server,
 	source = source,
 	suggestion = suggestion,
-	sync = sync,
 	theme = theme,
 }
 
@@ -89,7 +88,6 @@ local COMMAND_ORDER = {
 	"ref",
 	"next",
 	"apply",
-	"sync",
 	"canvas",
 	"log",
 	"server",
@@ -134,6 +132,26 @@ local function addCanvasOption(parser: cli.Parser)
 	parser:add("canvas", "option", { help = "Use this canvas for this command" })
 end
 
+-- Every command takes --json. Commands that print JSON of their own define it, and the rest take it here, so a
+-- failure under it still prints JSON.
+local function addJsonFlags(parser: cli.Parser)
+	if #parser.commands > 0 then
+		for _, command in parser.commands do
+			addJsonFlags(command.parser)
+		end
+
+		return
+	end
+
+	for _, argument in parser.arguments do
+		if argument.name == "json" then
+			return
+		end
+	end
+
+	parser:add("json", "flag", { help = "Print JSON" })
+end
+
 type Parsers = {
 	root: cli.Parser,
 	commands: { [string]: cli.Parser },
@@ -158,13 +176,16 @@ local function createParsers(): Parsers
 		local module = COMMANDS[name]
 		local parser = addCommand(name, module.help)
 		commands[name] = parser
+		definitions.tools[parser] = module.mcp
 		module.define(parser)
 	end
 
 	local helpCommand = addCommand("help", "Show help for Orion or one of its commands")
+	definitions.tools[helpCommand] = { skip = "prints help text, which MCP clients already get from tools/list" }
 	helpCommand:add("command", "variadic", { help = "Command to describe, such as card list" })
 	helpCommand:add("all", "flag", { help = "Describe every command and its options in one listing" })
-	helpCommand:add("json", "flag", { help = "With --all, print the command descriptions as JSON" })
+	helpCommand:add("json", "flag", { help = "Print the command descriptions as JSON" })
+	addJsonFlags(root)
 
 	return { root = root, commands = commands }
 end
@@ -295,6 +316,11 @@ local function requestedCanvas(root: cli.Parser): string?
 	return selected
 end
 
+-- Describes every command and option, for the generated reference in docs/ and the MCP tools.
+local function describe(): describeCommands.CommandDescription
+	return describeCommands(createParsers().root, "orion", SUMMARY)
+end
+
 local function execute(args: { string }, options: Dependencies?)
 	local parsers = createParsers()
 	parsers.root:parse(args)
@@ -317,24 +343,32 @@ local function execute(args: { string }, options: Dependencies?)
 
 		if parser:has("all") then
 			assert(#topic == 0, "help --all describes every command, so leave out the command name")
+		end
 
+		if #topic == 0 then
 			if parser:has("json") then
 				deps.write(json.serialize(serializeCommands(describeCommands(parsers.root, "orion", SUMMARY)), true))
-			else
+			elseif parser:has("all") then
 				deps.write(allHelp(parsers.root))
+			else
+				deps.write(rootHelp(parsers.root))
 			end
 
 			return
 		end
 
-		if #topic == 0 then
-			deps.write(rootHelp(parsers.root))
-			return
-		end
-
 		local topicParser, topicHelp = findCommand(parsers.root, topic)
 		local name = table.concat(topic, " ")
-		deps.write(commandHelp(name, topicHelp, assert(topicParser, `unknown command: {name}`)))
+		local found = assert(topicParser, `unknown command: {name}`)
+
+		if parser:has("json") then
+			deps.write(
+				json.serialize(serializeCommands(describeCommands(found, `orion {name}`, topicHelp or "")), true)
+			)
+		else
+			deps.write(commandHelp(name, topicHelp, found))
+		end
+
 		return
 	end
 
@@ -360,6 +394,7 @@ local function execute(args: { string }, options: Dependencies?)
 		now = deps.now,
 		exit = deps.exit,
 		execute = execute,
+		describe = describe,
 	}
 
 	COMMANDS[command].run(assert(parsers.commands[command], `unknown command: {command}`), commandContext)
@@ -367,17 +402,13 @@ end
 
 -- Lute passes the program path as the first argument.
 local function run(argv: { string })
-	local succeeded, message = pcall(execute, { table.unpack(argv, 2) }, nil)
+	local args = { table.unpack(argv, 2) }
+	local succeeded, message = pcall(execute, args, nil)
 
 	if not succeeded then
-		print(`Error: {getErrorText(message)}`)
+		print(formatFailure(args, message))
 		process.exit(1)
 	end
-end
-
--- Describes every command and option, for the generated reference in docs/.
-local function describe(): describeCommands.CommandDescription
-	return describeCommands(createParsers().root, "orion", SUMMARY)
 end
 
 return table.freeze({

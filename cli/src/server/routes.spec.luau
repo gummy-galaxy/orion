@@ -68,12 +68,12 @@ local function createOperation(id: string): json.Object
 	})
 end
 
-test.case("GET returns migrated document with unknown root data", function(assert)
-	local root, router = createRouter("routes-migration")
+test.case("GET returns the document with unknown root data", function(assert)
+	local root, router = createRouter("routes-unknown-data")
 	fs.createDirectory(root, { makeParents = true })
-	fs.writeStringToFile(
-		getDocPath(root),
-		[[{"version":1,"settings":{"githubOwner":"Vocksel","theme":"dark"},"nodes":[{"id":"a","type":"task","data":{"repo":"orion","pr":12}}],"links":[],"extra":"kept"}]]
+	testing.writeCanvasText(
+		root,
+		[[{"version":2,"settings":{"githubOwner":"Vocksel","theme":"dark"},"nodes":[{"id":"a","type":"task","data":{"repo":"Vocksel/orion","refs":[{"source":"github","kind":"pull","key":"Vocksel/orion#12"}]}}],"links":[],"extra":"kept"}]]
 	)
 	local response = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
 	local settings = json.asObject(response.settings)
@@ -85,15 +85,14 @@ test.case("GET returns migrated document with unknown root data", function(asser
 	assert.eq(settings and settings.theme, "dark")
 	assert.eq(settings and settings.githubOwner, nil)
 	assert.eq(data and data.repo, "Vocksel/orion")
-	assert.eq(data and data.pr, nil)
 	assert.eq(data and #(json.asArray(data.refs) or {}), 1)
 end)
 
 test.case("GET sends derived values beside the document without storing them", function(assert)
 	local root, router = createRouter("routes-derived")
 	fs.createDirectory(root, { makeParents = true })
-	fs.writeStringToFile(
-		getDocPath(root),
+	testing.writeCanvasText(
+		root,
 		[[{"version":2,"revision":3,"settings":{"sources":[]},"nodes":[{"id":"a","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"A","itemKind":"step","status":"todo"}},{"id":"b","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","itemKind":"step","status":"todo"}}],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks"}]}]]
 	)
 	local response = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
@@ -104,7 +103,7 @@ test.case("GET sends derived values beside the document without storing them", f
 	assert.eq(status.b, "blocked")
 	assert.eq(leverage.a, 1)
 	assert.eq(response.revision, 3)
-	assert.eq(fs.readFileToString(getDocPath(root)):find("derived"), nil)
+	assert.eq(testing.readCanvasText(root):find("derived"), nil)
 end)
 
 test.case("image routes import and serve workspace-local bytes", function(assert)
@@ -382,8 +381,17 @@ test.case("static route serves files and falls back to index outside the API", f
 			return json.object({ state = "idle" })
 		end,
 	}, function() end, folder)
-	assert.eq(router.handle(createRequest("GET", "/app.js")).body, "code")
-	assert.eq(router.handle(createRequest("GET", "/deep/link")).body, "home")
+	local script = router.handle(createRequest("GET", "/app.js"))
+	assert.eq(script.body, "code")
+	assert.eq(script.headers["content-security-policy"], nil)
+	local page = createRequest("GET", "/deep/link")
+	page.headers.host = "127.0.0.1:5198"
+	local served = router.handle(page)
+	assert.eq(served.body, "home")
+	local policy = served.headers["content-security-policy"]
+	assert.neq(policy:find("script-src 'self';", 1, true), nil)
+	assert.neq(policy:find("ws://127.0.0.1:5198", 1, true), nil)
+	assert.neq(policy:find("frame-ancestors 'none'", 1, true), nil)
 	assert.eq(router.handle(createRequest("GET", "/api/unknown")).status, 404)
 end)
 

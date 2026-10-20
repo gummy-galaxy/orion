@@ -12,4 +12,4 @@ orion help [options] [command...]
 | -------------- | ----------------------------------------------------- |
 | `[command...]` | Command to describe, such as card list                |
 | `--all`        | Describe every command and its options in one listing |
-| `--json`       | With --all, print the command descriptions as JSON    |
+| `--json`       | Print the command descriptions as JSON                |

@@ -1,9 +1,9 @@
 .card.skin-plain {
   padding: var(--space-3-5) var(--space-5);
-  border: var(--border-width-default) solid var(--line);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-xs);
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--surface-background);
+  color: var(--text-primary);
   box-shadow: none;
   display: block;
   font-family: var(--font-ui);
@@ -12,14 +12,14 @@
 
 .card.skin-plain:is(.st-ready, .st-active, .st-review, .st-blocked, .st-done, .st-deferred),
 .card.skin-plain:is(.tr-up, .tr-down, .tr-related, .attn) {
-  border-color: var(--line);
-  background: var(--surface);
+  border-color: var(--border-default);
+  background: var(--surface-background);
   box-shadow: none;
 }
 
 .card.skin-plain:is(.st-blocked, .st-done, .st-deferred) {
-  background: var(--bg);
-  color: var(--muted);
+  background: var(--canvas-background);
+  color: var(--text-muted);
 }
 
 .card.skin-plain.placeholder {
@@ -27,8 +27,8 @@
 }
 
 .card.skin-plain.note {
-  border-color: var(--line);
-  background: color-mix(in srgb, var(--note) 35%, var(--surface));
+  border-color: var(--border-default);
+  background: color-mix(in srgb, var(--note-background) 35%, var(--surface-background));
 }
 
 .card.skin-plain .plain-title,
@@ -55,7 +55,7 @@
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--text-size-nano);
   line-height: var(--line-height-note);
 }

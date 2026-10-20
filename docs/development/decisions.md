@@ -120,6 +120,16 @@ A group with nothing inside stays on the canvas, at the size of one card, with a
 
 2026-10-12 · [#304](https://github.com/vocksel/orion/issues/304)
 
+## Appearance
+
+### Vibrant and Trading Card are the defaults
+
+New installs get the Vibrant theme and Trading cards, and so does anyone whose saved theme or skin is empty or unknown. A choice someone already made stays. Every other built-in theme and skin, Classic and Plain, is deprecated: Settings tags it, it keeps working for now, and it will be removed later. Pull request screenshots and recordings pin Vibrant and Trading cards on both sides, so captures show the look people get.
+
+**Why:** Vibrant and Trading cards carry Orion's visual direction, and each extra built-in look is one more that every visual change has to be designed, checked, and captured in. One default lets that work target one look.
+
+2026-10-18 · [#532](https://github.com/vocksel/orion/pull/532)
+
 ## Canvas and input
 
 ### Scrolling pans, for mouse and trackpad alike
@@ -187,6 +197,14 @@ Hovering a card lifts that card alone: it grows slightly from the middle of its 
 **Why:** tracing on every hover restyled the whole canvas on each pointer move and made hover heavy. Scaling from the title keeps the title readable.
 
 2026-10-12 · [#333](https://github.com/vocksel/orion/issues/333)
+
+### Details live in a panel beside the canvas
+
+What's selected shows in a fixed panel on the right of the window, not in an overlay on the canvas. With nothing selected, the panel shows the open group, or the canvas at the top level. Focus view puts the focused card's details there too. The panel can be hidden or dragged to a new width, and Orion remembers both. Renaming or editing something brings a hidden panel back.
+
+**Why:** an overlay that came and went with each click flashed in and out and covered cards. A panel that stays put never hides the canvas, and selecting doesn't resize it.
+
+2026-10-19
 
 ## Celebration and triage
 
@@ -306,25 +324,53 @@ Commands name the thing they act on first, then the action: `orion node remove`,
 
 2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146), [#110](https://github.com/vocksel/orion/issues/110), [#55](https://github.com/vocksel/orion/issues/55), [#109](https://github.com/vocksel/orion/issues/109)
 
+### MCP tools come from the CLI's commands
+
+Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`, such as `orion_card_add`, with a field for each option in camelCase. Top-level commands keep one word, such as `orion_next`. A command declares its tool where it's defined: its annotations, the options the tool leaves out and why, or why MCP leaves the command out. An option's value type, such as an enum or an integer, sits on the line that defines it, and the input schema comes from it. A tool's description is the command's help unless the command gives an agent-facing one, which stays rare.
+
+**Why:** agents learn one vocabulary, and a new command or option can't leave MCP behind. A tool that switches between commands, as `orion_inspect` did, can't say which arguments go with which.
+
+2026-10-18 · [#415](https://github.com/vocksel/orion/issues/415), [#146](https://github.com/vocksel/orion/issues/146)
+
 ### Data folders move to a new layout on their own
 
-When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and waits while an older Orion is still serving the folder.
+When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and refuses while another build of Orion is still serving the folder.
 
 These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
 
-**Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases.
+Moves that would have to guess are the exception. Upgrading a version 1 data file meant guessing the GitHub owner of every short repository name, so Orion refuses a version 1 file instead, with a message saying how to upgrade it with an older build.
 
-2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110)
+**Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases. A guessed move writes wrong data, which is worse than asking.
+
+2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110), [#471](https://github.com/vocksel/orion/issues/471)
+
+### Development stays off the real data folder
+
+The app's dev server serves a scratch data folder seeded from a fixture, and tests, Storybook, and perf runs never start a server on the real one. A developer opts into real data with `ORION_REAL_DATA=1`.
+
+**Why:** a CLI built from a branch moves the data it touches to that branch's layout, and the installed app can't read the result. A branch build serving the real folder once stranded every canvas that way, and a migration's refusal under a running server can't help when the app is closed.
+
+2026-10-18
+
+## Roadmap
+
+### Spikes open phase 2, and an exploration track runs alongside it
+
+Phase 2 starts by prototyping its riskiest bets, placements, database views, and agent sessions on cards, before building them for real. Alongside it, an exploration track prototypes ideas from later phases: selection and layout, a home page, ink, ambience, and script cards. Each spike is time-boxed, ends in something to try, and closes with a verdict that feeds the roadmap. Spikes don't merge.
+
+**Why:** the filed ideas pull Orion in many directions, and trying the options by hand beats choosing between them from issue text. Opening phase 2 with its own spikes keeps the data model first, since placements change what selecting and clustering mean. Running the rest alongside, rather than as a phase of its own, gets phase 2 started sooner. Script cards that agents write give them an escape hatch for freeform logic, and what they write shows which features deserve to be first-class.
+
+2026-10-18 · [#122](https://github.com/vocksel/orion/issues/122), [#102](https://github.com/vocksel/orion/issues/102), [#293](https://github.com/vocksel/orion/issues/293), [#456](https://github.com/vocksel/orion/issues/456), [#227](https://github.com/vocksel/orion/issues/227)
 
 ## Architecture
 
 ### Files first, with a SQLite index
 
-A canvas lives as files that can be stored in a repository, like an Obsidian vault. SQLite does the heavy lifting as an index. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
+A workspace is a folder of files that can live anywhere, including a repository, and opening the folder opens the workspace, like an Obsidian vault. It holds its canvases, the cards and links they place, its sources, and its themes. Cards and links belong to the workspace rather than to one canvas, so a card can appear on several canvases. SQLite does the heavy lifting as an index that can be rebuilt from the files. The index lives outside the folder with the rest of a machine's local state, such as focus and backups, so nothing in the folder needs ignoring. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
 
-**Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast.
+**Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast. A canvas can't be the vault once a card appears in more than one place, since the card would have to live in one canvas's folder. This replaced storing each canvas as its own vault (2026-10-08), which came before a workspace could hold several canvases.
 
-2026-10-08, 2026-10-11 · [#121](https://github.com/vocksel/orion/issues/121)
+2026-10-08, 2026-10-11, 2026-10-19 · [#121](https://github.com/vocksel/orion/issues/121), [#122](https://github.com/vocksel/orion/issues/122)
 
 ### Built for a thousand cards and more
 
@@ -360,11 +406,11 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 ### Ingest is the one command that pulls from outside
 
-`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. `orion sync` stays for one release as a deprecated way to run only the GitHub refresh, and `orion server start`'s background loop keeps running only the refresh.
+`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. A GitHub source files your new pull requests in Unsorted. `orion server start`'s background loop runs only the refresh.
 
-**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks.
+**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks. This replaced keeping `orion sync`, and its `--discover` flag for filing pull requests in an Inbox group, as a deprecated alias for one release. Before 0.1.0, old forms go with no alias.
 
-2026-10-12 · [#55](https://github.com/vocksel/orion/issues/55)
+2026-10-12, 2026-10-18 · [#55](https://github.com/vocksel/orion/issues/55), [#469](https://github.com/vocksel/orion/issues/469)
 
 ### The background refresh fetches what changed
 
@@ -373,6 +419,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 **Why:** a full refresh costs what's on the canvas, and GitHub ends a query after about 10 seconds. Notifications cover other people's activity for free, since an unchanged poll answers 304. They never include the viewer's own or agents' activity, which the `updatedAt` sweep catches. Neither reports a finished check run or a change in mergeability, so checks get their own short timer and mergeability waits for the full pass. Startup runs a full pass anyway, so persisting poll state would add writes for nothing.
 
 2026-10-18 · [#366](https://github.com/vocksel/orion/issues/366)
+
+### Cards in view refresh sooner
+
+The background refresh sweeps `updatedAt` every 30 seconds, instead of every two minutes, for one set of cards that refresh sooner. The cards in view feed it: the open group and everything inside it, or the selection when no group is open, plus the cards one link away that block them. The server reads them from the focus report the app already sends. Watched cards ([#232](https://github.com/vocksel/orion/issues/232)) join the same set rather than adding a cadence of their own. Pending checks stay at 30 seconds and the full pass at 15 minutes for every card.
+
+**Why:** what someone is looking at matters most, and a sweep of a handful of cards costs one small query. Speeding up only the sweep keeps the rest of the canvas on the cadences GitHub's limits allow.
+
+2026-10-18 · [#450](https://github.com/vocksel/orion/issues/450)
 
 ### Adapters are Lute packages
 

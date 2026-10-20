@@ -11,6 +11,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Dissolve groups, keeping their items in place",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		addBatchOptions(parser, "Group ids or selectors")
 	end,

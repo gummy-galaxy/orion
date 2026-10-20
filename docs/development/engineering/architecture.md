@@ -29,9 +29,13 @@ A file watcher checks the data folder. When a canvas changes, the server sends `
 
 Any route that doesn't match returns a JSON 404, so a typo in the app's API calls fails loudly instead of returning the static page.
 
+The API is internal to the app, and the server refuses anything else a browser sends it ([#468](https://github.com/vocksel/orion/issues/468)). A request's `Host`, and its `Origin` when it has one, must name the server's own address or the app's dev server, which Vite passes as `--dev-port`. That stops another site from posting to the API or reading it through DNS rebinding. The built app is served with a content security policy, since the desktop shell sets none.
+
 ## The app
 
 The app is a React Flow canvas. Its state lives in Jotai atoms, and each card reads only the values it shows through its own selector, so an edit redraws the cards it touches and not the whole canvas ([#124](https://github.com/vocksel/orion/pull/124)). The app talks to the server over HTTP and the WebSocket. If the CLI binary is missing, the app falls back to browser storage, so it still opens for development without the CLI.
+
+The app draws cards and groups at sizes and spacing it imports from `app/src/geometry.ts`, which `lute run geometry` generates from the CLI's `cli/src/geometry.luau`, so cards the CLI places sit where the app's layout would put them ([#457](https://github.com/vocksel/orion/issues/457)).
 
 Components have their own stories in Storybook ([#128](https://github.com/vocksel/orion/pull/128)). The perf harness has a story of its own that seeds a generated canvas and drives it. See [performance](/development/engineering/performance).
 
@@ -47,7 +51,7 @@ Three details follow from that design:
 
 ## The agent surface
 
-The CLI binary also serves an MCP server. `orion mcp start` speaks MCP over stdio, with no Node runtime, so a client can launch the binary directly, including the copy bundled in the desktop app ([#134](https://github.com/vocksel/orion/pull/134)). Each tool checks its arguments and then runs the matching CLI command in the same process. The CLI stays the one implementation of Orion's behavior.
+The CLI binary also serves an MCP server. `orion mcp start` speaks MCP over stdio, with no Node runtime, so a client can launch the binary directly, including the copy bundled in the desktop app ([#134](https://github.com/vocksel/orion/pull/134)). The tools are built from the command table, one per command, so each one checks its arguments against its command's options and then runs that command in the same process. The CLI stays the one implementation of Orion's behavior.
 
 The MCP server is kept generic. Orion documents how to register `orion mcp start` with any client rather than shipping setup for each AI provider, as the [decisions](/development/decisions) explain. [CLI and agents](/development/engineering/cli-and-agents) covers the tools and the reference.
 

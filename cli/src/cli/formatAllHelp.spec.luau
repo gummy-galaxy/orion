@@ -12,7 +12,7 @@ local function argument(
 	help: string,
 	required: boolean?
 ): Argument
-	return { name = name, kind = kind, help = help, required = required == true, aliases = {} }
+	return { name = name, kind = kind, type = "text", help = help, required = required == true, aliases = {} }
 end
 
 local ROOT: CommandDescription = {
@@ -109,7 +109,14 @@ test.case("formatAllHelp shows argument aliases beside the label", function(asse
 				name = "orion next",
 				usage = "orion next",
 				arguments = {
-					{ name = "limit", kind = "option", help = "Most", required = false, aliases = { "n", "max" } },
+					{
+						name = "limit",
+						kind = "option",
+						type = "integer",
+						help = "Most",
+						required = false,
+						aliases = { "n", "max" },
+					},
 				},
 				commands = {},
 			},

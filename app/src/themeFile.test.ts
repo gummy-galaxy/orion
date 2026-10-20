@@ -88,7 +88,7 @@ describe('checkValue', () => {
     ['accent.subtle', 'color-mix(in srgb, #b4481f 20%, #fff)'],
     ['edge.held', 'var(--edge-hot)'],
     ['canvas.background', 'var(--surface-background)'],
-    ['canvas.background', 'var(--surface)'],
+    ['canvas.background', 'var(--surface-background)'],
     ['font.ui', "'Schibsted Grotesk', system-ui, sans-serif"],
     ['weight.bold', '700'],
     ['text.size.body', '13px'],

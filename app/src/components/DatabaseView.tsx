@@ -31,7 +31,7 @@ const PRESETS: { label: string; where: string }[] = [
 type Column = { key: SortKey; label: string }
 
 /**
- * Spike #102: the cards in the open group, or the whole canvas, as a table beside the canvas. Edits go through the
+ * Spike #102: the cards in the open group, or the whole canvas, as a table in the details panel. Edits go through the
  * canvas's own `update`, so they land in its undo history and reach `orion serve` as the same operations.
  */
 export function DatabaseView({
@@ -41,7 +41,6 @@ export function DatabaseView({
   title,
   update,
   reveal,
-  close,
 }: {
   nodes: AppNode[]
   work: Work
@@ -49,7 +48,6 @@ export function DatabaseView({
   title: string
   update: (id: string, patch: Partial<TaskData>) => void
   reveal: (id: string) => void
-  close: () => void
 }) {
   const [where, setWhere] = useState('')
   const [sort, setSort] = useState<Sort | null>(null)
@@ -100,9 +98,6 @@ export function DatabaseView({
           <strong>{title}</strong>
           <span className="db-count">{rows.length === allRows.length ? `${allRows.length} cards` : `${rows.length} of ${allRows.length} cards`}</span>
         </div>
-        <button type="button" className="side-hide" onClick={close} aria-label="Close the table" title="Close the table">
-          ×
-        </button>
       </header>
       <div className="db-filter">
         <input

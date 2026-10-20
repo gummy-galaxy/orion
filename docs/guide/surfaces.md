@@ -6,14 +6,26 @@ These are the ways people, agents, and other tools reach Orion, and what each on
 Orion hasn't had its first release. Until it does, any command, option, tool, or output shape here can be cut or renamed, and the old form goes away in the same change.
 :::
 
-| Surface                            | Who uses it        | Before 0.1.0                                                  |
-| ---------------------------------- | ------------------ | ------------------------------------------------------------- |
-| [CLI](/reference/cli/)             | People and agents  | None. Shapes are settling into a noun, then a verb.           |
-| [MCP](/reference/mcp)              | Agents             | None. Tools run CLI commands and will follow the CLI's names. |
-| `--json` output                    | Scripts and agents | None.                                                         |
-| Data files                         | Orion itself       | None.                                                         |
-| [Theme tokens](/guide/tokens)      | Theme files        | Names are a contract. Renamed tokens keep an alias.           |
-| HTTP API from `orion server start` | The Orion app only | Internal at every stage. Other tools shouldn't call it.       |
+| Surface                            | Who uses it        | Before 0.1.0                                                |
+| ---------------------------------- | ------------------ | ----------------------------------------------------------- |
+| [CLI](/reference/cli/)             | People and agents  | None. Shapes are settling into a noun, then a verb.         |
+| [MCP](/reference/mcp)              | Agents             | None. Each tool runs one CLI command and is named after it. |
+| [`--json` output](#json-output)    | Scripts and agents | None. A short list becomes stable at 0.1.0.                 |
+| Data files                         | Orion itself       | None.                                                       |
+| [Theme tokens](/guide/tokens)      | Theme files        | Names are a contract. Renamed tokens keep an alias.         |
+| HTTP API from `orion server start` | The Orion app only | Internal at every stage. Other tools shouldn't call it.     |
+
+## JSON output
+
+Every command takes `--json`. Under it:
+
+- A failure prints `{"error": {"message": …}}` and exits nonzero.
+- A write prints the `revision` it made, to pass to the next command's `--if-revision`. A command that changes one item prints `{"revision": …, "item": …}`.
+- Cards, notes, and groups each have a shape of their own, and a group prints what `orion group list` does.
+- Times use RFC 3339, such as `2026-10-17T16:46:00Z`.
+- An absent value is `null` or a missing field, never an empty string.
+
+From 0.1.0, these shapes are stable: the item shape that `card list`, `node show`, `node query`, and `next` print, the batch write envelope, `canvas check`'s list, `focus`, and `canvas list`. New fields may appear in them, and removing or renaming one is a breaking change. The rest stay unpromised.
 
 ## How the promises grow
 

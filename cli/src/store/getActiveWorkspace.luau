@@ -1,11 +1,13 @@
 local getWorkspaces = require("@root/store/getWorkspaces")
 local isValidWorkspace = require("@root/store/isValidWorkspace")
+local migrateCanvasFiles = require("@root/migrations/migrateCanvasFiles")
 local migrateWorkspaces = require("@root/migrations/migrateWorkspaces")
 
--- Every command resolves its canvas here first, so this is where an older data folder moves to the canvas layout.
--- Remove at 0.1.0 with the rest of `migrations/`.
+-- Every command resolves its canvas here first, so this is where an older data folder moves to the canvas layout
+-- and its canvases to folders of files. Remove at 0.1.0 with the rest of `migrations/`.
 local function getActiveWorkspace(root: string, requested: string?, configured: string?): string
 	migrateWorkspaces(root)
+	migrateCanvasFiles(root)
 
 	local list = getWorkspaces(root)
 	local name = requested or (if configured ~= "" then configured else nil) or list.active
