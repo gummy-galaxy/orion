@@ -1,6 +1,9 @@
+local aliasEntries = require("@root/aliases/entries")
+local aliasTypes = require("@root/aliases/types")
 local describeCommands = require("@root/cli/describeCommands")
 local mcpTypes = require("@root/cli/mcp/types")
 
+type Alias = aliasTypes.Alias
 type Argument = describeCommands.Argument
 type CommandDescription = describeCommands.CommandDescription
 type Field = mcpTypes.Field
@@ -44,7 +47,47 @@ local function getField(argument: Argument): Field
 	}
 end
 
-local function buildTool(command: CommandDescription, path: string, problems: { string }): Tool?
+-- The old tool names that still reach a command: one for each command alias whose new path starts its path.
+local function getToolAliases(words: { string }, aliases: { Alias }): { string }
+	local names: { string } = {}
+
+	for _, alias in aliases do
+		local to = string.split(alias.to, " ")
+
+		if alias.kind ~= "command" or #to > #words then
+			continue
+		end
+
+		local startsPath = true
+
+		for position, word in to do
+			startsPath = startsPath and words[position] == word
+		end
+
+		if startsPath then
+			local old = string.split(alias.from, " ")
+			table.move(words, #to + 1, #words, #old + 1, old)
+			table.insert(names, `orion_{table.concat(old, "_")}`)
+		end
+	end
+
+	return names
+end
+
+-- The old argument names a command's tool still takes, after its options were renamed.
+local function getRenamedArguments(path: string, aliases: { Alias }): { [string]: string }
+	local renamed: { [string]: string } = {}
+
+	for _, alias in aliases do
+		if alias.kind == "option" and alias.command == path then
+			renamed[toCamelCase(alias.from)] = toCamelCase(alias.to)
+		end
+	end
+
+	return renamed
+end
+
+local function buildTool(command: CommandDescription, path: string, aliases: { Alias }, problems: { string }): Tool?
 	local declaration = command.mcp
 
 	if declaration == nil then
@@ -99,16 +142,18 @@ local function buildTool(command: CommandDescription, path: string, problems: { 
 		fields = fields,
 		json = takesJson,
 		annotations = declaration.annotations,
+		aliases = getToolAliases(words, aliases),
+		renamedArguments = getRenamedArguments(path, aliases),
 	}
 end
 
-local function collectTools(command: CommandDescription, tools: { Tool }, problems: { string })
+local function collectTools(command: CommandDescription, aliases: { Alias }, tools: { Tool }, problems: { string })
 	local path = (command.name:gsub("^orion ?", ""))
 
 	if command.mcp and command.mcp.skip then
 		return
 	elseif #command.commands == 0 then
-		local tool = buildTool(command, path, problems)
+		local tool = buildTool(command, path, aliases, problems)
 
 		if tool then
 			table.insert(tools, tool)
@@ -118,18 +163,19 @@ local function collectTools(command: CommandDescription, tools: { Tool }, proble
 	end
 
 	for _, child in command.commands do
-		collectTools(child, tools, problems)
+		collectTools(child, aliases, tools, problems)
 	end
 end
 
 -- Builds a tool for every command in the table that doesn't skip MCP, in the order orion help lists them. Fails
--- when a command declares no tool or omits an option it doesn't take, so MCP can't fall behind the CLI.
-local function buildTools(root: CommandDescription): { Tool }
+-- when a command declares no tool or omits an option it doesn't take, so MCP can't fall behind the CLI. Each tool
+-- keeps the old names that aliases give it, which default to the shipped entries.
+local function buildTools(root: CommandDescription, aliases: { Alias }?): { Tool }
 	local tools: { Tool } = {}
 	local problems: { string } = {}
 
 	for _, command in root.commands do
-		collectTools(command, tools, problems)
+		collectTools(command, aliases or aliasEntries, tools, problems)
 	end
 
 	assert(#problems == 0, table.concat(problems, "\n"))

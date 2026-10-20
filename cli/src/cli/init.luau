@@ -1,6 +1,8 @@
 local cli = require("@batteries/cli")
 local process = require("@std/process")
 
+local aliasEntries = require("@root/aliases/entries")
+local aliasTypes = require("@root/aliases/types")
 local apply = require("@root/cli/apply")
 local backup = require("@root/cli/backup")
 local canvas = require("@root/cli/canvas")
@@ -13,6 +15,7 @@ local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local formatAllHelp = require("@root/cli/formatAllHelp")
 local formatFailure = require("@root/cli/formatFailure")
+local fs = require("@std/fs")
 local getActiveWorkspace = require("@root/store/getActiveWorkspace")
 local getDataRoot = require("@root/store/getDataRoot")
 local getVersion = require("@root/getVersion")
@@ -29,6 +32,7 @@ local node = require("@root/cli/node")
 local note = require("@root/cli/note")
 local orientation = require("@root/cli/orientation")
 local ref = require("@root/cli/ref")
+local resolveArguments = require("@root/aliases/resolveArguments")
 local reveal = require("@root/cli/reveal")
 local serializeCommands = require("@root/cli/serializeCommands")
 local server = require("@root/cli/server")
@@ -45,6 +49,8 @@ export type Dependencies = context.Dependencies
 type Resolved = {
 	runner: types.CommandRunner,
 	write: (string) -> (),
+	warn: (string) -> (),
+	aliases: { aliasTypes.Alias },
 	dataDir: string,
 	workspace: string?,
 	now: () -> string,
@@ -286,11 +292,23 @@ local function selectedPath(root: cli.Parser): ({ string }, cli.Parser)
 	end
 end
 
+-- Lute's io only reaches stdout, so notices go through the stderr device to keep --json output clean.
+local function writeStderr(line: string)
+	local opened, handle = pcall(fs.open, "/dev/stderr", "a")
+
+	if opened then
+		pcall(fs.write, handle, line .. "\n")
+		fs.close(handle)
+	end
+end
+
 local function dependencies(options: Dependencies?): Resolved
 	local given: Dependencies = options or {}
 	return {
 		runner = given.runner or defaultRun,
 		write = given.write or print,
+		warn = given.warn or writeStderr,
+		aliases = given.aliases or aliasEntries,
 		dataDir = given.dataDir or getDataRoot(),
 		workspace = if given.workspace == nil then process.env.ORION_CANVAS else given.workspace,
 		now = given.now or function()
@@ -323,8 +341,14 @@ end
 
 local function execute(args: { string }, options: Dependencies?)
 	local parsers = createParsers()
-	parsers.root:parse(args)
 	local deps = dependencies(options)
+	local resolved, notices = resolveArguments(args, parsers.root, deps.aliases)
+
+	for _, notice in notices do
+		deps.warn(notice)
+	end
+
+	parsers.root:parse(resolved)
 	local names, parser = selectedPath(parsers.root)
 	local command = names[1]
 

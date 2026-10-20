@@ -187,3 +187,54 @@ test.case("protocol errors use JSON-RPC error codes", function(assert)
 		nil
 	)
 end)
+
+test.case("an old tool or argument name still calls the tool, and tools/list leaves it out", function(assert)
+	local tools = buildTools(cli.describe(), {
+		{ kind = "command", from = "card new", to = "card add", added = "2026-10-19", pr = 1 },
+		{ kind = "option", command = "card add", from = "folder", to = "group", added = "2026-10-19", pr = 1 },
+	})
+	local dir = testing.directory("mcp-aliases")
+	writeDoc(dir, testing.createDoc({ testing.group("ws", "Release") }))
+	local run = runner(dir)
+
+	local listed = need(handleMessage(request(1, "tools/list"), tools, run))
+	local names: { [string]: boolean } = {}
+
+	for _, tool in need(json.asArray(need(json.asObject(listed.result)).tools)) do
+		names[need(json.asObject(tool)).name :: string] = true
+	end
+
+	assert.eq(names.orion_card_add, true)
+	assert.eq(names.orion_card_new, nil)
+
+	local response = need(
+		handleMessage(
+			request(
+				2,
+				"tools/call",
+				json.object({ name = "orion_card_new", arguments = json.object({ label = "Old", folder = "ws" }) })
+			),
+			tools,
+			run
+		)
+	)
+	local result = need(json.asObject(response.result))
+	assert.eq(result.isError, nil)
+	local item = need(json.asObject(need(json.asObject(json.deserialize(firstText(result)) :: json.Value)).item))
+	assert.eq(item.label, "Old")
+	assert.eq(item.group, "ws")
+
+	local both = need(handleMessage(
+		request(
+			3,
+			"tools/call",
+			json.object({
+				name = "orion_card_add",
+				arguments = json.object({ label = "Both", folder = "ws", group = "ws" }),
+			})
+		),
+		tools,
+		run
+	))
+	assert.strContains(firstText(need(json.asObject(both.result))), "folder is now group")
+end)
