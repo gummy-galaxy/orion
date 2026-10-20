@@ -8,6 +8,7 @@ The shortcuts on this page are the defaults. Open **Settings › Keyboard Shortc
 - However far you zoom out, cards, notes, and folded groups keep their details at a readable size.
 - The sidebar lists every group in canvas order. Click one to open it.
 - The details panel on the right shows whatever is selected: a card's inspector, a group's settings, or a link. With nothing selected, it shows the open group, or the canvas's cover and header at the top level. Its › button hides it, and ☰ in the top-right corner brings it back.
+- Drag the edge of the sidebar or the details panel to resize it. Double-click the edge to reset it.
 - Press ⌘K to search groups, cards, pull requests, and notes, then Enter to jump to a result.
 - Type `>` in search, or press ⇧⌘P, to list actions instead.
 

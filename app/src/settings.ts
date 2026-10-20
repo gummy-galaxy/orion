@@ -15,6 +15,8 @@ const SAVED = [
   'companion',
   'sidebar',
   'details',
+  'sidebar-width',
+  'details-width',
   'debug',
   'motion',
   'keybindings',

@@ -67,6 +67,7 @@ import {
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { DetailStepper } from './DetailStepper'
 import { DetailsPanel } from './DetailsPanel'
+import { ResizeHandle } from './ResizeHandle'
 import { EmptyCanvas } from './EmptyCanvas'
 import { ComponentInspector } from './ComponentInspector'
 import { CurveEdge } from './CurveEdge'
@@ -201,6 +202,10 @@ function cardAt(event: MouseEvent | TouchEvent): string | undefined {
 
 const SIDEBAR_KEY = 'orion:sidebar'
 const DETAILS_KEY = 'orion:details'
+const SIDEBAR_WIDTH_KEY = 'orion:sidebar-width'
+const DETAILS_WIDTH_KEY = 'orion:details-width'
+const SIDEBAR_WIDTH = { min: 200, max: 480 }
+const DETAILS_WIDTH = { min: 320, max: 720 }
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
 const DEFAULT_MOTION: MotionSettings = { arrows: true, glow: true, pauseWhileMoving: true }
@@ -309,6 +314,17 @@ function useAway() {
   }, [])
 
   return away
+}
+
+/** A side panel's saved width, or null for its default. */
+function readWidth(key: string) {
+  try {
+    const width = Number(localStorage.getItem(key))
+
+    return width > 0 ? width : null
+  } catch {
+    return null
+  }
 }
 
 function readFlag(key: string, fallback: boolean) {
@@ -439,6 +455,8 @@ export function Canvas() {
   useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
   const [showDetails, setShowDetails] = useState(() => readFlag(DETAILS_KEY, true))
+  const [sidebarWidth, setSidebarWidth] = useState(() => readWidth(SIDEBAR_WIDTH_KEY))
+  const [detailsWidth, setDetailsWidth] = useState(() => readWidth(DETAILS_WIDTH_KEY))
   // Renaming and editing happen in the details panel, so starting either brings a hidden panel back.
   const setEditing = useCallback((id: string | null) => {
     setEditingState(id)
@@ -3500,6 +3518,19 @@ export function Canvas() {
     writeFlag('sidebar', value)
   }
 
+  // A drag sets the width on every move and saves it once, when the drag ends.
+  const resizeSidebar = (width: number | null, done = true) => {
+    setSidebarWidth(width)
+
+    if (done) saveSettings({ 'sidebar-width': width === null ? null : String(width) })
+  }
+
+  const resizeDetails = (width: number | null, done = true) => {
+    setDetailsWidth(width)
+
+    if (done) saveSettings({ 'details-width': width === null ? null : String(width) })
+  }
+
   const toggleDetails = (value: boolean) => {
     setShowDetails(value)
     writeFlag('details', value)
@@ -3723,7 +3754,11 @@ export function Canvas() {
             newWorkspace={newWorkspace}
             openSettings={() => setSettings('appearance')}
             settingsHint={hintOf('settings') ?? ''}
+            width={sidebarWidth ?? undefined}
           />
+        )}
+        {sidebar && (
+          <ResizeHandle panel="before" label="Resize the group list" {...SIDEBAR_WIDTH} resize={resizeSidebar} reset={() => resizeSidebar(null)} />
         )}
         <div
           className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}${canvasHeader ? ' has-header' : ''}`}
@@ -4029,7 +4064,14 @@ export function Canvas() {
             />
           )}
         </div>
-        {showDetails && <DetailsPanel hide={() => toggleDetails(false)}>{details}</DetailsPanel>}
+        {showDetails && (
+          <ResizeHandle panel="after" label="Resize the details panel" {...DETAILS_WIDTH} resize={resizeDetails} reset={() => resizeDetails(null)} />
+        )}
+        {showDetails && (
+          <DetailsPanel width={detailsWidth ?? undefined} hide={() => toggleDetails(false)}>
+            {details}
+          </DetailsPanel>
+        )}
         {paletteQuery !== null && (
           <Palette
             nodes={nodes}
