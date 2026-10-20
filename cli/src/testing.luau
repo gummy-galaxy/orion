@@ -110,6 +110,12 @@ function testing.readCanvasText(dir: string): string
 	return encodeStableJson(snapshot.document)
 end
 
+-- Whether an id is a random one, as `createId` makes for new nodes and links.
+function testing.isRandomId(id: unknown): boolean
+	return type(id) == "string"
+		and id:match("^%x%x%x%x%x%x%x%x%-%x%x%x%x%-4%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$") ~= nil
+end
+
 function testing.result(succeeded: boolean, stdout: string, stderr: string?): types.CommandResult
 	return { ok = succeeded, exitCode = if succeeded then 0 else 1, stdout = stdout, stderr = stderr or "" }
 end

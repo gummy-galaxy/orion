@@ -12,8 +12,8 @@ local function getFullPath(dir: string, file: string): string
 end
 
 --[[
-	Puts a write's files in place: every file but `canvas.json` in path order, then the removals, then `canvas.json`
-	last, so its change marks a finished write. Writing a file again with the same text is harmless, so a write that
+	Puts a write's files in place: every file but `canvas.json` and `local.json` in path order, then the removals,
+	then `canvas.json`, then `local.json` last, so its change marks a finished write. Writing a file again with the same text is harmless, so a write that
 	stopped partway can be applied again from the start. Returns each written file's time in whole seconds, which
 	the index records.
 ]]
@@ -21,7 +21,7 @@ local function applyCanvasWrite(dir: string, write: CanvasWrite): { [string]: nu
 	local files: { string } = {}
 
 	for file in write.writes do
-		if file ~= fileNames.document then
+		if file ~= fileNames.document and file ~= fileNames.localState then
 			table.insert(files, file)
 		end
 	end
@@ -40,9 +40,11 @@ local function applyCanvasWrite(dir: string, write: CanvasWrite): { [string]: nu
 		end
 	end
 
-	if write.writes[fileNames.document] then
-		replaceFile(dir, fileNames.document, write.writes[fileNames.document])
-		table.insert(files, fileNames.document)
+	for _, file in { fileNames.document, fileNames.localState } do
+		if write.writes[file] then
+			replaceFile(dir, file, write.writes[file])
+			table.insert(files, file)
+		end
 	end
 
 	local stamps: { [string]: number } = {}

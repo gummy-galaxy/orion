@@ -2,12 +2,11 @@ local json = require("@std/json")
 
 local checkFields = require("@root/graph/checkFields")
 local chooseItemKind = require("@root/graph/chooseItemKind")
+local createId = require("@root/graph/createId")
 local getGroup = require("@root/graph/getGroup")
 local getNextSlot = require("@root/graph/getNextSlot")
-local getUniqueId = require("@root/graph/getUniqueId")
 local graphTypes = require("@root/graph/types")
 local setLook = require("@root/graph/setLook")
-local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type AddOptions = graphTypes.AddOptions
@@ -34,7 +33,7 @@ local function addItem(doc: Doc, label: string, options: AddOptions): Item
 	data.note = options.note
 	data.who = if options.who == "" then nil else options.who
 	local item: Item = {
-		id = getUniqueId(doc, slugify(label)),
+		id = createId(),
 		type = "task",
 		position = getNextSlot(doc, options.group),
 		parentId = options.group,

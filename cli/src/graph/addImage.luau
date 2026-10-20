@@ -1,9 +1,8 @@
 local json = require("@std/json")
 
+local createId = require("@root/graph/createId")
 local getGroup = require("@root/graph/getGroup")
 local getNextSlot = require("@root/graph/getNextSlot")
-local getUniqueId = require("@root/graph/getUniqueId")
-local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -16,7 +15,7 @@ local function addImage(doc: Doc, label: string, extension: string, workspace: s
 		getGroup(doc, group)
 	end
 
-	local id = getUniqueId(doc, `image-{slugify(label)}`)
+	local id = createId()
 	local item: Item = {
 		id = id,
 		type = "image",
