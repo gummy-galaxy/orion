@@ -34,6 +34,8 @@ orion card add [options] [label...]
 | ------------------ | ------------------------------------------------------------------------------------------------------------ |
 | `[label...]`       | What the work is                                                                                             |
 | `--group <value>`  | Group to add it to                                                                                           |
+| `--after <value>`  | Item the card follows; it lands beside it, in its group                                                      |
+| `--before <value>` | Item the card leads into; it lands beside it, in its group                                                   |
 | `--status <value>` | todo, active, review, blocked, deferred, or done                                                             |
 | `--repo <value>`   | Repository it belongs to, as owner/name (empty to clear)                                                     |
 | `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                              |

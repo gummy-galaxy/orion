@@ -36,6 +36,8 @@ local STEP_KEYS: { [string]: { [string]: boolean } } = {
 		handle = true,
 		label = true,
 		group = true,
+		after = true,
+		before = true,
 		ref = true,
 		status = true,
 		repo = true,
@@ -156,6 +158,8 @@ local function parseStep(object: json.Object): Operation
 		operation.handle = optionalHandle(object)
 		operation.label = requireString(object, "label")
 		operation.group = optionalString(object, "group")
+		operation.after = optionalString(object, "after")
+		operation.before = optionalString(object, "before")
 		operation.ref = optionalString(object, "ref")
 		operation.fields = readFields(object, CARD_FIELDS)
 	elseif name == "addNote" then

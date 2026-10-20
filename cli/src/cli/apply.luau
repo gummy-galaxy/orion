@@ -69,7 +69,7 @@ return table.freeze({
 			type = "jsonList",
 			mcp = {
 				required = true,
-				description = "Operations in order. Each has an op field, such as addCard with label, or link with from and to. Move needs group, or null for the top level.",
+				description = "Operations in order. Each has an op field, such as addCard with label, or link with from and to. New cards and notes are placed after the last operation, beside the items they link to. Move needs group, or null for the top level.",
 			},
 		})
 		parser:add("dry-run", "flag", { help = "Preview the plan without writing" })

@@ -316,13 +316,21 @@ Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`,
 
 ### Data folders move to a new layout on their own
 
-When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and waits while an older Orion is still serving the folder.
+When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and refuses while another build of Orion is still serving the folder.
 
 These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
 
 **Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases.
 
 2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110)
+
+### Development stays off the real data folder
+
+The app's dev server serves a scratch data folder seeded from a fixture, and tests, Storybook, and perf runs never start a server on the real one. A developer opts into real data with `ORION_REAL_DATA=1`.
+
+**Why:** a CLI built from a branch moves the data it touches to that branch's layout, and the installed app can't read the result. A branch build serving the real folder once stranded every canvas that way, and a migration's refusal under a running server can't help when the app is closed.
+
+2026-10-18
 
 ## Roadmap
 
@@ -338,11 +346,11 @@ Phase 2 starts by prototyping its riskiest bets, placements, database views, and
 
 ### Files first, with a SQLite index
 
-A canvas lives as files that can be stored in a repository, like an Obsidian vault. SQLite does the heavy lifting as an index. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
+A workspace is a folder of files that can live anywhere, including a repository, and opening the folder opens the workspace, like an Obsidian vault. It holds its canvases, the cards and links they place, its sources, and its themes. Cards and links belong to the workspace rather than to one canvas, so a card can appear on several canvases. SQLite does the heavy lifting as an index that can be rebuilt from the files. The index lives outside the folder with the rest of a machine's local state, such as focus and backups, so nothing in the folder needs ignoring. Agents keep simple read and write commands through the CLI, and `orion server start` keeps one `sqlite3` process open instead of starting one per request.
 
-**Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast.
+**Why:** files are portable and easy to inspect, and agents already work well with them. The index keeps large canvases fast. A canvas can't be the vault once a card appears in more than one place, since the card would have to live in one canvas's folder. This replaced storing each canvas as its own vault (2026-10-08), which came before a workspace could hold several canvases.
 
-2026-10-08, 2026-10-11 · [#121](https://github.com/vocksel/orion/issues/121)
+2026-10-08, 2026-10-11, 2026-10-19 · [#121](https://github.com/vocksel/orion/issues/121), [#122](https://github.com/vocksel/orion/issues/122)
 
 ### Built for a thousand cards and more
 

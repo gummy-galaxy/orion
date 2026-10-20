@@ -142,3 +142,33 @@ test.case("a plan file is read from its path, and a missing plan is refused", fu
 		run({ "apply" })
 	end)
 end)
+
+test.case("a plan places its new cards once their links are in, so a chain lands in a row", function(assert)
+	local dir, run = testing.createHarness("apply-place")
+	run({
+		"apply",
+		"--plan",
+		[=[[
+			{"op":"addCard","handle":"one","label":"One","group":"ws"},
+			{"op":"addCard","handle":"two","label":"Two","group":"ws"},
+			{"op":"addCard","handle":"three","label":"Three","after":"@two"},
+			{"op":"link","from":"pub","to":"@one"},
+			{"op":"link","from":"@one","to":"@two"}
+		]]=],
+	})
+	local doc = loadDoc(dir)
+	local positions = {}
+
+	-- New cards get random ids, so they're found by label.
+	for _, item in doc.nodes do
+		positions[if item.id == "pub" then "pub" else item.data.label] = item.position
+	end
+
+	assert.eq(positions.One.y, positions.pub.y)
+	assert.eq(positions.Two.y, positions.pub.y)
+	assert.eq(positions.Three.y, positions.pub.y)
+	assert.eq(positions.One.x > positions.pub.x, true)
+	assert.eq(positions.Two.x > positions.One.x, true)
+	assert.eq(positions.Three.x > positions.Two.x, true)
+	assert.eq(doc.nodes[#doc.nodes].parentId, "ws")
+end)

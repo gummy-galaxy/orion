@@ -27,6 +27,8 @@ Runs `orion card add`.
 | `label`  | string                                                                 | **Required.** What the work is                                                                                                                                                                                       |
 | `canvas` | canvas                                                                 | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                               |
 | `group`  | id                                                                     | Group to add it to                                                                                                                                                                                                   |
+| `after`  | id                                                                     | Item the card follows; it lands beside it, in its group                                                                                                                                                              |
+| `before` | id                                                                     | Item the card leads into; it lands beside it, in its group                                                                                                                                                           |
 | `status` | todo \| active \| review \| blocked \| deferred \| done                | todo, active, review, blocked, deferred, or done                                                                                                                                                                     |
 | `repo`   | string                                                                 | Repository it belongs to, as owner/name (empty to clear)                                                                                                                                                             |
 | `who`    | you \| review \| ci                                                    | Whose move: you, review, or ci (empty to clear)                                                                                                                                                                      |
@@ -372,12 +374,12 @@ Apply a plan of cards, notes, groups, and links in one call. The plan is a list 
 
 Runs `orion apply`.
 
-| Argument     | Type        | Description                                                                                                                                                 |
-| ------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `canvas`     | canvas      | Canvas name. Omit to use the canvas selected in Orion.                                                                                                      |
-| `plan`       | object list | **Required.** Operations in order. Each has an op field, such as addCard with label, or link with from and to. Move needs group, or null for the top level. |
-| `dryRun`     | boolean     | Preview the plan without writing                                                                                                                            |
-| `ifRevision` | integer     | Write only if the document has this revision                                                                                                                |
+| Argument     | Type        | Description                                                                                                                                                                                                                                         |
+| ------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `canvas`     | canvas      | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                                              |
+| `plan`       | object list | **Required.** Operations in order. Each has an op field, such as addCard with label, or link with from and to. New cards and notes are placed after the last operation, beside the items they link to. Move needs group, or null for the top level. |
+| `dryRun`     | boolean     | Preview the plan without writing                                                                                                                                                                                                                    |
+| `ifRevision` | integer     | Write only if the document has this revision                                                                                                                                                                                                        |
 
 ## orion_canvas_list
 

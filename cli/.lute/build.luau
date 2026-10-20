@@ -1,13 +1,11 @@
-local FlipbookBatteries = require("@flipbook-batteries")
 local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
 local project = require("@repo/project")
 local system = require("@std/system")
 
+local run = require("@root/run")
 local runScript = require("@root/runScript")
-
-local run = FlipbookBatteries.run
 
 local BUILD_INFO_PATH = path.join("src", "buildInfo.luau")
 -- The commit buildInfo.luau is checked in with. Builds stamp their own commit and then put this back.

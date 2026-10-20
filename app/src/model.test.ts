@@ -1,10 +1,7 @@
+import { GAP, GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { describe, expect, it } from 'vitest'
 import { reparent } from './escape'
 import {
-  GROUP_HEADER_HEIGHT,
-  GROUP_PADDING,
-  TASK_HEIGHT,
-  TASK_WIDTH,
   absolutePosition,
   byId,
   editPullRef,
@@ -268,7 +265,7 @@ describe('moveOutOfGroup', () => {
 
     expect(overlaps(landed, rectOf(after, 'blocker'))).toBe(false)
     expect(overlaps(landed, rectOf(after, 'outer'))).toBe(false)
-    expect(landed.y).toBe(spot.y + TASK_HEIGHT + 48)
+    expect(landed.y).toBe(spot.y + TASK_HEIGHT + GAP.top.component)
   })
 
   it('returns the nodes unchanged for a card, a top-level group, or a missing id', () => {

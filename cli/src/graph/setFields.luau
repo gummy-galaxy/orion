@@ -97,6 +97,8 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 		`"{id}" is an item; only groups take a cover, background, or header`
 	)
 
+	local drawn = { item.data.label, item.data.note, item.data.itemKind, item.data.shape }
+
 	if fields.label then
 		item.data.label = fields.label
 	end
@@ -145,6 +147,19 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 	end
 
 	setLook(item, fields)
+
+	-- A height the app measured no longer fits new text or a new shape, so the estimate stands in until it measures again.
+	local now = { item.data.label, item.data.note, item.data.itemKind, item.data.shape }
+
+	-- Fields can be nil, so walk them by index.
+	for i = 1, 4 do
+		if now[i] ~= drawn[i] then
+			item.width = nil
+			item.height = nil
+			break
+		end
+	end
+
 	return item
 end
 
