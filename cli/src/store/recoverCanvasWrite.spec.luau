@@ -74,7 +74,7 @@ test.case("a write killed between files comes back whole", function(assert)
 	fs.removeDirectory(blocked, { recursive = true })
 
 	assert.strContains(fs.readFileToString(path.join(dir, "nodes", "c.json")), "c after")
-	assert.strContains(fs.readFileToString(path.join(dir, "canvas.json")), '"revision": 0')
+	assert.strContains(fs.readFileToString(path.join(dir, "local.json")), '"revision": 0')
 	assert.eq(countUnfinished(dir), 1)
 
 	assert.eq(getLabels(dir), "a after,b after,c after,d new")
