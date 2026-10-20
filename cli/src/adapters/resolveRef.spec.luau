@@ -9,10 +9,9 @@ local ENTERPRISE: Source = { id = "gh-roblox", kind = "github", host = "github.e
 local JIRA: Source = {
 	id = "jira",
 	kind = "jira",
-	command = { "acli", "jira", "workitem", "search" },
 	browse = "https://jira.example.com/browse",
 }
-local HOP: Source = { id = "hop", kind = "hop", command = { "hop" } }
+local HOP: Source = { id = "hop", kind = "hop" }
 
 test.case("resolveRef returns only the ref, not an error message as a second value", function(assert)
 	assert.eq(select("#", resolveRef("jira:ABC-12", { JIRA })), 1)

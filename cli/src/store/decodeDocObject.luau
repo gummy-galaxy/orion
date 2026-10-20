@@ -117,7 +117,6 @@ local function decodeDocObject(root: json.Object): Doc
 				owners = getStrings(source.owners),
 				include = getStrings(source.include),
 				exclude = getStrings(source.exclude),
-				command = getStrings(source.command),
 				browse = getStringField(source.browse),
 			})
 		end

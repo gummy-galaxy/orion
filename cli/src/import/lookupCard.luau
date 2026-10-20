@@ -12,7 +12,14 @@ type Doc = types.Doc
 
 -- Finds the card a URL or source:key would import, without saving it: the card already tracking it, or a new card shaped the
 -- way `orion card import` shapes one. The document is left unchanged. Raises the reason when the input can't be resolved or found.
-local function lookupCard(input: string, doc: Doc, now: string, runner: CommandRunner): CardLookup
+-- `commands` holds the programs this machine runs for the canvas's sources, by source id.
+local function lookupCard(
+	input: string,
+	doc: Doc,
+	commands: { [string]: { string } },
+	now: string,
+	runner: CommandRunner
+): CardLookup
 	local entry = resolveInputs({ input }, doc.settings.sources)[1]
 	if entry.error then
 		error(entry.error, 0)
@@ -23,7 +30,7 @@ local function lookupCard(input: string, doc: Doc, now: string, runner: CommandR
 		return { status = "existing", item = existing }
 	end
 
-	lookupRecords({ entry }, { now = now, since = getSince(now), doc = doc }, runner)
+	lookupRecords({ entry }, { now = now, since = getSince(now), doc = doc, commands = commands }, runner)
 	if not entry.record then
 		error(entry.error or "not found", 0)
 	end

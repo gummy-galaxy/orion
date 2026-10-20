@@ -2,6 +2,7 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local loadDoc = require("@root/store/loadDoc")
+local setSourceCommand = require("@root/sources/setSourceCommand")
 local testing = require("@root/testing")
 local writeDoc = require("@root/store/writeDoc")
 
@@ -10,8 +11,9 @@ local NOW = "2026-10-04T00:00:00Z"
 test.case("ingest dry run reports changes without writing", function(assert)
 	local dir = testing.directory("ingest-dry-run")
 	local doc = testing.createDoc({})
-	doc.settings.sources = { { id = "jira", kind = "jira", command = { "acli", "jira", "workitem", "search" } } }
+	doc.settings.sources = { { id = "jira", kind = "jira" } }
 	writeDoc(dir, doc)
+	setSourceCommand(dir, "default", "jira", { "acli", "jira", "workitem", "search" })
 
 	local function run(args: { string }): string
 		return testing.run(dir, args, function()
