@@ -103,7 +103,7 @@ function sync.create(
 			local apply: ((types.Doc) -> githubTypes.Report)?
 
 			if want == nil then
-				apply = assert(adapter.refresh)(snapshot, command, { discover = false, now = timestamp })
+				apply = assert(adapter.refresh)(snapshot, command, { now = timestamp })
 			else
 				if sweepsSooner and not want.sweep then
 					local cards = findRefreshSooner(snapshot, readFocus(dir))

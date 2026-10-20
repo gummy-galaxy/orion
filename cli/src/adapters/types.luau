@@ -32,7 +32,7 @@ export type Record = {
 export type Context = { now: string, since: string, doc: Doc }
 -- Records found by lookupRefs, keyed by getRefKey. Refs missing from both maps were not found.
 export type LookupResult = { records: { [string]: Record }, failures: { [string]: string } }
-export type RefreshOptions = { discover: boolean, now: string }
+export type RefreshOptions = { now: string }
 export type Adapter = {
 	kind: string,
 	createSource: ({ [string]: { string } }) -> Source,

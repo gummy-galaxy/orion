@@ -147,8 +147,8 @@ test.case("tools reject arguments their schemas do not allow", function(assert)
 	assert.throwsWith("who must be one of: you, review, ci", function()
 		argv("orion_card_add", { label = "A", who = "" })
 	end)
-	assert.throwsWith("pr must be a positive integer", function()
-		argv("orion_card_add", { label = "A", pr = 1.5 })
+	assert.throwsWith("unknown argument: pr", function()
+		argv("orion_card_add", { label = "A", pr = 4 })
 	end)
 	assert.throwsWith("items must be a list of strings", function()
 		argv("orion_group_add", { label = "G", items = { 1 } })
@@ -180,8 +180,8 @@ test.case("card set passes ref through as --ref and clears who with an empty val
 		{ "card", "set", "pub", "--who", "", "--json" }
 	)
 	assert.eq(
-		getToolArgv(TOOLS, "orion_card_add", json.object({ label = "Review", repo = "Roblox/avatar", pr = 4 })),
-		{ "card", "add", "Review", "--repo", "Roblox/avatar", "--pr", "4", "--json" }
+		getToolArgv(TOOLS, "orion_card_add", json.object({ label = "Ingest", repo = "Roblox/avatar" })),
+		{ "card", "add", "Ingest", "--repo", "Roblox/avatar", "--json" }
 	)
 end)
 

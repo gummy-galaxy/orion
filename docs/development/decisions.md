@@ -406,11 +406,11 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 ### Ingest is the one command that pulls from outside
 
-`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. `orion sync` stays for one release as a deprecated way to run only the GitHub refresh, and `orion server start`'s background loop keeps running only the refresh.
+`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. A GitHub source files your new pull requests in Unsorted. `orion server start`'s background loop runs only the refresh.
 
-**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks.
+**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks. This replaced keeping `orion sync`, and its `--discover` flag for filing pull requests in an Inbox group, as a deprecated alias for one release. Before 0.1.0, old forms go with no alias.
 
-2026-10-12 · [#55](https://github.com/vocksel/orion/issues/55)
+2026-10-12, 2026-10-18 · [#55](https://github.com/vocksel/orion/issues/55), [#469](https://github.com/vocksel/orion/issues/469)
 
 ### The background refresh fetches what changed
 

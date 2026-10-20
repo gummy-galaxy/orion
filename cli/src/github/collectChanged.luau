@@ -190,7 +190,7 @@ local function collectChanged(doc: Doc, run: CommandRunner, poll: PollState, wan
 		return { fetched = nil, failures = failures, refetched = 0 }
 	end
 
-	local fetched = collectPulls(doc, run, false, { keys = keys, listAuthored = sweep })
+	local fetched = collectPulls(doc, run, { keys = keys, listAuthored = sweep })
 	table.move(failures, 1, #failures, #fetched.failures + 1, fetched.failures)
 
 	if

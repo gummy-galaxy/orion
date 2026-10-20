@@ -47,7 +47,7 @@ test.case("schemas follow each option's value type", function(assert)
 	assert.eq(schema.required, { "label" })
 	assert.eq(getProperty(addCard, "label").minLength, 1)
 	assert.eq(getProperty(addCard, "status").enum, { "todo", "active", "review", "blocked", "deferred", "done" })
-	assert.eq(getProperty(addCard, "pr").type, "integer")
+	assert.eq(getProperty(findDescription("orion_card_timeline"), "limit").type, "integer")
 	assert.eq(getProperty(addCard, "canvas").pattern, "^[a-z0-9-]+$")
 
 	local setCard = findDescription("orion_card_set")
