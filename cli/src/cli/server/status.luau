@@ -10,6 +10,10 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Report the running Orion server",
+	mcp = {
+		annotations = { readOnlyHint = true },
+		omit = { { option = "canvas", reason = "reports the one server every canvas shares" } },
+	},
 	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

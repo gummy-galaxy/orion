@@ -43,6 +43,8 @@ npm run dev
 
 Vite starts `orion server start` and proxies `/api` to it. Set `ORION_BIN` to use another CLI binary. Without one, Vite still runs, but the canvas shows empty and nothing is saved, since `orion server start` is the only store.
 
+The server uses a scratch data folder, `app/.dev-data`, which the first run seeds with a sample canvas from `app/fixtures/dev-canvas.json`. Delete it to start over. A branch's CLI moves the data it touches to that branch's layout, which an installed Orion from another build can't read, so the dev server stays off your real data unless you ask. Set `ORION_DATA_DIR` to serve another folder, or `ORION_REAL_DATA=1` for the real one.
+
 PR cards show a **VS Code** button when `code` and [`hop`](https://github.com/vocksel/hop) are on the server's `PATH`.
 
 [`app/README.md`](app/README.md) maps the code.

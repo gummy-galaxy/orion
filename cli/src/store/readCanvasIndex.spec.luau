@@ -28,6 +28,18 @@ local function getLabel(document: json.Object, index: number): unknown
 	return (json.asObject(node.data) :: json.Object).label
 end
 
+local function findNode(document: json.Object, id: string): json.Object
+	for _, value in json.asArray(document.nodes) :: json.Array do
+		local node = json.asObject(value) :: json.Object
+
+		if node.id == id then
+			return node
+		end
+	end
+
+	error(`no node {id}`)
+end
+
 local function createCanvas(name: string): string
 	local dir = testing.directory(name)
 	local doc = testing.createDoc({ testing.task("b", "B", "todo"), testing.task("a", "A", "todo") }, { { "b", "a" } })
@@ -44,7 +56,10 @@ test.case("readCanvasIndex reads the same canvas as joining its files", function
 	local snapshot = readWithFiles(dir)
 	local files = readCanvasFolder(dir)
 
-	assert.eq(snapshot.document, joinCanvasFiles(files))
+	local document, entries = joinCanvasFiles(files)
+	assert.eq(snapshot.document, document)
+	assert.eq(snapshot.entries, entries)
+	assert.eq(getLabel(snapshot.document, 1), "B")
 	assert.eq(snapshot.files, files)
 	assert.eq((snapshot.document.github :: json.Object).viewer, "vocksel")
 	assert.eq(fs.exists(getIndexPath(dir)), true)
@@ -129,10 +144,8 @@ test.case("readCanvasIndex shows a note with a git conflict as a conflicted note
 	fs.writeStringToFile(path.join(dir, "nodes", "b.json"), CONFLICTED)
 
 	local snapshot = readSnapshot(dir)
-	local node = json.asObject((json.asArray(snapshot.document.nodes) :: json.Array)[1]) :: json.Object
-	local data = json.asObject(node.data) :: json.Object
+	local data = json.asObject(findNode(snapshot.document, "b").data) :: json.Object
 
-	assert.eq(node.id, "b")
 	assert.eq(data.label, "B here")
 	assert.eq(data.note, "<<<<<<< HEAD\nOurs\n=======\nTheirs\n>>>>>>> origin/main")
 	assert.eq(
@@ -146,10 +159,8 @@ test.case("readCanvasIndex keeps a node file that doesn't parse as a note holdin
 	fs.writeStringToFile(path.join(dir, "nodes", "b.json"), "{ not json")
 
 	local snapshot = readSnapshot(dir)
-	local node = json.asObject((json.asArray(snapshot.document.nodes) :: json.Array)[1]) :: json.Object
-	local data = json.asObject(node.data) :: json.Object
+	local data = json.asObject(findNode(snapshot.document, "b").data) :: json.Object
 
-	assert.eq(node.id, "b")
 	assert.eq(data.label, "Unreadable nodes/b.json")
 	assert.strContains(data.note :: string, "{ not json")
 	assert.strContains((snapshot.problems :: { string })[1], "nodes/b.json isn't a JSON object")

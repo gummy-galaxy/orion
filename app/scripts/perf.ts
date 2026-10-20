@@ -76,8 +76,16 @@ async function timed<T>(label: string, work: () => T | Promise<T>): Promise<T> {
 
 const git = (...args: string[]) => execFileSync('git', args, { cwd: APP, encoding: 'utf8' }).trim()
 
+// The base side runs an older vite.config.ts, which may start a CLI with the real data folder, so every step points
+// any CLI it starts at a scratch folder instead.
+const DATA_DIR = join(OUT, 'data')
+
 function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv = {}) {
-  const result = spawnSync(command, args, { cwd, stdio: ['ignore', 'pipe', 'inherit'], env: { ...process.env, ...env } })
+  const result = spawnSync(command, args, {
+    cwd,
+    stdio: ['ignore', 'pipe', 'inherit'],
+    env: { ...process.env, ORION_DATA_DIR: DATA_DIR, ...env },
+  })
 
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed in ${cwd}`)
 }

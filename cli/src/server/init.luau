@@ -7,8 +7,10 @@ local clearFocus = require("@root/store/clearFocus")
 local derive = require("@root/graph/derive")
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local events = require("@root/server/events")
+local getVersion = require("@root/getVersion")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
+local isTrustedRequest = require("@root/server/isTrustedRequest")
 local readRuntime = require("@root/server/readRuntime")
 local removeRuntime = require("@root/server/removeRuntime")
 local routes = require("@root/server/routes")
@@ -24,7 +26,7 @@ type WorkspaceList = storeTypes.WorkspaceList
 
 local server = {}
 
-function server.start(root: string, workspace: string, host: string, port: number, staticDir: string?)
+function server.start(root: string, workspace: string, host: string, port: number, staticDir: string?, devPort: number?)
 	local startedAt = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 	local runtime: Runtime?
 	ensureDirectory(root)
@@ -79,10 +81,19 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		end
 	)
 
+	local trustedPorts: { number } = {}
+	if devPort then
+		table.insert(trustedPorts, devPort)
+	end
+
 	local running = net.serve({
 		hostname = host,
 		port = port,
 		handler = function(request, socketServer)
+			if not isTrustedRequest(request, host, trustedPorts) then
+				return { status = 403, body = "Orion only answers its own app" }
+			end
+
 			if request.path == "/api/events" then
 				if socketServer:upgrade(request) then
 					return nil
@@ -101,12 +112,14 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			end,
 		},
 	})
+	table.insert(trustedPorts, running.port)
 	runtime = {
 		pid = process.pid(),
 		url = `http://{running.hostname}:{running.port}`,
 		canvas = workspace,
 		dataFolder = root,
 		startedAt = startedAt,
+		version = getVersion() :: string?,
 	}
 	writeRuntime(root, runtime)
 	monitor.start()

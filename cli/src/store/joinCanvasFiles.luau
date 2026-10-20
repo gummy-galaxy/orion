@@ -2,6 +2,12 @@ local json = require("@std/json")
 
 local fileNames = require("@root/fileNames")
 local getStringField = require("@root/getStringField")
+local isOrderKey = require("@root/order/isOrderKey")
+local storeTypes = require("@root/store/types")
+
+type StoredEntry = storeTypes.StoredEntry
+
+type Found = { id: string, object: json.Object, order: string? }
 
 local function parseObject(files: { [string]: string }, file: string): json.Object
 	local object = json.asObject(json.deserialize(files[file]) :: json.Value)
@@ -9,62 +15,74 @@ local function parseObject(files: { [string]: string }, file: string): json.Obje
 	return object
 end
 
--- Entries listed in `order` come first, in that order, and any others after them sorted by id, such as a node
--- whose file arrived without Orion writing it.
-local function collectEntries(byId: { [string]: json.Object }, order: json.Value): json.Array
+--[[
+	Entries come in the order of their keys, with ties broken by id, as when two branches each added one at the
+	end. Entries without a key come after them, those listed in an older `canvas.json`'s order first.
+]]
+local function collectEntries(found: { Found }, legacyOrder: json.Value): json.Array
+	local listed: { [string]: number } = {}
+
+	for position, id in json.asArray(legacyOrder) or {} do
+		if type(id) == "string" and listed[id] == nil then
+			listed[id] = position
+		end
+	end
+
+	table.sort(found, function(a, b)
+		if (a.order == nil) ~= (b.order == nil) then
+			return a.order ~= nil
+		elseif a.order and b.order and a.order ~= b.order then
+			return (a.order :: string) < (b.order :: string)
+		end
+
+		local aListed, bListed = listed[a.id] or math.huge, listed[b.id] or math.huge
+		return if aListed ~= bListed then aListed < bListed else a.id < b.id
+	end)
+
 	local entries: json.Array = {}
-	local seen: { [string]: boolean } = {}
 
-	for _, id in json.asArray(order) or {} do
-		if type(id) == "string" and byId[id] and not seen[id] then
-			seen[id] = true
-			table.insert(entries, byId[id])
-		end
-	end
-
-	local rest: { string } = {}
-
-	for id in byId do
-		if not seen[id] then
-			table.insert(rest, id)
-		end
-	end
-
-	table.sort(rest)
-
-	for _, id in rest do
-		table.insert(entries, byId[id])
+	for _, item in found do
+		table.insert(entries, item.object)
 	end
 
 	return entries
 end
 
--- Joins a canvas folder's files, keyed by path as `splitDocObject` writes them, back into one canvas object.
-local function joinCanvasFiles(files: { [string]: string }): json.Object
+--[[
+	Joins a canvas folder's files, keyed by path as `splitDocObject` writes them, back into one canvas object. The
+	order key and field times each node and link file keeps come back apart from the canvas, by path.
+]]
+local function joinCanvasFiles(files: { [string]: string }): (json.Object, { [string]: StoredEntry })
 	assert(files[fileNames.document], `a canvas folder needs a {fileNames.document}`)
 
 	local document = parseObject(files, fileNames.document)
-	local order = json.asObject(document.order) or json.object({})
+	local legacyOrder = json.asObject(document.order) or json.object({})
 	document.order = nil
 
-	local byFolder: { [string]: { [string]: json.Object } } = { [fileNames.nodes] = {}, [fileNames.links] = {} }
+	local byFolder: { [string]: { Found } } = { [fileNames.nodes] = {}, [fileNames.links] = {} }
+	local stored: { [string]: StoredEntry } = {}
 
 	for file in files do
 		local folder = file:match("^([^/]+)/")
-		local entries = if folder then byFolder[folder] else nil
+		local found = if folder then byFolder[folder] else nil
 
-		if entries then
+		if found then
 			local object = parseObject(files, file)
 			local id = getStringField(object.id)
+			local order = if isOrderKey(object.order) then object.order :: string else nil
+			local changedAt = json.asObject(object.changedAt)
+			object.order = nil
+			object.changedAt = nil
 
 			if id then
-				entries[id] = object
+				table.insert(found, { id = id, object = object, order = order })
+				stored[file] = { order = order, changedAt = changedAt }
 			end
 		end
 	end
 
-	document.nodes = collectEntries(byFolder[fileNames.nodes], order.nodes)
-	document.links = collectEntries(byFolder[fileNames.links], order.links)
+	document.nodes = collectEntries(byFolder[fileNames.nodes], legacyOrder.nodes)
+	document.links = collectEntries(byFolder[fileNames.links], legacyOrder.links)
 
 	if files[fileNames.localState] then
 		for key, value in parseObject(files, fileNames.localState) do
@@ -74,7 +92,7 @@ local function joinCanvasFiles(files: { [string]: string }): json.Object
 		end
 	end
 
-	return document
+	return document, stored
 end
 
 return joinCanvasFiles

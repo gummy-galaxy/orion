@@ -1,5 +1,6 @@
 local cli = require("@batteries/cli")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local renameWorkspace = require("@root/store/renameWorkspace")
 
@@ -7,8 +8,9 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Change a canvas's display label",
+	mcp = { omit = { { option = "canvas", reason = "names the canvas it renames" } } },
 	define = function(parser: cli.Parser)
-		parser:add("name", "positional", { help = "Canvas name" })
+		addArgument(parser, "name", "positional", { help = "Canvas name", type = "canvas" })
 		parser:add("label", "positional", { help = "New display label" })
 	end,
 

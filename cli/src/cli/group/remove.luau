@@ -8,6 +8,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Remove groups with everything inside them",
+	mcp = { annotations = { destructiveHint = true } },
 	define = function(parser: cli.Parser)
 		addBatchOptions(parser, "Group ids or selectors")
 	end,

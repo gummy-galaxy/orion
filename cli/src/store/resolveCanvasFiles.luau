@@ -118,7 +118,7 @@ end
 	it worked around. A file with git's conflict markers keeps one side, ours when it parses, and when the two sides
 	disagree on a note, its note holds both versions between the markers so it shows as a conflicted note. Any
 	other node file that isn't a JSON object becomes a note holding its text. A link or `local.json` that can't be
-	read is left out. `canvas.json` must parse on one side, since nothing else holds the canvas's order and settings.
+	read is left out. `canvas.json` must parse on one side, since nothing else holds the canvas's settings.
 ]]
 local function resolveCanvasFiles(files: { [string]: string }): ({ [string]: string }, { string })
 	local resolved: { [string]: string } = {}

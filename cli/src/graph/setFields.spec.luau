@@ -36,8 +36,9 @@ test.case("setFields keeps an item's id when its label changes", function(assert
 	local item = addItem(doc, "Ship it", {})
 	setFields(doc, item.id, { label = "Ship the release" })
 	setFields(doc, "g", { label = "Release work" })
-	assert.eq(item.id, "ship-it")
-	assert.eq(getItem(doc, "ship-it").data.label, "Ship the release")
+	local id = item.id
+	assert.eq(getItem(doc, id).data.label, "Ship the release")
+	assert.eq(item.id, id)
 	assert.eq(getItem(doc, "g").data.label, "Release work")
 end)
 

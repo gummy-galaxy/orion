@@ -1,5 +1,6 @@
 local cli = require("@batteries/cli")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local getRequired = require("@root/cli/getRequired")
 local joinWords = require("@root/cli/joinWords")
@@ -26,9 +27,14 @@ end
 
 return table.freeze({
 	help = "Wrap items that share a parent in a new group",
+	mcp = {},
 	define = function(parser: cli.Parser)
-		parser:add("label", "variadic", { help = "Group name" })
-		parser:add("items", "option", { help = "Comma-separated ids to put in it (required)" })
+		addArgument(parser, "label", "variadic", { help = "Group name", type = "words" })
+		addArgument(parser, "items", "option", {
+			help = "Comma-separated ids to put in it (required)",
+			type = "commaList",
+			mcp = { required = true },
+		})
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 

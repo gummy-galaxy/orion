@@ -6,7 +6,6 @@ local task = require("@std/task")
 local decodeDocObject = require("@root/store/decodeDocObject")
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
-local getDocPath = require("@root/store/getDocPath")
 local getLogPath = require("@root/log/getLogPath")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
@@ -22,6 +21,11 @@ type Watch = typeof(fs.watch(""))
 local logger = archivist.getLogger("orion.watcher")
 
 local watcher = {}
+
+-- Every write replaces the canvas's local.json last, so its stamp moves once per write.
+local function getWrittenPath(dir: string): string
+	return tostring(path.join(dir, fileNames.localState))
+end
 
 -- Watches a canvas's node and link folders, which change on their own when a `git pull` or an editor touches them.
 local function watchEntries(dir: string): { Watch }
@@ -71,7 +75,7 @@ function watcher.create(
 	logChanged: (string) -> ()
 )
 	local isClosed = false
-	local dataFile = getDocPath(getWorkspaceDir(root, active()))
+	local dataFile = getWrittenPath(getWorkspaceDir(root, active()))
 	local logFile = getLogPath(getWorkspaceDir(root, active()))
 	local logName = active()
 	local manifestFile = tostring(path.join(root, fileNames.canvases))
@@ -116,7 +120,7 @@ function watcher.create(
 
 		folder = fs.watch(dir)
 		entries = watchEntries(dir)
-		dataFile = getDocPath(dir)
+		dataFile = getWrittenPath(dir)
 		logFile = getLogPath(dir)
 		logName = name
 		lastDataStamp = getStamp(dataFile)
@@ -125,7 +129,7 @@ function watcher.create(
 		generation += 1
 	end
 
-	-- With `isForced`, a node or link file changed, so the canvas is read again even when `canvas.json` didn't move.
+	-- With `isForced`, a node or link file changed, so the canvas is read again even when `local.json` didn't move.
 	local function scheduleChange(isForced: boolean)
 		generation += 1
 		local scheduled = generation

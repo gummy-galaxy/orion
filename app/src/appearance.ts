@@ -58,7 +58,7 @@ export type Appearance = {
   companion: boolean
 }
 
-// index.html reads these keys before the first paint, so keep them in step.
+// public/appearance.js reads these keys before the first paint, so keep them in step.
 const THEME_KEY = 'orion:theme'
 const SKIN_KEY = 'orion:skin'
 const COLOR_MODE_KEY = 'orion:color-mode'

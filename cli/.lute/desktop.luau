@@ -3,13 +3,11 @@
 	built canvas and the CLI sidecar in place, so those are built first. The build makes one installer for this
 	platform: a disk image on macOS, an NSIS setup program on Windows, and a Debian package on Linux.
 ]]
-local FlipbookBatteries = require("@flipbook-batteries")
 local path = require("@std/path")
 local system = require("@std/system")
 
+local run = require("@root/run")
 local runScript = require("@root/runScript")
-
-local run = FlipbookBatteries.run
 
 local root = path.resolve("..")
 local app = path.join(root, "app")

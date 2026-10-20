@@ -37,7 +37,7 @@ test.case("serve answers each line, however stdin splits it, and stops at end of
 		return chunk
 	end, function(text: string)
 		table.insert(written, text)
-	end, run)
+	end, {}, run)
 
 	assert.eq(#written, 2)
 	assert.eq(string.sub(written[1], -1), "\n")
@@ -64,6 +64,7 @@ test.case("serve answers the message that finds the binary stale with an update 
 			table.insert(written, text)
 			stale = true
 		end,
+		{},
 		run,
 		function()
 			return stale
