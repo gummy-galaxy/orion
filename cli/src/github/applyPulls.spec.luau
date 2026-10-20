@@ -153,7 +153,7 @@ test.case("discover files authored pulls in Inbox and clears unplaced", function
 		discover = true,
 		failures = {},
 	}, "2026-10-04T18:05:00Z")
-	assert.eq(report.added[1], "flipbook-labs-flipbook-1")
+	assert.eq(report.added[1], doc.nodes[2].id)
 	assert.eq(doc.nodes[2].data.itemKind, "pr")
 	assert.eq(doc.nodes[2].data.status, "active")
 	local top = doc.github

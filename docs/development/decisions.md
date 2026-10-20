@@ -306,6 +306,14 @@ Commands name the thing they act on first, then the action: `orion node remove`,
 
 2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146), [#110](https://github.com/vocksel/orion/issues/110), [#55](https://github.com/vocksel/orion/issues/55), [#109](https://github.com/vocksel/orion/issues/109)
 
+### MCP tools come from the CLI's commands
+
+Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`, such as `orion_card_add`, with a field for each option in camelCase. Top-level commands keep one word, such as `orion_next`. A command declares its tool where it's defined: its annotations, the options the tool leaves out and why, or why MCP leaves the command out. An option's value type, such as an enum or an integer, sits on the line that defines it, and the input schema comes from it. A tool's description is the command's help unless the command gives an agent-facing one, which stays rare.
+
+**Why:** agents learn one vocabulary, and a new command or option can't leave MCP behind. A tool that switches between commands, as `orion_inspect` did, can't say which arguments go with which.
+
+2026-10-18 · [#415](https://github.com/vocksel/orion/issues/415), [#146](https://github.com/vocksel/orion/issues/146)
+
 ### Data folders move to a new layout on their own
 
 When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and waits while an older Orion is still serving the folder.
@@ -383,6 +391,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 **Why:** a full refresh costs what's on the canvas, and GitHub ends a query after about 10 seconds. Notifications cover other people's activity for free, since an unchanged poll answers 304. They never include the viewer's own or agents' activity, which the `updatedAt` sweep catches. Neither reports a finished check run or a change in mergeability, so checks get their own short timer and mergeability waits for the full pass. Startup runs a full pass anyway, so persisting poll state would add writes for nothing.
 
 2026-10-18 · [#366](https://github.com/vocksel/orion/issues/366)
+
+### Cards in view refresh sooner
+
+The background refresh sweeps `updatedAt` every 30 seconds, instead of every two minutes, for one set of cards that refresh sooner. The cards in view feed it: the open group and everything inside it, or the selection when no group is open, plus the cards one link away that block them. The server reads them from the focus report the app already sends. Watched cards ([#232](https://github.com/vocksel/orion/issues/232)) join the same set rather than adding a cadence of their own. Pending checks stay at 30 seconds and the full pass at 15 minutes for every card.
+
+**Why:** what someone is looking at matters most, and a sweep of a handful of cards costs one small query. Speeding up only the sweep keeps the rest of the canvas on the cadences GitHub's limits allow.
+
+2026-10-18 · [#450](https://github.com/vocksel/orion/issues/450)
 
 ### Adapters are Lute packages
 

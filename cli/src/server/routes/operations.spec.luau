@@ -1,9 +1,7 @@
-local fs = require("@std/fs")
 local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
 
-local getDocPath = require("@root/store/getDocPath")
 local loadDoc = require("@root/store/loadDoc")
 local routes = require("@root/server/routes")
 local testing = require("@root/testing")
@@ -50,7 +48,7 @@ end
 
 -- The saved file's bytes, so a refused change is shown to leave the file alone.
 local function savedText(root: string): string
-	return fs.readFileToString(getDocPath(root))
+	return testing.readCanvasText(root)
 end
 
 local function edits(text: string): json.Object

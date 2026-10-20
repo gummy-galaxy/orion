@@ -2,6 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local addArgument = require("@root/cli/addArgument")
 local appendLog = require("@root/log/appendLog")
 local context = require("@root/cli/context")
 local createEntry = require("@root/log/createEntry")
@@ -15,10 +16,19 @@ type LogAuthor = types.LogAuthor
 
 return table.freeze({
 	help = "Log what happened, optionally attached to cards. Corrections are new entries.",
+	mcp = {},
 	define = function(parser: cli.Parser)
-		parser:add("text", "variadic", { help = "What happened", required = true })
-		parser:add("card", "option", { help = "Card ids to attach the entry to, comma-separated" })
-		parser:add("agent", "option", { help = "Log as this agent. Without it, the entry is by you" })
+		addArgument(parser, "text", "variadic", { help = "What happened", required = true, type = "words" })
+		addArgument(
+			parser,
+			"card",
+			"option",
+			{ help = "Card ids to attach the entry to, comma-separated", type = "commaList" }
+		)
+		addArgument(parser, "agent", "option", {
+			help = "Log as this agent. Without it, the entry is by you",
+			mcp = { required = true, description = "The agent's name, such as claude." },
+		})
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 

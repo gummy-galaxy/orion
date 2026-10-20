@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local findItem = require("@root/graph/findItem")
 local findItems = require("@root/query/findItems")
@@ -51,7 +52,7 @@ local function writeLines(options: Context, result: findItems.Result, showCanvas
 		local parentItem = if item.parentId then findItem(hit.doc, item.parentId) else nil
 		local where = if parentItem then `in {getLabel(parentItem)}` else "top level"
 		local canvasColumn = if showCanvas then pad(hit.name, 16) else ""
-		table.insert(lines, `{canvasColumn}{pad(item.id, 28)}{pad(getLabel(item), 44)}{pad(state, 10)}{where}`)
+		table.insert(lines, `{canvasColumn}{pad(item.id, 38)}{pad(getLabel(item), 44)}{pad(state, 10)}{where}`)
 	end
 
 	if result.total > #result.hits then
@@ -63,9 +64,10 @@ end
 
 return table.freeze({
 	help = "Find cards and groups whose label, note, or refs contain text",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
-		parser:add("text", "variadic", { help = "Text to find, matched case-insensitively" })
-		parser:add("limit", "option", { help = "Most matches to print (default 20)" })
+		addArgument(parser, "text", "variadic", { help = "Text to find, matched case-insensitively", type = "words" })
+		addArgument(parser, "limit", "option", { help = "Most matches to print (default 20)", type = "integer" })
 		parser:add("all-canvases", "flag", { help = "Search every canvas, not only this one" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

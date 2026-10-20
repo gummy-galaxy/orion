@@ -28,7 +28,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
-import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { ActionsContext, type AttentionMark, type Flow } from '../derive'
 import { localDateValue, snoozeUntil } from '../snooze'
 import { CHAIN_STEP_MS, CLEAR_MS, celebrationDelays, clearCelebrations, closesOut, patchTaskData } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
@@ -352,7 +352,8 @@ function withStoredSizes(copy: Saved, stored: Saved): Saved {
 }
 
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
-const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
+/** Random, so cards added on two branches of a canvas in git never take the same id. */
+const newId = () => crypto.randomUUID()
 
 /** Opens a group at the same zoom as every other, with the connections outside it peeking in from the sides. */
 function groupOpenViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
@@ -1747,7 +1748,7 @@ export function Canvas() {
     }
   }
 
-  const needs = useMemo(() => needsAttention(nodes, work.status, work.snoozed), [nodes, work.status, work.snoozed])
+  const needs = work.attention
 
   // Work that needs you, gathered onto whatever shows it: the card, or the folded group around it.
   const attention = useMemo(() => {
@@ -1770,7 +1771,7 @@ export function Canvas() {
       marks.set(shown, nodeMap)
     }
 
-    return { marks, count: needs.length - elsewhere, elsewhere }
+    return { marks, count: needs.size - elsewhere, elsewhere }
   }, [attending, needs, view])
 
   const transform = useStore((state) => (attending ? state.transform : null))
@@ -2098,7 +2099,7 @@ export function Canvas() {
       setLinks((currentLinks) =>
         currentLinks.some((link) => (link.from === from && link.to === to) || (link.from === to && link.to === from))
           ? currentLinks
-          : [...currentLinks, { id: `${from}>${to}`, from, to, kind: 'blocks' }],
+          : [...currentLinks, { id: newId(), from, to, kind: 'blocks' }],
       )
     },
     [setLinks],
@@ -2407,7 +2408,7 @@ export function Canvas() {
       const parentNode = parent ? nodeMap.get(parent) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const itemKind = options.itemKind ?? 'note'
-      const id = newId(itemKind === 'step' ? 'card' : itemKind)
+      const id = newId()
       const note: AppNode = {
         id,
         type: 'task',
@@ -2482,7 +2483,7 @@ export function Canvas() {
           const parentNode = parentId ? nodeMap.get(parentId) : undefined
           const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
           const image: ImageNode = {
-            id: newId('image'),
+            id: newId(),
             type: 'image',
             parentId: parentNode?.id,
             position: { x: position.x - 20 - origin.x, y: position.y - 92 - origin.y },
@@ -2539,7 +2540,7 @@ export function Canvas() {
       const parentNode = parentId ? nodeMap.get(parentId) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const card: AppNode = {
-        id: nodeMap.has(found.id) ? newId('card') : found.id,
+        id: nodeMap.has(found.id) ? newId() : found.id,
         type: 'task',
         parentId: parentNode?.id,
         position: { x: at.x - origin.x, y: at.y - origin.y },
@@ -2728,7 +2729,7 @@ export function Canvas() {
 
   const stamp = useCallback(
     (event: React.MouseEvent) => {
-      const id = newId('sticker')
+      const id = newId()
       const at = anchorAt(reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }))
 
       setStickers((stickers) => [...stickers, { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at }])
@@ -3312,8 +3313,7 @@ export function Canvas() {
   const focused = focus ? map.get(focus) : undefined
   const focusPos = focused && absolutePosition(focused, map)
   const focusSize = focused && sizeOf(focused, cardSize)
-  // Snoozed work isn't counted as ready, as in each group's progress.
-  const readyTotal = [...work.status].filter(([id, status]) => status === 'ready' && !work.snoozed.has(id)).length
+  const readyTotal = work.canvas.ready
 
   const commands: Command[] = [
     ...(trailSize.back

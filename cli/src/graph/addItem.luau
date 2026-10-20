@@ -2,15 +2,14 @@ local json = require("@std/json")
 
 local checkFields = require("@root/graph/checkFields")
 local chooseItemKind = require("@root/graph/chooseItemKind")
+local createId = require("@root/graph/createId")
 local findPlacement = require("@root/graph/findPlacement")
 local getGithubKey = require("@root/refs/getGithubKey")
 local getNeighborGroup = require("@root/graph/getNeighborGroup")
-local getUniqueId = require("@root/graph/getUniqueId")
 local graphTypes = require("@root/graph/types")
 local linkNeighbors = require("@root/graph/linkNeighbors")
 local setLook = require("@root/graph/setLook")
 local setRef = require("@root/refs/setRef")
-local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type AddOptions = graphTypes.AddOptions
@@ -25,9 +24,6 @@ local function addItem(doc: Doc, label: string, options: AddOptions): Item
 	assert(options.pr == nil or options.repo ~= nil, "pr needs a repository as owner/name")
 
 	local group = getNeighborGroup(doc, options.group, options.after, options.before)
-	local base = if options.repo and options.pr
-		then `{slugify(options.repo :: string)}-{options.pr}`
-		else slugify(label)
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
@@ -39,7 +35,7 @@ local function addItem(doc: Doc, label: string, options: AddOptions): Item
 	data.note = options.note
 	data.who = if options.who == "" then nil else options.who
 	local item: Item = {
-		id = getUniqueId(doc, base),
+		id = createId(),
 		type = "task",
 		position = { x = 0, y = 0 },
 		parentId = group,

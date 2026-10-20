@@ -2,7 +2,7 @@
 
 ## Commands
 
-Run `orion help --all` before working with the canvas. It prints every command and subcommand with its arguments, options, and help, from the same definitions the CLI parses, so it can't fall behind. `orion help <command>` prints one command, and `orion help --all --json` prints the listing as JSON. This guide covers what help can't: which command to reach for, and how they fit together. When you add or change a command, put its syntax and what its options mean in its help text rather than here.
+Run `orion help --all` before working with the canvas. It prints every command and subcommand with its arguments, options, and help, from the same definitions the CLI parses, so it can't fall behind. `orion help <command>` prints one command, and `orion help --all --json` prints the listing as JSON. This guide covers what help can't: which command to reach for, and how they fit together. When you add or change a command, put its syntax and what its options mean in its help text rather than here. The same definition is its MCP tool: give the command an `mcp` declaration beside `define`, and define an option whose value isn't plain text, such as an id, an enum, or an integer, with `addArgument` and its type. `lute test` fails for a command that declares no tool.
 
 ## Reading the canvas
 
@@ -41,7 +41,7 @@ To show the person the app, or anything else served locally such as a dev server
 - A new card lands beside the card that blocks it, or before the card it blocks, so give `--after` or `--before` when you know its neighbor; a card linked later stays where it first landed. One with no links in its group continues the group's last row without widening it. `orion apply` places a plan's new cards after its last step, so its links count.
 - `orion group add` wraps items that share a parent. `orion group remove` deletes everything inside a group at any depth, so preview it with `--dry-run`.
 - The CLI never lays out groups itself. `orion group tidy` and changes to a group's members mark it, and the app lays out marked groups deepest first, so nested groups settle before their parents. Custom groups keep their arrangement, and auto groups wrap rows at about six. If `orion server start` isn't running, the layout waits until the app opens.
-- `orion server start` accepts raw image bytes at `POST /api/images?canvas=<name>` and returns them at `GET /api/images/<asset>?canvas=<name>`.
+- `orion media insert <file>` adds an image to the canvas, and `orion media list` lists them. Don't call `orion server start`'s HTTP API; it's internal to the app.
 
 Most commands that edit take `--dry-run` and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion node remove --where 'repo = "unrelated"' --dry-run`, then run `orion node remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
 

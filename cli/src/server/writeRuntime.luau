@@ -27,6 +27,8 @@ local function writeRuntime(root: string, runtime: Runtime)
 					canvas = runtime.canvas,
 					dataFolder = runtime.dataFolder,
 					startedAt = runtime.startedAt,
+					-- Tells a newer Orion this server reads canvas folders, so it's safe to move `orion.json` files.
+					storage = "files",
 				}),
 				true
 			)

@@ -3,8 +3,14 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local getItem = require("@root/graph/getItem")
 local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
+
+-- The first capture of `pattern` in `text`, such as the id a command printed.
+local function capture(text: string, pattern: string): string
+	return (text:match(pattern) or error(`"{pattern}" isn't in "{text}"`)) :: string
+end
 
 test.case("a plan creates cards, notes, and groups, and refers to them by handle", function(assert)
 	local dir, run = testing.createHarness("apply-plan")
@@ -21,9 +27,11 @@ test.case("a plan creates cards, notes, and groups, and refers to them by handle
 		]]=],
 	})
 	assert.strContains(output, "Applied 6 operations at revision 0 → 1")
-	assert.strContains(output, "@spec → write-spec")
-	assert.strContains(output, "@milestone → milestone")
 	local doc = loadDoc(dir)
+	local spec = capture(output, "@spec → (%S+)")
+	local milestone = capture(output, "@milestone → (%S+)")
+	assert.eq(getItem(doc, spec).data.label, "Write spec")
+	assert.eq(getItem(doc, milestone).data.label, "Milestone")
 	assert.eq(doc.revision, 1)
 	assert.eq(doc.nodes[#doc.nodes].data.label, "Milestone")
 	assert.eq(#doc.links, 4)
@@ -40,12 +48,10 @@ test.case("a plan attaches refs, sets fields, and groups new cards with existing
 			{"op":"group","handle":"ready","label":"Ready","items":["@pr","ci"]}
 		]]=],
 	})
-	assert.strContains(output, "@pr → review-fix")
-	assert.strContains(output, "@ready → ready")
-	local shown = run({ "node", "show", "review-fix" })
+	local shown = run({ "node", "show", capture(output, "@pr → (%S+)") })
 	assert.strContains(shown, "review")
 	assert.strContains(shown, "flipbook-labs/flipbook#12")
-	assert.strContains(run({ "node", "show", "ready" }), "Report release health")
+	assert.strContains(run({ "node", "show", capture(output, "@ready → (%S+)") }), "Report release health")
 end)
 
 test.case("a dry run previews the plan and writes nothing", function(assert)
@@ -57,7 +63,7 @@ test.case("a dry run previews the plan and writes nothing", function(assert)
 		"--dry-run",
 	})
 	assert.strContains(output, "Would apply 1 operation at revision 0")
-	assert.strContains(output, "@extra → extra")
+	assert.eq(testing.isRandomId(output:match("@extra → (%S+)")), true)
 	local doc = loadDoc(dir)
 	assert.eq(doc.revision, 0)
 	assert.eq(#doc.nodes, 3)
@@ -121,7 +127,8 @@ test.case("a plan can refuse a stale revision and can print JSON with the ids", 
 	assert.eq(value and value.action, "apply")
 	assert.eq(value and value.revision, 1)
 	local ids = json.asObject(value and value.ids :: json.Value)
-	assert.eq(ids and ids.extra, "extra")
+	local id = ids and ids.extra
+	assert.eq(testing.isRandomId(id), true)
 end)
 
 test.case("a plan file is read from its path, and a missing plan is refused", function(assert)
@@ -152,15 +159,16 @@ test.case("a plan places its new cards once their links are in, so a chain lands
 	local doc = loadDoc(dir)
 	local positions = {}
 
+	-- New cards get random ids, so they're found by label.
 	for _, item in doc.nodes do
-		positions[item.id] = item.position
+		positions[if item.id == "pub" then "pub" else item.data.label] = item.position
 	end
 
-	assert.eq(positions.one.y, positions.pub.y)
-	assert.eq(positions.two.y, positions.pub.y)
-	assert.eq(positions.three.y, positions.pub.y)
-	assert.eq(positions.one.x > positions.pub.x, true)
-	assert.eq(positions.two.x > positions.one.x, true)
-	assert.eq(positions.three.x > positions.two.x, true)
+	assert.eq(positions.One.y, positions.pub.y)
+	assert.eq(positions.Two.y, positions.pub.y)
+	assert.eq(positions.Three.y, positions.pub.y)
+	assert.eq(positions.One.x > positions.pub.x, true)
+	assert.eq(positions.Two.x > positions.One.x, true)
+	assert.eq(positions.Three.x > positions.Two.x, true)
 	assert.eq(doc.nodes[#doc.nodes].parentId, "ws")
 end)

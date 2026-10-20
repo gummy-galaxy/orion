@@ -1,11 +1,10 @@
 local json = require("@std/json")
 
+local createId = require("@root/graph/createId")
 local findPlacement = require("@root/graph/findPlacement")
 local getNeighborGroup = require("@root/graph/getNeighborGroup")
-local getUniqueId = require("@root/graph/getUniqueId")
 local graphTypes = require("@root/graph/types")
 local linkNeighbors = require("@root/graph/linkNeighbors")
-local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -18,7 +17,7 @@ local function addNote(doc: Doc, text: string, options: NoteOptions): Item
 	local parent = getNeighborGroup(doc, options.group, options.after, options.before)
 
 	local note: Item = {
-		id = getUniqueId(doc, `note-{slugify(text, 24)}`),
+		id = createId(),
 		type = "task",
 		position = { x = 0, y = 0 },
 		parentId = parent,
