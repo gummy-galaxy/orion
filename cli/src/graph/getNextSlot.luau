@@ -8,13 +8,13 @@ type Doc = types.Doc
 type Position = types.Position
 
 -- The next free spot to the right of a parent's children, or of the top level, as far from them as the app's layout
--- spaces pieces with no link between them, so tidying the group later keeps the gap.
-local function getNextSlot(doc: Doc, parentId: string?): Position
+-- spaces pieces with no link between them, so tidying the group later keeps the gap. Ids in `skip` don't count.
+local function getNextSlot(doc: Doc, parentId: string?, skip: { [string]: boolean }?): Position
 	local right: number? = nil
 	local top: number? = nil
 
 	for _, item in doc.nodes do
-		if item.parentId == parentId then
+		if item.parentId == parentId and not (skip and skip[item.id]) then
 			local width = getSize(item)
 			right = math.max(right or -math.huge, item.position.x + width)
 			top = math.min(top or math.huge, item.position.y)

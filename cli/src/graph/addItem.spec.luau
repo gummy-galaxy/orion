@@ -40,7 +40,7 @@ test.case("addItem gives every item a random id, pull requests included", functi
 	assert.eq(testing.isRandomId(item.id), true)
 	assert.eq(item.data.itemKind, "pr")
 	assert.eq(item.parentId, "g")
-	assert.eq(item.position.x > 0, true)
+	assert.eq(item.position.y > 0, true)
 	assert.neq(addItem(doc, "Ship it", {}).id, addItem(doc, "Ship it", {}).id)
 end)
 
