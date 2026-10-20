@@ -127,10 +127,15 @@ test.case("group create makes an empty group that cards can be added to by its i
 	assert.eq(getItem(doc, plan).parentId, monday)
 end)
 
-test.case("group create prints the new group as JSON", function(assert)
+test.case("group create prints the new group as JSON with the revision it made", function(assert)
 	local _, run = testing.createHarness("group-create-json")
-	local made = json.asObject(json.deserialize(run({ "group", "create", "Foundation", "--json" })) :: json.Value)
+	local result = json.asObject(json.deserialize(run({ "group", "create", "Foundation", "--json" })) :: json.Value)
+	local made = if result then json.asObject(result.item) else nil
+	assert.eq(result and result.revision, 1)
 	assert.eq(testing.isRandomId(made and made.id), true)
+	assert.eq(made and made.kind, "group")
+	assert.eq(made and made.status, nil)
+	assert.eq(made and made.waitsOn, nil)
 end)
 
 test.case("a bare group label is not looked up as an id", function(assert)
@@ -615,4 +620,36 @@ end)
 test.case("--version prints the version and build commit the MCP server reports", function(assert)
 	local _, run = testing.createHarness("version")
 	assert.eq(run({ "--version" }), `orion {getVersion()}`)
+end)
+
+test.case("every command takes --json", function(assert)
+	local missing: { string } = {}
+
+	local function visit(command: describeCommands.CommandDescription)
+		if #command.commands == 0 then
+			local found = false
+
+			for _, argument in command.arguments do
+				found = found or argument.name == "json"
+			end
+
+			if not found then
+				table.insert(missing, command.name)
+			end
+		end
+
+		for _, child in command.commands do
+			visit(child)
+		end
+	end
+
+	visit(cli.describe())
+	assert.eq(table.concat(missing, ", "), "")
+end)
+
+test.case("help --json describes one command", function(assert)
+	local _, run = testing.createHarness("help-json-topic")
+	local value = json.asObject(json.deserialize(run({ "help", "card", "add", "--json" })) :: json.Value)
+	assert.eq(value and value.name, "orion card add")
+	assert.eq(value and value.help, "Add a work item")
 end)

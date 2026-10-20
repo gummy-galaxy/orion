@@ -6,7 +6,6 @@ local context = require("@root/cli/context")
 local derive = require("@root/graph/derive")
 local findItem = require("@root/graph/findItem")
 local getLabel = require("@root/graph/getLabel")
-local getQueryValue = require("@root/cli/getQueryValue")
 local getRequired = require("@root/cli/getRequired")
 local graphTypes = require("@root/graph/types")
 local isGroup = require("@root/graph/isGroup")
@@ -24,7 +23,7 @@ local function writeJson(options: Context, doc: Doc, derived: graphTypes.Derived
 	local values: json.Array = {}
 
 	for _, item in items do
-		table.insert(values, getQueryValue(doc, derived, item))
+		table.insert(values, render.itemJson(doc, derived, item))
 	end
 
 	options.write(json.serialize(values, true))

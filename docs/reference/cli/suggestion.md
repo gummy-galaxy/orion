@@ -47,6 +47,7 @@ orion suggestion apply [options] [ids...]
 | ---------- | ---------------------- |
 | `[ids...]` | Suggestion ids         |
 | `--all`    | Apply every suggestion |
+| `--json`   | Print JSON             |
 
 ## orion suggestion dismiss
 
@@ -60,3 +61,4 @@ orion suggestion dismiss [options] [ids...]
 | ---------- | ------------------------ |
 | `[ids...]` | Suggestion ids           |
 | `--all`    | Dismiss every suggestion |
+| `--json`   | Print JSON               |

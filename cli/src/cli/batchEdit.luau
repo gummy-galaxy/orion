@@ -149,7 +149,8 @@ local function batchEdit(options: Options)
 	if options.asJson then
 		local entries: json.Array = {}
 		for _, change in changes do
-			table.insert(entries, json.object({ id = change.id, label = change.label, within = change.parent }))
+			local label = if change.label ~= "" then change.label else nil
+			table.insert(entries, json.object({ id = change.id, label = label, within = change.parent }))
 		end
 		local report = json.object({
 			action = options.action,
