@@ -563,12 +563,12 @@ Compute group suggestions
 
 Runs `orion suggestion find`.
 
-| Argument | Type                    | Description                                            |
-| -------- | ----------------------- | ------------------------------------------------------ |
-| `canvas` | canvas                  | Canvas name. Omit to use the canvas selected in Orion. |
-| `agent`  | claude \| codex \| none | claude, codex, or none                                 |
-| `scope`  | unsorted \| all         | unsorted or all                                        |
-| `dryRun` | boolean                 | Show suggestions without writing                       |
+| Argument  | Type            | Description                                                                                                                                             |
+| --------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `canvas`  | canvas          | Canvas name. Omit to use the canvas selected in Orion.                                                                                                  |
+| `command` | string list     | A command and its arguments, such as ["claude", "-p", "--output-format", "json"]. It reads the cards as a prompt on stdin and replies with JSON groups. |
+| `scope`   | unsorted \| all | unsorted or all                                                                                                                                         |
+| `dryRun`  | boolean         | Show suggestions without writing                                                                                                                        |
 
 ## orion_suggestion_list
 

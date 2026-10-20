@@ -8,7 +8,7 @@ type Field = mcpTypes.Field
 type Tool = mcpTypes.Tool
 
 local function isList(field: Field): boolean
-	return field.type == "list" or field.type == "commaList"
+	return field.type == "list" or field.type == "commaList" or field.type == "command"
 end
 
 local function checkValue(field: Field, value: json.Value)
@@ -73,7 +73,7 @@ end
 local function getOptionText(field: Field, value: json.Value): string
 	if field.type == "commaList" then
 		return table.concat(json.asArray(value) :: json.Array, ",")
-	elseif field.type == "jsonList" then
+	elseif field.type == "jsonList" or field.type == "command" then
 		return json.serialize(value)
 	end
 

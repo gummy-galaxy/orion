@@ -128,6 +128,7 @@ local TYPE_LABELS: { [string]: string } = {
 	list = "string list",
 	commaList = "string list",
 	jsonList = "object list",
+	command = "string list",
 }
 
 local function getTypeLabel(field: Field): string

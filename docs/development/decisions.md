@@ -338,9 +338,11 @@ When the data folder's layout changes, Orion moves an older folder into the new 
 
 These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
 
-**Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases.
+Moves that would have to guess are the exception. Upgrading a version 1 data file meant guessing the GitHub owner of every short repository name, so Orion refuses a version 1 file instead, with a message saying how to upgrade it with an older build.
 
-2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110)
+**Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases. A guessed move writes wrong data, which is worse than asking.
+
+2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110), [#471](https://github.com/vocksel/orion/issues/471)
 
 ### Development stays off the real data folder
 

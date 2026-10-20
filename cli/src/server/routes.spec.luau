@@ -68,12 +68,12 @@ local function createOperation(id: string): json.Object
 	})
 end
 
-test.case("GET returns migrated document with unknown root data", function(assert)
-	local root, router = createRouter("routes-migration")
+test.case("GET returns the document with unknown root data", function(assert)
+	local root, router = createRouter("routes-unknown-data")
 	fs.createDirectory(root, { makeParents = true })
 	testing.writeCanvasText(
 		root,
-		[[{"version":1,"settings":{"githubOwner":"Vocksel","theme":"dark"},"nodes":[{"id":"a","type":"task","data":{"repo":"orion","pr":12}}],"links":[],"extra":"kept"}]]
+		[[{"version":2,"settings":{"githubOwner":"Vocksel","theme":"dark"},"nodes":[{"id":"a","type":"task","data":{"repo":"Vocksel/orion","refs":[{"source":"github","kind":"pull","key":"Vocksel/orion#12"}]}}],"links":[],"extra":"kept"}]]
 	)
 	local response = decodeResponse(router.handle(createRequest("GET", "/api/orion")))
 	local settings = json.asObject(response.settings)
@@ -85,7 +85,6 @@ test.case("GET returns migrated document with unknown root data", function(asser
 	assert.eq(settings and settings.theme, "dark")
 	assert.eq(settings and settings.githubOwner, nil)
 	assert.eq(data and data.repo, "Vocksel/orion")
-	assert.eq(data and data.pr, nil)
 	assert.eq(data and #(json.asArray(data.refs) or {}), 1)
 end)
 

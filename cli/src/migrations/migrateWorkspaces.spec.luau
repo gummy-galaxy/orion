@@ -35,7 +35,10 @@ local function legacyRoot(name: string): string
 	for _, canvas in { "planning", "old" } do
 		local dir = tostring(path.join(root, "workspaces", canvas))
 		fs.createDirectory(path.join(dir, "backups"), { makeParents = true })
-		fs.writeStringToFile(path.join(dir, "orion.json"), `\{"revision":3,"nodes":[],"links":[],"label":"{canvas}"}`)
+		fs.writeStringToFile(
+			path.join(dir, "orion.json"),
+			`\{"version":2,"revision":3,"nodes":[],"links":[],"label":"{canvas}"}`
+		)
 		fs.writeStringToFile(path.join(dir, "backups", "orion-r2-20261001T000000Z.json"), "{}")
 	end
 
