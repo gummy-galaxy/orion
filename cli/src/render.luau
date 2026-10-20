@@ -9,6 +9,7 @@ local isGate = require("@root/graph/isGate")
 local isGroup = require("@root/graph/isGroup")
 local isNote = require("@root/graph/isNote")
 local pad = require("@root/render/pad")
+local renderGroup = require("@root/render/group")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -45,29 +46,39 @@ local function groupLabel(doc: Doc, item: Item): string?
 end
 
 function render.itemJson(doc: Doc, derived: graphTypes.Derived, item: Item): json.Object
+	if isGroup(item) then
+		return renderGroup.serialize(derived, item)
+	end
+
 	if item.type == "image" then
-		return json.object({
+		local image = json.object({
 			id = item.id,
-			label = getLabel(item),
 			kind = "image",
 			asset = item.data.asset,
 			workspace = item.data.workspace,
-			group = item.parentId,
 		})
+		image.label = asString(item.data.label)
+		image.group = item.parentId
+		return image
 	end
+
 	local object: json.Object = json.object({
 		id = item.id,
-		label = getLabel(item),
 		kind = asString(item.data.itemKind) or "step",
-		unblocks = derived.leverage[item.id] or 0,
 	})
+	object.label = asString(item.data.label)
 
-	if not isComponent(item) then
-		object.status = derived.status[item.id] or "ready"
-		object.recordedStatus = asString(item.data.status) or "todo"
+	-- Notes pass blocking through and components draw a system, so neither carries a status.
+	if not isNote(item) then
+		object.unblocks = derived.leverage[item.id] or 0
 	end
 
-	object.snoozedUntil = derived.snoozed[item.id] or nil
+	if not (isComponent(item) or isNote(item)) then
+		object.status = derived.status[item.id] or "ready"
+		object.recordedStatus = asString(item.data.status) or "todo"
+		object.snoozedUntil = derived.snoozed[item.id] or nil
+	end
+
 	object.group = item.parentId
 	object.groupLabel = groupLabel(doc, item)
 	object.repo = item.data.repo
@@ -99,9 +110,6 @@ function render.itemJson(doc: Doc, derived: graphTypes.Derived, item: Item): jso
 		object.linkLabels = labels
 	end
 
-	if isGroup(item) then
-		object.arrange = asString(item.data.arrange) or "auto"
-	end
 	return object
 end
 
@@ -119,7 +127,7 @@ function render.table(doc: Doc, derived: graphTypes.Derived, items: { Item }): s
 		local where = groupLabel(doc, item)
 		table.insert(
 			lines,
-			`{pad(status, 9)}{pad(item.id, 24)}{pad(getLabel(item), 44)}{pad(render.tag(item), 20)}{where or ""}{extra}`
+			`{pad(status, 9)}{pad(item.id, 38)}{pad(getLabel(item), 44)}{pad(render.tag(item), 20)}{where or ""}{extra}`
 		)
 	end
 

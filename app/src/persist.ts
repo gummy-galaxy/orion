@@ -1,5 +1,6 @@
 import type { Derived } from './derive'
-import { normalize, type AppNode, type GithubSnapshot, type Link, type TaskData } from './model'
+import { IMAGE_MAX_BYTES } from './geometry'
+import { isComponent, isNote, normalize, type AppNode, type GithubSnapshot, type Link, type TaskData } from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
 import type { Operation } from './operations'
 import { stableJson } from './stableJson'
@@ -29,12 +30,11 @@ const WORKSPACE_EVENT = 'orion:canvas'
 const WORKSPACES_EVENT = 'orion:canvases'
 const REVEAL_EVENT = 'orion:reveal'
 const LOG_EVENT = 'orion:log'
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024
 
 export type ImageAsset = { asset: string; mime: string }
 
 export async function importImage(file: File, workspace: string): Promise<ImageAsset> {
-  if (file.size === 0 || file.size > MAX_IMAGE_BYTES) throw new Error('Choose an image smaller than 5 MB.')
+  if (file.size === 0 || file.size > IMAGE_MAX_BYTES) throw new Error('Choose an image smaller than 5 MB.')
 
   const response = await fetch(`/api/images?canvas=${encodeURIComponent(workspace)}`, { method: 'POST', body: file })
 
@@ -271,18 +271,25 @@ export async function commitOperations(workspace: string, baseRevision: number |
   }
 }
 
-/** Only what's worth keeping; selection, measurements and handles are view state. */
-/** The stored fields of each node. A card's size comes from its kind and text, so only groups and images keep one. */
+/**
+ * The stored fields of each node; selection and handles are view state. Groups and images keep their size. Notes and
+ * components keep the size the app measured for their text, so the CLI places work around them without guessing; work
+ * cards are always one size, so they keep none.
+ */
 export function slim(nodes: AppNode[]) {
-  return nodes.map((node) => ({
-    id: node.id,
-    type: node.type,
-    position: node.position,
-    parentId: node.parentId,
-    data: node.data,
-    width: node.type === 'task' ? undefined : node.width,
-    height: node.type === 'task' ? undefined : node.height,
-  }))
+  return nodes.map((node) => {
+    const sized = node.type !== 'task' || isNote(node) || isComponent(node)
+
+    return {
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      parentId: node.parentId,
+      data: node.data,
+      width: sized ? node.width : undefined,
+      height: sized ? node.height : undefined,
+    }
+  })
 }
 
 /** A stable fingerprint, so view-only changes don't cause writes. */
@@ -379,9 +386,14 @@ export function clearFocus(workspace: string) {
   navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB_ID, canvas: workspace, closed: true })], { type: 'application/json' }))
 }
 
-/** Calls back when another writer (the CLI, an agent, another window) changes the file, with the derived values for that revision. */
-export function onRemoteChange(callback: (revision: number, derived?: Derived) => void) {
-  return subscribe<{ revision: number; derived?: Derived }>(CHANGED_EVENT, (data) => callback(data.revision, data.derived))
+/**
+ * Calls back when another writer (the CLI, an agent, another window) changes the file, with the derived values for that
+ * revision. `reindexed` means the canvas's files changed outside Orion, such as by a `git pull`, without a new revision.
+ */
+export function onRemoteChange(callback: (revision: number, derived?: Derived, reindexed?: boolean) => void) {
+  return subscribe<{ revision: number; derived?: Derived; reindexed?: boolean }>(CHANGED_EVENT, (data) =>
+    callback(data.revision, data.derived, data.reindexed === true),
+  )
 }
 
 import.meta.hot?.dispose(() => {

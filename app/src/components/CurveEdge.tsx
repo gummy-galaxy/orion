@@ -1,5 +1,6 @@
-import { memo } from 'react'
+import { memo, type CSSProperties } from 'react'
 import { BaseEdge, useStore, type EdgeProps } from '@xyflow/react'
+import { useChainPulse } from '../state'
 
 /** Screen pixels past the canvas edge that still count as showing, so arrows start moving just before they arrive. */
 const SCREEN_MARGIN = 24
@@ -12,7 +13,7 @@ function boxOf(xs: number[], ys: number[]): Box {
 
 /** Route arrows behind their source around the cards while keeping nearby arrows gently curved. */
 export const CurveEdge = memo(function CurveEdge(props: EdgeProps) {
-  const { sourceX, sourceY, targetX, targetY, markerEnd, style, label, labelStyle, labelBgPadding, labelBgBorderRadius } = props
+  const { id, sourceX, sourceY, targetX, targetY, markerEnd, style, label, labelStyle, labelBgPadding, labelBgBorderRadius } = props
   const reach = Math.min(80, Math.max(36, Math.abs(targetY - sourceY) / 3))
   let path: string
   let labelX: number
@@ -53,18 +54,31 @@ export const CurveEdge = memo(function CurveEdge(props: EdgeProps) {
       box.minY * zoom + y <= height + SCREEN_MARGIN,
   )
 
+  const pulse = useChainPulse(id)
+
   return (
-    <BaseEdge
-      path={path}
-      className={shown ? undefined : 'is-offscreen'}
-      markerEnd={markerEnd}
-      style={style}
-      label={label}
-      labelStyle={labelStyle}
-      labelBgPadding={labelBgPadding}
-      labelBgBorderRadius={labelBgBorderRadius}
-      labelX={labelX}
-      labelY={labelY}
-    />
+    <>
+      <BaseEdge
+        path={path}
+        className={shown ? undefined : 'is-offscreen'}
+        markerEnd={markerEnd}
+        style={style}
+        label={label}
+        labelStyle={labelStyle}
+        labelBgPadding={labelBgPadding}
+        labelBgBorderRadius={labelBgBorderRadius}
+        labelX={labelX}
+        labelY={labelY}
+      />
+      {/* A chain closing out sends a pulse along the link to its next card, arriving as that card's stamp clears. */}
+      {pulse && shown && (
+        <path
+          d={path}
+          pathLength={1}
+          className={`chain-pulse${pulse.reverse ? ' is-reverse' : ''}`}
+          style={{ '--pulse-delay': `${pulse.delayMs}ms`, '--pulse-duration': `${pulse.durationMs}ms` } as CSSProperties}
+        />
+      )}
+    </>
   )
 })

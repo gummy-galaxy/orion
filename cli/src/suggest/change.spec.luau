@@ -10,11 +10,11 @@ local testing = require("@root/testing")
 local types = require("@root/types")
 
 local function runUnexpected(_argv: { string }, _stdin: string?): types.CommandResult
-	error("unexpected agent call")
+	error("unexpected command call")
 end
 
 local function getSuggestions(doc: types.Doc)
-	return compute(doc, "unsorted", "none", runUnexpected, "2026-10-04T00:00:00Z")
+	return compute(doc, "unsorted", nil, runUnexpected, "2026-10-04T00:00:00Z")
 end
 
 local function getPair(extraA: json.Object?, extraB: json.Object?)

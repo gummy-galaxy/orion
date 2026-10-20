@@ -7,6 +7,7 @@ local clearFocus = require("@root/store/clearFocus")
 local derive = require("@root/graph/derive")
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local events = require("@root/server/events")
+local getVersion = require("@root/getVersion")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
 local isTrustedRequest = require("@root/server/isTrustedRequest")
@@ -58,13 +59,27 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			syncLoop.run(true)
 		end)
 	end, staticDir, hub)
-	monitor = watcher.create(root, router.getActive, router.switchTo, function(revision: number, doc: types.Doc)
-		hub.publish("orion:changed", json.object({ revision = revision, derived = serializeDerived(derive(doc)) }))
-	end, function(list: WorkspaceList)
-		hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
-	end, function(name: string)
-		hub.publish("orion:log", json.object({ canvas = name }))
-	end)
+	monitor = watcher.create(
+		root,
+		router.getActive,
+		router.switchTo,
+		function(revision: number, doc: types.Doc, isReindexed)
+			local event = json.object({ revision = revision, derived = serializeDerived(derive(doc)) })
+
+			-- Files changed outside Orion without a new revision, so the app reloads despite seeing its own revision.
+			if isReindexed then
+				event.reindexed = true
+			end
+
+			hub.publish("orion:changed", event)
+		end,
+		function(list: WorkspaceList)
+			hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
+		end,
+		function(name: string)
+			hub.publish("orion:log", json.object({ canvas = name }))
+		end
+	)
 
 	local trustedPorts: { number } = {}
 	if devPort then
@@ -104,6 +119,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		canvas = workspace,
 		dataFolder = root,
 		startedAt = startedAt,
+		version = getVersion() :: string?,
 	}
 	writeRuntime(root, runtime)
 	monitor.start()

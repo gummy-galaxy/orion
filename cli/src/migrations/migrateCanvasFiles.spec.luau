@@ -33,7 +33,7 @@ local function legacyRoot(name: string): string
 	local planning = path.join(root, "canvases", "planning")
 	fs.createDirectory(planning, { makeParents = true })
 	fs.writeStringToFile(path.join(root, "orion.json"), LEGACY_DOC)
-	fs.writeStringToFile(path.join(planning, "orion.json"), [[{"revision":2,"nodes":[],"links":[]}]])
+	fs.writeStringToFile(path.join(planning, "orion.json"), [[{"version":2,"revision":2,"nodes":[],"links":[]}]])
 	return root
 end
 
@@ -103,6 +103,20 @@ test.case("one canvas that can't move doesn't hold back the rest", function(asse
 		migrateCanvasFiles(root, OPTIONS)
 	end)
 	assert.eq(fs.readFileToString(path.join(root, "orion.json")), "{")
+	assert.eq(fs.exists(getDocPath(root)), false)
+	assert.eq(loadDoc(tostring(path.join(root, "canvases", "planning"))).revision, 2)
+end)
+
+test.case("a version 1 orion.json stays in place so an older Orion can upgrade it", function(assert)
+	local root = legacyRoot("canvas-files-version-one")
+	local versionOne = [[{"version":1,"nodes":[{"id":"a","type":"task","data":{"repo":"orion","pr":12}}],"links":[]}]]
+	fs.writeStringToFile(path.join(root, "orion.json"), versionOne)
+
+	local didMove, failure = pcall(migrateCanvasFiles, root, OPTIONS)
+	assert.eq(didMove, false)
+	assert.strContains(tostring(failure), "orion.json was saved as data version 1")
+	assert.eq(fs.readFileToString(path.join(root, "orion.json")), versionOne)
+	assert.eq(fs.exists(path.join(root, "orion.backup.json")), false)
 	assert.eq(fs.exists(getDocPath(root)), false)
 	assert.eq(loadDoc(tostring(path.join(root, "canvases", "planning"))).revision, 2)
 end)

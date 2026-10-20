@@ -146,6 +146,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'link.width.related', cssVar: '--link-width-related', group: 'border' },
   { name: 'link.width.traced', cssVar: '--link-width-traced', group: 'border' },
   { name: 'link.width.picked', cssVar: '--link-width-picked', group: 'border' },
+  { name: 'link.width.pulse', cssVar: '--link-width-pulse', group: 'border' },
   { name: 'snap.guide.width', cssVar: '--snap-guide-width', group: 'border' },
 
   { name: 'space.0.5', cssVar: '--space-0-5', group: 'space' },
@@ -197,6 +198,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'motion.duration.camera', cssVar: '--motion-duration-camera', group: 'duration' },
   { name: 'motion.duration.sticker-ring', cssVar: '--motion-duration-sticker-ring', group: 'duration' },
   { name: 'motion.duration.sticker-stamp', cssVar: '--motion-duration-sticker-stamp', group: 'duration' },
+  { name: 'motion.duration.flourish', cssVar: '--motion-duration-flourish', group: 'duration' },
 
   { name: 'motion.loop.twinkle', cssVar: '--motion-loop-twinkle', group: 'duration' },
   { name: 'motion.loop.attention', cssVar: '--motion-loop-attention', group: 'duration' },

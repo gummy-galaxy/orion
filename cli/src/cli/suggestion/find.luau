@@ -6,21 +6,25 @@ local compute = require("@root/suggest/compute")
 local context = require("@root/cli/context")
 local convertToJson = require("@root/suggest/convertToJson")
 local loadDoc = require("@root/store/loadDoc")
+local parseCommand = require("@root/adapters/parseCommand")
 local runTransaction = require("@root/store/runTransaction")
 local save = require("@root/suggest/save")
 
 type Context = context.Context
 
+local FALLBACK = "The command failed or returned no valid groups; kept heuristic suggestions."
+
 return table.freeze({
 	help = "Compute group suggestions",
 	mcp = { annotations = { openWorldHint = true } },
 	define = function(parser: cli.Parser)
-		addArgument(
-			parser,
-			"agent",
-			"option",
-			{ help = "claude, codex, or none", type = "enum", values = { "claude", "codex", "none" } }
-		)
+		addArgument(parser, "command", "option", {
+			help = "JSON array naming a command that groups the cards it reads on stdin",
+			type = "command",
+			mcp = {
+				description = 'A command and its arguments, such as ["claude", "-p", "--output-format", "json"]. It reads the cards as a prompt on stdin and replies with JSON groups.',
+			},
+		})
 		addArgument(
 			parser,
 			"scope",
@@ -32,23 +36,25 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
+		local commandText = parser:get("command")
+		local command = if commandText then parseCommand(commandText) else nil
 		local current = loadDoc(options.dir)
-		local settings = if current.raw then json.asObject(current.raw.settings) else nil
-		local configured = if settings and type(settings.agent) == "string" then settings.agent else nil
-		local agent = parser:get("agent") or configured or "none"
 		local result, didFallback =
-			compute(current, parser:get("scope") or "unsorted", agent, options.runner, options.now())
+			compute(current, parser:get("scope") or "unsorted", command, options.runner, options.now())
+		local revision = current.revision
+
 		if not parser:has("dry-run") then
-			runTransaction(options.dir, function(doc)
+			revision = runTransaction(options.dir, function(doc)
 				save(doc, result)
-			end)
+			end).revision
 		end
 
 		if options.asJson then
 			local value = convertToJson(result)
+			value.revision = revision
 
 			if didFallback then
-				value.warning = "Agent unavailable or returned no valid groups; kept heuristic suggestions."
+				value.warning = FALLBACK
 			end
 
 			options.write(json.serialize(value, true))
@@ -63,7 +69,7 @@ return table.freeze({
 			end
 
 			if didFallback then
-				table.insert(lines, "Agent unavailable or returned no valid groups; kept heuristic suggestions.")
+				table.insert(lines, FALLBACK)
 			end
 
 			options.write(table.concat(lines, "\n"))

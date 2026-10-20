@@ -15,6 +15,8 @@ type Props = {
   openSettings: () => void
   /** The shortcut that opens settings, shown beside its button. */
   settingsHint: string
+  /** A width the person dragged it to, in place of the default. */
+  width?: number
 }
 
 /** A stable list of every group, in canvas order, for jumping between bodies of work. */
@@ -30,6 +32,7 @@ export function Sidebar({
   newWorkspace,
   openSettings,
   settingsHint,
+  width,
 }: Props) {
   const clusters = nodes.filter(isCluster)
   const children = (parent: string | undefined) => clusters.filter((cluster) => cluster.parentId === parent)
@@ -82,7 +85,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" style={width ? { width } : undefined}>
       <div className="side-head" data-tauri-drag-region="deep">
         <button type="button" className="side-hide" onClick={hide} title="Hide the group list">
           ‹

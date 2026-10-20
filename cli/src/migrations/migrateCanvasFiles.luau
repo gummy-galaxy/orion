@@ -3,6 +3,7 @@ local json = require("@std/json")
 local net = require("@std/net")
 local path = require("@std/path")
 
+local checkDataVersion = require("@root/store/checkDataVersion")
 local fileNames = require("@root/fileNames")
 local getDocPath = require("@root/store/getDocPath")
 local isProcessAlive = require("@root/server/isProcessAlive")
@@ -82,6 +83,8 @@ local function migrateDir(dir: string)
 			local contents = fs.readFileToString(legacy)
 			local document = json.asObject(json.deserialize(contents) :: json.Value)
 			assert(document, `{legacy} must be a JSON object`)
+			-- Refuse before moving it, so an older Orion can still upgrade it in place.
+			checkDataVersion(document, legacy)
 
 			if not fs.exists(backup) then
 				fs.copy(legacy, backup)
@@ -105,10 +108,11 @@ end
 --[[
 	Moves every canvas in a data folder from one `orion.json` to a folder of files: `canvas.json`, `nodes/`,
 	`links/`, and `local.json`. The original stays beside them as `orion.backup.json`. Fields are split as they
-	were stored, so reading the files later fills in defaults and upgrades older cards the same way reading
-	`orion.json` did. Each canvas moves under its lock, one that stopped partway finishes on the next run, and
-	every canvas that can move does before the failures are raised. It refuses while an older Orion is still
-	serving the folder, since that server would keep writing `orion.json`. Returns whether it moved anything.
+	were stored, so reading the files later fills in defaults the same way reading `orion.json` did. A version 1
+	`orion.json` stays where it is, so an older Orion can still upgrade it. Each canvas moves under its lock, one
+	that stopped partway finishes on the next run, and every canvas that can move does before the failures are
+	raised. It refuses while an older Orion is still serving the folder, since that server would keep writing
+	`orion.json`. Returns whether it moved anything.
 ]]
 local function migrateCanvasFiles(root: string, options: Options?): boolean
 	local dirs = getLegacyDirs(root)

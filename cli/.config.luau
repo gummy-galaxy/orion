@@ -8,7 +8,6 @@ return {
 			root = "./src",
 			batteries = "@pkg/lute@v1.0.1-nightly.20260924/batteries",
 			archivist = "@pkg/Archivist@v0.2.0",
-			["flipbook-batteries"] = "@pkg/FlipbookBatteries@v0.12.0",
 			repo = "./",
 		},
 	},

@@ -6,7 +6,6 @@ local context = require("@root/cli/context")
 local derive = require("@root/graph/derive")
 local findItem = require("@root/graph/findItem")
 local getLabel = require("@root/graph/getLabel")
-local getQueryValue = require("@root/cli/getQueryValue")
 local getRequired = require("@root/cli/getRequired")
 local graphTypes = require("@root/graph/types")
 local isGroup = require("@root/graph/isGroup")
@@ -24,7 +23,7 @@ local function writeJson(options: Context, doc: Doc, derived: graphTypes.Derived
 	local values: json.Array = {}
 
 	for _, item in items do
-		table.insert(values, getQueryValue(doc, derived, item))
+		table.insert(values, render.itemJson(doc, derived, item))
 	end
 
 	options.write(json.serialize(values, true))
@@ -38,7 +37,7 @@ local function writeLines(options: Context, doc: Doc, derived: graphTypes.Derive
 			local kind = if isGroup(item) then "group" else "image"
 			local parentItem = if item.parentId then findItem(doc, item.parentId) else nil
 			local where = if parentItem then getLabel(parentItem) else ""
-			table.insert(lines, `{pad(kind, 9)}{pad(item.id, 24)}{pad(getLabel(item), 44)}{pad(kind, 20)}{where}`)
+			table.insert(lines, `{pad(kind, 9)}{pad(item.id, 38)}{pad(getLabel(item), 44)}{pad(kind, 20)}{where}`)
 		else
 			table.insert(lines, render.table(doc, derived, { item }))
 		end

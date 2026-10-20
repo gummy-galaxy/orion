@@ -1,6 +1,6 @@
+import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { THEMES, applyAppearance, colorModeOf, readAppearance, themeOf, writeAppearance, type Appearance, type Theme } from './appearance'
-import { TASK_HEIGHT, TASK_WIDTH } from './model'
 import { SKINS, skinOf } from './skins'
 import { parseThemeFile } from './themeFile'
 
@@ -51,8 +51,8 @@ describe('themeOf', () => {
   it('falls back to the default for an unknown id or a theme that failed to load', () => {
     const broken = parseThemeFile('bad.json', '{')
 
-    expect(themeOf('custom:gone.json', [dusk]).id).toBe('classic')
-    expect(themeOf('custom:bad.json', [broken]).id).toBe('classic')
+    expect(themeOf('custom:gone.json', [dusk]).id).toBe('vibrant')
+    expect(themeOf('custom:bad.json', [broken]).id).toBe('vibrant')
   })
 })
 
@@ -71,6 +71,7 @@ describe('applyAppearance', () => {
     expect(dataset.theme).toBe('vibrant')
     expect(properties.size).toBe(0)
 
+    // Classic's colors are the base on :root, so it needs no attribute.
     applyAppearance(base, root, THEMES as Theme[])
     expect(dataset.theme).toBeUndefined()
     expect(properties.size).toBe(0)
@@ -109,7 +110,7 @@ describe('applyAppearance', () => {
     const { root, properties, dataset } = fakeRoot()
 
     applyAppearance({ ...base, theme: 'custom:night.json' }, root, [darkOnly])
-    applyAppearance(base, root, [darkOnly])
+    applyAppearance(base, root, THEMES as Theme[])
 
     expect(properties.size).toBe(0)
     expect(dataset.theme).toBeUndefined()
@@ -121,27 +122,62 @@ describe('applyAppearance', () => {
     applyAppearance({ ...base, theme: 'custom:bad.json' }, root, [parseThemeFile('bad.json', '{')])
 
     expect(properties.size).toBe(0)
-    expect(dataset.theme).toBeUndefined()
+    expect(dataset.theme).toBe('vibrant')
   })
 })
 
 describe('card skins', () => {
-  it('keeps Classic first and uses each skin size', () => {
-    expect(SKINS.map((skin) => skin.id)).toEqual(['classic', 'plain', 'trading'])
+  it('keeps Trading cards first and uses each skin size', () => {
+    expect(SKINS.map((skin) => skin.id)).toEqual(['trading', 'classic', 'plain'])
     expect(SKINS.map((skin) => skin.size)).toEqual([
-      { width: TASK_WIDTH, height: TASK_HEIGHT },
-      { width: TASK_WIDTH, height: TASK_HEIGHT },
       { width: 198, height: 285 },
+      { width: TASK_WIDTH, height: TASK_HEIGHT },
+      { width: TASK_WIDTH, height: TASK_HEIGHT },
     ])
-    expect(skinOf('unknown')).toBe(SKINS[0])
+    expect(skinOf('unknown').id).toBe('trading')
+    expect(skinOf('').id).toBe('trading')
+  })
+
+  it('deprecates every skin but Trading cards', () => {
+    expect(SKINS.filter((skin) => 'deprecated' in skin).map((skin) => skin.id)).toEqual(['classic', 'plain'])
   })
 })
 
 describe('appearance', () => {
+  it('defaults to Vibrant and Trading cards for new installs', () => {
+    expect(readAppearance()).toEqual({
+      theme: 'vibrant',
+      skin: 'trading',
+      colorMode: 'system',
+      statusColors: 'theme',
+      animations: 'system',
+      companion: true,
+    })
+    expect(colorModeOf(readAppearance())).toBe('dark')
+  })
+
+  it('defaults an empty or unknown choice and keeps a deprecated one', () => {
+    values.set('orion:theme', '')
+    values.set('orion:skin', '')
+    expect(readAppearance()).toMatchObject({ theme: 'vibrant', skin: 'trading' })
+
+    values.set('orion:theme', 'custom:gone.json')
+    values.set('orion:skin', 'unknown')
+    expect(themeOf(readAppearance().theme).id).toBe('vibrant')
+    expect(readAppearance().skin).toBe('trading')
+
+    values.set('orion:theme', 'classic')
+    values.set('orion:skin', 'classic')
+    values.set('orion:color-mode', 'light')
+    expect(readAppearance()).toMatchObject({ theme: 'classic', skin: 'classic', colorMode: 'light' })
+    expect(colorModeOf(readAppearance())).toBe('light')
+  })
+
   it('defaults invalid preferences while retaining valid ones', () => {
+    values.set('orion:theme', 'classic')
     expect(readAppearance()).toEqual({
       theme: 'classic',
-      skin: 'classic',
+      skin: 'trading',
       colorMode: 'system',
       statusColors: 'theme',
       animations: 'system',
@@ -164,17 +200,17 @@ describe('appearance', () => {
     values.set('orion:color-mode', 'invalid')
     expect(readAppearance()).toEqual({
       theme: 'vibrant',
-      skin: 'classic',
+      skin: 'trading',
       colorMode: 'system',
       statusColors: 'theme',
       animations: 'system',
       companion: true,
     })
 
-    values.set('orion:skin', 'trading')
+    values.set('orion:skin', 'classic')
     expect(readAppearance()).toEqual({
       theme: 'vibrant',
-      skin: 'trading',
+      skin: 'classic',
       colorMode: 'system',
       statusColors: 'theme',
       animations: 'system',
@@ -230,7 +266,7 @@ describe('appearance', () => {
     applyAppearance({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', statusColors: 'theme', animations: 'system', companion: true }, root)
     expect(dataset).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', motion: 'on' })
 
-    applyAppearance({ theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system', companion: true }, root)
+    applyAppearance({ theme: 'classic', skin: 'trading', colorMode: 'system', statusColors: 'theme', animations: 'system', companion: true }, root)
     expect(dataset).toEqual({ motion: 'on' })
   })
 
@@ -241,8 +277,8 @@ describe('appearance', () => {
       },
     })
     expect(readAppearance()).toEqual({
-      theme: 'classic',
-      skin: 'classic',
+      theme: 'vibrant',
+      skin: 'trading',
       colorMode: 'system',
       statusColors: 'theme',
       animations: 'system',

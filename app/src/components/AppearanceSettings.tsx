@@ -1,5 +1,5 @@
-import { COLOR_MODES, colorModeOf, themeOf, type Appearance, type Theme } from '../appearance'
-import { SKINS } from '../skins'
+import { COLOR_MODES, THEMES, colorModeOf, themeOf, type Appearance, type Theme } from '../appearance'
+import { SKINS, skinOf } from '../skins'
 
 type Props = { appearance: Appearance; themes: readonly Theme[]; chooseAppearance: (appearance: Appearance) => void }
 
@@ -10,6 +10,7 @@ export function AppearanceSettings({ appearance, themes, chooseAppearance }: Pro
   const theme = themeOf(appearance.theme, themes)
   const fixed = theme.schemes.length === 1
   const colorMode = colorModeOf(appearance, themes)
+  const skin = skinOf(appearance.skin)
   const problems = themes.flatMap((option) => [
     ...(option.error ? [`${option.label} ${option.error}.`] : []),
     ...(option.id === theme.id ? (option.notes ?? []).map((note) => `${option.label}: ${note}.`) : []),
@@ -35,9 +36,15 @@ export function AppearanceSettings({ appearance, themes, chooseAppearance }: Pro
               onClick={() => chooseAppearance({ ...appearance, theme: option.id })}
             >
               {option.label}
+              {option.deprecated && <span className="option-tag">Deprecated</span>}
             </button>
           ))}
         </div>
+        {theme.deprecated && (
+          <p className="settings-field-detail">
+            {theme.label} is deprecated and will be removed. {THEMES[0].label} is the default.
+          </p>
+        )}
         {theme.author && (
           <p className="settings-field-detail">
             {theme.label} by {theme.author}.
@@ -65,9 +72,15 @@ export function AppearanceSettings({ appearance, themes, chooseAppearance }: Pro
               onClick={() => chooseAppearance({ ...appearance, skin: option.id })}
             >
               {option.label}
+              {'deprecated' in option && <span className="option-tag">Deprecated</span>}
             </button>
           ))}
         </div>
+        {'deprecated' in skin && (
+          <p className="settings-field-detail">
+            {skin.label} cards are deprecated and will be removed. {SKINS[0].label} are the default.
+          </p>
+        )}
       </div>
       <div className="settings-field">
         <div>

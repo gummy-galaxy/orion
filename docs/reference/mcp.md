@@ -27,9 +27,10 @@ Runs `orion card add`.
 | `label`  | string                                                                 | **Required.** What the work is                                                                                                                                                                                       |
 | `canvas` | canvas                                                                 | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                               |
 | `group`  | id                                                                     | Group to add it to                                                                                                                                                                                                   |
+| `after`  | id                                                                     | Item the card follows; it lands beside it, in its group                                                                                                                                                              |
+| `before` | id                                                                     | Item the card leads into; it lands beside it, in its group                                                                                                                                                           |
 | `status` | todo \| active \| review \| blocked \| deferred \| done                | todo, active, review, blocked, deferred, or done                                                                                                                                                                     |
-| `repo`   | string                                                                 | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                                                                                                                                |
-| `pr`     | integer                                                                | Pull request number. Deprecated: use --ref with the pull request URL                                                                                                                                                 |
+| `repo`   | string                                                                 | Repository it belongs to, as owner/name (empty to clear)                                                                                                                                                             |
 | `who`    | you \| review \| ci                                                    | Whose move: you, review, or ci (empty to clear)                                                                                                                                                                      |
 | `note`   | string                                                                 | Free-form note. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
 | `shape`  | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)                                                                                                             |
@@ -49,8 +50,7 @@ Runs `orion card set`.
 | `canvas` | canvas                                                                       | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                                             |
 | `label`  | string                                                                       | New label                                                                                                                                                                                                                                          |
 | `status` | todo \| active \| review \| blocked \| deferred \| done                      | todo, active, review, blocked, deferred, or done                                                                                                                                                                                                   |
-| `repo`   | string                                                                       | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                                                                                                                                                              |
-| `pr`     | integer                                                                      | Pull request number. Deprecated: use --ref with the pull request URL                                                                                                                                                                               |
+| `repo`   | string                                                                       | Repository it belongs to, as owner/name (empty to clear)                                                                                                                                                                                           |
 | `who`    | you \| review \| ci \| ""                                                    | Whose move: you, review, or ci (empty to clear)                                                                                                                                                                                                    |
 | `note`   | string                                                                       | Replaces the whole note, and empty clears it. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
 | `shape`  | service \| store \| actor \| external \| interface \| process \| queue \| "" | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)                                                                                                                                           |
@@ -374,12 +374,12 @@ Apply a plan of cards, notes, groups, and links in one call. The plan is a list 
 
 Runs `orion apply`.
 
-| Argument     | Type        | Description                                                                                                                                                 |
-| ------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `canvas`     | canvas      | Canvas name. Omit to use the canvas selected in Orion.                                                                                                      |
-| `plan`       | object list | **Required.** Operations in order. Each has an op field, such as addCard with label, or link with from and to. Move needs group, or null for the top level. |
-| `dryRun`     | boolean     | Preview the plan without writing                                                                                                                            |
-| `ifRevision` | integer     | Write only if the document has this revision                                                                                                                |
+| Argument     | Type        | Description                                                                                                                                                                                                                                         |
+| ------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `canvas`     | canvas      | Canvas name. Omit to use the canvas selected in Orion.                                                                                                                                                                                              |
+| `plan`       | object list | **Required.** Operations in order. Each has an op field, such as addCard with label, or link with from and to. New cards and notes are placed after the last operation, beside the items they link to. Move needs group, or null for the top level. |
+| `dryRun`     | boolean     | Preview the plan without writing                                                                                                                                                                                                                    |
+| `ifRevision` | integer     | Write only if the document has this revision                                                                                                                                                                                                        |
 
 ## orion_canvas_list
 
@@ -561,12 +561,12 @@ Compute group suggestions
 
 Runs `orion suggestion find`.
 
-| Argument | Type                    | Description                                            |
-| -------- | ----------------------- | ------------------------------------------------------ |
-| `canvas` | canvas                  | Canvas name. Omit to use the canvas selected in Orion. |
-| `agent`  | claude \| codex \| none | claude, codex, or none                                 |
-| `scope`  | unsorted \| all         | unsorted or all                                        |
-| `dryRun` | boolean                 | Show suggestions without writing                       |
+| Argument  | Type            | Description                                                                                                                                             |
+| --------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `canvas`  | canvas          | Canvas name. Omit to use the canvas selected in Orion.                                                                                                  |
+| `command` | string list     | A command and its arguments, such as ["claude", "-p", "--output-format", "json"]. It reads the cards as a prompt on stdin and replies with JSON groups. |
+| `scope`   | unsorted \| all | unsorted or all                                                                                                                                         |
+| `dryRun`  | boolean         | Show suggestions without writing                                                                                                                        |
 
 ## orion_suggestion_list
 

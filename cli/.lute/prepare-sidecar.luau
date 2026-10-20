@@ -1,12 +1,10 @@
-local FlipbookBatteries = require("@flipbook-batteries")
 local fs = require("@std/fs")
 local path = require("@std/path")
 local project = require("@repo/project")
 local system = require("@std/system")
 
+local run = require("@root/run")
 local runScript = require("@root/runScript")
-
-local run = FlipbookBatteries.run
 
 local root = path.resolve("..")
 local binariesPath = path.join(root, "desktop", "src-tauri", "binaries")

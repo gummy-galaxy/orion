@@ -1,7 +1,9 @@
 local cli = require("@batteries/cli")
+local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local runTransaction = require("@root/store/runTransaction")
+local writeResult = require("@root/cli/writeResult")
 
 type Context = context.Context
 
@@ -14,12 +16,12 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local id = assert(parser:get("id"), "missing <id>")
-		runTransaction(options.dir, function(doc)
+		local doc = runTransaction(options.dir, function(current)
 			local found = false
 
-			for index = #doc.settings.sources, 1, -1 do
-				if doc.settings.sources[index].id == id then
-					table.remove(doc.settings.sources, index)
+			for index = #current.settings.sources, 1, -1 do
+				if current.settings.sources[index].id == id then
+					table.remove(current.settings.sources, index)
 					found = true
 				end
 			end
@@ -27,6 +29,6 @@ return table.freeze({
 			assert(found, `no source with id "{id}"`)
 		end)
 
-		options.write(`Removed source {id}`)
+		writeResult(options, json.object({ revision = doc.revision, id = id }), `Removed source {id}`)
 	end,
 })

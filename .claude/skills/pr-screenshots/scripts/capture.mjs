@@ -5,6 +5,7 @@
 //
 //   node capture.mjs --url http://localhost:5302 --out after-canvas.png \
 //     [--width 1440] [--height 900] [--scale 2] [--theme light|dark] \
+//     [--appearance <theme>,<skin>|off] \
 //     [--wait-for <selector>] [--click <target>] [--click-text <text>] \
 //     [--right-click <target>] [--middle-click <target>] [--double-click <target>] \
 //     [--hover <target>] \
@@ -46,6 +47,12 @@
 // the page around them, 32 by default, so shadows and nearby context stay in the
 // frame. The crop grows to keep the cursor in it.
 //
+// --appearance pins Orion's theme and card skin, Vibrant and Trading cards unless
+// given others, so captures from any branch render the same, even one from before
+// they became the defaults. It sets them in browser storage before the page loads,
+// over what the app's server has saved, and in a Storybook iframe's globals.
+// --appearance off leaves the app to its saved choice or its own defaults.
+//
 // An --out ending in .mp4 records a video instead. Recording starts once --wait-for
 // matches, runs through the steps, and stops --delay milliseconds after the last one.
 // The cursor stays on screen the whole time and shows each press as it happens. For
@@ -76,6 +83,8 @@ const VIDEO_DEFAULTS = { scale: 1, delay: 1500, glide: 600 };
 const VIDEO_KEY_MS = 900;
 const VIDEO_TYPE_MS = 45;
 
+const DEFAULT_APPEARANCE = "vibrant,trading";
+
 const POINT_PATTERN = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/;
 const BUTTON_MASKS = { left: 1, right: 2, middle: 4 };
 
@@ -86,6 +95,7 @@ function parseArguments(argv) {
     padding: 32,
     fps: 60,
     cursor: "on",
+    appearance: DEFAULT_APPEARANCE,
     steps: [],
     chrome: process.env.CHROME_PATH || DEFAULT_CHROME,
     ffmpeg: process.env.FFMPEG_PATH || "ffmpeg",
@@ -140,6 +150,7 @@ function parseArguments(argv) {
         "--chrome",
         "--ffmpeg",
         "--cursor",
+        "--appearance",
       ].includes(name)
     )
       options[name.slice(2)] = value;
@@ -150,11 +161,104 @@ function parseArguments(argv) {
     throw new Error("--url and --out are required");
 
   options.video = options.out.endsWith(".mp4");
+  options.appearance = parseAppearance(options.appearance);
 
   return {
     ...(options.video ? VIDEO_DEFAULTS : SCREENSHOT_DEFAULTS),
     ...options,
   };
+}
+
+// Reads `<theme>,<skin>` into the ids Orion stores, or null for `off`.
+function parseAppearance(value) {
+  if (value === "off") return null;
+
+  const [theme, skin] = value.split(",").map((part) => part.trim());
+
+  if (!theme || !skin)
+    throw new Error(`--appearance needs <theme>,<skin> or off, not ${value}`);
+
+  return { theme, skin };
+}
+
+// Pins the theme and skin in every document the page loads. Browser storage covers the
+// first paint, the saved-settings response covers the app's restore from its server,
+// which would otherwise overwrite storage, and the URL covers Storybook, whose
+// toolbar globals drive most stories.
+async function pinAppearance(session, appearance) {
+  await session.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: `try {
+      localStorage.setItem("orion:theme", ${JSON.stringify(appearance.theme)});
+      localStorage.setItem("orion:skin", ${JSON.stringify(appearance.skin)});
+    } catch {}`,
+  });
+
+  session.on("Fetch.requestPaused", (params) =>
+    pinSavedSettings(session, appearance, params).catch((error) => {
+      console.error(`--appearance: ${error.message}`);
+      session.send("Fetch.continueRequest", { requestId: params.requestId });
+    }),
+  );
+  await session.send("Fetch.enable", {
+    patterns: [{ urlPattern: "*/api/settings", requestStage: "Response" }],
+  });
+}
+
+async function pinSavedSettings(session, appearance, params) {
+  const { requestId, request, responseStatusCode, responseHeaders } = params;
+
+  if (request.method !== "GET" || responseStatusCode !== 200) {
+    await session.send("Fetch.continueRequest", { requestId });
+
+    return;
+  }
+
+  const { body, base64Encoded } = await session.send("Fetch.getResponseBody", {
+    requestId,
+  });
+  const saved = JSON.parse(
+    base64Encoded ? Buffer.from(body, "base64").toString() : body,
+  );
+
+  await session.send("Fetch.fulfillRequest", {
+    requestId,
+    responseCode: 200,
+    responseHeaders: responseHeaders.filter(
+      ({ name }) => name.toLowerCase() !== "content-length",
+    ),
+    body: Buffer.from(
+      JSON.stringify({
+        ...saved,
+        theme: appearance.theme,
+        skin: appearance.skin,
+      }),
+    ).toString("base64"),
+  });
+}
+
+// A Storybook iframe takes its toolbar globals from the URL. One the URL already sets
+// wins.
+function withStoryGlobals(url, appearance) {
+  const parsed = new URL(url);
+
+  if (!parsed.pathname.endsWith("/iframe.html")) return url;
+
+  const globals = new Map(
+    (parsed.searchParams.get("globals") ?? "")
+      .split(";")
+      .filter(Boolean)
+      .map((pair) => pair.split(":")),
+  );
+
+  if (!globals.has("theme")) globals.set("theme", appearance.theme);
+  if (!globals.has("skin")) globals.set("skin", appearance.skin);
+
+  parsed.searchParams.set(
+    "globals",
+    [...globals].map((pair) => pair.join(":")).join(";"),
+  );
+
+  return parsed.toString();
 }
 
 function sleep(ms) {
@@ -1159,9 +1263,15 @@ async function capture(options) {
       });
     }
 
+    if (options.appearance) await pinAppearance(session, options.appearance);
+
     const loaded = session.once("Page.loadEventFired");
 
-    await session.send("Page.navigate", { url: options.url });
+    await session.send("Page.navigate", {
+      url: options.appearance
+        ? withStoryGlobals(options.url, options.appearance)
+        : options.url,
+    });
     await loaded;
 
     if (options.waitFor) await waitFor(session, options.waitFor);

@@ -15,3 +15,7 @@ Serve Orion's agent tools over MCP on stdin and stdout
 ```sh
 orion mcp start [options]
 ```
+
+| Argument | Description |
+| -------- | ----------- |
+| `--json` | Print JSON  |

@@ -3,6 +3,7 @@ import { selectAtom } from 'jotai/utils'
 import { useMemo } from 'react'
 import { getCardView } from './cardView'
 import { readAppearance } from './appearance'
+import type { Pulse } from './celebrate'
 import { buildWork, toServerFacts, traceFrom, type AttentionMark, type Derived, type GroupStats, type SourceRef } from './derive'
 import { byId, isImage, isTask, tintOf, type AppNode, type Link, type TaskNode, type Tint, type ViewStatus } from './model'
 import { sameFoldPreview, type FoldPreviewItem } from './foldPreview'
@@ -27,6 +28,10 @@ export const dropTargetAtom = atom<string | null>(null)
 export const resizeHandlesAtom = atom<string | null>(null)
 /** Cards whose close-out badge is clearing, each with the delay before its animation starts. */
 export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>())
+/** Links a chain closing out pulses along, each with when its pulse leaves and how long it takes to arrive. */
+export const chainPulsesAtom = atom<Map<string, Pulse>>(new Map<string, Pulse>())
+/** Cards on the last beat of a chain closing out, which close it with a flourish. */
+export const chainFinaleAtom = atom<Set<string>>(new Set<string>())
 
 /** The graph facts `orion serve` derived for the open document. Null until the server answers, or with no server. */
 export const derivedAtom = atom<Derived | null>(null)
@@ -153,6 +158,10 @@ export const useTraceRole = (id: string) =>
   )
 
 export const useCelebrating = (id: string) => useAtomValue(useMemo(() => selectAtom(celebratingAtom, (clearing) => clearing.get(id)), [id]))
+
+export const useChainPulse = (id: string) => useAtomValue(useMemo(() => selectAtom(chainPulsesAtom, (pulses) => pulses.get(id)), [id]))
+
+export const useChainFinale = (id: string) => useAtomValue(useMemo(() => selectAtom(chainFinaleAtom, (finale) => finale.has(id)), [id]))
 
 export const useMarked = (id: string) => useAtomValue(useMemo(() => selectAtom(attentionAtom, (attention) => !!attention?.has(id)), [id]))
 

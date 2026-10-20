@@ -43,3 +43,9 @@ Two more skins were tried as separate pull requests, and both were closed rather
 The [named tokens](https://github.com/vocksel/orion/pull/256) gave colors, status, type, radii, and spacing names, so a theme sets a known set of values instead of reaching into the app's styles. The [shareable theme files](https://github.com/vocksel/orion/pull/263) load from the data folder, so a theme can be copied between machines as a file.
 
 The charter asks for this. Nearly every visible property has a named token, and themes are files of those tokens. See the [theme tokens](/guide/tokens) and [themes](/guide/themes) guides, and the [charter](/development/charter).
+
+## October 18, 2026: Vibrant and Trading cards by default
+
+Vibrant became the default theme and Trading cards the default skin, for new installs and for anyone whose saved choice is empty or unknown. A choice someone already made stays. The Classic theme and the Classic and Plain skins are deprecated: Settings tags them, they keep working for now, and they'll be removed later. The [decision](/development/decisions#vibrant-and-trading-card-are-the-defaults) has the reasoning.
+
+Classic's colors are still the base on `:root` that Vibrant and theme files set over, so the [token defaults](/guide/tokens) don't change yet.

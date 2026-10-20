@@ -7,11 +7,11 @@ local testing = require("@root/testing")
 local types = require("@root/types")
 
 local function runUnexpected(_argv: { string }, _stdin: string?): types.CommandResult
-	error("unexpected agent call")
+	error("unexpected command call")
 end
 
-local function getSuggestions(doc: types.Doc, agent: string?, runner: types.CommandRunner?, scope: string?)
-	return compute(doc, scope or "unsorted", agent or "none", runner or runUnexpected, "2026-10-04T00:00:00Z")
+local function getSuggestions(doc: types.Doc, command: { string }?, runner: types.CommandRunner?, scope: string?)
+	return compute(doc, scope or "unsorted", command, runner or runUnexpected, "2026-10-04T00:00:00Z")
 end
 
 local function getPair(extraA: json.Object?, extraB: json.Object?)
@@ -190,7 +190,7 @@ test.case("default scope includes unsorted and top-level cards, ignoring notes",
 	assert.eq(table.concat(getSuggestions(doc, nil, nil, "all").groups[1].members, ","), "a,b,c")
 end)
 
-test.case("agent reply drops unknown and duplicate ids while retaining ignored heuristics", function(assert)
+test.case("command reply drops unknown and duplicate ids while retaining ignored heuristics", function(assert)
 	local doc = testing.createDoc({
 		testing.task(
 			"a",
@@ -234,8 +234,8 @@ test.case("agent reply drops unknown and duplicate ids while retaining ignored h
 		),
 	})
 	local prompt = ""
-	local result, didFallback = getSuggestions(doc, "claude", function(argv, stdin)
-		assert.eq(argv[1], "claude")
+	local result, didFallback = getSuggestions(doc, { "grouper", "--json" }, function(argv, stdin)
+		assert.eq(table.concat(argv, " "), "grouper --json")
 		prompt = stdin
 		return testing.result(
 			true,
@@ -252,13 +252,13 @@ test.case("agent reply drops unknown and duplicate ids while retaining ignored h
 	assert.eq(table.concat(result.groups[2].members, ","), "c,d")
 end)
 
-test.case("garbage agent reply keeps heuristic suggestions", function(assert)
+test.case("garbage command reply keeps heuristic suggestions", function(assert)
 	local doc = getPair(
 		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } }),
 		json.object({ repo = "vocksel/app", refs = { { source = "hop", kind = "branch", key = "vocksel/app@same" } } })
 	)
-	local result, didFallback = getSuggestions(doc, "codex", function(argv, stdin)
-		assert.eq(argv[1], "codex")
+	local result, didFallback = getSuggestions(doc, { "grouper" }, function(argv, stdin)
+		assert.eq(argv[1], "grouper")
 		assert.strContains(stdin or "", "cards")
 		return testing.result(true, "not JSON")
 	end)
