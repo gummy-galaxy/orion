@@ -306,15 +306,29 @@ Entries from `orion log add` are by the person running the CLI, named by `$USER`
 
 Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shapes, and data files. How freely they change depends on the release:
 
-- **Before 0.1.0:** cut, rename, and regroup anything. Remove the old form in the same change, with no alias or deprecation period. A command that duplicates another or serves one case is a candidate to remove.
+- **Before 0.1.0:** cut, rename, and regroup anything. A cut goes in the same change, with no deprecation period. A rename keeps the old name working through an alias, as "Aliases and migrations share one lifecycle" describes. A command that duplicates another or serves one case is a candidate to remove.
 - **From 0.1.0:** breaking changes are still allowed, but each one is deliberate. Anything new must show why it has to widen the surface rather than fit what's already there.
 - **From 1.0.0:** the charter's stability promises apply, and breaking changes ship with aliases first.
 
 0.1.0 means the first tagged release, whatever version numbers the manifests carry before it, and it lands around when the repository goes public. 1.0.0 comes much later, likely once the charter's roadmap phases are complete, though an earlier gate may fit better. The HTTP API that `orion server start` exposes is internal to the app at every stage and carries no promise.
 
-**Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release. The forms that predate it, `orion sync`, `--pr`, and `--repo` used with `--pr`, go now with no alias rather than waiting out their release.
+**Why:** the CLI has already sprawled one feature at a time, and every cut costs only our own scripts before anyone else depends on it. Once there are users, sprawl is expensive to undo, so new surface has to earn its place well before stability is promised. This replaced keeping deprecated aliases such as `--repo` and `--pr` for a release. The forms that predate it, `orion sync`, `--pr`, and `--repo` used with `--pr`, go now with no alias rather than waiting out their release. Renames got aliases back once they had a lifecycle of their own: an alias costs little when it's pruned at the next release, and it turns a renamed command in a script or a saved prompt into a notice instead of an error.
 
-2026-10-12, 2026-10-18 · [#146](https://github.com/vocksel/orion/issues/146), [#469](https://github.com/vocksel/orion/issues/469)
+2026-10-12, 2026-10-18, 2026-10-19 · [#146](https://github.com/vocksel/orion/issues/146), [#469](https://github.com/vocksel/orion/issues/469)
+
+### Aliases and migrations share one lifecycle
+
+An alias keeps a renamed command, option, or MCP tool working, as a migration keeps an older data folder working. Both follow the same rules:
+
+- **The machinery stays, and the entries are pruned.** The alias resolver and the migration runner are permanent and tested. Each alias or migration is an entry, dated with the pull request that added it in its folder's README. Every release removes the entries from before it, so each release starts clean.
+- **An alias is invisible except for its notice.** The CLI rewrites an old name before it parses and prints a one-line notice to stderr, never to stdout, so `--json` output stays the same. Help doesn't list aliases. The MCP server accepts an old tool name when it's called but doesn't list it.
+- **Tests guard the entries.** Every alias points at a command or option that exists, none hides a live command, and each has its date and pull request.
+
+From 1.0.0, an alias stays for at least one release before it's pruned, as the three stages require.
+
+**Why:** renames before 0.1.0 are cheap for us but break scripts and agent prompts without warning. Sharing one lifecycle with migrations means one release step clears both, and permanent machinery means the code path is hardened by the time 1.0.0 depends on it.
+
+2026-10-19 · [#146](https://github.com/vocksel/orion/issues/146)
 
 ### The HTTP API is internal, and the server enforces it
 
@@ -336,23 +350,32 @@ The API that `orion server start` serves exists for the app alone. Agents and sc
 
 Commands name the thing they act on first, then the action: `orion node remove`, `orion group remove`, `orion link add`. Each noun has its own subcommands, help, and options, so no flag changes meaning by what it targets. Flat verbs such as `orion remove` and `orion ungroup` go away. Each kind of node has its own noun for creating it, such as `orion card add` and `orion note add`, since their inputs differ, and `orion node` covers what applies to any node. `orion canvas` replaces `orion workspace`, following the charter's vocabulary. Two reads stay top level because agents run them before almost everything else: `orion focus`, and `orion next`, which lists the work that can start now, most unblocking first.
 
-**Why:** flat verbs grew one feature at a time and overload options across items, groups, and sources. Grouping by noun makes the surface learnable from `--help` and gives each new kind of thing an obvious home.
+Two verbs bring things in, and which one a command uses depends on what it brings:
 
-2026-10-12 · [#146](https://github.com/vocksel/orion/issues/146), [#110](https://github.com/vocksel/orion/issues/110), [#55](https://github.com/vocksel/orion/issues/55), [#109](https://github.com/vocksel/orion/issues/109)
+- **`create`** makes something new that Orion owns, which you can change or remove later: `card create`, `note create`, `link create`, `group create`, and `canvas create`.
+- **`add`** brings in something that already exists outside Orion, or appends to a record that never changes: `source add`, `theme add`, `media add`, and `log add`.
+
+`remove` undoes either. Today's `card add`, `note add`, `link add`, and `media insert` move to these names, and `group add` folds into `group create --items`.
+
+**Why:** flat verbs grew one feature at a time and overload options across items, groups, and sources. Grouping by noun makes the surface learnable from `--help` and gives each new kind of thing an obvious home. Mixing `create` and `add` with no rule made every new command a coin flip. The split follows `gh`, which agents already know: a card is a new thing with an identity, while a source or a theme file exists before Orion learns about it, and a log entry is never edited.
+
+2026-10-12, 2026-10-19 · [#146](https://github.com/vocksel/orion/issues/146), [#110](https://github.com/vocksel/orion/issues/110), [#55](https://github.com/vocksel/orion/issues/55), [#109](https://github.com/vocksel/orion/issues/109)
 
 ### MCP tools come from the CLI's commands
 
 Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`, such as `orion_card_add`, with a field for each option in camelCase. Top-level commands keep one word, such as `orion_next`. A command declares its tool where it's defined: its annotations, the options the tool leaves out and why, or why MCP leaves the command out. An option's value type, such as an enum or an integer, sits on the line that defines it, and the input schema comes from it. A tool's description is the command's help unless the command gives an agent-facing one, which stays rare.
 
-**Why:** agents learn one vocabulary, and a new command or option can't leave MCP behind. One tool per command gives each a precise schema, so a client can check a call before it runs. A tool that switches between commands, as `orion_inspect` did, can't say which arguments go with which. This replaced names picked one tool at a time, which mixed verb-first, noun-first, and bare-verb patterns.
+Every tool takes `canvas`, as every command takes `--canvas`, and ignores it where it means nothing, such as `orion_theme_list`. Only tools that name a canvas themselves, such as `orion_canvas_create`, leave it out, so the target can't land in the wrong field. No tool takes a program to run, as "Programs Orion runs are chosen on this machine" says.
 
-2026-10-18 · [#415](https://github.com/vocksel/orion/issues/415), [#146](https://github.com/vocksel/orion/issues/146)
+**Why:** agents learn one vocabulary, and a new command or option can't leave MCP behind. One tool per command gives each a precise schema, so a client can check a call before it runs. A tool that switches between commands, as `orion_inspect` did, can't say which arguments go with which. This replaced names picked one tool at a time, which mixed verb-first, noun-first, and bare-verb patterns. A `canvas` field that's ignored costs nothing, while an exception for each tool is one more thing to explain.
+
+2026-10-18, 2026-10-19 · [#415](https://github.com/vocksel/orion/issues/415), [#146](https://github.com/vocksel/orion/issues/146)
 
 ### Data folders move to a new layout on their own
 
 When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and refuses while another build of Orion is still serving the folder.
 
-These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
+These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release, and the code that runs them stays for the next layout change, as "Aliases and migrations share one lifecycle" says.
 
 Moves that would have to guess are the exception. Upgrading a version 1 data file meant guessing the GitHub owner of every short repository name, so Orion refuses a version 1 file instead, with a message saying how to upgrade it with an older build.
 
@@ -451,6 +474,14 @@ Source adapters are Lute packages built on a shared core package. Long term, the
 **Why:** Orion maintains the official adapters while others build their own from the same starting point.
 
 2026-10-11 · [#54](https://github.com/vocksel/orion/issues/54), [#98](https://github.com/vocksel/orion/issues/98)
+
+### Programs Orion runs are chosen on this machine
+
+A person picks any program Orion runs, such as a Jira source's command or the agent `suggestion find` hands cards to, at the CLI. The command lives in this machine's config, never in a canvas's files, and no MCP tool takes one. The tool catalog refuses a tool that would. Setting up a source that runs nothing of its own choosing, such as GitHub or hop, is open to MCP. Jira's setup stays in the CLI until its command moves to local config. Adapter packages replace `--command` later, so a custom integration is something a person installs on purpose.
+
+**Why:** canvas files go in git, so a command stored in one would run for anyone who ingests a clone. Git keeps hooks out of clones for the same reason. A tool call can come from a prompt injection, in a client that otherwise runs no shell commands, and a command it set could run long after the call.
+
+2026-10-19 · [#146](https://github.com/vocksel/orion/issues/146), [#552](https://github.com/vocksel/orion/pull/552)
 
 ### No eager scaffolding
 

@@ -20,6 +20,9 @@ Most of the changes below have landed. The lists still describe `main` as it was
 - [#529](https://github.com/vocksel/orion/pull/529) removes `orion sync`, `--discover`, and `--pr`, which settles [#469](https://github.com/vocksel/orion/issues/469). `--repo` stays for the repository a card belongs to.
 - [#531](https://github.com/vocksel/orion/pull/531) makes `--json` output consistent across commands, which settles [#470](https://github.com/vocksel/orion/issues/470).
 - [#530](https://github.com/vocksel/orion/pull/530) runs `suggestion find` through a command and refuses version 1 data, which settles [#471](https://github.com/vocksel/orion/issues/471).
+- [#552](https://github.com/vocksel/orion/pull/552) drops `command` from `orion_suggestion_find`, and the tool catalog now refuses any tool that takes a program to run.
+
+Four calls were settled after the snapshot, each in the [decisions](/development/decisions): `create` for new things and `add` for things that already exist, under "CLI commands are a noun, then a verb"; aliases for renames, in "Aliases and migrations share one lifecycle"; MCP tools keep `canvas` and ignore it, under "MCP tools come from the CLI's commands"; and commands stay on this machine, in "Programs Orion runs are chosen on this machine". Where the lists below disagree, the decisions win.
 
 ## The four questions
 
