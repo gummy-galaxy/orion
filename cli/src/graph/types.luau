@@ -31,7 +31,6 @@ export type ItemFields = {
 	label: string?,
 	status: string?,
 	repo: string?,
-	pr: number?,
 	who: string?,
 	note: string?,
 	blurb: string?,

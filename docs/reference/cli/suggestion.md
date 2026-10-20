@@ -16,12 +16,12 @@ Compute group suggestions
 orion suggestion find [options]
 ```
 
-| Argument          | Description                      |
-| ----------------- | -------------------------------- |
-| `--agent <value>` | claude, codex, or none           |
-| `--scope <value>` | unsorted or all                  |
-| `--dry-run`       | Show suggestions without writing |
-| `--json`          | Print JSON                       |
+| Argument            | Description                                                         |
+| ------------------- | ------------------------------------------------------------------- |
+| `--command <value>` | JSON array naming a command that groups the cards it reads on stdin |
+| `--scope <value>`   | unsorted or all                                                     |
+| `--dry-run`         | Show suggestions without writing                                    |
+| `--json`            | Print JSON                                                          |
 
 ## orion suggestion list
 

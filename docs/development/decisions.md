@@ -120,6 +120,16 @@ A group with nothing inside stays on the canvas, at the size of one card, with a
 
 2026-10-12 · [#304](https://github.com/vocksel/orion/issues/304)
 
+## Appearance
+
+### Vibrant and Trading Card are the defaults
+
+New installs get the Vibrant theme and Trading cards, and so does anyone whose saved theme or skin is empty or unknown. A choice someone already made stays. Every other built-in theme and skin, Classic and Plain, is deprecated: Settings tags it, it keeps working for now, and it will be removed later. Pull request screenshots and recordings pin Vibrant and Trading cards on both sides, so captures show the look people get.
+
+**Why:** Vibrant and Trading cards carry Orion's visual direction, and each extra built-in look is one more that every visual change has to be designed, checked, and captured in. One default lets that work target one look.
+
+2026-10-18 · [#532](https://github.com/vocksel/orion/pull/532)
+
 ## Canvas and input
 
 ### Scrolling pans, for mouse and trackpad alike
@@ -328,9 +338,11 @@ When the data folder's layout changes, Orion moves an older folder into the new 
 
 These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
 
-**Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases.
+Moves that would have to guess are the exception. Upgrading a version 1 data file meant guessing the GitHub owner of every short repository name, so Orion refuses a version 1 file instead, with a message saying how to upgrade it with an older build.
 
-2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110)
+**Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases. A guessed move writes wrong data, which is worse than asking.
+
+2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110), [#471](https://github.com/vocksel/orion/issues/471)
 
 ### Development stays off the real data folder
 
@@ -394,11 +406,11 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 ### Ingest is the one command that pulls from outside
 
-`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. `orion sync` stays for one release as a deprecated way to run only the GitHub refresh, and `orion server start`'s background loop keeps running only the refresh.
+`orion ingest` imports from sources and runs each adapter's refresh, which keeps the cards already on the canvas current, such as GitHub pull request states. A GitHub source files your new pull requests in Unsorted. `orion server start`'s background loop runs only the refresh.
 
-**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks.
+**Why:** sync was a GitHub-only path beside the general one that already supports GitHub. One command keeps the public surface small and gives every source the same shape. The background loop stays refresh-only because importing files new cards, which should happen when someone asks. This replaced keeping `orion sync`, and its `--discover` flag for filing pull requests in an Inbox group, as a deprecated alias for one release. Before 0.1.0, old forms go with no alias.
 
-2026-10-12 · [#55](https://github.com/vocksel/orion/issues/55)
+2026-10-12, 2026-10-18 · [#55](https://github.com/vocksel/orion/issues/55), [#469](https://github.com/vocksel/orion/issues/469)
 
 ### The background refresh fetches what changed
 

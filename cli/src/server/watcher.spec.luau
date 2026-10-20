@@ -1,3 +1,5 @@
+local fs = require("@std/fs")
+local path = require("@std/path")
 local task = require("@std/task")
 local test = require("@std/test")
 
@@ -130,4 +132,44 @@ test.case("watcher announces log appends for the canvas they land in, not docume
 	expect.eq(logNames[#logNames], "other")
 	expect.eq(#revisions, 0)
 	monitor.close()
+end)
+
+test.case("watcher announces node and link files changed outside Orion without a new revision", function(expect)
+	local root = testing.directory("server-watcher-pull")
+	writeDoc(
+		root,
+		testing.createDoc({ testing.task("a", "A", "todo"), testing.task("b", "B", "todo") }, { { "a", "b" } })
+	)
+	local announced: { { revision: number, labels: string, isReindexed: boolean } } = {}
+	local monitor = watcher.create(root, function()
+		return "default"
+	end, function() end, function(revision, doc, isReindexed)
+		local labels = {}
+
+		for _, node in doc.nodes do
+			table.insert(labels, node.data.label :: string)
+		end
+
+		table.insert(announced, { revision = revision, labels = table.concat(labels, ","), isReindexed = isReindexed })
+	end, function() end, function() end)
+
+	monitor.start()
+
+	-- What a `git pull` does to the folder: one card changes, one arrives, and one goes with its link.
+	local nodes = path.join(root, "nodes")
+	local changed = fs.readFileToString(path.join(nodes, "a.json")):gsub('"A"', '"A pulled"')
+	fs.writeStringToFile(path.join(nodes, "a.json"), changed)
+	fs.writeStringToFile(path.join(nodes, "c.json"), (changed:gsub('"a"', '"c"'):gsub("A pulled", "C")))
+	fs.remove(path.join(nodes, "b.json"))
+	fs.remove(path.join(root, "links", "a%3eb.json"))
+
+	waitUntil(function()
+		return #announced >= 1 and announced[#announced].labels == "A pulled,C"
+	end)
+	monitor.close()
+
+	local last = announced[#announced]
+	expect.eq(last.labels, "A pulled,C")
+	expect.eq(last.revision, 0)
+	expect.eq(last.isReindexed, true)
 end)

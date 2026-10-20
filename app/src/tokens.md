@@ -2,12 +2,12 @@
 
 Every visible property in the app reads a named token. [`docs/guide/tokens.md`](../../docs/guide/tokens.md) lists each one with its role and default, and [`docs/guide/themes.md`](../../docs/guide/themes.md) explains theme files. This note covers keeping the pieces in step.
 
-- `tokens.css` sets the values every theme shares, and aliases the legacy custom properties.
+- `tokens.css` sets the values every theme shares.
 - `themes/<id>.css` sets the colors for one theme. A theme can set any token.
-- `tokens.ts` lists every token, its CSS property, its group, and its legacy name.
+- `tokens.ts` lists every token, its CSS property, and its group.
 - `cli/src/themes/tokenContract.luau` repeats that list, so `orion theme add` can check files without the app's source.
 
-`tokens.test.ts` fails when these disagree: a token missing from a theme, from the docs page, or from the CLI's list, a legacy name that doesn't alias its token, or a default on the docs page that doesn't match the stylesheet.
+`tokens.test.ts` fails when these disagree: a token missing from a theme, from the docs page, or from the CLI's list, or a default on the docs page that doesn't match the stylesheet.
 
 ## Adding a token
 
@@ -17,11 +17,9 @@ Every visible property in the app reads a named token. [`docs/guide/tokens.md`](
 
 ## Renaming a token
 
-Token names are a public contract for theme files, so a rename keeps the old name working.
+Token names are a public contract for theme files, and renames follow the [release stages](../../docs/development/decisions.md#public-interfaces-tighten-in-three-stages). Before 0.1.0, rename the token everywhere in one change, with no alias. From 1.0.0, a rename keeps the old name working: as a custom property declared in `tokens.css` as `--old: var(--new)`, and as a name in theme files through `themeFile.ts` and `checkThemeFile.luau`.
 
-- Keep the old custom property declared in `tokens.css` as `--old: var(--new)`, and record it as the token's `legacy` in `tokens.ts` and `tokenContract.luau`.
-- A theme file names tokens rather than custom properties, so a renamed name also needs to keep resolving there. No name has been renamed yet; the first rename adds that alias to `themeFile.ts` and `checkThemeFile.luau`.
-- Never drop a token silently. Removing one is a deliberate change that says so.
+Never drop a token silently. Removing one is a deliberate change that says so.
 
 ## Checks
 

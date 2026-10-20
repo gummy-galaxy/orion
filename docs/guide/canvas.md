@@ -73,7 +73,7 @@ Stickers stamped on a card or group move with it. In Select, drag a sticker to m
 
 Open Settings with ⌘, or the button at the bottom of the sidebar.
 
-- **Appearance** picks the theme, the card skin, the color mode, and whether the star companion shows.
+- **Appearance** picks the theme, the card skin, the color mode, and whether the star companion shows. Vibrant and Trading cards are the defaults. The other themes and skins are tagged Deprecated: they still work, and they'll be removed later.
 - **Accessibility** picks colorblind status colors and an animation level. Animations follow your system's reduced motion setting until you choose.
 - **Keyboard Shortcuts** rebinds shortcuts and flags clashes.
 

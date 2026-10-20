@@ -1,7 +1,6 @@
 local checkFields = require("@root/graph/checkFields")
 local chooseItemKind = require("@root/graph/chooseItemKind")
 local findRef = require("@root/refs/findRef")
-local getGithubKey = require("@root/refs/getGithubKey")
 local getHeaderHeight = require("@root/graph/getHeaderHeight")
 local getItem = require("@root/graph/getItem")
 local getStringField = require("@root/getStringField")
@@ -10,9 +9,7 @@ local isComponent = require("@root/graph/isComponent")
 local isGate = require("@root/graph/isGate")
 local isGroup = require("@root/graph/isGroup")
 local isNote = require("@root/graph/isNote")
-local removeRef = require("@root/refs/removeRef")
 local setLook = require("@root/graph/setLook")
-local setRef = require("@root/refs/setRef")
 local snooze = require("@root/graph/snooze")
 local types = require("@root/types")
 
@@ -48,7 +45,6 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 		assert(
 			fields.status == nil
 				and fields.repo == nil
-				and fields.pr == nil
 				and fields.who == nil
 				and fields.note == nil
 				and fields.kind == nil
@@ -122,23 +118,6 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	if fields.repo then
 		item.data.repo = if fields.repo == "" then nil else fields.repo
-
-		if fields.repo == "" then
-			removeRef(item, "pull")
-		end
-	end
-
-	if fields.pr then
-		local repo = getStringField(item.data.repo)
-		assert(repo, "pr needs a repository as owner/name")
-		local owner, name = repo:match("^([^/]+)/([^/]+)$")
-		removeRef(item, "pull")
-		setRef(item, {
-			source = "github",
-			kind = "pull",
-			key = getGithubKey(assert(owner), assert(name), `#{fields.pr}`),
-			url = `https://github.com/{repo}/pull/{fields.pr}`,
-		})
 	end
 
 	if fields.kind then
@@ -149,7 +128,7 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 	local givenKind = fields.kind
 		or (if fields.shape and fields.shape ~= "" and not isNote(item) then "component" else nil)
 
-	if not isNote(item) and (fields.repo or fields.pr or givenKind) then
+	if not isNote(item) and (fields.repo or givenKind) then
 		local repo = getStringField(item.data.repo)
 		local pr = findRef(item, "pull")
 		local kind = givenKind

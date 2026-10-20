@@ -63,7 +63,7 @@ local function refreshAdapters(doc: Doc, run: CommandRunner, now: string, select
 			continue
 		end
 
-		local didFetch, result = pcall(adapter.refresh, doc, run, { discover = false, now = now })
+		local didFetch, result = pcall(adapter.refresh, doc, run, { now = now })
 		table.insert(pending, {
 			kind = kind,
 			apply = if didFetch then result else nil,

@@ -17,15 +17,7 @@ local function addFieldOptions(parser: cli.Parser, clearing: boolean)
 		type = "enum",
 		values = fieldValues.statuses,
 	})
-	parser:add(
-		"repo",
-		"option",
-		{ help = "Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL" }
-	)
-	addArgument(parser, "pr", "option", {
-		help = "Pull request number. Deprecated: use --ref with the pull request URL",
-		type = "integer",
-	})
+	parser:add("repo", "option", { help = "Repository it belongs to, as owner/name (empty to clear)" })
 	addArgument(parser, "who", "option", {
 		help = "Whose move: you, review, or ci (empty to clear)",
 		type = "enum",

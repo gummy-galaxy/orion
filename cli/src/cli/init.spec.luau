@@ -90,7 +90,6 @@ test.case("every command declares its MCP tool, or why it has none", function(as
 
 	assert.eq(names.orion_card_add, true)
 	assert.eq(names.orion_next, true)
-	assert.eq(names.orion_sync, nil)
 	assert.eq(names.orion_help, nil)
 	assert.eq(names.orion_source_add_github, nil)
 end)
@@ -181,9 +180,9 @@ test.case("set renames items and groups and reports the new labels", function(as
 	assert.eq(doc.nodes[3].data.label, "New item name")
 end)
 
-test.case("sync writes GitHub state through the command runner", function(assert)
-	local dir, run = testing.createHarness("sync")
-	local text = run({ "sync" }, function(argv)
+test.case("ingest refreshes pull request cards without any sources configured", function(assert)
+	local dir, run = testing.createHarness("ingest-refresh")
+	local text = run({ "ingest" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
 		elseif argv[5]:find("search(", 1, true) then
@@ -196,6 +195,7 @@ test.case("sync writes GitHub state through the command runner", function(assert
 		)
 	end)
 
+	assert.strContains(text, "Checked 1 pull requests on GitHub.")
 	assert.strContains(text, "ci: active → done")
 	local item = loadDoc(dir).nodes[2]
 	assert.eq(item.data.status, "done")
@@ -204,26 +204,6 @@ test.case("sync writes GitHub state through the command runner", function(assert
 	assert.eq(recorded and recorded.checks, "SUCCESS")
 	assert.eq(recorded and recorded.additions, 120)
 	assert.eq(recorded and recorded.mine, true)
-end)
-
-test.case("ingest refreshes pull request cards without any sources configured", function(assert)
-	local dir, run = testing.createHarness("ingest-refresh")
-	local text = run({ "ingest" }, function(argv)
-		if argv[5]:find("pullRequests", 1, true) then
-			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
-		elseif argv[5]:find("search(", 1, true) then
-			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
-		end
-
-		return testing.result(
-			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,"reviewRequests":{"totalCount":0}}}}}]]
-		)
-	end)
-
-	assert.strContains(text, "Checked 1 pull requests on GitHub.")
-	assert.strContains(text, "ci: active → done")
-	assert.eq(loadDoc(dir).nodes[2].data.status, "done")
 end)
 
 -- Answers a refresh with flipbook #658 in the given state, which the harness card tracks.
@@ -244,15 +224,6 @@ local function refreshRunner(state: string)
 	end
 end
 
-test.case("sync defers a card whose pull request closed and resumes it when the pull request reopens", function(assert)
-	local dir, run = testing.createHarness("sync-closed")
-	assert.strContains(run({ "sync" }, refreshRunner("CLOSED")), "ci: active → deferred")
-	assert.eq(loadDoc(dir).nodes[2].data.deferredByClosedPull, true)
-	assert.strContains(run({ "sync" }, refreshRunner("OPEN")), "ci: deferred → review")
-	assert.eq(loadDoc(dir).nodes[2].data.status, "review")
-	assert.eq(loadDoc(dir).nodes[2].data.deferredByClosedPull, nil)
-end)
-
 test.case(
 	"ingest defers a card whose pull request closed and resumes it when the pull request reopens",
 	function(assert)
@@ -265,22 +236,16 @@ test.case(
 	end
 )
 
-test.case("sync still works and points to ingest", function(assert)
-	local _, run = testing.createHarness("sync-deprecated")
-	local text = run({ "sync", "--dry-run" }, function(argv)
-		if argv[5]:find("pullRequests", 1, true) then
-			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
-		end
-
-		return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+test.case("sync is gone, since ingest refreshes pull requests", function(assert)
+	local _, run = testing.createHarness("sync-removed")
+	assert.throwsWith("Unknown command: sync", function()
+		run({ "sync" })
 	end)
-
-	assert.strContains(text, "`orion ingest` refreshes pull requests too")
 end)
 
-test.case("sync --dry-run leaves the data alone", function(assert)
+test.case("ingest --dry-run leaves the data alone", function(assert)
 	local dir, run = testing.createHarness("dry")
-	run({ "sync", "--dry-run" }, function(argv)
+	run({ "ingest", "--dry-run" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
 		elseif argv[5]:find("search(", 1, true) then
@@ -319,10 +284,10 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 	assert.eq(values and #values, 1)
 end)
 
-test.case("sync records unplaced authored pulls without adding review request cards", function(assert)
+test.case("ingest records unplaced authored pulls without adding review request cards", function(assert)
 	local dir, run = testing.createHarness("review")
 	local isSearched = false
-	local output = run({ "sync" }, function(argv)
+	local output = run({ "ingest" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
@@ -453,21 +418,23 @@ test.case("group set rejects item-only fields and card set rejects groups", func
 	assert.eq(loadDoc(dir).nodes[1].data.blurb, nil)
 end)
 
-test.case("repo and pr still attach a pull request as deprecated aliases", function(assert)
-	local dir, run = testing.createHarness("deprecated-pr")
-	run({ "card", "set", "pub", "--repo", "Roblox/avatar", "--pr", "4" })
-	local item = loadDoc(dir).nodes[3]
-	assert.eq(item.data.itemKind, "pr")
-	assert.neq(findRef(item, "pull", "Roblox/avatar#4"), nil)
-	assert.strContains(run({ "card", "set", "--help" }), "Deprecated")
-	assert.strContains(run({ "card", "set", "--help" }), "--ref")
+test.case("card add and set take a pull request through ref, not pr", function(assert)
+	local dir, run = testing.createHarness("removed-pr")
+	assert.throwsWith("Unknown argument: pr", function()
+		run({ "card", "set", "pub", "--repo", "Roblox/avatar", "--pr", "4" })
+	end)
+	assert.throwsWith("Unknown argument: pr", function()
+		run({ "card", "add", "Write", "notes", "--repo", "Roblox/avatar", "--pr", "4" })
+	end)
+	assert.eq(loadDoc(dir).revision, 0)
+	assert.strNotContains(run({ "card", "set", "--help" }), "Deprecated")
 	assert.strContains(run({ "card", "add", "--help" }), "--ref")
 end)
 
-test.case("sync attaches a new pull request to the card its branch was recorded on", function(assert)
+test.case("ingest attaches a new pull request to the card its branch was recorded on", function(assert)
 	local dir, run = testing.createHarness("attach-branch")
 	run({ "card", "set", "pub", "--ref", "branch:flipbook-labs/flipbook@feature/a" })
-	local text = run({ "sync" }, function(argv)
+	local text = run({ "ingest" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,

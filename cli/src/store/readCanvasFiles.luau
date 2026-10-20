@@ -9,6 +9,7 @@ local joinCanvasFiles = require("@root/store/joinCanvasFiles")
 local readCanvasFolder = require("@root/store/readCanvasFolder")
 local readCanvasIndex = require("@root/store/readCanvasIndex")
 local recoverCanvasWrite = require("@root/store/recoverCanvasWrite")
+local resolveCanvasFiles = require("@root/store/resolveCanvasFiles")
 local runWithLock = require("@root/store/runWithLock")
 local storeTypes = require("@root/store/types")
 
@@ -34,8 +35,9 @@ local function read(dir: string, includeFiles: boolean): CanvasSnapshot
 	end
 
 	local files = readCanvasFolder(dir)
-	local document, entries = joinCanvasFiles(files)
-	return { files = files, document = document, entries = entries }
+	local resolved, problems = resolveCanvasFiles(files)
+	local document, entries = joinCanvasFiles(resolved)
+	return { files = files, document = document, entries = entries, problems = problems }
 end
 
 --[[

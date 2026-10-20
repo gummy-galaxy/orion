@@ -54,7 +54,7 @@ local function fetched(pulls: { PullState }): Fetched
 		byKey[`vocksel/orion#{entry.number}`] = entry
 	end
 
-	return { pulls = byKey, checked = {}, authored = {}, viewer = "vocksel", discover = false, failures = {} }
+	return { pulls = byKey, checked = {}, authored = {}, viewer = "vocksel", failures = {} }
 end
 
 local function snoozeDocs(doc: types.Doc, untilTime: string?)

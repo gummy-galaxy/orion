@@ -7,7 +7,7 @@ local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
 local writeDoc = require("@root/store/writeDoc")
 
-test.case("configured agent command receives bounded context on stdin", function(assert)
+test.case("--command receives bounded context on stdin", function(assert)
 	local dir = testing.directory("suggest-command")
 	local doc = testing.createDoc({
 		testing.task(
@@ -31,10 +31,9 @@ test.case("configured agent command receives bounded context on stdin", function
 			})
 		),
 	})
-	doc.raw = json.object({ settings = json.object({ agent = "claude", agentCommand = { "custom-agent", "--json" } }) })
 	writeDoc(dir, doc)
 	local output = ""
-	cli.execute({ "suggestion", "find", "--dry-run", "--json" }, {
+	cli.execute({ "suggestion", "find", "--command", [[ ["custom-agent","--json"] ]], "--dry-run", "--json" }, {
 		dataDir = dir,
 		write = function(value)
 			output = value
@@ -51,6 +50,13 @@ test.case("configured agent command receives bounded context on stdin", function
 	local first = if groups then json.asObject(groups[1]) else nil
 	assert.eq(first and first.source, "agent")
 	assert.eq(loadDoc(dir).revision, 0)
+end)
+
+test.case("--command must be a JSON array of strings", function(assert)
+	local _, run = testing.createHarness("suggest-bad-command")
+	assert.throwsWith("--command must be a nonempty JSON array", function()
+		run({ "suggestion", "find", "--command", "claude" })
+	end)
 end)
 
 test.case("suggest reads and saves only the selected workspace", function(assert)

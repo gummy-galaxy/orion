@@ -1,9 +1,9 @@
 local json = require("@std/json")
 
+local checkDataVersion = require("@root/store/checkDataVersion")
 local fillPullFacts = require("@root/github/fillPullFacts")
 local getStringField = require("@root/getStringField")
 local migrateImageCanvas = require("@root/migrations/migrateImageCanvas")
-local migrateItem = require("@root/migrations/migrateItem")
 local types = require("@root/types")
 
 type CheckSnooze = types.CheckSnooze
@@ -34,8 +34,10 @@ local function getStrings(value: json.Value): { string }?
 	return result
 end
 
--- Reads a whole canvas object into a document, filling in defaults and moving older card fields onto refs.
+-- Reads a whole canvas object into a document, filling in defaults.
 local function decodeDocObject(root: json.Object): Doc
+	checkDataVersion(root)
+
 	local nodes: { Item } = {}
 
 	for _, raw in json.asArray(root.nodes) or {} do
@@ -122,44 +124,13 @@ local function decodeDocObject(root: json.Object): Doc
 		end
 	end
 
-	local version = asNumber(root.version) or 1
-	local owner = getStringField(settings.githubOwner)
-
-	if not owner then
-		for _, source in sources do
-			if source.kind == "github" then
-				owner = if source.owners then source.owners[1] else nil
-				break
-			end
-		end
-	end
-
-	owner = owner or "flipbook-labs"
-
-	-- Cards from before refs keep their old fields until read. Remove at 0.1.0 with the rest of `migrations/`.
 	for _, item in nodes do
-		if
-			item.type == "task"
-			and (
-				version < 2
-				or item.data.pr ~= nil
-				or item.data.external ~= nil
-				or item.data.github ~= nil
-				or item.data.activity ~= nil
-				or item.data.sources ~= nil
-				or item.data.issue ~= nil
-				or item.data.branch ~= nil
-				or item.data.host ~= nil
-			)
-		then
-			migrateItem(item, owner, sources)
-		end
-
 		if item.type == "task" then
 			fillPullFacts(item)
 		end
 
-		-- Images from before canvases were named keep `workspace` until read. Remove at 0.1.0 too.
+		-- Images from before canvases were named keep `workspace` until read. Remove at 0.1.0 with the rest of
+		-- `migrations/`.
 		if item.type == "image" and item.data.workspace ~= nil then
 			migrateImageCanvas(item)
 		end
