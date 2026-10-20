@@ -16,14 +16,11 @@ local FALLBACK = "The command failed or returned no valid groups; kept heuristic
 
 return table.freeze({
 	help = "Compute group suggestions",
-	mcp = { annotations = { openWorldHint = true } },
+	mcp = { omit = { { option = "command", reason = "runs a program, which only a person at the CLI should choose" } } },
 	define = function(parser: cli.Parser)
 		addArgument(parser, "command", "option", {
 			help = "JSON array naming a command that groups the cards it reads on stdin",
 			type = "command",
-			mcp = {
-				description = 'A command and its arguments, such as ["claude", "-p", "--output-format", "json"]. It reads the cards as a prompt on stdin and replies with JSON groups.',
-			},
 		})
 		addArgument(
 			parser,
