@@ -1,5 +1,6 @@
 import type { AppNode, Link } from './model'
 import type { Saved } from './persist'
+import type { Sticker } from './sticker'
 
 /** One edit, as the stored document before and after it. */
 export type Step = { before: Saved; after: Saved }
@@ -18,9 +19,11 @@ type Fields = Record<string, unknown>
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
-/** A node or link as flat fields, so each one can be carried on its own. Data keys are prefixed. */
-function fieldsOf(item: AppNode | Link | undefined): Fields | undefined {
+/** A node, link, or sticker as flat fields, so each one can be carried on its own. Data keys are prefixed. */
+function fieldsOf(item: AppNode | Link | Sticker | undefined): Fields | undefined {
   if (!item) return undefined
+
+  if ('tilt' in item) return { kind: item.kind, x: item.x, y: item.y, tilt: item.tilt, on: item.on }
 
   if (!('type' in item)) return { kind: item.kind }
 
@@ -70,7 +73,8 @@ function carryNode(from: AppNode | undefined, to: AppNode | undefined, current: 
 
 /**
  * Applies the change from `from` to `to` on top of `current`, field by field. Writes from elsewhere, such as the CLI or
- * another window, stay, and where both touched the same field, `current` wins.
+ * another window, stay, and where both touched the same field, `current` wins. Links and stickers on cards that end up
+ * gone go with them.
  */
 function carry(from: Saved, to: Saved, current: Saved): Saved {
   const fromNodes = new Map(from.nodes.map((node) => [node.id, node]))
@@ -85,6 +89,7 @@ function carry(from: Saved, to: Saved, current: Saved): Saved {
     if (node) nodes.push(node)
   }
 
+  const present = new Set(nodes.map((node) => node.id))
   const linkKey = (link: Link) => `${link.from}\0${link.to}`
   const fromLinks = new Map(from.links.map((link) => [linkKey(link), link]))
   const toLinks = new Map(to.links.map((link) => [linkKey(link), link]))
@@ -96,14 +101,28 @@ function carry(from: Saved, to: Saved, current: Saved): Saved {
     const kept = carryFields(fieldsOf(fromLinks.get(key)), fieldsOf(toLinks.get(key)), fieldsOf(currentLinks.get(key)))
     const link = currentLinks.get(key) ?? toLinks.get(key)
 
-    if (link && kept.kind !== undefined) links.push({ ...link, kind: kept.kind as Link['kind'] })
+    if (link && kept.kind !== undefined && present.has(link.from) && present.has(link.to)) links.push({ ...link, kind: kept.kind as Link['kind'] })
+  }
+
+  const fromStickers = new Map((from.stickers ?? []).map((sticker) => [sticker.id, sticker]))
+  const toStickers = new Map((to.stickers ?? []).map((sticker) => [sticker.id, sticker]))
+  const currentStickers = new Map((current.stickers ?? []).map((sticker) => [sticker.id, sticker]))
+  const stickerIds = [...new Set([...currentStickers.keys(), ...toStickers.keys(), ...fromStickers.keys()])]
+  const stickers: Sticker[] = []
+
+  for (const id of stickerIds) {
+    const kept = carryFields(fieldsOf(fromStickers.get(id)), fieldsOf(toStickers.get(id)), fieldsOf(currentStickers.get(id)))
+
+    if (kept.kind === undefined || (kept.on !== undefined && !present.has(kept.on as string))) continue
+
+    stickers.push({ id, ...kept } as Sticker)
   }
 
   return {
     ...current,
     nodes,
     links,
-    stickers: same(from.stickers, to.stickers) ? current.stickers : to.stickers,
+    stickers,
     stickerLoadout: same(from.stickerLoadout, to.stickerLoadout) ? current.stickerLoadout : to.stickerLoadout,
   }
 }
