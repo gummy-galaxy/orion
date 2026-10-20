@@ -7,6 +7,7 @@ local clearFocus = require("@root/store/clearFocus")
 local derive = require("@root/graph/derive")
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local events = require("@root/server/events")
+local getVersion = require("@root/getVersion")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
 local isTrustedRequest = require("@root/server/isTrustedRequest")
@@ -104,6 +105,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		canvas = workspace,
 		dataFolder = root,
 		startedAt = startedAt,
+		version = getVersion() :: string?,
 	}
 	writeRuntime(root, runtime)
 	monitor.start()

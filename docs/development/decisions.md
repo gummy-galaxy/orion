@@ -316,13 +316,21 @@ Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`,
 
 ### Data folders move to a new layout on their own
 
-When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and waits while an older Orion is still serving the folder.
+When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and refuses while another build of Orion is still serving the folder.
 
 These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
 
 **Why:** interfaces break freely before 0.1.0, but a person's data isn't an interface. A move by hand is easy to miss, and a missed one looks like lost canvases.
 
 2026-10-17 · [#110](https://github.com/vocksel/orion/issues/110)
+
+### Development stays off the real data folder
+
+The app's dev server serves a scratch data folder seeded from a fixture, and tests, Storybook, and perf runs never start a server on the real one. A developer opts into real data with `ORION_REAL_DATA=1`.
+
+**Why:** a CLI built from a branch moves the data it touches to that branch's layout, and the installed app can't read the result. A branch build serving the real folder once stranded every canvas that way, and a migration's refusal under a running server can't help when the app is closed.
+
+2026-10-18
 
 ## Roadmap
 
