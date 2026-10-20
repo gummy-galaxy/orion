@@ -1,7 +1,7 @@
+local findPlacement = require("@root/graph/findPlacement")
 local getAncestors = require("@root/graph/getAncestors")
 local getGroup = require("@root/graph/getGroup")
 local getItem = require("@root/graph/getItem")
-local getNextSlot = require("@root/graph/getNextSlot")
 local markForRefit = require("@root/graph/markForRefit")
 local pruneEmptied = require("@root/graph/pruneEmptied")
 local types = require("@root/types")
@@ -23,9 +23,10 @@ local function moveItem(doc: Doc, id: string, groupId: string?)
 
 	local previousParent = item.parentId
 
-	-- Node order doesn't matter here; the app sorts parents ahead of children on load.
-	item.position = getNextSlot(doc, groupId)
+	-- Node order doesn't matter here; the app sorts parents ahead of children on load. Its links are already known, so
+	-- it lands beside the cards it links to in the new group.
 	item.parentId = groupId
+	item.position = findPlacement(doc, item)
 
 	if groupId then
 		markForRefit(getGroup(doc, groupId))

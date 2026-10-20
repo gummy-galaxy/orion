@@ -1,10 +1,12 @@
 local cli = require("@batteries/cli")
+local json = require("@std/json")
 
 local addArgument = require("@root/cli/addArgument")
 local changeCheckSnooze = require("@root/checks/changeCheckSnooze")
 local context = require("@root/cli/context")
 local normalizeUntil = require("@root/checks/normalizeUntil")
 local runTransaction = require("@root/store/runTransaction")
+local writeResult = require("@root/cli/writeResult")
 
 type Context = context.Context
 
@@ -32,10 +34,16 @@ return table.freeze({
 		local now = options.now()
 		assert(untilTime == nil or untilTime > now, "--until must be in the future")
 
-		runTransaction(options.dir, function(doc)
-			changeCheckSnooze(doc, { repo = repo, name = name, snoozed = true, untilTime = untilTime, at = now })
+		local doc = runTransaction(options.dir, function(current)
+			changeCheckSnooze(current, { repo = repo, name = name, snoozed = true, untilTime = untilTime, at = now })
 		end)
 
-		options.write(`Snoozed {name} in {repo} {if untilTime then `until {untilTime}` else "until it passes"}`)
+		local value = json.object({ revision = doc.revision, repo = repo, name = name })
+		value["until"] = untilTime
+		writeResult(
+			options,
+			value,
+			`Snoozed {name} in {repo} {if untilTime then `until {untilTime}` else "until it passes"}`
+		)
 	end,
 })

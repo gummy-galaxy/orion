@@ -1,5 +1,5 @@
-import { GAP } from '../layout'
-import { GROUP_PADDING, byId, groupHeaderHeight, isCluster, normalize, sizeOf, type AppNode } from '../model'
+import { GAP, GROUP_PADDING } from '../geometry'
+import { byId, groupHeaderHeight, isCluster, normalize, sizeOf, type AppNode } from '../model'
 import type { CardSize } from '../cardSize'
 import type { Box } from './types'
 

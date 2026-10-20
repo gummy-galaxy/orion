@@ -38,16 +38,20 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local commandText = parser:get("command")
 		local command = if commandText then parseCommand(commandText) else nil
+		local current = loadDoc(options.dir)
 		local result, didFallback =
-			compute(loadDoc(options.dir), parser:get("scope") or "unsorted", command, options.runner, options.now())
+			compute(current, parser:get("scope") or "unsorted", command, options.runner, options.now())
+		local revision = current.revision
+
 		if not parser:has("dry-run") then
-			runTransaction(options.dir, function(doc)
+			revision = runTransaction(options.dir, function(doc)
 				save(doc, result)
-			end)
+			end).revision
 		end
 
 		if options.asJson then
 			local value = convertToJson(result)
+			value.revision = revision
 
 			if didFallback then
 				value.warning = FALLBACK

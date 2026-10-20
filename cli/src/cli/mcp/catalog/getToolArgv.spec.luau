@@ -186,11 +186,14 @@ test.case("card set passes ref through as --ref and clears who with an empty val
 end)
 
 test.case("canvas tools map onto the canvas commands", function(assert)
-	assert.eq(argv("orion_canvas_create", { label = "Focus areas" }), "canvas create --label Focus areas")
-	assert.eq(argv("orion_canvas_create", { name = "focus", label = "Focus" }), "canvas create focus --label Focus")
-	assert.eq(argv("orion_canvas_rename", { name = "focus", label = "Focus" }), "canvas rename focus Focus")
-	assert.eq(argv("orion_canvas_archive", { name = "focus" }), "canvas archive focus")
-	assert.eq(argv("orion_canvas_restore", { name = "focus" }), "canvas restore focus")
+	assert.eq(argv("orion_canvas_create", { label = "Focus areas" }), "canvas create --label Focus areas --json")
+	assert.eq(
+		argv("orion_canvas_create", { name = "focus", label = "Focus" }),
+		"canvas create focus --label Focus --json"
+	)
+	assert.eq(argv("orion_canvas_rename", { name = "focus", label = "Focus" }), "canvas rename focus Focus --json")
+	assert.eq(argv("orion_canvas_archive", { name = "focus" }), "canvas archive focus --json")
+	assert.eq(argv("orion_canvas_restore", { name = "focus" }), "canvas restore focus --json")
 	assert.eq(argv("orion_canvas_list", { archived = true }), "canvas list --archived --json")
 	assert.throwsWith("missing name", function()
 		argv("orion_canvas_archive", {})

@@ -10,7 +10,7 @@ Orion keeps everything in plain files on your machine. The CLI owns them: the ap
 | Windows  | `%APPDATA%\Orion`                                            |
 | Linux    | `$XDG_DATA_HOME/orion`, or `~/.local/share/orion` without it |
 
-Set `ORION_DATA_DIR` to use another folder. The app's preferences, such as the theme and keyboard shortcuts, live in its `settings.json` and apply to every canvas.
+Set `ORION_DATA_DIR` to use another folder on any platform. It takes precedence over `XDG_DATA_HOME` and `APPDATA`, and a relative path resolves from the current folder. The app's preferences, such as the theme and keyboard shortcuts, live in its `settings.json` and apply to every canvas.
 
 ## Canvases
 
@@ -18,12 +18,12 @@ The `default` canvas lives in the data folder itself. Every other canvas has its
 
 A canvas is a folder of small JSON files:
 
-- `canvas.json` holds its revision, settings, and the order of its nodes and links.
-- `nodes/<id>.json` holds each card, note, group, and image.
+- `canvas.json` holds its settings.
+- `nodes/<id>.json` holds each card, note, group, and image, with its place in the canvas's order and when each of its fields last changed.
 - `links/<id>.json` holds each link.
-- `local.json` holds what this machine recorded about it, such as the last GitHub check.
+- `local.json` holds what this machine recorded about it, such as its revision and the last GitHub check.
 
-Keys are sorted and formatting is stable, so a change rewrites only the files it touches. Change them through the CLI rather than by hand.
+Keys are sorted and formatting is stable, so a change rewrites only the files it touches. New cards and links get random ids, so two copies of a canvas in git that each add or edit different cards merge without a conflict. Keep `local.json` and `index.sqlite` out of git, since they change on every write. Change the files through the CLI rather than by hand.
 
 Orion reads a canvas through `index.sqlite` beside its files, which it builds from them with the `sqlite3` command and keeps up to date. It holds nothing the files don't, so deleting it is safe. Without `sqlite3` installed, Orion reads every file instead, which is slower on large canvases.
 

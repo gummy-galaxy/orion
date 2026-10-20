@@ -103,6 +103,10 @@ jobs:
       - name: Test
         run: lute test
 
+      - name: Check the App's Geometry
+        run: lute run geometry --check
+        working-directory: .
+
       - name: Build
         run: lute run build
 

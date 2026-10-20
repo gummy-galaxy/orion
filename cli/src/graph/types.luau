@@ -48,7 +48,7 @@ export type ItemFields = {
 
 export type Progress = { total: number, done: number, ready: number, components: number }
 
-export type AddOptions = ItemFields & { group: string? }
+export type AddOptions = ItemFields & { group: string?, after: string?, before: string? }
 
 export type NoteOptions = { group: string?, after: string?, before: string? }
 

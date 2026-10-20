@@ -34,22 +34,14 @@ test.case("a shape makes a component, and components and groups take a color", f
 	end)
 end)
 
-test.case("addItem names pull requests after the repository and number", function(assert)
+test.case("addItem gives every item a random id, pull requests included", function(assert)
 	local doc = testing.createDoc({ testing.group("g", "Group"), task("x", "X", "todo", "g") })
 	local item = addItem(doc, "Ship it", { group = "g", repo = "flipbook-labs/flipbook", pr = 700 })
-	assert.eq(item.id, "flipbook-labs-flipbook-700")
+	assert.eq(testing.isRandomId(item.id), true)
 	assert.eq(item.data.itemKind, "pr")
 	assert.eq(item.parentId, "g")
-	assert.eq(item.position.x > 0, true)
-	assert.eq(addItem(doc, "Ship it", {}).id, "ship-it")
-	assert.eq(addItem(doc, "Ship it", {}).id, "ship-it-2")
-end)
-
-test.case("addItem cuts long ids at a word boundary and suffixes collisions", function(assert)
-	local doc = testing.createDoc({})
-	local label = "Pick the next slider family piece to build"
-	assert.eq(addItem(doc, label, {}).id, "pick-the-next-slider-family")
-	assert.eq(addItem(doc, label, {}).id, "pick-the-next-slider-family-2")
+	assert.eq(item.position.y > 0, true)
+	assert.neq(addItem(doc, "Ship it", {}).id, addItem(doc, "Ship it", {}).id)
 end)
 
 test.case("addItem rejects unknown statuses", function(assert)

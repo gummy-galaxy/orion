@@ -5,12 +5,14 @@ local path = require("@std/path")
 
 local fileNames = require("@root/fileNames")
 local indexStatements = require("@root/store/indexStatements")
+local isOrderKey = require("@root/order/isOrderKey")
 local openCanvasIndex = require("@root/store/openCanvasIndex")
 local quoteSqlString = require("@root/sqlite/quoteSqlString")
 local readSqliteValue = require("@root/sqlite/readSqliteValue")
 local storeTypes = require("@root/store/types")
 
 type CanvasSnapshot = storeTypes.CanvasSnapshot
+type StoredEntry = storeTypes.StoredEntry
 
 local logger = archivist.getLogger("orion.index")
 
@@ -35,12 +37,14 @@ CREATE TEMP TABLE counts AS SELECT
 DELETE FROM files WHERE path NOT IN (SELECT path FROM disk) OR path IN (SELECT path FROM fresh WHERE text IS NULL);
 ]]
 
--- Joins the index back into one canvas object, the way `joinCanvasFiles` joins the files: entries listed in the
--- canvas's order come first, in that order, then the rest by id, and only one file per id. `json()` marks each
--- array as JSON so `json_set` doesn't store it as text.
+-- Joins the index back into one canvas object, the way `joinCanvasFiles` joins the files: entries in the order of
+-- their keys, ties broken by id, then those without a key, the ones listed in an older canvas's order first, and
+-- only one file per id. Each entry leaves its order key and field times behind. `json()` marks each array as JSON
+-- so `json_set` doesn't store it as text.
 local ENTRIES = [[
-json((SELECT json_group_array(json(text)) FROM (
-	SELECT text FROM (
+json((SELECT json_group_array(json(json_remove(text, '$.order', '$.changedAt'))) FROM (
+	SELECT text, entry, position, CASE WHEN json_type(text, '$.order') = 'text'
+		THEN json_extract(text, '$.order') END AS orderKey FROM (
 		SELECT min(files.path), files.text, files.entry, ordered.position
 		FROM files LEFT JOIN (
 			SELECT value AS id, min(CAST(key AS INTEGER)) AS position
@@ -50,8 +54,15 @@ json((SELECT json_group_array(json(text)) FROM (
 		WHERE files.folder = '%s' AND files.entry IS NOT NULL
 		GROUP BY files.entry
 	)
-	ORDER BY position IS NULL, position, entry
+	ORDER BY orderKey IS NULL, orderKey, position IS NULL, position, entry
 )))]]
+
+-- What each node and link file stored beside its entry, by path, for a write to keep or replace.
+local STORED = [[
+json((SELECT json_group_object(path, json_object(
+	'order', json_extract(text, '$.order'),
+	'changedAt', json(json_extract(text, '$.changedAt'))
+)) FROM files WHERE folder IN ('nodes', 'links') AND isValid))]]
 
 -- One JSON object, so the canvas is parsed once rather than as a string inside `sqlite3 -json`'s rows. `json()`
 -- marks each value as JSON so `json_object` doesn't store it as text.
@@ -65,6 +76,7 @@ SELECT json_object(
 	)),
 	'localState', json((SELECT text FROM files WHERE path = 'local.json' AND isValid)),
 	'files', %s,
+	'entries', %s,
 	'total', total, 'checked', checked, 'changed', changed, 'removed', removed
 ) FROM counts;
 ]]
@@ -95,11 +107,12 @@ local function buildScript(dir: string, includeFiles: boolean): string
 
 	local prefix = quoteSqlString(dir .. "/")
 	local files = if includeFiles then "json((SELECT json_group_object(path, text) FROM files))" else "NULL"
+	local stored = if includeFiles then STORED else "NULL"
 
 	return SYNC:format(table.concat(scans, " UNION ALL "), prefix)
 		.. indexStatements.upsertFresh
 		.. "COMMIT;\n"
-		.. QUERY:format(ENTRIES:format("nodes", "nodes"), ENTRIES:format("links", "links"), files)
+		.. QUERY:format(ENTRIES:format("nodes", "nodes"), ENTRIES:format("links", "links"), files, stored)
 end
 
 local function getObject(value: json.Value?, label: string): json.Object
@@ -171,6 +184,7 @@ local function readCanvasIndex(dir: string, includeFiles: boolean): CanvasSnapsh
 	end
 
 	local files: { [string]: string }? = nil
+	local entries: { [string]: StoredEntry }? = nil
 
 	if includeFiles then
 		local object = getObject(row.files, "the index's files")
@@ -183,9 +197,22 @@ local function readCanvasIndex(dir: string, includeFiles: boolean): CanvasSnapsh
 		end
 
 		files = texts
+
+		local found: { [string]: StoredEntry } = {}
+
+		for file, value in json.asObject(row.entries) or {} do
+			local stored = json.asObject(value)
+
+			if type(file) == "string" and stored then
+				local order = if isOrderKey(stored.order) then stored.order :: string else nil
+				found[file] = { order = order, changedAt = json.asObject(stored.changedAt) }
+			end
+		end
+
+		entries = found
 	end
 
-	return { document = document, files = files }
+	return { document = document, files = files, entries = entries }
 end
 
 return readCanvasIndex

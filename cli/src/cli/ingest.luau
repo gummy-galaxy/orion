@@ -63,14 +63,22 @@ return table.freeze({
 			report.refreshes = applyRefreshes(doc)
 		end
 
+		local doc: Doc
+
 		if isDryRun then
-			apply(loadDoc(options.dir))
+			doc = loadDoc(options.dir)
+			apply(doc)
 		else
-			runTransaction(options.dir, apply)
+			doc = runTransaction(options.dir, apply)
 		end
 
-		options.write(
-			if parser:has("json") then json.serialize(getReportJson(report), true) else getReport(report, isDryRun)
-		)
+		if parser:has("json") then
+			local value = getReportJson(report)
+			value.dryRun = isDryRun
+			value.revision = doc.revision
+			options.write(json.serialize(value, true))
+		else
+			options.write(getReport(report, isDryRun))
+		end
 	end,
 })

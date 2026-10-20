@@ -1,6 +1,6 @@
+import { GAP, TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { describe, expect, it } from 'vitest'
-import { GAP } from './layout'
-import { TASK_HEIGHT, TASK_WIDTH, byId, normalize, sizeOf, type AppNode } from './model'
+import { byId, normalize, sizeOf, type AppNode } from './model'
 import { pushAside } from './pushAside'
 
 const size = { width: TASK_WIDTH, height: TASK_HEIGHT }

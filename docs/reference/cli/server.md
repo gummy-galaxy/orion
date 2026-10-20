@@ -22,6 +22,7 @@ orion server start [options]
 | `--host <value>`     | HTTP host (default 127.0.0.1)                                  |
 | `--static <value>`   | Built app directory                                            |
 | `--dev-port <value>` | Port of the app's dev server, whose requests are also answered |
+| `--json`             | Print JSON                                                     |
 
 ## orion server status
 

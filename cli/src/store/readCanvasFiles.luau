@@ -34,18 +34,20 @@ local function read(dir: string, includeFiles: boolean): CanvasSnapshot
 	end
 
 	local files = readCanvasFolder(dir)
-	return { files = files, document = joinCanvasFiles(files) }
+	local document, entries = joinCanvasFiles(files)
+	return { files = files, document = document, entries = entries }
 end
 
 --[[
 	Reads a canvas folder through its index, or nil when it has no files yet. The index catches up with the files
-	first, so a read always sees what's on disk. A write replaces several files, `canvas.json` last, while its
-	marker is down, so a read that saw the marker or a different `canvas.json` by the time it finished reads again
+	first, so a read always sees what's on disk. A write replaces several files, `local.json` last, while its
+	marker is down, so a read that saw the marker or a different `local.json` by the time it finished reads again
 	rather than return a write half done. A marker left by a writer that stopped partway is cleared by finishing its
-	write first. Callers that hold the lock recover before reading, since this would wait on their own lock. With `includeFiles`, the snapshot also maps each file's path to its text.
+	write first. Callers that hold the lock recover before reading, since this would wait on their own lock. With `includeFiles`, the snapshot also maps each file's path to its text, and keeps what each node and link file stored beside its entry.
 ]]
 local function readCanvasFiles(dir: string, includeFiles: boolean?): CanvasSnapshot?
 	local canvasFile = getDocPath(dir)
+	local lastFile = tostring(path.join(dir, fileNames.localState))
 
 	-- Waits out a live writer, or finishes a write whose process is gone. A lock that can't be had yet, such as one
 	-- a killed writer left that isn't stale enough to take, leaves the read to retry as before.
@@ -57,9 +59,7 @@ local function readCanvasFiles(dir: string, includeFiles: boolean?): CanvasSnaps
 	end
 
 	for attempt = 1, ATTEMPTS do
-		local before = getStamp(canvasFile)
-
-		if before == nil then
+		if not fs.exists(canvasFile) then
 			assert(
 				not fs.exists(path.join(dir, fileNames.legacyDocument)),
 				`{dir} still keeps its canvas in {fileNames.legacyDocument}; run any orion command to move it to files`
@@ -67,6 +67,7 @@ local function readCanvasFiles(dir: string, includeFiles: boolean?): CanvasSnaps
 			return nil
 		end
 
+		local before = getStamp(lastFile)
 		local isLast = attempt == ATTEMPTS
 
 		if isLast or not isWriting(dir) then
@@ -74,7 +75,7 @@ local function readCanvasFiles(dir: string, includeFiles: boolean?): CanvasSnaps
 
 			-- A read that failed with no write in its way, such as on a file that doesn't parse, fails the same way
 			-- the next time.
-			if isLast or (not isWriting(dir) and getStamp(canvasFile) == before) then
+			if isLast or (not isWriting(dir) and getStamp(lastFile) == before) then
 				if not succeeded then
 					error(snapshot, 0)
 				end
