@@ -1715,13 +1715,6 @@ kbd {
   opacity: 0.75;
   margin-left: var(--space-2);
 }
-.inspector {
-  /* Wider on wide windows, up to 480px, and never wider than the window allows. */
-  width: min(480px, max(380px, 30vw), calc(100vw - 48px));
-  padding: var(--space-9);
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
-}
 .insp {
   display: grid;
   gap: var(--space-3);
@@ -2605,6 +2598,79 @@ kbd {
   background: var(--surface-background);
   user-select: none;
   -webkit-user-select: none;
+}
+/* Drags a side panel's width. It takes no room; its hit area straddles the panel's border. */
+.resize-handle {
+  position: relative;
+  z-index: 20;
+  flex: none;
+  width: 0;
+  cursor: col-resize;
+  outline: none;
+}
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 8px;
+}
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: var(--accent-default);
+  opacity: 0;
+  transition: opacity var(--motion-duration-base);
+}
+.resize-handle:hover::after,
+.resize-handle:active::after,
+.resize-handle:focus-visible::after {
+  opacity: 1;
+}
+.sidebar,
+.details {
+  max-width: 45vw;
+}
+
+/* Details panel */
+.details {
+  /* Wider on wide windows, up to 460px, and never more than a third of the window. */
+  width: min(460px, max(360px, 26vw), 34vw);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-left: var(--border-width-default) solid var(--border-default);
+  background: var(--surface-background);
+}
+.details-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 var(--space-4) 0 var(--space-9);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.details-title {
+  font-size: var(--text-size-detail);
+  color: var(--text-muted);
+}
+/* The app's own window controls sit over the top-right corner. */
+:root[data-titlebar='custom'] .details-head {
+  padding-right: 148px;
+}
+.details-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0 var(--space-9) var(--space-9);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 /* The macOS shell draws its traffic lights over the top-left corner, centered in the title bar. */
 :root[data-titlebar='overlay'] .side-head {
@@ -3745,7 +3811,6 @@ kbd {
 }
 :where(:root[data-motion='on']) .focus-side,
 :where(:root[data-motion='on']) .focus-bar,
-:where(:root[data-motion='on']) .focus-details,
 :where(:root[data-motion='on']) .focus svg {
   animation: focus-in var(--motion-duration-base) var(--motion-easing-enter) both;
 }
@@ -3759,14 +3824,6 @@ kbd {
 }
 .focus-arrow.still {
   fill: var(--edge-still);
-}
-.focus-details {
-  position: absolute;
-  translate: -50% -100%;
-  padding: var(--space-7);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  pointer-events: auto;
 }
 
 /* Covers and backgrounds. Images sit behind the content and are dimmed toward the canvas color so cards and links stay readable. */

@@ -22,9 +22,7 @@ export const Default: Story = {
         outgoing={[{ id: 'next', label: 'Review the design', tag: 'step', status: 'ready', where: 'Canvas', related: false, flow: 'live' }]}
         onFocus={() => {}}
         onExit={() => {}}
-      >
-        <p className="facts">The focused card's details appear here.</p>
-      </FocusView>
+      />
     </div>
   ),
 }

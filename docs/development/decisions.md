@@ -188,6 +188,14 @@ Hovering a card lifts that card alone: it grows slightly from the middle of its 
 
 2026-10-12 · [#333](https://github.com/vocksel/orion/issues/333)
 
+### Details live in a panel beside the canvas
+
+What's selected shows in a fixed panel on the right of the window, not in an overlay on the canvas. With nothing selected, the panel shows the open group, or the canvas at the top level. Focus view puts the focused card's details there too. The panel can be hidden or dragged to a new width, and Orion remembers both. Renaming or editing something brings a hidden panel back.
+
+**Why:** an overlay that came and went with each click flashed in and out and covered cards. A panel that stays put never hides the canvas, and selecting doesn't resize it.
+
+2026-10-19
+
 ## Celebration and triage
 
 ### Finished work gets savored

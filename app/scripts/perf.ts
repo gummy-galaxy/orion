@@ -256,15 +256,30 @@ async function measure(browser: Browser, page: Page, action: () => Promise<void>
   }
 }
 
-/** Centers of task cards fully inside the window, top-left first. */
-async function visibleCards(page: Page): Promise<{ x: number; y: number }[]> {
-  return page.evaluate(() =>
-    [...document.querySelectorAll('.react-flow__node-task')]
+/** How far the drag step moves its card. */
+const DRAG = { x: 260, y: 140 }
+
+type VisibleCard = { x: number; y: number; right: number; below: number }
+
+/**
+ * Centers of task cards fully inside the canvas, top-left first, with how far the canvas runs to the right of and below
+ * each one. Side panels cover the window's edges, so the canvas, not the window, bounds what counts as visible.
+ */
+async function visibleCards(page: Page): Promise<VisibleCard[]> {
+  return page.evaluate(() => {
+    const area = document.querySelector('.react-flow')?.getBoundingClientRect() ?? new DOMRect(0, 0, innerWidth, innerHeight)
+
+    return [...document.querySelectorAll('.react-flow__node-task')]
       .map((node) => node.getBoundingClientRect())
-      .filter((box) => box.top > 60 && box.left > 60 && box.bottom < innerHeight - 80 && box.right < innerWidth - 60)
+      .filter((box) => box.top > area.top + 60 && box.left > area.left + 60 && box.bottom < area.bottom - 80 && box.right < area.right - 60)
       .sort((a, b) => a.top - b.top || a.left - b.left)
-      .map((box) => ({ x: box.left + box.width / 2, y: box.top + box.height / 2 })),
-  )
+      .map((box) => {
+        const x = box.left + box.width / 2
+        const y = box.top + box.height / 2
+
+        return { x, y, right: area.right - x, below: area.bottom - y }
+      })
+  })
 }
 
 const wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms))
@@ -329,13 +344,14 @@ async function profileStory(browser: Browser, url: string, story: string): Promi
     await wait(SETTLE_MS)
   })
 
-  const target = cards[Math.min(3, cards.length - 1)]
+  // The first card with room for the whole drag, so the pointer never nears the canvas edge and auto-pans the view.
+  const target = cards.find((card) => card.right > DRAG.x + 60 && card.below > DRAG.y + 80)
 
   if (target) {
     samples.drag = await measure(browser, page, async () => {
       await page.mouse.move(target.x, target.y)
       await page.mouse.down()
-      await page.mouse.move(target.x + 260, target.y + 140, { steps: 30 })
+      await page.mouse.move(target.x + DRAG.x, target.y + DRAG.y, { steps: 30 })
       await page.mouse.up()
       await wait(SETTLE_MS)
     })

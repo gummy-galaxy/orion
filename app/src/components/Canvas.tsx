@@ -80,6 +80,8 @@ import {
 } from '../model'
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { DetailStepper } from './DetailStepper'
+import { DetailsPanel } from './DetailsPanel'
+import { ResizeHandle } from './ResizeHandle'
 import { EmptyCanvas } from './EmptyCanvas'
 import { ComponentInspector } from './ComponentInspector'
 import { CurveEdge } from './CurveEdge'
@@ -194,12 +196,10 @@ import { subscribeCompactZoom, zoomLevel } from '../zoomLevel'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { type DrawCard } from '../cardDraw'
 import { useDrawnCards } from '../useDrawnCards'
-import { GroupFacts } from './GroupFacts'
-import { GroupArrange } from './GroupArrange'
+import { GroupInspector } from './GroupInspector'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
 import { SelectionStatus } from './SelectionStatus'
-import { TintSelect } from './TintSelect'
 
 type ViewNode = AppNode | GhostNode
 type FocusEntry = { viewport: Viewport; moved: boolean }
@@ -217,6 +217,11 @@ function cardAt(event: MouseEvent | TouchEvent): string | undefined {
 }
 
 const SIDEBAR_KEY = 'orion:sidebar'
+const DETAILS_KEY = 'orion:details'
+const SIDEBAR_WIDTH_KEY = 'orion:sidebar-width'
+const DETAILS_WIDTH_KEY = 'orion:details-width'
+const SIDEBAR_WIDTH = { min: 200, max: 480 }
+const DETAILS_WIDTH = { min: 320, max: 720 }
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
 const DEFAULT_MOTION: MotionSettings = { arrows: true, glow: true, pauseWhileMoving: true }
@@ -266,9 +271,9 @@ const DOUBLE_CLICK_MS = 280
 const FOCUS_SIDE_WIDTH = 248
 const FOCUS_INSET = 20
 const FOCUS_ZOOM = 1.2
-/** The focused card sits this far down the canvas, leaving room for its details above. */
-const FOCUS_CARD_Y = 0.7
-const FOCUS_BOTTOM_GAP = 24
+/** The focused card keeps this much room between it and each column of its links. */
+const FOCUS_COLUMN_GAP = 48
+const FOCUS_MIN_ZOOM = 0.5
 /** Focus moves head straight for the card and start fast. */
 const focusMove = () => ({ duration: focusGlide(), ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' }) as const
 const PLACE_GAP = 80
@@ -327,6 +332,17 @@ function useAway() {
   return away
 }
 
+/** A side panel's saved width, or null for its default. */
+function readWidth(key: string) {
+  try {
+    const width = Number(localStorage.getItem(key))
+
+    return width > 0 ? width : null
+  } catch {
+    return null
+  }
+}
+
 function readFlag(key: string, fallback: boolean) {
   try {
     const value = localStorage.getItem(key)
@@ -382,10 +398,11 @@ function groupOpenViewport(group: AppNode, map: Map<string, AppNode>, box: { wid
 function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
   const position = absolutePosition(card, map)
   const size = sizeOf(card, cardSize)
-  const zoom = FOCUS_ZOOM
-  const centerY = Math.min(box.height * FOCUS_CARD_Y, box.height - FOCUS_BOTTOM_GAP - (size.height * zoom) / 2)
+  // A narrow canvas zooms out so the card fits between the two columns instead of running under them.
+  const room = box.width - 2 * (FOCUS_INSET + FOCUS_SIDE_WIDTH + FOCUS_COLUMN_GAP)
+  const zoom = Math.max(FOCUS_MIN_ZOOM, Math.min(FOCUS_ZOOM, room / size.width))
 
-  return { x: box.width / 2 - (position.x + size.width / 2) * zoom, y: centerY - (position.y + size.height / 2) * zoom, zoom }
+  return { x: box.width / 2 - (position.x + size.width / 2) * zoom, y: box.height / 2 - (position.y + size.height / 2) * zoom, zoom }
 }
 
 /**
@@ -446,13 +463,12 @@ export function Canvas() {
   const [focusPick, setFocus] = useState<string | null>(null)
   // Where focus started, and whether it has since walked to another card or level.
   const focusEntry = useRef<FocusEntry | null>(null)
-  const [editing, setEditing] = useState<string | null>(null)
+  const [editing, setEditingState] = useState<string | null>(null)
   /** The link whose inspector is showing, picked by clicking it. */
   const [pickedLink, setPickedLink] = useState<string | null>(null)
   /** The canvas's cover and background, as the workspace settings hold them. */
   const [canvasStyle, setCanvasStyle] = useState<CanvasStyle>({})
   /** The cover panel on show, for the canvas or the open group, or null while it's closed. */
-  const [coverTarget, setCoverTarget] = useState<{ kind: 'canvas' } | { kind: 'group'; id: string } | null>(null)
   const setWorkspaceName = useSetAtom(workspaceAtom)
   const canvasColor = backgroundColor(canvasStyle.background)
   const canvasImage = isAssetId(canvasStyle.background) ? canvasStyle.background : undefined
@@ -461,6 +477,18 @@ export function Canvas() {
 
   useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
+  const [showDetails, setShowDetails] = useState(() => readFlag(DETAILS_KEY, true))
+  const [sidebarWidth, setSidebarWidth] = useState(() => readWidth(SIDEBAR_WIDTH_KEY))
+  const [detailsWidth, setDetailsWidth] = useState(() => readWidth(DETAILS_WIDTH_KEY))
+  // Renaming and editing happen in the details panel, so starting either brings a hidden panel back.
+  const setEditing = useCallback((id: string | null) => {
+    setEditingState(id)
+
+    if (id === null || readFlag(DETAILS_KEY, true)) return
+
+    setShowDetails(true)
+    writeFlag('details', true)
+  }, [])
   const [appearance, setAppearance] = useState(readAppearance)
   /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
   const [themes, setThemes] = useState<Theme[]>(cachedThemes)
@@ -1046,7 +1074,7 @@ export function Canvas() {
       focusEntry.current = null
       updateTrail(emptyTrail())
       setPinned(null)
-      setEditing(null)
+      setEditingState(null)
 
       queue.current = queue.current.then(async () => {
         const list = await getWorkspaces()
@@ -2246,7 +2274,7 @@ export function Canvas() {
 
     setNodes(result.nodes)
     setEditing(result.groupId)
-  }, [nodes, view, setNodes, cardSize])
+  }, [nodes, view, setNodes, setEditing, cardSize])
 
   const doUngroup = useCallback(
     (ids?: string[]) => {
@@ -2481,7 +2509,7 @@ export function Canvas() {
           )
         })
     },
-    [root, setLinks, setNodes, cardSize],
+    [root, setLinks, setNodes, setEditing, cardSize],
   )
 
   const viewportCenter = useCallback(() => {
@@ -3146,7 +3174,7 @@ export function Canvas() {
       { label: 'Fit to screen', hint: hintOf('fit'), run: () => fitTo(root) },
       {
         label: root ? 'Cover and background' : 'Canvas cover and background',
-        run: () => setCoverTarget(root ? { kind: 'group', id: root } : { kind: 'canvas' }),
+        run: showLevelDetails,
       },
       ...(root ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => openRoot(map.get(root)?.parentId ?? null) }] : []),
     ]
@@ -3496,6 +3524,12 @@ export function Canvas() {
       run: () => toggleSidebar(!sidebar),
     },
     {
+      id: 'details-panel',
+      label: showDetails ? 'Hide details panel' : 'Show details panel',
+      detail: 'What is selected, or the open group',
+      run: () => toggleDetails(!showDetails),
+    },
+    {
       id: 'sync',
       label: 'Sync with GitHub',
       detail: 'Refresh pull request status now',
@@ -3518,6 +3552,34 @@ export function Canvas() {
   const toggleSidebar = (value: boolean) => {
     setSidebar(value)
     writeFlag('sidebar', value)
+  }
+
+  // A drag sets the width on every move and saves it once, when the drag ends.
+  const resizeSidebar = (width: number | null, done = true) => {
+    setSidebarWidth(width)
+
+    if (done) saveSettings({ 'sidebar-width': width === null ? null : String(width) })
+  }
+
+  const resizeDetails = (width: number | null, done = true) => {
+    setDetailsWidth(width)
+
+    if (done) saveSettings({ 'details-width': width === null ? null : String(width) })
+  }
+
+  const toggleDetails = (value: boolean) => {
+    setShowDetails(value)
+    writeFlag('details', value)
+  }
+
+  // Clears the selection so the details panel describes the open group, or the canvas at the top level.
+  const showLevelDetails = () => {
+    setNodes((currentNodes) =>
+      currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
+    )
+    clearStickerPicks()
+    setPickedLink(null)
+    toggleDetails(true)
   }
 
   const toggleDebug = (v: boolean) => {
@@ -3543,6 +3605,175 @@ export function Canvas() {
     writeKeybindings(next)
   }
 
+  const groupInspector = (group: AppNode, selection: boolean) => (
+    <GroupInspector
+      key={selection ? inspectorKey : `open:${group.id}`}
+      node={group}
+      stats={work.groups.get(group.id)}
+      workspace={workspaces.active}
+      focus={selection && editing === group.id}
+      doneEditing={() => setEditing(null)}
+      update={updateData}
+      arrange={(patch) => arrangeGroup(group.id, patch)}
+      changeStyle={(change) => changeGroupStyle(group.id, change)}
+      reflow={() => actions.reflow(group.id)}
+      open={selection ? () => actions.open(group.id) : undefined}
+      ungroup={selection ? () => doUngroup([group.id]) : undefined}
+    />
+  )
+
+  // The panel follows the focused card, then the selection, then a picked link, and otherwise describes the open level.
+  const details = focused ? (
+    isNote(focused) ? (
+      <NoteInspector
+        key={focused.id}
+        node={focused}
+        focus={false}
+        doneEditing={() => setEditing(null)}
+        update={updateData}
+        remove={() => {
+          exitFocus()
+          deleteNote(focused.id)
+        }}
+      />
+    ) : isComponent(focused) ? (
+      <ComponentInspector
+        key={focused.id}
+        node={focused}
+        focus={false}
+        doneEditing={() => setEditing(null)}
+        work={work}
+        map={map}
+        update={updateData}
+        remove={() => {
+          exitFocus()
+          deleteComponent(focused.id)
+        }}
+        jumpTo={focusOn}
+        connections={false}
+        links={links}
+        addLink={addLink}
+        removeLink={removeLink}
+        flipLink={flipLink}
+      />
+    ) : (
+      <TaskInspector
+        key={focused.id}
+        node={focused}
+        work={work}
+        map={map}
+        github={github}
+        update={updateData}
+        jumpTo={focusOn}
+        connections={false}
+        links={links}
+        addLink={addLink}
+        removeLink={removeLink}
+        flipLink={flipLink}
+      />
+    )
+  ) : selected.length === 0 && pickedStickers.length > 0 ? (
+    <div className="insp">
+      <strong>
+        {pickedStickers.length} {pickedStickers.length === 1 ? 'sticker' : 'stickers'} selected
+      </strong>
+      <button type="button" className="btn" onClick={() => removeStickers(new Set(pickedStickers.map((sticker) => sticker.id)))}>
+        Remove {pickedStickers.length === 1 ? 'sticker' : 'stickers'}
+      </button>
+    </div>
+  ) : selected.length > 1 ? (
+    <div className="insp">
+      <strong>{selected.length} selected</strong>
+      {selectedWorkData.length > 0 && <SelectionStatus items={selectedWorkData} update={patchSelection} />}
+      <button type="button" className="btn primary" onClick={doGroup}>
+        Group selection <kbd>⌘G</kbd>
+      </button>
+    </div>
+  ) : one && isNote(one) ? (
+    <NoteInspector
+      key={inspectorKey}
+      node={one}
+      focus={editing === one.id}
+      doneEditing={() => setEditing(null)}
+      update={updateData}
+      remove={() => deleteNote(one.id)}
+    />
+  ) : one && isComponent(one) ? (
+    <ComponentInspector
+      key={one.id}
+      node={one}
+      focus={editing === one.id}
+      doneEditing={() => setEditing(null)}
+      work={work}
+      map={map}
+      update={updateData}
+      remove={() => deleteComponent(one.id)}
+      jumpTo={jumpTo}
+      links={links}
+      addLink={addLink}
+      removeLink={removeLink}
+      flipLink={flipLink}
+    />
+  ) : one && isTask(one) ? (
+    <TaskInspector
+      key={inspectorKey}
+      node={one}
+      focus={editing === one.id}
+      doneEditing={() => setEditing(null)}
+      work={work}
+      map={map}
+      github={github}
+      update={updateData}
+      jumpTo={jumpTo}
+      links={links}
+      addLink={addLink}
+      removeLink={removeLink}
+      flipLink={flipLink}
+    />
+  ) : one && isImage(one) ? (
+    <div className="insp" key={inspectorKey}>
+      <label htmlFor="image-label">Image label</label>
+      <input
+        id="image-label"
+        value={one.data.label}
+        autoFocus={editing === one.id}
+        onFocus={(event) => editing === one.id && event.target.select()}
+        onBlur={() => setEditing(null)}
+        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+        onChange={(event) => updateData(one.id, { label: event.target.value })}
+      />
+      <button type="button" className="btn" onClick={() => setNodes((ns) => removeNodes(ns, [one.id], cardSize))}>
+        Remove image
+      </button>
+    </div>
+  ) : one ? (
+    groupInspector(one, true)
+  ) : pickedLinkData ? (
+    <LinkInspector
+      key={pickedLinkData.id}
+      link={pickedLinkData}
+      map={map}
+      focus={editing === `link:${pickedLinkData.id}`}
+      doneEditing={() => setEditing(null)}
+      update={updateLink}
+      flip={flipLink}
+      remove={() => {
+        removeLink(pickedLinkData.id)
+        setPickedLink(null)
+      }}
+      jumpTo={jumpTo}
+    />
+  ) : root && map.has(root) ? (
+    groupInspector(map.get(root)!, false)
+  ) : (
+    <div className="insp">
+      <strong>{workspaces.canvases.find((item) => item.name === workspaces.active)?.label ?? workspaces.active}</strong>
+      <p className="facts">{readyTotal} ready to start. Select a card, group, or link to see its details here.</p>
+      <CoverSettings title="Canvas cover and background" workspace={workspaces.active} current={canvasStyle} change={changeCanvasStyle} />
+      <HeaderSettings title="Canvas header" value={canvasStyle.header} change={(header) => changeCanvasStyle({ header })} />
+    </div>
+  )
+
   return (
     <ActionsContext.Provider value={actions}>
       <div className="app">
@@ -3559,7 +3790,11 @@ export function Canvas() {
             newWorkspace={newWorkspace}
             openSettings={() => setSettings('appearance')}
             settingsHint={hintOf('settings') ?? ''}
+            width={sidebarWidth ?? undefined}
           />
+        )}
+        {sidebar && (
+          <ResizeHandle panel="before" label="Resize the group list" {...SIDEBAR_WIDTH} resize={resizeSidebar} reset={() => resizeSidebar(null)} />
         )}
         <div
           className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}${canvasHeader ? ' has-header' : ''}`}
@@ -3801,183 +4036,11 @@ export function Canvas() {
                 />
               </Panel>
 
-              {coverTarget && selected.length === 0 && pickedStickers.length === 0 && (
-                <Panel position="top-right" className="panel inspector cover-panel">
-                  {coverTarget.kind === 'canvas' ? (
-                    <>
-                      <CoverSettings
-                        title="Canvas cover and background"
-                        workspace={workspaces.active}
-                        current={canvasStyle}
-                        change={changeCanvasStyle}
-                      />
-                      <HeaderSettings title="Canvas header" value={canvasStyle.header} change={(header) => changeCanvasStyle({ header })} />
-                    </>
-                  ) : map.has(coverTarget.id) ? (
-                    <>
-                      <CoverSettings
-                        title="Group cover and background"
-                        workspace={workspaces.active}
-                        current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
-                        change={(change) => changeGroupStyle(coverTarget.id, change)}
-                      />
-                      <HeaderSettings
-                        title="Group header"
-                        value={(map.get(coverTarget.id)?.data as ClusterData | undefined)?.header}
-                        change={(header) => changeGroupStyle(coverTarget.id, { header })}
-                      />
-                    </>
-                  ) : null}
-                  <div className="row">
-                    <button type="button" className="btn" onClick={() => setCoverTarget(null)}>
-                      Done
-                    </button>
-                  </div>
-                </Panel>
-              )}
-
-              {(selected.length > 0 || pickedStickers.length > 0) && (
-                <Panel position="top-right" className="panel inspector">
-                  {!selected.length ? (
-                    <div className="insp">
-                      <strong>
-                        {pickedStickers.length} {pickedStickers.length === 1 ? 'sticker' : 'stickers'} selected
-                      </strong>
-                      <button type="button" className="btn" onClick={() => removeStickers(new Set(pickedStickers.map((sticker) => sticker.id)))}>
-                        Remove {pickedStickers.length === 1 ? 'sticker' : 'stickers'}
-                      </button>
-                    </div>
-                  ) : !one ? (
-                    <div className="insp">
-                      <strong>{selected.length} selected</strong>
-                      {selectedWorkData.length > 0 && <SelectionStatus items={selectedWorkData} update={patchSelection} />}
-                      <button type="button" className="btn primary" onClick={doGroup}>
-                        Group selection <kbd>⌘G</kbd>
-                      </button>
-                    </div>
-                  ) : isNote(one) ? (
-                    <NoteInspector
-                      key={inspectorKey}
-                      node={one}
-                      focus={editing === one.id}
-                      doneEditing={() => setEditing(null)}
-                      update={updateData}
-                      remove={() => deleteNote(one.id)}
-                    />
-                  ) : isComponent(one) ? (
-                    <ComponentInspector
-                      key={one.id}
-                      node={one}
-                      focus={editing === one.id}
-                      doneEditing={() => setEditing(null)}
-                      work={work}
-                      map={map}
-                      update={updateData}
-                      remove={() => deleteComponent(one.id)}
-                      jumpTo={jumpTo}
-                      links={links}
-                      addLink={addLink}
-                      removeLink={removeLink}
-                      flipLink={flipLink}
-                    />
-                  ) : isTask(one) ? (
-                    <TaskInspector
-                      key={inspectorKey}
-                      node={one}
-                      focus={editing === one.id}
-                      doneEditing={() => setEditing(null)}
-                      work={work}
-                      map={map}
-                      github={github}
-                      update={updateData}
-                      jumpTo={jumpTo}
-                      links={links}
-                      addLink={addLink}
-                      removeLink={removeLink}
-                      flipLink={flipLink}
-                    />
-                  ) : isImage(one) ? (
-                    <div className="insp" key={inspectorKey}>
-                      <label htmlFor="image-label">Image label</label>
-                      <input
-                        id="image-label"
-                        value={one.data.label}
-                        autoFocus={editing === one.id}
-                        onFocus={(event) => editing === one.id && event.target.select()}
-                        onBlur={() => setEditing(null)}
-                        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-                        onChange={(event) => updateData(one.id, { label: event.target.value })}
-                      />
-                      <button type="button" className="btn" onClick={() => setNodes((ns) => removeNodes(ns, [one.id], cardSize))}>
-                        Remove image
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="insp" key={inspectorKey}>
-                      <label htmlFor="g-label">Group name</label>
-                      <input
-                        id="g-label"
-                        value={(one.data as ClusterData).label}
-                        autoFocus={editing === one.id}
-                        onFocus={(event) => editing === one.id && event.target.select()}
-                        onBlur={() => setEditing(null)}
-                        onKeyDown={(event) => event.key === 'Enter' && (event.target as HTMLInputElement).blur()}
-                        onChange={(event) => updateData(one.id, { label: event.target.value })}
-                      />
-                      {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
-                      <GroupFacts stats={work.groups.get(one.id)} />
-                      <label htmlFor="g-color">Color</label>
-                      <TintSelect
-                        id="g-color"
-                        value={(one.data as ClusterData).color}
-                        inherit={one.parentId ? "Its group's" : 'None'}
-                        change={(color) => updateData(one.id, { color })}
-                      />
-                      <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
-                      <CoverSettings
-                        title="Cover and background"
-                        workspace={workspaces.active}
-                        current={one.data as ClusterData}
-                        change={(change) => changeGroupStyle(one.id, change)}
-                      />
-                      <HeaderSettings
-                        title="Header"
-                        value={(one.data as ClusterData).header}
-                        change={(header) => changeGroupStyle(one.id, { header })}
-                      />
-                      <div className="row">
-                        <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
-                          Open
-                        </button>
-                        {(one.data as ClusterData).arrange !== 'custom' && (
-                          <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
-                            Reflow
-                          </button>
-                        )}
-                        <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
-                          Ungroup <kbd>⇧⌘G</kbd>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </Panel>
-              )}
-              {selected.length === 0 && pickedLinkData && (
-                <Panel position="top-right" className="panel inspector">
-                  <LinkInspector
-                    key={pickedLinkData.id}
-                    link={pickedLinkData}
-                    map={map}
-                    focus={editing === `link:${pickedLinkData.id}`}
-                    doneEditing={() => setEditing(null)}
-                    update={updateLink}
-                    flip={flipLink}
-                    remove={() => {
-                      removeLink(pickedLinkData.id)
-                      setPickedLink(null)
-                    }}
-                    jumpTo={jumpTo}
-                  />
+              {!showDetails && (
+                <Panel position="top-right" className="panel crumbs">
+                  <button type="button" className="crumb" onClick={() => toggleDetails(true)} title="Show the details panel">
+                    ☰
+                  </button>
                 </Panel>
               )}
 
@@ -4016,53 +4079,7 @@ export function Canvas() {
               outgoing={focusItems.outgoing}
               onFocus={focusOn}
               onExit={exitFocus}
-            >
-              {isNote(focused) ? (
-                <NoteInspector
-                  node={focused}
-                  focus={false}
-                  doneEditing={() => setEditing(null)}
-                  update={updateData}
-                  remove={() => {
-                    exitFocus()
-                    deleteNote(focused.id)
-                  }}
-                />
-              ) : isComponent(focused) ? (
-                <ComponentInspector
-                  node={focused}
-                  focus={false}
-                  doneEditing={() => setEditing(null)}
-                  work={work}
-                  map={map}
-                  update={updateData}
-                  remove={() => {
-                    exitFocus()
-                    deleteComponent(focused.id)
-                  }}
-                  jumpTo={focusOn}
-                  connections={false}
-                  links={links}
-                  addLink={addLink}
-                  removeLink={removeLink}
-                  flipLink={flipLink}
-                />
-              ) : (
-                <TaskInspector
-                  node={focused}
-                  work={work}
-                  map={map}
-                  github={github}
-                  update={updateData}
-                  jumpTo={focusOn}
-                  connections={false}
-                  links={links}
-                  addLink={addLink}
-                  removeLink={removeLink}
-                  flipLink={flipLink}
-                />
-              )}
-            </FocusView>
+            />
           )}
           {!ready && <div className="loading">Laying out…</div>}
           {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
@@ -4083,6 +4100,14 @@ export function Canvas() {
             />
           )}
         </div>
+        {showDetails && (
+          <ResizeHandle panel="after" label="Resize the details panel" {...DETAILS_WIDTH} resize={resizeDetails} reset={() => resizeDetails(null)} />
+        )}
+        {showDetails && (
+          <DetailsPanel width={detailsWidth ?? undefined} hide={() => toggleDetails(false)}>
+            {details}
+          </DetailsPanel>
+        )}
         {paletteQuery !== null && (
           <Palette
             nodes={nodes}
