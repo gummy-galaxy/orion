@@ -55,7 +55,7 @@ function render.itemJson(doc: Doc, derived: graphTypes.Derived, item: Item): jso
 			id = item.id,
 			kind = "image",
 			asset = item.data.asset,
-			workspace = item.data.workspace,
+			canvas = item.data.canvas,
 		})
 		image.label = asString(item.data.label)
 		image.group = item.parentId

@@ -204,7 +204,7 @@ export function moveClipAssets(clip: Clip, workspace: string, copied: ReadonlyMa
     workspace,
     nodes: clip.nodes.map((node): AppNode => {
       if (isImage(node))
-        return copied.has(node.data.asset) ? { ...node, data: { ...node.data, asset: copied.get(node.data.asset)!, workspace } } : node
+        return copied.has(node.data.asset) ? { ...node, data: { ...node.data, asset: copied.get(node.data.asset)!, canvas: workspace } } : node
 
       if (isCluster(node) && (copied.has(node.data.cover ?? '') || copied.has(node.data.background ?? '')))
         return { ...node, data: { ...node.data, cover: asset(node.data.cover), background: asset(node.data.background) } }

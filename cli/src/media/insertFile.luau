@@ -12,7 +12,7 @@ local writeImageAsset = require("@root/media/writeImageAsset")
 type Item = types.Item
 
 -- Returns the image item along with the revision that added it.
-return function(dir: string, workspace: string, file: string, label: string?, group: string?): (Item, number)
+return function(dir: string, canvas: string, file: string, label: string?, group: string?): (Item, number)
 	assert(fs.exists(file) and fs.type(file) == "file", `image file not found: {file}`)
 	validateImageSize(fs.metadata(file).size)
 	local bytes = fs.readFileToString(file)
@@ -21,7 +21,7 @@ return function(dir: string, workspace: string, file: string, label: string?, gr
 	local added: Item? = nil
 	local doc = runTransaction(dir, function(doc)
 		local parent = if group then resolveId(doc, group) else nil
-		local item = addImage(doc, name, extension, workspace, parent)
+		local item = addImage(doc, name, extension, canvas, parent)
 		writeImageAsset(dir, item.data.asset :: string, bytes)
 		added = item
 	end)

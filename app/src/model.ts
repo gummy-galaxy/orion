@@ -166,7 +166,7 @@ export type ClusterData = {
    */
   size?: { width: number; height: number }
 }
-export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
+export type ImageData = { kind: 'image'; label: string; asset: string; canvas: string }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. Components have no status. */
 export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status?: ViewStatus; side: 'in' | 'out' }

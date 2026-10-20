@@ -166,7 +166,7 @@ test.case("a created item joins the canvas and its inverse removes it", function
 	local restores = applyOperations(
 		doc,
 		parse([=[[
-			{"op":"addImage","id":"img","x":4,"y":8,"data":{"kind":"image","label":"Photo","asset":"a.png","workspace":"default"}},
+			{"op":"addImage","id":"img","x":4,"y":8,"data":{"kind":"image","label":"Photo","asset":"a.png","canvas":"default"}},
 			{"op":"addGroup","id":"batch","x":0,"y":0,"data":{"kind":"cluster","label":"Batch"}},
 			{"op":"addCard","id":"inner","x":16,"y":32,"group":"batch","data":{"kind":"task","label":"In","itemKind":"step","status":"todo"}}
 		]]=])
