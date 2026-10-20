@@ -1,15 +1,17 @@
-local sizes = require("@root/graph/sizes")
+local estimateTaskHeight = require("@root/graph/estimateTaskHeight")
+local geometry = require("@root/geometry")
 local types = require("@root/types")
 
 type Item = types.Item
 
--- The size the app draws an item at. Groups use their stored width and height.
+-- The size the app draws an item at. A card takes the height the app last measured for it, or an estimate from its
+-- text until the app has measured it. Groups and images use their stored width and height.
 local function getSize(item: Item): (number, number)
 	if item.type == "task" then
-		return sizes.TASK_WIDTH, sizes.TASK_HEIGHT
+		return geometry.TASK_WIDTH, item.height or estimateTaskHeight(item)
 	end
 
-	return item.width or 320, item.height or 200
+	return item.width or geometry.GROUP_SIZE.width, item.height or geometry.GROUP_SIZE.height
 end
 
 return getSize

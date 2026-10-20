@@ -1,8 +1,9 @@
+import { GROUP_PADDING, TASK_HEIGHT } from './geometry'
 import { useStoreApi } from '@xyflow/react'
 import { useStore } from 'jotai'
 import { useCallback } from 'react'
 import { describeCard, type Hint, type PerchTarget } from './companion'
-import { GROUP_PADDING, TASK_HEIGHT, groupHeaderHeight, isComponent, isNote, type ClusterData } from './model'
+import { groupHeaderHeight, isComponent, isNote, type ClusterData } from './model'
 import { collapsedAtom, nodesAtom, workAtom } from './state'
 
 /** How far into an open group, in canvas units, its top row of cards ends. The header band, if any, sits above that row. */

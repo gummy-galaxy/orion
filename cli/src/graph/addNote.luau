@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local createId = require("@root/graph/createId")
+local geometry = require("@root/geometry")
 local getGroup = require("@root/graph/getGroup")
 local getItem = require("@root/graph/getItem")
 local getNextSlot = require("@root/graph/getNextSlot")
@@ -8,7 +9,6 @@ local getSize = require("@root/graph/getSize")
 local graphTypes = require("@root/graph/types")
 local insertBetween = require("@root/graph/insertBetween")
 local linkItems = require("@root/graph/linkItems")
-local sizes = require("@root/graph/sizes")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -16,8 +16,13 @@ type Item = types.Item
 type NoteOptions = graphTypes.NoteOptions
 type Position = types.Position
 
+-- The app's spacing for the level a note lands on.
+local function getGap(parentId: string?)
+	return if parentId then geometry.GAP.inner else geometry.GAP.top
+end
+
 local function overlapsSibling(doc: Doc, parentId: string?, position: Position, width: number, height: number): boolean
-	local margin = sizes.ITEM_GAP / 2
+	local margin = getGap(parentId).y
 
 	for _, item in doc.nodes do
 		if item.parentId == parentId then
@@ -37,12 +42,12 @@ local function overlapsSibling(doc: Doc, parentId: string?, position: Position, 
 	return false
 end
 
--- The first spot at or below a preferred one that no sibling covers.
-local function freeSpotBelow(doc: Doc, parentId: string?, preferred: Position): Position
+-- The first spot at or below a preferred one that no sibling covers, for a note of the given size.
+local function freeSpotBelow(doc: Doc, parentId: string?, preferred: Position, width: number, height: number): Position
 	local position = { x = preferred.x, y = preferred.y }
 
-	while overlapsSibling(doc, parentId, position, sizes.TASK_WIDTH, sizes.TASK_HEIGHT) do
-		position.y += sizes.TASK_HEIGHT + sizes.ITEM_GAP
+	while overlapsSibling(doc, parentId, position, width, height) do
+		position.y += height + getGap(parentId).y
 	end
 
 	return position
@@ -74,22 +79,24 @@ local function addNote(doc: Doc, text: string, options: NoteOptions): Item
 		end
 	end
 
-	local position = getNextSlot(doc, parent)
-
-	if after and after.parentId == parent then
-		position = freeSpotBelow(doc, parent, {
-			x = after.position.x + sizes.TASK_WIDTH + sizes.ITEM_GAP,
-			y = after.position.y + sizes.TASK_HEIGHT + sizes.GROUP_PADDING,
-		})
-	end
-
 	local note: Item = {
 		id = createId(),
 		type = "task",
-		position = position,
+		position = getNextSlot(doc, parent),
 		parentId = parent,
 		data = json.object({ kind = "task", label = text, itemKind = "note", status = "todo" }),
 	}
+
+	if after and after.parentId == parent then
+		local afterWidth, afterHeight = getSize(after)
+		local width, height = getSize(note)
+		local gap = getGap(parent)
+		note.position = freeSpotBelow(doc, parent, {
+			x = after.position.x + afterWidth + gap.x,
+			y = after.position.y + afterHeight + gap.y,
+		}, width, height)
+	end
+
 	table.insert(doc.nodes, note)
 
 	if after and before and hasExistingLink then

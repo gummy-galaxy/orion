@@ -1,32 +1,25 @@
 import type { CardSize } from './cardSize'
+import { CARD_TEXT, TASK_HEIGHT, TASK_MAX_HEIGHT } from './geometry'
 import type { TaskData } from './model'
-
-/** Components never shrink below a classic card, whatever the skin. Matches `TASK_HEIGHT` in model.ts, which imports this module. */
-const MIN_HEIGHT = 72
-/** Notes and components stop growing here, so one long paragraph can't swallow a group. */
-const MAX_HEIGHT = 320
 
 const FONT_UI = "'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif"
 
 /** The fonts and spacing index.css gives each kind of card text. */
 const TEXT = {
-  label: { font: `500 12.5px ${FONT_UI}`, size: 12.5, lineHeight: 12.5 * 1.25 },
-  note: { font: `12px ${FONT_UI}`, size: 12, lineHeight: 12 * 1.3 },
-  description: { font: `11.5px ${FONT_UI}`, size: 11.5, lineHeight: 11.5 * 1.25 },
+  label: {
+    font: `500 ${CARD_TEXT.label.size}px ${FONT_UI}`,
+    size: CARD_TEXT.label.size,
+    lineHeight: CARD_TEXT.label.size * CARD_TEXT.label.lineHeight,
+  },
+  note: { font: `${CARD_TEXT.note.size}px ${FONT_UI}`, size: CARD_TEXT.note.size, lineHeight: CARD_TEXT.note.size * CARD_TEXT.note.lineHeight },
+  description: {
+    font: `${CARD_TEXT.description.size}px ${FONT_UI}`,
+    size: CARD_TEXT.description.size,
+    lineHeight: CARD_TEXT.description.size * CARD_TEXT.description.lineHeight,
+  },
 }
 
-/** Card padding top and bottom, the meta row, and the gap after it. */
-const CHROME = 20 + 13 + 3
-/** Room the source badge keeps on the right of a line, and the card's side padding. */
-const SIDES = { note: 15 + 12 + 22, component: 12 + 12 + 22 }
-/** Extra room some component shapes need around their text. */
-const SHAPE_ROOM: Record<string, { x: number; y: number }> = {
-  store: { x: 0, y: 12 },
-  actor: { x: 12, y: 0 },
-  interface: { x: 0, y: 8 },
-  process: { x: 28, y: 0 },
-  queue: { x: 8, y: 8 },
-}
+const SHAPE_ROOM: Record<string, { x: number; y: number }> = CARD_TEXT.shapeRoom
 
 let context: CanvasRenderingContext2D | null | undefined
 const widths = new Map<string, number>()
@@ -44,7 +37,7 @@ function measure(text: string, style: (typeof TEXT)[keyof typeof TEXT]): number 
   if (context) {
     context.font = style.font
     width = context.measureText(text).width
-  } else width = text.length * style.size * 0.55
+  } else width = text.length * style.size * CARD_TEXT.characterWidth
 
   widths.set(key, width)
 
@@ -92,18 +85,19 @@ export function taskHeight(data: TaskData, cardSize: CardSize): number {
   let height: number
 
   if (data.itemKind === 'note') {
-    height = CHROME + lineCount(data.label || 'Empty note', TEXT.note, cardSize.width - SIDES.note) * TEXT.note.lineHeight
+    height = CARD_TEXT.chrome + lineCount(data.label || 'Empty note', TEXT.note, cardSize.width - CARD_TEXT.sides.note) * TEXT.note.lineHeight
   } else if (data.itemKind === 'component') {
     const room = SHAPE_ROOM[data.shape ?? ''] ?? { x: 0, y: 0 }
-    const width = cardSize.width - SIDES.component - room.x
+    const width = cardSize.width - CARD_TEXT.sides.component - room.x
     const label = lineCount(data.label || 'Untitled component', TEXT.label, width) * TEXT.label.lineHeight
-    const description = data.note ? 3 + lineCount(data.note, TEXT.description, width) * TEXT.description.lineHeight : 0
+    const description = data.note ? CARD_TEXT.descriptionGap + lineCount(data.note, TEXT.description, width) * TEXT.description.lineHeight : 0
 
-    height = CHROME + room.y + label + description
+    height = CARD_TEXT.chrome + room.y + label + description
   } else return cardSize.height
 
-  // A little slack covers rounding and a web font that measures slightly wider than its fallback.
-  const fit = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.ceil((height + 4) / 4) * 4))
+  // A little slack covers rounding and a web font that measures slightly wider than its fallback. Components never
+  // shrink below a classic card, whatever the skin.
+  const fit = Math.min(TASK_MAX_HEIGHT, Math.max(TASK_HEIGHT, Math.ceil((height + CARD_TEXT.slack) / CARD_TEXT.step) * CARD_TEXT.step))
 
   return data.itemKind === 'note' ? Math.max(cardSize.height, fit) : fit
 }

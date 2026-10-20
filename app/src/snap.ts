@@ -1,4 +1,4 @@
-import { GAP } from './layout'
+import { GAP } from './geometry'
 import { absolutePosition, byId, sizeOf, type AppNode } from './model'
 import type { CardSize } from './cardSize'
 

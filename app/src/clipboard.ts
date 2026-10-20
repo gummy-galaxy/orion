@@ -1,19 +1,6 @@
+import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import type { CardSize } from './cardSize'
-import {
-  absolutePosition,
-  ancestors,
-  byId,
-  descendants,
-  isCluster,
-  isImage,
-  isTask,
-  normalize,
-  sizeOf,
-  TASK_HEIGHT,
-  TASK_WIDTH,
-  type AppNode,
-  type Link,
-} from './model'
+import { absolutePosition, ancestors, byId, descendants, isCluster, isImage, isTask, normalize, sizeOf, type AppNode, type Link } from './model'
 import { pushAside } from './pushAside'
 import { STICKER_HALF_SIZE, type Sticker } from './sticker'
 

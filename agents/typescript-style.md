@@ -8,4 +8,5 @@ The app's TypeScript mirrors the CLI's Luau layout. New and split modules follow
 - When a function also exists in the CLI, give it the same name. Its folder can differ.
 - Import each module directly by path, with no barrel files. Once #427 adds the `@/` alias for `app/src`, use it instead of relative paths.
 - Put tests in `<function>.test.ts` beside the module, testing only that function. Keep them flat: use `test` rather than `it`, and leave out a `describe` that only repeats the file's name. Shared builders live in a folder of fixture modules, one per builder.
+- Card and group sizes, spacing, and input limits live in `cli/src/geometry.luau`. After changing it, run `lute run geometry` from the repository root and commit the `app/src/geometry.ts` it writes; CI fails when the two disagree.
 - Logic the CLI also needs belongs in Luau, with the app reading the result from `orion serve`. See "Shared logic lives in Luau" in [the decisions log](../docs/development/decisions.md).

@@ -1,5 +1,5 @@
-import { GAP } from './layout'
-import { GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, groupHeaderHeight, isCluster, normalize, type AppNode } from './model'
+import { GAP, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from './geometry'
+import { groupHeaderHeight, isCluster, normalize, type AppNode } from './model'
 import type { CardSize } from './cardSize'
 
 const CLASSIC_SIZE = { width: TASK_WIDTH, height: TASK_HEIGHT }

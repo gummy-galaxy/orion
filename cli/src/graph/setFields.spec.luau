@@ -151,3 +151,17 @@ test.case("setFields snoozes and wakes a work item, and refuses a time that isn'
 		setFields(doc, "g", { snoozedUntil = "2026-10-12T17:00:00Z" })
 	end)
 end)
+
+test.case("setFields drops a card's measured size when its text or shape changes", function(assert)
+	local note = testing.task("n", "Short", "todo", nil, { itemKind = "note" })
+	note.width = 216
+	note.height = 96
+	local doc = testing.createDoc({ note })
+
+	setFields(doc, "n", { status = "done" })
+	assert.eq(note.height, 96)
+
+	setFields(doc, "n", { label = "Longer" })
+	assert.eq(note.width, nil)
+	assert.eq(note.height, nil)
+end)
