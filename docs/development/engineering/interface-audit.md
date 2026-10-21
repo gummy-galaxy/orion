@@ -243,10 +243,10 @@ Which of these Orion promises from 0.1.0 is still open. The proposal: the plan f
 
 ### Theme files
 
-|            |                                                                                                                                                                                                                                                                                                          |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Keep**   | The format in [Themes](/guide/themes): `name`, `author`, and `light` and `dark` objects keyed by token name, with values checked so a file can't load anything or add rules. Token names are already [a contract](/guide/tokens#names-are-a-contract).                                                   |
-| **Change** | [Tokens](/guide/tokens) says its defaults are Classic's, and that a theme file builds on them, but [#532](https://github.com/vocksel/orion/pull/532) deprecated Classic. Decide what a theme file builds on once Classic goes, most likely Vibrant's values as the defaults, before themes are promised. |
+|            |                                                                                                                                                                                                                                                                                                                                                           |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Keep**   | The format in [Themes](/guide/themes): `name`, `author`, and `light` and `dark` objects keyed by token name, with values checked so a file can't load anything or add rules. Token names are already [a contract](/guide/tokens#names-are-a-contract).                                                                                                    |
+| **Change** | [Tokens](/guide/tokens) says its defaults are Classic's, and that a theme file builds on them, but [#532](https://github.com/vocksel/orion/pull/532) deprecated Classic. Once Classic goes, Vibrant's values become the defaults a theme file builds on, as "Vibrant and Trading Card are the defaults" now says. Update the tokens page when that lands. |
 
 ### Programs Orion runs
 
