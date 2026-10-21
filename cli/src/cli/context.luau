@@ -1,5 +1,6 @@
 local cli = require("@batteries/cli")
 
+local aliasTypes = require("@root/aliases/types")
 local cliTypes = require("@root/cli/types")
 local describeCommands = require("@root/cli/describeCommands")
 local types = require("@root/types")
@@ -7,6 +8,10 @@ local types = require("@root/types")
 export type Dependencies = {
 	runner: types.CommandRunner?,
 	write: ((string) -> ())?,
+	-- Where notices go, such as an old command name being rewritten. Defaults to stderr.
+	warn: ((string) -> ())?,
+	-- The renamed commands and options to accept. Defaults to the shipped entries.
+	aliases: { aliasTypes.Alias }?,
 	dataDir: string?,
 	workspace: string?,
 	now: (() -> string)?,

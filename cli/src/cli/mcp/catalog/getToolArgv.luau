@@ -132,11 +132,30 @@ local function buildArgv(tool: Tool, arguments: json.Object): { string }
 	return argv
 end
 
+-- Moves arguments given under an old name to the field that replaced it.
+local function renameArguments(tool: Tool, arguments: json.Object): json.Object
+	local renamed = json.object({})
+
+	for key, value in arguments do
+		local field = if type(key) == "string" then tool.renamedArguments[key] else nil
+
+		if field then
+			assert(arguments[field] == nil, `{key} is now {field}, so give only {field}`)
+			renamed[field] = value
+		else
+			renamed[key] = value
+		end
+	end
+
+	return renamed
+end
+
 -- Turns a tool call into the CLI arguments for the command it runs.
 local function getToolArgv(tools: { Tool }, name: string, arguments: json.Object): { string }
 	local tool = assert(findTool(tools, name), `unknown tool: {name}`)
-	checkArguments(tool, arguments)
-	return buildArgv(tool, arguments)
+	local current = renameArguments(tool, arguments)
+	checkArguments(tool, current)
+	return buildArgv(tool, current)
 end
 
 return getToolArgv

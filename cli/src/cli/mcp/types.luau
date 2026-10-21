@@ -23,6 +23,10 @@ export type Tool = {
 	-- Whether calls add --json, which every command that takes it does.
 	json: boolean,
 	annotations: cliTypes.Annotations?,
+	-- Old names a call may still use after a rename, which tools/list doesn't show.
+	aliases: { string },
+	-- Old argument names after an option rename, each with the field it now fills.
+	renamedArguments: { [string]: string },
 }
 
 export type Run = (argv: { string }, write: (string) -> ()) -> ()

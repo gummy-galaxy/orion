@@ -3,6 +3,7 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local aliasTypes = require("@root/aliases/types")
 local buildTools = require("@root/cli/mcp/catalog/buildTools")
 local cli = require("@root/cli")
 local describeCommands = require("@root/cli/describeCommands")
@@ -12,6 +13,7 @@ local getVersion = require("@root/getVersion")
 local loadDoc = require("@root/store/loadDoc")
 local runTransaction = require("@root/store/runTransaction")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
 
 -- The first capture of `pattern` in `text`, such as the id a command printed.
 local function capture(text: string, pattern: string): string
@@ -655,4 +657,46 @@ test.case("help --json describes one command", function(assert)
 	local value = json.asObject(json.deserialize(run({ "help", "card", "add", "--json" })) :: json.Value)
 	assert.eq(value and value.name, "orion card add")
 	assert.eq(value and value.help, "Add a work item")
+end)
+
+-- Sample entries only: the shipped list starts each release empty.
+local SAMPLE_ALIASES: { aliasTypes.Alias } = {
+	{ kind = "command", from = "card new", to = "card add", added = "2026-10-19", pr = 1 },
+	{ kind = "option", command = "card add", from = "folder", to = "group", added = "2026-10-19", pr = 1 },
+}
+
+test.case("an old command name runs the new command and notices only on stderr", function(assert)
+	local dir = testing.directory("alias-execute")
+	writeDoc(dir, testing.createDoc({ testing.group("ws", "Release") }))
+	local output: { string } = {}
+	local notices: { string } = {}
+
+	local function execute(args: { string })
+		table.clear(output)
+		cli.execute(args, {
+			dataDir = dir,
+			aliases = SAMPLE_ALIASES,
+			write = function(line)
+				table.insert(output, line)
+			end,
+			warn = function(line)
+				table.insert(notices, line)
+			end,
+		})
+	end
+
+	execute({ "card", "new", "Old", "name", "--folder", "ws", "--json" })
+	local added = json.asObject(json.deserialize(table.concat(output, "\n")) :: json.Value)
+	local item = added and json.asObject(added.item)
+	assert.eq(item and item.label, "Old name")
+	assert.eq(item and item.group, "ws")
+	assert.eq(#notices, 2)
+	assert.strContains(notices[1], "orion card new is now orion card add")
+	assert.strContains(notices[2], "--folder on orion card add is now --group")
+
+	execute({ "help", "--all" })
+	assert.strNotContains(table.concat(output, "\n"), "card new")
+	assert.strNotContains(table.concat(output, "\n"), "--folder")
+	execute({ "help", "card", "new" })
+	assert.strContains(table.concat(output, "\n"), "orion card add")
 end)
