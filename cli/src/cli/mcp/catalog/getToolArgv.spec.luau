@@ -123,17 +123,13 @@ test.case("orion_apply passes the plan inline with its dry run and revision", fu
 	end)
 end)
 
-test.case("orion_suggestion_find passes its command as one JSON array", function(assert)
+test.case("orion_suggestion_find takes no command to run", function(assert)
 	assert.eq(
-		argv(
-			"orion_suggestion_find",
-			{ command = { "claude", "-p" }, scope = "all", dryRun = true, canvas = "release" }
-		),
-		'suggestion find --canvas release --command ["claude","-p"] --scope all --dry-run --json'
+		argv("orion_suggestion_find", { scope = "all", dryRun = true, canvas = "release" }),
+		"suggestion find --canvas release --scope all --dry-run --json"
 	)
-	assert.eq(argv("orion_suggestion_find", {}), "suggestion find --json")
-	assert.throwsWith("command must be a list of strings", function()
-		argv("orion_suggestion_find", { command = "claude" })
+	assert.throwsWith("unknown argument: command", function()
+		argv("orion_suggestion_find", { command = { "claude", "-p" } })
 	end)
 end)
 
