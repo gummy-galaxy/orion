@@ -12,11 +12,11 @@ Each change links to the issue that carries it.
 
 ## Since the snapshot
 
-Most of the changes below have landed. The lists still describe `main` as it was on 2026-10-18.
+Most of the changes below have landed. The lists still describe `main` as it was on 2026-10-18, except [Data files](#data-files) and [Formats people write](#formats-people-write), which describe it on 2026-10-20.
 
 - [#485](https://github.com/vocksel/orion/pull/485) builds the MCP tools from the CLI's command table, named after their commands, which settles [#415](https://github.com/vocksel/orion/issues/415). `orion_inspect` and `orion_sync` are gone.
 - [#525](https://github.com/vocksel/orion/pull/525) refuses HTTP requests from other sites and drops the image routes from the agent guide, which settles [#468](https://github.com/vocksel/orion/issues/468).
-- [#486](https://github.com/vocksel/orion/pull/486) and [#533](https://github.com/vocksel/orion/pull/533) store each canvas as a folder of node and link files read through a SQLite index, for [#121](https://github.com/vocksel/orion/issues/121). `orion.json` becomes `canvas.json`, so the [data files](#data-files) table no longer matches.
+- [#486](https://github.com/vocksel/orion/pull/486) and [#533](https://github.com/vocksel/orion/pull/533) store each canvas as a folder of node and link files read through a SQLite index, for [#121](https://github.com/vocksel/orion/issues/121). `orion.json` becomes `canvas.json`, and the [data files](#data-files) section now describes the new layout.
 - [#529](https://github.com/vocksel/orion/pull/529) removes `orion sync`, `--discover`, and `--pr`, which settles [#469](https://github.com/vocksel/orion/issues/469). `--repo` stays for the repository a card belongs to.
 - [#531](https://github.com/vocksel/orion/pull/531) makes `--json` output consistent across commands, which settles [#470](https://github.com/vocksel/orion/issues/470).
 - [#530](https://github.com/vocksel/orion/pull/530) runs `suggestion find` through a command and refuses version 1 data, which settles [#471](https://github.com/vocksel/orion/issues/471).
@@ -162,29 +162,100 @@ The app is the only client. Agents and scripts use the CLI or MCP.
 
 ## Data files
 
-| File                                | What it holds                                                                                   |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `orion.json`                        | A canvas: nodes, links, settings, sources, and cached GitHub and suggestion results. Version 2. |
-| `orion.lock`                        | The write lock                                                                                  |
-| `backups/`                          | A copy before every write                                                                       |
-| `assets/`                           | Image files                                                                                     |
-| `log.jsonl`                         | The canvas log                                                                                  |
-| `focus.json`                        | The app's last focus report                                                                     |
-| `canvases.json`, `canvases/<name>/` | The canvas list and each canvas's folder                                                        |
-| `settings.json`                     | App preferences                                                                                 |
-| `themes/`                           | Theme files                                                                                     |
-| `serve.json`                        | The running server's process and address                                                        |
+This section describes `main` on 2026-10-20, after [#486](https://github.com/vocksel/orion/pull/486) and [#534](https://github.com/vocksel/orion/pull/534) split each canvas into files and [#554](https://github.com/vocksel/orion/pull/554) moved source commands out of them.
 
-The desktop app keeps its server port in `server-port` under its own app data folder.
+Each canvas's folder holds these. The `default` canvas's folder is the data folder itself, and every other canvas has one under `canvases/<name>/`.
+
+| File              | What it holds                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| `canvas.json`     | The canvas's settings and sources, without their commands. Version 2.                              |
+| `nodes/<id>.json` | One card, note, group, or image, with its order key and when each field last changed               |
+| `links/<id>.json` | One link                                                                                           |
+| `local.json`      | What this machine recorded: the revision, cached GitHub results, and suggestions. Kept out of git. |
+| `index.sqlite`    | An index rebuilt from the files, holding nothing they don't. Kept out of git.                      |
+| `orion.lock`      | The write lock                                                                                     |
+| `orion.writing`   | A write in progress, replayed on the next start if it didn't finish                                |
+| `backups/`        | A copy before every write                                                                          |
+| `assets/`         | Image files                                                                                        |
+| `log.jsonl`       | The canvas log                                                                                     |
+| `focus.json`      | The app's last focus report                                                                        |
+
+The data folder also holds these, shared by every canvas:
+
+| File            | What it holds                                                                        |
+| --------------- | ------------------------------------------------------------------------------------ |
+| `canvases.json` | The canvas list, labels, the active canvas, and which are archived                   |
+| `settings.json` | App preferences                                                                      |
+| `commands.json` | The programs this machine runs for each canvas's sources, keyed by canvas and source |
+| `themes/`       | Theme files                                                                          |
+| `serve.json`    | The running server's process, address, and build                                     |
+
+Migrations leave `orion.backup.json` and `workspaces.backup.json` behind. The desktop app keeps its server port in `server-port` under its own app data folder.
 
 |            |                                                                                                                                                                                                                                                                                                                                    |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Keep**   | The CLI owns every file. Nothing else writes them, and the lock and revision rules stay as [Data and canvases](/guide/data) describes.                                                                                                                                                                                             |
-| **Keep**   | A `version` in `orion.json`, migrated on read, and the folder moves in `cli/src/migrations/` until 0.1.0, as "Data folders move to a new layout on their own" says.                                                                                                                                                                |
+| **Keep**   | The split between files that go in git and files that don't. `local.json`, `index.sqlite`, and `commands.json` never travel with a canvas.                                                                                                                                                                                         |
+| **Keep**   | A `version` in `canvas.json`, checked on read, and the moves in `cli/src/migrations/`, under "Data folders move to a new layout on their own" and "Aliases and migrations share one lifecycle".                                                                                                                                    |
 | **Change** | Node vocabulary matches the public words. Nodes store `type: "task"` or `"cluster"`, repeat it in `data.kind`, and keep step, gate, note, and component in `data.itemKind`. Rename these in version 3 when [#122](https://github.com/vocksel/orion/issues/122) splits nodes from placements, since that rewrites the shape anyway. |
-| **Change** | `serve.json` becomes `server.json`, after the command.                                                                                                                                                                                                                                                                             |
-| **Change** | Cached results such as `github` and `suggestions` leave `orion.json` for the SQLite index with [#121](https://github.com/vocksel/orion/issues/121), so a refresh doesn't rewrite the canvas.                                                                                                                                       |
-| **Remove** | The version 1 migration ([#471](https://github.com/vocksel/orion/issues/471)). It guesses a GitHub owner of `flipbook-labs` when no source names one, which "No eager scaffolding" rules out. Before 0.1.0, refuse a version 1 file with a clear message instead.                                                                  |
+| **Change** | `serve.json` becomes `server.json`, after the command, as a migration.                                                                                                                                                                                                                                                             |
+| **Change** | Only `canvas.json` carries a `version`. Node and link files carry none, so a change to their shape can't be told apart from an old file. Version the folder through `canvas.json` and say so in [Data and canvases](/guide/data), or give each file one.                                                                           |
+
+## Formats people write
+
+The surfaces above cover what Orion prints and stores. These are what people and agents write for Orion to read: plans, selectors, refs, queries, times, theme files, and the programs a source or suggestions run. It also covers how a failure looks to a script. This section describes `main` on 2026-10-20.
+
+Which of these Orion promises from 0.1.0 is still open. The proposal: the plan format once its operations follow the CLI, selectors and refs, `--where` fields and operators, theme files, and JSON error codes. New forms may appear in them, and removing or renaming one is a breaking change. `orion help --json` and the programs' input and output stay unpromised.
+
+### Plans
+
+`orion apply` and `orion_apply` read a JSON list of operations that lands whole or not at all. An operation can declare a handle, and later ones refer to it as `"@handle"`.
+
+|            |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Keep**   | One list, applied in order in one transaction, with handles, `--dry-run`, and `--if-revision`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Change** | Operations follow the CLI. Today they're `addCard`, `addNote`, `group`, `setFields`, `link`, `unlink`, `insert`, `move`, `ungroup`, `tidy`, `remove`, and `removeGroup`: the internal operation names from [#93](https://github.com/vocksel/orion/issues/93), which `POST /api/operations` also takes. Their fields differ from the options, too: `move` takes `group` where `node move` takes `--to`. Name each operation after its command path, such as `card create`, with fields named after its options, so a plan is the CLI written as JSON and the internal operations can change freely. This lands with the verb renames. |
+| **Change** | Document the operations on a generated reference page. Today only the `orion_apply` description lists them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+
+### Selectors and refs
+
+|            |                                                                                                                                                                                                                                                                      |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Keep**   | An id argument takes an id or a selector: `label:"Extract slider"`, `ref:jira:ABC-12`, or `pr:86`. A selector must match exactly one item, and an ambiguous one lists its matches.                                                                                   |
+| **Keep**   | `--ref` and `card import` take a GitHub or Jira URL, `source:key` such as `jira:ABC-1`, or `branch:owner/name@branch`.                                                                                                                                               |
+| **Keep**   | `--where` compares quoted values with `=`, `!=`, and `~`, joined by `and`, `or`, and `not`, over the fields `kind`, `repo`, `status`, `recordedStatus`, `group`, `draft`, `label`, `note`, `pr`, `ref`, and `snoozed`. It evaluates no code and reads no other data. |
+| **Change** | The `--where` grammar is written down only in `orion help node query` and the agent guide. Give it a guide page for working from the command line, with the selectors and ref forms beside it.                                                                       |
+
+### Times
+
+|            |                                                                                                                                                                                                                                                                                                                                                 |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Keep**   | Output times in RFC 3339 UTC, as [#531](https://github.com/vocksel/orion/pull/531) made them.                                                                                                                                                                                                                                                   |
+| **Change** | `card snooze --until` reads an ISO 8601 date or date-time in local time unless it gives an offset, and a date means the start of the local day. `ci snooze --until` reads only a UTC time or a date, which means midnight UTC, and refuses an offset. The same `2026-10-21` ends the two snoozes hours apart. Read both with `time/parseUntil`. |
+
+### Failures and exit codes
+
+|            |                                                                                                                                                                                                                                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Keep**   | Exit 0 on success and nonzero on failure, with `canvas check` exiting 1 when it finds problems. Under `--json`, a failure prints `{"error": {"message": …}}` on stdout, where a script already reads.                                                                                             |
+| **Change** | Without `--json`, a failure prints `Error: …` on stdout, so `orion card list > cards.txt` writes the error into the file. Print it on stderr.                                                                                                                                                     |
+| **Change** | Every failure exits 1, so a script can't tell an `--if-revision` conflict from a typo without matching the message. Add an `error.code` to the JSON error for the failures a script acts on, such as a revision conflict, a missing item, and an ambiguous selector, rather than more exit codes. |
+
+### Theme files
+
+|            |                                                                                                                                                                                                                                                                                                          |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Keep**   | The format in [Themes](/guide/themes): `name`, `author`, and `light` and `dark` objects keyed by token name, with values checked so a file can't load anything or add rules. Token names are already [a contract](/guide/tokens#names-are-a-contract).                                                   |
+| **Change** | [Tokens](/guide/tokens) says its defaults are Classic's, and that a theme file builds on them, but [#532](https://github.com/vocksel/orion/pull/532) deprecated Classic. Decide what a theme file builds on once Classic goes, most likely Vibrant's values as the defaults, before themes are promised. |
+
+### Programs Orion runs
+
+A Jira source runs a command that prints Jira's search JSON, such as `acli jira workitem search --json`. `suggestion find --command` sends the cards as a prompt on stdin and reads groups from the JSON the program prints.
+
+|            |                                                                                                                                                                |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Keep**   | Both stay unpromised. The commands live on this machine and never come from a canvas or an MCP call, as "Programs Orion runs are chosen on this machine" says. |
+| **Remove** | `--command` on sources, once adapter packages replace it, as "Adapters are Lute packages" plans.                                                               |
 
 ## Desktop shell
 
