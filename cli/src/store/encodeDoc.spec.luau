@@ -36,7 +36,7 @@ test.case("encodeDoc round-trips top-level GitHub data and unknown fields", func
 	local doc = decodeDoc(
 		[[{"version":2,"revision":0,"settings":{"githubOwner":"flipbook-labs","futureSetting":{"kept":true}},"nodes":[],"links":[],"github":{"viewer":"vocksel","checkedAt":"now","unplaced":[]},"future":{"kept":true}}]]
 	)
-	doc.settings.sources = { { id = "hop", kind = "hop", command = { "hop" } } }
+	doc.settings.sources = { { id = "hop", kind = "hop" } }
 	local encoded = json.asObject(json.deserialize(encodeDoc(doc)) :: json.Value)
 	local github = if encoded then json.asObject(encoded.github) else nil
 	local future = if encoded then json.asObject(encoded.future) else nil

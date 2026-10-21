@@ -31,13 +31,13 @@ orion theme add dusk.json
 
 ## Token names
 
-Keys are the names on the [tokens](/guide/tokens) page, such as `card.background`: not the CSS property (`--card-background`), and not an [alias](/guide/tokens#aliases) such as `--bg`.
+Keys are the names on the [tokens](/guide/tokens) page, such as `card.background`: not the CSS property (`--card-background`).
 
 - A name Orion doesn't know is ignored. While that theme is selected, the picker notes it.
 - A token the file leaves out keeps its default for that scheme.
 - When colorblind status colors are on, they replace a theme's status tokens, as they do for every theme.
 
-Token names are a [public contract](/guide/tokens#names-are-a-contract). New ones can appear, but the names a theme uses today keep working.
+Token names are a [public contract](/guide/tokens#names-are-a-contract). New ones can appear, and renames follow Orion's release stages.
 
 ## Values
 

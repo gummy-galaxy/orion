@@ -11,7 +11,7 @@ test.case("accepts plain CSS for each token group", function(assert)
 		{ "color", "rgb(10 20 30 / 50%)" },
 		{ "color", "color-mix(in srgb, #b4481f 20%, #fff)" },
 		{ "color", "var(--edge-hot)" },
-		{ "color", "var(--surface)" },
+		{ "color", "var(--surface-background)" },
 		{ "status", "oklch(70% 0.1 200)" },
 		{ "font", "'Schibsted Grotesk', system-ui, sans-serif" },
 		{ "weight", "700" },

@@ -59,7 +59,7 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
         </div>
       )}
       {layers.cover && (
-        <div className="cluster-cover">
+        <div className="cluster-cover" style={{ height: GROUP_HEADER_HEIGHT }}>
           <CoverImage workspace={workspace} asset={layers.cover} className="cluster-cover-image" />
         </div>
       )}

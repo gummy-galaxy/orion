@@ -6,13 +6,11 @@ Names describe the role a value plays, such as `card.background`, rather than th
 
 ## Names are a contract
 
-Token names are a public contract, so a theme written today keeps working as Orion changes.
+Token names are a public contract for theme files.
 
 - **New tokens can be added at any time.** A theme that doesn't set one gets the default.
-- **A renamed token keeps its old name as an alias.** The old name goes on working, in theme files and as a custom property.
+- **Renames follow Orion's release stages.** Before 0.1.0, a renamed token takes its new name with no alias. From 1.0.0, a renamed token keeps its old name as an alias, in theme files and as a custom property.
 - **No token is dropped silently.** One is removed only on purpose, and the change that removes it says so.
-
-The [aliases](#aliases) section lists every older name that still works.
 
 ## Color
 
@@ -312,35 +310,6 @@ The trading card skin is always dark, so its colors have one value for both sche
 | `trading.shadow.card`  | `0 18px 40px rgb(0 0 0 / 0.45)` | The shadow under a card             |
 | `trading.shadow.badge` | `0 4px 12px rgb(12 9 32 / 0.5)` | The shadow under the status badge   |
 | `trading.shadow.tile`  | `0 5px 0 rgb(12 9 32 / 0.45)`   | The hard shadow under the kind tile |
-
-## Aliases
-
-These custom properties come from before tokens had role-based names. Each still resolves to its token, so CSS written against them keeps working. Theme files use the token names.
-
-| Alias           | Token                |
-| --------------- | -------------------- |
-| `--bg`          | `canvas.background`  |
-| `--dots`        | `canvas.dots`        |
-| `--surface`     | `surface.background` |
-| `--ink`         | `text.primary`       |
-| `--muted`       | `text.muted`         |
-| `--line`        | `border.default`     |
-| `--accent`      | `accent.default`     |
-| `--accent-soft` | `accent.subtle`      |
-| `--edge`        | `edge.default`       |
-| `--note`        | `note.background`    |
-| `--note-edge`   | `note.border`        |
-| `--note-ink`    | `note.text`          |
-| `--snap`        | `snap.guide`         |
-| `--st-todo`     | `status.todo`        |
-| `--st-ready`    | `status.ready`       |
-| `--st-active`   | `status.active`      |
-| `--st-review`   | `status.review`      |
-| `--st-blocked`  | `status.blocked`     |
-| `--st-done`     | `status.done`        |
-| `--shadow`      | `shadow.raised`      |
-
-No token has been renamed since theme files arrived, so there are no older token names to alias yet.
 
 ## Not tokens
 

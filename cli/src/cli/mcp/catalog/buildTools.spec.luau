@@ -66,3 +66,15 @@ test.case("buildTools fails for a command with no declaration and for an omissio
 		buildTools(describeCommands(root, "orion"))
 	end)
 end)
+
+test.case("buildTools fails for a tool that would take a program to run", function(assert)
+	local root, show = createRoot()
+	definitions.tools[show] = {}
+	addArgument(show, "command", "option", { help = "Command to run", type = "command" })
+	assert.throwsWith("orion card show takes --command, which runs a program, so its tool must omit it", function()
+		buildTools(describeCommands(root, "orion"))
+	end)
+
+	definitions.tools[show] = { omit = { { option = "command", reason = "runs a program" } } }
+	assert.eq(#buildTools(describeCommands(root, "orion")), 2)
+end)

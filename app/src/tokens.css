@@ -190,29 +190,6 @@
   color-scheme: light dark;
 }
 
-/* Names from before the role-based tokens. Each aliases its new name, so CSS written against them keeps working. */
-:root {
-  --bg: var(--canvas-background);
-  --dots: var(--canvas-dots);
-  --surface: var(--surface-background);
-  --ink: var(--text-primary);
-  --muted: var(--text-muted);
-  --line: var(--border-default);
-  --accent: var(--accent-default);
-  --accent-soft: var(--accent-subtle);
-  --edge: var(--edge-default);
-  --note: var(--note-background);
-  --note-edge: var(--note-border);
-  --note-ink: var(--note-text);
-  --snap: var(--snap-guide);
-  --st-todo: var(--status-todo);
-  --st-ready: var(--status-ready);
-  --st-active: var(--status-active);
-  --st-review: var(--status-review);
-  --st-blocked: var(--status-blocked);
-  --st-done: var(--status-done);
-  --shadow: var(--shadow-raised);
-}
 
 :root[data-color-mode='light'] {
   color-scheme: light;

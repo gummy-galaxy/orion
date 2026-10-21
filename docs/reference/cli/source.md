@@ -68,11 +68,11 @@ Add a hop source
 orion source add hop [options]
 ```
 
-| Argument            | Description                           |
-| ------------------- | ------------------------------------- |
-| `--command <value>` | JSON array naming an external command |
-| `--id <value>`      | Source id                             |
-| `--json`            | Print JSON                            |
+| Argument            | Description                          |
+| ------------------- | ------------------------------------ |
+| `--command <value>` | JSON array naming the hop executable |
+| `--id <value>`      | Source id                            |
+| `--json`            | Print JSON                           |
 
 ## orion source remove
 

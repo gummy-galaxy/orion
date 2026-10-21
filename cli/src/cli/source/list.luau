@@ -4,6 +4,7 @@ local json = require("@std/json")
 local context = require("@root/cli/context")
 local getJson = require("@root/sources")
 local loadDoc = require("@root/store/loadDoc")
+local readSourceCommands = require("@root/sources/readSourceCommands")
 
 type Context = context.Context
 
@@ -15,7 +16,8 @@ return table.freeze({
 	end,
 
 	run = function(parser: cli.Parser, options: Context)
-		local values = getJson(loadDoc(options.dir).settings.sources)
+		local values =
+			getJson(loadDoc(options.dir).settings.sources, readSourceCommands(options.root, options.workspace))
 
 		if parser:has("json") then
 			options.write(json.serialize(values, true))

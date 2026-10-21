@@ -3,6 +3,7 @@ local json = require("@std/json")
 local checkDataVersion = require("@root/store/checkDataVersion")
 local fillPullFacts = require("@root/github/fillPullFacts")
 local getStringField = require("@root/getStringField")
+local migrateImageCanvas = require("@root/migrations/migrateImageCanvas")
 local types = require("@root/types")
 
 type CheckSnooze = types.CheckSnooze
@@ -117,7 +118,6 @@ local function decodeDocObject(root: json.Object): Doc
 				owners = getStrings(source.owners),
 				include = getStrings(source.include),
 				exclude = getStrings(source.exclude),
-				command = getStrings(source.command),
 				browse = getStringField(source.browse),
 			})
 		end
@@ -126,6 +126,12 @@ local function decodeDocObject(root: json.Object): Doc
 	for _, item in nodes do
 		if item.type == "task" then
 			fillPullFacts(item)
+		end
+
+		-- Images from before canvases were named keep `workspace` until read. Remove at 0.1.0 with the rest of
+		-- `migrations/`.
+		if item.type == "image" and item.data.workspace ~= nil then
+			migrateImageCanvas(item)
 		end
 	end
 

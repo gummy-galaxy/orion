@@ -16,10 +16,6 @@ local MAX_VALUE_LENGTH = 200
 local cssVars: { [string]: boolean } = {}
 for _, token in pairs(tokenContract) do
 	cssVars[token.cssVar] = true
-
-	if token.legacy then
-		cssVars[token.legacy] = true
-	end
 end
 
 local function trim(text: string): string

@@ -14,5 +14,6 @@ return table.freeze({
 	canvases = "canvases.json",
 	runtime = "serve.json",
 	settings = "settings.json",
+	commands = "commands.json",
 	themes = "themes",
 })

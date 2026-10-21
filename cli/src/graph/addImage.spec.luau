@@ -10,7 +10,7 @@ test.case("addImage adds an image node with a random id that names its asset", f
 	assert.eq(image.type, "image")
 	assert.eq(image.parentId, "g")
 	assert.eq(image.data.asset, `{image.id}.png`)
-	assert.eq(image.data.workspace, "default")
+	assert.eq(image.data.canvas, "default")
 	assert.neq(addImage(doc, "Logo", "png", "default").id, image.id)
 end)
 

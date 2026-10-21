@@ -8,6 +8,7 @@ local getReportJson = require("@root/ingest/getReportJson")
 local ingestTypes = require("@root/ingest/types")
 local loadDoc = require("@root/store/loadDoc")
 local placeRecords = require("@root/ingest/placeRecords")
+local readSourceCommands = require("@root/sources/readSourceCommands")
 local refreshAdapters = require("@root/ingest/refreshAdapters")
 local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
@@ -52,7 +53,8 @@ return table.freeze({
 		local now = options.now()
 		local selected = parser:get("source")
 		local snapshot = loadDoc(options.dir)
-		local fetched = collectSources(snapshot, options.runner, now, selected)
+		local fetched =
+			collectSources(snapshot, readSourceCommands(options.root, options.workspace), options.runner, now, selected)
 		local applyRefreshes = refreshAdapters(snapshot, options.runner, now, selected)
 		local report: ingestTypes.Report
 

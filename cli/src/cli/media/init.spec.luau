@@ -21,7 +21,7 @@ test.case("media commands insert validated images and list the selected workspac
 	local item = if type(id) == "string" then findItem(doc, id) else nil
 	assert.eq(item and item.type, "image")
 	assert.eq(item and item.parentId, "ws")
-	assert.eq(item and item.data.workspace, "default")
+	assert.eq(item and item.data.canvas, "default")
 	assert.eq(item and item.width, 256)
 	local asset = if item then item.data.asset else nil
 	assert.eq(type(asset), "string")

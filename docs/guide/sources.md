@@ -14,6 +14,8 @@ orion source add hop
 
 GitHub's `--owners`, `--include`, and `--exclude` take comma-separated lists. Add `--id` to tell two sources of the same kind apart, such as a GitHub Enterprise host next to github.com.
 
+The command a Jira source runs, and the hop executable when it isn't `hop` on your `PATH`, stay on this machine in the data folder's `commands.json`. The canvas's files keep only the source's other settings, so a canvas you share through git can't make someone else's Orion run a program. When a canvas arrives with a Jira source and no command here, ingest says so. Run `orion source add jira --id <id> --command '[...]'` to set this machine's command: adding a source that already exists keeps the settings you leave out. Agents can add GitHub and hop sources and remove sources through MCP, but a Jira source's command is set only at the CLI.
+
 `orion source list` shows what's configured, and `orion source remove <id>` stops ingesting from a source. Cards it already made stay.
 
 ## Ingest

@@ -6,15 +6,15 @@ local types = require("@root/types")
 
 type Worktree = hopTypes.Worktree
 type Session = hopTypes.Session
-type Source = types.Source
 type CommandRunner = types.CommandRunner
 
 local function getString(value: json.Value): string?
 	return if type(value) == "string" then value else nil
 end
 
-local function parseData(run: CommandRunner, source: Source): ({ Worktree }, { Session })
-	local binary = assert(source.command and source.command[1], "hop source needs a command")
+-- Runs `hop` from the PATH unless this machine set another hop executable for the source.
+local function parseData(run: CommandRunner, command: { string }?): ({ Worktree }, { Session })
+	local binary = if command then command[1] else "hop"
 	local list = json.asObject(getCommandJson(run, { binary, "list", "--json" }))
 	assert(list, "hop list returned invalid JSON")
 	local worktrees: { Worktree } = {}
