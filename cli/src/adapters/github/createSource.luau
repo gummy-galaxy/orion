@@ -7,7 +7,8 @@ type Source = types.Source
 local NAME = "^[%w_.%-]+$"
 local HOST = "^[%w%.%-]+$"
 
-local function createSource(options: { [string]: { string } }): Source
+-- GitHub runs no program of its own choosing, so it never has a command.
+local function createSource(options: { [string]: { string } }): (Source, { string }?)
 	checkOptions("github", options, { host = true, owners = true, include = true, exclude = true })
 	local host = assert(getOne(options, "host"), "github needs --host")
 	assert(host:match(HOST) and host:find("%.", 1), "invalid GitHub host")
@@ -24,7 +25,7 @@ local function createSource(options: { [string]: { string } }): Source
 		end
 	end
 
-	return {
+	local source: Source = {
 		id = getOne(options, "id") or `gh-{owners[1]:lower()}`,
 		kind = "github",
 		host = host,
@@ -32,6 +33,8 @@ local function createSource(options: { [string]: { string } }): Source
 		include = options.include,
 		exclude = options.exclude,
 	}
+
+	return source, nil
 end
 
 return createSource

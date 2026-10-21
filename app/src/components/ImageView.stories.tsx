@@ -30,7 +30,7 @@ const image: ImageNode = {
   position: { x: 120, y: 90 },
   width: 256,
   height: 256,
-  data: { kind: 'image', label: 'Concept board', asset: 'story.png', workspace: 'sample' },
+  data: { kind: 'image', label: 'Concept board', asset: 'story.png', canvas: 'sample' },
 }
 
 export const Default: Story = { render: () => <StoryGraph nodes={[image]} nodeTypes={{ image: ImageView }} /> }

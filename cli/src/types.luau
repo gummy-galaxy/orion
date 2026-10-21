@@ -69,7 +69,6 @@ export type Source = {
 	owners: { string }?,
 	include: { string }?,
 	exclude: { string }?,
-	command: { string }?,
 	browse: string?,
 }
 

@@ -31,7 +31,7 @@ test.case("GitHub adapter collects pull and issue records without writing cards"
 		return testing.result(true, '{"data":{"search":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}')
 	end
 
-	local records = collect(source, run, { now = NOW, since = "2026-09-20", doc = doc })
+	local records = collect(source, run, { now = NOW, since = "2026-09-20", doc = doc, commands = {} })
 	assert.eq(#records, 2)
 	assert.eq(records[1].ref.key, "owner/repo#2")
 	assert.eq(records[1].ref.status, "draft")

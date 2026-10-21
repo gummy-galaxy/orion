@@ -28,7 +28,7 @@ const image = (id: string, x: number, y: number, asset: string): AppNode => ({
   position: { x, y },
   width: 256,
   height: 256,
-  data: { kind: 'image', label: id, asset, workspace: 'source' },
+  data: { kind: 'image', label: id, asset, canvas: 'source' },
 })
 
 const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({ id: `${from}>${to}`, from, to, kind })
@@ -275,13 +275,13 @@ describe('moving a clip to another workspace', () => {
     const picture = moved.nodes.find((node) => node.id === 'picture')!
     const groupNode = moved.nodes.find((node) => node.id === 'g')!
 
-    expect(picture.data).toMatchObject({ asset: 'fed789.png', workspace: 'target' })
+    expect(picture.data).toMatchObject({ asset: 'fed789.png', canvas: 'target' })
     expect(groupNode.data).toMatchObject({ cover, background: '#ff0000' })
   })
 
   it('keeps an image showing from its own workspace when its asset could not be copied', () => {
     const moved = moveClipAssets(clipWith(), 'target', new Map())
 
-    expect(moved.nodes.find((node) => node.id === 'picture')!.data).toMatchObject({ asset, workspace: 'source' })
+    expect(moved.nodes.find((node) => node.id === 'picture')!.data).toMatchObject({ asset, canvas: 'source' })
   })
 })

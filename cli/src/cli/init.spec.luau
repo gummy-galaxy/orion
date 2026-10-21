@@ -93,7 +93,10 @@ test.case("every command declares its MCP tool, or why it has none", function(as
 	assert.eq(names.orion_card_add, true)
 	assert.eq(names.orion_next, true)
 	assert.eq(names.orion_help, nil)
-	assert.eq(names.orion_source_add_github, nil)
+	assert.eq(names.orion_source_add_github, true)
+	assert.eq(names.orion_source_add_hop, true)
+	assert.eq(names.orion_source_remove, true)
+	assert.eq(names.orion_source_add_jira, nil)
 end)
 
 test.case("ready lists startable work, most unblocking first", function(assert)

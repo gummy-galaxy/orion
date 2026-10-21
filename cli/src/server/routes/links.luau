@@ -7,6 +7,7 @@ local getStringField = require("@root/getStringField")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local loadDoc = require("@root/store/loadDoc")
 local lookupCard = require("@root/import/lookupCard")
+local readSourceCommands = require("@root/sources/readSourceCommands")
 local runCommand = require("@root/command")
 local shared = require("@root/server/routes/shared")
 local types = require("@root/types")
@@ -35,7 +36,8 @@ function links.handle(request: net.ReceivedRequest, root: string, runner: Comman
 
 	local doc = loadDoc(getWorkspaceDir(root, workspace))
 	local now = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
-	local succeeded, result = pcall(lookupCard, url, doc, now, runner or runCommand)
+	local succeeded, result =
+		pcall(lookupCard, url, doc, readSourceCommands(root, workspace), now, runner or runCommand)
 	if not succeeded then
 		return shared.reply(422, json.object({ error = getErrorText(result) }))
 	end

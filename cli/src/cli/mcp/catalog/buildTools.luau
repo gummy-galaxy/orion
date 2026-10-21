@@ -110,6 +110,14 @@ local function buildTool(command: CommandDescription, path: string, aliases: { A
 	for _, argument in command.arguments do
 		names[argument.name] = true
 
+		-- A tool call mustn't choose a program for Orion to run, so options that name one stay in the CLI.
+		if argument.type == "command" and not omit[argument.name] then
+			table.insert(
+				problems,
+				`orion {path} takes --{argument.name}, which runs a program, so its tool must omit it`
+			)
+		end
+
 		if argument.name == "json" then
 			takesJson = true
 		elseif omit[argument.name] then

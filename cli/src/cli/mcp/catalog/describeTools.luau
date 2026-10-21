@@ -15,7 +15,7 @@ local function getFieldSchema(field: Field): json.Object
 		schema = json.object({ type = "boolean" })
 	elseif field.type == "integer" then
 		schema = json.object({ type = "integer", minimum = field.minimum or 1 })
-	elseif field.type == "list" or field.type == "commaList" or field.type == "command" then
+	elseif field.type == "list" or field.type == "commaList" then
 		schema = json.object({
 			type = "array",
 			items = json.object({ type = "string", minLength = 1 }),

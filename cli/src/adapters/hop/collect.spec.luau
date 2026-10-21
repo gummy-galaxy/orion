@@ -10,7 +10,7 @@ local NOW = "2026-10-04T00:00:00Z"
 
 test.case("hop adapter merges worktree and session activity without writing cards", function(assert)
 	local doc = testing.createDoc({})
-	local source: Source = { id = "hop", kind = "hop", command = { "hop" } }
+	local source: Source = { id = "hop", kind = "hop" }
 	local records = collect(source, function(argv)
 		if argv[2] == "list" then
 			return testing.result(
@@ -23,7 +23,7 @@ test.case("hop adapter merges worktree and session activity without writing card
 			true,
 			'[{"title":"Inspect","repository":"owner/repo","branch":"feature/ABC-1","updatedAt":1791072000}]'
 		)
-	end, { now = NOW, since = "2026-09-20", doc = doc })
+	end, { now = NOW, since = "2026-09-20", doc = doc, commands = {} })
 	assert.eq(#records, 1)
 	assert.eq(records[1].ref.key, "owner/repo@feature/ABC-1")
 	local details = records[1].ref.details

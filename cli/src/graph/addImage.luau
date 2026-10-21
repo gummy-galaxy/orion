@@ -9,7 +9,7 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Item = types.Item
 
-local function addImage(doc: Doc, label: string, extension: string, workspace: string, group: string?): Item
+local function addImage(doc: Doc, label: string, extension: string, canvas: string, group: string?): Item
 	assert(label ~= "", "an image needs a label")
 
 	if group then
@@ -24,7 +24,7 @@ local function addImage(doc: Doc, label: string, extension: string, workspace: s
 		parentId = group,
 		width = geometry.IMAGE_SIZE.width,
 		height = geometry.IMAGE_SIZE.height,
-		data = json.object({ kind = "image", label = label, asset = `{id}.{extension}`, workspace = workspace }),
+		data = json.object({ kind = "image", label = label, asset = `{id}.{extension}`, canvas = canvas }),
 	}
 	item.position = findPlacement(doc, item)
 	table.insert(doc.nodes, item)

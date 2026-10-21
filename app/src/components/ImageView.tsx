@@ -5,14 +5,14 @@ import { imageSource } from '../persist'
 
 export const ImageView = memo(function ImageView({ data }: NodeProps<ImageNode>) {
   const [loaded, setLoaded] = useState<{ key: string; source: string } | null>(null)
-  const key = `${data.workspace}/${data.asset}`
+  const key = `${data.canvas}/${data.asset}`
   const source = loaded?.key === key ? loaded.source : null
 
   useEffect(() => {
     let active = true
     let objectUrl: string | null = null
 
-    void imageSource(data.workspace, data.asset)
+    void imageSource(data.canvas, data.asset)
       .then((source) => {
         objectUrl = source
 
@@ -26,7 +26,7 @@ export const ImageView = memo(function ImageView({ data }: NodeProps<ImageNode>)
 
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
-  }, [data.workspace, data.asset, key])
+  }, [data.canvas, data.asset, key])
 
   return (
     <div className="image-node" title={data.label}>

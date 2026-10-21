@@ -57,7 +57,7 @@ The MCP server is kept generic. Orion documents how to register `orion mcp start
 
 ## Sources and adapters
 
-GitHub, Jira, and hop feed the canvas through `orion ingest` ([#24](https://github.com/vocksel/orion/pull/24)). Each kind of source is an adapter with two jobs: `createSource` checks the options given to `orion source add`, and `collect` runs the source's command and returns records. GitHub also has `refresh`, which keeps the pull request cards already on the canvas current ([#155](https://github.com/vocksel/orion/pull/155)). A single `orion ingest` runs both, so there is one command that pulls from outside ([#328](https://github.com/vocksel/orion/pull/328)).
+GitHub, Jira, and hop feed the canvas through `orion ingest` ([#24](https://github.com/vocksel/orion/pull/24)). Each kind of source is an adapter with two jobs: `createSource` checks the options given to `orion source add`, and `collect` runs the source's command, which this machine keeps in `commands.json` rather than the canvas's files, and returns records. GitHub also has `refresh`, which keeps the pull request cards already on the canvas current ([#155](https://github.com/vocksel/orion/pull/155)). A single `orion ingest` runs both, so there is one command that pulls from outside ([#328](https://github.com/vocksel/orion/pull/328)).
 
 Cards point to external work through a list of refs in `data.refs`. Each ref records its source, kind, key, URL, and status, so a card doesn't need a field for each service ([#152](https://github.com/vocksel/orion/pull/152)). The [charter](/development/charter) keeps sources as the source of truth. Orion keeps references and derived state, not a copy that can drift.
 

@@ -22,7 +22,7 @@ end
 test.case("a pull request URL finds a new card without adding it", function(assert)
 	local doc = testing.createDoc({ testing.task("other", "Other work", "todo") })
 
-	local found = lookupCard(PULL_URL, doc, NOW, githubRunner)
+	local found = lookupCard(PULL_URL, doc, {}, NOW, githubRunner)
 
 	assert.eq(found.status, "found")
 	assert.eq(found.item.data.label, "Add a Chip component")
@@ -41,7 +41,7 @@ test.case("a URL a card already tracks returns that card without a lookup", func
 		}),
 	})
 
-	local found = lookupCard(PULL_URL, doc, NOW, unreachableRunner)
+	local found = lookupCard(PULL_URL, doc, {}, NOW, unreachableRunner)
 
 	assert.eq(found.status, "existing")
 	assert.eq(found.item.id, "kept")
@@ -49,14 +49,14 @@ end)
 
 test.case("a URL no source recognizes raises the reason", function(assert)
 	local succeeded, failure =
-		pcall(lookupCard, "https://example.com/page", testing.createDoc({}), NOW, unreachableRunner)
+		pcall(lookupCard, "https://example.com/page", testing.createDoc({}), {}, NOW, unreachableRunner)
 
 	assert.eq(succeeded, false)
 	assert.strContains(tostring(failure), "no source recognizes https://example.com/page")
 end)
 
 test.case("a pull request GitHub can't find raises the reason", function(assert)
-	local succeeded, failure = pcall(lookupCard, PULL_URL, testing.createDoc({}), NOW, function()
+	local succeeded, failure = pcall(lookupCard, PULL_URL, testing.createDoc({}), {}, NOW, function()
 		return testing.result(true, '{"data": {"p1": {"pullRequest": null}}}')
 	end)
 

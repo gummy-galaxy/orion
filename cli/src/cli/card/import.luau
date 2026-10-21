@@ -8,6 +8,7 @@ local getInputs = require("@root/import/getInputs")
 local importRefs = require("@root/import/importRefs")
 local importTypes = require("@root/import/types")
 local pad = require("@root/render/pad")
+local readSourceCommands = require("@root/sources/readSourceCommands")
 local requestedRevision = require("@root/cli/requestedRevision")
 
 type Context = context.Context
@@ -137,6 +138,7 @@ return table.freeze({
 			ifRevision = requestedRevision(parser),
 			now = options.now(),
 			runner = options.runner,
+			commands = readSourceCommands(options.root, options.workspace),
 		})
 		local added, existing, failed = countOutcomes(report)
 

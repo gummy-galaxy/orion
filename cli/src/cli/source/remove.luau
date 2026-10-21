@@ -3,13 +3,14 @@ local json = require("@std/json")
 
 local context = require("@root/cli/context")
 local runTransaction = require("@root/store/runTransaction")
+local setSourceCommand = require("@root/sources/setSourceCommand")
 local writeResult = require("@root/cli/writeResult")
 
 type Context = context.Context
 
 return table.freeze({
 	help = "Remove an ingestion source",
-	mcp = { skip = "changes which sources ingest reads, so it stays with source add" },
+	mcp = { annotations = { destructiveHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("id", "positional", { help = "Source id" })
 	end,
@@ -29,6 +30,7 @@ return table.freeze({
 			assert(found, `no source with id "{id}"`)
 		end)
 
+		setSourceCommand(options.root, options.workspace, id, nil)
 		writeResult(options, json.object({ revision = doc.revision, id = id }), `Removed source {id}`)
 	end,
 })
