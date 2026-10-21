@@ -48,3 +48,13 @@ test.case("decode reads a version 2 document and keeps unknown fields through a 
 	local future = if root then json.asObject(root.future) else nil
 	assert.eq(future and future.kept, true)
 end)
+
+test.case("decode moves an image's workspace to canvas", function(assert)
+	local doc = decodeDoc([[{
+		"version":2,"revision":1,
+		"nodes":[{"id":"picture","type":"image","position":{"x":0,"y":0},"data":{"kind":"image","label":"Picture","asset":"a.png","workspace":"planning"}}],
+		"links":[]
+	}]])
+	assert.eq(doc.nodes[1].data.canvas, "planning")
+	assert.eq(doc.nodes[1].data.workspace, nil)
+end)

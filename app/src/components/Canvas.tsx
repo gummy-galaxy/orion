@@ -2552,7 +2552,7 @@ export function Canvas() {
             position: { x: position.x - 20 - origin.x, y: position.y - 92 - origin.y },
             width: 256,
             height: 256,
-            data: { kind: 'image', label: file.name.replace(/\.[^.]+$/, ''), asset, workspace: workspaceName },
+            data: { kind: 'image', label: file.name.replace(/\.[^.]+$/, ''), asset, canvas: workspaceName },
             selected: true,
           }
 
