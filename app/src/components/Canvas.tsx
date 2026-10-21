@@ -47,6 +47,7 @@ import {
 } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { forgetTextWidths } from '../cardHeight'
+import { GAP } from '../geometry'
 import { groupSelection, layoutOrder, moveOutOfGroup, reflow, ungroup } from '../layout'
 import { pushAside } from '../pushAside'
 import { diffOperations } from '../operations'
@@ -276,7 +277,6 @@ const FOCUS_COLUMN_GAP = 48
 const FOCUS_MIN_ZOOM = 0.5
 /** Focus moves head straight for the card and start fast. */
 const focusMove = () => ({ duration: focusGlide(), ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' }) as const
-const PLACE_GAP = 80
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
 /** A fresh sticker stamps down while its ring opens after a beat. These are the defaults; the theme can change each. */
@@ -407,7 +407,8 @@ function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: n
 
 /**
  * Stacks newly created groups in columns to the right of everything else at the top
- * level, so laying them out never moves groups that were already placed.
+ * level, so laying them out never moves groups that were already placed. They keep the
+ * top level's gap between unlinked pieces, as the CLI does when it places them.
  */
 function placeBesideExisting(nodes: AppNode[], fresh: Set<string>, cardSize: CardSize): AppNode[] {
   const top = nodes.filter((node) => !node.parentId)
@@ -416,7 +417,7 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>, cardSize: Car
   const topY = settled.length ? Math.min(...settled.map((node) => node.position.y)) : 0
   const columnHeight = Math.max(1600, ...settled.map((node) => node.position.y + sizeOf(node, cardSize).height - topY))
   const placed = new Map<string, { x: number; y: number }>()
-  let x = right + PLACE_GAP * 2
+  let x = right + GAP.top.component
   let y = topY
   let columnWidth = 0
 
@@ -424,13 +425,13 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>, cardSize: Car
     const size = sizeOf(group, cardSize)
 
     if (y > topY && y + size.height > topY + columnHeight) {
-      x += columnWidth + PLACE_GAP
+      x += columnWidth + GAP.top.component
       y = topY
       columnWidth = 0
     }
 
     placed.set(group.id, { x, y })
-    y += size.height + PLACE_GAP
+    y += size.height + GAP.top.component
     columnWidth = Math.max(columnWidth, size.width)
   }
 
