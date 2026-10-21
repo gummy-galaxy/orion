@@ -27,6 +27,18 @@ test.case("tool arguments map onto the command each tool runs", function(assert)
 	end)
 end)
 
+test.case("source tools set up GitHub and hop sources but never a command to run", function(assert)
+	assert.eq(
+		argv("orion_source_add_github", { host = "github.com", owners = { "Roblox", "Example" }, id = "gh" }),
+		"source add github --host github.com --owners Roblox,Example --id gh --json"
+	)
+	assert.eq(argv("orion_source_add_hop", { canvas = "focus" }), "source add hop --canvas focus --json")
+	assert.eq(argv("orion_source_remove", { id = "hop" }), "source remove hop --json")
+	assert.throwsWith("unknown argument: command", function()
+		argv("orion_source_add_hop", { command = { "hop" } })
+	end)
+end)
+
 test.case("each read command has its own tool", function(assert)
 	assert.eq(argv("orion_card_list", { group = "ws", all = true }), "card list --group ws --all --json")
 	assert.eq(argv("orion_next", {}), "next --json")

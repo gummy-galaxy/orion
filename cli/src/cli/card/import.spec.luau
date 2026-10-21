@@ -3,6 +3,7 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local loadDoc = require("@root/store/loadDoc")
+local setSourceCommand = require("@root/sources/setSourceCommand")
 local testing = require("@root/testing")
 local types = require("@root/types")
 local writeDoc = require("@root/store/writeDoc")
@@ -15,7 +16,6 @@ local PULL_URL = "https://github.com/vocksel/orion/pull/251"
 local JIRA: Source = {
 	id = "jira",
 	kind = "jira",
-	command = { "acli", "jira", "workitem", "search" },
 	browse = "https://jira.example.com/browse",
 }
 
@@ -188,6 +188,7 @@ test.case("a configured Jira source imports a key from its results", function(as
 	local doc = testing.createDoc({})
 	doc.settings.sources = { JIRA }
 	writeDoc(dir, doc)
+	setSourceCommand(dir, "default", "jira", { "acli", "jira", "workitem", "search" })
 
 	local output = testing.run(dir, { "card", "import", "jira:ABC-9", "--json" }, function(argv)
 		assert.eq(argv[1], "acli")
@@ -209,10 +210,24 @@ test.case("a Jira key missing from the source's results fails with that reason",
 	local doc = testing.createDoc({})
 	doc.settings.sources = { JIRA }
 	writeDoc(dir, doc)
+	setSourceCommand(dir, "default", "jira", { "acli", "jira", "workitem", "search" })
 
 	local ok, failure = runFailing(dir, { "card", "import", "jira:ABC-9" }, function()
 		return testing.result(true, "[]")
 	end)
+
+	assert.eq(ok, false)
+	assert.strContains(failure, "1 of 1 refs could not be imported")
+	assert.eq(#loadDoc(dir).nodes, 0)
+end)
+
+test.case("a Jira source with no command on this machine says how to set one", function(assert)
+	local dir = testing.directory("import-jira-no-command")
+	local doc = testing.createDoc({})
+	doc.settings.sources = { JIRA }
+	writeDoc(dir, doc)
+
+	local ok, failure = runFailing(dir, { "card", "import", "jira:ABC-9", "--json" }, unreachableRunner)
 
 	assert.eq(ok, false)
 	assert.strContains(failure, "1 of 1 refs could not be imported")

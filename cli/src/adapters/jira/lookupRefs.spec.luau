@@ -10,16 +10,17 @@ type Source = types.Source
 local JIRA: Source = {
 	id = "jira",
 	kind = "jira",
-	command = { "acli", "jira", "workitem", "search" },
 	browse = "https://jira.example.com/browse",
 }
+
+local COMMANDS = { jira = { "acli", "jira", "workitem", "search" } }
 
 test.case("a Jira source runs once and matches each ref by key", function(assert)
 	local calls = 0
 	local doc = testing.createDoc({})
 	doc.settings.sources = { JIRA }
 	local resolved = { (resolveRef("jira:ABC-1", { JIRA })), (resolveRef("jira:ABC-2", { JIRA })) }
-	local result = lookupRefs(resolved, { now = "", since = "", doc = doc }, function(argv)
+	local result = lookupRefs(resolved, { now = "", since = "", doc = doc, commands = COMMANDS }, function(argv)
 		calls += 1
 		assert.eq(argv, { "acli", "jira", "workitem", "search" })
 		return testing.result(true, '[{"key":"ABC-1","summary":"Ship","statusCategory":"new","type":"Task"}]')
@@ -39,13 +40,25 @@ test.case("a failing Jira command fails the refs of that source with its reason"
 	local doc = testing.createDoc({})
 	doc.settings.sources = { JIRA }
 	local resolved = { (resolveRef("jira:ABC-1", { JIRA })) }
-	local result = lookupRefs(resolved, { now = "", since = "", doc = doc }, function()
+	local result = lookupRefs(resolved, { now = "", since = "", doc = doc, commands = COMMANDS }, function()
 		return { ok = false, exitCode = 1, stdout = "", stderr = "not logged in" }
 	end)
 
 	assert.eq(next(result.records), nil)
 	assert.strContains(result.failures["issue:abc-1"], "could not read jira")
 	assert.strContains(result.failures["issue:abc-1"], "not logged in")
+end)
+
+test.case("a Jira source with no command on this machine fails its refs with how to set one", function(assert)
+	local doc = testing.createDoc({})
+	doc.settings.sources = { JIRA }
+	local resolved = { (resolveRef("jira:ABC-1", { JIRA })) }
+	local result = lookupRefs(resolved, { now = "", since = "", doc = doc, commands = {} }, function()
+		error("ran a command")
+	end)
+
+	assert.strContains(result.failures["issue:abc-1"], "has no command on this machine")
+	assert.strContains(result.failures["issue:abc-1"], "orion source add jira --id jira --command")
 end)
 
 return {}

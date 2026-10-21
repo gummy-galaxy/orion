@@ -510,6 +510,43 @@ Runs `orion source list`.
 | -------- | ------ | ------------------------------------------------------ |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
+## orion_source_add_github
+
+Add a GitHub source
+
+Runs `orion source add github`.
+
+| Argument  | Type        | Description                                            |
+| --------- | ----------- | ------------------------------------------------------ |
+| `canvas`  | canvas      | Canvas name. Omit to use the canvas selected in Orion. |
+| `host`    | string      | **Required.** GitHub host                              |
+| `owners`  | string list | **Required.** GitHub owners, comma-separated           |
+| `include` | string list | Repositories to include, comma-separated               |
+| `exclude` | string list | Repositories to exclude, comma-separated               |
+| `id`      | string      | Source id                                              |
+
+## orion_source_add_hop
+
+Add a hop source
+
+Runs `orion source add hop`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+| `id`     | string | Source id                                              |
+
+## orion_source_remove
+
+Remove an ingestion source
+
+Runs `orion source remove`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `id`     | string | **Required.** Source id                                |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+
 ## orion_source_matches
 
 List unplaced pull requests and the cards they likely belong to

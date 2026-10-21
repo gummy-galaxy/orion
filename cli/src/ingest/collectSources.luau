@@ -13,7 +13,14 @@ type Source = types.Source
 type CommandRunner = types.CommandRunner
 type Result = ingestTypes.Result
 
-local function collectSources(doc: Doc, run: CommandRunner, now: string, selected: string?): { Result }
+-- `commands` holds the programs this machine runs for the canvas's sources, by source id.
+local function collectSources(
+	doc: Doc,
+	commands: { [string]: { string } },
+	run: CommandRunner,
+	now: string,
+	selected: string?
+): { Result }
 	local sources: { { source: Source, index: number, order: number } } = {}
 	local found = false
 
@@ -61,7 +68,11 @@ local function collectSources(doc: Doc, run: CommandRunner, now: string, selecte
 		local result: Result =
 			{ source = source, report = { id = source.id, added = 0, updated = 0, linked = 0 }, order = entry.order }
 		local succeeded, failure = pcall(function()
-			result.records = getAdapter(source.kind).collect(source, run, { now = now, since = since, doc = shadow })
+			result.records = getAdapter(source.kind).collect(
+				source,
+				run,
+				{ now = now, since = since, doc = shadow, commands = commands }
+			)
 		end)
 
 		if not succeeded then

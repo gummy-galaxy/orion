@@ -14,6 +14,8 @@ A failing job that isn't required doesn't make a card read as failing when the p
 
 Use `orion source list` to inspect configured GitHub, Jira, and hop sources, and `orion source add <kind>` to add one; each kind takes only its own options. Keep credentials in `gh` and `acli`, never in the source command.
 
+A source's command lives in this machine's `commands.json`, never in the canvas's files, and no MCP tool takes one. Leave a Jira source's `--command` to the person: when ingest reports a Jira source with no command on this machine, tell them to run `orion source add jira --id <id> --command '[...]'` rather than choosing a command yourself.
+
 Run `orion ingest --dry-run` before `orion ingest`. Ingestion files new cards in Unsorted, updates existing cards in place, and leaves cards that are no longer returned alone. Place cards into outcome groups after reviewing them.
 
 Cards keep pull requests, issues, and local branches in `data.refs`. Each ref records its source, kind, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests. The source's adapter reads its details into source-neutral facts on the ref, such as `stateLabel`, `readiness`, and `checks`, and the app shows those rather than reading the details.

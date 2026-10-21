@@ -16,7 +16,7 @@ type Source = types.Source
 type CommandRunner = types.CommandRunner
 
 local function collect(source: Source, run: CommandRunner, context: Context): { Record }
-	local worktrees, sessions = parseData(run, source)
+	local worktrees, sessions = parseData(run, context.commands[source.id])
 	local doc = context.doc
 	local owners: { [string]: boolean } = {}
 

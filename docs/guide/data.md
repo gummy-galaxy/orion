@@ -10,7 +10,7 @@ Orion keeps everything in plain files on your machine. The CLI owns them: the ap
 | Windows  | `%APPDATA%\Orion`                                            |
 | Linux    | `$XDG_DATA_HOME/orion`, or `~/.local/share/orion` without it |
 
-Set `ORION_DATA_DIR` to use another folder on any platform. It takes precedence over `XDG_DATA_HOME` and `APPDATA`, and a relative path resolves from the current folder. The app's preferences, such as the theme and keyboard shortcuts, live in its `settings.json` and apply to every canvas.
+Set `ORION_DATA_DIR` to use another folder on any platform. It takes precedence over `XDG_DATA_HOME` and `APPDATA`, and a relative path resolves from the current folder. The app's preferences, such as the theme and keyboard shortcuts, live in its `settings.json` and apply to every canvas. `commands.json` holds the programs this machine runs for each canvas's sources, such as a Jira source's command, keyed by canvas and source id. It stays out of the canvases' own files, so sharing a canvas never shares a command.
 
 ## Canvases
 
@@ -28,6 +28,8 @@ Keys are sorted and formatting is stable, so a change rewrites only the files it
 Orion reads a canvas through `index.sqlite` beside its files, which it builds from them with the `sqlite3` command and keeps up to date. It holds nothing the files don't, so deleting it is safe. Without `sqlite3` installed, Orion reads every file instead, which is slower on large canvases.
 
 A canvas folder can sit in a git repository. While the app is open, files a `git pull` or an editor changes show up without a restart. A note with a git conflict shows both versions between the conflict markers. Edit it to the version you want, and Orion writes the file without them. Any other card file that doesn't parse shows as a note holding its text.
+
+Older versions of Orion kept a Jira or hop source's command in `canvas.json`. The first command a newer Orion runs moves those commands into `commands.json`. After that, a command in a canvas's files is ignored, so one that arrives with a cloned canvas never runs.
 
 Older versions of Orion kept each canvas in one `orion.json`. The first command a newer Orion runs splits it into files and keeps the original beside them as `orion.backup.json`.
 

@@ -11,7 +11,7 @@ end
 
 test.case("refreshAdapters skips a workspace with no GitHub sources or refs", function(assert)
 	local doc = testing.createDoc({ testing.task("plain", "Plain card", "todo") })
-	doc.settings.sources = { { id = "jira", kind = "jira", command = { "acli" } } }
+	doc.settings.sources = { { id = "jira", kind = "jira" } }
 	local called = false
 
 	local reports = refreshAdapters(doc, function(): any
@@ -44,7 +44,7 @@ test.case("refreshAdapters limits a selected source to its own kind", function(a
 			refs = { { source = "github", kind = "pull", key = "flipbook-labs/flipbook#658" } },
 		}),
 	})
-	doc.settings.sources = { { id = "jira", kind = "jira", command = { "acli" } } }
+	doc.settings.sources = { { id = "jira", kind = "jira" } }
 
 	assert.eq(#refreshAdapters(doc, failingRunner, NOW, "jira")(doc), 0)
 end)
