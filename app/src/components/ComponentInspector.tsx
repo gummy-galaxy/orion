@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import type { Work } from '../derive'
-import { COMPONENT_SHAPES, SHAPE_LABEL, getItemKind, type AppNode, type ComponentShape, type Link, type TaskData } from '../model'
+import type { SaveFields } from '../fields/types'
+import { COMPONENT_SHAPES, SHAPE_LABEL, type AppNode, type ComponentShape, type Link, type TaskData } from '../model'
 import { TintSelect } from './TintSelect'
 import { LinkList } from './LinkList'
 
@@ -11,6 +13,7 @@ export function ComponentInspector({
   work,
   map,
   update,
+  saveFields,
   remove,
   jumpTo,
   connections = true,
@@ -26,6 +29,8 @@ export function ComponentInspector({
   work: Work
   map: Map<string, AppNode>
   update: (id: string, patch: Partial<TaskData>) => void
+  /** Saves fields the server checks, and resolves once it answers. */
+  saveFields: SaveFields
   remove: () => void
   jumpTo: (id: string) => void
   /** Focus view draws connections beside the inspector. */
@@ -36,6 +41,22 @@ export function ComponentInspector({
   flipLink: (id: string) => void
 }) {
   const data = node.data as TaskData
+  // The repository shows as typed until it saves, when the input loses focus.
+  const [repo, setRepo] = useState<string | null>(null)
+  const [repoError, setRepoError] = useState<string | null>(null)
+
+  const saveRepo = () => {
+    if (repo === null) return
+
+    if (repo.trim() === (data.repo ?? '')) return setRepo(null)
+
+    setRepoError(null)
+    void saveFields(node.id, { repo: repo.trim() }).then((error) => {
+      setRepoError(error)
+
+      if (!error) setRepo(null)
+    })
+  }
 
   return (
     <div className="insp">
@@ -76,10 +97,17 @@ export function ComponentInspector({
       <label htmlFor="c-repo">Repository</label>
       <input
         id="c-repo"
-        value={data.repo ?? ''}
+        value={repo ?? data.repo ?? ''}
         placeholder="owner/name"
-        onChange={(event) => update(node.id, { repo: event.target.value || undefined })}
+        onChange={(event) => setRepo(event.target.value)}
+        onBlur={saveRepo}
+        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
       />
+      {repoError && (
+        <p className="field-error" role="alert">
+          {repoError}
+        </p>
+      )}
       <label htmlFor="c-note">Description</label>
       <textarea
         id="c-note"
@@ -93,13 +121,7 @@ export function ComponentInspector({
         <LinkList node={node} work={work} nodeMap={map} links={links} jumpTo={jumpTo} addLink={addLink} removeLink={removeLink} flipLink={flipLink} />
       )}
       <div className="row">
-        <button
-          type="button"
-          className="btn"
-          onClick={() =>
-            update(node.id, { itemKind: getItemKind({ ...data, itemKind: 'step' }), status: 'todo', shape: undefined, color: undefined })
-          }
-        >
+        <button type="button" className="btn" onClick={() => void saveFields(node.id, { kind: 'step', status: 'todo' })}>
           Turn into a work item
         </button>
         <button type="button" className="btn danger" onClick={remove}>

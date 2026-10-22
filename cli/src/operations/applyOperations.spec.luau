@@ -50,12 +50,16 @@ local SAMPLES: { { name: string, edit: string } } = {
 	{ name = "move", edit = [=[{"op":"move","id":"pub"}]=] },
 	{ name = "tidy", edit = [=[{"op":"tidy","id":"ws"}]=] },
 	{
+		name = "setFields with a pull request",
+		edit = [=[{"op":"setFields","id":"pub","fields":{"repo":"vocksel/orion","pr":12}}]=],
+	},
+	{
 		name = "addNote",
 		edit = [=[{"op":"addNote","id":"note-new","x":10,"y":20,"group":"ws","data":{"kind":"task","label":"New","itemKind":"note","status":"todo"}}]=],
 	},
 	{
 		name = "setData",
-		edit = [=[{"op":"setData","id":"pub","data":{"kind":"task","label":"Renamed","itemKind":"step","status":"done"}}]=],
+		edit = [=[{"op":"setData","id":"ws","data":{"kind":"cluster","label":"Renamed"}}]=],
 	},
 	{ name = "resize", edit = [=[{"op":"resize","id":"ws","width":500,"height":300}]=] },
 	{ name = "resize clear", edit = [=[{"op":"resize","id":"ws","clear":true}]=] },
@@ -150,8 +154,8 @@ test.case("parsing turns a request into typed edits and names what's wrong", fun
 	assert.throwsWith("operation 1: id is not a field an operation can set", function()
 		parse([=[[{"op":"setFields","id":"a","fields":{"id":"b"}}]]=])
 	end)
-	assert.throwsWith("operation 1: pr is not a field an operation can set", function()
-		parse([=[[{"op":"setFields","id":"a","fields":{"pr":12}}]]=])
+	assert.throwsWith("operation 1: pr must be a pull request number, or empty", function()
+		parse([=[[{"op":"setFields","id":"a","fields":{"pr":"12"}}]]=])
 	end)
 	assert.throwsWith("operation 1: kind must be blocks or related", function()
 		parse([=[[{"op":"link","from":"a","to":"b","kind":"duplicates"}]]=])
@@ -250,4 +254,77 @@ test.case("parsing checks the new operations' fields", function(assert)
 		parse([=[[{"op":"setStickers","stickers":{}}]]=])
 	end)
 	assert.eq(parse([=[[{"op":"resize","id":"a","clear":true}]]=])[1].width, nil)
+end)
+
+test.case("setFields resolves a pull request against the card's repo and takes it off when empty", function(assert)
+	local doc = createCanvas()
+	applyOperations(doc, parse([=[[{"op":"setFields","id":"pub","fields":{"repo":"vocksel/orion","pr":12}}]]=]))
+	local pub = doc.nodes[3]
+	local refs = pub.data.refs :: any
+	assert.eq(pub.data.itemKind, "pr")
+	assert.eq(#refs, 1)
+	assert.eq(refs[1].key, "vocksel/orion#12")
+	assert.eq(refs[1].url, "https://github.com/vocksel/orion/pull/12")
+
+	applyOperations(doc, parse([=[[{"op":"setFields","id":"pub","fields":{"pr":""}}]]=]))
+	assert.eq(pub.data.refs, nil)
+	assert.eq(pub.data.itemKind, "placeholder")
+
+	local succeeded, failure =
+		pcall(applyOperations, doc, parse([=[[{"op":"setFields","id":"docs","fields":{"pr":3}}]]=]))
+	assert.eq(succeeded, false)
+	assert.strContains((failure :: { message: string }).message, '"docs" needs a repo before it takes a pull request')
+end)
+
+test.case("setFields keeps a pull request's facts when the number doesn't change", function(assert)
+	local doc = createCanvas()
+	applyOperations(doc, parse([=[[{"op":"setFields","id":"pub","fields":{"repo":"vocksel/orion","pr":12}}]]=]))
+	local pub = doc.nodes[3]
+	local refs = pub.data.refs :: any
+	refs[1].status = "open"
+	applyOperations(doc, parse([=[[{"op":"setFields","id":"pub","fields":{"label":"Ship","pr":12}}]]=]))
+	assert.eq((pub.data.refs :: any)[1].status, "open")
+end)
+
+-- The message a refused list gives, which applyOperations raises inside a rejection.
+local function refuse(doc: Doc, text: string): string
+	local succeeded, failure = pcall(applyOperations, doc, parse(text))
+	assert(not succeeded, "the list should be refused")
+	return (failure :: { message: string }).message
+end
+
+test.case("setData refuses cards, so card edits go through the field rules", function(assert)
+	local message = refuse(
+		createCanvas(),
+		[=[[{"op":"setData","id":"pub","data":{"kind":"task","label":"x","itemKind":"step","status":"done"}}]]=]
+	)
+	assert.eq(message, '"pub" is a card; change its fields with setFields')
+end)
+
+test.case("closeOut closes out one finished card and leaves its chain waiting", function(assert)
+	local doc = testing.createDoc({
+		testing.task("a", "A", "active"),
+		testing.task("b", "B", "done", nil, { celebrate = true }),
+	}, { { "a", "b" } })
+	applyOperations(
+		doc,
+		parse([=[[{"op":"setFields","id":"a","fields":{"status":"done"}},{"op":"closeOut","id":"a"}]]=])
+	)
+	assert.eq(doc.nodes[1].data.celebrate, false)
+	assert.eq(doc.nodes[2].data.celebrate, true)
+
+	local message =
+		refuse(doc, [=[[{"op":"setFields","id":"b","fields":{"status":"todo"}},{"op":"closeOut","id":"b"}]]=])
+	assert.eq(message, `"b" isn't done yet; finish it before closing it out`)
+end)
+
+test.case("an added card never starts out waiting to be closed out", function(assert)
+	local doc = createCanvas()
+	applyOperations(
+		doc,
+		parse(
+			[=[[{"op":"addCard","id":"copy","x":0,"y":0,"data":{"kind":"task","label":"Copy","itemKind":"step","status":"done","celebrate":true}}]]=]
+		)
+	)
+	assert.eq(doc.nodes[#doc.nodes].data.celebrate, nil)
 end)

@@ -1,4 +1,3 @@
-import { patchTaskData } from './celebrate'
 import { isWork, type AppNode, type TaskData } from './model'
 
 /** The fields a multi-selection sets on every work item in it. */
@@ -21,7 +20,7 @@ export function patchWork(nodes: AppNode[], ids: ReadonlySet<string>, patch: Bat
 
     changed = true
 
-    return { ...node, data: patchTaskData(data, patch) } as AppNode
+    return { ...node, data: { ...data, ...patch } } as AppNode
   })
 
   return changed ? next : nodes

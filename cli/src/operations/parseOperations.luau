@@ -38,6 +38,7 @@ local OPERATIONS = {
 	move = true,
 	tidy = true,
 	chainClose = true,
+	closeOut = true,
 	addCard = true,
 	addNote = true,
 	addImage = true,
@@ -123,6 +124,16 @@ local function parseFields(object: json.Object): { [string]: string | number }
 			continue
 		end
 
+		-- A pull request number, resolved against the card's repository, or empty to take it off.
+		if key == "pr" then
+			assert(
+				value == "" or (type(value) == "number" and value >= 1 and value == math.floor(value :: number)),
+				"pr must be a pull request number, or empty"
+			)
+			result.pr = value :: string | number
+			continue
+		end
+
 		local expected = FIELD_TYPES[key]
 		assert(expected, `{key} is not a field an operation can set`)
 		assert(type(value) == expected, `{key} must be a {expected}`)
@@ -201,7 +212,7 @@ local function parseOperation(object: json.Object): Operation
 	elseif operation.op == "setStickerLoadout" then
 		operation.stickerLoadout = requireArray(object, "stickerLoadout")
 	else
-		-- ungroup, removeGroup, tidy, and chainClose each take only the id of the item they act on.
+		-- ungroup, removeGroup, tidy, chainClose, and closeOut each take only the id of the item they act on.
 		operation.id = requireString(object, "id")
 	end
 

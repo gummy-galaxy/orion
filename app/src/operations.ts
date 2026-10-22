@@ -1,4 +1,6 @@
-import type { Link } from './model'
+import { closesOut } from './celebrate'
+import { diffCardFields } from './fields/diffCardFields'
+import type { Link, TaskData } from './model'
 import { stableJson } from './stableJson'
 
 /** One edit the server applies, in the shape `POST /api/operations` reads. */
@@ -164,7 +166,22 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
   for (const node of existing) {
     const previous = before.get(node.id)!
 
-    if (!sameJson(previous.data, node.data)) operations.push({ op: 'setData', id: node.id, data: node.data })
+    if (sameJson(previous.data, node.data)) continue
+
+    // Groups and images keep their data whole. Cards change through their fields, which the server checks.
+    if (node.type !== 'task') {
+      operations.push({ op: 'setData', id: node.id, data: node.data })
+      continue
+    }
+
+    const previousData = previous.data as TaskData
+    const data = node.data as TaskData
+    const fields = diffCardFields(previousData, data)
+
+    if (Object.keys(fields).length) operations.push({ op: 'setFields', id: node.id, fields })
+
+    // Finishing a card in the app closes it out at once, so its Done stamp lands instead of waiting.
+    if (closesOut(previousData, data)) operations.push({ op: 'closeOut', id: node.id })
   }
 
   for (const node of existing) {

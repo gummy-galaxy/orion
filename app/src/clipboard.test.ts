@@ -95,7 +95,7 @@ describe('copying a selection', () => {
     expect(clip.stickers[1]).toEqual({ id: 'on-b', kind: '👀', x: 320, y: 20, tilt: 0 })
   })
 
-  it('leaves out view state and a pending close-out', () => {
+  it('leaves out view state', () => {
     const done: AppNode = {
       ...task('a', 0, 0, undefined, true),
       data: { kind: 'task', label: 'a', itemKind: 'step', status: 'done', celebrate: true },
@@ -103,7 +103,6 @@ describe('copying a selection', () => {
     const clip = copy([done], [], ['a'])
 
     expect(clip.nodes[0].selected).toBeUndefined()
-    expect((clip.nodes[0].data as { celebrate?: boolean }).celebrate).toBeUndefined()
   })
 
   it('copies nothing without a selection', () => {

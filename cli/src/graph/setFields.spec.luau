@@ -162,3 +162,12 @@ test.case("setFields drops a card's measured size when its text or shape changes
 	assert.eq(note.width, nil)
 	assert.eq(note.height, nil)
 end)
+
+test.case("a kind turns a note into a work item", function(assert)
+	local doc = testing.createDoc({ testing.task("n", "Idea", "todo", nil, { itemKind = "note" }) })
+	doc.nodes[1].width = 240
+	doc.nodes[1].height = 120
+	setFields(doc, "n", { kind = "step", status = "todo" })
+	assert.eq(doc.nodes[1].data.itemKind, "step")
+	assert.eq(doc.nodes[1].width, nil)
+end)

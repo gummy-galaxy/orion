@@ -38,11 +38,25 @@ describe('diffOperations', () => {
     expect(diffOperations(base, current)).toEqual([])
   })
 
-  it('sends a changed field as setData with the whole data object', () => {
-    const base = doc([task('a')])
-    const current = doc([{ ...task('a'), data: { ...task('a').data, status: 'done' } }])
+  it("sends a card's changed fields as setFields, and closes out a card it finished", () => {
+    const base = doc([task('a'), task('b')])
+    const current = doc([
+      { ...task('a'), data: { ...task('a').data, status: 'done' } },
+      { ...task('b'), data: { ...task('b').data, label: 'Renamed' } },
+    ])
 
-    expect(diffOperations(base, current)).toEqual([{ op: 'setData', id: 'a', data: current.nodes[0].data }])
+    expect(diffOperations(base, current)).toEqual([
+      { op: 'setFields', id: 'a', fields: { status: 'done' } },
+      { op: 'closeOut', id: 'a' },
+      { op: 'setFields', id: 'b', fields: { label: 'Renamed' } },
+    ])
+  })
+
+  it("sends a group's changed data whole as setData", () => {
+    const base = doc([group('g')])
+    const current = doc([{ ...group('g'), data: { kind: 'cluster', label: 'Renamed' } }])
+
+    expect(diffOperations(base, current)).toEqual([{ op: 'setData', id: 'g', data: current.nodes[0].data }])
   })
 
   it('sends a moved item as place, and a resized group as resize with its size cleared when it goes back to default', () => {

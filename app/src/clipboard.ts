@@ -32,16 +32,14 @@ export type Pasted = Doc & { stickerIds: string[] }
 
 const DEFAULT_CARD_SIZE: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }
 
-/** What a node keeps when copied: its stored fields, without view state or a pending close-out. */
+/** What a node keeps when copied: its stored fields, without view state. */
 function stored(node: AppNode, overrides: Partial<AppNode>): AppNode {
-  const data = isTask(node) && node.data.celebrate ? { ...node.data, celebrate: undefined } : node.data
-
   return {
     id: node.id,
     type: node.type,
     position: node.position,
     parentId: node.parentId,
-    data,
+    data: node.data,
     ...(isTask(node) ? {} : { width: node.width, height: node.height }),
     ...overrides,
   } as AppNode
