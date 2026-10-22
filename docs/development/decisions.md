@@ -348,6 +348,46 @@ The API that `orion server start` serves exists for the app alone. Agents and sc
 
 2026-10-18 · [#146](https://github.com/vocksel/orion/issues/146), [#470](https://github.com/vocksel/orion/issues/470)
 
+### What people write for Orion carries no promise until 1.0.0
+
+Plans, selectors, refs, `--where` expressions, times, theme files, and JSON error codes stay unpromised at 0.1.0. They become promises with the rest of the charter's stability at 1.0.0. In the meantime, a rename keeps the old form working through an alias, as "Aliases and migrations share one lifecycle" describes.
+
+**Why:** these formats are still settling, and the plan format is about to change shape. Aliases already soften a rename for scripts and saved prompts, so an early promise would add constraints without protecting anyone more.
+
+2026-10-21 · [#146](https://github.com/vocksel/orion/issues/146)
+
+### Plans are the CLI written as JSON
+
+Each operation in a plan for `orion apply` is named after its command path, such as `card create` or `node move`, and takes fields named after that command's options. Plans no longer use the internal operation names that `POST /api/operations` takes, and Orion translates between the two.
+
+**Why:** agents learn one vocabulary for commands and plans, and the app's internal edits can change without breaking a plan.
+
+2026-10-21 · [#146](https://github.com/vocksel/orion/issues/146), [#567](https://github.com/vocksel/orion/issues/567)
+
+### Failures go to stderr, and JSON errors carry a code
+
+Without `--json`, a failure prints `Error: …` on stderr, so stdout only ever holds output. With `--json`, it prints `{"error": {"code": …, "message": …}}` on stdout, where a script already reads. Codes start with a revision conflict, a missing item, and an ambiguous selector, and grow when a script needs to act on another failure. Every failure still exits 1.
+
+**Why:** an error on stdout ends up in whatever file or pipe the output was going to. A code lets a script retry an `--if-revision` conflict without matching the message's wording, and one exit code for every failure keeps shell scripts simple.
+
+2026-10-21 · [#146](https://github.com/vocksel/orion/issues/146)
+
+### A time without an offset is local
+
+Every `--until` reads an ISO 8601 date or date-time through `time/parseUntil`. A date-time without an offset is in local time, and a date alone means the start of that local day. A time ending in `Z` or an offset means what it says. Orion stores and prints times in RFC 3339 UTC.
+
+**Why:** people think in their own time zone. Before this, `card snooze` read local time and `ci snooze` read UTC, so the same date ended the two snoozes hours apart.
+
+2026-10-21 · [#146](https://github.com/vocksel/orion/issues/146)
+
+### The command line gets a guide page and a generated reference
+
+A guide page explains working with Orion from the command line, for someone new to it. The `--where` grammar, selectors, and ref forms also get reference pages generated from the code that parses them, as the CLI and MCP references are generated from the command table.
+
+**Why:** the guide teaches, and generated pages can't drift from the parser. Today those syntaxes are written down only in `orion help node query` and the agent guide.
+
+2026-10-21 · [#146](https://github.com/vocksel/orion/issues/146)
+
 ### CLI commands are a noun, then a verb
 
 Commands name the thing they act on first, then the action: `orion node remove`, `orion group remove`, `orion link add`. Each noun has its own subcommands, help, and options, so no flag changes meaning by what it targets. Flat verbs such as `orion remove` and `orion ungroup` go away. Each kind of node has its own noun for creating it, such as `orion card add` and `orion note add`, since their inputs differ, and `orion node` covers what applies to any node. `orion canvas` replaces `orion workspace`, following the charter's vocabulary. Two reads stay top level because agents run them before almost everything else: `orion focus`, and `orion next`, which lists the work that can start now, most unblocking first.
