@@ -1,5 +1,5 @@
 import { test } from 'vitest'
-import { buildWork, toServerFacts, traceFrom } from '../derive'
+import { buildWork, deriveSources, toServerFacts, traceFrom } from '../derive'
 import { reflow } from '../layout'
 import { isTask, normalize } from '../model'
 import { fingerprint } from '../persist'
@@ -19,6 +19,7 @@ for (const cards of SIZES) {
 
   test(`${cards} cards`, async ({ bench }) => {
     await bench('buildWork', () => buildWork(toServerFacts(null), nodes, links)).run(RUN)
+    await bench('deriveSources', () => deriveSources(nodes)).run(RUN)
     await bench('traceFrom', () => traceFrom(middle, work.preds, work.succs, taskIds)).run(RUN)
     await bench('normalize', () => normalize(nodes)).run(RUN)
     await bench('fingerprint', () => fingerprint(saved)).run(RUN)
