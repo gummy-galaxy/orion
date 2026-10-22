@@ -340,17 +340,17 @@ The API that `orion server start` serves exists for the app alone. Agents and sc
 
 2026-10-18 · [#146](https://github.com/vocksel/orion/issues/146), [#468](https://github.com/vocksel/orion/issues/468)
 
-### No JSON shape is stable before 0.1.0
+### No JSON shape is stable before 1.0.0
 
-`--json` output carries no promise until 0.1.0, so the shapes can be made consistent first: every command takes `--json`, failures print a JSON error, every write prints its revision, groups and notes get shapes of their own, times use RFC 3339, and an absent value is `null` or missing rather than an empty string. From 0.1.0, a short list is stable: the item shape that `card list`, `node show`, `node query`, and `next` print, the batch write envelope, `canvas check`'s list, `focus`, and `canvas list`. New fields may appear in them, and removing or renaming one is a breaking change. Everything else stays unpromised until a script needs it.
+`--json` output carries no promise until 1.0.0, so the shapes can be made consistent first: every command takes `--json`, failures print a JSON error, every write prints its revision, groups and notes get shapes of their own, times use RFC 3339, and an absent value is `null` or missing rather than an empty string. No shape is promised at 0.1.0 either, as with what people write for Orion. From 0.1.0 until then, a change to a shape is deliberate and listed in the release notes, as the three stages ask.
 
-**Why:** each fix for an inconsistency breaks the shape it touches, so promising a shape before fixing it would lock in the inconsistency. A short list covers what scripts and agents read most, and keeps the rest free to change.
+**Why:** each fix for an inconsistency breaks the shape it touches, so promising a shape before fixing it would lock in the inconsistency. Shapes keep settling after 0.1.0 as commands are renamed and plans follow the CLI, so an early promise would only freeze them mid-change. This replaced promising a short list of shapes from 0.1.0.
 
-2026-10-18 · [#146](https://github.com/vocksel/orion/issues/146), [#470](https://github.com/vocksel/orion/issues/470)
+2026-10-18, 2026-10-21 · [#146](https://github.com/vocksel/orion/issues/146), [#470](https://github.com/vocksel/orion/issues/470)
 
 ### What people write for Orion carries no promise until 1.0.0
 
-Plans, selectors, refs, `--where` expressions, times, theme files, and JSON error codes stay unpromised at 0.1.0. They become promises with the rest of the charter's stability at 1.0.0. In the meantime, a rename keeps the old form working through an alias, as "Aliases and migrations share one lifecycle" describes.
+Plans, selectors, refs, `--where` expressions, times, theme files, and JSON error codes stay unpromised at 0.1.0, as `--json` output does. They become promises with the rest of the charter's stability at 1.0.0. In the meantime, a rename keeps the old form working through an alias, as "Aliases and migrations share one lifecycle" describes.
 
 **Why:** these formats are still settling, and the plan format is about to change shape. Aliases already soften a rename for scripts and saved prompts, so an early promise would add constraints without protecting anyone more.
 

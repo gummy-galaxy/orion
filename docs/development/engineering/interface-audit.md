@@ -29,7 +29,7 @@ These calls were settled after the snapshot, each in the [decisions](/developmen
 - MCP tools keep `canvas` and ignore it, under "MCP tools come from the CLI's commands".
 - Commands stay on this machine, in "Programs Orion runs are chosen on this machine".
 - Theme files build on Vibrant, under "Vibrant and Trading Card are the defaults".
-- Nothing people write is promised at 0.1.0, in "What people write for Orion carries no promise until 1.0.0".
+- Nothing people write is promised at 0.1.0, in "What people write for Orion carries no promise until 1.0.0", and no `--json` shape either, in "No JSON shape is stable before 1.0.0".
 - Plan operations follow the commands, in "Plans are the CLI written as JSON".
 - Text failures go to stderr and JSON errors get a code, in "Failures go to stderr, and JSON errors carry a code".
 - `--until` reads local time unless it gives an offset, in "A time without an offset is local".
@@ -58,13 +58,7 @@ These calls were settled after the snapshot, each in the [decisions](/developmen
 
 ### Which JSON shapes are stable?
 
-**None before 0.1.0, as [Public surfaces](/guide/surfaces) says, then a short named list.** From 0.1.0, these shapes are promised: new fields may appear, and removing or renaming a field is a breaking change.
-
-- The item shape that `card list`, `node show`, `node query`, and `next` print: `id`, `label`, `kind`, `status`, `recordedStatus`, `group`, `groupLabel`, `waitsOn`, `leadsTo`, `unblocks`, and refs.
-- The write envelope that batch commands print: `dryRun`, `revision`, `baseRevision`, `action`, and `items`.
-- `canvas check`'s `{kind, ids, bounds}` list, `focus`, and `canvas list`.
-
-Everything else stays unpromised until a script needs it, including `suggestion list`, `source matches`, `server status`, and the `ingest` report. The inconsistencies under [JSON output](#json-output) get fixed first, in [#470](https://github.com/vocksel/orion/issues/470), since each fix breaks the shape it touches.
+**None before 1.0.0, as [Public surfaces](/guide/surfaces) and "No JSON shape is stable before 1.0.0" say.** This first proposed promising a short list from 0.1.0: the item shape that `card list`, `node show`, `node query`, and `next` print, the batch write envelope, `canvas check`'s list, `focus`, and `canvas list`. Those are what scripts and agents read most, so they're the likely first promises at 1.0.0, but shapes keep settling after 0.1.0 as commands are renamed and plans follow the CLI. The inconsistencies under [JSON output](#json-output) get fixed first, in [#470](https://github.com/vocksel/orion/issues/470), since each fix breaks the shape it touches.
 
 Data files are never a public interface for writing: tools go through the CLI. They carry a `version`, and the CLI migrates older versions as it reads them. The charter's data layer promise applies to them from 1.0.
 
