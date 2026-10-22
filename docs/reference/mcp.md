@@ -84,11 +84,11 @@ Runs `orion card done`.
 | `dryRun`     | boolean     | Preview changes and current revision without writing   |
 | `ifRevision` | integer     | Write only if the document has this revision           |
 
-## orion_card_close-out
+## orion_card_chain-close
 
-Close out a done card and every waiting done card chained to it through finished cards, as clicking its shimmer in the app does. Closing out a chain is the person's reward for finishing it, so don't close out on your own: finishing a card with orion_card_done leaves it waiting for them. Close out only when the person asks.
+Close out a done card and every waiting done card chained to it through finished cards, the same as double-clicking a shimmering card in the app. Closing out a chain is the person's reward for finishing it, so don't close out on your own: finishing a card with orion_card_done leaves it waiting for them. Close out only when the person asks.
 
-Runs `orion card close-out`.
+Runs `orion card chain-close`.
 
 | Argument     | Type    | Description                                                                                             |
 | ------------ | ------- | ------------------------------------------------------------------------------------------------------- |

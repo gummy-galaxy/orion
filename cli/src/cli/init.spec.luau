@@ -544,7 +544,7 @@ test.case("flat command names and --workspace are gone, and help uses the noun f
 	assert.throwsWith("Unknown argument: workspace", function()
 		run({ "--workspace", "roblox", "card", "list" })
 	end)
-	assert.throwsWith("choose list, add, set, timeline, done, close-out, import, snooze, unsnooze", function()
+	assert.throwsWith("choose list, add, set, timeline, done, chain-close, import, snooze, unsnooze", function()
 		run({ "card" })
 	end)
 	assert.strContains(run({ "help", "card", "list" }), "orion card list")

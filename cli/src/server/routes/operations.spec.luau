@@ -83,7 +83,7 @@ test.case("POST finishes and closes out a card in one write, and answers with th
 			"POST",
 			"/api/operations",
 			edits(
-				[[{"operations":[{"op":"setFields","id":"ci","fields":{"status":"done"}},{"op":"closeOut","id":"ci"}]}]]
+				[[{"operations":[{"op":"setFields","id":"ci","fields":{"status":"done"}},{"op":"chainClose","id":"ci"}]}]]
 			)
 		)
 	)

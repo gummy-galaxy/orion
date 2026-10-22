@@ -1,5 +1,5 @@
 local captureDoc = require("@root/operations/captureDoc")
-local closeOut = require("@root/graph/closeOut")
+local closeChain = require("@root/graph/closeChain")
 local diffDocs = require("@root/operations/diffDocs")
 local findItem = require("@root/graph/findItem")
 local getGroup = require("@root/graph/getGroup")
@@ -88,8 +88,8 @@ handlers.tidy = function(doc: Doc, operation: Operation)
 end
 
 -- Closes out a finished card and its chain, and answers with each card closed and passed, with its hops from the card.
-answering.closeOut = function(doc: Doc, operation: Operation): json.Value
-	local result = closeOut(doc, required(operation.id, "id"))
+answering.chainClose = function(doc: Doc, operation: Operation): json.Value
+	local result = closeChain(doc, required(operation.id, "id"))
 	local function steps(list: { graphTypes.ChainStep }): json.Array
 		local array: json.Array = {}
 

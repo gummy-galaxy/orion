@@ -34,11 +34,11 @@ export function chainDelay(hops: number, stepMs = CHAIN_STEP_MS): number {
   return CHAIN_BEATS_MS[finale] + (capped - finale) * stepMs
 }
 
-/** A card a close-out reached, and how many blocking links it is from the card clicked. */
+/** A card a chain close reached, and how many blocking links it is from the card clicked. */
 export type ChainStep = { id: string; hops: number }
 
 /**
- * What `orion serve` answers a close-out with: the cards it closed out, starting with the one clicked, and the finished
+ * What `orion serve` answers a chain close with: the cards it closed out, starting with the one clicked, and the finished
  * cards the chain passed through that weren't waiting.
  */
 export type ChainAnswer = { closed: ChainStep[]; passed: ChainStep[] }

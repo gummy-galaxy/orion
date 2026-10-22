@@ -98,12 +98,12 @@ orion card done [options] [ids...]
 | `--if-revision <value>` | Write only if the document has this revision         |
 | `--json`                | Print JSON                                           |
 
-## orion card close-out
+## orion card chain-close
 
 Close out a done card and the waiting done cards chained to it, so their Done stamps show
 
 ```sh
-orion card close-out [id] [options]
+orion card chain-close [id] [options]
 ```
 
 | Argument                | Description                                                                               |

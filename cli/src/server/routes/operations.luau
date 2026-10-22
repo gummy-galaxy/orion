@@ -31,7 +31,7 @@ end
 
 -- Applies a list of edits as one change, under the store lock. If any edit no longer applies, the whole list is
 -- refused with the position of the edit that failed, and the file is left alone. `baseRevision`, when sent, must
--- still be the saved revision. The answer's `results` holds what each edit answered, such as a close-out's chain, or
+-- still be the saved revision. The answer's `results` holds what each edit answered, such as a chain close, or
 -- null, in the order of the list.
 function operations.handle(request: net.ReceivedRequest, root: string, active: string): Response
 	if request.method ~= "POST" then

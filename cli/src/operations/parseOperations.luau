@@ -37,7 +37,7 @@ local OPERATIONS = {
 	removeGroup = true,
 	move = true,
 	tidy = true,
-	closeOut = true,
+	chainClose = true,
 	addCard = true,
 	addNote = true,
 	addImage = true,
@@ -201,7 +201,7 @@ local function parseOperation(object: json.Object): Operation
 	elseif operation.op == "setStickerLoadout" then
 		operation.stickerLoadout = requireArray(object, "stickerLoadout")
 	else
-		-- ungroup, removeGroup, tidy, and closeOut each take only the id of the item they act on.
+		-- ungroup, removeGroup, tidy, and chainClose each take only the id of the item they act on.
 		operation.id = requireString(object, "id")
 	end
 

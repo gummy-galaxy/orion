@@ -2380,7 +2380,7 @@ export function Canvas() {
 
         // The card clicked stamps at once. `orion serve` closes out its chain, and the rest stamp from its answer.
         landStamps(new Map([[id, chainDelay(0, stepMs)]]), { pulses: new Map(), finale: new Map() })
-        void commitNow([{ op: 'closeOut', id }]).then((answers) => {
+        void commitNow([{ op: 'chainClose', id }]).then((answers) => {
           const answer = answers?.[0] as ChainAnswer | undefined
 
           if (!answer) return

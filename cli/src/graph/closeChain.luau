@@ -5,14 +5,14 @@ local isWork = require("@root/graph/isWork")
 local types = require("@root/types")
 
 type ChainStep = graphTypes.ChainStep
-type CloseOut = graphTypes.CloseOut
+type ClosedChain = graphTypes.ClosedChain
 type Doc = types.Doc
 
 -- Closes out a finished card and every waiting card chained to it, so their Done stamps show. The chain runs both ways
 -- along blocking links and passes only through finished cards, so related links and open work stop it. Each card closed
 -- gets `celebrate = false`, which markCelebrations reads as closed out and drops, so a card finished in the same write
 -- doesn't start waiting either.
-local function closeOut(doc: Doc, id: string): CloseOut
+local function closeChain(doc: Doc, id: string): ClosedChain
 	local item = getItem(doc, id)
 	assert(isWork(item), `"{id}" isn't a work item, so it has nothing to close out`)
 
@@ -54,7 +54,7 @@ local function closeOut(doc: Doc, id: string): CloseOut
 		end
 	end
 
-	local result: CloseOut = { closed = {}, passed = {} }
+	local result: ClosedChain = { closed = {}, passed = {} }
 
 	for _, reached in queue do
 		local step: ChainStep = { id = reached, hops = hops[reached] }
@@ -71,4 +71,4 @@ local function closeOut(doc: Doc, id: string): CloseOut
 	return result
 end
 
-return closeOut
+return closeChain

@@ -17,7 +17,7 @@ export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; sti
 export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot; derived?: Derived }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string }
-/** `results` holds what each operation answered, such as a close-out's chain, or null, in the order sent. */
+/** `results` holds what each operation answered, such as a chain close's cards, or null, in the order sent. */
 export type CommitResult = { ok: true; revision: number; results: unknown[] } | { ok: false; conflict: boolean }
 export type Workspaces = { active: string; canvases: { name: string; label: string }[] }
 /** What `orion reveal` asked the open app to select and frame, on the canvas named. */

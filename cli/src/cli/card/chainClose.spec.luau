@@ -22,9 +22,9 @@ local function createChain(name: string): string
 	return dir
 end
 
-test.case("card close-out closes out a waiting chain and names each card closed", function(assert)
+test.case("card chain-close closes out a waiting chain and names each card closed", function(assert)
 	local dir = createChain("close-out-chain")
-	local text = testing.run(dir, { "card", "close-out", "a" })
+	local text = testing.run(dir, { "card", "chain-close", "a" })
 	assert.strContains(text, "Closed out 2 cards at revision 0 → 1")
 	assert.strContains(text, "a · Ship the parser")
 	assert.strContains(text, "c · Ship the release")
@@ -34,14 +34,14 @@ test.case("card close-out closes out a waiting chain and names each card closed"
 	assert.eq(getItem(doc, "c").data.celebrate, nil)
 end)
 
-test.case("card close-out prints the chain with hops as JSON, and previews without writing", function(assert)
+test.case("card chain-close prints the chain with hops as JSON, and previews without writing", function(assert)
 	local dir = createChain("close-out-json")
-	local preview = testing.run(dir, { "card", "close-out", "c", "--dry-run" })
+	local preview = testing.run(dir, { "card", "chain-close", "c", "--dry-run" })
 	assert.strContains(preview, "Would close out 2 cards at revision 0")
 	assert.eq(getItem(loadDoc(dir), "a").data.celebrate, true)
 
 	local report = json.asObject(
-		json.deserialize(testing.run(dir, { "card", "close-out", "c", "--json" })) :: json.Value
+		json.deserialize(testing.run(dir, { "card", "chain-close", "c", "--json" })) :: json.Value
 	) :: json.Object
 	assert.eq(report.revision, 1)
 	local closed = json.asArray(report.closed) :: json.Array
@@ -53,16 +53,16 @@ test.case("card close-out prints the chain with hops as JSON, and previews witho
 	assert.eq((json.asObject(passed[1]) :: json.Object).hops, 1)
 end)
 
-test.case("card close-out refuses open work, groups, and stale revisions", function(assert)
+test.case("card chain-close refuses open work, groups, and stale revisions", function(assert)
 	local dir, run = testing.createHarness("close-out-refuse")
 	assert.throwsWith(`"ci" isn't done yet; finish it before closing it out`, function()
-		run({ "card", "close-out", "ci" })
+		run({ "card", "chain-close", "ci" })
 	end)
 	assert.throwsWith(`"ws" is a group; use orion group set`, function()
-		run({ "card", "close-out", "ws" })
+		run({ "card", "chain-close", "ws" })
 	end)
 	assert.throwsWith("revision changed: expected 4, current 0", function()
-		run({ "card", "close-out", "ci", "--if-revision", "4" })
+		run({ "card", "chain-close", "ci", "--if-revision", "4" })
 	end)
 	assert.eq(loadDoc(dir).revision, 0)
 end)
