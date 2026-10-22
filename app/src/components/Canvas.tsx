@@ -36,13 +36,13 @@ import {
   FADE_MS,
   FLOURISH_MS,
   STAMP_MS,
-  celebrationDelays,
-  chainBeats,
+  chainDelay,
   chainFinale,
   chainPulses,
-  clearCelebrations,
   closesOut,
   patchTaskData,
+  timeChain,
+  type ChainAnswer,
   type Pulse,
 } from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
@@ -50,7 +50,7 @@ import { forgetTextWidths } from '../cardHeight'
 import { GAP } from '../geometry'
 import { groupSelection, layoutOrder, moveOutOfGroup, reflow, ungroup } from '../layout'
 import { pushAside } from '../pushAside'
-import { diffOperations } from '../operations'
+import { diffOperations, type Operation } from '../operations'
 import { cameraGlide, focusGlide, motionReduced, useSystemMotion } from '../motion'
 import { readDurationMs } from '../readDurationMs'
 import {
@@ -955,6 +955,73 @@ export function Canvas() {
     }
   }, [])
 
+  /**
+   * Commits the canvas's edits since the last save, with `extra` operations after them in the same write, and answers
+   * with what each extra operation answered. Null when the write was refused or the canvas changed meanwhile.
+   */
+  const commitEdits = useCallback(
+    async (name: string, epoch: number, extra: Operation[] = []): Promise<unknown[] | null> => {
+      if (epoch !== workspaceEpoch.current) return null
+
+      // A drag or a resize keeps moving until it ends, and its edits commit then.
+      const settled = !latest.current.nodes.some((node) => node.dragging || node.resizing)
+
+      if (!settled && !extra.length) return null
+
+      const snapshot = settled ? storedOf(latest.current) : base.current
+      const print = settled ? fingerprint(snapshot) : savedPrint.current
+
+      if (print === savedPrint.current && !extra.length) return []
+
+      const edits = print === savedPrint.current ? [] : diffOperations(base.current, snapshot)
+      const operations = [...edits, ...extra]
+      let answers: unknown[] = []
+
+      if (operations.length) {
+        const result = await commitOperations(name, revision.current, operations)
+
+        if (epoch !== workspaceEpoch.current) return null
+
+        // A refused list means another writer got there first, or an edit no longer applies. The server's copy replaces this one.
+        if (!result.ok) {
+          await reload(name, epoch, true)
+
+          return null
+        }
+
+        revision.current = result.revision
+        answers = result.results.slice(edits.length)
+
+        if (syncAfterSave.current) {
+          syncAfterSave.current = false
+          void requestSync(true).then((status) => status && setSyncStatus(status))
+        }
+      }
+
+      base.current = snapshot
+      savedPrint.current = print
+
+      if (operations.length) await reload(name, epoch)
+
+      return answers
+    },
+    [reload, storedOf],
+  )
+
+  /** Sends operations the server answers, after the edits waiting to save and in the same write, and resolves with the answers. */
+  const commitNow = useCallback(
+    (operations: Operation[]): Promise<unknown[] | null> => {
+      const epoch = workspaceEpoch.current
+      const name = workspace.current
+      const committed = queue.current.then(() => commitEdits(name, epoch, operations))
+
+      queue.current = committed.then(() => undefined)
+
+      return committed
+    },
+    [commitEdits],
+  )
+
   useEffect(() => {
     if (!ready) return
 
@@ -963,47 +1030,12 @@ export function Canvas() {
       const name = workspace.current
 
       queue.current = queue.current.then(async () => {
-        if (epoch !== workspaceEpoch.current) return
-
-        // A drag or a resize keeps moving until it ends, and its edits commit then.
-        if (latest.current.nodes.some((node) => node.dragging || node.resizing)) return
-
-        const snapshot = storedOf(latest.current)
-        const print = fingerprint(snapshot)
-
-        if (print === savedPrint.current) return
-
-        const operations = diffOperations(base.current, snapshot)
-
-        if (operations.length) {
-          const result = await commitOperations(name, revision.current, operations)
-
-          if (epoch !== workspaceEpoch.current) return
-
-          // A refused list means another writer got there first, or an edit no longer applies. The server's copy replaces this one.
-          if (!result.ok) {
-            await reload(name, epoch, true)
-
-            return
-          }
-
-          revision.current = result.revision
-
-          if (syncAfterSave.current) {
-            syncAfterSave.current = false
-            void requestSync(true).then((status) => status && setSyncStatus(status))
-          }
-        }
-
-        base.current = snapshot
-        savedPrint.current = print
-
-        if (operations.length) await reload(name, epoch)
+        await commitEdits(name, epoch)
       })
     }, 400)
 
     return () => clearTimeout(saveTimer)
-  }, [nodes, links, stickers, loadout, ready, reload, storedOf])
+  }, [nodes, links, stickers, loadout, ready, commitEdits])
 
   const pendingLayoutEpoch = useRef<number | null>(null)
 
@@ -2293,14 +2325,15 @@ export function Canvas() {
 
   /** Lands the Done stamps on cards that were just closed out, each after its delay. */
   const landStamps = useCallback(
-    (delays: Map<string, number>, chain?: { pulses: Map<string, Pulse>; finale: Set<string> }) => {
+    (delays: Map<string, number>, chain?: { pulses: Map<string, Pulse>; finale: Map<string, number> }) => {
       // Animations off clears the stamps at once. Reduced keeps the timing and fades them; they only animate while listed here.
       if (document.documentElement.dataset.motion === 'off') return
 
       const pulses = chain?.pulses ?? new Map<string, Pulse>()
-      const finale = chain?.finale ?? new Set<string>()
-      // The flourish starts as the last Done stamp lands, so the chain stays listed until it finishes too.
-      const flourishMs = finale.size
+      const finale = chain?.finale ?? new Map<string, number>()
+      // The flourish starts as the last Done stamp lands, so a chain stays listed until it could finish too, since the
+      // card clicked lands before the server says whether it's the chain's last beat.
+      const flourishMs = chain
         ? readDurationMs('--motion-duration-fade', FADE_MS) +
           readDurationMs('--motion-duration-stamp', STAMP_MS) +
           readDurationMs('--motion-duration-flourish', FLOURISH_MS)
@@ -2308,7 +2341,7 @@ export function Canvas() {
 
       setCelebrating((current) => new Map([...current, ...delays]))
       setChainPulses((current) => new Map([...current, ...pulses]))
-      setChainFinale((current) => new Set([...current, ...finale]))
+      setChainFinale((current) => new Map([...current, ...finale]))
       window.setTimeout(
         () => {
           setCelebrating((current) => {
@@ -2319,9 +2352,9 @@ export function Canvas() {
             return next
           })
           setChainPulses((current) => new Map([...current].filter(([key]) => !pulses.has(key))))
-          setChainFinale((current) => new Set([...current].filter((key) => !finale.has(key))))
+          setChainFinale((current) => new Map([...current].filter(([key]) => !finale.has(key))))
         },
-        Math.max(...delays.values()) + Math.max(readDurationMs('--motion-duration-clear', CLEAR_MS), flourishMs),
+        Math.max(0, ...delays.values(), ...finale.values()) + Math.max(readDurationMs('--motion-duration-clear', CLEAR_MS), flourishMs),
       )
     },
     [setCelebrating, setChainPulses, setChainFinale],
@@ -2338,25 +2371,32 @@ export function Canvas() {
         openRoot(groupId)
       },
       celebrate: (id: string) => {
-        const { nodes: currentNodes, links: currentLinks } = latest.current
-        const finished = atomStore.get(workAtom).status
-        const isFinished = (other: string) => finished.get(other) === 'done'
+        const node = latest.current.nodes.find((candidate) => candidate.id === id)
+
+        if (!node || !isTask(node) || !node.data.celebrate || atomStore.get(celebratingAtom).has(id)) return
+
+        const clickedAt = performance.now()
         const stepMs = readDurationMs('--motion-duration-chain', CHAIN_STEP_MS)
-        const delays = celebrationDelays(id, currentNodes, currentLinks, isFinished, stepMs)
 
-        if (!delays.size) return
+        // The card clicked stamps at once. `orion serve` closes out its chain, and the rest stamp from its answer.
+        landStamps(new Map([[id, chainDelay(0, stepMs)]]), { pulses: new Map(), finale: new Map() })
+        void commitNow([{ op: 'closeOut', id }]).then((answers) => {
+          const answer = answers?.[0] as ChainAnswer | undefined
 
-        const cleared = new Set(delays.keys())
+          if (!answer) return
 
-        setNodes((latestNodes) => clearCelebrations(latestNodes, cleared))
-        landStamps(delays, {
-          pulses: chainPulses(chainBeats(id, currentLinks, isFinished, stepMs), currentLinks, Math.max(...delays.values())),
-          finale: chainFinale(delays),
+          const { beats, closed } = timeChain(answer, performance.now() - clickedAt, stepMs)
+          const rest = new Map([...closed].filter(([closedId]) => closedId !== id))
+
+          landStamps(rest, {
+            pulses: chainPulses(beats, latest.current.links, Math.max(...closed.values())),
+            finale: chainFinale(closed),
+          })
         })
       },
       resizeGroup,
     }),
-    [tweenTo, openRoot, cardSize, setNodes, landStamps, atomStore, resizeGroup],
+    [tweenTo, openRoot, cardSize, landStamps, commitNow, atomStore, resizeGroup],
   )
 
   const arrangeGroup = useCallback(

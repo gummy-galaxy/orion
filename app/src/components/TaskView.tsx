@@ -68,7 +68,8 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   const waiting = finished && !!data.celebrate && clearing === undefined
   const badged = waiting || clearing !== undefined
   // The last beat of a chain closing out rings out from its card, so the chain ends on something.
-  const finale = useChainFinale(id) && clearing !== undefined
+  const finaleDelay = useChainFinale(id)
+  const finale = finaleDelay !== undefined && clearing !== undefined
   const skin = useAtomValue(skinAtom, { store: skinStore })
   const className =
     view.kind === 'note'
@@ -91,7 +92,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
           Done
         </span>
       )}
-      {finale && <span className="chain-flourish" style={{ '--clear-delay': `${clearing}ms` } as CSSProperties} aria-hidden="true" />}
+      {finale && <span className="chain-flourish" style={{ '--clear-delay': `${finaleDelay}ms` } as CSSProperties} aria-hidden="true" />}
       {badged && (
         <button
           type="button"

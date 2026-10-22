@@ -31,7 +31,8 @@ end
 
 -- Applies a list of edits as one change, under the store lock. If any edit no longer applies, the whole list is
 -- refused with the position of the edit that failed, and the file is left alone. `baseRevision`, when sent, must
--- still be the saved revision.
+-- still be the saved revision. The answer's `results` holds what each edit answered, such as a close-out's chain, or
+-- null, in the order of the list.
 function operations.handle(request: net.ReceivedRequest, root: string, active: string): Response
 	if request.method ~= "POST" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))
@@ -63,12 +64,14 @@ function operations.handle(request: net.ReceivedRequest, root: string, active: s
 
 	local dir = getWorkspaceDir(root, active)
 	local started = os.clock()
+	local answers: json.Array = {}
 	local succeeded, result = xpcall(runTransaction, captureFailure, dir, function(doc: Doc)
 		if change.baseRevision ~= nil and change.baseRevision ~= doc.revision then
 			error({ stale = true, revision = doc.revision }, 0)
 		end
 
-		applyOperations(doc, change.operations)
+		local _, applied = applyOperations(doc, change.operations)
+		answers = applied
 	end)
 	local elapsed = math.floor((os.clock() - started) * 1000)
 
@@ -81,7 +84,10 @@ function operations.handle(request: net.ReceivedRequest, root: string, active: s
 			logger.debug("applied", #change.operations, "operations to", active, "in", elapsed, "ms")
 		end
 
-		return shared.reply(200, json.object({ revision = doc.revision, applied = #change.operations }))
+		return shared.reply(
+			200,
+			json.object({ revision = doc.revision, applied = #change.operations, results = answers })
+		)
 	end
 
 	local failure: any = result

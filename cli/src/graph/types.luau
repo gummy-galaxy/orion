@@ -51,4 +51,11 @@ export type AddOptions = ItemFields & { group: string?, after: string?, before: 
 
 export type NoteOptions = { group: string?, after: string?, before: string? }
 
+-- A card a close-out reached, and how many blocking links it is from the card that was closed out.
+export type ChainStep = { id: string, hops: number }
+
+-- What a close-out did: the cards it closed out, starting with the one asked for, and the finished cards the chain
+-- passed through that weren't waiting, such as work closed out before and notes. Both are in order of hops.
+export type CloseOut = { closed: { ChainStep }, passed: { ChainStep } }
+
 return table.freeze({})

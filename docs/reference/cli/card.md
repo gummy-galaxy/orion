@@ -98,6 +98,21 @@ orion card done [options] [ids...]
 | `--if-revision <value>` | Write only if the document has this revision         |
 | `--json`                | Print JSON                                           |
 
+## orion card close-out
+
+Close out a done card and the waiting done cards chained to it, so their Done stamps show
+
+```sh
+orion card close-out [id] [options]
+```
+
+| Argument                | Description                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| `[id]`                  | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `--dry-run`             | Preview the chain and current revision without writing                                    |
+| `--if-revision <value>` | Write only if the document has this revision                                              |
+| `--json`                | Print JSON                                                                                |
+
 ## orion card import
 
 Add a card for each URL or source:key in one step

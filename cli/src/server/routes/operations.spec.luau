@@ -76,6 +76,32 @@ test.case("POST applies a list as one revision", function(assert)
 	assert.eq(doc.nodes[2].position.x, 40)
 end)
 
+test.case("POST finishes and closes out a card in one write, and answers with the chain", function(assert)
+	local root, router = createRouter("operations-close-out")
+	local response = router.handle(
+		createRequest(
+			"POST",
+			"/api/operations",
+			edits(
+				[[{"operations":[{"op":"setFields","id":"ci","fields":{"status":"done"}},{"op":"closeOut","id":"ci"}]}]]
+			)
+		)
+	)
+	local body = decodeResponse(response)
+	assert.eq(response.status, 200)
+	local results = json.asArray(body.results) :: json.Array
+	assert.eq(results[1], json.null)
+	local answer = json.asObject(results[2]) :: json.Object
+	local closed = json.asArray(answer.closed) :: json.Array
+	local first = json.asObject(closed[1]) :: json.Object
+	assert.eq(#closed, 1)
+	assert.eq(first.id, "ci")
+	assert.eq(first.hops, 0)
+	assert.eq(#(json.asArray(answer.passed) :: json.Array), 0)
+	-- Closed out in the same write, so the finished card never starts waiting.
+	assert.eq(loadDoc(root).nodes[2].data.celebrate, nil)
+end)
+
 test.case("POST with a stale baseRevision is refused and leaves the file alone", function(assert)
 	local root, router = createRouter("operations-stale")
 	router.handle(createRequest("POST", "/api/operations", edits([[{"operations":[{"op":"tidy","id":"ws"}]}]])))
