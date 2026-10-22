@@ -73,7 +73,7 @@ Three deprecated forms predate that decision and still promise a release of over
 | **Keep**   | `ORION_DATA_DIR` and `ORION_CANVAS`, with the option winning over the variable.                                                                                                                                                                                                                                   |
 | **Change** | Every command takes `--json` ([#470](https://github.com/vocksel/orion/issues/470)). These don't yet: `canvas create`, `rename`, `archive`, `restore`, `use`, `current`, and `path`, `link remove`, `backup restore`, `suggestion apply` and `dismiss`, `source add` and `remove`, and `ci snooze` and `unsnooze`. |
 | **Change** | With `--json`, a failure prints a JSON error and still exits nonzero ([#470](https://github.com/vocksel/orion/issues/470)). Today errors are text on stderr only.                                                                                                                                                 |
-| **Change** | Single-item writes take `--dry-run` and `--if-revision`: `card add` and `set`, `note add`, `group add`, `create`, and `set`, `link remove`, `ref remove`, `media insert`, and `canvas set`.                                                                                                                       |
+| **Change** | Single-item writes take `--dry-run` and `--if-revision`: `card add` and `set`, `note add`, `group add`, `create`, and `set`, `link remove`, `ref remove`, `media insert`, and `canvas set` ([#559](https://github.com/vocksel/orion/issues/559)).                                                                 |
 | **Change** | `suggestion find --agent claude\|codex` runs those two tools by name, which is the per-provider code that "MCP stays generic" avoids. It takes a `--command '<JSON array>'` as `source add jira` and `hop` do ([#471](https://github.com/vocksel/orion/issues/471)).                                              |
 | **Change** | One verb for making groups. `group create` makes an empty group and `group add` wraps items; fold them into `group create <label> [--items …] [--in …]`.                                                                                                                                                          |
 | **Remove** | `orion sync` and `--discover` ([#469](https://github.com/vocksel/orion/issues/469)). `orion ingest` refreshes pull requests too, and a GitHub source files new ones in Unsorted.                                                                                                                                  |
@@ -145,7 +145,7 @@ The app is the only client. Agents and scripts use the CLI or MCP.
 | **Keep**   | Internal at every stage, with no promise and no aliases when a route changes.                                                                                                                                                                                                                         |
 | **Keep**   | One process owning the data, with the app writing the document through `POST /api/operations`.                                                                                                                                                                                                        |
 | **Change** | Refuse requests whose `Host` or `Origin` isn't the server's own or the app's dev server, as [the HTTP question](#is-the-http-api-internal) explains, and send a content security policy with the static app, since the desktop shell sets none ([#468](https://github.com/vocksel/orion/issues/468)). |
-| **Change** | Edits beyond the document, such as the canvas style and check snoozes, go through `POST /api/operations` too, so the app has one write path.                                                                                                                                                          |
+| **Change** | Edits beyond the document, such as the canvas style and check snoozes, go through `POST /api/operations` too, so the app has one write path ([#560](https://github.com/vocksel/orion/issues/560)).                                                                                                    |
 
 ## JSON output
 
@@ -198,7 +198,7 @@ Migrations leave `orion.backup.json` and `workspaces.backup.json` behind. The de
 | **Keep**   | The split between files that go in git and files that don't. `local.json`, `index.sqlite`, and `commands.json` never travel with a canvas.                                                                                                                                                                                         |
 | **Keep**   | A `version` in `canvas.json`, checked on read, and the moves in `cli/src/migrations/`, under "Data folders move to a new layout on their own" and "Aliases and migrations share one lifecycle".                                                                                                                                    |
 | **Change** | Node vocabulary matches the public words. Nodes store `type: "task"` or `"cluster"`, repeat it in `data.kind`, and keep step, gate, note, and component in `data.itemKind`. Rename these in version 3 when [#122](https://github.com/vocksel/orion/issues/122) splits nodes from placements, since that rewrites the shape anyway. |
-| **Change** | `serve.json` becomes `server.json`, after the command, as a migration.                                                                                                                                                                                                                                                             |
+| **Change** | `serve.json` becomes `server.json`, after the command, as a migration ([#561](https://github.com/vocksel/orion/issues/561)).                                                                                                                                                                                                       |
 | **Change** | Only `canvas.json` carries a `version`. Node and link files carry none, so a change to their shape can't be told apart from an old file. Version the folder through `canvas.json` and say so in [Data and canvases](/guide/data), or give each file one.                                                                           |
 
 ## Formats people write
@@ -255,7 +255,7 @@ A Jira source runs a command that prints Jira's search JSON, such as `acli jira 
 |            |                                                                                                                                                                |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Keep**   | Both stay unpromised. The commands live on this machine and never come from a canvas or an MCP call, as "Programs Orion runs are chosen on this machine" says. |
-| **Remove** | `--command` on sources, once adapter packages replace it, as "Adapters are Lute packages" plans.                                                               |
+| **Remove** | `--command` on sources, once adapter packages replace it, as "Adapters are Lute packages" plans ([#563](https://github.com/vocksel/orion/issues/563)).         |
 
 ## Desktop shell
 
@@ -266,8 +266,8 @@ The shell starts the bundled `orion server start --static` on a saved port and o
 | **Keep**   | One IPC command, `process_usage`, for the debug bar. Everything else goes through the server.                                                                                                 |
 | **Keep**   | The opener and window-state plugins, and the Acknowledgements window.                                                                                                                         |
 | **Keep**   | No URL scheme or deep links yet. When [#176](https://github.com/vocksel/orion/issues/176) adds links to cards, an `orion://` scheme should open them through the same path as `orion reveal`. |
-| **Change** | The capability that lets pages call IPC covers every port on `127.0.0.1`. Narrow it to the server's port if Tauri allows it at runtime.                                                       |
-| **Change** | `orion reveal` launches `~/Applications/Orion.app` when no app is open, but Orion installs to `/Applications`.                                                                                |
+| **Change** | The capability that lets pages call IPC covers every port on `127.0.0.1`. Narrow it to the server's port if Tauri allows it at runtime ([#562](https://github.com/vocksel/orion/issues/562)). |
+| **Change** | `orion reveal` launches `~/Applications/Orion.app` when no app is open, but Orion installs to `/Applications` ([#558](https://github.com/vocksel/orion/issues/558)).                          |
 
 ## Where the docs differ
 
