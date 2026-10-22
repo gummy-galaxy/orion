@@ -113,8 +113,8 @@ local ABOUT = [[
 Statuses: todo, active, review, blocked, deferred, done.
   Listed statuses are derived: todo shows as ready once nothing it waits on is open,
   and as blocked while something is. Notes pass blocking through and never count as work.
-Components (card add --kind component) draw a system: services, apps, and data stores linked
-  by what flows between them (link add --label). They have no status and never count as work.
+Components (card create --kind component) draw a system: services, apps, and data stores linked
+  by what flows between them (link create --label). They have no status and never count as work.
 Repositories are "owner/name".
 Items and groups take an id, or a selector that must match exactly one: label:"text", ref:key or URL, or pr:number.
 Data lives in Orion's user data folder (run orion canvas path to see it); set ORION_DATA_DIR to change it.

@@ -70,14 +70,13 @@ end)
 
 test.case("group and ref tools run their subcommands", function(assert)
 	assert.eq(
-		argv("orion_group_add", { label = "Ship", items = { "ci", "pub" } }),
-		"group add Ship --items ci,pub --json"
+		argv("orion_group_create", { label = "Ship", items = { "ci", "pub" } }),
+		"group create Ship --items ci,pub --json"
 	)
 	assert.eq(argv("orion_group_remove", { ids = { "ws" }, dryRun = true }), "group remove ws --dry-run --json")
 	assert.eq(argv("orion_ref_remove", { id = "ci", ref = "owner/name#1" }), "ref remove ci owner/name#1 --json")
-	assert.throwsWith("missing items", function()
-		argv("orion_group_add", { label = "Ship", items = {} })
-	end)
+	assert.eq(argv("orion_group_create", { label = "Ship", items = {} }), "group create Ship --json")
+	assert.eq(argv("orion_group_create", { label = "Ship", ["in"] = "ws" }), "group create Ship --in ws --json")
 end)
 
 test.case("batch and link tools pass ids, chains, and revision guards through", function(assert)
@@ -89,7 +88,7 @@ test.case("batch and link tools pass ids, chains, and revision guards through", 
 		argv("orion_card_done", { where = 'label ~ "ship"', dryRun = true }),
 		'card done --where label ~ "ship" --dry-run --json'
 	)
-	assert.eq(argv("orion_link_add", { from = "a", to = "b", next = { "c" } }), "link add a b c --json")
+	assert.eq(argv("orion_link_create", { from = "a", to = "b", next = { "c" } }), "link create a b c --json")
 	assert.eq(
 		argv("orion_link_insert", { id = "x", between = "a", target = { "b" } }),
 		"link insert x b --between a --json"
@@ -147,29 +146,27 @@ end)
 
 test.case("tools reject arguments their schemas do not allow", function(assert)
 	assert.throwsWith("unknown argument: colour", function()
-		argv("orion_card_add", { label = "A", colour = "red" })
+		argv("orion_card_create", { label = "A", colour = "red" })
 	end)
 	assert.throwsWith("status must be one of: todo, active, review, blocked, deferred, done", function()
-		argv("orion_card_add", { label = "A", status = "later" })
+		argv("orion_card_create", { label = "A", status = "later" })
 	end)
 	assert.throwsWith("who must be one of: you, review, ci", function()
-		argv("orion_card_add", { label = "A", who = "" })
+		argv("orion_card_create", { label = "A", who = "" })
 	end)
 	assert.throwsWith("unknown argument: pr", function()
-		argv("orion_card_add", { label = "A", pr = 4 })
+		argv("orion_card_create", { label = "A", pr = 4 })
 	end)
 	assert.throwsWith("items must be a list of strings", function()
-		argv("orion_group_add", { label = "G", items = { 1 } })
+		argv("orion_group_create", { label = "G", items = { 1 } })
 	end)
-	assert.throwsWith("unknown argument: canvas", function()
-		argv("orion_theme_list", { canvas = "focus" })
-	end)
+	assert.eq(argv("orion_theme_list", { canvas = "focus" }), "theme list --canvas focus --json")
 end)
 
 test.case("mcp tool arguments run the existing command", function(assert)
 	local dir = testing.createHarness("mcp-argv")
 	local output: { string } = {}
-	cli.execute(getToolArgv(TOOLS, "orion_card_add", json.object({ label = "From the catalog" })), {
+	cli.execute(getToolArgv(TOOLS, "orion_card_create", json.object({ label = "From the catalog" })), {
 		dataDir = dir,
 		write = function(text)
 			table.insert(output, text)
@@ -188,8 +185,8 @@ test.case("card set passes ref through as --ref and clears who with an empty val
 		{ "card", "set", "pub", "--who", "", "--json" }
 	)
 	assert.eq(
-		getToolArgv(TOOLS, "orion_card_add", json.object({ label = "Ingest", repo = "Roblox/avatar" })),
-		{ "card", "add", "Ingest", "--repo", "Roblox/avatar", "--json" }
+		getToolArgv(TOOLS, "orion_card_create", json.object({ label = "Ingest", repo = "Roblox/avatar" })),
+		{ "card", "create", "Ingest", "--repo", "Roblox/avatar", "--json" }
 	)
 end)
 

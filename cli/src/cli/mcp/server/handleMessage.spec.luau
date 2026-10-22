@@ -106,7 +106,7 @@ test.case("tools round-trip through the CLI and workspace storage", function(ass
 	local created = call(run, "orion_canvas_create", json.object({ name = "sample", label = "Sample" }))
 	assert.eq(created.isError, nil)
 
-	local added = call(run, "orion_card_add", json.object({ label = "MCP smoke test", canvas = "sample" }))
+	local added = call(run, "orion_card_create", json.object({ label = "MCP smoke test", canvas = "sample" }))
 	assert.eq(added.isError, nil)
 	local item = need(json.asObject(need(json.asObject(json.deserialize(firstText(added)) :: json.Value)).item))
 	assert.eq(item.label, "MCP smoke test")
@@ -190,8 +190,8 @@ end)
 
 test.case("an old tool or argument name still calls the tool, and tools/list leaves it out", function(assert)
 	local tools = buildTools(cli.describe(), {
-		{ kind = "command", from = "card new", to = "card add", added = "2026-10-19", pr = 1 },
-		{ kind = "option", command = "card add", from = "folder", to = "group", added = "2026-10-19", pr = 1 },
+		{ kind = "command", from = "card new", to = "card create", added = "2026-10-19", pr = 1 },
+		{ kind = "option", command = "card create", from = "folder", to = "group", added = "2026-10-19", pr = 1 },
 	})
 	local dir = testing.directory("mcp-aliases")
 	writeDoc(dir, testing.createDoc({ testing.group("ws", "Release") }))
@@ -204,7 +204,7 @@ test.case("an old tool or argument name still calls the tool, and tools/list lea
 		names[need(json.asObject(tool)).name :: string] = true
 	end
 
-	assert.eq(names.orion_card_add, true)
+	assert.eq(names.orion_card_create, true)
 	assert.eq(names.orion_card_new, nil)
 
 	local response = need(
@@ -229,7 +229,7 @@ test.case("an old tool or argument name still calls the tool, and tools/list lea
 			3,
 			"tools/call",
 			json.object({
-				name = "orion_card_add",
+				name = "orion_card_create",
 				arguments = json.object({ label = "Both", folder = "ws", group = "ws" }),
 			})
 		),

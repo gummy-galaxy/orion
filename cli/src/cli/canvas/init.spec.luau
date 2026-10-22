@@ -159,7 +159,7 @@ test.case("workspace archive hides a workspace and restore brings it back with i
 	local root, run = testing.createHarness("workspace-archive")
 	run({ "canvas", "create", "docs" })
 	run({ "canvas", "create", "roblox" })
-	run({ "--canvas", "roblox", "card", "add", "Kept on the canvas" })
+	run({ "--canvas", "roblox", "card", "create", "Kept on the canvas" })
 	local dir = tostring(path.join(root, "canvases", "roblox"))
 	assert.eq(#loadDoc(dir).nodes, 1)
 

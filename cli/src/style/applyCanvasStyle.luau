@@ -15,7 +15,7 @@ export type CanvasStyleChange = {
 -- Sets the canvas's cover, background, and header. A nil value leaves that setting alone, and an empty string clears it.
 return function(doc: Doc, dir: string, change: CanvasStyleChange)
 	if change.cover and change.cover ~= "" then
-		assert(isAssetId(change.cover), "cover must be an image asset id, such as the asset from orion media insert")
+		assert(isAssetId(change.cover), "cover must be an image asset id, such as the asset from orion media add")
 	end
 
 	if change.background and change.background ~= "" then

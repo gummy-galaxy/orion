@@ -35,7 +35,7 @@ Use `--source <id>` to run one source, and `--json` for a machine-readable repor
 
 ## Attach work to cards
 
-A card's refs point at outside work. Attach one with `--ref` on `orion card add` or `orion card set`, using:
+A card's refs point at outside work. Attach one with `--ref` on `orion card create` or `orion card set`, using:
 
 - a GitHub pull request or issue URL,
 - a Jira issue URL, or `jira:ABC-12`,

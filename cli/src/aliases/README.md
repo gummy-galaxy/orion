@@ -13,4 +13,4 @@ A command alias also renames the commands under it, so `workspace` to `canvas` c
 | From | To | Added |
 | --- | --- | --- |
 
-Add a row for each new alias, with the date and pull request that added it, and its entry in `entries.luau`. Write a command row as `` | `orion card new` | `orion card add` | 2026-10-19, [#1](…/pull/1) | ``, and an option row's names as `` `--folder` on `orion card add` ``.
+Add a row for each new alias, with the date and pull request that added it, and its entry in `entries.luau`. Write a command row as `` | `orion card new` | `orion card create` | 2026-10-19, [#1](…/pull/1) | ``, and an option row's names as `` `--folder` on `orion card create` ``.
