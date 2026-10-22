@@ -453,6 +453,14 @@ A workspace is a folder of files that can live anywhere, including a repository,
 
 2026-10-08, 2026-10-11, 2026-10-19 · [#121](https://github.com/vocksel/orion/issues/121), [#122](https://github.com/vocksel/orion/issues/122)
 
+### One data version covers the workspace
+
+A `version` in `workspace.json` covers the whole workspace folder: its canvases, cards, and links. Node and link files carry no version of their own, and a layout change bumps the one version and migrates every file under it. Until the workspace folder lands ([#568](https://github.com/vocksel/orion/issues/568)), the `version` in each `canvas.json` stands in for it.
+
+**Why:** the workspace is the vault, so it's the unit that changes layout. One version at the top keeps every card and link file small and lets a migration read one number to know what it's looking at, rather than finding files of mixed versions mid-folder.
+
+2026-10-21 · [#146](https://github.com/vocksel/orion/issues/146), [#568](https://github.com/vocksel/orion/issues/568)
+
 ### Built for a thousand cards and more
 
 The target is at least 1000 cards with nested groups and dense links: every pull request you've ever made, plus Jira, Slack, images, video, and Figma frames. Like a Notion database, every node can be listed and edited in a table, and canvases are where the visual work happens. The same card can appear in many places.

@@ -34,6 +34,7 @@ These calls were settled after the snapshot, each in the [decisions](/developmen
 - Text failures go to stderr and JSON errors get a code, in "Failures go to stderr, and JSON errors carry a code".
 - `--until` reads local time unless it gives an offset, in "A time without an offset is local".
 - A command-line guide page and generated syntax reference, in "The command line gets a guide page and a generated reference".
+- One data version in `workspace.json` for the whole workspace, in "One data version covers the workspace".
 
 ## The four questions
 
@@ -210,7 +211,7 @@ Migrations leave `orion.backup.json` and `workspaces.backup.json` behind. The de
 | **Keep**   | A `version` in `canvas.json`, checked on read, and the moves in `cli/src/migrations/`, under "Data folders move to a new layout on their own" and "Aliases and migrations share one lifecycle".                                                                                                                                    |
 | **Change** | Node vocabulary matches the public words. Nodes store `type: "task"` or `"cluster"`, repeat it in `data.kind`, and keep step, gate, note, and component in `data.itemKind`. Rename these in version 3 when [#122](https://github.com/vocksel/orion/issues/122) splits nodes from placements, since that rewrites the shape anyway. |
 | **Change** | `serve.json` becomes `server.json`, after the command, as a migration ([#561](https://github.com/vocksel/orion/issues/561)).                                                                                                                                                                                                       |
-| **Change** | Only `canvas.json` carries a `version`. Node and link files carry none, so a change to their shape can't be told apart from an old file. Version the folder through `canvas.json` and say so in [Data and canvases](/guide/data), or give each file one.                                                                           |
+| **Change** | Only `canvas.json` carries a `version`, and node and link files carry none. One `version` in `workspace.json` will cover the whole workspace folder, with `canvas.json`'s standing in until the workspace folder lands in [#568](https://github.com/vocksel/orion/issues/568), as "One data version covers the workspace" says.    |
 
 ## Formats people write
 
