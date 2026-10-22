@@ -8,12 +8,12 @@ Dependencies between items
 orion link <command> [options]
 ```
 
-## orion link add
+## orion link create
 
 Link each adjacent pair of items
 
 ```sh
-orion link add [from] [to] [options] [next...]
+orion link create [from] [to] [options] [next...]
 ```
 
 | Argument                | Description                                          |
