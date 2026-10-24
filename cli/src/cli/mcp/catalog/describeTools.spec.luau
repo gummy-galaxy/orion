@@ -35,14 +35,14 @@ test.case("each tool is described with an input schema that refuses other argume
 		assert.neq(tool.description, "")
 	end
 
-	findDescription("orion_card_add")
+	findDescription("orion_card_create")
 	findDescription("orion_node_show")
-	findDescription("orion_media_insert")
+	findDescription("orion_media_add")
 	findDescription("orion_apply")
 end)
 
 test.case("schemas follow each option's value type", function(assert)
-	local addCard = findDescription("orion_card_add")
+	local addCard = findDescription("orion_card_create")
 	local schema = need(json.asObject(need(addCard.inputSchema)))
 	assert.eq(schema.required, { "label" })
 	assert.eq(getProperty(addCard, "label").minLength, 1)
@@ -59,16 +59,16 @@ test.case("schemas follow each option's value type", function(assert)
 	assert.eq(getProperty(tidy, "dryRun").type, "boolean")
 	assert.eq(need(json.asObject(need(tidy.inputSchema))).required, nil)
 
-	local addGroup = findDescription("orion_group_add")
-	assert.eq(getProperty(addGroup, "items").type, "array")
-	assert.eq(need(json.asObject(need(addGroup.inputSchema))).required, { "label", "items" })
+	local createGroup = findDescription("orion_group_create")
+	assert.eq(getProperty(createGroup, "items").type, "array")
+	assert.eq(need(json.asObject(need(createGroup.inputSchema))).required, { "label" })
 
 	local apply = findDescription("orion_apply")
 	assert.eq(need(json.asObject(getProperty(apply, "plan").items)).type, "object")
 end)
 
 test.case("note fields ask agents for a plain-language summary with code formatting", function(assert)
-	for _, field in { { "orion_note_add", "text" }, { "orion_card_add", "note" }, { "orion_card_set", "note" } } do
+	for _, field in { { "orion_note_create", "text" }, { "orion_card_create", "note" }, { "orion_card_set", "note" } } do
 		local description = getProperty(findDescription(field[1]), field[2]).description :: string
 		assert.strContains(description, "plain-language summary")
 		assert.strContains(description, "code formatting")
@@ -84,5 +84,5 @@ test.case("annotations come from each command's declaration", function(assert)
 	assert.eq(need(json.asObject(need(findDescription("orion_canvas_check").annotations))).readOnlyHint, true)
 	assert.eq(need(json.asObject(need(findDescription("orion_group_remove").annotations))).destructiveHint, true)
 	assert.eq(need(json.asObject(need(findDescription("orion_ingest").annotations))).openWorldHint, true)
-	assert.eq(findDescription("orion_card_add").annotations, nil)
+	assert.eq(findDescription("orion_card_create").annotations, nil)
 end)

@@ -8,12 +8,12 @@ Notes for context, decisions, and reminders
 orion note <command> [options]
 ```
 
-## orion note add
+## orion note create
 
 Add a note, optionally between two linked items
 
 ```sh
-orion note add [options] [text...]
+orion note create [options] [text...]
 ```
 
 | Argument           | Description              |

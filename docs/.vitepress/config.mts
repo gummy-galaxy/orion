@@ -60,6 +60,7 @@ export default defineConfig({
           collapsed: false,
           items: [
             { text: 'Canvas and layout', link: '/development/design/canvas-and-layout' },
+            { text: 'Card identity', link: '/development/design/card-identity' },
             { text: 'Card skins', link: '/development/design/cards' },
             { text: 'Companion', link: '/development/design/companion' },
             { text: 'Gummy Galaxy and Orion', link: '/development/design/gummy-galaxy-and-orion' },

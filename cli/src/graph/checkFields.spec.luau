@@ -26,7 +26,7 @@ test.case("checkFields refuses values Orion doesn't store", function(assert)
 		{ { arrange = "grid" }, `arrange must be one of {table.concat(fieldValues.arrangements, ", ")}` },
 		{ { shape = "blob" }, `shape must be one of {table.concat(fieldValues.shapes, ", ")}` },
 		{ { color = "mauve" }, `color must be one of {table.concat(fieldValues.colors, ", ")}` },
-		{ { cover = "../orion.json" }, "cover must be an image asset id, such as the asset from orion media insert" },
+		{ { cover = "../orion.json" }, "cover must be an image asset id, such as the asset from orion media add" },
 		{ { snoozedUntil = "next week" }, "snoozedUntil must be a UTC time such as 2026-10-12T17:00:00Z" },
 	}
 

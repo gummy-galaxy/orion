@@ -9,7 +9,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Copy a theme file into the data folder, where the app lists it",
-	mcp = { omit = { { option = "canvas", reason = "theme files are shared by every canvas" } } },
+	mcp = {},
 	define = function(parser: cli.Parser)
 		addArgument(parser, "file", "positional", {
 			help = "Theme file (JSON with light and dark token values)",

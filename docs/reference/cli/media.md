@@ -8,12 +8,12 @@ Media on the canvas
 orion media <command> [options]
 ```
 
-## orion media insert
+## orion media add
 
 Insert a media node from a file
 
 ```sh
-orion media insert [file] [options]
+orion media add [file] [options]
 ```
 
 | Argument          | Description                                    |

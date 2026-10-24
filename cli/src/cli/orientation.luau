@@ -11,7 +11,7 @@ return table.freeze({
 	paragraphs = table.freeze({
 		`Orion is the user's local graph of work: items, notes, and groups linked by dependencies, shown on a canvas. People may say board or dashboard, often by name, as in "my focus", so call orion_canvas_list first to map that name to one.`,
 		`Read the canvas before editing it: orion_next lists work that can start now, orion_card_list and orion_group_list list cards and groups, and orion_node_show shows one. A link runs from the work that has to happen first to the work that waits on it. Writing a note replaces its whole text, so read an item before changing its note. Write notes as a plain-language summary, with Markdown for structure and code formatting for code, paths, and identifiers.`,
-		`When you start work on a card, record its branch with orion_card_set and ref "branch:<owner>/<repo>@<branch>". Orion attaches a pull request you open from that branch to the card the next time it ingests (orion_ingest). If no card exists for the work yet, add one with orion_card_add first.`,
+		`When you start work on a card, record its branch with orion_card_set and ref "branch:<owner>/<repo>@<branch>". Orion attaches a pull request you open from that branch to the card the next time it ingests (orion_ingest). If no card exists for the work yet, add one with orion_card_create first.`,
 		`Prefer the orion_ tools when they are connected. The CLI runs the same implementation, for anything they don't cover.`,
 	}),
 })
