@@ -53,6 +53,7 @@ export default defineConfig({
         { text: 'Development', link: '/development/' },
         { text: 'Charter', link: '/development/charter' },
         { text: 'Decisions', link: '/development/decisions' },
+        { text: 'Origins', link: '/development/origins' },
         {
           text: 'Design',
           link: '/development/design/',
