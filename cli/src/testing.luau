@@ -158,8 +158,8 @@ function testing.createHarness(name: string)
 	)
 	local workspace = ""
 
-	local function setWorkspace(name: string)
-		workspace = name
+	local function setWorkspace(canvas: string)
+		workspace = canvas
 	end
 
 	local function run(args: { string }, runner: types.CommandRunner?)

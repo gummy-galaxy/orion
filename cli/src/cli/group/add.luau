@@ -43,8 +43,8 @@ return table.freeze({
 		local ids = parseCommaList(getRequired(parser, "items"))
 
 		local made: Item
-		local doc = runTransaction(options.dir, function(doc)
-			made = makeGroup(doc, label, resolveIds(doc, ids))
+		local doc = runTransaction(options.dir, function(current)
+			made = makeGroup(current, label, resolveIds(current, ids))
 		end)
 
 		writeItem(options, doc, made, "Grouped into")

@@ -1,0 +1,9 @@
+---
+base: luau
+name: lute
+globals:
+  assert:
+    args:
+      - type: any
+      - required: false
+        type: string

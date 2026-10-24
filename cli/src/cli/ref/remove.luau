@@ -52,8 +52,8 @@ return table.freeze({
 		local input = getRequired(parser, "ref")
 
 		local detached: Item
-		local doc = runTransaction(options.dir, function(doc)
-			detached = detachInput(doc, resolveId(doc, idInput), input)
+		local doc = runTransaction(options.dir, function(current)
+			detached = detachInput(current, resolveId(current, idInput), input)
 		end)
 
 		writeItem(options, doc, detached, "Updated")

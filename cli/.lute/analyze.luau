@@ -6,6 +6,8 @@ local sources =
 
 runScript(function()
 	run("stylua", { "--check", table.unpack(sources) })
+	-- Selene covers what Lute's linter doesn't yet, such as shadowed variables and empty loops.
+	run("selene", { "--config", "../selene.toml", table.unpack(sources) })
 	-- Linting in parallel crashes lute v1.0.1-nightly.20260924 on Linux: its worker VMs race on thread references,
 	-- so it segfaults or prints "Cannot resume a non-thread reference". Sequential linting avoids the workers.
 	run("lute", { "lint", "--sequential", table.unpack(sources) })

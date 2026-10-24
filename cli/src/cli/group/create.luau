@@ -24,8 +24,8 @@ return table.freeze({
 		local label = joinWords(parser:variadics(), "<label>")
 
 		local made: Item
-		local doc = runTransaction(options.dir, function(doc)
-			made = createGroup(doc, label, parser:get("in"))
+		local doc = runTransaction(options.dir, function(current)
+			made = createGroup(current, label, parser:get("in"))
 		end)
 
 		writeItem(options, doc, made, "Created group")

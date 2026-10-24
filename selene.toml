@@ -1,1 +1,8 @@
-std = "luau"
+std = "lute"
+
+[config]
+empty_loop = { comments_count = true }
+
+[lints]
+# Copy loops in this codebase widen a table's value type, which table.clone can't do.
+manual_table_clone = "allow"
