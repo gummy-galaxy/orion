@@ -19,9 +19,9 @@ return function(dir: string, canvas: string, file: string, label: string?, group
 	local extension = detectImageFormat(bytes)
 	local name = label or ((path.basename(file) or ""):gsub("%.[^.]+$", ""))
 	local added: Item? = nil
-	local doc = runTransaction(dir, function(doc)
-		local parent = if group then resolveId(doc, group) else nil
-		local item = addImage(doc, name, extension, canvas, parent)
+	local doc = runTransaction(dir, function(current)
+		local parent = if group then resolveId(current, group) else nil
+		local item = addImage(current, name, extension, canvas, parent)
 		writeImageAsset(dir, item.data.asset :: string, bytes)
 		added = item
 	end)

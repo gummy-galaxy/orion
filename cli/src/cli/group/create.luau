@@ -45,10 +45,10 @@ return table.freeze({
 		assert(not (itemsText and parent), "a group made from --items goes where they are, so it can't take --in")
 
 		local made: Item
-		local doc = runTransaction(options.dir, function(doc)
+		local doc = runTransaction(options.dir, function(current)
 			made = if itemsText
-				then makeGroup(doc, label, resolveIds(doc, parseCommaList(itemsText)))
-				else createGroup(doc, label, parent)
+				then makeGroup(current, label, resolveIds(current, parseCommaList(itemsText)))
+				else createGroup(current, label, parent)
 		end)
 
 		writeItem(options, doc, made, if itemsText then "Grouped into" else "Created group")
