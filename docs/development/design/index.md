@@ -7,6 +7,7 @@ A study explores an idea and recommends what to keep. It isn't a promise that th
 ## Threads
 
 - [Canvas and layout](/development/design/canvas-and-layout): layout explorations, window chrome, system diagrams, and card details.
+- [Card identity](/development/design/card-identity): telling a card's kind, source, and state apart at 0.33 zoom, in two rounds of galleries.
 - [Card skins](/development/design/cards): each way a card can be drawn, embedded live from Storybook.
 - [Companion](/development/design/companion): the star guide that perches on the card nearest the pointer.
 - [Gummy Galaxy and Orion](/development/design/gummy-galaxy-and-orion): the Luau-centered vision around Orion and the hands-on canvas ideas it inspires.
