@@ -119,3 +119,9 @@ _Card text from other projects is blurred in the vibrant study images._
 - [Add Gummy Galaxy concept art to the design docs](https://github.com/vocksel/orion/pull/460): seven draft worlds, their emblems, and the studies behind them.
 
 <img src="./images/gummy-galaxy/galaxy-map.webp" alt="The world map: seven worlds on a dotted route around the spiral sun." width="360">
+
+### October 23, 2026
+
+- [Add the card identity study to the design docs](https://github.com/vocksel/orion/pull/571): two rounds of card galleries for telling kind, source, and state apart at 0.33.
+
+<img src="./images/card-identity/r2-canvas.webp" alt="A crowded canvas at 0.33 in the constellation skin, with octagon gates, round question tokens, and a folded group drawn as a deck." width="360">
