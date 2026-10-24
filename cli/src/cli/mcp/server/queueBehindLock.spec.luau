@@ -24,7 +24,7 @@ local function addItem(id: number, title: string): string
 		jsonrpc = "2.0",
 		id = id,
 		method = "tools/call",
-		params = json.object({ name = "orion_card_add", arguments = json.object({ label = title }) }),
+		params = json.object({ name = "orion_card_create", arguments = json.object({ label = title }) }),
 	}))
 end
 
@@ -98,7 +98,7 @@ test.case("a call runs again after a lock timeout and keeps only the attempt tha
 	end)
 	local lines: { string } = {}
 
-	run({ "card", "add", "Title" }, function(line: string)
+	run({ "card", "create", "Title" }, function(line: string)
 		table.insert(lines, line)
 	end)
 
@@ -113,7 +113,7 @@ test.case("a call that waits past the queue timeout fails with a clear error", f
 		error(lockTimeout("/canvas"), 0)
 	end, 0)
 
-	local ok, message = pcall(run, { "card", "add", "Title" }, function() end)
+	local ok, message = pcall(run, { "card", "create", "Title" }, function() end)
 
 	assert.eq(ok, false)
 	assert.eq(attempts, 1)
