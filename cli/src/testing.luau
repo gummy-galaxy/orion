@@ -1,7 +1,9 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
+local lintTypes = require("@std/commands/lint/types")
 local path = require("@std/path")
 local process = require("@std/process")
+local syntax = require("@std/syntax")
 local system = require("@std/system")
 
 local cli = require("@root/cli")
@@ -141,6 +143,18 @@ function testing.run(
 		end,
 	})
 	return table.concat(output, "\n")
+end
+
+-- Lints `source` with one rule and returns the line each violation starts on.
+function testing.getLintedLines(rule: lintTypes.LintRule, source: string): { number }
+	local violations = rule.lint(syntax.parse(source).root, nil, { globals = {}, options = {} })
+	local lines: { number } = {}
+
+	for _, violation in violations do
+		table.insert(lines, violation.location.beginLine)
+	end
+
+	return lines
 end
 
 function testing.createHarness(name: string)
