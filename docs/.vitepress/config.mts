@@ -53,12 +53,14 @@ export default defineConfig({
         { text: 'Development', link: '/development/' },
         { text: 'Charter', link: '/development/charter' },
         { text: 'Decisions', link: '/development/decisions' },
+        { text: 'Origins', link: '/development/origins' },
         {
           text: 'Design',
           link: '/development/design/',
           collapsed: false,
           items: [
             { text: 'Canvas and layout', link: '/development/design/canvas-and-layout' },
+            { text: 'Card identity', link: '/development/design/card-identity' },
             { text: 'Card skins', link: '/development/design/cards' },
             { text: 'Companion', link: '/development/design/companion' },
             { text: 'Gummy Galaxy and Orion', link: '/development/design/gummy-galaxy-and-orion' },

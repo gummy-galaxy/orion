@@ -52,7 +52,7 @@ Commands use the active canvas. Pass `--canvas <name>`, or set `ORION_CANVAS`, t
 Images are canvas nodes, with their files in the canvas's `assets/` folder. Use **Add image** in the app, or:
 
 ```sh
-orion media insert ./concept.png --label "Concept"
+orion media add ./concept.png --label "Concept"
 ```
 
 Orion accepts PNG, JPEG, GIF, and WebP images up to 5 MB.

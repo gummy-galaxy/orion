@@ -1,6 +1,6 @@
 ---
 name: pr-screenshots
-description: Capture before and after screenshots or videos of the Orion app and attach them to a pull request description. Use when opening or updating a pull request that changes what the app shows, such as anything under app/src or the desktop shell's UI, or when asked for screenshots or videos on a PR.
+description: Capture before and after screenshots or videos of the Orion app and attach them to a pull request description. Use when opening or updating a pull request that changes what the app shows, such as anything under workspace/orion-app/src or the desktop shell's UI, or when asked for screenshots or videos on a PR.
 ---
 
 # PR screenshots
@@ -17,7 +17,7 @@ Record a video instead when a still can't show the change: an interaction such a
 
 A new feature has nothing to show before it. Attach the after image alone, or a before image of the same spot when its absence is worth seeing.
 
-These captures show only the app's web content. Parts the desktop shell draws, such as the window buttons and macOS menus, need the desktop app: run `npm run dev` in `desktop/` and leave it open for the person to capture, or say in the description what the images leave out.
+These captures show only the app's web content. Parts the desktop shell draws, such as the window buttons and macOS menus, need the desktop app: run `npm run dev` in `workspace/orion-desktop/` and leave it open for the person to capture, or say in the description what the images leave out.
 
 ## 2. Prepare two trees and two data copies
 
@@ -41,7 +41,7 @@ In each tree, install the app's packages and build the CLI, which takes seconds:
 
 ```sh
 for tree in "$BEFORE" "$AFTER"; do
-  (cd "$tree/app" && npm ci) && (cd "$tree/cli" && lute pkg install && lute run build)
+  (cd "$tree/workspace/orion-app" && npm ci) && (cd "$tree/workspace/orion-cli" && lute pkg install) && (cd "$tree" && lute run build)
 done
 ```
 
@@ -49,7 +49,7 @@ Each side runs its own CLI because the app and the server change together. An ap
 
 Give each app its own copy of the data. Never point either at the real data folder, since `orion server start` writes to it, and a branch's CLI moves it to a layout the installed app can't read. Set `ORION_DATA_DIR` on every command that runs either tree's CLI, Vite included: the before tree may predate the dev server's scratch folder.
 
-Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once with the before tree's CLI, since newer builds read older data. Run `"$BEFORE/cli/build/orion" --help` for its commands, such as `card add`, `link add`, and `group add`, and run each with `ORION_DATA_DIR="$SCRATCH/seed-data"`. `canvas check` reports groups waiting for layout on a fresh sample and exits nonzero, which is expected: the app settles them when it opens. Then copy the sample to each side:
+Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once with the before tree's CLI, since newer builds read older data. Run `"$BEFORE/workspace/orion-cli/build/orion" --help` for its commands, such as `card create`, `link create`, and `group create`, and run each with `ORION_DATA_DIR="$SCRATCH/seed-data"`. `canvas check` reports groups waiting for layout on a fresh sample and exits nonzero, which is expected: the app settles them when it opens. Then copy the sample to each side:
 
 ```sh
 for side in before after; do
@@ -68,7 +68,7 @@ for side in before after; do
   mkdir -p "$SCRATCH/$side-data/canvases"
   cp ~/Library/Application\ Support/Orion/canvases.json "$SCRATCH/$side-data/"
   rsync -a --exclude backups ~/Library/Application\ Support/Orion/canvases/orion "$SCRATCH/$side-data/canvases/"
-  ORION_DATA_DIR="$SCRATCH/$side-data" "$BEFORE/cli/build/orion" canvas use orion
+  ORION_DATA_DIR="$SCRATCH/$side-data" "$BEFORE/workspace/orion-cli/build/orion" canvas use orion
 done
 ```
 
@@ -76,16 +76,16 @@ Seed whatever the change needs, such as a gate card or a long label, with the sa
 
 ## 3. Start the apps
 
-Run Vite in each tree's `app/` on its own port, each with its own tree's CLI and data:
+Run Vite in each tree's `workspace/orion-app/` on its own port, each with its own tree's CLI and data:
 
 ```sh
-cd "$BEFORE/app" && ORION_BIN="$BEFORE/cli/build/orion" ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort
-cd "$AFTER/app" && ORION_BIN="$AFTER/cli/build/orion" ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort
+cd "$BEFORE/workspace/orion-app" && ORION_BIN="$BEFORE/workspace/orion-cli/build/orion" ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort
+cd "$AFTER/workspace/orion-app" && ORION_BIN="$AFTER/workspace/orion-cli/build/orion" ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort
 ```
 
 Run them in the background, and keep everything headless so nothing opens on the person's screen. Don't use a dev-server tool that opens a browser pane, such as Claude Code's `preview_start`.
 
-For a story, run `ORION_STORYBOOK=1 npx storybook dev -p 6011 --ci` in the before tree's `app/` and the same with `-p 6012` in the after tree's, and capture `http://localhost:<port>/iframe.html?id=<story-id>&viewMode=story`.
+For a story, run `ORION_STORYBOOK=1 npx storybook dev -p 6011 --ci` in the before tree's `workspace/orion-app/` and the same with `-p 6012` in the after tree's, and capture `http://localhost:<port>/iframe.html?id=<story-id>&viewMode=story`.
 
 ## 4. Capture
 
@@ -200,4 +200,4 @@ Reread the live description first and change only this section. If it already ho
 
 ## 6. Clean up
 
-Stop both Vite servers and the `orion server start` each one launched, which can outlive it: `pkill -f "$BEFORE/cli/build/orion server start"`, and the same for `$AFTER`. Remove the trees you added with `git worktree remove`, never a worktree you didn't create. Leave the images and videos in the scratch folder once they're attached.
+Stop both Vite servers and the `orion server start` each one launched, which can outlive it: `pkill -f "$BEFORE/workspace/orion-cli/build/orion server start"`, and the same for `$AFTER`. Remove the trees you added with `git worktree remove`, never a worktree you didn't create. Leave the images and videos in the scratch folder once they're attached.

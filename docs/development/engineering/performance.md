@@ -55,11 +55,11 @@ On a group of 29 pull request cards, in Chromium at 4x CPU throttling, raster ti
 
 ## Measuring it
 
-The perf harness is `npm run perf` in `app/`. It compares this checkout against `origin/main`, or another base passed with `--base`, and writes a Markdown report.
+The perf harness is `npm run perf` in `workspace/orion-app/`. It compares this checkout against `origin/main`, or another base passed with `--base`, and writes a Markdown report.
 
 - **Data benchmarks** run over generated canvases of 1,000 and 5,000 cards. They cover the functions that derive work, trace links, merge documents, snap drags, and reflow groups, using Vitest's bench API ([#172](https://github.com/vocksel/orion/pull/172)).
 - **Render runs** drive a perf story in headless Chromium at 2x scale. The story pans, pinch-zooms, hovers across cards, and drags one. A React Profiler and a Chromium trace report commits, frames, main-thread time, style and layout time, and raster time.
-- **The pull request comment** is written by CI on every pull request that touches `app/`. It replaces its previous comment on each run. The verdict comes first, followed by changes beyond noise, worst first. Full tables sit in collapsed sections ([#181](https://github.com/vocksel/orion/pull/181)).
+- **The pull request comment** is written by CI on every pull request that touches `workspace/orion-app/`. It replaces its previous comment on each run. The verdict comes first, followed by changes beyond noise, worst first. Full tables sit in collapsed sections ([#181](https://github.com/vocksel/orion/pull/181)).
 
 Noise was the main problem with the comment. One change to the palette had reported `needsAttention` 60% slower. [Noise is now judged by spread](https://github.com/vocksel/orion/pull/193). Benchmarks run in rounds, with each side going first in alternate rounds, because one process per side could land in a slower JIT state. A change counts only when it is larger than the greater of 10% and the two sides' spreads added together. A side's spread is the difference between its slowest and fastest run, divided by that side's median.
 

@@ -390,7 +390,7 @@ A guide page explains working with Orion from the command line, for someone new 
 
 ### CLI commands are a noun, then a verb
 
-Commands name the thing they act on first, then the action: `orion node remove`, `orion group remove`, `orion link add`. Each noun has its own subcommands, help, and options, so no flag changes meaning by what it targets. Flat verbs such as `orion remove` and `orion ungroup` go away. Each kind of node has its own noun for creating it, such as `orion card add` and `orion note add`, since their inputs differ, and `orion node` covers what applies to any node. `orion canvas` replaces `orion workspace`, following the charter's vocabulary. Two reads stay top level because agents run them before almost everything else: `orion focus`, and `orion next`, which lists the work that can start now, most unblocking first.
+Commands name the thing they act on first, then the action: `orion node remove`, `orion group remove`, `orion link create`. Each noun has its own subcommands, help, and options, so no flag changes meaning by what it targets. Flat verbs such as `orion remove` and `orion ungroup` go away. Each kind of node has its own noun for creating it, such as `orion card create` and `orion note create`, since their inputs differ, and `orion node` covers what applies to any node. `orion canvas` replaces `orion workspace`, following the charter's vocabulary. Two reads stay top level because agents run them before almost everything else: `orion focus`, and `orion next`, which lists the work that can start now, most unblocking first.
 
 Two verbs bring things in, and which one a command uses depends on what it brings:
 
@@ -405,7 +405,7 @@ Two verbs bring things in, and which one a command uses depends on what it bring
 
 ### MCP tools come from the CLI's commands
 
-Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`, such as `orion_card_add`, with a field for each option in camelCase. Top-level commands keep one word, such as `orion_next`. A command declares its tool where it's defined: its annotations, the options the tool leaves out and why, or why MCP leaves the command out. An option's value type, such as an enum or an integer, sits on the line that defines it, and the input schema comes from it. A tool's description is the command's help unless the command gives an agent-facing one, which stays rare.
+Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`, such as `orion_card_create`, with a field for each option in camelCase. Top-level commands keep one word, such as `orion_next`. A command declares its tool where it's defined: its annotations, the options the tool leaves out and why, or why MCP leaves the command out. An option's value type, such as an enum or an integer, sits on the line that defines it, and the input schema comes from it. A tool's description is the command's help unless the command gives an agent-facing one, which stays rare.
 
 Every tool takes `canvas`, as every command takes `--canvas`, and ignores it where it means nothing, such as `orion_theme_list`. Only tools that name a canvas themselves, such as `orion_canvas_create`, leave it out, so the target can't land in the wrong field. No tool takes a program to run, as "Programs Orion runs are chosen on this machine" says.
 
@@ -417,7 +417,7 @@ Every tool takes `canvas`, as every command takes `--canvas`, and ignores it whe
 
 When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and refuses while another build of Orion is still serving the folder.
 
-These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release, and the code that runs them stays for the next layout change, as "Aliases and migrations share one lifecycle" says.
+These moves live in `workspace/orion-cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release, and the code that runs them stays for the next layout change, as "Aliases and migrations share one lifecycle" says.
 
 Moves that would have to guess are the exception. Upgrading a version 1 data file meant guessing the GitHub owner of every short repository name, so Orion refuses a version 1 file instead, with a message saying how to upgrade it with an older build.
 
@@ -564,6 +564,14 @@ Orion installs to `/Applications/Orion.app` so every user on the machine gets it
 **Why:** every build shares one bundle id, so a second copy in `~/Applications` shows up as a duplicate Orion and leaves the CLI and the app running different builds.
 
 2026-10-13
+
+### Packages live in `workspace/`, named `orion-*`
+
+The repository's packages sit together in `workspace/`: `orion-app` is the canvas in React, `orion-cli` is the `orion` CLI and its server, and `orion-desktop` is the Tauri shell that bundles the two. Each folder's name matches its package name. The top level keeps the docs, examples, and repository-wide config, including the Lute scripts in `.lute/`, which run from the repository root and find each package through `project.luau`.
+
+**Why:** "the app" already means the canvas a person works in, whether a browser or the desktop shell hosts it, so `orion-app` keeps that meaning and `orion-desktop` names the installable wrapper. This `workspace/` is the repository's folder of packages, not an Orion workspace of canvases.
+
+2026-10-24
 
 ## Docs
 

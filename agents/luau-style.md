@@ -6,3 +6,4 @@
 - Name a required module after the module itself, such as `local cli = require("@batteries/cli")` and `local io = require("@lute/io")`, without prefixing the package.
 - Within functions, use blank lines between logical steps: setup, guards, loops and branches, state changes, and the final result. Keep statements that form one step together.
 - Run StyLua after editing Luau, then review the spacing yourself. StyLua sorts requires and formats statements, but does not add these logical blank lines.
+- `lute run analyze` lints with Lute's built-in rules plus Orion's own in `workspace/orion-cli/lints`, one folder per rule with an `init.luau` and its `init.spec.luau`. Add a rule there rather than reaching for another linter, and silence one spot with a `-- lute-lint-ignore(<rule>)` comment above it.
