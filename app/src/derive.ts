@@ -1,6 +1,8 @@
 import { createContext } from 'react'
+import { descendants } from './hierarchy/descendants'
+import { indexNodes } from './hierarchy/indexNodes'
+import type { NodeIndex } from './hierarchy/types'
 import {
-  descendants,
   isCluster,
   isComponent,
   isTask,
@@ -146,14 +148,14 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
 }
 
 /** Where each card's work comes from, and what each group gathers from the cards inside it. Badges only: nothing here decides status. */
-export function deriveSources(nodes: AppNode[]): Map<string, SourceRef[]> {
+export function deriveSources(nodes: AppNode[], index: NodeIndex = indexNodes(nodes)): Map<string, SourceRef[]> {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
 
   for (const task of tasks.values()) sources.set(task.id, sourcesOf(task))
 
   for (const group of nodes.filter(isCluster)) {
-    const inside = descendants(group.id, nodes)
+    const inside = descendants(group.id, index.children)
     const members: TaskNode[] = []
 
     for (const id of inside) {
@@ -204,7 +206,7 @@ export function toServerFacts(derived: Derived | null): ServerFacts {
  * server hasn't derived yet (one just added, or no server at all) shows its recorded status, with no blocking and
  * zero leverage, upstream work, and rarity, until the server answers.
  */
-export function buildWork(facts: ServerFacts, nodes: AppNode[], links: Link[]) {
+export function buildWork(facts: ServerFacts, nodes: AppNode[], links: Link[], index: NodeIndex = indexNodes(nodes)) {
   let status = facts.status
 
   for (const node of nodes) {
@@ -216,7 +218,7 @@ export function buildWork(facts: ServerFacts, nodes: AppNode[], links: Link[]) {
     status.set(node.id, node.data.status === 'todo' ? 'ready' : node.data.status)
   }
 
-  return { ...facts, status, sources: deriveSources(nodes), ...linkGraph(links) }
+  return { ...facts, status, sources: deriveSources(nodes, index), ...linkGraph(links) }
 }
 
 export type Work = ReturnType<typeof buildWork>

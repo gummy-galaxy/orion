@@ -5,10 +5,13 @@ import { getCardView } from './cardView'
 import { readAppearance } from './appearance'
 import type { Pulse } from './celebrate'
 import { buildWork, toServerFacts, traceFrom, type AttentionMark, type Derived, type GroupStats, type SourceRef } from './derive'
-import { byId, isImage, isTask, tintOf, type AppNode, type Link, type TaskNode, type Tint, type ViewStatus } from './model'
+import { indexNodes } from './hierarchy/indexNodes'
+import { isImage, isTask, tintOf, type AppNode, type Link, type TaskNode, type Tint, type ViewStatus } from './model'
 import { sameFoldPreview, type FoldPreviewItem } from './foldPreview'
 
 export const nodesAtom = atom<AppNode[]>([])
+/** Parent, child, and depth lookups for the nodes, rebuilt once each time they change. */
+export const nodeIndexAtom = atom((get) => indexNodes(get(nodesAtom)))
 export const skinAtom = atom(readAppearance().skin)
 // The skin lives in Jotai's default store because this per-device preference is shared by every canvas and story store.
 export const skinStore = getDefaultStore()
@@ -37,12 +40,12 @@ export const chainFinaleAtom = atom<Map<string, number>>(new Map<string, number>
 export const derivedAtom = atom<Derived | null>(null)
 const serverFactsAtom = atom((get) => toServerFacts(get(derivedAtom)))
 
-export const workAtom = atom((get) => buildWork(get(serverFactsAtom), get(nodesAtom), get(linksAtom)))
+export const workAtom = atom((get) => buildWork(get(serverFactsAtom), get(nodesAtom), get(linksAtom), get(nodeIndexAtom)))
 
 /** Each group's and component's tint, its own or its nearest group's. */
 export const tintsAtom = atom((get) => {
   const nodes = get(nodesAtom)
-  const nodeMap = byId(nodes)
+  const nodeMap = get(nodeIndexAtom).byId
   const tints = new Map<string, Tint>()
 
   for (const node of nodes) {
@@ -175,20 +178,19 @@ export const useTint = (id: string) => useAtomValue(useMemo(() => selectAtom(tin
 
 const NO_PARTS: string[] = []
 
-/** The names of what's directly inside a group, in reading order, for a folded group that holds no work to list. */
 /** Whether a group holds nothing at all, not even notes, components, or images. */
-export const useIsEmptyGroup = (id: string) =>
-  useAtomValue(useMemo(() => selectAtom(nodesAtom, (nodes) => !nodes.some((node) => node.parentId === id)), [id]))
+export const useIsEmptyGroup = (id: string) => useAtomValue(useMemo(() => selectAtom(nodeIndexAtom, (index) => !index.children.has(id)), [id]))
 
+/** The names of what's directly inside a group, in reading order, for a folded group that holds no work to list. */
 export const useGroupParts = (id: string) =>
   useAtomValue(
     useMemo(
       () =>
         selectAtom(
-          nodesAtom,
-          (nodes) => {
-            const parts = nodes
-              .filter((node) => node.parentId === id && !isImage(node))
+          nodeIndexAtom,
+          (index) => {
+            const parts = (index.children.get(id) ?? [])
+              .filter((node) => !isImage(node))
               .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
               .map((node) => (node.data as { label: string }).label)
               .filter(Boolean)

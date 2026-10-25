@@ -1,5 +1,7 @@
 import { GROUP_PADDING } from './geometry'
-import { absolutePosition, byId, descendants, groupHeaderHeight, isCluster, sizeOf, type AppNode } from './model'
+import { descendants } from './hierarchy/descendants'
+import { indexNodes } from './hierarchy/indexNodes'
+import { absolutePosition, byId, groupHeaderHeight, isCluster, sizeOf, type AppNode } from './model'
 import type { CardSize } from './cardSize'
 
 /** How far past a group's edge, in screen pixels, dragged work goes before it pops out. Stickers use the same distance. */
@@ -139,10 +141,10 @@ export function landInside(nodes: AppNode[], ids: Iterable<string>, cardSize: Ca
  * is over, or else the home itself. The dragged work and everything inside it are never targets.
  */
 export function dropTarget(nodes: AppNode[], escape: Escape, cardSize: CardSize): string | undefined {
-  const nodeMap = byId(nodes)
+  const { byId: nodeMap, children } = indexNodes(nodes)
   const block = boundsOf(escape.roots.flatMap((id) => (nodeMap.has(id) ? [boxOf(nodeMap.get(id)!, nodeMap, cardSize)] : [])))
   const center = { x: block.x + block.width / 2, y: block.y + block.height / 2 }
-  const excluded = new Set(escape.roots.flatMap((id) => [id, ...descendants(id, nodes)]))
+  const excluded = new Set(escape.roots.flatMap((id) => [id, ...descendants(id, children)]))
   let target = escape.home
 
   for (;;) {

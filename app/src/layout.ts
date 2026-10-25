@@ -1,5 +1,6 @@
 import { GAP, GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import ELK from 'elkjs/lib/elk.bundled.js'
+import { indexNodes } from './hierarchy/indexNodes'
 import {
   absolutePosition,
   ancestors,
@@ -355,8 +356,7 @@ export function layoutOrder(nodes: AppNode[]): AppNode[] {
 
   if (!marked.length) return marked
 
-  const nodeMap = byId(nodes)
-  const depth = new Map(marked.map((node) => [node.id, ancestors(node.id, nodeMap).length]))
+  const { depth } = indexNodes(nodes)
 
   return marked.sort((a, b) => depth.get(b.id)! - depth.get(a.id)!)
 }

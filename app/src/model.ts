@@ -2,6 +2,7 @@ import type { Node } from '@xyflow/react'
 import { taskHeight } from './cardHeight'
 import type { CardSize } from './cardSize'
 import { GROUP_HEADER_BAND, GROUP_HEADER_HEIGHT, GROUP_PADDING, GROUP_SIZE, IMAGE_SIZE, TASK_HEIGHT, TASK_WIDTH } from './geometry'
+import { indexNodes } from './hierarchy/indexNodes'
 
 /** `blocked` is set by hand for blockers outside the graph; dependency blocking is derived. */
 export type Status = 'todo' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
@@ -321,9 +322,9 @@ function hydrate(node: AppNode, cardSize: CardSize): AppNode {
 
 /** React Flow needs parents before children. */
 function sortNodes(nodes: AppNode[]): AppNode[] {
-  const nodeMap = byId(nodes)
+  const { depth } = indexNodes(nodes)
 
-  return [...nodes].sort((a, b) => ancestors(a.id, nodeMap).length - ancestors(b.id, nodeMap).length)
+  return [...nodes].sort((a, b) => depth.get(a.id)! - depth.get(b.id)!)
 }
 
 /**
@@ -334,13 +335,13 @@ function sortNodes(nodes: AppNode[]): AppNode[] {
  */
 function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
   const nodeMap = new Map(nodes.map((node) => [node.id, { ...node } as AppNode]))
-  const depth = (id: string) => ancestors(id, nodeMap).length
-  const clusters = [...nodeMap.values()].filter(isCluster).sort((a, b) => depth(b.id) - depth(a.id))
+  const index = indexNodes([...nodeMap.values()])
+  const clusters = [...nodeMap.values()].filter(isCluster).sort((a, b) => index.depth.get(b.id)! - index.depth.get(a.id)!)
 
   for (const group of clusters) {
     const data = group.data as ClusterData
     const floor = data.arrange === 'custom' ? data.size : undefined
-    const children = [...nodeMap.values()].filter((node) => node.parentId === group.id)
+    const children = index.children.get(group.id) ?? []
 
     if (!children.length) {
       group.width = Math.max(cardSize.width + GROUP_PADDING * 2, floor?.width ?? 0)
@@ -428,22 +429,6 @@ export function removeNodes(nodes: AppNode[], ids: string[], cardSize: CardSize 
       cardSize,
     ),
   )
-}
-
-export function descendants(id: string, nodes: AppNode[]): Set<string> {
-  const result = new Set<string>()
-
-  const walk = (parentId: string) => {
-    for (const node of nodes)
-      if (node.parentId === parentId && !result.has(node.id)) {
-        result.add(node.id)
-        walk(node.id)
-      }
-  }
-
-  walk(id)
-
-  return result
 }
 
 /** "Merged on GitHub · checked 2h ago" for a ref its adapter has read. */

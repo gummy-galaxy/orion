@@ -47,6 +47,7 @@ import {
 import { FocusView, type FocusItem } from './FocusView'
 import { forgetTextWidths } from '../cardHeight'
 import { GAP } from '../geometry'
+import { indexNodes } from '../hierarchy/indexNodes'
 import { groupSelection, layoutOrder, moveOutOfGroup, reflow, ungroup } from '../layout'
 import { pushAside } from '../pushAside'
 import { diffOperations, type Operation } from '../operations'
@@ -170,6 +171,7 @@ import {
   foldPreviewsAtom,
   inspectingAtom,
   linksAtom,
+  nodeIndexAtom,
   nodesAtom,
   pinnedAtom,
   resizeHandlesAtom,
@@ -1060,10 +1062,9 @@ export function Canvas() {
 
       try {
         // Inner groups go first, so a group around them is laid out with their new sizes.
-        const nodeMap = byId(nodes)
-        const depth = (id: string) => ancestors(id, nodeMap).length
+        const { depth } = indexNodes(nodes)
 
-        for (const group of [...marked].sort((a, b) => depth(b.id) - depth(a.id))) {
+        for (const group of [...marked].sort((a, b) => depth.get(b.id)! - depth.get(a.id)!)) {
           try {
             next = await reflow(next, links, group.id, cardSize)
           } catch (error) {
@@ -1369,7 +1370,8 @@ export function Canvas() {
     [setNodes],
   )
 
-  const map = useMemo(() => byId(nodes), [nodes])
+  const nodeIndex = useAtomValue(nodeIndexAtom)
+  const map = nodeIndex.byId
   const shownMap = useRef(map)
 
   // An edit from anywhere can remove the open group, such as moving its last group out or undoing its creation, so the
@@ -2798,7 +2800,7 @@ export function Canvas() {
 
         const position = absolutePosition(node, map)
         const size = sizeOf(node, cardSize)
-        const nodeDepth = ancestors(node.id, map).length
+        const nodeDepth = nodeIndex.depth.get(node.id)!
 
         if (
           point.x >= position.x &&
@@ -2814,7 +2816,7 @@ export function Canvas() {
 
       return found
     },
-    [nodes, map, view, inView, cardSize],
+    [nodes, map, nodeIndex, view, inView, cardSize],
   )
 
   /** Drops a note centered on a click, inside the innermost open group under it. */

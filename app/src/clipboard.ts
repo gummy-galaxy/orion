@@ -1,6 +1,8 @@
 import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import type { CardSize } from './cardSize'
-import { absolutePosition, ancestors, byId, descendants, isCluster, isImage, isTask, normalize, sizeOf, type AppNode, type Link } from './model'
+import { descendants } from './hierarchy/descendants'
+import { indexNodes } from './hierarchy/indexNodes'
+import { absolutePosition, ancestors, byId, isCluster, isImage, isTask, normalize, sizeOf, type AppNode, type Link } from './model'
 import { pushAside } from './pushAside'
 import { STICKER_HALF_SIZE, type Sticker } from './sticker'
 
@@ -56,11 +58,11 @@ export function copySelection(
   workspace: string,
   cardSize: CardSize = DEFAULT_CARD_SIZE,
 ): Clip | null {
-  const nodeMap = byId(doc.nodes)
+  const { byId: nodeMap, children } = indexNodes(doc.nodes)
   const roots = doc.nodes.filter(
     (node) => selection.nodes.has(node.id) && !ancestors(node.id, nodeMap).some((ancestor) => selection.nodes.has(ancestor)),
   )
-  const copied = new Set(roots.flatMap((node) => [node.id, ...descendants(node.id, doc.nodes)]))
+  const copied = new Set(roots.flatMap((node) => [node.id, ...descendants(node.id, children)]))
   const stickers = doc.stickers
     .filter((sticker) => selection.stickers.has(sticker.id) || (sticker.on && copied.has(sticker.on)))
     .map((sticker): Sticker => {
