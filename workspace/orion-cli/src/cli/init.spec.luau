@@ -12,6 +12,7 @@ local getItem = require("@root/graph/getItem")
 local getVersion = require("@root/getVersion")
 local loadDoc = require("@root/store/loadDoc")
 local runTransaction = require("@root/store/runTransaction")
+local serializeFailure = require("@root/cli/serializeFailure")
 local testing = require("@root/testing")
 local writeDoc = require("@root/store/writeDoc")
 
@@ -730,4 +731,37 @@ test.case("the renamed verbs still run under their old names", function(assert)
 	assert.strContains(notices[1], "orion card add is now orion card create")
 	assert.strContains(notices[2], "orion note add is now orion note create")
 	assert.strContains(notices[3], "orion group add is now orion group create")
+end)
+
+-- The JSON error a failed command prints under --json.
+local function getFailure(run: (args: { string }, ...any) -> string, args: { string }): json.Object
+	local succeeded, failure = pcall(run, args)
+	assert(not succeeded, `orion {table.concat(args, " ")} succeeded`)
+
+	local printed = json.asObject(json.deserialize(serializeFailure(failure)))
+	return assert(printed and json.asObject(printed.error))
+end
+
+test.case("failures a script can act on carry a code in their JSON error", function(assert)
+	local _, run = testing.createHarness("failure-codes")
+	run({ "card", "create", "Publish v2.6.0" })
+
+	local stale = getFailure(run, { "card", "done", "pub", "--if-revision", "0", "--json" })
+	assert.eq(stale.code, "revision-conflict")
+	assert.eq(stale.message, "revision changed: expected 0, current 1")
+
+	local missing = getFailure(run, { "node", "show", "missing", "--json" })
+	assert.eq(missing.code, "missing-item")
+	assert.eq(missing.message, 'no item or group with id "missing"')
+
+	local unmatched = getFailure(run, { "node", "show", `label:"Nothing like this"`, "--json" })
+	assert.eq(unmatched.code, "missing-item")
+
+	local ambiguous = getFailure(run, { "card", "set", `label:"Publish v2.6.0"`, "--status", "done", "--json" })
+	assert.eq(ambiguous.code, "ambiguous-selector")
+	assert.strContains(ambiguous.message :: string, "matches 2 items")
+
+	local other = getFailure(run, { "card", "done", "pub", "--if-revision", "soon", "--json" })
+	assert.eq(other.code, nil)
+	assert.eq(other.message, "--if-revision must be a nonnegative integer")
 end)

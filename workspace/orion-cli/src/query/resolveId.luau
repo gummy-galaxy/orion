@@ -2,6 +2,7 @@ local derive = require("@root/graph/derive")
 local getLabel = require("@root/graph/getLabel")
 local matchesExpression = require("@root/query/matchesExpression")
 local parseExpression = require("@root/query/parseExpression")
+local raiseFailure = require("@root/raiseFailure")
 local resolveRef = require("@root/adapters/resolveRef")
 local types = require("@root/types")
 
@@ -68,7 +69,9 @@ local function resolveId(doc: Doc, input: string): string
 		end
 	end
 
-	assert(#matches > 0, `{input} matches no item or group`)
+	if #matches == 0 then
+		raiseFailure("missing-item", `{input} matches no item or group`)
+	end
 
 	if #matches > 1 then
 		local lines: { string } = {}
@@ -77,7 +80,10 @@ local function resolveId(doc: Doc, input: string): string
 			table.insert(lines, `  {item.id} · {getLabel(item)}`)
 		end
 
-		error(`{input} matches {#matches} items; use one of their ids:\n{table.concat(lines, "\n")}`, 0)
+		raiseFailure(
+			"ambiguous-selector",
+			`{input} matches {#matches} items; use one of their ids:\n{table.concat(lines, "\n")}`
+		)
 	end
 
 	return matches[1].id

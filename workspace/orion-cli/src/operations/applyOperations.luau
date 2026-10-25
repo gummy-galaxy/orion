@@ -1,4 +1,5 @@
 local applyOperation = require("@root/operations/applyOperation")
+local getErrorCode = require("@root/getErrorCode")
 local getErrorText = require("@root/getErrorText")
 local json = require("@std/json")
 local operationTypes = require("@root/operations/types")
@@ -10,7 +11,7 @@ type Operation = operationTypes.Operation
 type Restore = operationTypes.Restore
 
 -- Raised when an operation no longer applies. The whole list is refused, and `index` names the operation that failed.
-export type Rejection = { rejected: true, index: number, op: string, message: string }
+export type Rejection = { rejected: true, index: number, op: string, code: types.ErrorCode?, message: string }
 
 -- Applies a list in order, as one change. If any operation fails, the ones before it are undone and the list is
 -- refused. Returns each operation's inverse, and each one's answer or json.null, in the same order as the list.
@@ -30,6 +31,7 @@ local function applyOperations(doc: Doc, operations: { Operation }): ({ Restore 
 				rejected = true,
 				index = index,
 				op = operation.op,
+				code = getErrorCode(result),
 				message = getErrorText(result),
 			}
 			error(rejection, 0)

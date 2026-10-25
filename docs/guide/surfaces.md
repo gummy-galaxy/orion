@@ -19,7 +19,8 @@ Orion hasn't had its first release. Until it does, any command, option, tool, or
 
 Every command takes `--json`. Under it:
 
-- A failure prints `{"error": {"message": …}}` and exits nonzero.
+- A failure prints `{"error": {"code": …, "message": …}}` on stdout and exits 1. Without `--json`, it prints `Error: …` on stderr instead, so stdout only holds output.
+- A failure a script can act on has a `code`: `revision-conflict` when `--if-revision` no longer matches, `missing-item` when an id or selector matches nothing, and `ambiguous-selector` when a selector matches more than one item. Other failures leave it out. An MCP tool's error text is the same JSON error.
 - A write prints the `revision` it made, to pass to the next command's `--if-revision`. A command that changes one item prints `{"revision": …, "item": …}`.
 - Cards, notes, and groups each have a shape of their own, and a group prints what `orion group list` does.
 - Times use RFC 3339, such as `2026-10-17T16:46:00Z`.

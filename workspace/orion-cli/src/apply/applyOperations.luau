@@ -2,6 +2,7 @@ local addItem = require("@root/graph/addItem")
 local addNote = require("@root/graph/addNote")
 local applyTypes = require("@root/apply/types")
 local attachRef = require("@root/graph/attachRef")
+local getErrorCode = require("@root/getErrorCode")
 local getErrorText = require("@root/getErrorText")
 local insertBetween = require("@root/graph/insertBetween")
 local linkItems = require("@root/graph/linkItems")
@@ -9,6 +10,7 @@ local makeGroup = require("@root/graph/makeGroup")
 local markForTidy = require("@root/graph/markForTidy")
 local moveItem = require("@root/graph/moveItem")
 local placeTogether = require("@root/graph/placeTogether")
+local raiseFailure = require("@root/raiseFailure")
 local removeGroup = require("@root/graph/removeGroup")
 local removeItem = require("@root/graph/removeItem")
 local resolveRef = require("@root/adapters/resolveRef")
@@ -145,7 +147,14 @@ local function applyOperations(doc: Doc, operations: { Operation }): Handles
 		local succeeded, failure = pcall(handler, doc, operation, handles, added)
 
 		if not succeeded then
-			error(`operation {index} ({operation.op}): {getErrorText(failure)}`, 0)
+			local message = `operation {index} ({operation.op}): {getErrorText(failure)}`
+			local code = getErrorCode(failure)
+
+			if code then
+				raiseFailure(code, message)
+			end
+
+			error(message, 0)
 		end
 	end
 
