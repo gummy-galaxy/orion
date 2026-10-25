@@ -33,7 +33,7 @@ type Section = {
 
 local root = path.resolve("..")
 local dist = path.join(root, "app", "dist")
-local shell = path.join(root, "desktop", "src-tauri")
+local shell = path.join(root, "desktop")
 local store = path.join(process.homedir(), ".loom", "store")
 
 local LICENSE_FILE_PREFIXES = { "license", "licence", "copying", "unlicense" }

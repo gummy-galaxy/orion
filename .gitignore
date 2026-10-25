@@ -11,7 +11,7 @@ node_modules
 dist
 dist-ssr
 storybook-static
-desktop/src-tauri/binaries/
+desktop/binaries/
 *.local
 
 # Editor directories and files

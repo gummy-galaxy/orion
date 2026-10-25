@@ -12,16 +12,15 @@ local runScript = require("@root/runScript")
 local root = path.resolve("..")
 local app = path.join(root, "app")
 local desktop = path.join(root, "desktop")
-local shell = path.join(desktop, "src-tauri")
 local cliDir = path.join(root, "cli")
 local bundle = if system.macos then "dmg" elseif system.win32 then "nsis" else "deb"
 
 runScript(function()
-	run("cargo", { "fmt", "--check" }, { cwd = shell })
+	run("cargo", { "fmt", "--check" }, { cwd = desktop })
 
 	run("npm", { "run", "build" }, { cwd = app })
 	run("lute", { "run", "prepare-sidecar" }, { cwd = cliDir })
 
-	run("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = shell })
+	run("cargo", { "clippy", "--all-targets", "--", "-D", "warnings" }, { cwd = desktop })
 	run("npx", { "tauri", "build", "--bundles", bundle }, { cwd = desktop })
 end)
