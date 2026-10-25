@@ -87,13 +87,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      # The deploy job ships this build, so what deploys is what was checked.
-      - uses: actions/upload-artifact@v7
-        with:
-          name: docs-site
-          path: docs/.vitepress/dist
-          retention-days: 1
-
   deploy:
     needs: docs
     runs-on: beelink
@@ -102,6 +95,9 @@ jobs:
       name: ${{ github.event_name == 'pull_request' && 'Docs Preview' || 'Docs' }}
       # Empty for a pull request whose upload skipped, so it never links an address that wasn't deployed.
       url: ${{ github.event_name != 'pull_request' && 'https://oriongraph.app' || (steps.deploy.outputs.deployment-url && format('https://{0}-orion.{1}.workers.dev', env.PREVIEW_ALIAS, env.WORKERS_DEV_SUBDOMAIN) || '') }}
+    defaults:
+      run:
+        working-directory: docs
     steps:
       - name: Check For Cloudflare Token
         id: token
@@ -109,21 +105,26 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: 'if [ -n "$CLOUDFLARE_API_TOKEN" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; else echo "::notice title=Docs deploy skipped::Add the CLOUDFLARE_API_TOKEN secret to deploy the docs site."; fi'
 
-      # Checked out for the Worker's config in docs/wrangler.jsonc.
       - uses: actions/checkout@v7
         if: steps.token.outputs.enabled == 'true'
-
-      - uses: actions/download-artifact@v8
-        if: steps.token.outputs.enabled == 'true'
-        with:
-          name: docs-site
-          path: docs/.vitepress/dist
 
       - name: Set Up Node
         if: steps.token.outputs.enabled == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install Dependencies
+        if: steps.token.outputs.enabled == 'true'
+        run: npm ci
+
+      # Rebuilt here rather than passed from the docs job, since an artifact would count against the account's
+      # Actions storage.
+      - name: Build
+        if: steps.token.outputs.enabled == 'true'
+        run: npm run build
 
       - name: Deploy to Cloudflare
         if: steps.token.outputs.enabled == 'true'
