@@ -79,6 +79,7 @@ export default defineConfig({
             { text: 'Architecture', link: '/development/engineering/architecture' },
             { text: 'CLI and agents', link: '/development/engineering/cli-and-agents' },
             { text: 'Data and sync', link: '/development/engineering/data-and-sync' },
+            { text: 'Interface audit', link: '/development/engineering/interface-audit' },
             { text: 'Performance', link: '/development/engineering/performance' },
           ],
         },

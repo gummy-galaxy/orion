@@ -9,6 +9,7 @@ An audit or proposal is a snapshot. It recommends changes as of the day it was w
 - [Architecture](/development/engineering/architecture): how the CLI, server, app, desktop shell, MCP server, and sources fit together.
 - [CLI and agents](/development/engineering/cli-and-agents): the CLI as the one implementation, its queries and batch edits, and the MCP server that wraps it.
 - [Data and sync](/development/engineering/data-and-sync): one document per canvas under a shared lock, backups, merges, undo, and the move toward operations and files.
+- [Interface audit](/development/engineering/interface-audit): what stays, changes, or goes on each public surface before the first release.
 - [Performance](/development/engineering/performance): the 1,000-card target, the work that keeps the canvas responsive, and the perf harness that checks each pull request.
 
 ## Timeline
