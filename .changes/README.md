@@ -2,7 +2,7 @@
 
 This folder holds the changes waiting for the next release. Each file describes one change: how big a version bump it needs, which surface it belongs to, and what to say about it in the release notes. [Changewrite](https://github.com/flipbook-labs/changewrite) combines the entries into the release notes and the changelog when a release is cut, then deletes the entries it used.
 
-A pull request that changes `workspace/` adds one entry. Run `changewrite check` before you push to confirm the entry is valid. For how to write one, see [the changelog guide](../agents/changelog.md).
+A pull request that changes `workspace/`, apart from Markdown files, adds one entry. Run `changewrite check` before you push to confirm the entry is valid. For how to write one, see [the changelog guide](../agents/changelog.md).
 
 ## Adding an entry
 
@@ -19,7 +19,7 @@ highlight: Group cards by outcome
 Cards can now be grouped by outcome, so a whole goal reads as one block on the canvas.
 ```
 
-- **`bump`** (required) is the version step the change needs: `major`, `minor`, or `patch`. Use `major` for breaking changes, `minor` for something new, and `patch` for improvements, fixes, and internal changes. The next version is the largest bump across all pending entries.
+- **`bump`** (required) is the version step the change needs: `major`, `minor`, or `patch`. Until 1.0.0, use `minor` for breaking changes and for something new, and `patch` for improvements, fixes, and internal changes. `major` is reserved for 1.0.0, which isn't decided yet. The next version is the largest bump across all pending entries.
 - **`category`** (required) is the surface the change belongs to, and it must be one of these:
   - **Canvas**: laying out and linking work on the canvas, including groups, dependencies, and moving around.
   - **Cards**: what a card shows and how it looks, including its art, rarity, and status marks.

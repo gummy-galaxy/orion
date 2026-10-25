@@ -613,7 +613,7 @@ The docs site lives at the bare `oriongraph.app`, served from the root path, by 
 
 ### Changes arrive with entries, and release notes are built from them
 
-Each change people will notice lands with an entry in `.changes/`, and Changewrite builds the release notes and changelog from those entries when a release is cut. A pull request that touches the CLI, the app, or the desktop app adds one. Each entry's category is one of six surfaces: Canvas, Cards, Agents (the CLI and MCP), Sources, Desktop app, and Under the hood for internal work.
+Each change people will notice lands with an entry in `.changes/`, and Changewrite builds the release notes and changelog from those entries when a release is cut. A pull request that changes `workspace/`, apart from Markdown files, adds one. Each entry's category is one of six surfaces: Canvas, Cards, Agents (the CLI and MCP), Sources, Desktop app, and Under the hood for internal work.
 
 **Why:** an entry written with its change is the cheapest accurate record of it, and the category decides where it lands in the notes, so each surface gets a section that people can find.
 

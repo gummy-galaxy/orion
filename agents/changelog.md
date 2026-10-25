@@ -4,12 +4,12 @@ Each change that people will notice gets an entry in [`.changes/`](../.changes/R
 
 ## When an entry is needed
 
-A pull request that changes anything under `workspace/` needs an entry. CI's `changelog` job runs the check whenever a pull request touches the CLI, the app, or the desktop app, and it fails without a valid entry. That also includes pull requests that change `.lute/`, the shared CI and toolchain setup, or the root config, since those run the same jobs. Docs-only changes don't need one.
+A pull request that changes anything under `workspace/`, apart from Markdown files, needs an entry. CI's `changelog` job runs the check on those pull requests and fails without a valid entry. Changes elsewhere, such as the docs, `.lute/`, or the CI setup, don't need one.
 
 ## Choosing the fields
 
 - **`kind`** describes what a person using Orion experiences. `new` is a capability Orion didn't have. `improved` is an existing one that works better. `fixed` is a bug that's now corrected. `breaking` is a change that stops something people rely on from working, such as a command, an option, or a file format.
-- **`bump`** follows from `kind`: `breaking` is `major`, `new` is `minor`, and `improved` or `fixed` is `patch`.
+- **`bump`** follows from `kind`. Until 1.0.0, `breaking` and `new` are `minor`, and `improved` and `fixed` are `patch`. Don't use `major`: it's reserved for 1.0.0, which isn't decided yet, and a `major` entry would release 1.0.0.
 - **`category`** names the surface the change lands on. Pick the one where a person would notice it. A change to a card's look is Cards even if it touched the canvas code. Use Agents for anything the `orion` CLI or the MCP tools do. Use Under the hood for internal work with no visible effect, such as refactors, tests, build, and CI. Under the hood entries are `patch` and usually `improved` or `fixed`.
 - **`highlight`** is optional. Add a short title only for a change that deserves a headline in the release notes, such as a new way to work. Leave it out for most entries.
 
