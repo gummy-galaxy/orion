@@ -1,18 +1,13 @@
 name: Docs
 
-# Builds docs/ and deploys it to the orion Cloudflare Worker, which serves oriongraph.app. Pushes to main deploy to
-# production, and pull requests that change the docs upload a preview version, linked from the Docs Preview
-# environment. Deploys need the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets. Without the token, the deploy
-# skips.
+# Checks and builds docs/, then deploys it to the orion Cloudflare Worker, which serves oriongraph.app. Pushes to main
+# deploy to production, and pull requests upload a preview version, linked from the Docs Preview environment. Deploys
+# need the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets. Without the token, the deploy skips.
 
 on:
   pull_request:
-    paths: &paths
-      - docs/**
-      - .github/workflows/docs.yml
   push:
     branches: [main]
-    paths: *paths
   workflow_dispatch:
 
 permissions:
@@ -30,40 +25,105 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # The docs jobs run only when a change touches what they build or check, read against the base branch for a pull
+  # request and the commit before for a push to main. A job skipped by its condition reports as skipped, which still
+  # satisfies a required check, unlike a workflow skipped by `paths`. Manual runs skip the filter and run every job.
+  docs-loading:
     runs-on: beelink
     timeout-minutes: 5
-    environment:
-      name: ${{ github.event_name == 'pull_request' && 'Docs Preview' || 'Docs' }}
-      # Empty for a pull request whose upload skipped, so it never links an address that wasn't deployed.
-      url: ${{ github.event_name != 'pull_request' && 'https://oriongraph.app' || (steps.deploy.outputs.deployment-url && format('https://{0}-orion.{1}.workers.dev', env.PREVIEW_ALIAS, env.WORKERS_DEV_SUBDOMAIN) || '') }}
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      docs: ${{ steps.filter.outputs.docs || 'true' }}
+    steps:
+      - uses: actions/checkout@v7
+        if: github.event_name != 'workflow_dispatch'
+
+      - name: Filter Changed Paths
+        id: filter
+        if: github.event_name != 'workflow_dispatch'
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: .github/path-filters.yml
+
+  docs:
+    needs: docs-loading
+    if: needs.docs-loading.outputs.docs == 'true'
+    runs-on: beelink
+    timeout-minutes: 5
     defaults:
       run:
         working-directory: docs
     steps:
       - uses: actions/checkout@v7
 
+      - name: Install Luau Tools with Rokit
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          version: v1.2.0
+          cache: true
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install Luau Dependencies
+        run: lute pkg install
+        working-directory: workspace/orion-cli
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Check the Reference
+        run: lute run docs --check
+        working-directory: .
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      # The deploy job ships this build, so what deploys is what was checked.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: docs-site
+          path: docs/.vitepress/dist
+          retention-days: 1
+
+  deploy:
+    needs: docs
+    runs-on: beelink
+    timeout-minutes: 5
+    environment:
+      name: ${{ github.event_name == 'pull_request' && 'Docs Preview' || 'Docs' }}
+      # Empty for a pull request whose upload skipped, so it never links an address that wasn't deployed.
+      url: ${{ github.event_name != 'pull_request' && 'https://oriongraph.app' || (steps.deploy.outputs.deployment-url && format('https://{0}-orion.{1}.workers.dev', env.PREVIEW_ALIAS, env.WORKERS_DEV_SUBDOMAIN) || '') }}
+    steps:
       - name: Check For Cloudflare Token
         id: token
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: 'if [ -n "$CLOUDFLARE_API_TOKEN" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; else echo "::notice title=Docs deploy skipped::Add the CLOUDFLARE_API_TOKEN secret to deploy the docs site."; fi'
 
+      # Checked out for the Worker's config in docs/wrangler.jsonc.
+      - uses: actions/checkout@v7
+        if: steps.token.outputs.enabled == 'true'
+
+      - uses: actions/download-artifact@v8
+        if: steps.token.outputs.enabled == 'true'
+        with:
+          name: docs-site
+          path: docs/.vitepress/dist
+
       - name: Set Up Node
         if: steps.token.outputs.enabled == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: docs/package-lock.json
-
-      - name: Install Dependencies
-        if: steps.token.outputs.enabled == 'true'
-        run: npm ci
-
-      - name: Build
-        if: steps.token.outputs.enabled == 'true'
-        run: npm run build
 
       - name: Deploy to Cloudflare
         if: steps.token.outputs.enabled == 'true'
