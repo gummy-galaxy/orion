@@ -6,7 +6,7 @@ import { fingerprint } from '../persist'
 import { snapDrag } from '../snap'
 import { generateCanvas } from './fixture'
 
-const SIZES = [1000, 5000]
+const SIZES = [1000, 5000, 10000]
 const RUN = { time: 400, iterations: 12, warmupTime: 100 }
 
 for (const cards of SIZES) {
