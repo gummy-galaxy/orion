@@ -99,14 +99,14 @@ jobs:
       run:
         working-directory: docs
     steps:
+      # Checked out first, since every run step starts in docs/.
+      - uses: actions/checkout@v7
+
       - name: Check For Cloudflare Token
         id: token
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: 'if [ -n "$CLOUDFLARE_API_TOKEN" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT"; else echo "::notice title=Docs deploy skipped::Add the CLOUDFLARE_API_TOKEN secret to deploy the docs site."; fi'
-
-      - uses: actions/checkout@v7
-        if: steps.token.outputs.enabled == 'true'
 
       - name: Set Up Node
         if: steps.token.outputs.enabled == 'true'
