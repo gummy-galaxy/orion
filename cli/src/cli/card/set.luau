@@ -33,11 +33,11 @@ return table.freeze({
 		local values = getItemFields(parser)
 
 		local changed: Item
-		local doc = runTransaction(options.dir, function(doc)
-			local id = resolveId(doc, idInput)
-			requireItem(doc, id)
-			changed = setFields(doc, id, values)
-			attachRequestedRef(doc, id, parser:get("ref"))
+		local doc = runTransaction(options.dir, function(current)
+			local id = resolveId(current, idInput)
+			requireItem(current, id)
+			changed = setFields(current, id, values)
+			attachRequestedRef(current, id, parser:get("ref"))
 		end)
 
 		writeItem(options, doc, changed, "Updated")

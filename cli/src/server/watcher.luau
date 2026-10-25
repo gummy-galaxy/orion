@@ -216,11 +216,13 @@ function watcher.create(
 		task.spawn(function()
 			while not isClosed do
 				while manifest:next() do
+					-- Drain queued events.
 				end
 
 				checkWorkspace()
 
 				while folder:next() do
+					-- Drain queued events.
 				end
 
 				local hasEntryChanges = false

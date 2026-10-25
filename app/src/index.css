@@ -3909,7 +3909,8 @@ kbd {
 .cover-file {
   display: none;
 }
-.cover-error {
+.cover-error,
+.field-error {
   margin: 0;
   color: var(--status-blocked);
   font-size: var(--text-size-caption);

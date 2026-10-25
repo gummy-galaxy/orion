@@ -120,8 +120,9 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 		item.data.repo = if fields.repo == "" then nil else fields.repo
 	end
 
-	if fields.kind then
-		assert(not isNote(item), "notes don't take a kind; make it a work item first")
+	-- Giving a note a kind makes it a work item.
+	if fields.kind and isNote(item) then
+		item.data.itemKind = "step"
 	end
 
 	-- As with add, giving a card a shape makes it a component.

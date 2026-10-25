@@ -1,9 +1,13 @@
 local captureDoc = require("@root/operations/captureDoc")
+local closeChain = require("@root/graph/closeChain")
+local closeOut = require("@root/graph/closeOut")
 local diffDocs = require("@root/operations/diffDocs")
 local findItem = require("@root/graph/findItem")
 local getGroup = require("@root/graph/getGroup")
 local getItem = require("@root/graph/getItem")
+local graphTypes = require("@root/graph/types")
 local insertBetween = require("@root/graph/insertBetween")
+local json = require("@std/json")
 local linkItems = require("@root/graph/linkItems")
 local makeGroup = require("@root/graph/makeGroup")
 local markForTidy = require("@root/graph/markForTidy")
@@ -14,6 +18,7 @@ local removeGroup = require("@root/graph/removeGroup")
 local removeItem = require("@root/graph/removeItem")
 local restoreDoc = require("@root/operations/restoreDoc")
 local setFields = require("@root/graph/setFields")
+local setPullRequest = require("@root/graph/setPullRequest")
 local setRawValue = require("@root/operations/setRawValue")
 local types = require("@root/types")
 local ungroup = require("@root/graph/ungroup")
@@ -24,14 +29,25 @@ type Operation = operationTypes.Operation
 type Restore = operationTypes.Restore
 
 local handlers: { [string]: (Doc, Operation) -> () } = {}
+-- Operations that answer with what they did, which goes back to the client with the change.
+local answering: { [string]: (Doc, Operation) -> json.Value } = {}
 
 local function required<T>(value: T?, name: string): T
 	assert(value ~= nil, `an operation needs {name}`)
 	return value :: T
 end
 
+-- Sets fields with the CLI's rules. `pr` points a card at a pull request in its repository, or takes it off when empty.
 handlers.setFields = function(doc: Doc, operation: Operation)
-	setFields(doc, required(operation.id, "id"), required(operation.fields, "fields") :: any)
+	local id = required(operation.id, "id")
+	local fields = table.clone(required(operation.fields, "fields"))
+	local pr = fields.pr
+	fields.pr = nil
+	setFields(doc, id, fields :: any)
+
+	if pr ~= nil then
+		setPullRequest(doc, id, if pr == "" then nil else pr :: number)
+	end
 end
 
 handlers.place = function(doc: Doc, operation: Operation)
@@ -82,6 +98,27 @@ handlers.tidy = function(doc: Doc, operation: Operation)
 	markForTidy(doc, required(operation.id, "id"))
 end
 
+-- Closes out one card finished in the app, leaving the cards chained to it waiting.
+handlers.closeOut = function(doc: Doc, operation: Operation)
+	closeOut(doc, required(operation.id, "id"))
+end
+
+-- Closes out a finished card and its chain, and answers with each card closed and passed, with its hops from the card.
+answering.chainClose = function(doc: Doc, operation: Operation): json.Value
+	local result = closeChain(doc, required(operation.id, "id"))
+	local function steps(list: { graphTypes.ChainStep }): json.Array
+		local array: json.Array = {}
+
+		for _, step in list do
+			table.insert(array, json.object({ id = step.id, hops = step.hops }))
+		end
+
+		return array
+	end
+
+	return json.object({ closed = steps(result.closed), passed = steps(result.passed) })
+end
+
 -- Adds an item the app built, at the id and position it chose. The id must be free, and a group must be a group.
 local function addItem(doc: Doc, operation: Operation)
 	local id = required(operation.id, "id")
@@ -101,6 +138,8 @@ local function addItem(doc: Doc, operation: Operation)
 		data = required(operation.data, "data"),
 	}
 
+	-- A card is added as it is, so one pasted from a card still waiting to be closed out doesn't wait too.
+	item.data.celebrate = nil
 	table.insert(doc.nodes, item)
 end
 
@@ -109,10 +148,14 @@ handlers.addNote = addItem
 handlers.addImage = addItem
 handlers.addGroup = addItem
 
--- Replaces an item's data with the data the app holds for it.
+-- Replaces a group's or image's data with the data the app holds for it. Cards change through setFields, so no client
+-- skips their field rules.
 handlers.setData = function(doc: Doc, operation: Operation)
 	local data = required(operation.data, "data")
-	getItem(doc, required(operation.id, "id")).data = data
+	local id = required(operation.id, "id")
+	local item = getItem(doc, id)
+	assert(item.type ~= "task", `"{id}" is a card; change its fields with setFields`)
+	item.data = data
 end
 
 -- Sets an item's stored size, or drops it when `clear` is set.
@@ -139,19 +182,28 @@ handlers.setStickerLoadout = function(doc: Doc, operation: Operation)
 	setRawValue(doc, "stickerLoadout", required(operation.stickerLoadout, "stickerLoadout"))
 end
 
--- Applies one operation and returns its inverse. A failed operation leaves the document as it was.
-local function applyOperation(doc: Doc, operation: Operation): Restore
+-- Applies one operation and returns its inverse, and what the operation answered, if anything. A failed operation
+-- leaves the document as it was.
+local function applyOperation(doc: Doc, operation: Operation): (Restore, json.Value?)
 	local handler = handlers[operation.op]
-	assert(handler, `unknown operation: {operation.op}`)
+	local answerer = answering[operation.op]
+	assert(handler or answerer, `unknown operation: {operation.op}`)
 	local before = captureDoc(doc)
-	local succeeded, failure = pcall(handler, doc, operation)
+	local answer: json.Value? = nil
+	local succeeded, failure = pcall(function()
+		if answerer then
+			answer = answerer(doc, operation)
+		else
+			handler(doc, operation)
+		end
+	end)
 
 	if not succeeded then
 		restoreDoc(doc, diffDocs(before, doc))
 		error(failure, 0)
 	end
 
-	return diffDocs(before, doc)
+	return diffDocs(before, doc), answer
 end
 
 return applyOperation

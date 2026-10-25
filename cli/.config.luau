@@ -11,4 +11,9 @@ return {
 			repo = "./",
 		},
 	},
+	lute = {
+		lint = {
+			rulepaths = { "./lints" },
+		},
+	},
 }

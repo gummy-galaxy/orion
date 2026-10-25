@@ -22,29 +22,29 @@ orion card list [options]
 | `--all`           | Include done items           |
 | `--json`          | Print JSON                   |
 
-## orion card add
+## orion card create
 
 Add a work item
 
 ```sh
-orion card add [options] [label...]
+orion card create [options] [label...]
 ```
 
-| Argument           | Description                                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `[label...]`       | What the work is                                                                                             |
-| `--group <value>`  | Group to add it to                                                                                           |
-| `--after <value>`  | Item the card follows; it lands beside it, in its group                                                      |
-| `--before <value>` | Item the card leads into; it lands beside it, in its group                                                   |
-| `--status <value>` | todo, active, review, blocked, deferred, or done                                                             |
-| `--repo <value>`   | Repository it belongs to, as owner/name (empty to clear)                                                     |
-| `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                              |
-| `--note <value>`   | Free-form note (empty to clear)                                                                              |
-| `--shape <value>`  | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)     |
-| `--color <value>`  | A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                        |
-| `--kind <value>`   | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work |
-| `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch        |
-| `--json`           | Print JSON                                                                                                   |
+| Argument           | Description                                                                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[label...]`       | What the work is                                                                                                                                      |
+| `--group <value>`  | Group to add it to                                                                                                                                    |
+| `--after <value>`  | Item the card follows; it lands beside it, in its group                                                                                               |
+| `--before <value>` | Item the card leads into; it lands beside it, in its group                                                                                            |
+| `--status <value>` | todo, active, review, blocked, deferred, or done                                                                                                      |
+| `--repo <value>`   | Repository it belongs to, as owner/name (empty to clear)                                                                                              |
+| `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                                                                       |
+| `--note <value>`   | Free-form note (empty to clear)                                                                                                                       |
+| `--shape <value>`  | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)                                              |
+| `--color <value>`  | A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                                                                 |
+| `--kind <value>`   | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work. A note given a kind becomes a work item |
+| `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch                                                 |
+| `--json`           | Print JSON                                                                                                                                            |
 
 ## orion card set
 
@@ -54,19 +54,19 @@ Change an item's fields
 orion card set [id] [options]
 ```
 
-| Argument           | Description                                                                                                  |
-| ------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `[id]`             | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86                    |
-| `--label <value>`  | New label                                                                                                    |
-| `--status <value>` | todo, active, review, blocked, deferred, or done                                                             |
-| `--repo <value>`   | Repository it belongs to, as owner/name (empty to clear)                                                     |
-| `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                              |
-| `--note <value>`   | Free-form note (empty to clear)                                                                              |
-| `--shape <value>`  | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)     |
-| `--color <value>`  | A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                        |
-| `--kind <value>`   | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work |
-| `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch        |
-| `--json`           | Print JSON                                                                                                   |
+| Argument           | Description                                                                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[id]`             | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86                                                             |
+| `--label <value>`  | New label                                                                                                                                             |
+| `--status <value>` | todo, active, review, blocked, deferred, or done                                                                                                      |
+| `--repo <value>`   | Repository it belongs to, as owner/name (empty to clear)                                                                                              |
+| `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                                                                       |
+| `--note <value>`   | Free-form note (empty to clear)                                                                                                                       |
+| `--shape <value>`  | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)                                              |
+| `--color <value>`  | A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                                                                 |
+| `--kind <value>`   | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work. A note given a kind becomes a work item |
+| `--ref <value>`    | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch                                                 |
+| `--json`           | Print JSON                                                                                                                                            |
 
 ## orion card timeline
 
@@ -97,6 +97,21 @@ orion card done [options] [ids...]
 | `--dry-run`             | Preview changes and current revision without writing |
 | `--if-revision <value>` | Write only if the document has this revision         |
 | `--json`                | Print JSON                                           |
+
+## orion card chain-close
+
+Close out a done card and the waiting done cards chained to it, so their Done stamps show
+
+```sh
+orion card chain-close [id] [options]
+```
+
+| Argument                | Description                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------- |
+| `[id]`                  | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `--dry-run`             | Preview the chain and current revision without writing                                    |
+| `--if-revision <value>` | Write only if the document has this revision                                              |
+| `--json`                | Print JSON                                                                                |
 
 ## orion card import
 

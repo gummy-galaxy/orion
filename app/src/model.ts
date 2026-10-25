@@ -54,8 +54,7 @@ export type TaskData = {
   snoozedUntil?: string
   /**
    * True while a card finished outside the app waits to be closed out. The CLI store sets it on every path that
-   * finishes a card and clears it on reopen. The app sends false when it finishes a card itself, so the store
-   * closes it out at once and drops the flag.
+   * finishes a card and clears it on reopen. Finishing a card in the app sends a closeOut with it, so it never waits.
    */
   celebrate?: boolean
 }
@@ -221,28 +220,6 @@ export function getPullRequestNumber(ref: SourceRef | undefined): number | undef
   const number = Number(ref.key.match(/#([1-9]\d*)$/)?.[1])
 
   return Number.isSafeInteger(number) && number > 0 ? number : undefined
-}
-
-export function editPullRef(data: TaskData, repo: string | undefined, number: number | undefined): Pick<TaskData, 'repo' | 'refs' | 'itemKind'> {
-  const repository = repo?.trim()
-  const key = repository && number ? `${repository}#${number}` : undefined
-  const existingPullRef = getPullRef(data)
-  const remainingRefs = data.refs?.filter((ref) => ref.kind !== 'pull') ?? []
-  const pullRef: SourceRef | undefined = key
-    ? existingPullRef?.key.toLowerCase() === key.toLowerCase()
-      ? existingPullRef
-      : { source: 'github', kind: 'pull', key, url: `https://github.com/${repository}/pull/${number}` }
-    : undefined
-  const refs = [...(pullRef ? [pullRef] : []), ...remainingRefs]
-
-  return { repo, refs: refs.length ? refs : undefined, itemKind: getItemKind({ ...data, repo, refs }) }
-}
-
-/** A card's kind from its repository and pull request. Gates, notes, and components keep their kind. */
-export function getItemKind(data: Pick<TaskData, 'itemKind' | 'repo' | 'refs'>): ItemKind {
-  if (data.itemKind === 'gate' || data.itemKind === 'note' || data.itemKind === 'component') return data.itemKind
-
-  return getPullRef(data) ? 'pr' : data.repo ? 'placeholder' : 'step'
 }
 
 export function getTaskTag(data: TaskData): string {

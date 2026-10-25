@@ -17,7 +17,8 @@ export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; sti
 export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot; derived?: Derived }
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string }
-export type CommitResult = { ok: true; revision: number } | { ok: false; conflict: boolean }
+/** `results` holds what each operation answered, such as a chain close's cards, or null, in the order sent. */
+export type CommitResult = { ok: true; revision: number; results: unknown[] } | { ok: false; conflict: boolean; message?: string }
 export type Workspaces = { active: string; canvases: { name: string; label: string }[] }
 /** What `orion reveal` asked the open app to select and frame, on the canvas named. */
 export type Reveal = { canvas: string; ids: string[]; selectOnly: boolean }
@@ -263,9 +264,15 @@ export async function commitOperations(workspace: string, baseRevision: number |
       body: JSON.stringify({ baseRevision, operations }),
     })
 
-    if (response.ok) return { ok: true, revision: (await response.json()).revision }
+    if (response.ok) {
+      const body = (await response.json()) as { revision: number; results?: unknown[] }
 
-    return { ok: false, conflict: response.status === 409 }
+      return { ok: true, revision: body.revision, results: body.results ?? [] }
+    }
+
+    const failure = (await response.json().catch(() => ({}))) as { error?: unknown }
+
+    return { ok: false, conflict: response.status === 409, message: typeof failure.error === 'string' ? failure.error : undefined }
   } catch {
     return { ok: false, conflict: false }
   }

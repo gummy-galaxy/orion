@@ -49,7 +49,7 @@ Each side runs its own CLI because the app and the server change together. An ap
 
 Give each app its own copy of the data. Never point either at the real data folder, since `orion server start` writes to it, and a branch's CLI moves it to a layout the installed app can't read. Set `ORION_DATA_DIR` on every command that runs either tree's CLI, Vite included: the before tree may predate the dev server's scratch folder.
 
-Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once with the before tree's CLI, since newer builds read older data. Run `"$BEFORE/cli/build/orion" --help` for its commands, such as `card add`, `link add`, and `group add`, and run each with `ORION_DATA_DIR="$SCRATCH/seed-data"`. `canvas check` reports groups waiting for layout on a fresh sample and exits nonzero, which is expected: the app settles them when it opens. Then copy the sample to each side:
+Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once with the before tree's CLI, since newer builds read older data. Run `"$BEFORE/cli/build/orion" --help` for its commands, such as `card create`, `link create`, and `group create`, and run each with `ORION_DATA_DIR="$SCRATCH/seed-data"`. `canvas check` reports groups waiting for layout on a fresh sample and exits nonzero, which is expected: the app settles them when it opens. Then copy the sample to each side:
 
 ```sh
 for side in before after; do

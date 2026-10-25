@@ -34,7 +34,7 @@ return table.freeze({
 		parser:add(
 			"cover",
 			"option",
-			{ help = "Image asset id for the cover, from orion media insert --json (empty to clear)" }
+			{ help = "Image asset id for the cover, from orion media add --json (empty to clear)" }
 		)
 		parser:add(
 			"background",
@@ -61,10 +61,10 @@ return table.freeze({
 		checkStyleAssets(options.dir, values.background)
 
 		local changed: Item
-		local doc = runTransaction(options.dir, function(doc)
-			local id = resolveId(doc, idInput)
-			assert(isGroup(getItem(doc, id)), `"{id}" is an item; use orion card set`)
-			changed = setFields(doc, id, values)
+		local doc = runTransaction(options.dir, function(current)
+			local id = resolveId(current, idInput)
+			assert(isGroup(getItem(current, id)), `"{id}" is an item; use orion card set`)
+			changed = setFields(current, id, values)
 		end)
 
 		writeItem(options, doc, changed, "Updated")

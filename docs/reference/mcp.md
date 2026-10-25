@@ -16,11 +16,11 @@ Runs `orion card list`.
 | `group`  | id      | Only items inside this group                           |
 | `all`    | boolean | Include done items                                     |
 
-## orion_card_add
+## orion_card_create
 
 Add a work item
 
-Runs `orion card add`.
+Runs `orion card create`.
 
 | Argument | Type                                                                   | Description                                                                                                                                                                                                          |
 | -------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -35,7 +35,7 @@ Runs `orion card add`.
 | `note`   | string                                                                 | Free-form note. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
 | `shape`  | service \| store \| actor \| external \| interface \| process \| queue | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)                                                                                                             |
 | `color`  | teal \| blue \| purple \| amber \| rose \| green \| slate              | A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                                                                                                                                |
-| `kind`   | step \| gate \| component                                              | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work                                                                                                         |
+| `kind`   | step \| gate \| component                                              | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work. A note given a kind becomes a work item                                                                |
 | `ref`    | string                                                                 | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch                                                                                                                |
 
 ## orion_card_set
@@ -55,7 +55,7 @@ Runs `orion card set`.
 | `note`   | string                                                                       | Replaces the whole note, and empty clears it. Write it as a plain-language summary: Markdown for structure, code formatting for code, file paths, and identifiers, and no pull request or issue links in the text. Attach those as refs on a card. |
 | `shape`  | service \| store \| actor \| external \| interface \| process \| queue \| "" | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)                                                                                                                                           |
 | `color`  | teal \| blue \| purple \| amber \| rose \| green \| slate \| ""              | A component's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                                                                                                                                                              |
-| `kind`   | step \| gate \| component                                                    | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work                                                                                                                                       |
+| `kind`   | step \| gate \| component                                                    | step; gate for one that's done once everything it waits on is; or component for a part of a system, not work. A note given a kind becomes a work item                                                                                              |
 | `ref`    | string                                                                       | Attach outside work: a GitHub or Jira URL, source:key such as jira:ABC-1, or branch:owner/name@branch                                                                                                                                              |
 
 ## orion_card_timeline
@@ -83,6 +83,19 @@ Runs `orion card done`.
 | `where`      | string      | Select targets with an expression instead of ids       |
 | `dryRun`     | boolean     | Preview changes and current revision without writing   |
 | `ifRevision` | integer     | Write only if the document has this revision           |
+
+## orion_card_chain-close
+
+Close out a done card and every waiting done card chained to it through finished cards, the same as double-clicking a shimmering card in the app. Closing out a chain is the person's reward for finishing it, so don't close out on your own: finishing a card with orion_card_done leaves it waiting for them. Close out only when the person asks.
+
+Runs `orion card chain-close`.
+
+| Argument     | Type    | Description                                                                                             |
+| ------------ | ------- | ------------------------------------------------------------------------------------------------------- |
+| `id`         | id      | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                  |
+| `dryRun`     | boolean | Preview the chain and current revision without writing                                                  |
+| `ifRevision` | integer | Write only if the document has this revision                                                            |
 
 ## orion_card_import
 
@@ -127,11 +140,11 @@ Runs `orion card unsnooze`.
 | `dryRun`     | boolean     | Preview changes and current revision without writing   |
 | `ifRevision` | integer     | Write only if the document has this revision           |
 
-## orion_note_add
+## orion_note_create
 
 Add a note, optionally between two linked items
 
-Runs `orion note add`.
+Runs `orion note create`.
 
 | Argument | Type   | Description                                                                                                                                                                                                                   |
 | -------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -141,11 +154,11 @@ Runs `orion note add`.
 | `after`  | id     | Item the note follows                                                                                                                                                                                                         |
 | `before` | id     | Item the note leads into                                                                                                                                                                                                      |
 
-## orion_link_add
+## orion_link_create
 
 Link each adjacent pair of items
 
-Runs `orion link add`.
+Runs `orion link create`.
 
 | Argument     | Type        | Description                                            |
 | ------------ | ----------- | ------------------------------------------------------ |
@@ -264,27 +277,16 @@ Runs `orion group list`.
 
 ## orion_group_create
 
-Make an empty group, optionally inside another
+Make a group: empty, optionally inside another, or wrapping items that share a parent
 
 Runs `orion group create`.
 
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `label`  | string | **Required.** Group name                               |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-| `in`     | id     | Group to make it inside                                |
-
-## orion_group_add
-
-Wrap items that share a parent in a new group
-
-Runs `orion group add`.
-
-| Argument | Type        | Description                                               |
-| -------- | ----------- | --------------------------------------------------------- |
-| `label`  | string      | **Required.** Group name                                  |
-| `canvas` | canvas      | Canvas name. Omit to use the canvas selected in Orion.    |
-| `items`  | string list | **Required.** Comma-separated ids to put in it (required) |
+| Argument | Type        | Description                                                |
+| -------- | ----------- | ---------------------------------------------------------- |
+| `label`  | string      | **Required.** Group name                                   |
+| `canvas` | canvas      | Canvas name. Omit to use the canvas selected in Orion.     |
+| `items`  | string list | Comma-separated ids to wrap; the group goes where they are |
+| `in`     | id          | Group to make an empty group inside                        |
 
 ## orion_group_remove
 
@@ -313,7 +315,7 @@ Runs `orion group set`.
 | `label`      | string                                                          | New label                                                                                               |
 | `blurb`      | string                                                          | Group description                                                                                       |
 | `arrange`    | auto \| custom                                                  | How reflow arranges a group: auto (default) flows by dependency, custom keeps items where they are      |
-| `cover`      | string                                                          | Image asset id for the cover, from orion media insert --json (empty to clear)                           |
+| `cover`      | string                                                          | Image asset id for the cover, from orion media add --json (empty to clear)                              |
 | `background` | string                                                          | Color, color token such as card.background, or image asset id (empty to clear)                          |
 | `header`     | string                                                          | Markdown with layout HTML shown under the group's title (empty to clear)                                |
 | `color`      | teal \| blue \| purple \| amber \| rose \| green \| slate \| "" | The group's tint: teal, blue, purple, amber, rose, green, or slate (empty to clear)                     |
@@ -387,9 +389,10 @@ List canvases and mark the active one
 
 Runs `orion canvas list`.
 
-| Argument   | Type    | Description                    |
-| ---------- | ------- | ------------------------------ |
-| `archived` | boolean | List archived canvases instead |
+| Argument   | Type    | Description                                            |
+| ---------- | ------- | ------------------------------------------------------ |
+| `canvas`   | canvas  | Canvas name. Omit to use the canvas selected in Orion. |
+| `archived` | boolean | List archived canvases instead                         |
 
 ## orion_canvas_create
 
@@ -422,7 +425,7 @@ Runs `orion canvas set`.
 | Argument     | Type   | Description                                                                    |
 | ------------ | ------ | ------------------------------------------------------------------------------ |
 | `canvas`     | canvas | Canvas name. Omit to use the canvas selected in Orion.                         |
-| `cover`      | string | Image asset id for the cover, from orion media insert --json (empty to clear)  |
+| `cover`      | string | Image asset id for the cover, from orion media add --json (empty to clear)     |
 | `background` | string | Color, color token such as card.background, or image asset id (empty to clear) |
 | `header`     | string | Markdown with layout HTML shown over the top of the canvas (empty to clear)    |
 
@@ -498,7 +501,9 @@ Report the running Orion server
 
 Runs `orion server status`.
 
-Takes no arguments.
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
 ## orion_source_list
 
@@ -569,11 +574,11 @@ Runs `orion ingest`.
 | `dryRun` | boolean | Show changes without writing                           |
 | `source` | string  | Only ingest this source id                             |
 
-## orion_media_insert
+## orion_media_add
 
 Insert a media node from a file
 
-Runs `orion media insert`.
+Runs `orion media add`.
 
 | Argument | Type   | Description                                                                                           |
 | -------- | ------ | ----------------------------------------------------------------------------------------------------- |
@@ -682,6 +687,7 @@ Runs `orion theme add`.
 | Argument | Type   | Description                                                                               |
 | -------- | ------ | ----------------------------------------------------------------------------------------- |
 | `file`   | string | **Required.** Absolute path to a local .json theme file with light and dark token values. |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                    |
 
 ## orion_theme_list
 
@@ -689,7 +695,9 @@ List the theme files in the data folder
 
 Runs `orion theme list`.
 
-Takes no arguments.
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
 ## orion_theme_remove
 
@@ -697,9 +705,10 @@ Delete a theme file from the data folder
 
 Runs `orion theme remove`.
 
-| Argument | Type   | Description                                           |
-| -------- | ------ | ----------------------------------------------------- |
-| `file`   | string | **Required.** Theme file name, as theme list shows it |
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `file`   | string | **Required.** Theme file name, as theme list shows it  |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
 ## orion_backup_list
 

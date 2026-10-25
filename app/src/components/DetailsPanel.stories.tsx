@@ -12,7 +12,14 @@ export const Default: Story = {
   render: () => (
     <div style={{ display: 'flex', height: 600 }}>
       <DetailsPanel hide={() => {}}>
-        <NoteInspector node={note} focus={false} doneEditing={() => {}} update={() => {}} remove={() => {}} />
+        <NoteInspector
+          node={note}
+          focus={false}
+          doneEditing={() => {}}
+          update={() => {}}
+          saveFields={() => Promise.resolve(null)}
+          remove={() => {}}
+        />
       </DetailsPanel>
     </div>
   ),

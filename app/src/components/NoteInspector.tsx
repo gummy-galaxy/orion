@@ -1,3 +1,4 @@
+import type { SaveFields } from '../fields/types'
 import type { AppNode, TaskData } from '../model'
 
 export function NoteInspector({
@@ -5,12 +6,15 @@ export function NoteInspector({
   focus,
   doneEditing,
   update,
+  saveFields,
   remove,
 }: {
   node: AppNode
   focus: boolean
   doneEditing: () => void
   update: (id: string, patch: Partial<TaskData>) => void
+  /** Saves fields the server checks, and resolves once it answers. */
+  saveFields: SaveFields
   remove: () => void
 }) {
   const data = node.data as TaskData
@@ -29,7 +33,7 @@ export function NoteInspector({
       />
       <p className="facts">Notes pass blocking through but never count as work.</p>
       <div className="row">
-        <button type="button" className="btn" onClick={() => update(node.id, { itemKind: 'step', status: 'todo' })}>
+        <button type="button" className="btn" onClick={() => void saveFields(node.id, { kind: 'step', status: 'todo' })}>
           Turn into a work item
         </button>
         <button type="button" className="btn danger" onClick={remove}>

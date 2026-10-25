@@ -42,7 +42,7 @@ local function addFieldOptions(parser: cli.Parser, clearing: boolean)
 		values = getValues(fieldValues.colors),
 	})
 	addArgument(parser, "kind", "option", {
-		help = "step; gate for one that's done once everything it waits on is; or component for a part of a system, not work",
+		help = "step; gate for one that's done once everything it waits on is; or component for a part of a system, not work. A note given a kind becomes a work item",
 		type = "enum",
 		values = fieldValues.kinds,
 	})
