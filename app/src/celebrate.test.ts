@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { CHAIN_BEATS_MS, CHAIN_STEP_MS, celebrationDelays, clearCelebrations, closesOut, finishedHops, patchTaskData } from './celebrate'
+import {
+  CHAIN_BEATS_MS,
+  CHAIN_STEP_MS,
+  celebrationDelays,
+  chainBeats,
+  chainFinale,
+  chainPulses,
+  clearCelebrations,
+  closesOut,
+  finishedHops,
+  patchTaskData,
+} from './celebrate'
 import { isTask, type AppNode, type ItemKind, type Link, type Status, type TaskData, type TaskNode } from './model'
 
 const task = (id: string, status: Status = 'todo', extra: Partial<TaskData> = {}, itemKind: ItemKind = 'step'): AppNode => ({
@@ -120,6 +131,59 @@ describe('celebrationDelays', () => {
     const delays = celebrationDelays('t0', nodes, links, finished(nodes))
 
     expect(Math.max(...delays.values())).toBe(1250 + 5 * CHAIN_STEP_MS)
+  })
+})
+
+describe('chainPulses', () => {
+  it('runs a pulse along each blocking link from the earlier beat to the later one, over the gap between them', () => {
+    const beats = new Map([
+      ['up', 500],
+      ['start', 150],
+      ['down', 500],
+    ])
+    const links = [link('up', 'start'), link('start', 'down')]
+
+    expect([...chainPulses(beats, links, 500)]).toEqual([
+      ['up>start', { delayMs: 150, durationMs: 350, reverse: true }],
+      ['start>down', { delayMs: 150, durationMs: 350, reverse: false }],
+    ])
+  })
+
+  it('skips related links and links between cards on the same beat', () => {
+    const beats = new Map([
+      ['a', 150],
+      ['b', 500],
+      ['c', 500],
+    ])
+    const links = [link('a', 'b', 'related'), link('b', 'c')]
+
+    expect(chainPulses(beats, links, 500).size).toBe(0)
+  })
+
+  it('crosses a card closed out before, and stops at the last card that clears', () => {
+    const nodes = [task('a', 'done', { celebrate: true }), task('b', 'done'), task('c', 'done', { celebrate: true }), task('d', 'done')]
+    const links = [link('a', 'b'), link('b', 'c'), link('c', 'd')]
+    const delays = celebrationDelays('a', nodes, links, finished(nodes))
+
+    const pulses = chainPulses(chainBeats('a', links, finished(nodes)), links, Math.max(...delays.values()))
+
+    expect([...pulses.keys()]).toEqual(['a>b', 'b>c'])
+  })
+})
+
+describe('chainFinale', () => {
+  it('picks every card on the last beat', () => {
+    const delays = new Map([
+      ['a', 150],
+      ['b', 500],
+      ['c', 500],
+    ])
+
+    expect([...chainFinale(delays)]).toEqual(['b', 'c'])
+  })
+
+  it('gives a lone card the finale, so closing out one card still resolves', () => {
+    expect([...chainFinale(new Map([['a', 150]]))]).toEqual(['a'])
   })
 })
 

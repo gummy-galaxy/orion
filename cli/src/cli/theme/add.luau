@@ -1,6 +1,7 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local addThemeFile = require("@root/themes/addThemeFile")
 local context = require("@root/cli/context")
 
@@ -8,8 +9,12 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Copy a theme file into the data folder, where the app lists it",
+	mcp = {},
 	define = function(parser: cli.Parser)
-		parser:add("file", "positional", { help = "Theme file (JSON with light and dark token values)" })
+		addArgument(parser, "file", "positional", {
+			help = "Theme file (JSON with light and dark token values)",
+			mcp = { description = "Absolute path to a local .json theme file with light and dark token values." },
+		})
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 	run = function(parser: cli.Parser, options: Context)

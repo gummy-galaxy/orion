@@ -1,5 +1,5 @@
 local findItem = require("@root/graph/findItem")
-local findPlacement = require("@root/graph/findPlacement")
+local findPlacementById = require("@root/graph/findPlacementById")
 local getGroup = require("@root/graph/getGroup")
 local getItem = require("@root/graph/getItem")
 local getPlacements = require("@root/graph/getPlacements")
@@ -11,7 +11,7 @@ type Placement = types.Placement
 type Position = types.Position
 
 local function isTaken(doc: Doc, id: string): boolean
-	return findItem(doc, id) ~= nil or findPlacement(doc, id) ~= nil
+	return findItem(doc, id) ~= nil or findPlacementById(doc, id) ~= nil
 end
 
 local function getFreeId(doc: Doc, base: string): string

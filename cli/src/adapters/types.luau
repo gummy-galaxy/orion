@@ -29,13 +29,15 @@ export type Record = {
 	keepPullKind: boolean?,
 }
 
-export type Context = { now: string, since: string, doc: Doc }
+-- `commands` holds the programs this machine runs for the canvas's sources, by source id, from `readSourceCommands`.
+export type Context = { now: string, since: string, doc: Doc, commands: { [string]: { string } } }
 -- Records found by lookupRefs, keyed by getRefKey. Refs missing from both maps were not found.
 export type LookupResult = { records: { [string]: Record }, failures: { [string]: string } }
-export type RefreshOptions = { discover: boolean, now: string }
+export type RefreshOptions = { now: string }
 export type Adapter = {
 	kind: string,
-	createSource: ({ [string]: { string } }) -> Source,
+	-- Returns the source and, for a kind that runs a program, the command this machine runs for it.
+	createSource: ({ [string]: { string } }) -> (Source, { string }?),
 	collect: (Source, CommandRunner, Context) -> { Record },
 	-- Fetches against a snapshot of the workspace and returns the step that applies the results, so callers can fetch
 	-- outside the workspace lock and take it only to apply.

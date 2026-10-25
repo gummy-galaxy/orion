@@ -5,6 +5,7 @@ local process = require("@std/process")
 local test = require("@std/test")
 
 local applyOperations = require("@root/operations/applyOperations")
+local decodeDoc = require("@root/store/decodeDoc")
 local encodeDocObject = require("@root/store/encodeDocObject")
 local getBackups = require("@root/store/getBackups")
 local getDocPath = require("@root/store/getDocPath")
@@ -126,7 +127,7 @@ test.case("concurrent CLI writers never lose a change", function(assert)
 	-- Each writer adds its cards one at a time while the others do the same.
 	local script = [[
 for writer in $(seq 1 "$3"); do
-	(for write in $(seq 1 "$4"); do output=$("$1" run "$2" card add "card-$writer-$write" --canvas default 2>&1) || { echo "$output" >&2; exit 1; }; done) &
+	(for write in $(seq 1 "$4"); do output=$("$1" run "$2" card create "card-$writer-$write" --canvas default 2>&1) || { echo "$output" >&2; exit 1; }; done) &
 done
 failed=0
 for job in $(jobs -p); do wait "$job" || failed=1; done
@@ -185,8 +186,8 @@ end)
 test.case("an operation list from the app keeps what other writers own", function(assert)
 	local dir = testing.directory("save-keeps-others")
 	fs.createDirectory(dir, { makeParents = true })
-	fs.writeStringToFile(
-		getDocPath(dir),
+	testing.writeCanvasText(
+		dir,
 		[[{"version":2,"revision":4,"settings":{"sources":[{"id":"gh","kind":"github","owners":["vocksel"]}]},"github":{"viewer":"vocksel"},"future":{"kept":true},"nodes":[],"links":[]}]]
 	)
 
@@ -200,7 +201,7 @@ test.case("an operation list from the app keeps what other writers own", functio
 	end)
 	assert.eq(doc.revision, 5)
 
-	local saved = json.asObject(json.deserialize(fs.readFileToString(getDocPath(dir))) :: json.Value) :: json.Object
+	local saved = json.asObject(json.deserialize(testing.readCanvasText(dir)) :: json.Value) :: json.Object
 	local settings = json.asObject(saved.settings) :: json.Object
 	local sources = json.asArray(settings.sources) :: json.Array
 	assert.eq((json.asObject(sources[1]) :: json.Object).id, "gh")
@@ -234,13 +235,12 @@ test.case("an operation list closes out the cards the app finished and closed ou
 	local saved = loadDoc(dir)
 	assert.eq(saved.nodes[1].data.celebrate, nil)
 	assert.eq(saved.nodes[2].data.celebrate, nil)
-	assert.strNotContains(fs.readFileToString(getDocPath(dir)), "celebrate")
+	assert.strNotContains(testing.readCanvasText(dir), "celebrate")
 end)
 
 test.case("a transaction backs up the revision it replaces", function(assert)
 	local dir = testing.directory("transaction-backup")
 	writeDoc(dir, testing.createDoc({ testing.task("a", "Before", "todo") }))
-	local before = fs.readFileToString(getDocPath(dir))
 	runTransaction(dir, function(doc)
 		doc.nodes[1].data.label = "After"
 	end)
@@ -248,6 +248,6 @@ test.case("a transaction backs up the revision it replaces", function(assert)
 	local backups = getBackups(dir)
 	assert.eq(#backups, 1)
 	assert.eq(backups[1].revision, 0)
-	assert.eq(fs.readFileToString(backups[1].file), before)
+	assert.eq(decodeDoc(fs.readFileToString(backups[1].file)).nodes[1].data.label, "Before")
 	assert.eq(loadDoc(dir).nodes[1].data.label, "After")
 end)

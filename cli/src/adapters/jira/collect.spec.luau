@@ -10,15 +10,14 @@ local NOW = "2026-10-04T00:00:00Z"
 
 test.case("Jira adapter parses issue state and details into records", function(assert)
 	local doc = testing.createDoc({})
-	local source: Source =
-		{ id = "jira", kind = "jira", command = { "acli", "jira" }, browse = "https://jira.example.com/browse" }
+	local source: Source = { id = "jira", kind = "jira", browse = "https://jira.example.com/browse" }
 	local records = collect(source, function(argv)
 		assert.eq(argv, { "acli", "jira" })
 		return testing.result(
 			true,
 			'{"issues":[{"key":"ABC-1","fields":{"summary":"Work","status":{"name":"Done","statusCategory":{"key":"done"}},"issuetype":{"name":"Story"},"epic":{"key":"ABC-0","summary":"Epic"},"updated":"2026-10-03T00:00:00Z"}}]}'
 		)
-	end, { now = NOW, since = "2026-09-20", doc = doc })
+	end, { now = NOW, since = "2026-09-20", doc = doc, commands = { jira = { "acli", "jira" } } })
 	assert.eq(#records, 1)
 	assert.eq(records[1].ref.key, "ABC-1")
 	assert.eq(records[1].ref.url, "https://jira.example.com/browse/ABC-1")

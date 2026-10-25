@@ -2,7 +2,7 @@
  * Focus on one card: the canvas zooms onto it, and everything it waits on and
  * leads to lines up in scrolling columns on either side, wired into its edges.
  */
-import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { Rect } from './AttentionOverlay'
 import type { Flow } from '../derive'
 import { STATUS_LABEL, type ViewStatus } from '../model'
@@ -10,12 +10,6 @@ import { StatusIcon } from './StatusIcon'
 
 /** Lines from cards scrolled out of a column stop this far inside its edge. */
 const CLIP_INSET = 6
-const DETAILS_GAP = 24
-/** Room kept clear at the top for the bar with the way back. */
-const DETAILS_TOP = 64
-const DETAILS_MIN_WIDTH = 300
-const DETAILS_MAX_WIDTH = 440
-const DETAILS_MIN_HEIGHT = 160
 
 export type FocusItem = {
   id: string
@@ -48,7 +42,6 @@ export function FocusView({
   outgoing,
   onFocus,
   onExit,
-  children,
 }: {
   label: string
   /** The focused card on screen, relative to the canvas. */
@@ -59,8 +52,6 @@ export function FocusView({
   outgoing: FocusItem[]
   onFocus: (id: string) => void
   onExit: () => void
-  /** The card's details, shown above it. */
-  children?: ReactNode
 }) {
   const root = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
@@ -195,19 +186,6 @@ export function FocusView({
       </svg>
       {column('in', incoming)}
       {column('out', outgoing)}
-      {children && (
-        <div
-          className="focus-details panel"
-          style={{
-            left: card.x + card.width / 2,
-            top: card.y - DETAILS_GAP,
-            width: clamp(card.width, DETAILS_MIN_WIDTH, DETAILS_MAX_WIDTH),
-            maxHeight: Math.max(DETAILS_MIN_HEIGHT, card.y - DETAILS_GAP - DETAILS_TOP),
-          }}
-        >
-          {children}
-        </div>
-      )}
       <div className="focus-bar panel">
         <strong title={label}>{label}</strong>
         <button type="button" className="btn" onClick={onExit}>

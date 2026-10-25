@@ -1,19 +1,6 @@
+import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import type { CardSize } from './cardSize'
-import {
-  absolutePosition,
-  ancestors,
-  byId,
-  descendants,
-  isCluster,
-  isImage,
-  isTask,
-  normalize,
-  sizeOf,
-  TASK_HEIGHT,
-  TASK_WIDTH,
-  type AppNode,
-  type Link,
-} from './model'
+import { absolutePosition, ancestors, byId, descendants, isCluster, isImage, isTask, normalize, sizeOf, type AppNode, type Link } from './model'
 import { pushAside } from './pushAside'
 import { STICKER_HALF_SIZE, type Sticker } from './sticker'
 
@@ -126,15 +113,6 @@ export function copySelection(
   }
 }
 
-/** The prefix a new id starts with, matching the ones the canvas gives new cards, notes, components, groups, and images. */
-function idPrefix(node: AppNode): string {
-  if (isCluster(node)) return 'g'
-
-  if (isImage(node)) return 'image'
-
-  return node.data.itemKind === 'note' || node.data.itemKind === 'component' ? node.data.itemKind : 'card'
-}
-
 /**
  * Places a fresh copy of a clip with its top-left at `at`, in canvas coordinates, inside `parent` or at the top level.
  * Every node, link, and sticker gets a new id that nothing in the document uses, so a clip pastes as many times as
@@ -144,23 +122,23 @@ function idPrefix(node: AppNode): string {
 export function pasteClip(
   doc: Doc,
   clip: Clip,
-  options: { at: { x: number; y: number }; parent: string | null; makeId: (prefix: string) => string; cardSize?: CardSize },
+  options: { at: { x: number; y: number }; parent: string | null; makeId: () => string; cardSize?: CardSize },
 ): Pasted {
   const cardSize = options.cardSize ?? DEFAULT_CARD_SIZE
   const nodeMap = byId(doc.nodes)
   const taken = new Set([...doc.nodes.map((node) => node.id), ...doc.links.map((link) => link.id), ...doc.stickers.map((sticker) => sticker.id)])
 
-  const freshId = (prefix: string) => {
-    let id = options.makeId(prefix)
+  const freshId = () => {
+    let id = options.makeId()
 
-    while (taken.has(id)) id = options.makeId(prefix)
+    while (taken.has(id)) id = options.makeId()
 
     taken.add(id)
 
     return id
   }
 
-  const ids = new Map(clip.nodes.map((node) => [node.id, freshId(idPrefix(node))]))
+  const ids = new Map(clip.nodes.map((node) => [node.id, freshId()]))
   const parentNode = options.parent ? nodeMap.get(options.parent) : undefined
   const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
   const pasted = clip.nodes.map((node): AppNode => {
@@ -180,12 +158,12 @@ export function pasteClip(
     const from = ids.get(link.from)!
     const to = ids.get(link.to)!
 
-    return { ...link, id: freshId(`${from}>${to}`), from, to }
+    return { ...link, id: freshId(), from, to }
   })
   const stickers = clip.stickers.map((sticker): Sticker =>
     sticker.on
-      ? { ...sticker, id: freshId('sticker'), on: ids.get(sticker.on) }
-      : { ...sticker, id: freshId('sticker'), x: options.at.x + sticker.x, y: options.at.y + sticker.y },
+      ? { ...sticker, id: freshId(), on: ids.get(sticker.on) }
+      : { ...sticker, id: freshId(), x: options.at.x + sticker.x, y: options.at.y + sticker.y },
   )
   const nodes = pushAside(
     doc.nodes,
@@ -226,7 +204,7 @@ export function moveClipAssets(clip: Clip, workspace: string, copied: ReadonlyMa
     workspace,
     nodes: clip.nodes.map((node): AppNode => {
       if (isImage(node))
-        return copied.has(node.data.asset) ? { ...node, data: { ...node.data, asset: copied.get(node.data.asset)!, workspace } } : node
+        return copied.has(node.data.asset) ? { ...node, data: { ...node.data, asset: copied.get(node.data.asset)!, canvas: workspace } } : node
 
       if (isCluster(node) && (copied.has(node.data.cover ?? '') || copied.has(node.data.background ?? '')))
         return { ...node, data: { ...node.data, cover: asset(node.data.cover), background: asset(node.data.background) } }

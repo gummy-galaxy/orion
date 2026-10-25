@@ -9,6 +9,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Take one copy of a card off the canvas and keep the card. Use node remove to delete the card everywhere",
+	mcp = { skip = "is a #122 spike; the real build decides how tools place cards" },
 	define = function(parser: cli.Parser)
 		parser:add(
 			"id",

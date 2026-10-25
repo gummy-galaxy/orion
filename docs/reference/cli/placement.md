@@ -20,6 +20,7 @@ orion placement add [id] [options]
 | ----------------- | ----------------------------------------------------------------------------------------- |
 | `[id]`            | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
 | `--group <value>` | Group to show the card in; the top level when absent                                      |
+| `--json`          | Print JSON                                                                                |
 
 ## orion placement remove
 
@@ -32,6 +33,7 @@ orion placement remove [id] [options]
 | Argument | Description                                                            |
 | -------- | ---------------------------------------------------------------------- |
 | `[id]`   | Placement id from placement list, or the card's id for its first place |
+| `--json` | Print JSON                                                             |
 
 ## orion placement list
 

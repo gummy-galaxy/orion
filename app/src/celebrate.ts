@@ -15,6 +15,15 @@ const MAX_HOPS = 8
 /** How long one stamp's clearing animation runs. `motion.duration.clear` overrides it, in the CSS too. */
 export const CLEAR_MS = 420
 
+/** How long after its stamp starts clearing a card's Done stamp starts landing. `motion.duration.fade` overrides it. */
+export const FADE_MS = 180
+
+/** How long a Done stamp takes to land. `motion.duration.stamp` overrides it. */
+export const STAMP_MS = 360
+
+/** How long the flourish on a chain's last beat runs once its Done stamp lands. `motion.duration.flourish` overrides it. */
+export const FLOURISH_MS = 640
+
 /**
  * Finished cards connected to `startId` through blocking links, each with the hops it takes to reach it.
  * The walk runs both ways and passes only through finished cards, so related links and open work stop it.
@@ -74,13 +83,62 @@ export function celebrationDelays(
 
   if (!start || !isTask(start) || !start.data.celebrate) return delays
 
-  for (const [id, hops] of finishedHops(startId, links, isFinished)) {
+  for (const [id, delay] of chainBeats(startId, links, isFinished, stepMs)) {
     const node = byId.get(id)
 
-    if (node && isTask(node) && node.data.celebrate) delays.set(id, chainDelay(hops, stepMs))
+    if (node && isTask(node) && node.data.celebrate) delays.set(id, delay)
   }
 
   return delays
+}
+
+/**
+ * The beat every finished card the chain from `startId` reaches lands on, including cards closed out before that the
+ * chain only passes through, so a pulse can cross them.
+ */
+export function chainBeats(startId: string, links: Link[], isFinished: (id: string) => boolean, stepMs = CHAIN_STEP_MS): Map<string, number> {
+  const beats = new Map<string, number>()
+
+  for (const [id, hops] of finishedHops(startId, links, isFinished)) beats.set(id, chainDelay(hops, stepMs))
+
+  return beats
+}
+
+/** A pulse running along a link from one card's beat to the next card's, so the eye follows the chain. */
+export type Pulse = {
+  /** When the pulse leaves, in milliseconds after the click: the beat of the card it starts from. */
+  delayMs: number
+  /** How long it takes to reach the next card, which is the gap until that card's beat. */
+  durationMs: number
+  /** Whether it runs against the link, from the card the link points at back to the card it leaves. */
+  reverse: boolean
+}
+
+/**
+ * The pulses for a chain closing out, keyed by link id: one along each blocking link between two cards on different
+ * beats, running from the earlier beat to the later one. Cards on the same beat, such as hops past the cap, get none,
+ * and the pulses stop at the chain's last beat, `untilMs`, rather than running on through work closed out before.
+ */
+export function chainPulses(beats: ReadonlyMap<string, number>, links: Link[], untilMs: number): Map<string, Pulse> {
+  const pulses = new Map<string, Pulse>()
+
+  for (const link of links) {
+    const from = beats.get(link.from)
+    const to = beats.get(link.to)
+
+    if (link.kind !== 'blocks' || from === undefined || to === undefined || from === to || Math.max(from, to) > untilMs) continue
+
+    pulses.set(link.id, { delayMs: Math.min(from, to), durationMs: Math.abs(to - from), reverse: to < from })
+  }
+
+  return pulses
+}
+
+/** The cards on a chain's last beat, which close it out with a flourish so even a chain of two resolves. */
+export function chainFinale(delays: ReadonlyMap<string, number>): Set<string> {
+  const last = Math.max(...delays.values())
+
+  return new Set([...delays].filter(([, delay]) => delay === last).map(([id]) => id))
 }
 
 /** Clears the celebrate flag on the given cards. Other cards are returned as they were. */

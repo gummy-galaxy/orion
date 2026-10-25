@@ -1,11 +1,13 @@
+import { TASK_HEIGHT, TASK_WIDTH } from '../geometry'
 import { memo, useContext, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { Handle, Position, useStore, type NodeProps } from '@xyflow/react'
-import { TASK_HEIGHT, TASK_WIDTH, type TaskNode } from '../model'
+import { type TaskNode } from '../model'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { ActionsContext } from '../derive'
 import {
   useCardView,
   useCelebrating,
+  useChainFinale,
   useIsHoveredCard,
   useMarked,
   usePlacementCount,
@@ -73,6 +75,8 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   // Finished work shimmers until someone closes it out, then carries a Done stamp from then on.
   const waiting = finished && !!data.celebrate && clearing === undefined
   const badged = waiting || clearing !== undefined
+  // The last beat of a chain closing out rings out from its card, so the chain ends on something.
+  const finale = useChainFinale(id) && clearing !== undefined
   const skin = useAtomValue(skinAtom, { store: skinStore })
   const className =
     view.kind === 'note'
@@ -104,6 +108,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
           Done
         </span>
       )}
+      {finale && <span className="chain-flourish" style={{ '--clear-delay': `${clearing}ms` } as CSSProperties} aria-hidden="true" />}
       {badged && (
         <button
           type="button"

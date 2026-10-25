@@ -30,16 +30,20 @@ test.case("one query looks up issues and pull requests from one repository", fun
 		"https://github.com/vocksel/orion/issues/91",
 		"https://github.com/vocksel/orion/pull/251",
 	})
-	local result = lookupRefs(resolved, { now = "", since = "", doc = testing.createDoc({}) }, function(argv)
-		table.insert(queries, argv)
-		return testing.result(
-			true,
-			[[{"data": {
+	local result = lookupRefs(
+		resolved,
+		{ now = "", since = "", doc = testing.createDoc({}), commands = {} },
+		function(argv)
+			table.insert(queries, argv)
+			return testing.result(
+				true,
+				[[{"data": {
 				"p1": {"issue": {"title": "Import a list of sources", "url": "https://github.com/vocksel/orion/issues/91"}},
 				"p2": {"pullRequest": {"title": "Add --ref", "url": "https://github.com/vocksel/orion/pull/251"}}
 			}}]]
-		)
-	end)
+			)
+		end
+	)
 
 	assert.eq(#queries, 1)
 	assert.strContains(queries[1][#queries[1]], "issue(number: 91)")
@@ -61,7 +65,7 @@ end)
 
 test.case("refs that GitHub does not return are reported as not found", function(assert)
 	local resolved = resolveAll({ "https://github.com/vocksel/orion/issues/999999" })
-	local result = lookupRefs(resolved, { now = "", since = "", doc = testing.createDoc({}) }, function()
+	local result = lookupRefs(resolved, { now = "", since = "", doc = testing.createDoc({}), commands = {} }, function()
 		return testing.result(true, nullAliases(1))
 	end)
 
@@ -71,7 +75,7 @@ end)
 
 test.case("a failed query fails every ref in its batch with the host", function(assert)
 	local resolved = resolveAll({ "https://github.com/vocksel/orion/issues/1" })
-	local result = lookupRefs(resolved, { now = "", since = "", doc = testing.createDoc({}) }, function()
+	local result = lookupRefs(resolved, { now = "", since = "", doc = testing.createDoc({}), commands = {} }, function()
 		return testing.result(false, "")
 	end)
 
@@ -85,10 +89,14 @@ test.case("many refs are looked up in batches of 25 per host", function(assert)
 	end
 
 	local calls = 0
-	local result = lookupRefs(resolveAll(urls), { now = "", since = "", doc = testing.createDoc({}) }, function()
-		calls += 1
-		return testing.result(true, nullAliases(25))
-	end)
+	local result = lookupRefs(
+		resolveAll(urls),
+		{ now = "", since = "", doc = testing.createDoc({}), commands = {} },
+		function()
+			calls += 1
+			return testing.result(true, nullAliases(25))
+		end
+	)
 
 	assert.eq(calls, 2)
 	assert.eq(result.failures["issue:vocksel/orion#30"], "not found on github.com")
@@ -101,7 +109,7 @@ test.case("refs on a configured GitHub host query that host", function(assert)
 			{ id = "gh-roblox", kind = "github", host = "github.example.com", owners = { "Roblox" } },
 		}),
 	}
-	lookupRefs(resolved, { now = "", since = "", doc = testing.createDoc({}) }, function(argv)
+	lookupRefs(resolved, { now = "", since = "", doc = testing.createDoc({}), commands = {} }, function(argv)
 		table.insert(hosts, argv)
 		return testing.result(true, nullAliases(1))
 	end)

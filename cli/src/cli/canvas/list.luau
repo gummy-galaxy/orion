@@ -8,6 +8,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List canvases and mark the active one",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("archived", "flag", { help = "List archived canvases instead" })
 		parser:add("json", "flag", { help = "Print JSON" })

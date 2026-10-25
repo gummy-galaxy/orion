@@ -8,6 +8,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Delete a theme file from the data folder",
+	mcp = { annotations = { destructiveHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("file", "positional", { help = "Theme file name, as theme list shows it" })
 		parser:add("json", "flag", { help = "Print JSON" })

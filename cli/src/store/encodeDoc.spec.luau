@@ -6,7 +6,7 @@ local encodeDoc = require("@root/store/encodeDoc")
 
 test.case("encodeDoc round-trips stack origins without adding one to hand-made links", function(assert)
 	local doc = decodeDoc(
-		[[{"nodes":[],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks","origin":"stack"},{"id":"b>c","from":"b","to":"c","kind":"related"}]}]]
+		[[{"version":2,"nodes":[],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks","origin":"stack"},{"id":"b>c","from":"b","to":"c","kind":"related"}]}]]
 	)
 	assert.eq(doc.links[1].origin, "stack")
 	assert.eq(doc.links[2].origin, nil)
@@ -20,7 +20,7 @@ end)
 
 test.case("encodeDoc round-trips link labels", function(assert)
 	local doc = decodeDoc(
-		[[{"nodes":[],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks","label":"HTTP"},{"id":"b>c","from":"b","to":"c","kind":"blocks"}]}]]
+		[[{"version":2,"nodes":[],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks","label":"HTTP"},{"id":"b>c","from":"b","to":"c","kind":"blocks"}]}]]
 	)
 	assert.eq(doc.links[1].label, "HTTP")
 	assert.eq(doc.links[2].label, nil)
@@ -34,9 +34,9 @@ end)
 
 test.case("encodeDoc round-trips top-level GitHub data and unknown fields", function(assert)
 	local doc = decodeDoc(
-		[[{"version":1,"revision":0,"settings":{"githubOwner":"flipbook-labs","futureSetting":{"kept":true}},"nodes":[],"links":[],"github":{"viewer":"vocksel","checkedAt":"now","unplaced":[]},"future":{"kept":true}}]]
+		[[{"version":2,"revision":0,"settings":{"githubOwner":"flipbook-labs","futureSetting":{"kept":true}},"nodes":[],"links":[],"github":{"viewer":"vocksel","checkedAt":"now","unplaced":[]},"future":{"kept":true}}]]
 	)
-	doc.settings.sources = { { id = "hop", kind = "hop", command = { "hop" } } }
+	doc.settings.sources = { { id = "hop", kind = "hop" } }
 	local encoded = json.asObject(json.deserialize(encodeDoc(doc)) :: json.Value)
 	local github = if encoded then json.asObject(encoded.github) else nil
 	local future = if encoded then json.asObject(encoded.future) else nil

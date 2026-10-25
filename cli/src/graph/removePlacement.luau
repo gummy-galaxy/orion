@@ -1,4 +1,4 @@
-local findPlacement = require("@root/graph/findPlacement")
+local findPlacementById = require("@root/graph/findPlacementById")
 local getItem = require("@root/graph/getItem")
 local getPlacements = require("@root/graph/getPlacements")
 local pruneEmptied = require("@root/graph/pruneEmptied")
@@ -7,7 +7,7 @@ local types = require("@root/types")
 type Doc = types.Doc
 
 local function dropPlacement(doc: Doc, id: string)
-	local _, index = findPlacement(doc, id)
+	local _, index = findPlacementById(doc, id)
 	local placements = doc.placements
 
 	if index and placements then
@@ -20,7 +20,7 @@ end
 -- Removing the node's own record moves its first copy into that record's place. The last placement can't go this
 -- way, since the node would have nowhere to be; remove the node instead.
 local function removePlacement(doc: Doc, id: string)
-	local placement = findPlacement(doc, id)
+	local placement = findPlacementById(doc, id)
 	local parentId: string?
 
 	if placement then

@@ -1,0 +1,1309 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orion Card Identity Spike</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Schibsted+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Silkscreen&display=swap">
+<style>
+/* Layout: a long specimen sheet. Sticky control rail on top; each direction is a band with a close-up deck, then the same deck at canvas zoom. */
+:root {
+  --bg: #0b0820;
+  --panel: #151036;
+  --panel-2: #1d1647;
+  --line: rgb(255 255 255 / 0.09);
+  --fg: #f2eeff;
+  --muted: #9d95c8;
+  --accent: #b45cff;
+  --fav: #ffd166;
+  --rej: #ff5e7e;
+  --ok: #18d6c0;
+  --font-display: 'Bricolage Grotesque', 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-pixel: 'Silkscreen', 'JetBrains Mono', monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 14px; line-height: 1.45; }
+.page { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 80px; max-width: 1680px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 4.4vw, 54px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.02; }
+h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 20px; font-weight: 700; }
+p { margin: 0; max-width: 72ch; }
+code, .mono { font-family: var(--font-data); font-size: 12px; }
+a { color: #d7b4ff; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+header.intro { display: grid; gap: 14px; padding-block: 36px 22px; }
+.eyebrow { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.intro p { color: #cfc8ef; font-size: 15px; }
+.tests { display: flex; flex-wrap: wrap; gap: 8px; }
+.tests span { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+
+/* Control rail */
+.rail { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 10px max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.ctl { display: flex; align-items: center; gap: 6px; }
+.ctl label { font-size: 11px; font-family: var(--font-data); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.ctl select { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 13px; max-width: 220px; }
+.ctl input[type=checkbox] { accent-color: var(--accent); }
+.rail nav { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+.rail nav a { font-size: 12px; color: var(--muted); text-decoration: none; }
+.rail nav a:hover { color: var(--fg); }
+.sync { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+
+main { display: grid; gap: 46px; padding-top: 28px; }
+main.v-gray .viz { filter: grayscale(1); }
+main.v-protan .viz { filter: url(#f-protan); }
+main.v-deutan .viz { filter: url(#f-deutan); }
+main.v-tritan .viz { filter: url(#f-tritan); }
+main.v-squint .viz { filter: blur(1.4px); }
+main.v-gray-squint .viz { filter: grayscale(1) blur(1.4px); }
+
+section > .sec-head { display: grid; gap: 8px; margin-bottom: 18px; }
+section > .sec-head p { color: #cfc8ef; }
+
+/* Direction bands */
+.dir { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: grid; gap: 16px; }
+.dir + .dir { margin-top: 18px; }
+.dir-head { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 16px; align-items: start; }
+.dir-id { font-family: var(--font-display); font-weight: 800; font-size: 40px; line-height: 0.9; color: var(--accent); min-width: 48px; }
+.dir-head h3 { font-size: 22px; }
+.dir-head p { color: #cfc8ef; margin-top: 4px; }
+.dir-tools { display: grid; gap: 8px; justify-items: end; }
+.dir-note { width: min(260px, 70vw); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 13px; }
+.deck { display: flex; flex-wrap: wrap; gap: 26px 18px; align-items: flex-end; }
+.deck.tight { gap: 18px 14px; }
+.slot { display: grid; gap: 7px; justify-items: center; }
+.rowlabel { font-family: var(--font-data); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.farwrap { background: #0c0920; border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow-x: auto; background-image: radial-gradient(#241b4f 1px, transparent 1px); background-size: 8px 8px; }
+.farrow { display: flex; gap: 10px; align-items: flex-end; flex-wrap: nowrap; }
+.farrow + .farrow { margin-top: 12px; }
+
+.tag { display: flex; align-items: center; gap: 4px; font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.mk { width: 26px; height: 24px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; display: grid; place-items: center; font-size: 13px; line-height: 1; color: var(--muted); padding: 0; }
+.mk:hover { color: var(--fg); border-color: rgb(255 255 255 / 0.25); }
+.mk.fav[aria-pressed=true] { background: color-mix(in srgb, var(--fav) 25%, var(--panel-2)); border-color: var(--fav); color: var(--fav); }
+.mk.rej[aria-pressed=true] { background: color-mix(in srgb, var(--rej) 25%, var(--panel-2)); border-color: var(--rej); color: var(--rej); }
+.marked-fav { outline: 2px solid var(--fav); outline-offset: 6px; border-radius: 12px; }
+.marked-rej { opacity: 0.4; }
+.hidden-by-filter { display: none !important; }
+
+/* Option grids (states, sources, groups, rollups, headers) */
+.opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 16px; }
+.opt { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.opt-head { display: flex; align-items: flex-start; gap: 12px; }
+.opt-head .oid { font-family: var(--font-display); font-weight: 800; font-size: 26px; color: var(--accent); line-height: 1; min-width: 40px; }
+.opt-head .otxt { flex: 1; min-width: 0; }
+.opt-head h3 { font-size: 17px; }
+.opt-head p { color: #cfc8ef; font-size: 13px; margin-top: 2px; }
+.opt .marks { display: flex; gap: 4px; }
+.opt .farwrap, .opt .closewrap { overflow-x: auto; }
+.closewrap { padding: 6px 2px; }
+.current { font-family: var(--font-data); font-size: 10px; color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 50%, transparent); border-radius: 999px; padding: 1px 7px; margin-left: 6px; vertical-align: 2px; }
+
+/* Canvas */
+.canvas-tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 12px; }
+.canvas-frame { position: relative; overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: #0c0920; background-image: radial-gradient(#241b4f 1px, transparent 1px); background-size: 8px 8px; height: min(78vh, 900px); }
+.canvas-board { position: relative; transform-origin: 0 0; }
+.test-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; }
+.btn { background: var(--panel-2); border: 1px solid rgb(255 255 255 / 0.18); border-radius: 9px; padding: 6px 12px; cursor: pointer; font-weight: 600; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #12082c; }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.score { font-family: var(--font-data); font-size: 12px; color: #cfc8ef; }
+.history { font-family: var(--font-data); font-size: 11px; color: var(--muted); display: grid; gap: 2px; margin-top: 8px; }
+.testing .cw { cursor: crosshair; }
+.cw.picked::after, .cw.hit::after, .cw.miss::after, .cw.wrong::after, .cw.reveal::after { content: ''; position: absolute; inset: -14px; border-radius: 22px; border: 6px solid #fff; pointer-events: none; z-index: 9; }
+.cw.picked::after { border-color: #fff; }
+.cw.hit::after { border-color: var(--ok); }
+.cw.miss::after { border-color: var(--fav); border-style: dashed; }
+.cw.wrong::after { border-color: var(--rej); }
+.cw.reveal::after { border-color: #fff; border-style: dashed; }
+
+/* Readout + marks */
+.readout { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 14px; }
+.verdict { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.verdict h3 { font-size: 16px; display: flex; gap: 8px; align-items: baseline; }
+.verdict .pill { font-family: var(--font-data); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 8px; border-radius: 999px; }
+.pill.holds { background: color-mix(in srgb, var(--ok) 22%, transparent); color: var(--ok); }
+.pill.partial { background: color-mix(in srgb, var(--fav) 22%, transparent); color: var(--fav); }
+.pill.fails { background: color-mix(in srgb, var(--rej) 22%, transparent); color: var(--rej); }
+.verdict p { font-size: 13px; color: #cfc8ef; }
+.marks-summary { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 10px; }
+.marks-summary .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 14px; }
+.marks-summary ul { margin: 6px 0 0; padding-left: 18px; font-family: var(--font-data); font-size: 12px; }
+.empty { color: var(--muted); font-size: 13px; }
+
+/* ============ Cards ============ */
+.cw { position: relative; flex: none; font-family: var(--font-ui); color: #f4f0ff; }
+.cw .body { position: absolute; inset: 0; transition: transform 160ms ease, opacity 160ms ease; }
+.cw .face { position: absolute; inset: 0; }
+.cw svg.fs { position: absolute; inset: 0; overflow: visible; }
+.cw .txt { position: absolute; display: grid; gap: 4px; align-content: end; }
+.cw .ttl { font-weight: 650; font-size: 15px; line-height: 1.18; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-wrap: balance; }
+.cw .ref { font-family: var(--font-data); font-size: 11px; opacity: 0.75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cw .kw { font-family: var(--font-data); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; }
+.cw .kg { position: absolute; display: grid; place-items: center; transform-origin: 50% 50%; }
+.cw .kg svg { display: block; overflow: visible; }
+.cw .ov { position: absolute; inset: 0; pointer-events: none; }
+.cw.far .ttl, .cw.far .ref, .cw.far .kw, .cw.far .meta { visibility: hidden; }
+.cw.far .kg { transform: scale(var(--farscale, 1.45)); }
+.cw .meta { position: absolute; display: flex; justify-content: space-between; font-family: var(--font-data); font-size: 12px; font-weight: 600; }
+
+/* Status: active and review in every style */
+.cw.st-active .face { filter: drop-shadow(0 0 9px #6f8bff) drop-shadow(0 0 2px #6f8bff); }
+.chip-rev { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: #ffb347; color: #2a1606; font-family: var(--font-data); font-weight: 600; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 9px; border-radius: 999px; z-index: 4; }
+
+/* S1 stamp (today) */
+.stamp { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%) rotate(-12deg); border: 3px solid #18d6c0; color: #18d6c0; background: color-mix(in srgb, #18d6c0 20%, rgb(18 13 48 / 0.6)); font-family: var(--font-data); font-weight: 600; font-size: 21px; letter-spacing: 0.14em; padding: 2px 12px; border-radius: 8px; z-index: 5; }
+.stamp.later { border-color: #a39bcc; color: #cfc8ef; background: rgb(18 13 48 / 0.65); }
+.s-S1.st-done .face { opacity: 0.8; }
+.s-S1.st-deferred .face { opacity: 0.55; }
+.lockb { position: absolute; left: 50%; top: 22%; transform: translate(-50%, -50%); width: 40px; height: 40px; border-radius: 12px; background: #ff5e7e; color: #2a0610; display: grid; place-items: center; z-index: 5; box-shadow: 0 0 0 3px rgb(18 13 48 / 0.8); }
+.lockb svg { width: 22px; height: 22px; }
+
+/* S2 corner badge */
+.cbadge { position: absolute; bottom: -10px; right: -10px; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; z-index: 6; box-shadow: 0 0 0 4px #0c0920; }
+.cbadge svg { width: 26px; height: 26px; }
+.cbadge.done { background: #18d6c0; color: #062a26; }
+.cbadge.deferred { background: #8a84ad; color: #191433; }
+.cbadge.blocked { background: #ff5e7e; color: #2a0610; }
+.s-S2.st-done .face { filter: saturate(0.15) brightness(0.7); }
+.s-S2.st-deferred .face { filter: saturate(0) brightness(0.55); opacity: 0.7; }
+.s-S2.st-blocked .face { filter: drop-shadow(0 0 0 #ff5e7e) drop-shadow(3px 0 0 #ff5e7e) drop-shadow(-3px 0 0 #ff5e7e) drop-shadow(0 3px 0 #ff5e7e) drop-shadow(0 -3px 0 #ff5e7e); }
+
+/* S3 lights out */
+.s-S3.st-done .face { filter: saturate(0) brightness(0.3); }
+.s-S3.st-deferred .face { filter: saturate(0) brightness(0.42); opacity: 0.8; }
+.s-S3.st-done .cbadge { bottom: 12px; right: 50%; transform: translateX(50%); box-shadow: none; width: 40px; height: 40px; }
+.hazard { position: absolute; left: 0; right: 0; top: 0; height: 26px; background: repeating-linear-gradient(-45deg, #ff5e7e 0 10px, #2a0610 10px 20px); z-index: 5; }
+
+/* S4 face down */
+.back { position: absolute; inset: 0; z-index: 5; background: #1a1440; background-image: repeating-linear-gradient(45deg, rgb(255 255 255 / 0.05) 0 6px, transparent 6px 12px), repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.05) 0 6px, transparent 6px 12px); display: grid; place-items: center; }
+.back .bk { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: #18d6c0; color: #062a26; }
+.back .bk svg { width: 30px; height: 30px; }
+.back.half { bottom: 48%; background-color: #2a2450; }
+.back.half .bk { background: #8a84ad; color: #191433; width: 40px; height: 40px; }
+
+/* S5 band */
+.band { position: absolute; left: -6px; right: -6px; top: 50%; transform: translateY(-50%); height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 5; font-family: var(--font-data); font-weight: 600; font-size: 17px; letter-spacing: 0.12em; }
+.band svg { width: 22px; height: 22px; }
+.band.done { background: #18d6c0; color: #062a26; }
+.band.deferred { background: #4b4570; color: #e6e1ff; }
+.band.blocked { background: repeating-linear-gradient(-45deg, #ff5e7e 0 12px, #ff8fa3 12px 24px); color: #2a0610; }
+
+/* S6 sink */
+.s-S6.st-done .body { transform: scale(0.8); opacity: 0.5; }
+.s-S6.st-deferred .body { transform: scale(0.86) rotate(-5deg); opacity: 0.4; filter: saturate(0); }
+.s-S6.st-blocked .body { transform: translateY(-8px); filter: drop-shadow(0 10px 0 #ff5e7e); }
+
+/* S7 edge bar */
+.ebar { position: absolute; left: 0; right: 0; bottom: 0; height: 34px; display: flex; align-items: center; justify-content: center; gap: 6px; z-index: 5; font-family: var(--font-data); font-weight: 600; font-size: 13px; letter-spacing: 0.1em; }
+.ebar svg { width: 18px; height: 18px; }
+.ebar.done { background: #18d6c0; color: #062a26; }
+.ebar.deferred { background: #4b4570; color: #e6e1ff; }
+.ebar.blocked { background: #ff5e7e; color: #2a0610; }
+.ebar.active { background: #6f8bff; color: #0b1033; }
+.ebar.review { background: #ffb347; color: #2a1606; }
+.ebar.todo { background: rgb(255 255 255 / 0.12); color: #e6e1ff; }
+
+/* Source cues */
+.k1 { position: absolute; top: -12px; right: -12px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-data); font-weight: 600; font-size: 13px; z-index: 7; box-shadow: 0 0 0 4px #0c0920; }
+.k2 { position: absolute; top: -26px; left: 10px; height: 28px; padding: 0 12px; border-radius: 9px 9px 0 0; display: flex; align-items: center; gap: 6px; font-family: var(--font-data); font-weight: 600; font-size: 13px; z-index: 1; }
+.k3 { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 120px; letter-spacing: -0.04em; opacity: 0.16; pointer-events: none; z-index: 1; overflow: hidden; }
+.k4 { position: absolute; left: 0; right: 0; bottom: -30px; height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; font-family: var(--font-data); font-size: 12px; font-weight: 600; border-radius: 0 0 9px 9px; }
+.k4 i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.cw.far .k4 span { visibility: hidden; }
+
+.kplus { position: absolute; top: -6px; height: 26px; min-width: 30px; padding: 0 7px; border-radius: 13px; display: grid; place-items: center; font-family: var(--font-data); font-weight: 600; font-size: 13px; background: #120d30; color: #cfc8ef; box-shadow: 0 0 0 1.5px #5d5590, 0 0 0 4px #0c0920; z-index: 6; }
+.krow { position: absolute; right: 10px; bottom: -14px; display: flex; gap: 4px; z-index: 6; }
+.krow .k1 { position: static; width: 28px; height: 28px; font-size: 10px; }
+
+/* Group cues */
+.gpip { position: absolute; left: -9px; top: -9px; width: 26px; height: 26px; border-radius: 50%; z-index: 7; box-shadow: 0 0 0 4px #0c0920; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs id="gdefs"></defs>
+</svg>
+
+<div class="page">
+  <header class="intro">
+    <div class="eyebrow">Design spike · not a production redesign · 2026-10-21</div>
+    <h1>Card identity at 0.33 zoom</h1>
+    <p>Twelve card directions, each drawn for every role, then shrunk to canvas zoom. Kind, source, state, and group each get their own mark, and the rail swaps how state, source, and group are drawn so you can mix them. Star what you like, cross what you don't; marks save to this page so I can read them back.</p>
+    <div class="tests"><span>Find a gate</span><span>Tell an issue from a PR</span><span>Spot an unfinished placeholder</span><span>Placeholder ≠ Done</span><span>Survives grayscale</span></div>
+  </header>
+
+  <div class="rail" role="toolbar" aria-label="Display controls">
+    <div class="ctl"><label for="c-vision">Vision</label>
+      <select id="c-vision">
+        <option value="none">Normal</option><option value="gray">Grayscale</option><option value="deutan">Deuteranopia</option><option value="protan">Protanopia</option><option value="tritan">Tritanopia</option><option value="squint">Squint (blur)</option><option value="gray-squint">Gray + squint</option>
+      </select></div>
+    <div class="ctl"><label for="c-status">State</label><select id="c-status"></select></div>
+    <div class="ctl"><label for="c-source">Source</label><select id="c-source"></select></div>
+    <div class="ctl"><label for="c-multi">Multi</label><select id="c-multi"></select></div>
+    <div class="ctl"><label for="c-group">Group</label><select id="c-group"></select></div>
+    <div class="ctl"><label for="c-zoom">Far zoom</label>
+      <select id="c-zoom"><option value="0.5">0.50</option><option value="0.33">0.33</option><option value="0.25">0.25</option><option value="0.2">0.20</option></select></div>
+    <div class="ctl"><input type="checkbox" id="c-far"><label for="c-far">Far form</label></div>
+    <div class="ctl"><label for="c-show">Show</label>
+      <select id="c-show"><option value="all">Everything</option><option value="fav">Starred</option><option value="unrej">Hide crossed</option><option value="unmarked">Unmarked</option></select></div>
+    <nav aria-label="Sections"><a href="#directions">Directions</a><a href="#canvas">Canvas</a><a href="#states">States</a><a href="#sources">Sources</a><a href="#groups">Groups</a><a href="#scale">Scale</a><a href="#readout">Readout</a><a href="#marks">Marks</a></nav>
+    <span class="sync" id="sync">Marks: this browser only</span>
+  </div>
+
+  <main id="main">
+    <section id="readout">
+      <div class="sec-head">
+        <div class="eyebrow">Readout</div>
+        <h2>What holds up at distance</h2>
+        <p>My read after looking at every direction at 0.33, in normal, grayscale, deuteranopia, and squint. Your marks outrank it.</p>
+      </div>
+      <div class="readout" id="readout-list"></div>
+    </section>
+
+    <section id="directions">
+      <div class="sec-head">
+        <div class="eyebrow">Directions · kind identity</div>
+        <h2>Twelve ways to say what a card is</h2>
+        <p>Each band shows the twelve roles, a state strip, and both rows again at the far zoom. GitHub and Jira issues share a kind and differ only by source, and the Figma card is a reference from another source. <strong>Now</strong> is today's trading card, where issues, questions, decisions, and references fall back to steps because those kinds don't exist yet.</p>
+      </div>
+      <div id="dir-list"></div>
+    </section>
+
+    <section id="canvas">
+      <div class="sec-head">
+        <div class="eyebrow">Crowded canvas</div>
+        <h2>The burn-down, redrawn</h2>
+        <p><strong>Issue burn-down</strong> uses your canvas as it was on 2026-10-21: every card where you placed it, at trading-card spacing, with its real kind, status, and links, and Roadmap folded. Links that leave the group run off the edges. It has no GitHub issues or questions, so the <strong>Mixed kinds sample</strong> is there for the issue and question tests. Pick a direction, then run a timed test.</p>
+      </div>
+      <div class="canvas-tools">
+        <div class="ctl"><label for="cv-scene">Scene</label><select id="cv-scene"><option value="mixed">Mixed kinds sample</option></select></div>
+        <div class="ctl"><label for="cv-dir">Direction</label><select id="cv-dir"></select></div>
+        <div class="ctl"><label for="cv-zoom">Zoom</label><select id="cv-zoom"><option value="1">1.00</option><option value="0.5">0.50</option><option value="0.33">0.33</option><option value="0.25">0.25</option><option value="0.2">0.20</option></select></div>
+        <div class="ctl"><label for="cv-head">Headers</label><select id="cv-head"></select></div>
+        <div class="ctl"><label for="cv-fold">Folded</label><select id="cv-fold"></select></div>
+        <div class="ctl"><label for="cv-reveal">Outline</label><select id="cv-reveal"><option value="">Nothing</option><option value="gate">Gates</option><option value="placeholder">Placeholders</option><option value="issue">Issues</option></select></div>
+      </div>
+      <div class="test-bar">
+        <div class="ctl"><label for="t-task">Test</label>
+          <select id="t-task"><option value="gate">Click every gate</option><option value="placeholder">Click every unfinished placeholder</option><option value="issue">Click every issue, not PRs</option></select></div>
+        <button class="btn primary" id="t-start" type="button">Start</button>
+        <button class="btn" id="t-finish" type="button" disabled>Finish</button>
+        <span class="score" id="t-score">Picks a task, then click cards on the canvas. The timer starts on Start.</span>
+      </div>
+      <div class="canvas-frame viz" id="cv-frame"><div class="canvas-board" id="cv-board"></div></div>
+      <div class="history" id="t-history"></div>
+    </section>
+
+    <section id="states">
+      <div class="sec-head">
+        <div class="eyebrow">State · independent of kind</div>
+        <h2>Done, deferred, blocked, and placeholder</h2>
+        <p>Each option is drawn on the rail's sample face. The last card in every row is an unfinished placeholder, which should never read as done. The rail's State control applies the chosen option everywhere.</p>
+        <div class="ctl"><label for="c-sample">Sample face</label><select id="c-sample"></select></div>
+      </div>
+      <div class="opts" id="state-list"></div>
+    </section>
+
+    <section id="sources">
+      <div class="sec-head">
+        <div class="eyebrow">Source · independent of kind</div>
+        <h2>Where a card came from</h2>
+        <p>GitHub PR, GitHub issue, Jira issue, Figma reference, and a native step. Native cards carry no source mark, so the mark itself says "outside Orion".</p>
+      </div>
+      <div class="opts" id="source-list"></div>
+      <div class="sec-head" style="margin-top:26px">
+        <h3>Cards with more than one source</h3>
+        <p>A card's kind comes from its primary ref, the one that drives its status: the PR when there is one, then the issue, then the ticket. A PR that closes an issue stays a PR card, and the issue, branch, and design link become extra sources, not a second identity. These options show the extras, drawn with the rail's coin style (Ink coin when the rail picks a style without coins). The PR has GitHub (PR and issue), hop, and Figma refs; the Jira issue is mirrored on GitHub.</p>
+      </div>
+      <div class="opts" id="multi-list"></div>
+    </section>
+
+    <section id="groups">
+      <div class="sec-head">
+        <div class="eyebrow">Group membership</div>
+        <h2>Where a card lives, without repainting it</h2>
+        <p>The same six cards in two groups. G1 is today: the group tints each card's art, so kind and group compete for color.</p>
+      </div>
+      <div class="opts" id="group-list"></div>
+    </section>
+
+    <section id="scale">
+      <div class="sec-head">
+        <div class="eyebrow">Scale</div>
+        <h2>Headers and folded groups</h2>
+        <p>At 0.33 a trading card is about 65 × 94 screen pixels while an expanded group's title bar stays about 30 pixels tall and folded labels keep their size. These options set how group chrome scales. Try them on the canvas above.</p>
+      </div>
+      <div class="opts" id="scale-list"></div>
+    </section>
+
+    <section id="marks">
+      <div class="sec-head">
+        <div class="eyebrow">Your marks</div>
+        <h2>Starred and crossed</h2>
+      </div>
+      <div class="marks-summary">
+        <div class="cols">
+          <div><h3>★ Starred</h3><div id="m-fav"></div></div>
+          <div><h3>✕ Crossed</h3><div id="m-rej"></div></div>
+        </div>
+        <div><button class="btn" id="m-copy" type="button">Copy as text</button> <span class="score" id="m-copied"></span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+// ---------- data ----------
+const KC = { pr: '#a974ff', issue: '#46c2ff', step: '#9aa0c8', gate: '#ffb020', question: '#ff7bd5', decision: '#ff7bd5', reference: '#d9c08e', placeholder: '#77729a' }
+const GC = { purple: '#c98bff', teal: '#2fe0d2', blue: '#6f8bff', amber: '#ffb347', rose: '#ff6f9c', green: '#5ce68f' }
+const SRC = {
+  github: { mono: 'GH', name: 'GitHub', color: '#eef0ff', ink: '#14112b' },
+  jira: { mono: 'JR', name: 'Jira', color: '#4c9aff', ink: '#06142e' },
+  figma: { mono: 'FG', name: 'Figma', color: '#ff7a59', ink: '#2a0d05' },
+  hop: { mono: 'HP', name: 'hop', color: '#5ce68f', ink: '#062a16' },
+}
+const KIND_WORD = { pr: 'Pull request', issue: 'Issue', step: 'Step', placeholder: 'Expected', milestone: 'Milestone', signoff: 'Sign-off', physical: 'Physical gate', question: 'Question', decision: 'Decision', reference: 'Reference' }
+
+const ROLES = [
+  { id: 'pr', k: 'pr', g: 'pr', src: 'github', title: 'Read canvases through a SQLite index', ref: 'vocksel/orion#533', refs: [['github', 'PR #533'], ['github', 'issue #529'], ['hop', 'branch'], ['figma', 'Orion Cards']] },
+  { id: 'issue', k: 'issue', g: 'issue', src: 'github', title: 'Draw compact cards in the far-zoom design', ref: 'vocksel/orion#370' },
+  { id: 'jira', k: 'issue', g: 'issue', src: 'jira', title: 'Studio flag rollout follow-ups', ref: 'ORN-212', refs: [['jira', 'ORN-212'], ['github', 'issue #174']] },
+  { id: 'figma', k: 'reference', g: 'reference', src: 'figma', title: 'Orion Cards: poster art board', ref: 'Orion Cards' },
+  { id: 'step', k: 'step', g: 'step', title: 'Pick a header scale rule' },
+  { id: 'placeholder', k: 'placeholder', g: 'placeholder', title: 'Expected: migration PR' },
+  { id: 'milestone', k: 'gate', g: 'milestone', title: 'Public beta' },
+  { id: 'signoff', k: 'gate', g: 'signoff', title: 'Design sign-off' },
+  { id: 'physical', k: 'gate', g: 'physical', title: 'Perf host racked and on power' },
+  { id: 'question', k: 'question', g: 'question', title: 'Do folded groups show kinds?' },
+  { id: 'decision', k: 'decision', g: 'decision', title: 'Groups stop tinting cards' },
+  { id: 'reference', k: 'reference', g: 'reference', title: 'Charter: one meaning per mark' },
+]
+const R = Object.fromEntries(ROLES.map((r) => [r.id, r]))
+const STATE_ROW = [['pr', 'todo'], ['pr', 'active'], ['pr', 'review'], ['pr', 'blocked'], ['pr', 'deferred'], ['pr', 'done'], ['issue', 'done'], ['step', 'done'], ['placeholder', 'todo'], ['milestone', 'done'], ['question', 'deferred'], ['decision', 'done']]
+
+const STATUS_OPTS = [
+  { id: 'S1', name: 'Stamp', now: true, text: 'Today: a tilted DONE stamp, a lock tile for blocked, and fading for deferred.' },
+  { id: 'S2', name: 'Corner badge', text: 'Finished and parked cards desaturate and dim; a round badge on the corner says which. Blocked gets a red rim.' },
+  { id: 'S3', name: 'Lights out', text: 'Done work goes dark, so whatever is still lit is what’s left. Blocked gets a hazard strip on top.' },
+  { id: 'S4', name: 'Face down', text: 'Done cards flip to a shared card back with a check. Deferred cards get a sleeve over the art, and blocked cards a striped hazard frame and a lock, so both keep their titles readable. The board fills with backs as work finishes.' },
+  { id: 'S5', name: 'Band', text: 'A full-width band across the middle: teal DONE, gray LATER, striped BLOCKED. Loud, and unmistakable.' },
+  { id: 'S6', name: 'Sink', text: 'Done cards shrink and fade into the board, deferred ones tilt away, blocked ones lift with a red shadow.' },
+  { id: 'S7', name: 'Edge bar', text: 'Every card has a status bar on its bottom edge, including open ones, so state always lives in the same place.' },
+]
+const SOURCE_OPTS = [
+  { id: 'K1', name: 'Corner coin', now: false, text: 'A round coin on the top-right edge with the source monogram. Works on any silhouette.' },
+  { id: 'K2', name: 'Folder tab', text: 'A tab above the top edge, like a file folder, colored by source. Adds to the silhouette without changing it.' },
+  { id: 'K3', name: 'Watermark', text: 'A huge faint monogram behind the art. Quiet up close, gone at distance.' },
+  { id: 'K4', name: 'Foot strip', text: 'A strip under the card with the source dot and ref, like a label on a jar.' },
+  { id: 'K5', name: 'Source frame', text: 'The outline color belongs to the source; the shape and glyph belong to the kind.' },
+  { id: 'K6', name: 'Close-up only', text: 'No mark at distance. The ref line names the source when you zoom in.' },
+  { id: 'K7', name: 'Ink coin', text: 'The coin drawn like the kind tile: dark ink, light letters, and a rim in the card\u2019s own edge color, so it reads as part of the card.' },
+  { id: 'K8', name: 'Notch', text: 'The coin is a hole punched in the corner, filled with the canvas, with muted letters. Part of the frame, not a sticker.' },
+  { id: 'K9', name: 'Kind coin', text: 'The coin is filled with the card\u2019s kind color and dark letters, so it carries no color of its own.' },
+]
+const MULTI_OPTS = [
+  { id: 'M1', name: 'Primary + count', text: 'One coin for the primary source and a small +N for the rest.' },
+  { id: 'M2', name: 'Coin stack', text: 'Up to three coins fanned along the top edge, primary on top.' },
+  { id: 'M3', name: 'Foot row', text: 'The primary coin on the corner, every source as a small coin along the bottom edge.' },
+  { id: 'M4', name: 'Primary only', text: 'Only the primary coin. Other sources live in the close-up ref line.' },
+]
+const GROUP_OPTS = [
+  { id: 'G1', name: 'Tinted art', now: true, text: 'Today: the group’s color tints each card’s art.' },
+  { id: 'G2', name: 'Container only', text: 'Cards keep their kind colors. The group shows only in its container and header.' },
+  { id: 'G3', name: 'Group rim', text: 'A thin outer rim in the group’s color around each card.' },
+  { id: 'G4', name: 'Group pip', text: 'A small dot in the group’s color on each card’s corner.' },
+  { id: 'G5', name: 'Wash', text: 'Cards stay neutral; the container gets a strong wash of the group’s color, like a map region.' },
+]
+const HEAD_OPTS = [
+  { id: 'H1', name: 'Fixed bar', now: true, text: 'Today: the title bar holds about 30 screen pixels at every zoom, so at 0.33 it’s a third of a card tall.' },
+  { id: 'H2', name: 'Proportional', text: 'Everything scales together. At 0.33 the header is as small as the cards’ text.' },
+  { id: 'H3', name: 'Landmark', text: 'The header is big in canvas units, like a map’s region name, and scales with the canvas.' },
+  { id: 'H4', name: 'Watermark', text: 'A proportional bar, plus the group’s name drawn huge and faint inside the group once you zoom out.' },
+]
+const FOLD_OPTS = [
+  { id: 'R1', name: 'Mini rectangles', now: true, text: 'Today: plain rectangles for the cards inside, colored by status.' },
+  { id: 'R2', name: 'Census', text: 'One glyph per kind with a count and a done tally, plus a progress bar.' },
+  { id: 'R3', name: 'Deck', text: 'A fanned stack with the next open card face up and a count.' },
+]
+
+// ---------- helpers ----------
+let UID = 0
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+function hash(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) } return h >>> 0 }
+function rng(seed) { let a = typeof seed === 'number' ? seed : hash(seed); return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296 } }
+function hex(c) { c = c.replace('#', ''); return [0, 2, 4].map((i) => parseInt(c.slice(i, i + 2), 16)) }
+function mix(a, b, t) { const A = hex(a), B = hex(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('') }
+const rr = (w, h, r) => `M${r} 0H${w - r}Q${w} 0 ${w} ${r}V${h - r}Q${w} ${h} ${w - r} ${h}H${r}Q0 ${h} 0 ${h - r}V${r}Q0 0 ${r} 0Z`
+const circ = (cx, cy, r) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0Z`
+
+// ---------- glyphs (24 grid; S stroke, F fill, D dashed stroke, K knockout stroke) ----------
+const GLYPH = {
+  pr: [[circ(6, 5, 2.3), 'S'], [circ(6, 19, 2.3), 'S'], [circ(18, 19, 2.3), 'S'], ['M6 7.3v9.4', 'S'], ['M18 16.7V10a3.5 3.5 0 0 0-3.5-3.5H10', 'S'], ['M12.6 3.8 9.9 6.5l2.7 2.7', 'S']],
+  issue: [[circ(12, 12, 8.6), 'S'], [circ(12, 12, 2.4), 'F']],
+  step: [['M3.5 19.5h5v-5h5v-5h5v-5', 'S'], ['M3.5 19.5h17', 'S']],
+  placeholder: [['M4.5 4.5h15v15h-15z', 'D'], ['M12 8.5v7M8.5 12h7', 'S']],
+  milestone: [['M6 21.5V3', 'S'], ['M6 4h12l-3 4.25L18 12.5H6z', 'F']],
+  signoff: [[circ(12, 9.5, 6.3), 'S'], ['M9.2 9.7l2 2 3.7-3.9', 'S'], ['M8.6 14.6 7 21.2l5-2.3 5 2.3-1.6-6.6', 'S']],
+  physical: [['M3.5 7.5 12 3.4l8.5 4.1v9L12 20.6l-8.5-4.1z', 'S'], ['M3.5 7.5 12 11.6l8.5-4.1M12 11.6v9', 'S'], ['M7.7 5.5l8.5 4.1', 'S']],
+  question: [['M3.5 4h17v12h-9.2l-5.3 4.3V16H3.5z', 'S'], ['M9.6 8.2a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.1.9-1.1 1.6', 'S'], [circ(12, 14.1, 0.9), 'F']],
+  decision: [['M3.5 4h17v12h-9.2l-5.3 4.3V16H3.5z', 'F'], ['M8.4 10l2.6 2.6 4.8-5.1', 'K']],
+  reference: [['M6 3h8.6L19 7.4V21H6z', 'S'], ['M14.6 3v4.4H19', 'S'], ['M9 12h7M9 15.5h7', 'S']],
+  // today's icons
+  nowstep: [[circ(8 * 1.5, 8 * 1.5, 5.5 * 1.5), 'S'], ['M8.25 12l2.7 2.7 5.25-5.7', 'S']],
+  nowplace: [[circ(12, 12, 8.25), 'D']],
+  nowgate: [['M4.5 21V9a7.5 7.5 0 0 1 15 0v12M4.5 21h15M12 13.5V21', 'S']],
+  check: [['M5 12.5l4.5 4.5L19 7.5', 'S']],
+  moon: [['M19 14.5A7.5 7.5 0 1 1 10 5a6 6 0 0 0 9 9.5z', 'F']],
+  lock: [['M7.5 11V8a4.5 4.5 0 0 1 9 0v3', 'S'], ['M5 11h14v10H5z', 'F']],
+  pause: [['M8 5v14M16 5v14', 'S']],
+  play: [['M7 5l12 7-12 7z', 'F']],
+  eye: [['M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z', 'S'], [circ(12, 12, 2.6), 'F']],
+}
+function glyph(key, size, color, o = {}) {
+  const sw = o.sw ?? 2, bg = o.bg ?? '#120d30'
+  const parts = GLYPH[key].map(([d, m]) => {
+    if (m === 'F') return `<path d="${d}" fill="${color}"/>`
+    if (m === 'K') return `<path d="${d}" fill="none" stroke="${bg}" stroke-width="${sw * 1.1}" stroke-linecap="round" stroke-linejoin="round"/>`
+    return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round"${m === 'D' ? ` stroke-dasharray="${sw * 1.4} ${sw * 1.3}"` : ''}/>`
+  }).join('')
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">${parts}</svg>`
+}
+
+// Pixel sprites: rasterize a glyph to 16x16, threshold, colorize.
+const SPRITES = {}
+function sprite(key, color) {
+  const k = key + color
+  if (SPRITES[k]) return SPRITES[k]
+  const n = 16, c = document.createElement('canvas'); c.width = c.height = n
+  const x = c.getContext('2d'); x.scale(n / 24, n / 24); x.lineCap = 'round'; x.lineJoin = 'round'
+  for (const [d, m] of GLYPH[key]) {
+    const p = new Path2D(d)
+    if (m === 'F') { x.globalCompositeOperation = 'source-over'; x.fillStyle = '#fff'; x.fill(p) }
+    else if (m === 'K') { x.globalCompositeOperation = 'destination-out'; x.lineWidth = 2.6; x.stroke(p) }
+    else { x.globalCompositeOperation = 'source-over'; x.strokeStyle = '#fff'; x.lineWidth = 2.3; x.setLineDash(m === 'D' ? [3, 3] : []); x.stroke(p) }
+  }
+  const img = x.getImageData(0, 0, n, n), [r, g, b] = hex(color)
+  for (let i = 0; i < img.data.length; i += 4) { const on = img.data[i + 3] > 96; img.data[i] = r; img.data[i + 1] = g; img.data[i + 2] = b; img.data[i + 3] = on ? 255 : 0 }
+  const o = document.createElement('canvas'); o.width = o.height = n; o.getContext('2d').putImageData(img, 0, 0)
+  return (SPRITES[k] = o.toDataURL())
+}
+
+// Constellations: sample stars along each glyph stroke.
+const STARS = {}
+function stars(key) {
+  if (STARS[key]) return STARS[key]
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.style.position = 'absolute'; svg.style.width = '0'; document.body.appendChild(svg)
+  const out = []
+  for (const [d, m] of GLYPH[key]) {
+    if (m === 'K') continue
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); svg.appendChild(p)
+    const L = p.getTotalLength(), n = Math.max(2, Math.round(L / 5.5)), pts = []
+    const closed = /z\s*$/i.test(d)
+    for (let i = 0; i <= n; i++) { if (closed && i === n) break; const q = p.getPointAtLength((L * i) / n); pts.push([q.x, q.y]) }
+    out.push({ pts, closed })
+  }
+  svg.remove()
+  return (STARS[key] = out)
+}
+
+// ---------- global SVG defs ----------
+function buildDefs() {
+  const all = { ...KC, ...Object.fromEntries(Object.entries(GC).map(([k, v]) => ['g-' + k, v])), night: '#3b2f86', now: '#b45cff' }
+  let s = ''
+  for (const [k, c] of Object.entries(all)) {
+    s += `<linearGradient id="lg-${k}" x1="0" y1="0" x2=".55" y2="1"><stop offset="0" stop-color="${mix(c, '#ffffff', 0.06)}"/><stop offset=".5" stop-color="${mix(c, '#1a1240', 0.58)}"/><stop offset="1" stop-color="#110c2e"/></linearGradient>`
+    s += `<radialGradient id="rg-${k}"><stop offset="0" stop-color="${mix(c, '#ffffff', 0.45)}" stop-opacity=".9"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>`
+  }
+  s += `<pattern id="dots" width="6" height="6" patternUnits="userSpaceOnUse"><circle cx="3" cy="3" r="1.15" fill="#0b0726" fill-opacity=".55"/></pattern>`
+  s += `<pattern id="dots8" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#0b0726" fill-opacity=".45"/><rect x="4" y="4" width="4" height="4" fill="#0b0726" fill-opacity=".45"/></pattern>`
+  s += `<pattern id="hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="12" fill="#ffffff" fill-opacity=".09"/></pattern>`
+  s += `<pattern id="grain" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="#000" fill-opacity=".06"/><circle cx="3.5" cy="3" r=".5" fill="#000" fill-opacity=".05"/></pattern>`
+  const tex = {
+    pr: (c) => `<pattern id="tx-pr" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="16" height="16" fill="${mix(c, '#140f34', 0.62)}"/><rect width="6" height="16" fill="${mix(c, '#140f34', 0.25)}"/></pattern>`,
+    issue: (c) => `<pattern id="tx-issue" width="16" height="16" patternUnits="userSpaceOnUse"><rect width="16" height="16" fill="${mix(c, '#140f34', 0.64)}"/><circle cx="8" cy="8" r="4" fill="${mix(c, '#140f34', 0.2)}"/></pattern>`,
+    step: (c) => `<pattern id="tx-step" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="${mix(c, '#140f34', 0.72)}"/><rect width="10" height="1.4" fill="${mix(c, '#140f34', 0.45)}"/></pattern>`,
+    gate: (c) => `<pattern id="tx-gate" width="24" height="14" patternUnits="userSpaceOnUse"><rect width="24" height="14" fill="${mix(c, '#140f34', 0.62)}"/><path d="M0 11 12 3l12 8" fill="none" stroke="${mix(c, '#140f34', 0.15)}" stroke-width="4"/></pattern>`,
+    question: (c) => `<pattern id="tx-question" width="28" height="14" patternUnits="userSpaceOnUse"><rect width="28" height="14" fill="${mix(c, '#140f34', 0.66)}"/><path d="M0 7q7-6 14 0t14 0" fill="none" stroke="${mix(c, '#140f34', 0.2)}" stroke-width="3"/></pattern>`,
+    decision: (c) => `<pattern id="tx-decision" width="18" height="18" patternUnits="userSpaceOnUse"><rect width="18" height="18" fill="${mix(c, '#140f34', 0.66)}"/><rect width="9" height="9" fill="${mix(c, '#140f34', 0.22)}"/><rect x="9" y="9" width="9" height="9" fill="${mix(c, '#140f34', 0.22)}"/></pattern>`,
+    reference: (c) => `<pattern id="tx-reference" width="20" height="14" patternUnits="userSpaceOnUse"><rect width="20" height="14" fill="${mix(c, '#140f34', 0.7)}"/><rect y="12" width="20" height="1.5" fill="${mix(c, '#140f34', 0.3)}"/></pattern>`,
+  }
+  for (const [k, f] of Object.entries(tex)) s += f(KC[k])
+  s += `<filter id="f-protan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.567 0.433 0 0 0 0.558 0.442 0 0 0 0 0.242 0.758 0 0 0 0 0 1 0"/></filter>`
+  s += `<filter id="f-deutan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.625 0.375 0 0 0 0.7 0.3 0 0 0 0 0.3 0.7 0 0 0 0 0 1 0"/></filter>`
+  s += `<filter id="f-tritan" color-interpolation-filters="linearRGB"><feColorMatrix type="matrix" values="0.95 0.05 0 0 0 0 0.433 0.567 0 0 0 0.475 0.525 0 0 0 0 0 1 0"/></filter>`
+  document.getElementById('gdefs').innerHTML = s
+}
+
+// ---------- art ----------
+function art(shape, ck, seed, w, h, o = {}) {
+  const id = 'c' + UID++, r = rng(seed)
+  const g1 = [w * (0.55 + r() * 0.35), h * (0.12 + r() * 0.25), w * (0.45 + r() * 0.25)]
+  const g2 = [w * (0.05 + r() * 0.3), h * (0.6 + r() * 0.3), w * (0.55 + r() * 0.3)]
+  const dither = o.dither ?? 'dots'
+  return `<defs><clipPath id="${id}"><path d="${shape}"/></clipPath></defs><g clip-path="url(#${id})"><rect width="${w}" height="${h}" fill="url(#lg-${ck})"/><circle cx="${g1[0]}" cy="${g1[1]}" r="${g1[2]}" fill="url(#rg-${ck})" opacity=".75"/><circle cx="${g2[0]}" cy="${g2[1]}" r="${g2[2]}" fill="url(#rg-${ck})" opacity=".45"/>${dither ? `<rect width="${w}" height="${h}" fill="url(#${dither})"/>` : ''}${o.extra || ''}</g>`
+}
+const scrim = (shape, w, h, from) => { const id = 'c' + UID++, gid = 's' + UID++; return `<defs><clipPath id="${id}"><path d="${shape}"/></clipPath><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0d0928" stop-opacity="0"/><stop offset=".45" stop-color="#0d0928" stop-opacity=".82"/><stop offset="1" stop-color="#0d0928" stop-opacity=".94"/></linearGradient></defs><rect clip-path="url(#${id})" y="${from}" width="${w}" height="${h - from}" fill="url(#${gid})"/>` }
+const edge = (shape, color, sw = 2, dash) => `<path d="${shape}" fill="none" stroke="${color}" stroke-width="${sw}"${dash ? ` stroke-dasharray="${dash}"` : ''} vector-effect="non-scaling-stroke"/>`
+function srcRef(role) { if (role.refs && P.multi === 'M4') return `<div class="ref">${role.refs.map(([s, w]) => esc(SRC[s].name + ' ' + w)).join(' · ')}</div>`; return role.ref ? `<div class="ref">${role.src ? esc(SRC[role.src].name) + ' · ' : ''}${esc(role.ref)}</div>` : '' }
+function tintKey(role, ctx) { return ctx.groupMode === 'G1' ? 'g-' + ctx.gk : role.k }
+function kc(role) { return KC[role.k] }
+
+// ---------- directions ----------
+const W = 198, H = 285
+const DIRS = {}
+
+DIRS.Now = {
+  name: 'Now', title: 'Today’s trading card',
+  text: 'Group-tinted dithered art, a small kind tile, and the title over a scrim. Only steps, PRs, placeholders, and gates exist; everything else falls back to a step.',
+  face(role, ctx) {
+    const shape = rr(W, H, 16), ck = 'g-' + ctx.gk
+    const icon = { pr: 'pr', step: 'nowstep', placeholder: 'nowplace', gate: 'nowgate' }[role.k] || 'nowstep'
+    const extra = role.k === 'gate' ? edge(shape, '#ffd166', 3) : edge(shape, 'rgba(255,255,255,.1)', 1)
+    const dashed = role.k === 'placeholder' ? `<path d="${rr(W - 12, H - 12, 11)}" transform="translate(6 6)" fill="none" stroke="rgba(244,240,255,.5)" stroke-width="3" stroke-dasharray="7 6"/>` : ''
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${art(shape, ck, role.id + 'now', W, H)}${scrim(shape, W, H, 150)}${extra}${dashed}</svg>
+      <div class="kg" style="left:${W / 2 - 23}px;top:30px;width:46px;height:46px;border-radius:12px;background:rgba(18,13,48,.72);box-shadow:0 0 0 1px rgba(255,255,255,.14)">${glyph(icon, 24, '#f4f0ff', { sw: 1.8 })}</div>
+      <div class="txt" style="left:14px;right:14px;bottom:42px"><div class="ttl">${esc(role.title)}</div></div>
+      <div class="meta" style="left:14px;right:14px;bottom:13px"><span>0</span><span style="color:#18d6c0">2</span></div>`,
+    }
+  },
+}
+
+const A_SHAPES = {
+  step: rr(W, H, 14),
+  pr: `M14 0H166L198 142.5L166 285H14Q0 285 0 271V14Q0 0 14 0Z`,
+  issue: `M14 0H184Q198 0 198 14V116A26 26 0 0 0 198 168V271Q198 285 184 285H14Q0 285 0 271V168A26 26 0 0 0 0 116V14Q0 0 14 0Z`,
+  gate: `M99 0L198 46V239L99 285L0 239V46Z`,
+  question: `M14 0H184Q198 0 198 14V231Q198 245 184 245H76L40 285V245H14Q0 245 0 231V14Q0 0 14 0Z`,
+  reference: `M14 0H158L198 40V262Q148 236 99 262T0 262V14Q0 0 14 0Z`,
+  placeholder: rr(W, H, 14),
+}
+A_SHAPES.decision = A_SHAPES.question
+DIRS.A = {
+  name: 'A', title: 'Flowchart silhouettes',
+  text: 'The outline is the kind, borrowed from flowchart conventions: a ticket for issues, an arrow for PRs, a gem for gates, a speech bubble for questions that fills in when decided, a document for references, a hollow dashed frame for placeholders.',
+  face(role, ctx) {
+    const shape = A_SHAPES[role.k], c = kc(role), ph = role.k === 'placeholder'
+    const textBottom = { question: 56, decision: 56, reference: 38, gate: 62 }[role.k] ?? 18
+    const pad = role.k === 'gate' ? 22 : role.k === 'pr' ? 16 : 16
+    const body = ph
+      ? `<path d="${shape}" fill="url(#hatch)"/>${edge(shape, '#cfc8ef', 3, '10 8')}`
+      : `${art(shape, tintKey(role, ctx), role.id + 'A', W, H)}${role.k === 'decision' ? `<path d="${shape}" fill="${c}" opacity=".35"/>` : ''}${scrim(shape, W, H, 140)}${edge(shape, ctx.edge || c, role.k === 'question' ? 4 : 3, role.k === 'question' ? '12 7' : '')}`
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${body}</svg>
+      <div class="kg" style="left:${W / 2 - 40}px;top:${role.k === 'gate' ? 54 : 36}px;width:80px;height:80px;border-radius:50%;background:${ph ? 'transparent' : 'rgba(13,9,40,.55)'}">${glyph(role.g, 52, ph ? '#cfc8ef' : c, { sw: 2.2 })}</div>
+      <div class="txt" style="left:${pad}px;right:${pad + (role.k === 'pr' ? 18 : 0)}px;bottom:${textBottom}px"><div class="kw" style="color:${ph ? '#cfc8ef' : c}">${KIND_WORD[role.g]}</div><div class="ttl">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+DIRS.B = {
+  name: 'B', title: 'Suit band',
+  text: 'One rectangle for every kind. A solid band across the top in the kind’s color carries a big glyph and the kind’s name, like a card game’s type line. Placeholders get an empty hatched band.',
+  face(role, ctx) {
+    const shape = rr(W, H, 12), c = kc(role), ph = role.k === 'placeholder', id = 'c' + UID++
+    const band = ph ? `<rect width="${W}" height="84" fill="url(#hatch)"/><line x1="0" y1="84" x2="${W}" y2="84" stroke="#cfc8ef" stroke-width="2" stroke-dasharray="8 6"/>` : `<rect width="${W}" height="84" fill="${c}"/>`
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${ph ? `<path d="${shape}" fill="#151036"/>` : art(shape, tintKey(role, ctx), role.id + 'B', W, H)}<defs><clipPath id="${id}"><path d="${shape}"/></clipPath></defs><g clip-path="url(#${id})">${band}</g>${scrim(shape, W, H, 150)}${edge(shape, ph ? '#cfc8ef' : 'rgba(255,255,255,.14)', ph ? 3 : 1, ph ? '10 8' : '')}</svg>
+      <div class="kg" style="left:12px;top:12px;width:60px;height:60px">${glyph(role.g, 56, ph ? '#cfc8ef' : '#140f34', { sw: 2.3, bg: c })}</div>
+      <div class="kw" style="position:absolute;left:80px;right:10px;top:34px;color:${ph ? '#cfc8ef' : '#140f34'};font-size:11px">${KIND_WORD[role.g]}</div>
+      <div class="txt" style="left:14px;right:14px;bottom:16px"><div class="ttl">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+DIRS.C = {
+  name: 'C', title: 'Glyph poster',
+  text: 'The kind’s glyph is the artwork: drawn huge and glowing across the whole card, so at distance the card is its icon. Everything else is small.',
+  face(role, ctx) {
+    const shape = rr(W, H, 16), c = kc(role), ph = role.k === 'placeholder'
+    const bgk = ctx.groupMode === 'G1' ? 'g-' + ctx.gk : 'night'
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${ph ? `<path d="${shape}" fill="#120d30"/><path d="${shape}" fill="url(#hatch)"/>${edge(shape, '#cfc8ef', 3, '10 8')}` : `${art(shape, bgk, role.id + 'C', W, H, { dither: 'dots' })}<path d="${shape}" fill="${c}" opacity=".1"/>${edge(shape, 'rgba(255,255,255,.12)', 1)}`}${scrim(shape, W, H, 190)}</svg>
+      <div class="kg" style="left:${W / 2 - 75}px;top:24px;width:150px;height:150px;filter:${ph ? 'none' : `drop-shadow(0 0 10px ${c})`}">${glyph(role.g, 140, ph ? '#cfc8ef' : mix(c, '#ffffff', 0.15), { sw: 1.9, bg: '#1a1342' })}</div>
+      <div class="txt" style="left:14px;right:14px;bottom:14px"><div class="ttl" style="font-size:14px">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+DIRS.D = {
+  name: 'D', title: 'Texture suits',
+  text: 'Kind is a pattern: stripes for PRs, polka dots for issues, chevrons for gates, waves for questions, a checker for decisions, ruled paper for references. Patterns survive grayscale where hue doesn’t.',
+  face(role, ctx) {
+    const shape = rr(W, H, 14), c = kc(role), ph = role.k === 'placeholder'
+    const fill = ph ? `<path d="${shape}" fill="#120d30"/><path d="${shape}" fill="url(#hatch)"/>` : `<path d="${shape}" fill="url(#tx-${role.k})"/>`
+    const tint = !ph && ctx.groupMode === 'G1' ? `<path d="${shape}" fill="${GC[ctx.gk]}" opacity=".28"/>` : ''
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${fill}${tint}<path d="M0 168H${W}V271Q${W} ${H} ${W - 14} ${H}H14Q0 ${H} 0 271Z" fill="#120d30" opacity="${ph ? 0 : 0.92}"/>${edge(shape, ph ? '#cfc8ef' : c, ph ? 3 : 2, ph ? '10 8' : '')}</svg>
+      <div class="kg" style="left:${W / 2 - 42}px;top:38px;width:84px;height:84px;border-radius:50%;background:${ph ? 'transparent' : '#120d30'};box-shadow:${ph ? 'none' : `0 0 0 3px ${c}`}">${glyph(role.g, 50, ph ? '#cfc8ef' : c, { sw: 2.2 })}</div>
+      <div class="txt" style="left:14px;right:14px;bottom:16px"><div class="kw" style="color:${ph ? '#cfc8ef' : c}">${KIND_WORD[role.g]}</div><div class="ttl">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+const zig = () => { let d = 'M0 18'; for (let x = 0, i = 0; x < W; x += 18, i++) d += `L${Math.min(W, x + 9)} ${0}L${Math.min(W, x + 18)} 18`; return d + `V271Q${W} ${H} ${W - 14} ${H}H14Q0 ${H} 0 271Z` }
+const scallop = () => { let d = 'M0 18'; for (let i = 0; i < 6; i++) d += 'a16.5 16.5 0 0 1 33 0'; return d + `V271Q${W} ${H} ${W - 14} ${H}H14Q0 ${H} 0 271Z` }
+const E_SHAPES = {
+  step: rr(W, H, 14),
+  pr: `M0 0L99 36L198 0V271Q198 285 184 285H14Q0 285 0 271Z`,
+  issue: `M0 99A99 99 0 0 1 198 99V271Q198 285 184 285H14Q0 285 0 271Z`,
+  gate: `M0 124Q0 44 99 0Q198 44 198 124V271Q198 285 184 285H14Q0 285 0 271Z`,
+  question: zig(),
+  decision: scallop(),
+  reference: `M14 0H156L198 42V271Q198 285 184 285H14Q0 285 0 271V14Q0 0 14 0Z`,
+  placeholder: rr(W, H, 14),
+}
+DIRS.E = {
+  name: 'E', title: 'Arch tops',
+  text: 'Only the top edge changes, like tarot and shrine frames: flat for steps, a notch for PRs, a round arch for issues, a pointed arch for gates, a torn edge for questions, scallops for decisions.',
+  face(role, ctx) {
+    const shape = E_SHAPES[role.k], c = kc(role), ph = role.k === 'placeholder'
+    const gy = { issue: 64, gate: 68, pr: 56 }[role.k] ?? 46
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${ph ? `<path d="${shape}" fill="url(#hatch)"/>${edge(shape, '#cfc8ef', 3, '10 8')}` : `${art(shape, tintKey(role, ctx), role.id + 'E', W, H)}${scrim(shape, W, H, 150)}${edge(shape, c, 3)}`}</svg>
+      <div class="kg" style="left:${W / 2 - 40}px;top:${gy - 6}px;width:80px;height:80px;border-radius:50%;background:${ph ? 'transparent' : 'rgba(13,9,40,.6)'}">${glyph(role.g, 54, ph ? '#cfc8ef' : c, { sw: 2.2 })}</div>
+      <div class="txt" style="left:16px;right:16px;bottom:16px"><div class="kw" style="color:${ph ? '#cfc8ef' : c}">${KIND_WORD[role.g]}</div><div class="ttl">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+const FW = 264, FH = 112
+const F_SHAPES = {
+  step: rr(FW, FH, 12),
+  pr: `M12 0H232L264 56L232 112H12Q0 112 0 100V12Q0 0 12 0Z`,
+  issue: `M12 0H252Q264 0 264 12V38A18 18 0 0 0 264 74V100Q264 112 252 112H12Q0 112 0 100V74A18 18 0 0 0 0 38V12Q0 0 12 0Z`,
+  gate: `M0 0H264L242 56L264 112H0L22 56Z`,
+  question: rr(FW, FH, 56),
+  decision: rr(FW, FH, 56),
+  reference: `M12 0H228L264 36V112H12Q0 112 0 100V12Q0 0 12 0Z`,
+  placeholder: rr(FW, FH, 12),
+}
+DIRS.F = {
+  name: 'F', title: 'Landscape tiles',
+  text: 'Wide, short cards with a solid kind block on the left. Silhouettes still vary (arrow PR, ticket issue, banner gate, pill question). Tests whether a wider title line beats portrait art.',
+  face(role, ctx) {
+    const shape = F_SHAPES[role.k], c = kc(role), ph = role.k === 'placeholder', id = 'c' + UID++
+    const pill = role.k === 'question' || role.k === 'decision', gate = role.k === 'gate'
+    const bx = gate ? 22 : 0, bw = 96
+    const block = ph ? '' : role.k === 'question' ? `<rect x="0" width="${bw + 8}" height="${FH}" fill="none" stroke="${c}" stroke-width="5" stroke-dasharray="10 7"/>` : `<rect x="${bx}" width="${bw}" height="${FH}" fill="${c}"/>`
+    return {
+      w: FW, h: FH, shape,
+      html: `<svg class="fs" viewBox="0 0 ${FW} ${FH}">${ph ? `<path d="${shape}" fill="url(#hatch)"/>${edge(shape, '#cfc8ef', 3, '10 8')}` : `${art(shape, tintKey(role, ctx), role.id + 'F', FW, FH)}<rect x="${bx + bw}" width="${FW}" height="${FH}" fill="#0d0928" opacity=".7" clip-path="url(#${id})"/><defs><clipPath id="${id}"><path d="${shape}"/></clipPath></defs><g clip-path="url(#${id})">${block}</g>${edge(shape, gate ? c : 'rgba(255,255,255,.15)', gate ? 3 : 1)}`}</svg>
+      <div class="kg" style="left:${bx + (pill ? 22 : 18)}px;top:${FH / 2 - 32}px;width:64px;height:64px">${glyph(role.g, 60, ph ? '#cfc8ef' : role.k === 'question' ? c : '#140f34', { sw: 2.3, bg: c })}</div>
+      <div class="txt" style="left:${bx + bw + 12}px;right:${pill ? 30 : gate ? 30 : 14}px;top:10px;bottom:10px;align-content:center"><div class="ttl" style="font-size:14px;-webkit-line-clamp:3">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+const G_SIZE = { pr: [198, 285], step: [198, 285], issue: [198, 198], gate: [236, 236], question: [176, 176], decision: [176, 176], reference: [232, 128], placeholder: [198, 285] }
+DIRS.G = {
+  name: 'G', title: 'Board-game pieces',
+  text: 'Kind changes the piece itself: portrait cards for PRs and steps, square tiles for issues, big octagon landmarks for gates, round tokens for questions that become minted coins when decided, small slips for references.',
+  face(role, ctx) {
+    const [w, h] = G_SIZE[role.k], c = kc(role), ph = role.k === 'placeholder'
+    let shape = rr(w, h, 16)
+    if (role.k === 'gate') shape = `M70 0H166L236 70V166L166 236H70L0 166V70Z`
+    if (role.k === 'question' || role.k === 'decision') shape = circ(88, 88, 88)
+    if (role.k === 'reference') shape = `M10 0H200L232 32V128H10Q0 128 0 118V10Q0 0 10 0Z`
+    const round = role.k === 'question' || role.k === 'decision'
+    let body
+    if (ph) body = `<path d="${shape}" fill="url(#hatch)"/>${edge(shape, '#cfc8ef', 3, '10 8')}`
+    else if (role.k === 'decision') body = `<path d="${shape}" fill="${c}"/><circle cx="88" cy="88" r="74" fill="none" stroke="#140f34" stroke-width="3" opacity=".5"/>`
+    else if (role.k === 'question') body = `${art(shape, tintKey(role, ctx), role.id + 'G', w, h)}${edge(shape, c, 5, '14 9')}`
+    else body = `${art(shape, tintKey(role, ctx), role.id + 'G', w, h)}${scrim(shape, w, h, h * 0.5)}${edge(shape, c, role.k === 'gate' ? 5 : 3)}`
+    const gsize = { gate: 76, question: 64, decision: 64, reference: 46, issue: 56 }[role.k] ?? 56
+    const gx = role.k === 'reference' ? 16 : w / 2 - gsize / 2
+    const gy = round ? 26 : role.k === 'reference' ? 14 : role.k === 'gate' ? 34 : role.k === 'issue' ? 26 : 40
+    const txt = role.k === 'reference'
+      ? `<div class="txt" style="left:72px;right:14px;top:14px;bottom:14px;align-content:center"><div class="ttl" style="font-size:13px">${esc(role.title)}</div>${srcRef(role)}</div>`
+      : `<div class="txt" style="left:${round ? 26 : role.k === 'gate' ? 40 : 14}px;right:${round ? 26 : role.k === 'gate' ? 40 : 14}px;bottom:${round ? 34 : role.k === 'gate' ? 44 : 14}px;text-align:${round || role.k === 'gate' ? 'center' : 'left'}"><div class="ttl" style="font-size:${round ? 12.5 : 14}px;${role.k === 'decision' ? 'color:#140f34' : ''}">${esc(role.title)}</div>${round ? '' : srcRef(role)}</div>`
+    return {
+      w, h, shape,
+      html: `<svg class="fs" viewBox="0 0 ${w} ${h}">${body}</svg>
+      <div class="kg" style="left:${gx - 8}px;top:${gy - 8}px;width:${gsize + 16}px;height:${gsize + 16}px;border-radius:50%;background:${ph || role.k === 'decision' ? 'transparent' : 'rgba(13,9,40,.6)'}">${glyph(role.g, gsize, ph ? '#cfc8ef' : role.k === 'decision' ? '#140f34' : c, { sw: 2.2, bg: c })}</div>${txt}`,
+    }
+  },
+}
+
+DIRS.H = {
+  name: 'H', title: 'Book spine',
+  text: 'A colored spine down the left edge carries the glyph and the kind’s name, like books on a shelf. The rest of the card keeps seeded art. Quiet up close, a colored stripe at distance.',
+  face(role, ctx) {
+    const shape = rr(W, H, 10), c = kc(role), ph = role.k === 'placeholder', id = 'c' + UID++
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${ph ? `<path d="${shape}" fill="#120d30"/><path d="${shape}" fill="url(#hatch)"/>` : art(shape, tintKey(role, ctx), role.id + 'H', W, H)}<defs><clipPath id="${id}"><path d="${shape}"/></clipPath></defs><g clip-path="url(#${id})">${ph ? `<line x1="48" y1="0" x2="48" y2="${H}" stroke="#cfc8ef" stroke-width="2" stroke-dasharray="8 6"/>` : `<rect width="48" height="${H}" fill="${c}"/>`}</g>${scrim(shape, W, H, 150)}${edge(shape, ph ? '#cfc8ef' : 'rgba(255,255,255,.14)', ph ? 3 : 1, ph ? '10 8' : '')}</svg>
+      <div class="kg" style="left:6px;top:10px;width:36px;height:36px">${glyph(role.g, 34, ph ? '#cfc8ef' : '#140f34', { sw: 2.4, bg: c })}</div>
+      <div class="kw" style="position:absolute;left:14px;top:58px;writing-mode:vertical-rl;color:${ph ? '#cfc8ef' : '#140f34'};font-size:12px;letter-spacing:.16em">${KIND_WORD[role.g]}</div>
+      <div class="txt" style="left:60px;right:12px;bottom:14px"><div class="ttl" style="font-size:14px">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+DIRS.I = {
+  name: 'I', title: 'Pixel sprites',
+  text: 'Each kind is a 16 × 16 sprite drawn at 8×, over chunky dithered art, in the spirit of the dithered trading cards. Pixel art is designed on the grid it’s shown at, so it holds shape when small.',
+  face(role, ctx) {
+    const shape = rr(W, H, 6), c = kc(role), ph = role.k === 'placeholder'
+    const src = sprite(role.g, ph ? '#cfc8ef' : c)
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${ph ? `<path d="${shape}" fill="#120d30"/><path d="${shape}" fill="url(#hatch)"/>${edge(shape, '#cfc8ef', 4, '8 8')}` : `${art(shape, tintKey(role, ctx), role.id + 'I', W, H, { dither: 'dots8' })}${scrim(shape, W, H, 160)}${edge(shape, c, 4)}`}</svg>
+      <div class="kg" style="left:${W / 2 - 64}px;top:22px;width:128px;height:128px;background:${ph ? 'transparent' : 'rgba(13,9,40,.6)'};border-radius:4px"><img src="${src}" width="112" height="112" style="image-rendering:pixelated;display:block" alt=""></div>
+      <div class="txt" style="left:14px;right:14px;bottom:14px"><div class="kw" style="font-family:var(--font-pixel);letter-spacing:.04em;color:${ph ? '#cfc8ef' : c}">${KIND_WORD[role.g]}</div><div class="ttl" style="font-size:14px">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+DIRS.J = {
+  name: 'J', title: 'Constellations',
+  text: 'A night sky per card, where the kind’s glyph is traced as a constellation. The most on-brand and the prettiest; the question is whether stars survive 0.33.',
+  face(role, ctx) {
+    const shape = rr(W, H, 16), c = kc(role), ph = role.k === 'placeholder', r = rng(role.id + 'J')
+    const sx = 6.4, ox = W / 2 - 12 * sx, oy = 26
+    let bg = ''
+    for (let i = 0; i < 46; i++) bg += `<circle cx="${(r() * W).toFixed(1)}" cy="${(r() * H * 0.7).toFixed(1)}" r="${(0.4 + r() * 0.9).toFixed(2)}" fill="#fff" opacity="${(0.25 + r() * 0.5).toFixed(2)}"/>`
+    let lines = '', dots = ''
+    for (const s of stars(role.g)) {
+      const P = s.pts.map(([x, y]) => [ox + x * sx, oy + y * sx])
+      const seq = s.closed ? [...P, P[0]] : P
+      lines += `<polyline points="${seq.map((p) => p.join(',')).join(' ')}" fill="none" stroke="${ph ? '#cfc8ef' : c}" stroke-width="1.6" stroke-opacity=".75" ${ph ? 'stroke-dasharray="4 5"' : ''}/>`
+      for (const [x, y] of P) dots += ph ? `<circle cx="${x}" cy="${y}" r="3.6" fill="none" stroke="#cfc8ef" stroke-width="1.4"/>` : `<circle cx="${x}" cy="${y}" r="7" fill="${c}" opacity=".25"/><circle cx="${x}" cy="${y}" r="3.4" fill="#fff"/>`
+    }
+    const ck = ctx.groupMode === 'G1' ? 'g-' + ctx.gk : 'night'
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${ph ? `<path d="${shape}" fill="#0c0920"/>${edge(shape, '#cfc8ef', 3, '10 8')}` : art(shape, ck, role.id + 'J', W, H, { dither: '', extra: bg })}<g class="kg-svg">${lines}${dots}</g>${ph ? '' : scrim(shape, W, H, 190)}${ph ? '' : edge(shape, 'rgba(255,255,255,.14)', 1)}</svg>
+      <div class="txt" style="left:14px;right:14px;bottom:14px"><div class="kw" style="color:${ph ? '#cfc8ef' : c}">${KIND_WORD[role.g]}</div><div class="ttl" style="font-size:14px">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+DIRS.L = {
+  name: 'L', title: 'Paper slips',
+  text: 'Light paper cards on the dark canvas, inked in the kind’s color with a thick top rule and a big glyph. The brightest object on the board, so state has to darken it.',
+  face(role, ctx) {
+    const shape = rr(W, H, 6), c = kc(role), ph = role.k === 'placeholder', id = 'c' + UID++
+    const ink = mix(c, '#1a1240', 0.42)
+    const paper = ctx.groupMode === 'G1' ? mix('#f2ecdf', GC[ctx.gk], 0.22) : '#f2ecdf'
+    const shapeTop = role.k === 'gate' ? `<rect width="${W}" height="18" fill="${c}"/><rect y="22" width="${W}" height="5" fill="${c}"/>` : role.k === 'question' ? `<rect width="${W}" height="12" fill="none" stroke="${ink}" stroke-width="3" stroke-dasharray="9 6"/>` : `<rect width="${W}" height="12" fill="${c}"/>`
+    return {
+      w: W, h: H, shape,
+      html: `<svg class="fs" viewBox="0 0 ${W} ${H}">${ph ? `<path d="${shape}" fill="none"/>${edge(shape, '#f2ecdf', 3, '10 8')}` : `<path d="${shape}" fill="${paper}"/><path d="${shape}" fill="url(#grain)"/><defs><clipPath id="${id}"><path d="${shape}"/></clipPath></defs><g clip-path="url(#${id})">${shapeTop}${role.k === 'decision' ? `<rect y="0" width="${W}" height="${H}" fill="${c}" opacity=".22"/>` : ''}</g>`}</svg>
+      <div class="kg" style="left:14px;top:${role.k === 'gate' ? 40 : 30}px;width:70px;height:70px">${glyph(role.g, 64, ph ? '#f2ecdf' : ink, { sw: 2.2, bg: paper })}</div>
+      <div class="kw" style="position:absolute;right:14px;top:${role.k === 'gate' ? 42 : 32}px;color:${ph ? '#f2ecdf' : ink};text-align:right">${KIND_WORD[role.g]}</div>
+      <div class="txt" style="left:16px;right:16px;bottom:16px;color:${ph ? '#f2ecdf' : '#231c3d'}"><div class="ttl" style="font-size:16px">${esc(role.title)}</div>${srcRef(role)}</div>`,
+    }
+  },
+}
+
+const DIR_ORDER = ['Now', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'L']
+
+// ---------- card composition ----------
+function statusLayer(st, sopt, shape, role, f) {
+  if (role.k === 'placeholder') return ''
+  const clip = `clip-path:path('${shape}')`
+  const icon = { done: 'check', deferred: 'moon', blocked: 'lock' }[st]
+  if (st === 'review' && sopt !== 'S7') return `<div class="chip-rev">review</div>`
+  switch (sopt) {
+    case 'S1':
+      if (st === 'done') return `<div class="stamp">DONE</div>`
+      if (st === 'deferred') return `<div class="stamp later">LATER</div>`
+      if (st === 'blocked') return `<div class="lockb">${glyph('lock', 22, '#2a0610', { sw: 2.6 })}</div>`
+      return ''
+    case 'S2':
+    case 'S3':
+      if (sopt === 'S3' && st === 'blocked') return `<div class="ov" style="${clip}"><div class="hazard"></div></div>`
+      if (sopt === 'S3' && st === 'deferred') return `<div class="cbadge deferred" style="bottom:12px;right:50%;transform:translateX(50%);box-shadow:none;width:40px;height:40px">${glyph('moon', 22, '#191433')}</div>`
+      if (icon) return `<div class="cbadge ${st}">${glyph(icon, 26, st === 'done' ? '#062a26' : st === 'blocked' ? '#2a0610' : '#191433', { sw: 3 })}</div>`
+      return ''
+    case 'S4':
+      if (st === 'done') return `<div class="back" style="${clip}"><div class="bk">${glyph('check', 30, '#062a26', { sw: 3 })}</div></div>`
+      if (st === 'deferred') return `<div class="ov" style="${clip}"><div class="back half"><div class="bk">${glyph('moon', 22, '#191433')}</div></div></div>`
+      if (st === 'blocked') { const id = 'c' + UID++; return `<svg class="fs" viewBox="0 0 ${f.w} ${f.h}" style="z-index:5;pointer-events:none"><defs><clipPath id="${id}"><path d="${shape}"/></clipPath></defs><g clip-path="url(#${id})"><path d="${shape}" fill="none" stroke="#ff5e7e" stroke-width="20"/><path d="${shape}" fill="none" stroke="#2a0610" stroke-width="20" stroke-dasharray="10 10"/></g></svg><div class="lockb" style="top:-14px;left:auto;right:-14px;transform:none">${glyph('lock', 22, '#2a0610', { sw: 2.6 })}</div>` }
+      return ''
+    case 'S5':
+      if (icon) return `<div class="band ${st}">${glyph(icon, 22, st === 'done' ? '#062a26' : st === 'blocked' ? '#2a0610' : '#e6e1ff', { sw: 3 })}${{ done: 'DONE', deferred: 'LATER', blocked: 'BLOCKED' }[st]}</div>`
+      return ''
+    case 'S6':
+      if (st === 'blocked') return `<div class="lockb" style="top:-14px;left:auto;right:-14px;transform:none">${glyph('lock', 22, '#2a0610', { sw: 2.6 })}</div>`
+      return ''
+    case 'S7': {
+      const ic = { done: 'check', deferred: 'moon', blocked: 'lock', active: 'play', review: 'eye', todo: '' }[st]
+      const col = { done: '#062a26', deferred: '#e6e1ff', blocked: '#2a0610', active: '#0b1033', review: '#2a1606', todo: '#e6e1ff' }[st]
+      const word = { done: 'DONE', deferred: 'LATER', blocked: 'BLOCKED', active: 'ACTIVE', review: 'REVIEW', todo: 'READY' }[st]
+      return `<div class="ov" style="${clip}"><div class="ebar ${st}">${ic ? glyph(ic, 18, col, { sw: 3 }) : ''}${word}</div></div>`
+    }
+  }
+  return ''
+}
+
+function domainsOf(role) {
+  const out = []
+  for (const [src] of role.refs || [[role.src]]) if (!out.includes(src)) out.push(src)
+  return out
+}
+function coinStyle(kopt, src, role) {
+  const s = SRC[src], k = KC[role.k]
+  if (kopt === 'K7') return `background:#120d30;color:#f4f0ff;box-shadow:0 0 0 2.5px ${k}, 0 0 0 6px #0c0920`
+  if (kopt === 'K8') return `background:#0c0920;color:#a39bcc;box-shadow:0 0 0 7px #0c0920`
+  if (kopt === 'K9') return `background:${k};color:#140f34;box-shadow:0 0 0 4px #0c0920`
+  return `background:${s.color};color:${s.ink}`
+}
+function sourceLayer(role, kopt, f) {
+  if (!role.src) return ''
+  const s = SRC[role.src]
+  if (['K1', 'K7', 'K8', 'K9'].includes(kopt)) {
+    const doms = domainsOf(role), m = P.multi
+    const coin = (src, extra = '') => `<div class="k1" style="${coinStyle(kopt, src, role)};${extra}">${SRC[src].mono}</div>`
+    if (doms.length === 1 || m === 'M4') return coin(doms[0])
+    if (m === 'M1') return coin(doms[0]) + `<div class="kplus" style="right:34px">+${doms.length - 1}</div>`
+    if (m === 'M2') return doms.slice(0, 3).map((d, i) => coin(d, `right:${-12 + i * 26}px;z-index:${8 - i}`)).join('')
+    if (m === 'M3') return coin(doms[0]) + `<div class="krow">${doms.map((d) => coin(d)).join('')}</div>`
+  }
+  switch (kopt) {
+    case 'K1': return `<div class="k1" style="background:${s.color};color:${s.ink}">${s.mono}</div>`
+    case 'K2': return `<div class="k2" style="background:${s.color};color:${s.ink}">${s.mono}</div>`
+    case 'K3': return `<div class="k3" style="color:${s.color};clip-path:path('${f.shape}')">${s.mono}</div>`
+    case 'K4': return `<div class="k4" style="background:${mix(s.color, '#0c0920', 0.75)};color:${s.color}"><i style="background:${s.color}"></i><span>${esc(role.ref)}</span></div>`
+    case 'K5': return `<svg class="fs" viewBox="0 0 ${f.w} ${f.h}" style="z-index:6;pointer-events:none">${edge(f.shape, s.color, 6)}</svg>`
+  }
+  return ''
+}
+
+function card(roleOrId, st, o) {
+  const role = typeof roleOrId === 'string' ? R[roleOrId] : roleOrId
+  const gk = o.gk || 'purple', groupMode = o.groupMode || P.group
+  if (role.k === 'placeholder') st = 'todo'
+  const f = DIRS[o.dir].face(role, { gk, groupMode })
+  const sopt = o.status || P.status, kopt = o.source || P.source
+  let wrapStyle = `width:${f.w}px;height:${f.h}px`
+  if (groupMode === 'G3') { const g = GC[gk]; wrapStyle += `;filter:drop-shadow(4px 0 0 ${g}) drop-shadow(-4px 0 0 ${g}) drop-shadow(0 4px 0 ${g}) drop-shadow(0 -4px 0 ${g})` }
+  const cls = ['cw', 's-' + sopt, 'st-' + st, 'k-' + role.k, o.far ? 'far' : '', o.cls || ''].join(' ')
+  const pip = groupMode === 'G4' ? `<div class="gpip" style="background:${GC[gk]}"></div>` : ''
+  const farscale = o.dir === 'C' || o.dir === 'J' ? 1.05 : o.dir === 'F' ? 1.2 : 1.45
+  return `<div class="${cls}" style="${wrapStyle};--farscale:${farscale}" data-role="${role.id}" data-kind="${role.k}" ${o.attrs || ''}><div class="body"><div class="face">${f.html}</div>${sourceLayer(role, kopt, f)}${statusLayer(st, sopt, f.shape, role, f)}${pip}</div></div>`
+}
+
+// ---------- marks ----------
+const MARKS = {}
+let db = null
+function loadLocalMarks() { try { Object.assign(MARKS, JSON.parse(localStorage.getItem('orion-card-spike-marks') || '{}')) } catch {} }
+function saveLocalMarks() { try { localStorage.setItem('orion-card-spike-marks', JSON.stringify(MARKS)) } catch {} }
+async function setMark(id, patch) {
+  const cur = { ...(MARKS[id] || {}) }
+  Object.assign(cur, patch)
+  if (!cur.v && !cur.note) delete MARKS[id]
+  else MARKS[id] = cur
+  saveLocalMarks()
+  applyMarks()
+  if (db) {
+    try {
+      if (MARKS[id]) await db.collection('marks').doc(id).set({ v: cur.v || '', note: cur.note || '', at: new Date().toISOString() })
+      else await db.collection('marks').doc(id).delete()
+    } catch (e) { document.getElementById('sync').textContent = 'Marks: saved here only (' + (e.code || 'error') + ')' }
+  }
+}
+function markButtons(id) {
+  return `<button class="mk fav" type="button" data-mark="${id}" data-v="fav" aria-pressed="false" title="Star ${id}" aria-label="Star ${id}">★</button><button class="mk rej" type="button" data-mark="${id}" data-v="reject" aria-pressed="false" title="Cross ${id}" aria-label="Cross ${id}">✕</button>`
+}
+function applyMarks() {
+  document.querySelectorAll('[data-mark]').forEach((b) => b.setAttribute('aria-pressed', String(MARKS[b.dataset.mark]?.v === b.dataset.v)))
+  document.querySelectorAll('[data-markable]').forEach((el) => {
+    const v = MARKS[el.dataset.markable]?.v
+    el.classList.toggle('marked-fav', v === 'fav')
+    el.classList.toggle('marked-rej', v === 'reject')
+    const show = P.show
+    let hide = false
+    if (show === 'fav') hide = v !== 'fav'
+    if (show === 'unrej') hide = v === 'reject'
+    if (show === 'unmarked') hide = !!v
+    // keep a direction band visible if any card inside is starred
+    if (hide && show === 'fav' && el.querySelector('.marked-fav')) hide = false
+    el.classList.toggle('hidden-by-filter', hide)
+  })
+  document.querySelectorAll('[data-note]').forEach((i) => { if (document.activeElement !== i) i.value = MARKS[i.dataset.note]?.note || '' })
+  renderSummary()
+}
+function allIds() {
+  const ids = {}
+  for (const d of DIR_ORDER) { ids[d] = `${DIRS[d].name} · ${DIRS[d].title}`; for (const r of ROLES) ids[`${d}-${r.id}`] = `${DIRS[d].title}, ${r.id}` }
+  for (const o of [...STATUS_OPTS, ...SOURCE_OPTS, ...MULTI_OPTS, ...GROUP_OPTS, ...HEAD_OPTS, ...FOLD_OPTS]) ids[o.id] = o.name
+  return ids
+}
+function renderSummary() {
+  const ids = allIds(), fav = [], rej = []
+  for (const [id, m] of Object.entries(MARKS)) { const line = `<li>${esc(id)} <span style="color:var(--muted)">${esc(ids[id] || '')}</span>${m.note ? ` — ${esc(m.note)}` : ''}</li>`; if (m.v === 'fav') fav.push(line); else if (m.v === 'reject') rej.push(line); else if (m.note) fav.push(line) }
+  document.getElementById('m-fav').innerHTML = fav.length ? `<ul>${fav.join('')}</ul>` : '<p class="empty">Nothing starred yet.</p>'
+  document.getElementById('m-rej').innerHTML = rej.length ? `<ul>${rej.join('')}</ul>` : '<p class="empty">Nothing crossed yet.</p>'
+}
+
+// ---------- prefs ----------
+const P = { multi: 'M1', vision: 'none', status: 'S1', source: 'K7', group: 'G2', zoom: 0.33, far: false, show: 'all', sample: 'A', cvDir: 'A', scene: 'mixed', cvZoom: 0.33, head: 'H1', fold: 'R1', reveal: '' }
+try { Object.assign(P, JSON.parse(localStorage.getItem('orion-card-spike-prefs') || '{}')) } catch {}
+const savePrefs = () => { try { localStorage.setItem('orion-card-spike-prefs', JSON.stringify(P)) } catch {} }
+
+// ---------- render: directions ----------
+function renderDirections() {
+  const z = +P.zoom
+  let html = ''
+  for (const d of DIR_ORDER) {
+    const D = DIRS[d]
+    const close = ROLES.map((r) => `<div class="slot" data-markable="${d}-${r.id}">${card(r, 'todo', { dir: d })}<div class="tag"><code>${d}-${r.id}</code>${markButtons(`${d}-${r.id}`)}</div></div>`).join('')
+    const states = STATE_ROW.map(([id, st]) => `<div class="slot">${card(id, st, { dir: d })}<div class="tag"><code>${id} · ${R[id].k === 'placeholder' ? 'expected' : st}</code></div></div>`).join('')
+    const farA = ROLES.map((r) => `<div style="zoom:${z}">${card(r, 'todo', { dir: d, far: P.far && z <= 0.5 })}</div>`).join('')
+    const farB = STATE_ROW.map(([id, st]) => `<div style="zoom:${z}">${card(id, st, { dir: d, far: P.far && z <= 0.5 })}</div>`).join('')
+    html += `<article class="dir" id="dir-${d}" data-markable="${d}">
+      <div class="dir-head"><div class="dir-id">${D.name}</div><div><h3>${D.title}${d === 'Now' ? '<span class="current">current</span>' : ''}</h3><p>${D.text}</p></div>
+      <div class="dir-tools"><div class="tag">${markButtons(d)}</div><input class="dir-note" data-note="${d}" id="note-${d}" placeholder="Note on ${D.name}" aria-label="Note on direction ${D.name}"></div></div>
+      <div class="rowlabel">Roles, close up</div><div class="deck viz">${close}</div>
+      <div class="rowlabel">States · ${STATUS_OPTS.find((s) => s.id === P.status).name}</div><div class="deck tight viz">${states}</div>
+      <div class="rowlabel">Same cards at ${z.toFixed(2)}</div><div class="farwrap viz"><div class="farrow">${farA}</div><div class="farrow">${farB}</div></div>
+    </article>`
+  }
+  document.getElementById('dir-list').innerHTML = html
+}
+
+// ---------- render: option sections ----------
+function optHead(o) { return `<div class="opt-head"><div class="oid">${o.id}</div><div class="otxt"><h3>${o.name}${o.now ? '<span class="current">current</span>' : ''}</h3><p>${o.text}</p></div><div class="marks">${markButtons(o.id)}</div></div>` }
+function strip(items, opts, zoom) { return `<div class="farrow">${items.map(([id, st, extra]) => `<div style="zoom:${zoom}">${card(id, st, { ...opts, ...(extra || {}) })}</div>`).join('')}</div>` }
+function renderStates() {
+  const items = [['pr', 'done'], ['issue', 'deferred'], ['step', 'blocked'], ['pr', 'active'], ['pr', 'review'], ['issue', 'todo'], ['placeholder', 'todo']]
+  document.getElementById('state-list').innerHTML = STATUS_OPTS.map((o) => `<div class="opt" data-markable="${o.id}">${optHead(o)}
+    <div class="closewrap viz">${strip(items, { dir: P.sample, status: o.id }, 0.42)}</div>
+    <div class="farwrap viz">${strip(items, { dir: P.sample, status: o.id, far: P.far }, +P.zoom)}</div></div>`).join('')
+}
+function renderMulti() {
+  const items = [['pr', 'todo'], ['jira', 'todo'], ['issue', 'todo'], ['pr', 'done']]
+  const src = ['K1', 'K7', 'K8', 'K9'].includes(P.source) ? P.source : 'K7'
+  const keep = P.multi
+  document.getElementById('multi-list').innerHTML = MULTI_OPTS.map((o) => { P.multi = o.id; const h = `<div class="opt" data-markable="${o.id}">${optHead(o)}
+    <div class="closewrap viz" style="padding-top:22px;padding-bottom:26px">${strip(items, { dir: P.sample, source: src }, 0.48)}</div>
+    <div class="farwrap viz" style="padding-top:18px;padding-bottom:18px">${strip(items, { dir: P.sample, source: src, far: P.far }, +P.zoom)}</div></div>`; return h }).join('')
+  P.multi = keep
+}
+function renderSources() {
+  const items = [['pr', 'todo'], ['issue', 'todo'], ['jira', 'todo'], ['figma', 'todo'], ['step', 'todo']]
+  document.getElementById('source-list').innerHTML = SOURCE_OPTS.map((o) => `<div class="opt" data-markable="${o.id}">${optHead(o)}
+    <div class="closewrap viz" style="padding-top:30px;padding-bottom:30px">${strip(items, { dir: P.sample, source: o.id, status: 'S1' }, 0.48)}</div>
+    <div class="farwrap viz" style="padding-top:18px;padding-bottom:18px">${strip(items, { dir: P.sample, source: o.id, far: P.far }, +P.zoom)}</div></div>`).join('')
+}
+function miniGroup(gk, gopt, zoom, label) {
+  const ids = ['pr', 'issue', 'milestone', 'step', 'question', 'placeholder']
+  const sts = ['done', 'todo', 'todo', 'done', 'todo', 'todo']
+  const c = GC[gk]
+  const wash = gopt === 'G5' ? 0.22 : 0.06
+  return `<div style="zoom:${zoom};display:inline-block;padding:70px 40px 40px;border-radius:28px;border:3px solid ${mix(c, '#0c0920', 0.45)};background:${c}${Math.round(wash * 255).toString(16).padStart(2, '0')};position:relative">
+    <div style="position:absolute;left:36px;top:18px;font-family:var(--font-display);font-weight:700;font-size:30px;color:${gopt === 'G5' ? c : '#f2eeff'}">${label}</div>
+    <div class="farrow" style="gap:40px;flex-wrap:wrap;width:${3 * 260}px">${ids.map((id, i) => card(id, sts[i], { dir: P.sample, gk, groupMode: gopt, far: zoom <= 0.5 && P.far })).join('')}</div></div>`
+}
+function renderGroups() {
+  document.getElementById('group-list').innerHTML = GROUP_OPTS.map((o) => `<div class="opt" data-markable="${o.id}">${optHead(o)}
+    <div class="farwrap viz"><div class="farrow" style="gap:16px;align-items:flex-start">${miniGroup('purple', o.id, 0.36, 'Issue burn-down')}${miniGroup('teal', o.id, 0.36, 'Release 1.4')}</div></div>
+    <div class="farwrap viz"><div class="farrow" style="gap:16px;align-items:flex-start">${miniGroup('purple', o.id, +P.zoom * 0.66, 'Issue burn-down')}${miniGroup('teal', o.id, +P.zoom * 0.66, 'Release 1.4')}</div></div></div>`).join('')
+}
+function renderScale() {
+  const fold = FOLD_OPTS.map((o) => `<div class="opt" data-markable="${o.id}">${optHead(o)}<div class="farwrap viz">${foldedGroup(o.id, 0.4, 'blue', 0, 0, true)}</div></div>`).join('')
+  const head = HEAD_OPTS.map((o) => `<div class="opt" data-markable="${o.id}">${optHead(o)}<div class="farwrap viz"><div style="position:relative;height:${Math.round(700 * 0.33) + 10}px"><div style="position:absolute;zoom:0.33">${groupBox({ x: 0, y: 0, w: 1100, h: 700, gk: 'purple', name: 'Issue burn-down', stat: '28/38 done · unblocks 5' }, o.id, 0.33)}</div></div></div></div>`).join('')
+  document.getElementById('scale-list').innerHTML = head + fold
+}
+
+// ---------- canvas ----------
+const BURN = null
+
+const TITLES = {
+  pr: ['Read canvases through a SQLite index', 'Journal canvas writes and replay them', 'Use random ids and fractional order keys', 'Build MCP tools from command definitions', 'Accept renamed commands through aliases', 'Split the trading card art into layers', 'Keep folded groups a steady size', 'Draw compact cards far out', 'Refresh only the pull requests that changed'],
+  issue: ['Add a legend for lines, shapes, and colors', 'Conditional gates for flag rollouts', 'Snooze cards until a date', 'Group headers grow as the canvas shrinks', 'Placeholders look like finished work', 'Show who a card waits on', 'Find related cards by text'],
+  step: ['Pick a header scale rule', 'Measure card size at 0.33', 'Draft the kind palette', 'Audit status colors for color vision', 'Write the type registry doc'],
+  placeholder: ['Expected: migration PR', 'Expected: legend PR', 'Expected: perf report', 'Expected: release notes'],
+  question: ['Do folded groups show kinds?', 'Does a decision keep the question shape?', 'Is source a corner or a frame?'],
+  decision: ['Groups stop tinting cards', 'Gates get their own silhouette'],
+  reference: ['Charter: one meaning per mark', 'Earlier card variety study'],
+}
+function canvasModel() {
+  const r = rng('burn-down')
+  const pick = (k, i) => TITLES[k][i % TITLES[k].length]
+  const g1 = []
+  const plan = [
+    ...Array(7).fill(['pr', 'done']), ...Array(5).fill(['issue', 'done']), ...Array(4).fill(['step', 'done']),
+    ['placeholder', 'todo'], ['placeholder', 'todo'], ['placeholder', 'todo'],
+    ['milestone', 'todo'], ['signoff', 'blocked'], ['question', 'todo'], ['question', 'todo'], ['decision', 'done'], ['reference', 'todo'],
+    ['pr', 'active'], ['pr', 'review'], ['issue', 'blocked'], ['issue', 'deferred'], ['jira', 'todo'],
+  ]
+  // stable shuffle
+  const order = plan.map((p, i) => [r(), p, i]).sort((a, b) => a[0] - b[0]).map((x) => x[1])
+  const counts = {}
+  order.forEach(([id, st], i) => { const role = R[id]; counts[role.k] = (counts[role.k] || 0) + 1; g1.push({ role: { ...role, title: role.src === 'jira' || role.k === 'gate' ? role.title : pick(role.k, counts[role.k] - 1) }, st, col: i % 6, row: Math.floor(i / 6), group: 'g1' }) })
+  const g2plan = [['physical', 'todo'], ['signoff', 'todo'], ['milestone', 'blocked'], ['pr', 'review'], ['pr', 'done'], ['placeholder', 'todo'], ['issue', 'todo'], ['step', 'active'], ['figma', 'todo']]
+  const g2 = g2plan.map(([id, st], i) => ({ role: { ...R[id], title: R[id].k === 'pr' ? pick('pr', 6 + i) : R[id].k === 'issue' ? pick('issue', 5) : R[id].title }, st, col: i % 3, row: Math.floor(i / 3), group: 'g2' }))
+  const loose = [{ role: { ...R.question, title: 'Is source a corner or a frame?' }, st: 'todo', loose: 0 }, { role: { ...R.decision, title: 'Gates get their own silhouette' }, st: 'done', loose: 1 }]
+  return { g1, g2, loose, r }
+}
+function dirCell(d) {
+  let mw = 0, mh = 0
+  for (const r of ROLES) { const f = DIRS[d].face(r, { gk: 'purple', groupMode: 'G2' }); mw = Math.max(mw, f.w); mh = Math.max(mh, f.h) }
+  return [mw + 100, mh + 110]
+}
+function groupBox(g, hopt, z) {
+  const c = GC[g.gk], wash = P.group === 'G5' ? 0.2 : 0.05
+  let head = ''
+  const ring = (s) => `<svg width="${s}" height="${s}" viewBox="0 0 20 20" style="flex:none"><circle cx="10" cy="10" r="7.5" fill="none" stroke="${mix(c, '#0c0920', 0.6)}" stroke-width="3"/><circle cx="10" cy="10" r="7.5" fill="none" stroke="${c}" stroke-width="3" stroke-dasharray="${0.74 * 47} 47" transform="rotate(-90 10 10)"/></svg>`
+  if (hopt === 'H1') { const s = 1 / z; head = `<div style="position:absolute;left:0;right:0;top:0;height:${30 * s}px;display:flex;align-items:center;gap:${7 * s}px;padding:0 ${10 * s}px;background:${mix(c, '#0c0920', 0.86)};border-bottom:${s}px solid ${mix(c, '#0c0920', 0.6)};border-radius:${12 * s}px ${12 * s}px 0 0;font-size:${13 * s}px;font-weight:700">${ring(14 * s)}<span>${g.name}</span><span style="font-family:var(--font-data);font-size:${10 * s}px;color:var(--muted);font-weight:400">${g.stat}</span></div>` }
+  if (hopt === 'H2' || hopt === 'H4') head = `<div style="position:absolute;left:0;right:0;top:0;height:46px;display:flex;align-items:center;gap:10px;padding:0 16px;background:${mix(c, '#0c0920', 0.86)};border-radius:24px 24px 0 0;font-size:20px;font-weight:700">${ring(22)}<span>${g.name}</span><span style="font-family:var(--font-data);font-size:15px;color:var(--muted);font-weight:400">${g.stat}</span></div>`
+  if (hopt === 'H3') head = `<div style="position:absolute;left:0;right:0;top:0;height:150px;display:flex;align-items:center;gap:30px;padding:0 44px;background:${mix(c, '#0c0920', 0.84)};border-radius:24px 24px 0 0">${ring(84)}<div><div style="font-family:var(--font-display);font-size:72px;font-weight:800;line-height:1;color:${c}">${g.name}</div><div style="font-family:var(--font-data);font-size:30px;color:#cfc8ef;margin-top:8px">${g.stat}</div></div></div>`
+  const water = hopt === 'H4' && z <= 0.5 ? `<div style="position:absolute;inset:46px 0 0;display:grid;place-items:center;pointer-events:none;z-index:20"><div style="font-family:var(--font-display);font-weight:800;font-size:${Math.min(260, g.w / Math.max(6, g.name.length) * 1.5)}px;line-height:.9;text-align:center;color:${c};opacity:.5;text-shadow:0 0 30px #0c0920, 0 0 8px #0c0920">${g.name}</div></div>` : ''
+  return `<div style="position:absolute;left:${g.x}px;top:${g.y}px;width:${g.w}px;height:${g.h}px;border-radius:24px;border:3px solid ${mix(c, '#0c0920', 0.5)};background:${c}${Math.round(wash * 255).toString(16).padStart(2, '0')}">${head}${water}</div>`
+}
+function headerH(hopt, z) { return hopt === 'H1' ? 30 / z : hopt === 'H3' ? 150 : 46 }
+function foldedGroup(fopt, zoom, gk, x, y, standalone, o = {}) {
+  const c = GC[gk], w = o.w || 900, h = o.h || 640
+  const contents = o.contents || [['pr', 'done'], ['pr', 'done'], ['pr', 'blocked'], ['issue', 'done'], ['issue', 'blocked'], ['issue', 'todo'], ['milestone', 'blocked'], ['step', 'done'], ['step', 'done'], ['placeholder', 'todo'], ['question', 'todo']]
+  let inner = ''
+  if (fopt === 'R1') {
+    const rr2 = rng('fold')
+    inner = contents.map(([id, st], i) => `<div style="position:absolute;left:${80 + (i % 5) * 160 + rr2() * 20}px;top:${150 + Math.floor(i / 5) * 160}px;width:110px;height:150px;border-radius:8px;background:${st === 'blocked' ? '#7a2a4a' : '#4a4378'}"></div>`).join('')
+  } else if (fopt === 'R2') {
+    const by = {}
+    for (const [id, st] of contents) { const k = R[id].k, g = R[id].g; by[k] = by[k] || { g, n: 0, done: 0, blocked: 0 }; by[k].n++; if (st === 'done') by[k].done++; if (st === 'blocked') by[k].blocked++ }
+    inner = `<div style="position:absolute;left:60px;right:60px;top:150px;display:grid;grid-template-columns:repeat(3,1fr);gap:40px 30px">${Object.entries(by).map(([k, v]) => `<div style="display:flex;align-items:center;gap:18px">${glyph(v.g, 96, k === 'placeholder' ? '#cfc8ef' : KC[k], { sw: 2.2 })}<div style="font-family:var(--font-display);font-weight:800;font-size:64px;line-height:1">${v.n}<div style="font-family:var(--font-data);font-weight:600;font-size:22px;color:${v.blocked ? '#ff5e7e' : v.done ? '#18d6c0' : '#cfc8ef'}">${v.blocked ? v.blocked + ' blocked' : k === 'placeholder' ? 'expected' : v.done ? v.done + ' done' : 'open'}</div></div></div>`).join('')}</div>
+      <div style="position:absolute;left:60px;right:60px;bottom:56px;height:22px;border-radius:11px;background:#2a2450;overflow:hidden"><div style="width:${(contents.filter((x) => x[1] === 'done').length / contents.length) * 100}%;height:100%;background:#18d6c0"></div></div>`
+  } else {
+    inner = `<div style="position:absolute;left:${w / 2 - 160}px;top:150px">${[3, 2, 1].map((i) => `<div style="position:absolute;left:${i * 26}px;top:${i * 14}px;width:198px;height:285px;border-radius:16px;background:#2a2450;border:3px solid ${mix(c, '#0c0920', 0.4)};transform:rotate(${i * 4}deg)"></div>`).join('')}<div style="position:absolute;left:0;top:0">${card({ ...R.issue, title: 'Show who a card waits on' }, 'todo', { dir: P.cvDir && !standalone ? P.cvDir : P.sample, gk, far: zoom <= 0.5 && P.far })}</div>
+      <div style="position:absolute;left:330px;top:60px;font-family:var(--font-display);font-weight:800;font-size:110px;color:${c}">11</div><div style="position:absolute;left:334px;top:200px;font-family:var(--font-data);font-size:26px;color:#cfc8ef;white-space:nowrap">cards · next up</div></div>`
+  }
+  const g = { x, y, w, h, gk, name: 'Roadmap', stat: `${contents.filter((x) => x[1] === 'done').length}/${contents.length} done · ${contents.filter((x) => x[1] === 'blocked').length} blocked` }
+  const headOpt = standalone ? 'H2' : P.head
+  const box = groupBox(g, headOpt === 'H4' ? 'H2' : headOpt, zoom).replace(/<\/div>$/, `${inner}</div>`)
+  return standalone ? `<div style="position:relative;width:${w * zoom}px;height:${h * zoom}px"><div style="position:absolute;zoom:${zoom}">${box}</div></div>` : box
+}
+function renderCanvas() { if (P.scene === 'burn' && BURN) return renderBurn(); renderMixed() }
+function renderBurn() {
+  const d = P.cvDir, z = +P.cvZoom, B = BURN
+  const gx = 700, gy = 260, hh = headerH(P.head, z)
+  const total = { w: gx + B.root.w + 700, h: gy + B.root.h + hh + 500 }
+  const road = B.groups[0]
+  const inRoad = new Set(B.cards.filter((c) => c.g === road.id).map((c) => c.id))
+  const shift = Math.max(0, hh - 78)
+  const ROLE = { pr: 'pr', issue: 'issue', step: 'step', placeholder: 'placeholder', gate: 'milestone' }
+  const pos = {}
+  const visible = B.cards.filter((c) => !inRoad.has(c.id)).map((c, i) => {
+    const role = { ...R[ROLE[c.k]], title: c.title, ref: undefined, src: c.k === 'pr' || c.k === 'issue' ? 'github' : undefined }
+    const f = DIRS[d].face(role, { gk: 'purple', groupMode: P.group })
+    const x = gx + c.x + (198 - f.w) / 2, y = gy + shift + c.y + (285 - f.h) / 2
+    pos[c.id] = { x, y, w: f.w, h: f.h, st: c.st }
+    return { role, st: c.st, x, y, i }
+  })
+  const rb = { x: gx + road.x, y: gy + shift + road.y, w: road.w, h: road.h }
+  for (const id of inRoad) pos[id] = { ...rb, st: 'blocked' }
+  const lw = Math.max(2, 1.4 / z)
+  const curve = (x1, y1, x2, y2, open) => { const dx = Math.max(60, Math.abs(x2 - x1) * 0.5); return `<path d="M${x1} ${y1}C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}" fill="none" stroke="${open ? '#a07cf0' : '#3c3370'}" stroke-width="${lw}" ${open ? `stroke-dasharray="${lw * 2} ${lw * 2}"` : ''} opacity="${open ? 0.9 : 0.8}"/>` }
+  let paths = ''
+  for (const [a, b] of B.links) { const A = pos[a], Bp = pos[b]; if (!A || !Bp || (inRoad.has(a) && inRoad.has(b))) continue; paths += curve(A.x + A.w, A.y + A.h / 2, Bp.x, Bp.y + Bp.h / 2, A.st !== 'done') }
+  const r = rng('ext')
+  B.ext.forEach(([a, b], i) => {
+    if (a && pos[a]) { const A = pos[a]; paths += curve(A.x + A.w, A.y + A.h / 2, total.w - 40, 120 + r() * (total.h - 240), A.st !== 'done') }
+    else if (b && pos[b]) { const Bp = pos[b]; paths += curve(40, 120 + r() * (total.h - 240), Bp.x, Bp.y + Bp.h / 2, Bp.st !== 'done' && Bp.st !== 'blocked') }
+  })
+  const far = z <= 0.5 && P.far
+  const cards = visible.map((v) => `<div style="position:absolute;left:${v.x}px;top:${v.y}px">${card(v.role, v.st, { dir: d, gk: 'purple', far, attrs: `data-ci="${v.i}" data-target-kind="${v.role.k}" data-st="${v.st}"` })}</div>`).join('')
+  const roadContents = B.cards.filter((c) => inRoad.has(c.id)).map((c) => [ROLE[c.k], c.st])
+  const bottom = Math.max(...Object.values(pos).map((q) => q.y + q.h)) - gy + 60
+  const g1 = { x: gx, y: gy, w: B.root.w, h: Math.max(B.root.h + shift, bottom), gk: 'purple', name: 'Issue burn-down', stat: '28/39 done · 1 ready · 8 blocked · unblocks 5' }
+  const board = document.getElementById('cv-board')
+  board.style.width = total.w + 'px'; board.style.height = total.h + 'px'; board.style.zoom = z
+  board.innerHTML = `${groupBox(g1, P.head, z)}<svg style="position:absolute;left:0;top:0;overflow:visible" width="${total.w}" height="${total.h}">${paths}</svg>${foldedGroup(P.fold, z, 'blue', rb.x, rb.y, false, { w: rb.w, h: rb.h, contents: roadContents })}${cards}`
+  if (P.head === 'H4' && z <= 0.5) board.querySelectorAll(':scope > div').forEach((el) => { if (el.querySelector('[style*="opacity:.5"]')) el.style.zIndex = 30, el.style.background = 'transparent', el.style.pointerEvents = 'none' })
+  applyReveal()
+}
+function renderMixed() {
+  const d = P.cvDir, z = +P.cvZoom, m = canvasModel()
+  const [cw, ch] = dirCell(d)
+  const hh = headerH(P.head, z)
+  const g1 = { x: 120, y: 120, w: 6 * cw + 80, h: 5 * ch + hh + 80, gk: 'purple', name: 'Issue burn-down', stat: '17/30 done · 3 ready · 3 blocked · unblocks 5' }
+  const g2 = { x: g1.x + g1.w + 260, y: 120, w: 3 * cw + 80, h: 3 * ch + hh + 80, gk: 'teal', name: 'Release 1.4', stat: '1/9 done · 3 gates' }
+  const fold = { x: g2.x, y: g2.y + g2.h + 200 }
+  const total = { w: g2.x + g2.w + 200, h: Math.max(g1.y + g1.h, fold.y + 640) + 200 }
+  const pos = []
+  const place = (it, G) => { const f = DIRS[d].face(it.role, { gk: G.gk, groupMode: P.group }); return { ...it, x: G.x + 40 + it.col * cw + (cw - f.w) / 2, y: G.y + hh + 40 + it.row * ch + (ch - f.h) / 2, w: f.w, h: f.h, gk: G.gk } }
+  m.g1.forEach((it) => pos.push(place(it, g1)))
+  m.g2.forEach((it) => pos.push(place(it, g2)))
+  m.loose.forEach((it, i) => { const f = DIRS[d].face(it.role, { gk: 'purple', groupMode: 'G2' }); pos.push({ ...it, x: g1.x + g1.w + 40 - (i ? 0 : 0), y: g1.y + g1.h - (i ? 380 : 900), w: f.w, h: f.h, gk: 'purple', looseCard: true }) })
+  // links: each g1 card to one or two in the next column
+  const r = rng('links'), links = []
+  const g1p = pos.filter((p) => p.group === 'g1'), g2p = pos.filter((p) => p.group === 'g2')
+  for (const a of g1p) {
+    if (a.col === 5) continue
+    const next = g1p.filter((b) => b.col === a.col + 1)
+    const n = r() < 0.35 ? 2 : 1
+    for (let i = 0; i < n; i++) links.push([a, next[Math.floor(r() * next.length)]])
+  }
+  for (const a of g1p.filter((p) => p.col === 5)) if (r() < 0.6) links.push([a, g2p[Math.floor(r() * 3) * 3]])
+  for (const a of g2p) if (a.col < 2) links.push([a, g2p.find((b) => b.col === a.col + 1 && b.row === a.row)])
+  const lw = Math.max(2, 1.4 / z)
+  const paths = links.filter(([a, b]) => a && b).map(([a, b]) => {
+    const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2, dx = Math.max(60, (x2 - x1) * 0.5)
+    const open = a.st !== 'done'
+    return `<path d="M${x1} ${y1}C${x1 + dx} ${y1} ${x2 - dx} ${y2} ${x2} ${y2}" fill="none" stroke="${open ? '#a07cf0' : '#3c3370'}" stroke-width="${lw}" ${open ? `stroke-dasharray="${lw * 2} ${lw * 2}"` : ''} opacity="${open ? 0.9 : 0.8}"/>`
+  }).join('')
+  const far = z <= 0.5 && P.far
+  const cards = pos.map((p, i) => `<div style="position:absolute;left:${p.x}px;top:${p.y}px">${card(p.role, p.st, { dir: d, gk: p.gk, far, attrs: `data-ci="${i}" data-target-kind="${p.role.k}" data-st="${p.st}"` })}</div>`).join('')
+  const board = document.getElementById('cv-board')
+  board.style.width = total.w + 'px'; board.style.height = total.h + 'px'; board.style.zoom = z
+  board.innerHTML = `${groupBox(g1, P.head, z)}${groupBox(g2, P.head, z)}${foldedGroup(P.fold, z, 'blue', fold.x, fold.y, false)}<svg style="position:absolute;left:0;top:0;overflow:visible" width="${total.w}" height="${total.h}">${paths}</svg>${cards}`
+  // H4 watermark must sit above cards to read; groupBox put it inside the group, so lift group boxes with watermarks over cards
+  if (P.head === 'H4' && z <= 0.5) board.querySelectorAll(':scope > div').forEach((el) => { if (el.querySelector('[style*="opacity:.5"]')) el.style.zIndex = 30, el.style.background = 'transparent', el.style.pointerEvents = 'none' })
+  applyReveal()
+}
+function applyReveal() {
+  document.querySelectorAll('#cv-board .cw').forEach((el) => el.classList.toggle('reveal', !!P.reveal && el.dataset.targetKind === P.reveal && !(P.reveal === 'placeholder' && el.dataset.st === 'done')))
+}
+
+// ---------- test ----------
+let test = null
+function startTest() {
+  P.reveal = ''; document.getElementById('cv-reveal').value = ''; renderCanvas()
+  document.querySelectorAll('#cv-board .cw').forEach((el) => el.classList.remove('picked', 'hit', 'miss', 'wrong'))
+  test = { task: document.getElementById('t-task').value, t0: performance.now(), picks: new Set() }
+  document.getElementById('cv-frame').classList.add('testing')
+  document.getElementById('t-start').disabled = true; document.getElementById('t-finish').disabled = false
+  document.getElementById('t-score').textContent = 'Running. Click every target, then Finish.'
+}
+async function finishTest() {
+  if (!test) return
+  const ms = performance.now() - test.t0
+  let hit = 0, total = 0, wrong = 0
+  document.querySelectorAll('#cv-board .cw').forEach((el) => {
+    const isT = el.dataset.targetKind === test.task
+    const picked = test.picks.has(el.dataset.ci)
+    el.classList.remove('picked')
+    if (isT) { total++; if (picked) { hit++; el.classList.add('hit') } else el.classList.add('miss') } else if (picked) { wrong++; el.classList.add('wrong') }
+  })
+  const line = `${P.cvDir} · ${test.task} · ${hit}/${total} found · ${wrong} wrong · ${(ms / 1000).toFixed(1)}s · ${P.status}/${P.source}/${P.group} · zoom ${(+P.cvZoom).toFixed(2)}`
+  document.getElementById('t-score').textContent = `Found ${hit} of ${total}, ${wrong} wrong, in ${(ms / 1000).toFixed(1)} seconds. Green found, dashed yellow missed, red wrong.`
+  document.getElementById('cv-frame').classList.remove('testing')
+  document.getElementById('t-start').disabled = false; document.getElementById('t-finish').disabled = true
+  const hist = document.getElementById('t-history'); hist.insertAdjacentHTML('afterbegin', `<div>${esc(line)}</div>`)
+  if (db) { try { await db.collection('tests').add({ dir: P.cvDir, task: test.task, hit, total, wrong, ms: Math.round(ms), status: P.status, source: P.source, group: P.group, zoom: +P.cvZoom, far: !!P.far, at: new Date().toISOString() }) } catch {} }
+  test = null
+}
+
+// ---------- readout ----------
+const READOUT = [
+  { v: 'holds', h: 'A Flowchart silhouettes', p: 'Holds in grayscale, deuteranopia, and squint. The gem gate, the bubble question, and the hollow dashed placeholder are findable from outline alone, and the ticket notches still split issues from arrow PRs at 0.33.' },
+  { v: 'holds', h: 'G Board-game pieces', p: 'Fastest to scan, since size and outline both change: octagon gates and round questions pop before color registers. Costs layout regularity, because mixed footprints fight grid and auto layout.' },
+  { v: 'holds', h: 'C Glyph poster', p: 'The glyph is the art, so it survives squint. Loses the seeded artwork and every card reads as an icon, which suits a far form (#370) better than the close-up face.' },
+  { v: 'holds', h: 'I Pixel sprites', p: 'Crisper than vector glyphs at the same size, holds under squint, and fits the dithered look. Some sprites lose detail at 16 pixels (the physical gate box), so each needs hand-tuning.' },
+  { v: 'partial', h: 'E Arch tops', p: 'Round issue, pointed gate, and notched PR tops read even in gray. The torn question and scalloped decision blur into a flat top at distance; too much detail in too few pixels.' },
+  { v: 'partial', h: 'D Texture suits', p: 'Better than I expected: stripes versus dots still split PRs from issues at 0.33 and in grayscale. Squint flattens them, so it works as a second channel.' },
+  { v: 'partial', h: 'F Landscape tiles', p: 'The kind block and the banner gates read at 0.33. Uses far more width per card and drops the portrait art.' },
+  { v: 'partial', h: 'B Suit band', p: 'The band is the loudest mark at 0.33, but kinds differ only by hue and a small glyph. Under deuteranopia PR and issue bands match, and reference tan matches gate amber.' },
+  { v: 'partial', h: 'J Constellations', p: 'Prettiest up close and still legible at 0.33 on a sharp screen. Under squint the stars turn to haze. Good close-up art over a stronger silhouette.' },
+  { v: 'fails', h: 'H Book spine', p: 'At 0.33 the spine is a thin stripe whose only signal is hue, so it fails grayscale and color-vision checks.' },
+  { v: 'fails', h: 'L Paper slips', p: 'The brightest thing on the board, which makes open work leap out, but in grayscale every card is the same white slip and kind shrinks to a small glyph.' },
+  { v: 'fails', h: 'Now', p: 'One silhouette for every kind and a kind tile about 15 pixels wide, so the Done stamp is the loudest mark. Placeholders differ only by a thin inset dash.' },
+  { v: 'fails', h: 'Kind colors alone', p: 'PR violet and issue blue collapse under deuteranopia, and reference tan sits next to gate amber. Color can back up shape or glyph but can’t carry kind by itself.' },
+  { v: 'holds', h: 'States', p: 'Lights out (S3) and Face down (S4) make unfinished cards the bright ones, which answers "what’s left" fastest. Stamp (S1) and Band (S5) compete with kind for the middle of the card. Keep placeholders hollow and lit; never dim them.' },
+  { v: 'partial', h: 'Sources', p: 'The Corner coin (K1) and Folder tab (K2) read at 0.33 on every silhouette. The Source frame (K5) fights kind for the outline. The Watermark (K3) and Close-up only (K6) vanish at distance, which may be fine: source rarely matters from far away.' },
+  { v: 'holds', h: 'Groups', p: 'Dropping the tint (G2) frees color for kind and lets the container carry membership. The Rim (G3) keeps membership on each card without touching the face. Tinted art (G1) is a big reason kinds blur together today.' },
+]
+function renderReadout() {
+  document.getElementById('readout-list').innerHTML = READOUT.map((v) => `<div class="verdict"><h3><span class="pill ${v.v}">${{ holds: 'holds', partial: 'partly', fails: 'fails' }[v.v]}</span>${esc(v.h)}</h3><p>${v.p}</p></div>`).join('')
+}
+
+// ---------- wiring ----------
+function fillSelect(id, opts, val) { const s = document.getElementById(id); s.innerHTML = opts.map((o) => `<option value="${o.id}">${o.id} · ${o.name}</option>`).join(''); s.value = val }
+function renderAll() { UID = 0; renderDirections(); renderStates(); renderSources(); renderMulti(); renderGroups(); renderScale(); renderCanvas(); applyMarks() }
+function setVision() { const m = document.getElementById('main'); m.className = P.vision === 'none' ? '' : 'v-' + P.vision }
+
+buildDefs()
+loadLocalMarks()
+fillSelect('c-status', STATUS_OPTS, P.status)
+fillSelect('c-source', SOURCE_OPTS, P.source)
+fillSelect('c-group', GROUP_OPTS, P.group)
+fillSelect('c-multi', MULTI_OPTS, P.multi)
+fillSelect('cv-head', HEAD_OPTS, P.head)
+fillSelect('cv-fold', FOLD_OPTS, P.fold)
+const dirOpts = DIR_ORDER.map((d) => ({ id: d, name: DIRS[d].title }))
+fillSelect('cv-dir', dirOpts, P.cvDir)
+fillSelect('c-sample', dirOpts.filter((d) => d.id !== 'Now'), P.sample)
+document.getElementById('c-vision').value = P.vision
+document.getElementById('c-zoom').value = String(P.zoom)
+document.getElementById('cv-zoom').value = String(P.cvZoom)
+document.getElementById('cv-scene').value = P.scene
+document.getElementById('c-far').checked = !!P.far
+document.getElementById('c-show').value = P.show
+document.getElementById('cv-reveal').value = P.reveal
+setVision()
+renderReadout()
+renderAll()
+
+const bind = (id, key, fn, prop = 'value') => document.getElementById(id).addEventListener('change', (e) => { P[key] = e.target[prop]; savePrefs(); fn() })
+bind('c-vision', 'vision', setVision)
+bind('c-status', 'status', renderAll)
+bind('c-source', 'source', renderAll)
+bind('c-group', 'group', renderAll)
+bind('c-multi', 'multi', renderAll)
+bind('c-zoom', 'zoom', renderAll)
+bind('c-far', 'far', renderAll, 'checked')
+bind('c-show', 'show', applyMarks)
+bind('c-sample', 'sample', () => { renderStates(); renderSources(); renderMulti(); renderGroups(); renderScale(); applyMarks() })
+bind('cv-dir', 'cvDir', renderCanvas)
+bind('cv-scene', 'scene', renderCanvas)
+bind('cv-zoom', 'cvZoom', renderCanvas)
+bind('cv-head', 'head', renderCanvas)
+bind('cv-fold', 'fold', renderCanvas)
+bind('cv-reveal', 'reveal', applyReveal)
+document.getElementById('t-start').addEventListener('click', startTest)
+document.getElementById('t-finish').addEventListener('click', finishTest)
+document.getElementById('cv-board').addEventListener('click', (e) => {
+  if (!test) return
+  const el = e.target.closest('.cw'); if (!el) return
+  const id = el.dataset.ci
+  if (test.picks.has(id)) { test.picks.delete(id); el.classList.remove('picked') } else { test.picks.add(id); el.classList.add('picked') }
+})
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mark]'); if (!b) return
+  const id = b.dataset.mark, v = b.dataset.v
+  setMark(id, { v: MARKS[id]?.v === v ? '' : v })
+})
+const noteTimers = {}
+document.addEventListener('input', (e) => {
+  const i = e.target.closest('[data-note]'); if (!i) return
+  clearTimeout(noteTimers[i.dataset.note])
+  noteTimers[i.dataset.note] = setTimeout(() => setMark(i.dataset.note, { note: i.value.trim() }), 700)
+})
+document.getElementById('m-copy').addEventListener('click', async () => {
+  const ids = allIds()
+  const lines = Object.entries(MARKS).map(([id, m]) => `${m.v === 'fav' ? '★' : m.v === 'reject' ? '✕' : '·'} ${id} (${ids[id] || ''})${m.note ? ': ' + m.note : ''}`)
+  const text = lines.join('\n') || 'No marks yet.'
+  try { await navigator.clipboard.writeText(text); document.getElementById('m-copied').textContent = 'Copied.' } catch { document.getElementById('m-copied').textContent = text }
+})
+
+// Shared marks through the artifact's database, when this view has one.
+;(async () => {
+  try {
+    const c = window.claude
+    if (!c || !c.use) return
+    const store = await c.use('db')
+    if (!store) return
+    db = store
+    document.getElementById('sync').textContent = 'Marks: saved to this page'
+    db.collection('marks').onSnapshot((snap) => {
+      for (const k of Object.keys(MARKS)) delete MARKS[k]
+      for (const d of snap.docs) { const v = d.data(); if (v && (v.v || v.note)) MARKS[d.id] = { v: v.v || '', note: v.note || '' } }
+      saveLocalMarks(); applyMarks()
+    }, () => { document.getElementById('sync').textContent = 'Marks: this browser only' })
+  } catch {}
+})()
+</script>

@@ -150,8 +150,8 @@ test.case("parsing turns a request into typed edits and names what's wrong", fun
 	assert.throwsWith("operation 1: id is not a field an operation can set", function()
 		parse([=[[{"op":"setFields","id":"a","fields":{"id":"b"}}]]=])
 	end)
-	assert.throwsWith("operation 1: pr must be a number", function()
-		parse([=[[{"op":"setFields","id":"a","fields":{"pr":"12"}}]]=])
+	assert.throwsWith("operation 1: pr is not a field an operation can set", function()
+		parse([=[[{"op":"setFields","id":"a","fields":{"pr":12}}]]=])
 	end)
 	assert.throwsWith("operation 1: kind must be blocks or related", function()
 		parse([=[[{"op":"link","from":"a","to":"b","kind":"duplicates"}]]=])
@@ -166,7 +166,7 @@ test.case("a created item joins the canvas and its inverse removes it", function
 	local restores = applyOperations(
 		doc,
 		parse([=[[
-			{"op":"addImage","id":"img","x":4,"y":8,"data":{"kind":"image","label":"Photo","asset":"a.png","workspace":"default"}},
+			{"op":"addImage","id":"img","x":4,"y":8,"data":{"kind":"image","label":"Photo","asset":"a.png","canvas":"default"}},
 			{"op":"addGroup","id":"batch","x":0,"y":0,"data":{"kind":"cluster","label":"Batch"}},
 			{"op":"addCard","id":"inner","x":16,"y":32,"group":"batch","data":{"kind":"task","label":"In","itemKind":"step","status":"todo"}}
 		]]=])

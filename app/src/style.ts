@@ -7,9 +7,6 @@ import { TOKENS } from './tokens'
 const ASSET_ID = /^[a-z0-9-]+\.(png|jpg|gif|webp)$/
 const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i
 
-/** Longest header the CLI and inspector accept, in characters. */
-export const HEADER_MAX_LENGTH = 2000
-
 /** Below this zoom a header's text is too small to read, so it folds away. Canvas and group headers share it. */
 export const HEADER_MIN_ZOOM = 0.8
 

@@ -3,12 +3,22 @@ local json = require("@std/json")
 local path = require("@std/path")
 local test = require("@std/test")
 
+local aliasTypes = require("@root/aliases/types")
+local buildTools = require("@root/cli/mcp/catalog/buildTools")
+local cli = require("@root/cli")
+local describeCommands = require("@root/cli/describeCommands")
 local findRef = require("@root/refs/findRef")
 local getItem = require("@root/graph/getItem")
 local getVersion = require("@root/getVersion")
 local loadDoc = require("@root/store/loadDoc")
 local runTransaction = require("@root/store/runTransaction")
 local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
+
+-- The first capture of `pattern` in `text`, such as the id a command printed.
+local function capture(text: string, pattern: string): string
+	return (text:match(pattern) or error(`"{pattern}" isn't in "{text}"`)) :: string
+end
 
 test.case("help opens with the shared orientation and no MCP tool names", function(assert)
 	local _, run = testing.createHarness("help-orientation")
@@ -41,6 +51,54 @@ test.case("help --all lists every command with its options, and as JSON", functi
 	end)
 end)
 
+-- Collects each command's declaration problems: a leaf with none, and a skip or omission with no reason.
+local function findUndeclared(command: describeCommands.CommandDescription, problems: { string })
+	local declaration = command.mcp
+
+	if declaration and declaration.skip ~= nil then
+		if declaration.skip == "" then
+			table.insert(problems, `{command.name} skips MCP without a reason`)
+		end
+
+		return
+	elseif #command.commands == 0 and command.name ~= "orion" then
+		if declaration == nil then
+			table.insert(problems, `{command.name} declares no MCP tool`)
+		end
+
+		for _, omission in if declaration then declaration.omit or {} else {} do
+			if omission.reason == "" then
+				table.insert(problems, `{command.name} omits --{omission.option} without a reason`)
+			end
+		end
+	end
+
+	for _, child in command.commands do
+		findUndeclared(child, problems)
+	end
+end
+
+test.case("every command declares its MCP tool, or why it has none", function(assert)
+	local problems: { string } = {}
+	findUndeclared(cli.describe(), problems)
+	assert.eq(table.concat(problems, "\n"), "")
+
+	local tools = buildTools(cli.describe())
+	local names: { [string]: boolean } = {}
+
+	for _, tool in tools do
+		names[tool.name] = true
+	end
+
+	assert.eq(names.orion_card_create, true)
+	assert.eq(names.orion_next, true)
+	assert.eq(names.orion_help, nil)
+	assert.eq(names.orion_source_add_github, true)
+	assert.eq(names.orion_source_add_hop, true)
+	assert.eq(names.orion_source_remove, true)
+	assert.eq(names.orion_source_add_jira, nil)
+end)
+
 test.case("ready lists startable work, most unblocking first", function(assert)
 	local _, run = testing.createHarness("ready")
 	local text = run({ "next" })
@@ -51,49 +109,51 @@ end)
 
 test.case("add, link, and done change the shared data", function(assert)
 	local dir, run = testing.createHarness("edit")
-	assert.strContains(
-		run({ "card", "add", "Write", "release", "notes", "--group", "ws" }),
-		"Added write-release-notes"
-	)
-	run({ "link", "add", "pub", "write-release-notes" })
-	local shown =
-		json.asObject(json.deserialize(run({ "node", "show", "write-release-notes", "--json" })) :: json.Value)
+	local added = run({ "card", "create", "Write", "release", "notes", "--group", "ws" })
+	local id = capture(added, "^Added (%S+) · Write release notes")
+	run({ "link", "create", "pub", id })
+	local shown = json.asObject(json.deserialize(run({ "node", "show", id, "--json" })) :: json.Value)
 	assert.eq(shown and shown.status, "blocked")
 	run({ "card", "done", "ci" })
 	run({ "card", "done", "pub" })
 	assert.eq(loadDoc(dir).revision, 4)
-	assert.strContains(run({ "next" }), "write-release-notes")
+	assert.strContains(run({ "next" }), id)
 end)
 
 test.case("group create makes an empty group that cards can be added to by its id", function(assert)
 	local dir, run = testing.createHarness("group-create")
-	assert.strContains(run({ "group", "create", "Week", "1" }), "Created group week-1 · Week 1")
-	assert.strContains(run({ "group", "create", "Monday", "--in", "week-1" }), "Created group monday · Monday")
-	run({ "card", "add", "Ship", "--group", "week-1" })
-	run({ "card", "add", "Plan", "--group", "monday" })
+	local week = capture(run({ "group", "create", "Week", "1" }), "^Created group (%S+) · Week 1")
+	local monday = capture(run({ "group", "create", "Monday", "--in", week }), "^Created group (%S+) · Monday")
+	local ship = capture(run({ "card", "create", "Ship", "--group", week }), "^Added (%S+)")
+	local plan = capture(run({ "card", "create", "Plan", "--group", monday }), "^Added (%S+)")
 	local doc = loadDoc(dir)
-	assert.eq(getItem(doc, "monday").parentId, "week-1")
-	assert.eq(getItem(doc, "ship").parentId, "week-1")
-	assert.eq(getItem(doc, "plan").parentId, "monday")
+	assert.eq(getItem(doc, monday).parentId, week)
+	assert.eq(getItem(doc, ship).parentId, week)
+	assert.eq(getItem(doc, plan).parentId, monday)
 end)
 
-test.case("group create prints the new group as JSON", function(assert)
+test.case("group create prints the new group as JSON with the revision it made", function(assert)
 	local _, run = testing.createHarness("group-create-json")
-	local made = json.asObject(json.deserialize(run({ "group", "create", "Foundation", "--json" })) :: json.Value)
-	assert.eq(made and made.id, "foundation")
+	local result = json.asObject(json.deserialize(run({ "group", "create", "Foundation", "--json" })) :: json.Value)
+	local made = if result then json.asObject(result.item) else nil
+	assert.eq(result and result.revision, 1)
+	assert.eq(testing.isRandomId(made and made.id), true)
+	assert.eq(made and made.kind, "group")
+	assert.eq(made and made.status, nil)
+	assert.eq(made and made.waitsOn, nil)
 end)
 
 test.case("a bare group label is not looked up as an id", function(assert)
 	local _, run = testing.createHarness("group-label")
 	run({ "group", "create", "Week", "1" })
 	assert.throwsWith('no item or group with id "Week 1"', function()
-		run({ "card", "add", "Ship", "--group", "Week 1" })
+		run({ "card", "create", "Ship", "--group", "Week 1" })
 	end)
 end)
 
 test.case("group parses comma-separated ids with spaces and empty entries", function(assert)
 	local dir, run = testing.createHarness("group-items")
-	run({ "group", "add", "Milestone", "--items", " ci, pub, , " })
+	run({ "group", "create", "Milestone", "--items", " ci, pub, , " })
 	local doc = loadDoc(dir)
 	assert.eq(doc.nodes[2].parentId, doc.nodes[3].parentId)
 	assert.eq(doc.nodes[2].parentId == "ws", false)
@@ -125,9 +185,9 @@ test.case("set renames items and groups and reports the new labels", function(as
 	assert.eq(doc.nodes[3].data.label, "New item name")
 end)
 
-test.case("sync writes GitHub state through the command runner", function(assert)
-	local dir, run = testing.createHarness("sync")
-	local text = run({ "sync" }, function(argv)
+test.case("ingest refreshes pull request cards without any sources configured", function(assert)
+	local dir, run = testing.createHarness("ingest-refresh")
+	local text = run({ "ingest" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
 		elseif argv[5]:find("search(", 1, true) then
@@ -140,6 +200,7 @@ test.case("sync writes GitHub state through the command runner", function(assert
 		)
 	end)
 
+	assert.strContains(text, "Checked 1 pull requests on GitHub.")
 	assert.strContains(text, "ci: active → done")
 	local item = loadDoc(dir).nodes[2]
 	assert.eq(item.data.status, "done")
@@ -148,26 +209,6 @@ test.case("sync writes GitHub state through the command runner", function(assert
 	assert.eq(recorded and recorded.checks, "SUCCESS")
 	assert.eq(recorded and recorded.additions, 120)
 	assert.eq(recorded and recorded.mine, true)
-end)
-
-test.case("ingest refreshes pull request cards without any sources configured", function(assert)
-	local dir, run = testing.createHarness("ingest-refresh")
-	local text = run({ "ingest" }, function(argv)
-		if argv[5]:find("pullRequests", 1, true) then
-			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
-		elseif argv[5]:find("search(", 1, true) then
-			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
-		end
-
-		return testing.result(
-			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,"reviewRequests":{"totalCount":0}}}}}]]
-		)
-	end)
-
-	assert.strContains(text, "Checked 1 pull requests on GitHub.")
-	assert.strContains(text, "ci: active → done")
-	assert.eq(loadDoc(dir).nodes[2].data.status, "done")
 end)
 
 -- Answers a refresh with flipbook #658 in the given state, which the harness card tracks.
@@ -188,15 +229,6 @@ local function refreshRunner(state: string)
 	end
 end
 
-test.case("sync defers a card whose pull request closed and resumes it when the pull request reopens", function(assert)
-	local dir, run = testing.createHarness("sync-closed")
-	assert.strContains(run({ "sync" }, refreshRunner("CLOSED")), "ci: active → deferred")
-	assert.eq(loadDoc(dir).nodes[2].data.deferredByClosedPull, true)
-	assert.strContains(run({ "sync" }, refreshRunner("OPEN")), "ci: deferred → review")
-	assert.eq(loadDoc(dir).nodes[2].data.status, "review")
-	assert.eq(loadDoc(dir).nodes[2].data.deferredByClosedPull, nil)
-end)
-
 test.case(
 	"ingest defers a card whose pull request closed and resumes it when the pull request reopens",
 	function(assert)
@@ -209,22 +241,16 @@ test.case(
 	end
 )
 
-test.case("sync still works and points to ingest", function(assert)
-	local _, run = testing.createHarness("sync-deprecated")
-	local text = run({ "sync", "--dry-run" }, function(argv)
-		if argv[5]:find("pullRequests", 1, true) then
-			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
-		end
-
-		return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
+test.case("sync is gone, since ingest refreshes pull requests", function(assert)
+	local _, run = testing.createHarness("sync-removed")
+	assert.throwsWith("Unknown command: sync", function()
+		run({ "sync" })
 	end)
-
-	assert.strContains(text, "`orion ingest` refreshes pull requests too")
 end)
 
-test.case("sync --dry-run leaves the data alone", function(assert)
+test.case("ingest --dry-run leaves the data alone", function(assert)
 	local dir, run = testing.createHarness("dry")
-	run({ "sync", "--dry-run" }, function(argv)
+	run({ "ingest", "--dry-run" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(true, [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[]}}}}]])
 		elseif argv[5]:find("search(", 1, true) then
@@ -263,10 +289,10 @@ test.case("matches reads stored suggestions without a runner", function(assert)
 	assert.eq(values and #values, 1)
 end)
 
-test.case("sync records unplaced authored pulls without adding review request cards", function(assert)
+test.case("ingest records unplaced authored pulls without adding review request cards", function(assert)
 	local dir, run = testing.createHarness("review")
 	local isSearched = false
-	local output = run({ "sync" }, function(argv)
+	local output = run({ "ingest" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
@@ -331,8 +357,8 @@ end)
 test.case("add attaches a pull request URL as a pr card", function(assert)
 	local dir, run = testing.createHarness("add-ref")
 	assert.strContains(
-		run({ "card", "add", "Write", "notes", "--group", "ws", "--ref", "https://github.com/Roblox/avatar/pull/9" }),
-		"Added write-notes"
+		run({ "card", "create", "Write", "notes", "--group", "ws", "--ref", "https://github.com/Roblox/avatar/pull/9" }),
+		"· Write notes"
 	)
 	local item = loadDoc(dir).nodes[4]
 	assert.eq(item.data.repo, "Roblox/avatar")
@@ -371,7 +397,7 @@ test.case("a ref that cannot be resolved writes nothing", function(assert)
 		end
 	)
 	assert.throwsWith('no source with id "missing"', function()
-		run({ "card", "add", "Write", "notes", "--ref", "missing:ABC-1" })
+		run({ "card", "create", "Write", "notes", "--ref", "missing:ABC-1" })
 	end)
 	assert.eq(loadDoc(dir).revision, before)
 	assert.eq(#loadDoc(dir).nodes, 3)
@@ -397,21 +423,23 @@ test.case("group set rejects item-only fields and card set rejects groups", func
 	assert.eq(loadDoc(dir).nodes[1].data.blurb, nil)
 end)
 
-test.case("repo and pr still attach a pull request as deprecated aliases", function(assert)
-	local dir, run = testing.createHarness("deprecated-pr")
-	run({ "card", "set", "pub", "--repo", "Roblox/avatar", "--pr", "4" })
-	local item = loadDoc(dir).nodes[3]
-	assert.eq(item.data.itemKind, "pr")
-	assert.neq(findRef(item, "pull", "Roblox/avatar#4"), nil)
-	assert.strContains(run({ "card", "set", "--help" }), "Deprecated")
-	assert.strContains(run({ "card", "set", "--help" }), "--ref")
-	assert.strContains(run({ "card", "add", "--help" }), "--ref")
+test.case("card create and set take a pull request through ref, not pr", function(assert)
+	local dir, run = testing.createHarness("removed-pr")
+	assert.throwsWith("Unknown argument: pr", function()
+		run({ "card", "set", "pub", "--repo", "Roblox/avatar", "--pr", "4" })
+	end)
+	assert.throwsWith("Unknown argument: pr", function()
+		run({ "card", "create", "Write", "notes", "--repo", "Roblox/avatar", "--pr", "4" })
+	end)
+	assert.eq(loadDoc(dir).revision, 0)
+	assert.strNotContains(run({ "card", "set", "--help" }), "Deprecated")
+	assert.strContains(run({ "card", "create", "--help" }), "--ref")
 end)
 
-test.case("sync attaches a new pull request to the card its branch was recorded on", function(assert)
+test.case("ingest attaches a new pull request to the card its branch was recorded on", function(assert)
 	local dir, run = testing.createHarness("attach-branch")
 	run({ "card", "set", "pub", "--ref", "branch:flipbook-labs/flipbook@feature/a" })
-	local text = run({ "sync" }, function(argv)
+	local text = run({ "ingest" }, function(argv)
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
@@ -442,12 +470,15 @@ test.case("sync attaches a new pull request to the card its branch was recorded 
 	assert.strContains(run({ "source", "matches" }), "No unplaced pull requests.")
 end)
 
-test.case("group add wraps items, and the old bare group form is gone", function(assert)
+test.case("group create wraps items, and the old bare group form is gone", function(assert)
 	local dir, run = testing.createHarness("group-add")
-	assert.strContains(run({ "group", "add", "Things", "to", "remove", "--items", "ci" }), "Grouped into")
-	assert.strContains(run({ "group", "add", "Ship", "it", "--items", "pub" }), "Grouped into")
+	assert.strContains(run({ "group", "create", "Things", "to", "remove", "--items", "ci" }), "Grouped into")
+	assert.strContains(run({ "group", "create", "Ship", "it", "--items", "pub" }), "Grouped into")
 	assert.throwsWith("Unknown command: Ship", function()
 		run({ "group", "Ship", "--items", "pub" })
+	end)
+	assert.throwsWith("a group made from --items goes where they are, so it can't take --in", function()
+		run({ "group", "create", "Both", "--items", "ci", "--in", "ws" })
 	end)
 	local labels: { [string]: boolean } = {}
 
@@ -461,8 +492,8 @@ end)
 
 test.case("group remove previews and removes a group with everything inside", function(assert)
 	local dir, run = testing.createHarness("group-remove")
-	run({ "card", "add", "Outside", "--group", "ws" })
-	run({ "group", "add", "Inner", "--items", "outside" })
+	local outside = capture(run({ "card", "create", "Outside", "--group", "ws" }), "^Added (%S+)")
+	run({ "group", "create", "Inner", "--items", outside })
 	local before = loadDoc(dir).revision
 	local preview = run({ "group", "remove", "ws", "--dry-run" })
 	assert.strContains(preview, "Would remove 1 group and 4 things inside")
@@ -516,7 +547,7 @@ test.case("flat command names and --workspace are gone, and help uses the noun f
 	assert.throwsWith("Unknown argument: workspace", function()
 		run({ "--workspace", "roblox", "card", "list" })
 	end)
-	assert.throwsWith("choose list, add, set, timeline, done, import, snooze, unsnooze", function()
+	assert.throwsWith("choose list, create, set, timeline, done, import, snooze, unsnooze", function()
 		run({ "card" })
 	end)
 	assert.strContains(run({ "help", "card", "list" }), "orion card list")
@@ -551,7 +582,7 @@ test.case("node find --all-canvases searches every canvas", function(assert)
 	local _, run, setWorkspace = testing.createHarness("find-canvases")
 	run({ "canvas", "create", "other" })
 	setWorkspace("other")
-	run({ "card", "add", "Release", "notes" })
+	run({ "card", "create", "Release", "notes" })
 	setWorkspace("")
 	assert.strNotContains(run({ "node", "find", "release" }), "other")
 	local text = run({ "node", "find", "release", "--all-canvases" })
@@ -578,7 +609,7 @@ test.case("selectors name an item by label, ref, or pr and must match exactly on
 	assert.throws(function()
 		run({ "node", "show", "owner:orion" })
 	end)
-	run({ "card", "add", "Publish v2.6.0" })
+	run({ "card", "create", "Publish v2.6.0" })
 	assert.throws(function()
 		run({ "node", "show", `label:"Publish v2.6.0"` })
 	end)
@@ -588,7 +619,7 @@ test.case("selectors work in writes and report the ids they resolved to", functi
 	local dir, run = testing.createHarness("selector-writes")
 	assert.eq(run({ "card", "set", `label:"Publish v2.6.0"`, "--label", "Ship v2.6.0" }), "Updated pub · Ship v2.6.0")
 	assert.eq(run({ "card", "done", "ref:flipbook-labs/flipbook#658" }), "Done: ci · Report release health")
-	assert.eq(run({ "link", "add", "ci", `label:"Ship v2.6.0"`, "--related" }), "ci and pub are related")
+	assert.eq(run({ "link", "create", "ci", `label:"Ship v2.6.0"`, "--related" }), "ci and pub are related")
 	assert.eq(run({ "node", "move", `label:"Ship v2.6.0"`, "--to", "ws" }), "Moved pub to ws")
 	assert.eq(run({ "group", "set", `label:"Release"`, "--label", "Renamed" }), "Updated ws · Renamed")
 	assert.eq(loadDoc(dir).nodes[1].data.label, "Renamed")
@@ -597,4 +628,106 @@ end)
 test.case("--version prints the version and build commit the MCP server reports", function(assert)
 	local _, run = testing.createHarness("version")
 	assert.eq(run({ "--version" }), `orion {getVersion()}`)
+end)
+
+test.case("every command takes --json", function(assert)
+	local missing: { string } = {}
+
+	local function visit(command: describeCommands.CommandDescription)
+		if #command.commands == 0 then
+			local found = false
+
+			for _, argument in command.arguments do
+				found = found or argument.name == "json"
+			end
+
+			if not found then
+				table.insert(missing, command.name)
+			end
+		end
+
+		for _, child in command.commands do
+			visit(child)
+		end
+	end
+
+	visit(cli.describe())
+	assert.eq(table.concat(missing, ", "), "")
+end)
+
+test.case("help --json describes one command", function(assert)
+	local _, run = testing.createHarness("help-json-topic")
+	local value = json.asObject(json.deserialize(run({ "help", "card", "create", "--json" })) :: json.Value)
+	assert.eq(value and value.name, "orion card create")
+	assert.eq(value and value.help, "Add a work item")
+end)
+
+-- Sample entries only: the shipped list starts each release empty.
+local SAMPLE_ALIASES: { aliasTypes.Alias } = {
+	{ kind = "command", from = "card new", to = "card create", added = "2026-10-19", pr = 1 },
+	{ kind = "option", command = "card create", from = "folder", to = "group", added = "2026-10-19", pr = 1 },
+}
+
+test.case("an old command name runs the new command and notices only on stderr", function(assert)
+	local dir = testing.directory("alias-execute")
+	writeDoc(dir, testing.createDoc({ testing.group("ws", "Release") }))
+	local output: { string } = {}
+	local notices: { string } = {}
+
+	local function execute(args: { string })
+		table.clear(output)
+		cli.execute(args, {
+			dataDir = dir,
+			aliases = SAMPLE_ALIASES,
+			write = function(line)
+				table.insert(output, line)
+			end,
+			warn = function(line)
+				table.insert(notices, line)
+			end,
+		})
+	end
+
+	execute({ "card", "new", "Old", "name", "--folder", "ws", "--json" })
+	local added = json.asObject(json.deserialize(table.concat(output, "\n")) :: json.Value)
+	local item = added and json.asObject(added.item)
+	assert.eq(item and item.label, "Old name")
+	assert.eq(item and item.group, "ws")
+	assert.eq(#notices, 2)
+	assert.strContains(notices[1], "orion card new is now orion card create")
+	assert.strContains(notices[2], "--folder on orion card create is now --group")
+
+	execute({ "help", "--all" })
+	assert.strNotContains(table.concat(output, "\n"), "card new")
+	assert.strNotContains(table.concat(output, "\n"), "--folder")
+	execute({ "help", "card", "new" })
+	assert.strContains(table.concat(output, "\n"), "orion card create")
+end)
+
+test.case("the renamed verbs still run under their old names", function(assert)
+	local dir = testing.directory("alias-verbs")
+	writeDoc(dir, testing.createDoc({ testing.group("ws", "Release"), testing.task("ci", "Fix CI", "todo") }))
+	local output: { string } = {}
+	local notices: { string } = {}
+
+	local function execute(args: { string })
+		cli.execute(args, {
+			dataDir = dir,
+			write = function(line)
+				table.insert(output, line)
+			end,
+			warn = function(line)
+				table.insert(notices, line)
+			end,
+		})
+	end
+
+	execute({ "card", "add", "Ship", "--group", "ws" })
+	execute({ "note", "add", "Waiting", "on", "review" })
+	execute({ "group", "add", "Milestone", "--items", "ci" })
+
+	assert.strContains(table.concat(output, "\n"), "Grouped into")
+	assert.strContains(notices[1], "orion card add is now orion card create")
+	assert.strContains(notices[2], "orion note add is now orion note create")
+	assert.strContains(notices[3], "orion group add is now orion group create")
 end)

@@ -28,11 +28,26 @@ import { ContextMenu, type MenuItem } from './ContextMenu'
 import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
-import { ActionsContext, needsAttention, type AttentionMark, type Flow } from '../derive'
+import { ActionsContext, type AttentionMark, type Flow } from '../derive'
 import { localDateValue, snoozeUntil } from '../snooze'
-import { CHAIN_STEP_MS, CLEAR_MS, celebrationDelays, clearCelebrations, closesOut, patchTaskData } from '../celebrate'
+import {
+  CHAIN_STEP_MS,
+  CLEAR_MS,
+  FADE_MS,
+  FLOURISH_MS,
+  STAMP_MS,
+  celebrationDelays,
+  chainBeats,
+  chainFinale,
+  chainPulses,
+  clearCelebrations,
+  closesOut,
+  patchTaskData,
+  type Pulse,
+} from '../celebrate'
 import { FocusView, type FocusItem } from './FocusView'
 import { forgetTextWidths } from '../cardHeight'
+import { GAP } from '../geometry'
 import { groupSelection, layoutOrder, moveOutOfGroup, reflow, ungroup } from '../layout'
 import { pushAside } from '../pushAside'
 import { diffOperations } from '../operations'
@@ -67,6 +82,8 @@ import {
 } from '../model'
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { DetailStepper } from './DetailStepper'
+import { DetailsPanel } from './DetailsPanel'
+import { ResizeHandle } from './ResizeHandle'
 import { EmptyCanvas } from './EmptyCanvas'
 import { ComponentInspector } from './ComponentInspector'
 import { CurveEdge } from './CurveEdge'
@@ -147,6 +164,8 @@ import { useInspecting } from '../useInspecting'
 import {
   attentionAtom,
   celebratingAtom,
+  chainFinaleAtom,
+  chainPulsesAtom,
   collapsedAtom,
   derivedAtom,
   focusedAtom,
@@ -179,12 +198,10 @@ import { subscribeCompactZoom, zoomLevel } from '../zoomLevel'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { type DrawCard } from '../cardDraw'
 import { useDrawnCards } from '../useDrawnCards'
-import { GroupFacts } from './GroupFacts'
-import { GroupArrange } from './GroupArrange'
+import { GroupInspector } from './GroupInspector'
 import { NoteInspector } from './NoteInspector'
 import { TaskInspector } from './TaskInspector'
 import { SelectionStatus } from './SelectionStatus'
-import { TintSelect } from './TintSelect'
 
 type ViewNode = AppNode | GhostNode
 type FocusEntry = { viewport: Viewport; moved: boolean }
@@ -202,6 +219,11 @@ function cardAt(event: MouseEvent | TouchEvent): string | undefined {
 }
 
 const SIDEBAR_KEY = 'orion:sidebar'
+const DETAILS_KEY = 'orion:details'
+const SIDEBAR_WIDTH_KEY = 'orion:sidebar-width'
+const DETAILS_WIDTH_KEY = 'orion:details-width'
+const SIDEBAR_WIDTH = { min: 200, max: 480 }
+const DETAILS_WIDTH = { min: 320, max: 720 }
 const DEBUG_KEY = 'orion:debug'
 const MOTION_KEY = 'orion:motion'
 const DEFAULT_MOTION: MotionSettings = { arrows: true, glow: true, pauseWhileMoving: true }
@@ -251,12 +273,11 @@ const DOUBLE_CLICK_MS = 280
 const FOCUS_SIDE_WIDTH = 248
 const FOCUS_INSET = 20
 const FOCUS_ZOOM = 1.2
-/** The focused card sits this far down the canvas, leaving room for its details above. */
-const FOCUS_CARD_Y = 0.7
-const FOCUS_BOTTOM_GAP = 24
+/** The focused card keeps this much room between it and each column of its links. */
+const FOCUS_COLUMN_GAP = 48
+const FOCUS_MIN_ZOOM = 0.5
 /** Focus moves head straight for the card and start fast. */
 const focusMove = () => ({ duration: focusGlide(), ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' }) as const
-const PLACE_GAP = 80
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
 /** A fresh sticker stamps down while its ring opens after a beat. These are the defaults; the theme can change each. */
@@ -312,6 +333,17 @@ function useAway() {
   return away
 }
 
+/** A side panel's saved width, or null for its default. */
+function readWidth(key: string) {
+  try {
+    const width = Number(localStorage.getItem(key))
+
+    return width > 0 ? width : null
+  } catch {
+    return null
+  }
+}
+
 function readFlag(key: string, fallback: boolean) {
   try {
     const value = localStorage.getItem(key)
@@ -337,18 +369,24 @@ function serverCopyOf(doc: Remote, cardSize: CardSize): Saved {
 }
 
 /**
- * `copy` with each group at the size `stored` keeps for it. The canvas fits groups around their children, so a group
- * another writer grew shows larger than its stored size. A base that keeps the stored size lets the next commit send
- * the fitted one, as a whole-document save did, without writing anything just for adopting the document.
+ * `copy` with each group, note, and component at the size `stored` keeps for it. The canvas fits groups around their
+ * children and measures cards from their text, so a group another writer grew, or a note the CLI added, shows at a
+ * size the server doesn't have yet. A base that keeps the stored size lets the next commit, such as laying out a
+ * group, send the measured one, as a whole-document save did, without writing anything just for adopting the document.
  */
-function withStoredGroupSizes(copy: Saved, stored: Saved): Saved {
-  const sizes = new Map(stored.nodes.filter(isCluster).map((node) => [node.id, { width: node.width, height: node.height }]))
+function withStoredSizes(copy: Saved, stored: Saved): Saved {
+  const sizes = new Map(
+    stored.nodes
+      .filter((node) => isCluster(node) || isNote(node) || isComponent(node))
+      .map((node) => [node.id, { width: node.width, height: node.height }]),
+  )
 
   return { ...copy, nodes: copy.nodes.map((node) => (sizes.has(node.id) ? { ...node, ...sizes.get(node.id) } : node)) }
 }
 
 const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
-const newId = (prefix: string) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
+/** Random, so cards added on two branches of a canvas in git never take the same id. */
+const newId = () => crypto.randomUUID()
 
 /** Opens a group at the same zoom as every other, with the connections outside it peeking in from the sides. */
 function groupOpenViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
@@ -361,15 +399,17 @@ function groupOpenViewport(group: AppNode, map: Map<string, AppNode>, box: { wid
 function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
   const position = absolutePosition(card, map)
   const size = sizeOf(card, cardSize)
-  const zoom = FOCUS_ZOOM
-  const centerY = Math.min(box.height * FOCUS_CARD_Y, box.height - FOCUS_BOTTOM_GAP - (size.height * zoom) / 2)
+  // A narrow canvas zooms out so the card fits between the two columns instead of running under them.
+  const room = box.width - 2 * (FOCUS_INSET + FOCUS_SIDE_WIDTH + FOCUS_COLUMN_GAP)
+  const zoom = Math.max(FOCUS_MIN_ZOOM, Math.min(FOCUS_ZOOM, room / size.width))
 
-  return { x: box.width / 2 - (position.x + size.width / 2) * zoom, y: centerY - (position.y + size.height / 2) * zoom, zoom }
+  return { x: box.width / 2 - (position.x + size.width / 2) * zoom, y: box.height / 2 - (position.y + size.height / 2) * zoom, zoom }
 }
 
 /**
  * Stacks newly created groups in columns to the right of everything else at the top
- * level, so laying them out never moves groups that were already placed.
+ * level, so laying them out never moves groups that were already placed. They keep the
+ * top level's gap between unlinked pieces, as the CLI does when it places them.
  */
 function placeBesideExisting(nodes: AppNode[], fresh: Set<string>, cardSize: CardSize): AppNode[] {
   const top = nodes.filter((node) => !node.parentId)
@@ -378,7 +418,7 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>, cardSize: Car
   const topY = settled.length ? Math.min(...settled.map((node) => node.position.y)) : 0
   const columnHeight = Math.max(1600, ...settled.map((node) => node.position.y + sizeOf(node, cardSize).height - topY))
   const placed = new Map<string, { x: number; y: number }>()
-  let x = right + PLACE_GAP * 2
+  let x = right + GAP.top.component
   let y = topY
   let columnWidth = 0
 
@@ -386,13 +426,13 @@ function placeBesideExisting(nodes: AppNode[], fresh: Set<string>, cardSize: Car
     const size = sizeOf(group, cardSize)
 
     if (y > topY && y + size.height > topY + columnHeight) {
-      x += columnWidth + PLACE_GAP
+      x += columnWidth + GAP.top.component
       y = topY
       columnWidth = 0
     }
 
     placed.set(group.id, { x, y })
-    y += size.height + PLACE_GAP
+    y += size.height + GAP.top.component
     columnWidth = Math.max(columnWidth, size.width)
   }
 
@@ -410,6 +450,8 @@ export function Canvas() {
   const [links, setLinks] = useAtom(linksAtom)
   const setDerived = useSetAtom(derivedAtom)
   const setCelebrating = useSetAtom(celebratingAtom)
+  const setChainPulses = useSetAtom(chainPulsesAtom)
+  const setChainFinale = useSetAtom(chainFinaleAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
   const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', canvases: [{ name: 'default', label: 'Default' }] })
@@ -423,13 +465,12 @@ export function Canvas() {
   const [focusPick, setFocus] = useState<string | null>(null)
   // Where focus started, and whether it has since walked to another card or level.
   const focusEntry = useRef<FocusEntry | null>(null)
-  const [editing, setEditing] = useState<string | null>(null)
+  const [editing, setEditingState] = useState<string | null>(null)
   /** The link whose inspector is showing, picked by clicking it. */
   const [pickedLink, setPickedLink] = useState<string | null>(null)
   /** The canvas's cover and background, as the workspace settings hold them. */
   const [canvasStyle, setCanvasStyle] = useState<CanvasStyle>({})
   /** The cover panel on show, for the canvas or the open group, or null while it's closed. */
-  const [coverTarget, setCoverTarget] = useState<{ kind: 'canvas' } | { kind: 'group'; id: string } | null>(null)
   const setWorkspaceName = useSetAtom(workspaceAtom)
   const canvasColor = backgroundColor(canvasStyle.background)
   const canvasImage = isAssetId(canvasStyle.background) ? canvasStyle.background : undefined
@@ -438,6 +479,18 @@ export function Canvas() {
 
   useEffect(() => setWorkspaceName(workspaces.active), [setWorkspaceName, workspaces.active])
   const [sidebar, setSidebar] = useState(() => readFlag(SIDEBAR_KEY, true))
+  const [showDetails, setShowDetails] = useState(() => readFlag(DETAILS_KEY, true))
+  const [sidebarWidth, setSidebarWidth] = useState(() => readWidth(SIDEBAR_WIDTH_KEY))
+  const [detailsWidth, setDetailsWidth] = useState(() => readWidth(DETAILS_WIDTH_KEY))
+  // Renaming and editing happen in the details panel, so starting either brings a hidden panel back.
+  const setEditing = useCallback((id: string | null) => {
+    setEditingState(id)
+
+    if (id === null || readFlag(DETAILS_KEY, true)) return
+
+    setShowDetails(true)
+    writeFlag('details', true)
+  }, [])
   const [appearance, setAppearance] = useState(readAppearance)
   /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
   const [themes, setThemes] = useState<Theme[]>(cachedThemes)
@@ -706,7 +759,7 @@ export function Canvas() {
     if (wasSaved) {
       const shown = compactDoc({ ...latest.current, nodes: toStored(mapped, cardSize) })
 
-      base.current = withStoredGroupSizes(shown, base.current)
+      base.current = withStoredSizes(shown, base.current)
       savedPrint.current = fingerprint(shown)
     }
   }, [cardSize, setNodes, reactFlow, focusPick, root])
@@ -720,7 +773,7 @@ export function Canvas() {
       const server = serverCopyOf(serverDoc, cardSizeRef.current)
 
       revision.current = doc.revision
-      base.current = withStoredGroupSizes(server, serverDoc)
+      base.current = withStoredSizes(server, serverDoc)
       savedPrint.current = fingerprint(server)
       const adopted = { ...shown, nodes: next }
 
@@ -824,7 +877,7 @@ export function Canvas() {
 
   useEffect(
     () =>
-      onRemoteChange((next, derived) => {
+      onRemoteChange((next, derived, reindexed) => {
         const name = workspace.current
         const epoch = workspaceEpoch.current
 
@@ -832,7 +885,10 @@ export function Canvas() {
         // here too, so a card's status catches up with an edit a moment after it saves.
         if (derived && next >= (revision.current ?? -1)) setDerived(derived)
 
-        queue.current = queue.current.then(() => (epoch === workspaceEpoch.current && next !== revision.current ? reload(name, epoch) : undefined))
+        // Files changed outside Orion keep their revision, so they reload whatever the revision says.
+        queue.current = queue.current.then(() =>
+          epoch === workspaceEpoch.current && (reindexed || next !== revision.current) ? reload(name, epoch) : undefined,
+        )
       }),
     [reload, setDerived],
   )
@@ -1023,7 +1079,7 @@ export function Canvas() {
       focusEntry.current = null
       updateTrail(emptyTrail())
       setPinned(null)
-      setEditing(null)
+      setEditingState(null)
 
       queue.current = queue.current.then(async () => {
         const list = await getWorkspaces()
@@ -1781,7 +1837,7 @@ export function Canvas() {
     }
   }
 
-  const needs = useMemo(() => needsAttention(nodes, work.status, work.snoozed), [nodes, work.status, work.snoozed])
+  const needs = work.attention
 
   // Work that needs you, gathered onto whatever shows it: the card, or the folded group around it.
   const attention = useMemo(() => {
@@ -1804,7 +1860,7 @@ export function Canvas() {
       marks.set(shown, nodeMap)
     }
 
-    return { marks, count: needs.length - elsewhere, elsewhere }
+    return { marks, count: needs.size - elsewhere, elsewhere }
   }, [attending, needs, view])
 
   const transform = useStore((state) => (attending ? state.transform : null))
@@ -2132,7 +2188,7 @@ export function Canvas() {
       setLinks((currentLinks) =>
         currentLinks.some((link) => (link.from === from && link.to === to) || (link.from === to && link.to === from))
           ? currentLinks
-          : [...currentLinks, { id: `${from}>${to}`, from, to, kind: 'blocks' }],
+          : [...currentLinks, { id: newId(), from, to, kind: 'blocks' }],
       )
     },
     [setLinks],
@@ -2261,7 +2317,7 @@ export function Canvas() {
 
     setNodes(result.nodes)
     setEditing(result.groupId)
-  }, [nodes, view, setNodes, cardSize])
+  }, [nodes, view, setNodes, setEditing, cardSize])
 
   const doUngroup = useCallback(
     (ids?: string[]) => {
@@ -2276,24 +2332,38 @@ export function Canvas() {
 
   /** Lands the Done stamps on cards that were just closed out, each after its delay. */
   const landStamps = useCallback(
-    (delays: Map<string, number>) => {
+    (delays: Map<string, number>, chain?: { pulses: Map<string, Pulse>; finale: Set<string> }) => {
       // Animations off clears the stamps at once. Reduced keeps the timing and fades them; they only animate while listed here.
       if (document.documentElement.dataset.motion === 'off') return
 
+      const pulses = chain?.pulses ?? new Map<string, Pulse>()
+      const finale = chain?.finale ?? new Set<string>()
+      // The flourish starts as the last Done stamp lands, so the chain stays listed until it finishes too.
+      const flourishMs = finale.size
+        ? readDurationMs('--motion-duration-fade', FADE_MS) +
+          readDurationMs('--motion-duration-stamp', STAMP_MS) +
+          readDurationMs('--motion-duration-flourish', FLOURISH_MS)
+        : 0
+
       setCelebrating((current) => new Map([...current, ...delays]))
+      setChainPulses((current) => new Map([...current, ...pulses]))
+      setChainFinale((current) => new Set([...current, ...finale]))
       window.setTimeout(
-        () =>
+        () => {
           setCelebrating((current) => {
             const next = new Map(current)
 
             for (const key of delays.keys()) next.delete(key)
 
             return next
-          }),
-        Math.max(...delays.values()) + readDurationMs('--motion-duration-clear', CLEAR_MS),
+          })
+          setChainPulses((current) => new Map([...current].filter(([key]) => !pulses.has(key))))
+          setChainFinale((current) => new Set([...current].filter((key) => !finale.has(key))))
+        },
+        Math.max(...delays.values()) + Math.max(readDurationMs('--motion-duration-clear', CLEAR_MS), flourishMs),
       )
     },
-    [setCelebrating],
+    [setCelebrating, setChainPulses, setChainFinale],
   )
 
   const actions = useMemo(
@@ -2309,20 +2379,19 @@ export function Canvas() {
       celebrate: (id: string) => {
         const { nodes: currentNodes, links: currentLinks } = latest.current
         const finished = atomStore.get(workAtom).status
-        const delays = celebrationDelays(
-          id,
-          currentNodes,
-          currentLinks,
-          (other) => finished.get(other) === 'done',
-          readDurationMs('--motion-duration-chain', CHAIN_STEP_MS),
-        )
+        const isFinished = (other: string) => finished.get(other) === 'done'
+        const stepMs = readDurationMs('--motion-duration-chain', CHAIN_STEP_MS)
+        const delays = celebrationDelays(id, currentNodes, currentLinks, isFinished, stepMs)
 
         if (!delays.size) return
 
         const cleared = new Set(delays.keys())
 
         setNodes((latestNodes) => clearCelebrations(latestNodes, cleared))
-        landStamps(delays)
+        landStamps(delays, {
+          pulses: chainPulses(chainBeats(id, currentLinks, isFinished, stepMs), currentLinks, Math.max(...delays.values())),
+          finale: chainFinale(delays),
+        })
       },
       resizeGroup,
     }),
@@ -2441,7 +2510,7 @@ export function Canvas() {
       const parentNode = parent ? nodeMap.get(parent) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const itemKind = options.itemKind ?? 'note'
-      const id = newId(itemKind === 'step' ? 'card' : itemKind)
+      const id = newId()
       const note: AppNode = {
         id,
         type: 'task',
@@ -2483,7 +2552,7 @@ export function Canvas() {
           )
         })
     },
-    [root, setLinks, setNodes, cardSize],
+    [root, setLinks, setNodes, setEditing, cardSize],
   )
 
   const viewportCenter = useCallback(() => {
@@ -2516,13 +2585,13 @@ export function Canvas() {
           const parentNode = parentId ? nodeMap.get(parentId) : undefined
           const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
           const image: ImageNode = {
-            id: newId('image'),
+            id: newId(),
             type: 'image',
             parentId: parentNode?.id,
             position: { x: position.x - 20 - origin.x, y: position.y - 92 - origin.y },
             width: 256,
             height: 256,
-            data: { kind: 'image', label: file.name.replace(/\.[^.]+$/, ''), asset, workspace: workspaceName },
+            data: { kind: 'image', label: file.name.replace(/\.[^.]+$/, ''), asset, canvas: workspaceName },
             selected: true,
           }
 
@@ -2573,7 +2642,7 @@ export function Canvas() {
       const parentNode = parentId ? nodeMap.get(parentId) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
       const card: AppNode = {
-        id: nodeMap.has(found.id) ? newId('card') : found.id,
+        id: nodeMap.has(found.id) ? newId() : found.id,
         type: 'task',
         parentId: parentNode?.id,
         position: { x: at.x - origin.x, y: at.y - origin.y },
@@ -2762,7 +2831,7 @@ export function Canvas() {
 
   const stamp = useCallback(
     (event: React.MouseEvent) => {
-      const id = newId('sticker')
+      const id = newId()
       const at = anchorAt(reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }))
 
       setStickers((stickers) => [...stickers, { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at }])
@@ -3148,7 +3217,7 @@ export function Canvas() {
       { label: 'Fit to screen', hint: hintOf('fit'), run: () => fitTo(root) },
       {
         label: root ? 'Cover and background' : 'Canvas cover and background',
-        run: () => setCoverTarget(root ? { kind: 'group', id: root } : { kind: 'canvas' }),
+        run: showLevelDetails,
       },
       ...(root ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => openRoot(map.get(root)?.parentId ?? null) }] : []),
     ]
@@ -3346,8 +3415,7 @@ export function Canvas() {
   const focused = focus ? map.get(focus) : undefined
   const focusPos = focused && absolutePosition(focused, map)
   const focusSize = focused && sizeOf(focused, cardSize)
-  // Snoozed work isn't counted as ready, as in each group's progress.
-  const readyTotal = [...work.status].filter(([id, status]) => status === 'ready' && !work.snoozed.has(id)).length
+  const readyTotal = work.canvas.ready
 
   const commands: Command[] = [
     ...(trailSize.back
@@ -3499,6 +3567,12 @@ export function Canvas() {
       run: () => toggleSidebar(!sidebar),
     },
     {
+      id: 'details-panel',
+      label: showDetails ? 'Hide details panel' : 'Show details panel',
+      detail: 'What is selected, or the open group',
+      run: () => toggleDetails(!showDetails),
+    },
+    {
       id: 'sync',
       label: 'Sync with GitHub',
       detail: 'Refresh pull request status now',
@@ -3521,6 +3595,34 @@ export function Canvas() {
   const toggleSidebar = (value: boolean) => {
     setSidebar(value)
     writeFlag('sidebar', value)
+  }
+
+  // A drag sets the width on every move and saves it once, when the drag ends.
+  const resizeSidebar = (width: number | null, done = true) => {
+    setSidebarWidth(width)
+
+    if (done) saveSettings({ 'sidebar-width': width === null ? null : String(width) })
+  }
+
+  const resizeDetails = (width: number | null, done = true) => {
+    setDetailsWidth(width)
+
+    if (done) saveSettings({ 'details-width': width === null ? null : String(width) })
+  }
+
+  const toggleDetails = (value: boolean) => {
+    setShowDetails(value)
+    writeFlag('details', value)
+  }
+
+  // Clears the selection so the details panel describes the open group, or the canvas at the top level.
+  const showLevelDetails = () => {
+    setNodes((currentNodes) =>
+      currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
+    )
+    clearStickerPicks()
+    setPickedLink(null)
+    toggleDetails(true)
   }
 
   const toggleDebug = (v: boolean) => {
@@ -3546,6 +3648,175 @@ export function Canvas() {
     writeKeybindings(next)
   }
 
+  const groupInspector = (group: AppNode, selection: boolean) => (
+    <GroupInspector
+      key={selection ? inspectorKey : `open:${group.id}`}
+      node={group}
+      stats={work.groups.get(group.id)}
+      workspace={workspaces.active}
+      focus={selection && editing === group.id}
+      doneEditing={() => setEditing(null)}
+      update={updateData}
+      arrange={(patch) => arrangeGroup(group.id, patch)}
+      changeStyle={(change) => changeGroupStyle(group.id, change)}
+      reflow={() => actions.reflow(group.id)}
+      open={selection ? () => actions.open(group.id) : undefined}
+      ungroup={selection ? () => doUngroup([group.id]) : undefined}
+    />
+  )
+
+  // The panel follows the focused card, then the selection, then a picked link, and otherwise describes the open level.
+  const details = focused ? (
+    isNote(focused) ? (
+      <NoteInspector
+        key={focused.id}
+        node={focused}
+        focus={false}
+        doneEditing={() => setEditing(null)}
+        update={updateData}
+        remove={() => {
+          exitFocus()
+          deleteNote(focused.id)
+        }}
+      />
+    ) : isComponent(focused) ? (
+      <ComponentInspector
+        key={focused.id}
+        node={focused}
+        focus={false}
+        doneEditing={() => setEditing(null)}
+        work={work}
+        map={map}
+        update={updateData}
+        remove={() => {
+          exitFocus()
+          deleteComponent(focused.id)
+        }}
+        jumpTo={focusOn}
+        connections={false}
+        links={links}
+        addLink={addLink}
+        removeLink={removeLink}
+        flipLink={flipLink}
+      />
+    ) : (
+      <TaskInspector
+        key={focused.id}
+        node={cardOf(focused)}
+        work={work}
+        map={map}
+        github={github}
+        update={updateData}
+        jumpTo={focusOn}
+        connections={false}
+        links={links}
+        addLink={addLink}
+        removeLink={removeLink}
+        flipLink={flipLink}
+      />
+    )
+  ) : selected.length === 0 && pickedStickers.length > 0 ? (
+    <div className="insp">
+      <strong>
+        {pickedStickers.length} {pickedStickers.length === 1 ? 'sticker' : 'stickers'} selected
+      </strong>
+      <button type="button" className="btn" onClick={() => removeStickers(new Set(pickedStickers.map((sticker) => sticker.id)))}>
+        Remove {pickedStickers.length === 1 ? 'sticker' : 'stickers'}
+      </button>
+    </div>
+  ) : selected.length > 1 ? (
+    <div className="insp">
+      <strong>{selected.length} selected</strong>
+      {selectedWorkData.length > 0 && <SelectionStatus items={selectedWorkData} update={patchSelection} />}
+      <button type="button" className="btn primary" onClick={doGroup}>
+        Group selection <kbd>⌘G</kbd>
+      </button>
+    </div>
+  ) : one && isNote(one) ? (
+    <NoteInspector
+      key={inspectorKey}
+      node={one}
+      focus={editing === one.id}
+      doneEditing={() => setEditing(null)}
+      update={updateData}
+      remove={() => deleteNote(one.id)}
+    />
+  ) : one && isComponent(one) ? (
+    <ComponentInspector
+      key={one.id}
+      node={one}
+      focus={editing === one.id}
+      doneEditing={() => setEditing(null)}
+      work={work}
+      map={map}
+      update={updateData}
+      remove={() => deleteComponent(one.id)}
+      jumpTo={jumpTo}
+      links={links}
+      addLink={addLink}
+      removeLink={removeLink}
+      flipLink={flipLink}
+    />
+  ) : one && isTask(one) ? (
+    <TaskInspector
+      key={inspectorKey}
+      node={cardOf(one)}
+      focus={editing === one.id}
+      doneEditing={() => setEditing(null)}
+      work={work}
+      map={map}
+      github={github}
+      update={updateData}
+      jumpTo={jumpTo}
+      links={links}
+      addLink={addLink}
+      removeLink={removeLink}
+      flipLink={flipLink}
+    />
+  ) : one && isImage(one) ? (
+    <div className="insp" key={inspectorKey}>
+      <label htmlFor="image-label">Image label</label>
+      <input
+        id="image-label"
+        value={one.data.label}
+        autoFocus={editing === one.id}
+        onFocus={(event) => editing === one.id && event.target.select()}
+        onBlur={() => setEditing(null)}
+        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+        onChange={(event) => updateData(one.id, { label: event.target.value })}
+      />
+      <button type="button" className="btn" onClick={() => setNodes((ns) => removeNodes(ns, [one.id], cardSize))}>
+        Remove image
+      </button>
+    </div>
+  ) : one ? (
+    groupInspector(one, true)
+  ) : pickedLinkData ? (
+    <LinkInspector
+      key={pickedLinkData.id}
+      link={pickedLinkData}
+      map={map}
+      focus={editing === `link:${pickedLinkData.id}`}
+      doneEditing={() => setEditing(null)}
+      update={updateLink}
+      flip={flipLink}
+      remove={() => {
+        removeLink(pickedLinkData.id)
+        setPickedLink(null)
+      }}
+      jumpTo={jumpTo}
+    />
+  ) : root && map.has(root) ? (
+    groupInspector(map.get(root)!, false)
+  ) : (
+    <div className="insp">
+      <strong>{workspaces.canvases.find((item) => item.name === workspaces.active)?.label ?? workspaces.active}</strong>
+      <p className="facts">{readyTotal} ready to start. Select a card, group, or link to see its details here.</p>
+      <CoverSettings title="Canvas cover and background" workspace={workspaces.active} current={canvasStyle} change={changeCanvasStyle} />
+      <HeaderSettings title="Canvas header" value={canvasStyle.header} change={(header) => changeCanvasStyle({ header })} />
+    </div>
+  )
+
   return (
     <ActionsContext.Provider value={actions}>
       <div className="app">
@@ -3562,7 +3833,11 @@ export function Canvas() {
             newWorkspace={newWorkspace}
             openSettings={() => setSettings('appearance')}
             settingsHint={hintOf('settings') ?? ''}
+            width={sidebarWidth ?? undefined}
           />
+        )}
+        {sidebar && (
+          <ResizeHandle panel="before" label="Resize the group list" {...SIDEBAR_WIDTH} resize={resizeSidebar} reset={() => resizeSidebar(null)} />
         )}
         <div
           className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}${canvasHeader ? ' has-header' : ''}`}
@@ -3804,183 +4079,11 @@ export function Canvas() {
                 />
               </Panel>
 
-              {coverTarget && selected.length === 0 && pickedStickers.length === 0 && (
-                <Panel position="top-right" className="panel inspector cover-panel">
-                  {coverTarget.kind === 'canvas' ? (
-                    <>
-                      <CoverSettings
-                        title="Canvas cover and background"
-                        workspace={workspaces.active}
-                        current={canvasStyle}
-                        change={changeCanvasStyle}
-                      />
-                      <HeaderSettings title="Canvas header" value={canvasStyle.header} change={(header) => changeCanvasStyle({ header })} />
-                    </>
-                  ) : map.has(coverTarget.id) ? (
-                    <>
-                      <CoverSettings
-                        title="Group cover and background"
-                        workspace={workspaces.active}
-                        current={(map.get(coverTarget.id)?.data ?? {}) as ClusterData}
-                        change={(change) => changeGroupStyle(coverTarget.id, change)}
-                      />
-                      <HeaderSettings
-                        title="Group header"
-                        value={(map.get(coverTarget.id)?.data as ClusterData | undefined)?.header}
-                        change={(header) => changeGroupStyle(coverTarget.id, { header })}
-                      />
-                    </>
-                  ) : null}
-                  <div className="row">
-                    <button type="button" className="btn" onClick={() => setCoverTarget(null)}>
-                      Done
-                    </button>
-                  </div>
-                </Panel>
-              )}
-
-              {(selected.length > 0 || pickedStickers.length > 0) && (
-                <Panel position="top-right" className="panel inspector">
-                  {!selected.length ? (
-                    <div className="insp">
-                      <strong>
-                        {pickedStickers.length} {pickedStickers.length === 1 ? 'sticker' : 'stickers'} selected
-                      </strong>
-                      <button type="button" className="btn" onClick={() => removeStickers(new Set(pickedStickers.map((sticker) => sticker.id)))}>
-                        Remove {pickedStickers.length === 1 ? 'sticker' : 'stickers'}
-                      </button>
-                    </div>
-                  ) : !one ? (
-                    <div className="insp">
-                      <strong>{selected.length} selected</strong>
-                      {selectedWorkData.length > 0 && <SelectionStatus items={selectedWorkData} update={patchSelection} />}
-                      <button type="button" className="btn primary" onClick={doGroup}>
-                        Group selection <kbd>⌘G</kbd>
-                      </button>
-                    </div>
-                  ) : isNote(one) ? (
-                    <NoteInspector
-                      key={inspectorKey}
-                      node={one}
-                      focus={editing === one.id}
-                      doneEditing={() => setEditing(null)}
-                      update={updateData}
-                      remove={() => deleteNote(one.id)}
-                    />
-                  ) : isComponent(one) ? (
-                    <ComponentInspector
-                      key={one.id}
-                      node={one}
-                      focus={editing === one.id}
-                      doneEditing={() => setEditing(null)}
-                      work={work}
-                      map={map}
-                      update={updateData}
-                      remove={() => deleteComponent(one.id)}
-                      jumpTo={jumpTo}
-                      links={links}
-                      addLink={addLink}
-                      removeLink={removeLink}
-                      flipLink={flipLink}
-                    />
-                  ) : isTask(one) ? (
-                    <TaskInspector
-                      key={inspectorKey}
-                      node={cardOf(one)}
-                      focus={editing === one.id}
-                      doneEditing={() => setEditing(null)}
-                      work={work}
-                      map={map}
-                      github={github}
-                      update={updateData}
-                      jumpTo={jumpTo}
-                      links={links}
-                      addLink={addLink}
-                      removeLink={removeLink}
-                      flipLink={flipLink}
-                    />
-                  ) : isImage(one) ? (
-                    <div className="insp" key={inspectorKey}>
-                      <label htmlFor="image-label">Image label</label>
-                      <input
-                        id="image-label"
-                        value={one.data.label}
-                        autoFocus={editing === one.id}
-                        onFocus={(event) => editing === one.id && event.target.select()}
-                        onBlur={() => setEditing(null)}
-                        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-                        onChange={(event) => updateData(one.id, { label: event.target.value })}
-                      />
-                      <button type="button" className="btn" onClick={() => setNodes((ns) => removeNodes(ns, [one.id], cardSize))}>
-                        Remove image
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="insp" key={inspectorKey}>
-                      <label htmlFor="g-label">Group name</label>
-                      <input
-                        id="g-label"
-                        value={(one.data as ClusterData).label}
-                        autoFocus={editing === one.id}
-                        onFocus={(event) => editing === one.id && event.target.select()}
-                        onBlur={() => setEditing(null)}
-                        onKeyDown={(event) => event.key === 'Enter' && (event.target as HTMLInputElement).blur()}
-                        onChange={(event) => updateData(one.id, { label: event.target.value })}
-                      />
-                      {(one.data as ClusterData).blurb && <p className="blurb">{(one.data as ClusterData).blurb}</p>}
-                      <GroupFacts stats={work.groups.get(one.id)} />
-                      <label htmlFor="g-color">Color</label>
-                      <TintSelect
-                        id="g-color"
-                        value={(one.data as ClusterData).color}
-                        inherit={one.parentId ? "Its group's" : 'None'}
-                        change={(color) => updateData(one.id, { color })}
-                      />
-                      <GroupArrange data={one.data as ClusterData} change={(patch) => arrangeGroup(one.id, patch)} />
-                      <CoverSettings
-                        title="Cover and background"
-                        workspace={workspaces.active}
-                        current={one.data as ClusterData}
-                        change={(change) => changeGroupStyle(one.id, change)}
-                      />
-                      <HeaderSettings
-                        title="Header"
-                        value={(one.data as ClusterData).header}
-                        change={(header) => changeGroupStyle(one.id, { header })}
-                      />
-                      <div className="row">
-                        <button type="button" className="btn primary" onClick={() => actions.open(one.id)}>
-                          Open
-                        </button>
-                        {(one.data as ClusterData).arrange !== 'custom' && (
-                          <button type="button" className="btn" onClick={() => actions.reflow(one.id)}>
-                            Reflow
-                          </button>
-                        )}
-                        <button type="button" className="btn" onClick={() => doUngroup([one.id])}>
-                          Ungroup <kbd>⇧⌘G</kbd>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </Panel>
-              )}
-              {selected.length === 0 && pickedLinkData && (
-                <Panel position="top-right" className="panel inspector">
-                  <LinkInspector
-                    key={pickedLinkData.id}
-                    link={pickedLinkData}
-                    map={map}
-                    focus={editing === `link:${pickedLinkData.id}`}
-                    doneEditing={() => setEditing(null)}
-                    update={updateLink}
-                    flip={flipLink}
-                    remove={() => {
-                      removeLink(pickedLinkData.id)
-                      setPickedLink(null)
-                    }}
-                    jumpTo={jumpTo}
-                  />
+              {!showDetails && (
+                <Panel position="top-right" className="panel crumbs">
+                  <button type="button" className="crumb" onClick={() => toggleDetails(true)} title="Show the details panel">
+                    ☰
+                  </button>
                 </Panel>
               )}
 
@@ -4019,53 +4122,7 @@ export function Canvas() {
               outgoing={focusItems.outgoing}
               onFocus={focusOn}
               onExit={exitFocus}
-            >
-              {isNote(focused) ? (
-                <NoteInspector
-                  node={focused}
-                  focus={false}
-                  doneEditing={() => setEditing(null)}
-                  update={updateData}
-                  remove={() => {
-                    exitFocus()
-                    deleteNote(focused.id)
-                  }}
-                />
-              ) : isComponent(focused) ? (
-                <ComponentInspector
-                  node={focused}
-                  focus={false}
-                  doneEditing={() => setEditing(null)}
-                  work={work}
-                  map={map}
-                  update={updateData}
-                  remove={() => {
-                    exitFocus()
-                    deleteComponent(focused.id)
-                  }}
-                  jumpTo={focusOn}
-                  connections={false}
-                  links={links}
-                  addLink={addLink}
-                  removeLink={removeLink}
-                  flipLink={flipLink}
-                />
-              ) : (
-                <TaskInspector
-                  node={cardOf(focused)}
-                  work={work}
-                  map={map}
-                  github={github}
-                  update={updateData}
-                  jumpTo={focusOn}
-                  connections={false}
-                  links={links}
-                  addLink={addLink}
-                  removeLink={removeLink}
-                  flipLink={flipLink}
-                />
-              )}
-            </FocusView>
+            />
           )}
           {!ready && <div className="loading">Laying out…</div>}
           {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
@@ -4086,6 +4143,14 @@ export function Canvas() {
             />
           )}
         </div>
+        {showDetails && (
+          <ResizeHandle panel="after" label="Resize the details panel" {...DETAILS_WIDTH} resize={resizeDetails} reset={() => resizeDetails(null)} />
+        )}
+        {showDetails && (
+          <DetailsPanel width={detailsWidth ?? undefined} hide={() => toggleDetails(false)}>
+            {details}
+          </DetailsPanel>
+        )}
         {paletteQuery !== null && (
           <Palette
             nodes={nodes}

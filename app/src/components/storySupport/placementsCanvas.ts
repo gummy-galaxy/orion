@@ -1,5 +1,5 @@
-import { GAP } from '../../layout'
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, type AppNode, type Link, type TaskData } from '../../model'
+import { GAP, GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from '../../geometry'
+import { type AppNode, type Link, type TaskData } from '../../model'
 import type { Remote } from '../../persist'
 import type { Placement } from '../../placements/types'
 

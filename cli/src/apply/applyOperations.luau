@@ -8,6 +8,7 @@ local linkItems = require("@root/graph/linkItems")
 local makeGroup = require("@root/graph/makeGroup")
 local markForTidy = require("@root/graph/markForTidy")
 local moveItem = require("@root/graph/moveItem")
+local placeTogether = require("@root/graph/placeTogether")
 local removeGroup = require("@root/graph/removeGroup")
 local removeItem = require("@root/graph/removeItem")
 local resolveRef = require("@root/adapters/resolveRef")
@@ -22,7 +23,8 @@ type Operation = applyTypes.Operation
 -- Handles name the cards, notes, and groups a plan creates, so later steps can refer to them.
 type Handles = { [string]: string }
 
-type Handler = (Doc, Operation, Handles) -> ()
+-- A step that adds a card or note records its id in `added`, so the plan can place it once every link is in.
+type Handler = (Doc, Operation, Handles, { string }) -> ()
 
 -- "@name" is a handle declared by an earlier step. Any other value is an id already on the canvas.
 local function resolve(handles: Handles, value: string): string
@@ -50,9 +52,11 @@ end
 
 local handlers: { [string]: Handler } = {}
 
-handlers.addCard = function(doc: Doc, operation: Operation, handles: Handles)
+handlers.addCard = function(doc: Doc, operation: Operation, handles: Handles, added: { string })
 	local options = table.clone(operation.fields or {}) :: any
 	options.group = resolveOptional(handles, operation.group)
+	options.after = resolveOptional(handles, operation.after)
+	options.before = resolveOptional(handles, operation.before)
 	local item = addItem(doc, required(operation.label, "label"), options)
 
 	if operation.ref then
@@ -60,9 +64,10 @@ handlers.addCard = function(doc: Doc, operation: Operation, handles: Handles)
 	end
 
 	declare(handles, operation.handle, item.id)
+	table.insert(added, item.id)
 end
 
-handlers.addNote = function(doc: Doc, operation: Operation, handles: Handles)
+handlers.addNote = function(doc: Doc, operation: Operation, handles: Handles, added: { string })
 	local note = addNote(doc, required(operation.text, "text"), {
 		group = resolveOptional(handles, operation.group),
 		after = resolveOptional(handles, operation.after),
@@ -70,6 +75,7 @@ handlers.addNote = function(doc: Doc, operation: Operation, handles: Handles)
 	})
 
 	declare(handles, operation.handle, note.id)
+	table.insert(added, note.id)
 end
 
 handlers.group = function(doc: Doc, operation: Operation, handles: Handles)
@@ -128,19 +134,22 @@ handlers.tidy = function(doc: Doc, operation: Operation, handles: Handles)
 end
 
 -- Applies the steps in order to the document. A step that fails raises an error naming its position. The caller's
--- transaction then writes nothing, so a plan lands whole or not at all. Returns the id each declared handle got.
+-- transaction then writes nothing, so a plan lands whole or not at all. Cards and notes the plan adds are placed after
+-- its last step, so links made later in the plan count. Returns the id each declared handle got.
 local function applyOperations(doc: Doc, operations: { Operation }): Handles
 	local handles: Handles = {}
+	local added: { string } = {}
 
 	for index, operation in operations do
 		local handler = assert(handlers[operation.op], `unknown operation: {operation.op}`)
-		local succeeded, failure = pcall(handler, doc, operation, handles)
+		local succeeded, failure = pcall(handler, doc, operation, handles, added)
 
 		if not succeeded then
 			error(`operation {index} ({operation.op}): {getErrorText(failure)}`, 0)
 		end
 	end
 
+	placeTogether(doc, added)
 	return handles
 end
 

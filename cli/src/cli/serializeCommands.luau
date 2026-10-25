@@ -16,16 +16,26 @@ local function serializeCommands(command: CommandDescription): json.Object
 			table.insert(aliases, alias)
 		end
 
-		table.insert(
-			arguments,
-			json.object({
-				name = argument.name,
-				kind = argument.kind,
-				help = argument.help,
-				required = argument.required,
-				aliases = aliases,
-			})
-		)
+		local serialized = json.object({
+			name = argument.name,
+			kind = argument.kind,
+			type = argument.type,
+			help = argument.help,
+			required = argument.required,
+			aliases = aliases,
+		})
+
+		if argument.values then
+			local values: json.Array = {}
+
+			for _, value in argument.values do
+				table.insert(values, value)
+			end
+
+			serialized.values = values
+		end
+
+		table.insert(arguments, serialized)
 	end
 
 	for _, child in command.commands do

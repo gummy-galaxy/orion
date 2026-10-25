@@ -29,7 +29,7 @@ The commands that change several cards take several ids or `--where`, plus three
 - `--if-revision <n>` refuses the write if the document changed since the preview.
 - `--json` returns the same result in a structured form.
 
-Targets resolve against one snapshot, and every change lands in one transaction. A preview and then an apply with the printed revision is therefore safe: either the whole batch lands or none of it does. The same flags work on `card done`, `node remove`, `node move`, `group remove`, `group ungroup`, `group tidy`, `link add`, and `link insert` ([#140](https://github.com/vocksel/orion/pull/140)).
+Targets resolve against one snapshot, and every change lands in one transaction. A preview and then an apply with the printed revision is therefore safe: either the whole batch lands or none of it does. The same flags work on `card done`, `node remove`, `node move`, `group remove`, `group ungroup`, `group tidy`, `link create`, and `link insert` ([#140](https://github.com/vocksel/orion/pull/140)).
 
 ## Noun, then verb
 
@@ -37,7 +37,7 @@ Before 0.1.0, the CLI's surface changes freely. The [decisions](/development/dec
 
 Within that, commands name the thing they act on first ([#346](https://github.com/vocksel/orion/pull/346)):
 
-- Cards, notes, and links: `card list|add|set|done|import`, `note add`, `link add|remove|insert`.
+- Cards, notes, and links: `card list|create|set|done|import`, `note create`, `link create|remove|insert`.
 - Any node: `node show|query|remove|move`.
 - Groups: `group list|add|create|remove|set|ungroup|tidy`.
 - Canvases: `canvas list|create|rename|set|archive|restore|use|current|path|check`.

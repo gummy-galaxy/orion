@@ -1,4 +1,4 @@
-local findPlacement = require("@root/graph/findPlacement")
+local findPlacementById = require("@root/graph/findPlacementById")
 local getGroup = require("@root/graph/getGroup")
 local getPlacements = require("@root/graph/getPlacements")
 local pruneEmptied = require("@root/graph/pruneEmptied")
@@ -9,7 +9,7 @@ type Position = types.Position
 
 -- Moves one copy to a group, or the top level, at a position. A card's own record moves with `move` and `place`.
 local function movePlacement(doc: Doc, id: string, groupId: string?, position: Position)
-	local placement = assert(findPlacement(doc, id), `no placement with id "{id}"`)
+	local placement = assert(findPlacementById(doc, id), `no placement with id "{id}"`)
 	local from = placement.parentId
 
 	if groupId ~= from then

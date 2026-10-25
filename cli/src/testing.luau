@@ -1,12 +1,18 @@
 local fs = require("@std/fs")
 local json = require("@std/json")
+local lintTypes = require("@std/commands/lint/types")
 local path = require("@std/path")
 local process = require("@std/process")
+local syntax = require("@std/syntax")
 local system = require("@std/system")
 
 local cli = require("@root/cli")
+local encodeStableJson = require("@root/store/encodeStableJson")
+local ensureDirectory = require("@root/platform/ensureDirectory")
 local githubTypes = require("@root/github/types")
+local readCanvasFiles = require("@root/store/readCanvasFiles")
 local types = require("@root/types")
+local writeCanvasFiles = require("@root/store/writeCanvasFiles")
 local writeDoc = require("@root/store/writeDoc")
 
 type Doc = types.Doc
@@ -94,6 +100,24 @@ function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 	}
 end
 
+-- Writes a whole canvas given as one JSON text, the way an older `orion.json` held it, as a canvas folder's files.
+function testing.writeCanvasText(dir: string, text: string)
+	ensureDirectory(dir)
+	writeCanvasFiles(dir, json.asObject(json.deserialize(text) :: json.Value) :: json.Object, nil)
+end
+
+-- A canvas folder's files joined into one stable JSON text, so a spec can search them or check they didn't change.
+function testing.readCanvasText(dir: string): string
+	local snapshot = assert(readCanvasFiles(dir), `no canvas in {dir}`)
+	return encodeStableJson(snapshot.document)
+end
+
+-- Whether an id is a random one, as `createId` makes for new nodes and links.
+function testing.isRandomId(id: unknown): boolean
+	return type(id) == "string"
+		and id:match("^%x%x%x%x%x%x%x%x%-%x%x%x%x%-4%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$") ~= nil
+end
+
 function testing.result(succeeded: boolean, stdout: string, stderr: string?): types.CommandResult
 	return { ok = succeeded, exitCode = if succeeded then 0 else 1, stdout = stdout, stderr = stderr or "" }
 end
@@ -121,6 +145,18 @@ function testing.run(
 	return table.concat(output, "\n")
 end
 
+-- Lints `source` with one rule and returns the line each violation starts on.
+function testing.getLintedLines(rule: lintTypes.LintRule, source: string): { number }
+	local violations = rule.lint(syntax.parse(source).root, nil, { globals = {}, options = {} })
+	local lines: { number } = {}
+
+	for _, violation in violations do
+		table.insert(lines, violation.location.beginLine)
+	end
+
+	return lines
+end
+
 function testing.createHarness(name: string)
 	local dir = testing.directory(name)
 	writeDoc(
@@ -136,8 +172,8 @@ function testing.createHarness(name: string)
 	)
 	local workspace = ""
 
-	local function setWorkspace(name: string)
-		workspace = name
+	local function setWorkspace(canvas: string)
+		workspace = canvas
 	end
 
 	local function run(args: { string }, runner: types.CommandRunner?)

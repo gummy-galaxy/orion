@@ -1,4 +1,5 @@
-import { GROUP_PADDING, absolutePosition, byId, descendants, groupHeaderHeight, isCluster, sizeOf, type AppNode } from './model'
+import { GROUP_PADDING } from './geometry'
+import { absolutePosition, byId, descendants, groupHeaderHeight, isCluster, sizeOf, type AppNode } from './model'
 import type { CardSize } from './cardSize'
 
 /** How far past a group's edge, in screen pixels, dragged work goes before it pops out. Stickers use the same distance. */

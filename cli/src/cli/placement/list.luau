@@ -12,6 +12,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List every place a card appears, its own first",
+	mcp = { skip = "is a #122 spike; the real build decides how tools place cards" },
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
 		parser:add("json", "flag", { help = "Print JSON" })

@@ -1,5 +1,5 @@
+import { HEADER_MAX_LENGTH } from '../geometry'
 import { useState } from 'react'
-import { HEADER_MAX_LENGTH } from '../style'
 
 /**
  * Edits a canvas or group header in Markdown. The header saves when the field loses focus, so typing doesn't

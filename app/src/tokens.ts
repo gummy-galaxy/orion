@@ -1,5 +1,5 @@
 /**
- * Every named visual token. Components read the CSS custom property; `legacy` names alias it so older CSS keeps working.
+ * Every named visual token. Components read the CSS custom property.
  * Keep this list, tokens.css, and docs/guide/tokens.md in step. tokens.test.ts checks all three, and checks that each
  * theme defines every token.
  */
@@ -12,29 +12,27 @@ export type Token = {
   /** The custom property components read, such as --card-background. */
   cssVar: string
   group: TokenGroup
-  /** The older custom property that still aliases this token. */
-  legacy?: string
 }
 
 export const TOKENS: readonly Token[] = [
-  { name: 'canvas.background', cssVar: '--canvas-background', group: 'color', legacy: '--bg' },
-  { name: 'canvas.dots', cssVar: '--canvas-dots', group: 'color', legacy: '--dots' },
-  { name: 'surface.background', cssVar: '--surface-background', group: 'color', legacy: '--surface' },
+  { name: 'canvas.background', cssVar: '--canvas-background', group: 'color' },
+  { name: 'canvas.dots', cssVar: '--canvas-dots', group: 'color' },
+  { name: 'surface.background', cssVar: '--surface-background', group: 'color' },
   { name: 'card.background', cssVar: '--card-background', group: 'color' },
   { name: 'card.border', cssVar: '--card-border', group: 'color' },
-  { name: 'text.primary', cssVar: '--text-primary', group: 'color', legacy: '--ink' },
-  { name: 'text.muted', cssVar: '--text-muted', group: 'color', legacy: '--muted' },
-  { name: 'border.default', cssVar: '--border-default', group: 'color', legacy: '--line' },
-  { name: 'accent.default', cssVar: '--accent-default', group: 'color', legacy: '--accent' },
-  { name: 'accent.subtle', cssVar: '--accent-subtle', group: 'color', legacy: '--accent-soft' },
-  { name: 'edge.default', cssVar: '--edge-default', group: 'color', legacy: '--edge' },
+  { name: 'text.primary', cssVar: '--text-primary', group: 'color' },
+  { name: 'text.muted', cssVar: '--text-muted', group: 'color' },
+  { name: 'border.default', cssVar: '--border-default', group: 'color' },
+  { name: 'accent.default', cssVar: '--accent-default', group: 'color' },
+  { name: 'accent.subtle', cssVar: '--accent-subtle', group: 'color' },
+  { name: 'edge.default', cssVar: '--edge-default', group: 'color' },
   { name: 'edge.hot', cssVar: '--edge-hot', group: 'color' },
   { name: 'edge.held', cssVar: '--edge-held', group: 'color' },
   { name: 'edge.still', cssVar: '--edge-still', group: 'color' },
-  { name: 'note.background', cssVar: '--note-background', group: 'color', legacy: '--note' },
-  { name: 'note.border', cssVar: '--note-border', group: 'color', legacy: '--note-edge' },
-  { name: 'note.text', cssVar: '--note-text', group: 'color', legacy: '--note-ink' },
-  { name: 'snap.guide', cssVar: '--snap-guide', group: 'color', legacy: '--snap' },
+  { name: 'note.background', cssVar: '--note-background', group: 'color' },
+  { name: 'note.border', cssVar: '--note-border', group: 'color' },
+  { name: 'note.text', cssVar: '--note-text', group: 'color' },
+  { name: 'snap.guide', cssVar: '--snap-guide', group: 'color' },
   { name: 'sticker.edge', cssVar: '--sticker-edge', group: 'color' },
   { name: 'window.close.background', cssVar: '--window-close-background', group: 'color' },
   { name: 'window.close.text', cssVar: '--window-close-text', group: 'color' },
@@ -58,12 +56,12 @@ export const TOKENS: readonly Token[] = [
   { name: 'trading.note.background', cssVar: '--trading-note-background', group: 'color' },
   { name: 'trading.note.text', cssVar: '--trading-note-text', group: 'color' },
 
-  { name: 'status.todo', cssVar: '--status-todo', group: 'status', legacy: '--st-todo' },
-  { name: 'status.ready', cssVar: '--status-ready', group: 'status', legacy: '--st-ready' },
-  { name: 'status.active', cssVar: '--status-active', group: 'status', legacy: '--st-active' },
-  { name: 'status.review', cssVar: '--status-review', group: 'status', legacy: '--st-review' },
-  { name: 'status.blocked', cssVar: '--status-blocked', group: 'status', legacy: '--st-blocked' },
-  { name: 'status.done', cssVar: '--status-done', group: 'status', legacy: '--st-done' },
+  { name: 'status.todo', cssVar: '--status-todo', group: 'status' },
+  { name: 'status.ready', cssVar: '--status-ready', group: 'status' },
+  { name: 'status.active', cssVar: '--status-active', group: 'status' },
+  { name: 'status.review', cssVar: '--status-review', group: 'status' },
+  { name: 'status.blocked', cssVar: '--status-blocked', group: 'status' },
+  { name: 'status.done', cssVar: '--status-done', group: 'status' },
 
   { name: 'tint.teal', cssVar: '--tint-teal', group: 'color' },
   { name: 'tint.blue', cssVar: '--tint-blue', group: 'color' },
@@ -146,6 +144,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'link.width.related', cssVar: '--link-width-related', group: 'border' },
   { name: 'link.width.traced', cssVar: '--link-width-traced', group: 'border' },
   { name: 'link.width.picked', cssVar: '--link-width-picked', group: 'border' },
+  { name: 'link.width.pulse', cssVar: '--link-width-pulse', group: 'border' },
   { name: 'snap.guide.width', cssVar: '--snap-guide-width', group: 'border' },
 
   { name: 'space.0.5', cssVar: '--space-0-5', group: 'space' },
@@ -168,7 +167,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'space.9.5', cssVar: '--space-9-5', group: 'space' },
   { name: 'space.10', cssVar: '--space-10', group: 'space' },
 
-  { name: 'shadow.raised', cssVar: '--shadow-raised', group: 'shadow', legacy: '--shadow' },
+  { name: 'shadow.raised', cssVar: '--shadow-raised', group: 'shadow' },
   { name: 'shadow.image', cssVar: '--shadow-image', group: 'shadow' },
   { name: 'shadow.dialog', cssVar: '--shadow-dialog', group: 'shadow' },
   { name: 'shadow.selection', cssVar: '--shadow-selection', group: 'shadow' },
@@ -197,6 +196,7 @@ export const TOKENS: readonly Token[] = [
   { name: 'motion.duration.camera', cssVar: '--motion-duration-camera', group: 'duration' },
   { name: 'motion.duration.sticker-ring', cssVar: '--motion-duration-sticker-ring', group: 'duration' },
   { name: 'motion.duration.sticker-stamp', cssVar: '--motion-duration-sticker-stamp', group: 'duration' },
+  { name: 'motion.duration.flourish', cssVar: '--motion-duration-flourish', group: 'duration' },
 
   { name: 'motion.loop.twinkle', cssVar: '--motion-loop-twinkle', group: 'duration' },
   { name: 'motion.loop.attention', cssVar: '--motion-loop-attention', group: 'duration' },

@@ -15,6 +15,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Mark one or more items done",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		addBatchOptions(parser, "Item ids or selectors")
 	end,
@@ -26,10 +27,10 @@ return table.freeze({
 		end
 
 		local id: string
-		local doc = runTransaction(options.dir, function(doc)
-			id = resolveId(doc, parser:variadics()[1])
-			requireItem(doc, id)
-			setFields(doc, id, { status = "done" })
+		local doc = runTransaction(options.dir, function(current)
+			id = resolveId(current, parser:variadics()[1])
+			requireItem(current, id)
+			setFields(current, id, { status = "done" })
 		end)
 
 		options.write(`Done: {id} · {getLabel(getItem(doc, id))}`)

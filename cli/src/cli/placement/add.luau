@@ -12,6 +12,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Show a card in one more group. Every copy edits the same card, and links join the card",
+	mcp = { skip = "is a #122 spike; the real build decides how tools place cards" },
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
 		parser:add("group", "option", { help = "Group to show the card in; the top level when absent" })

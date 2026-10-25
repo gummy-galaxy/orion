@@ -131,7 +131,8 @@ local function countUpstream(tasks: { [string]: Item }, predecessors: { [string]
 	return upstream
 end
 
--- Status, flow, leverage, upstream work, rarity, and group progress, all served to the app rather than derived there.
+-- Status, flow, leverage, upstream work, rarity, progress for each group and the whole canvas, and the work where
+-- it's your move, all served to the app rather than derived there.
 -- Notes and components pass blocking through and never count as work, and components have no status. Gates also
 -- pass blocking through, but count as work: one is done once everything it waits on is. A snoozed card keeps its
 -- status and blocking, but it has no leverage and isn't ready until it wakes. `now` is a UTC time in the form Orion
@@ -391,15 +392,9 @@ local function derive(doc: Doc, now: string?): Derived
 		end
 	end
 
-	local groups: { [string]: GroupStats } = {}
-
-	for _, item in doc.nodes do
-		if not isGroup(item) then
-			continue
-		end
-
+	-- Progress over a set of cards, and the work they reach outside it.
+	local function countStats(inside: { [string]: boolean }): GroupStats
 		local stats: GroupStats = { total = 0, done = 0, ready = 0, blocked = 0, outside = 0, components = 0 }
-		local inside = members[item.id] or {}
 		local outside: { [string]: boolean } = {}
 
 		for id in inside do
@@ -440,7 +435,30 @@ local function derive(doc: Doc, now: string?): Derived
 			stats.outside += 1
 		end
 
-		groups[item.id] = stats
+		return stats
+	end
+
+	local groups: { [string]: GroupStats } = {}
+
+	for _, item in doc.nodes do
+		if isGroup(item) then
+			groups[item.id] = countStats(members[item.id] or {})
+		end
+	end
+
+	local everything: { [string]: boolean } = {}
+	local attention: { [string]: boolean } = {}
+
+	for id, item in tasks do
+		everything[id] = true
+
+		-- It's your move on open work that can move. Blocked work waits, and snoozed work is set aside until it wakes.
+		local statusValue = status[id]
+		local isOpenWork = statusValue ~= "done" and statusValue ~= "deferred" and statusValue ~= "blocked"
+
+		if isWork(item) and getStringField(item.data.who) == "you" and not snoozed[id] and isOpenWork then
+			attention[id] = true
+		end
 	end
 
 	-- Copies read the same as the card they show, so the app can look each one up by the id it draws.
@@ -462,7 +480,9 @@ local function derive(doc: Doc, now: string?): Derived
 		upstream = upstream,
 		rarity = rarity,
 		groups = groups,
+		canvas = countStats(everything),
 		snoozed = snoozed,
+		attention = attention,
 		pulls = pulls,
 	}
 end

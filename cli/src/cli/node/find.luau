@@ -1,17 +1,18 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local findItem = require("@root/graph/findItem")
 local findItems = require("@root/query/findItems")
 local getLabel = require("@root/graph/getLabel")
-local getQueryValue = require("@root/cli/getQueryValue")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
 local isGroup = require("@root/graph/isGroup")
 local joinWords = require("@root/cli/joinWords")
 local loadDoc = require("@root/store/loadDoc")
 local pad = require("@root/render/pad")
+local render = require("@root/render")
 
 type Context = context.Context
 
@@ -34,7 +35,7 @@ local function writeJson(options: Context, result: findItems.Result, limit: numb
 	local values: json.Array = {}
 
 	for _, hit in result.hits do
-		local value = getQueryValue(hit.doc, hit.derived, hit.item)
+		local value = render.itemJson(hit.doc, hit.derived, hit.item)
 		value.canvas = hit.name
 		table.insert(values, value)
 	end
@@ -51,7 +52,7 @@ local function writeLines(options: Context, result: findItems.Result, showCanvas
 		local parentItem = if item.parentId then findItem(hit.doc, item.parentId) else nil
 		local where = if parentItem then `in {getLabel(parentItem)}` else "top level"
 		local canvasColumn = if showCanvas then pad(hit.name, 16) else ""
-		table.insert(lines, `{canvasColumn}{pad(item.id, 28)}{pad(getLabel(item), 44)}{pad(state, 10)}{where}`)
+		table.insert(lines, `{canvasColumn}{pad(item.id, 38)}{pad(getLabel(item), 44)}{pad(state, 10)}{where}`)
 	end
 
 	if result.total > #result.hits then
@@ -63,9 +64,10 @@ end
 
 return table.freeze({
 	help = "Find cards and groups whose label, note, or refs contain text",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
-		parser:add("text", "variadic", { help = "Text to find, matched case-insensitively" })
-		parser:add("limit", "option", { help = "Most matches to print (default 20)" })
+		addArgument(parser, "text", "variadic", { help = "Text to find, matched case-insensitively", type = "words" })
+		addArgument(parser, "limit", "option", { help = "Most matches to print (default 20)", type = "integer" })
 		parser:add("all-canvases", "flag", { help = "Search every canvas, not only this one" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

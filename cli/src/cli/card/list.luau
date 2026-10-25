@@ -1,5 +1,6 @@
 local cli = require("@batteries/cli")
 
+local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local derive = require("@root/graph/derive")
 local getAncestors = require("@root/graph/getAncestors")
@@ -20,8 +21,9 @@ end
 
 return table.freeze({
 	help = "List work items with their derived status",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
-		parser:add("group", "option", { help = "Only items inside this group" })
+		addArgument(parser, "group", "option", { help = "Only items inside this group", type = "id" })
 		parser:add("all", "flag", { help = "Include done items" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,

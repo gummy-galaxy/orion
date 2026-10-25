@@ -12,6 +12,13 @@ local writeDoc = require("@root/store/writeDoc")
 
 local NOW = "2026-10-04T00:00:00Z"
 
+-- The commands this machine runs for the sources these tests configure. Hop sources run `hop` without one.
+local COMMANDS = {
+	jira = { "acli", "jira", "workitem", "search", "--json" },
+	["jira-one"] = { "acli", "one" },
+	["jira-two"] = { "acli", "two" },
+}
+
 local function runGh(argv: { string })
 	local query = argv[#argv]
 
@@ -43,7 +50,6 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 		{
 			id = "jira",
 			kind = "jira",
-			command = { "acli", "jira", "workitem", "search", "--json" },
 			browse = "https://jira.example.com/browse",
 		},
 	}
@@ -59,7 +65,7 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 		)
 	end
 
-	local first = placeRecords(doc, collectSources(doc, runCommand, NOW))
+	local first = placeRecords(doc, collectSources(doc, COMMANDS, runCommand, NOW))
 	assert.eq(first.sources[1].added, 2)
 	assert.eq(first.sources[1].linked, 2)
 	assert.eq(first.sources[2].added, 1)
@@ -71,7 +77,7 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 	assert.eq(doc.nodes[1].id, "unsorted")
 	assert.eq(doc.nodes[1].data.layout, "refit")
 	local count = #doc.nodes
-	local second = placeRecords(doc, collectSources(doc, runCommand, NOW))
+	local second = placeRecords(doc, collectSources(doc, COMMANDS, runCommand, NOW))
 	assert.eq(#doc.nodes, count)
 	assert.eq(#doc.links, 2)
 	assert.eq(second.sources[1].updated, 2)
@@ -92,8 +98,8 @@ end)
 test.case("issue refs with the same key across sources identify one card", function(assert)
 	local doc = testing.createDoc({})
 	doc.settings.sources = {
-		{ id = "jira-one", kind = "jira", command = { "acli", "one" } },
-		{ id = "jira-two", kind = "jira", command = { "acli", "two" } },
+		{ id = "jira-one", kind = "jira" },
+		{ id = "jira-two", kind = "jira" },
 	}
 
 	local function runCommand(argv: { string })
@@ -109,7 +115,7 @@ test.case("issue refs with the same key across sources identify one card", funct
 		)
 	end
 
-	local first = placeRecords(doc, collectSources(doc, runCommand, NOW))
+	local first = placeRecords(doc, collectSources(doc, COMMANDS, runCommand, NOW))
 	assert.eq(first.sources[1].added, 1)
 	assert.eq(first.sources[2].updated, 1)
 	assert.eq(#doc.nodes, 2)
@@ -117,7 +123,7 @@ test.case("issue refs with the same key across sources identify one card", funct
 	assert.eq(issue and issue.source, "jira-two")
 	assert.eq(issue and issue.isDone, true)
 	assert.eq(doc.nodes[2].data.status, "done")
-	local second = placeRecords(doc, collectSources(doc, runCommand, NOW))
+	local second = placeRecords(doc, collectSources(doc, COMMANDS, runCommand, NOW))
 	assert.eq(second.sources[1].updated, 1)
 	assert.eq(second.sources[2].updated, 1)
 	assert.eq(#doc.nodes, 2)
@@ -126,7 +132,7 @@ end)
 
 test.case("hop step converts to a pull request without changing placement or note", function(assert)
 	local doc = testing.createDoc({})
-	doc.settings.sources = { { id = "hop", kind = "hop", command = { "hop" } } }
+	doc.settings.sources = { { id = "hop", kind = "hop" } }
 
 	local function runHop(argv: { string })
 		if argv[2] == "list" then
@@ -142,7 +148,7 @@ test.case("hop step converts to a pull request without changing placement or not
 		)
 	end
 
-	placeRecords(doc, collectSources(doc, runHop, NOW))
+	placeRecords(doc, collectSources(doc, COMMANDS, runHop, NOW))
 	local step = doc.nodes[2]
 	assert.eq(step.data.itemKind, "step")
 	assert.eq(step.data.label, "feature ABC-123 avatar fix")
@@ -164,7 +170,7 @@ test.case("hop step converts to a pull request without changing placement or not
 		return result
 	end
 
-	local report = placeRecords(doc, collectSources(doc, runCommand, NOW))
+	local report = placeRecords(doc, collectSources(doc, COMMANDS, runCommand, NOW))
 	assert.eq(report.sources[1].updated, 1)
 	assert.eq(doc.nodes[2].id, id)
 	assert.eq(doc.nodes[2].data.itemKind, "pr")
@@ -179,7 +185,7 @@ test.case("hop resolves bare repository names without changing case and matches 
 			refs = { { source = "github", kind = "pull", key = "Roblox/Avatar#20" } },
 		}),
 	})
-	doc.settings.sources = { { id = "hop-local", kind = "hop", command = { "hop" } } }
+	doc.settings.sources = { { id = "hop-local", kind = "hop" } }
 
 	local function runHop(argv: { string })
 		if argv[2] == "list" then
@@ -192,7 +198,7 @@ test.case("hop resolves bare repository names without changing case and matches 
 		return testing.result(true, "[]")
 	end
 
-	local first = placeRecords(doc, collectSources(doc, runHop, NOW))
+	local first = placeRecords(doc, collectSources(doc, COMMANDS, runHop, NOW))
 	assert.eq(first.sources[1].added, 1)
 	local step = doc.nodes[3]
 	assert.eq(step.data.repo, "Roblox/Avatar")
@@ -211,7 +217,7 @@ test.case("hop resolves bare repository names without changing case and matches 
 	end
 
 	local count = #doc.nodes
-	local second = placeRecords(doc, collectSources(doc, runLowercaseHop, NOW))
+	local second = placeRecords(doc, collectSources(doc, COMMANDS, runLowercaseHop, NOW))
 	assert.eq(second.sources[1].updated, 1)
 	assert.eq(#doc.nodes, count)
 	assert.eq(step.data.repo, "Roblox/Avatar")
@@ -220,10 +226,10 @@ end)
 test.case("one failed source does not stop other sources", function(assert)
 	local doc = testing.createDoc({})
 	doc.settings.sources = {
-		{ id = "hop", kind = "hop", command = { "hop" } },
-		{ id = "jira", kind = "jira", command = { "acli", "jira", "workitem", "search" } },
+		{ id = "hop", kind = "hop" },
+		{ id = "jira", kind = "jira" },
 	}
-	local fetched = collectSources(doc, function(argv)
+	local fetched = collectSources(doc, COMMANDS, function(argv)
 		if argv[1] == "hop" then
 			return { ok = false, exitCode = 1, stdout = "", stderr = "not installed" }
 		end
@@ -242,7 +248,7 @@ end)
 test.case("hop observes GitHub cards collected later in source configuration", function(assert)
 	local doc = testing.createDoc({})
 	doc.settings.sources = {
-		{ id = "hop", kind = "hop", command = { "hop" } },
+		{ id = "hop", kind = "hop" },
 		{ id = "gh-roblox", kind = "github", host = "github.com", owners = { "Roblox" } },
 	}
 
@@ -259,7 +265,7 @@ test.case("hop observes GitHub cards collected later in source configuration", f
 		return testing.result(true, "[]")
 	end
 
-	local report = placeRecords(doc, collectSources(doc, runCommand, NOW))
+	local report = placeRecords(doc, collectSources(doc, COMMANDS, runCommand, NOW))
 	assert.eq(report.sources[1].id, "hop")
 	assert.eq(report.sources[1].updated, 1)
 	assert.eq(report.sources[2].added, 2)
@@ -268,9 +274,9 @@ test.case("hop observes GitHub cards collected later in source configuration", f
 	assert.eq(branch and branch.key, "Roblox/avatar@ABC-123-avatar-fix")
 end)
 
-test.case("hop attaches worktree activity to migrated pull cards", function(assert)
+test.case("hop attaches worktree activity to pull cards", function(assert)
 	local doc = decodeDoc(
-		[[{"version":1,"settings":{"sources":[{"id":"gh-flipbook-labs","kind":"github","host":"github.com","owners":["flipbook-labs"]},{"id":"hop","kind":"hop","command":["hop"]}]},"nodes":[{"id":"st-161","type":"task","position":{"x":24,"y":240},"data":{"label":"Batch matching discovery queries","status":"done","kind":"task","itemKind":"pr","sources":[{"kind":"github-pr","repo":"storyteller","number":161,"branch":"batch-discovery-queries","state":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/161"}}]}},{"id":"st-162","type":"task","position":{"x":24,"y":150},"data":{"label":"Reference-count Storyteller consumers","status":"done","kind":"task","itemKind":"pr","sources":[{"kind":"github-pr","repo":"storyteller","number":162,"branch":"reference-count-storyteller-runtime","state":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/162"}}]}}]}]]
+		[[{"version":2,"settings":{"sources":[{"id":"gh-flipbook-labs","kind":"github","host":"github.com","owners":["flipbook-labs"]},{"id":"hop","kind":"hop"}]},"nodes":[{"id":"st-161","type":"task","position":{"x":24,"y":240},"data":{"label":"Batch matching discovery queries","status":"done","kind":"task","itemKind":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github","kind":"pull","key":"flipbook-labs/storyteller#161","url":"https://github.com/flipbook-labs/storyteller/pull/161","status":"merged","isDone":true,"details":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/161","branch":"batch-discovery-queries"}}]}},{"id":"st-162","type":"task","position":{"x":24,"y":150},"data":{"label":"Reference-count Storyteller consumers","status":"done","kind":"task","itemKind":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github","kind":"pull","key":"flipbook-labs/storyteller#162","url":"https://github.com/flipbook-labs/storyteller/pull/162","status":"merged","isDone":true,"details":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/162","branch":"reference-count-storyteller-runtime"}}]}}]}]]
 	)
 	for _, branch in { "batch-discovery-queries", "reference-count-storyteller-runtime" } do
 		table.insert(
@@ -288,7 +294,7 @@ test.case("hop attaches worktree activity to migrated pull cards", function(asse
 		return testing.result(true, if argv[2] == "list" then list else "[]")
 	end
 
-	local report = placeRecords(doc, collectSources(doc, runHop, "2026-10-09T01:30:00Z", "hop"))
+	local report = placeRecords(doc, collectSources(doc, COMMANDS, runHop, "2026-10-09T01:30:00Z", "hop"))
 	assert.eq(report.sources[1].updated, 2)
 
 	doc = decodeDoc(encodeDoc(doc))
@@ -319,7 +325,7 @@ test.case("hop session activity follows the pull card before a duplicate branch 
 		refs = { { source = "hop", kind = "branch", key = "flipbook-labs/storyteller@batch-discovery-queries" } },
 	})
 	local doc = testing.createDoc({ pull, duplicate })
-	doc.settings.sources = { { id = "hop", kind = "hop", command = { "hop" } } }
+	doc.settings.sources = { { id = "hop", kind = "hop" } }
 	local function runHop(argv: { string })
 		return testing.result(
 			true,
@@ -329,7 +335,7 @@ test.case("hop session activity follows the pull card before a duplicate branch 
 		)
 	end
 
-	local report = placeRecords(doc, collectSources(doc, runHop, "2026-10-09T01:30:00Z"))
+	local report = placeRecords(doc, collectSources(doc, COMMANDS, runHop, "2026-10-09T01:30:00Z"))
 	assert.eq(report.sources[1].updated, 0)
 	local branch = findRef(pull, "branch")
 	assert.eq(branch and branch.details and branch.details.sessions, { "Review" })

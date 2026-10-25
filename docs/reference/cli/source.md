@@ -43,6 +43,7 @@ orion source add github [options]
 | `--include <value>` | Repositories to include, comma-separated |
 | `--exclude <value>` | Repositories to exclude, comma-separated |
 | `--id <value>`      | Source id                                |
+| `--json`            | Print JSON                               |
 
 ### orion source add jira
 
@@ -57,6 +58,7 @@ orion source add jira [options]
 | `--command <value>` | JSON array naming an external command |
 | `--browse <value>`  | Jira browse URL                       |
 | `--id <value>`      | Source id                             |
+| `--json`            | Print JSON                            |
 
 ### orion source add hop
 
@@ -66,10 +68,11 @@ Add a hop source
 orion source add hop [options]
 ```
 
-| Argument            | Description                           |
-| ------------------- | ------------------------------------- |
-| `--command <value>` | JSON array naming an external command |
-| `--id <value>`      | Source id                             |
+| Argument            | Description                          |
+| ------------------- | ------------------------------------ |
+| `--command <value>` | JSON array naming the hop executable |
+| `--id <value>`      | Source id                            |
+| `--json`            | Print JSON                           |
 
 ## orion source remove
 
@@ -82,6 +85,7 @@ orion source remove [id] [options]
 | Argument | Description |
 | -------- | ----------- |
 | `[id]`   | Source id   |
+| `--json` | Print JSON  |
 
 ## orion source matches
 

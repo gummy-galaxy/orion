@@ -1,8 +1,10 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
+local clearFocus = require("@root/store/clearFocus")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local loadDoc = require("@root/store/loadDoc")
+local putFocus = require("@root/store/putFocus")
 local sync = require("@root/server/sync")
 local testing = require("@root/testing")
 
@@ -117,6 +119,79 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 	loop.tick()
 	assert.eq(table.concat(calls, ","), "authored,full")
 	assert.eq(loadDoc(dir).revision, revision + 1)
+end)
+
+test.case("sync sweeps the cards in view every 30 seconds between full sweeps", function(assert)
+	local root = testing.createHarness("sync-sooner")
+	local dir = getWorkspaceDir(root, "default")
+	local now = 100
+	local calls: { string } = {}
+	local loop = sync.create(root, "default", function(_status: json.Object) end, function(argv)
+		local query = argv[#argv]
+
+		if argv[3] == "--include" then
+			table.insert(calls, "poll")
+			return testing.result(
+				false,
+				"HTTP/2.0 304 Not Modified\nLast-Modified: Sun, 18 Oct 2026 15:53:33 GMT\nX-Poll-Interval: 60\n\n",
+				"gh: HTTP 304"
+			)
+		elseif query:find("pullRequests(first:", 1, true) then
+			table.insert(calls, "authored")
+			return testing.result(
+				true,
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}}]]
+			)
+		elseif query:find("{ updatedAt }", 1, true) then
+			table.insert(calls, "sweep")
+			return testing.result(true, [[{"data":{"p1":{"pullRequest":{"updatedAt":"2026-10-18T00:00:00Z"}}}}]])
+		end
+
+		table.insert(calls, "full")
+		return testing.result(
+			true,
+			[[{"data":{"p1":{"pullRequest":{"number":658,"state":"OPEN","url":"u","updatedAt":"2026-10-18T00:00:00Z"}}}}]]
+		)
+	end, function()
+		return now
+	end)
+
+	loop.tick()
+	local revision = loadDoc(dir).revision
+	putFocus(dir, "tab", nil, { "pub" })
+
+	table.clear(calls)
+	now += 30
+	loop.tick()
+	assert.eq(table.concat(calls, ","), "sweep")
+	assert.eq(loadDoc(dir).revision, revision)
+
+	table.clear(calls)
+	now += 15
+	loop.tick()
+	assert.eq(#calls, 0)
+
+	clearFocus(dir)
+	table.clear(calls)
+	now += 15
+	loop.tick()
+	assert.eq(table.concat(calls, ","), "poll")
+
+	putFocus(dir, "tab", "ws", {})
+	table.clear(calls)
+	now += 30
+	loop.tick()
+	assert.eq(table.concat(calls, ","), "sweep")
+
+	table.clear(calls)
+	now += 30
+	loop.tick()
+	assert.eq(table.concat(calls, ","), "poll,sweep,authored")
+
+	table.clear(calls)
+	now += 30
+	loop.tick()
+	assert.eq(table.concat(calls, ","), "sweep")
 end)
 
 test.case("an unforced sync request sweeps once a full pass has run", function(assert)

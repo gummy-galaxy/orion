@@ -369,8 +369,8 @@ select {
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: var(--st-done);
-  color: var(--surface);
+  background: var(--status-done);
+  color: var(--surface-background);
   box-shadow:
     0 0 0 var(--ring-width-default) var(--card-fill),
     var(--shadow-raised);
@@ -381,7 +381,7 @@ select {
   height: 10px;
 }
 .finish-stamp:focus-visible {
-  outline: var(--ring-width-default) solid var(--st-done);
+  outline: var(--ring-width-default) solid var(--status-done);
   outline-offset: var(--ring-offset-wide);
 }
 :where(:root[data-motion='on']) .finish-stamp:not(.is-clearing) {
@@ -520,6 +520,105 @@ select {
   }
   to {
     opacity: 1;
+  }
+}
+/* A chain closing out sends a pulse along each link to its next card, timed to arrive as that card's stamp clears, so
+   the eye follows the chain. pathLength="1" measures the dash as a share of the link, so short and long links match. */
+.chain-pulse {
+  fill: none;
+  stroke: var(--status-done);
+  stroke-width: var(--link-width-pulse);
+  stroke-linecap: round;
+  pointer-events: none;
+  opacity: 0;
+}
+:where(:root[data-motion='on']) .chain-pulse {
+  stroke-dasharray: 0.35 1.35;
+  animation: chain-pulse var(--pulse-duration) var(--motion-easing-standard) var(--pulse-delay) both;
+}
+:where(:root[data-motion='on']) .chain-pulse.is-reverse {
+  animation-direction: reverse;
+}
+@keyframes chain-pulse {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 0.35;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -1;
+  }
+}
+/* The last beat of a chain closes it out with a flourish as its Done stamp lands: the card flashes and two rings spread
+   from it. Only the rings move, and they sit outside the card, so nothing shifts under the pointer. The rings fill
+   forwards only, so they don't outline the card while they wait for their beat. */
+.card > .chain-flourish,
+.card > .chain-flourish::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  outline: var(--border-width-stamp) solid transparent;
+  pointer-events: none;
+}
+.card > .chain-flourish::before,
+.card > .chain-flourish::after {
+  content: '';
+}
+.card > .chain-flourish::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--status-done) 18%, transparent);
+  opacity: 0;
+}
+.card > .chain-flourish {
+  --flourish-delay: calc(var(--clear-delay, 0ms) + var(--motion-duration-fade) + var(--motion-duration-stamp) / 2);
+}
+:where(:root[data-motion='on']) .card > .chain-flourish {
+  animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter) var(--flourish-delay) forwards;
+}
+:where(:root[data-motion='on']) .card > .chain-flourish::after {
+  animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter)
+    calc(var(--flourish-delay) + var(--motion-duration-flourish) * 0.25) forwards;
+}
+:where(:root[data-motion='on'], :root[data-motion='reduced']) .card > .chain-flourish::before {
+  animation: chain-flourish-glow var(--motion-duration-flourish) var(--motion-easing-standard) var(--flourish-delay) both;
+}
+@keyframes chain-flourish-ring {
+  from {
+    outline-color: var(--status-done);
+    outline-offset: 0;
+  }
+  to {
+    outline-color: transparent;
+    outline-offset: var(--space-8-5);
+  }
+}
+@keyframes chain-flourish-glow {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+}
+/* Reduced motion keeps the pulse's timing and drops its travel: each link glows in place during its gap. The flourish
+   keeps its flash and drops its rings, above. */
+:where(:root[data-motion='reduced']) .chain-pulse {
+  animation: chain-pulse-glow var(--pulse-duration) var(--motion-easing-standard) var(--pulse-delay) both;
+}
+@keyframes chain-pulse-glow {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.8;
   }
 }
 .vscode-open {
@@ -1199,7 +1298,7 @@ select {
   top: 50%;
   transform: translate(-50%, -50%);
   font-size: var(--text-size-caption);
-  color: var(--muted);
+  color: var(--text-muted);
   opacity: 0.7;
   white-space: nowrap;
   pointer-events: none;
@@ -1507,10 +1606,10 @@ select {
 .peek-note {
   margin: var(--space-2) 0 0;
   padding-top: var(--space-3);
-  border-top: var(--border-width-default) solid var(--line);
+  border-top: var(--border-width-default) solid var(--border-default);
   font-size: var(--text-size-small);
   line-height: var(--line-height-preview);
-  color: var(--muted);
+  color: var(--text-muted);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -1647,13 +1746,6 @@ kbd {
   font-size: var(--text-size-micro);
   opacity: 0.75;
   margin-left: var(--space-2);
-}
-.inspector {
-  /* Wider on wide windows, up to 480px, and never wider than the window allows. */
-  width: min(480px, max(380px, 30vw), calc(100vw - 48px));
-  padding: var(--space-9);
-  max-height: calc(100vh - 120px);
-  overflow-y: auto;
 }
 .insp {
   display: grid;
@@ -1994,7 +2086,7 @@ kbd {
 .sticker.is-selected::after {
   opacity: 1;
   border-width: var(--ring-width-selection);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  background: color-mix(in srgb, var(--accent-default) 16%, transparent);
 }
 :where(:root[data-motion='on']) .sticker.is-fresh .sticker-art {
   animation: sticker-stamp var(--motion-duration-sticker-stamp) var(--motion-easing-stamp) both;
@@ -2539,6 +2631,79 @@ kbd {
   user-select: none;
   -webkit-user-select: none;
 }
+/* Drags a side panel's width. It takes no room; its hit area straddles the panel's border. */
+.resize-handle {
+  position: relative;
+  z-index: 20;
+  flex: none;
+  width: 0;
+  cursor: col-resize;
+  outline: none;
+}
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 8px;
+}
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: var(--accent-default);
+  opacity: 0;
+  transition: opacity var(--motion-duration-base);
+}
+.resize-handle:hover::after,
+.resize-handle:active::after,
+.resize-handle:focus-visible::after {
+  opacity: 1;
+}
+.sidebar,
+.details {
+  max-width: 45vw;
+}
+
+/* Details panel */
+.details {
+  /* Wider on wide windows, up to 460px, and never more than a third of the window. */
+  width: min(460px, max(360px, 26vw), 34vw);
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-left: var(--border-width-default) solid var(--border-default);
+  background: var(--surface-background);
+}
+.details-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 var(--space-4) 0 var(--space-9);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.details-title {
+  font-size: var(--text-size-detail);
+  color: var(--text-muted);
+}
+/* The app's own window controls sit over the top-right corner. */
+:root[data-titlebar='custom'] .details-head {
+  padding-right: 148px;
+}
+.details-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0 var(--space-9) var(--space-9);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 /* The macOS shell draws its traffic lights over the top-left corner, centered in the title bar. */
 :root[data-titlebar='overlay'] .side-head {
   padding-left: 72px;
@@ -2862,6 +3027,12 @@ kbd {
 }
 .options button:disabled:not([aria-pressed='true']) {
   opacity: 0.5;
+}
+.options .option-tag {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-size-micro);
+  font-weight: var(--weight-regular);
 }
 .options button:focus-visible {
   outline: var(--ring-width-default) solid var(--accent-default);
@@ -3279,7 +3450,7 @@ kbd {
 }
 .palette-heading {
   padding: var(--space-4) var(--space-5) var(--space-2);
-  color: var(--muted);
+  color: var(--text-muted);
   font: var(--text-size-micro) var(--font-data);
 }
 .palette mark {
@@ -3331,8 +3502,8 @@ kbd {
 .menu-date input {
   font: inherit;
   color: inherit;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: var(--surface-background);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   padding: 2px 4px;
 }
@@ -3350,28 +3521,28 @@ kbd {
   gap: var(--space-3);
 }
 .link-prompt label {
-  color: var(--muted);
+  color: var(--text-muted);
   font: var(--text-size-micro) var(--font-data);
 }
 .link-prompt input {
   width: 100%;
   padding: var(--space-3-5) var(--space-4-5);
-  border: var(--border-width-default) solid var(--line);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-sm);
   outline: none;
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--surface-background);
+  color: var(--text-primary);
   font-size: var(--text-size-body);
 }
 .link-prompt input:focus {
-  border-color: var(--accent);
+  border-color: var(--accent-default);
 }
 .link-prompt-status {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: var(--text-size-small);
 }
 .link-prompt-error {
-  color: var(--st-blocked);
+  color: var(--status-blocked);
   font-size: var(--text-size-small);
   overflow-wrap: anywhere;
 }
@@ -3678,7 +3849,6 @@ kbd {
 }
 :where(:root[data-motion='on']) .focus-side,
 :where(:root[data-motion='on']) .focus-bar,
-:where(:root[data-motion='on']) .focus-details,
 :where(:root[data-motion='on']) .focus svg {
   animation: focus-in var(--motion-duration-base) var(--motion-easing-enter) both;
 }
@@ -3693,14 +3863,6 @@ kbd {
 .focus-arrow.still {
   fill: var(--edge-still);
 }
-.focus-details {
-  position: absolute;
-  translate: -50% -100%;
-  padding: var(--space-7);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  pointer-events: auto;
-}
 
 /* Covers and backgrounds. Images sit behind the content and are dimmed toward the canvas color so cards and links stay readable. */
 .cluster-cover {
@@ -3708,7 +3870,6 @@ kbd {
   top: 0;
   left: 0;
   right: 0;
-  height: 78px;
   overflow: hidden;
   border-radius: inherit;
   pointer-events: none;
@@ -3881,8 +4042,8 @@ kbd {
   max-width: 260px;
   padding: var(--space-3) var(--space-4-5);
   border-radius: var(--radius-sm);
-  background: var(--ink);
-  color: var(--surface);
+  background: var(--text-primary);
+  color: var(--surface-background);
   box-shadow: var(--shadow-raised);
   font: var(--weight-semibold) var(--text-size-small)/1.35 var(--font-ui);
   pointer-events: none;
@@ -3894,7 +4055,7 @@ kbd {
   top: 100%;
   left: calc(50% - var(--tooltip-shift, 0px));
   border: 5px solid transparent;
-  border-top-color: var(--ink);
+  border-top-color: var(--text-primary);
   transform: translateX(-50%);
 }
 :where(:root[data-motion='on']) .tooltip {
@@ -4007,12 +4168,12 @@ kbd {
   gap: var(--space-3);
   max-width: 220px;
   padding: var(--space-2-5) var(--space-4-5) var(--space-2-5) var(--space-3-5);
-  border: var(--border-width-default) solid var(--line);
+  border: var(--border-width-default) solid var(--border-default);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-background) 92%, transparent);
   box-shadow: var(--shadow-raised);
   font: var(--weight-bold) var(--text-size-small) var(--font-ui);
-  color: var(--ink);
+  color: var(--text-primary);
   white-space: nowrap;
   opacity: 0;
   scale: 0.6;
@@ -4056,7 +4217,7 @@ kbd {
   position: absolute;
   font: var(--weight-extrabold) var(--text-size-small) var(--font-ui);
   font-style: normal;
-  color: var(--muted);
+  color: var(--text-muted);
   opacity: 0;
 }
 :where(:root[data-motion='on']) .companion-snooze i {

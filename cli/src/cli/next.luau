@@ -11,6 +11,7 @@ type Context = context.Context
 
 return table.freeze({
 	help = "List items that can start now, most unblocking first",
+	mcp = { annotations = { readOnlyHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
