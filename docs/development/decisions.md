@@ -582,3 +582,11 @@ Guide pages teach someone who has never used Orion. Reference pages are generate
 **Why:** hand-written write-ups need a home that the reference generator doesn't own, since it removes any page in `docs/reference/` it didn't write. A Development section keeps them apart from the pages that describe what Orion does today, and one umbrella leaves room for Design and Engineering to grow without crowding the nav.
 
 2026-10-17
+
+### The docs site is served from `oriongraph.app` on Cloudflare Pages
+
+The docs site lives at the bare `oriongraph.app`, served from the root path, and deploys to Cloudflare Pages from `main`. Its home page doubles as Orion's homepage.
+
+**Why:** the domain stays the same when the repository changes owners, while a GitHub Pages address would change with it. Cloudflare Pages deploys while the repository is private, which GitHub Pages can't, and it sits beside the domain's DNS in Cloudflare.
+
+2026-10-24 · [#327](https://github.com/vocksel/orion/pull/327) · [#575](https://github.com/vocksel/orion/issues/575)

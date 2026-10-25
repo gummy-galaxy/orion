@@ -1,20 +1,16 @@
 import { defineConfig } from 'vitepress'
 import cliCommands from '../reference/cli/sidebar.json' with { type: 'json' }
 
-// GitHub Pages serves the site under the repository's name; local builds serve it from the root.
-const base = process.env.DOCS_BASE ?? '/'
-
 export default defineConfig({
   title: 'Orion',
   description: 'One graph of everything you are juggling, for people and agents.',
-  base,
   // The vibrant theme is dark only, like the app's.
   appearance: 'force-dark',
   cleanUrls: true,
   markdown: { image: { lazyLoading: true } },
   lastUpdated: true,
   head: [
-    ['link', { rel: 'icon', type: 'image/png', href: `${base}logo.png` }],
+    ['link', { rel: 'icon', type: 'image/png', href: '/logo.png' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
     [
