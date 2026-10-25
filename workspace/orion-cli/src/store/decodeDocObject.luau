@@ -149,6 +149,7 @@ local function decodeDocObject(root: json.Object): Doc
 		links = links,
 		github = json.asObject(root.github),
 		suggestions = json.asObject(root.suggestions),
+		repositories = json.asObject(root.repositories),
 		raw = json.object(root),
 	}
 end

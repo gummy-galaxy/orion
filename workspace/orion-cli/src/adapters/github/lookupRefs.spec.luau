@@ -118,4 +118,24 @@ test.case("refs on a configured GitHub host query that host", function(assert)
 	assert.eq(hosts[1][4], "github.example.com")
 end)
 
+test.case("looked-up refs carry their repository's id", function(assert)
+	local queries = {}
+	local resolved = resolveAll({ "https://github.com/vocksel/orion/pull/251" })
+	local result = lookupRefs(
+		resolved,
+		{ now = "", since = "", doc = testing.createDoc({}), commands = {} },
+		function(argv)
+			table.insert(queries, argv)
+			return testing.result(
+				true,
+				[[{"data": {"p1": {"databaseId": 1, "pullRequest": {"title": "Add --ref", "url": "https://github.com/gummy-galaxy/orion/pull/251"}}}}]]
+			)
+		end
+	)
+
+	assert.strContains(queries[1][#queries[1]], "{ databaseId pullRequest(number: 251)")
+	local pull = result.records["pull:vocksel/orion#251"]
+	assert.eq(pull.ref.id, "1#251")
+end)
+
 return {}
