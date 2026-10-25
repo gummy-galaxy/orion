@@ -104,23 +104,6 @@ export function chainFinale(delays: ReadonlyMap<string, number>): Map<string, nu
   return new Map([...delays].filter(([, delay]) => delay === last))
 }
 
-/**
- * A card's data after a patch. Finishing a card in the app closes it out at once, so a change to done sets the flag
- * to false, which the CLI store reads as closed out and drops instead of leaving the card waiting. A change away from
- * done clears it. Notes never get the flag.
- */
-export function patchTaskData(data: TaskData, patch: Partial<TaskData>): TaskData {
-  const next: TaskData = { ...data, ...patch }
-  const changed = patch.status !== undefined && patch.status !== data.status
-
-  if (!changed || next.itemKind === 'note') return next
-
-  if (next.status === 'done') next.celebrate = false
-  else delete next.celebrate
-
-  return next
-}
-
 /** Whether a patch finishes a card in the app. Those close out at once, so their Done stamp lands right away. */
 export function closesOut(data: TaskData, patch: Partial<TaskData>): boolean {
   const kind = patch.itemKind ?? data.itemKind

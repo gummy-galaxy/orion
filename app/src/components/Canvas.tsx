@@ -40,7 +40,6 @@ import {
   chainFinale,
   chainPulses,
   closesOut,
-  patchTaskData,
   timeChain,
   type ChainAnswer,
   type Pulse,
@@ -51,6 +50,7 @@ import { GAP } from '../geometry'
 import { groupSelection, layoutOrder, moveOutOfGroup, reflow, ungroup } from '../layout'
 import { pushAside } from '../pushAside'
 import { diffOperations, type Operation } from '../operations'
+import type { SaveFields } from '../fields/types'
 import { cameraGlide, focusGlide, motionReduced, useSystemMotion } from '../motion'
 import { readDurationMs } from '../readDurationMs'
 import {
@@ -64,7 +64,6 @@ import {
   isTask,
   isWork,
   normalize,
-  getItemKind,
   getTaskUrl,
   removeNodes,
   sizeOf,
@@ -204,6 +203,8 @@ import { SelectionStatus } from './SelectionStatus'
 
 type ViewNode = AppNode | GhostNode
 type FocusEntry = { viewport: Viewport; moved: boolean }
+/** What a commit came to: each extra operation's answer, or the server's reason for refusing the write when it gave one. */
+type Committed = { ok: true; answers: unknown[] } | { ok: false; message?: string }
 
 const nodeTypes: NodeTypes = { task: CardSlot, cluster: ClusterView, image: ImageView, ghost: GhostView }
 const edgeTypes: EdgeTypes = { default: CurveEdge }
@@ -957,21 +958,23 @@ export function Canvas() {
 
   /**
    * Commits the canvas's edits since the last save, with `extra` operations after them in the same write, and answers
-   * with what each extra operation answered. Null when the write was refused or the canvas changed meanwhile.
+   * with what each extra operation answered, or why the write was refused.
    */
   const commitEdits = useCallback(
-    async (name: string, epoch: number, extra: Operation[] = []): Promise<unknown[] | null> => {
-      if (epoch !== workspaceEpoch.current) return null
+    async (name: string, epoch: number, extra: Operation[] = []): Promise<Committed> => {
+      const unsent: Committed = { ok: false }
+
+      if (epoch !== workspaceEpoch.current) return unsent
 
       // A drag or a resize keeps moving until it ends, and its edits commit then.
       const settled = !latest.current.nodes.some((node) => node.dragging || node.resizing)
 
-      if (!settled && !extra.length) return null
+      if (!settled && !extra.length) return unsent
 
       const snapshot = settled ? storedOf(latest.current) : base.current
       const print = settled ? fingerprint(snapshot) : savedPrint.current
 
-      if (print === savedPrint.current && !extra.length) return []
+      if (print === savedPrint.current && !extra.length) return { ok: true, answers: [] }
 
       const edits = print === savedPrint.current ? [] : diffOperations(base.current, snapshot)
       const operations = [...edits, ...extra]
@@ -980,13 +983,13 @@ export function Canvas() {
       if (operations.length) {
         const result = await commitOperations(name, revision.current, operations)
 
-        if (epoch !== workspaceEpoch.current) return null
+        if (epoch !== workspaceEpoch.current) return unsent
 
         // A refused list means another writer got there first, or an edit no longer applies. The server's copy replaces this one.
         if (!result.ok) {
           await reload(name, epoch, true)
 
-          return null
+          return { ok: false, message: result.message }
         }
 
         revision.current = result.revision
@@ -1003,14 +1006,14 @@ export function Canvas() {
 
       if (operations.length) await reload(name, epoch)
 
-      return answers
+      return { ok: true, answers }
     },
     [reload, storedOf],
   )
 
   /** Sends operations the server answers, after the edits waiting to save and in the same write, and resolves with the answers. */
   const commitNow = useCallback(
-    (operations: Operation[]): Promise<unknown[] | null> => {
+    (operations: Operation[]): Promise<Committed> => {
       const epoch = workspaceEpoch.current
       const name = workspace.current
       const committed = queue.current.then(() => commitEdits(name, epoch, operations))
@@ -2380,8 +2383,8 @@ export function Canvas() {
 
         // The card clicked stamps at once. `orion serve` closes out its chain, and the rest stamp from its answer.
         landStamps(new Map([[id, chainDelay(0, stepMs)]]), { pulses: new Map(), finale: new Map() })
-        void commitNow([{ op: 'chainClose', id }]).then((answers) => {
-          const answer = answers?.[0] as ChainAnswer | undefined
+        void commitNow([{ op: 'chainClose', id }]).then((committed) => {
+          const answer = committed.ok ? (committed.answers[0] as ChainAnswer | undefined) : undefined
 
           if (!answer) return
 
@@ -2423,7 +2426,7 @@ export function Canvas() {
 
           const updated = {
             ...node,
-            data: isTask(node) ? patchTaskData(node.data, patch as Partial<TaskData>) : { ...node.data, ...patch },
+            data: { ...node.data, ...patch },
           } as AppNode
 
           // Notes and components grow with their text, and their group grows with them.
@@ -2436,6 +2439,19 @@ export function Canvas() {
       })
     },
     [setNodes, landStamps],
+  )
+
+  /**
+   * Sends a card's field changes for `orion serve` to check and apply. The canvas shows them once the server answers,
+   * since it works out the kind and refs they lead to.
+   */
+  const saveFields = useCallback<SaveFields>(
+    async (id, fields) => {
+      const committed = await commitNow([{ op: 'setFields', id, fields }])
+
+      return committed.ok ? null : (committed.message ?? 'Could not save the change.')
+    },
+    [commitNow],
   )
 
   /** Sets the same fields on every work item in the selection, as one edit. */
@@ -3153,7 +3169,7 @@ export function Canvas() {
         return [
           ...many,
           { label: 'Edit note', run: () => (selectOnly(node.id), setEditing(node.id)) },
-          { label: 'Turn into a work item', run: () => updateData(node.id, { itemKind: 'step', status: 'todo' }) },
+          { label: 'Turn into a work item', run: () => void saveFields(node.id, { kind: 'step', status: 'todo' }) },
           'divider',
           { label: 'Delete note', danger: true, run: () => deleteNote(node.id) },
         ]
@@ -3165,8 +3181,7 @@ export function Canvas() {
           { label: 'Add a component after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id, itemKind: 'component' }) },
           {
             label: 'Turn into a work item',
-            run: () =>
-              updateData(node.id, { itemKind: getItemKind({ ...node.data, itemKind: 'step' }), status: 'todo', shape: undefined, color: undefined }),
+            run: () => void saveFields(node.id, { kind: 'step', status: 'todo' }),
           },
           'divider',
           { label: 'Delete component', danger: true, run: () => deleteComponent(node.id) },
@@ -3202,7 +3217,7 @@ export function Canvas() {
         ...snoozeItems,
         markDone,
         { label: 'Add a note after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id }) },
-        { label: 'Turn into a component', run: () => updateData(node.id, { itemKind: 'component' }) },
+        { label: 'Turn into a component', run: () => void saveFields(node.id, { kind: 'component' }) },
         ...(node.parentId !== root ? [{ label: 'Open its group', run: () => jumpTo(node.id) }] : []),
       ]
     }
@@ -3675,6 +3690,7 @@ export function Canvas() {
         focus={false}
         doneEditing={() => setEditing(null)}
         update={updateData}
+        saveFields={saveFields}
         remove={() => {
           exitFocus()
           deleteNote(focused.id)
@@ -3689,6 +3705,7 @@ export function Canvas() {
         work={work}
         map={map}
         update={updateData}
+        saveFields={saveFields}
         remove={() => {
           exitFocus()
           deleteComponent(focused.id)
@@ -3708,6 +3725,7 @@ export function Canvas() {
         map={map}
         github={github}
         update={updateData}
+        saveFields={saveFields}
         jumpTo={focusOn}
         connections={false}
         links={links}
@@ -3740,6 +3758,7 @@ export function Canvas() {
       focus={editing === one.id}
       doneEditing={() => setEditing(null)}
       update={updateData}
+      saveFields={saveFields}
       remove={() => deleteNote(one.id)}
     />
   ) : one && isComponent(one) ? (
@@ -3751,6 +3770,7 @@ export function Canvas() {
       work={work}
       map={map}
       update={updateData}
+      saveFields={saveFields}
       remove={() => deleteComponent(one.id)}
       jumpTo={jumpTo}
       links={links}
@@ -3768,6 +3788,7 @@ export function Canvas() {
       map={map}
       github={github}
       update={updateData}
+      saveFields={saveFields}
       jumpTo={jumpTo}
       links={links}
       addLink={addLink}

@@ -22,6 +22,7 @@ function TaskDemo() {
         map={currentMap}
         github={null}
         update={(_id, patch) => setNode({ ...node, data: { ...node.data, ...patch } })}
+        saveFields={() => Promise.resolve(null)}
         jumpTo={() => {}}
         links={links}
         addLink={() => {}}

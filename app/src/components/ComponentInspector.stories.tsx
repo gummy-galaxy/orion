@@ -24,6 +24,7 @@ function ComponentDemo() {
         work={buildWork(toServerFacts(null), [node, store], links)}
         map={map}
         update={(_id, patch) => setNode({ ...node, data: { ...node.data, ...patch } as TaskData })}
+        saveFields={() => Promise.resolve(null)}
         remove={() => {}}
         jumpTo={() => {}}
         links={links}

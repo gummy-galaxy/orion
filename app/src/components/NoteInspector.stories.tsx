@@ -19,6 +19,7 @@ function NoteDemo() {
         focus={false}
         doneEditing={() => {}}
         update={(_id, patch) => setNode({ ...node, data: { ...node.data, ...patch } as TaskData })}
+        saveFields={() => Promise.resolve(null)}
         remove={() => setNode({ ...node, data: { ...node.data, label: 'Deleted note' } })}
       />
     </div>

@@ -1,3 +1,4 @@
+import { useState, type KeyboardEvent } from 'react'
 import { useAtomValue } from 'jotai'
 import { ChecksIcon } from './ChecksIcon'
 import { CheckSnoozes } from './CheckSnoozes'
@@ -10,15 +11,14 @@ import { Timeline } from './Timeline'
 import { useCardLog } from '../useCardLog'
 import type { SnoozedJob, Work } from '../derive'
 import { workspaceAtom } from '../state'
+import type { CardFields, SaveFields } from '../fields/types'
 import {
   READINESS_LABEL,
   STATUS_CHOICES,
   STATUS_LABEL,
   WHO_CHOICES,
-  editPullRef,
   getCheckCounts,
   getCheckCountsLabel,
-  getItemKind,
   getPullRef,
   getPullRequestNumber,
   getRefSummary,
@@ -41,6 +41,7 @@ export function TaskInspector({
   map,
   github,
   update,
+  saveFields,
   jumpTo,
   connections = true,
   focus = false,
@@ -55,6 +56,8 @@ export function TaskInspector({
   map: Map<string, AppNode>
   github: GithubSnapshot | null
   update: (id: string, patch: Partial<TaskData>) => void
+  /** Saves fields the server works the kind and refs out from, and resolves once it answers. */
+  saveFields: SaveFields
   jumpTo: (id: string) => void
   /** Focus view draws connections beside the inspector. */
   connections?: boolean
@@ -97,6 +100,37 @@ export function TaskInspector({
           pullRequest.matches.filter((match) => match.id === node.id).map((match) => ({ pr: pullRequest, score: match.score })),
         )
         .sort((a, b) => b.score - a.score)
+  // The repository and pull request show as typed until they save, which happens when either input loses focus.
+  // The card takes its new kind and ref from the server's answer.
+  const [draft, setDraft] = useState<{ repo: string; pullRequest: string } | null>(null)
+  const [fieldError, setFieldError] = useState<string | null>(null)
+  const savedPullRequest = getPullRequestNumber(pullRef)
+  const shown = draft ?? { repo: data.repo ?? '', pullRequest: savedPullRequest ? String(savedPullRequest) : '' }
+
+  const save = (fields: CardFields) => {
+    setFieldError(null)
+    void saveFields(node.id, fields).then((error) => {
+      setFieldError(error)
+
+      if (!error) setDraft(null)
+    })
+  }
+
+  const saveDraft = () => {
+    if (!draft) return
+
+    const repository = draft.repo.trim()
+    const number = Number(draft.pullRequest.trim().replace(/^#/, ''))
+    const pullRequest = repository && Number.isInteger(number) && number > 0 ? number : undefined
+
+    if (repository === (data.repo ?? '') && pullRequest === savedPullRequest) return setDraft(null)
+
+    save({ repo: repository, pr: pullRequest ?? '' })
+  }
+
+  const blurOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') event.currentTarget.blur()
+  }
 
   return (
     <div className="insp task-insp">
@@ -204,13 +238,11 @@ export function TaskInspector({
             <label htmlFor="t-repo">Repository</label>
             <input
               id="t-repo"
-              value={data.repo ?? ''}
+              value={shown.repo}
               placeholder="owner/name"
-              onChange={(event) => {
-                const repo = event.target.value || undefined
-
-                update(node.id, editPullRef(data, repo, getPullRequestNumber(pullRef)))
-              }}
+              onChange={(event) => setDraft({ ...shown, repo: event.target.value })}
+              onBlur={saveDraft}
+              onKeyDown={blurOnEnter}
             />
           </div>
           <div>
@@ -218,24 +250,22 @@ export function TaskInspector({
             <input
               id="t-pr"
               inputMode="numeric"
-              value={getPullRequestNumber(pullRef) ?? ''}
+              value={shown.pullRequest}
               placeholder="Not opened"
-              disabled={!data.repo?.trim()}
-              onChange={(event) => {
-                const number = Number(event.target.value.replace(/^#/, ''))
-                const pullRequest = Number.isInteger(number) && number > 0 ? number : undefined
-
-                update(node.id, editPullRef(data, data.repo, pullRequest))
-              }}
+              disabled={!shown.repo.trim()}
+              onChange={(event) => setDraft({ ...shown, pullRequest: event.target.value })}
+              onBlur={saveDraft}
+              onKeyDown={blurOnEnter}
             />
           </div>
         </div>
+        {fieldError && (
+          <p className="field-error" role="alert">
+            {fieldError}
+          </p>
+        )}
         <label className="gate-toggle">
-          <input
-            type="checkbox"
-            checked={data.itemKind === 'gate'}
-            onChange={(event) => update(node.id, { itemKind: event.target.checked ? 'gate' : getItemKind({ ...data, itemKind: 'step' }) })}
-          />
+          <input type="checkbox" checked={data.itemKind === 'gate'} onChange={(event) => save({ kind: event.target.checked ? 'gate' : 'step' })} />
           Gate: done once everything it waits on is
         </label>
         {suggestions.length > 0 && (
@@ -251,7 +281,7 @@ export function TaskInspector({
                     {pullRequest.repo}#{pullRequest.number} · {score >= 0.6 ? 'High' : score >= 0.35 ? 'Medium' : 'Low'} confidence
                   </span>
                 </div>
-                <button type="button" className="btn" onClick={() => update(node.id, editPullRef(data, pullRequest.repo, pullRequest.number))}>
+                <button type="button" className="btn" onClick={() => save({ repo: pullRequest.repo, pr: pullRequest.number })}>
                   Link
                 </button>
               </div>

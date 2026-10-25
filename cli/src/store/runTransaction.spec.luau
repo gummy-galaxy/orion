@@ -6,7 +6,6 @@ local test = require("@std/test")
 
 local applyOperations = require("@root/operations/applyOperations")
 local decodeDoc = require("@root/store/decodeDoc")
-local encodeDocObject = require("@root/store/encodeDocObject")
 local getBackups = require("@root/store/getBackups")
 local getDocPath = require("@root/store/getDocPath")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
@@ -219,18 +218,15 @@ test.case("an operation list closes out the cards the app finished and closed ou
 			testing.task("b", "B", "done", nil, { celebrate = true }),
 		})
 	)
-	local nodes = json.asArray(encodeDocObject(loadDoc(dir)).nodes) or {}
+	local edits: json.Array = {}
 
-	local function closeOut(index: number)
-		local node = json.asObject(nodes[index]) :: json.Object
-		local data = json.asObject(node.data) :: json.Object
-		data.status = "done"
-		data.celebrate = false
-		return json.object({ op = "setData", id = node.id, data = data })
+	for _, id in { "a", "b" } do
+		table.insert(edits, json.object({ op = "setFields", id = id, fields = json.object({ status = "done" }) }))
+		table.insert(edits, json.object({ op = "closeOut", id = id }))
 	end
 
 	runTransaction(dir, function(doc)
-		applyOperations(doc, parseOperations({ closeOut(1), closeOut(2) }))
+		applyOperations(doc, parseOperations(edits))
 	end)
 	local saved = loadDoc(dir)
 	assert.eq(saved.nodes[1].data.celebrate, nil)

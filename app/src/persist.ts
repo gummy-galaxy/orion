@@ -18,7 +18,7 @@ export type Remote = Saved & { revision: number; settings: Record<string, unknow
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string }
 /** `results` holds what each operation answered, such as a chain close's cards, or null, in the order sent. */
-export type CommitResult = { ok: true; revision: number; results: unknown[] } | { ok: false; conflict: boolean }
+export type CommitResult = { ok: true; revision: number; results: unknown[] } | { ok: false; conflict: boolean; message?: string }
 export type Workspaces = { active: string; canvases: { name: string; label: string }[] }
 /** What `orion reveal` asked the open app to select and frame, on the canvas named. */
 export type Reveal = { canvas: string; ids: string[]; selectOnly: boolean }
@@ -270,7 +270,9 @@ export async function commitOperations(workspace: string, baseRevision: number |
       return { ok: true, revision: body.revision, results: body.results ?? [] }
     }
 
-    return { ok: false, conflict: response.status === 409 }
+    const failure = (await response.json().catch(() => ({}))) as { error?: unknown }
+
+    return { ok: false, conflict: response.status === 409, message: typeof failure.error === 'string' ? failure.error : undefined }
   } catch {
     return { ok: false, conflict: false }
   }

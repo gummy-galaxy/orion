@@ -1,5 +1,6 @@
 local captureDoc = require("@root/operations/captureDoc")
 local closeChain = require("@root/graph/closeChain")
+local closeOut = require("@root/graph/closeOut")
 local diffDocs = require("@root/operations/diffDocs")
 local findItem = require("@root/graph/findItem")
 local getGroup = require("@root/graph/getGroup")
@@ -17,6 +18,7 @@ local removeGroup = require("@root/graph/removeGroup")
 local removeItem = require("@root/graph/removeItem")
 local restoreDoc = require("@root/operations/restoreDoc")
 local setFields = require("@root/graph/setFields")
+local setPullRequest = require("@root/graph/setPullRequest")
 local setRawValue = require("@root/operations/setRawValue")
 local types = require("@root/types")
 local ungroup = require("@root/graph/ungroup")
@@ -35,8 +37,17 @@ local function required<T>(value: T?, name: string): T
 	return value :: T
 end
 
+-- Sets fields with the CLI's rules. `pr` points a card at a pull request in its repository, or takes it off when empty.
 handlers.setFields = function(doc: Doc, operation: Operation)
-	setFields(doc, required(operation.id, "id"), required(operation.fields, "fields") :: any)
+	local id = required(operation.id, "id")
+	local fields = table.clone(required(operation.fields, "fields"))
+	local pr = fields.pr
+	fields.pr = nil
+	setFields(doc, id, fields :: any)
+
+	if pr ~= nil then
+		setPullRequest(doc, id, if pr == "" then nil else pr :: number)
+	end
 end
 
 handlers.place = function(doc: Doc, operation: Operation)
@@ -87,6 +98,11 @@ handlers.tidy = function(doc: Doc, operation: Operation)
 	markForTidy(doc, required(operation.id, "id"))
 end
 
+-- Closes out one card finished in the app, leaving the cards chained to it waiting.
+handlers.closeOut = function(doc: Doc, operation: Operation)
+	closeOut(doc, required(operation.id, "id"))
+end
+
 -- Closes out a finished card and its chain, and answers with each card closed and passed, with its hops from the card.
 answering.chainClose = function(doc: Doc, operation: Operation): json.Value
 	local result = closeChain(doc, required(operation.id, "id"))
@@ -122,6 +138,8 @@ local function addItem(doc: Doc, operation: Operation)
 		data = required(operation.data, "data"),
 	}
 
+	-- A card is added as it is, so one pasted from a card still waiting to be closed out doesn't wait too.
+	item.data.celebrate = nil
 	table.insert(doc.nodes, item)
 end
 
@@ -130,10 +148,14 @@ handlers.addNote = addItem
 handlers.addImage = addItem
 handlers.addGroup = addItem
 
--- Replaces an item's data with the data the app holds for it.
+-- Replaces a group's or image's data with the data the app holds for it. Cards change through setFields, so no client
+-- skips their field rules.
 handlers.setData = function(doc: Doc, operation: Operation)
 	local data = required(operation.data, "data")
-	getItem(doc, required(operation.id, "id")).data = data
+	local id = required(operation.id, "id")
+	local item = getItem(doc, id)
+	assert(item.type ~= "task", `"{id}" is a card; change its fields with setFields`)
+	item.data = data
 end
 
 -- Sets an item's stored size, or drops it when `clear` is set.

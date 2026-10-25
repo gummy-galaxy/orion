@@ -21,13 +21,6 @@ describe('patch work', () => {
     expect(next[2]).toBe(nodes[2])
   })
 
-  it('closes out cards it marks done, as a single edit does', () => {
-    const next = patchWork([card('a'), card('b', { status: 'done' })], new Set(['a', 'b']), { status: 'done' })
-
-    expect(dataOf(next, 'a').celebrate).toBe(false)
-    expect(dataOf(next, 'b').celebrate).toBeUndefined()
-  })
-
   it('sets and clears whose move it is', () => {
     const nodes = [card('a'), card('b', { who: 'ci' })]
 
