@@ -35,7 +35,7 @@ The index also journals writes ([#477](https://github.com/vocksel/orion/issues/4
 
 The server's watcher also watches the `nodes` and `links` folders, so files changed outside Orion, such as by a `git pull`, reach the app without a restart. Every read returns a fingerprint of the index's file hashes. When it changes without a new revision, the watcher announces the change with `reindexed` set, and the app reloads despite seeing its own revision.
 
-On a generated canvas of 5,000 cards, opening it and answering `orion next` took about 140 ms from the index against about 590 ms from every file, and about 350 ms when building the index from nothing. `lute run bench-index` in `cli/` measures it.
+On a generated canvas of 5,000 cards, opening it and answering `orion next` took about 140 ms from the index against about 590 ms from every file, and about 350 ms when building the index from nothing. `lute run bench-index` in `workspace/orion-cli/` measures it.
 
 ## Rolling backups
 
@@ -66,7 +66,7 @@ The data folder now lists canvases in `canvases.json`, which also records the ac
 - A move that stops partway picks up where it left off.
 - The move refuses while an older `orion server start` is still serving the folder.
 
-The migrations live in `cli/src/migrations/`, and that folder's README dates each one. They're removed at the 0.1.0 release, since nobody installing that release has an older folder. The [decisions](/development/decisions) explain why data moves on its own instead of by hand.
+The migrations live in `workspace/orion-cli/src/migrations/`, and that folder's README dates each one. They're removed at the 0.1.0 release, since nobody installing that release has an older folder. The [decisions](/development/decisions) explain why data moves on its own instead of by hand.
 
 ## Refs and document version 2
 
@@ -80,7 +80,7 @@ Undo doesn't restore a copy of the old document. It merges the step's inverse on
 
 ## Edits as operations
 
-Each canvas edit is becoming one operation with an inverse ([charter](/development/charter), principle 8). [Part one](https://github.com/vocksel/orion/pull/343) is in review. It adds `cli/src/operations/`, where a list of operations applies in order under the lock. If one no longer applies, the earlier ones are undone and the whole list is refused, with the failing position named. Each operation returns the nodes and links it changed as they were before, so applying those inverses in reverse restores the document exactly. Nothing stores those inverses yet. Storing them is the next step.
+Each canvas edit is becoming one operation with an inverse ([charter](/development/charter), principle 8). [Part one](https://github.com/vocksel/orion/pull/343) is in review. It adds `workspace/orion-cli/src/operations/`, where a list of operations applies in order under the lock. If one no longer applies, the earlier ones are undone and the whole list is refused, with the failing position named. Each operation returns the nodes and links it changed as they were before, so applying those inverses in reverse restores the document exactly. Nothing stores those inverses yet. Storing them is the next step.
 
 The operations go out through `POST /api/operations`. A list lands as one revision. An optional base revision must still match, and a refused list or a stale base leaves the file's bytes alone.
 

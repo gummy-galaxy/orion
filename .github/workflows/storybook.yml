@@ -9,14 +9,14 @@ name: Storybook
 on:
   pull_request:
     paths: &paths
-      - app/**
-      - "!app/**/*.md"
-      - "!app/**/*.test.ts"
-      - "!app/**/*.test.tsx"
-      - "!app/**/*.bench.ts"
-      - "!app/scripts/**"
-      - cli/.lute/storybook-comment.luau
-      - cli/src/storybook/**
+      - workspace/orion-app/**
+      - "!workspace/orion-app/**/*.md"
+      - "!workspace/orion-app/**/*.test.ts"
+      - "!workspace/orion-app/**/*.test.tsx"
+      - "!workspace/orion-app/**/*.bench.ts"
+      - "!workspace/orion-app/scripts/**"
+      - .lute/storybook-comment.luau
+      - workspace/orion-cli/src/storybook/**
       - rokit.toml
       - .github/workflows/storybook.yml
   push:
@@ -63,16 +63,16 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: workspace/orion-app/package-lock.json
 
       - name: Install Dependencies
         if: steps.token.outputs.enabled == 'true'
-        working-directory: app
+        working-directory: workspace/orion-app
         run: npm ci
 
       - name: Build Storybook
         if: steps.token.outputs.enabled == 'true'
-        working-directory: app
+        working-directory: workspace/orion-app
         run: npm run build-storybook
 
       - name: Install Luau Tools with Rokit
@@ -94,14 +94,13 @@ jobs:
           CHROMATIC_SLUG: ${{ github.repository }}
         with:
           # The action changes into workingDir before it reads package.json or resolves the build directory.
-          workingDir: app
+          workingDir: workspace/orion-app
           storybookBuildDir: storybook-static
           # Exit once the build is uploaded so the job never waits on UI Tests or UI Review.
           exitOnceUploaded: true
 
       - name: Comment on the Pull Request
         if: ${{ steps.token.outputs.enabled == 'true' && github.event_name == 'pull_request' && steps.chromatic.outputs.storybookUrl != '' }}
-        working-directory: cli
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
