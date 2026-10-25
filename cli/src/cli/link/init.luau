@@ -1,7 +1,7 @@
 local cli = require("@batteries/cli")
 
-local add = require("@root/cli/link/add")
 local context = require("@root/cli/context")
+local create = require("@root/cli/link/create")
 local defineSubcommands = require("@root/cli/defineSubcommands")
 local insert = require("@root/cli/link/insert")
 local remove = require("@root/cli/link/remove")
@@ -11,7 +11,7 @@ type Context = context.Context
 type Command = context.Command
 
 local COMMANDS: { [string]: Command } = {
-	add = add,
+	create = create,
 	remove = remove,
 	insert = insert,
 }
@@ -19,7 +19,7 @@ local COMMANDS: { [string]: Command } = {
 return table.freeze({
 	help = "Dependencies between items",
 	define = function(parser: cli.Parser)
-		defineSubcommands(parser, COMMANDS, { "add", "remove", "insert" })
+		defineSubcommands(parser, COMMANDS, { "create", "remove", "insert" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)

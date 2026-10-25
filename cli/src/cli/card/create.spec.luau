@@ -3,9 +3,9 @@ local test = require("@std/test")
 local loadDoc = require("@root/store/loadDoc")
 local testing = require("@root/testing")
 
-test.case("card add with --after links the card and puts it beside its neighbor, in its group", function(assert)
+test.case("card create with --after links the card and puts it beside its neighbor, in its group", function(assert)
 	local dir, run = testing.createHarness("card-add-after")
-	run({ "card", "add", "Announce", "it", "--after", "pub" })
+	run({ "card", "create", "Announce", "it", "--after", "pub" })
 	local doc = loadDoc(dir)
 	local pub = doc.nodes[3]
 	local added = doc.nodes[#doc.nodes]
@@ -17,9 +17,9 @@ test.case("card add with --after links the card and puts it beside its neighbor,
 	assert.eq(doc.links[#doc.links].to, added.id)
 end)
 
-test.case("card add with --after and --before splits their link", function(assert)
+test.case("card create with --after and --before splits their link", function(assert)
 	local dir, run = testing.createHarness("card-add-between")
-	run({ "card", "add", "Check", "--after", "ci", "--before", "pub" })
+	run({ "card", "create", "Check", "--after", "ci", "--before", "pub" })
 	local doc = loadDoc(dir)
 	assert.eq(#doc.links, 2)
 	assert.eq(doc.links[1].from == "ci" or doc.links[2].from == "ci", true)

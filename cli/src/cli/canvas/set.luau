@@ -15,7 +15,7 @@ return table.freeze({
 		parser:add(
 			"cover",
 			"option",
-			{ help = "Image asset id for the cover, from orion media insert --json (empty to clear)" }
+			{ help = "Image asset id for the cover, from orion media add --json (empty to clear)" }
 		)
 		parser:add(
 			"background",

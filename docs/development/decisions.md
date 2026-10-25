@@ -318,7 +318,7 @@ Orion's public surfaces are its CLI commands and flags, MCP tools, `--json` shap
 
 ### CLI commands are a noun, then a verb
 
-Commands name the thing they act on first, then the action: `orion node remove`, `orion group remove`, `orion link add`. Each noun has its own subcommands, help, and options, so no flag changes meaning by what it targets. Flat verbs such as `orion remove` and `orion ungroup` go away. Each kind of node has its own noun for creating it, such as `orion card add` and `orion note add`, since their inputs differ, and `orion node` covers what applies to any node. `orion canvas` replaces `orion workspace`, following the charter's vocabulary. Two reads stay top level because agents run them before almost everything else: `orion focus`, and `orion next`, which lists the work that can start now, most unblocking first.
+Commands name the thing they act on first, then the action: `orion node remove`, `orion group remove`, `orion link create`. Each noun has its own subcommands, help, and options, so no flag changes meaning by what it targets. Flat verbs such as `orion remove` and `orion ungroup` go away. Each kind of node has its own noun for creating it, such as `orion card create` and `orion note create`, since their inputs differ, and `orion node` covers what applies to any node. `orion canvas` replaces `orion workspace`, following the charter's vocabulary. Two reads stay top level because agents run them before almost everything else: `orion focus`, and `orion next`, which lists the work that can start now, most unblocking first.
 
 **Why:** flat verbs grew one feature at a time and overload options across items, groups, and sources. Grouping by noun makes the surface learnable from `--help` and gives each new kind of thing an obvious home.
 
@@ -326,7 +326,7 @@ Commands name the thing they act on first, then the action: `orion node remove`,
 
 ### MCP tools come from the CLI's commands
 
-Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`, such as `orion_card_add`, with a field for each option in camelCase. Top-level commands keep one word, such as `orion_next`. A command declares its tool where it's defined: its annotations, the options the tool leaves out and why, or why MCP leaves the command out. An option's value type, such as an enum or an integer, sits on the line that defines it, and the input schema comes from it. A tool's description is the command's help unless the command gives an agent-facing one, which stays rare.
+Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`, such as `orion_card_create`, with a field for each option in camelCase. Top-level commands keep one word, such as `orion_next`. A command declares its tool where it's defined: its annotations, the options the tool leaves out and why, or why MCP leaves the command out. An option's value type, such as an enum or an integer, sits on the line that defines it, and the input schema comes from it. A tool's description is the command's help unless the command gives an agent-facing one, which stays rare.
 
 **Why:** agents learn one vocabulary, and a new command or option can't leave MCP behind. A tool that switches between commands, as `orion_inspect` did, can't say which arguments go with which.
 

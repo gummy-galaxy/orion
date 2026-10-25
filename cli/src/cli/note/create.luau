@@ -33,11 +33,11 @@ return table.freeze({
 		local text = joinWords(parser:variadics(), "<text>")
 
 		local added: Item
-		local doc = runTransaction(options.dir, function(doc)
-			added = addNote(doc, text, {
-				group = resolveOptionalId(doc, parser:get("group")),
-				after = resolveOptionalId(doc, parser:get("after")),
-				before = resolveOptionalId(doc, parser:get("before")),
+		local doc = runTransaction(options.dir, function(current)
+			added = addNote(current, text, {
+				group = resolveOptionalId(current, parser:get("group")),
+				after = resolveOptionalId(current, parser:get("after")),
+				before = resolveOptionalId(current, parser:get("before")),
 			})
 		end)
 

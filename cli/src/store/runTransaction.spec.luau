@@ -127,7 +127,7 @@ test.case("concurrent CLI writers never lose a change", function(assert)
 	-- Each writer adds its cards one at a time while the others do the same.
 	local script = [[
 for writer in $(seq 1 "$3"); do
-	(for write in $(seq 1 "$4"); do output=$("$1" run "$2" card add "card-$writer-$write" --canvas default 2>&1) || { echo "$output" >&2; exit 1; }; done) &
+	(for write in $(seq 1 "$4"); do output=$("$1" run "$2" card create "card-$writer-$write" --canvas default 2>&1) || { echo "$output" >&2; exit 1; }; done) &
 done
 failed=0
 for job in $(jobs -p); do wait "$job" || failed=1; done

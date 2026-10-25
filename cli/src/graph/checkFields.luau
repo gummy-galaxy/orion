@@ -38,7 +38,7 @@ local function checkFields(fields: ItemFields)
 	)
 	assert(
 		fields.cover == nil or fields.cover == "" or isAssetId(fields.cover),
-		"cover must be an image asset id, such as the asset from orion media insert"
+		"cover must be an image asset id, such as the asset from orion media add"
 	)
 
 	if fields.background and fields.background ~= "" then

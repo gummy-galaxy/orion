@@ -46,12 +46,12 @@ return table.freeze({
 		local groupInput = parser:get("group")
 
 		local added: Item
-		local doc = runTransaction(options.dir, function(doc)
-			fields.group = resolveOptionalId(doc, groupInput)
-			fields.after = resolveOptionalId(doc, parser:get("after"))
-			fields.before = resolveOptionalId(doc, parser:get("before"))
-			added = addItem(doc, label, fields)
-			attachRequestedRef(doc, added.id, parser:get("ref"))
+		local doc = runTransaction(options.dir, function(current)
+			fields.group = resolveOptionalId(current, groupInput)
+			fields.after = resolveOptionalId(current, parser:get("after"))
+			fields.before = resolveOptionalId(current, parser:get("before"))
+			added = addItem(current, label, fields)
+			attachRequestedRef(current, added.id, parser:get("ref"))
 		end)
 
 		writeItem(options, doc, added, "Added")
