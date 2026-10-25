@@ -30,3 +30,57 @@ test.case("ingest dry run reports changes without writing", function(assert)
 	assert.eq(loadDoc(dir).revision, 1)
 	assert.eq(#loadDoc(dir).nodes, 2)
 end)
+
+test.case("ingest follows a moved repository instead of adding its pull requests again", function(assert)
+	local dir = testing.directory("ingest-renamed-repo")
+	local doc = testing.createDoc({
+		testing.task(
+			"tracked",
+			"Tracked",
+			"active",
+			nil,
+			json.object({
+				repo = "vocksel/orion",
+				refs = {
+					json.object({
+						source = "github",
+						kind = "pull",
+						key = "vocksel/orion#12",
+						url = "https://github.com/vocksel/orion/pull/12",
+						status = "merged",
+					}),
+				},
+			})
+		),
+	})
+	doc.settings.sources = { { id = "github", kind = "github", host = "github.com", owners = { "gummy-galaxy" } } }
+	writeDoc(dir, doc)
+
+	local function runner(argv: { string })
+		local query = argv[#argv]
+
+		if query:find("nameWithOwner", 1, true) then
+			return testing.result(true, '{"data":{"r1":{"nameWithOwner":"gummy-galaxy/orion"}}}')
+		elseif query:find("viewer { login }", 1, true) then
+			return testing.result(true, '{"data":{"viewer":{"login":"me"}}}')
+		elseif query:find("is:open is:pr", 1, true) then
+			return testing.result(
+				true,
+				'{"data":{"search":{"nodes":[{"number":12,"title":"Fix","url":"https://github.com/gummy-galaxy/orion/pull/12","state":"OPEN","headRefName":"fix","author":{"login":"me"},"repository":{"name":"orion","owner":{"login":"gummy-galaxy"}}}],"pageInfo":{"hasNextPage":false}}}}'
+			)
+		end
+
+		return testing.result(true, '{"data":{"search":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}')
+	end
+
+	local output = testing.run(dir, { "ingest" }, runner, NOW)
+
+	assert.strContains(output, "vocksel/orion moved to gummy-galaxy/orion")
+	local nodes = loadDoc(dir).nodes
+	assert.eq(#nodes, 1)
+	assert.eq(nodes[1].data.repo, "gummy-galaxy/orion")
+	local refs = json.asArray(nodes[1].data.refs) or {}
+	assert.eq(#refs, 1)
+	local first = json.asObject(refs[1])
+	assert.eq(if first then first.key else nil, "gummy-galaxy/orion#12")
+end)

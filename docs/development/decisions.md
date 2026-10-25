@@ -509,6 +509,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 2026-10-18 · [#366](https://github.com/vocksel/orion/issues/366)
 
+### Ingest follows a moved repository
+
+Before it matches anything, `orion ingest` asks GitHub where each repository the canvas names lives now, in one aliased query per 25 repositories. When GitHub answers under another owner or name, ingest rewrites every pull request, issue, and branch ref, card repository, and CI snooze to the new name, and reports the move. Refs keep their readable `owner/name#n` keys rather than a repository ID. The background refresh doesn't look for moves. Until the next ingest it refreshes cards under their old names, which GitHub follows, and adds no cards of its own.
+
+**Why:** GitHub follows a renamed or transferred repository when it's asked for by its old name, but search and pull request lists return only the new name. Without the move, every pull request in a moved repository comes back as new work in Unsorted, and branch refs stop matching new pull requests. Rewriting on the fly handles any repository with no setup, where an alias someone sets by hand only helps once they know a repository moved. Keying refs by a repository ID would make renames free, but it changes how every ref is identified for a case that comes up rarely.
+
+2026-10-25 · [#538](https://github.com/vocksel/orion/issues/538)
+
 ### Cards in view refresh sooner
 
 The background refresh sweeps `updatedAt` every 30 seconds, instead of every two minutes, for one set of cards that refresh sooner. The cards in view feed it: the open group and everything inside it, or the selection when no group is open, plus the cards one link away that block them. The server reads them from the focus report the app already sends. Watched cards ([#232](https://github.com/vocksel/orion/issues/232)) join the same set rather than adding a cadence of their own. Pending checks stay at 30 seconds and the full pass at 15 minutes for every card.

@@ -23,7 +23,13 @@ local function getReportJson(report: Report): json.Object
 		table.insert(refreshes, entry)
 	end
 
-	return json.object({ sources = entries, refreshes = refreshes })
+	local renames: json.Array = {}
+
+	for _, rename in report.renames or {} do
+		table.insert(renames, json.object({ from = rename.from, to = rename.to }))
+	end
+
+	return json.object({ sources = entries, refreshes = refreshes, renames = renames })
 end
 
 return getReportJson

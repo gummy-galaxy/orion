@@ -1,4 +1,5 @@
 local adapterTypes = require("@root/adapters/types")
+local applyRenames = require("@root/github/applyRenames")
 local githubTypes = require("@root/github/types")
 local types = require("@root/types")
 
@@ -8,7 +9,7 @@ type Source = types.Source
 export type SourceReport = { id: string, added: number, updated: number, linked: number, failed: string? }
 -- What one adapter's refresh of the cards already on the canvas changed, or why it failed.
 export type RefreshReport = { kind: string, report: githubTypes.Report?, failed: string? }
-export type Report = { sources: { SourceReport }, refreshes: { RefreshReport }? }
+export type Report = { sources: { SourceReport }, refreshes: { RefreshReport }?, renames: { applyRenames.Rename }? }
 export type Result = { source: Source, report: SourceReport, records: { Record }?, order: number? }
 
 return {}

@@ -18,4 +18,6 @@ A source's command lives in this machine's `commands.json`, never in the canvas'
 
 Run `orion ingest --dry-run` before `orion ingest`. Ingestion files new cards in Unsorted, updates existing cards in place, and leaves cards that are no longer returned alone. Place cards into outcome groups after reviewing them.
 
+When a GitHub repository is renamed or transferred, `orion ingest` moves the canvas's refs, card repositories, and CI snoozes to the new name before matching, and its report lists each move. A GitHub source that lists owners still needs the new owner added to see the repository's new work.
+
 Cards keep pull requests, issues, and local branches in `data.refs`. Each ref records its source, kind, key, URL, status, completion state, update time, and source-specific details. A ref's kind and case-insensitive key identify it across ingests. The source's adapter reads its details into source-neutral facts on the ref, such as `stateLabel`, `readiness`, and `checks`, and the app shows those rather than reading the details.
