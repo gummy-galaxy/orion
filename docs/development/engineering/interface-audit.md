@@ -21,6 +21,7 @@ Most of the changes below have landed. The lists still describe `main` as it was
 - [#531](https://github.com/vocksel/orion/pull/531) makes `--json` output consistent across commands, which settles [#470](https://github.com/vocksel/orion/issues/470).
 - [#530](https://github.com/vocksel/orion/pull/530) runs `suggestion find` through a command and refuses version 1 data, which settles [#471](https://github.com/vocksel/orion/issues/471).
 - [#552](https://github.com/vocksel/orion/pull/552) drops `command` from `orion_suggestion_find`, and the tool catalog now refuses any tool that takes a program to run.
+- [#583](https://github.com/vocksel/orion/pull/583) reads `ci snooze --until` through `time/parseUntil`, local unless it gives an offset, which settles [#580](https://github.com/vocksel/orion/issues/580).
 
 These calls were settled after the snapshot, each in the [decisions](/development/decisions). Where the lists below disagree, the decisions win.
 
