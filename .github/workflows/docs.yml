@@ -18,6 +18,12 @@ on:
 permissions:
   contents: read
 
+env:
+  # A pull request's preview keeps one alias across its pushes, so its address stays the same.
+  PREVIEW_ALIAS: pr-${{ github.event.pull_request.number }}
+  # The Cloudflare account's workers.dev subdomain, which every preview address sits under.
+  WORKERS_DEV_SUBDOMAIN: jolly-shadow-87e2
+
 # A newer push to a pull request replaces its pending run. Each push to main gets its own group, so a later merge never cancels it.
 concurrency:
   group: docs-${{ github.event.pull_request.number || github.run_id }}
@@ -29,7 +35,8 @@ jobs:
     timeout-minutes: 5
     environment:
       name: ${{ github.event_name == 'pull_request' && 'Docs Preview' || 'Docs' }}
-      url: ${{ github.event_name == 'pull_request' && steps.deploy.outputs.deployment-url || 'https://oriongraph.app' }}
+      # Empty for a pull request whose upload skipped, so it never links an address that wasn't deployed.
+      url: ${{ github.event_name != 'pull_request' && 'https://oriongraph.app' || (steps.deploy.outputs.deployment-url && format('https://{0}-orion.{1}.workers.dev', env.PREVIEW_ALIAS, env.WORKERS_DEV_SUBDOMAIN) || '') }}
     defaults:
       run:
         working-directory: docs
@@ -67,5 +74,5 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: 4.150.0
           workingDirectory: docs
-          # A pull request uploads a version without deploying it, under a preview alias that stays the same across its pushes.
-          command: ${{ github.event_name == 'pull_request' && format('versions upload --preview-alias pr-{0}', github.event.pull_request.number) || 'deploy' }}
+          # A pull request uploads a version without deploying it, under its preview alias.
+          command: ${{ github.event_name == 'pull_request' && format('versions upload --preview-alias {0}', env.PREVIEW_ALIAS) || 'deploy' }}
