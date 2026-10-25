@@ -11,7 +11,7 @@ local net = require("@std/net")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local runScript = require("@root/runScript")
+local runScript = require("@cli/runScript")
 
 local URL = "https://www.sqlite.org/2025/sqlite-tools-linux-x64-3500400.zip"
 local SHA256 = "2c61fe3f6bfcf4ab0cad6c4edf1fa1cae93bbb816b744bef52a4bdde5bf7bf38"

@@ -470,7 +470,7 @@ Orion installs to `/Applications/Orion.app` so every user on the machine gets it
 
 ### Packages live in `workspace/`, named `orion-*`
 
-The repository's packages sit together in `workspace/`: `orion-app` is the canvas in React, `orion-cli` is the `orion` CLI and its server, and `orion-desktop` is the Tauri shell that bundles the two. Each folder's name matches its package name. The top level keeps the docs, examples, and repository-wide config.
+The repository's packages sit together in `workspace/`: `orion-app` is the canvas in React, `orion-cli` is the `orion` CLI and its server, and `orion-desktop` is the Tauri shell that bundles the two. Each folder's name matches its package name. The top level keeps the docs, examples, and repository-wide config, including the Lute scripts in `.lute/`, which run from the repository root and find each package through `project.luau`.
 
 **Why:** "the app" already means the canvas a person works in, whether a browser or the desktop shell hosts it, so `orion-app` keeps that meaning and `orion-desktop` names the installable wrapper. This `workspace/` is the repository's folder of packages, not an Orion workspace of canvases.
 

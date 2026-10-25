@@ -1,13 +1,12 @@
 local fs = require("@std/fs")
 local path = require("@std/path")
-local project = require("@repo/project")
+local project = require("@repository/project")
 local system = require("@std/system")
 
-local run = require("@root/run")
-local runScript = require("@root/runScript")
+local run = require("@cli/run")
+local runScript = require("@cli/runScript")
 
-local workspaceDir = path.resolve("..")
-local binariesPath = path.join(workspaceDir, "orion-desktop", "binaries")
+local binariesPath = path.join(project.DESKTOP_PATH, "binaries")
 
 runScript(function()
 	local rustcVersion = assert(run("rustc", { "-vV" }, { captureOutput = true }), "rustc did not print its version")

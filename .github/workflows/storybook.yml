@@ -15,7 +15,7 @@ on:
       - "!workspace/orion-app/**/*.test.tsx"
       - "!workspace/orion-app/**/*.bench.ts"
       - "!workspace/orion-app/scripts/**"
-      - workspace/orion-cli/.lute/storybook-comment.luau
+      - .lute/storybook-comment.luau
       - workspace/orion-cli/src/storybook/**
       - rokit.toml
       - .github/workflows/storybook.yml
@@ -101,7 +101,6 @@ jobs:
 
       - name: Comment on the Pull Request
         if: ${{ steps.token.outputs.enabled == 'true' && github.event_name == 'pull_request' && steps.chromatic.outputs.storybookUrl != '' }}
-        working-directory: workspace/orion-cli
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}

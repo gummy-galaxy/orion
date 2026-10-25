@@ -1,13 +1,13 @@
 local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
-local project = require("@repo/project")
+local project = require("@repository/project")
 local system = require("@std/system")
 
-local run = require("@root/run")
-local runScript = require("@root/runScript")
+local run = require("@cli/run")
+local runScript = require("@cli/runScript")
 
-local BUILD_INFO_PATH = path.join("src", "buildInfo.luau")
+local BUILD_INFO_PATH = path.join(project.CLI_PATH, "src", "buildInfo.luau")
 -- The commit buildInfo.luau is checked in with. Builds stamp their own commit and then put this back.
 local CHECKED_IN_COMMIT = "dev"
 
@@ -67,7 +67,7 @@ runScript(function()
 			outputPath,
 			"--bundle-stats",
 			"--show-require-graph",
-		})
+		}, { cwd = project.CLI_PATH })
 	end)
 
 	fs.writeStringToFile(BUILD_INFO_PATH, checkedIn)

@@ -8,9 +8,9 @@ local json = require("@std/json")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local command = require("@root/command")
-local runScript = require("@root/runScript")
-local upsertComment = require("@root/github/upsertComment")
+local command = require("@cli/command")
+local runScript = require("@cli/runScript")
+local upsertComment = require("@cli/github/upsertComment")
 
 type Metric = { total: number, covered: number, pct: number }
 
@@ -18,7 +18,7 @@ local MARKER = "<!-- orion-coverage -->"
 local METRICS = { "statements", "branches", "functions", "lines" }
 
 local env = process.env
-local summaryPath = path.resolve("../orion-app/coverage/coverage-summary.json")
+local summaryPath = path.resolve("workspace/orion-app/coverage/coverage-summary.json")
 local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 local pullRequest = assert(env.PR, "PR is not set")
 

@@ -9,14 +9,14 @@ local net = require("@std/net")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local getPerfEvents = require("@root/perf/getPerfEvents")
-local runScript = require("@root/runScript")
+local getPerfEvents = require("@cli/perf/getPerfEvents")
+local runScript = require("@cli/runScript")
 
 local DEFAULT_HOST = "https://us.i.posthog.com"
 local DISTINCT_ID = "orion-ci"
 
 local env = process.env
-local rawPath = path.resolve("../orion-app/.perf/raw.json")
+local rawPath = path.resolve("workspace/orion-app/.perf/raw.json")
 
 local function warn(message: string)
 	print(`::warning title=Perf history::{message}`)

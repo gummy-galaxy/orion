@@ -6,12 +6,13 @@
 ]]
 local fs = require("@std/fs")
 local json = require("@std/json")
-local loomConfig = require("@repo/loom.config")
+local loomConfig = require("@cliPackage/loom.config")
 local net = require("@std/net")
+local orionProject = require("@repository/project")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local runScript = require("@root/runScript")
+local runScript = require("@cli/runScript")
 
 type Project = {
 	name: string,
@@ -31,9 +32,8 @@ type Section = {
 	projects: { Project },
 }
 
-local workspaceDir = path.resolve("..")
-local dist = path.join(workspaceDir, "orion-app", "dist")
-local shell = path.join(workspaceDir, "orion-desktop")
+local dist = path.join(orionProject.APP_PATH, "dist")
+local shell = orionProject.DESKTOP_PATH
 local store = path.join(process.homedir(), ".loom", "store")
 
 local LICENSE_FILE_PREFIXES = { "license", "licence", "copying", "unlicense" }

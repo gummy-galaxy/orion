@@ -8,12 +8,12 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local command = require("@root/command")
-local findTouchedStories = require("@root/storybook/findTouchedStories")
-local formatStorybookComment = require("@root/storybook/formatStorybookComment")
-local parseStoryIndex = require("@root/storybook/parseStoryIndex")
-local runScript = require("@root/runScript")
-local upsertComment = require("@root/github/upsertComment")
+local command = require("@cli/command")
+local findTouchedStories = require("@cli/storybook/findTouchedStories")
+local formatStorybookComment = require("@cli/storybook/formatStorybookComment")
+local parseStoryIndex = require("@cli/storybook/parseStoryIndex")
+local runScript = require("@cli/runScript")
+local upsertComment = require("@cli/github/upsertComment")
 
 local MARKER = "<!-- orion-storybook -->"
 local STORYBOOK_ROOT = "workspace/orion-app"
@@ -22,11 +22,9 @@ local env = process.env
 local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 local pullRequest = assert(env.PR, "PR is not set")
 local storybookUrl = assert(env.STORYBOOK_URL, "STORYBOOK_URL is not set")
-local repositoryRoot = path.resolve("../..")
-
 -- Reads a file by its path from the repository root, or returns nil for a missing file or a folder.
 local function readFile(file: string): string?
-	local succeeded, contents = pcall(fs.readFileToString, path.join(repositoryRoot, file))
+	local succeeded, contents = pcall(fs.readFileToString, file)
 
 	return if succeeded then contents else nil
 end

@@ -10,25 +10,24 @@ Read [the charter](docs/development/charter.md) for where Orion is headed and [t
 
 ## CLI
 
-The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang/lute). From `workspace/orion-cli/`:
+The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang/lute). Scripts in `.lute/` run from the repository root, and `lute pkg install` and `lute test` run from `workspace/orion-cli/`:
 
 ```sh
 rokit install
-lute pkg install
+(cd workspace/orion-cli && lute pkg install)
 lute run build
 ```
 
 That writes `workspace/orion-cli/build/orion`. `lute pkg install` fills `~/.loom/store`, which the build reads in place, and Lute can only bundle it from a checkout under your home directory.
 
-Before committing CLI changes, run these from `workspace/orion-cli/`:
+Before committing CLI changes, run these:
 
 ```sh
 lute run analyze
-lute test
-stylua src cli.luau .lute project.luau loom.config.luau .config.luau ../.lute ../.config.luau
+(cd workspace/orion-cli && lute test)
 ```
 
-To see how well a module's spec pins down its behavior, run `lute run mutate src/<module>.luau`. It makes one small change at a time, runs the module's sibling spec against each, and lists the changes the spec didn't catch. Pass `--spec <path>` when the tests live elsewhere. Some survivors make no real difference, so read each one before writing a test for it.
+To see how well a module's spec pins down its behavior, run `lute run mutate workspace/orion-cli/src/<module>.luau`. It makes one small change at a time, runs the module's sibling spec against each, and lists the changes the spec didn't catch. Pass `--spec <path>` when the tests live elsewhere. Some survivors make no real difference, so read each one before writing a test for it.
 
 [`workspace/orion-cli/README.md`](workspace/orion-cli/README.md) maps the code.
 

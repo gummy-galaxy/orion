@@ -71,6 +71,7 @@ jobs:
 
       - name: Analyze
         run: lute run analyze
+        working-directory: .
 
   cli:
     needs: ci-loading
@@ -101,6 +102,7 @@ jobs:
       - name: Install SQLite
         if: runner.os == 'Linux'
         run: lute run install-sqlite
+        working-directory: .
 
       - name: Test
         run: lute test
@@ -111,12 +113,14 @@ jobs:
 
       - name: Build
         run: lute run build
+        working-directory: .
 
       - name: Smoke Test the Binary
         run: ./build/orion --help
 
       - name: Package
         run: lute run package
+        working-directory: .
 
       - name: Upload CLI
         # A full artifact storage quota shouldn't fail the build
@@ -165,7 +169,7 @@ jobs:
 
       - name: Publish Coverage
         if: github.event_name == 'pull_request'
-        working-directory: workspace/orion-cli
+        working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -289,7 +293,6 @@ jobs:
         run: npm ci
 
       - name: Check and Build
-        working-directory: workspace/orion-cli
         run: lute run desktop
 
       - name: Upload Desktop Installer

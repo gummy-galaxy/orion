@@ -1,14 +1,14 @@
 --[[
-	Zips the built CLI for this platform, such as `build/orion-linux-x86_64.zip`, in the form Rokit and Foreman install
+	Zips the built CLI for this platform, such as `workspace/orion-cli/build/orion-linux-x86_64.zip`, in the form Rokit and Foreman install
 	from a GitHub release. The name carries the OS and architecture they match on, and the binary is the zip's only
 	entry, since Foreman extracts the first one. Zipping also keeps the executable bit, which artifact uploads drop.
 ]]
 local path = require("@std/path")
 local process = require("@std/process")
-local project = require("@repo/project")
+local project = require("@repository/project")
 local system = require("@std/system")
 
-local runScript = require("@root/runScript")
+local runScript = require("@cli/runScript")
 
 local binaryName = if system.win32 then "orion.exe" else "orion"
 local platformName = if system.win32 then "windows" elseif system.macos then "macos" else "linux"

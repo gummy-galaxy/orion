@@ -11,14 +11,14 @@ local fs = require("@std/fs")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local command = require("@root/command")
-local runScript = require("@root/runScript")
-local upsertComment = require("@root/github/upsertComment")
+local command = require("@cli/command")
+local runScript = require("@cli/runScript")
+local upsertComment = require("@cli/github/upsertComment")
 
 local MARKER = "<!-- orion-perf -->"
 
 local env = process.env
-local reportDir = path.resolve("../orion-app/.perf")
+local reportDir = path.resolve("workspace/orion-app/.perf")
 local reportPath = path.join(reportDir, "report.md")
 local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 

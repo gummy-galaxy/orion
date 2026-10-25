@@ -87,7 +87,7 @@ jobs:
 
       - name: Publish Report
         if: always() && job.status != 'cancelled' && !(github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository)
-        working-directory: workspace/orion-cli
+        working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -111,7 +111,7 @@ jobs:
       - name: Record Perf History
         if: success()
         continue-on-error: true
-        working-directory: workspace/orion-cli
+        working-directory: .
         env:
           POSTHOG_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
