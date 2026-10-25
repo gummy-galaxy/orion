@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local getRefs = require("@root/refs/getRefs")
+local isSameRef = require("@root/refs/isSameRef")
 local types = require("@root/types")
 
 type Item = types.Item
@@ -12,7 +13,7 @@ local function setRef(item: Item, ref: Ref): Ref
 	local found = false
 
 	for index, existing in refs do
-		if existing.kind == ref.kind and existing.key:lower() == ref.key:lower() then
+		if isSameRef(existing, ref) then
 			local merged = json.object(existing :: any)
 
 			for field, value in ref :: any do

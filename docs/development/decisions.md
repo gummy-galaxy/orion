@@ -501,6 +501,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 2026-10-12, 2026-10-18 · [#55](https://github.com/vocksel/orion/issues/55), [#469](https://github.com/vocksel/orion/issues/469)
 
+### Refs are identified by their source's stable ID
+
+A ref carries the readable key people type and see, such as `owner/name#12`, and an `id` from its source that survives a rename or move. Two refs of one kind are the same when their IDs match, or when their keys match and either has no ID yet. Anything that takes a ref or a repository by name keeps accepting the name and resolves it to the ID. A ref with no ID, from older data or added offline, gets one the next time its source is read.
+
+**Why:** a key names where work lives, and that changes when a repository is renamed or transferred. Matching by key then treats tracked work as new. Keeping names as input means nobody has to know an ID to use Orion.
+
+2026-10-25 · [#625](https://github.com/vocksel/orion/issues/625), [#538](https://github.com/vocksel/orion/issues/538)
+
 ### The background refresh fetches what changed
 
 `orion server start` fetches every open pull request card in full only at startup, on a canvas switch, when you ask, and every 15 minutes. In between, it polls GitHub notifications as often as GitHub allows, 60 seconds today, and refetches the pull requests they name. Every two minutes it also sweeps the open cards' `updatedAt` and refetches only the ones that moved. Cards with pending checks are refetched every 30 seconds. What the loop remembers between polls lives in memory, and a pass that finds nothing writes nothing.

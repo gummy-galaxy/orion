@@ -65,7 +65,10 @@ export type TaskData = {
 export type SourceRef = {
   source: string
   kind: string
+  /** The readable name for the ref, such as `owner/name#12`, which can change when what it names moves. */
   key: string
+  /** The source's stable identity for the ref, which survives a rename or move. A ref has none until its source is read. */
+  id?: string
   url?: string
   status?: string
   isDone?: boolean

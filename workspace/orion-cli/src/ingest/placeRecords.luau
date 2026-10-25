@@ -3,6 +3,7 @@ local json = require("@std/json")
 local addItem = require("@root/graph/addItem")
 local findItem = require("@root/graph/findItem")
 local findRef = require("@root/refs/findRef")
+local findSameRef = require("@root/refs/findSameRef")
 local getItem = require("@root/graph/getItem")
 local getNextSlot = require("@root/graph/getNextSlot")
 local ingestTypes = require("@root/ingest/types")
@@ -63,7 +64,7 @@ local function placeRecords(doc: Doc, results: { Result }): Report
 
 			if not existing then
 				for _, item in doc.nodes do
-					if item.type == "task" and findRef(item, record.ref.kind, record.ref.key) then
+					if item.type == "task" and findSameRef(item, record.ref) then
 						existing = item
 						break
 					end

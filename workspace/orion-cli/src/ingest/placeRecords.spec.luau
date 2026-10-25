@@ -81,3 +81,22 @@ test.case("placeRecords uses fallback, skips missing update-only, and computes s
 	assert.eq(existing.data.who, "review")
 	assert.eq(existing.data.itemKind, "pr")
 end)
+
+test.case("placeRecords updates the card whose ref has the record's id, under the record's new key", function(assert)
+	local doc = testing.createDoc({})
+	local record: Record = {
+		ref = { source = "example", kind = "pull", key = "vocksel/orion#12", id = "R_1#12" },
+		label = "Fix",
+		itemKind = "pr",
+	}
+	placeRecords(doc, { result({ record }) })
+
+	record.ref = { source = "example", kind = "pull", key = "gummy-galaxy/orion#12", id = "R_1#12" }
+	local second = placeRecords(doc, { result({ record }) })
+
+	assert.eq(second.sources[1].added, 0)
+	assert.eq(second.sources[1].updated, 1)
+	assert.eq(#doc.nodes, 2)
+	assert.eq(findRef(doc.nodes[2], "pull", "gummy-galaxy/orion#12") ~= nil, true)
+	assert.eq(findRef(doc.nodes[2], "pull", "vocksel/orion#12"), nil)
+end)
