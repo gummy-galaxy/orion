@@ -608,3 +608,21 @@ The docs site lives at the bare `oriongraph.app`, served from the root path, by 
 **Why:** the domain stays the same when the repository changes owners, while a GitHub Pages address would change with it. Cloudflare deploys while the repository is private, which GitHub Pages can't, and it sits beside the domain's DNS in Cloudflare. Deploying from CI rather than Cloudflare's own builds keeps every build in one place.
 
 2026-10-25 · [#327](https://github.com/vocksel/orion/pull/327) · [#575](https://github.com/vocksel/orion/issues/575)
+
+## Releases
+
+### Changes arrive with entries, and release notes are built from them
+
+Each change people will notice lands with an entry in `.changes/`, and Changewrite builds the release notes and changelog from those entries when a release is cut. A pull request that touches the CLI, the app, or the desktop app adds one. Each entry's category is one of six surfaces: Canvas, Cards, Agents (the CLI and MCP), Sources, Desktop app, and Under the hood for internal work.
+
+**Why:** an entry written with its change is the cheapest accurate record of it, and the category decides where it lands in the notes, so each surface gets a section that people can find.
+
+2026-10-25 · [Ship changelogs and release notes with 0.1.0](https://github.com/vocksel/orion/issues/633)
+
+### Release notes lead with highlights, then breaking changes, then each surface
+
+Notes open with a TL;DR and highlights, then a callout for breaking changes, then one section per surface, with Under the hood collapsed at the end. Each bullet starts with a chip for its kind (NEW, IMPROVED, FIXED, or BREAKING) and ends with a link to its pull request. A chip is a tinted pill with a solid dot and a plain capital word, in a light and a dark version.
+
+**Why:** a reader who skims should learn what changed first, and breaking changes shouldn't be buried in a surface's list. GitHub shows the notes in both themes, so each chip needs a pair that reads in either one.
+
+2026-10-25 · [Ship changelogs and release notes with 0.1.0](https://github.com/vocksel/orion/issues/633)

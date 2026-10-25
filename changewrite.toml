@@ -1,0 +1,13 @@
+categories = ["Canvas", "Cards", "Agents", "Sources", "Desktop app", "Under the hood"]
+
+[version]
+current = "0.1.0"
+# Changewrite looks up its default patterns by the path as written, so these mirrors in
+# subfolders each need their own pattern. Each one matches the first version field in its file.
+mirror = [
+  { file = "workspace/orion-app/package.json", pattern = "[\"']version[\"']%s*:%s*[\"']([^\"']+)[\"']" },
+  { file = "workspace/orion-cli/loom.config.luau", pattern = "version%s*=%s*[\"']([^\"']+)[\"']" },
+  { file = "workspace/orion-desktop/Cargo.toml", pattern = "version%s*=%s*[\"']([^\"']+)[\"']" },
+  { file = "workspace/orion-desktop/package.json", pattern = "[\"']version[\"']%s*:%s*[\"']([^\"']+)[\"']" },
+  { file = "workspace/orion-desktop/tauri.conf.json", pattern = "\"version\"%s*:%s*\"([^\"]+)\"" },
+]
