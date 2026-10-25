@@ -1,3 +1,6 @@
+local formatList = require("@root/render/formatList")
+local querySyntax = require("@root/query/querySyntax")
+
 export type Expression = {
 	kind: string,
 	field: string?,
@@ -5,20 +8,6 @@ export type Expression = {
 	value: string?,
 	left: Expression?,
 	right: Expression?,
-}
-
-local FIELDS = {
-	kind = true,
-	repo = true,
-	status = true,
-	recordedStatus = true,
-	group = true,
-	draft = true,
-	label = true,
-	note = true,
-	pr = true,
-	ref = true,
-	snoozed = true,
 }
 
 local function parseExpression(input: string): Expression
@@ -97,11 +86,13 @@ local function parseExpression(input: string): Expression
 			return expression
 		end
 
-		local field = readWord()
-		if not field then
+		local word = readWord()
+		if not word then
 			fail("expected a field or '('")
 		end
-		if not FIELDS[field] then
+		local field = word :: string
+		local definition = querySyntax.fieldsByName[field]
+		if not definition then
 			fail(`unknown field '{field}'`)
 		end
 		skipSpace()
@@ -115,12 +106,13 @@ local function parseExpression(input: string): Expression
 			end
 			cursor += 1
 		end
-		if operator == "~" and field ~= "label" and field ~= "note" and field ~= "ref" then
-			fail("'~' is only supported for label, note, and ref")
+		if operator == "~" and not definition.isText then
+			fail(`'~' is only supported for {formatList(querySyntax.textFieldNames)}`)
 		end
 		local value = readValue()
-		if field == "draft" and value ~= "true" and value ~= "false" then
-			fail("draft must be 'true' or 'false'")
+		local values = definition.values
+		if values and not table.find(values, value) then
+			fail(`{field} must be {formatList(values, "or", "'")}`)
 		end
 		return { kind = "comparison", field = field, operator = operator, value = value }
 	end

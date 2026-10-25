@@ -3,14 +3,12 @@ local getLabel = require("@root/graph/getLabel")
 local matchesExpression = require("@root/query/matchesExpression")
 local parseExpression = require("@root/query/parseExpression")
 local resolveRef = require("@root/adapters/resolveRef")
+local selectors = require("@root/query/selectors")
 local types = require("@root/types")
 
 type Doc = types.Doc
 type Item = types.Item
 type Expression = parseExpression.Expression
-
--- The fields a selector can name, each matched the way --where matches it.
-local SELECTORS = { label = true, ref = true, pr = true }
 
 local function comparison(field: string, value: string): Expression
 	return { kind = "comparison", field = field, operator = "=", value = value }
@@ -54,7 +52,16 @@ local function resolveId(doc: Doc, input: string): string
 		return input
 	end
 
-	assert(SELECTORS[selector], `"{input}" uses an unknown selector; use label:"...", ref:..., or pr:...`)
+	if not selectors.byName[selector] then
+		local forms: { string } = {}
+
+		for _, known in selectors.list do
+			table.insert(forms, known.form)
+		end
+
+		error(`"{input}" uses an unknown selector; use {table.concat(forms, ", ")}`, 0)
+	end
+
 	local value = unquote(rest)
 	assert(value ~= "", `{selector}: needs a value`)
 
