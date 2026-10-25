@@ -41,7 +41,7 @@ test.case("sessions attach to the card on their branch with their state, and nev
 		end
 
 		return testing.result(true, "git@github.com:owner/repo.git\n")
-	end, { now = NOW, since = "2026-10-04", doc = doc })
+	end, { now = NOW, since = "2026-10-04", doc = doc, commands = {} })
 
 	assert.eq(#records, 1)
 	assert.eq(records[1].ref.key, `claude:{SESSION}`)
@@ -68,7 +68,7 @@ test.case("a session with no card on its branch is left for triage", function(as
 	local source: Source = { id = "claude", kind = "claude", dir = dir }
 	local records = collect(source, function(argv)
 		return testing.result(argv[1] == "kill", "")
-	end, { now = NOW, since = "2026-10-04", doc = doc })
+	end, { now = NOW, since = "2026-10-04", doc = doc, commands = {} })
 
 	placeRecords(
 		doc,

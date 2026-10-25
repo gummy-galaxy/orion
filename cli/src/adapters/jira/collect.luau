@@ -10,8 +10,14 @@ type Context = adapterTypes.Context
 type Source = types.Source
 type CommandRunner = types.CommandRunner
 
-local function collect(source: Source, run: CommandRunner, _context: Context): { Record }
-	local issues = parseIssues(getCommandJson(run, assert(source.command)))
+local function collect(source: Source, run: CommandRunner, context: Context): { Record }
+	local command = context.commands[source.id]
+	assert(
+		command,
+		`the {source.id} source has no command on this machine; set one with `
+			.. `orion source add jira --id {source.id} --command '["acli","jira","workitem","search","--json"]'`
+	)
+	local issues = parseIssues(getCommandJson(run, command))
 	local records: { Record } = {}
 
 	for _, issue in issues do

@@ -1,36 +1,32 @@
-local json = require("@std/json")
+local cliTypes = require("@root/cli/types")
 
-export type FieldKind = "string" | "id" | "canvas" | "enum" | "boolean" | "strings" | "int" | "operations"
-
--- positional: one value before the options. variadic: a list of values after the positionals.
--- option and flag: named, and csv: a list joined with commas behind a named option.
-export type Placement = "positional" | "variadic" | "option" | "flag" | "csv"
-
+-- One of a tool's arguments, built from a CLI option, positional, or variadic.
 export type Field = {
+	-- The CLI argument's name in camelCase, such as dryRun for --dry-run.
 	name: string,
-	kind: FieldKind,
-	at: Placement,
-	-- The CLI argument this field maps to, when it isn't the field's own name.
-	flag: string?,
-	required: boolean?,
+	-- The CLI argument it fills.
+	argument: string,
+	at: "positional" | "variadic" | "option" | "flag",
+	type: cliTypes.ValueType,
+	required: boolean,
 	description: string?,
 	values: { string }?,
-	minLength: number?,
-	-- The smallest value an int field takes. Defaults to 1.
 	minimum: number?,
 }
 
--- A tool maps its arguments onto an existing CLI command. Tools that pick between commands list
--- them in commands, and tools that need more than the generic field mapping supply their own build.
+-- A tool runs one CLI command, named after its path, such as orion_card_create for orion card create.
 export type Tool = {
 	name: string,
 	description: string,
 	command: { string },
-	commands: { { string } }?,
 	fields: { Field },
-	json: boolean?,
-	annotations: { [string]: boolean }?,
-	build: ((json.Object) -> { string })?,
+	-- Whether calls add --json, which every command that takes it does.
+	json: boolean,
+	annotations: cliTypes.Annotations?,
+	-- Old names a call may still use after a rename, which tools/list doesn't show.
+	aliases: { string },
+	-- Old argument names after an option rename, each with the field it now fills.
+	renamedArguments: { [string]: string },
 }
 
 export type Run = (argv: { string }, write: (string) -> ()) -> ()

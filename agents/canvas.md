@@ -2,7 +2,7 @@
 
 ## Commands
 
-Run `orion help --all` before working with the canvas. It prints every command and subcommand with its arguments, options, and help, from the same definitions the CLI parses, so it can't fall behind. `orion help <command>` prints one command, and `orion help --all --json` prints the listing as JSON. This guide covers what help can't: which command to reach for, and how they fit together. When you add or change a command, put its syntax and what its options mean in its help text rather than here.
+Run `orion help --all` before working with the canvas. It prints every command and subcommand with its arguments, options, and help, from the same definitions the CLI parses, so it can't fall behind. `orion help <command>` prints one command, and `orion help --all --json` prints the listing as JSON. This guide covers what help can't: which command to reach for, and how they fit together. When you add or change a command, put its syntax and what its options mean in its help text rather than here. The same definition is its MCP tool: give the command an `mcp` declaration beside `define`, and define an option whose value isn't plain text, such as an id, an enum, or an integer, with `addArgument` and its type. `lute test` fails for a command that declares no tool.
 
 ## Reading the canvas
 
@@ -33,22 +33,23 @@ To show the person the app, or anything else served locally such as a dev server
 
 - A gate is done once everything it waits on is; use one for a milestone such as a release or sign-off. A component is a part of a system diagram rather than work; see [System diagrams](system-diagrams.md).
 - `orion card set` changes cards and `orion group set` changes groups. Each takes only its own kind of node, and the error names the other command to use.
-- `--ref` resolves through the adapter of the matching source, so a Jira URL works only under a configured Jira source. A branch ref such as `branch:vocksel/orion@agent/196-attach` records the branch work started on, keyed like hop's; GitHub Enterprise hosts go in front of the repository, as in `branch:github.example.com/owner/name@branch`. `--repo` and `--pr` are deprecated and stay for one release.
+- `--ref` resolves through the adapter of the matching source, so a Jira URL works only under a configured Jira source. A branch ref such as `branch:vocksel/orion@agent/196-attach` records the branch work started on, keyed like hop's; GitHub Enterprise hosts go in front of the repository, as in `branch:github.example.com/owner/name@branch`. Attach a pull request with `--ref` and its URL; `--repo` only records the repository a card belongs to, such as a component's.
 - `orion apply` runs a plan in one write, so a timeline of many cards, notes, groups, and links takes one call instead of one per change. A plan is a JSON list of operations that run in order and land whole or not at all. `addCard` and `addNote` take a `handle`, and later steps refer to it as `"@handle"`; refer to existing cards and groups by id. The output maps each handle to the id it got.
 - `orion card import` adds a card for every ref in one transaction. A ref already on the canvas is skipped and keeps its card. One that doesn't resolve is reported and skipped while the rest are added, and the command then exits nonzero. Jira refs are read through their source's command, so a Jira key must appear in that source's results.
 - Snoozing hides a card from attention and `orion next` until a time in the future; a bare date means the start of that day. A snoozed card keeps its derived status and still blocks the cards that wait on it, but has no leverage and isn't counted as ready in group progress. It wakes on its own with nothing written, and is stored as the `snoozedUntil` data field, in UTC.
-- Linking an already linked pair updates its label. With both `--after` and `--before`, `orion note add` splits their link, or adds two blocking links if they aren't linked.
-- `orion group add` wraps items that share a parent. `orion group remove` deletes everything inside a group at any depth, so preview it with `--dry-run`.
+- Linking an already linked pair updates its label. With both `--after` and `--before`, `orion card create` and `orion note create` split their link, or add two blocking links if they aren't linked.
+- A new card lands beside the card that blocks it, or before the card it blocks, so give `--after` or `--before` when you know its neighbor; a card linked later stays where it first landed. One with no links in its group continues the group's last row without widening it. `orion apply` places a plan's new cards after its last step, so its links count.
+- `orion group create` wraps items that share a parent. `orion group remove` deletes everything inside a group at any depth, so preview it with `--dry-run`.
 - The CLI never lays out groups itself. `orion group tidy` and changes to a group's members mark it, and the app lays out marked groups deepest first, so nested groups settle before their parents. Custom groups keep their arrangement, and auto groups wrap rows at about six. If `orion server start` isn't running, the layout waits until the app opens.
-- `orion server start` accepts raw image bytes at `POST /api/images?canvas=<name>` and returns them at `GET /api/images/<asset>?canvas=<name>`.
+- `orion media add <file>` adds an image to the canvas, and `orion media list` lists them. Don't call `orion server start`'s HTTP API; it's internal to the app.
 
-Most commands that edit take `--dry-run` and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion node remove --where 'repo = "unrelated"' --dry-run`, then run `orion node remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
+With `--json`, every write prints the `revision` it made, and a failure prints `{"error": {"message": …}}`. Most commands that edit take `--dry-run` and `--if-revision <n>`. A dry run prints its targets and current revision without writing. Apply the same command with `--if-revision` to refuse a write if the document changed. Multiple targets are resolved from one snapshot and edited in one transaction. For example, review `orion node remove --where 'repo = "unrelated"' --dry-run`, then run `orion node remove --where 'repo = "unrelated"' --if-revision 12` using the revision the preview printed.
 
 Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Set `blocked` or `deferred` only for reasons the graph can't show, since waiting on open work already reads as blocked. Snoozing is not a status: use `orion card snooze` to hide a card for a while.
 
 ## Organizing work
 
-Run `orion suggestion find` to find related ungrouped cards, then review `orion suggestion list`. Apply only suggestions that clearly fit with `orion suggestion apply <id...>`; use `orion suggestion dismiss <id...>` for the rest.
+Run `orion suggestion find` to find related ungrouped cards, then review `orion suggestion list`. It groups by links, epics, branches, and refs; to have an agent name the groups instead, pass its command as a JSON array with `--command`. Apply only suggestions that clearly fit with `orion suggestion apply <id...>`; use `orion suggestion dismiss <id...>` for the rest.
 
 ## Habits
 

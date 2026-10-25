@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useEffect, useState } from 'react'
-import { type Appearance, type Theme } from '../appearance'
+import { THEMES, type Appearance, type Theme } from '../appearance'
 import { DEFAULT_KEYBINDINGS, type Keybindings } from '../keybindings'
+import { SKINS } from '../skins'
 import { cachedThemes, loadThemes } from '../themeFile'
 import { Settings, type SettingsSection } from './Settings'
 
@@ -13,8 +14,8 @@ type Story = StoryObj<typeof meta>
 function Interactive({ section, keybindings = DEFAULT_KEYBINDINGS }: { section: SettingsSection; keybindings?: Keybindings }) {
   const [shown, setShown] = useState(section)
   const [appearance, setAppearance] = useState<Appearance>({
-    theme: 'classic',
-    skin: 'classic',
+    theme: THEMES[0].id,
+    skin: SKINS[0].id,
     colorMode: 'system',
     statusColors: 'theme',
     animations: 'system',

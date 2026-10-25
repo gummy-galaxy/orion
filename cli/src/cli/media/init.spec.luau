@@ -13,7 +13,7 @@ test.case("media commands insert validated images and list the selected workspac
 	local bytes = string.char(137, 80, 78, 71, 13, 10, 26, 10) .. "image bytes"
 	fs.writeStringToFile(source, bytes)
 	local value = json.asObject(
-		json.deserialize(run({ "media", "insert", tostring(source), "--label", "Concept", "--group", "ws", "--json" })) :: json.Value
+		json.deserialize(run({ "media", "add", tostring(source), "--label", "Concept", "--group", "ws", "--json" })) :: json.Value
 	)
 	local id = if value then value.id else nil
 	assert.eq(value and value.label, "Concept")
@@ -21,7 +21,7 @@ test.case("media commands insert validated images and list the selected workspac
 	local item = if type(id) == "string" then findItem(doc, id) else nil
 	assert.eq(item and item.type, "image")
 	assert.eq(item and item.parentId, "ws")
-	assert.eq(item and item.data.workspace, "default")
+	assert.eq(item and item.data.canvas, "default")
 	assert.eq(item and item.width, 256)
 	local asset = if item then item.data.asset else nil
 	assert.eq(type(asset), "string")
@@ -31,7 +31,7 @@ test.case("media commands insert validated images and list the selected workspac
 	local invalid = path.join(root, "invalid.png")
 	fs.writeStringToFile(invalid, "not an image")
 	assert.throwsWith("image must be PNG, JPEG, GIF, or WebP", function()
-		run({ "media", "insert", tostring(invalid) })
+		run({ "media", "add", tostring(invalid) })
 	end)
 	assert.eq(loadDoc(root).revision, doc.revision)
 	run({ "canvas", "create", "other" })

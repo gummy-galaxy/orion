@@ -1,10 +1,6 @@
-local addItem = require("@root/graph/addItem")
 local findBranchCards = require("@root/github/findBranchCards")
-local findItem = require("@root/graph/findItem")
-local getDesired = require("@root/github/getDesired")
 local getKey = require("@root/github/getKey")
 local getLabel = require("@root/graph/getLabel")
-local getNextSlot = require("@root/graph/getNextSlot")
 local getRefFor = require("@root/github/getRefFor")
 local getString = require("@root/github/getString")
 local githubTypes = require("@root/github/types")
@@ -22,8 +18,6 @@ type Fetched = githubTypes.Fetched
 type Report = githubTypes.Report
 type Doc = types.Doc
 type Item = types.Item
-
-local INBOX_ID = "inbox"
 
 -- Moves a card's status and whose move it is to match the pull request, recording any change.
 local function applyDesired(item: Item, pull: PullState, viewer: string, report: Report)
@@ -56,17 +50,6 @@ local function attachByBranch(item: Item, pull: PullState, fetched: Fetched, che
 
 	refreshItemKind(item)
 	table.insert(report.attached, { id = item.id, pull = `{repo}#{pull.number}` })
-end
-
-local function ensureGroup(doc: Doc, id: string, label: string, blurb: string)
-	if not findItem(doc, id) then
-		table.insert(doc.nodes, {
-			id = id,
-			type = "cluster",
-			position = getNextSlot(doc, nil),
-			data = json.object({ kind = "cluster", label = label, blurb = blurb }),
-		})
-	end
 end
 
 local function isStacked(parent: PullState, child: PullState): boolean
@@ -143,7 +126,6 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 	local report: Report = {
 		changes = {},
 		missing = {},
-		added = {},
 		attached = {},
 		linked = {},
 		unlinked = {},
@@ -189,7 +171,7 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			continue
 		end
 
-		-- Only a pull request with its full state, fetched for this, becomes a card. Otherwise it stays unplaced this run.
+		-- Only a pull request with its full state, fetched for this, attaches to its branch's card. Otherwise it stays unplaced.
 		local repo = `{pull.owner}/{pull.name}`
 		local branchCards = findBranchCards(doc, pull)
 		local full = fetched.pulls[key]
@@ -200,48 +182,33 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			continue
 		end
 
-		if full and fetched.discover then
-			ensureGroup(doc, INBOX_ID, "Inbox", "Open pull requests found on GitHub that aren't placed yet.")
-			local status, who = getDesired(full, "todo", nil, fetched.viewer)
-			local item = addItem(doc, full.title, {
-				group = INBOX_ID,
-				repo = repo,
-				pr = full.number,
-				status = status,
-				who = who,
-			})
-			setPullRef(item, full, "github", fetched.viewer, checkedAt)
-			onCanvas[key] = true
-			table.insert(report.added, item.id)
-		else
-			local candidates: json.Array = {}
+		local candidates: json.Array = {}
 
-			-- Several cards on one branch are a tie, so they're the only candidates listed.
-			if #branchCards > 1 then
-				for _, card in branchCards do
-					table.insert(candidates, json.object({ id = card.id, score = 1 }))
-				end
-			else
-				for _, candidate in match.candidates(doc, pull.title, pull.owner, pull.name) do
-					table.insert(candidates, json.object({ id = candidate.id, score = candidate.score }))
-				end
+		-- Several cards on one branch are a tie, so they're the only candidates listed.
+		if #branchCards > 1 then
+			for _, card in branchCards do
+				table.insert(candidates, json.object({ id = card.id, score = 1 }))
 			end
-
-			table.insert(
-				unplaced,
-				json.object({
-					repo = repo,
-					number = pull.number,
-					title = pull.title,
-					url = pull.url,
-					draft = pull.draft,
-					updatedAt = pull.updatedAt,
-					additions = pull.additions,
-					deletions = pull.deletions,
-					matches = candidates,
-				})
-			)
+		else
+			for _, candidate in match.candidates(doc, pull.title, pull.owner, pull.name) do
+				table.insert(candidates, json.object({ id = candidate.id, score = candidate.score }))
+			end
 		end
+
+		table.insert(
+			unplaced,
+			json.object({
+				repo = repo,
+				number = pull.number,
+				title = pull.title,
+				url = pull.url,
+				draft = pull.draft,
+				updatedAt = pull.updatedAt,
+				additions = pull.additions,
+				deletions = pull.deletions,
+				matches = candidates,
+			})
+		)
 	end
 
 	syncStackLinks(doc, fetched, report)

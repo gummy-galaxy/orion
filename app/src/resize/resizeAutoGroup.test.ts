@@ -1,6 +1,7 @@
+import { GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from '../geometry'
 import { expect, test } from 'vitest'
 import { planReflow } from '../layout'
-import { GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, byId, normalize, type AppNode, type ClusterData } from '../model'
+import { byId, normalize, type AppNode, type ClusterData } from '../model'
 import { boxOf } from './fixtures/boxOf'
 import { cluster } from './fixtures/cluster'
 import { task } from './fixtures/task'

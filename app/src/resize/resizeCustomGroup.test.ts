@@ -1,6 +1,6 @@
+import { GAP, GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from '../geometry'
 import { expect, test } from 'vitest'
-import { GAP } from '../layout'
-import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH, byId, normalize, type ClusterData } from '../model'
+import { byId, normalize, type ClusterData } from '../model'
 import { boxOf } from './fixtures/boxOf'
 import { cluster } from './fixtures/cluster'
 import { task } from './fixtures/task'

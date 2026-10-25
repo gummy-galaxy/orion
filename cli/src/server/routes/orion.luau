@@ -25,9 +25,9 @@ function orion.handle(request: net.ReceivedRequest, root: string, active: string
 			if not doc then
 				return shared.reply(404, json.object({ path = getDocPath(requestedDir), canvas = requested }))
 			end
-			local response = encodeDocObject(doc)
-			response.derived = serializeDerived(derive(doc))
-			return shared.reply(200, response)
+			local body = encodeDocObject(doc)
+			body.derived = serializeDerived(derive(doc))
+			return shared.reply(200, body)
 		end
 		return shared.reply(405, json.object({ error = "method not allowed" }))
 	end)

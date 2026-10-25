@@ -1,5 +1,6 @@
+import { TASK_HEIGHT, TASK_WIDTH } from '../geometry'
 import { expect, test } from 'vitest'
-import { TASK_HEIGHT, TASK_WIDTH, byId, isCluster, normalize } from '../model'
+import { byId, isCluster, normalize } from '../model'
 import { cluster } from './fixtures/cluster'
 import { task } from './fixtures/task'
 import { groupEdgeAt } from './groupEdgeAt'

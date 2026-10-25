@@ -22,21 +22,22 @@ orion card list [options]
 | `--all`           | Include done items           |
 | `--json`          | Print JSON                   |
 
-## orion card add
+## orion card create
 
 Add a work item
 
 ```sh
-orion card add [options] [label...]
+orion card create [options] [label...]
 ```
 
 | Argument           | Description                                                                                                  |
 | ------------------ | ------------------------------------------------------------------------------------------------------------ |
 | `[label...]`       | What the work is                                                                                             |
 | `--group <value>`  | Group to add it to                                                                                           |
+| `--after <value>`  | Item the card follows; it lands beside it, in its group                                                      |
+| `--before <value>` | Item the card leads into; it lands beside it, in its group                                                   |
 | `--status <value>` | todo, active, review, blocked, deferred, or done                                                             |
-| `--repo <value>`   | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                        |
-| `--pr <value>`     | Pull request number. Deprecated: use --ref with the pull request URL                                         |
+| `--repo <value>`   | Repository it belongs to, as owner/name (empty to clear)                                                     |
 | `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                              |
 | `--note <value>`   | Free-form note (empty to clear)                                                                              |
 | `--shape <value>`  | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)     |
@@ -58,8 +59,7 @@ orion card set [id] [options]
 | `[id]`             | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86                    |
 | `--label <value>`  | New label                                                                                                    |
 | `--status <value>` | todo, active, review, blocked, deferred, or done                                                             |
-| `--repo <value>`   | Repository, as owner/name. Deprecated: with --pr, use --ref with the pull request URL                        |
-| `--pr <value>`     | Pull request number. Deprecated: use --ref with the pull request URL                                         |
+| `--repo <value>`   | Repository it belongs to, as owner/name (empty to clear)                                                     |
 | `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                              |
 | `--note <value>`   | Free-form note (empty to clear)                                                                              |
 | `--shape <value>`  | How a component is drawn: service, store, actor, external, interface, process, or queue (empty to clear)     |

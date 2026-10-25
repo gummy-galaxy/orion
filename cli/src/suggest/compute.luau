@@ -327,13 +327,7 @@ local function getFirstObject(text: string): json.Object?
 	return if didParse then json.asObject(decoded :: json.Value) else nil
 end
 
-local function getAgentGroups(
-	doc: Doc,
-	cards: { Item },
-	heuristics: { Group },
-	agent: string,
-	run: CommandRunner
-): { Group }?
+local function getAgentGroups(cards: { Item }, heuristics: { Group }, argv: { string }, run: CommandRunner): { Group }?
 	local ordered = table.clone(cards)
 	table.sort(ordered, function(a: Item, b: Item)
 		local firstOpen, secondOpen = a.data.status ~= "done", b.data.status ~= "done"
@@ -418,27 +412,6 @@ local function getAgentGroups(
 		.. json.serialize(
 			json.object({ cards = contextCards, heuristicComponents = components, singletons = singletons })
 		)
-	local settings = if doc.raw then json.asObject(doc.raw.settings) else nil
-	local custom = if settings then json.asArray(settings.agentCommand) else nil
-	local argv: { string } = {}
-
-	if custom then
-		for _, value in custom do
-			if type(value) ~= "string" or value == "" then
-				return nil
-			end
-
-			table.insert(argv, value)
-		end
-	else
-		argv = if agent == "claude"
-			then { "claude", "-p", "--output-format", "json" }
-			else { "codex", "exec", "--skip-git-repo-check", "-" }
-	end
-
-	if #argv == 0 then
-		return nil
-	end
 
 	local didRun, response = pcall(run, argv, prompt)
 
@@ -521,15 +494,22 @@ local function getAgentGroups(
 	return groups
 end
 
-local function compute(doc: Doc, scope: string, agent: string, run: CommandRunner, now: string): (Result, boolean)
+-- Groups related cards. With a command, it gets the cards as a prompt on stdin and names the groups, and its
+-- reply replaces the heuristic groups unless it fails or returns none.
+local function compute(
+	doc: Doc,
+	scope: string,
+	command: { string }?,
+	run: CommandRunner,
+	now: string
+): (Result, boolean)
 	assert(scope == "unsorted" or scope == "all", "scope must be unsorted or all")
-	assert(agent == "none" or agent == "claude" or agent == "codex", "agent must be claude, codex, or none")
 	local cards = getEligible(doc, scope)
 	local groups = getHeuristicGroups(doc, cards)
 	local didFallback = false
 
-	if agent ~= "none" and #cards >= 2 then
-		local proposed = getAgentGroups(doc, cards, groups, agent, run)
+	if command and #cards >= 2 then
+		local proposed = getAgentGroups(cards, groups, command, run)
 
 		if proposed then
 			groups = proposed

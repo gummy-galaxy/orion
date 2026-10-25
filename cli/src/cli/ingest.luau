@@ -8,6 +8,7 @@ local getReportJson = require("@root/ingest/getReportJson")
 local ingestTypes = require("@root/ingest/types")
 local loadDoc = require("@root/store/loadDoc")
 local placeRecords = require("@root/ingest/placeRecords")
+local readSourceCommands = require("@root/sources/readSourceCommands")
 local refreshAdapters = require("@root/ingest/refreshAdapters")
 local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
@@ -40,6 +41,7 @@ end
 
 return table.freeze({
 	help = "Import work from configured sources and refresh the cards they track",
+	mcp = { annotations = { openWorldHint = true } },
 	define = function(parser: cli.Parser)
 		parser:add("dry-run", "flag", { help = "Show changes without writing" })
 		parser:add("source", "option", { help = "Only ingest this source id" })
@@ -51,7 +53,8 @@ return table.freeze({
 		local now = options.now()
 		local selected = parser:get("source")
 		local snapshot = loadDoc(options.dir)
-		local fetched = collectSources(snapshot, options.runner, now, selected)
+		local fetched =
+			collectSources(snapshot, readSourceCommands(options.root, options.workspace), options.runner, now, selected)
 		local applyRefreshes = refreshAdapters(snapshot, options.runner, now, selected)
 		local report: ingestTypes.Report
 
@@ -62,14 +65,22 @@ return table.freeze({
 			report.refreshes = applyRefreshes(doc)
 		end
 
+		local doc: Doc
+
 		if isDryRun then
-			apply(loadDoc(options.dir))
+			doc = loadDoc(options.dir)
+			apply(doc)
 		else
-			runTransaction(options.dir, apply)
+			doc = runTransaction(options.dir, apply)
 		end
 
-		options.write(
-			if parser:has("json") then json.serialize(getReportJson(report), true) else getReport(report, isDryRun)
-		)
+		if parser:has("json") then
+			local value = getReportJson(report)
+			value.dryRun = isDryRun
+			value.revision = doc.revision
+			options.write(json.serialize(value, true))
+		else
+			options.write(getReport(report, isDryRun))
+		end
 	end,
 })

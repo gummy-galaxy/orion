@@ -72,7 +72,6 @@ export type Source = {
 	owners: { string }?,
 	include: { string }?,
 	exclude: { string }?,
-	command: { string }?,
 	browse: string?,
 	-- Where an agent keeps its data, such as `~/.claude` for Claude Code.
 	dir: string?,

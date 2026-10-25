@@ -1,4 +1,0 @@
-std = "roblox+luau"
-
-[config]
-global_usage = "allow"

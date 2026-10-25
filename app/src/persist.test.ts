@@ -1,5 +1,5 @@
+import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { TASK_HEIGHT, TASK_WIDTH } from './model'
 import { adoptedPrint, clearFocus, compactDoc, displayedDoc, fetchRemote, fingerprint, reportFocus, storedPrint, type Remote } from './persist'
 import { pushAside } from './pushAside'
 import { skinOf } from './skins'
@@ -57,9 +57,10 @@ describe('adopting a server document', () => {
     "settings": {},
     "nodes": [
       { "id": "loose", "type": "task", "position": { "y": 40, "x": 900 }, "data": { "status": "todo", "label": "Loose card", "kind": "task", "itemKind": "step" } },
-      { "id": "picture", "type": "image", "position": { "y": 600, "x": 0 }, "width": 200, "height": 150, "data": { "kind": "image", "label": "Picture", "asset": "a", "workspace": "default" } },
+      { "id": "picture", "type": "image", "position": { "y": 600, "x": 0 }, "width": 200, "height": 150, "data": { "kind": "image", "label": "Picture", "asset": "a", "canvas": "default" } },
       { "id": "group", "type": "cluster", "position": { "y": 0, "x": 0 }, "width": 280, "height": 182, "data": { "label": "Group", "kind": "cluster" } },
-      { "id": "inside", "type": "task", "parentId": "group", "position": { "y": 78, "x": 32 }, "data": { "kind": "task", "label": "Inside", "itemKind": "step", "status": "active" } }
+      { "id": "inside", "type": "task", "parentId": "group", "position": { "y": 78, "x": 32 }, "data": { "kind": "task", "label": "Inside", "itemKind": "step", "status": "active" } },
+      { "id": "aside", "type": "task", "position": { "y": 300, "x": 900 }, "data": { "kind": "task", "label": "a\\nb\\nc\\nd\\ne\\nf", "itemKind": "note", "status": "todo" } }
     ],
     "links": [{ "to": "inside", "kind": "blocks", "id": "link", "from": "loose" }]
   }`) as Remote
@@ -82,6 +83,14 @@ describe('adopting a server document', () => {
       expect(storedPrint({ ...again, nodes }, cardSize)).toBe(adoptedPrint(serverDoc, cardSize))
     })
   }
+
+  it('stores the height it measures for notes at the classic size, and none for work cards', () => {
+    const stored = JSON.parse(storedPrint(displayedDoc(serverDoc, TRADING), TRADING)) as Remote
+    const nodes = new Map(stored.nodes.map((node) => [node.id, node]))
+
+    expect(nodes.get('aside')).toMatchObject({ width: TASK_WIDTH, height: 136 })
+    expect(nodes.get('loose')?.height).toBeUndefined()
+  })
 
   it('saves positions that moved aside', () => {
     const shown = displayedDoc(serverDoc, TRADING)

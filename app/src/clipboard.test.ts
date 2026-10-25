@@ -1,6 +1,7 @@
+import { GROUP_HEADER_HEIGHT, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { describe, expect, it } from 'vitest'
 import { clipAssets, copySelection, cutClip, DUPLICATE_OFFSET, moveClipAssets, pasteClip, type Clip } from './clipboard'
-import { absolutePosition, byId, GROUP_HEADER_HEIGHT, GROUP_PADDING, normalize, TASK_HEIGHT, TASK_WIDTH, type AppNode, type Link } from './model'
+import { absolutePosition, byId, normalize, type AppNode, type Link } from './model'
 import type { Sticker } from './sticker'
 import { isAssetId } from './style'
 
@@ -27,7 +28,7 @@ const image = (id: string, x: number, y: number, asset: string): AppNode => ({
   position: { x, y },
   width: 256,
   height: 256,
-  data: { kind: 'image', label: id, asset, workspace: 'source' },
+  data: { kind: 'image', label: id, asset, canvas: 'source' },
 })
 
 const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({ id: `${from}>${to}`, from, to, kind })
@@ -35,7 +36,7 @@ const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => 
 const counter = () => {
   let next = 0
 
-  return (prefix: string) => `${prefix}-new${next++}`
+  return () => `new${next++}`
 }
 
 const copy = (nodes: AppNode[], links: Link[], ids: string[], stickers: Sticker[] = [], stickerIds: string[] = []) =>
@@ -135,7 +136,7 @@ describe('pasting a clip', () => {
     const nodes = original().map((node) => (node.id === 'c' ? { ...node, selected: true } : node))
     const clip = copySelection({ nodes, links, stickers: [] }, { nodes: new Set(['b', 'c']), stickers: new Set() }, 'source')!
     const pasted = pasteClip({ nodes, links, stickers: [] }, clip, { at: { x: 1000, y: 1000 }, parent: null, makeId: counter() })
-    const added = pasted.nodes.filter((node) => node.id.startsWith('card-new'))
+    const added = pasted.nodes.filter((node) => node.id.startsWith('new'))
 
     expect(added.map((node) => node.position)).toEqual([
       { x: 1000, y: 1000 },
@@ -150,7 +151,7 @@ describe('pasting a clip', () => {
     const groupNode = nodes.find((node) => node.id === 'g')!
     const at = { x: groupNode.position.x + GROUP_PADDING + 300, y: groupNode.position.y + GROUP_HEADER_HEIGHT }
     const pasted = pasteClip({ nodes, links: [], stickers: [] }, clip, { at, parent: 'g', makeId: counter() })
-    const copyNode = pasted.nodes.find((node) => node.id === 'card-new0')!
+    const copyNode = pasted.nodes.find((node) => node.id === 'new0')!
 
     expect(copyNode.parentId).toBe('g')
     expect(absolutePosition(copyNode, byId(pasted.nodes))).toEqual(at)
@@ -161,11 +162,11 @@ describe('pasting a clip', () => {
     const clip = copySelection({ nodes, links: [], stickers: [] }, { nodes: new Set(['g']), stickers: new Set() }, 'source')!
     const pasted = pasteClip({ nodes, links: [], stickers: [] }, clip, { at: { x: 2000, y: 0 }, parent: null, makeId: counter() })
     const nodeMap = byId(pasted.nodes)
-    const copiedTask = pasted.nodes.find((node) => node.id.startsWith('card-new'))!
+    const copiedTask = pasted.nodes.find((node) => node.type === 'task' && node.id.startsWith('new'))!
     const copiedInner = nodeMap.get(copiedTask.parentId!)!
 
     expect(copiedInner.id).not.toBe('inner')
-    expect(nodeMap.get(copiedInner.parentId!)?.id).toMatch(/^g-new/)
+    expect(nodeMap.get(copiedInner.parentId!)?.id).toMatch(/^new/)
     expect(nodeMap.get('a')?.parentId).toBe('inner')
   })
 
@@ -199,7 +200,7 @@ describe('pasting a clip', () => {
     const pasted = pasteClip({ nodes, links: [], stickers }, clip, { at: { x: 0, y: 500 }, parent: null, makeId: counter() })
     const [onCopy, looseCopy] = pasted.stickers.slice(2)
 
-    expect(onCopy).toMatchObject({ on: 'card-new0', x: 10, y: 10 })
+    expect(onCopy).toMatchObject({ on: 'new0', x: 10, y: 10 })
     expect(looseCopy).toEqual({ id: looseCopy.id, kind: '🎉', tilt: 3, x: 100, y: 600 })
     expect(pasted.stickerIds).toEqual([onCopy.id, looseCopy.id])
   })
@@ -247,9 +248,9 @@ describe('duplicating', () => {
     })
     const nodeMap = byId(pasted.nodes)
     const before = absolutePosition(nodeMap.get('a')!, nodeMap)
-    const after = absolutePosition(nodeMap.get('card-new0')!, nodeMap)
+    const after = absolutePosition(nodeMap.get('new0')!, nodeMap)
 
-    expect(nodeMap.get('card-new0')?.parentId).toBe('g')
+    expect(nodeMap.get('new0')?.parentId).toBe('g')
     expect({ x: after.x - before.x, y: after.y - before.y }).toEqual({ x: DUPLICATE_OFFSET, y: DUPLICATE_OFFSET })
   })
 })
@@ -274,13 +275,13 @@ describe('moving a clip to another workspace', () => {
     const picture = moved.nodes.find((node) => node.id === 'picture')!
     const groupNode = moved.nodes.find((node) => node.id === 'g')!
 
-    expect(picture.data).toMatchObject({ asset: 'fed789.png', workspace: 'target' })
+    expect(picture.data).toMatchObject({ asset: 'fed789.png', canvas: 'target' })
     expect(groupNode.data).toMatchObject({ cover, background: '#ff0000' })
   })
 
   it('keeps an image showing from its own workspace when its asset could not be copied', () => {
     const moved = moveClipAssets(clipWith(), 'target', new Map())
 
-    expect(moved.nodes.find((node) => node.id === 'picture')!.data).toMatchObject({ asset, workspace: 'source' })
+    expect(moved.nodes.find((node) => node.id === 'picture')!.data).toMatchObject({ asset, canvas: 'source' })
   })
 })

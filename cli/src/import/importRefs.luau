@@ -24,6 +24,8 @@ export type Options = {
 	ifRevision: number?,
 	now: string,
 	runner: CommandRunner,
+	-- The programs this machine runs for the canvas's sources, by source id.
+	commands: { [string]: { string } },
 }
 
 -- Imports every ref in one transaction. Refs that don't resolve or can't be looked up fail alone; refs already on the canvas
@@ -46,7 +48,11 @@ local function importRefs(inputs: { string }, options: Options): Report
 		end
 	end
 
-	lookupRecords(pending, { now = options.now, since = getSince(options.now), doc = doc }, options.runner)
+	lookupRecords(
+		pending,
+		{ now = options.now, since = getSince(options.now), doc = doc, commands = options.commands },
+		options.runner
+	)
 
 	local adding = 0
 	for _, entry in pending do

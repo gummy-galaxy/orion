@@ -32,10 +32,6 @@
     "link": "/reference/cli/apply"
   },
   {
-    "text": "sync",
-    "link": "/reference/cli/sync"
-  },
-  {
     "text": "canvas",
     "link": "/reference/cli/canvas"
   },

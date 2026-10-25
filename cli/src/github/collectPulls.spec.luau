@@ -26,7 +26,7 @@ test.case("collect batches pull request lookups by host", function(assert)
 
 		table.insert(batches, argv)
 		return testing.result(true, [[{"data":{}}]])
-	end, false)
+	end)
 	assert.eq(#batches, 2)
 	local hosts: { [string]: boolean } = {}
 
@@ -67,7 +67,7 @@ test.case("collect skips merged cards and fetches full state only for branch mat
 
 		table.insert(batches, query)
 		return testing.result(true, [[{"data":{}}]])
-	end, false)
+	end)
 
 	assert.eq(#batches, 1)
 	assert.eq(batches[1]:find("number: 1)", 1, true), nil)
@@ -94,7 +94,7 @@ test.case("collect still refreshes cards when the authored list fails", function
 		end
 
 		return testing.result(true, [[{"data":{"p1":{"pullRequest":{"number":2,"state":"OPEN","url":"u2"}}}}]])
-	end, false)
+	end)
 
 	assert.eq(fetched.viewer, "vocksel")
 	assert.eq(fetched.authored, nil)
@@ -128,7 +128,7 @@ test.case("collect asks for the jobs of failing pull requests and leaves optiona
 			true,
 			[[{"data":{"p1":{"pullRequest":{"number":341,"title":"t","url":"u","state":"OPEN","isDraft":true,"author":{"login":"vocksel"},"updatedAt":"now","additions":1,"deletions":1,"reviewRequests":{"totalCount":0},"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"FAILURE","count":1},{"state":"SUCCESS","count":1}]}}}}]}}}}}]]
 		)
-	end, false)
+	end)
 	local pull = fetched.pulls["vocksel/orion#341"]
 
 	assert.eq(jobQueries, 1)

@@ -1,11 +1,12 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local addArgument = require("@root/cli/addArgument")
 local addIdPositional = require("@root/cli/addIdPositional")
 local context = require("@root/cli/context")
 local getItem = require("@root/graph/getItem")
-local getLabel = require("@root/graph/getLabel")
 local getRequired = require("@root/cli/getRequired")
+local getStringField = require("@root/getStringField")
 local insertBetween = require("@root/graph/insertBetween")
 local requestedRevision = require("@root/cli/requestedRevision")
 local resolveId = require("@root/query/resolveId")
@@ -15,12 +16,21 @@ type Context = context.Context
 
 return table.freeze({
 	help = "Insert an item into an existing link, replacing it with two links of the same kind",
+	mcp = {},
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
-		parser:add("between", "option", { help = "Source item whose link is replaced (required)" })
+		addArgument(parser, "between", "option", {
+			help = "Source item whose link is replaced (required)",
+			type = "id",
+			mcp = { required = true },
+		})
 		parser:add("target", "variadic", { help = "Target item whose link is replaced" })
 		parser:add("dry-run", "flag", { help = "Preview changes and current revision without writing" })
-		parser:add("if-revision", "option", { help = "Write only if the document has this revision" })
+		addArgument(parser, "if-revision", "option", {
+			help = "Write only if the document has this revision",
+			type = "integer",
+			minimum = 0,
+		})
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 
@@ -43,7 +53,7 @@ return table.freeze({
 					dryRun = dryRun,
 					baseRevision = baseRevision,
 					revision = doc.revision,
-					items = { json.object({ id = id, label = getLabel(getItem(doc, id)) }) },
+					items = { json.object({ id = id, label = getStringField(getItem(doc, id).data.label) }) },
 					from = from,
 					to = to,
 				}),

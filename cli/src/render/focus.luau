@@ -64,13 +64,7 @@ function focus.serialize(doc: Doc, derived: graphTypes.Derived, report: Focus?):
 		object.open = open
 	end
 	for _, item in findSelectedItems(doc, report) do
-		if isGroup(item) then
-			local entry = renderGroup.serialize(derived, item)
-			entry.kind = "group"
-			table.insert(selected, entry)
-		else
-			table.insert(selected, renderItem.itemJson(doc, derived, item))
-		end
+		table.insert(selected, renderItem.itemJson(doc, derived, item))
 	end
 	return object
 end
@@ -98,7 +92,7 @@ function focus.format(doc: Doc, derived: graphTypes.Derived, report: Focus?): st
 		table.insert(lines, "Selected:")
 		for _, item in items do
 			if isGroup(item) then
-				table.insert(lines, `  {pad("group", 9)}{pad(item.id, 24)}{renderGroup.formatLine(derived, item)}`)
+				table.insert(lines, `  {pad("group", 9)}{pad(item.id, 38)}{renderGroup.formatLine(derived, item)}`)
 			else
 				table.insert(lines, `  {renderItem.table(doc, derived, { item })}`)
 			end

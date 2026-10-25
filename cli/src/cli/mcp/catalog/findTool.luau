@@ -1,11 +1,11 @@
 local mcpTypes = require("@root/cli/mcp/types")
-local tools = require("@root/cli/mcp/tools")
 
 type Tool = mcpTypes.Tool
 
-local function findTool(name: string): Tool?
+-- Finds a tool by its name, or by an old name from before a rename.
+local function findTool(tools: { Tool }, name: string): Tool?
 	for _, tool in tools do
-		if tool.name == name then
+		if tool.name == name or table.find(tool.aliases, name) then
 			return tool
 		end
 	end

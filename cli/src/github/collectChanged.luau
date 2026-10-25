@@ -76,17 +76,20 @@ end
 	Fetches only the pull request cards that changed. Notifications name the ones other people touched, polled with
 	`If-Modified-Since` so an unchanged poll is free, and `poll` keeps each host's newest notification time between
 	calls. A `sweep` also compares every open card's `updatedAt` with the recorded one, which catches the viewer's own
-	activity, and lists the viewer's open pull requests to attach new ones by branch. `checks` reads only the checks of
-	cards whose recorded checks are pending, since a finished check run moves neither. `fetched` is nil when nothing
-	changed, so the caller can skip writing.
+	activity, and lists the viewer's open pull requests to attach new ones by branch. Without a `sweep`, `sweepCards`
+	compares only the `updatedAt` of the cards with those ids and lists nothing. `checks` reads only the checks of cards
+	whose recorded checks are pending, since a finished check run moves neither. `fetched` is nil when nothing changed,
+	so the caller can skip writing.
 ]]
 local function collectChanged(doc: Doc, run: CommandRunner, poll: PollState, want: Want): Changes
 	local sweep = want.sweep
+	local sweepCards = if sweep then nil else want.sweepCards
 	local cards: { [string]: string } = {}
 	local onCanvas: { [string]: boolean } = {}
 	local refs: { Ref } = {}
 	local pending: { Ref } = {}
 	local pendingDetails: { [string]: json.Object } = {}
+	local swept: { [string]: boolean } = {}
 	local hosts: { [string]: boolean } = {}
 	local keys: { [string]: boolean } = {}
 	local failures: { string } = {}
@@ -101,6 +104,10 @@ local function collectChanged(doc: Doc, run: CommandRunner, poll: PollState, wan
 		local key = getKey(ref)
 		local recorded = findRef(item, "pull")
 		onCanvas[key] = true
+
+		if sweep or (sweepCards and sweepCards[item.id]) then
+			swept[key] = true
+		end
 
 		if cards[key] or (recorded and recorded.status == "merged") then
 			continue
@@ -143,8 +150,16 @@ local function collectChanged(doc: Doc, run: CommandRunner, poll: PollState, wan
 		poll.interval = interval
 	end
 
-	if sweep then
-		local updated = fetchUpdated(run, refs)
+	local sweepRefs: { Ref } = {}
+
+	for _, ref in refs do
+		if swept[getKey(ref)] then
+			table.insert(sweepRefs, ref)
+		end
+	end
+
+	if #sweepRefs > 0 then
+		local updated = fetchUpdated(run, sweepRefs)
 		table.move(updated.failures, 1, #updated.failures, #failures + 1, failures)
 
 		for key, updatedAt in updated.updatedAt do
@@ -175,7 +190,7 @@ local function collectChanged(doc: Doc, run: CommandRunner, poll: PollState, wan
 		return { fetched = nil, failures = failures, refetched = 0 }
 	end
 
-	local fetched = collectPulls(doc, run, false, { keys = keys, listAuthored = sweep })
+	local fetched = collectPulls(doc, run, { keys = keys, listAuthored = sweep })
 	table.move(failures, 1, #failures, #fetched.failures + 1, fetched.failures)
 
 	if

@@ -7,6 +7,8 @@ The shortcuts on this page are the defaults. Open **Settings › Keyboard Shortc
 - Scroll, Space-drag, or middle-drag to pan. Pinch or ⌘-scroll to zoom.
 - However far you zoom out, cards, notes, and folded groups keep their details at a readable size.
 - The sidebar lists every group in canvas order. Click one to open it.
+- The details panel on the right shows whatever is selected: a card's inspector, a group's settings, or a link. With nothing selected, it shows the open group, or the canvas's cover and header at the top level. Its › button hides it, and ☰ in the top-right corner brings it back.
+- Drag the edge of the sidebar or the details panel to resize it. Double-click the edge to reset it.
 - Press ⌘K to search groups, cards, pull requests, and notes, then Enter to jump to a result.
 - Type `>` in search, or press ⇧⌘P, to list actions instead.
 
@@ -59,7 +61,7 @@ The detail stepper beside the zoom buttons, or [ and ], folds groups into single
 - Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one, and work off screen gets a chip at the edge that jumps to it.
 - Hold Ctrl to inspect. The card under the cursor opens in full with its note, and its links show at full strength.
-- Double-click a card to focus on it, with what it waits on in a column on the left and what it leads to on the right. Click one of those to focus on it instead. Esc goes back.
+- Double-click a card to focus on it, with what it waits on in a column on the left and what it leads to on the right. Its details show in the details panel. Click one of those to focus on it instead. Esc goes back.
 
 ## Stickers
 
@@ -71,7 +73,7 @@ Stickers stamped on a card or group move with it. In Select, drag a sticker to m
 
 Open Settings with ⌘, or the button at the bottom of the sidebar.
 
-- **Appearance** picks the theme, the card skin, the color mode, and whether the star companion shows.
+- **Appearance** picks the theme, the card skin, the color mode, and whether the star companion shows. Vibrant and Trading cards are the defaults. The other themes and skins are tagged Deprecated: they still work, and they'll be removed later.
 - **Accessibility** picks colorblind status colors and an animation level. Animations follow your system's reduced motion setting until you choose.
 - **Keyboard Shortcuts** rebinds shortcuts and flags clashes.
 

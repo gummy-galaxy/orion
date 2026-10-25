@@ -1,10 +1,9 @@
 local json = require("@std/json")
 
+local createId = require("@root/graph/createId")
+local findPlacement = require("@root/graph/findPlacement")
+local geometry = require("@root/geometry")
 local getGroup = require("@root/graph/getGroup")
-local getNextSlot = require("@root/graph/getNextSlot")
-local getUniqueId = require("@root/graph/getUniqueId")
-local sizes = require("@root/graph/sizes")
-local slugify = require("@root/slugify")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -19,14 +18,15 @@ local function createGroup(doc: Doc, label: string, parentId: string?): Item
 	end
 
 	local group: Item = {
-		id = getUniqueId(doc, slugify(label)),
+		id = createId(),
 		type = "cluster",
-		position = getNextSlot(doc, parentId),
+		position = { x = 0, y = 0 },
 		parentId = parentId,
-		width = sizes.TASK_WIDTH + sizes.GROUP_PADDING * 2,
-		height = sizes.TASK_HEIGHT + sizes.GROUP_HEADER_HEIGHT + sizes.GROUP_PADDING,
+		width = geometry.TASK_WIDTH + geometry.GROUP_PADDING * 2,
+		height = geometry.TASK_HEIGHT + geometry.GROUP_HEADER_HEIGHT + geometry.GROUP_PADDING,
 		data = json.object({ kind = "cluster", label = label }),
 	}
+	group.position = findPlacement(doc, group)
 	table.insert(doc.nodes, group)
 	return group
 end

@@ -1,13 +1,7 @@
 import type { Node } from '@xyflow/react'
 import { taskHeight } from './cardHeight'
 import type { CardSize } from './cardSize'
-
-export const TASK_WIDTH = 216
-export const TASK_HEIGHT = 72
-export const GROUP_PADDING = 32
-export const GROUP_HEADER_HEIGHT = 78
-/** The band a group's Markdown header takes under its title row, which pushes its cards down by the same amount. */
-export const GROUP_HEADER_BAND = 112
+import { GROUP_HEADER_BAND, GROUP_HEADER_HEIGHT, GROUP_PADDING, GROUP_SIZE, IMAGE_SIZE, TASK_HEIGHT, TASK_WIDTH } from './geometry'
 
 /** `blocked` is set by hand for blockers outside the graph; dependency blocking is derived. */
 export type Status = 'todo' | 'active' | 'review' | 'blocked' | 'deferred' | 'done'
@@ -175,7 +169,7 @@ export type ClusterData = {
    */
   size?: { width: number; height: number }
 }
-export type ImageData = { kind: 'image'; label: string; asset: string; workspace: string }
+export type ImageData = { kind: 'image'; label: string; asset: string; canvas: string }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. Components have no status. */
 export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status?: ViewStatus; side: 'in' | 'out' }
@@ -323,7 +317,7 @@ export function tintOf(node: AppNode, nodeMap: Map<string, AppNode>): Tint | und
 export function sizeOf(node: AppNode, cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): CardSize {
   if (isTask(node)) return { width: cardSize.width, height: taskHeight(node.data, cardSize) }
 
-  return { width: node.width ?? 320, height: node.height ?? 200 }
+  return { width: node.width ?? GROUP_SIZE.width, height: node.height ?? GROUP_SIZE.height }
 }
 
 export function absolutePosition(node: AppNode, nodeMap: Map<string, AppNode>): { x: number; y: number } {
@@ -346,7 +340,7 @@ export function absolutePosition(node: AppNode, nodeMap: Map<string, AppNode>): 
 function hydrate(node: AppNode, cardSize: CardSize): AppNode {
   if (isTask(node)) return { ...node, ...sizeOf(node, cardSize) }
 
-  if (isImage(node)) return { ...node, width: node.width ?? 256, height: node.height ?? 256 }
+  if (isImage(node)) return { ...node, width: node.width ?? IMAGE_SIZE.width, height: node.height ?? IMAGE_SIZE.height }
 
   return { ...node, dragHandle: '.drag' }
 }

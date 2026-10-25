@@ -60,9 +60,7 @@ local function listSessions(dir: string, run: CommandRunner, since: number): { S
 			-- stopped on something: a permission prompt, an interrupt, or a crash.
 			if process and process.status == "busy" then
 				state = "working"
-			elseif process and process.status ~= "idle" then
-				state = "waiting"
-			elseif state == "working" then
+			elseif (process and process.status ~= "idle") or state == "working" then
 				state = "waiting"
 			end
 

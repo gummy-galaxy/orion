@@ -8,7 +8,6 @@ type Source = types.Source
 local JIRA: Source = {
 	id = "jira",
 	kind = "jira",
-	command = { "acli", "jira" },
 	browse = "https://jira.example.com/browse",
 }
 

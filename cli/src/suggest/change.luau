@@ -1,3 +1,4 @@
+local createId = require("@root/graph/createId")
 local findItem = require("@root/graph/findItem")
 local getItem = require("@root/graph/getItem")
 local getNextSlot = require("@root/graph/getNextSlot")
@@ -5,7 +6,6 @@ local getStored = require("@root/suggest/getStored")
 local json = require("@std/json")
 local moveItem = require("@root/graph/moveItem")
 local save = require("@root/suggest/save")
-local slugify = require("@root/slugify")
 local suggestTypes = require("@root/suggest/types")
 local types = require("@root/types")
 
@@ -41,22 +41,13 @@ local function change(doc: Doc, action: string, ids: { string }, isAll: boolean)
 
 				local position = getNextSlot(doc, nil)
 				local made: Item = {
-					id = group.id,
+					id = createId(),
 					type = "cluster",
 					position = position,
 					width = 280,
 					height = 110 + #group.members * 96,
 					data = json.object({ kind = "cluster", label = group.title, layout = "pending" }),
 				}
-				local base = slugify(group.title, nil, "group")
-				made.id = base
-				local suffix = 2
-
-				while findItem(doc, made.id) do
-					made.id = `{base}-{suffix}`
-					suffix += 1
-				end
-
 				table.insert(doc.nodes, made)
 
 				for index, id in group.members do

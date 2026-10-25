@@ -8,12 +8,12 @@ Dependencies between items
 orion link <command> [options]
 ```
 
-## orion link add
+## orion link create
 
 Link each adjacent pair of items
 
 ```sh
-orion link add [from] [to] [options] [next...]
+orion link create [from] [to] [options] [next...]
 ```
 
 | Argument                | Description                                          |
@@ -39,6 +39,7 @@ orion link remove [from] [to] [options]
 | -------- | ----------------------------------------------------------------------------------------- |
 | `[from]` | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
 | `[to]`   | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `--json` | Print JSON                                                                                |
 
 ## orion link insert
 

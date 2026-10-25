@@ -1,6 +1,7 @@
+import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { describe, expect, it } from 'vitest'
 import { ROW_WIDTH, WRAP, labelWidth, layoutOrder, reflow } from './layout'
-import { TASK_HEIGHT, TASK_WIDTH, type AppNode, type ClusterData, type Link } from './model'
+import { type AppNode, type ClusterData, type Link } from './model'
 import { toDisplayed } from './skinSpace'
 import { skinOf } from './skins'
 

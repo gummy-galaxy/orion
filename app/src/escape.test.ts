@@ -1,6 +1,7 @@
+import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { describe, expect, it } from 'vitest'
 import { dragRoots, dropTarget, followEscape, landInside, reparent, startEscape } from './escape'
-import { TASK_HEIGHT, TASK_WIDTH, byId, normalize, type AppNode, type ClusterData } from './model'
+import { byId, normalize, type AppNode, type ClusterData } from './model'
 
 const size = { width: TASK_WIDTH, height: TASK_HEIGHT }
 const POP = 90

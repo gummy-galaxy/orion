@@ -57,7 +57,7 @@ describe('skin space', () => {
       position: { x: 720, y: 78 },
       width: 320,
       height: 240,
-      data: { kind: 'image', label: 'Image', asset: 'x', workspace: 'default' },
+      data: { kind: 'image', label: 'Image', asset: 'x', canvas: 'default' },
     },
     task('top-card', undefined, 1200, 200),
   ])

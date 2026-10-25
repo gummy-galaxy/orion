@@ -2,7 +2,6 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local applyPulls = require("@root/github/applyPulls")
-local findItem = require("@root/graph/findItem")
 local findRef = require("@root/refs/findRef")
 local getKey = require("@root/github/getKey")
 local githubTypes = require("@root/github/types")
@@ -38,7 +37,6 @@ local function stackFixture(): (Doc, Fetched)
 			checked = { [getKey(parent)] = true, [getKey(child)] = true },
 			authored = {},
 			viewer = "vocksel",
-			discover = false,
 			failures = {},
 		}
 end
@@ -100,15 +98,13 @@ test.case("apply stores unplaced authored pull requests with matches", function(
 	local authored = pull("OPEN")
 	authored.number = 670
 	authored.title = "Add release health dashboard"
-	local report = applyPulls(doc, {
+	applyPulls(doc, {
 		pulls = {},
 		checked = {},
 		authored = { authored },
 		viewer = "vocksel",
-		discover = false,
 		failures = {},
 	}, "2026-10-04T18:05:00Z")
-	assert.eq(#report.added, 0)
 	local top = doc.github
 	assert.eq(top and top.viewer, "vocksel")
 	local unplaced = if top then require("@std/json").asArray(top.unplaced) else nil
@@ -129,39 +125,21 @@ test.case("apply keeps authored pull requests to the workspace's GitHub sources"
 	otherRepo.owner, otherRepo.name, otherRepo.number = "vocksel", "hop", 2
 	local otherOwner = pull("OPEN")
 	otherOwner.owner, otherOwner.name, otherOwner.number = "flipbook-labs", "orion", 3
-	local report = applyPulls(doc, {
+	applyPulls(doc, {
 		pulls = { [getKey(inside)] = inside, [getKey(otherRepo)] = otherRepo, [getKey(otherOwner)] = otherOwner },
 		checked = {},
 		authored = { inside, otherRepo, otherOwner },
 		viewer = "vocksel",
-		discover = true,
 		failures = {},
 	}, "2026-10-04T18:05:00Z")
-	assert.eq(#report.added, 1)
-	local added = findItem(doc, report.added[1])
-	assert.eq(added and (findRef(added, "pull") :: types.Ref).key, "vocksel/orion#1")
-end)
-
-test.case("discover files authored pulls in Inbox and clears unplaced", function(assert)
-	local doc = testing.createDoc({})
-	local authored = pull("OPEN", { draft = true })
-	local report = applyPulls(doc, {
-		pulls = { [getKey(authored)] = authored },
-		checked = {},
-		authored = { authored },
-		viewer = "vocksel",
-		discover = true,
-		failures = {},
-	}, "2026-10-04T18:05:00Z")
-	assert.eq(report.added[1], "flipbook-labs-flipbook-1")
-	assert.eq(doc.nodes[2].data.itemKind, "pr")
-	assert.eq(doc.nodes[2].data.status, "active")
 	local top = doc.github
-	local unplaced = if top then require("@std/json").asArray(top.unplaced) else nil
-	assert.eq(unplaced and #unplaced, 0)
+	local unplaced = if top then json.asArray(top.unplaced) else nil
+	assert.eq(unplaced and #unplaced, 1)
+	local entry = if unplaced then json.asObject(unplaced[1]) else nil
+	assert.eq(entry and entry.repo, "vocksel/orion")
 end)
 
-test.case("apply updates statuses, reports what's missing, and files new pull requests in an Inbox", function(assert)
+test.case("apply updates statuses, and reports what's missing", function(assert)
 	local doc = testing.createDoc({
 		testing.task("a", "Mine", "active", nil, {
 			repo = "flipbook-labs/flipbook",
@@ -179,13 +157,11 @@ test.case("apply updates statuses, reports what's missing, and files new pull re
 		checked = { ["flipbook-labs/flipbook#1"] = true, ["flipbook-labs/flipbook#2"] = true },
 		authored = {},
 		viewer = "vocksel",
-		discover = false,
 		failures = {},
 	}, "2026-10-04T00:00:00Z")
 	assert.eq(#report.changes, 1)
 	assert.eq(report.changes[1].toStatus, "done")
 	assert.eq(report.missing[1], "b")
-	assert.eq(#report.added, 0)
 	local recorded = (findRef(doc.nodes[1], "pull") :: types.Ref).details
 	assert.eq(recorded and recorded.checks, "SUCCESS")
 	assert.eq(recorded and recorded.additions, 12)
@@ -217,13 +193,12 @@ end
 
 -- Your own open pull requests are listed with light fields, and collectPulls fetches the full state of the ones that
 -- can become cards.
-local function authoredOnly(authored: PullState, discover: boolean?): Fetched
+local function authoredOnly(authored: PullState): Fetched
 	return {
 		pulls = { [getKey(authored)] = authored },
 		checked = {},
 		authored = { authored },
 		viewer = "vocksel",
-		discover = discover == true,
 		failures = {},
 	}
 end
@@ -322,13 +297,11 @@ test.case("cards that already track a pull request or are done are not branch ma
 	assert.eq(findRef(finished, "pull"), nil)
 end)
 
-test.case("discover attaches a branch match to its card instead of filing it in the Inbox", function(assert)
+test.case("a branch match attaches to its card", function(assert)
 	local doc = testing.createDoc({ branchCard("work", "Dashboard work", "todo") })
-	local report = applyPulls(doc, authoredOnly(pull("OPEN"), true), "2026-10-04T18:05:00Z")
+	local report = applyPulls(doc, authoredOnly(pull("OPEN")), "2026-10-04T18:05:00Z")
 
 	assert.eq(#report.attached, 1)
-	assert.eq(#report.added, 0)
-	assert.eq(findItem(doc, "inbox"), nil)
 	assert.eq(#unplacedOf(doc), 0)
 end)
 
@@ -349,7 +322,6 @@ local function fetchedWith(state: string): Fetched
 		checked = { [getKey(tracked)] = true },
 		authored = {},
 		viewer = "vocksel",
-		discover = false,
 		failures = {},
 	}
 end
@@ -428,7 +400,6 @@ test.case("a card that wasn't fetched keeps its state and isn't reported missing
 		checked = {},
 		authored = {},
 		viewer = "vocksel",
-		discover = false,
 		failures = { "2 pull requests on github.com: gh: HTTP 502" },
 	}, "2026-10-04T18:05:00Z")
 
@@ -440,12 +411,11 @@ end)
 
 test.case("a branch match without its full state stays unplaced until it's fetched", function(assert)
 	local doc = testing.createDoc({ branchCard("work", "Dashboard work", "todo") })
-	local fetched = authoredOnly(pull("OPEN"), true)
+	local fetched = authoredOnly(pull("OPEN"))
 	fetched.pulls = {}
 	local report = applyPulls(doc, fetched, "2026-10-04T18:05:00Z")
 
 	assert.eq(#report.attached, 0)
-	assert.eq(#report.added, 0)
 	assert.eq(findRef(doc.nodes[1], "pull"), nil)
 	assert.eq(#unplacedOf(doc), 1)
 end)
