@@ -1,7 +1,8 @@
-# Paths each CI job depends on, read by ci.yml's `ci-loading` job and perf.yml's `perf-loading` job through
-# dorny/paths-filter. A job runs when a change matches its filter. The app's tests read the token docs, the example
-# theme, and the CLI's token contract to check they agree. The docs reference is generated from the CLI, and the
-# desktop build bundles the app and the CLI sidecar. The CLI checks the app's geometry module, which it generates.
+# Paths each CI job depends on, read by ci.yml's `ci-loading` job, docs.yml's `docs-loading` job, and perf.yml's
+# `perf-loading` job through dorny/paths-filter. A job runs when a change matches its filter. The app's tests read the
+# token docs, the example theme, and the CLI's token contract to check they agree. The docs reference is generated from
+# the CLI, and the desktop build bundles the app and the CLI sidecar. The CLI checks the app's geometry module, which it
+# generates.
 
 # Every job reruns when the toolchain or the CI setup changes
 shared: &shared
@@ -27,6 +28,7 @@ app:
 
 docs:
   - *shared
+  - .github/workflows/docs.yml
   - docs/**
   - "workspace/orion-cli/**/!(*.md)"
   - .lute/docs.luau
@@ -41,8 +43,8 @@ desktop:
   - .config.luau
   - project.luau
 
-# Perf measures the app, so it runs when the app or the perf tooling changes. Unlike the filters above, it also applies
-# to pushes to main, where changes are read against the commit before the push.
+# Perf measures the app, so it runs when the app or the perf tooling changes. Like the docs filter, it also applies to
+# pushes to main, where changes are read against the commit before the push.
 perf:
   - rokit.toml
   - .github/path-filters.yml

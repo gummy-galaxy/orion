@@ -32,7 +32,6 @@ jobs:
     outputs:
       cli: ${{ steps.filter.outputs.cli || 'true' }}
       app: ${{ steps.filter.outputs.app || 'true' }}
-      docs: ${{ steps.filter.outputs.docs || 'true' }}
       desktop: ${{ steps.filter.outputs.desktop || 'true' }}
     steps:
       # Checked out for the filters file. Pull requests list their changed files through the API.
@@ -192,46 +191,6 @@ jobs:
           name: orion-app
           path: workspace/orion-app/dist
           retention-days: 1
-
-  docs:
-    needs: ci-loading
-    if: needs.ci-loading.outputs.docs == 'true'
-    runs-on: beelink
-    timeout-minutes: 5
-    defaults:
-      run:
-        working-directory: docs
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Install Luau Tools with Rokit
-        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
-        with:
-          version: v1.2.0
-          cache: true
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: docs/package-lock.json
-
-      - name: Install Luau Dependencies
-        run: lute pkg install
-        working-directory: workspace/orion-cli
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Check the Reference
-        run: lute run docs --check
-        working-directory: .
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
 
   desktop:
     needs: ci-loading

@@ -92,7 +92,7 @@ function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEn
 
 // Revisions before the move into workspace/ keep the app in app/.
 function appFolderAt(sha: string): string {
-  return git('ls-tree', '--name-only', sha, 'workspace/orion-app') ? 'workspace/orion-app' : 'app'
+  return git('ls-tree', '--full-tree', '--name-only', sha, 'workspace/orion-app') ? 'workspace/orion-app' : 'app'
 }
 
 /** An unpacked copy of the base revision's app with this checkout's harness laid over it. */
