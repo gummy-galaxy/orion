@@ -13,12 +13,10 @@ local function markCelebrations(doc: Doc, previous: { [string]: string })
 			local status = getStringField(item.data.status)
 			local wasOpen = previous[item.id] ~= nil and previous[item.id] ~= "done"
 
-			if item.data.celebrate == false then
+			if item.data.celebrate == false or status ~= "done" then
 				item.data.celebrate = nil
-			elseif status == "done" and wasOpen then
+			elseif wasOpen then
 				item.data.celebrate = true
-			elseif status ~= "done" then
-				item.data.celebrate = nil
 			end
 		end
 	end

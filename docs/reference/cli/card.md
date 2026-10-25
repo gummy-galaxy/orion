@@ -22,12 +22,12 @@ orion card list [options]
 | `--all`           | Include done items           |
 | `--json`          | Print JSON                   |
 
-## orion card add
+## orion card create
 
 Add a work item
 
 ```sh
-orion card add [options] [label...]
+orion card create [options] [label...]
 ```
 
 | Argument           | Description                                                                                                  |

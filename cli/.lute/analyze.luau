@@ -1,8 +1,17 @@
 local run = require("@root/run")
 local runScript = require("@root/runScript")
 
-local sources =
-	{ "src", "cli.luau", ".lute", "project.luau", "loom.config.luau", ".config.luau", "../.lute", "../.config.luau" }
+local sources = {
+	"src",
+	"lints",
+	"cli.luau",
+	".lute",
+	"project.luau",
+	"loom.config.luau",
+	".config.luau",
+	"../.lute",
+	"../.config.luau",
+}
 
 runScript(function()
 	run("stylua", { "--check", table.unpack(sources) })

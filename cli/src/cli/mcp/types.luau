@@ -14,7 +14,7 @@ export type Field = {
 	minimum: number?,
 }
 
--- A tool runs one CLI command, named after its path, such as orion_card_add for orion card add.
+-- A tool runs one CLI command, named after its path, such as orion_card_create for orion card create.
 export type Tool = {
 	name: string,
 	description: string,
