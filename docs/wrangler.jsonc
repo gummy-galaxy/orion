@@ -1,0 +1,13 @@
+// The orion Worker serves the built docs site as static assets, with no Worker code of its own.
+{
+  "name": "orion",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./.vitepress/dist",
+    "not_found_handling": "404-page",
+  },
+  // Production answers only at the custom domain. Pull requests get version preview URLs on workers.dev.
+  "workers_dev": false,
+  "preview_urls": true,
+  "routes": [{ "pattern": "oriongraph.app", "custom_domain": true }],
+}
