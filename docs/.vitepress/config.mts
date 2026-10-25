@@ -11,6 +11,7 @@ export default defineConfig({
   // The vibrant theme is dark only, like the app's.
   appearance: 'force-dark',
   cleanUrls: true,
+  markdown: { image: { lazyLoading: true } },
   lastUpdated: true,
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: `${base}logo.png` }],
@@ -54,8 +55,38 @@ export default defineConfig({
       ],
       '/development/': [
         { text: 'Development', link: '/development/' },
-        { text: 'Design', link: '/development/design/' },
-        { text: 'Engineering', link: '/development/engineering/' },
+        { text: 'Charter', link: '/development/charter' },
+        { text: 'Decisions', link: '/development/decisions' },
+        { text: 'Origins', link: '/development/origins' },
+        {
+          text: 'Design',
+          link: '/development/design/',
+          collapsed: false,
+          items: [
+            { text: 'Canvas and layout', link: '/development/design/canvas-and-layout' },
+            { text: 'Card identity', link: '/development/design/card-identity' },
+            { text: 'Card skins', link: '/development/design/cards' },
+            { text: 'Companion', link: '/development/design/companion' },
+            { text: 'Gummy Galaxy and Orion', link: '/development/design/gummy-galaxy-and-orion' },
+            { text: 'Gummy Galaxy concept art', link: '/development/design/gummy-galaxy-concept-art' },
+            { text: 'Logo', link: '/development/design/logo' },
+            { text: 'Motion and feel', link: '/development/design/motion-and-feel' },
+            { text: 'Themes and skins', link: '/development/design/themes-and-skins' },
+            { text: 'Trading cards', link: '/development/design/trading-cards' },
+          ],
+        },
+        {
+          text: 'Engineering',
+          link: '/development/engineering/',
+          collapsed: false,
+          items: [
+            { text: 'Architecture', link: '/development/engineering/architecture' },
+            { text: 'CLI and agents', link: '/development/engineering/cli-and-agents' },
+            { text: 'Data and sync', link: '/development/engineering/data-and-sync' },
+            { text: 'Interface audit', link: '/development/engineering/interface-audit' },
+            { text: 'Performance', link: '/development/engineering/performance' },
+          ],
+        },
       ],
     },
     search: { provider: 'local' },

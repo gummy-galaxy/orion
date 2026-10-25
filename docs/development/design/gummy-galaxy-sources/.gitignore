@@ -1,0 +1,13 @@
+node_modules/
+assets/
+blender/renders/
+blender/kit-renders/
+blender/kit-tests/
+blender/library/
+gallery/site/
+gallery/*.png
+gallery/*.html
+!gallery/index.src.html
+!gallery/blair-poster.html
+!gallery/wrapper.html
+!gallery/storybook.html

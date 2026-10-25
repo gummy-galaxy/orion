@@ -10,13 +10,32 @@ Orion keeps everything in plain files on your machine. The CLI owns them: the ap
 | Windows  | `%APPDATA%\Orion`                                            |
 | Linux    | `$XDG_DATA_HOME/orion`, or `~/.local/share/orion` without it |
 
-Set `ORION_DATA_DIR` to use another folder. The app's preferences, such as the theme and keyboard shortcuts, live in its `settings.json` and apply to every canvas.
+Set `ORION_DATA_DIR` to use another folder on any platform. It takes precedence over `XDG_DATA_HOME` and `APPDATA`, and a relative path resolves from the current folder. The app's preferences, such as the theme and keyboard shortcuts, live in its `settings.json` and apply to every canvas. `commands.json` holds the programs this machine runs for each canvas's sources, such as a Jira source's command, keyed by canvas and source id. It stays out of the canvases' own files, so sharing a canvas never shares a command.
 
 ## Canvases
 
-The `default` canvas is `orion.json` in the data folder. Every other canvas has its own folder under `canvases/<name>/`, and `canvases.json` records their names, labels, which one is active, and which are archived. Canvas names use lowercase letters, digits, and hyphens.
+The `default` canvas lives in the data folder itself. Every other canvas has its own folder under `canvases/<name>/`, and `canvases.json` records their names, labels, which one is active, and which are archived. Canvas names use lowercase letters, digits, and hyphens.
+
+A canvas is a folder of small JSON files:
+
+- `canvas.json` holds its settings.
+- `nodes/<id>.json` holds each card, note, group, and image, with its place in the canvas's order and when each of its fields last changed.
+- `links/<id>.json` holds each link.
+- `local.json` holds what this machine recorded about it, such as its revision and the last GitHub check.
+
+Keys are sorted and formatting is stable, so a change rewrites only the files it touches. New cards and links get random ids, so two copies of a canvas in git that each add or edit different cards merge without a conflict. Keep `local.json` and `index.sqlite` out of git, since they change on every write. Change the files through the CLI rather than by hand.
+
+Orion reads a canvas through `index.sqlite` beside its files, which it builds from them with the `sqlite3` command and keeps up to date. It holds nothing the files don't, so deleting it is safe. Without `sqlite3` installed, Orion reads every file instead, which is slower on large canvases.
+
+A canvas folder can sit in a git repository. While the app is open, files a `git pull` or an editor changes show up without a restart. A note with a git conflict shows both versions between the conflict markers. Edit it to the version you want, and Orion writes the file without them. Any other card file that doesn't parse shows as a note holding its text.
+
+Older versions of Orion kept a Jira or hop source's command in `canvas.json`. The first command a newer Orion runs moves those commands into `commands.json`. After that, a command in a canvas's files is ignored, so one that arrives with a cloned canvas never runs.
+
+Older versions of Orion kept each canvas in one `orion.json`. The first command a newer Orion runs splits it into files and keeps the original beside them as `orion.backup.json`.
 
 Older versions of Orion called canvases workspaces and kept them in `workspaces/` and `workspaces.json`. The first command a newer Orion runs moves them into place and keeps the old list as `workspaces.backup.json`. Quit an older Orion that is still open first, since it would keep writing to the old folders.
+
+Data files from Orion's first weeks, saved as data version 1, aren't read anymore, and commands on one stop with a message saying so. To upgrade one, make a single change to it with an Orion built from commit `40320db6` or earlier, such as moving a card, which saves it as version 2.
 
 ```sh
 orion canvas list
@@ -33,24 +52,24 @@ Commands use the active canvas. Pass `--canvas <name>`, or set `ORION_CANVAS`, t
 Images are canvas nodes, with their files in the canvas's `assets/` folder. Use **Add image** in the app, or:
 
 ```sh
-orion media insert ./concept.png --label "Concept"
+orion media add ./concept.png --label "Concept"
 ```
 
 Orion accepts PNG, JPEG, GIF, and WebP images up to 5 MB.
 
 ## Backups
 
-Before every write, Orion copies the current file to the canvas's `backups/` folder. It keeps every backup from the last day and the newest from each of the last 30 days.
+Before every write, Orion saves the whole canvas as one file in its `backups/` folder. It keeps every backup from the last day and the newest from each of the last 30 days.
 
 ```sh
 orion backup list
 orion backup restore <revision>
 ```
 
-Restoring brings a backup back as a new revision, and backs up the current file first.
+Restoring brings a backup back as a new revision, and backs up the current canvas first.
 
 ## The server
 
 `orion server start` serves the app's data over HTTP and sends changes over WebSocket. The desktop app runs it for you. Its API is internal to the app; other tools should use the CLI or [MCP](./getting-started#connect-an-agent-over-mcp).
 
-While the app is open, it reports its open group and selection to the server, and `orion focus` prints that report. Agents use it to know what "this" means.
+While the app is open, it reports its open group and selection to the server, and `orion focus` prints that report. Agents use it to know what "this" means. `orion reveal <id…>` works the other way: it selects cards or groups in the open app and zooms the canvas to them, opening the innermost group that holds them all. With no app running, it opens the installed app on the same data folder first.

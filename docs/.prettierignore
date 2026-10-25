@@ -1,3 +1,6 @@
 .vitepress/cache
 .vitepress/dist
 node_modules
+development/design/logo-sources
+development/design/gummy-galaxy-sources
+development/design/card-identity-sources

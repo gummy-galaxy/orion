@@ -1,0 +1,145 @@
+local json = require("@std/json")
+local net = require("@lute/net/server")
+local process = require("@std/process")
+local task = require("@std/task")
+
+local clearFocus = require("@root/store/clearFocus")
+local derive = require("@root/graph/derive")
+local ensureDirectory = require("@root/platform/ensureDirectory")
+local events = require("@root/server/events")
+local getVersion = require("@root/getVersion")
+local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local getWorkspaces = require("@root/store/getWorkspaces")
+local isTrustedRequest = require("@root/server/isTrustedRequest")
+local readRuntime = require("@root/server/readRuntime")
+local removeRuntime = require("@root/server/removeRuntime")
+local routes = require("@root/server/routes")
+local serializeDerived = require("@root/server/serializeDerived")
+local storeTypes = require("@root/store/types")
+local sync = require("@root/server/sync")
+local types = require("@root/types")
+local watcher = require("@root/server/watcher")
+local writeRuntime = require("@root/server/writeRuntime")
+
+type Runtime = readRuntime.Runtime
+type WorkspaceList = storeTypes.WorkspaceList
+
+local server = {}
+
+function server.start(root: string, workspace: string, host: string, port: number, staticDir: string?, devPort: number?)
+	local startedAt = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+	local runtime: Runtime?
+	ensureDirectory(root)
+
+	local dir = getWorkspaceDir(root, workspace)
+
+	ensureDirectory(dir)
+
+	local function clearAllFocus()
+		for _, entry in getWorkspaces(root).workspaces do
+			clearFocus(getWorkspaceDir(root, entry.name))
+		end
+	end
+	clearAllFocus()
+	local hub = events.create()
+	local syncLoop = sync.create(root, workspace, function(status: json.Object)
+		hub.publish("orion:sync", status)
+	end)
+
+	local monitor
+	local router = routes.create(root, workspace, syncLoop, function(name: string)
+		assert(monitor).switchTo(name)
+		syncLoop.switchTo(name)
+		if runtime then
+			runtime.canvas = name
+			writeRuntime(root, runtime)
+		end
+		hub.publish("orion:canvas", json.object({ active = name }))
+		task.spawn(function()
+			syncLoop.run(true)
+		end)
+	end, staticDir, hub)
+	monitor = watcher.create(
+		root,
+		router.getActive,
+		router.switchTo,
+		function(revision: number, doc: types.Doc, isReindexed)
+			local event = json.object({ revision = revision, derived = serializeDerived(derive(doc)) })
+
+			-- Files changed outside Orion without a new revision, so the app reloads despite seeing its own revision.
+			if isReindexed then
+				event.reindexed = true
+			end
+
+			hub.publish("orion:changed", event)
+		end,
+		function(list: WorkspaceList)
+			hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
+		end,
+		function(name: string)
+			hub.publish("orion:log", json.object({ canvas = name }))
+		end
+	)
+
+	local trustedPorts: { number } = {}
+	if devPort then
+		table.insert(trustedPorts, devPort)
+	end
+
+	local running = net.serve({
+		hostname = host,
+		port = port,
+		handler = function(request, socketServer)
+			if not isTrustedRequest(request, host, trustedPorts) then
+				return { status = 403, body = "Orion only answers its own app" }
+			end
+
+			if request.path == "/api/events" then
+				if socketServer:upgrade(request) then
+					return nil
+				end
+
+				return { status = 400, body = "WebSocket upgrade required" }
+			end
+
+			return router.handle(request) :: net.ServerResponse
+		end,
+
+		websocket = {
+			open = hub.open,
+			close = function(socket)
+				hub.close(socket)
+			end,
+		},
+	})
+	table.insert(trustedPorts, running.port)
+	runtime = {
+		pid = process.pid(),
+		url = `http://{running.hostname}:{running.port}`,
+		canvas = workspace,
+		dataFolder = root,
+		startedAt = startedAt,
+		version = getVersion() :: string?,
+	}
+	writeRuntime(root, runtime)
+	monitor.start()
+	task.delay(5, function()
+		while true do
+			syncLoop.tick()
+			task.wait(sync.TICK_SECONDS)
+		end
+	end)
+
+	return {
+		hostname = running.hostname,
+		port = running.port,
+		close = function()
+			assert(monitor).close()
+			running.close()
+			removeRuntime(root, runtime)
+			clearAllFocus()
+		end,
+	}
+end
+
+return table.freeze(server)

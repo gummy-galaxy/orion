@@ -1,0 +1,199 @@
+/*
+ * Tokens every theme shares. Names are role-based; docs/guide/tokens.md says what each one is for, and tokens.ts
+ * lists them all. A theme in themes/ sets the colors; it can override any of these too. Colors resolve with
+ * light-dark(), so the color mode only has to set color-scheme.
+ */
+:root {
+  /* Cards take the surface and border roles unless a theme gives them their own. */
+  --card-background: var(--surface-background);
+  --card-border: var(--border-default);
+  /* Ready work wears the theme's accent unless the status colors replace it. */
+  --status-ready: var(--accent-default);
+  /* Links out of components carry no work, so they read as plain wiring in any theme. */
+  --edge-still: color-mix(in srgb, var(--text-primary) 45%, var(--edge-default));
+
+  /* The companion: white stars with dark eyes, outlined in near-black with a blue-violet undertone on light canvases. */
+  --companion-body: #fff;
+  --companion-edge: light-dark(#1d1a33, transparent);
+  --companion-ink: light-dark(#1d1a33, #1a1240);
+  --companion-halo: light-dark(rgb(76 64 160 / 0.18), rgb(255 255 255 / 0.55));
+  --companion-glow: light-dark(rgb(98 80 200 / 0.22), color-mix(in srgb, var(--accent-default) 50%, transparent));
+  --companion-tether: light-dark(
+    color-mix(in srgb, var(--companion-edge) 70%, transparent),
+    color-mix(in srgb, var(--companion-body) 70%, transparent)
+  );
+
+  /* The trading card skin is always dark, so its colors don't follow the color mode. Its art gradients stay its own. */
+  --trading-background: #120d30;
+  --trading-tile: #1b1442;
+  --trading-text: #f4f0ff;
+  --trading-text-muted: #a39bcc;
+  --trading-ink: #0c0920;
+  --trading-edge: rgb(255 255 255 / 0.1);
+  --trading-gate: #ffd166;
+  --trading-lock: #fff;
+  --trading-blockers: #3c3370;
+  --trading-unblocks: #18d6c0;
+  --trading-note-background: #251c57;
+  --trading-note-text: #d4cdf3;
+  --trading-radius: 16px;
+  --trading-shadow-card: 0 18px 40px rgb(0 0 0 / 0.45);
+  --trading-shadow-badge: 0 4px 12px rgb(12 9 32 / 0.5);
+  --trading-shadow-tile: 0 5px 0 rgb(12 9 32 / 0.45);
+
+  --font-ui: 'Schibsted Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  --text-size-mini: 8px;
+  --text-size-nano: 9px;
+  --text-size-tiny: 10px;
+  --text-size-micro: 10.5px;
+  --text-size-caption: 11px;
+  --text-size-detail: 11.5px;
+  --text-size-small: 12px;
+  --text-size-label: 12.5px;
+  --text-size-body: 13px;
+  --text-size-emphasis: 13.5px;
+  --text-size-base: 14px;
+  --text-size-subheading: 15px;
+  --text-size-input: 16px;
+  --text-size-heading: 17px;
+  --text-size-glyph: 18px;
+  --text-size-glyph-large: 20px;
+  --text-size-sticker: 28px;
+  --text-size-sticker-art: 40px;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-card: var(--radius-md);
+  --radius-pill: 999px;
+  --radius-round: 50%;
+  --radius-hairline: 2px;
+  --radius-note-corner: 0 7px 0 3px;
+
+  --border-width-default: 1px;
+  --border-width-strong: 1.5px;
+  --border-width-rule: 2px;
+  --border-width-stamp: 2.5px;
+
+  /* Rings sit outside or inside a box without changing its size: focus outlines, selection, and status stripes. */
+  --ring-width-hairline: 1px;
+  --ring-width-inset: 1.5px;
+  --ring-width-default: 2px;
+  --ring-width-selection: 3px;
+  --ring-width-pulse: 8px;
+  --ring-offset-default: 1px;
+  --ring-offset-wide: 2px;
+  --ring-offset-selection: 3px;
+  --stripe-width-default: 3px;
+  --stripe-width-strong: 4px;
+
+  /* Stroke widths for the lines drawn on the canvas. */
+  --link-width-default: 1.3px;
+  --link-width-focus: 1.5px;
+  --link-width-still: 1.6px;
+  --link-width-held: 1.7px;
+  --link-width-focus-held: 1.8px;
+  --link-width-attention: 2px;
+  --link-width-related: 2.2px;
+  --link-width-traced: 2.6px;
+  --link-width-picked: 2.8px;
+  --link-width-pulse: 4px;
+  --snap-guide-width: 1px;
+
+  --line-height-glyph: 1;
+  --line-height-tight: 1.2;
+  --line-height-label: 1.25;
+  --line-height-note: 1.3;
+  --line-height-preview: 1.4;
+  --line-height-base: 1.45;
+  --line-height-prose: 1.5;
+  --line-height-poster: 1.15;
+
+  /* A step's half, such as space.1.5, sits halfway between it and the next step. */
+  --space-0-5: 1px;
+  --space-1: 2px;
+  --space-1-5: 3px;
+  --space-2: 4px;
+  --space-2-5: 5px;
+  --space-3: 6px;
+  --space-3-5: 7px;
+  --space-4: 8px;
+  --space-4-5: 9px;
+  --space-5: 10px;
+  --space-5-5: 11px;
+  --space-6: 12px;
+  --space-7: 14px;
+  --space-7-5: 15px;
+  --space-8: 16px;
+  --space-8-5: 18px;
+  --space-9: 20px;
+  --space-9-5: 22px;
+  --space-10: 24px;
+
+  --shadow-image: 0 8px 24px #0002;
+  --shadow-dialog: 0 14px 50px color-mix(in srgb, var(--text-primary) 20%, transparent);
+  --shadow-selection: 0 0 0 9px color-mix(in srgb, var(--accent-default) 26%, transparent);
+  --shadow-lift: 0 0 0 3px color-mix(in srgb, var(--text-primary) 16%, transparent), 0 14px 28px -10px rgb(0 0 0 / 0.4);
+  --shadow-sticker: 0 2px 2px rgb(23 36 43 / 0.25);
+  --shadow-sticker-held: 0 9px 7px rgb(23 36 43 / 0.22);
+
+  --motion-duration-stagger: 16ms;
+  --motion-duration-blink: 80ms;
+  --motion-duration-instant: 120ms;
+  --motion-duration-quick: 140ms;
+  --motion-duration-fast: 150ms;
+  --motion-duration-open: 160ms;
+  --motion-duration-fade: 180ms;
+  --motion-duration-base: 200ms;
+  --motion-duration-reveal: 240ms;
+  --motion-duration-hint: 250ms;
+  --motion-duration-camera-focus: 260ms;
+  --motion-duration-chain: 300ms;
+  --motion-duration-pop: 340ms;
+  --motion-duration-stamp: 360ms;
+  --motion-duration-clear: 420ms;
+  --motion-duration-camera: 450ms;
+  --motion-duration-sticker-ring: 480ms;
+  --motion-duration-sticker-stamp: 520ms;
+  --motion-duration-flourish: 640ms;
+
+  /* One cycle of each looping animation. Scripts read the one-shot durations above that they wait on, so a theme can
+     lengthen those without cutting them off. */
+  --motion-loop-twinkle: 0.5s;
+  --motion-loop-attention: 0.6s;
+  --motion-loop-flow: 0.8s;
+  --motion-loop-flow-group: 1.2s;
+  --motion-loop-sync: 1.2s;
+  --motion-loop-check: 1.6s;
+  --motion-loop-shimmer: 2.4s;
+  --motion-loop-snooze: 2.4s;
+  --motion-loop-pulse: 3.2s;
+  --motion-loop-spin: 1.4s;
+
+  --motion-easing-standard: ease;
+  --motion-easing-enter: ease-out;
+  --motion-easing-exit: ease-in;
+  --motion-easing-pop: cubic-bezier(0.2, 0.9, 0.3, 1.25);
+  --motion-easing-bounce: cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  --motion-easing-stamp: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  --motion-easing-spring: cubic-bezier(0.3, 1.6, 0.5, 1);
+
+  color-scheme: light dark;
+}
+
+
+:root[data-color-mode='light'] {
+  color-scheme: light;
+}
+:root[data-color-mode='dark'] {
+  color-scheme: dark;
+}

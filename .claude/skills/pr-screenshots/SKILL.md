@@ -1,13 +1,13 @@
 ---
 name: pr-screenshots
-description: Capture before and after screenshots or videos of the Orion app and attach them to a pull request description. Use when opening or updating a pull request that changes what the app shows, such as anything under app/src or the desktop shell's UI, or when asked for screenshots or videos on a PR.
+description: Capture before and after screenshots or videos of the Orion app and attach them to a pull request description. Use when opening or updating a pull request that changes what the app shows, such as anything under workspace/orion-app/src or the desktop shell's UI, or when asked for screenshots or videos on a PR.
 ---
 
 # PR screenshots
 
 Every pull request that changes what the app shows gets before and after screenshots in its description. Skip pull requests whose changes can't be seen: CLI-only work, tests, tooling, docs, and refactors with no visible change.
 
-Capture both sides the same way: same data, window size, theme, and steps. Only the code should differ.
+Capture both sides the same way: same data, window size, theme, and steps. Only the code should differ. `capture.mjs` pins the Vibrant theme and Trading cards on both sides by default, so a branch from before they became the defaults renders the same as one after.
 
 ## 1. Pick what to show
 
@@ -17,7 +17,7 @@ Record a video instead when a still can't show the change: an interaction such a
 
 A new feature has nothing to show before it. Attach the after image alone, or a before image of the same spot when its absence is worth seeing.
 
-These captures show only the app's web content. Parts the desktop shell draws, such as the window buttons and macOS menus, need the desktop app: run `npm run dev` in `desktop/` and leave it open for the person to capture, or say in the description what the images leave out.
+These captures show only the app's web content. Parts the desktop shell draws, such as the window buttons and macOS menus, need the desktop app: run `npm run dev` in `workspace/orion-desktop/` and leave it open for the person to capture, or say in the description what the images leave out.
 
 ## 2. Prepare two trees and two data copies
 
@@ -41,15 +41,15 @@ In each tree, install the app's packages and build the CLI, which takes seconds:
 
 ```sh
 for tree in "$BEFORE" "$AFTER"; do
-  (cd "$tree/app" && npm ci) && (cd "$tree/cli" && lute pkg install && lute run build)
+  (cd "$tree/workspace/orion-app" && npm ci) && (cd "$tree/workspace/orion-cli" && lute pkg install) && (cd "$tree" && lute run build)
 done
 ```
 
 Each side runs its own CLI because the app and the server change together. An app paired with an older server can lose edits without showing an error, such as a paste that disappears. Don't link another checkout's `node_modules` either: it may lack packages the branch added, and Vite would write its cache into that checkout.
 
-Give each app its own copy of the data. Never point either at the real data folder, since `orion server start` writes to it.
+Give each app its own copy of the data. Never point either at the real data folder, since `orion server start` writes to it, and a branch's CLI moves it to a layout the installed app can't read. Set `ORION_DATA_DIR` on every command that runs either tree's CLI, Vite included: the before tree may predate the dev server's scratch folder.
 
-Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once with the before tree's CLI, since newer builds read older data. Run `"$BEFORE/cli/build/orion" --help` for its commands, such as `card add`, `link add`, and `group add`, and run each with `ORION_DATA_DIR="$SCRATCH/seed-data"`. `canvas check` reports groups waiting for layout on a fresh sample and exits nonzero, which is expected: the app settles them when it opens. Then copy the sample to each side:
+Prefer a small sample built with the CLI, which suits videos and any change that doesn't depend on real data. It loads fast and keeps real work out of a public pull request. Build it once with the before tree's CLI, since newer builds read older data. Run `"$BEFORE/workspace/orion-cli/build/orion" --help` for its commands, such as `card create`, `link create`, and `group create`, and run each with `ORION_DATA_DIR="$SCRATCH/seed-data"`. `canvas check` reports groups waiting for layout on a fresh sample and exits nonzero, which is expected: the app settles them when it opens. Then copy the sample to each side:
 
 ```sh
 for side in before after; do
@@ -57,7 +57,9 @@ for side in before after; do
 done
 ```
 
-Recording changes the data: a paste adds cards and a drag moves them. Run that copy again before every take, including retakes, so each starts from the same state.
+Recording changes the data: a paste adds cards and a drag moves them. Run that copy again before every take, including retakes, so each starts from the same state. Stop that side's server first and start it again after: the copy deletes the `serve.json` the server keeps in its data folder, and without it the CLI can't find the server. A command such as `orion reveal` then tries to launch the installed app instead.
+
+When a seed needs the app's own layout, such as a tidy top level, open it once in the app, run the layout there with a capture step such as Tidy canvas from the empty-canvas menu, stop the server, and copy the result back into `$SCRATCH/seed-data` without `serve.json`, `focus.json`, or `backups`.
 
 When the change depends on real layout or data, copy only the `orion` canvas, which tracks Orion's own work, instead. These commands only read the real data folder:
 
@@ -66,7 +68,7 @@ for side in before after; do
   mkdir -p "$SCRATCH/$side-data/canvases"
   cp ~/Library/Application\ Support/Orion/canvases.json "$SCRATCH/$side-data/"
   rsync -a --exclude backups ~/Library/Application\ Support/Orion/canvases/orion "$SCRATCH/$side-data/canvases/"
-  ORION_DATA_DIR="$SCRATCH/$side-data" "$BEFORE/cli/build/orion" canvas use orion
+  ORION_DATA_DIR="$SCRATCH/$side-data" "$BEFORE/workspace/orion-cli/build/orion" canvas use orion
 done
 ```
 
@@ -74,16 +76,16 @@ Seed whatever the change needs, such as a gate card or a long label, with the sa
 
 ## 3. Start the apps
 
-Run Vite in each tree's `app/` on its own port, each with its own tree's CLI and data:
+Run Vite in each tree's `workspace/orion-app/` on its own port, each with its own tree's CLI and data:
 
 ```sh
-cd "$BEFORE/app" && ORION_BIN="$BEFORE/cli/build/orion" ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort
-cd "$AFTER/app" && ORION_BIN="$AFTER/cli/build/orion" ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort
+cd "$BEFORE/workspace/orion-app" && ORION_BIN="$BEFORE/workspace/orion-cli/build/orion" ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort
+cd "$AFTER/workspace/orion-app" && ORION_BIN="$AFTER/workspace/orion-cli/build/orion" ORION_DATA_DIR="$SCRATCH/after-data" npx vite --port 5302 --strictPort
 ```
 
 Run them in the background, and keep everything headless so nothing opens on the person's screen. Don't use a dev-server tool that opens a browser pane, such as Claude Code's `preview_start`.
 
-For a story, run `ORION_STORYBOOK=1 npx storybook dev -p 6011 --ci` in the before tree's `app/` and the same with `-p 6012` in the after tree's, and capture `http://localhost:<port>/iframe.html?id=<story-id>&viewMode=story`.
+For a story, run `ORION_STORYBOOK=1 npx storybook dev -p 6011 --ci` in the before tree's `workspace/orion-app/` and the same with `-p 6012` in the after tree's, and capture `http://localhost:<port>/iframe.html?id=<story-id>&viewMode=story`.
 
 ## 4. Capture
 
@@ -97,11 +99,13 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
 
 - `--click-text <text>` clicks the innermost visible element whose text starts with it. `--click`, `--right-click`, and `--middle-click` press that button on a target, `--double-click` clicks twice, `--hover` moves there without pressing, `--drag` presses the left button on a target and `--drop` carries it to another and lets go, `--key <keys>` presses a key or shortcut such as `Meta+C`, `Shift+Tab`, `Escape`, or `Delete`, `--type <text>` types into whatever has focus, `--pause <ms>` waits, and `--eval <js>` runs code in the page and prints what it returns, which helps check state between steps. They repeat and run in order. A target is a CSS selector, acted on at the element's center, or an `<x>,<y>` point such as empty canvas.
 - The pointer glides to each target, sending moves along the way, so hovers and drags behave as they do by hand.
+- `--caption <text>` shows a line of text at the top of the frame until the next caption, and an empty one clears it. Use it for what the page can't show, such as a CLI command that drives the app. Run the command in the background with a delay timed to the caption, such as `(sleep 5; orion reveal <id>) & node capture.mjs … --pause 1500 --caption '$ orion reveal <id>' --pause 4000`, and check the contact sheet that the change follows the caption.
 - Pointer and keyboard steps send real input, so the app handles them as it would a person's. Prefer them over `--eval` for anything a person would do. Keys go to whatever has focus, so click the canvas or a field first. Use Mac shortcuts with `Meta`: the browser runs headless on a Mac, and `Meta+A`, `C`, `X`, `V`, and `Z` also edit text fields and the clipboard.
 - The image shows a cursor where the last pointer step acted: a ring at the point and a small mouse just below and to its right, where an arrow cursor would sit, with the pressed button filled in. Left clicks are blue, right clicks orange, middle clicks purple, and `--hover` a thin gray ring with no button pressed. It's drawn just before the capture and removed after, and it's skipped when the element it acted on is gone by then, such as a menu item that closed its menu. Prefer real pointer steps over `--eval` for clicks so the cursor shows what happened. When an `--eval` step does the clicking, add `--pointer <x>,<y>,<idle|left|right|middle>` after it to place the cursor. Use `--cursor off` only when the cursor would hide the change.
 - Page errors, console errors, and failed requests print to stderr during a take. Read them: one usually means a step didn't do what the image or video seems to show.
-- `--selector <css>` crops to one element, which suits menus, cards, and panels. The crop keeps 32 px of the page around the element so shadows, borders, and nearby context stay in the frame. Raise `--padding` when the surroundings help explain the change, and never set it to 0: a crop flush with the element's edges reads as cut off.
-- `--theme light|dark` sets the color scheme. Defaults are 1440×900 at 2× scale.
+- `--selector <css>` crops to the elements it matches, which suits menus, cards, and panels. Use `.react-flow__node` to frame every card on the canvas, not `.react-flow__nodes`, a layer the size of the canvas that starts at the canvas's origin rather than around its cards. The crop keeps 32 px of the page around the elements so shadows, borders, and nearby context stay in the frame. Raise `--padding` when the surroundings help explain the change, and never set it to 0: a crop flush with the element's edges reads as cut off.
+- `--appearance <theme>,<skin>` pins Orion's theme and card skin, `vibrant,trading` by default, on every side and branch. It sets them in browser storage before the page loads, over the theme and skin the data folder's settings hold, and in a Storybook iframe's `globals` unless the URL already sets them. Pass another pair, such as `--appearance classic,plain`, when the change is about a deprecated theme or skin, and `--appearance off` when it's about the defaults or Settings themselves, so each side shows what the app picks on its own. Both sides take the same value. The pin never writes to the data folder.
+- `--theme light|dark` sets the color scheme. `light` has no effect on Vibrant, which is dark only. Defaults are 1440×900 at 2× scale.
 - Raise `--delay` when the canvas is still animating or measuring groups.
 
 Getting around the canvas:
@@ -125,9 +129,11 @@ node .claude/skills/pr-screenshots/scripts/capture.mjs \
 ```
 
 - The cursor stays on screen throughout and shows each press as it happens, in the colors above. Each `--key` press shows in a badge at the bottom of the frame, such as `⌘ C`, so shortcuts read as clearly as clicks.
-- Videos default to 1× scale, which keeps text readable at a fraction of the size, a 1500 ms `--delay`, and a 600 ms `--glide` between targets. Pass `--scale 2` when small text matters.
+- Videos default to 1× scale, which keeps text readable at a fraction of the size, a 1500 ms `--delay`, and a 600 ms `--glide` between targets. Pass `--scale 2` when small text matters. It records at twice the resolution, which makes the file several times larger, so crop with `--selector` when the change is small.
 - Start with a `--pause` so the opening state reads before anything moves.
-- `--selector` crops to where the element ends up.
+- `--selector` crops to where the elements end up.
+
+When the change adds something to click, such as a new menu item, the before side has nothing there. Give its take the same steps up to that point, then a `--pause` as long as the after side's click and what follows, so both play in step.
 
 Then put both sides in one video, labeled and playing together, which is easier to review than two:
 
@@ -194,4 +200,4 @@ Reread the live description first and change only this section. If it already ho
 
 ## 6. Clean up
 
-Stop both Vite servers and the `orion server start` each one launched, which can outlive it: `pkill -f "$BEFORE/cli/build/orion server start"`, and the same for `$AFTER`. Remove the trees you added with `git worktree remove`, never a worktree you didn't create. Leave the images and videos in the scratch folder once they're attached.
+Stop both Vite servers and the `orion server start` each one launched, which can outlive it: `pkill -f "$BEFORE/workspace/orion-cli/build/orion server start"`, and the same for `$AFTER`. Remove the trees you added with `git worktree remove`, never a worktree you didn't create. Leave the images and videos in the scratch folder once they're attached.

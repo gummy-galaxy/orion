@@ -1,18 +1,16 @@
 # Theme tokens
 
-Every color, font, size, spacing step, shadow, and timing in the app reads a named token. A [theme file](/guide/themes) sets tokens by name, and anything it leaves out keeps its default. The defaults below are what Orion's Classic theme uses.
+Every color, font, size, spacing step, shadow, and timing in the app reads a named token. A [theme file](/guide/themes) sets tokens by name, and anything it leaves out keeps its default. The defaults below are what Orion's Classic theme uses. Vibrant, the default theme, sets its own colors over them, but a theme file builds on these.
 
 Names describe the role a value plays, such as `card.background`, rather than the value itself. Each token is also a CSS custom property, named by swapping the dots for dashes and adding two in front: `card.background` is `--card-background`. A theme file uses the name. A value that refers to another token uses the property, as in `var(--surface-background)`.
 
 ## Names are a contract
 
-Token names are a public contract, so a theme written today keeps working as Orion changes.
+Token names are a public contract for theme files.
 
 - **New tokens can be added at any time.** A theme that doesn't set one gets the default.
-- **A renamed token keeps its old name as an alias.** The old name goes on working, in theme files and as a custom property.
+- **Renames follow Orion's release stages.** Before 0.1.0, a renamed token takes its new name with no alias. From 1.0.0, a renamed token keeps its old name as an alias, in theme files and as a custom property.
 - **No token is dropped silently.** One is removed only on purpose, and the change that removes it says so.
-
-The [aliases](#aliases) section lists every older name that still works.
 
 ## Color
 
@@ -191,6 +189,7 @@ Stroke widths for lines drawn on the canvas. A link's dash pattern shows what ki
 | `link.width.related`    | `2.2px` | Related links, drawn as dots                                 |
 | `link.width.traced`     | `2.6px` | Traced, hovered, and live links in the focus view            |
 | `link.width.picked`     | `2.8px` | A picked link                                                |
+| `link.width.pulse`      | `4px`   | The pulse running down a chain closing out                   |
 | `snap.guide.width`      | `1px`   | Alignment guides while dragging                              |
 
 ## Space
@@ -237,26 +236,27 @@ Spacing for gaps, padding, and margins follows a 2px rhythm. A step ending in `.
 
 Durations and easings for transitions and one-shot animations. When Orion waits for an animation to finish, it reads the token, so a longer value is never cut off. Like text sizes, each exact value is one token, named for the role it most often plays. The Animations setting still decides whether anything moves.
 
-| Name                            | Default | Used for                                                           |
-| ------------------------------- | ------- | ------------------------------------------------------------------ |
-| `motion.duration.stagger`       | `16ms`  | The delay between sticker wheel items opening                      |
-| `motion.duration.blink`         | `80ms`  | The companion's eyes closing and opening                           |
-| `motion.duration.chain`         | `90ms`  | The delay between each card down a chain clearing its finish stamp |
-| `motion.duration.instant`       | `120ms` | Tooltips and sticker wheel hovers                                  |
-| `motion.duration.quick`         | `140ms` | A sticker growing under the pointer                                |
-| `motion.duration.fast`          | `150ms` | Handles, hover actions, and border changes                         |
-| `motion.duration.open`          | `160ms` | The sticker wheel opening                                          |
-| `motion.duration.fade`          | `180ms` | Nodes and panels fading in and out                                 |
-| `motion.duration.base`          | `200ms` | Card, group, and link fades                                        |
-| `motion.duration.reveal`        | `240ms` | Sticker wheel items popping in                                     |
-| `motion.duration.hint`          | `250ms` | The companion's hint growing in                                    |
-| `motion.duration.camera-focus`  | `260ms` | The camera heading for a card it's focusing                        |
-| `motion.duration.pop`           | `340ms` | A far-zoom card popping up                                         |
-| `motion.duration.stamp`         | `360ms` | The finish stamp landing                                           |
-| `motion.duration.clear`         | `420ms` | A finish stamp clearing                                            |
-| `motion.duration.camera`        | `450ms` | The camera panning and zooming, such as to fit the canvas          |
-| `motion.duration.sticker-ring`  | `480ms` | The ring around a fresh sticker                                    |
-| `motion.duration.sticker-stamp` | `520ms` | A fresh sticker stamping down                                      |
+| Name                            | Default | Used for                                                                |
+| ------------------------------- | ------- | ----------------------------------------------------------------------- |
+| `motion.duration.stagger`       | `16ms`  | The delay between sticker wheel items opening                           |
+| `motion.duration.blink`         | `80ms`  | The companion's eyes closing and opening                                |
+| `motion.duration.instant`       | `120ms` | Tooltips and sticker wheel hovers                                       |
+| `motion.duration.quick`         | `140ms` | A sticker growing under the pointer                                     |
+| `motion.duration.fast`          | `150ms` | Handles, hover actions, and border changes                              |
+| `motion.duration.open`          | `160ms` | The sticker wheel opening                                               |
+| `motion.duration.fade`          | `180ms` | Nodes and panels fading in and out                                      |
+| `motion.duration.base`          | `200ms` | Card, group, and link fades                                             |
+| `motion.duration.reveal`        | `240ms` | Sticker wheel items popping in                                          |
+| `motion.duration.hint`          | `250ms` | The companion's hint growing in                                         |
+| `motion.duration.camera-focus`  | `260ms` | The camera heading for a card it's focusing                             |
+| `motion.duration.chain`         | `300ms` | The delay between each card past the third hop down a chain closing out |
+| `motion.duration.pop`           | `340ms` | A far-zoom card popping up                                              |
+| `motion.duration.stamp`         | `360ms` | The finish stamp landing                                                |
+| `motion.duration.clear`         | `420ms` | A finish stamp clearing                                                 |
+| `motion.duration.camera`        | `450ms` | The camera panning and zooming, such as to fit the canvas               |
+| `motion.duration.sticker-ring`  | `480ms` | The ring around a fresh sticker                                         |
+| `motion.duration.sticker-stamp` | `520ms` | A fresh sticker stamping down                                           |
+| `motion.duration.flourish`      | `640ms` | The rings around the last card of a chain closing out                   |
 
 | Name                     | Default                             | Used for                                 |
 | ------------------------ | ----------------------------------- | ---------------------------------------- |
@@ -310,35 +310,6 @@ The trading card skin is always dark, so its colors have one value for both sche
 | `trading.shadow.card`  | `0 18px 40px rgb(0 0 0 / 0.45)` | The shadow under a card             |
 | `trading.shadow.badge` | `0 4px 12px rgb(12 9 32 / 0.5)` | The shadow under the status badge   |
 | `trading.shadow.tile`  | `0 5px 0 rgb(12 9 32 / 0.45)`   | The hard shadow under the kind tile |
-
-## Aliases
-
-These custom properties come from before tokens had role-based names. Each still resolves to its token, so CSS written against them keeps working. Theme files use the token names.
-
-| Alias           | Token                |
-| --------------- | -------------------- |
-| `--bg`          | `canvas.background`  |
-| `--dots`        | `canvas.dots`        |
-| `--surface`     | `surface.background` |
-| `--ink`         | `text.primary`       |
-| `--muted`       | `text.muted`         |
-| `--line`        | `border.default`     |
-| `--accent`      | `accent.default`     |
-| `--accent-soft` | `accent.subtle`      |
-| `--edge`        | `edge.default`       |
-| `--note`        | `note.background`    |
-| `--note-edge`   | `note.border`        |
-| `--note-ink`    | `note.text`          |
-| `--snap`        | `snap.guide`         |
-| `--st-todo`     | `status.todo`        |
-| `--st-ready`    | `status.ready`       |
-| `--st-active`   | `status.active`      |
-| `--st-review`   | `status.review`      |
-| `--st-blocked`  | `status.blocked`     |
-| `--st-done`     | `status.done`        |
-| `--shadow`      | `shadow.raised`      |
-
-No token has been renamed since theme files arrived, so there are no older token names to alias yet.
 
 ## Not tokens
 

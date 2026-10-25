@@ -11,12 +11,13 @@ node_modules
 dist
 dist-ssr
 storybook-static
-desktop/src-tauri/binaries/
+workspace/orion-desktop/binaries/
 *.local
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+!.vscode/settings.json
 .idea
 .DS_Store
 *.suo
@@ -24,6 +25,9 @@ desktop/src-tauri/binaries/
 *.njsproj
 *.sln
 *.sw?
+
+# Scratch data the app's dev server seeds and serves
+workspace/orion-app/.dev-data
 
 # Performance reports and builds from npm run perf
 .perf

@@ -1,0 +1,551 @@
+<title>Gummy Galaxy Gummies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Martian+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the selected mark large with its controls and avatar previews, then every mark in the current look. */
+:root {
+  color-scheme: dark;
+  --page: #0b0719;
+  --raised: #150e2e;
+  --panel: #1c1340;
+  --line: rgb(255 255 255 / 0.09);
+  --text: #f6f0ff;
+  --muted: #a99fd0;
+  --lemon: #ffd84a;
+  --font-body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+body { background: var(--page); color: var(--text); font: 400 16px/1.55 var(--font-body); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 80px; display: flex; flex-direction: column; gap: 26px; }
+:focus-visible { outline: 2px solid var(--lemon); outline-offset: 3px; }
+.eyebrow { font: 600 11px/1.3 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+header, .section-head { display: flex; flex-direction: column; gap: 8px; max-width: 76ch; }
+h1 { margin: 0; font: 800 clamp(34px, 5vw, 54px)/1 var(--font-body); letter-spacing: -0.025em; }
+.section-head h2 { margin: 0; font: 800 clamp(24px, 3vw, 32px)/1.1 var(--font-body); }
+header p, .section-head p { margin: 0; color: var(--muted); }
+.studio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .studio { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--raised); border-radius: 20px; padding: 18px; box-shadow: inset 0 0 0 1px var(--line); display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.stage { position: relative; }
+.hero { width: 100%; aspect-ratio: 1; border-radius: 18px; display: block; background: #071416; box-shadow: 0 24px 60px rgb(0 0 0 / 0.5); }
+.busy { position: absolute; left: 14px; bottom: 12px; font: 11px var(--font-mono); color: rgb(255 255 255 / 0.7); }
+.note { padding: 12px 14px; border-radius: 14px; background: var(--panel); }
+.note b { display: block; font: 700 15px/1.3 var(--font-body); }
+.note span { font-size: 14px; color: var(--muted); }
+.control { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.control-label { font: 600 10px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button, .action {
+  appearance: none; border: 0; cursor: pointer;
+  padding: 8px 12px; border-radius: 999px;
+  background: var(--panel); color: var(--text);
+  font: 600 13px/1 var(--font-body);
+  box-shadow: inset 0 0 0 1px var(--line);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.chips button[aria-pressed='true'] { background: var(--text); color: var(--page); }
+.chips button i { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+.action.primary { background: linear-gradient(135deg, #ff8fd0, #ffd84a); color: #2a0f2a; font-weight: 800; box-shadow: 0 8px 24px rgb(255 143 208 / 0.3); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.save-note { font: 12px/1.4 var(--font-mono); color: var(--muted); }
+.slider { display: grid; grid-template-columns: 90px minmax(0, 1fr) 48px; align-items: center; gap: 10px; font-size: 14px; }
+.slider input { width: 100%; accent-color: #ff8fd0; }
+.slider output { font: 600 12px var(--font-mono); text-align: right; }
+.sizes { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.sizes img { display: block; }
+.sizes .sq { border-radius: 14%; }
+.sizes .round { border-radius: 50%; }
+.contexts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 520px) { .contexts { grid-template-columns: 1fr; } }
+.context { border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.context.dark { background: #0d1117; color: #e6edf3; box-shadow: inset 0 0 0 1px #30363d; }
+.context.light { background: #ffffff; color: #1f2328; box-shadow: inset 0 0 0 1px #d0d7de; }
+.profile { display: flex; gap: 12px; align-items: center; }
+.profile img { width: 72px; height: 72px; border-radius: 12px; box-shadow: 0 0 0 1px rgb(127 127 127 / 0.25); }
+.profile b { display: block; font: 700 18px/1.2 -apple-system, 'Segoe UI', system-ui, sans-serif; }
+.profile span { font: 13px/1.3 -apple-system, 'Segoe UI', system-ui, sans-serif; opacity: 0.7; }
+.row { display: flex; align-items: center; gap: 8px; font: 13px/1 -apple-system, 'Segoe UI', system-ui, sans-serif; }
+.row img { width: 20px; height: 20px; border-radius: 5px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+.grid button { appearance: none; border: 0; padding: 10px; cursor: pointer; border-radius: 18px; background: var(--raised); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.grid button[aria-pressed='true'] { box-shadow: inset 0 0 0 2px var(--lemon); }
+.grid canvas { width: 100%; aspect-ratio: 1; border-radius: 12px; display: block; background: #071416; }
+.grid b { font: 700 14px/1.2 var(--font-body); padding-inline: 2px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Gummy Galaxy · gummy marks</span>
+    <h1>Gummy Galaxy Gummies</h1>
+    <p>Six marks rebuilt as real 3D gummies, ray-marched so light passes through them, pools where they're thick, and glows at the edges. Full flavors keeps each mark's candy colors. In the scene trims every mark to lemon and cotton candy and lets the background's light and grain reach the candy.</p>
+  </header>
+
+  <div class="studio">
+    <div class="panel">
+      <div class="stage"><canvas class="hero" id="hero" width="720" height="720" role="img" aria-label="Selected gummy mark"></canvas><span class="busy" id="busy"></span></div>
+      <div class="note" id="note"></div>
+    </div>
+    <div class="panel">
+      <div class="control"><span class="control-label">Mark</span><div class="chips" id="mark-chips"></div></div>
+      <div class="control"><span class="control-label">Look</span><div class="chips" id="look-chips"></div></div>
+      <div class="control"><span class="control-label">Background</span><div class="chips" id="bg-chips"></div></div>
+      <label class="slider"><span>Mark size</span><input type="range" id="zoom" min="0.8" max="1.5" step="0.01" value="1.05"><output id="zoom-out"></output></label>
+      <div class="actions">
+        <button type="button" class="action primary" data-save="500">Save 500 px PNG</button>
+        <button type="button" class="action" data-save="1024">Save 1024 px PNG</button>
+        <span class="save-note" id="save-note"></span>
+      </div>
+      <div class="control"><span class="control-label">At real sizes</span><div class="sizes" id="sizes"></div></div>
+      <div class="contexts">
+        <div class="context dark"><div class="profile"><img data-avatar alt=""><div><b>Gummy Galaxy</b><span>Makers of Orion</span></div></div><div class="row"><img data-avatar alt=""><span>gummy-galaxy / orion</span></div></div>
+        <div class="context light"><div class="profile"><img data-avatar alt=""><div><b>Gummy Galaxy</b><span>Makers of Orion</span></div></div><div class="row"><img data-avatar alt=""><span>gummy-galaxy / orion</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="section-head">
+    <span class="eyebrow">All six</span>
+    <h2>Every mark in this look</h2>
+    <p>Each tile follows the look and background above. Click one to bring it up top.</p>
+  </section>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script type="x-shader/x-fragment" id="fs">
+precision highp float;
+uniform vec2 uRes;
+uniform float uVariant;
+uniform float uMark;
+uniform float uZoom;
+uniform vec3 uCol[8];
+uniform vec3 uBase;
+uniform vec3 uCore;
+uniform vec3 uTop[3];
+uniform vec3 uBot[3];
+uniform vec2 uGlow;
+
+vec3 C[8];
+vec3 TOP0; vec3 TOP1; vec3 TOP2; vec3 BOT0; vec3 BOT1; vec3 BOT2;
+
+vec3 lin(vec3 c) { return pow(c, vec3(2.2)); }
+float hash1(vec3 p) { p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float hash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+mat2 rot(float a) { float c = cos(a); float s = sin(a); return mat2(c, -s, s, c); }
+float smin(float a, float b, float k) { float h = clamp(0.5 + 0.5 * (b - a) / k, 0.0, 1.0); return mix(b, a, h) - k * h * (1.0 - h); }
+float sdCapsule(vec3 p, vec3 a, vec3 b, float r) { vec3 pa = p - a; vec3 ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h) - r; }
+float sdStar(vec2 p, float r, float n, float m) {
+  float an = 3.141593 / n;
+  float en = 3.141593 / m;
+  vec2 acs = vec2(cos(an), sin(an));
+  vec2 ecs = vec2(cos(en), sin(en));
+  float bn = mod(atan(p.x, p.y), 2.0 * an) - an;
+  p = length(p) * vec2(cos(bn), abs(sin(bn)));
+  p -= r * acs;
+  p += ecs * clamp(-dot(p, ecs), 0.0, r * acs.y / ecs.y);
+  return length(p) * sign(p.x);
+}
+float puffyStar(vec3 p, float r, float n, float m, float h) {
+  float d2 = sdStar(p.xy, r, n, m);
+  vec2 w = vec2(d2, abs(p.z) - h);
+  return min(max(w.x, w.y), 0.0) + length(max(w, 0.0)) - 0.07;
+}
+float sdRoundCone(vec3 p, float r1, float r2, float h) {
+  float b = (r1 - r2) / h; float a = sqrt(1.0 - b * b);
+  vec2 q = vec2(length(p.xz), p.y);
+  float k = dot(q, vec2(-b, a));
+  if (k < 0.0) return length(q) - r1;
+  if (k > a * h) return length(q - vec2(0.0, h)) - r2;
+  return dot(q, vec2(a, b)) - r1;
+}
+
+// The spiral sun: a lemon core with three tapering arms, blended smoothly so it reads as one chewy piece.
+void sun(vec3 p, float s, inout float d, inout vec3 col) {
+  float sd = length(p) - 0.25 * s;
+  vec3 sc = C[0];
+  for (int arm = 0; arm < 3; arm++) {
+    for (int k = 0; k < 16; k++) {
+      float t = float(k) / 15.0;
+      float a = float(arm) * 2.0944 + t * 2.3 + 0.4;
+      float r = (0.2 + t * 0.46) * s;
+      float db = length(p - vec3(cos(a) * r, sin(a) * r, 0.0)) - (0.13 - t * 0.07) * s;
+      vec3 cb = arm == 0 ? C[1] : (arm == 1 ? C[2] : C[3]);
+      float h = clamp(0.5 + 0.5 * (db - sd) / (0.07 * s), 0.0, 1.0);
+      sd = mix(db, sd, h) - 0.07 * s * h * (1.0 - h);
+      sc = mix(cb, sc, h);
+    }
+  }
+  if (sd < d) { d = sd; col = sc; }
+}
+void bandedPlanet(vec3 p, vec3 center, float r, inout float d, inout vec3 col) {
+  float dp = length(p - center) - r;
+  if (dp < d) {
+    d = dp;
+    vec3 q = (p - center) / r;
+    float band = smoothstep(0.14, 0.0, abs(q.y - 0.08 + 0.28 * sin(q.x * 2.2)) - 0.14);
+    col = mix(C[5], C[6], band);
+  }
+}
+
+float mapScene(vec3 p, out vec3 col, out float mat) {
+  float d = 1e3;
+  col = C[0];
+  mat = 0.0;
+  if (uMark < 0.5) {
+    // Orbit badge: the orbit is the outline, with the planet and moon threaded on it.
+    vec3 q = p;
+    q.yz = rot(0.42) * q.yz;
+    q.xy = rot(-0.1) * q.xy;
+    sun(q, 1.0, d, col);
+    float dr = length(vec2(length(q.xy) - 1.0, q.z)) - 0.085;
+    if (dr < d) { d = dr; col = C[4]; }
+    bandedPlanet(q, vec3(0.766, -0.643, 0.0), 0.25, d, col);
+    float dm = length(q - vec3(-0.94, 0.34, 0.0)) - 0.13;
+    if (dm < d) { d = dm; col = C[7]; }
+  } else if (uMark < 1.5) {
+    // Orrery: one tilted orbit passes behind the sun and in front of it, carrying the planet and moon.
+    vec3 qs = p;
+    qs.yz = rot(0.35) * qs.yz;
+    sun(qs, 1.0, d, col);
+    vec3 qr = p;
+    qr.xy = rot(0.32) * qr.xy;
+    qr.yz = rot(1.22) * qr.yz;
+    float dr = length(vec2(length(qr.xy) - 1.22, qr.z)) - 0.075;
+    if (dr < d) { d = dr; col = C[4]; }
+    vec3 local = vec3(cos(0.75), sin(0.75), 0.0) * 1.22;
+    vec3 world = local;
+    world.yz = rot(-1.22) * world.yz;
+    world.xy = rot(-0.32) * world.xy;
+    bandedPlanet(p, world, 0.25, d, col);
+    float dm = length(p - world - vec3(0.2, 0.32, 0.12)) - 0.1;
+    if (dm < d) { d = dm; col = C[7]; }
+  } else if (uMark < 2.5) {
+    // Galaxy pop: a swirl lollipop whose swirl is a two-armed galaxy.
+    vec3 q = p;
+    q.yz = rot(0.22) * q.yz;
+    q.xy = rot(-0.12) * q.xy;
+    vec3 dq = q - vec3(0.0, 0.3, 0.0);
+    float disk = length(vec2(max(length(dq.xy) - 0.62, 0.0), max(abs(dq.z) - 0.05, 0.0))) - 0.15;
+    if (disk < d) {
+      d = disk;
+      float stripe = sin(2.0 * atan(dq.y, dq.x) - length(dq.xy) * 11.0);
+      col = mix(C[0], C[1], smoothstep(-0.2, 0.2, stripe));
+    }
+    float stick = sdCapsule(q, vec3(0.0, -0.5, -0.02), vec3(0.0, -1.4, -0.02), 0.075);
+    if (stick < d) { d = stick; col = C[2]; mat = 2.0; }
+  } else if (uMark < 3.5) {
+    // Star bear: a gummy bear with a star on its belly.
+    vec3 q = p;
+    q.yz = rot(0.12) * q.yz;
+    float body = length((q - vec3(0.0, -0.18, 0.0)) / vec3(1.0, 1.1, 0.9)) - 0.46;
+    float bear = smin(length(q - vec3(0.0, 0.5, 0.0)) - 0.37, body, 0.12);
+    bear = smin(bear, length(q - vec3(-0.29, 0.84, 0.0)) - 0.15, 0.08);
+    bear = smin(bear, length(q - vec3(0.29, 0.84, 0.0)) - 0.15, 0.08);
+    bear = smin(bear, length(q - vec3(-0.46, -0.02, 0.05)) - 0.17, 0.1);
+    bear = smin(bear, length(q - vec3(0.46, -0.02, 0.05)) - 0.17, 0.1);
+    bear = smin(bear, length(q - vec3(-0.25, -0.68, 0.05)) - 0.2, 0.1);
+    bear = smin(bear, length(q - vec3(0.25, -0.68, 0.05)) - 0.2, 0.1);
+    bear = smin(bear, length(q - vec3(0.0, 0.4, 0.3)) - 0.13, 0.08);
+    d = bear;
+    col = C[0];
+    float eyes = min(length(q - vec3(-0.14, 0.56, 0.32)) - 0.045, length(q - vec3(0.14, 0.56, 0.32)) - 0.045);
+    if (eyes < d) { d = eyes; col = vec3(0.04, 0.0, 0.02); mat = 2.0; }
+    float star = puffyStar(q - vec3(0.0, -0.16, 0.38), 0.2, 5.0, 2.7, 0.04);
+    if (star < d) { d = star; col = C[1]; mat = 0.0; }
+  } else if (uMark < 4.5) {
+    // Gumdrop planet: a sugared gumdrop wearing a ring.
+    vec3 q = p - vec3(0.0, 0.0, 0.0);
+    float drop = sdRoundCone(q + vec3(0.0, 0.3, 0.0), 0.6, 0.36, 0.5);
+    drop = smin(drop, length((q - vec3(0.0, 0.22, 0.0)) / vec3(1.0, 0.9, 1.0)) - 0.42, 0.2);
+    drop = max(drop, -(q.y + 0.48));
+    d = drop;
+    col = C[0];
+    mat = 1.0;
+    vec3 qr = p;
+    qr.xy = rot(0.22) * qr.xy;
+    qr.yz = rot(1.3) * qr.yz;
+    float dr = length(vec2(length(qr.xy) - 1.08, qr.z)) - 0.075;
+    if (dr < d) { d = dr; col = C[1]; mat = 0.0; }
+  } else {
+    // Belt drops: Orion's belt as three gummy stars on a string.
+    float string = sdCapsule(p, vec3(-0.82, -0.82, -0.06), vec3(0.82, 0.82, -0.06), 0.045);
+    d = string;
+    col = C[3];
+    vec3 q0 = p - vec3(-0.78, -0.78, 0.0); q0.xy = rot(0.3) * q0.xy;
+    float s0 = puffyStar(q0, 0.4, 4.0, 2.25, 0.07);
+    if (s0 < d) { d = s0; col = C[0]; }
+    vec3 q1 = p; q1.xy = rot(-0.15) * q1.xy;
+    float s1 = puffyStar(q1, 0.5, 4.0, 2.25, 0.08);
+    if (s1 < d) { d = s1; col = C[1]; }
+    vec3 q2 = p - vec3(0.78, 0.78, 0.0); q2.xy = rot(0.2) * q2.xy;
+    float s2 = puffyStar(q2, 0.36, 4.0, 2.25, 0.07);
+    if (s2 < d) { d = s2; col = C[2]; }
+  }
+  return d;
+}
+float mapD(vec3 p) { vec3 c; float m; return mapScene(p, c, m); }
+vec3 calcNormal(vec3 p) {
+  vec2 k = vec2(1.0, -1.0); float e = 0.0015;
+  return normalize(k.xyy * mapD(p + k.xyy * e) + k.yyx * mapD(p + k.yyx * e) + k.yxy * mapD(p + k.yxy * e) + k.xxx * mapD(p + k.xxx * e));
+}
+
+vec3 ramp(float t, vec3 a, vec3 b, vec3 c) {
+  vec3 x = t < 0.55 ? mix(a, b, t / 0.55) : mix(b, c, clamp((t - 0.55) / 0.27, 0.0, 1.0));
+  return x * (1.0 - smoothstep(0.76, 1.0, t));
+}
+vec3 background(vec2 uv) {
+  vec3 col = lin(uBase);
+  col += lin(uCore) * exp(-dot(uv, uv) * 1.3);
+  col += ramp(length((uv - vec2(0.0, 2.15)) * vec2(0.62, 1.0)) / 1.75, TOP0, TOP1, TOP2) * uGlow.x;
+  col += ramp(length((uv - vec2(0.0, -2.2)) * vec2(0.6, 1.0)) / 1.8, BOT0, BOT1, BOT2) * uGlow.y;
+  return col;
+}
+vec3 envStudio(vec3 r) {
+  vec3 e = mix(vec3(0.02, 0.01, 0.05), vec3(0.45, 0.30, 0.85), smoothstep(-0.3, 0.8, r.y));
+  return e + vec3(1.0, 0.45, 0.75) * 0.35 * exp(-abs(r.y - 0.05) * 7.0);
+}
+vec3 envScene(vec3 r) {
+  vec3 e = mix(BOT0 * 0.9 * uGlow.y, TOP1 * 0.9 * uGlow.x, smoothstep(-0.7, 0.7, r.y));
+  return mix(e, lin(uCore) * 1.4, exp(-abs(r.y) * 3.0) * 0.8);
+}
+float softbox(vec3 r, vec3 dir, vec2 size) {
+  vec3 u = normalize(cross(dir, vec3(0.0, 1.0, 0.0))); vec3 v = cross(u, dir);
+  float c = dot(r, dir); if (c <= 0.0) return 0.0;
+  vec2 q = vec2(dot(r, u), dot(r, v)) / c; vec2 w = 1.0 - smoothstep(size * 0.7, size, abs(q));
+  return w.x * w.y;
+}
+vec3 shade(vec3 p, vec3 n, vec3 rd, vec3 base, float mat) {
+  vec3 L = normalize(vec3(-0.6, 0.8, 0.55));
+  float inScene = step(0.5, uVariant);
+  float sour = step(0.5, mat) * (1.0 - step(1.5, mat));
+  float solid = step(1.5, mat);
+  vec3 nn = n;
+  if (sour > 0.5) {
+    vec3 cell = floor(p * 60.0);
+    vec3 h = vec3(hash1(cell), hash1(cell + 3.1), hash1(cell + 7.7)) - 0.5;
+    nn = normalize(n + h * 0.8);
+  }
+  float th = 0.0; float thV = 0.0; float thL = 0.0;
+  for (int k = 1; k <= 5; k++) {
+    float s = 0.06 * float(k);
+    th += max(-mapD(p - n * s), 0.0);
+    thV += max(-mapD(p + rd * s), 0.0);
+    thL += max(-mapD(p + L * s), 0.0);
+  }
+  float trans = exp(-(th * 0.5 + thV) * 2.6) * (1.0 - solid * 0.8);
+  float back = exp(-thL * 3.0) * clamp(0.6 - 0.6 * dot(n, L), 0.0, 1.0) * (1.0 - solid);
+  float ao = 0.0;
+  for (int k = 1; k <= 3; k++) { float h = 0.05 * float(k); ao += h - mapD(p + n * h); }
+  ao = clamp(1.0 - 2.2 * ao, 0.0, 1.0);
+  float wrap = clamp((dot(nn, L) + 0.5) / 1.5, 0.0, 1.0);
+  vec3 deep = base * base * 1.2 + base * 0.05;
+  vec3 glow = base * 1.2 + 0.015;
+  vec3 body = mix(deep, glow, clamp(trans, 0.0, 1.0));
+  vec3 col = body * (0.22 + 0.9 * wrap) * mix(0.55, 1.0, ao);
+  col += base * 1.8 * back;
+  vec3 R = reflect(rd, nn);
+  float fres = pow(1.0 - clamp(dot(nn, -rd), 0.0, 1.0), 4.0);
+  float sp = pow(max(dot(R, L), 0.0), mix(90.0, 16.0, sour)) * mix(1.5, 0.3, sour);
+  float box = softbox(R, normalize(vec3(-0.55, 0.65, 0.55)), vec2(0.32, 0.18)) + 0.6 * softbox(R, normalize(vec3(0.7, 0.35, 0.5)), vec2(0.08, 0.22));
+  col += vec3(1.0, 0.97, 0.99) * (sp + box * mix(1.1, 0.12, sour));
+  col += mix(envStudio(R), envScene(R), inScene) * fres * 0.7;
+  col += base * fres * 0.6;
+  col += inScene * (TOP1 * uGlow.x * 0.5 * pow(clamp(n.y, 0.0, 1.0), 2.0) + BOT0 * uGlow.y * 0.55 * pow(clamp(-n.y, 0.0, 1.0), 2.0)) * (0.4 + fres) * mix(1.0, 0.6, trans);
+  if (sour > 0.5) {
+    float g = hash1(floor(p * 60.0) + 1.3);
+    col = mix(col, vec3(1.0, 0.95, 0.97) * (0.35 + 0.55 * wrap), 0.25 + 0.2 * g);
+    col += vec3(1.0) * step(0.93, g) * pow(max(dot(R, L), 0.0), 8.0) * 2.5;
+  }
+  return col;
+}
+
+void main() {
+  for (int i = 0; i < 8; i++) C[i] = lin(uCol[i]);
+  TOP0 = lin(uTop[0]); TOP1 = lin(uTop[1]); TOP2 = lin(uTop[2]);
+  BOT0 = lin(uBot[0]); BOT1 = lin(uBot[1]); BOT2 = lin(uBot[2]);
+  vec2 uv = (2.0 * gl_FragCoord.xy - uRes) / uRes.y;
+  vec3 col = background(uv);
+  vec3 ro = vec3(0.0, 0.0, 4.2);
+  vec3 rd = normalize(vec3(uv, -2.3 * uZoom));
+  float t = 2.0;
+  vec3 mc = C[0]; float mm = 0.0;
+  float minD = 1e3; vec3 glowCol = C[0];
+  bool hit = false;
+  for (int i = 0; i < 160; i++) {
+    vec3 p = ro + rd * t;
+    float d = mapScene(p, mc, mm);
+    if (d < minD) { minD = d; glowCol = mc; }
+    if (d < 0.001) { hit = true; break; }
+    t += d * 0.85;
+    if (t > 6.6) break;
+  }
+  if (hit) {
+    vec3 p = ro + rd * t;
+    col = shade(p, calcNormal(p), rd, mc, mm);
+  } else {
+    col += glowCol * 0.12 * exp(-max(minD, 0.0) * 10.0) * step(0.5, uVariant);
+  }
+  col = (col * (2.51 * col + 0.03)) / (col * (2.43 * col + 0.59) + 0.14);
+  col = pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+  float grain = (hash2(floor(gl_FragCoord.xy / max(1.0, uRes.y / 720.0))) - 0.5) * 0.08;
+  if (!hit || uVariant > 0.5) col += grain;
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script type="module">
+const F = { cherry: '#ff3d6e', blueRaspberry: '#2e7dff', sourApple: '#7be14a', grape: '#8b3dff', peach: '#ff9f45', lemon: '#ffd84a', cottonCandy: '#ff8fd0' };
+const SYSTEM_FULL = [F.lemon, F.peach, F.cherry, F.cottonCandy, F.cottonCandy, F.blueRaspberry, '#8fd0ff', F.sourApple];
+const SYSTEM_PAIR = [F.lemon, '#ffb08c', F.cottonCandy, '#ffc478', F.cottonCandy, '#ff78c4', F.lemon, F.lemon];
+const MARKS = [
+  { id: 'badge', name: 'Orbit badge', note: 'The orbit is the outline, with the planet and moon threaded on it. The calmest silhouette at small sizes.', full: SYSTEM_FULL, pair: SYSTEM_PAIR },
+  { id: 'orrery', name: 'Orrery', note: 'One tilted orbit loops behind the sun and back in front of it, carrying the planet and its moon, so the three bodies read as one object.', full: SYSTEM_FULL, pair: SYSTEM_PAIR },
+  { id: 'pop', name: 'Galaxy pop', note: 'A swirl lollipop whose swirl is a two-armed galaxy, with a paper stick that stays solid.', full: [F.blueRaspberry, F.cottonCandy, '#f4eefc'], pair: [F.cottonCandy, F.lemon, '#fff4fb'] },
+  { id: 'bear', name: 'Star bear', note: 'A gummy bear with a star on its belly. The friendliest mascot, and the one that looks most like candy you could pick up.', full: [F.cherry, F.lemon], pair: [F.cottonCandy, F.lemon] },
+  { id: 'gumdrop', name: 'Gumdrop planet', note: 'A sugar-crusted gumdrop wearing a translucent ring. The only sour material in the set.', full: [F.sourApple, F.cottonCandy], pair: [F.lemon, F.cottonCandy] },
+  { id: 'belt', name: 'Belt drops', note: "Orion's belt as three puffy gummy stars on a string, which ties the studio mark to the product.", full: [F.cherry, F.lemon, F.sourApple, F.cottonCandy], pair: [F.cottonCandy, F.lemon, F.cottonCandy, '#ffd6ec'] },
+];
+const BACKGROUNDS = [
+  { id: 'tide', name: 'Tide', swatch: '#18d6c0', base: '#071416', core: '#123436', top: ['#ff8fd0', '#8b3dff', '#3b6cff'], bot: ['#ff8fd0', '#b45cff', '#3b6cff'], glow: [0.85, 0.9] },
+  { id: 'grape', name: 'Grape soda', swatch: '#8b3dff', base: '#110828', core: '#1d1046', top: ['#2e7dff', '#8b3dff', '#c04dff'], bot: ['#ff8fd0', '#8b3dff', '#5a2fd0'], glow: [0.85, 0.85] },
+  { id: 'cherry', name: 'Cherry cola', swatch: '#ff3d6e', base: '#1a0710', core: '#2c0d1c', top: ['#ffd84a', '#ff9f45', '#ff3d6e'], bot: ['#ff8fd0', '#ff3d6e', '#8b3dff'], glow: [0.75, 0.85] },
+  { id: 'lagoon', name: 'Sour lagoon', swatch: '#7be14a', base: '#04161a', core: '#0a2a28', top: ['#d6ff6a', '#7be14a', '#18d6c0'], bot: ['#8fd0ff', '#18d6c0', '#2e7dff'], glow: [0.75, 0.85] },
+  { id: 'peach', name: 'Peach horizon', swatch: '#ff9f45', base: '#170c1f', core: '#24122c', top: ['#8b3dff', '#5a2fd0', '#5a2fd0'], bot: ['#ffd84a', '#ff9f45', '#ff8fd0'], glow: [0.5, 1] },
+];
+const LOOKS = [['pair', 'In the scene, two flavors'], ['full', 'Full flavors']];
+const state = { mark: 'orrery', look: 'pair', bg: 'tide', zoom: 1.05 };
+
+/* ---------- WebGL ---------- */
+const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+const flat = (list) => new Float32Array(list.flatMap(rgb));
+const glCanvas = document.createElement('canvas');
+const gl = glCanvas.getContext('webgl', { preserveDrawingBuffer: true, antialias: false });
+let uniforms = null;
+if (gl) {
+  const compile = (type, source) => {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+    return shader;
+  };
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, 'attribute vec2 a;void main(){gl_Position=vec4(a,0.0,1.0);}'));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, document.getElementById('fs').textContent));
+  gl.linkProgram(program);
+  gl.useProgram(program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  const position = gl.getAttribLocation(program, 'a');
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  uniforms = Object.fromEntries(['uRes', 'uVariant', 'uMark', 'uZoom', 'uCol', 'uBase', 'uCore', 'uTop', 'uBot', 'uGlow'].map((name) => [name, gl.getUniformLocation(program, name)]));
+}
+function renderTo(target, markId, { pixels = target.width, zoom = state.zoom } = {}) {
+  const mark = MARKS.find((item) => item.id === markId), bg = BACKGROUNDS.find((item) => item.id === state.bg);
+  const render = pixels * 2;
+  glCanvas.width = glCanvas.height = render;
+  gl.viewport(0, 0, render, render);
+  gl.uniform2f(uniforms.uRes, render, render);
+  gl.uniform1f(uniforms.uVariant, state.look === 'pair' ? 1 : 0);
+  gl.uniform1f(uniforms.uMark, MARKS.indexOf(mark));
+  gl.uniform1f(uniforms.uZoom, zoom);
+  const colors = [...mark[state.look]];
+  while (colors.length < 8) colors.push('#ffffff');
+  gl.uniform3fv(uniforms.uCol, flat(colors));
+  gl.uniform3fv(uniforms.uBase, rgb(bg.base));
+  gl.uniform3fv(uniforms.uCore, rgb(bg.core));
+  gl.uniform3fv(uniforms.uTop, flat(bg.top));
+  gl.uniform3fv(uniforms.uBot, flat(bg.bot));
+  gl.uniform2f(uniforms.uGlow, bg.glow[0], bg.glow[1]);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  const ctx = target.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(glCanvas, 0, 0, target.width, target.height);
+}
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+
+/* ---------- Page ---------- */
+const hero = document.getElementById('hero');
+const busy = document.getElementById('busy');
+const grid = document.getElementById('grid');
+grid.innerHTML = MARKS.map((mark) => `<button type="button" data-mark="${mark.id}" aria-label="${mark.name}"><canvas width="300" height="300"></canvas><b>${mark.name}</b></button>`).join('');
+function renderChips() {
+  document.getElementById('mark-chips').innerHTML = MARKS.map((mark) => `<button type="button" aria-pressed="${state.mark === mark.id}" data-mark="${mark.id}">${mark.name}</button>`).join('');
+  document.getElementById('look-chips').innerHTML = LOOKS.map(([id, label]) => `<button type="button" aria-pressed="${state.look === id}" data-look="${id}">${label}</button>`).join('');
+  document.getElementById('bg-chips').innerHTML = BACKGROUNDS.map((bg) => `<button type="button" aria-pressed="${state.bg === bg.id}" data-bg="${bg.id}"><i style="background:${bg.swatch}"></i>${bg.name}</button>`).join('');
+  grid.querySelectorAll('button').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.mark === state.mark)));
+  const mark = MARKS.find((item) => item.id === state.mark);
+  document.getElementById('note').innerHTML = `<b>${mark.name}</b><span>${mark.note}</span>`;
+}
+let token = 0;
+async function renderHero() {
+  if (!gl) { busy.textContent = 'WebGL is unavailable here.'; return; }
+  const mine = ++token;
+  busy.textContent = 'Rendering…';
+  await nextFrame();
+  if (mine !== token) return;
+  renderTo(hero, state.mark);
+  const url = hero.toDataURL('image/png');
+  document.querySelectorAll('[data-avatar]').forEach((image) => { image.src = url; });
+  document.getElementById('sizes').innerHTML = [[120, 'sq'], [64, 'sq'], [40, 'sq'], [24, 'sq'], [64, 'round'], [32, 'round']]
+    .map(([px, shape]) => `<img class="${shape}" src="${url}" width="${px}" height="${px}" alt="${px} pixel ${shape === 'sq' ? 'rounded square' : 'circle'} preview">`).join('');
+  busy.textContent = '';
+}
+async function renderGrid() {
+  if (!gl) return;
+  const mine = token;
+  for (const button of grid.querySelectorAll('button')) {
+    await nextFrame();
+    if (mine !== token) return;
+    renderTo(button.querySelector('canvas'), button.dataset.mark);
+  }
+}
+async function renderAll() { await renderHero(); await renderGrid(); }
+
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  if (button.dataset.mark) {
+    state.mark = button.dataset.mark;
+    renderChips();
+    renderHero().then(renderGrid);
+    if (button.closest('.grid')) hero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else if (button.dataset.look || button.dataset.bg) {
+    if (button.dataset.look) state.look = button.dataset.look;
+    if (button.dataset.bg) state.bg = button.dataset.bg;
+    renderChips();
+    renderAll();
+  } else if (button.dataset.save) {
+    save(Number(button.dataset.save));
+  }
+});
+const zoom = document.getElementById('zoom'), zoomOut = document.getElementById('zoom-out');
+const showZoom = () => { zoomOut.textContent = `${Math.round(zoom.value * 100)}%`; };
+showZoom();
+zoom.addEventListener('input', () => { state.zoom = Number(zoom.value); showZoom(); });
+zoom.addEventListener('change', () => renderHero());
+
+/* ---------- Saving ---------- */
+let downloads = null;
+const saveNote = document.getElementById('save-note');
+const fallback = 'Saving isn’t available in this view. Right-click the big preview to save it instead.';
+(window.claude?.use?.('downloads') ?? Promise.resolve(null)).then((namespace) => { downloads = namespace; if (!downloads) saveNote.textContent = fallback; }).catch(() => {});
+async function save(pixels) {
+  if (!downloads || !gl) { saveNote.textContent = fallback; return; }
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = pixels;
+  renderTo(canvas, state.mark);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+  const filename = `gummy-galaxy-${state.mark}-${state.look === 'pair' ? 'scene' : 'full'}-${state.bg}-${pixels}.png`;
+  try {
+    await downloads.save({ filename, data: blob });
+    saveNote.textContent = `Saved ${filename} · ${Math.round(blob.size / 1024)} KB`;
+  } catch (error) {
+    saveNote.textContent = error?.code === 'declined' ? 'Not saved.' : error?.code === 'rate_limited' ? 'A save prompt is already open.' : fallback;
+  }
+}
+
+renderChips();
+renderAll();
+</script>

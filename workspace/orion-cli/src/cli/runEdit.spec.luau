@@ -1,0 +1,26 @@
+local test = require("@std/test")
+
+local loadDoc = require("@root/store/loadDoc")
+local runEdit = require("@root/cli/runEdit")
+local testing = require("@root/testing")
+local writeDoc = require("@root/store/writeDoc")
+
+test.case("shared edit runner previews and checks the locked revision", function(assert)
+	local dir = testing.directory("run-edit")
+	writeDoc(dir, testing.createDoc({ testing.task("one", "One", "todo") }))
+	local preview, base = runEdit(dir, true, 0, function(doc)
+		doc.nodes[1].data.status = "done"
+	end)
+	assert.eq(base, 0)
+	assert.eq(preview.nodes[1].data.status, "done")
+	assert.eq(loadDoc(dir).nodes[1].data.status, "todo")
+	local changed, previous = runEdit(dir, false, 0, function(doc)
+		doc.nodes[1].data.status = "done"
+	end)
+	assert.eq(previous, 0)
+	assert.eq(changed.revision, 1)
+	assert.throwsWith("revision changed: expected 0, current 1", function()
+		runEdit(dir, false, 0, function() end)
+	end)
+	assert.eq(loadDoc(dir).revision, 1)
+end)

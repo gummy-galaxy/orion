@@ -1,5 +1,5 @@
 /*
- * The app's vibrant theme (app/src/themes/vibrant.css), mapped onto VitePress's variables. Keep the Orion tokens
+ * The app's vibrant theme (workspace/orion-app/src/themes/vibrant.css), mapped onto VitePress's variables. Keep the Orion tokens
  * in step with the app's; the --vp-* names below only say where each one goes.
  */
 :root {
@@ -189,4 +189,19 @@
 .custom-block.danger,
 .custom-block.info {
   border-radius: 8px;
+}
+
+/* Side-by-side image sets, such as the logo palettes or the companion's moods. */
+.vp-doc .gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.vp-doc .gallery img {
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 12px;
 }

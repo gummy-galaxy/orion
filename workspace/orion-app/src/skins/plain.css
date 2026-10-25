@@ -1,0 +1,150 @@
+.card.skin-plain {
+  padding: var(--space-3-5) var(--space-5);
+  border: var(--border-width-default) solid var(--border-default);
+  border-radius: var(--radius-xs);
+  background: var(--surface-background);
+  color: var(--text-primary);
+  box-shadow: none;
+  display: block;
+  font-family: var(--font-ui);
+  animation: none;
+}
+
+.card.skin-plain:is(.st-ready, .st-active, .st-review, .st-blocked, .st-done, .st-deferred),
+.card.skin-plain:is(.tr-up, .tr-down, .tr-related, .attn) {
+  border-color: var(--border-default);
+  background: var(--surface-background);
+  box-shadow: none;
+}
+
+.card.skin-plain:is(.st-blocked, .st-done, .st-deferred) {
+  background: var(--canvas-background);
+  color: var(--text-muted);
+}
+
+.card.skin-plain.placeholder {
+  border-style: dashed;
+}
+
+.card.skin-plain.note {
+  border-color: var(--border-default);
+  background: color-mix(in srgb, var(--note-background) 35%, var(--surface-background));
+}
+
+.card.skin-plain .plain-title,
+.card.skin-plain .plain-note-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  padding-right: var(--space-7);
+  font-size: var(--text-size-body);
+  font-weight: 500;
+  line-height: var(--line-height-tight);
+}
+
+.card.skin-plain.st-done .plain-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.card.skin-plain .plain-meta,
+.card.skin-plain .plain-note-kind {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: var(--text-size-nano);
+  line-height: var(--line-height-note);
+}
+
+.card.skin-plain .plain-meta {
+  margin-top: var(--space-1-5);
+  gap: var(--space-1-5);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.card.skin-plain:has(.source-badges) .plain-meta {
+  padding-right: var(--space-10);
+}
+
+.card.skin-plain .plain-tag {
+  flex: 0 1000 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card.skin-plain .plain-status {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.card.skin-plain .plain-gate {
+  flex: none;
+  font-size: var(--text-size-base);
+  line-height: 10px;
+}
+
+.card.skin-plain .plain-details {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  min-width: 0;
+  gap: var(--space-1-5);
+  overflow: hidden;
+}
+
+.card.skin-plain .plain-details > span {
+  flex: none;
+}
+
+.card.skin-plain .plain-check {
+  font: var(--weight-bold) var(--text-size-small)/1 var(--font-ui);
+}
+
+.card.skin-plain .plain-note-kind {
+  margin-bottom: var(--space-1-5);
+}
+
+.card.skin-plain .plain-note-text {
+  white-space: pre-wrap;
+}
+
+.card.skin-plain.far-card {
+  height: auto;
+  padding: var(--space-4) var(--space-5);
+  box-shadow: none;
+}
+
+.card.skin-plain.far-card .plain-title,
+.card.skin-plain.far-card .plain-note-text {
+  display: block;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.card.skin-plain.far-card .plain-meta {
+  padding-right: 0;
+  overflow: visible;
+}
+
+.card.skin-plain.far-card .source-badges {
+  position: static;
+  justify-content: flex-end;
+  max-width: none;
+}
+
+.canvas.is-focus .react-flow__node.is-focused .card.skin-plain {
+  box-shadow: none;
+}
+
+.canvas.is-tracing .card.skin-plain:not(.tr-self, .tr-up, .tr-down, .tr-related) {
+  box-shadow: none;
+}

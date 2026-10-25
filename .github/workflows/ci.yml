@@ -13,14 +13,16 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request replaces its pending run. Every other run, such as a push to main or the nightly run,
+# gets its own group, so a later merge never cancels it.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   # On a pull request, each job below runs only when a change touches what it builds or checks. A job skipped by its
   # condition reports as skipped, which still satisfies a required check, unlike a workflow skipped by `paths`.
-  changes:
+  ci-loading:
     runs-on: beelink
     timeout-minutes: 5
     permissions:
@@ -45,13 +47,13 @@ jobs:
           filters: .github/path-filters.yml
 
   analysis:
-    needs: changes
-    if: needs.changes.outputs.cli == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.cli == 'true'
     runs-on: beelink
     timeout-minutes: 5
     defaults:
       run:
-        working-directory: cli
+        working-directory: workspace/orion-cli
     steps:
       - uses: actions/checkout@v7
 
@@ -69,10 +71,11 @@ jobs:
 
       - name: Analyze
         run: lute run analyze
+        working-directory: .
 
   cli:
-    needs: changes
-    if: needs.changes.outputs.cli == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.cli == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -82,7 +85,7 @@ jobs:
     timeout-minutes: 5
     defaults:
       run:
-        working-directory: cli
+        working-directory: workspace/orion-cli
     steps:
       - uses: actions/checkout@v7
 
@@ -95,30 +98,42 @@ jobs:
       - name: Install Dependencies
         run: lute pkg install
 
+      # The CLI's index specs run the `sqlite3` command, which the runner's image doesn't have
+      - name: Install SQLite
+        if: runner.os == 'Linux'
+        run: lute run install-sqlite
+        working-directory: .
+
       - name: Test
         run: lute test
 
+      - name: Check the App's Geometry
+        run: lute run geometry --check
+        working-directory: .
+
       - name: Build
         run: lute run build
+        working-directory: .
 
       - name: Smoke Test the Binary
         run: ./build/orion --help
 
       - name: Package
         run: lute run package
+        working-directory: .
 
       - name: Upload CLI
         # A full artifact storage quota shouldn't fail the build
         continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
-          path: cli/build/orion-*.zip
+          path: workspace/orion-cli/build/orion-*.zip
           archive: false
           retention-days: 14
 
   app:
-    needs: changes
-    if: needs.changes.outputs.app == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.app == 'true'
     runs-on: beelink
     timeout-minutes: 5
     permissions:
@@ -126,7 +141,7 @@ jobs:
       pull-requests: write
     defaults:
       run:
-        working-directory: app
+        working-directory: workspace/orion-app
     steps:
       - uses: actions/checkout@v7
 
@@ -134,7 +149,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: workspace/orion-app/package-lock.json
 
       - name: Install Dependencies
         run: npm ci
@@ -154,7 +169,7 @@ jobs:
 
       - name: Publish Coverage
         if: github.event_name == 'pull_request'
-        working-directory: cli
+        working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number }}
@@ -175,12 +190,12 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: orion-app
-          path: app/dist
+          path: workspace/orion-app/dist
           retention-days: 1
 
   docs:
-    needs: changes
-    if: needs.changes.outputs.docs == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.docs == 'true'
     runs-on: beelink
     timeout-minutes: 5
     defaults:
@@ -203,7 +218,7 @@ jobs:
 
       - name: Install Luau Dependencies
         run: lute pkg install
-        working-directory: cli
+        working-directory: workspace/orion-cli
 
       - name: Install Dependencies
         run: npm ci
@@ -219,8 +234,8 @@ jobs:
         run: npm run build
 
   desktop:
-    needs: changes
-    if: needs.changes.outputs.desktop == 'true'
+    needs: ci-loading
+    if: needs.ci-loading.outputs.desktop == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -243,8 +258,8 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: |
-            app/package-lock.json
-            desktop/package-lock.json
+            workspace/orion-app/package-lock.json
+            workspace/orion-desktop/package-lock.json
 
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
         with:
@@ -253,7 +268,7 @@ jobs:
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
-          workspaces: desktop/src-tauri
+          workspaces: workspace/orion-desktop
           # Pull requests restore main's cache but don't save their own, since
           # each save uploads hundreds of megabytes from the self-hosted runner
           save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -266,19 +281,18 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y build-essential libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: Install Luau Dependencies
-        working-directory: cli
+        working-directory: workspace/orion-cli
         run: lute pkg install
 
       - name: Install App Dependencies
-        working-directory: app
+        working-directory: workspace/orion-app
         run: npm ci
 
       - name: Install Desktop Dependencies
-        working-directory: desktop
+        working-directory: workspace/orion-desktop
         run: npm ci
 
       - name: Check and Build
-        working-directory: cli
         run: lute run desktop
 
       - name: Upload Desktop Installer
@@ -289,7 +303,7 @@ jobs:
         with:
           name: orion-desktop-${{ runner.os }}
           path: |
-            desktop/src-tauri/target/release/bundle/deb/*.deb
-            desktop/src-tauri/target/release/bundle/dmg/*.dmg
-            desktop/src-tauri/target/release/bundle/nsis/*.exe
+            workspace/orion-desktop/target/release/bundle/deb/*.deb
+            workspace/orion-desktop/target/release/bundle/dmg/*.dmg
+            workspace/orion-desktop/target/release/bundle/nsis/*.exe
           retention-days: 1

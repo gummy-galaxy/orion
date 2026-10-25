@@ -7,6 +7,8 @@ The shortcuts on this page are the defaults. Open **Settings › Keyboard Shortc
 - Scroll, Space-drag, or middle-drag to pan. Pinch or ⌘-scroll to zoom.
 - However far you zoom out, cards, notes, and folded groups keep their details at a readable size.
 - The sidebar lists every group in canvas order. Click one to open it.
+- The details panel on the right shows whatever is selected: a card's inspector, a group's settings, or a link. With nothing selected, it shows the open group, or the canvas's cover and header at the top level. Its › button hides it, and ☰ in the top-right corner brings it back.
+- Drag the edge of the sidebar or the details panel to resize it. Double-click the edge to reset it.
 - Press ⌘K to search groups, cards, pull requests, and notes, then Enter to jump to a result.
 - Type `>` in search, or press ⇧⌘P, to list actions instead.
 
@@ -22,6 +24,7 @@ The toolbar at the bottom switches tools. Esc returns to Select.
 
 - Click a card to edit it, add a note, or open its pull request.
 - Press N to add a note. Notes can become work items later.
+- ⌘C copies the selection, ⌘X cuts it, and ⌘V pastes it at the cursor, inside the open group. A copy takes groups with everything in them, stickers stuck to what you copied, and the links between copied items. Paste into another group or another canvas, as often as you like; each paste is a new, separate copy. ⌘D duplicates the selection beside itself.
 - Right-click empty canvas and choose **Create from link** to paste a GitHub pull request or issue, or a Jira issue, and get its card where you clicked. A link that already has a card takes you to it.
 - Check **Gate** in a card's inspector to make it a gate. Gates show a diamond.
 - Dashed cards are pull requests that aren't opened yet.
@@ -44,6 +47,8 @@ The toolbar at the bottom switches tools. Esc returns to Select.
 - Double-click a group, or press Enter with one selected, to open it. Esc or a double-click on empty canvas goes back up, and the breadcrumbs jump to any level.
 - An open group shows the outside work it waits on along its left side and the work waiting on it along its right.
 - A group's inspector picks its arrangement: **Automatic** flows by dependency and wraps rows at about six, and **Custom** keeps cards where you put them.
+- Drag a group's edge or corner to resize it, like a window. An automatic group lays its cards out to fit the new width and keeps that shape when cards come and go. A custom group keeps the room you give it, and an edge you drag inward pushes the cards it meets until they fill the group. Groups beside one that grows move out of its way.
+- Dragging a card around inside a group never changes the group's size. Pull it well past the group's edge to take it out; let go short of that and it lands back inside.
 - **Reflow** lays out the inside of a group, and **Tidy** lays out the current level.
 - From the CLI, `orion group tidy` marks groups for the app to lay out, deepest first, and `orion canvas check` reports overlapping cards, cards outside their group, and links to missing items. The CLI never lays out groups itself, so a tidy takes effect once the app is open.
 
@@ -56,7 +61,7 @@ The detail stepper beside the zoom buttons, or [ and ], folds groups into single
 - Hover a card to trace what it needs (amber), what it unlocks (teal), and what relates to it.
 - Hold ⌥ to see where it's your move. Lines run from the cursor to each one, and work off screen gets a chip at the edge that jumps to it.
 - Hold Ctrl to inspect. The card under the cursor opens in full with its note, and its links show at full strength.
-- Double-click a card to focus on it, with what it waits on in a column on the left and what it leads to on the right. Click one of those to focus on it instead. Esc goes back.
+- Double-click a card to focus on it, with what it waits on in a column on the left and what it leads to on the right. Its details show in the details panel. Click one of those to focus on it instead. Esc goes back.
 
 ## Stickers
 
@@ -68,7 +73,7 @@ Stickers stamped on a card or group move with it. In Select, drag a sticker to m
 
 Open Settings with ⌘, or the button at the bottom of the sidebar.
 
-- **Appearance** picks the theme, the card skin, the color mode, and whether the star companion shows.
+- **Appearance** picks the theme, the card skin, the color mode, and whether the star companion shows. Vibrant and Trading cards are the defaults. The other themes and skins are tagged Deprecated: they still work, and they'll be removed later.
 - **Accessibility** picks colorblind status colors and an animation level. Animations follow your system's reduced motion setting until you choose.
 - **Keyboard Shortcuts** rebinds shortcuts and flags clashes.
 
