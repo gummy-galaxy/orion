@@ -6,7 +6,6 @@ local test = require("@std/test")
 
 local applyOperations = require("@root/operations/applyOperations")
 local decodeDoc = require("@root/store/decodeDoc")
-local encodeDocObject = require("@root/store/encodeDocObject")
 local getBackups = require("@root/store/getBackups")
 local getDocPath = require("@root/store/getDocPath")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")

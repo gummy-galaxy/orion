@@ -279,9 +279,8 @@ end)
 test.case("setFields keeps a pull request's facts when the number doesn't change", function(assert)
 	local doc = createCanvas()
 	applyOperations(doc, parse([=[[{"op":"setFields","id":"pub","fields":{"repo":"vocksel/orion","pr":12}}]]=]))
-	local pub = doc.nodes[3]
-	local refs = pub.data.refs :: any
-	refs[1].status = "open"
+	local pub = doc.nodes[3];
+	(pub.data.refs :: any)[1].status = "open"
 	applyOperations(doc, parse([=[[{"op":"setFields","id":"pub","fields":{"label":"Ship","pr":12}}]]=]))
 	assert.eq((pub.data.refs :: any)[1].status, "open")
 end)
