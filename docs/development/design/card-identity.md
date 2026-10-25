@@ -2,7 +2,7 @@
 
 This study asks how a card says what it is when the canvas is zoomed out to 0.33. It ran as two rounds of HTML galleries in October 2026, each card drawn in every role and state, then shrunk to canvas zoom and checked in grayscale, under color-vision filters, and blurred. Each option has a short ID, and every option was starred, crossed, or left alone. Stars carried a direction into the next round; crosses dropped it.
 
-It's a study. Nothing here has shipped, and the open questions are listed at the end. The [sources](#sources) open both galleries.
+It's a study, and nothing here has shipped yet. What it settled and what's still open are at the end. The [sources](#sources) open both galleries.
 
 ## The problem
 
@@ -120,22 +120,22 @@ Round 2 also leaves cards untinted by their group, uses the corner coin with +N 
 
 Round 1's constellations sampled their stars from the kind's icon, which looked lumpy, and every card shared one flat sky. Round 2 places each figure by hand and gives each card its own sky. J12 to J14 borrow from Skyrim's skill constellations: smoky skies, flared stars, the sign drawn faintly behind, and stars that light up as work moves forward.
 
-| ID  | Variant           | Idea                                                                                           |
-| --- | ----------------- | ---------------------------------------------------------------------------------------------- |
-| J1  | Drawn figures     | Hand-placed figures on a plain night sky. The control for the rest.                            |
-| J2  | Nebula            | A seeded nebula per card in its kind's hue and two neighbors, so no two skies match.           |
-| J3  | Milky Way         | A dusty band of stars crosses each card at its own angle.                                      |
-| J4  | Horizon           | Twilight over a ridge line, with the title on the dark ground.                                 |
-| J5  | Star atlas        | An old star chart: an inked grid, a graduated ring, magnitude dots, and dashed figure lines.   |
-| J6  | Sparkle           | Four-point glowing stars over a nebula.                                                        |
-| J7  | Stars only        | No lines; the figure comes from the bright stars alone.                                        |
-| J8  | Kind skies        | The sky glows in the kind's color behind white figure lines.                                   |
-| J9  | Aurora            | Ribbons of aurora in the kind's hue and teal.                                                  |
-| J10 | Observatory       | A porthole of sky in a dark card, rimmed in the kind's color.                                  |
-| J11 | Far-tuned         | Big stars and thick lines, built to survive 0.33.                                              |
-| J12 | Skyrim: lit stars | Stars light up as work moves: one when ready, half when active, most in review, all when done. |
-| J13 | Skyrim: sign      | A smoky sky with the kind's icon drawn faintly behind its stars.                               |
-| J14 | Skyrim: lit sign  | The faint sign and the lit stars together.                                                     |
+| ID  | Variant           | Idea                                                                                           | Call    |
+| --- | ----------------- | ---------------------------------------------------------------------------------------------- | ------- |
+| J1  | Drawn figures     | Hand-placed figures on a plain night sky. The control for the rest.                            | Starred |
+| J2  | Nebula            | A seeded nebula per card in its kind's hue and two neighbors, so no two skies match.           |         |
+| J3  | Milky Way         | A dusty band of stars crosses each card at its own angle.                                      | Starred |
+| J4  | Horizon           | Twilight over a ridge line, with the title on the dark ground.                                 |         |
+| J5  | Star atlas        | An old star chart: an inked grid, a graduated ring, magnitude dots, and dashed figure lines.   |         |
+| J6  | Sparkle           | Four-point glowing stars over a nebula.                                                        |         |
+| J7  | Stars only        | No lines; the figure comes from the bright stars alone.                                        |         |
+| J8  | Kind skies        | The sky glows in the kind's color behind white figure lines.                                   |         |
+| J9  | Aurora            | Ribbons of aurora in the kind's hue and teal.                                                  |         |
+| J10 | Observatory       | A porthole of sky in a dark card, rimmed in the kind's color.                                  |         |
+| J11 | Far-tuned         | Big stars and thick lines, built to survive 0.33.                                              |         |
+| J12 | Skyrim: lit stars | Stars light up as work moves: one when ready, half when active, most in review, all when done. |         |
+| J13 | Skyrim: sign      | A smoky sky with the kind's icon drawn faintly behind its stars.                               |         |
+| J14 | Skyrim: lit sign  | The faint sign and the lit stars together.                                                     |         |
 
 In J12 and J14, a blocked card shows a red star where its progress stopped, and a placeholder's stars are hollow.
 
@@ -149,20 +149,20 @@ In J12 and J14, a blocked card shows a red star where its progress stopped, and 
 
 ### Issue outline, pixel, and dithered skins
 
-| ID  | Option         | Idea                                                                     |
-| --- | -------------- | ------------------------------------------------------------------------ |
-| X1  | Arch           | A round arch on top, which held up best in round 1's grayscale and blur. |
-| X2  | Folder tab     | A raised tab on the top left.                                            |
-| X3  | Clipped corner | One big chamfer on the top left, like a torn ticket stub.                |
-| X4  | Hanger         | A round bump on the top edge, like a tag on a hook.                      |
-| X5  | Capsule        | Fully rounded corners, soft against the PR's sharp arrow.                |
-| X6  | Punched        | A hole punched near the top, like a claim ticket.                        |
-| I1  | Hand sprites   | Sprites drawn by hand on a 12 by 12 grid, over dithered art.             |
-| I2  | Shaded sprites | The same sprites with a lit top, a shaded bottom, and a dark outline.    |
-| I3  | Chunky frame   | Shaded sprites inside a thick, crisp kind-colored frame.                 |
-| I4  | 8-bit night    | Shaded sprites on a pixel starfield, halfway to the constellations.      |
-| D1  | Ink disc       | A's dithered art on the shared shapes, with the icon in a dark disc.     |
-| D2  | Bright icon    | A larger glowing icon and more of the kind's color in the art.           |
+| ID  | Option         | Idea                                                                     | Call    |
+| --- | -------------- | ------------------------------------------------------------------------ | ------- |
+| X1  | Arch           | A round arch on top, which held up best in round 1's grayscale and blur. | Starred |
+| X2  | Folder tab     | A raised tab on the top left.                                            |         |
+| X3  | Clipped corner | One big chamfer on the top left, like a torn ticket stub.                |         |
+| X4  | Hanger         | A round bump on the top edge, like a tag on a hook.                      |         |
+| X5  | Capsule        | Fully rounded corners, soft against the PR's sharp arrow.                |         |
+| X6  | Punched        | A hole punched near the top, like a claim ticket.                        | Starred |
+| I1  | Hand sprites   | Sprites drawn by hand on a 12 by 12 grid, over dithered art.             |         |
+| I2  | Shaded sprites | The same sprites with a lit top, a shaded bottom, and a dark outline.    |         |
+| I3  | Chunky frame   | Shaded sprites inside a thick, crisp kind-colored frame.                 |         |
+| I4  | 8-bit night    | Shaded sprites on a pixel starfield, halfway to the constellations.      | Starred |
+| D1  | Ink disc       | A's dithered art on the shared shapes, with the icon in a dark disc.     | Starred |
+| D2  | Bright icon    | A larger glowing icon and more of the kind's color in the art.           | Crossed |
 
 Round 1's pixel sprites were vector icons shrunk onto the grid, which is why some looked mushy. Round 2's are drawn by hand at their real size.
 
@@ -196,13 +196,25 @@ Round 1's pixel sprites were vector icons shrunk onto the grid, which is why som
 <img src="./images/card-identity/r2-canvas.webp" alt="A crowded canvas at 0.33 in the kind-sky constellations: a dense group, a release group of octagon gates, a folded group as a deck with a census, and loose question tokens.">
 </div>
 
+## Where it landed
+
+After round 2, these were settled for the shared shapes, and they're recorded in the [decisions](/development/decisions):
+
+- **Issues** take the arch (X1). The punched ticket (X6) was cute but weaker at a distance.
+- **Gates** are the only kind wider than a card. Question and decision tokens fit inside a card's slot.
+- **Questions, decisions, references, and gate types** (milestone, sign-off, and physical) become kinds of their own.
+- **Groups** never tint their cards. The container gets a light wash and a header bar in the group's color (W3), and the header is a clamped landmark (H5).
+- **Folded groups** show the next card face up on the deck, with the census beside it (R4).
+- **Source** is the brand-rim coin (C2) on every skin, with +N for extra sources.
+- **State** is the band (S5): DONE, LATER, or a striped BLOCKED across the middle of the card.
+
+From the skins, J1 and J3 lead the constellations, I4 the pixel sprites, and D1 the dithered art.
+
 ## Open questions
 
-- Which issue outline joins the shared shapes.
-- Which constellation skies to keep, and whether lit stars should replace the state marks on that skin or sit beside them.
-- Whether constellations, pixel sprites, and dithered art ship as separate skins on one shape system, or one of them becomes the trading card.
-- Whether the source coin is drawn the same on every skin or by each skin.
-- How the headers and folded groups chosen here fit the [compact far-zoom card](/development/design/trading-cards).
+- Whether lit stars (J12 to J14) replace the state band on the constellation skin or sit beside it.
+- Whether constellations, pixel sprites, and dithered art ship as separate skins on the shared shapes, or one of them becomes the trading card.
+- How each skin draws its compact form at far zoom.
 
 ## Sources
 
