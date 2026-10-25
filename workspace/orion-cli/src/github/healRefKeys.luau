@@ -1,6 +1,8 @@
 local json = require("@std/json")
 
+local findRepository = require("@root/github/findRepository")
 local getKeyRepo = require("@root/refs/getKeyRepo")
+local getMovedUrl = require("@root/github/getMovedUrl")
 local getRefs = require("@root/refs/getRefs")
 local isSameRef = require("@root/refs/isSameRef")
 local types = require("@root/types")
@@ -11,17 +13,6 @@ type Ref = types.Ref
 export type Move = { from: string, to: string }
 
 local GITHUB_KINDS = { pull = true, issue = true, branch = true }
-
--- Points a ref's URL at the repository's current name, when its path starts with the old owner/name.
-local function getMovedUrl(url: string, previous: string, current: string): string
-	local origin, path = url:match("^(https?://[^/]+/)([^/]+/[^/#?]+)")
-
-	if not origin or not path or path:lower() ~= previous:lower() then
-		return url
-	end
-
-	return `{origin}{current}{url:sub(#origin + #path + 1)}`
-end
 
 --[[
 	Renames every GitHub ref whose repository the directory knows by a different name now, keeping its id, number or
@@ -74,6 +65,30 @@ local function healRefKeys(doc: Doc): { Move }
 
 		if changed then
 			item.data.refs = kept :: any
+		end
+	end
+
+	local snoozes = doc.settings.checkSnoozes
+
+	for index = #snoozes, 1, -1 do
+		local snooze = snoozes[index]
+		local found = findRepository(doc, snooze.repo)
+
+		if found and found.name:lower() ~= snooze.repo:lower() then
+			applied[snooze.repo:lower()] = applied[snooze.repo:lower()] or { from = snooze.repo, to = found.name }
+			snooze.repo = found.name
+		end
+	end
+
+	-- A snooze moved onto a name that already had one for the same job gives way to it.
+	for index = #snoozes, 1, -1 do
+		for earlier = 1, index - 1 do
+			local snooze, other = snoozes[index], snoozes[earlier]
+
+			if other.name == snooze.name and other.repo:lower() == snooze.repo:lower() then
+				table.remove(snoozes, index)
+				break
+			end
 		end
 	end
 

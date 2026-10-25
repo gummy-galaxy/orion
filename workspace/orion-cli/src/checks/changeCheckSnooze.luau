@@ -1,3 +1,4 @@
+local findRepository = require("@root/github/findRepository")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -18,7 +19,9 @@ local function changeCheckSnooze(doc: Doc, change: Change)
 	assert(change.name ~= "", "a snooze needs the job's name")
 
 	local snoozes = doc.settings.checkSnoozes
-	local repo = change.repo:lower()
+	local found = findRepository(doc, change.repo)
+	local name = if found then found.name else change.repo
+	local repo = name:lower()
 
 	for index = #snoozes, 1, -1 do
 		local snooze = snoozes[index]
@@ -31,7 +34,7 @@ local function changeCheckSnooze(doc: Doc, change: Change)
 	if change.snoozed then
 		table.insert(
 			snoozes,
-			{ repo = change.repo, name = change.name, untilTime = change.untilTime, at = change.at, passed = {} }
+			{ repo = name, name = change.name, untilTime = change.untilTime, at = change.at, passed = {} }
 		)
 	end
 end

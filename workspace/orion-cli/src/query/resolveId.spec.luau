@@ -51,3 +51,17 @@ test.case("pr selectors match pull refs, not note text", function(assert)
 		resolveId(doc, "pr:12")
 	end)
 end)
+
+test.case("a ref selector finds a card by its repository's old name after a move", function(assert)
+	local doc = testing.createDoc({
+		testing.task("moved", "Moved", "active", nil, {
+			refs = { json.object({ source = "github", kind = "pull", key = "gummy-galaxy/orion#12", id = "1#12" }) },
+		}),
+	})
+	doc.repositories = json.object({
+		["1"] = json.object({ name = "gummy-galaxy/orion", aliases = { "vocksel/orion" } }),
+	})
+
+	assert.eq(resolveId(doc, "ref:vocksel/orion#12"), "moved")
+	assert.eq(resolveId(doc, "ref:https://github.com/vocksel/orion/pull/12"), "moved")
+end)

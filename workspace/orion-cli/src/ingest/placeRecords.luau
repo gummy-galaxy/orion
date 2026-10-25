@@ -3,9 +3,11 @@ local json = require("@std/json")
 local addItem = require("@root/graph/addItem")
 local findItem = require("@root/graph/findItem")
 local findRef = require("@root/refs/findRef")
+local findRepository = require("@root/github/findRepository")
 local findSameRef = require("@root/refs/findSameRef")
 local getItem = require("@root/graph/getItem")
 local getNextSlot = require("@root/graph/getNextSlot")
+local identifyRef = require("@root/github/identifyRef")
 local ingestTypes = require("@root/ingest/types")
 local linkMentions = require("@root/ingest/linkMentions")
 local setRef = require("@root/refs/setRef")
@@ -58,6 +60,11 @@ local function placeRecords(doc: Doc, results: { Result }): Report
 		end
 
 		for _, record in result.records or {} do
+			-- A record that names its repository the way a card did before a move still finds that card.
+			identifyRef(doc, record.ref)
+			local repository = if record.repo then findRepository(doc, record.repo) else nil
+			record.repo = if repository then repository.name else record.repo
+
 			local existing: Item? = if record.shouldFindFallbackFirst and record.findFallback
 				then record.findFallback(doc)
 				else nil

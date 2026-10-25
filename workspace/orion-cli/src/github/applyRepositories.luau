@@ -17,7 +17,8 @@ local function applyRepositories(doc: Doc, found: { FoundRepository }, checkedAt
 
 	for _, repository in found do
 		byLocation[repository.location] = repository
-		setRepository(doc, repository.host, repository.id, repository.name, checkedAt)
+		local alias = repository.location:match("^[^/]+/([^/]+/[^/]+)$") or repository.location
+		setRepository(doc, repository.host, repository.id, repository.name, checkedAt, alias)
 	end
 
 	if next(byLocation) == nil then
