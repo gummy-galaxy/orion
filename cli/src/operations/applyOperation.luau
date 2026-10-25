@@ -1,9 +1,12 @@
 local captureDoc = require("@root/operations/captureDoc")
+local closeChain = require("@root/graph/closeChain")
 local diffDocs = require("@root/operations/diffDocs")
 local findItem = require("@root/graph/findItem")
 local getGroup = require("@root/graph/getGroup")
 local getItem = require("@root/graph/getItem")
+local graphTypes = require("@root/graph/types")
 local insertBetween = require("@root/graph/insertBetween")
+local json = require("@std/json")
 local linkItems = require("@root/graph/linkItems")
 local makeGroup = require("@root/graph/makeGroup")
 local markForTidy = require("@root/graph/markForTidy")
@@ -24,6 +27,8 @@ type Operation = operationTypes.Operation
 type Restore = operationTypes.Restore
 
 local handlers: { [string]: (Doc, Operation) -> () } = {}
+-- Operations that answer with what they did, which goes back to the client with the change.
+local answering: { [string]: (Doc, Operation) -> json.Value } = {}
 
 local function required<T>(value: T?, name: string): T
 	assert(value ~= nil, `an operation needs {name}`)
@@ -80,6 +85,22 @@ end
 
 handlers.tidy = function(doc: Doc, operation: Operation)
 	markForTidy(doc, required(operation.id, "id"))
+end
+
+-- Closes out a finished card and its chain, and answers with each card closed and passed, with its hops from the card.
+answering.chainClose = function(doc: Doc, operation: Operation): json.Value
+	local result = closeChain(doc, required(operation.id, "id"))
+	local function steps(list: { graphTypes.ChainStep }): json.Array
+		local array: json.Array = {}
+
+		for _, step in list do
+			table.insert(array, json.object({ id = step.id, hops = step.hops }))
+		end
+
+		return array
+	end
+
+	return json.object({ closed = steps(result.closed), passed = steps(result.passed) })
 end
 
 -- Adds an item the app built, at the id and position it chose. The id must be free, and a group must be a group.
@@ -139,19 +160,28 @@ handlers.setStickerLoadout = function(doc: Doc, operation: Operation)
 	setRawValue(doc, "stickerLoadout", required(operation.stickerLoadout, "stickerLoadout"))
 end
 
--- Applies one operation and returns its inverse. A failed operation leaves the document as it was.
-local function applyOperation(doc: Doc, operation: Operation): Restore
+-- Applies one operation and returns its inverse, and what the operation answered, if anything. A failed operation
+-- leaves the document as it was.
+local function applyOperation(doc: Doc, operation: Operation): (Restore, json.Value?)
 	local handler = handlers[operation.op]
-	assert(handler, `unknown operation: {operation.op}`)
+	local answerer = answering[operation.op]
+	assert(handler or answerer, `unknown operation: {operation.op}`)
 	local before = captureDoc(doc)
-	local succeeded, failure = pcall(handler, doc, operation)
+	local answer: json.Value? = nil
+	local succeeded, failure = pcall(function()
+		if answerer then
+			answer = answerer(doc, operation)
+		else
+			handler(doc, operation)
+		end
+	end)
 
 	if not succeeded then
 		restoreDoc(doc, diffDocs(before, doc))
 		error(failure, 0)
 	end
 
-	return diffDocs(before, doc)
+	return diffDocs(before, doc), answer
 end
 
 return applyOperation

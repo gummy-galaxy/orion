@@ -30,8 +30,8 @@ export const resizeHandlesAtom = atom<string | null>(null)
 export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>())
 /** Links a chain closing out pulses along, each with when its pulse leaves and how long it takes to arrive. */
 export const chainPulsesAtom = atom<Map<string, Pulse>>(new Map<string, Pulse>())
-/** Cards on the last beat of a chain closing out, which close it with a flourish. */
-export const chainFinaleAtom = atom<Set<string>>(new Set<string>())
+/** Cards on the last beat of a chain closing out, which close it with a flourish, each with the delay before it starts. */
+export const chainFinaleAtom = atom<Map<string, number>>(new Map<string, number>())
 
 /** The graph facts `orion serve` derived for the open document. Null until the server answers, or with no server. */
 export const derivedAtom = atom<Derived | null>(null)
@@ -161,7 +161,7 @@ export const useCelebrating = (id: string) => useAtomValue(useMemo(() => selectA
 
 export const useChainPulse = (id: string) => useAtomValue(useMemo(() => selectAtom(chainPulsesAtom, (pulses) => pulses.get(id)), [id]))
 
-export const useChainFinale = (id: string) => useAtomValue(useMemo(() => selectAtom(chainFinaleAtom, (finale) => finale.has(id)), [id]))
+export const useChainFinale = (id: string) => useAtomValue(useMemo(() => selectAtom(chainFinaleAtom, (finale) => finale.get(id)), [id]))
 
 export const useMarked = (id: string) => useAtomValue(useMemo(() => selectAtom(attentionAtom, (attention) => !!attention?.has(id)), [id]))
 

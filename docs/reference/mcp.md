@@ -84,6 +84,19 @@ Runs `orion card done`.
 | `dryRun`     | boolean     | Preview changes and current revision without writing   |
 | `ifRevision` | integer     | Write only if the document has this revision           |
 
+## orion_card_chain-close
+
+Close out a done card and every waiting done card chained to it through finished cards, the same as double-clicking a shimmering card in the app. Closing out a chain is the person's reward for finishing it, so don't close out on your own: finishing a card with orion_card_done leaves it waiting for them. Close out only when the person asks.
+
+Runs `orion card chain-close`.
+
+| Argument     | Type    | Description                                                                                             |
+| ------------ | ------- | ------------------------------------------------------------------------------------------------------- |
+| `id`         | id      | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                                  |
+| `dryRun`     | boolean | Preview the chain and current revision without writing                                                  |
+| `ifRevision` | integer | Write only if the document has this revision                                                            |
+
 ## orion_card_import
 
 Add a card for each URL or source:key in one step

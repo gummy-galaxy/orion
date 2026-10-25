@@ -1,5 +1,6 @@
 local cli = require("@batteries/cli")
 
+local chainClose = require("@root/cli/card/chainClose")
 local context = require("@root/cli/context")
 local create = require("@root/cli/card/create")
 local defineSubcommands = require("@root/cli/defineSubcommands")
@@ -21,6 +22,7 @@ local COMMANDS: { [string]: Command } = {
 	set = set,
 	timeline = timeline,
 	done = done,
+	["chain-close"] = chainClose,
 	import = import,
 	snooze = snooze,
 	unsnooze = unsnooze,
@@ -32,7 +34,7 @@ return table.freeze({
 		defineSubcommands(
 			parser,
 			COMMANDS,
-			{ "list", "create", "set", "timeline", "done", "import", "snooze", "unsnooze" }
+			{ "list", "create", "set", "timeline", "done", "chain-close", "import", "snooze", "unsnooze" }
 		)
 	end,
 

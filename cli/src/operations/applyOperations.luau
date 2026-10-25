@@ -1,5 +1,6 @@
 local applyOperation = require("@root/operations/applyOperation")
 local getErrorText = require("@root/getErrorText")
+local json = require("@std/json")
 local operationTypes = require("@root/operations/types")
 local restoreDoc = require("@root/operations/restoreDoc")
 local types = require("@root/types")
@@ -12,12 +13,13 @@ type Restore = operationTypes.Restore
 export type Rejection = { rejected: true, index: number, op: string, message: string }
 
 -- Applies a list in order, as one change. If any operation fails, the ones before it are undone and the list is
--- refused. Returns each operation's inverse, in the same order as the list.
-local function applyOperations(doc: Doc, operations: { Operation }): { Restore }
+-- refused. Returns each operation's inverse, and each one's answer or json.null, in the same order as the list.
+local function applyOperations(doc: Doc, operations: { Operation }): ({ Restore }, json.Array)
 	local restores: { Restore } = {}
+	local answers: json.Array = {}
 
 	for index, operation in operations do
-		local succeeded, result = pcall(applyOperation, doc, operation)
+		local succeeded, result, answer = pcall(applyOperation, doc, operation)
 
 		if not succeeded then
 			for undo = #restores, 1, -1 do
@@ -34,9 +36,10 @@ local function applyOperations(doc: Doc, operations: { Operation }): { Restore }
 		end
 
 		table.insert(restores, result :: Restore)
+		table.insert(answers, if answer == nil then json.null else answer)
 	end
 
-	return restores
+	return restores, answers
 end
 
 return applyOperations
