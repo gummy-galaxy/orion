@@ -149,7 +149,7 @@ describe('checkValue', () => {
 
 describe('the example theme', () => {
   it('ships a valid theme that names only real tokens', () => {
-    const text = readFileSync(new URL('../../examples/themes/dusk.json', import.meta.url), 'utf8')
+    const text = readFileSync(new URL('../../../examples/themes/dusk.json', import.meta.url), 'utf8')
     const theme = parseThemeFile('dusk.json', text)
 
     expect(theme.error).toBeUndefined()
@@ -159,7 +159,7 @@ describe('the example theme', () => {
 })
 
 describe('loadThemes', () => {
-  const duskText = readFileSync(new URL('../../examples/themes/dusk.json', import.meta.url), 'utf8')
+  const duskText = readFileSync(new URL('../../../examples/themes/dusk.json', import.meta.url), 'utf8')
   const builtIns = THEMES.map((theme) => theme.label)
 
   /** Answers GET /api/themes with the given response. */

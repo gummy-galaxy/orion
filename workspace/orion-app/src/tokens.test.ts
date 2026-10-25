@@ -85,7 +85,7 @@ it('declares no custom property that the token list does not name', () => {
 })
 
 describe('the tokens page in the docs', () => {
-  const rows = documentedRows(read('../../docs/guide/tokens.md'))
+  const rows = documentedRows(read('../../../docs/guide/tokens.md'))
   // Classic's colors sit on :root under every other theme, so they're what a theme file falls back to.
   const defaults = { ...declaredValues(sharedCss), ...declaredValues(themeCss.classic) }
 
@@ -107,7 +107,7 @@ describe('the tokens page in the docs', () => {
 })
 
 it('matches the token contract that the CLI checks theme files against', () => {
-  const contract = read('../../cli/src/themes/tokenContract.luau')
+  const contract = read('../../orion-cli/src/themes/tokenContract.luau')
   const entries = [...contract.matchAll(/\["([^"]+)"\] = \{ group = "([^"]+)", cssVar = "([^"]+)" \}/g)].map(([, name, group, cssVar]) => ({
     name,
     group,

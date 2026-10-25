@@ -1,6 +1,6 @@
 --[[
 	Links a pull request to the Storybook that Chromatic published for its head commit, and to each story in it. Stories
-	that load a file the pull request changes come first. It reads the stories from the build in app/storybook-static
+	that load a file the pull request changes come first. It reads the stories from the build in workspace/orion-app/storybook-static
 	and keeps the links in one pull request comment, replacing the comment an earlier push left, so they always point
 	at the newest build.
 ]]
@@ -16,13 +16,13 @@ local runScript = require("@root/runScript")
 local upsertComment = require("@root/github/upsertComment")
 
 local MARKER = "<!-- orion-storybook -->"
-local STORYBOOK_ROOT = "app"
+local STORYBOOK_ROOT = "workspace/orion-app"
 
 local env = process.env
 local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 local pullRequest = assert(env.PR, "PR is not set")
 local storybookUrl = assert(env.STORYBOOK_URL, "STORYBOOK_URL is not set")
-local repositoryRoot = path.resolve("..")
+local repositoryRoot = path.resolve("../..")
 
 -- Reads a file by its path from the repository root, or returns nil for a missing file or a folder.
 local function readFile(file: string): string?

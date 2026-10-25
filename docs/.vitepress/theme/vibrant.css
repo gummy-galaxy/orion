@@ -1,5 +1,5 @@
 /*
- * The app's vibrant theme (app/src/themes/vibrant.css), mapped onto VitePress's variables. Keep the Orion tokens
+ * The app's vibrant theme (workspace/orion-app/src/themes/vibrant.css), mapped onto VitePress's variables. Keep the Orion tokens
  * in step with the app's; the --vp-* names below only say where each one goes.
  */
 :root {

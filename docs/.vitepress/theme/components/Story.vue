@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-// The Storybook that main last published to Chromatic. `npm run dev` points at a local `npm run storybook` in app/
+// The Storybook that main last published to Chromatic. `npm run dev` points at a local `npm run storybook` in workspace/orion-app/
 // instead, so stories you're editing show up here. Set VITE_STORYBOOK_URL to embed any other Storybook build.
 const CHROMATIC_URL = 'https://main--6acd7d37ef902af0d3845e73.chromatic.com'
 const LOCAL_URL = 'http://localhost:6006'

@@ -4,13 +4,13 @@ Orion hasn't had its first release, so for now you build it from source. [`CONTR
 
 ## The desktop app
 
-The desktop app bundles the canvas with the `orion` CLI and runs its server for you. Build it with `npm run build` in `desktop/`, then move the app it produces into your Applications folder.
+The desktop app bundles the canvas with the `orion` CLI and runs its server for you. Build it with `npm run build` in `workspace/orion-desktop/`, then move the app it produces into your Applications folder.
 
 The packaged app keeps one local address across restarts, so each canvas remembers its viewport and detail level.
 
 ## The CLI
 
-The CLI reads and changes the same data as the app, and the app picks up every change while it's open. The desktop app ships the binary at `/Applications/Orion.app/Contents/MacOS/orion`, and a local build writes `cli/build/orion`. Put one on your `PATH`, then run:
+The CLI reads and changes the same data as the app, and the app picks up every change while it's open. The desktop app ships the binary at `/Applications/Orion.app/Contents/MacOS/orion`, and a local build writes `workspace/orion-cli/build/orion`. Put one on your `PATH`, then run:
 
 ```sh
 orion help

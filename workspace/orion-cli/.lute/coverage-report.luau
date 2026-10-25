@@ -1,6 +1,6 @@
 --[[
 	Publishes the app's test coverage from CI's app job. It reads the totals npm run coverage writes to
-	app/coverage/coverage-summary.json, adds them to the job summary, and keeps them in one pull request comment,
+	workspace/orion-app/coverage/coverage-summary.json, adds them to the job summary, and keeps them in one pull request comment,
 	replacing the comment an earlier run left.
 ]]
 local fs = require("@std/fs")
@@ -18,7 +18,7 @@ local MARKER = "<!-- orion-coverage -->"
 local METRICS = { "statements", "branches", "functions", "lines" }
 
 local env = process.env
-local summaryPath = path.resolve("../app/coverage/coverage-summary.json")
+local summaryPath = path.resolve("../orion-app/coverage/coverage-summary.json")
 local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 local pullRequest = assert(env.PR, "PR is not set")
 

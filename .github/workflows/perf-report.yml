@@ -31,7 +31,7 @@ jobs:
           cache: true
 
       - name: Publish Report
-        working-directory: cli
+        working-directory: workspace/orion-cli
         env:
           GH_TOKEN: ${{ github.token }}
           HEAD_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}

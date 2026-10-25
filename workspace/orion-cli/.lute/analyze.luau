@@ -9,8 +9,8 @@ local sources = {
 	"project.luau",
 	"loom.config.luau",
 	".config.luau",
-	"../.lute",
-	"../.config.luau",
+	"../../.lute",
+	"../../.config.luau",
 }
 
 runScript(function()

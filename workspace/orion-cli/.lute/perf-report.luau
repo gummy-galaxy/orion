@@ -1,5 +1,5 @@
 --[[
-	Publishes the perf comparison in app/.perf/report.md from CI's perf job. It adds the report to the job summary
+	Publishes the perf comparison in workspace/orion-app/.perf/report.md from CI's perf job. It adds the report to the job summary
 	and, for a pull request, keeps it in one comment, replacing the comment an earlier run left. When the comparison
 	fails, the comment says so and links the run. A push to main has no pull request, so its report stays in the summary.
 
@@ -18,7 +18,7 @@ local upsertComment = require("@root/github/upsertComment")
 local MARKER = "<!-- orion-perf -->"
 
 local env = process.env
-local reportDir = path.resolve("../app/.perf")
+local reportDir = path.resolve("../orion-app/.perf")
 local reportPath = path.join(reportDir, "report.md")
 local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 

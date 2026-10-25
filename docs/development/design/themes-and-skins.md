@@ -14,7 +14,7 @@ Kept: the purple palette, which became the Vibrant theme. Set aside: the Slate p
 
 ## October 9, 2026: Swappable themes
 
-The [theme change](https://github.com/vocksel/orion/pull/149) separated the theme from the color mode. Each theme is a CSS file under `app/src/themes/`, listed in one place, so a new direction can be tried by adding one file. Colors use `light-dark()`, so light, dark, and system mode only set the color scheme. The sidebar gets a Theme switch, and the Vibrant theme shipped with the change. It is dark only.
+The [theme change](https://github.com/vocksel/orion/pull/149) separated the theme from the color mode. Each theme is a CSS file under `workspace/orion-app/src/themes/`, listed in one place, so a new direction can be tried by adding one file. Colors use `light-dark()`, so light, dark, and system mode only set the color scheme. The sidebar gets a Theme switch, and the Vibrant theme shipped with the change. It is dark only.
 
 <div class="gallery">
 <img src="./images/theme-classic.webp" alt="The Classic theme in light mode: a pale canvas with white group tiles and a light sidebar.">

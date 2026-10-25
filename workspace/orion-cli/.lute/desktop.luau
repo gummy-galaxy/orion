@@ -9,10 +9,10 @@ local system = require("@std/system")
 local run = require("@root/run")
 local runScript = require("@root/runScript")
 
-local root = path.resolve("..")
-local app = path.join(root, "app")
-local desktop = path.join(root, "desktop")
-local cliDir = path.join(root, "cli")
+local workspaceDir = path.resolve("..")
+local app = path.join(workspaceDir, "orion-app")
+local desktop = path.join(workspaceDir, "orion-desktop")
+local cliDir = path.join(workspaceDir, "orion-cli")
 local bundle = if system.macos then "dmg" elseif system.win32 then "nsis" else "deb"
 
 runScript(function()

@@ -5,7 +5,7 @@ import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, type Logger, type Plugin } from 'vite'
 
-const binary = process.env.ORION_BIN || fileURLToPath(new URL('../cli/build/orion', import.meta.url))
+const binary = process.env.ORION_BIN || fileURLToPath(new URL('../orion-cli/build/orion', import.meta.url))
 const scratchDataDir = fileURLToPath(new URL('.dev-data', import.meta.url))
 const seedPlan = fileURLToPath(new URL('fixtures/dev-canvas.json', import.meta.url))
 

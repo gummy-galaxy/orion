@@ -1,6 +1,6 @@
 --[[
 	The canvas geometry the CLI and the app share, and the limits the app checks before the CLI does. The app imports
-	these from `app/src/geometry.ts`, which `lute run geometry` writes from this table. Change a value here, run that
+	these from `workspace/orion-app/src/geometry.ts`, which `lute run geometry` writes from this table. Change a value here, run that
 	from the repository root, and commit both files; CI fails when they disagree.
 ]]
 return table.freeze({

@@ -336,7 +336,7 @@ Each CLI command is one MCP tool, named after its path as `orion_<noun>_<verb>`,
 
 When the data folder's layout changes, Orion moves an older folder into the new one the first time it runs, rather than asking people to move it by hand. Renaming workspaces to canvases was the first: `workspaces.json` became `canvases.json` and `workspaces/<name>/` became `canvases/<name>/`. A move keeps a backup of anything it rewrites, picks up where it left off if it stopped partway, and refuses while another build of Orion is still serving the folder.
 
-These moves live in `cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
+These moves live in `workspace/orion-cli/src/migrations/`, whose README dates each one. Nobody on 0.1.0 or later has an older folder, so they're all removed at that release.
 
 Moves that would have to guess are the exception. Upgrading a version 1 data file meant guessing the GitHub owner of every short repository name, so Orion refuses a version 1 file instead, with a message saying how to upgrade it with an older build.
 
@@ -467,6 +467,14 @@ Orion installs to `/Applications/Orion.app` so every user on the machine gets it
 **Why:** every build shares one bundle id, so a second copy in `~/Applications` shows up as a duplicate Orion and leaves the CLI and the app running different builds.
 
 2026-10-13
+
+### Packages live in `workspace/`, named `orion-*`
+
+The repository's packages sit together in `workspace/`: `orion-app` is the canvas in React, `orion-cli` is the `orion` CLI and its server, and `orion-desktop` is the Tauri shell that bundles the two. Each folder's name matches its package name. The top level keeps the docs, examples, and repository-wide config.
+
+**Why:** "the app" already means the canvas a person works in, whether a browser or the desktop shell hosts it, so `orion-app` keeps that meaning and `orion-desktop` names the installable wrapper. This `workspace/` is the repository's folder of packages, not an Orion workspace of canvases.
+
+2026-10-24
 
 ## Docs
 

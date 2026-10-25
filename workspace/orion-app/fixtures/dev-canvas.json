@@ -10,5 +10,5 @@
   { "op": "link", "from": "@build", "to": "@review" },
   { "op": "link", "from": "@review", "to": "@ship" },
   { "op": "group", "handle": "onboarding", "label": "Onboarding", "items": ["@sketch", "@copy", "@build", "@review"] },
-  { "op": "addNote", "text": "Sample canvas for development. The dev server seeds it into app/.dev-data the first time it runs." }
+  { "op": "addNote", "text": "Sample canvas for development. The dev server seeds it into workspace/orion-app/.dev-data the first time it runs." }
 ]

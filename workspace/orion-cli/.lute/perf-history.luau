@@ -1,5 +1,5 @@
 --[[
-	Records CI's perf run in PostHog so results can be charted across commits. It reads app/.perf/raw.json and sends
+	Records CI's perf run in PostHog so results can be charted across commits. It reads workspace/orion-app/.perf/raw.json and sends
 	one `perf_run` event per side. Without a PostHog token, or when PostHog refuses or can't be reached, it warns and
 	leaves the job alone.
 ]]
@@ -16,7 +16,7 @@ local DEFAULT_HOST = "https://us.i.posthog.com"
 local DISTINCT_ID = "orion-ci"
 
 local env = process.env
-local rawPath = path.resolve("../app/.perf/raw.json")
+local rawPath = path.resolve("../orion-app/.perf/raw.json")
 
 local function warn(message: string)
 	print(`::warning title=Perf history::{message}`)
@@ -31,7 +31,7 @@ runScript(function()
 	end
 
 	if not fs.exists(rawPath) then
-		warn("app/.perf/raw.json is missing, so this run isn't recorded.")
+		warn("workspace/orion-app/.perf/raw.json is missing, so this run isn't recorded.")
 		return
 	end
 

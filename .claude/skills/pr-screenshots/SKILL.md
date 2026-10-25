@@ -1,6 +1,6 @@
 ---
 name: pr-screenshots
-description: Capture before and after screenshots or videos of the Orion app and attach them to a pull request description. Use when opening or updating a pull request that changes what the app shows, such as anything under app/src or the desktop shell's UI, or when asked for screenshots or videos on a PR.
+description: Capture before and after screenshots or videos of the Orion app and attach them to a pull request description. Use when opening or updating a pull request that changes what the app shows, such as anything under workspace/orion-app/src or the desktop shell's UI, or when asked for screenshots or videos on a PR.
 ---
 
 # PR screenshots
@@ -17,7 +17,7 @@ Record a video instead when a still can't show the change: an interaction such a
 
 A new feature has nothing to show before it. Attach the after image alone, or a before image of the same spot when its absence is worth seeing.
 
-These captures show only the app's web content. Parts the desktop shell draws, such as the window buttons and macOS menus, need the desktop app: run `npm run dev` in `desktop/` and leave it open for the person to capture, or say in the description what the images leave out.
+These captures show only the app's web content. Parts the desktop shell draws, such as the window buttons and macOS menus, need the desktop app: run `npm run dev` in `workspace/orion-desktop/` and leave it open for the person to capture, or say in the description what the images leave out.
 
 ## 2. Prepare two trees and two data copies
 
@@ -76,7 +76,7 @@ Seed whatever the change needs, such as a gate card or a long label, with the sa
 
 ## 3. Start the apps
 
-Run Vite in each tree's `app/` on its own port, each with its own tree's CLI and data:
+Run Vite in each tree's `workspace/orion-app/` on its own port, each with its own tree's CLI and data:
 
 ```sh
 cd "$BEFORE/app" && ORION_BIN="$BEFORE/cli/build/orion" ORION_DATA_DIR="$SCRATCH/before-data" npx vite --port 5301 --strictPort
@@ -85,7 +85,7 @@ cd "$AFTER/app" && ORION_BIN="$AFTER/cli/build/orion" ORION_DATA_DIR="$SCRATCH/a
 
 Run them in the background, and keep everything headless so nothing opens on the person's screen. Don't use a dev-server tool that opens a browser pane, such as Claude Code's `preview_start`.
 
-For a story, run `ORION_STORYBOOK=1 npx storybook dev -p 6011 --ci` in the before tree's `app/` and the same with `-p 6012` in the after tree's, and capture `http://localhost:<port>/iframe.html?id=<story-id>&viewMode=story`.
+For a story, run `ORION_STORYBOOK=1 npx storybook dev -p 6011 --ci` in the before tree's `workspace/orion-app/` and the same with `-p 6012` in the after tree's, and capture `http://localhost:<port>/iframe.html?id=<story-id>&viewMode=story`.
 
 ## 4. Capture
 

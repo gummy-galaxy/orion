@@ -25,7 +25,7 @@ Components on these pages are the app's own, embedded from its [Storybook](https
 <Story id="canvas-cards-and-edges-tradingcard--playground" title="A pull request in review" :height="440" />
 ```
 
-Locally, `npm run dev` in `docs/` embeds from `npm run storybook` in `app/` instead, so stories you're editing show up as you change them.
+Locally, `npm run dev` in `docs/` embeds from `npm run storybook` in `workspace/orion-app/` instead, so stories you're editing show up as you change them.
 
 ## Timeline
 

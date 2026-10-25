@@ -11,7 +11,7 @@ node_modules
 dist
 dist-ssr
 storybook-static
-desktop/binaries/
+workspace/orion-desktop/binaries/
 *.local
 
 # Editor directories and files
@@ -27,7 +27,7 @@ desktop/binaries/
 *.sw?
 
 # Scratch data the app's dev server seeds and serves
-app/.dev-data
+workspace/orion-app/.dev-data
 
 # Performance reports and builds from npm run perf
 .perf

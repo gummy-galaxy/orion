@@ -14,13 +14,13 @@ Orion is a prototype and hasn't had its first release, so anything can still cha
 
 ## Repository
 
-| Folder      | What's in it                                                |
-| ----------- | ----------------------------------------------------------- |
-| `app/`      | The canvas, in React                                        |
-| `cli/`      | `orion`, the Luau CLI that owns the data                    |
-| `desktop/`  | The Tauri desktop shell                                     |
-| `docs/`     | The docs site, with the design history and the logo sources |
-| `examples/` | Example theme files                                         |
+| Folder                     | What's in it                                                |
+| -------------------------- | ----------------------------------------------------------- |
+| `workspace/orion-app/`     | The canvas, in React                                        |
+| `workspace/orion-cli/`     | `orion`, the Luau CLI that owns the data                    |
+| `workspace/orion-desktop/` | The Tauri desktop shell                                     |
+| `docs/`                    | The docs site, with the design history and the logo sources |
+| `examples/`                | Example theme files                                         |
 
 [The charter](docs/development/charter.md) sets where Orion is headed, and [the decisions log](docs/development/decisions.md) records the calls made along the way. [`CONTRIBUTING.md`](CONTRIBUTING.md) covers building and testing. Agents start at [`AGENTS.md`](AGENTS.md).
 

@@ -9,7 +9,7 @@ const TRADING = { width: 198, height: 285 }
 
 describe('taskHeight', () => {
   it("estimates text it can't measure the way the CLI does, so both place notes the same", () => {
-    // The same notes and heights as cli/src/graph/estimateTaskHeight.spec.luau.
+    // The same notes and heights as workspace/orion-cli/src/graph/estimateTaskHeight.spec.luau.
     expect(taskHeight(card({ itemKind: 'note', label: 'a\nb\nc\nd\ne\nf' }), CLASSIC)).toBe(136)
     expect(taskHeight(card({ itemKind: 'note', label: 'word '.repeat(12) }), CLASSIC)).toBe(88)
     expect(taskHeight(card({ itemKind: 'note', label: 'x'.repeat(400) }), CLASSIC)).toBe(292)

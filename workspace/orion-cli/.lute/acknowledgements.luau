@@ -1,5 +1,5 @@
 --[[
-	Writes `app/dist/acknowledgements.html`, the page the desktop app opens from Help › Acknowledgements. It lists
+	Writes `workspace/orion-app/dist/acknowledgements.html`, the page the desktop app opens from Help › Acknowledgements. It lists
 	the license of every third-party project the app ships: the npm packages Vite bundles into the canvas, the Rust
 	crates compiled into the shell, the Luau packages compiled into the CLI sidecar, and the native libraries in
 	Lute's runtime. Run it after the canvas build, which writes Vite's license report.
@@ -31,9 +31,9 @@ type Section = {
 	projects: { Project },
 }
 
-local root = path.resolve("..")
-local dist = path.join(root, "app", "dist")
-local shell = path.join(root, "desktop")
+local workspaceDir = path.resolve("..")
+local dist = path.join(workspaceDir, "orion-app", "dist")
+local shell = path.join(workspaceDir, "orion-desktop")
 local store = path.join(process.homedir(), ".loom", "store")
 
 local LICENSE_FILE_PREFIXES = { "license", "licence", "copying", "unlicense" }

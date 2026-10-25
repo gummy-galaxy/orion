@@ -90,15 +90,21 @@ function run(command: string, args: string[], cwd: string, env: NodeJS.ProcessEn
   if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} failed in ${cwd}`)
 }
 
+// Revisions before the move into workspace/ keep the app in app/.
+function appFolderAt(sha: string): string {
+  return git('ls-tree', '--name-only', sha, 'workspace/orion-app') ? 'workspace/orion-app' : 'app'
+}
+
 /** An unpacked copy of the base revision's app with this checkout's harness laid over it. */
 function prepareBase(ref: string): { dir: string; sha: string } {
   const sha = git('rev-parse', ref)
   const root = join(tmpdir(), 'orion-perf', sha.slice(0, 12))
-  const dir = join(root, 'app')
+  const folder = appFolderAt(sha)
+  const dir = join(root, folder)
 
   if (!existsSync(join(dir, 'package.json'))) {
     const staging = `${root}.partial`
-    const archive = execFileSync('git', ['archive', sha, 'app'], { cwd: git('rev-parse', '--show-toplevel'), maxBuffer: 1 << 30 })
+    const archive = execFileSync('git', ['archive', sha, folder], { cwd: git('rev-parse', '--show-toplevel'), maxBuffer: 1 << 30 })
 
     rmSync(staging, { recursive: true, force: true })
     mkdirSync(staging, { recursive: true })
