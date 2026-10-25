@@ -33,6 +33,7 @@ jobs:
       cli: ${{ steps.filter.outputs.cli || 'true' }}
       app: ${{ steps.filter.outputs.app || 'true' }}
       desktop: ${{ steps.filter.outputs.desktop || 'true' }}
+      changelog: ${{ steps.filter.outputs.changelog || 'true' }}
     steps:
       # Checked out for the filters file. Pull requests list their changed files through the API.
       - uses: actions/checkout@v7
@@ -269,7 +270,7 @@ jobs:
 
   changelog:
     needs: ci-loading
-    if: needs.ci-loading.outputs.cli == 'true' || needs.ci-loading.outputs.app == 'true' || needs.ci-loading.outputs.desktop == 'true'
+    if: needs.ci-loading.outputs.changelog == 'true'
     runs-on: beelink
     timeout-minutes: 3
     steps:
