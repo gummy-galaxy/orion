@@ -1353,15 +1353,6 @@ export function Canvas() {
     [root, focusNode, openRoot, remember],
   )
 
-  /**
-   * Lands on a card from the Table tab: in place when it's inside the open group, so the table keeps its scope, or by
-   * opening the group it's in. Reads the nodes when called, so moving cards doesn't make a new function and redraw the table.
-   */
-  const revealFromTable = useCallback(
-    (id: string) => (!root || ancestors(id, byId(latest.current.nodes)).includes(root) ? focusNode(id) : jumpTo(id)),
-    [root, focusNode, jumpTo],
-  )
-
   /** Moves nodes to new positions over a few frames so edges follow along. */
   const tweenTo = useCallback(
     (target: AppNode[]) => {
@@ -2115,14 +2106,17 @@ export function Canvas() {
     [],
   )
 
-  /** Selects the cards, opens the innermost group that holds them all, and frames them, as one step in history. */
+  /**
+   * Selects the cards, opens the innermost group that holds them all, or `within` when it's given, and frames them, as
+   * one step in history.
+   */
   const showReveal = useCallback(
-    (reveal: Reveal) => {
+    (reveal: Reveal, within?: string | null) => {
       const found = reveal.ids.filter((id) => latest.current.nodes.some((node) => node.id === id))
 
       if (!found.length) return
 
-      const target = revealRoot(latest.current.nodes, found)
+      const target = within === undefined ? revealRoot(latest.current.nodes, found) : within
       const nextDetail = revealDetail(latest.current.nodes, target, found, detail)
       const bounds = revealBounds(latest.current.nodes, found, cardSize)
       const box = canvasRef.current?.getBoundingClientRect()
@@ -2154,6 +2148,12 @@ export function Canvas() {
       void reactFlow.setViewport(framedViewport(bounds, box, { padding: 0.2, maxZoom: FIT_MAX_ZOOM }), { duration: cameraGlide() })
     },
     [remember, detail, cardSize, root, reactFlow, setPinned, setNodes, clearStickerPicks],
+  )
+
+  // The Table tab lists the open group's cards, so landing on one keeps that group open and the table's scope with it.
+  const revealFromTable = useCallback(
+    (id: string) => showReveal({ canvas: workspace.current, ids: [id], selectOnly: false }, root),
+    [showReveal, root],
   )
 
   // Waits for the canvas to finish loading, since its cards aren't on screen before then.
