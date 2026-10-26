@@ -4,7 +4,8 @@ local types = require("@root/types")
 
 type Source = types.Source
 
--- Each source as JSON, with the command this machine runs for it from `commands`, by source id.
+-- Each source as JSON, with the command this machine runs for it from
+-- `commands`, by source id.
 local function getJson(values: { Source }, commands: { [string]: { string } }): json.Array
 	local function getStringArray(strings: { string }?): json.Array?
 		if not strings then

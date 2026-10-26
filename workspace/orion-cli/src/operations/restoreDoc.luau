@@ -26,8 +26,9 @@ local function indexOfLink(doc: Doc, from: string, to: string): number?
 	return nil
 end
 
--- Puts a change back as `diffDocs` recorded it. Links go first, so no link is left pointing at a removed node.
--- The restore is copied as it's applied, so the same restore can be applied again.
+-- Puts a change back as `diffDocs` recorded it. Links go first, so no link is
+-- left pointing at a removed node. The restore is copied as it's applied, so
+-- the same restore can be applied again.
 local function restoreDoc(doc: Doc, restore: Restore)
 	for _, removed in restore.removedLinks do
 		local index = indexOfLink(doc, removed.from, removed.to)

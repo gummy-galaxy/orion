@@ -51,7 +51,8 @@ test.case("help --all lists every command with its options, and as JSON", functi
 	end)
 end)
 
--- Collects each command's declaration problems: a leaf with none, and a skip or omission with no reason.
+-- Collects each command's declaration problems: a leaf with none, and a skip or
+-- omission with no reason.
 local function findUndeclared(command: describeCommands.CommandDescription, problems: { string })
 	local declaration = command.mcp
 
@@ -211,7 +212,8 @@ test.case("ingest refreshes pull request cards without any sources configured", 
 	assert.eq(recorded and recorded.mine, true)
 end)
 
--- Answers a refresh with flipbook #658 in the given state, which the harness card tracks.
+-- Answers a refresh with flipbook #658 in the given state, which the harness
+-- card tracks.
 local function refreshRunner(state: string)
 	return function(argv: { string })
 		if argv[5]:find("pullRequests", 1, true) then

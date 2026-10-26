@@ -19,7 +19,8 @@ type Report = githubTypes.Report
 type Doc = types.Doc
 type Item = types.Item
 
--- Moves a card's status and whose move it is to match the pull request, recording any change.
+-- Moves a card's status and whose move it is to match the pull request,
+-- recording any change.
 local function applyDesired(item: Item, pull: PullState, viewer: string, report: Report)
 	local status, who = getString(item.data.status) or "todo", getString(item.data.who)
 	setDesired(item, pull, viewer)
@@ -38,7 +39,8 @@ local function applyDesired(item: Item, pull: PullState, viewer: string, report:
 	end
 end
 
--- Attaches a new pull request to the card its head branch was recorded on, as `--ref branch:` does.
+-- Attaches a new pull request to the card its head branch was recorded on, as
+-- `--ref branch:` does.
 local function attachByBranch(item: Item, pull: PullState, fetched: Fetched, checkedAt: string, report: Report)
 	local repo = `{pull.owner}/{pull.name}`
 	applyDesired(item, pull, fetched.viewer, report)
@@ -145,7 +147,8 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 		onCanvas[key] = true
 		local pull = fetched.pulls[key]
 
-		-- A card that wasn't fetched keeps its state: it's merged, its batch failed, or it was added after the fetch.
+		-- A card that wasn't fetched keeps its state: it's merged, its batch
+		-- failed, or it was added after the fetch.
 		if not pull then
 			if fetched.checked[key] then
 				table.insert(report.missing, item.id)
@@ -160,7 +163,8 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 	end
 
 	local previous = json.asObject(doc.github)
-	-- Without a fresh authored list, the unplaced list recorded last time stands.
+	-- Without a fresh authored list, the unplaced list recorded last time
+	-- stands.
 	local unplaced: json.Array = if fetched.authored == nil and previous
 		then table.clone(json.asArray(previous.unplaced) or {})
 		else {}
@@ -171,7 +175,8 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 			continue
 		end
 
-		-- Only a pull request with its full state, fetched for this, attaches to its branch's card. Otherwise it stays unplaced.
+		-- Only a pull request with its full state, fetched for this, attaches
+		-- to its branch's card. Otherwise it stays unplaced.
 		local repo = `{pull.owner}/{pull.name}`
 		local branchCards = findBranchCards(doc, pull)
 		local full = fetched.pulls[key]
@@ -184,7 +189,8 @@ local function applyPulls(doc: Doc, fetched: Fetched, checkedAt: string): Report
 
 		local candidates: json.Array = {}
 
-		-- Several cards on one branch are a tie, so they're the only candidates listed.
+		-- Several cards on one branch are a tie, so they're the only candidates
+		-- listed.
 		if #branchCards > 1 then
 			for _, card in branchCards do
 				table.insert(candidates, json.object({ id = card.id, score = 1 }))

@@ -6,7 +6,8 @@ local getBackups = require("@root/store/getBackups")
 
 type Context = context.Context
 
--- Backup file names carry a compact UTC time such as 20261017T164600Z; output spells it in RFC 3339.
+-- Backup file names carry a compact UTC time such as 20261017T164600Z; output
+-- spells it in RFC 3339.
 local function formatTime(compact: string): string
 	local year, month, day, hour, minute, second = compact:match("^(%d%d%d%d)(%d%d)(%d%d)T(%d%d)(%d%d)(%d%d)Z$")
 	return `{year}-{month}-{day}T{hour}:{minute}:{second}Z`

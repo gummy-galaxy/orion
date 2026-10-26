@@ -22,9 +22,9 @@ local OPERATOR_SWAPS: { [string]: string } = {
 	["or"] = "and",
 }
 
--- Returns a copy of `source` for each small change a test suite should notice: a
--- swapped comparison, arithmetic, or logical operator, a dropped `not`, a flipped
--- boolean, or a number one higher. Type annotations are left alone.
+-- Returns a copy of `source` for each small change a test suite should notice:
+-- a swapped comparison, arithmetic, or logical operator, a dropped `not`, a
+-- flipped boolean, or a number one higher. Type annotations are left alone.
 local function findMutations(source: string): { Mutation }
 	local parsed = syntax.parse(source)
 	local mutations: { Mutation } = {}

@@ -37,3 +37,18 @@ test.case("setPullRef records source status and branch details", function(assert
 	setPullRef(item, pull, "github", "vocksel", "later")
 	assert.eq((findRef(item, "pull") :: any).source, "gh-vocksel")
 end)
+
+test.case("setPullRef gives an existing ref its repository's id", function(assert)
+	local item = testing.task("a", "A", "todo")
+	local pull = testing.pull("OPEN")
+	setPullRef(item, pull, "github", "vocksel", "now")
+	local ref = findRef(item, "pull")
+	assert.eq(ref and ref.id, nil)
+
+	pull.repoId = "R_1"
+	setPullRef(item, pull, "github", "vocksel", "later")
+	ref = findRef(item, "pull")
+	assert.eq(ref and ref.id, "R_1#1")
+	assert.eq(ref and ref.key, "flipbook-labs/flipbook#1")
+	assert.eq(#(item.data.refs :: any), 1)
+end)

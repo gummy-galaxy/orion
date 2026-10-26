@@ -1,6 +1,7 @@
 --[[
-	Warns when a branch of an `if` statement has the same body as an earlier branch, which usually means the conditions
-	should be combined. Bodies are compared without their whitespace and comments.
+	Warns when a branch of an `if` statement has the same body as an earlier
+	branch, which usually means the conditions should be combined. Bodies are
+	compared without their whitespace and comments.
 ]]
 local lintTypes = require("@std/commands/lint/types")
 local path = require("@std/path")
@@ -11,7 +12,8 @@ local visitorLib = require("@std/syntax/visitor")
 
 local name = "if_same_then_else"
 
--- Joins the block's token texts, which leaves out the whitespace and comments around them.
+-- Joins the block's token texts, which leaves out the whitespace and comments
+-- around them.
 local function getBodyText(block: syntax.CstStatBlock): string
 	local tokens: { string } = {}
 	local visitor = visitorLib.create()

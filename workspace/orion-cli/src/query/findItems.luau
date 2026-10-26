@@ -14,16 +14,19 @@ export type Result = { total: number, hits: { Hit } }
 
 type Entry = { hit: Hit, rank: number, sequence: number }
 
--- Lower ranks print first: a label that is the text, then a label that contains it, then a ref, then a note.
+-- Lower ranks print first: a label that is the text, then a label that contains
+-- it, then a ref, then a note.
 local EXACT_LABEL, LABEL, REF, NOTE = 0, 1, 2, 3
 
--- Quotes text as a string value for the expression engine, which only escapes quotes and backslashes.
+-- Quotes text as a string value for the expression engine, which only escapes
+-- quotes and backslashes.
 local function quote(text: string): string
 	return `"{(text:gsub('[\\"]', "\\%0"))}"`
 end
 
--- Finds the items and groups whose label, note, or refs contain the text, using the same expression as --where.
--- Canvases are searched in the order given, and matches keep that order within each rank, up to the limit.
+-- Finds the items and groups whose label, note, or refs contain the text, using
+-- the same expression as --where. Canvases are searched in the order given, and
+-- matches keep that order within each rank, up to the limit.
 local function findItems(canvases: { Canvas }, text: string, limit: number): Result
 	assert(text ~= "", "find needs text")
 	local quoted = quote(text)

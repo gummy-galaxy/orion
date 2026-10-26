@@ -5,8 +5,9 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Position = types.Position
 
--- The first spot at or below a preferred one that no sibling covers, for a box of the given size, stepping down one row
--- at a time. Ids in `skip` don't count as siblings.
+-- The first spot at or below a preferred one that no sibling covers, for a box
+-- of the given size, stepping down one row at a time. Ids in `skip` don't count
+-- as siblings.
 local function freeSpotBelow(
 	doc: Doc,
 	parentId: string?,

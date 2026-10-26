@@ -100,13 +100,15 @@ function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 	}
 end
 
--- Writes a whole canvas given as one JSON text, the way an older `orion.json` held it, as a canvas folder's files.
+-- Writes a whole canvas given as one JSON text, the way an older `orion.json`
+-- held it, as a canvas folder's files.
 function testing.writeCanvasText(dir: string, text: string)
 	ensureDirectory(dir)
 	writeCanvasFiles(dir, json.asObject(json.deserialize(text) :: json.Value) :: json.Object, nil)
 end
 
--- A canvas folder's files joined into one stable JSON text, so a spec can search them or check they didn't change.
+-- A canvas folder's files joined into one stable JSON text, so a spec can
+-- search them or check they didn't change.
 function testing.readCanvasText(dir: string): string
 	local snapshot = assert(readCanvasFiles(dir), `no canvas in {dir}`)
 	return encodeStableJson(snapshot.document)

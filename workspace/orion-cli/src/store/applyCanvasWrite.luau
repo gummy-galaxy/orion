@@ -12,10 +12,12 @@ local function getFullPath(dir: string, file: string): string
 end
 
 --[[
-	Puts a write's files in place: every file but `canvas.json` and `local.json` in path order, then the removals,
-	then `canvas.json`, then `local.json` last, so its change marks a finished write. Writing a file again with the same text is harmless, so a write that
-	stopped partway can be applied again from the start. Returns each written file's time in whole seconds, which
-	the index records.
+	Puts a write's files in place: every file but `canvas.json` and `local.json`
+	in path order, then the removals, then `canvas.json`, then `local.json`
+	last, so its change marks a finished write. Writing a file again with the
+	same text is harmless, so a write that stopped partway can be applied again
+	from the start. Returns each written file's time in whole seconds, which the
+	index records.
 ]]
 local function applyCanvasWrite(dir: string, write: CanvasWrite): { [string]: number }
 	local files: { string } = {}

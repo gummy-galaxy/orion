@@ -5,7 +5,8 @@ local getBackups = require("@root/store/getBackups")
 local DAY_SECONDS = 24 * 60 * 60
 local DAILY_DAYS = 30
 
--- Keeps every backup from the last day and the newest one from each of the last 30 UTC days, and removes the rest.
+-- Keeps every backup from the last day and the newest one from each of the last
+-- 30 UTC days, and removes the rest.
 local function pruneBackups(dir: string, now: number)
 	local hourCutoff = os.date("!%Y%m%dT%H%M%SZ", now - DAY_SECONDS) :: string
 	local dayCutoff = os.date("!%Y%m%d", now - (DAILY_DAYS - 1) * DAY_SECONDS) :: string

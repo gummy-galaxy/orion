@@ -8,7 +8,8 @@ type Doc = types.Doc
 type CommandRunner = types.CommandRunner
 type RefreshReport = ingestTypes.RefreshReport
 
--- The source kinds the workspace uses: those of its sources, and those its cards' refs came from.
+-- The source kinds the workspace uses: those of its sources, and those its
+-- cards' refs came from.
 local function getKinds(doc: Doc): { string }
 	local kindOf: { [string]: string } = {}
 	local seen: { [string]: boolean } = {}
@@ -36,10 +37,12 @@ local function getKinds(doc: Doc): { string }
 end
 
 --[[
-	Fetches the refresh of each adapter the workspace uses, which updates cards already on the canvas, such as GitHub's
-	pull request states, and returns the step that applies them. It reads `doc` without changing it, so callers can
-	fetch outside the workspace lock and apply under it. With `selected`, only that source's kind refreshes. A failed
-	refresh is reported rather than raised, as a failed source is.
+	Fetches the refresh of each adapter the workspace uses, which updates cards
+	already on the canvas, such as GitHub's pull request states, and returns the
+	step that applies them. It reads `doc` without changing it, so callers can
+	fetch outside the workspace lock and apply under it. With `selected`, only
+	that source's kind refreshes. A failed refresh is reported rather than
+	raised, as a failed source is.
 ]]
 local function refreshAdapters(doc: Doc, run: CommandRunner, now: string, selected: string?): (Doc) -> { RefreshReport }
 	local kinds = getKinds(doc)

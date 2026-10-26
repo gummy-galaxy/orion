@@ -9,8 +9,9 @@ local fileNames = require("@root/fileNames")
 
 local writeSequence = 0
 
--- Records what an app window has open and selected. A closing window clears the focus only if it was the last
--- one to report, so closing a second window leaves the first one's focus in place.
+-- Records what an app window has open and selected. A closing window clears the
+-- focus only if it was the last one to report, so closing a second window
+-- leaves the first one's focus in place.
 local function putFocus(dir: string, tab: string, open: string?, selected: json.Array?, isClosed: boolean?)
 	local file = tostring(path.join(dir, fileNames.focus))
 

@@ -8,7 +8,8 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Moves an item or group into another group, or to the top level when `groupId` is nil.
+-- Moves an item or group into another group, or to the top level when `groupId`
+-- is nil.
 local function moveItem(doc: Doc, id: string, groupId: string?)
 	local item = getItem(doc, id)
 
@@ -23,8 +24,9 @@ local function moveItem(doc: Doc, id: string, groupId: string?)
 
 	local previousParent = item.parentId
 
-	-- Node order doesn't matter here; the app sorts parents ahead of children on load. Its links are already known, so
-	-- it lands beside the cards it links to in the new group.
+	-- Node order doesn't matter here; the app sorts parents ahead of children
+	-- on load. Its links are already known, so it lands beside the cards it
+	-- links to in the new group.
 	item.parentId = groupId
 	item.position = findPlacement(doc, item)
 

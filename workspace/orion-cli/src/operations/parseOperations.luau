@@ -5,7 +5,8 @@ local operationTypes = require("@root/operations/types")
 
 type Operation = operationTypes.Operation
 
--- The edits a client may send, and the fields each one reads. Anything else is refused before the document is touched.
+-- The edits a client may send, and the fields each one reads. Anything else is
+-- refused before the document is touched.
 local FIELD_TYPES: { [string]: string } = {
 	label = "string",
 	status = "string",
@@ -124,7 +125,8 @@ local function parseFields(object: json.Object): { [string]: string | number }
 			continue
 		end
 
-		-- A pull request number, resolved against the card's repository, or empty to take it off.
+		-- A pull request number, resolved against the card's repository, or
+		-- empty to take it off.
 		if key == "pr" then
 			assert(
 				value == "" or (type(value) == "number" and value >= 1 and value == math.floor(value :: number)),
@@ -190,7 +192,8 @@ local function parseOperation(object: json.Object): Operation
 		local data = requireObject(object, "data")
 		operation.data = data
 
-		-- A note and a work item are both task cards; the item kind tells them apart.
+		-- A note and a work item are both task cards; the item kind tells them
+		-- apart.
 		if operation.op == "addNote" then
 			assert(data.itemKind == "note", "addNote needs data.itemKind to be note")
 		elseif operation.op == "addCard" then
@@ -212,14 +215,16 @@ local function parseOperation(object: json.Object): Operation
 	elseif operation.op == "setStickerLoadout" then
 		operation.stickerLoadout = requireArray(object, "stickerLoadout")
 	else
-		-- ungroup, removeGroup, tidy, chainClose, and closeOut each take only the id of the item they act on.
+		-- ungroup, removeGroup, tidy, chainClose, and closeOut each take only
+		-- the id of the item they act on.
 		operation.id = requireString(object, "id")
 	end
 
 	return operation
 end
 
--- Turns the operations in a request into typed edits. A bad one names its position and what's wrong with it.
+-- Turns the operations in a request into typed edits. A bad one names its
+-- position and what's wrong with it.
 local function parseOperations(values: json.Array): { Operation }
 	local operations: { Operation } = {}
 

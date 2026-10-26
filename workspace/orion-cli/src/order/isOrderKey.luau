@@ -3,8 +3,8 @@ local getIntegerLength = require("@root/order/getIntegerLength")
 
 local SMALLEST_INTEGER = `A{string.rep(digits:sub(1, 1), 26)}`
 
--- Whether a value is an order key `getKeyBetween` could have made: an integer part, then a fraction without a
--- trailing zero.
+-- Whether a value is an order key `getKeyBetween` could have made: an integer
+-- part, then a fraction without a trailing zero.
 local function isOrderKey(value: unknown): boolean
 	if type(value) ~= "string" or value == "" then
 		return false

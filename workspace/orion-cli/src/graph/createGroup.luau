@@ -9,7 +9,8 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Item = types.Item
 
--- Makes an empty group, inside `parentId` when given. Its size is one card's worth, so layout checks leave room for it.
+-- Makes an empty group, inside `parentId` when given. Its size is one card's
+-- worth, so layout checks leave room for it.
 local function createGroup(doc: Doc, label: string, parentId: string?): Item
 	assert(label ~= "", "a group needs a name")
 

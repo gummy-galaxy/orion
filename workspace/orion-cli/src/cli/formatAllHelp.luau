@@ -4,7 +4,8 @@ local getArgumentLabel = require("@root/cli/getArgumentLabel")
 type Argument = describeCommands.Argument
 type CommandDescription = describeCommands.CommandDescription
 
--- Notes that follow a command's arguments, keyed by its full name, such as the query grammar under orion node query.
+-- Notes that follow a command's arguments, keyed by its full name, such as the
+-- query grammar under orion node query.
 export type Details = { [string]: string }
 
 local function getAliasedLabel(argument: Argument): string
@@ -23,7 +24,8 @@ local function getAliasedLabel(argument: Argument): string
 	return `{label} ({table.concat(aliases, ", ")})`
 end
 
--- The command as it's typed: its name and positionals, since its options are listed beneath it.
+-- The command as it's typed: its name and positionals, since its options are
+-- listed beneath it.
 local function getSynopsis(command: CommandDescription): string
 	local words = { command.name }
 
@@ -52,7 +54,8 @@ local function formatArguments(arguments: { Argument }, lines: { string })
 	end
 end
 
--- A command that runs on its own gets a block; one that only holds subcommands is left to them.
+-- A command that runs on its own gets a block; one that only holds subcommands
+-- is left to them.
 local function formatCommand(command: CommandDescription, isNoun: boolean, details: Details, lines: { string })
 	if #command.arguments > 0 or #command.commands == 0 then
 		table.insert(lines, "")
@@ -78,7 +81,8 @@ local function formatCommand(command: CommandDescription, isNoun: boolean, detai
 	end
 end
 
--- Lists every command under the root, grouped by its top-level noun, with each command's arguments and help.
+-- Lists every command under the root, grouped by its top-level noun, with each
+-- command's arguments and help.
 local function formatAllHelp(root: CommandDescription, details: Details?): string
 	local lines: { string } = {}
 	local resolved = details or {}

@@ -12,11 +12,13 @@ type Doc = types.Doc
 type Item = types.Item
 type Position = types.Position
 
--- Two numbers this close sit on the same row, so rounding in a stored position doesn't split a row.
+-- Two numbers this close sit on the same row, so rounding in a stored position
+-- doesn't split a row.
 local ROW_TOLERANCE = 1
 
--- With no neighbor to sit beside, the next spot in reading order after a group's last row, wrapping to a new row
--- below everything at the group's current width, so an unlinked card never widens it.
+-- With no neighbor to sit beside, the next spot in reading order after a
+-- group's last row, wrapping to a new row below everything at the group's
+-- current width, so an unlinked card never widens it.
 local function findSpotAfterContent(doc: Doc, item: Item, siblings: { Item }, skip: { [string]: boolean }): Position
 	local parentId = item.parentId :: string
 	local group = getItem(doc, parentId)
@@ -68,8 +70,8 @@ local function getLeftness(item: Item): number
 	return -item.position.x
 end
 
--- Whether `candidate` beats `incumbent` on `score`, higher winning. A tie goes to the higher of the two, so the choice
--- doesn't depend on link order.
+-- Whether `candidate` beats `incumbent` on `score`, higher winning. A tie goes
+-- to the higher of the two, so the choice doesn't depend on link order.
 local function beats(candidate: Item, incumbent: Item?, score: (Item) -> number): boolean
 	if incumbent == nil then
 		return true
@@ -82,17 +84,20 @@ local function beats(candidate: Item, incumbent: Item?, score: (Item) -> number)
 end
 
 --[[
-	Where a new item lands among its parent's children. Only blocking links to siblings count, since they're the ones
-	with a direction:
+	Where a new item lands among its parent's children. Only blocking links to
+	siblings count, since they're the ones with a direction:
 
-	1. One gap right of the card that blocks it, on that card's row. With several, the one reaching furthest right.
-	2. Otherwise one gap left of the leftmost card it blocks, unless that crosses the group's left padding.
-	3. From either spot, down a row at a time to the first one free.
-	4. With neither, in a group, the next spot after the last row without widening it; at the top level, right of
+	1. One gap right of the card that blocks it, on that card's row. With
+	several, the one reaching furthest right. 2. Otherwise one gap left of the
+	leftmost card it blocks, unless that crosses the group's left padding. 3.
+	From either spot, down a row at a time to the first one free. 4. With
+	neither, in a group, the next spot after the last row without widening it;
+	at the top level, right of
 	   everything, as before.
 
-	Nothing already placed moves. The item itself and the ids in `unplaced` don't count as siblings, so items added
-	together can be placed one by one once their links are known.
+	Nothing already placed moves. The item itself and the ids in `unplaced`
+	don't count as siblings, so items added together can be placed one by one
+	once their links are known.
 ]]
 local function findPlacement(doc: Doc, item: Item, unplaced: { [string]: boolean }?): Position
 	local parentId = item.parentId

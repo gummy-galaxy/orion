@@ -3,7 +3,8 @@ local json = require("@std/json")
 
 type Progress = { running: number, waiting: number }
 
--- Check runs report whether they started. A pending commit status could be either, so it counts as running.
+-- Check runs report whether they started. A pending commit status could be
+-- either, so it counts as running.
 local CHECK_RUN_PROGRESS: { [string]: string } = {
 	IN_PROGRESS = "running",
 	QUEUED = "waiting",
@@ -29,7 +30,8 @@ local function addCounts(counts: json.Value, progressByState: { [string]: string
 	end
 end
 
--- Whether a commit's unfinished checks have started: "running" if any has, "waiting" if all are queued.
+-- Whether a commit's unfinished checks have started: "running" if any has,
+-- "waiting" if all are queued.
 local function getCheckProgress(rollup: json.Object): string?
 	local contexts = json.asObject(rollup.contexts)
 

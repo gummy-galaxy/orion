@@ -17,7 +17,8 @@ type Response = shared.Response
 
 local links = {}
 
--- Looks up the card a pasted link would make, without saving it, so the app can place the card where it was asked for.
+-- Looks up the card a pasted link would make, without saving it, so the app can
+-- place the card where it was asked for.
 function links.handle(request: net.ReceivedRequest, root: string, runner: CommandRunner?): Response
 	if request.method ~= "POST" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))

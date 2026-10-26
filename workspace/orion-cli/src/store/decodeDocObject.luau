@@ -128,8 +128,8 @@ local function decodeDocObject(root: json.Object): Doc
 			fillPullFacts(item)
 		end
 
-		-- Images from before canvases were named keep `workspace` until read. Remove at 0.1.0 with the rest of
-		-- `migrations/`.
+		-- Images from before canvases were named keep `workspace` until read.
+		-- Remove at 0.1.0 with the rest of `migrations/`.
 		if item.type == "image" and item.data.workspace ~= nil then
 			migrateImageCanvas(item)
 		end
@@ -149,6 +149,7 @@ local function decodeDocObject(root: json.Object): Doc
 		links = links,
 		github = json.asObject(root.github),
 		suggestions = json.asObject(root.suggestions),
+		repositories = json.asObject(root.repositories),
 		raw = json.object(root),
 	}
 end

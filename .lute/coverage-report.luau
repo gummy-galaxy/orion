@@ -1,6 +1,7 @@
 --[[
-	Publishes the app's test coverage from CI's app job. It reads the totals npm run coverage writes to
-	workspace/orion-app/coverage/coverage-summary.json, adds them to the job summary, and keeps them in one pull request comment,
+	Publishes the app's test coverage from CI's app job. It reads the totals npm
+	run coverage writes to workspace/orion-app/coverage/coverage-summary.json,
+	adds them to the job summary, and keeps them in one pull request comment,
 	replacing the comment an earlier run left.
 ]]
 local fs = require("@std/fs")

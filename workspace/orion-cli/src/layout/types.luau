@@ -8,7 +8,8 @@ export type Box = {
 export type Issue = {
 	kind: string,
 	ids: { string },
-	-- Canvas coordinates. Absent for problems with no place on the canvas, such as a link to a missing item.
+	-- Canvas coordinates. Absent for problems with no place on the canvas, such
+	-- as a link to a missing item.
 	bounds: Box?,
 }
 

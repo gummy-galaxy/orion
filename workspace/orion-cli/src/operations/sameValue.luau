@@ -1,4 +1,5 @@
--- Whether two pieces of plain data hold the same values, however their tables were built.
+-- Whether two pieces of plain data hold the same values, however their tables
+-- were built.
 local function sameValue(a: any, b: any): boolean
 	if a == b then
 		return true

@@ -4,8 +4,9 @@ local json = require("@std/json")
 
 type CheckCounts = githubTypes.CheckCounts
 
--- GitHub's own rollup state turns FAILURE when a job is cancelled, such as one a newer run replaced, even
--- while the rest still run. Only these conclusions mean a check failed.
+-- GitHub's own rollup state turns FAILURE when a job is cancelled, such as one
+-- a newer run replaced, even while the rest still run. Only these conclusions
+-- mean a check failed.
 local CHECK_RUN_STATES: { [string]: string } = {
 	FAILURE = "failed",
 	TIMED_OUT = "failed",
@@ -43,8 +44,9 @@ local function addCounts(raw: json.Value, kindByState: { [string]: string }, cou
 	end
 end
 
--- How many of a commit's checks have finished and failed, out of all of them. Cancelled, skipped, neutral, and stale
--- checks count as finished without failing. Absent when the rollup has no per-state counts or no checks.
+-- How many of a commit's checks have finished and failed, out of all of them.
+-- Cancelled, skipped, neutral, and stale checks count as finished without
+-- failing. Absent when the rollup has no per-state counts or no checks.
 local function getCheckCounts(rollup: json.Object): CheckCounts?
 	local contexts = json.asObject(rollup.contexts)
 

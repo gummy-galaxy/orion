@@ -16,7 +16,8 @@ local testing = require("@root/testing")
 local need = assert
 local TOOLS = buildTools(cli.describe())
 
--- Longer than the store waits for its lock, so a call made while the lock is held times out at least once.
+-- Longer than the store waits for its lock, so a call made while the lock is
+-- held times out at least once.
 local HOLD_SECONDS = 5.2
 
 local function addItem(id: number, title: string): string
@@ -28,7 +29,8 @@ local function addItem(id: number, title: string): string
 	}))
 end
 
--- Holds the canvas lock the way another Orion process would, until release is called.
+-- Holds the canvas lock the way another Orion process would, until release is
+-- called.
 local function holdLock(dir: string): () -> ()
 	local lockPath = path.join(dir, fileNames.lock)
 	fs.createDirectory(dir, { makeParents = true })

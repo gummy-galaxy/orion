@@ -4,7 +4,8 @@ local describeCommands = require("@root/cli/describeCommands")
 
 type CommandDescription = describeCommands.CommandDescription
 
--- Turns a command description into JSON, keeping empty argument and command lists as arrays.
+-- Turns a command description into JSON, keeping empty argument and command
+-- lists as arrays.
 local function serializeCommands(command: CommandDescription): json.Object
 	local arguments: json.Array = {}
 	local commands: json.Array = {}

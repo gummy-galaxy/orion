@@ -16,3 +16,21 @@ test.case("getRefs skips malformed entries", function(assert)
 	assert.eq(#getRefs(item), 1)
 	assert.eq(getRefs(item)[1].key, "ORN-1")
 end)
+
+test.case("getRefs keeps a string id and skips a ref with any other id", function(assert)
+	local item = testing.task(
+		"a",
+		"A",
+		"todo",
+		nil,
+		json.object({
+			refs = {
+				json.object({ source = "github", kind = "pull", key = "vocksel/orion#1", id = "R_1#1" }),
+				json.object({ source = "github", kind = "pull", key = "vocksel/orion#2", id = 2 }),
+			},
+		})
+	)
+	local refs = getRefs(item)
+	assert.eq(#refs, 1)
+	assert.eq(refs[1].id, "R_1#1")
+end)

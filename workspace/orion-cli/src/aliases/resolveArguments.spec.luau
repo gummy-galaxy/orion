@@ -13,7 +13,8 @@ local ALIASES: { Alias } = {
 	{ kind = "option", command = "card add", from = "folder", to = "group", added = "2026-10-19", pr = 1 },
 }
 
--- A small command table shaped like Orion's: every command takes --help and --canvas.
+-- A small command table shaped like Orion's: every command takes --help and
+-- --canvas.
 local function createRoot(): cli.Parser
 	local root = cli.parser()
 	root:add("help", "flag", { aliases = { "h" } })

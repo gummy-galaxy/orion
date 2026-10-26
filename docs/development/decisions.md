@@ -88,6 +88,24 @@ Sources and their data are one layer, and cards are the presentation attached to
 
 2026-10-09 · [#152](https://github.com/vocksel/orion/issues/152), [#154](https://github.com/vocksel/orion/issues/154)
 
+### Every skin shares one set of card shapes
+
+A card's outline says its kind, and every skin draws the same outlines. A skin changes only the art inside them.
+
+- A pull request is an arrow, and an issue has a round arch on top.
+- A gate is an octagon, wider than a card so it reads as a landmark. Milestones, sign-offs, and physical gates share the octagon and differ by glyph.
+- Questions and decisions are round tokens, smaller than a card.
+- A reference is a document with a folded corner.
+- A step is a rounded rectangle. A placeholder is the same rectangle, hollow and dashed, and is never dimmed.
+
+Gates are the only kind that take more room than a card. Questions, decisions, references, and the three gate types become kinds of their own.
+
+A card's sources show as one coin on its top-right corner: dark, with the source's brand color only in its ring and letters, and a +N for any others. The kind comes from the ref that drives the card's status: the pull request when there is one, then the issue, then the ticket.
+
+**Why:** at 0.33 zoom, outlines held up in grayscale, under color-vision filters, and blurred, while color alone didn't: pull request violet and issue blue match under deuteranopia. Sharing the outlines means switching skins never changes what a card says. A filled brand coin clashed with every card face, and the rim keeps the brand without fighting the art. See the [card identity study](./design/card-identity.md).
+
+2026-10-25 · [#571](https://github.com/vocksel/orion/pull/571)
+
 ### Snoozed and optional jobs don't make a card fail
 
 A pull request reads as failing only for a job that counts. When some of its jobs are required, a failing job that isn't required doesn't count. A failing job can also be snoozed, by name, for every card in its repository: either until it next passes on each card, so a later failure there shows again, or until a set time. Cards list their failing jobs with a checkbox each, and unchecking one snoozes it.
@@ -160,13 +178,13 @@ In an automatically arranged group, a card that's dragged or snapped returns to 
 
 ### Zoomed out reads like a world map
 
-Each group has its own tint, so you know where you are when zoomed out. Cards switch to simpler forms at zoom breakpoints instead of growing or disappearing, and related links stop drawing past one of those breakpoints.
+Each group has its own color, so you know where you are when zoomed out. The color belongs to the group's container, never its cards: a light wash, and a header bar in the group's color. The header is a landmark, big in canvas units when zoomed out but never smaller than about 17 screen pixels, and calm up close. A folded group shows its next open card face up on a deck, with a count of each kind beside it. Cards switch to simpler forms at zoom breakpoints instead of growing or disappearing, and related links stop drawing past one of those breakpoints.
 
-**Why:** zooming out already feels like looking at a map, so lean into it. Cards that blow up when zoomed out become unreadable, and drawing full detail everywhere is heavy enough to crash the desktop web view.
+**Why:** zooming out already feels like looking at a map, so lean into it. Cards that blow up when zoomed out become unreadable, and drawing full detail everywhere is heavy enough to crash the desktop web view. Tinting each card by its group was a big reason kinds blurred together at a distance, so the color moved to the container and left the card's colors to its kind. This replaced group-tinted cards (2026-10-07).
 
 **Open:** charter principle 6 says zoom only moves the camera and detail is a separate control ([#175](https://github.com/vocksel/orion/issues/175), [#205](https://github.com/vocksel/orion/issues/205)). Reconcile the two.
 
-2026-10-07, 2026-10-11 · [#280](https://github.com/vocksel/orion/issues/280)
+2026-10-07, 2026-10-11, 2026-10-25 · [#280](https://github.com/vocksel/orion/issues/280), [#571](https://github.com/vocksel/orion/pull/571)
 
 ### Every group opens at the same zoom
 
@@ -226,17 +244,17 @@ The star companion shows on every canvas until it's turned off in Appearance. In
 
 2026-10-11 · [#292](https://github.com/vocksel/orion/issues/292)
 
-### A finished card carries a Done stamp
+### A card's state is a band across it
 
-A card that's done and closed out carries a Done stamp and fades only slightly. Until it's closed out, it shimmers. A done card has to read as finished on its own, without blocked or deferred cards beside it to compare against.
+Done, deferred, and blocked cards carry a full-width band across the middle of the card, over the art and clear of the title: DONE, LATER, or a striped BLOCKED with a lock. A done card that isn't closed out yet shimmers until it is. A done card has to read as finished on its own, without blocked or deferred cards beside it to compare against.
 
-**Why:** fading alone made done look like blocked and deferred work, so a group of finished cards gave no sign it was finished. A stamp says it in one word, which fits marks over words.
+**Why:** fading alone made done look like blocked and deferred work, so a group of finished cards gave no sign it was finished. A band says each state in one word, in the same place on every card and every skin, and it leaves the title readable, so a blocked card still says what the work is. This replaced "A finished card carries a Done stamp" (2026-10-12), which stamped done work and left deferred and blocked work to fading and a lock.
 
-2026-10-12 · #317
+2026-10-12, 2026-10-25 · #317, [#571](https://github.com/vocksel/orion/pull/571)
 
 ### Finishing a card in the app closes it out
 
-Marking a card done from its menu or the inspector closes it out at once, and its Done stamp lands right away. Cards finished outside the app, by `orion card done` or a merged pull request, shimmer until someone closes them out.
+Marking a card done from its menu or the inspector closes it out at once, and its Done band lands right away. Cards finished outside the app, by `orion card done` or a merged pull request, shimmer until someone closes them out.
 
 **Why:** in the app the badge click was an extra step after marking a card done, so finishing it there takes one move. Work finished elsewhere still waits for someone to see it.
 
@@ -501,6 +519,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 2026-10-12, 2026-10-18 · [#55](https://github.com/vocksel/orion/issues/55), [#469](https://github.com/vocksel/orion/issues/469)
 
+### Refs are identified by their source's stable ID
+
+A ref carries the readable key people type and see, such as `owner/name#12`, and an `id` from its source that survives a rename or move. Two refs of one kind are the same when their IDs match, or when their keys match and either has no ID yet. Anything that takes a ref or a repository by name keeps accepting the name and resolves it to the ID. A ref with no ID, from older data or added offline, gets one the next time its source is read.
+
+**Why:** a key names where work lives, and that changes when a repository is renamed or transferred. Matching by key then treats tracked work as new. Keeping names as input means nobody has to know an ID to use Orion.
+
+2026-10-25 · [#625](https://github.com/vocksel/orion/issues/625), [#538](https://github.com/vocksel/orion/issues/538)
+
 ### The background refresh fetches what changed
 
 `orion server start` fetches every open pull request card in full only at startup, on a canvas switch, when you ask, and every 15 minutes. In between, it polls GitHub notifications as often as GitHub allows, 60 seconds today, and refetches the pull requests they name. Every two minutes it also sweeps the open cards' `updatedAt` and refetches only the ones that moved. Cards with pending checks are refetched every 30 seconds. What the loop remembers between polls lives in memory, and a pass that finds nothing writes nothing.
@@ -590,3 +616,21 @@ The docs site lives at the bare `oriongraph.app`, served from the root path, by 
 **Why:** the domain stays the same when the repository changes owners, while a GitHub Pages address would change with it. Cloudflare deploys while the repository is private, which GitHub Pages can't, and it sits beside the domain's DNS in Cloudflare. Deploying from CI rather than Cloudflare's own builds keeps every build in one place.
 
 2026-10-25 · [#327](https://github.com/vocksel/orion/pull/327) · [#575](https://github.com/vocksel/orion/issues/575)
+
+## Releases
+
+### Changes arrive with entries, and release notes are built from them
+
+Each change people will notice lands with an entry in `.changes/`, and Changewrite builds the release notes and changelog from those entries when a release is cut. A pull request that changes `workspace/`, apart from Markdown files, adds one. Each entry's category is one of six surfaces: Canvas, Cards, Agents (the CLI and MCP), Sources, Desktop app, and Under the hood for internal work.
+
+**Why:** an entry written with its change is the cheapest accurate record of it, and the category decides where it lands in the notes, so each surface gets a section that people can find.
+
+2026-10-25 · [Ship changelogs and release notes with 0.1.0](https://github.com/vocksel/orion/issues/633)
+
+### Release notes lead with highlights, then breaking changes, then each surface
+
+Notes open with a TL;DR and highlights, then a callout for breaking changes, then one section per surface, with Under the hood collapsed at the end. Each bullet starts with a chip for its kind (NEW, IMPROVED, FIXED, or BREAKING) and ends with a link to its pull request. A chip is a tinted pill with a solid dot and a plain capital word, in a light and a dark version.
+
+**Why:** a reader who skims should learn what changed first, and breaking changes shouldn't be buried in a surface's list. GitHub shows the notes in both themes, so each chip needs a pair that reads in either one.
+
+2026-10-25 · [Ship changelogs and release notes with 0.1.0](https://github.com/vocksel/orion/issues/633)

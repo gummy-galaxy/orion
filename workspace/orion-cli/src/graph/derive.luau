@@ -31,8 +31,9 @@ local function rarityOf(upstream: number): string
 	return "common"
 end
 
--- Tarjan's algorithm groups cards that wait on each other. Each group reaches the work that feeds into it, so
--- a loop counts its shared upstream once and every card in it reads the same number.
+-- Tarjan's algorithm groups cards that wait on each other. Each group reaches
+-- the work that feeds into it, so a loop counts its shared upstream once and
+-- every card in it reads the same number.
 local function countUpstream(tasks: { [string]: Item }, predecessors: { [string]: { string } }): { [string]: number }
 	local indices: { [string]: number } = {}
 	local lowLinks: { [string]: number } = {}
@@ -131,12 +132,14 @@ local function countUpstream(tasks: { [string]: Item }, predecessors: { [string]
 	return upstream
 end
 
--- Status, flow, leverage, upstream work, rarity, progress for each group and the whole canvas, and the work where
--- it's your move, all served to the app rather than derived there.
--- Notes and components pass blocking through and never count as work, and components have no status. Gates also
--- pass blocking through, but count as work: one is done once everything it waits on is. A snoozed card keeps its
--- status and blocking, but it has no leverage and isn't ready until it wakes. `now` is a UTC time in the form Orion
--- stores; it defaults to the current time.
+-- Status, flow, leverage, upstream work, rarity, progress for each group and
+-- the whole canvas, and the work where it's your move, all served to the app
+-- rather than derived there. Notes and components pass blocking through and
+-- never count as work, and components have no status. Gates also pass blocking
+-- through, but count as work: one is done once everything it waits on is. A
+-- snoozed card keeps its status and blocking, but it has no leverage and isn't
+-- ready until it wakes. `now` is a UTC time in the form Orion stores; it
+-- defaults to the current time.
 local function derive(doc: Doc, now: string?): Derived
 	local clock = now or os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 	local tasks: { [string]: Item } = {}
@@ -240,8 +243,8 @@ local function derive(doc: Doc, now: string?): Derived
 		end
 	end
 
-	-- Links move unless they come out of work that's stuck. Notes pass on whatever reaches them, and links out of
-	-- components stay still.
+	-- Links move unless they come out of work that's stuck. Notes pass on
+	-- whatever reaches them, and links out of components stay still.
 	local flow: { [string]: string } = {}
 
 	local function flowOf(id: string, seen: { [string]: boolean }): string
@@ -266,7 +269,8 @@ local function derive(doc: Doc, now: string?): Derived
 		local value: string
 
 		local incoming = predecessors[id] or {}
-		-- A note fed only by components carries no work either, so its links stay still too.
+		-- A note fed only by components carries no work either, so its links
+		-- stay still too.
 		local fedOnlyByComponents = isNote(item) and #incoming > 0
 
 		for _, predecessor in incoming do
@@ -393,7 +397,8 @@ local function derive(doc: Doc, now: string?): Derived
 				continue
 			end
 
-			-- Deferred work is set aside, so it doesn't hold a group short of done.
+			-- Deferred work is set aside, so it doesn't hold a group short of
+			-- done.
 			if statusValue ~= "deferred" then
 				stats.total += 1
 			end
@@ -408,7 +413,8 @@ local function derive(doc: Doc, now: string?): Derived
 				stats.blocked += 1
 			end
 
-			-- Leverage that lands outside the group counts toward the group's reach.
+			-- Leverage that lands outside the group counts toward the group's
+			-- reach.
 			for reachedId in downstream[id] or {} do
 				if not inside[reachedId] then
 					outside[reachedId] = true
@@ -437,7 +443,8 @@ local function derive(doc: Doc, now: string?): Derived
 	for id, item in tasks do
 		everything[id] = true
 
-		-- It's your move on open work that can move. Blocked work waits, and snoozed work is set aside until it wakes.
+		-- It's your move on open work that can move. Blocked work waits, and
+		-- snoozed work is set aside until it wakes.
 		local statusValue = status[id]
 		local isOpenWork = statusValue ~= "done" and statusValue ~= "deferred" and statusValue ~= "blocked"
 

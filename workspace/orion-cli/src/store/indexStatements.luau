@@ -1,7 +1,9 @@
--- SQL shared by the statements that keep a canvas index's `files` table current.
+-- SQL shared by the statements that keep a canvas index's `files` table
+-- current.
 return table.freeze({
-	-- Records each row of the temporary `fresh` table, a file's path, time in whole seconds, and text, as the index's
-	-- view of that file, marking when it was checked so a change later in the same second is caught.
+	-- Records each row of the temporary `fresh` table, a file's path, time in
+	-- whole seconds, and text, as the index's view of that file, marking when
+	-- it was checked so a change later in the same second is caught.
 	upsertFresh = [[
 INSERT OR REPLACE INTO files (path, folder, entry, isValid, mtime, checked, hash, text)
 	SELECT

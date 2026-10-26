@@ -1,13 +1,16 @@
 local tokenContract = require("@root/themes/tokenContract")
 
--- Functions a color may call. url(), image-set(), expression(), and the rest are not on the list.
+-- Functions a color may call. url(), image-set(), expression(), and the rest
+-- are not on the list.
 local COLOR_FUNCTIONS = { "rgb", "rgba", "hsl", "hsla", "hwb", "oklab", "oklch", "color-mix", "var" }
 local EASING_KEYWORDS = { "ease", "ease-in", "ease-out", "ease-in-out", "linear" }
 local LENGTH_UNITS = { "px", "rem", "em" }
 local RADIUS_UNITS = { "px", "rem", "em", "%" }
--- Longer than any transition should run, so a typo can't freeze the interface for minutes.
+-- Longer than any transition should run, so a typo can't freeze the interface
+-- for minutes.
 local MAX_DURATION_MS = 10000
--- Radii may be a percentage, so they are checked against a larger number than sizes and spacing.
+-- Radii may be a percentage, so they are checked against a larger number than
+-- sizes and spacing.
 local MAX_RADIUS = 1000
 -- A bare line height multiplies the font size, so anything past this is a typo.
 local MAX_LINE_HEIGHT = 10
@@ -31,7 +34,8 @@ local function numberOf(text: string): number?
 	return nil
 end
 
--- A length is a number followed by one of the units. Zero may stand alone when bare is allowed.
+-- A length is a number followed by one of the units. Zero may stand alone when
+-- bare is allowed.
 local function isLength(text: string, units: { string }, bare: boolean, limit: number): boolean
 	if bare and text == "0" then
 		return true
@@ -174,7 +178,8 @@ local function checkCubicBezier(text: string): boolean
 	return count == 4
 end
 
--- Checks one value against its token's group. Returns the problem, or nil when the value is plain CSS for that group.
+-- Checks one value against its token's group. Returns the problem, or nil when
+-- the value is plain CSS for that group.
 local function checkThemeValue(group: string, value: string): string?
 	local text = trim(value)
 
@@ -219,7 +224,8 @@ local function checkThemeValue(group: string, value: string): string?
 			table.insert(parts, part)
 		end
 
-		-- Joining the parts gives the text back only when they were separated by single spaces.
+		-- Joining the parts gives the text back only when they were separated
+		-- by single spaces.
 		local valid = #parts >= 1 and #parts <= 4 and table.concat(parts, " ") == text
 
 		for _, part in parts do

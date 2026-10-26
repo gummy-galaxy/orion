@@ -10,8 +10,9 @@ type Response = shared.Response
 
 local canvasStyle = {}
 
--- The app writes the canvas's cover, background, and header here. A null value clears one, and an absent one keeps it.
--- The write is a normal transaction, so it bumps the revision and open windows and `--if-revision` see it.
+-- The app writes the canvas's cover, background, and header here. A null value
+-- clears one, and an absent one keeps it. The write is a normal transaction, so
+-- it bumps the revision and open windows and `--if-revision` see it.
 local function changeFrom(value: json.Value?): string?
 	if value == nil then
 		return nil

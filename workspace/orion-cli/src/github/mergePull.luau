@@ -8,7 +8,8 @@ local function getError(result: types.CommandResult, fallback: string): string
 	return if result.stderr ~= "" then result.stderr else fallback
 end
 
--- Merges a pull request the way the viewer last merged in its repository, only if its head is still `head`.
+-- Merges a pull request the way the viewer last merged in its repository, only
+-- if its head is still `head`.
 local function mergePull(run: CommandRunner, url: string, head: string): (boolean, string?)
 	local host, owner, name = url:match("^https://([%w.-]+)/([%w_.-]+)/([%w_.-]+)/pull/[1-9]%d*/?$")
 

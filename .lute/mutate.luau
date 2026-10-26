@@ -1,12 +1,16 @@
 --[[
-	Mutation-tests Luau modules: makes one small change at a time to a module, such as flipping `==` to `~=`, and runs
-	the module's sibling spec against it. A change the spec still passes with is a survivor, a spot where the tests
-	don't pin the behavior down. The module is restored after every run, and on Ctrl-C.
+	Mutation-tests Luau modules: makes one small change at a time to a module,
+	such as flipping `==` to `~=`, and runs the module's sibling spec against
+	it. A change the spec still passes with is a survivor, a spot where the
+	tests don't pin the behavior down. The module is restored after every run,
+	and on Ctrl-C.
 
-	lute run mutate workspace/orion-cli/src/store/pruneBackups.luau [...] [--spec <spec or folder>]...
+	lute run mutate workspace/orion-cli/src/store/pruneBackups.luau [...]
+	[--spec <spec or folder>]...
 
-	Repeat --spec, or pass a folder such as workspace/orion-cli/src/cli, to count tests outside the sibling spec. Every module is checked
-	against the same specs then.
+	Repeat --spec, or pass a folder such as workspace/orion-cli/src/cli, to
+	count tests outside the sibling spec. Every module is checked against the
+	same specs then.
 ]]
 local fs = require("@std/fs")
 local process = require("@std/process")
@@ -20,7 +24,8 @@ local runScript = require("@cli/runScript")
 type Mutation = mutationTypes.Mutation
 type Outcome = mutationTypes.Outcome
 
--- Runs a command, killing it if it outlasts the given seconds, as a mutation that loops forever would.
+-- Runs a command, killing it if it outlasts the given seconds, as a mutation
+-- that loops forever would.
 local WATCHDOG = [[
 seconds=$1
 shift

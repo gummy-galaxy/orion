@@ -4,8 +4,9 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Removes a group that an edit left with nothing inside, then checks the group that holds it the same way. Only groups
--- the edit emptied go, so a group made empty on purpose, such as by group create, stays until something lands in it.
+-- Removes a group that an edit left with nothing inside, then checks the group
+-- that holds it the same way. Only groups the edit emptied go, so a group made
+-- empty on purpose, such as by group create, stays until something lands in it.
 local function pruneEmptied(doc: Doc, groupId: string?)
 	local current = groupId
 

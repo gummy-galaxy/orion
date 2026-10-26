@@ -4,7 +4,8 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Attaches the --ref given to add or set, resolving it against the document's sources.
+-- Attaches the --ref given to add or set, resolving it against the document's
+-- sources.
 local function attachRequestedRef(doc: Doc, id: string, input: string?)
 	if input then
 		attachRef(doc, id, resolveRef(input, doc.settings.sources))
