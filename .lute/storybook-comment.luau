@@ -1,8 +1,10 @@
 --[[
-	Links a pull request to the Storybook that Chromatic published for its head commit, and to each story in it. Stories
-	that load a file the pull request changes come first. It reads the stories from the build in workspace/orion-app/storybook-static
-	and keeps the links in one pull request comment, replacing the comment an earlier push left, so they always point
-	at the newest build.
+	Links a pull request to the Storybook that Chromatic published for its head
+	commit, and to each story in it. Stories that load a file the pull request
+	changes come first. It reads the stories from the build in
+	workspace/orion-app/storybook-static and keeps the links in one pull request
+	comment, replacing the comment an earlier push left, so they always point at
+	the newest build.
 ]]
 local fs = require("@std/fs")
 local path = require("@std/path")
@@ -22,7 +24,8 @@ local env = process.env
 local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 local pullRequest = assert(env.PR, "PR is not set")
 local storybookUrl = assert(env.STORYBOOK_URL, "STORYBOOK_URL is not set")
--- Reads a file by its path from the repository root, or returns nil for a missing file or a folder.
+-- Reads a file by its path from the repository root, or returns nil for a
+-- missing file or a folder.
 local function readFile(file: string): string?
 	local succeeded, contents = pcall(fs.readFileToString, file)
 
@@ -49,7 +52,8 @@ local function getChangedFiles(): { string }
 	return files
 end
 
--- Every story picks up the app's stylesheets and Storybook's preview, so a change to either can show anywhere.
+-- Every story picks up the app's stylesheets and Storybook's preview, so a
+-- change to either can show anywhere.
 local function changesStyles(files: { string }): boolean
 	for _, file in files do
 		local inStorybook = string.sub(file, 1, #STORYBOOK_ROOT + 1) == `{STORYBOOK_ROOT}/`

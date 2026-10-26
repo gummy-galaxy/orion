@@ -11,7 +11,8 @@ local writeWorkspaces = require("@root/store/writeWorkspaces")
 
 type WorkspaceList = storeTypes.WorkspaceList
 
--- Without a name, the label names the workspace. An explicit name must be a lowercase slug.
+-- Without a name, the label names the workspace. An explicit name must be a
+-- lowercase slug.
 local function createWorkspace(root: string, name: string?, label: string?): WorkspaceList
 	assert(label == nil or label:match("%S"), "label must be nonempty")
 	assert(name or label, "give a name or a label")

@@ -2,7 +2,8 @@ local types = require("@root/types")
 
 type LogEntry = types.LogEntry
 
--- Entries in the order a reader wants them: newest first, and at most `limit` of them when one is given.
+-- Entries in the order a reader wants them: newest first, and at most `limit`
+-- of them when one is given.
 local function newestFirst(entries: { LogEntry }, limit: number?): { LogEntry }
 	local found: { LogEntry } = {}
 

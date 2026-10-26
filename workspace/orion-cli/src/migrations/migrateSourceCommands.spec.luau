@@ -23,7 +23,8 @@ local JIRA_CANVAS = [[{
 
 local HOP_CANVAS = [[{"version":2,"settings":{"sources":[{"id":"hop","kind":"hop","command":["hop"]}]}}]]
 
--- A data folder whose canvases still keep their sources' commands in `canvas.json`.
+-- A data folder whose canvases still keep their sources' commands in
+-- `canvas.json`.
 local function legacyRoot(name: string): string
 	local root = testing.directory(name)
 	local planning = path.join(root, "canvases", "planning")

@@ -8,7 +8,8 @@ local types = require("@root/types")
 
 type Item = types.Item
 
--- Recomputes an item's kind from its repository, pull request, and gate status after its refs change.
+-- Recomputes an item's kind from its repository, pull request, and gate status
+-- after its refs change.
 local function refreshItemKind(item: Item)
 	if isNote(item) or isComponent(item) then
 		return

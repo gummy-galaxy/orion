@@ -28,7 +28,8 @@ export type CommandDescription = {
 -- Every command repeats these, so the reference lists them once instead.
 local SHARED_ARGUMENTS = { help = true, canvas = true }
 
--- Walks a parser and the commands under it, in the order they were defined, skipping hidden entries.
+-- Walks a parser and the commands under it, in the order they were defined,
+-- skipping hidden entries.
 local function describeCommands(parser: cli.Parser, name: string, help: string?): CommandDescription
 	local arguments: { Argument } = {}
 	local commands: { CommandDescription } = {}

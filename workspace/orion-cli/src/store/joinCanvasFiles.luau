@@ -16,8 +16,9 @@ local function parseObject(files: { [string]: string }, file: string): json.Obje
 end
 
 --[[
-	Entries come in the order of their keys, with ties broken by id, as when two branches each added one at the
-	end. Entries without a key come after them, those listed in an older `canvas.json`'s order first.
+	Entries come in the order of their keys, with ties broken by id, as when two
+	branches each added one at the end. Entries without a key come after them,
+	those listed in an older `canvas.json`'s order first.
 ]]
 local function collectEntries(found: { Found }, legacyOrder: json.Value): json.Array
 	local listed: { [string]: number } = {}
@@ -49,8 +50,9 @@ local function collectEntries(found: { Found }, legacyOrder: json.Value): json.A
 end
 
 --[[
-	Joins a canvas folder's files, keyed by path as `splitDocObject` writes them, back into one canvas object. The
-	order key and field times each node and link file keeps come back apart from the canvas, by path.
+	Joins a canvas folder's files, keyed by path as `splitDocObject` writes
+	them, back into one canvas object. The order key and field times each node
+	and link file keeps come back apart from the canvas, by path.
 ]]
 local function joinCanvasFiles(files: { [string]: string }): (json.Object, { [string]: StoredEntry })
 	assert(files[fileNames.document], `a canvas folder needs a {fileNames.document}`)

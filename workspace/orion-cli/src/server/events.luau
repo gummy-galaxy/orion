@@ -17,7 +17,8 @@ function events.create()
 		clients[socket] = nil
 	end
 
-	-- How many app windows are connected, so a request that needs one can say when none is open.
+	-- How many app windows are connected, so a request that needs one can say
+	-- when none is open.
 	function hub.count(): number
 		local total = 0
 

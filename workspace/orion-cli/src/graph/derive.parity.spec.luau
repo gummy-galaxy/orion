@@ -9,8 +9,9 @@ local graphTypes = require("@root/graph/types")
 local testing = require("@root/testing")
 local types = require("@root/types")
 
--- Each case was produced by the app's previous derive over a seeded random canvas, so these checks hold the
--- Luau port to the rules the app used to run. The fixture path is relative to the cli folder, where tests run.
+-- Each case was produced by the app's previous derive over a seeded random
+-- canvas, so these checks hold the Luau port to the rules the app used to run.
+-- The fixture path is relative to the cli folder, where tests run.
 local FIXTURE = path.join("src", "graph", "derive.parity.json")
 
 local function buildDoc(case: json.Object): types.Doc
@@ -42,7 +43,8 @@ local function buildDoc(case: json.Object): types.Doc
 	return testing.createDoc(nodes, links)
 end
 
--- Returns a description of the first difference, or nil when the maps hold the same entries.
+-- Returns a description of the first difference, or nil when the maps hold the
+-- same entries.
 local function findMismatch<T>(label: string, expected: json.Object, actual: { [string]: T }): string?
 	local count = 0
 

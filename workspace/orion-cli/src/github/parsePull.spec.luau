@@ -18,3 +18,15 @@ test.case("pull response preserves review and check details", function(assert)
 	assert.eq(pull and pull.head, "abc123")
 	assert.eq(pull and pull.branch, "feature")
 end)
+
+test.case("pull response carries its repository's id and current name", function(assert)
+	local object = json.asObject(
+		json.deserialize(
+			[[{"number":12,"state":"OPEN","url":"u","repository":{"databaseId":1,"nameWithOwner":"gummy-galaxy/orion"}}]]
+		) :: json.Value
+	) :: json.Object
+	local pull = parsePull(object, "vocksel", "orion")
+	assert.eq(pull and pull.owner, "vocksel")
+	assert.eq(pull and pull.repoId, "1")
+	assert.eq(pull and pull.repoName, "gummy-galaxy/orion")
+end)

@@ -1,11 +1,15 @@
 --[[
-	Publishes the perf comparison in workspace/orion-app/.perf/report.md from CI's perf job. It adds the report to the job summary
-	and, for a pull request, keeps it in one comment, replacing the comment an earlier run left. When the comparison
-	fails, the comment says so and links the run. A push to main has no pull request, so its report stays in the summary.
+	Publishes the perf comparison in workspace/orion-app/.perf/report.md from
+	CI's perf job. It adds the report to the job summary and, for a pull
+	request, keeps it in one comment, replacing the comment an earlier run left.
+	When the comparison fails, the comment says so and links the run. A push to
+	main has no pull request, so its report stays in the summary.
 
-	A fork's perf job has a read-only token, so it uploads its report and the Perf Report workflow publishes it. Setting
-	RUN_ID publishes for that run: it downloads the report, takes the runner from the run's perf job, and finds the pull
-	request from SHA and HEAD_REPOSITORY, since a fork's workflow_run event lists no pull requests.
+	A fork's perf job has a read-only token, so it uploads its report and the
+	Perf Report workflow publishes it. Setting RUN_ID publishes for that run: it
+	downloads the report, takes the runner from the run's perf job, and finds
+	the pull request from SHA and HEAD_REPOSITORY, since a fork's workflow_run
+	event lists no pull requests.
 ]]
 local fs = require("@std/fs")
 local path = require("@std/path")
@@ -22,8 +26,8 @@ local reportDir = path.resolve("workspace/orion-app/.perf")
 local reportPath = path.join(reportDir, "report.md")
 local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 
--- Returns the runner that ran the run's perf job, or nil when the job never started, such as when a maintainer
--- declined to run it.
+-- Returns the runner that ran the run's perf job, or nil when the job never
+-- started, such as when a maintainer declined to run it.
 local function findPerfRunner(runId: string): string?
 	local listed = command({
 		"gh",
@@ -72,7 +76,8 @@ runScript(function()
 			return
 		end
 
-		-- A failed comparison may have uploaded nothing, which reads below as a failure.
+		-- A failed comparison may have uploaded nothing, which reads below as a
+		-- failure.
 		command({
 			"gh",
 			"run",

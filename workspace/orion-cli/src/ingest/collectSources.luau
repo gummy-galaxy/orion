@@ -13,7 +13,8 @@ type Source = types.Source
 type CommandRunner = types.CommandRunner
 type Result = ingestTypes.Result
 
--- `commands` holds the programs this machine runs for the canvas's sources, by source id.
+-- `commands` holds the programs this machine runs for the canvas's sources, by
+-- source id.
 local function collectSources(
 	doc: Doc,
 	commands: { [string]: { string } },

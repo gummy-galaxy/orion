@@ -37,8 +37,8 @@ local function decodeEntry(object: json.Object): LogEntry
 	}
 end
 
--- Every entry in the order it was appended. A last line without its newline is an append that never finished,
--- so it isn't in the log yet.
+-- Every entry in the order it was appended. A last line without its newline is
+-- an append that never finished, so it isn't in the log yet.
 local function readLog(dir: string): { LogEntry }
 	local file = getLogPath(dir)
 	local entries: { LogEntry } = {}

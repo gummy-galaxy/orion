@@ -1,5 +1,6 @@
 local getKey = require("@root/github/getKey")
 local getPullFields = require("@root/github/getPullFields")
+local getRepoId = require("@root/github/getRepoId")
 local getString = require("@root/github/getString")
 local githubTypes = require("@root/github/types")
 local isListed = require("@root/github/isListed")
@@ -16,8 +17,8 @@ type CommandRunner = types.CommandRunner
 local PAGE_SIZE = 100
 local SMALLEST_PAGE = 25
 
--- Reads one page of search results, retrying at half the size, down to 25, when GitHub times out. Returns the size that
--- fit, so the next page starts there.
+-- Reads one page of search results, retrying at half the size, down to 25, when
+-- GitHub times out. Returns the size that fit, so the next page starts there.
 local function getSearchPage(
 	run: CommandRunner,
 	host: string,
@@ -28,7 +29,7 @@ local function getSearchPage(
 	local first = size or PAGE_SIZE
 	local after = if cursor then `, after: {json.serialize(cursor)}` else ""
 	local source =
-		`query \{ search(query: {json.serialize(expression)}, type: ISSUE, first: {first}{after}) \{ nodes \{ ... on PullRequest \{ {getPullFields()} repository \{ name owner \{ login } } } ... on Issue \{ number title url repository \{ name owner \{ login } } } } pageInfo \{ hasNextPage endCursor } } }`
+		`query \{ search(query: {json.serialize(expression)}, type: ISSUE, first: {first}{after}) \{ nodes \{ ... on PullRequest \{ {getPullFields()} repository \{ name owner \{ login } } } ... on Issue \{ number title url repository \{ databaseId name owner \{ login } } } } pageInfo \{ hasNextPage endCursor } } }`
 	local succeeded, data = pcall(query, run, source, host)
 
 	if not succeeded then
@@ -121,6 +122,7 @@ local function getInvolved(
 							title = object.title,
 							url = object.url,
 							host = host,
+							repoId = getRepoId(repository),
 						})
 					end
 				end

@@ -1,7 +1,9 @@
 --[[
-	Checks the desktop shell: Rust formatting, Clippy, and a Tauri build. Clippy compiles the shell, which needs the
-	built canvas and the CLI sidecar in place, so those are built first. The build makes one installer for this
-	platform: a disk image on macOS, an NSIS setup program on Windows, and a Debian package on Linux.
+	Checks the desktop shell: Rust formatting, Clippy, and a Tauri build. Clippy
+	compiles the shell, which needs the built canvas and the CLI sidecar in
+	place, so those are built first. The build makes one installer for this
+	platform: a disk image on macOS, an NSIS setup program on Windows, and a
+	Debian package on Linux.
 ]]
 local project = require("@repository/project")
 local system = require("@std/system")

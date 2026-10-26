@@ -1,6 +1,7 @@
--- How Orion describes itself to agents and people. Connected MCP clients receive `paragraphs` as the
--- initialize instructions. `orion help` prints `help` under the summary: the same vocabulary, written
--- for a terminal reader, with no MCP tool names. The spec checks that every MCP tool named in
+-- How Orion describes itself to agents and people. Connected MCP clients
+-- receive `paragraphs` as the initialize instructions. `orion help` prints
+-- `help` under the summary: the same vocabulary, written for a terminal reader,
+-- with no MCP tool names. The spec checks that every MCP tool named in
 -- `paragraphs` exists, so that text follows the tool catalog as it grows.
 return table.freeze({
 	help = table.freeze({

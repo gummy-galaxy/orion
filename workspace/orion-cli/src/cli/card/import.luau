@@ -148,7 +148,8 @@ return table.freeze({
 				else getText(report, added, existing, failed)
 		)
 
-		-- Written first so the outcomes of the refs that did resolve are still shown; the error sets the exit status.
+		-- Written first so the outcomes of the refs that did resolve are still
+		-- shown; the error sets the exit status.
 		if failed > 0 then
 			error(`{failed} of {#inputs} refs could not be imported`, 0)
 		end

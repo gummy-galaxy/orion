@@ -22,7 +22,8 @@ local function runner(dir: string): mcpTypes.Run
 			now = function()
 				return "2026-10-04T00:00:00Z"
 			end,
-			-- Matches mcp start, which keeps serving when a command reports findings through its status.
+			-- Matches mcp start, which keeps serving when a command reports
+			-- findings through its status.
 			exit = function(_code: number) end,
 		})
 	end

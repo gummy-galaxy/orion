@@ -5,8 +5,8 @@ local types = require("@root/types")
 type PullState = githubTypes.PullState
 type Doc = types.Doc
 
--- Your own open pull requests only belong on a canvas whose GitHub sources cover their repository.
--- A canvas without GitHub sources takes them all.
+-- Your own open pull requests only belong on a canvas whose GitHub sources
+-- cover their repository. A canvas without GitHub sources takes them all.
 local function isInSources(doc: Doc, pull: PullState): boolean
 	local hasSources = false
 

@@ -25,7 +25,8 @@ local function serializeStats(stats: GroupStats): json.Object
 	})
 end
 
--- Derived values are sent beside the document, keyed by item id. They are never written to the data file.
+-- Derived values are sent beside the document, keyed by item id. They are never
+-- written to the data file.
 local function serializeDerived(derived: Derived): json.Object
 	local groups = json.object({})
 

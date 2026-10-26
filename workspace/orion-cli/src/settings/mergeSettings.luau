@@ -9,7 +9,8 @@ local readSettings = require("@root/settings/readSettings")
 
 local writeSequence = 0
 
--- Applies changed preferences over the saved ones. A null value removes that preference.
+-- Applies changed preferences over the saved ones. A null value removes that
+-- preference.
 return function(root: string, changes: json.Object): json.Object
 	local settings = readSettings(root)
 

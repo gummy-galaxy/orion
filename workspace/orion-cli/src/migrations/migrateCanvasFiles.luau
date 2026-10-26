@@ -14,11 +14,13 @@ local writeCanvasFiles = require("@root/store/writeCanvasFiles")
 local CANVAS_FOLDER = "canvases"
 
 export type Options = {
-	-- Returns the pid of an older `orion server start` still serving the data folder from `orion.json` files.
+	-- Returns the pid of an older `orion server start` still serving the data
+	-- folder from `orion.json` files.
 	findLegacyServer: ((root: string) -> number?)?,
 }
 
--- A server that reads canvas folders says so in its record. Any other live server that answers is older.
+-- A server that reads canvas folders says so in its record. Any other live
+-- server that answers is older.
 local function findLegacyServer(root: string): number?
 	local file = path.join(root, fileNames.runtime)
 
@@ -83,7 +85,8 @@ local function migrateDir(dir: string)
 			local contents = fs.readFileToString(legacy)
 			local document = json.asObject(json.deserialize(contents) :: json.Value)
 			assert(document, `{legacy} must be a JSON object`)
-			-- Refuse before moving it, so an older Orion can still upgrade it in place.
+			-- Refuse before moving it, so an older Orion can still upgrade it
+			-- in place.
 			checkDataVersion(document, legacy)
 
 			if not fs.exists(backup) then
@@ -92,8 +95,9 @@ local function migrateDir(dir: string)
 
 			writeCanvasFiles(dir, document, nil)
 		elseif not fs.exists(backup) or fs.readFileToString(backup) ~= fs.readFileToString(legacy) then
-			-- A run that stopped after writing the files leaves `orion.json` matching its backup. Anything else was
-			-- written after the move, most likely by an older Orion, and holds changes the files don't.
+			-- A run that stopped after writing the files leaves `orion.json`
+			-- matching its backup. Anything else was written after the move,
+			-- most likely by an older Orion, and holds changes the files don't.
 			error(
 				`{legacy} changed after this canvas moved to files, likely written by an older Orion; quit it, `
 					.. `then move {legacy} aside and run the command again`
@@ -106,13 +110,16 @@ local function migrateDir(dir: string)
 end
 
 --[[
-	Moves every canvas in a data folder from one `orion.json` to a folder of files: `canvas.json`, `nodes/`,
-	`links/`, and `local.json`. The original stays beside them as `orion.backup.json`. Fields are split as they
-	were stored, so reading the files later fills in defaults the same way reading `orion.json` did. A version 1
-	`orion.json` stays where it is, so an older Orion can still upgrade it. Each canvas moves under its lock, one
-	that stopped partway finishes on the next run, and every canvas that can move does before the failures are
-	raised. It refuses while an older Orion is still serving the folder, since that server would keep writing
-	`orion.json`. Returns whether it moved anything.
+	Moves every canvas in a data folder from one `orion.json` to a folder of
+	files: `canvas.json`, `nodes/`, `links/`, and `local.json`. The original
+	stays beside them as `orion.backup.json`. Fields are split as they were
+	stored, so reading the files later fills in defaults the same way reading
+	`orion.json` did. A version 1 `orion.json` stays where it is, so an older
+	Orion can still upgrade it. Each canvas moves under its lock, one that
+	stopped partway finishes on the next run, and every canvas that can move
+	does before the failures are raised. It refuses while an older Orion is
+	still serving the folder, since that server would keep writing `orion.json`.
+	Returns whether it moved anything.
 ]]
 local function migrateCanvasFiles(root: string, options: Options?): boolean
 	local dirs = getLegacyDirs(root)

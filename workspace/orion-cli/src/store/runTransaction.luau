@@ -11,7 +11,8 @@ local writeCanvasFiles = require("@root/store/writeCanvasFiles")
 
 type Doc = types.Doc
 
--- Reads the latest data under the lock, applies `mutate`, and writes the next revision.
+-- Reads the latest data under the lock, applies `mutate`, and writes the next
+-- revision.
 local function runTransaction(dir: string, mutate: (Doc) -> ()): Doc
 	return runWithLock(dir, function(): Doc
 		recoverCanvasWrite(dir)

@@ -8,11 +8,12 @@ local run = require("@cli/run")
 local runScript = require("@cli/runScript")
 
 local BUILD_INFO_PATH = path.join(project.CLI_PATH, "src", "buildInfo.luau")
--- The commit buildInfo.luau is checked in with. Builds stamp their own commit and then put this back.
+-- The commit buildInfo.luau is checked in with. Builds stamp their own commit
+-- and then put this back.
 local CHECKED_IN_COMMIT = "dev"
 
--- Reads the short commit this build comes from, marked "-dirty" when tracked files differ from it.
--- Falls back to "unknown" outside a git checkout.
+-- Reads the short commit this build comes from, marked "-dirty" when tracked
+-- files differ from it. Falls back to "unknown" outside a git checkout.
 local function getCommit(): string
 	local head = process.run({ "git", "rev-parse", "--short", "HEAD" })
 
@@ -52,8 +53,10 @@ runScript(function()
 		fs.createDirectory(project.BUILD_PATH, { makeParents = true })
 	end
 
-	-- Resets the file before anything else, so a build interrupted while stamping cannot leave its commit behind.
-	-- The stamp is written and restored inside pcall, so a failed compile still puts the checked-in commit back.
+	-- Resets the file before anything else, so a build interrupted while
+	-- stamping cannot leave its commit behind. The stamp is written and
+	-- restored inside pcall, so a failed compile still puts the checked-in
+	-- commit back.
 	local checkedIn = setCommit(fs.readFileToString(BUILD_INFO_PATH), CHECKED_IN_COMMIT)
 	fs.writeStringToFile(BUILD_INFO_PATH, checkedIn)
 
@@ -78,8 +81,9 @@ runScript(function()
 
 	assert(fs.exists(outputPath) and fs.type(outputPath) == "file", `native build did not produce {outputPath}`)
 
-	-- Lute bundles ~/.loom/store only from a checkout under the home directory. Anywhere else the compile still
-	-- succeeds, but the binary fails on its first require, so run it here to catch that before anything ships it.
+	-- Lute bundles ~/.loom/store only from a checkout under the home directory.
+	-- Anywhere else the compile still succeeds, but the binary fails on its
+	-- first require, so run it here to catch that before anything ships it.
 	local smoke = process.run({ outputPath, "--help" })
 	assert(
 		smoke.ok,

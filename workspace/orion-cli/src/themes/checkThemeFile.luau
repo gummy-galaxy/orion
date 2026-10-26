@@ -23,7 +23,8 @@ local function broken(file: string, reason: string): ThemeCheck
 	return { label = fileLabel(file), schemes = {}, notes = {}, error = reason }
 end
 
--- The string keys of an object in sorted order, so the same file always reports the same problem first.
+-- The string keys of an object in sorted order, so the same file always reports
+-- the same problem first.
 local function sortedKeys(object: json.Object): { string }
 	local keys: { string } = {}
 
@@ -38,8 +39,9 @@ local function sortedKeys(object: json.Object): { string }
 	return keys
 end
 
--- Checks a theme file's text the way the app reads it: JSON with a light or dark object of token values.
--- Unknown tokens are noted and skipped. Any other problem makes the file unusable.
+-- Checks a theme file's text the way the app reads it: JSON with a light or
+-- dark object of token values. Unknown tokens are noted and skipped. Any other
+-- problem makes the file unusable.
 local function checkThemeFile(file: string, text: string): ThemeCheck
 	local didParse, data = pcall(json.deserialize, text)
 

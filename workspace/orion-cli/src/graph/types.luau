@@ -1,6 +1,7 @@
 local types = require("@root/types")
 
--- components counts the components inside, which are parts of a system rather than work.
+-- components counts the components inside, which are parts of a system rather
+-- than work.
 export type GroupStats = {
 	total: number,
 	done: number,
@@ -17,13 +18,15 @@ export type Derived = {
 	upstream: { [string]: number },
 	rarity: { [string]: string },
 	groups: { [string]: GroupStats },
-	-- Progress across every card on the canvas, counted the way each group's is.
+	-- Progress across every card on the canvas, counted the way each group's
+	-- is.
 	canvas: GroupStats,
 	-- Cards snoozed right now, mapped to the UTC time they wake.
 	snoozed: { [string]: string },
 	-- Open work where it's your move and that isn't blocked or snoozed.
 	attention: { [string]: boolean },
-	-- Pull request facts for cards where a CI job snooze leaves out a failure, which the app shows over the card's own.
+	-- Pull request facts for cards where a CI job snooze leaves out a failure,
+	-- which the app shows over the card's own.
 	pulls: { [string]: types.SnoozedFacts },
 }
 
@@ -41,7 +44,8 @@ export type ItemFields = {
 	kind: string?,
 	shape: string?,
 	color: string?,
-	-- The UTC time a snooze ends, in the form Orion stores; empty to wake it now.
+	-- The UTC time a snooze ends, in the form Orion stores; empty to wake it
+	-- now.
 	snoozedUntil: string?,
 }
 
@@ -51,11 +55,13 @@ export type AddOptions = ItemFields & { group: string?, after: string?, before: 
 
 export type NoteOptions = { group: string?, after: string?, before: string? }
 
--- A card a chain close reached, and how many blocking links it is from the card that was closed out.
+-- A card a chain close reached, and how many blocking links it is from the card
+-- that was closed out.
 export type ChainStep = { id: string, hops: number }
 
--- What a chain close did: the cards it closed out, starting with the one asked for, and the finished cards the chain
--- passed through that weren't waiting, such as work closed out before and notes. Both are in order of hops.
+-- What a chain close did: the cards it closed out, starting with the one asked
+-- for, and the finished cards the chain passed through that weren't waiting,
+-- such as work closed out before and notes. Both are in order of hops.
 export type ClosedChain = { closed: { ChainStep }, passed: { ChainStep } }
 
 return table.freeze({})

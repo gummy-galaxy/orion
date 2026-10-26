@@ -494,8 +494,9 @@ local function getAgentGroups(cards: { Item }, heuristics: { Group }, argv: { st
 	return groups
 end
 
--- Groups related cards. With a command, it gets the cards as a prompt on stdin and names the groups, and its
--- reply replaces the heuristic groups unless it fails or returns none.
+-- Groups related cards. With a command, it gets the cards as a prompt on stdin
+-- and names the groups, and its reply replaces the heuristic groups unless it
+-- fails or returns none.
 local function compute(
 	doc: Doc,
 	scope: string,

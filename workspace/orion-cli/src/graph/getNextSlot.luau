@@ -7,8 +7,9 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Position = types.Position
 
--- The next free spot to the right of a parent's children, or of the top level, as far from them as the app's layout
--- spaces pieces with no link between them, so tidying the group later keeps the gap. Ids in `skip` don't count.
+-- The next free spot to the right of a parent's children, or of the top level,
+-- as far from them as the app's layout spaces pieces with no link between them,
+-- so tidying the group later keeps the gap. Ids in `skip` don't count.
 local function getNextSlot(doc: Doc, parentId: string?, skip: { [string]: boolean }?): Position
 	local right: number? = nil
 	local top: number? = nil

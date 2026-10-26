@@ -1,6 +1,6 @@
 --[[
-	Warns on `while`, `for`, and `repeat` loops with nothing in their body. A comment counts as a body, so a loop that
-	drains an iterator can say so.
+	Warns on `while`, `for`, and `repeat` loops with nothing in their body. A
+	comment counts as a body, so a loop that drains an iterator can say so.
 ]]
 local lintTypes = require("@std/commands/lint/types")
 local path = require("@std/path")

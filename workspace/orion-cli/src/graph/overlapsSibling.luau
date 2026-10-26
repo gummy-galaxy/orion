@@ -5,8 +5,8 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Position = types.Position
 
--- Whether a box at `position` comes closer than one row gap to any of a parent's children, leaving out the ids in
--- `skip`.
+-- Whether a box at `position` comes closer than one row gap to any of a
+-- parent's children, leaving out the ids in `skip`.
 local function overlapsSibling(
 	doc: Doc,
 	parentId: string?,

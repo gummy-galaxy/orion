@@ -4,7 +4,8 @@ local path = require("@std/path")
 
 local fileNames = require("@root/fileNames")
 
--- The app's preferences for this data folder. A missing or unreadable file reads as none.
+-- The app's preferences for this data folder. A missing or unreadable file
+-- reads as none.
 return function(root: string): json.Object
 	local file = tostring(path.join(root, fileNames.settings))
 

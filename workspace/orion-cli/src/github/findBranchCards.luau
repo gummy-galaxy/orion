@@ -8,8 +8,9 @@ type PullState = githubTypes.PullState
 type Doc = types.Doc
 type Item = types.Item
 
--- Cards whose branch ref names the pull request's head branch in its repository. A card that
--- already tracks a pull request, is done, or is a note doesn't take another one.
+-- Cards whose branch ref names the pull request's head branch in its
+-- repository. A card that already tracks a pull request, is done, or is a note
+-- doesn't take another one.
 local function findBranchCards(doc: Doc, pull: PullState): { Item }
 	local cards: { Item } = {}
 

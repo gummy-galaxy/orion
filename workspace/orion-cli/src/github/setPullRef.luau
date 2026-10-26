@@ -1,4 +1,5 @@
 local findRef = require("@root/refs/findRef")
+local getGithubId = require("@root/refs/getGithubId")
 local getGithubKey = require("@root/refs/getGithubKey")
 local getRecorded = require("@root/github/getRecorded")
 local githubTypes = require("@root/github/types")
@@ -18,6 +19,7 @@ local function setPullRef(item: Item, pull: PullState, source: string, viewer: s
 		source = if existing then existing.source else source,
 		kind = "pull",
 		key = getGithubKey(pull.owner, pull.name, `#{pull.number}`, pull.host),
+		id = if pull.repoId then getGithubId(pull.repoId, `#{pull.number}`, pull.host) else nil,
 		url = pull.url,
 		status = if pull.state == "OPEN" and pull.draft then "draft" else pull.state:lower(),
 		isDone = pull.state == "MERGED",

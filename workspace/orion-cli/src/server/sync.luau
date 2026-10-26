@@ -19,28 +19,34 @@ type Want = githubTypes.Want
 
 -- An unforced request waits this long after the last sweep.
 local THROTTLE_SECONDS = 60
--- Compares every open card's `updatedAt`, which catches the viewer's own and agents' activity.
+-- Compares every open card's `updatedAt`, which catches the viewer's own and
+-- agents' activity.
 local SWEEP_SECONDS = 2 * 60
--- Sweeps `updatedAt` for only the cards that refresh sooner, such as the ones in view, between full sweeps.
+-- Sweeps `updatedAt` for only the cards that refresh sooner, such as the ones
+-- in view, between full sweeps.
 local SOONER_SECONDS = 30
--- Fetches everything, which catches mergeability: it changes when the base branch moves, and nothing else reports it.
+-- Fetches everything, which catches mergeability: it changes when the base
+-- branch moves, and nothing else reports it.
 local FULL_SECONDS = 15 * 60
--- Rereads the checks of cards whose checks are pending, since a finished check run moves neither `updatedAt` nor
--- notifications.
+-- Rereads the checks of cards whose checks are pending, since a finished check
+-- run moves neither `updatedAt` nor notifications.
 local CHECKS_SECONDS = 30
 local logger = archivist.getLogger("orion.sync")
 local sync = {}
 
--- How often `orion server start` calls `tick`. Each tick runs at most one pass, and only when one is due.
+-- How often `orion server start` calls `tick`. Each tick runs at most one pass,
+-- and only when one is due.
 sync.TICK_SECONDS = 15
 
 --[[
-	Keeps the active canvas's pull request cards current. A full pass fetches every open card, at startup, on a canvas
-	switch, when forced, and every 15 minutes. Between them, `tick` polls notifications as often as GitHub allows,
-	sweeps `updatedAt` every two minutes, and rereads pending checks every 30 seconds, fetching only the cards that
-	changed and writing nothing when none did. The cards that refresh sooner, which are the ones the app has in view,
-	have their `updatedAt` swept every 30 seconds instead.
-	Background passes don't report `running`, so they stay quiet in the app.
+	Keeps the active canvas's pull request cards current. A full pass fetches
+	every open card, at startup, on a canvas switch, when forced, and every 15
+	minutes. Between them, `tick` polls notifications as often as GitHub allows,
+	sweeps `updatedAt` every two minutes, and rereads pending checks every 30
+	seconds, fetching only the cards that changed and writing nothing when none
+	did. The cards that refresh sooner, which are the ones the app has in view,
+	have their `updatedAt` swept every 30 seconds instead. Background passes
+	don't report `running`, so they stay quiet in the app.
 ]]
 function sync.create(
 	root: string,
@@ -68,8 +74,9 @@ function sync.create(
 		publish(status)
 	end
 
-	-- Runs a full pass without `want`, or a pass limited to what changed with it. `sweepsSooner` adds a sweep of the
-	-- cards that refresh sooner, found from the snapshot the pass reads.
+	-- Runs a full pass without `want`, or a pass limited to what changed with
+	-- it. `sweepsSooner` adds a sweep of the cards that refresh sooner, found
+	-- from the snapshot the pass reads.
 	local function runPass(want: Want?, isQuiet: boolean, sweepsSooner: boolean?): json.Object
 		local pass = if want == nil
 			then "full"
@@ -94,7 +101,8 @@ function sync.create(
 		local sooner = 0
 		local didWrite = false
 
-		-- Fetch from a snapshot, then take the workspace lock only to apply, so edits don't wait on GitHub.
+		-- Fetch from a snapshot, then take the workspace lock only to apply, so
+		-- edits don't wait on GitHub.
 		local didSucceed, failure = pcall(function()
 			local dir = getWorkspaceDir(root, target)
 			local adapter = getAdapter("github")
@@ -201,7 +209,8 @@ function sync.create(
 		status = json.object({ state = "idle" })
 	end
 
-	-- Runs a pass someone asked for: a full one when forced or when the canvas hasn't had one, otherwise a sweep.
+	-- Runs a pass someone asked for: a full one when forced or when the canvas
+	-- hasn't had one, otherwise a sweep.
 	function loop.run(isForced: boolean?): json.Object
 		if isRunning then
 			return status

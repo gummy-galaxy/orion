@@ -8,18 +8,21 @@ local findOtherServer = require("@root/server/findOtherServer")
 
 type Server = findOtherServer.Server
 
--- Canvases were called workspaces before 0.1.0, and their list and folders were named for it.
+-- Canvases were called workspaces before 0.1.0, and their list and folders were
+-- named for it.
 local LEGACY_LIST = "workspaces.json"
 local LEGACY_FOLDER = "workspaces"
 local LEGACY_BACKUP = "workspaces.backup.json"
 local CANVAS_FOLDER = "canvases"
 
 export type Options = {
-	-- Returns the `orion server start` from another build still serving the data folder.
+	-- Returns the `orion server start` from another build still serving the
+	-- data folder.
 	findOtherServer: ((root: string) -> Server?)?,
 }
 
--- Another process migrating at the same time may get there first, which counts as done.
+-- Another process migrating at the same time may get there first, which counts
+-- as done.
 local function moveOnce(from: string, to: string)
 	local succeeded, failure = pcall(fs.move, from, to)
 
@@ -37,7 +40,8 @@ local function writeCanvasList(root: string, legacyList: string)
 
 	local succeeded, contents = pcall(fs.readFileToString, legacyList)
 
-	-- The list moved to its backup between the check and the read, so another process wrote it.
+	-- The list moved to its backup between the check and the read, so another
+	-- process wrote it.
 	if not succeeded then
 		assert(fs.exists(file), contents)
 		return
@@ -74,19 +78,22 @@ local function moveFolders(root: string, legacyFolder: string)
 		end
 	end
 
-	-- Stray files such as .DS_Store keep the folder, and later runs look past them.
+	-- Stray files such as .DS_Store keep the folder, and later runs look past
+	-- them.
 	pcall(function()
 		fs.removeDirectory(legacyFolder)
 	end)
 end
 
 --[[
-	Moves a data folder from the workspace layout to the canvas one: `workspaces.json` becomes `canvases.json`,
-	and `workspaces/<name>/` becomes `canvases/<name>/`. Folders move whole, so each keeps its data and backups,
-	and the old list stays beside the new one as `workspaces.backup.json`. Each step checks what's left, so a run
-	that stopped partway, or one racing another process, finishes the move. It refuses while another build of Orion
-	is still serving the folder, since that server would keep writing to the old paths. Returns whether it moved
-	anything.
+	Moves a data folder from the workspace layout to the canvas one:
+	`workspaces.json` becomes `canvases.json`, and `workspaces/<name>/` becomes
+	`canvases/<name>/`. Folders move whole, so each keeps its data and backups,
+	and the old list stays beside the new one as `workspaces.backup.json`. Each
+	step checks what's left, so a run that stopped partway, or one racing
+	another process, finishes the move. It refuses while another build of Orion
+	is still serving the folder, since that server would keep writing to the old
+	paths. Returns whether it moved anything.
 ]]
 local function migrateWorkspaces(root: string, options: Options?): boolean
 	local legacyList = tostring(path.join(root, LEGACY_LIST))

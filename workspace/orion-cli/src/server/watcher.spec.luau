@@ -18,7 +18,8 @@ type WorkspaceList = storeTypes.WorkspaceList
 local WAIT_STEP_SECONDS = 0.05
 local WAIT_LIMIT_SECONDS = 3
 
--- Polls rather than sleeping a fixed time so slow runners get longer without slowing fast ones.
+-- Polls rather than sleeping a fixed time so slow runners get longer without
+-- slowing fast ones.
 local function waitUntil(condition: () -> boolean)
 	for _ = 1, math.ceil(WAIT_LIMIT_SECONDS / WAIT_STEP_SECONDS) do
 		if condition() then
@@ -155,7 +156,8 @@ test.case("watcher announces node and link files changed outside Orion without a
 
 	monitor.start()
 
-	-- What a `git pull` does to the folder: one card changes, one arrives, and one goes with its link.
+	-- What a `git pull` does to the folder: one card changes, one arrives, and
+	-- one goes with its link.
 	local nodes = path.join(root, "nodes")
 	local changed = fs.readFileToString(path.join(nodes, "a.json")):gsub('"A"', '"A pulled"')
 	fs.writeStringToFile(path.join(nodes, "a.json"), changed)

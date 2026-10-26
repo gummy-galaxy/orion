@@ -1,4 +1,5 @@
--- Reads a --limit option as a positive whole number, or nil when it was left out.
+-- Reads a --limit option as a positive whole number, or nil when it was left
+-- out.
 local function parseLimit(value: string?): number?
 	if value == nil then
 		return nil

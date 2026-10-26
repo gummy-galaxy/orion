@@ -20,7 +20,8 @@ end)
 
 test.case("snooze reports the time it wakes in show and JSON", function(assert)
 	local _, run = testing.createHarness("snooze-show")
-	-- A date alone wakes at local midnight, so the UTC time depends on the machine's zone.
+	-- A date alone wakes at local midnight, so the UTC time depends on the
+	-- machine's zone.
 	local wakes = parseUntil("2026-10-12")
 	run({ "card", "snooze", "ci", "--until", "2026-10-12" })
 	assert.strContains(run({ "node", "show", "ci" }), `snoozed  until {wakes}`)

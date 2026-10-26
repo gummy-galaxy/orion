@@ -11,7 +11,8 @@ type WorkspaceList = storeTypes.WorkspaceList
 
 local writeSequence = 0
 
--- Replaces the workspace list file in one move, so a reader never sees half of it.
+-- Replaces the workspace list file in one move, so a reader never sees half of
+-- it.
 local function writeWorkspaces(root: string, list: WorkspaceList)
 	ensureDirectory(root)
 

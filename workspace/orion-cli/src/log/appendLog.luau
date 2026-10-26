@@ -11,8 +11,9 @@ local types = require("@root/types")
 type Doc = types.Doc
 type LogEntry = types.LogEntry
 
--- Appends one entry under the workspace lock. `build` gets the entries so far and the latest document, and returns
--- the entry to add. Only the log file changes, so the canvas revision stays the same.
+-- Appends one entry under the workspace lock. `build` gets the entries so far
+-- and the latest document, and returns the entry to add. Only the log file
+-- changes, so the canvas revision stays the same.
 local function appendLog(dir: string, build: ({ LogEntry }, Doc) -> LogEntry): LogEntry
 	return runWithLock(dir, function(): LogEntry
 		local entry = build(readLog(dir), loadDoc(dir))

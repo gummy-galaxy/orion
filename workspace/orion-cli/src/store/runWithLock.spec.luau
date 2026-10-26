@@ -19,7 +19,8 @@ local function leaveLock(dir: string, owner: string?, isOld: boolean)
 	end
 end
 
--- Above any operating system's highest process id, so it never names a live process.
+-- Above any operating system's highest process id, so it never names a live
+-- process.
 local GONE_PROCESS_ID = 99999999
 
 test.case("runWithLock holds the lock while it runs and returns what the run returns", function(assert)
