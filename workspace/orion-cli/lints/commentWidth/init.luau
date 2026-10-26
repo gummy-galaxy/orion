@@ -110,7 +110,7 @@ local function getSourceLines(cst: syntax.CstStatBlock): { string }
 
 	visitorLib.visitBlock(cst, visitor)
 
-	table.sort(tokens, function(a, b)
+	table.sort(tokens, function(a: syntax.CstToken, b: syntax.CstToken)
 		return a.location < b.location
 	end)
 
@@ -151,7 +151,7 @@ local function getComments(cst: syntax.CstStatBlock): { syntax.Trivia }
 
 	visitorLib.visitBlock(cst, visitor)
 
-	table.sort(comments, function(a, b)
+	table.sort(comments, function(a: syntax.Trivia, b: syntax.Trivia)
 		return a.location < b.location
 	end)
 
@@ -375,7 +375,7 @@ local function lint(cst: syntax.CstStatBlock, sourcepath: path.Path?): { lintTyp
 		end
 	end
 
-	table.sort(violations, function(a, b)
+	table.sort(violations, function(a: lintTypes.LintViolation, b: lintTypes.LintViolation)
 		return a.location < b.location
 	end)
 
