@@ -6,4 +6,4 @@ CI's perf workflow compares every pull request that touches `workspace/orion-app
 
 A pull request that finishes an issue closes it. Put `Closes #<n>` in the description, so merging it closes the issue. Don't point at an issue with "Part of", "Advances", "Related", or any other label instead. When a pull request finishes only some of an issue, say in its description which items on the issue's Progress checklist it finishes. When it leaves concrete work undone, add that work to the checklist, or file it as one follow-up issue when it stands on its own.
 
-Give each pull request a place on the canvas. When a card already tracks the work, attach the pull request to it with `orion card set <id> --ref https://github.com/vocksel/orion/pull/<n>`. Otherwise add a card for it in the outcome group it belongs to.
+Give each pull request a place on the canvas. When a card already tracks the work, attach the pull request to it with `orion card set <id> --ref https://github.com/gummy-galaxy/orion/pull/<n>`. Otherwise add a card for it in the outcome group it belongs to.
