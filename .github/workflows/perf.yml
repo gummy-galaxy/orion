@@ -20,7 +20,7 @@ concurrency:
 jobs:
   # Perf runs only when a change touches what it measures. A job skipped by its condition reports as skipped, which
   # still satisfies a required check, unlike a workflow skipped by `paths`. Required checks match by job name alone,
-  # so this can't share CI's `ci-loading` name.
+  # so every job's name says which workflow it belongs to.
   perf-loading:
     runs-on: ubuntu-latest
     timeout-minutes: 5
