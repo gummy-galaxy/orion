@@ -27,6 +27,8 @@ lute run analyze
 (cd workspace/orion-cli && lute test)
 ```
 
+`lute run analyze` also checks the files `lute run generate` writes. It formats the docs reference with the docs site's Prettier, so run `npm ci` in `docs/` once first.
+
 To see how well a module's spec pins down its behavior, run `lute run mutate workspace/orion-cli/src/<module>.luau`. It makes one small change at a time, runs the module's sibling spec against each, and lists the changes the spec didn't catch. Pass `--spec <path>` when the tests live elsewhere. Some survivors make no real difference, so read each one before writing a test for it.
 
 [`workspace/orion-cli/README.md`](workspace/orion-cli/README.md) maps the code.

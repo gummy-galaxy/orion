@@ -66,9 +66,20 @@ jobs:
       - name: Set Up Lute Type Definitions
         run: lute setup
 
+      # The docs reference check formats pages with the docs site's Prettier
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
       - name: Install Dependencies
         run: lute run install
         working-directory: .
+
+      - name: Install Docs Dependencies
+        run: npm ci
+        working-directory: docs
 
       - name: Analyze
         run: lute run analyze
@@ -107,10 +118,6 @@ jobs:
 
       - name: Test
         run: lute test
-
-      - name: Check the App's Geometry
-        run: lute run generate geometry --check
-        working-directory: .
 
       - name: Build
         run: lute run build
