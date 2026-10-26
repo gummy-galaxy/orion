@@ -29,7 +29,7 @@ jobs:
   # request and the commit before for a push to main. A job skipped by its condition reports as skipped, which still
   # satisfies a required check, unlike a workflow skipped by `paths`. Manual runs skip the filter and run every job.
   docs-loading:
-    runs-on: beelink
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
@@ -50,7 +50,7 @@ jobs:
   docs:
     needs: docs-loading
     if: needs.docs-loading.outputs.docs == 'true'
-    runs-on: beelink
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     defaults:
       run:
@@ -89,7 +89,7 @@ jobs:
 
   deploy:
     needs: docs
-    runs-on: beelink
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     environment:
       name: ${{ github.event_name == 'pull_request' && 'Docs Preview' || 'Docs' }}

@@ -22,7 +22,7 @@ jobs:
   # still satisfies a required check, unlike a workflow skipped by `paths`. Required checks match by job name alone,
   # so this can't share CI's `ci-loading` name.
   perf-loading:
-    runs-on: beelink
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
