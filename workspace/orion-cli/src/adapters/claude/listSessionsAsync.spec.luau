@@ -20,7 +20,7 @@ test.case("a busy process is working, and an idle one leaves you the move", func
 	local dir = testing.directory("claude-live")
 	local id = writeFixture(dir, { branch = "agent/fix", stop = "tool_use", status = "busy" })
 	local source: Source = { id = "claude", kind = "claude", dir = dir }
-	local sessions = listSessionsAsync(source, runner(true), 0)
+	local sessions = listSessionsAsync(source, runner(true), 0, {})
 
 	assert.eq(#sessions, 1)
 	assert.eq(sessions[1].id, id)
@@ -32,14 +32,14 @@ test.case("a busy process is working, and an idle one leaves you the move", func
 	assert.eq(sessions[1].lastMessage, "On it.")
 
 	writeFixture(dir, { branch = "agent/fix", stop = "tool_use", status = "idle" })
-	assert.eq(listSessionsAsync(source, runner(true), 0)[1].state, "waiting")
+	assert.eq(listSessionsAsync(source, runner(true), 0, {})[1].state, "waiting")
 	fs.removeDirectory(dir, { recursive = true })
 end)
 
 test.case("a session whose process exited mid-turn is your move", function(assert)
 	local dir = testing.directory("claude-exited")
 	writeFixture(dir, { branch = "agent/fix", stop = "tool_use", status = "busy" })
-	local sessions = listSessionsAsync({ id = "claude", kind = "claude", dir = dir } :: Source, runner(false), 0)
+	local sessions = listSessionsAsync({ id = "claude", kind = "claude", dir = dir } :: Source, runner(false), 0, {})
 
 	assert.eq(sessions[1].state, "waiting")
 	assert.eq(sessions[1].isLive, false)
@@ -49,7 +49,7 @@ end)
 test.case("with no process records, the transcript decides and liveness is unknown", function(assert)
 	local dir = testing.directory("claude-unknown")
 	writeFixture(dir, { branch = "agent/fix", stop = "end_turn" })
-	local sessions = listSessionsAsync({ id = "claude", kind = "claude", dir = dir } :: Source, runner(true), 0)
+	local sessions = listSessionsAsync({ id = "claude", kind = "claude", dir = dir } :: Source, runner(true), 0, {})
 
 	assert.eq(sessions[1].state, "waiting")
 	assert.eq(sessions[1].isLive, nil)
@@ -62,13 +62,33 @@ test.case("default branches, old transcripts, and a missing folder list nothing"
 	writeFixture(dir, { branch = "main", stop = "end_turn" })
 	local source: Source = { id = "claude", kind = "claude", dir = dir }
 
-	assert.eq(#listSessionsAsync(source, runner(true), 0), 0)
+	assert.eq(#listSessionsAsync(source, runner(true), 0, {}), 0)
 
 	writeFixture(dir, { branch = "agent/fix", stop = "end_turn" })
-	assert.eq(#listSessionsAsync(source, runner(true), os.time() + 3600), 0)
+	assert.eq(#listSessionsAsync(source, runner(true), os.time() + 3600, {}), 0)
 	assert.eq(
-		#listSessionsAsync({ id = "claude", kind = "claude", dir = `{dir}/missing` } :: Source, runner(true), 0),
+		#listSessionsAsync({ id = "claude", kind = "claude", dir = `{dir}/missing` } :: Source, runner(true), 0, {}),
 		0
 	)
+	fs.removeDirectory(dir, { recursive = true })
+end)
+
+test.case("a transcript is read again only once its size or modification time moves", function(assert)
+	local dir = testing.directory("claude-cache")
+	writeFixture(dir, { branch = "agent/fix", stop = "end_turn" })
+	local source: Source = { id = "claude", kind = "claude", dir = dir }
+	local cache = {}
+
+	listSessionsAsync(source, runner(true), 0, cache)
+
+	for _, read in cache do
+		read.transcript = table.clone(read.transcript)
+		read.transcript.lastMessage = "Remembered"
+	end
+
+	assert.eq(listSessionsAsync(source, runner(true), 0, cache)[1].lastMessage, "Remembered")
+
+	writeFixture(dir, { branch = "agent/fixed", stop = "end_turn" })
+	assert.eq(listSessionsAsync(source, runner(true), 0, cache)[1].lastMessage, "On it.")
 	fs.removeDirectory(dir, { recursive = true })
 end)

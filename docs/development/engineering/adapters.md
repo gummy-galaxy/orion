@@ -29,13 +29,14 @@ A ref keeps what the source said in its own terms in `details`, which only its a
 
 An adapter's `agent` field holds these. `name`, `listSessionsAsync`, and `readTurnsAsync` are required.
 
-| Verb                | What it does                                                                                                                                                                     |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`              | The agent's name as people know it, such as "Claude Code", for labels like "Waiting on you in Claude Code".                                                                      |
-| `listSessionsAsync` | Lists the sessions that changed since a time, read from the agent's own records without writing anything.                                                                        |
-| `readTurnsAsync`    | Reads a session's last few turns, oldest first, with tool calls and their results left out. Returns nothing when the agent has no session with that id.                          |
-| `resumeAsync`       | Sends a message to a session without opening it, and hands back each turn of the reply as it arrives. Nothing calls it yet, and its shape may change when headless resume lands. |
-| `startAsync`        | Starts a session in a folder with a prompt, and hands back its turns as `resumeAsync` does. Nothing calls it yet either.                                                         |
+| Verb                | What it does                                                                                                                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`              | The agent's name as people know it, such as "Claude Code", for labels like "Waiting on you in Claude Code".                                                                                         |
+| `listSessionsAsync` | Lists the sessions that changed since a time, read from the agent's own records without writing anything. It gets a cache table the caller keeps between calls, so it can skip what hasn't changed. |
+| `watchPaths`        | Optional. Names the folders whose changes mean a session may have changed. `orion server start` watches them.                                                                                       |
+| `readTurnsAsync`    | Reads a session's last few turns, oldest first, with tool calls and their results left out. Returns nothing when the agent has no session with that id.                                             |
+| `resumeAsync`       | Sends a message to a session without opening it, and hands back each turn of the reply as it arrives. Nothing calls it yet, and its shape may change when headless resume lands.                    |
+| `startAsync`        | Starts a session in a folder with a prompt, and hands back its turns as `resumeAsync` does. Nothing calls it yet either.                                                                            |
 
 Each session an adapter lists carries the same fields whatever the agent:
 
@@ -47,5 +48,7 @@ Each session an adapter lists carries the same fields whatever the agent:
 - **`details`**: what the agent recorded in its own terms, which only its adapter reads.
 
 `orion ingest` turns an agent's sessions into `session` refs on the cards whose branch they ran on, the same way for every agent. It asks git for a session's repository when the adapter doesn't say, writes the state as `sessionState` and a label such as "Working in Claude Code" as `stateLabel`, keeps the first 280 characters of `lastMessage`, and puts the folder, branch, and `isLive` in `details`. A session never adds a card, and agents collect after every source, so a card a source adds in the same pass can take its sessions. Claude Code is the first agent adapter, in `adapters/claude/`.
+
+`orion server start` keeps session refs current between ingests. It watches each agent source's `watchPaths` and lists sessions again shortly after one changes, and once a minute regardless. It keeps each source's cache for as long as it runs, and writes the canvas only when a session ref's facts changed. Claude Code's adapter watches `sessions/`, where each running process records whether it's busy or idle, and rereads a transcript's tail only when the file's size or modification time moved.
 
 Agent verbs read the agent's records each time Orion asks, so Orion keeps refs and derived state rather than a copy of a transcript. Reading those records cheaply is the adapter's job: Claude Code's, for example, reads only the end of each transcript and asks its running processes whether they're busy.

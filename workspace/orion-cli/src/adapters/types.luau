@@ -110,8 +110,14 @@ export type AgentVerbs = {
 	-- The agent's name as people know it, such as "Claude Code".
 	name: string,
 	-- Sessions that changed since `since`, in Unix seconds, read without
-	-- writing anything.
-	listSessionsAsync: (Source, CommandRunner, since: number) -> { Session },
+	-- writing anything. `cache` is a table the caller keeps between calls, for
+	-- the adapter to remember what it read and skip what hasn't changed. A
+	-- call may get an empty one.
+	listSessionsAsync: (Source, CommandRunner, since: number, cache: { [string]: any }) -> { Session },
+	-- Folders whose changes mean a session may have changed, such as when an
+	-- agent's process records that it's busy or idle. `orion server start`
+	-- watches them and lists sessions again when one does.
+	watchPaths: ((Source) -> { string })?,
 	-- A session's last `limit` turns, oldest first, or nil when the agent has
 	-- no session with that id.
 	readTurnsAsync: (Source, CommandRunner, sessionId: string, limit: number) -> { Turn }?,
