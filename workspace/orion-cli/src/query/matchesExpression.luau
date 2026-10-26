@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local findRef = require("@root/refs/findRef")
+local getItemTypes = require("@root/cardTypes/getItemTypes")
 local getRefs = require("@root/refs/getRefs")
 local graphTypes = require("@root/graph/types")
 local isGroup = require("@root/graph/isGroup")
@@ -55,6 +56,24 @@ local function matchesExpression(derived: graphTypes.Derived, item: Item, expres
 					if node.operator == "~" and ref.key:lower():find(value:lower(), 1, true) then
 						return true
 					elseif ref.key:lower() == value:lower() then
+						return node.operator == "="
+					end
+				end
+
+				return node.operator == "!="
+			end
+
+			if field == "type" then
+				local itemTypes = getItemTypes(item)
+
+				if not itemTypes then
+					return nil
+				end
+
+				for _, name in itemTypes.types do
+					if node.operator == "~" and name:find(value:lower(), 1, true) then
+						return true
+					elseif name == value then
 						return node.operator == "="
 					end
 				end

@@ -41,6 +41,7 @@ local server = require("@root/cli/server")
 local source = require("@root/cli/source")
 local suggestion = require("@root/cli/suggestion")
 local theme = require("@root/cli/theme")
+local typeCommand = require("@root/cli/type")
 local types = require("@root/types")
 
 type Context = context.Context
@@ -84,6 +85,7 @@ local COMMANDS: { [string]: Command } = {
 	source = source,
 	suggestion = suggestion,
 	theme = theme,
+	type = typeCommand,
 }
 
 -- The order orion --help lists them in.
@@ -94,6 +96,7 @@ local COMMAND_ORDER = {
 	"node",
 	"group",
 	"ref",
+	"type",
 	"next",
 	"apply",
 	"canvas",

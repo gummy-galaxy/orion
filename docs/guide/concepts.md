@@ -8,6 +8,10 @@ A **card** is a piece of work someone will do. It has a label, a recorded status
 
 A **note** holds context: a decision, a reminder, or a pointer. Notes never count as work, and blocking passes straight through them.
 
+## Types
+
+Every card carries one or more **types**, which say what it is: a pull request, a step, a gate, a note, a component, or a type a source declares. A type sets the fields a card has, how its face looks, the states it moves through, and how it takes part in blocking and progress. Types are attached, not baked in. A card gains them from its sources, such as `pr` from a pull request, and people attach more with `orion type attach`. The card's own type picks its face, and the rest add fields and badges. `orion type list` shows every type, and `orion type show <name>` shows what one declares.
+
 ## Links
 
 A link from one card to another means the second waits on the first. A **related** link connects two cards without blocking either.

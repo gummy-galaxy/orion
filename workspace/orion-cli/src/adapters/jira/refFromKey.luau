@@ -14,6 +14,7 @@ local function refFromKey(key: string, source: Source): ResolvedRef?
 		ref = {
 			source = source.id,
 			kind = "issue",
+			type = "step",
 			key = key,
 			url = if source.browse then `{source.browse}/{key}` else nil,
 		},
