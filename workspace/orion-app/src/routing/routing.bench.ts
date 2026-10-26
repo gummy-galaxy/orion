@@ -40,7 +40,7 @@ for (const links of SIZES) {
 }
 
 // libavoid takes seconds where the others take milliseconds, so it runs once per size, and only up to 200 links.
-const AVOID_SIZES = (process.env.AVOID_SIZES ?? '90,200').split(',').map(Number)
+const AVOID_SIZES = (process.env.AVOID_SIZES ?? '90,200').split(',').map(Number).filter(Boolean)
 
 for (const links of AVOID_SIZES) {
   const { nodes, links: canvasLinks } = buildMessyCanvas({ links })
