@@ -559,6 +559,14 @@ An adapter offers source verbs, which bring work in as cards and refs, agent ver
 
 2026-10-26 · [#293](https://github.com/gummy-galaxy/orion/issues/293), [#606](https://github.com/gummy-galaxy/orion/issues/606)
 
+### Session refs store state, never what was said
+
+A session ref keeps the session's state and its label, such as "Waiting on you in Claude Code", and nothing from its transcript. The last message and recent turns are read live from the agent's own records through its adapter whenever the app shows them, and never written to a canvas's files, so `--json` shows only the stored state.
+
+**Why:** sources stay the source of truth, and a stored message would be a copy of the transcript that drifts. Canvas files can go in git and be shared, and a session's words can quote secrets or private context.
+
+2026-10-26 · [#608](https://github.com/gummy-galaxy/orion/issues/608)
+
 ### Programs Orion runs are chosen on this machine
 
 A person picks any program Orion runs, such as a Jira source's command or the agent `suggestion find` hands cards to, at the CLI. The command lives in this machine's config, never in a canvas's files, and no MCP tool takes one. The tool catalog refuses a tool that would. Setting up a source that runs nothing of its own choosing, such as GitHub or hop, is open to MCP. Jira's setup stays in the CLI until its command moves to local config. Adapter packages replace `--command` later, so a custom integration is something a person installs on purpose.

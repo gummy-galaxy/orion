@@ -116,6 +116,6 @@ test.case("ingest puts a Claude Code session on the card for its branch", functi
 	assert.eq(session and session.kind, "session")
 	assert.eq(session and session.sessionState, "waiting")
 	assert.eq(session and session.stateLabel, "Waiting on you in Claude Code")
-	assert.eq(session and session.lastMessage, "On it.")
+	assert.eq(session and session.lastMessage, nil)
 	fs.removeDirectory(claudeDir, { recursive = true })
 end)

@@ -53,10 +53,9 @@ export type Ref = {
 	-- The revision the facts describe, which an action taken from them, such as
 	-- a merge, must still match.
 	head: string?,
-	-- An agent session's state, working or waiting (on you), and the last thing
-	-- it said.
+	-- An agent session's state: working, or waiting on you. What the session
+	-- said is read live from the agent and never stored.
 	sessionState: string?,
-	lastMessage: string?,
 }
 
 -- Mirrors a node as the app saves it. `data` stays raw JSON so fields the app
