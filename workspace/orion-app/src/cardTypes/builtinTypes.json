@@ -1,0 +1,420 @@
+[
+  {
+    "face": {
+      "layout": "card",
+      "shows": []
+    },
+    "fields": [
+      {
+        "choices": [
+          {
+            "label": "You",
+            "value": "you"
+          },
+          {
+            "label": "Reviewer",
+            "value": "review"
+          },
+          {
+            "label": "CI",
+            "value": "ci"
+          }
+        ],
+        "kind": "choice",
+        "label": "Whose move",
+        "name": "who"
+      }
+    ],
+    "label": "Step",
+    "meaning": {
+      "canBeDone": true,
+      "canBlock": true,
+      "doneWhen": "state",
+      "isWork": true
+    },
+    "name": "step",
+    "pack": "orion",
+    "states": [
+      {
+        "label": "To do",
+        "means": "todo",
+        "name": "todo"
+      },
+      {
+        "label": "In progress",
+        "means": "active",
+        "name": "active"
+      },
+      {
+        "label": "In review",
+        "means": "review",
+        "name": "review"
+      },
+      {
+        "label": "Blocked",
+        "means": "blocked",
+        "name": "blocked"
+      },
+      {
+        "label": "Deferred",
+        "means": "deferred",
+        "name": "deferred"
+      },
+      {
+        "label": "Done",
+        "means": "done",
+        "name": "done"
+      }
+    ],
+    "supersedes": []
+  },
+  {
+    "face": {
+      "layout": "card",
+      "shows": []
+    },
+    "fields": [
+      {
+        "kind": "text",
+        "label": "Repository",
+        "name": "repo"
+      },
+      {
+        "choices": [
+          {
+            "label": "You",
+            "value": "you"
+          },
+          {
+            "label": "Reviewer",
+            "value": "review"
+          },
+          {
+            "label": "CI",
+            "value": "ci"
+          }
+        ],
+        "kind": "choice",
+        "label": "Whose move",
+        "name": "who"
+      }
+    ],
+    "label": "Pull request",
+    "meaning": {
+      "canBeDone": true,
+      "canBlock": true,
+      "doneWhen": "state",
+      "isWork": true
+    },
+    "name": "pr",
+    "pack": "orion",
+    "states": [
+      {
+        "label": "To do",
+        "means": "todo",
+        "name": "todo"
+      },
+      {
+        "label": "In progress",
+        "means": "active",
+        "name": "active"
+      },
+      {
+        "label": "In review",
+        "means": "review",
+        "name": "review"
+      },
+      {
+        "label": "Blocked",
+        "means": "blocked",
+        "name": "blocked"
+      },
+      {
+        "label": "Deferred",
+        "means": "deferred",
+        "name": "deferred"
+      },
+      {
+        "label": "Done",
+        "means": "done",
+        "name": "done"
+      }
+    ],
+    "supersedes": [
+      "placeholder",
+      "step"
+    ]
+  },
+  {
+    "face": {
+      "layout": "card",
+      "shows": []
+    },
+    "fields": [
+      {
+        "kind": "text",
+        "label": "Repository",
+        "name": "repo"
+      },
+      {
+        "choices": [
+          {
+            "label": "You",
+            "value": "you"
+          },
+          {
+            "label": "Reviewer",
+            "value": "review"
+          },
+          {
+            "label": "CI",
+            "value": "ci"
+          }
+        ],
+        "kind": "choice",
+        "label": "Whose move",
+        "name": "who"
+      }
+    ],
+    "label": "Expected pull request",
+    "meaning": {
+      "canBeDone": true,
+      "canBlock": true,
+      "doneWhen": "state",
+      "isWork": true
+    },
+    "name": "placeholder",
+    "pack": "orion",
+    "states": [
+      {
+        "label": "To do",
+        "means": "todo",
+        "name": "todo"
+      },
+      {
+        "label": "In progress",
+        "means": "active",
+        "name": "active"
+      },
+      {
+        "label": "In review",
+        "means": "review",
+        "name": "review"
+      },
+      {
+        "label": "Blocked",
+        "means": "blocked",
+        "name": "blocked"
+      },
+      {
+        "label": "Deferred",
+        "means": "deferred",
+        "name": "deferred"
+      },
+      {
+        "label": "Done",
+        "means": "done",
+        "name": "done"
+      }
+    ],
+    "supersedes": [
+      "step"
+    ]
+  },
+  {
+    "face": {
+      "layout": "card",
+      "shows": []
+    },
+    "fields": [
+      {
+        "choices": [
+          {
+            "label": "You",
+            "value": "you"
+          },
+          {
+            "label": "Reviewer",
+            "value": "review"
+          },
+          {
+            "label": "CI",
+            "value": "ci"
+          }
+        ],
+        "kind": "choice",
+        "label": "Whose move",
+        "name": "who"
+      }
+    ],
+    "label": "Gate",
+    "meaning": {
+      "canBeDone": true,
+      "canBlock": true,
+      "doneWhen": "inputs",
+      "isWork": true
+    },
+    "name": "gate",
+    "pack": "orion",
+    "states": [
+      {
+        "label": "To do",
+        "means": "todo",
+        "name": "todo"
+      },
+      {
+        "label": "In progress",
+        "means": "active",
+        "name": "active"
+      },
+      {
+        "label": "In review",
+        "means": "review",
+        "name": "review"
+      },
+      {
+        "label": "Blocked",
+        "means": "blocked",
+        "name": "blocked"
+      },
+      {
+        "label": "Deferred",
+        "means": "deferred",
+        "name": "deferred"
+      },
+      {
+        "label": "Done",
+        "means": "done",
+        "name": "done"
+      }
+    ],
+    "supersedes": []
+  },
+  {
+    "face": {
+      "layout": "note",
+      "shows": []
+    },
+    "fields": [],
+    "label": "Note",
+    "meaning": {
+      "canBeDone": true,
+      "canBlock": false,
+      "doneWhen": "inputs",
+      "isWork": false
+    },
+    "name": "note",
+    "pack": "orion",
+    "states": [],
+    "supersedes": []
+  },
+  {
+    "face": {
+      "layout": "component",
+      "shows": []
+    },
+    "fields": [
+      {
+        "choices": [
+          {
+            "label": "Service",
+            "value": "service"
+          },
+          {
+            "label": "Store",
+            "value": "store"
+          },
+          {
+            "label": "Actor",
+            "value": "actor"
+          },
+          {
+            "label": "External",
+            "value": "external"
+          },
+          {
+            "label": "Interface",
+            "value": "interface"
+          },
+          {
+            "label": "Process",
+            "value": "process"
+          },
+          {
+            "label": "Queue",
+            "value": "queue"
+          }
+        ],
+        "default": "service",
+        "kind": "choice",
+        "label": "Shape",
+        "name": "shape"
+      },
+      {
+        "choices": [
+          {
+            "label": "Teal",
+            "value": "teal"
+          },
+          {
+            "label": "Blue",
+            "value": "blue"
+          },
+          {
+            "label": "Purple",
+            "value": "purple"
+          },
+          {
+            "label": "Amber",
+            "value": "amber"
+          },
+          {
+            "label": "Rose",
+            "value": "rose"
+          },
+          {
+            "label": "Green",
+            "value": "green"
+          },
+          {
+            "label": "Slate",
+            "value": "slate"
+          }
+        ],
+        "kind": "choice",
+        "label": "Tint",
+        "name": "color"
+      }
+    ],
+    "label": "Component",
+    "meaning": {
+      "canBeDone": false,
+      "canBlock": false,
+      "doneWhen": "state",
+      "isWork": false
+    },
+    "name": "component",
+    "pack": "orion",
+    "states": [],
+    "supersedes": []
+  },
+  {
+    "face": {
+      "layout": "image",
+      "shows": []
+    },
+    "fields": [],
+    "label": "Image",
+    "meaning": {
+      "canBeDone": false,
+      "canBlock": false,
+      "doneWhen": "state",
+      "isWork": false
+    },
+    "name": "image",
+    "pack": "orion",
+    "states": [],
+    "supersedes": []
+  }
+]
+

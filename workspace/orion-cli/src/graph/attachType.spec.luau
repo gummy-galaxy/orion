@@ -16,7 +16,6 @@ test.case("attachType leaves a type the card already carries where it is", funct
 	local pull = json.object({ source = "github", kind = "pull", key = "vocksel/orion#12" })
 	local doc = testing.createDoc({ testing.task("a", "A", "todo", nil, { refs = { pull } }) })
 
-	attachType(doc, "a", "step")
 	attachType(doc, "a", "pr")
 
 	assert.eq(doc.nodes[1].data.types, nil)

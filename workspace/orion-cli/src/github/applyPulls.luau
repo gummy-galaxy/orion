@@ -8,7 +8,6 @@ local isInSources = require("@root/github/isInSources")
 local json = require("@std/json")
 local linkItems = require("@root/graph/linkItems")
 local match = require("@root/match")
-local refreshItemKind = require("@root/graph/refreshItemKind")
 local setDesired = require("@root/github/setDesired")
 local setPullRef = require("@root/github/setPullRef")
 local types = require("@root/types")
@@ -50,7 +49,6 @@ local function attachByBranch(item: Item, pull: PullState, fetched: Fetched, che
 		item.data.repo = repo
 	end
 
-	refreshItemKind(item)
 	table.insert(report.attached, { id = item.id, pull = `{repo}#{pull.number}` })
 end
 

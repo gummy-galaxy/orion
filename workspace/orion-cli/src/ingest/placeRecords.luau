@@ -2,7 +2,6 @@ local json = require("@std/json")
 
 local addItem = require("@root/graph/addItem")
 local findItem = require("@root/graph/findItem")
-local findRef = require("@root/refs/findRef")
 local findRepository = require("@root/github/findRepository")
 local findSameRef = require("@root/refs/findSameRef")
 local getItem = require("@root/graph/getItem")
@@ -104,10 +103,6 @@ local function placeRecords(doc: Doc, results: { Result }): Report
 
 			if record.repo and (not existing or record.setRepoOnUpdate ~= false) then
 				item.data.repo = record.repo
-			end
-
-			if record.itemKind and (not record.keepPullKind or not findRef(item, "pull")) then
-				item.data.itemKind = record.itemKind
 			end
 
 			if record.status then

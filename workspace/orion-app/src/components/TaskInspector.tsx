@@ -265,7 +265,7 @@ export function TaskInspector({
           </p>
         )}
         <label className="gate-toggle">
-          <input type="checkbox" checked={data.itemKind === 'gate'} onChange={(event) => save({ kind: event.target.checked ? 'gate' : 'step' })} />
+          <input type="checkbox" checked={data.type === 'gate'} onChange={(event) => save({ kind: event.target.checked ? 'gate' : 'step' })} />
           Gate: done once everything it waits on is
         </label>
         {suggestions.length > 0 && (

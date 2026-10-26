@@ -7,7 +7,7 @@ const task = (id: string, parentId?: string, x = 0, y = 0): StoredNode => ({
   type: 'task',
   position: { x, y },
   parentId,
-  data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
+  data: { kind: 'task', label: id, status: 'todo' },
 })
 
 const group = (id: string, parentId?: string, x = 0, y = 0): StoredNode => ({
@@ -33,7 +33,7 @@ describe('diffOperations', () => {
 
   it('ignores key order inside data', () => {
     const base = doc([task('a')])
-    const current = doc([{ ...task('a'), data: { status: 'todo', itemKind: 'step', label: 'a', kind: 'task' } }])
+    const current = doc([{ ...task('a'), data: { status: 'todo', label: 'a', kind: 'task' } }])
 
     expect(diffOperations(base, current)).toEqual([])
   })
@@ -88,7 +88,7 @@ describe('diffOperations', () => {
   })
 
   it('adds a new note as addNote, and an image as addImage', () => {
-    const note = { ...task('note-1', undefined, 4, 8), data: { kind: 'task', label: '', itemKind: 'note', status: 'todo' } }
+    const note = { ...task('note-1', undefined, 4, 8), data: { kind: 'task', label: '', type: 'note', status: 'todo' } }
     const image = { id: 'img', type: 'image', position: { x: 0, y: 0 }, data: { kind: 'image', label: 'Photo', asset: 'a.png' } }
     const ops = diffOperations(doc([]), doc([note, image]))
 

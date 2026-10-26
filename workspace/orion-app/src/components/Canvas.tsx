@@ -2516,27 +2516,28 @@ export function Canvas() {
   // ---- Notes and links ----
 
   /**
-   * Adds a note, or a work item with `itemKind: 'step'` or a component with `itemKind: 'component'`, with its top-left at
+   * Adds a note, or a work item with `type: 'step'` or a component with `type: 'component'`, with its top-left at
    * `at` (flow coordinates), optionally spliced into links.
    */
   const addNote = useCallback(
     (
       at: { x: number; y: number },
-      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' | 'component' } = {},
+      options: { parent?: string | null; from?: string; to?: string; replace?: string; type?: 'note' | 'step' | 'component' } = {},
     ) => {
       const { nodes: currentNodes, links: currentLinks } = latest.current
       const nodeMap = byId(currentNodes)
       const parent = options.parent === undefined ? root : options.parent
       const parentNode = parent ? nodeMap.get(parent) : undefined
       const origin = parentNode ? absolutePosition(parentNode, nodeMap) : { x: 0, y: 0 }
-      const itemKind = options.itemKind ?? 'note'
+      const type = options.type ?? 'note'
       const id = newId()
       const note: AppNode = {
         id,
         type: 'task',
         parentId: parentNode?.id,
         position: { x: at.x - origin.x, y: at.y - origin.y },
-        data: { kind: 'task', label: '', itemKind, status: 'todo' },
+        // A step is what a card is when nobody chose a type, so it stores none.
+        data: { kind: 'task', label: '', ...(type === 'step' ? {} : { type }), status: 'todo' },
         selected: true,
       }
       const kind = currentLinks.find((link) => link.id === options.replace)?.kind ?? 'blocks'
@@ -2995,7 +2996,7 @@ export function Canvas() {
   }, [])
 
   /** Splits a link with a new note or work item placed between its ends. */
-  const insertOnLink = (linkId: string, itemKind: 'note' | 'step') => {
+  const insertOnLink = (linkId: string, type: 'note' | 'step') => {
     const link = links.find((candidate) => candidate.id === linkId)
     const sourceNode = link && map.get(link.from)
     const targetNode = link && map.get(link.to)
@@ -3009,7 +3010,7 @@ export function Canvas() {
 
     addNote(
       { x: (sourcePosition.x + targetPosition.x) / 2, y: (sourcePosition.y + targetPosition.y) / 2 + cardSize.height },
-      { parent, from: link.from, to: link.to, replace: link.id, itemKind },
+      { parent, from: link.from, to: link.to, replace: link.id, type },
     )
   }
 
@@ -3177,7 +3178,7 @@ export function Canvas() {
         return [
           ...many,
           { label: 'Rename component', run: () => (selectOnly(node.id), setEditing(node.id)) },
-          { label: 'Add a component after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id, itemKind: 'component' }) },
+          { label: 'Add a component after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id, type: 'component' }) },
           {
             label: 'Turn into a work item',
             run: () => void saveFields(node.id, { kind: 'step', status: 'todo' }),
@@ -3223,7 +3224,7 @@ export function Canvas() {
 
     return [
       { label: 'Add a note here', hint: hintOf('add-note'), run: () => addNote(menu.flow) },
-      { label: 'Add a component here', run: () => addNote(menu.flow, { itemKind: 'component' }) },
+      { label: 'Add a component here', run: () => addNote(menu.flow, { type: 'component' }) },
       { label: 'Create from link…', run: () => setLinkPrompt({ x: menu.x, y: menu.y, flow: menu.flow }) },
       ...(clip ? [{ label: 'Paste here', hint: hintOf('paste'), run: () => paste(menu.flow) }] : []),
       ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }] : []),

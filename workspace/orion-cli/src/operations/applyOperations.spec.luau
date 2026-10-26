@@ -57,7 +57,7 @@ local SAMPLES: { { name: string, edit: string } } = {
 	},
 	{
 		name = "addNote",
-		edit = [=[{"op":"addNote","id":"note-new","x":10,"y":20,"group":"ws","data":{"kind":"task","label":"New","itemKind":"note","status":"todo"}}]=],
+		edit = [=[{"op":"addNote","id":"note-new","x":10,"y":20,"group":"ws","data":{"kind":"task","label":"New","type":"note","status":"todo"}}]=],
 	},
 	{
 		name = "setData",
@@ -174,7 +174,7 @@ test.case("a created item joins the canvas and its inverse removes it", function
 		parse([=[[
 			{"op":"addImage","id":"img","x":4,"y":8,"data":{"kind":"image","label":"Photo","asset":"a.png","canvas":"default"}},
 			{"op":"addGroup","id":"batch","x":0,"y":0,"data":{"kind":"cluster","label":"Batch"}},
-			{"op":"addCard","id":"inner","x":16,"y":32,"group":"batch","data":{"kind":"task","label":"In","itemKind":"step","status":"todo"}}
+			{"op":"addCard","id":"inner","x":16,"y":32,"group":"batch","data":{"kind":"task","label":"In","status":"todo"}}
 		]]=])
 	)
 	assert.eq(#restores, 3)
@@ -240,11 +240,11 @@ test.case("a resize keeps the stored size, and clear drops it", function(assert)
 end)
 
 test.case("parsing checks the new operations' fields", function(assert)
-	assert.throwsWith("operation 1: addNote needs data.itemKind to be note", function()
-		parse([=[[{"op":"addNote","id":"a","x":0,"y":0,"data":{"itemKind":"step"}}]]=])
+	assert.throwsWith("operation 1: addNote needs data.type to be note", function()
+		parse([=[[{"op":"addNote","id":"a","x":0,"y":0,"data":{"type":"step"}}]]=])
 	end)
 	assert.throwsWith("operation 1: addCard is for work items; use addNote for a note", function()
-		parse([=[[{"op":"addCard","id":"a","x":0,"y":0,"data":{"itemKind":"note"}}]]=])
+		parse([=[[{"op":"addCard","id":"a","x":0,"y":0,"data":{"type":"note"}}]]=])
 	end)
 	assert.throwsWith("operation 1: data must be an object", function()
 		parse([=[[{"op":"setData","id":"a","data":"nope"}]]=])
@@ -263,14 +263,14 @@ test.case("setFields resolves a pull request against the card's repo and takes i
 	applyOperations(doc, parse([=[[{"op":"setFields","id":"pub","fields":{"repo":"vocksel/orion","pr":12}}]]=]))
 	local pub = doc.nodes[3]
 	local refs = pub.data.refs :: any
-	assert.eq(pub.data.itemKind, "pr")
+	assert.eq(testing.primaryType(pub), "pr")
 	assert.eq(#refs, 1)
 	assert.eq(refs[1].key, "vocksel/orion#12")
 	assert.eq(refs[1].url, "https://github.com/vocksel/orion/pull/12")
 
 	applyOperations(doc, parse([=[[{"op":"setFields","id":"pub","fields":{"pr":""}}]]=]))
 	assert.eq(pub.data.refs, nil)
-	assert.eq(pub.data.itemKind, "placeholder")
+	assert.eq(testing.primaryType(pub), "placeholder")
 
 	local succeeded, failure =
 		pcall(applyOperations, doc, parse([=[[{"op":"setFields","id":"docs","fields":{"pr":3}}]]=]))
@@ -296,10 +296,8 @@ local function refuse(doc: Doc, text: string): string
 end
 
 test.case("setData refuses cards, so card edits go through the field rules", function(assert)
-	local message = refuse(
-		createCanvas(),
-		[=[[{"op":"setData","id":"pub","data":{"kind":"task","label":"x","itemKind":"step","status":"done"}}]]=]
-	)
+	local message =
+		refuse(createCanvas(), [=[[{"op":"setData","id":"pub","data":{"kind":"task","label":"x","status":"done"}}]]=])
 	assert.eq(message, '"pub" is a card; change its fields with setFields')
 end)
 
@@ -325,7 +323,7 @@ test.case("an added card never starts out waiting to be closed out", function(as
 	applyOperations(
 		doc,
 		parse(
-			[=[[{"op":"addCard","id":"copy","x":0,"y":0,"data":{"kind":"task","label":"Copy","itemKind":"step","status":"done","celebrate":true}}]]=]
+			[=[[{"op":"addCard","id":"copy","x":0,"y":0,"data":{"kind":"task","label":"Copy","status":"done","celebrate":true}}]]=]
 		)
 	)
 	assert.eq(doc.nodes[#doc.nodes].data.celebrate, nil)

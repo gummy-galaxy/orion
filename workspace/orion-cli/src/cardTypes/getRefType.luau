@@ -3,8 +3,8 @@ local types = require("@root/types")
 
 type Ref = types.Ref
 
--- The type a ref attaches to its card. Its adapter records one when it reads
--- the source; refs recorded before types existed are read by their kind.
+-- The type a ref attaches to its card. Its adapter records one when it makes
+-- the ref; a ref without one, such as one written by hand, is read by its kind.
 local function getRefType(ref: Ref): string?
 	local recorded = getStringField((ref :: any).type)
 

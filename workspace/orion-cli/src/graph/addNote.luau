@@ -22,7 +22,7 @@ local function addNote(doc: Doc, text: string, options: NoteOptions): Item
 		type = "task",
 		position = { x = 0, y = 0 },
 		parentId = parent,
-		data = json.object({ kind = "task", label = text, itemKind = "note", status = "todo" }),
+		data = json.object({ kind = "task", label = text, type = "note", status = "todo" }),
 	}
 	table.insert(doc.nodes, note)
 	linkNeighbors(doc, note.id, options.after, options.before)

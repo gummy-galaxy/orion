@@ -17,7 +17,7 @@ const shapes: TaskNode[] = COMPONENT_SHAPES.map((shape, i) => ({
   id: shape,
   type: 'task',
   position: { x: (i % 4) * 260, y: Math.floor(i / 4) * 150 },
-  data: { kind: 'task', itemKind: 'component', label: SHAPE_LABEL[shape], status: 'todo', shape, color: TINTS[i], note: `A ${shape} component` },
+  data: { kind: 'task', type: 'component', label: SHAPE_LABEL[shape], status: 'todo', shape, color: TINTS[i], note: `A ${shape} component` },
 }))
 
 /** Every component shape, each in its own tint. */

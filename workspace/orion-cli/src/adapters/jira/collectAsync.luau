@@ -41,7 +41,6 @@ local function collectAsync(source: Source, run: CommandRunner, context: Context
 				details = details,
 			},
 			label = issue.summary,
-			itemKind = "step",
 			status = status,
 			who = if status == "done" then nil else "you",
 			createStatus = "todo",

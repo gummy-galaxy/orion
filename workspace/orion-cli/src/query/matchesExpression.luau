@@ -14,7 +14,8 @@ type Expression = parseExpression.Expression
 local function getField(item: Item, derived: graphTypes.Derived, field: string): string?
 	local value: json.Value = nil
 	if field == "kind" then
-		value = if isGroup(item) then "group" elseif item.type == "image" then "image" else item.data.itemKind or "step"
+		local itemTypes = getItemTypes(item)
+		value = if itemTypes then itemTypes.primary else "group"
 	elseif field == "status" then
 		value = derived.status[item.id]
 	elseif field == "recordedStatus" then

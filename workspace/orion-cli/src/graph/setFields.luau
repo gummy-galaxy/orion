@@ -1,12 +1,8 @@
 local checkFields = require("@root/graph/checkFields")
-local chooseItemKind = require("@root/graph/chooseItemKind")
-local findRef = require("@root/refs/findRef")
 local getHeaderHeight = require("@root/graph/getHeaderHeight")
 local getItem = require("@root/graph/getItem")
-local getStringField = require("@root/getStringField")
 local graphTypes = require("@root/graph/types")
 local isComponent = require("@root/graph/isComponent")
-local isGate = require("@root/graph/isGate")
 local isGroup = require("@root/graph/isGroup")
 local isNote = require("@root/graph/isNote")
 local setLook = require("@root/graph/setLook")
@@ -97,7 +93,7 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 		`"{id}" is an item; only groups take a cover, background, or header`
 	)
 
-	local drawn = { item.data.label, item.data.note, item.data.itemKind, item.data.shape }
+	local drawn = { item.data.label, item.data.note, item.data.type, item.data.shape }
 
 	if fields.label then
 		item.data.label = fields.label
@@ -120,21 +116,14 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 		item.data.repo = if fields.repo == "" then nil else fields.repo
 	end
 
-	-- Giving a note a kind makes it a work item.
-	if fields.kind and isNote(item) then
-		item.data.itemKind = "step"
-	end
-
-	-- As with add, giving a card a shape makes it a component.
+	-- As with add, giving a card a shape makes it a component. Giving a note
+	-- a kind makes it a work item. A step is what a card is when nobody chose,
+	-- so it lets the card's sources and repository decide again.
 	local givenKind = fields.kind
 		or (if fields.shape and fields.shape ~= "" and not isNote(item) then "component" else nil)
 
-	if not isNote(item) and (fields.repo or givenKind) then
-		local repo = getStringField(item.data.repo)
-		local pr = findRef(item, "pull")
-		local kind = givenKind
-			or (if isGate(item) or isComponent(item) then getStringField(item.data.itemKind) else nil)
-		item.data.itemKind = chooseItemKind(repo, if pr then 1 else nil, kind)
+	if givenKind then
+		item.data.type = if givenKind == "step" then nil else givenKind
 	end
 
 	-- Work isn't drawn with a shape or tint, so a component turned into work
@@ -152,7 +141,7 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	-- A height the app measured no longer fits new text or a new shape, so the
 	-- estimate stands in until it measures again.
-	local now = { item.data.label, item.data.note, item.data.itemKind, item.data.shape }
+	local now = { item.data.label, item.data.note, item.data.type, item.data.shape }
 
 	-- Fields can be nil, so walk them by index.
 	for i = 1, 4 do

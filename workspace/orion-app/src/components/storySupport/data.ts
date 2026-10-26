@@ -7,7 +7,6 @@ export const task: TaskNode = {
   position: { x: 80, y: 150 },
   data: {
     kind: 'task',
-    itemKind: 'pr',
     label: 'Make the canvas welcoming',
     status: 'active',
     repo: 'vocksel/orion',
@@ -20,14 +19,14 @@ export const blocker: TaskNode = {
   id: 'blocker',
   type: 'task',
   position: { x: 400, y: 150 },
-  data: { kind: 'task', itemKind: 'step', label: 'Review the component split', status: 'todo' },
+  data: { kind: 'task', label: 'Review the component split', status: 'todo' },
 }
 
 export const note: TaskNode = {
   id: 'note',
   type: 'task',
   position: { x: 80, y: 260 },
-  data: { kind: 'task', itemKind: 'note', label: 'Keep the intent visible', status: 'todo' },
+  data: { kind: 'task', type: 'note', label: 'Keep the intent visible', status: 'todo' },
 }
 
 export const component: TaskNode = {
@@ -36,7 +35,7 @@ export const component: TaskNode = {
   position: { x: 80, y: 150 },
   data: {
     kind: 'task',
-    itemKind: 'component',
+    type: 'component',
     label: 'orion serve',
     status: 'todo',
     repo: 'vocksel/orion',
@@ -48,7 +47,7 @@ export const store: TaskNode = {
   id: 'store',
   type: 'task',
   position: { x: 460, y: 150 },
-  data: { kind: 'task', itemKind: 'component', label: 'Store', status: 'todo', note: 'One lock for every write; revisions, migrations, backups' },
+  data: { kind: 'task', type: 'component', label: 'Store', status: 'todo', note: 'One lock for every write; revisions, migrations, backups' },
 }
 
 export const componentLink: Link = { id: 'component>store', from: 'component', to: 'store', kind: 'blocks', label: 'reads, writes, watches' }

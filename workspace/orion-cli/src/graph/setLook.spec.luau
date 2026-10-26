@@ -4,7 +4,7 @@ local setLook = require("@root/graph/setLook")
 local testing = require("@root/testing")
 
 test.case("setLook sets and clears a component's shape and color", function(assert)
-	local component = testing.task("api", "API", "todo", nil, { itemKind = "component" })
+	local component = testing.task("api", "API", "todo", nil, { type = "component" })
 	setLook(component, { shape = "store", color = "teal" })
 	assert.eq(component.data.shape, "store")
 	assert.eq(component.data.color, "teal")

@@ -3,7 +3,7 @@ import { useStoreApi } from '@xyflow/react'
 import { useStore } from 'jotai'
 import { useCallback } from 'react'
 import { describeCard, type Hint, type PerchTarget } from './companion'
-import { groupHeaderHeight, isComponent, isNote, type ClusterData } from './model'
+import { groupHeaderHeight, isComponent, isNote, type AppNode, type ClusterData } from './model'
 import { collapsedAtom, nodesAtom, workAtom } from './state'
 
 /** How far into an open group, in canvas units, its top row of cards ends. The header band, if any, sits above that row. */
@@ -27,7 +27,7 @@ export function useCompanionTargets() {
       if (node.hidden) continue
 
       // Cards and folded groups; an open group's frame would always be nearest whatever is inside it.
-      const perchable = (node.type === 'task' && node.data.itemKind !== 'note') || (node.type === 'cluster' && collapsed.has(node.id))
+      const perchable = (node.type === 'task' && !isNote(node as unknown as AppNode)) || (node.type === 'cluster' && collapsed.has(node.id))
 
       if (!perchable) continue
 

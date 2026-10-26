@@ -6,7 +6,6 @@ local testing = require("@root/testing")
 
 local function pullCard()
 	return testing.task("a", "A", "todo", nil, {
-		itemKind = "pr",
 		repo = "vocksel/orion",
 		refs = {
 			{ source = "github", kind = "pull", key = "vocksel/orion#12" },
@@ -20,7 +19,7 @@ test.case("detachRef removes a ref by key without case and refreshes the kind", 
 	local item = detachRef(doc, "a", "Vocksel/Orion#12")
 	assert.eq(findRef(item, "pull"), nil)
 	assert.eq(findRef(item, "issue"), nil)
-	assert.eq(item.data.itemKind, "placeholder")
+	assert.eq(testing.primaryType(item), "placeholder")
 end)
 
 test.case("detachRef narrows to a kind when one is given", function(assert)

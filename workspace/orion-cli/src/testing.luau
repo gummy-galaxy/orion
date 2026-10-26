@@ -9,6 +9,7 @@ local system = require("@std/system")
 local cli = require("@root/cli")
 local encodeStableJson = require("@root/store/encodeStableJson")
 local ensureDirectory = require("@root/platform/ensureDirectory")
+local getItemTypes = require("@root/cardTypes/getItemTypes")
 local githubTypes = require("@root/github/types")
 local readCanvasFiles = require("@root/store/readCanvasFiles")
 local types = require("@root/types")
@@ -63,13 +64,19 @@ function testing.directory(name: string): string
 end
 
 function testing.task(id: string, label: string, status: string, parentId: string?, extra: json.Object?): Item
-	local data = json.object({ kind = "task", label = label, itemKind = "step", status = status })
+	local data = json.object({ kind = "task", label = label, status = status })
 
 	for key, value in extra or {} do
 		data[key] = value
 	end
 
 	return { id = id, type = "task", position = { x = 0, y = 0 }, parentId = parentId, data = data }
+end
+
+-- The type that picks a card's face, from what it carries.
+function testing.primaryType(item: Item): string?
+	local itemTypes = getItemTypes(item)
+	return if itemTypes then itemTypes.primary else nil
 end
 
 function testing.group(id: string, label: string, parentId: string?): Item

@@ -12,11 +12,11 @@ local task = testing.task
 test.case("add and set take a gate kind, and a gate stays one when its repository changes", function(assert)
 	local doc = testing.createDoc({})
 	local item = addItem(doc, "Closure audit", { kind = "gate" })
-	assert.eq(item.data.itemKind, "gate")
+	assert.eq(testing.primaryType(item), "gate")
 	setFields(doc, item.id, { repo = "vocksel/orion" })
-	assert.eq(item.data.itemKind, "gate")
+	assert.eq(testing.primaryType(item), "gate")
 	setFields(doc, item.id, { kind = "step" })
-	assert.eq(item.data.itemKind, "placeholder")
+	assert.eq(testing.primaryType(item), "placeholder")
 	assert.throwsWith("kind must be one of step, gate, component", function()
 		setFields(doc, item.id, { kind = "milestone" })
 	end)
@@ -25,11 +25,11 @@ end)
 test.case("a component keeps its kind when its repository changes, and step turns it back into work", function(assert)
 	local doc = testing.createDoc({})
 	local item = addItem(doc, "Desktop shell", { kind = "component", repo = "vocksel/orion" })
-	assert.eq(item.data.itemKind, "component")
+	assert.eq(testing.primaryType(item), "component")
 	setFields(doc, item.id, { repo = "" })
-	assert.eq(item.data.itemKind, "component")
+	assert.eq(testing.primaryType(item), "component")
 	setFields(doc, item.id, { kind = "step" })
-	assert.eq(item.data.itemKind, "step")
+	assert.eq(testing.primaryType(item), "step")
 end)
 
 test.case("setFields keeps an item's id when its label changes", function(assert)
@@ -53,7 +53,7 @@ test.case("repo takes a full repository name and clearing it leaves refs alone",
 	setRef(item, { source = "github", kind = "issue", key = "vocksel/orion#12" })
 	setFields(doc, item.id, { repo = "" })
 	assert.eq(item.data.repo, nil)
-	assert.eq(item.data.itemKind, "component")
+	assert.eq(testing.primaryType(item), "component")
 	assert.neq(findRef(item, "issue", "vocksel/orion#12"), nil)
 end)
 
@@ -150,7 +150,7 @@ test.case("setFields snoozes and wakes a work item, and refuses a time that isn'
 end)
 
 test.case("setFields drops a card's measured size when its text or shape changes", function(assert)
-	local note = testing.task("n", "Short", "todo", nil, { itemKind = "note" })
+	local note = testing.task("n", "Short", "todo", nil, { type = "note" })
 	note.width = 216
 	note.height = 96
 	local doc = testing.createDoc({ note })
@@ -164,10 +164,10 @@ test.case("setFields drops a card's measured size when its text or shape changes
 end)
 
 test.case("a kind turns a note into a work item", function(assert)
-	local doc = testing.createDoc({ testing.task("n", "Idea", "todo", nil, { itemKind = "note" }) })
+	local doc = testing.createDoc({ testing.task("n", "Idea", "todo", nil, { type = "note" }) })
 	doc.nodes[1].width = 240
 	doc.nodes[1].height = 120
 	setFields(doc, "n", { kind = "step", status = "todo" })
-	assert.eq(doc.nodes[1].data.itemKind, "step")
+	assert.eq(testing.primaryType(doc.nodes[1]), "step")
 	assert.eq(doc.nodes[1].width, nil)
 end)

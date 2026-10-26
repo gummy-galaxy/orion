@@ -64,7 +64,7 @@ local function createOperation(id: string): json.Object
 		id = id,
 		x = 0,
 		y = 0,
-		data = json.object({ kind = "task", label = id, itemKind = "step", status = "todo" }),
+		data = json.object({ kind = "task", label = id, status = "todo" }),
 	})
 end
 
@@ -86,6 +86,11 @@ test.case("GET returns the document with unknown root data", function(assert)
 	assert.eq(settings and settings.githubOwner, nil)
 	assert.eq(data and data.repo, "Vocksel/orion")
 	assert.eq(data and #(json.asArray(data.refs) or {}), 1)
+
+	-- The card types travel with the canvas, so the app draws every card from
+	-- its declaration.
+	local declared = json.asArray(response.types) or {}
+	assert.eq((json.asObject(declared[1]) :: json.Object).name, "step")
 end)
 
 test.case("GET sends derived values beside the document without storing them", function(assert)
@@ -93,7 +98,7 @@ test.case("GET sends derived values beside the document without storing them", f
 	fs.createDirectory(root, { makeParents = true })
 	testing.writeCanvasText(
 		root,
-		[[{"version":2,"revision":3,"settings":{"sources":[]},"nodes":[{"id":"a","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"A","itemKind":"step","status":"todo"}},{"id":"b","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","itemKind":"step","status":"todo"}}],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks"}]}]]
+		[[{"version":2,"revision":3,"settings":{"sources":[]},"nodes":[{"id":"a","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"A","status":"todo"}},{"id":"b","type":"task","position":{"x":0,"y":0},"data":{"kind":"task","label":"B","status":"todo"}}],"links":[{"id":"a>b","from":"a","to":"b","kind":"blocks"}]}]]
 	)
 	local response = decodeResponse(router.handleAsync(createRequest("GET", "/api/orion")))
 	local derived = json.asObject(response.derived) :: json.Object

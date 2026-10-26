@@ -1,4 +1,6 @@
 local geometry = require("@root/geometry")
+local isComponent = require("@root/graph/isComponent")
+local isNote = require("@root/graph/isNote")
 local types = require("@root/types")
 
 type Item = types.Item
@@ -52,13 +54,12 @@ end
 	closer when there is one.
 ]]
 local function estimateTaskHeight(item: Item): number
-	local itemKind = item.data.itemKind
 	local height
 
-	if itemKind == "note" then
+	if isNote(item) then
 		local lines = countLines(getText(item, "label", "Empty note"), text.note, geometry.TASK_WIDTH - text.sides.note)
 		height = text.chrome + lines * text.note.size * text.note.lineHeight
-	elseif itemKind == "component" then
+	elseif isComponent(item) then
 		local shape = item.data.shape
 		local room = if type(shape) == "string" then (text.shapeRoom :: any)[shape] else nil
 		room = room or { x = 0, y = 0 }
