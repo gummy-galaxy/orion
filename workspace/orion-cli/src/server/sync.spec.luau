@@ -19,16 +19,16 @@ test.case("sync throttles repeated requests and force bypasses the throttle", fu
 		return now
 	end)
 
-	loop.run()
+	loop.runAsync()
 	local first = calls
 	assert.that(first > 0)
-	loop.run()
+	loop.runAsync()
 	assert.eq(calls, first)
-	loop.run(true)
+	loop.runAsync(true)
 	assert.that(calls > first)
 	now += 61
 	local before = calls
-	loop.run()
+	loop.runAsync()
 	assert.that(calls > before)
 end)
 
@@ -46,7 +46,7 @@ test.case("sync applies what it fetched and reports the part that failed", funct
 		return testing.result(true, [[{"data":{}}]])
 	end)
 
-	local status = loop.run()
+	local status = loop.runAsync()
 	assert.eq(status.state, "error")
 	assert.strContains(status.message :: string, "Couldn't fetch your open pull requests")
 	assert.eq(status.lastRun ~= nil, true)
@@ -93,7 +93,7 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 		return now
 	end)
 
-	loop.tick()
+	loop.tickAsync()
 	local revision = loadDoc(dir).revision
 	-- The first full pass gives the card's ref its repository's id, so later
 	-- passes don't ask again.
@@ -103,25 +103,25 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 	table.clear(calls)
 	table.clear(states)
 	now += 30
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(#calls, 0)
 
 	table.clear(states)
 	now += 31
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(table.concat(calls, ","), "poll")
 	assert.eq(table.concat(states, ","), "idle")
 
 	table.clear(calls)
 	now += 60
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(table.concat(calls, ","), "poll,sweep,authored")
 	assert.eq(loadDoc(dir).revision, revision)
 	assert.eq(table.find(states, "running"), nil)
 
 	table.clear(calls)
 	now = 100 + 15 * 60
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(table.concat(calls, ","), "authored,full")
 	assert.eq(loadDoc(dir).revision, revision + 1)
 end)
@@ -161,41 +161,41 @@ test.case("sync sweeps the cards in view every 30 seconds between full sweeps", 
 		return now
 	end)
 
-	loop.tick()
+	loop.tickAsync()
 	local revision = loadDoc(dir).revision
 	putFocus(dir, "tab", nil, { "pub" })
 
 	table.clear(calls)
 	now += 30
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(table.concat(calls, ","), "sweep")
 	assert.eq(loadDoc(dir).revision, revision)
 
 	table.clear(calls)
 	now += 15
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(#calls, 0)
 
 	clearFocus(dir)
 	table.clear(calls)
 	now += 15
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(table.concat(calls, ","), "poll")
 
 	putFocus(dir, "tab", "ws", {})
 	table.clear(calls)
 	now += 30
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(table.concat(calls, ","), "sweep")
 
 	table.clear(calls)
 	now += 30
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(table.concat(calls, ","), "poll,sweep,authored")
 
 	table.clear(calls)
 	now += 30
-	loop.tick()
+	loop.tickAsync()
 	assert.eq(table.concat(calls, ","), "sweep")
 end)
 
@@ -226,11 +226,11 @@ test.case("an unforced sync request sweeps once a full pass has run", function(a
 		return now
 	end)
 
-	loop.run()
+	loop.runAsync()
 	assert.eq(table.find(calls, "full") ~= nil, true)
 	table.clear(calls)
 	now += 61
-	loop.run()
+	loop.runAsync()
 	assert.eq(table.find(calls, "sweep") ~= nil, true)
 	assert.eq(table.find(calls, "full"), nil)
 end)

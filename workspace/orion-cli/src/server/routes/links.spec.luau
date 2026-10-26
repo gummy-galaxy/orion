@@ -43,7 +43,7 @@ end
 test.case("links route returns a new card's data without saving it", function(assert)
 	local root = createRoot("links-found", {})
 
-	local response = links.handle(request("POST", "ideas", json.object({ url = PULL_URL })), root, githubRunner)
+	local response = links.handleAsync(request("POST", "ideas", json.object({ url = PULL_URL })), root, githubRunner)
 	local body = decode(response)
 	local data = json.asObject(body.data) :: json.Object
 
@@ -61,7 +61,8 @@ test.case("links route points at the card that already tracks the link", functio
 		}),
 	})
 
-	local body = decode(links.handle(request("POST", "ideas", json.object({ url = PULL_URL })), root, githubRunner))
+	local body =
+		decode(links.handleAsync(request("POST", "ideas", json.object({ url = PULL_URL })), root, githubRunner))
 
 	assert.eq(body.status, "existing")
 	assert.eq(body.id, "kept")
@@ -71,15 +72,21 @@ end)
 test.case("links route rejects bad requests and reports links it can't use", function(assert)
 	local root = createRoot("links-errors", {})
 
-	assert.eq(links.handle(request("GET", "ideas"), root, githubRunner).status, 405)
-	assert.eq(links.handle(request("POST", "missing", json.object({ url = PULL_URL })), root, githubRunner).status, 404)
+	assert.eq(links.handleAsync(request("GET", "ideas"), root, githubRunner).status, 405)
 	assert.eq(
-		links.handle(request("POST", "ideas", json.object({ url = "not a url" })), root, githubRunner).status,
+		links.handleAsync(request("POST", "missing", json.object({ url = PULL_URL })), root, githubRunner).status,
+		404
+	)
+	assert.eq(
+		links.handleAsync(request("POST", "ideas", json.object({ url = "not a url" })), root, githubRunner).status,
 		400
 	)
 
-	local unknown =
-		links.handle(request("POST", "ideas", json.object({ url = "https://example.com/page" })), root, githubRunner)
+	local unknown = links.handleAsync(
+		request("POST", "ideas", json.object({ url = "https://example.com/page" })),
+		root,
+		githubRunner
+	)
 	assert.eq(unknown.status, 422)
 	assert.strContains(decode(unknown).error :: string, "no source recognizes")
 end)

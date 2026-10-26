@@ -57,7 +57,7 @@ function routes.create(
 		onSwitch(name)
 	end
 
-	function router.handle(request: Request): Response
+	function router.handleAsync(request: Request): Response
 		local route = request.path
 		if imageRoutes.matches(route) then
 			return imageRoutes.handle(request, root)
@@ -81,13 +81,13 @@ function routes.create(
 			return reveal.handle(request, root, router.getActive, router.switchTo, hub)
 		end
 		if route == "/api/editor" then
-			return editor.handle(request)
+			return editor.handleAsync(request)
 		end
 		if route == "/api/merge" then
-			return merge.handle(request, syncLoop)
+			return merge.handleAsync(request, syncLoop)
 		end
 		if route == "/api/links" then
-			return links.handle(request, root)
+			return links.handleAsync(request, root)
 		end
 		if route == "/api/log" then
 			return log.handle(request, root)
@@ -104,7 +104,7 @@ function routes.create(
 		end
 
 		if route == "/api/sync" then
-			return sync.handle(request, syncLoop)
+			return sync.handleAsync(request, syncLoop)
 		end
 
 		if route:sub(1, 5) == "/api/" or route == "/api" then

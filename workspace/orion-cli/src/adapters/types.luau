@@ -33,8 +33,8 @@ export type Record = {
 -- `commands` holds the programs this machine runs for the canvas's sources, by
 -- source id, from `readSourceCommands`.
 export type Context = { now: string, since: string, doc: Doc, commands: { [string]: { string } } }
--- Records found by lookupRefs, keyed by getRefKey. Refs missing from both maps
--- were not found.
+-- Records found by `lookupRefsAsync`, keyed by getRefKey. Refs missing from
+-- both maps were not found.
 export type LookupResult = { records: { [string]: Record }, failures: { [string]: string } }
 export type RefreshOptions = { now: string }
 export type Adapter = {
@@ -42,14 +42,14 @@ export type Adapter = {
 	-- Returns the source and, for a kind that runs a program, the command this
 	-- machine runs for it.
 	createSource: ({ [string]: { string } }) -> (Source, { string }?),
-	collect: (Source, CommandRunner, Context) -> { Record },
+	collectAsync: (Source, CommandRunner, Context) -> { Record },
 	-- Fetches against a snapshot of the workspace and returns the step that
 	-- applies the results, so callers can fetch outside the workspace lock and
 	-- take it only to apply.
-	refresh: ((Doc, CommandRunner, RefreshOptions) -> (Doc) -> githubTypes.Report)?,
-	-- Like `refresh`, limited to what changed since the last poll, with no
+	refreshAsync: ((Doc, CommandRunner, RefreshOptions) -> (Doc) -> githubTypes.Report)?,
+	-- Like `refreshAsync`, limited to what changed since the last poll, with no
 	-- apply step when nothing did.
-	refreshChanged: ((
+	refreshChangedAsync: ((
 		Doc,
 		CommandRunner,
 		githubTypes.PollState,
@@ -65,7 +65,7 @@ export type Adapter = {
 	refFromKey: ((string, Source) -> ResolvedRef?)?,
 	-- Looks up records for resolved refs of this kind, in as few calls as the
 	-- adapter allows. Failures carry a reason.
-	lookupRefs: ((refs: { ResolvedRef }, context: Context, run: CommandRunner) -> LookupResult)?,
+	lookupRefsAsync: ((refs: { ResolvedRef }, context: Context, run: CommandRunner) -> LookupResult)?,
 }
 
 return {}
