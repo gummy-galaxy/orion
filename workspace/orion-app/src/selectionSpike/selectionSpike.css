@@ -1,0 +1,379 @@
+/* The #456 selection spike's fake board. Nothing here styles the real canvas. */
+
+.spike-root {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  background: var(--canvas-background);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  user-select: none;
+}
+
+.spike-panel {
+  margin: 12px;
+  padding: 14px 16px;
+  overflow-y: auto;
+  font-size: var(--text-size-small);
+  z-index: 4;
+}
+.spike-panel h2 {
+  margin: 4px 0 8px;
+  font-size: var(--text-size-label);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.spike-panel button {
+  border: var(--border-width-default) solid var(--border-default);
+  background: var(--canvas-background);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+.spike-panel button.current,
+.spike-deal button.current {
+  background: var(--accent-default);
+  color: var(--surface-background);
+  border-color: var(--accent-default);
+}
+.spike-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.spike-row {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.spike-label {
+  color: var(--text-muted);
+}
+.spike-segmented {
+  display: flex;
+  gap: 4px;
+}
+.spike-help {
+  margin: 4px 0 14px;
+  padding-left: 16px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.spike-tasks {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.spike-tasks li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 8px;
+  align-items: center;
+}
+.spike-tasks li.current {
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: var(--accent-subtle);
+}
+.spike-tasks p {
+  grid-column: 1 / -1;
+  margin: 0;
+  line-height: 1.4;
+}
+.spike-timer {
+  font-family: var(--font-data);
+}
+.spike-results {
+  width: 100%;
+  margin-bottom: 12px;
+  border-collapse: collapse;
+  font-size: var(--text-size-caption);
+}
+.spike-results th,
+.spike-results td {
+  text-align: left;
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border-default);
+}
+.spike-keys-help {
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.spike-board {
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  touch-action: none;
+}
+.spike-board.is-brush {
+  cursor: crosshair;
+}
+.spike-board.is-pan-ready,
+.spike-board.is-pan-ready .spike-card {
+  cursor: grab;
+}
+.spike-board.is-panning,
+.spike-board.is-panning .spike-card {
+  cursor: grabbing;
+}
+
+.spike-world {
+  position: absolute;
+  inset: 0 auto auto 0;
+  transform-origin: 0 0;
+}
+.spike-world.is-gliding {
+  transition: transform 300ms var(--motion-easing-standard);
+}
+.spike-world.is-animating .spike-card {
+  transition: transform 340ms var(--motion-easing-spring);
+}
+
+.spike-links {
+  position: absolute;
+  overflow: visible;
+}
+.spike-links line {
+  stroke: var(--edge-default);
+  stroke-width: 3;
+}
+.spike-links line.spike-tether {
+  stroke: var(--accent-default);
+  stroke-width: 4;
+  stroke-dasharray: 10 8;
+}
+
+.spike-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 198px;
+  height: 285px;
+  box-sizing: border-box;
+  padding: 12px;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  gap: 6px;
+  background: var(--card-background);
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-raised);
+  cursor: pointer;
+  outline: none;
+}
+.spike-card-art {
+  border-radius: var(--radius-md);
+  background: var(--spike-tint);
+  opacity: 0.85;
+}
+.spike-card-title {
+  font-size: 20px;
+  font-weight: var(--weight-bold);
+  line-height: 1.15;
+}
+.spike-card-area {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.spike-card.is-new::after {
+  content: 'NEW';
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-background);
+  font-size: 13px;
+  font-weight: var(--weight-bold);
+}
+.spike-card:focus-visible {
+  box-shadow:
+    0 0 0 5px var(--surface-background),
+    0 0 0 9px var(--text-primary);
+}
+.spike-card.is-selected {
+  border-color: var(--accent-default);
+  box-shadow:
+    0 0 0 6px var(--accent-default),
+    var(--shadow-raised);
+}
+/* Within a sweep or gather's reach, before anything is pressed. */
+.spike-card.in-reach {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent-default) 45%, transparent);
+}
+/* Would join the selection if the gesture ended now. */
+.spike-card.will-add {
+  border-color: var(--accent-default);
+  border-style: dashed;
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--accent-default) 55%, transparent),
+    0 0 28px var(--accent-default);
+}
+/* Would leave the selection if the gesture ended now. */
+.spike-card.will-remove {
+  border-style: dashed;
+  border-color: var(--status-blocked);
+  box-shadow: 0 0 0 6px var(--status-blocked);
+  opacity: 0.6;
+}
+/* Moves with a drag. */
+.spike-card.will-move {
+  z-index: 2;
+  box-shadow:
+    0 0 0 6px var(--accent-default),
+    0 18px 40px rgb(0 0 0 / 45%);
+}
+.spike-card.is-origin {
+  box-shadow:
+    0 0 0 6px var(--accent-default),
+    0 0 0 14px color-mix(in srgb, var(--accent-default) 35%, transparent);
+}
+.spike-leave {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-round);
+  border: 3px solid var(--surface-background);
+  background: var(--status-blocked);
+  color: var(--surface-background);
+  font-size: 18px;
+  font-weight: var(--weight-bold);
+  cursor: pointer;
+}
+
+.spike-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 198px;
+  height: 285px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 3px dashed var(--accent-default);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--accent-default) 12%, transparent);
+  color: var(--text-muted);
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.spike-zone {
+  position: absolute;
+  box-sizing: border-box;
+  border: 4px dashed var(--text-muted);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  font-size: 28px;
+  color: var(--text-muted);
+}
+
+.spike-marquee {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border: 1px solid var(--accent-default);
+  background: color-mix(in srgb, var(--accent-default) 12%, transparent);
+  pointer-events: none;
+}
+.spike-brush {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 2px dashed color-mix(in srgb, var(--accent-default) 70%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.spike-brush.is-active {
+  border-style: solid;
+  background: color-mix(in srgb, var(--accent-default) 14%, transparent);
+}
+.spike-chip {
+  position: absolute;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-background);
+  border: 1px solid var(--border-default);
+  font-size: var(--text-size-caption);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 5;
+}
+.spike-deal {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 14px;
+  font-size: var(--text-size-small);
+  z-index: 5;
+}
+.spike-deal button {
+  border: var(--border-width-default) solid var(--border-default);
+  background: var(--canvas-background);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+.spike-minimap {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  cursor: pointer;
+  z-index: 4;
+}
+.spike-minimap-view {
+  fill: color-mix(in srgb, var(--text-primary) 10%, transparent);
+  stroke: var(--text-primary);
+  stroke-width: 1.5;
+}
+
+/* A drawn pointer for headless recordings, which show no system cursor. */
+.spike-pointer {
+  position: fixed;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: 50%;
+  border: 2px solid white;
+  background: rgb(0 0 0 / 35%);
+  box-shadow: 0 0 0 1px black;
+  pointer-events: none;
+  z-index: 50;
+}
+.spike-pointer.is-left {
+  background: #3b82f6;
+}
+.spike-pointer.is-right {
+  background: #f97316;
+}
+.spike-pointer.is-middle {
+  background: #a855f7;
+}
+.spike-keys {
+  position: fixed;
+  left: 50%;
+  top: 24px;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  background: rgb(0 0 0 / 70%);
+  color: white;
+  font-size: 18px;
+  font-weight: var(--weight-bold);
+  pointer-events: none;
+  z-index: 50;
+}
