@@ -19,21 +19,29 @@ local adapters: { [string]: Adapter } = {
 	github = {
 		kind = "github",
 		createSource = githubCreateSource,
-		collectAsync = githubCollectAsync,
-		refreshAsync = githubRefreshAsync,
-		refreshChangedAsync = githubRefreshChangedAsync,
-		refFromUrl = githubRefFromUrl,
-		lookupRefsAsync = githubLookupRefsAsync,
+		source = {
+			collectAsync = githubCollectAsync,
+			refreshAsync = githubRefreshAsync,
+			refreshChangedAsync = githubRefreshChangedAsync,
+			refFromUrl = githubRefFromUrl,
+			lookupRefsAsync = githubLookupRefsAsync,
+		},
 	},
 	jira = {
 		kind = "jira",
 		createSource = jiraCreateSource,
-		collectAsync = jiraCollectAsync,
-		refFromUrl = jiraRefFromUrl,
-		refFromKey = jiraRefFromKey,
-		lookupRefsAsync = jiraLookupRefsAsync,
+		source = {
+			collectAsync = jiraCollectAsync,
+			refFromUrl = jiraRefFromUrl,
+			refFromKey = jiraRefFromKey,
+			lookupRefsAsync = jiraLookupRefsAsync,
+		},
 	},
-	hop = { kind = "hop", createSource = hopCreateSource, collectAsync = hopCollectAsync, collectOrder = 1 },
+	hop = {
+		kind = "hop",
+		createSource = hopCreateSource,
+		source = { collectAsync = hopCollectAsync, collectOrder = 1 },
+	},
 }
 
 local function getAdapter(kind: string): Adapter

@@ -1,16 +1,20 @@
 local test = require("@std/test")
 
+local adapterTypes = require("@root/adapters/types")
 local getAdapter = require("@root/adapters/getAdapter")
+
+type SourceVerbs = adapterTypes.SourceVerbs
 
 test.case("adapter registry resolves each source and rejects unknown kinds", function(assert)
 	for _, kind in { "github", "jira", "hop" } do
 		local adapter = getAdapter(kind)
+		local verbs = adapter.source :: SourceVerbs
 		assert.eq(adapter.kind, kind)
-		assert.eq(type(adapter.collectAsync), "function")
+		assert.eq(type(verbs.collectAsync), "function")
 		assert.eq(type(adapter.createSource), "function")
 	end
 
-	assert.eq(type(getAdapter("github").refreshAsync), "function")
+	assert.eq(type((getAdapter("github").source :: SourceVerbs).refreshAsync), "function")
 	assert.throws(function()
 		getAdapter("missing")
 	end)
