@@ -29,7 +29,7 @@ local FIELDS: { Field } = {
 	{
 		name = "repo",
 		help = "The repository a card belongs to, as `owner/name`.",
-		example = [[repo = "vocksel/orion"]],
+		example = [[repo = "gummy-galaxy/orion"]],
 	},
 	{
 		name = "status",
@@ -73,7 +73,7 @@ local FIELDS: { Field } = {
 		name = "ref",
 		help = "The key of any ref on the card, such as `owner/name#12` or `ABC-12`. With `=` and `!=` it matches whole keys, ignoring case.",
 		isText = true,
-		example = [[ref = "vocksel/orion#86"]],
+		example = [[ref = "gummy-galaxy/orion#86"]],
 	},
 	{
 		name = "snoozed",
@@ -98,7 +98,7 @@ local COMBINATORS: { Operator } = {
 }
 
 local EXAMPLES: { string } = {
-	[[repo = "vocksel/orion" and status = "ready"]],
+	[[repo = "gummy-galaxy/orion" and status = "ready"]],
 	[[kind = "group" and label ~ "release"]],
 	[[pr = "86" or ref = "ABC-12"]],
 	[[not (draft = "true") and status != "done"]],

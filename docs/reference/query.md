@@ -5,7 +5,7 @@
 `orion node query --where`, and every command that takes `--where`, select cards and groups with an expression. An expression compares fields to quoted values, and combines comparisons with `and`, `or`, and `not`. Quote the whole expression for the shell, with single quotes around double-quoted values:
 
 ```sh
-orion node query --where 'repo = "vocksel/orion" and status = "ready"'
+orion node query --where 'repo = "gummy-galaxy/orion" and status = "ready"'
 ```
 
 ## Fields
@@ -15,7 +15,7 @@ Values are always quoted, numbers and booleans included. A node without the fiel
 | Field            | Matches                                                                                                                                                        | Example                                          |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | `kind`           | What the node is: `pr` for a card with a pull request, `placeholder` for one with only a repository, `step`, `gate`, `component`, `note`, `group`, or `image`. | `kind = "gate"`                                  |
-| `repo`           | The repository a card belongs to, as `owner/name`.                                                                                                             | `repo = "vocksel/orion"`                         |
+| `repo`           | The repository a card belongs to, as `owner/name`.                                                                                                             | `repo = "gummy-galaxy/orion"`                    |
 | `status`         | The derived status the CLI lists, such as `ready` for a card with nothing open in its way.                                                                     | `status = "ready"`                               |
 | `recordedStatus` | The status stored on the card, before the graph derives `ready` or `blocked` from it.                                                                          | `recordedStatus = "todo"`                        |
 | `group`          | The id of the group that directly holds the node.                                                                                                              | `group = "6f1c2a90-3d4e-4b5f-8a7b-9c0d1e2f3a4b"` |
@@ -23,7 +23,7 @@ Values are always quoted, numbers and booleans included. A node without the fiel
 | `label`          | The card's or group's label. Takes `~`.                                                                                                                        | `label ~ "slider"`                               |
 | `note`           | The text of a card's note. Takes `~`.                                                                                                                          | `note ~ "checklist"`                             |
 | `pr`             | The number of the card's pull request, without the `#`.                                                                                                        | `pr = "86"`                                      |
-| `ref`            | The key of any ref on the card, such as `owner/name#12` or `ABC-12`. With `=` and `!=` it matches whole keys, ignoring case. Takes `~`.                        | `ref = "vocksel/orion#86"`                       |
+| `ref`            | The key of any ref on the card, such as `owner/name#12` or `ABC-12`. With `=` and `!=` it matches whole keys, ignoring case. Takes `~`.                        | `ref = "gummy-galaxy/orion#86"`                  |
 | `snoozed`        | Whether a card is snoozed right now. Groups have no value. Takes `"true"` or `"false"`.                                                                        | `snoozed = "false"`                              |
 
 ## Operators
@@ -52,7 +52,7 @@ Quote a value with `"` or `'`. Inside it, a backslash escapes the quote that ope
 ## Examples
 
 ```sh
-orion node query --where 'repo = "vocksel/orion" and status = "ready"'
+orion node query --where 'repo = "gummy-galaxy/orion" and status = "ready"'
 orion node query --where 'kind = "group" and label ~ "release"'
 orion node query --where 'pr = "86" or ref = "ABC-12"'
 orion node query --where 'not (draft = "true") and status != "done"'

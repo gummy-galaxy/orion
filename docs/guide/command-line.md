@@ -59,7 +59,7 @@ A card is **ready** once nothing it waits on is open. `orion card list` lists ev
 To find something, `orion node find <text>` searches labels, notes, and refs. `orion node query` is more precise, matching on fields such as status, repository, or pull request:
 
 ```sh
-orion node query --where 'status = "ready" and repo = "vocksel/orion"'
+orion node query --where 'status = "ready" and repo = "gummy-galaxy/orion"'
 ```
 
 The [query reference](/reference/query) lists every field and operator `--where` takes.
@@ -86,7 +86,7 @@ Statuses are `todo`, `active`, `review`, `blocked`, `deferred`, and `done`. Use 
 `--ref` attaches a pull request, an issue, or a branch to a card:
 
 ```sh
-orion card set 'label:"Design the settings page"' --ref https://github.com/vocksel/orion/pull/86
+orion card set 'label:"Design the settings page"' --ref https://github.com/gummy-galaxy/orion/pull/86
 ```
 
 A github.com link works as is. Jira issues and GitHub Enterprise need a [source](./sources) first, which also brings your pull requests and issues in as cards. The [ref reference](/reference/refs) lists every form `--ref` takes.

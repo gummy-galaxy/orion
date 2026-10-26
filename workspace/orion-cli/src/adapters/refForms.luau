@@ -23,15 +23,15 @@ local REF_FORMS: { RefForm } = {
 		form = "https://github.com/<owner>/<name>/pull/<number>",
 		help = "A GitHub pull request.",
 		kind = "github",
-		example = "https://github.com/vocksel/orion/pull/86",
-		key = "vocksel/orion#86",
+		example = "https://github.com/gummy-galaxy/orion/pull/86",
+		key = "gummy-galaxy/orion#86",
 	},
 	{
 		form = "https://github.com/<owner>/<name>/issues/<number>",
 		help = "A GitHub issue.",
 		kind = "github",
-		example = "https://github.com/vocksel/orion/issues/146",
-		key = "vocksel/orion#146",
+		example = "https://github.com/gummy-galaxy/orion/issues/146",
+		key = "gummy-galaxy/orion#146",
 	},
 	{
 		form = "https://<host>/<owner>/<name>/pull/<number>",
@@ -60,8 +60,8 @@ local REF_FORMS: { RefForm } = {
 	{
 		form = "branch:<owner>/<name>@<branch>",
 		help = "The branch work started on, keyed the way hop keys branches. The first `@` ends the repository.",
-		example = "branch:vocksel/orion@agent/196-attach",
-		key = "vocksel/orion@agent/196-attach",
+		example = "branch:gummy-galaxy/orion@agent/196-attach",
+		key = "gummy-galaxy/orion@agent/196-attach",
 	},
 	{
 		form = "branch:<host>/<owner>/<name>@<branch>",

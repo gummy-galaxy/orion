@@ -9,7 +9,7 @@ test.case("every documented selector example resolves to its card", function(ass
 	local doc = testing.createDoc({
 		testing.task("slider", "Extract slider", "active", nil, {
 			refs = {
-				json.object({ source = "github", kind = "pull", key = "vocksel/orion#86" }),
+				json.object({ source = "github", kind = "pull", key = "gummy-galaxy/orion#86" }),
 				json.object({ source = "jira", kind = "issue", key = "ABC-12" }),
 			},
 		}),
