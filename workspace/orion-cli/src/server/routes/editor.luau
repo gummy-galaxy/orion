@@ -10,13 +10,13 @@ type CommandRunner = types.CommandRunner
 
 local editor = {}
 
-local function found(name: string, run: CommandRunner): boolean
+local function foundAsync(name: string, run: CommandRunner): boolean
 	local ok, result = pcall(run, { "which", name }, nil)
 	return ok and result.ok
 end
 
-local function available(run: CommandRunner): boolean
-	return found("code", run) and found("hop", run)
+local function availableAsync(run: CommandRunner): boolean
+	return foundAsync("code", run) and foundAsync("hop", run)
 end
 
 local function isPullRequestUrl(value: string): boolean
@@ -24,10 +24,10 @@ local function isPullRequestUrl(value: string): boolean
 	return owner ~= nil and repo ~= nil and number ~= nil
 end
 
-function editor.handle(request: net.ReceivedRequest, runner: CommandRunner?): shared.Response
+function editor.handleAsync(request: net.ReceivedRequest, runner: CommandRunner?): shared.Response
 	local run = runner or runCommand
 	if request.method == "GET" then
-		return shared.reply(200, json.object({ available = available(run) }))
+		return shared.reply(200, json.object({ available = availableAsync(run) }))
 	end
 	if request.method ~= "POST" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))
@@ -38,7 +38,7 @@ function editor.handle(request: net.ReceivedRequest, runner: CommandRunner?): sh
 	if not url or not isPullRequestUrl(url) then
 		return shared.reply(400, json.object({ error = "expected a GitHub pull request URL" }))
 	end
-	if not available(run) then
+	if not availableAsync(run) then
 		return shared.reply(503, json.object({ error = "VS Code and Hop must be available on PATH" }))
 	end
 

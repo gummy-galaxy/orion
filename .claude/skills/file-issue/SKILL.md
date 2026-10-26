@@ -23,7 +23,7 @@ Keep their phrasing where it carries meaning, such as a name they coined or an a
 Search open issues for overlap:
 
 ```bash
-gh issue list --repo vocksel/orion --state open --search '<keywords>'
+gh issue list --repo gummy-galaxy/orion --state open --search '<keywords>'
 ```
 
 If an open issue already covers it, tell the person, recommend adding to that issue, and wait for their answer. Also read [the charter](../../../docs/development/charter.md) and [the decisions log](../../../docs/development/decisions.md), and note any conflict in the issue's open questions.
@@ -43,7 +43,7 @@ Don't invent scope, decisions, or acceptance criteria the person didn't give. Wr
 When the person asked for the issue, file it without a separate draft review, unless they asked to see it first:
 
 ```bash
-gh issue create --repo vocksel/orion --label "needs grooming" --title "<title>" --body-file <file>
+gh issue create --repo gummy-galaxy/orion --label "needs grooming" --title "<title>" --body-file <file>
 ```
 
 Write the body file in your scratchpad. Reply with the link and a one-line summary of the open questions. File only this one issue. Don't break it into more.

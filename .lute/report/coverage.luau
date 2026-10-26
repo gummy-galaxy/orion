@@ -10,7 +10,7 @@ local path = require("@std/path")
 local process = require("@std/process")
 
 local command = require("@cli/command")
-local upsertComment = require("@cli/github/upsertComment")
+local upsertCommentAsync = require("@cli/github/upsertCommentAsync")
 
 type Metric = { total: number, covered: number, pct: number }
 
@@ -44,7 +44,8 @@ local function reportCoverage()
 	local sha = string.sub(env.SHA or "", 1, 7)
 	local footer = `<sub>Measured {sha} in [run {env.GITHUB_RUN_NUMBER}]({env.RUN_URL}).</sub>`
 
-	local posted, problem = upsertComment(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)
+	local posted, problem =
+		upsertCommentAsync(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)
 	assert(posted, problem)
 end
 

@@ -82,7 +82,7 @@ end
 
 -- Launches the installed app against this data folder, so the server it starts
 -- serves the same canvases.
-local function openApp(options: Context)
+local function openAppAsync(options: Context)
 	local app = path.join(process.homedir(), "Applications", "Orion.app")
 	local result = options.runner({ "open", "--env", `ORION_DATA_DIR={options.root}`, "-a", tostring(app) }, nil)
 
@@ -175,7 +175,7 @@ return table.freeze({
 		local accepted = false
 
 		if findRuntime(options) == nil then
-			openApp(options)
+			openAppAsync(options)
 			launched = true
 		end
 

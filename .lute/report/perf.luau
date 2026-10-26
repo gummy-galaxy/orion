@@ -16,7 +16,7 @@ local path = require("@std/path")
 local process = require("@std/process")
 
 local command = require("@cli/command")
-local upsertComment = require("@cli/github/upsertComment")
+local upsertCommentAsync = require("@cli/github/upsertCommentAsync")
 
 local MARKER = "<!-- orion-perf -->"
 
@@ -109,7 +109,8 @@ local function reportPerf()
 	local footer =
 		`<sub>Measured {sha} on \`{runner}\` in [run {runNumber}]({env.RUN_URL}). Changes under 10%, or within how far each side's runs disagree, are treated as noise.</sub>`
 
-	local posted, problem = upsertComment(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)
+	local posted, problem =
+		upsertCommentAsync(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)
 	assert(posted, problem)
 end
 

@@ -3,7 +3,7 @@ local net = require("@lute/net/server")
 local task = require("@std/task")
 
 local getStringField = require("@root/getStringField")
-local mergePull = require("@root/github/mergePull")
+local mergePullAsync = require("@root/github/mergePullAsync")
 local runCommand = require("@root/command")
 local shared = require("@root/server/routes/shared")
 local sync = require("@root/server/routes/sync")
@@ -16,7 +16,7 @@ local PULL_URL = "^https://[%w.-]+/[%w_.-]+/[%w_.-]+/pull/[1-9]%d*/?$"
 
 local merge = {}
 
-function merge.handle(request: net.ReceivedRequest, loop: SyncLoop, runner: CommandRunner?): shared.Response
+function merge.handleAsync(request: net.ReceivedRequest, loop: SyncLoop, runner: CommandRunner?): shared.Response
 	if request.method ~= "POST" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))
 	end
@@ -29,7 +29,7 @@ function merge.handle(request: net.ReceivedRequest, loop: SyncLoop, runner: Comm
 		return shared.reply(400, json.object({ error = "expected a pull request URL and head commit" }))
 	end
 
-	local started, merged, problem = pcall(mergePull, runner or runCommand, url, head)
+	local started, merged, problem = pcall(mergePullAsync, runner or runCommand, url, head)
 
 	if not started then
 		return shared.reply(502, json.object({ error = tostring(merged) }))
@@ -40,7 +40,7 @@ function merge.handle(request: net.ReceivedRequest, loop: SyncLoop, runner: Comm
 	-- Refresh soon after replying so the card turns done without waiting for
 	-- the next sync.
 	task.defer(function()
-		pcall(loop.run, true)
+		pcall(loop.runAsync, true)
 	end)
 
 	return shared.reply(200, json.object({}))

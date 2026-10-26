@@ -2,9 +2,9 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local applyRepositories = require("@root/github/applyRepositories")
-local collectSources = require("@root/ingest/collectSources")
+local collectSourcesAsync = require("@root/ingest/collectSourcesAsync")
 local context = require("@root/cli/context")
-local fetchRepositories = require("@root/github/fetchRepositories")
+local fetchRepositoriesAsync = require("@root/github/fetchRepositoriesAsync")
 local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getReportJson = require("@root/ingest/getReportJson")
 local healRefKeys = require("@root/github/healRefKeys")
@@ -12,7 +12,7 @@ local ingestTypes = require("@root/ingest/types")
 local loadDoc = require("@root/store/loadDoc")
 local placeRecords = require("@root/ingest/placeRecords")
 local readSourceCommands = require("@root/sources/readSourceCommands")
-local refreshAdapters = require("@root/ingest/refreshAdapters")
+local refreshAdaptersAsync = require("@root/ingest/refreshAdaptersAsync")
 local runTransaction = require("@root/store/runTransaction")
 local types = require("@root/types")
 
@@ -58,12 +58,17 @@ return table.freeze({
 		local snapshot = loadDoc(options.dir)
 		-- Refs take their repositories' ids and current names before anything
 		-- matches against them, so a repository that moved keeps its cards.
-		local found = fetchRepositories(snapshot, options.runner)
+		local found = fetchRepositoriesAsync(snapshot, options.runner)
 		applyRepositories(snapshot, found, now)
 		healRefKeys(snapshot)
-		local fetched =
-			collectSources(snapshot, readSourceCommands(options.root, options.workspace), options.runner, now, selected)
-		local applyRefreshes = refreshAdapters(snapshot, options.runner, now, selected)
+		local fetched = collectSourcesAsync(
+			snapshot,
+			readSourceCommands(options.root, options.workspace),
+			options.runner,
+			now,
+			selected
+		)
+		local applyRefreshes = refreshAdaptersAsync(snapshot, options.runner, now, selected)
 		local report: ingestTypes.Report
 
 		-- Fetching happens above, outside the lock. Refreshing after placing

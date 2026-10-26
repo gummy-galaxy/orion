@@ -5,12 +5,14 @@ local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local derive = require("@root/graph/derive")
 local findItem = require("@root/graph/findItem")
+local formatList = require("@root/render/formatList")
 local getLabel = require("@root/graph/getLabel")
 local getRequired = require("@root/cli/getRequired")
 local graphTypes = require("@root/graph/types")
 local isGroup = require("@root/graph/isGroup")
 local loadDoc = require("@root/store/loadDoc")
 local pad = require("@root/render/pad")
+local querySyntax = require("@root/query/querySyntax")
 local render = require("@root/render")
 local selectItems = require("@root/query/selectItems")
 local types = require("@root/types")
@@ -18,6 +20,9 @@ local types = require("@root/types")
 type Context = context.Context
 type Doc = types.Doc
 type Item = types.Item
+
+local FIELD_NAMES = table.concat(querySyntax.fieldNames, ", ")
+local TEXT_FIELD_NAMES = formatList(querySyntax.textFieldNames)
 
 local function writeJson(options: Context, doc: Doc, derived: graphTypes.Derived, items: { Item })
 	local values: json.Array = {}
@@ -49,7 +54,7 @@ end
 return table.freeze({
 	help = "Find cards and groups with an expression",
 	mcp = {
-		description = "Find cards and groups with an expression. Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, note, snoozed. Compare quoted values with = or !=, quoting numbers and booleans too; label, ref, and note also take ~ for case-insensitive text.",
+		description = `Find cards and groups with an expression. Fields: {FIELD_NAMES}. Compare quoted values with = or !=, quoting numbers and booleans too; {TEXT_FIELD_NAMES} also take ~ for case-insensitive text.`,
 		annotations = { readOnlyHint = true },
 	},
 	define = function(parser: cli.Parser)

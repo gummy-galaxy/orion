@@ -4,7 +4,7 @@ local json = require("@std/json")
 local addArgument = require("@root/cli/addArgument")
 local changeCheckSnooze = require("@root/checks/changeCheckSnooze")
 local context = require("@root/cli/context")
-local normalizeUntil = require("@root/checks/normalizeUntil")
+local parseUntil = require("@root/time/parseUntil")
 local runTransaction = require("@root/store/runTransaction")
 local writeResult = require("@root/cli/writeResult")
 
@@ -22,7 +22,7 @@ return table.freeze({
 			{ help = "Repository the job runs in, as owner/name (required)", mcp = { required = true } }
 		)
 		parser:add("until", "option", {
-			help = "End the snooze at a UTC time such as 2026-10-14T18:00:00Z, or a date. Without it, the snooze lasts on each card until the job passes there",
+			help = "When it ends: an ISO 8601 date or date-time, in local time unless it ends in Z or an offset. Without it, the snooze lasts on each card until the job passes there",
 		})
 	end,
 
@@ -30,7 +30,7 @@ return table.freeze({
 		local name = assert(parser:get("name"), "missing <name>")
 		local repo = assert(parser:get("repo"), "missing --repo <owner/name>")
 		local given = parser:get("until")
-		local untilTime = if given then normalizeUntil(given) else nil
+		local untilTime = if given then parseUntil(given) else nil
 		local now = options.now()
 		assert(untilTime == nil or untilTime > now, "--until must be in the future")
 
