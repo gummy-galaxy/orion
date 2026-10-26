@@ -1,6 +1,6 @@
 # Sources
 
-A source brings outside work onto the canvas: pull requests and issues from GitHub, issues from Jira, and local branches through [hop](https://github.com/vocksel/hop). Sources keep their own data. Orion keeps references to it, plus the meaning that comes from linking it.
+A source brings outside work onto the canvas: pull requests and issues from GitHub, issues from Jira, local branches through [hop](https://github.com/vocksel/hop), and Claude Code sessions. Sources keep their own data. Orion keeps references to it, plus the meaning that comes from linking it.
 
 ## Add sources
 
@@ -44,6 +44,19 @@ A card's refs point at outside work. Attach one with `--ref` on `orion card crea
 When you open a pull request from a branch a card records, the next refresh attaches it to that card. `orion ref remove <id> <key>` takes a ref off.
 
 To add cards for many refs at once, pass them to `orion card import`, or pipe one per line with `--stdin`. Refs already on the canvas are skipped, and ones that fail are reported without stopping the rest.
+
+## Agent sessions
+
+A Claude Code source puts each session on the card whose branch it ran on, as a `session` ref:
+
+```sh
+orion source add claude
+orion ingest
+```
+
+It reads Claude Code's data folder, `~/.claude` unless `CLAUDE_CONFIG_DIR` or `--dir` names another, and never writes to it. Ingest looks at sessions active in the last three weeks, reading only the end of each transcript. A session attaches to the card with a branch ref, or a pull request, for the branch checked out where it ran. Sessions on `main` or with no matching card are left out, and a session never adds a card.
+
+The ref records whose move it is. `sessionState` is `working` while Claude Code runs a turn, and `waiting` once it's your move, whether the session finished its turn or stopped on a permission prompt. `stateLabel` says the same in words, and `lastMessage` holds the first 280 characters of the last thing the session said. That message is copied into the canvas's files, so leave Claude Code sources out of a canvas you share if its sessions handle anything private. Agents can't add a Claude Code source through MCP, since it reads every transcript on the machine.
 
 ## Organize what came in
 

@@ -1,6 +1,7 @@
 local json = require("@std/json")
 
 local adapterTypes = require("@root/adapters/types")
+local collectSessionsAsync = require("@root/ingest/collectSessionsAsync")
 local getAdapter = require("@root/adapters/getAdapter")
 local getUnix = require("@root/adapters/getUnix")
 local ingestTypes = require("@root/ingest/types")
@@ -12,6 +13,10 @@ type Doc = types.Doc
 type Source = types.Source
 type CommandRunner = types.CommandRunner
 type Result = ingestTypes.Result
+
+-- Sessions attach to cards that already exist, so agents collect after every
+-- source that can add one.
+local AGENT_ORDER = math.huge
 
 -- `commands` holds the programs this machine runs for the canvas's sources, by
 -- source id.
@@ -33,7 +38,8 @@ local function collectSourcesAsync(
 		found = true
 		local succeeded, adapter = pcall(getAdapter, source.kind)
 		local verbs = if succeeded then (adapter :: Adapter).source else nil
-		table.insert(sources, { source = source, index = index, order = if verbs then verbs.collectOrder or 0 else 0 })
+		local order = if verbs then verbs.collectOrder or 0 elseif succeeded then AGENT_ORDER else 0
+		table.insert(sources, { source = source, index = index, order = order })
 	end
 
 	assert(found or not selected, `no source with id "{selected}"`)
@@ -67,11 +73,16 @@ local function collectSourcesAsync(
 		local result: Result =
 			{ source = source, report = { id = source.id, added = 0, updated = 0, linked = 0 }, order = entry.order }
 		local succeeded, failure = pcall(function()
-			local verbs = getAdapter(source.kind).source
-			-- A kind with only agent verbs brings in no cards.
-			result.records = if verbs
-				then verbs.collectAsync(source, run, { now = now, since = since, doc = shadow, commands = commands })
-				else {}
+			local adapter = getAdapter(source.kind)
+			local context = { now = now, since = since, doc = shadow, commands = commands }
+			local records = if adapter.source then adapter.source.collectAsync(source, run, context) else {}
+
+			if adapter.agent then
+				local sessions = collectSessionsAsync(source, adapter.agent, run, context)
+				table.move(sessions, 1, #sessions, #records + 1, records)
+			end
+
+			result.records = records
 		end)
 
 		if not succeeded then
