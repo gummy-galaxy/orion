@@ -36,6 +36,7 @@ export default defineConfig({
             { text: 'Getting started', link: '/guide/getting-started' },
             { text: 'Concepts', link: '/guide/concepts' },
             { text: 'Using the canvas', link: '/guide/canvas' },
+            { text: 'The command line', link: '/guide/command-line' },
             { text: 'Sources', link: '/guide/sources' },
             { text: 'Data and canvases', link: '/guide/data' },
             { text: 'Themes', link: '/guide/themes' },
@@ -48,6 +49,15 @@ export default defineConfig({
         { text: 'Reference', link: '/reference/' },
         { text: 'CLI', link: '/reference/cli/', items: cliCommands, collapsed: false },
         { text: 'MCP', link: '/reference/mcp' },
+        {
+          text: 'Syntax',
+          collapsed: false,
+          items: [
+            { text: 'Queries', link: '/reference/query' },
+            { text: 'Refs', link: '/reference/refs' },
+            { text: 'Selectors', link: '/reference/selectors' },
+          ],
+        },
       ],
       '/development/': [
         { text: 'Development', link: '/development/' },
@@ -87,9 +97,9 @@ export default defineConfig({
     },
     search: { provider: 'local' },
     outline: { level: [2, 3] },
-    socialLinks: [{ icon: 'github', link: 'https://github.com/vocksel/orion' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/gummy-galaxy/orion' }],
     editLink: {
-      pattern: 'https://github.com/vocksel/orion/edit/main/docs/:path',
+      pattern: 'https://github.com/gummy-galaxy/orion/edit/main/docs/:path',
     },
   },
 })

@@ -14,6 +14,7 @@ local definitions = require("@root/cli/definitions")
 local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local formatAllHelp = require("@root/cli/formatAllHelp")
+local formatList = require("@root/render/formatList")
 local fs = require("@std/fs")
 local getActiveWorkspace = require("@root/store/getActiveWorkspace")
 local getDataRoot = require("@root/store/getDataRoot")
@@ -30,6 +31,7 @@ local nextCommand = require("@root/cli/next")
 local node = require("@root/cli/node")
 local note = require("@root/cli/note")
 local orientation = require("@root/cli/orientation")
+local querySyntax = require("@root/query/querySyntax")
 local ref = require("@root/cli/ref")
 local reportFailure = require("@root/cli/reportFailure")
 local resolveArguments = require("@root/aliases/resolveArguments")
@@ -123,12 +125,13 @@ The Orion app talks to orion server start, which watches the data files.
 Use orion server status [--json] to find the running server.
 While the app is open, orion focus shows its open group and selection, and orion reveal selects items in it and zooms to them.]]
 
-local QUERY_HELP = [[
-Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, note, snoozed.
-status is the derived status; snoozed is "true" while a card is snoozed and "false" otherwise.
-Compare quoted values with = or !=, quoting numbers and booleans too: pr = "86", draft = "true".
-label, ref, and note also support ~ for case-insensitive text.
-Combine with and, or, not, and parentheses. Missing fields never match.]]
+local QUERY_HELP = table.concat({
+	`Fields: {table.concat(querySyntax.fieldNames, ", ")}.`,
+	'status is the derived status; snoozed is "true" while a card is snoozed and "false" otherwise.',
+	'Compare quoted values with = or !=, quoting numbers and booleans too: pr = "86", draft = "true".',
+	`{formatList(querySyntax.textFieldNames)} also support ~ for case-insensitive text.`,
+	"Combine with and, or, not, and parentheses. Missing fields never match.",
+}, "\n")
 
 local function addHelpFlag(parser: cli.Parser)
 	parser:add("help", "flag", { help = "Show this help", aliases = { "h" } })

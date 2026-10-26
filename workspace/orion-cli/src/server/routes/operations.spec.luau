@@ -29,7 +29,7 @@ local function createRouter(name: string)
 			return status
 		end,
 
-		run = function()
+		runAsync = function()
 			return status
 		end,
 	}, function() end)
@@ -57,7 +57,7 @@ end
 
 test.case("POST applies a list as one revision", function(assert)
 	local root, router = createRouter("operations-apply")
-	local response = router.handle(
+	local response = router.handleAsync(
 		createRequest(
 			"POST",
 			"/api/operations",
@@ -78,7 +78,7 @@ end)
 
 test.case("POST finishes and closes out a card in one write, and answers with the chain", function(assert)
 	local root, router = createRouter("operations-close-out")
-	local response = router.handle(
+	local response = router.handleAsync(
 		createRequest(
 			"POST",
 			"/api/operations",
@@ -104,9 +104,9 @@ end)
 
 test.case("POST with a stale baseRevision is refused and leaves the file alone", function(assert)
 	local root, router = createRouter("operations-stale")
-	router.handle(createRequest("POST", "/api/operations", edits([[{"operations":[{"op":"tidy","id":"ws"}]}]])))
+	router.handleAsync(createRequest("POST", "/api/operations", edits([[{"operations":[{"op":"tidy","id":"ws"}]}]])))
 	local before = savedText(root)
-	local response = router.handle(
+	local response = router.handleAsync(
 		createRequest(
 			"POST",
 			"/api/operations",
@@ -122,7 +122,7 @@ end)
 test.case("POST refuses the whole list when one edit no longer applies", function(assert)
 	local root, router = createRouter("operations-rejected")
 	local before = savedText(root)
-	local response = router.handle(
+	local response = router.handleAsync(
 		createRequest(
 			"POST",
 			"/api/operations",
@@ -150,9 +150,9 @@ test.case("POST rejects malformed requests before touching the document", functi
 		[[{"baseRevision":"zero","operations":[{"op":"tidy","id":"ws"}]}]],
 	}
 	for _, text in cases do
-		local response = router.handle(createRequest("POST", "/api/operations", edits(text)))
+		local response = router.handleAsync(createRequest("POST", "/api/operations", edits(text)))
 		assert.eq(response.status, 400)
 	end
 	assert.eq(savedText(root), before)
-	assert.eq(router.handle(createRequest("GET", "/api/operations")).status, 405)
+	assert.eq(router.handleAsync(createRequest("GET", "/api/operations")).status, 405)
 end)

@@ -2,6 +2,7 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local loadDoc = require("@root/store/loadDoc")
+local parseUntil = require("@root/time/parseUntil")
 local testing = require("@root/testing")
 
 test.case("ci snooze, list, and unsnooze change the canvas's snoozed jobs", function(assert)
@@ -11,7 +12,7 @@ test.case("ci snooze, list, and unsnooze change the canvas's snoozed jobs", func
 	assert.strContains(run({ "ci", "snooze", "docs", "--repo", "vocksel/orion" }), "until it passes")
 	assert.strContains(
 		run({ "ci", "snooze", "lint", "--repo", "vocksel/orion", "--until", "2099-01-01" }),
-		"until 2099-01-01T00:00:00Z"
+		`until {parseUntil("2099-01-01")}`
 	)
 	assert.strContains(run({ "ci", "list" }), "vocksel/orion  docs  until it passes")
 
@@ -22,6 +23,18 @@ test.case("ci snooze, list, and unsnooze change the canvas's snoozed jobs", func
 	local snoozes = loadDoc(dir).settings.checkSnoozes
 	assert.eq(#snoozes, 1)
 	assert.eq(snoozes[1].name, "lint")
+end)
+
+test.case("ci snooze and card snooze end at the same moment for the same --until", function(assert)
+	local dir, run = testing.createHarness("ci-snooze-local")
+
+	for _, given in { "2099-01-01", "2099-01-01T09:30", "2099-01-01T09:30:00-07:00" } do
+		run({ "card", "snooze", "ci", "--until", given })
+		run({ "ci", "snooze", "lint", "--repo", "vocksel/orion", "--until", given })
+		local doc = loadDoc(dir)
+		assert.eq(doc.settings.checkSnoozes[1].untilTime, doc.nodes[2].data.snoozedUntil)
+		assert.eq(doc.settings.checkSnoozes[1].untilTime, parseUntil(given))
+	end
 end)
 
 test.case("ci snooze needs a repository and an end in the future", function(assert)

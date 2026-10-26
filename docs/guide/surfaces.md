@@ -1,6 +1,6 @@
 # Public surfaces
 
-These are the ways people, agents, and other tools reach Orion, and what each one promises.
+These are the ways people, agents, and other tools reach Orion, and what each one promises. New to the CLI? [The command line](./command-line) walks through it.
 
 ::: warning Before 0.1.0
 Orion hasn't had its first release. Until it does, any command, option, tool, or output shape here can be cut or renamed. A renamed command or option keeps working under its old name, with a notice, until the next release.
@@ -34,6 +34,6 @@ No shape is promised before 1.0.0. From 0.1.0, a change to one is deliberate and
 - **From 0.1.0:** breaking changes still happen, but deliberately, and new commands, options, and tools have to show why they widen the surface.
 - **From 1.0.0:** breaking changes ship with aliases first.
 
-The CLI and MCP pages are generated from the code that defines them, so they always match what Orion accepts.
+The CLI and MCP pages are generated from the code that defines them, and the [query](/reference/query), [selector](/reference/selectors), and [ref](/reference/refs) pages from the code that parses them, so they always match what Orion accepts.
 
 The [interface audit](/development/engineering/interface-audit) lists what is expected to change on each surface before 0.1.0.

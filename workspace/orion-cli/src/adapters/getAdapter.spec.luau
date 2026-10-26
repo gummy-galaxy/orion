@@ -6,11 +6,11 @@ test.case("adapter registry resolves each source and rejects unknown kinds", fun
 	for _, kind in { "github", "jira", "hop" } do
 		local adapter = getAdapter(kind)
 		assert.eq(adapter.kind, kind)
-		assert.eq(type(adapter.collect), "function")
+		assert.eq(type(adapter.collectAsync), "function")
 		assert.eq(type(adapter.createSource), "function")
 	end
 
-	assert.eq(type(getAdapter("github").refresh), "function")
+	assert.eq(type(getAdapter("github").refreshAsync), "function")
 	assert.throws(function()
 		getAdapter("missing")
 	end)
