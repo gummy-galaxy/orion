@@ -1,7 +1,13 @@
-import { isWork, type AppNode, type TaskData } from './model'
+import { findState } from './cardTypes/findState'
+import { isWork, type AppNode, type Status, type TaskData } from './model'
 
-/** The fields a multi-selection sets on every work item in it. */
-export type BatchPatch = Partial<Pick<TaskData, 'status' | 'who'>>
+/** The fields a multi-selection sets on every work item in it. Its status is a meaning, which each card records as its own type's state. */
+export type BatchPatch = { status?: Status; who?: TaskData['who'] }
+
+/** The edit a batch patch makes to one card, with the status as the state the card's type declares for it. */
+export function patchFor(data: TaskData, patch: BatchPatch): Partial<TaskData> {
+  return patch.status === undefined ? patch : { ...patch, status: findState(data, patch.status) }
+}
 
 /**
  * Applies one patch to every work item among `ids` in a single change, so the canvas records it as one
@@ -15,12 +21,13 @@ export function patchWork(nodes: AppNode[], ids: ReadonlySet<string>, patch: Bat
     if (!ids.has(node.id) || !isWork(node)) return node
 
     const data = node.data as TaskData
+    const edit = patchFor(data, patch)
 
-    if (Object.entries(patch).every(([key, value]) => data[key as keyof BatchPatch] === value)) return node
+    if (Object.entries(edit).every(([key, value]) => data[key as keyof TaskData] === value)) return node
 
     changed = true
 
-    return { ...node, data: { ...data, ...patch } } as AppNode
+    return { ...node, data: { ...data, ...edit } } as AppNode
   })
 
   return changed ? next : nodes

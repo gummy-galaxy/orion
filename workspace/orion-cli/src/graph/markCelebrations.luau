@@ -1,4 +1,4 @@
-local getStringField = require("@root/getStringField")
+local getStateMeaning = require("@root/cardTypes/getStateMeaning")
 local isNote = require("@root/graph/isNote")
 local types = require("@root/types")
 
@@ -12,7 +12,7 @@ type Doc = types.Doc
 local function markCelebrations(doc: Doc, previous: { [string]: string })
 	for _, item in doc.nodes do
 		if item.type == "task" and not isNote(item) then
-			local status = getStringField(item.data.status)
+			local status = getStateMeaning(item)
 			local wasOpen = previous[item.id] ~= nil and previous[item.id] ~= "done"
 
 			if item.data.celebrate == false or status ~= "done" then

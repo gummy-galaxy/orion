@@ -1,4 +1,5 @@
 local checkFields = require("@root/graph/checkFields")
+local checkState = require("@root/cardTypes/checkState")
 local getHeaderHeight = require("@root/graph/getHeaderHeight")
 local getItem = require("@root/graph/getItem")
 local graphTypes = require("@root/graph/types")
@@ -139,7 +140,11 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 		snooze(doc, id, if fields.snoozedUntil == "" then nil else fields.snoozedUntil)
 	end
 
-	-- After the kind, so a field the new kind declares can be set with it.
+	-- After the kind, so the new kind's states and fields apply.
+	if fields.status then
+		checkState(item, fields.status)
+	end
+
 	for name, text in fields.values or {} do
 		setFieldValue(doc, id, name, text)
 	end

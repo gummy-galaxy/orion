@@ -9,13 +9,13 @@ import { getPullRepo } from '../getPullRepo'
 import { withSnoozedFacts } from '../withSnoozedFacts'
 import { Timeline } from './Timeline'
 import { TypeFields } from './TypeFields'
+import { getStateChoices } from '../cardTypes/getStateChoices'
 import { useCardLog } from '../useCardLog'
 import type { SnoozedJob, Work } from '../derive'
 import { workspaceAtom } from '../state'
 import type { CardFields, SaveFields } from '../fields/types'
 import {
   READINESS_LABEL,
-  STATUS_CHOICES,
   STATUS_LABEL,
   WHO_CHOICES,
   getCheckCounts,
@@ -28,7 +28,6 @@ import {
   type AppNode,
   type GithubSnapshot,
   type Link,
-  type Status,
   type TaskData,
   type Who,
 } from '../model'
@@ -169,8 +168,8 @@ export function TaskInspector({
         <div className="grid2">
           <div>
             <label htmlFor="t-status">Status</label>
-            <select id="t-status" value={data.status} onChange={(event) => update(node.id, { status: event.target.value as Status })}>
-              {STATUS_CHOICES.map((choice) => (
+            <select id="t-status" value={data.status} onChange={(event) => update(node.id, { status: event.target.value })}>
+              {getStateChoices(data).map((choice) => (
                 <option key={choice.value} value={choice.value}>
                   {choice.label}
                 </option>
