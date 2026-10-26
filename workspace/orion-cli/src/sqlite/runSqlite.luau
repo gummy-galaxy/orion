@@ -4,13 +4,14 @@ local spawnSqlite = require("@root/sqlite/spawnSqlite")
 
 -- `sqlite3 -json` prints each statement's rows as their own array, one row per
 -- line, and nothing for a statement without rows. A JSON string can't hold a
--- raw newline, so a line that starts a new array starts a new statement.
+-- raw newline, so a line that starts a new array starts a new statement. Lines
+-- end in "\r\n" on Windows.
 local function parseRows(output: string): json.Array
 	if output:match("^%s*$") then
 		return {}
 	end
 
-	local joined = output:gsub("%]\n%[", ",")
+	local joined = output:gsub("%]\r?\n%[", ",")
 	return json.asArray(json.deserialize(joined) :: json.Value) or {}
 end
 
