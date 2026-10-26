@@ -47,7 +47,7 @@ test.case("runSqlite raises a failure that says whether the database is damaged"
 	assert.eq((failure :: any).isCorrupt, false)
 
 	fs.writeStringToFile(database, string.rep("not a database ", 100))
-	succeeded, failure = pcall(runSqlite, database, "SELECT 1;", nil)
+	succeeded, failure = pcall(runSqlite, database, "SELECT count(*) FROM sqlite_master;", nil)
 	assert.eq(succeeded, false)
 	assert.eq((failure :: any).isCorrupt, true)
 end)
