@@ -16,7 +16,7 @@ The CLI reads and changes the same data as the app, and the app picks up every c
 orion help
 ```
 
-See the [CLI reference](/reference/cli/) for every command, or run `orion help --all` to print them all in the terminal.
+[The command line](./command-line) walks through a first session. See the [CLI reference](/reference/cli/) for every command, or run `orion help --all` to print them all in the terminal.
 
 ## Connect an agent over MCP
 
@@ -43,4 +43,5 @@ See the [MCP reference](/reference/mcp) for every tool.
 
 - [Concepts](./concepts) explains cards, links, groups, and sources.
 - [Using the canvas](./canvas) walks through the app.
+- [The command line](./command-line) walks through the CLI.
 - [Sources](./sources) brings in your pull requests and issues.

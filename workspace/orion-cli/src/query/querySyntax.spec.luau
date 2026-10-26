@@ -1,0 +1,37 @@
+local test = require("@std/test")
+
+local parseExpression = require("@root/query/parseExpression")
+local querySyntax = require("@root/query/querySyntax")
+
+test.case("every documented field and example parses", function(assert)
+	for _, field in querySyntax.fields do
+		assert.eq(parseExpression(field.example).field, field.name)
+	end
+
+	for _, example in querySyntax.examples do
+		parseExpression(example)
+	end
+end)
+
+test.case("~ works on text fields only", function(assert)
+	for _, field in querySyntax.fields do
+		local expression = `{field.name} ~ "x"`
+
+		if field.isText then
+			assert.eq(parseExpression(expression).operator, "~")
+		else
+			assert.throwsWith(`'~' is only supported for label, note, and ref`, function()
+				parseExpression(expression)
+			end)
+		end
+	end
+end)
+
+test.case("a field with a fixed set of values refuses others", function(assert)
+	assert.throwsWith("query at column 14: draft must be 'true' or 'false'", function()
+		parseExpression([[draft = "yes"]])
+	end)
+	assert.throwsWith("query at column 16: snoozed must be 'true' or 'false'", function()
+		parseExpression([[snoozed = "yes"]])
+	end)
+end)
