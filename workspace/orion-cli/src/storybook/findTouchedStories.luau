@@ -8,7 +8,8 @@ type Story = types.Story
 -- What TypeScript tries after a relative specifier, in order.
 local SUFFIXES = { "", ".ts", ".tsx", "/index.ts", "/index.tsx" }
 
--- `import … from './x'` and `export … from './x'`, `import './x.css'`, and `import('./x')`.
+-- `import … from './x'` and `export … from './x'`, `import './x.css'`, and
+-- `import('./x')`.
 local IMPORT_PATTERNS = {
 	"from%s*['\"](%.[^'\"]+)['\"]",
 	"import%s*['\"](%.[^'\"]+)['\"]",
@@ -16,10 +17,12 @@ local IMPORT_PATTERNS = {
 }
 
 --[[
-	Finds the stories that load a changed file. It follows each stories file's relative imports, and the imports of the
-	files they import, and returns how many imports away the nearest changed file is, keyed by stories file: 0 when the
-	stories file itself changed, 1 when it imports a changed file, and so on. Stories files that never reach a changed
-	file are left out. Paths are from the repository root, and `readFile` reads them.
+	Finds the stories that load a changed file. It follows each stories file's
+	relative imports, and the imports of the files they import, and returns how
+	many imports away the nearest changed file is, keyed by stories file: 0 when
+	the stories file itself changed, 1 when it imports a changed file, and so
+	on. Stories files that never reach a changed file are left out. Paths are
+	from the repository root, and `readFile` reads them.
 ]]
 local function findTouchedStories(
 	stories: { Story },

@@ -11,7 +11,8 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Item = types.Item
 
--- Wraps items that share a parent in a new group, keeping their arrangement. An id the caller picks must be free.
+-- Wraps items that share a parent in a new group, keeping their arrangement. An
+-- id the caller picks must be free.
 local function makeGroup(doc: Doc, label: string, ids: { string }, groupId: string?): Item
 	assert(label ~= "", "a group needs a name")
 	assert(#ids > 0, "a group needs at least one item")

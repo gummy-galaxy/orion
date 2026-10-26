@@ -53,8 +53,9 @@ end
 test.case("a write killed between files comes back whole", function(assert)
 	local dir = createCanvas("recover-killed")
 
-	-- A folder where the new card's file goes stops the write after the other files moved into place, as a kill
-	-- would. Reads skip folders, so the write still sees the canvas as it was.
+	-- A folder where the new card's file goes stops the write after the other
+	-- files moved into place, as a kill would. Reads skip folders, so the write
+	-- still sees the canvas as it was.
 	local blocked = path.join(dir, "nodes", "d.json")
 	fs.createDirectory(path.join(blocked, "in-the-way"), { makeParents = true })
 
@@ -67,7 +68,8 @@ test.case("a write killed between files comes back whole", function(assert)
 	end)
 	assert.eq(succeeded, false)
 
-	-- The killed writer also leaves its lock, long enough ago that the next one may take it.
+	-- The killed writer also leaves its lock, long enough ago that the next one
+	-- may take it.
 	local lock = path.join(dir, "orion.lock")
 	fs.createDirectory(lock)
 	fs.writeStringToFile(path.join(lock, "owner"), `999999 {os.time() - 3600}`)

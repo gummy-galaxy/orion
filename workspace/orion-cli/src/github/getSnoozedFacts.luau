@@ -11,8 +11,8 @@ type Item = types.Item
 type Ref = types.Ref
 type SnoozedFacts = types.SnoozedFacts
 
--- The snooze covering a job on a card: one for the job in the card's repository that hasn't ended, and that the job
--- hasn't passed on the card since.
+-- The snooze covering a job on a card: one for the job in the card's repository
+-- that hasn't ended, and that the job hasn't passed on the card since.
 local function findSnooze(
 	snoozes: { CheckSnooze },
 	repo: string,
@@ -32,10 +32,12 @@ local function findSnooze(
 	return nil
 end
 
--- A card's pull request facts as if its snoozed jobs hadn't failed, or nil when no snooze covers a job that failed
--- there. The facts come from the recorded details the same way a refresh reads them, so a card whose only failures
--- are snoozed reads as running, passing, or ready to merge. `clock` is the current UTC time, so a timed snooze stops
--- counting once it ends, before a refresh clears it.
+-- A card's pull request facts as if its snoozed jobs hadn't failed, or nil when
+-- no snooze covers a job that failed there. The facts come from the recorded
+-- details the same way a refresh reads them, so a card whose only failures are
+-- snoozed reads as running, passing, or ready to merge. `clock` is the current
+-- UTC time, so a timed snooze stops counting once it ends, before a refresh
+-- clears it.
 local function getSnoozedFacts(item: Item, snoozes: { CheckSnooze }, clock: string): SnoozedFacts?
 	if #snoozes == 0 then
 		return nil

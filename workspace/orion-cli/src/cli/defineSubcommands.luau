@@ -5,7 +5,8 @@ local definitions = require("@root/cli/definitions")
 
 type Command = context.Command
 
--- Adds each named subcommand with its own help, --canvas option, and MCP tool, then lets the command define its options.
+-- Adds each named subcommand with its own help, --canvas option, and MCP tool,
+-- then lets the command define its options.
 local function defineSubcommands(parser: cli.Parser, commands: { [string]: Command }, names: { string })
 	for _, name in names do
 		local subcommand = parser:subcommand(name, { help = commands[name].help })

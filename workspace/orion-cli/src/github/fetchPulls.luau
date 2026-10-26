@@ -12,9 +12,10 @@ type CommandRunner = types.CommandRunner
 local BATCH_SIZE = 25
 
 --[[
-	Fetches the full state of each pull request, 25 to a query. A batch that still fails after halving is reported in
-	`failures` rather than raised, so the other batches keep their results. `checked` holds the keys each successful
-	query covered, found or not.
+	Fetches the full state of each pull request, 25 to a query. A batch that
+	still fails after halving is reported in `failures` rather than raised, so
+	the other batches keep their results. `checked` holds the keys each
+	successful query covered, found or not.
 ]]
 local function fetchPulls(run: CommandRunner, refs: { Ref }): PullResult
 	local queried = queryPulls(run, refs, getPullFields(), BATCH_SIZE)

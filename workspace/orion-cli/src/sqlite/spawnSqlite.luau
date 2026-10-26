@@ -14,7 +14,8 @@ local logger = archivist.getLogger("orion.sqlite")
 -- How long a statement waits on another process's write before it fails.
 local BUSY_TIMEOUT_MS = 5000
 
--- SQLite's result codes for a file that isn't a database or a database that's damaged.
+-- SQLite's result codes for a file that isn't a database or a database that's
+-- damaged.
 local CORRUPT_CODES = { ["(11)"] = true, ["(26)"] = true }
 
 local batchSequence = 0
@@ -36,13 +37,15 @@ local function isCorrupt(stderr: string): boolean
 end
 
 --[[
-	Runs `sql` against the database at `database` through the `sqlite3` command in the given output mode, such as
-	`-json`, and returns what it printed. With `batch`, the statements can read it as one JSON string from the
-	`batch` table's `value` column and unpack it with `json_each()`. The batch goes through a file rather than the
-	command line, which caps one argument at 128 KB on Linux.
+	Runs `sql` against the database at `database` through the `sqlite3` command
+	in the given output mode, such as `-json`, and returns what it printed. With
+	`batch`, the statements can read it as one JSON string from the `batch`
+	table's `value` column and unpack it with `json_each()`. The batch goes
+	through a file rather than the command line, which caps one argument at 128
+	KB on Linux.
 
-	Raises a `SqliteFailure`, whose `isCorrupt` says the database needs to be rebuilt, and raises the spawn error
-	when `sqlite3` isn't installed.
+	Raises a `SqliteFailure`, whose `isCorrupt` says the database needs to be
+	rebuilt, and raises the spawn error when `sqlite3` isn't installed.
 ]]
 local function spawnSqlite(database: string, sql: string, mode: string, batch: json.Value?): string
 	local started = time.now()

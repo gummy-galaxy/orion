@@ -13,7 +13,8 @@ local function hasPassed(pull: PullState, name: string): boolean
 		return table.find(pull.passedChecks, name) ~= nil
 	end
 
-	-- Jobs are listed only when one failed, so a pull request whose checks all passed passed this one too.
+	-- Jobs are listed only when one failed, so a pull request whose checks all
+	-- passed passed this one too.
 	return pull.checks == "SUCCESS"
 end
 
@@ -27,9 +28,10 @@ local function isFailing(pull: PullState, name: string): boolean
 	return false
 end
 
--- Brings check snoozes up to date after a refresh. A timed snooze ends once its time passes. A snooze that lasts until
--- the job passes records each card it has since passed on, so a later failure there shows again, and it ends once no
--- open card is still hiding a failure of that job.
+-- Brings check snoozes up to date after a refresh. A timed snooze ends once its
+-- time passes. A snooze that lasts until the job passes records each card it
+-- has since passed on, so a later failure there shows again, and it ends once
+-- no open card is still hiding a failure of that job.
 local function trackCheckSnoozes(doc: Doc, fetched: Fetched, now: string)
 	local snoozes = doc.settings.checkSnoozes
 
@@ -65,7 +67,8 @@ local function trackCheckSnoozes(doc: Doc, fetched: Fetched, now: string)
 			end
 		end
 
-		-- A refresh that couldn't fetch every card can't tell whether a job still fails anywhere, so it keeps the snooze.
+		-- A refresh that couldn't fetch every card can't tell whether a job
+		-- still fails anywhere, so it keeps the snooze.
 		if not hiding and #fetched.failures == 0 then
 			table.remove(snoozes, index)
 		end

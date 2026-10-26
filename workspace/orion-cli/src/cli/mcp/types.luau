@@ -14,7 +14,8 @@ export type Field = {
 	minimum: number?,
 }
 
--- A tool runs one CLI command, named after its path, such as orion_card_create for orion card create.
+-- A tool runs one CLI command, named after its path, such as orion_card_create
+-- for orion card create.
 export type Tool = {
 	name: string,
 	description: string,
@@ -23,9 +24,11 @@ export type Tool = {
 	-- Whether calls add --json, which every command that takes it does.
 	json: boolean,
 	annotations: cliTypes.Annotations?,
-	-- Old names a call may still use after a rename, which tools/list doesn't show.
+	-- Old names a call may still use after a rename, which tools/list doesn't
+	-- show.
 	aliases: { string },
-	-- Old argument names after an option rename, each with the field it now fills.
+	-- Old argument names after an option rename, each with the field it now
+	-- fills.
 	renamedArguments: { [string]: string },
 }
 

@@ -17,8 +17,8 @@ type Doc = types.Doc
 type Item = types.Item
 type ItemFields = graphTypes.ItemFields
 
--- Adding or removing a group's header moves its top edge up or down and keeps every card where it is on the canvas,
--- as the app does when it refits a group.
+-- Adding or removing a group's header moves its top edge up or down and keeps
+-- every card where it is on the canvas, as the app does when it refits a group.
 local function resizeHeader(doc: Doc, group: Item, delta: number)
 	if delta == 0 then
 		return
@@ -137,7 +137,8 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 		item.data.itemKind = chooseItemKind(repo, if pr then 1 else nil, kind)
 	end
 
-	-- Work isn't drawn with a shape or tint, so a component turned into work drops them.
+	-- Work isn't drawn with a shape or tint, so a component turned into work
+	-- drops them.
 	if not isComponent(item) then
 		item.data.shape = nil
 		item.data.color = nil
@@ -149,7 +150,8 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	setLook(item, fields)
 
-	-- A height the app measured no longer fits new text or a new shape, so the estimate stands in until it measures again.
+	-- A height the app measured no longer fits new text or a new shape, so the
+	-- estimate stands in until it measures again.
 	local now = { item.data.label, item.data.note, item.data.itemKind, item.data.shape }
 
 	-- Fields can be nil, so walk them by index.

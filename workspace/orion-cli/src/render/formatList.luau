@@ -1,4 +1,5 @@
--- Joins words into prose, such as "label, note, and ref" or "'true' or 'false'", wrapping each in `quote` when given.
+-- Joins words into prose, such as "label, note, and ref" or "'true' or
+-- 'false'", wrapping each in `quote` when given.
 local function formatList(words: { string }, conjunction: string?, quote: string?): string
 	local quoted: { string } = {}
 

@@ -17,8 +17,8 @@ local storeTypes = require("@root/store/types")
 type CanvasSnapshot = storeTypes.CanvasSnapshot
 type CanvasWrite = storeTypes.CanvasWrite
 
--- Saves the whole canvas a write replaces as one file in the backups folder. Backups are best-effort: a failed
--- backup never blocks the write itself.
+-- Saves the whole canvas a write replaces as one file in the backups folder.
+-- Backups are best-effort: a failed backup never blocks the write itself.
 local function backUp(dir: string, previous: CanvasSnapshot)
 	pcall(function()
 		local now = os.time()
@@ -27,7 +27,8 @@ local function backUp(dir: string, previous: CanvasSnapshot)
 		local backup = path.join(folder, getBackupName(revision, now))
 		ensureDirectory(folder)
 
-		-- The snapshot's document may have been decoded and changed since, so the files are joined again.
+		-- The snapshot's document may have been decoded and changed since, so
+		-- the files are joined again.
 		if not fs.exists(backup) then
 			local document = if previous.files then joinCanvasFiles(previous.files) else previous.document
 			fs.writeStringToFile(backup, json.serialize(document, true))
@@ -54,16 +55,20 @@ local function getRemovals(dir: string, files: { [string]: string }): { string }
 end
 
 --[[
-	Writes a whole canvas, in the shape `encodeDocObject` returns, as the files of its folder. Only files whose
-	text differs from `previous` are rewritten, node and link files the canvas no longer has are removed, and
-	`local.json`, which holds the revision, goes last. A marker stays down for the length of the write so readers
-	wait it out, and the index journals the write before any file moves, so `recoverCanvasWrite` can finish one that
-	stops partway. Callers hold the lock, and pass what they read under it as `previous`, with its files, whose
-	canvas is backed up first. Fields that changed since `previous` are stamped with the current time.
+	Writes a whole canvas, in the shape `encodeDocObject` returns, as the files
+	of its folder. Only files whose text differs from `previous` are rewritten,
+	node and link files the canvas no longer has are removed, and `local.json`,
+	which holds the revision, goes last. A marker stays down for the length of
+	the write so readers wait it out, and the index journals the write before
+	any file moves, so `recoverCanvasWrite` can finish one that stops partway.
+	Callers hold the lock, and pass what they read under it as `previous`, with
+	its files, whose canvas is backed up first. Fields that changed since
+	`previous` are stamped with the current time.
 ]]
 local function writeCanvasFiles(dir: string, document: json.Object, previous: CanvasSnapshot?)
 	local files = splitDocObject(document, previous, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
-	-- Replaced on every write, even unchanged, so a reader that started before it can tell the files moved under it.
+	-- Replaced on every write, even unchanged, so a reader that started before
+	-- it can tell the files moved under it.
 	files[fileNames.localState] = files[fileNames.localState] or "{}\n"
 	local previousFiles = if previous and previous.files then previous.files else {}
 	local marker = path.join(dir, fileNames.pendingWrite)
@@ -85,7 +90,8 @@ local function writeCanvasFiles(dir: string, document: json.Object, previous: Ca
 	local write: CanvasWrite = { writes = writes, removes = getRemovals(dir, files) }
 	local revision = if type(document.revision) == "number" then document.revision else nil
 
-	-- The marker goes down before the journal, so an unfinished operation always has a marker to be found by.
+	-- The marker goes down before the journal, so an unfinished operation
+	-- always has a marker to be found by.
 	fs.writeStringToFile(marker, `{process.pid()}`)
 
 	local id = journalCanvasWrite(dir, write, revision)

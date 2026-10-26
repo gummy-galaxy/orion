@@ -1,17 +1,20 @@
 --[[
-	The forms `--ref` takes, as data, in the order resolveRef tries them. `lute run docs` writes the reference page
-	from it. Every example has to resolve to its key with the adapter it names; the spec checks.
+	The forms `--ref` takes, as data, in the order resolveRef tries them.
+	`lute run docs` writes the reference page from it. Every example has to
+	resolve to its key with the adapter it names; the spec checks.
 ]]
 
 export type RefForm = {
 	form: string,
 	help: string,
-	-- The source kind whose adapter parses the form, or nil for the branch form resolveRef parses itself.
+	-- The source kind whose adapter parses the form, or nil for the branch form
+	-- resolveRef parses itself.
 	kind: string?,
 	-- The sources the form needs configured to resolve, as a sentence.
 	needs: string?,
 	example: string,
-	-- The key the example resolves to, which `--where 'ref = "…"'` and `ref:` selectors match.
+	-- The key the example resolves to, which `--where 'ref = "…"'` and `ref:`
+	-- selectors match.
 	key: string,
 }
 

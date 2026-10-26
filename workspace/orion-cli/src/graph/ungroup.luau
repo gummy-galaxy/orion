@@ -4,7 +4,8 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Removes a group and hands its items to the group that held it, keeping them where they are on the canvas.
+-- Removes a group and hands its items to the group that held it, keeping them
+-- where they are on the canvas.
 local function ungroup(doc: Doc, id: string)
 	local group = getGroup(doc, id)
 

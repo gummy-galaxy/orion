@@ -22,12 +22,14 @@ local logger = archivist.getLogger("orion.watcher")
 
 local watcher = {}
 
--- Every write replaces the canvas's local.json last, so its stamp moves once per write.
+-- Every write replaces the canvas's local.json last, so its stamp moves once
+-- per write.
 local function getWrittenPath(dir: string): string
 	return tostring(path.join(dir, fileNames.localState))
 end
 
--- Watches a canvas's node and link folders, which change on their own when a `git pull` or an editor touches them.
+-- Watches a canvas's node and link folders, which change on their own when a
+-- `git pull` or an editor touches them.
 local function watchEntries(dir: string): { Watch }
 	local watches: { Watch } = {}
 
@@ -89,7 +91,8 @@ function watcher.create(
 	local generation = 0
 	local monitor = {}
 
-	-- The canvas and its fingerprint, which changes with any file's text even when the revision doesn't.
+	-- The canvas and its fingerprint, which changes with any file's text even
+	-- when the revision doesn't.
 	local function read(): (Doc?, string?)
 		local dir = getWorkspaceDir(root, active())
 		local didSucceed, snapshot = pcall(readCanvasFiles, dir, false)
@@ -129,7 +132,8 @@ function watcher.create(
 		generation += 1
 	end
 
-	-- With `isForced`, a node or link file changed, so the canvas is read again even when `local.json` didn't move.
+	-- With `isForced`, a node or link file changed, so the canvas is read again
+	-- even when `local.json` didn't move.
 	local function scheduleChange(isForced: boolean)
 		generation += 1
 		local scheduled = generation
@@ -154,7 +158,8 @@ function watcher.create(
 			local doc, fingerprint = read()
 
 			if doc == nil then
-				return -- A writer may still be finishing; retry on the next check.
+				-- A writer may still be finishing; retry on the next check.
+				return
 			end
 
 			lastDataStamp = current
@@ -163,7 +168,8 @@ function watcher.create(
 				lastRevision, lastFingerprint = doc.revision, fingerprint
 				changed(doc.revision, doc, false)
 			elseif fingerprint ~= lastFingerprint then
-				-- Files changed outside Orion, such as by a `git pull`, without a new revision.
+				-- Files changed outside Orion, such as by a `git pull`, without
+				-- a new revision.
 				lastFingerprint = fingerprint
 				logger.info("re-indexed", getWorkspaceDir(root, active()), "after files changed outside Orion")
 				changed(doc.revision, doc, true)
@@ -177,7 +183,8 @@ function watcher.create(
 		end
 	end
 
-	-- Log appends don't change the document, so they get their own stamp and announcement.
+	-- Log appends don't change the document, so they get their own stamp and
+	-- announcement.
 	local function checkLog()
 		local current = getStamp(logFile)
 
@@ -197,7 +204,8 @@ function watcher.create(
 		local didSucceed, list = pcall(getWorkspaces, root)
 
 		if not didSucceed or not list then
-			return -- Retry if a concurrent writer has not finished the manifest.
+			-- Retry if a concurrent writer has not finished the manifest.
+			return
 		end
 
 		lastManifestStamp = current

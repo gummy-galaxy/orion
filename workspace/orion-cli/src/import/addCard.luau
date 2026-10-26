@@ -7,7 +7,8 @@ type Record = adapterTypes.Record
 type Doc = types.Doc
 type Item = types.Item
 
--- Adds a card for a looked-up record, shaped the way ingest shapes the same record.
+-- Adds a card for a looked-up record, shaped the way ingest shapes the same
+-- record.
 local function addCard(doc: Doc, record: Record, groupId: string?): Item
 	local item = addItem(doc, record.label, {
 		group = groupId,

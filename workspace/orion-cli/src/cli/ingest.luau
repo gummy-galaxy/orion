@@ -1,10 +1,13 @@
 local cli = require("@batteries/cli")
 local json = require("@std/json")
 
+local applyRepositories = require("@root/github/applyRepositories")
 local collectSources = require("@root/ingest/collectSources")
 local context = require("@root/cli/context")
+local fetchRepositories = require("@root/github/fetchRepositories")
 local formatRefreshReport = require("@root/github/formatRefreshReport")
 local getReportJson = require("@root/ingest/getReportJson")
+local healRefKeys = require("@root/github/healRefKeys")
 local ingestTypes = require("@root/ingest/types")
 local loadDoc = require("@root/store/loadDoc")
 local placeRecords = require("@root/ingest/placeRecords")
@@ -53,14 +56,21 @@ return table.freeze({
 		local now = options.now()
 		local selected = parser:get("source")
 		local snapshot = loadDoc(options.dir)
+		-- Refs take their repositories' ids and current names before anything
+		-- matches against them, so a repository that moved keeps its cards.
+		local found = fetchRepositories(snapshot, options.runner)
+		applyRepositories(snapshot, found, now)
+		healRefKeys(snapshot)
 		local fetched =
 			collectSources(snapshot, readSourceCommands(options.root, options.workspace), options.runner, now, selected)
 		local applyRefreshes = refreshAdapters(snapshot, options.runner, now, selected)
 		local report: ingestTypes.Report
 
-		-- Fetching happens above, outside the lock. Refreshing after placing skips the cards this run added when listing
-		-- what's unplaced.
+		-- Fetching happens above, outside the lock. Refreshing after placing
+		-- skips the cards this run added when listing what's unplaced.
 		local function apply(doc: Doc)
+			applyRepositories(doc, found, now)
+			healRefKeys(doc)
 			report = placeRecords(doc, fetched)
 			report.refreshes = applyRefreshes(doc)
 		end

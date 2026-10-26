@@ -1,6 +1,7 @@
 local path = require("@std/path")
 
--- Where each package lives. Lute scripts run from the repository root, so these resolve against it.
+-- Where each package lives. Lute scripts run from the repository root, so these
+-- resolve against it.
 local CLI_PATH = path.resolve("workspace/orion-cli")
 
 return {

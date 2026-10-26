@@ -16,9 +16,11 @@ local SIGNAL_NAMES = {
 }
 
 --[[
-	Runs a program through the shell, and raises an error that names the command and how it ended when it fails. The
-	shell finds programs such as `npm.cmd` on Windows. Output passes through to the terminal, unless `captureOutput` is
-	set: then it returns stdout with its surrounding newlines trimmed, and a failure's error also carries stderr.
+	Runs a program through the shell, and raises an error that names the command
+	and how it ended when it fails. The shell finds programs such as `npm.cmd`
+	on Windows. Output passes through to the terminal, unless `captureOutput` is
+	set: then it returns stdout with its surrounding newlines trimmed, and a
+	failure's error also carries stderr.
 ]]
 local function run(program: string, arguments: { string }, options: Options?): string?
 	local captureOutput = options ~= nil and options.captureOutput == true

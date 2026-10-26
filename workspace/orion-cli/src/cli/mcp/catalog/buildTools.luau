@@ -9,7 +9,8 @@ type CommandDescription = describeCommands.CommandDescription
 type Field = mcpTypes.Field
 type Tool = mcpTypes.Tool
 
--- Every command takes --canvas, so describeCommands leaves it out and each tool gets this field unless it omits it.
+-- Every command takes --canvas, so describeCommands leaves it out and each tool
+-- gets this field unless it omits it.
 local CANVAS_FIELD: Field = table.freeze({
 	name = "canvas",
 	argument = "canvas",
@@ -23,7 +24,8 @@ local function toCamelCase(name: string): string
 	return (name:gsub("%-(%w)", string.upper))
 end
 
--- Positionals and words are required unless an argument says otherwise, since commands fail without them.
+-- Positionals and words are required unless an argument says otherwise, since
+-- commands fail without them.
 local function isRequired(argument: Argument): boolean
 	if argument.required then
 		return true
@@ -47,7 +49,8 @@ local function getField(argument: Argument): Field
 	}
 end
 
--- The old tool names that still reach a command: one for each command alias whose new path starts its path.
+-- The old tool names that still reach a command: one for each command alias
+-- whose new path starts its path.
 local function getToolAliases(words: { string }, aliases: { Alias }): { string }
 	local names: { string } = {}
 
@@ -74,7 +77,8 @@ local function getToolAliases(words: { string }, aliases: { Alias }): { string }
 	return names
 end
 
--- The old argument names a command's tool still takes, after its options were renamed.
+-- The old argument names a command's tool still takes, after its options were
+-- renamed.
 local function getRenamedArguments(path: string, aliases: { Alias }): { [string]: string }
 	local renamed: { [string]: string } = {}
 
@@ -101,7 +105,8 @@ local function buildTool(command: CommandDescription, path: string, aliases: { A
 		omit[omission.option] = true
 	end
 
-	-- Positionals and variadics come first, then the canvas, then options and flags, as on the command line.
+	-- Positionals and variadics come first, then the canvas, then options and
+	-- flags, as on the command line.
 	local names: { [string]: boolean } = { canvas = true }
 	local fields: { Field } = {}
 	local options: { Field } = {}
@@ -110,7 +115,8 @@ local function buildTool(command: CommandDescription, path: string, aliases: { A
 	for _, argument in command.arguments do
 		names[argument.name] = true
 
-		-- A tool call mustn't choose a program for Orion to run, so options that name one stay in the CLI.
+		-- A tool call mustn't choose a program for Orion to run, so options
+		-- that name one stay in the CLI.
 		if argument.type == "command" and not omit[argument.name] then
 			table.insert(
 				problems,
@@ -175,9 +181,10 @@ local function collectTools(command: CommandDescription, aliases: { Alias }, too
 	end
 end
 
--- Builds a tool for every command in the table that doesn't skip MCP, in the order orion help lists them. Fails
--- when a command declares no tool or omits an option it doesn't take, so MCP can't fall behind the CLI. Each tool
--- keeps the old names that aliases give it, which default to the shipped entries.
+-- Builds a tool for every command in the table that doesn't skip MCP, in the
+-- order orion help lists them. Fails when a command declares no tool or omits
+-- an option it doesn't take, so MCP can't fall behind the CLI. Each tool keeps
+-- the old names that aliases give it, which default to the shipped entries.
 local function buildTools(root: CommandDescription, aliases: { Alias }?): { Tool }
 	local tools: { Tool } = {}
 	local problems: { string } = {}

@@ -5,7 +5,8 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Hides a work item until `untilTime`, a UTC time in the form Orion stores, or shows it again when nil.
+-- Hides a work item until `untilTime`, a UTC time in the form Orion stores, or
+-- shows it again when nil.
 local function snooze(doc: Doc, id: string, untilTime: string?)
 	local item = getItem(doc, id)
 	assert(not isGroup(item), `"{id}" is a group; snooze works on items`)

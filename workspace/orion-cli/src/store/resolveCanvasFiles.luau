@@ -10,8 +10,8 @@ local function parseObject(text: string): json.Object?
 	return if succeeded then json.asObject(value) else nil
 end
 
--- Splits text with git's conflict markers into the two sides, or nil when it has none. A diff3 base section, after
--- `|||||||`, belongs to neither side.
+-- Splits text with git's conflict markers into the two sides, or nil when it
+-- has none. A diff3 base section, after `|||||||`, belongs to neither side.
 local function splitConflict(text: string): Sides?
 	if not text:find("^<<<<<<< ") and not text:find("\n<<<<<<< ") then
 		return nil
@@ -60,7 +60,8 @@ local function getNote(object: json.Object?): string
 	return if data and type(data.note) == "string" then data.note else ""
 end
 
--- The id a node file is named for, read back from the escapes `getEntryFileName` writes.
+-- The id a node file is named for, read back from the escapes
+-- `getEntryFileName` writes.
 local function getFileId(file: string): string
 	local name = file:match("^[^/]+/(.*)%.json$") or file
 	local id = name:gsub("%%(%x%x)", function(hex: string): string
@@ -98,7 +99,8 @@ local function resolveConflict(file: string, sides: Sides): (json.Object?, strin
 	return kept, `{file} has a git conflict; kept {keptName}'s side`
 end
 
--- A node file nothing can be read from still shows, as a note holding its text, so it isn't lost from the canvas.
+-- A node file nothing can be read from still shows, as a note holding its text,
+-- so it isn't lost from the canvas.
 local function getUnreadableNode(file: string, text: string): json.Object
 	return json.object({
 		id = getFileId(file),
@@ -114,11 +116,14 @@ local function getUnreadableNode(file: string, text: string): json.Object
 end
 
 --[[
-	Makes a canvas folder's files readable, keyed by path as `joinCanvasFiles` takes them, and returns the problems
-	it worked around. A file with git's conflict markers keeps one side, ours when it parses, and when the two sides
-	disagree on a note, its note holds both versions between the markers so it shows as a conflicted note. Any
-	other node file that isn't a JSON object becomes a note holding its text. A link or `local.json` that can't be
-	read is left out. `canvas.json` must parse on one side, since nothing else holds the canvas's settings.
+	Makes a canvas folder's files readable, keyed by path as `joinCanvasFiles`
+	takes them, and returns the problems it worked around. A file with git's
+	conflict markers keeps one side, ours when it parses, and when the two sides
+	disagree on a note, its note holds both versions between the markers so it
+	shows as a conflicted note. Any other node file that isn't a JSON object
+	becomes a note holding its text. A link or `local.json` that can't be read
+	is left out. `canvas.json` must parse on one side, since nothing else holds
+	the canvas's settings.
 ]]
 local function resolveCanvasFiles(files: { [string]: string }): ({ [string]: string }, { string })
 	local resolved: { [string]: string } = {}

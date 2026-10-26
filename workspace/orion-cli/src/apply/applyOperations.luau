@@ -20,13 +20,16 @@ local unlinkItems = require("@root/graph/unlinkItems")
 type Doc = types.Doc
 type Operation = applyTypes.Operation
 
--- Handles name the cards, notes, and groups a plan creates, so later steps can refer to them.
+-- Handles name the cards, notes, and groups a plan creates, so later steps can
+-- refer to them.
 type Handles = { [string]: string }
 
--- A step that adds a card or note records its id in `added`, so the plan can place it once every link is in.
+-- A step that adds a card or note records its id in `added`, so the plan can
+-- place it once every link is in.
 type Handler = (Doc, Operation, Handles, { string }) -> ()
 
--- "@name" is a handle declared by an earlier step. Any other value is an id already on the canvas.
+-- "@name" is a handle declared by an earlier step. Any other value is an id
+-- already on the canvas.
 local function resolve(handles: Handles, value: string): string
 	if value:sub(1, 1) ~= "@" then
 		return value
@@ -133,9 +136,11 @@ handlers.tidy = function(doc: Doc, operation: Operation, handles: Handles)
 	markForTidy(doc, resolve(handles, required(operation.id, "id")))
 end
 
--- Applies the steps in order to the document. A step that fails raises an error naming its position. The caller's
--- transaction then writes nothing, so a plan lands whole or not at all. Cards and notes the plan adds are placed after
--- its last step, so links made later in the plan count. Returns the id each declared handle got.
+-- Applies the steps in order to the document. A step that fails raises an error
+-- naming its position. The caller's transaction then writes nothing, so a plan
+-- lands whole or not at all. Cards and notes the plan adds are placed after its
+-- last step, so links made later in the plan count. Returns the id each
+-- declared handle got.
 local function applyOperations(doc: Doc, operations: { Operation }): Handles
 	local handles: Handles = {}
 	local added: { string } = {}

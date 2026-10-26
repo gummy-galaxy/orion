@@ -8,7 +8,8 @@ type Response = shared.Response
 
 local themes = {}
 
--- Lists the theme files in the data folder. Read only: the app parses and checks each one.
+-- Lists the theme files in the data folder. Read only: the app parses and
+-- checks each one.
 function themes.handle(request: net.ReceivedRequest, root: string): Response
 	if request.method ~= "GET" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))

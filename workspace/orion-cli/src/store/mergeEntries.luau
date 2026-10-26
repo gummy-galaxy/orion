@@ -16,9 +16,11 @@ local function encodeField(value: json.Value?): string
 end
 
 --[[
-	Merges two versions of one node or link file, as they're stored with `changedAt`, keeping the newer value of
-	each field. A field one side removed counts as changed when it was removed, so a newer removal wins over an
-	older edit. On a tie the larger encoded value wins, so the merge comes out the same whichever side is which.
+	Merges two versions of one node or link file, as they're stored with
+	`changedAt`, keeping the newer value of each field. A field one side removed
+	counts as changed when it was removed, so a newer removal wins over an older
+	edit. On a tie the larger encoded value wins, so the merge comes out the
+	same whichever side is which.
 ]]
 local function mergeEntries(ours: json.Object, theirs: json.Object): json.Object
 	assert(ours.id == theirs.id, "only two versions of the same entry merge")

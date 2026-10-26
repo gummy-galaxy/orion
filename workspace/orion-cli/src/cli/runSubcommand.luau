@@ -5,7 +5,8 @@ local context = require("@root/cli/context")
 type Command = context.Command
 type Context = context.Context
 
--- Runs the subcommand the parser selected, and says which ones there are when none was chosen.
+-- Runs the subcommand the parser selected, and says which ones there are when
+-- none was chosen.
 local function runSubcommand(parser: cli.Parser, commands: { [string]: Command }, options: Context)
 	local name, subcommand = parser:selected()
 

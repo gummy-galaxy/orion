@@ -8,10 +8,12 @@ type ChainStep = graphTypes.ChainStep
 type ClosedChain = graphTypes.ClosedChain
 type Doc = types.Doc
 
--- Closes out a finished card and every waiting card chained to it, so their Done stamps show. The chain runs both ways
--- along blocking links and passes only through finished cards, so related links and open work stop it. Each card closed
--- gets `celebrate = false`, which markCelebrations reads as closed out and drops, so a card finished in the same write
--- doesn't start waiting either.
+-- Closes out a finished card and every waiting card chained to it, so their
+-- Done stamps show. The chain runs both ways along blocking links and passes
+-- only through finished cards, so related links and open work stop it. Each
+-- card closed gets `celebrate = false`, which markCelebrations reads as closed
+-- out and drops, so a card finished in the same write doesn't start waiting
+-- either.
 local function closeChain(doc: Doc, id: string): ClosedChain
 	local item = getItem(doc, id)
 	assert(isWork(item), `"{id}" isn't a work item, so it has nothing to close out`)

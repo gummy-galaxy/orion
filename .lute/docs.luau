@@ -1,9 +1,11 @@
 --[[
-	Writes the generated reference pages in `docs/reference/` from the CLI's command table, the MCP tool catalog, and
-	the syntax tables its parsers read, so the docs site always shows the surface the code defines. Run it after
-	changing a command, an option, an MCP tool, or the syntax of `--where`, selectors, or refs, and commit what it
-	writes. It formats the pages with the docs site's Prettier, so run `npm ci` in `docs/`
-	first. With `--check`, it leaves the pages as they were and exits nonzero when one is out of date.
+	Writes the generated reference pages in `docs/reference/` from the CLI's
+	command table, the MCP tool catalog, and the syntax tables its parsers read,
+	so the docs site always shows the surface the code defines. Run it after
+	changing a command, an option, an MCP tool, or the syntax of `--where`,
+	selectors, or refs, and commit what it writes. It formats the pages with the
+	docs site's Prettier, so run `npm ci` in `docs/` first. With `--check`, it
+	leaves the pages as they were and exits nonzero when one is out of date.
 ]]
 local fs = require("@std/fs")
 local json = require("@std/json")
@@ -38,8 +40,8 @@ local SYNTAX_HEADER =
 local referenceDir = path.resolve("docs/reference")
 local checkOnly = table.find(process.args, "--check") ~= nil
 
--- Help text is plain prose, but VitePress compiles Markdown as Vue templates, so angle brackets and table pipes
--- must be escaped outside code.
+-- Help text is plain prose, but VitePress compiles Markdown as Vue templates,
+-- so angle brackets and table pipes must be escaped outside code.
 local function escape(text: string?): string
 	local escaped = (text or ""):gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub("|", "\\|")
 	return escaped
@@ -111,7 +113,8 @@ local function renderIndex(root: CommandDescription): string
 	return table.concat(lines, "\n") .. "\n"
 end
 
--- The Reference section's own page, so the nav's Reference link lands on content rather than a menu.
+-- The Reference section's own page, so the nav's Reference link lands on
+-- content rather than a menu.
 local function renderHome(root: CommandDescription, tools: { Tool }): string
 	local lines = {
 		HEADER,
@@ -133,7 +136,8 @@ local function renderHome(root: CommandDescription, tools: { Tool }): string
 	return table.concat(lines, "\n") .. "\n"
 end
 
--- How each value type reads in a tool's argument table, as the JSON its schema takes.
+-- How each value type reads in a tool's argument table, as the JSON its schema
+-- takes.
 local TYPE_LABELS: { [string]: string } = {
 	text = "string",
 	words = "string",
@@ -202,8 +206,9 @@ local function renderMcp(tools: { Tool }): string
 	return table.concat(parts, "\n")
 end
 
--- Wraps text in inline code for a table cell. Code needs no HTML escaping, but a pipe would still end the cell, and
--- text holding a backtick needs a longer fence.
+-- Wraps text in inline code for a table cell. Code needs no HTML escaping, but
+-- a pipe would still end the cell, and text holding a backtick needs a longer
+-- fence.
 local function code(text: string): string
 	local cell = text:gsub("|", "\\|")
 	return if cell:find("`", 1, true) then `\`\` {cell} \`\`` else `\`{cell}\``
@@ -364,7 +369,8 @@ local function renderRefs(): string
 	return table.concat(parts, "\n") .. "\n"
 end
 
--- The site's config reads this to build the reference sidebar, so a new command shows up without editing it.
+-- The site's config reads this to build the reference sidebar, so a new command
+-- shows up without editing it.
 local function renderSidebar(root: CommandDescription): string
 	local items: json.Array = {}
 
@@ -396,7 +402,8 @@ local function collectPages(): { Page }
 	return pages
 end
 
--- Reads every file the generator owns, so pages for removed commands count as stale too.
+-- Reads every file the generator owns, so pages for removed commands count as
+-- stale too.
 local function readCurrentPages(): { [string]: string }
 	local current: { [string]: string } = {}
 	local commandsDir = path.join(referenceDir, "cli")
@@ -428,7 +435,8 @@ local function writePages(pages: { Page }, current: { [string]: string })
 	end
 end
 
--- Formats the pages with the docs site's Prettier, so they pass its format check as written.
+-- Formats the pages with the docs site's Prettier, so they pass its format
+-- check as written.
 local function formatPages(pages: { Page })
 	local prettier = path.resolve("docs/node_modules/.bin/prettier")
 	assert(fs.exists(prettier), "Prettier is missing; run npm ci in docs/")

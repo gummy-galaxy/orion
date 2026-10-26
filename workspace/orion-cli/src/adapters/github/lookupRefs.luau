@@ -1,6 +1,8 @@
 local adapterTypes = require("@root/adapters/types")
 local getErrorText = require("@root/getErrorText")
+local getGithubId = require("@root/refs/getGithubId")
 local getRefKey = require("@root/adapters/getRefKey")
+local getRepoId = require("@root/github/getRepoId")
 local getString = require("@root/github/getString")
 local json = require("@std/json")
 local query = require("@root/github/query")
@@ -14,7 +16,8 @@ type CommandRunner = types.CommandRunner
 local BATCH_SIZE = 25
 local PUBLIC_HOST = "github.com"
 
--- The ref's URL names its host. Only github.com is recognized without a configured source, so other hosts come from one.
+-- The ref's URL names its host. Only github.com is recognized without a
+-- configured source, so other hosts come from one.
 local function getHost(resolved: ResolvedRef): string
 	local url = resolved.ref.url or ""
 	return url:match("^https://([^/]+)/") or PUBLIC_HOST
@@ -24,7 +27,8 @@ local function getField(ref: Ref): string
 	return if ref.kind == "pull" then "pullRequest" else "issue"
 end
 
--- One aliased query per batch: each alias asks one repository for one pull request or issue.
+-- One aliased query per batch: each alias asks one repository for one pull
+-- request or issue.
 local function lookupBatch(batch: { ResolvedRef }, host: string, run: CommandRunner, result: LookupResult)
 	local parts = {}
 
@@ -34,7 +38,7 @@ local function lookupBatch(batch: { ResolvedRef }, host: string, run: CommandRun
 		local field = getField(resolved.ref)
 		table.insert(
 			parts,
-			`p{index}: repository(owner: {json.serialize(assert(owner))}, name: {json.serialize(assert(name))}) \{ {field}(number: {number}) \{ title url } }`
+			`p{index}: repository(owner: {json.serialize(assert(owner))}, name: {json.serialize(assert(name))}) \{ databaseId {field}(number: {number}) \{ title url } }`
 		)
 	end
 
@@ -64,7 +68,9 @@ local function lookupBatch(batch: { ResolvedRef }, host: string, run: CommandRun
 		end
 
 		local recorded = table.clone(ref)
+		local repoId = getRepoId(repository)
 		recorded.url = getString(item.url) or ref.url
+		recorded.id = if repoId then getGithubId(repoId, assert(ref.key:match("[#@].*$")), host) else nil
 		result.records[key] = {
 			ref = recorded,
 			label = title,
@@ -75,7 +81,8 @@ local function lookupBatch(batch: { ResolvedRef }, host: string, run: CommandRun
 	end
 end
 
--- Batches refs by host, so a list of issues across repositories costs one query per 25 refs.
+-- Batches refs by host, so a list of issues across repositories costs one query
+-- per 25 refs.
 local function lookupRefs(refs: { ResolvedRef }, _context: adapterTypes.Context, run: CommandRunner): LookupResult
 	local result: LookupResult = { records = {}, failures = {} }
 	local byHost: { [string]: { ResolvedRef } } = {}

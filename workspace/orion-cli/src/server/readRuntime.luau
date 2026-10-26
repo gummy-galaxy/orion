@@ -10,7 +10,8 @@ export type Runtime = {
 	canvas: string,
 	dataFolder: string,
 	startedAt: string,
-	-- The build serving the folder, from `getVersion`. Servers from before it was recorded leave it out.
+	-- The build serving the folder, from `getVersion`. Servers from before it
+	-- was recorded leave it out.
 	version: string?,
 }
 

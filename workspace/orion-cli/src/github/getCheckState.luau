@@ -2,7 +2,8 @@ local getCheckCounts = require("@root/github/getCheckCounts")
 local getString = require("@root/github/getString")
 local json = require("@std/json")
 
--- A commit's checks as FAILURE, PENDING, or SUCCESS. Cancelled, skipped, neutral, and stale checks don't fail it.
+-- A commit's checks as FAILURE, PENDING, or SUCCESS. Cancelled, skipped,
+-- neutral, and stale checks don't fail it.
 local function getCheckState(rollup: json.Object): string?
 	local counts = getCheckCounts(rollup)
 

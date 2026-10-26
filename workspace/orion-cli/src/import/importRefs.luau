@@ -28,8 +28,9 @@ export type Options = {
 	commands: { [string]: { string } },
 }
 
--- Imports every ref in one transaction. Refs that don't resolve or can't be looked up fail alone; refs already on the canvas
--- are skipped and keep their card. The lookups run before the write, so the transaction stays short.
+-- Imports every ref in one transaction. Refs that don't resolve or can't be
+-- looked up fail alone; refs already on the canvas are skipped and keep their
+-- card. The lookups run before the write, so the transaction stays short.
 local function importRefs(inputs: { string }, options: Options): Report
 	local doc = loadDoc(options.dir)
 	local groupId = if options.groupId then resolveId(doc, options.groupId) else nil
@@ -41,7 +42,8 @@ local function importRefs(inputs: { string }, options: Options): Report
 	local entries = resolveInputs(inputs, doc.settings.sources)
 	local pending: { Entry } = {}
 
-	-- Cards that already exist need no lookup; the write re-checks them against the document it saves.
+	-- Cards that already exist need no lookup; the write re-checks them against
+	-- the document it saves.
 	for _, entry in entries do
 		if entry.resolved and not findExisting(doc, entry.resolved.ref) then
 			table.insert(pending, entry)
@@ -92,7 +94,8 @@ local function importRefs(inputs: { string }, options: Options): Report
 		end
 	end
 
-	-- Nothing to add still checks --if-revision, but skips the write so the revision doesn't move.
+	-- Nothing to add still checks --if-revision, but skips the write so the
+	-- revision doesn't move.
 	local written, baseRevision = runEdit(options.dir, options.dryRun or adding == 0, options.ifRevision, place)
 
 	return {

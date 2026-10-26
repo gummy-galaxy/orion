@@ -7,8 +7,9 @@ local storeTypes = require("@root/store/types")
 
 type CanvasWrite = storeTypes.CanvasWrite
 
--- Any operation still unfinished here outlived its marker, which a writer only lifts after finishing, so it's
--- stale: replaying it later would undo the writes since.
+-- Any operation still unfinished here outlived its marker, which a writer only
+-- lifts after finishing, so it's stale: replaying it later would undo the
+-- writes since.
 local JOURNAL = [[
 BEGIN IMMEDIATE;
 UPDATE operations SET finishedAt = strftime('%%Y-%%m-%%dT%%H:%%M:%%fZ', 'now'), isAbandoned = 1
@@ -20,9 +21,11 @@ COMMIT;
 ]]
 
 --[[
-	Records a write in the index's operations table before any of its files move into place, and returns the
-	operation's id, or nil without `sqlite3`. Callers hold the lock and have put the write marker down, so a write
-	that stops partway leaves both the marker and the operation for `recoverCanvasWrite` to finish.
+	Records a write in the index's operations table before any of its files move
+	into place, and returns the operation's id, or nil without `sqlite3`.
+	Callers hold the lock and have put the write marker down, so a write that
+	stops partway leaves both the marker and the operation for
+	`recoverCanvasWrite` to finish.
 ]]
 local function journalCanvasWrite(dir: string, write: CanvasWrite, revision: number?): number?
 	if not hasSqlite() then

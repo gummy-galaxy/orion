@@ -9,7 +9,8 @@ local storeTypes = require("@root/store/types")
 
 type WorkspaceList = storeTypes.WorkspaceList
 
--- Reads the workspace list. Without a list file, there's only the default workspace.
+-- Reads the workspace list. Without a list file, there's only the default
+-- workspace.
 local function getWorkspaces(root: string): WorkspaceList
 	local file = tostring(path.join(root, fileNames.canvases))
 	local result: WorkspaceList =

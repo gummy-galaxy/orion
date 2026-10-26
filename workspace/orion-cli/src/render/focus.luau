@@ -16,7 +16,8 @@ type Item = types.Item
 
 local focus = {}
 
--- Ids the app reported that are still on the canvas; the app can be a moment behind the file.
+-- Ids the app reported that are still on the canvas; the app can be a moment
+-- behind the file.
 local function findSelectedItems(doc: Doc, report: Focus): { Item }
 	local items = {}
 	for _, id in report.selected do

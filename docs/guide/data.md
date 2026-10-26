@@ -21,7 +21,7 @@ A canvas is a folder of small JSON files:
 - `canvas.json` holds its settings.
 - `nodes/<id>.json` holds each card, note, group, and image, with its place in the canvas's order and when each of its fields last changed.
 - `links/<id>.json` holds each link.
-- `local.json` holds what this machine recorded about it, such as its revision and the last GitHub check.
+- `local.json` holds what this machine recorded about it, such as its revision, the last GitHub check, and what each GitHub repository its cards name is called now.
 
 Keys are sorted and formatting is stable, so a change rewrites only the files it touches. New cards and links get random ids, so two copies of a canvas in git that each add or edit different cards merge without a conflict. Keep `local.json` and `index.sqlite` out of git, since they change on every write. Change the files through the CLI rather than by hand.
 

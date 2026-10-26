@@ -7,7 +7,8 @@ local unlinkItems = require("@root/graph/unlinkItems")
 type Doc = types.Doc
 type Link = types.Link
 
--- Replaces the link between two items with two links through a third, keeping its kind.
+-- Replaces the link between two items with two links through a third, keeping
+-- its kind.
 local function insertBetween(doc: Doc, id: string, from: string, to: string)
 	assert(id ~= from and id ~= to, "an item can't link to itself")
 
