@@ -191,7 +191,7 @@ local function unplacedOf(doc: Doc): { json.Object }
 	return found
 end
 
--- Your own open pull requests are listed with light fields, and collectPulls fetches the full state of the ones that
+-- Your own open pull requests are listed with light fields, and collectPullsAsync fetches the full state of the ones that
 -- can become cards.
 local function authoredOnly(authored: PullState): Fetched
 	return {

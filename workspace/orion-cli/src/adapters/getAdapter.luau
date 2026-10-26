@@ -1,15 +1,15 @@
 local adapterTypes = require("@root/adapters/types")
-local githubCollect = require("@root/adapters/github/collect")
+local githubCollectAsync = require("@root/adapters/github/collectAsync")
 local githubCreateSource = require("@root/adapters/github/createSource")
-local githubLookupRefs = require("@root/adapters/github/lookupRefs")
+local githubLookupRefsAsync = require("@root/adapters/github/lookupRefsAsync")
 local githubRefFromUrl = require("@root/adapters/github/refFromUrl")
-local githubRefresh = require("@root/adapters/github/refresh")
-local githubRefreshChanged = require("@root/adapters/github/refreshChanged")
-local hopCollect = require("@root/adapters/hop/collect")
+local githubRefreshAsync = require("@root/adapters/github/refreshAsync")
+local githubRefreshChangedAsync = require("@root/adapters/github/refreshChangedAsync")
+local hopCollectAsync = require("@root/adapters/hop/collectAsync")
 local hopCreateSource = require("@root/adapters/hop/createSource")
-local jiraCollect = require("@root/adapters/jira/collect")
+local jiraCollectAsync = require("@root/adapters/jira/collectAsync")
 local jiraCreateSource = require("@root/adapters/jira/createSource")
-local jiraLookupRefs = require("@root/adapters/jira/lookupRefs")
+local jiraLookupRefsAsync = require("@root/adapters/jira/lookupRefsAsync")
 local jiraRefFromKey = require("@root/adapters/jira/refFromKey")
 local jiraRefFromUrl = require("@root/adapters/jira/refFromUrl")
 
@@ -19,21 +19,21 @@ local adapters: { [string]: Adapter } = {
 	github = {
 		kind = "github",
 		createSource = githubCreateSource,
-		collect = githubCollect,
-		refresh = githubRefresh,
-		refreshChanged = githubRefreshChanged,
+		collectAsync = githubCollectAsync,
+		refreshAsync = githubRefreshAsync,
+		refreshChangedAsync = githubRefreshChangedAsync,
 		refFromUrl = githubRefFromUrl,
-		lookupRefs = githubLookupRefs,
+		lookupRefsAsync = githubLookupRefsAsync,
 	},
 	jira = {
 		kind = "jira",
 		createSource = jiraCreateSource,
-		collect = jiraCollect,
+		collectAsync = jiraCollectAsync,
 		refFromUrl = jiraRefFromUrl,
 		refFromKey = jiraRefFromKey,
-		lookupRefs = jiraLookupRefs,
+		lookupRefsAsync = jiraLookupRefsAsync,
 	},
-	hop = { kind = "hop", createSource = hopCreateSource, collect = hopCollect, collectOrder = 1 },
+	hop = { kind = "hop", createSource = hopCreateSource, collectAsync = hopCollectAsync, collectOrder = 1 },
 }
 
 local function getAdapter(kind: string): Adapter

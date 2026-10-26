@@ -31,12 +31,12 @@ local CHECKS_SECONDS = 30
 local logger = archivist.getLogger("orion.sync")
 local sync = {}
 
--- How often `orion server start` calls `tick`. Each tick runs at most one pass, and only when one is due.
+-- How often `orion server start` calls `tickAsync`. Each tick runs at most one pass, and only when one is due.
 sync.TICK_SECONDS = 15
 
 --[[
 	Keeps the active canvas's pull request cards current. A full pass fetches every open card, at startup, on a canvas
-	switch, when forced, and every 15 minutes. Between them, `tick` polls notifications as often as GitHub allows,
+	switch, when forced, and every 15 minutes. Between them, `tickAsync` polls notifications as often as GitHub allows,
 	sweeps `updatedAt` every two minutes, and rereads pending checks every 30 seconds, fetching only the cards that
 	changed and writing nothing when none did. The cards that refresh sooner, which are the ones the app has in view,
 	have their `updatedAt` swept every 30 seconds instead.
@@ -70,7 +70,7 @@ function sync.create(
 
 	-- Runs a full pass without `want`, or a pass limited to what changed with it. `sweepsSooner` adds a sweep of the
 	-- cards that refresh sooner, found from the snapshot the pass reads.
-	local function runPass(want: Want?, isQuiet: boolean, sweepsSooner: boolean?): json.Object
+	local function runPassAsync(want: Want?, isQuiet: boolean, sweepsSooner: boolean?): json.Object
 		local pass = if want == nil
 			then "full"
 			elseif want.sweep then "sweep"
@@ -103,7 +103,7 @@ function sync.create(
 			local apply: ((types.Doc) -> githubTypes.Report)?
 
 			if want == nil then
-				apply = assert(adapter.refresh)(snapshot, command, { now = timestamp })
+				apply = assert(adapter.refreshAsync)(snapshot, command, { now = timestamp })
 			else
 				if sweepsSooner and not want.sweep then
 					local cards = findRefreshSooner(snapshot, readFocus(dir))
@@ -114,7 +114,7 @@ function sync.create(
 					end
 				end
 
-				local changed = assert(adapter.refreshChanged)(snapshot, command, poll, want, timestamp)
+				local changed = assert(adapter.refreshChangedAsync)(snapshot, command, poll, want, timestamp)
 				failures, fetched, apply = changed.failures, changed.fetched, changed.apply
 			end
 
@@ -179,7 +179,7 @@ function sync.create(
 
 		if started ~= generation then
 			task.defer(function()
-				loop.run(true)
+				loop.runAsync(true)
 			end)
 		end
 
@@ -202,24 +202,24 @@ function sync.create(
 	end
 
 	-- Runs a pass someone asked for: a full one when forced or when the canvas hasn't had one, otherwise a sweep.
-	function loop.run(isForced: boolean?): json.Object
+	function loop.runAsync(isForced: boolean?): json.Object
 		if isRunning then
 			return status
 		end
 
 		if isForced or lastFull == 0 then
-			return runPass(nil, false)
+			return runPassAsync(nil, false)
 		end
 
 		if now() - lastSweep < THROTTLE_SECONDS then
 			return status
 		end
 
-		return runPass({ notifications = true, sweep = true, checks = true }, false)
+		return runPassAsync({ notifications = true, sweep = true, checks = true }, false)
 	end
 
 	-- Runs whichever background pass is due, if any.
-	function loop.tick()
+	function loop.tickAsync()
 		if isRunning then
 			return
 		end
@@ -227,10 +227,10 @@ function sync.create(
 		local current = now()
 
 		if lastFull == 0 then
-			runPass(nil, false)
+			runPassAsync(nil, false)
 			return
 		elseif current - lastFull >= FULL_SECONDS then
-			runPass(nil, true)
+			runPassAsync(nil, true)
 			return
 		end
 
@@ -242,7 +242,7 @@ function sync.create(
 		local sweepsSooner = not want.sweep and current - lastSooner >= SOONER_SECONDS
 
 		if want.notifications or want.sweep or want.checks or sweepsSooner then
-			runPass(want, true, sweepsSooner)
+			runPassAsync(want, true, sweepsSooner)
 		end
 	end
 

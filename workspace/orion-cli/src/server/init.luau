@@ -56,7 +56,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		end
 		hub.publish("orion:canvas", json.object({ active = name }))
 		task.spawn(function()
-			syncLoop.run(true)
+			syncLoop.runAsync(true)
 		end)
 	end, staticDir, hub)
 	monitor = watcher.create(
@@ -102,7 +102,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 				return { status = 400, body = "WebSocket upgrade required" }
 			end
 
-			return router.handle(request) :: net.ServerResponse
+			return router.handleAsync(request) :: net.ServerResponse
 		end,
 
 		websocket = {
@@ -125,7 +125,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	monitor.start()
 	task.delay(5, function()
 		while true do
-			syncLoop.tick()
+			syncLoop.tickAsync()
 			task.wait(sync.TICK_SECONDS)
 		end
 	end)

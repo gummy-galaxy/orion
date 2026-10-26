@@ -5,7 +5,7 @@ local json = require("@std/json")
 local addArgument = require("@root/cli/addArgument")
 local context = require("@root/cli/context")
 local getInputs = require("@root/import/getInputs")
-local importRefs = require("@root/import/importRefs")
+local importRefsAsync = require("@root/import/importRefsAsync")
 local importTypes = require("@root/import/types")
 local pad = require("@root/render/pad")
 local readSourceCommands = require("@root/sources/readSourceCommands")
@@ -131,7 +131,7 @@ return table.freeze({
 		local inputs = getInputs(parser:variadics(), stdin)
 		assert(#inputs > 0, "import needs at least one URL or source:key, as arguments or on stdin with --stdin")
 
-		local report = importRefs(inputs, {
+		local report = importRefsAsync(inputs, {
 			dir = options.dir,
 			groupId = parser:get("group"),
 			dryRun = parser:has("dry-run"),

@@ -10,7 +10,7 @@ local loop = {
 	getStatus = function()
 		return json.object({})
 	end,
-	run = function()
+	runAsync = function()
 		return json.object({})
 	end,
 }
@@ -32,7 +32,7 @@ test.case("merge route merges a pull request at the head the card showed", funct
 		return { ok = true, exitCode = 0, stdout = "SQUASH", stderr = "" }
 	end
 
-	local response = merge.handle(request("POST", json.object({ url = URL, head = "abc123" })), loop, run)
+	local response = merge.handleAsync(request("POST", json.object({ url = URL, head = "abc123" })), loop, run)
 
 	assert.eq(response.status, 200)
 	assert.eq(table.concat(commands[2], " "), `gh pr merge {URL} --squash --match-head-commit abc123`)
@@ -45,9 +45,9 @@ test.case("merge route rejects other methods and malformed input before running 
 		return { ok = true, exitCode = 0, stdout = "", stderr = "" }
 	end
 
-	assert.eq(merge.handle(request("GET"), loop, run).status, 405)
-	assert.eq(merge.handle(request("POST", json.object({ url = URL })), loop, run).status, 400)
-	assert.eq(merge.handle(request("POST", json.object({ url = `{URL};x`, head = "abc" })), loop, run).status, 400)
-	assert.eq(merge.handle(request("POST", json.object({ url = URL, head = "--admin" })), loop, run).status, 400)
+	assert.eq(merge.handleAsync(request("GET"), loop, run).status, 405)
+	assert.eq(merge.handleAsync(request("POST", json.object({ url = URL })), loop, run).status, 400)
+	assert.eq(merge.handleAsync(request("POST", json.object({ url = `{URL};x`, head = "abc" })), loop, run).status, 400)
+	assert.eq(merge.handleAsync(request("POST", json.object({ url = URL, head = "--admin" })), loop, run).status, 400)
 	assert.eq(calls, 0)
 end)
