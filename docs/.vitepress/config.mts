@@ -87,9 +87,9 @@ export default defineConfig({
     },
     search: { provider: 'local' },
     outline: { level: [2, 3] },
-    socialLinks: [{ icon: 'github', link: 'https://github.com/vocksel/orion' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/gummy-galaxy/orion' }],
     editLink: {
-      pattern: 'https://github.com/vocksel/orion/edit/main/docs/:path',
+      pattern: 'https://github.com/gummy-galaxy/orion/edit/main/docs/:path',
     },
   },
 })
