@@ -71,7 +71,7 @@ local function getChanges(before: Snapshot, doc: Doc): Changes
 		end
 	end
 
-	table.sort(removed, function(a, b)
+	table.sort(removed, function(a: { index: number }, b: { index: number }): boolean
 		return a.index < b.index
 	end)
 
@@ -101,7 +101,7 @@ local function getChanges(before: Snapshot, doc: Doc): Changes
 		end
 	end
 
-	table.sort(unlinked, function(a, b)
+	table.sort(unlinked, function(a: { index: number }, b: { index: number }): boolean
 		return a.index < b.index
 	end)
 

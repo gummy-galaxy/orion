@@ -372,7 +372,7 @@ Runs `orion next`.
 
 ## orion_apply
 
-Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link, unlink, insert, move, ungroup, tidy, remove, removeGroup. Use dryRun to preview the plan and the ids each handle gets.
+Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link (with an optional label, empty to clear), unlink, insert, move, ungroup, tidy, remove, removeGroup, and attachRef and detachRef, which take id and ref and change only Orion's record of a card, never the source. Use dryRun to preview the plan, the ids each handle gets, and the items, links, and refs it would change.
 
 Runs `orion apply`.
 
@@ -710,26 +710,28 @@ Runs `orion theme remove`.
 | `file`   | string | **Required.** Theme file name, as theme list shows it  |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
-## orion_backup_list
+## orion_history_list
 
-List saved Orion data revisions
+List the revisions you can jump to, newest first, with when and how each was made
 
-Runs `orion backup list`.
+Runs `orion history list`.
 
 | Argument | Type   | Description                                            |
 | -------- | ------ | ------------------------------------------------------ |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
-## orion_backup_restore
+## orion_history_set
 
-Restore a saved revision as a new revision
+Jump the canvas to a saved revision, as a new revision, so later ones stay in the list
 
-Runs `orion backup restore`.
+Runs `orion history set`.
 
-| Argument   | Type   | Description                                            |
-| ---------- | ------ | ------------------------------------------------------ |
-| `revision` | string | **Required.** Revision to restore                      |
-| `canvas`   | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+| Argument     | Type    | Description                                                           |
+| ------------ | ------- | --------------------------------------------------------------------- |
+| `revision`   | integer | **Required.** The revision to jump to, as orion history list shows it |
+| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                |
+| `dryRun`     | boolean | Preview what would change without writing                             |
+| `ifRevision` | integer | Write only if the document has this revision                          |
 
 ## orion_focus
 

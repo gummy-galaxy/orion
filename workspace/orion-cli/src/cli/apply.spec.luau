@@ -185,7 +185,7 @@ test.case("a plan attaches and takes off refs and labels links in one write", fu
 		]]=],
 	})
 	assert.strContains(output, "Applied 3 operations at revision 0 → 1")
-	assert.strContains(output, "  ~ link ci → pub (blocks) \"Release notes\"")
+	assert.strContains(output, '  ~ link ci → pub (blocks) "Release notes"')
 	assert.strContains(output, "  + ref flipbook-labs/flipbook#12 on pub")
 	assert.strContains(output, "  - ref flipbook-labs/flipbook#658 on ci")
 	local doc = loadDoc(dir)
@@ -234,7 +234,11 @@ end)
 test.case("a ref step refuses a group and a ref the card doesn't have", function(assert)
 	local _, run = testing.createHarness("apply-ref-refuse")
 	assert.throwsWith("operation 1 (attachRef): groups don't take refs; attach it to an item", function()
-		run({ "apply", "--plan", [=[[{"op":"attachRef","id":"ws","ref":"https://github.com/flipbook-labs/flipbook/pull/1"}]]=] })
+		run({
+			"apply",
+			"--plan",
+			[=[[{"op":"attachRef","id":"ws","ref":"https://github.com/flipbook-labs/flipbook/pull/1"}]]=],
+		})
 	end)
 	assert.throwsWith('operation 1 (detachRef): "pub" has no ref flipbook-labs/flipbook#658', function()
 		run({ "apply", "--plan", [=[[{"op":"detachRef","id":"pub","ref":"flipbook-labs/flipbook#658"}]]=] })

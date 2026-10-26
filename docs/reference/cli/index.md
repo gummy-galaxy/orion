@@ -29,7 +29,7 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion suggestion`](./suggestion) | Suggested groups for related cards                                   |
 | [`orion ci`](./ci)                 | CI jobs whose failures cards leave out                               |
 | [`orion theme`](./theme)           | Add, list, or remove theme files                                     |
-| [`orion backup`](./backup)         | Saved revisions of a canvas                                          |
+| [`orion history`](./history)       | A canvas's revisions, and jumping between them                       |
 | [`orion mcp`](./mcp)               | Agent tools over MCP                                                 |
 | [`orion focus`](./focus)           | Show the group open in the app and what's selected                   |
 | [`orion reveal`](./reveal)         | Select cards or groups in the app and zoom the canvas to them        |

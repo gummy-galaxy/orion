@@ -41,7 +41,7 @@ Within that, commands name the thing they act on first ([#346](https://github.co
 - Any node: `node show|query|remove|move`.
 - Groups: `group list|add|create|remove|set|ungroup|tidy`.
 - Canvases: `canvas list|create|rename|set|archive|restore|use|current|path|check`.
-- Backups, suggestions, sources, the server, and MCP: `backup list|restore`, `suggestion find|list|apply|dismiss`, `source matches`, `server start|status`, `mcp start`.
+- History, suggestions, sources, the server, and MCP: `history list|set`, `suggestion find|list|apply|dismiss`, `source matches`, `server start|status`, `mcp start`.
 
 The old flat forms, such as `orion remove` and `orion ungroup`, are gone with no aliases. Each noun has its own options, so no flag changes meaning depending on what it targets. [Decision on noun-then-verb](/development/decisions) records the reasoning.
 
