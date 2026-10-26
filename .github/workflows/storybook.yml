@@ -33,6 +33,7 @@ concurrency:
 
 jobs:
   publish:
+    name: Storybook Publish
     runs-on: ubuntu-latest
     # A local install and Storybook build take about 9 seconds, but a cold runner also installs Rokit and uploads the build.
     # Lower this after the first real run.

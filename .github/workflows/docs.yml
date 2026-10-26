@@ -29,6 +29,7 @@ jobs:
   # request and the commit before for a push to main. A job skipped by its condition reports as skipped, which still
   # satisfies a required check, unlike a workflow skipped by `paths`. Manual runs skip the filter and run every job.
   docs-loading:
+    name: Docs Changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -48,6 +49,7 @@ jobs:
           filters: .github/path-filters.yml
 
   docs:
+    name: Docs
     needs: docs-loading
     if: needs.docs-loading.outputs.docs == 'true'
     runs-on: ubuntu-latest
@@ -88,6 +90,7 @@ jobs:
         run: npm run build
 
   deploy:
+    name: Docs Deploy
     needs: docs
     runs-on: ubuntu-latest
     timeout-minutes: 5

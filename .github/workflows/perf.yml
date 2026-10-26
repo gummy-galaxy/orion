@@ -19,9 +19,10 @@ concurrency:
 
 jobs:
   # Perf runs only when a change touches what it measures. A job skipped by its condition reports as skipped, which
-  # still satisfies a required check, unlike a workflow skipped by `paths`. Required checks match by job name alone,
-  # so this can't share CI's `ci-loading` name.
+  # still satisfies a required check, unlike a workflow skipped by `paths`. Required checks match by check name alone,
+  # so every job's name says which workflow it belongs to.
   perf-loading:
+    name: Perf Changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -39,6 +40,7 @@ jobs:
           filters: .github/path-filters.yml
 
   perf:
+    name: Perf
     needs: perf-loading
     if: needs.perf-loading.outputs.perf == 'true' && (github.event_name == 'push' || !github.event.pull_request.draft)
     # artemis, a machine that runs nothing but perf, has a single runner with this label, so measurements never share
