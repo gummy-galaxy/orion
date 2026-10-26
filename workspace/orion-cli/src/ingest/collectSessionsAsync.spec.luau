@@ -60,8 +60,7 @@ test.case("a session attaches to the card on its branch with its state and last 
 		createCard("fix", "owner/repo", "agent/fix"),
 		createCard("other", "owner/repo", "agent/other"),
 	})
-	local agent =
-		createAgent({ session({ title = "Fix the bug", lastMessage = string.rep("é", 300), isLive = true }) })
+	local agent = createAgent({ session({ title = "Fix the bug", lastMessage = "Secret", isLive = true }) })
 	local records = collectSessionsAsync(SOURCE, agent, function(argv)
 		assert.eq(argv, { "git", "-C", "/work", "remote", "get-url", "origin" })
 		return testing.result(true, "git@github.com:owner/repo.git\n")
@@ -77,7 +76,7 @@ test.case("a session attaches to the card on its branch with its state and last 
 	assert.eq(ref and ref.key, "Fix the bug")
 	assert.eq(ref and ref.sessionState, "waiting")
 	assert.eq(ref and ref.stateLabel, "Waiting on you in Other Agent")
-	assert.eq(ref and ref.lastMessage, string.rep("é", 280))
+	assert.eq(ref and (ref :: any).lastMessage, nil)
 	assert.eq(ref and ref.updatedAt, "2025-10-18T12:00:00Z")
 	assert.eq(ref and ref.checkedAt, NOW)
 	assert.eq(ref and ref.details and ref.details.isLive, true)

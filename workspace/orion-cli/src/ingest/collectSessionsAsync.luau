@@ -4,7 +4,6 @@ local adapterTypes = require("@root/adapters/types")
 local findBranch = require("@root/adapters/findBranch")
 local findRef = require("@root/refs/findRef")
 local getUnix = require("@root/adapters/getUnix")
-local trimText = require("@root/trimText")
 local types = require("@root/types")
 
 type AgentVerbs = adapterTypes.AgentVerbs
@@ -17,7 +16,6 @@ type Source = types.Source
 type CommandRunner = types.CommandRunner
 
 local LOOKBACK_DAYS = 21
-local MESSAGE_LIMIT = 280
 
 -- owner/name from a GitHub remote, over SSH or HTTPS.
 local function parseRemote(remote: string): string?
@@ -58,7 +56,9 @@ end
 	An agent's sessions as `session` refs on the cards whose branch they ran
 	on, read through its adapter's agent verbs. It never adds cards: a session
 	with no card on its branch waits for triage. A session's repository comes
-	from its adapter or, failing that, from its folder's `origin` remote.
+	from its adapter or, failing that, from its folder's `origin` remote. What
+	a session said stays out of the ref, so the canvas's files never copy a
+	transcript; `readTurnsAsync` reads it live.
 ]]
 local function collectSessionsAsync(source: Source, agent: AgentVerbs, run: CommandRunner, context: Context): { Record }
 	local sessions = agent.listSessionsAsync(source, run, getUnix(context.now) - LOOKBACK_DAYS * 86400)
@@ -98,7 +98,6 @@ local function collectSessionsAsync(source: Source, agent: AgentVerbs, run: Comm
 				checkedAt = context.now,
 				stateLabel = getStateLabel(session, agent),
 				sessionState = session.state,
-				lastMessage = if session.lastMessage then trimText(session.lastMessage, MESSAGE_LIMIT) else nil,
 				details = details,
 			},
 			label = session.title or branch,
