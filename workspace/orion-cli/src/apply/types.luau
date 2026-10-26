@@ -2,7 +2,7 @@
 -- step reads; each step checks its own. The edit steps (setFields, link,
 -- unlink, insert, group, ungroup, move, remove, removeGroup, tidy) use the
 -- names and fields of the operations in #93, so a plan can move onto that
--- model. addCard, addNote, and handles are new here.
+-- model. addCard, addNote, attachRef, detachRef, and handles are new here.
 export type Operation = {
 	op: string,
 	-- Names a card, note, or group that this step creates, so later steps can
@@ -17,10 +17,13 @@ export type Operation = {
 	-- the top level.
 	group: string?,
 	items: { string }?,
+	-- A group's or card's label, or what a link carries; empty clears a
+	-- link's label.
 	label: string?,
 	text: string?,
 	after: string?,
 	before: string?,
+	-- The ref addCard or attachRef attaches, or the key detachRef takes off.
 	ref: string?,
 	reconnect: boolean?,
 	-- Card fields for addCard, or the field changes for setFields.
