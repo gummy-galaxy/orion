@@ -17,5 +17,7 @@ A command alias also renames the commands under it, so `workspace` to `canvas` c
 | `orion link add` | `orion link create` | 2026-10-21, [#566](https://github.com/vocksel/orion/pull/566) |
 | `orion group add` | `orion group create` | 2026-10-21, [#566](https://github.com/vocksel/orion/pull/566) |
 | `orion media insert` | `orion media add` | 2026-10-21, [#566](https://github.com/vocksel/orion/pull/566) |
+| `orion backup list` | `orion history list` | 2026-10-26, [#668](https://github.com/gummy-galaxy/orion/pull/668) |
+| `orion backup restore` | `orion history set` | 2026-10-26, [#668](https://github.com/gummy-galaxy/orion/pull/668) |
 
 Add a row for each new alias, with the date and pull request that added it, and its entry in `entries.luau`. Write a command row as `` | `orion card new` | `orion card create` | 2026-10-19, [#1](…/pull/1) | ``, and an option row's names as `` `--folder` on `orion card create` ``.
