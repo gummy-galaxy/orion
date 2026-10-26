@@ -46,7 +46,7 @@ jobs:
         with:
           filters: .github/path-filters.yml
 
-  analysis:
+  cli-analysis:
     needs: ci-loading
     if: needs.ci-loading.outputs.cli == 'true'
     runs-on: ubuntu-latest

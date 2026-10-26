@@ -87,7 +87,7 @@ jobs:
       - name: Build
         run: npm run build
 
-  deploy:
+  docs-deploy:
     needs: docs
     runs-on: ubuntu-latest
     timeout-minutes: 5
