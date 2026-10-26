@@ -1,12 +1,7 @@
 local path = require("@std/path")
-local system = require("@std/system")
 local test = require("@std/test")
 
 local getDataDir = require("@root/platform/getDataDir")
-
--- An absolute root on the platform running the spec, since getDataDir checks
--- environment paths with the host's rules.
-local ROOT = if system.win32 then "C:/" else "/"
 
 test.case("data folders follow each platform's convention", function(assert)
 	assert.eq(
@@ -18,16 +13,16 @@ test.case("data folders follow each platform's convention", function(assert)
 		tostring(path.join("/home/sam", ".local", "share", "orion"))
 	)
 	assert.eq(
-		tostring(getDataDir("linux", "/home/sam", { XDG_DATA_HOME = ROOT .. "data" })),
-		tostring(path.join(ROOT .. "data", "orion"))
+		tostring(getDataDir("linux", "/home/sam", { XDG_DATA_HOME = "/data" })),
+		tostring(path.join("/data", "orion"))
 	)
 	assert.eq(
 		tostring(getDataDir("linux", "/home/sam", { XDG_DATA_HOME = "relative" })),
 		tostring(path.join("/home/sam", ".local", "share", "orion"))
 	)
 	assert.eq(
-		tostring(getDataDir("windows", "/Users/sam", { APPDATA = ROOT .. "Roaming" })),
-		tostring(path.join(ROOT .. "Roaming", "Orion"))
+		tostring(getDataDir("windows", "/Users/sam", { APPDATA = "/Roaming" })),
+		tostring(path.join("/Roaming", "Orion"))
 	)
 	assert.eq(
 		tostring(getDataDir("windows", "/Users/sam", {})),

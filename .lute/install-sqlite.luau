@@ -1,9 +1,9 @@
 --[[
-	Installs a pinned `sqlite3` command on a Linux or Windows x86_64 CI runner
-	that has none, which the CLI's index specs need. Downloads SQLite's own
-	tools archive, checks its SHA-256, unpacks `sqlite3` into the runner's
-	temporary folder, and adds that folder to the job's path. Does nothing when
-	`sqlite3` already runs.
+	Installs a pinned `sqlite3` command on a Linux x86_64 CI runner that has
+	none, which the CLI's index specs need. Downloads SQLite's own tools
+	archive, checks its SHA-256, unpacks `sqlite3` into the runner's temporary
+	folder, and adds that folder to the job's path. Does nothing when `sqlite3`
+	already runs.
 
 	lute run install-sqlite
 ]]
@@ -12,24 +12,11 @@ local fs = require("@std/fs")
 local net = require("@std/net")
 local path = require("@std/path")
 local process = require("@std/process")
-local system = require("@std/system")
 
 local runScript = require("@cli/runScript")
 
-local isWindows = system.win32
-
--- Each platform's tools archive, with the SHA-256 it was published with.
-local ARCHIVE = if isWindows
-	then {
-		url = "https://www.sqlite.org/2025/sqlite-tools-win-x64-3500400.zip",
-		sha256 = "8ce18347ea86a1ce65f33b533d2f144d8d1237140529fbf818574ca11fa13ad5",
-		program = "sqlite3.exe",
-	}
-	else {
-		url = "https://www.sqlite.org/2025/sqlite-tools-linux-x64-3500400.zip",
-		sha256 = "2c61fe3f6bfcf4ab0cad6c4edf1fa1cae93bbb816b744bef52a4bdde5bf7bf38",
-		program = "sqlite3",
-	}
+local URL = "https://www.sqlite.org/2025/sqlite-tools-linux-x64-3500400.zip"
+local SHA256 = "2c61fe3f6bfcf4ab0cad6c4edf1fa1cae93bbb816b744bef52a4bdde5bf7bf38"
 
 local function toHex(digest: buffer): string
 	local parts: { string } = {}
@@ -57,24 +44,18 @@ runScript(function()
 
 	local folder = tostring(path.join(assert(process.env.RUNNER_TEMP, "RUNNER_TEMP isn't set"), "sqlite"))
 	local archive = tostring(path.join(folder, "sqlite-tools.zip"))
-	local response = net.request(ARCHIVE.url)
-	assert(response.ok, `downloading {ARCHIVE.url} failed with status {response.status}`)
+	local response = net.request(URL)
+	assert(response.ok, `downloading {URL} failed with status {response.status}`)
 
 	local digest = toHex(crypto.digest(crypto.hash.sha256, response.body))
-	assert(digest == ARCHIVE.sha256, `{ARCHIVE.url} has SHA-256 {digest}, expected {ARCHIVE.sha256}`)
+	assert(digest == SHA256, `{URL} has SHA-256 {digest}, expected {SHA256}`)
 
 	fs.createDirectory(folder, { makeParents = true })
 	fs.writeStringToFile(archive, response.body)
 
-	-- Windows runners have no unzip, but their bsdtar reads zip archives.
-	local unpacked = if isWindows
-		then process.run({ "tar", "-xf", archive, "-C", folder, ARCHIVE.program }, { stdio = "inherit" })
-		else process.run({ "unzip", "-o", "-j", archive, ARCHIVE.program, "-d", folder }, { stdio = "inherit" })
-	assert(unpacked.ok, `unpacking {archive} failed`)
-
-	if not isWindows then
-		assert(process.run({ "chmod", "+x", tostring(path.join(folder, ARCHIVE.program)) }).ok, "chmod failed")
-	end
+	local unpacked = process.run({ "unzip", "-o", "-j", archive, "sqlite3", "-d", folder }, { stdio = "inherit" })
+	assert(unpacked.ok, "unzip failed")
+	assert(process.run({ "chmod", "+x", tostring(path.join(folder, "sqlite3")) }).ok, "chmod failed")
 
 	local githubPath = assert(process.env.GITHUB_PATH, "GITHUB_PATH isn't set")
 	local existing = if fs.exists(githubPath) then fs.readFileToString(githubPath) else ""

@@ -1,4 +1,3 @@
-local path = require("@std/path")
 local test = require("@std/test")
 
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
@@ -43,7 +42,7 @@ test.case("reveal opens the installed app on this data folder when none is runni
 	assert.eq(launched[1], "open")
 	assert.eq(launched[2], "--env")
 	assert.eq(launched[3], `ORION_DATA_DIR={dir}`)
-	assert.strContains(launched[5], tostring(path.join("Applications", "Orion.app")))
+	assert.strContains(launched[5], "Applications/Orion.app")
 end)
 
 test.case("reveal finds an item on another canvas before it opens the app", function(assert)

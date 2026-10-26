@@ -1,6 +1,5 @@
 local path = require("@std/path")
 
-local joinRepositoryPath = require("@root/storybook/joinRepositoryPath")
 local types = require("@root/storybook/types")
 
 type ReadFile = types.ReadFile
@@ -58,7 +57,7 @@ local function findTouchedStories(
 
 		for _, pattern in IMPORT_PATTERNS do
 			for specifier in string.gmatch(source, pattern) do
-				local base = joinRepositoryPath(directory, specifier)
+				local base = tostring(path.normalize(path.join(directory, specifier)))
 
 				for _, suffix in SUFFIXES do
 					if read(base .. suffix) then

@@ -1,7 +1,7 @@
 local json = require("@std/json")
+local path = require("@std/path")
 
 local getStringField = require("@root/getStringField")
-local joinRepositoryPath = require("@root/storybook/joinRepositoryPath")
 local types = require("@root/storybook/types")
 
 type ReadFile = types.ReadFile
@@ -45,7 +45,7 @@ local function parseStoryIndex(indexText: string, root: string, readFile: ReadFi
 			continue
 		end
 
-		local file = joinRepositoryPath(root, importPath)
+		local file = tostring(path.normalize(path.join(root, importPath)))
 
 		if exportOrders[file] == nil then
 			local source = readFile(file)
