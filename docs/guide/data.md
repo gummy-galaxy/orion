@@ -57,17 +57,16 @@ orion media add ./concept.png --label "Concept"
 
 Orion accepts PNG, JPEG, GIF, and WebP images up to 5 MB.
 
-## History
+## Backups
 
-Before every write, Orion saves the whole canvas as one file in its `backups/` folder, and notes who made the new revision: a command, run directly or through an MCP tool, or the app. It keeps the newest 200 revisions and the newest from each of the last 30 days.
+Before every write, Orion saves the whole canvas as one file in its `backups/` folder. It keeps every backup from the last day and the newest from each of the last 30 days.
 
 ```sh
-orion history list
-orion history set <revision> --dry-run
-orion history set <revision>
+orion backup list
+orion backup restore <revision>
 ```
 
-`orion history list` shows the revisions you can jump to, newest first, with when and how each was made. `orion history set` gives the canvas the nodes, links, and settings of a saved revision as a new revision, so the revisions after it stay in the list and you can jump back to them the same way. `--dry-run` lists the items, links, and refs the jump would change.
+Restoring brings a backup back as a new revision, and backs up the current canvas first.
 
 ## The server
 

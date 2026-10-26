@@ -710,28 +710,26 @@ Runs `orion theme remove`.
 | `file`   | string | **Required.** Theme file name, as theme list shows it  |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
-## orion_history_list
+## orion_backup_list
 
-List the revisions you can jump to, newest first, with when and how each was made
+List saved Orion data revisions
 
-Runs `orion history list`.
+Runs `orion backup list`.
 
 | Argument | Type   | Description                                            |
 | -------- | ------ | ------------------------------------------------------ |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
-## orion_history_set
+## orion_backup_restore
 
-Jump the canvas to a saved revision, as a new revision, so later ones stay in the list
+Restore a saved revision as a new revision
 
-Runs `orion history set`.
+Runs `orion backup restore`.
 
-| Argument     | Type    | Description                                                           |
-| ------------ | ------- | --------------------------------------------------------------------- |
-| `revision`   | integer | **Required.** The revision to jump to, as orion history list shows it |
-| `canvas`     | canvas  | Canvas name. Omit to use the canvas selected in Orion.                |
-| `dryRun`     | boolean | Preview what would change without writing                             |
-| `ifRevision` | integer | Write only if the document has this revision                          |
+| Argument   | Type   | Description                                            |
+| ---------- | ------ | ------------------------------------------------------ |
+| `revision` | string | **Required.** Revision to restore                      |
+| `canvas`   | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
 ## orion_focus
 

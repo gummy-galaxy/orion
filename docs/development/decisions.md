@@ -495,14 +495,6 @@ Undo history persists across canvas switches, either as a full session history o
 
 2026-10-10 · [#1](https://github.com/vocksel/orion/issues/1), [#166](https://github.com/vocksel/orion/issues/166)
 
-### A canvas's history is a list of revisions to jump between
-
-`orion history` replaces `orion backup`. `history list` shows the current revision and the saved ones, newest first, with who made each: a CLI command by its path, run directly or through MCP, or the app. `history set <revision>` gives the whole canvas a saved revision's contents as a new revision, so the revisions after it stay listed and a jump is undone by jumping back. The newest 200 revisions are kept, plus the newest from each of the last 30 days. This is how an agent's edit is undone; the app keeps its own undo for its edits.
-
-**Why:** juggling revisions should be as easy as a small git: see what happened, then go back to any point and forward again. A jump that writes a new revision never destroys anything, while taking back one write in place needs conflict handling that can wait until someone needs it. A fixed count gives agents a predictable window, where the old rule of a day's backups promised nothing on a quiet canvas.
-
-2026-10-26 · [#103](https://github.com/gummy-galaxy/orion/issues/103)
-
 ### Shared logic lives in Luau, and the app gets it from `orion serve`
 
 Logic both the CLI and the app need is written once, in Luau. The app gets its results from `orion serve`, as fields on the document it receives or from an endpoint, the way #93 moves edits and #94 moves status. The app keeps only what it needs on every frame: a few geometry constants, generated from Luau, and small tree walks in TypeScript. A transpiler from Luau to TypeScript, or Luau running in WebAssembly, waits until that set grows.

@@ -99,7 +99,7 @@ Commands that edit several cards, such as `orion card done` and `orion node remo
 orion card done --where 'label ~ "settings"' --dry-run
 ```
 
-Then run it again with `--if-revision` and that revision, so it refuses to write if anything changed in between. If something still goes wrong, `orion history set <revision>` brings back the canvas from before, and `orion history list` shows which revision that is.
+Then run it again with `--if-revision` and that revision, so it refuses to write if anything changed in between. If something still goes wrong, `orion backup restore <revision>` brings back the canvas from before.
 
 ## Scripts and agents
 

@@ -1,20 +1,20 @@
 local cli = require("@batteries/cli")
 
+local backups = require("@root/cli/backups")
 local context = require("@root/cli/context")
 local defineSubcommands = require("@root/cli/defineSubcommands")
-local list = require("@root/cli/history/list")
+local restore = require("@root/cli/restore")
 local runSubcommand = require("@root/cli/runSubcommand")
-local set = require("@root/cli/history/set")
 
 type Context = context.Context
 type Command = context.Command
 
-local COMMANDS: { [string]: Command } = { list = list, set = set }
+local COMMANDS: { [string]: Command } = { list = backups, restore = restore }
 
 return table.freeze({
-	help = "A canvas's revisions, and jumping between them",
+	help = "Saved revisions of a canvas",
 	define = function(parser: cli.Parser)
-		defineSubcommands(parser, COMMANDS, { "list", "set" })
+		defineSubcommands(parser, COMMANDS, { "list", "restore" })
 	end,
 
 	run = function(parser: cli.Parser, options: Context)

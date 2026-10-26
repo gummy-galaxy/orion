@@ -68,8 +68,8 @@
     "link": "/reference/cli/theme"
   },
   {
-    "text": "history",
-    "link": "/reference/cli/history"
+    "text": "backup",
+    "link": "/reference/cli/backup"
   },
   {
     "text": "mcp",
