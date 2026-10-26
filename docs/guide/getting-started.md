@@ -1,6 +1,6 @@
 # Getting started
 
-Orion hasn't had its first release, so for now you build it from source. [`CONTRIBUTING.md`](https://github.com/vocksel/orion/blob/main/CONTRIBUTING.md) covers the toolchain and every build.
+Orion hasn't had its first release, so for now you build it from source. [`CONTRIBUTING.md`](https://github.com/gummy-galaxy/orion/blob/main/CONTRIBUTING.md) covers the toolchain and every build.
 
 ## The desktop app
 
