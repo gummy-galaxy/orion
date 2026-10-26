@@ -1,6 +1,7 @@
 local test = require("@std/test")
 
 local parseExpression = require("@root/query/parseExpression")
+local parseSort = require("@root/query/parseSort")
 local querySyntax = require("@root/query/querySyntax")
 
 test.case("every documented field and example parses", function(assert)
@@ -10,6 +11,10 @@ test.case("every documented field and example parses", function(assert)
 
 	for _, example in querySyntax.examples do
 		parseExpression(example)
+	end
+
+	for _, example in querySyntax.sortExamples do
+		parseSort(example)
 	end
 end)
 

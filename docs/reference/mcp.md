@@ -215,11 +215,14 @@ Find cards and groups with an expression. Fields: kind, repo, status, recordedSt
 
 Runs `orion node query`.
 
-| Argument | Type    | Description                                                   |
-| -------- | ------- | ------------------------------------------------------------- |
-| `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion.        |
-| `where`  | string  | **Required.** Expression selecting cards or groups (required) |
-| `all`    | boolean | Include done items                                            |
+| Argument | Type    | Description                                                                                 |
+| -------- | ------- | ------------------------------------------------------------------------------------------- |
+| `canvas` | canvas  | Canvas name. Omit to use the canvas selected in Orion.                                      |
+| `where`  | string  | **Required.** Expression selecting cards or groups (required)                               |
+| `sort`   | string  | Fields to sort by, separated by commas, such as status,-label; a leading - sorts descending |
+| `offset` | integer | Matches to skip before printing                                                             |
+| `limit`  | integer | Most matches to print                                                                       |
+| `all`    | boolean | Include done items                                                                          |
 
 ## orion_node_find
 

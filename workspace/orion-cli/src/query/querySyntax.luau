@@ -1,5 +1,5 @@
 --[[
-	The grammar `--where` takes, as data. parseExpression reads its fields and
+	The grammar `--where` and `--sort` take, as data. parseExpression reads its fields and
 	operators from here, `orion help node query` lists them, and `lute run docs`
 	writes the reference page from it, so all three describe what the parser
 	accepts. Every example has to parse; the spec checks.
@@ -104,6 +104,13 @@ local EXAMPLES: { string } = {
 	[[not (draft = "true") and status != "done"]],
 }
 
+-- What `--sort` takes: fields separated by commas, each descending when it
+-- starts with `-`.
+local SORT_EXAMPLES: { string } = {
+	"label",
+	"status,-pr",
+}
+
 local fieldsByName: { [string]: Field } = {}
 
 for _, field in FIELDS do
@@ -140,4 +147,5 @@ return table.freeze({
 	operators = table.freeze(OPERATORS),
 	combinators = table.freeze(COMBINATORS),
 	examples = table.freeze(EXAMPLES),
+	sortExamples = table.freeze(SORT_EXAMPLES),
 })

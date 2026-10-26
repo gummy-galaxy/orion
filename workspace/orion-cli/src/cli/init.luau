@@ -131,6 +131,7 @@ local QUERY_HELP = table.concat({
 	'Compare quoted values with = or !=, quoting numbers and booleans too: pr = "86", draft = "true".',
 	`{formatList(querySyntax.textFieldNames)} also support ~ for case-insensitive text.`,
 	"Combine with and, or, not, and parentheses. Missing fields never match.",
+	"--sort takes fields separated by commas, such as status,-pr; a leading - sorts descending.",
 }, "\n")
 
 local function addHelpFlag(parser: cli.Parser)
