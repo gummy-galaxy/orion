@@ -6,8 +6,9 @@ local themeLimits = require("@root/themes/themeLimits")
 
 export type ThemeFile = { file: string, text: string?, error: string? }
 
--- Reads each .json file in the data folder's themes folder, sorted by name. A missing folder reads as none.
--- The contents are returned as text, since the app checks what each file says.
+-- Reads each .json file in the data folder's themes folder, sorted by name. A
+-- missing folder reads as none. The contents are returned as text, since the
+-- app checks what each file says.
 return function(root: string): { ThemeFile }
 	local folder = path.join(root, fileNames.themes)
 	local files: { ThemeFile } = {}

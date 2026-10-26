@@ -1,6 +1,7 @@
 --[[
-	Warns when a local, parameter, or loop variable reuses the name of one already in scope, so the outer one can't be
-	reached from inside. Names that start with an underscore are left alone.
+	Warns when a local, parameter, or loop variable reuses the name of one
+	already in scope, so the outer one can't be reached from inside. Names that
+	start with an underscore are left alone.
 ]]
 local lintTypes = require("@std/commands/lint/types")
 local path = require("@std/path")
@@ -53,7 +54,8 @@ local function lint(cst: syntax.CstStatBlock, sourcepath: path.Path?): { lintTyp
 
 	visitor.visitStatBlockEnd = popScope
 
-	-- Declared before the values are visited, so a callback parameter in the value that reuses the name is caught.
+	-- Declared before the values are visited, so a callback parameter in the
+	-- value that reuses the name is caught.
 	function visitor.visitStatLocalDeclaration(stat: syntax.CstStatLocal)
 		for _, variable in stat.variables do
 			declare(variable)

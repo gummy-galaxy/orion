@@ -74,8 +74,9 @@ test.case("readCanvasIndex reads again only the files whose time changed", funct
 	local database = getIndexPath(dir)
 	read(dir)
 
-	-- Marks every row as read a second after its file last changed, then gives `a` text its file doesn't have and
-	-- `b` an older time. Only `b` is read again, so `a` keeps the text.
+	-- Marks every row as read a second after its file last changed, then gives
+	-- `a` text its file doesn't have and `b` an older time. Only `b` is read
+	-- again, so `a` keeps the text.
 	runSqlite(
 		database,
 		[[

@@ -11,8 +11,9 @@ type Response = shared.Response
 
 local checkSnoozes = {}
 
--- The app snoozes or unsnoozes a CI job here, for every card in the job's repository. The write is a normal
--- transaction, so it bumps the revision and open windows pick it up.
+-- The app snoozes or unsnoozes a CI job here, for every card in the job's
+-- repository. The write is a normal transaction, so it bumps the revision and
+-- open windows pick it up.
 function checkSnoozes.handle(request: net.ReceivedRequest, root: string, active: string): Response
 	if request.method ~= "PUT" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))

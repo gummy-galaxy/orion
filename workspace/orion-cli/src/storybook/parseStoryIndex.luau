@@ -22,9 +22,11 @@ local function getExportOrder(source: string): { [string]: number }
 end
 
 --[[
-	Reads the stories in a built Storybook's index.json. `root` is the folder Storybook ran from, relative to the
-	repository root, since the index records each stories file relative to it. Each story is ordered by where its export
-	sits in its stories file, which `readFile` reads; a story whose export isn't found sorts last.
+	Reads the stories in a built Storybook's index.json. `root` is the folder
+	Storybook ran from, relative to the repository root, since the index records
+	each stories file relative to it. Each story is ordered by where its export
+	sits in its stories file, which `readFile` reads; a story whose export isn't
+	found sorts last.
 ]]
 local function parseStoryIndex(indexText: string, root: string, readFile: ReadFile): { Story }
 	local index: json.Object = json.asObject(json.deserialize(indexText) :: json.Value) or {}

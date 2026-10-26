@@ -4,8 +4,9 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Places items added together once all their links are known, in the order given. Each one sees only the items placed
--- before it, so a chain added in one plan lands in a row. An id that's gone, such as one a later step removed, is
+-- Places items added together once all their links are known, in the order
+-- given. Each one sees only the items placed before it, so a chain added in one
+-- plan lands in a row. An id that's gone, such as one a later step removed, is
 -- skipped.
 local function placeTogether(doc: Doc, ids: { string })
 	local unplaced: { [string]: boolean } = {}

@@ -8,7 +8,8 @@ local writeWorkspaces = require("@root/store/writeWorkspaces")
 
 type WorkspaceList = storeTypes.WorkspaceList
 
--- Puts an archived workspace back on the list. Its folder is still in place, so it returns with its data.
+-- Puts an archived workspace back on the list. Its folder is still in place, so
+-- it returns with its data.
 local function restoreWorkspace(root: string, name: string): WorkspaceList
 	assert(isValidWorkspace(name), `invalid canvas name: {name}`)
 	local list = getWorkspaces(root)

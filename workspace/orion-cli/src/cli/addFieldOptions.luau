@@ -5,8 +5,9 @@ local appendEmptyValue = require("@root/cli/appendEmptyValue")
 local fieldValues = require("@root/fieldValues")
 local noteStyle = require("@root/cli/noteStyle")
 
--- Item fields, which cards take. Groups take their own, set with group set. Changing a card can clear who,
--- shape, color, and note with an empty value, so their MCP fields accept one there.
+-- Item fields, which cards take. Groups take their own, set with group set.
+-- Changing a card can clear who, shape, color, and note with an empty value, so
+-- their MCP fields accept one there.
 local function addFieldOptions(parser: cli.Parser, clearing: boolean)
 	local function getValues(values: { string }): { string }
 		return if clearing then appendEmptyValue(values) else values

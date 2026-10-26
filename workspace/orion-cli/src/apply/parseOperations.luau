@@ -5,7 +5,8 @@ local types = require("@root/apply/types")
 
 type Operation = types.Operation
 
--- Card fields an addCard step may set. Groups take their own, set with setFields.
+-- Card fields an addCard step may set. Groups take their own, set with
+-- setFields.
 local CARD_FIELDS: { [string]: string } = {
 	status = "string",
 	repo = "string",
@@ -14,7 +15,8 @@ local CARD_FIELDS: { [string]: string } = {
 	kind = "string",
 }
 
--- Fields setFields may change, with the type each one takes. Matches the fields the CLI's set commands take.
+-- Fields setFields may change, with the type each one takes. Matches the fields
+-- the CLI's set commands take.
 local SET_FIELDS: { [string]: string } = {
 	label = "string",
 	status = "string",
@@ -30,7 +32,8 @@ local SET_FIELDS: { [string]: string } = {
 
 local LINK_KINDS = { blocks = true, related = true }
 
--- The keys each step reads. A key outside this list is refused, so a misspelled field can't be silently ignored.
+-- The keys each step reads. A key outside this list is refused, so a misspelled
+-- field can't be silently ignored.
 local STEP_KEYS: { [string]: { [string]: boolean } } = {
 	addCard = {
 		handle = true,
@@ -189,21 +192,24 @@ local function parseStep(object: json.Object): Operation
 		operation.to = requireString(object, "to")
 	elseif name == "move" then
 		operation.id = requireString(object, "id")
-		-- A move has to say where it goes. Null sends the item to the top level, so a missing group can't do it by accident.
+		-- A move has to say where it goes. Null sends the item to the top
+		-- level, so a missing group can't do it by accident.
 		assert(object.group ~= nil, "move needs group, or null for the top level")
 		operation.group = optionalString(object, "group")
 	elseif name == "remove" then
 		operation.id = requireString(object, "id")
 		operation.reconnect = optionalBoolean(object, "reconnect")
 	else
-		-- removeGroup, ungroup, and tidy each take only the id of the item they act on.
+		-- removeGroup, ungroup, and tidy each take only the id of the item they
+		-- act on.
 		operation.id = requireString(object, "id")
 	end
 
 	return operation
 end
 
--- Turns the steps of a plan into typed operations, or refuses the plan, naming the first step that is wrong.
+-- Turns the steps of a plan into typed operations, or refuses the plan, naming
+-- the first step that is wrong.
 local function parseOperations(values: json.Array): { Operation }
 	local operations: { Operation } = {}
 

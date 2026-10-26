@@ -20,8 +20,9 @@ local function findSource(sources: { Source }, id: string): Source?
 	return nil
 end
 
--- Jira keys can only be read through a source's command, so each source runs once and its results are matched by key.
--- A ref outside what the command returns is reported as not found.
+-- Jira keys can only be read through a source's command, so each source runs
+-- once and its results are matched by key. A ref outside what the command
+-- returns is reported as not found.
 local function lookupRefs(refs: { ResolvedRef }, context: adapterTypes.Context, run: CommandRunner): LookupResult
 	local result: LookupResult = { records = {}, failures = {} }
 	local bySource: { [string]: { ResolvedRef } } = {}

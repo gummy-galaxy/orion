@@ -2,7 +2,8 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Refuses to reconnect around an item unless it has at most one incoming and one outgoing link.
+-- Refuses to reconnect around an item unless it has at most one incoming and
+-- one outgoing link.
 local function checkReconnect(doc: Doc, id: string)
 	local incoming, outgoing = 0, 0
 

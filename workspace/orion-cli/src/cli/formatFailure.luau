@@ -2,7 +2,8 @@ local json = require("@std/json")
 
 local getErrorText = require("@root/getErrorText")
 
--- Whether the arguments ask for JSON, read before parsing so a failure to parse them still prints JSON.
+-- Whether the arguments ask for JSON, read before parsing so a failure to parse
+-- them still prints JSON.
 local function wantsJson(args: { string }): boolean
 	for _, arg in args do
 		if arg == "--" then
@@ -15,7 +16,8 @@ local function wantsJson(args: { string }): boolean
 	return false
 end
 
--- What the CLI prints when a command fails: {"error": {"message": …}} under --json, or an Error: line.
+-- What the CLI prints when a command fails: {"error": {"message": …}} under
+-- --json, or an Error: line.
 local function formatFailure(args: { string }, failure: unknown): string
 	local text = getErrorText(failure)
 

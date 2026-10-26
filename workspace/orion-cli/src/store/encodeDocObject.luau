@@ -18,7 +18,8 @@ local function getStringArray(values: { string }?): json.Array?
 	return result
 end
 
--- The JSON object a document is stored as. Fields Orion doesn't know about, kept in `raw`, pass through unchanged.
+-- The JSON object a document is stored as. Fields Orion doesn't know about,
+-- kept in `raw`, pass through unchanged.
 local function encodeDocObject(doc: Doc): json.Object
 	local nodes: json.Array = {}
 

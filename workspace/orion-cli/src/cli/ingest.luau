@@ -56,8 +56,8 @@ return table.freeze({
 		local now = options.now()
 		local selected = parser:get("source")
 		local snapshot = loadDoc(options.dir)
-		-- Refs take their repositories' ids and current names before anything matches against them, so a repository that
-		-- moved keeps its cards.
+		-- Refs take their repositories' ids and current names before anything
+		-- matches against them, so a repository that moved keeps its cards.
 		local found = fetchRepositories(snapshot, options.runner)
 		applyRepositories(snapshot, found, now)
 		healRefKeys(snapshot)
@@ -66,8 +66,8 @@ return table.freeze({
 		local applyRefreshes = refreshAdapters(snapshot, options.runner, now, selected)
 		local report: ingestTypes.Report
 
-		-- Fetching happens above, outside the lock. Refreshing after placing skips the cards this run added when listing
-		-- what's unplaced.
+		-- Fetching happens above, outside the lock. Refreshing after placing
+		-- skips the cards this run added when listing what's unplaced.
 		local function apply(doc: Doc)
 			applyRepositories(doc, found, now)
 			healRefKeys(doc)

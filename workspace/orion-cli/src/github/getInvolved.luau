@@ -17,8 +17,8 @@ type CommandRunner = types.CommandRunner
 local PAGE_SIZE = 100
 local SMALLEST_PAGE = 25
 
--- Reads one page of search results, retrying at half the size, down to 25, when GitHub times out. Returns the size that
--- fit, so the next page starts there.
+-- Reads one page of search results, retrying at half the size, down to 25, when
+-- GitHub times out. Returns the size that fit, so the next page starts there.
 local function getSearchPage(
 	run: CommandRunner,
 	host: string,

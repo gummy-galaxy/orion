@@ -5,8 +5,8 @@ local logger = archivist.getLogger("orion.sqlite")
 
 local isAvailable: boolean? = nil
 
--- Whether the `sqlite3` command can run here, checked once per process. Without it, canvases are read from every
--- file and writes aren't journaled.
+-- Whether the `sqlite3` command can run here, checked once per process. Without
+-- it, canvases are read from every file and writes aren't journaled.
 local function hasSqlite(): boolean
 	if isAvailable == nil then
 		local succeeded, result = pcall(function()

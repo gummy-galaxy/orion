@@ -18,8 +18,9 @@ type Context = context.Context
 type Doc = types.Doc
 type Item = types.Item
 
--- Takes a ref off an item by the key orion node show lists. A URL or source:key that isn't a key on the item resolves
--- the way --ref does, and then has to match that ref's kind too.
+-- Takes a ref off an item by the key orion node show lists. A URL or source:key
+-- that isn't a key on the item resolves the way --ref does, and then has to
+-- match that ref's kind too.
 local function detachInput(doc: Doc, id: string, input: string): Item
 	local item = getItem(doc, id)
 	assert(not isGroup(item), "groups don't take refs")

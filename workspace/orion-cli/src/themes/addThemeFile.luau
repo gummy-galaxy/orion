@@ -13,8 +13,9 @@ export type AddedTheme = {
 	warnings: { string },
 }
 
--- Checks a theme file and copies it into the themes folder under its own name. The app lists it on its next read.
--- A file that cannot be used is refused and nothing is copied. A file with the same name is replaced.
+-- Checks a theme file and copies it into the themes folder under its own name.
+-- The app lists it on its next read. A file that cannot be used is refused and
+-- nothing is copied. A file with the same name is replaced.
 local function addThemeFile(root: string, source: string): AddedTheme
 	assert(source:sub(-5) == ".json", "a theme file must be a .json file")
 	assert(fs.exists(source) and fs.type(source) == "file", `{source} is not a file`)

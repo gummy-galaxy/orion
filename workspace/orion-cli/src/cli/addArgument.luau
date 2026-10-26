@@ -16,8 +16,9 @@ export type Options = {
 	mcp: cliTypes.ArgumentMcp?,
 }
 
--- Adds an argument along with what its value is, which the parser has no room for. MCP schemas and
--- orion help --all --json read it back through describeCommands.
+-- Adds an argument along with what its value is, which the parser has no room
+-- for. MCP schemas and orion help --all --json read it back through
+-- describeCommands.
 local function addArgument(
 	parser: cli.Parser,
 	name: string,

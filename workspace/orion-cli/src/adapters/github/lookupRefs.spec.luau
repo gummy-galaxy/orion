@@ -15,7 +15,8 @@ local function resolveAll(urls: { string }): { ResolvedRef }
 	return resolved
 end
 
--- Aliases with no match come back as null, the way GraphQL answers a missing repository or number.
+-- Aliases with no match come back as null, the way GraphQL answers a missing
+-- repository or number.
 local function nullAliases(count: number): string
 	local parts = {}
 	for index = 1, count do

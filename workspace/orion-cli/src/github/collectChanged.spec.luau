@@ -37,7 +37,8 @@ local function fixture(): (Doc, PollState)
 	return doc, { lastModified = { ["github.com"] = "Sat, 17 Oct 2026 01:02:03 GMT" }, interval = 60 }
 end
 
--- Answers notifications with `notifications` and records every GraphQL query by what it asks for.
+-- Answers notifications with `notifications` and records every GraphQL query by
+-- what it asks for.
 local function createRunner(notifications: string?, sweep: string?, checks: string?)
 	local queries: { [string]: { string } } = { full = {}, sweep = {}, authored = {}, checks = {} }
 

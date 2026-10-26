@@ -60,7 +60,8 @@ local function placeRecords(doc: Doc, results: { Result }): Report
 		end
 
 		for _, record in result.records or {} do
-			-- A record that names its repository the way a card did before a move still finds that card.
+			-- A record that names its repository the way a card did before a
+			-- move still finds that card.
 			identifyRef(doc, record.ref)
 			local repository = if record.repo then findRepository(doc, record.repo) else nil
 			record.repo = if repository then repository.name else record.repo

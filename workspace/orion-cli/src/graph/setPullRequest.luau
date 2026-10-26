@@ -10,8 +10,9 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Points a card at a pull request in its repository, resolved through the GitHub adapter, or takes its pull request
--- off when `number` is nil. A pull request the card already carries keeps the facts its source filled in.
+-- Points a card at a pull request in its repository, resolved through the
+-- GitHub adapter, or takes its pull request off when `number` is nil. A pull
+-- request the card already carries keeps the facts its source filled in.
 local function setPullRequest(doc: Doc, id: string, number: number?)
 	local item = getItem(doc, id)
 	assert(not isGroup(item), "groups don't take refs; attach it to an item")

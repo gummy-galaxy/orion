@@ -37,7 +37,8 @@ function merge.handle(request: net.ReceivedRequest, loop: SyncLoop, runner: Comm
 		return shared.reply(502, json.object({ error = problem }))
 	end
 
-	-- Refresh soon after replying so the card turns done without waiting for the next sync.
+	-- Refresh soon after replying so the card turns done without waiting for
+	-- the next sync.
 	task.defer(function()
 		pcall(loop.run, true)
 	end)

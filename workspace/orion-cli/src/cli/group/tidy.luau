@@ -10,7 +10,8 @@ local requestedRevision = require("@root/cli/requestedRevision")
 
 type Context = context.Context
 
--- The app connects through orion server start, so a running server stands in for an open app.
+-- The app connects through orion server start, so a running server stands in
+-- for an open app.
 local function isServing(options: Context): boolean
 	return getRunningRuntime(options.root, function(pid)
 		return isProcessAlive(pid, options.runner)

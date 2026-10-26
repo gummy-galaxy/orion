@@ -128,8 +128,8 @@ local function decodeDocObject(root: json.Object): Doc
 			fillPullFacts(item)
 		end
 
-		-- Images from before canvases were named keep `workspace` until read. Remove at 0.1.0 with the rest of
-		-- `migrations/`.
+		-- Images from before canvases were named keep `workspace` until read.
+		-- Remove at 0.1.0 with the rest of `migrations/`.
 		if item.type == "image" and item.data.workspace ~= nil then
 			migrateImageCanvas(item)
 		end

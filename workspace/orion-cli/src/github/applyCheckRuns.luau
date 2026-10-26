@@ -4,8 +4,9 @@ type CheckRun = githubTypes.CheckRun
 type FailedCheck = githubTypes.FailedCheck
 type PullState = githubTypes.PullState
 
--- Records which jobs failed and passed on a pull request. When some jobs are required, a failed job that isn't
--- leaves the pull request's state alone: its failure count drops it, and checks no longer read as failing for it.
+-- Records which jobs failed and passed on a pull request. When some jobs are
+-- required, a failed job that isn't leaves the pull request's state alone: its
+-- failure count drops it, and checks no longer read as failing for it.
 local function applyCheckRuns(pull: PullState, runs: { CheckRun })
 	local hasRequired = false
 

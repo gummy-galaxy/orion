@@ -8,7 +8,8 @@ export type Entry = {
 	error: string?,
 }
 
--- status is "added", "existing", or "failed". Dry runs say "added" for cards they would add.
+-- status is "added", "existing", or "failed". Dry runs say "added" for cards
+-- they would add.
 export type Outcome = {
 	input: string,
 	status: string,
@@ -17,7 +18,8 @@ export type Outcome = {
 	error: string?,
 }
 
--- status is "existing" when a card already tracks the ref, or "found" for a card that hasn't been added yet.
+-- status is "existing" when a card already tracks the ref, or "found" for a
+-- card that hasn't been added yet.
 export type CardLookup = {
 	status: string,
 	item: types.Item,

@@ -1,4 +1,5 @@
--- A deep copy of plain data, so a snapshot keeps its values while the document changes in place.
+-- A deep copy of plain data, so a snapshot keeps its values while the document
+-- changes in place.
 local function copyValue(value: any): any
 	if type(value) ~= "table" then
 		return value

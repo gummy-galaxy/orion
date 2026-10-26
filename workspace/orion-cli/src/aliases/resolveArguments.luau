@@ -9,7 +9,8 @@ type Rewrite = {
 	notice: string,
 }
 
--- Enough to follow a renamed group and then a renamed command under it, and few enough that a loop fails fast.
+-- Enough to follow a renamed group and then a renamed command under it, and few
+-- enough that a loop fails fast.
 local MAX_REWRITES = 10
 
 -- The kind of the argument a parser knows by this name or alias, if any.
@@ -37,7 +38,8 @@ local function formatNotice(old: string, new: string): string
 	return `Notice: {old} is now {new}, and the old name stops working in the next release.`
 end
 
--- Whether a command alias's old path continues the path walked so far with the arguments from index on.
+-- Whether a command alias's old path continues the path walked so far with the
+-- arguments from index on.
 local function continuesPath(from: { string }, path: { string }, args: { string }, index: number): boolean
 	if #from <= #path then
 		return false
@@ -58,8 +60,9 @@ local function continuesPath(from: { string }, path: { string }, args: { string 
 	return true
 end
 
--- Swaps an old command path for its new one. The old path's words may sit between options, so they're taken out
--- wherever they are and the new path goes where the old one started.
+-- Swaps an old command path for its new one. The old path's words may sit
+-- between options, so they're taken out wherever they are and the new path goes
+-- where the old one started.
 local function replacePath(
 	args: { string },
 	positions: { number },
@@ -105,8 +108,9 @@ local function findOptionAlias(aliases: { Alias }, command: string, name: string
 	return nil
 end
 
--- Walks the arguments as the parser would and rewrites the first old name it meets, if any. orion help takes a
--- command path as its topic, so the words after it are walked from the root again.
+-- Walks the arguments as the parser would and rewrites the first old name it
+-- meets, if any. orion help takes a command path as its topic, so the words
+-- after it are walked from the root again.
 local function findRewrite(args: { string }, root: cli.Parser, aliases: { Alias }): Rewrite?
 	local current = root
 	local path: { string } = {}
@@ -179,8 +183,9 @@ local function findRewrite(args: { string }, root: cli.Parser, aliases: { Alias 
 	return nil
 end
 
--- Rewrites old command paths and options in a command line to their current names, before the parser reads it.
--- Returns the rewritten arguments and a notice for each rename it made.
+-- Rewrites old command paths and options in a command line to their current
+-- names, before the parser reads it. Returns the rewritten arguments and a
+-- notice for each rename it made.
 local function resolveArguments(args: { string }, root: cli.Parser, aliases: { Alias }): ({ string }, { string })
 	local resolved = args
 	local notices: { string } = {}

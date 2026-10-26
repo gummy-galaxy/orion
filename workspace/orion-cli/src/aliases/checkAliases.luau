@@ -70,8 +70,9 @@ local function checkOption(root: CommandDescription, alias: Alias, problems: { s
 	end
 end
 
--- Lists what's wrong with the alias entries against the command table: a target that doesn't exist, an old name
--- that hides a live one, a repeated old name, or a missing date or pull request.
+-- Lists what's wrong with the alias entries against the command table: a target
+-- that doesn't exist, an old name that hides a live one, a repeated old name,
+-- or a missing date or pull request.
 local function checkAliases(root: CommandDescription, aliases: { Alias }): { string }
 	local problems: { string } = {}
 	local seen: { [string]: boolean } = {}

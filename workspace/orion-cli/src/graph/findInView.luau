@@ -7,9 +7,11 @@ type Doc = types.Doc
 type Focus = types.Focus
 
 --[[
-	The ids of what the app is showing: the open group and everything inside it, the selection and anything inside a
-	selected group, and whatever blocks one of those across a single link. A selection counts without an open group, so
-	selected cards at the top level are in view too. Ids the app reported that are no longer on the canvas are skipped.
+	The ids of what the app is showing: the open group and everything inside it,
+	the selection and anything inside a selected group, and whatever blocks one
+	of those across a single link. A selection counts without an open group, so
+	selected cards at the top level are in view too. Ids the app reported that
+	are no longer on the canvas are skipped.
 ]]
 local function findInView(doc: Doc, focus: Focus?): { [string]: boolean }
 	local shown: { [string]: boolean } = {}
