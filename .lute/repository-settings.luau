@@ -30,7 +30,7 @@ local REQUIRED_CHECKS = {
 	"perf",
 }
 
-local RULESET_NAME = "Default branch"
+local RULESET_NAME = "Default"
 local ADMIN_TEAM = "orion-admins"
 local FORK_ENVIRONMENT = "perf-fork"
 -- GitHub Actions' app ID, so only Actions can report a required check.
