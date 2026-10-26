@@ -1,4 +1,5 @@
 local derive = require("@root/graph/derive")
+local getCurrentKey = require("@root/github/getCurrentKey")
 local getLabel = require("@root/graph/getLabel")
 local matchesExpression = require("@root/query/matchesExpression")
 local parseExpression = require("@root/query/parseExpression")
@@ -17,13 +18,13 @@ local function comparison(field: string, value: string): Expression
 end
 
 -- A value with a URL or a source prefix is a ref that --ref would resolve, and it matches by that ref's key.
--- A bare value is already a key, such as owner/name#12 or ABC-12.
+-- A bare value is already a key, such as owner/name#12 or ABC-12. A repository that moved matches by its old name too.
 local function refKey(value: string, doc: Doc): string
 	if value:match("^https?://") or value:match("^[a-z][a-z0-9%-]*:") then
-		return resolveRef(value, doc.settings.sources).ref.key
+		return getCurrentKey(doc, resolveRef(value, doc.settings.sources).ref.key)
 	end
 
-	return value
+	return getCurrentKey(doc, value)
 end
 
 local function selectorExpression(selector: string, value: string, doc: Doc): Expression

@@ -86,3 +86,23 @@ test.case("Enterprise refs keep their host", function(assert)
 
 	assert.eq(getRefs(doc.nodes[1])[1].key, "ghe.example.com/platform/app#4")
 end)
+
+test.case("CI snoozes follow their repository's old name to its current one", function(assert)
+	local doc = testing.createDoc({})
+	doc.repositories = json.object({
+		["1"] = json.object({ name = "gummy-galaxy/orion", aliases = { "vocksel/orion" } }),
+	})
+	local snoozes = doc.settings.checkSnoozes
+	table.insert(snoozes, { repo = "gummy-galaxy/orion", name = "lint", at = "new", passed = {} })
+	table.insert(snoozes, { repo = "vocksel/orion", name = "lint", at = "old", passed = {} })
+	table.insert(snoozes, { repo = "Vocksel/Orion", name = "docs", at = "old", passed = { "a" } })
+
+	local moves = healRefKeys(doc)
+
+	assert.eq(#snoozes, 2)
+	assert.eq(snoozes[1].at, "new")
+	assert.eq(snoozes[2].name, "docs")
+	assert.eq(snoozes[2].repo, "gummy-galaxy/orion")
+	assert.eq(snoozes[2].passed[1], "a")
+	assert.eq(#moves, 1)
+end)
