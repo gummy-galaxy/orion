@@ -1,6 +1,7 @@
 local getCheckCounts = require("@root/github/getCheckCounts")
 local getCheckProgress = require("@root/github/getCheckProgress")
 local getCheckState = require("@root/github/getCheckState")
+local getRepoId = require("@root/github/getRepoId")
 local getString = require("@root/github/getString")
 local githubTypes = require("@root/github/types")
 local json = require("@std/json")
@@ -27,6 +28,7 @@ local function parsePull(object: json.Object, owner: string, name: string, host:
 		end
 	end
 
+	local repository = json.asObject(object.repository)
 	local author = json.asObject(object.author)
 	local commits = json.asObject(object.commits)
 	local commitNodes = if commits then json.asArray(commits.nodes) else nil
@@ -59,6 +61,8 @@ local function parsePull(object: json.Object, owner: string, name: string, host:
 		branch = getString(object.headRefName),
 		body = getString(object.body),
 		host = host,
+		repoId = getRepoId(repository),
+		repoName = if repository then getString(repository.nameWithOwner) else nil,
 	}
 end
 

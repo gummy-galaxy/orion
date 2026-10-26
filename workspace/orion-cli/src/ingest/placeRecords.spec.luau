@@ -1,3 +1,4 @@
+local json = require("@std/json")
 local test = require("@std/test")
 
 local adapterTypes = require("@root/adapters/types")
@@ -80,4 +81,50 @@ test.case("placeRecords uses fallback, skips missing update-only, and computes s
 	assert.eq(existing.data.status, "review")
 	assert.eq(existing.data.who, "review")
 	assert.eq(existing.data.itemKind, "pr")
+end)
+
+test.case("placeRecords updates the card whose ref has the record's id, under the record's new key", function(assert)
+	local doc = testing.createDoc({})
+	local record: Record = {
+		ref = { source = "example", kind = "pull", key = "vocksel/orion#12", id = "R_1#12" },
+		label = "Fix",
+		itemKind = "pr",
+	}
+	placeRecords(doc, { result({ record }) })
+
+	record.ref = { source = "example", kind = "pull", key = "gummy-galaxy/orion#12", id = "R_1#12" }
+	local second = placeRecords(doc, { result({ record }) })
+
+	assert.eq(second.sources[1].added, 0)
+	assert.eq(second.sources[1].updated, 1)
+	assert.eq(#doc.nodes, 2)
+	assert.eq(findRef(doc.nodes[2], "pull", "gummy-galaxy/orion#12") ~= nil, true)
+	assert.eq(findRef(doc.nodes[2], "pull", "vocksel/orion#12"), nil)
+end)
+
+test.case("placeRecords matches a record that names a moved repository's old name", function(assert)
+	local doc = testing.createDoc({
+		testing.task("moved", "Moved", "active", nil, {
+			repo = "gummy-galaxy/orion",
+			refs = {
+				{ source = "hop", kind = "branch", key = "gummy-galaxy/orion@agent/fix", id = "1@agent/fix" },
+			},
+		}),
+	})
+	doc.repositories = json.object({
+		["1"] = json.object({ name = "gummy-galaxy/orion", aliases = { "vocksel/orion" } }),
+	})
+	local record: Record = {
+		ref = { source = "hop", kind = "branch", key = "vocksel/orion@agent/fix" },
+		label = "agent fix",
+		repo = "vocksel/orion",
+		itemKind = "step",
+	}
+
+	local report = placeRecords(doc, { result({ record }) })
+
+	assert.eq(report.sources[1].added, 0)
+	assert.eq(report.sources[1].updated, 1)
+	assert.eq(#doc.nodes, 1)
+	assert.eq(doc.nodes[1].data.repo, "gummy-galaxy/orion")
 end)

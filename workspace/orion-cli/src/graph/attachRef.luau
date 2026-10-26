@@ -1,4 +1,6 @@
+local findRepository = require("@root/github/findRepository")
 local getItem = require("@root/graph/getItem")
+local identifyRef = require("@root/github/identifyRef")
 local isGroup = require("@root/graph/isGroup")
 local refreshItemKind = require("@root/graph/refreshItemKind")
 local setRef = require("@root/refs/setRef")
@@ -12,10 +14,11 @@ type Item = types.Item
 local function attachRef(doc: Doc, id: string, resolved: types.ResolvedRef): Item
 	local item = getItem(doc, id)
 	assert(not isGroup(item), "groups don't take refs; attach it to an item")
-	setRef(item, resolved.ref)
+	setRef(item, identifyRef(doc, resolved.ref))
+	local found = if resolved.repo then findRepository(doc, resolved.repo) else nil
 
 	if resolved.repo and item.data.repo == nil then
-		item.data.repo = resolved.repo
+		item.data.repo = if found then found.name else resolved.repo
 	end
 
 	refreshItemKind(item)

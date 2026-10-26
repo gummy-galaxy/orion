@@ -14,6 +14,7 @@ import {
   type TaskNode,
   type ViewStatus,
 } from './model'
+import { isSameRef } from './refs/isSameRef'
 import type { Rarity } from './rarity'
 import type { GroupResize } from './resize/types'
 
@@ -84,15 +85,13 @@ function sourceOf(ref: RefData): SourceRef {
 
 /** Every ref on a card gets a badge, once per source, kind, and key. A card with no refs gets none. */
 export function sourcesOf(task: TaskNode): SourceRef[] {
-  const sources = new Map<string, SourceRef>()
+  const seen: RefData[] = []
 
   for (const ref of task.data.refs ?? []) {
-    const key = `${ref.source}:${ref.kind}:${ref.key.toLowerCase()}`
-
-    if (!sources.has(key)) sources.set(key, sourceOf(ref))
+    if (!seen.some((other) => other.source === ref.source && isSameRef(other, ref))) seen.push(ref)
   }
 
-  return [...sources.values()]
+  return seen.map(sourceOf)
 }
 
 /** A group's badges: the badges of every card inside it, once per domain and label, linked ones winning over unlinked ones. */

@@ -1,5 +1,6 @@
 local getKey = require("@root/github/getKey")
 local getPullFields = require("@root/github/getPullFields")
+local getRepoId = require("@root/github/getRepoId")
 local getString = require("@root/github/getString")
 local githubTypes = require("@root/github/types")
 local isListed = require("@root/github/isListed")
@@ -28,7 +29,7 @@ local function getSearchPage(
 	local first = size or PAGE_SIZE
 	local after = if cursor then `, after: {json.serialize(cursor)}` else ""
 	local source =
-		`query \{ search(query: {json.serialize(expression)}, type: ISSUE, first: {first}{after}) \{ nodes \{ ... on PullRequest \{ {getPullFields()} repository \{ name owner \{ login } } } ... on Issue \{ number title url repository \{ name owner \{ login } } } } pageInfo \{ hasNextPage endCursor } } }`
+		`query \{ search(query: {json.serialize(expression)}, type: ISSUE, first: {first}{after}) \{ nodes \{ ... on PullRequest \{ {getPullFields()} repository \{ name owner \{ login } } } ... on Issue \{ number title url repository \{ databaseId name owner \{ login } } } } pageInfo \{ hasNextPage endCursor } } }`
 	local succeeded, data = pcall(query, run, source, host)
 
 	if not succeeded then
@@ -121,6 +122,7 @@ local function getInvolved(
 							title = object.title,
 							url = object.url,
 							host = host,
+							repoId = getRepoId(repository),
 						})
 					end
 				end

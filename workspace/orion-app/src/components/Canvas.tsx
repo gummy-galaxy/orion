@@ -29,6 +29,7 @@ import { LinkPrompt } from './LinkPrompt'
 import { COMMAND_PREFIX, Palette, type Command } from './Palette'
 import { AttentionOverlay, type AttentionTarget } from './AttentionOverlay'
 import { ActionsContext, type AttentionMark, type Flow } from '../derive'
+import { isSameRef } from '../refs/isSameRef'
 import { localDateValue, snoozeUntil } from '../snooze'
 import {
   CHAIN_STEP_MS,
@@ -2640,11 +2641,7 @@ export function Canvas() {
       // A card made from this link moments ago may not be saved yet, so the server can't know about it.
       const ref = found.status === 'found' ? found.data.refs?.[0] : undefined
       const unsaved = ref
-        ? currentNodes.find(
-            (node) =>
-              node.type === 'task' &&
-              (node.data as TaskData).refs?.some((other) => other.kind === ref.kind && other.key.toLowerCase() === ref.key.toLowerCase()),
-          )
+        ? currentNodes.find((node) => node.type === 'task' && (node.data as TaskData).refs?.some((other) => isSameRef(other, ref)))
         : undefined
       const existingId = found.status === 'existing' ? found.id : unsaved?.id
 

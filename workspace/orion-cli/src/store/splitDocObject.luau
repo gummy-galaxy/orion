@@ -11,10 +11,9 @@ local storeTypes = require("@root/store/types")
 
 type CanvasSnapshot = storeTypes.CanvasSnapshot
 
--- Fields that record this machine's view of a canvas rather than the canvas
--- itself, kept out of the shared files. The revision counts this machine's
--- writes, so `canvas.json` only changes when the canvas's own fields do.
-local LOCAL_FIELDS: { [string]: boolean } = { github = true, revision = true, suggestions = true }
+-- Fields that record this machine's view of a canvas rather than the canvas itself, kept out of the shared files.
+-- The revision counts this machine's writes, so `canvas.json` only changes when the canvas's own fields do.
+local LOCAL_FIELDS: { [string]: boolean } = { github = true, revision = true, suggestions = true, repositories = true }
 
 local function copyObject(object: json.Object?): json.Object
 	local copy = json.object({})
@@ -36,9 +35,8 @@ local function parseEntry(text: string?): json.Object?
 end
 
 --[[
-	The text of an entry's file, with its order key and when each field last
-	changed. A field that differs from the file it replaces, or that's new or
-	gone, is stamped `now`, and the rest keep their times. An entry whose fields
+	The text of an entry's file, with its order key and when each field last changed. A field that differs from the
+	file it replaces, or that's new or gone, is stamped `now`, and the rest keep their times. An entry whose fields
 	all match skips comparing them field by field.
 ]]
 local function stampEntry(entry: json.Object, key: string, file: string, previous: CanvasSnapshot?, now: string): string
@@ -112,14 +110,11 @@ local function splitEntries(
 end
 
 --[[
-	Splits a whole canvas, in the shape `encodeDocObject` returns, into the
-	files of its folder, keyed by path: `canvas.json` for the canvas's own
-	fields, `nodes/<id>.json` and `links/<id>.json` for each node and link, and
-	`local.json` for the revision and the other local fields. Each node and link
-	file keeps an order key, so moving or adding one rewrites only its file, and
-	when each of its fields last changed, compared with the files in `previous`
-	and stamped `now`. A link without an id gets the one Orion has always read
-	it as.
+	Splits a whole canvas, in the shape `encodeDocObject` returns, into the files of its folder, keyed by path:
+	`canvas.json` for the canvas's own fields, `nodes/<id>.json` and `links/<id>.json` for each node and link, and
+	`local.json` for the revision and the other local fields. Each node and link file keeps an order key, so moving
+	or adding one rewrites only its file, and when each of its fields last changed, compared with the files in
+	`previous` and stamped `now`. A link without an id gets the one Orion has always read it as.
 ]]
 local function splitDocObject(document: json.Object, previous: CanvasSnapshot?, now: string): { [string]: string }
 	local files: { [string]: string } = {}

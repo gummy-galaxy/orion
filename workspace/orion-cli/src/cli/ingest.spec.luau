@@ -30,3 +30,61 @@ test.case("ingest dry run reports changes without writing", function(assert)
 	assert.eq(loadDoc(dir).revision, 1)
 	assert.eq(#loadDoc(dir).nodes, 2)
 end)
+
+test.case("ingest keeps a card whose repository moved, under its new name", function(assert)
+	local dir = testing.directory("ingest-moved-repository")
+	local doc = testing.createDoc({
+		testing.task(
+			"tracked",
+			"Tracked",
+			"active",
+			nil,
+			json.object({
+				repo = "vocksel/orion",
+				refs = {
+					json.object({
+						source = "github",
+						kind = "pull",
+						key = "vocksel/orion#12",
+						url = "https://github.com/vocksel/orion/pull/12",
+						status = "merged",
+					}),
+				},
+			})
+		),
+	})
+	doc.settings.sources = { { id = "github", kind = "github", host = "github.com", owners = { "gummy-galaxy" } } }
+	writeDoc(dir, doc)
+
+	local function runner(argv: { string })
+		local query = argv[#argv]
+
+		if query:find("r1: repository(", 1, true) then
+			return testing.result(true, '{"data":{"r1":{"databaseId":1,"nameWithOwner":"gummy-galaxy/orion"}}}')
+		elseif query:find("viewer { login }", 1, true) then
+			return testing.result(true, '{"data":{"viewer":{"login":"me"}}}')
+		elseif query:find("is:open is:pr", 1, true) then
+			return testing.result(
+				true,
+				'{"data":{"search":{"nodes":[{"number":12,"title":"Fix","url":"https://github.com/gummy-galaxy/orion/pull/12","state":"OPEN","headRefName":"fix","author":{"login":"me"},"repository":{"databaseId":1,"nameWithOwner":"gummy-galaxy/orion","name":"orion","owner":{"login":"gummy-galaxy"}}}],"pageInfo":{"hasNextPage":false}}}}'
+			)
+		end
+
+		return testing.result(true, '{"data":{"search":{"nodes":[],"pageInfo":{"hasNextPage":false}}}}')
+	end
+
+	testing.run(dir, { "ingest" }, runner, NOW)
+
+	local loaded = loadDoc(dir)
+	assert.eq(#loaded.nodes, 1)
+	assert.eq(loaded.nodes[1].data.repo, "gummy-galaxy/orion")
+	local refs = json.asArray(loaded.nodes[1].data.refs) or {}
+	assert.eq(#refs, 1)
+	local first = json.asObject(refs[1])
+	assert.eq(if first then first.key else nil, "gummy-galaxy/orion#12")
+	assert.eq(if first then first.id else nil, "1#12")
+	assert.eq(if first then first.url else nil, "https://github.com/gummy-galaxy/orion/pull/12")
+	local repositories = loaded.repositories
+	local entry = if repositories then json.asObject(repositories["1"]) else nil
+	assert.eq(if entry then entry.name else nil, "gummy-galaxy/orion")
+end)

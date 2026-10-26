@@ -519,6 +519,14 @@ Cards for links show a static snapshot of the link's preview rather than embeddi
 
 2026-10-12, 2026-10-18 · [#55](https://github.com/vocksel/orion/issues/55), [#469](https://github.com/vocksel/orion/issues/469)
 
+### Refs are identified by their source's stable ID
+
+A ref carries the readable key people type and see, such as `owner/name#12`, and an `id` from its source that survives a rename or move. Two refs of one kind are the same when their IDs match, or when their keys match and either has no ID yet. Anything that takes a ref or a repository by name keeps accepting the name and resolves it to the ID. A ref with no ID, from older data or added offline, gets one the next time its source is read.
+
+**Why:** a key names where work lives, and that changes when a repository is renamed or transferred. Matching by key then treats tracked work as new. Keeping names as input means nobody has to know an ID to use Orion.
+
+2026-10-25 · [#625](https://github.com/vocksel/orion/issues/625), [#538](https://github.com/vocksel/orion/issues/538)
+
 ### The background refresh fetches what changed
 
 `orion server start` fetches every open pull request card in full only at startup, on a canvas switch, when you ask, and every 15 minutes. In between, it polls GitHub notifications as often as GitHub allows, 60 seconds today, and refetches the pull requests they name. Every two minutes it also sweeps the open cards' `updatedAt` and refetches only the ones that moved. Cards with pending checks are refetched every 30 seconds. What the loop remembers between polls lives in memory, and a pass that finds nothing writes nothing.
@@ -608,3 +616,21 @@ The docs site lives at the bare `oriongraph.app`, served from the root path, by 
 **Why:** the domain stays the same when the repository changes owners, while a GitHub Pages address would change with it. Cloudflare deploys while the repository is private, which GitHub Pages can't, and it sits beside the domain's DNS in Cloudflare. Deploying from CI rather than Cloudflare's own builds keeps every build in one place.
 
 2026-10-25 · [#327](https://github.com/vocksel/orion/pull/327) · [#575](https://github.com/vocksel/orion/issues/575)
+
+## Releases
+
+### Changes arrive with entries, and release notes are built from them
+
+Each change people will notice lands with an entry in `.changes/`, and Changewrite builds the release notes and changelog from those entries when a release is cut. A pull request that changes `workspace/`, apart from Markdown files, adds one. Each entry's category is one of six surfaces: Canvas, Cards, Agents (the CLI and MCP), Sources, Desktop app, and Under the hood for internal work.
+
+**Why:** an entry written with its change is the cheapest accurate record of it, and the category decides where it lands in the notes, so each surface gets a section that people can find.
+
+2026-10-25 · [Ship changelogs and release notes with 0.1.0](https://github.com/vocksel/orion/issues/633)
+
+### Release notes lead with highlights, then breaking changes, then each surface
+
+Notes open with a TL;DR and highlights, then a callout for breaking changes, then one section per surface, with Under the hood collapsed at the end. Each bullet starts with a chip for its kind (NEW, IMPROVED, FIXED, or BREAKING) and ends with a link to its pull request. A chip is a tinted pill with a solid dot and a plain capital word, in a light and a dark version.
+
+**Why:** a reader who skims should learn what changed first, and breaking changes shouldn't be buried in a surface's list. GitHub shows the notes in both themes, so each chip needs a pair that reads in either one.
+
+2026-10-25 · [Ship changelogs and release notes with 0.1.0](https://github.com/vocksel/orion/issues/633)

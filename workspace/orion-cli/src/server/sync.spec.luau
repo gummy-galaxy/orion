@@ -79,6 +79,9 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 		elseif query:find("{ updatedAt }", 1, true) then
 			table.insert(calls, "sweep")
 			return testing.result(true, [[{"data":{"p1":{"pullRequest":{"updatedAt":"2026-10-18T00:00:00Z"}}}}]])
+		elseif query:find("r1: repository(", 1, true) then
+			table.insert(calls, "repositories")
+			return testing.result(true, [[{"data":{"r1":{"databaseId":1,"nameWithOwner":"flipbook-labs/flipbook"}}}]])
 		end
 
 		table.insert(calls, "full")
@@ -92,7 +95,8 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 
 	loop.tick()
 	local revision = loadDoc(dir).revision
-	assert.eq(table.concat(calls, ","), "authored,full")
+	-- The first full pass gives the card's ref its repository's id, so later passes don't ask again.
+	assert.eq(table.concat(calls, ","), "repositories,authored,full")
 	assert.eq(table.concat(states, ","), "running,idle")
 
 	table.clear(calls)
