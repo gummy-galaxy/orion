@@ -1,4 +1,7 @@
 local adapterTypes = require("@root/adapters/types")
+local claudeCreateSource = require("@root/adapters/claude/createSource")
+local claudeListSessionsAsync = require("@root/adapters/claude/listSessionsAsync")
+local claudeReadTurnsAsync = require("@root/adapters/claude/readTurnsAsync")
 local githubCollectAsync = require("@root/adapters/github/collectAsync")
 local githubCreateSource = require("@root/adapters/github/createSource")
 local githubLookupRefsAsync = require("@root/adapters/github/lookupRefsAsync")
@@ -16,6 +19,15 @@ local jiraRefFromUrl = require("@root/adapters/jira/refFromUrl")
 type Adapter = adapterTypes.Adapter
 
 local adapters: { [string]: Adapter } = {
+	claude = {
+		kind = "claude",
+		createSource = claudeCreateSource,
+		agent = {
+			name = "Claude Code",
+			listSessionsAsync = claudeListSessionsAsync,
+			readTurnsAsync = claudeReadTurnsAsync,
+		},
+	},
 	github = {
 		kind = "github",
 		createSource = githubCreateSource,

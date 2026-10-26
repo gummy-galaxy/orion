@@ -46,4 +46,6 @@ Each session an adapter lists carries the same fields whatever the agent:
 - **`title`**, **`lastMessage`**, and **`updatedAt`**: what to call it, the last thing the agent said, and when it last changed.
 - **`details`**: what the agent recorded in its own terms, which only its adapter reads.
 
+`orion ingest` turns an agent's sessions into `session` refs on the cards whose branch they ran on, the same way for every agent. It asks git for a session's repository when the adapter doesn't say, writes the state as `sessionState` and a label such as "Working in Claude Code" as `stateLabel`, keeps the first 280 characters of `lastMessage`, and puts the folder, branch, and `isLive` in `details`. A session never adds a card, and agents collect after every source, so a card a source adds in the same pass can take its sessions. Claude Code is the first agent adapter, in `adapters/claude/`.
+
 Agent verbs read the agent's records each time Orion asks, so Orion keeps refs and derived state rather than a copy of a transcript. Reading those records cheaply is the adapter's job: Claude Code's, for example, reads only the end of each transcript and asks its running processes whether they're busy.
