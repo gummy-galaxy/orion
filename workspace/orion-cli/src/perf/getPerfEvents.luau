@@ -40,7 +40,8 @@ local function addBench(properties: json.Object, bench: json.Object): number
 	return count
 end
 
--- Each story holds one sample per run, keyed by interaction and then by measurement.
+-- Each story holds one sample per run, keyed by interaction and then by
+-- measurement.
 local function addRender(properties: json.Object, render: json.Object): number
 	local count = 0
 
@@ -69,9 +70,11 @@ local function addRender(properties: json.Object, render: json.Object): number
 end
 
 --[[
-	Turns the perf harness's raw.json into one `perf_run` event per side. Each event carries the median of every
-	benchmark (`bench.<name>`) and every story measurement (`<story>.<interaction>.<measurement>`) across the run's
-	rounds, along with the side's commit and where the run happened. A side with no measurements sends nothing.
+	Turns the perf harness's raw.json into one `perf_run` event per side. Each
+	event carries the median of every benchmark (`bench.<name>`) and every story
+	measurement (`<story>.<interaction>.<measurement>`) across the run's rounds,
+	along with the side's commit and where the run happened. A side with no
+	measurements sends nothing.
 ]]
 return function(raw: json.Object, context: types.RunContext): { types.PerfEvent }
 	local bench = json.asObject(raw.bench)

@@ -8,7 +8,8 @@ local testing = require("@root/testing")
 local writeDoc = require("@root/store/writeDoc")
 
 local NOW = "2026-10-12T18:00:00Z"
--- Entries without --agent are by the user running the CLI, which is $USER when it is set.
+-- Entries without --agent are by the user running the CLI, which is $USER when
+-- it is set.
 local PERSON = process.env.USER or "person"
 
 local function createCanvas(name: string): string

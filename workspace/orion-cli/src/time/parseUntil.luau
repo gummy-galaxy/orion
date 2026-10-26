@@ -1,5 +1,6 @@
--- Reads an ISO 8601 date or date-time and returns it as UTC in the form Orion stores, such as 2026-10-12T07:00:00Z.
--- A date alone means the start of that day, and a date-time without an offset is local time.
+-- Reads an ISO 8601 date or date-time and returns it as UTC in the form Orion
+-- stores, such as 2026-10-12T07:00:00Z. A date alone means the start of that
+-- day, and a date-time without an offset is local time.
 
 local DAYS_IN_MONTH = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 local SECONDS_PER_DAY = 86400
@@ -36,7 +37,8 @@ local function localOffsetAt(epoch: number): number
 	return if sign == "-" then -seconds else seconds
 end
 
--- Returns whether the zone text is one ISO 8601 allows, and its offset from UTC when it names one.
+-- Returns whether the zone text is one ISO 8601 allows, and its offset from UTC
+-- when it names one.
 local function readZone(text: string): (boolean, number?)
 	if text == "" then
 		return true, nil
@@ -95,7 +97,8 @@ local function parseUntil(text: string): string
 			tail = tail:sub(4)
 		end
 
-		-- Fractions of a second never change the minute a card wakes in, so they're dropped.
+		-- Fractions of a second never change the minute a card wakes in, so
+		-- they're dropped.
 		zone = tail:gsub("^%.%d+", "")
 	end
 
@@ -104,7 +107,8 @@ local function parseUntil(text: string): string
 
 	local utc = daysFromCivil(year, month, day) * SECONDS_PER_DAY + hour * 3600 + minute * 60 + second
 
-	-- A time without an offset is the local clock's time, so the offset in effect then comes off.
+	-- A time without an offset is the local clock's time, so the offset in
+	-- effect then comes off.
 	utc -= if offset then offset else localOffsetAt(utc)
 
 	return os.date("!%Y-%m-%dT%H:%M:%SZ", utc) :: string

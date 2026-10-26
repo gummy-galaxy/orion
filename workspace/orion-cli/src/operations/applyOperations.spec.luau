@@ -12,7 +12,8 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Compares the canvas as plain data, since key order isn't part of what a document says.
+-- Compares the canvas as plain data, since key order isn't part of what a
+-- document says.
 local function snapshot(doc: Doc): any
 	return copyValue(encodeDocObject(doc))
 end
@@ -21,7 +22,8 @@ local function isSame(doc: Doc, saved: any): boolean
 	return sameValue(encodeDocObject(doc), saved)
 end
 
--- A release group holding two cards, one blocking the other, plus a loose card for the insert case.
+-- A release group holding two cards, one blocking the other, plus a loose card
+-- for the insert case.
 local function createCanvas(): Doc
 	return testing.createDoc({
 		testing.group("ws", "Release"),
@@ -285,7 +287,8 @@ test.case("setFields keeps a pull request's facts when the number doesn't change
 	assert.eq((pub.data.refs :: any)[1].status, "open")
 end)
 
--- The message a refused list gives, which applyOperations raises inside a rejection.
+-- The message a refused list gives, which applyOperations raises inside a
+-- rejection.
 local function refuse(doc: Doc, text: string): string
 	local succeeded, failure = pcall(applyOperations, doc, parse(text))
 	assert(not succeeded, "the list should be refused")

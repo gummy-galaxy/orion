@@ -12,7 +12,8 @@ type Item = types.Item
 type Box = layoutTypes.Box
 type Issue = layoutTypes.Issue
 
--- Children store positions relative to their parent, so the canvas position adds each ancestor's.
+-- Children store positions relative to their parent, so the canvas position
+-- adds each ancestor's.
 local function canvasBox(doc: Doc, item: Item): Box
 	local x, y = item.position.x, item.position.y
 
@@ -40,8 +41,9 @@ local function overlapOf(first: Box, second: Box): Box?
 	return { x = left, y = top, width = right - left, height = bottom - top }
 end
 
--- Reports layout problems that can be computed from stored positions, sizes, and links. With a group, only problems
--- that involve the group or something inside it are reported.
+-- Reports layout problems that can be computed from stored positions, sizes,
+-- and links. With a group, only problems that involve the group or something
+-- inside it are reported.
 local function checkLayout(doc: Doc, groupId: string?): { Issue }
 	if groupId then
 		getGroup(doc, groupId)

@@ -9,7 +9,8 @@ type Want = githubTypes.Want
 type Doc = types.Doc
 type CommandRunner = types.CommandRunner
 
--- Like `refreshAsync`, but fetches only the cards that changed and returns no apply step when nothing did.
+-- Like `refreshAsync`, but fetches only the cards that changed and returns no
+-- apply step when nothing did.
 local function refreshChangedAsync(
 	doc: Doc,
 	run: CommandRunner,

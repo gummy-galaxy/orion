@@ -8,7 +8,8 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Item = types.Item
 
--- Takes a ref off an item. A kind narrows the match when the same key could name an issue and a pull request.
+-- Takes a ref off an item. A kind narrows the match when the same key could
+-- name an issue and a pull request.
 local function detachRef(doc: Doc, id: string, key: string, kind: string?): Item
 	local item = getItem(doc, id)
 	assert(not isGroup(item), "groups don't take refs")

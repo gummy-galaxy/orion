@@ -27,10 +27,12 @@ local function hasName(names: { string }, name: string): boolean
 end
 
 --[[
-	Records what GitHub said a repository is called now in the canvas's directory, by its id, with the host in front on
-	GitHub Enterprise as in ref ids. A name it had before stays as an alias, as does `alias`, a name GitHub answered for
-	it, so either still finds it. A name GitHub gives this repository stops being another repository's alias, since a
-	freed name can be taken by a new one.
+	Records what GitHub said a repository is called now in the canvas's
+	directory, by its id, with the host in front on GitHub Enterprise as in ref
+	ids. A name it had before stays as an alias, as does `alias`, a name GitHub
+	answered for it, so either still finds it. A name GitHub gives this
+	repository stops being another repository's alias, since a freed name can be
+	taken by a new one.
 ]]
 local function setRepository(doc: Doc, host: string?, id: string, name: string, checkedAt: string, alias: string?)
 	local prefix = if host and host:lower() ~= "github.com" then `{host:lower()}/` else ""

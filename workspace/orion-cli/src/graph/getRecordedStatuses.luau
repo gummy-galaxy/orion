@@ -3,7 +3,8 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- The recorded status of every card, read before a write so markCelebrations can see what changed.
+-- The recorded status of every card, read before a write so markCelebrations
+-- can see what changed.
 local function getRecordedStatuses(doc: Doc): { [string]: string }
 	local statuses: { [string]: string } = {}
 

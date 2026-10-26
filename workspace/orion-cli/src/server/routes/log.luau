@@ -11,7 +11,8 @@ type Response = shared.Response
 
 local log = {}
 
--- The canvas log, oldest first, for the app to show per card. Entries are only appended, so the app never edits them.
+-- The canvas log, oldest first, for the app to show per card. Entries are only
+-- appended, so the app never edits them.
 function log.handle(request: net.ReceivedRequest, root: string): Response
 	if request.method ~= "GET" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))

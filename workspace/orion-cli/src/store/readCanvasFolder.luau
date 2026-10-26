@@ -18,7 +18,8 @@ local function readFolder(dir: string, folder: string, files: { [string]: string
 	end
 end
 
--- Reads every file of a canvas folder, keyed by path as `splitDocObject` writes them, without the index.
+-- Reads every file of a canvas folder, keyed by path as `splitDocObject` writes
+-- them, without the index.
 local function readCanvasFolder(dir: string): { [string]: string }
 	local files: { [string]: string } = {}
 	files[fileNames.document] = fs.readFileToString(getDocPath(dir))

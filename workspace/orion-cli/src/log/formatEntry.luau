@@ -2,7 +2,8 @@ local types = require("@root/types")
 
 type LogEntry = types.LogEntry
 
--- One entry as a line: when it was logged, who logged it, the cards it's attached to, and its text.
+-- One entry as a line: when it was logged, who logged it, the cards it's
+-- attached to, and its text.
 local function formatEntry(entry: LogEntry, withTargets: boolean): string
 	local author = if entry.author.kind == "agent" then `{entry.author.name} (agent)` else entry.author.name
 	local parts = { entry.time, author }

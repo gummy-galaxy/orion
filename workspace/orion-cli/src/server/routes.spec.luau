@@ -438,7 +438,8 @@ test.case("PUT /api/orion/style sets and clears the canvas cover and bumps the r
 	assert.eq(loadDoc(root).settings.cover, "image-logo.png")
 	assert.eq(loadDoc(root).settings.background, "#1d1b2e")
 	assert.eq(loadDoc(root).revision, 1)
-	-- A window that read the file before the style change has a stale revision, so its save is refused and it reloads.
+	-- A window that read the file before the style change has a stale revision,
+	-- so its save is refused and it reloads.
 	local stale = json.object({ baseRevision = 0, operations = { createOperation("late") } })
 	assert.eq(router.handleAsync(createRequest("POST", "/api/operations", stale)).status, 409)
 	local cleared = router.handleAsync(createRequest("PUT", "/api/orion/style", json.object({ cover = json.null })))

@@ -20,7 +20,8 @@ type Context = context.Context
 type Focus = types.Focus
 type Runtime = readRuntime.Runtime
 
--- How long a reveal waits for a freshly opened app to start serving and connect, and then to report what it shows.
+-- How long a reveal waits for a freshly opened app to start serving and
+-- connect, and then to report what it shows.
 local OPEN_ATTEMPTS = 60
 local CONFIRM_ATTEMPTS = 20
 local POLL_SECONDS = 0.5
@@ -32,7 +33,8 @@ local function findRuntime(options: Context): Runtime?
 	end)
 end
 
--- Finds the canvas holding every id: the one named with --canvas, or else the selected canvas and then the others.
+-- Finds the canvas holding every id: the one named with --canvas, or else the
+-- selected canvas and then the others.
 local function chooseCanvas(options: Context, ids: { string }): string
 	local candidates: { string } = {}
 
@@ -78,7 +80,8 @@ local function chooseCanvas(options: Context, ids: { string }): string
 	error(`"{missing}" isn't on canvas {options.workspace} or any other canvas`, 0)
 end
 
--- Launches the installed app against this data folder, so the server it starts serves the same canvases.
+-- Launches the installed app against this data folder, so the server it starts
+-- serves the same canvases.
 local function openAppAsync(options: Context)
 	local app = path.join(process.homedir(), "Applications", "Orion.app")
 	local result = options.runner({ "open", "--env", `ORION_DATA_DIR={options.root}`, "-a", tostring(app) }, nil)
@@ -88,7 +91,8 @@ local function openAppAsync(options: Context)
 	end
 end
 
--- Returns the HTTP status and the error text, if any. A status of 0 means nothing answered.
+-- Returns the HTTP status and the error text, if any. A status of 0 means
+-- nothing answered.
 local function postReveal(runtime: Runtime, body: string): (number, string?)
 	local didRequest, response = pcall(function()
 		return net.request(`{runtime.url}/api/reveal`, {
@@ -111,7 +115,8 @@ local function postReveal(runtime: Runtime, body: string): (number, string?)
 	return response.status, if type(message) == "string" then message else nil
 end
 
--- The focus the app reports once it has shown the ids, or nil if it never reports them. Older reports don't count.
+-- The focus the app reports once it has shown the ids, or nil if it never
+-- reports them. Older reports don't count.
 local function confirmReveal(dir: string, ids: { string }, requestedAt: string): Focus?
 	for _ = 1, CONFIRM_ATTEMPTS do
 		local focus = readFocus(dir)
@@ -185,14 +190,16 @@ return table.freeze({
 					break
 				end
 
-				-- An app that's still starting shows up as nothing answering, or as no app connected yet.
+				-- An app that's still starting shows up as nothing answering,
+				-- or as no app connected yet.
 				local waiting = launched and (status == 0 or status == 409)
 
 				if status == 0 and not launched then
 					error("The Orion server isn't responding. Restart Orion and try again.", 0)
 				end
 
-				-- A server built before reveal answers its unknown routes with a plain "not found".
+				-- A server built before reveal answers its unknown routes with
+				-- a plain "not found".
 				if status == 404 and message == "not found" then
 					error(
 						"The running Orion server doesn't have reveal. Rebuild and reinstall the app, then try again.",

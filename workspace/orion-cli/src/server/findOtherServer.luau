@@ -19,7 +19,8 @@ export type Checks = {
 	responds: ((string) -> boolean)?,
 }
 
--- A server answers on its canvas list, or on the workspace list before canvases were renamed.
+-- A server answers on its canvas list, or on the workspace list before canvases
+-- were renamed.
 local function respondsToOrion(url: string): boolean
 	for _, route in { "/api/canvases", "/api/workspaces" } do
 		local succeeded, response = pcall(function()
@@ -35,10 +36,12 @@ local function respondsToOrion(url: string): boolean
 end
 
 --[[
-	Returns the `orion server start` serving the data folder when it comes from a different build than this one, or
-	nil. A migration calls this before it moves anything: that server keeps reading and writing the layout it knows,
-	and its next write can replace what the migration produced. It reads `serve.json` loosely, since older servers
-	wrote other fields, and checks that the process is alive and answers, so a stale record doesn't count.
+	Returns the `orion server start` serving the data folder when it comes from
+	a different build than this one, or nil. A migration calls this before it
+	moves anything: that server keeps reading and writing the layout it knows,
+	and its next write can replace what the migration produced. It reads
+	`serve.json` loosely, since older servers wrote other fields, and checks
+	that the process is alive and answers, so a stale record doesn't count.
 ]]
 local function findOtherServer(root: string, checks: Checks?): Server?
 	local file = path.join(root, fileNames.runtime)

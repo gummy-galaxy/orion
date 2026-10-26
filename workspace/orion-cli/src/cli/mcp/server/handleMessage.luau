@@ -11,7 +11,8 @@ type Run = mcpTypes.Run
 type Tool = mcpTypes.Tool
 
 local PROTOCOL_VERSIONS = { "2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05" }
--- Sent in the initialize response so clients know what Orion is before they pick a tool.
+-- Sent in the initialize response so clients know what Orion is before they
+-- pick a tool.
 local INSTRUCTIONS = table.concat(orientation.paragraphs, " ")
 
 local PARSE_ERROR = -32700
@@ -50,7 +51,8 @@ local function cleanErrorMessage(message: unknown): string
 	return (tostring(message):gsub("^[^\n]-:%d+: ", "", 1))
 end
 
--- Agrees to the client's protocol version when the server speaks it, and offers the newest otherwise.
+-- Agrees to the client's protocol version when the server speaks it, and offers
+-- the newest otherwise.
 local function initialize(params: json.Object): json.Object
 	local requested = params.protocolVersion
 	local version = PROTOCOL_VERSIONS[1]
@@ -67,7 +69,8 @@ local function initialize(params: json.Object): json.Object
 	})
 end
 
--- Command failures become tool results marked as errors so the client can show them to the model.
+-- Command failures become tool results marked as errors so the client can show
+-- them to the model.
 local function callTool(id: json.Value, params: json.Object, tools: { Tool }, run: Run): json.Object
 	local name = params.name
 
@@ -95,8 +98,8 @@ local function callTool(id: json.Value, params: json.Object, tools: { Tool }, ru
 	return createSuccess(id, createToolResult(cleanErrorMessage(message), true))
 end
 
--- Answers one JSON-RPC message, calling tools with run. Notifications get no response. A stale server answers
--- requests with an error.
+-- Answers one JSON-RPC message, calling tools with run. Notifications get no
+-- response. A stale server answers requests with an error.
 local function handleMessage(line: string, tools: { Tool }, run: Run, stale: boolean?): json.Object?
 	local decoded, value = pcall(json.deserialize, line)
 

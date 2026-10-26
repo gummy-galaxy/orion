@@ -24,14 +24,16 @@ local function findSource(sources: { Source }, id: string): Source?
 	return nil
 end
 
--- A ref's adapter is its source's kind. A GitHub URL for an unconfigured host resolves to the source id "github", which no
--- configured source has, so it belongs to the GitHub adapter.
+-- A ref's adapter is its source's kind. A GitHub URL for an unconfigured host
+-- resolves to the source id "github", which no configured source has, so it
+-- belongs to the GitHub adapter.
 local function getKind(sources: { Source }, sourceId: string): string
 	local source = findSource(sources, sourceId)
 	return if source then source.kind else PUBLIC_GITHUB
 end
 
--- Looks up the card for each resolved entry, one adapter call per kind. Sets the record or the error on each entry.
+-- Looks up the card for each resolved entry, one adapter call per kind. Sets
+-- the record or the error on each entry.
 local function lookupRecordsAsync(entries: { Entry }, context: adapterTypes.Context, run: CommandRunner)
 	local byKind: { [string]: { Pending } } = {}
 

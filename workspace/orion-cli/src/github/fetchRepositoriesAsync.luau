@@ -17,7 +17,8 @@ local BATCH_SIZE = 25
 local PUBLIC_HOST = "github.com"
 local GITHUB_KINDS = { pull = true, issue = true, branch = true }
 
--- The repositories named by the canvas's GitHub refs that have no id yet, by host.
+-- The repositories named by the canvas's GitHub refs that have no id yet, by
+-- host.
 local function getUnresolved(doc: Doc): { [string]: { [string]: KeyRepo } }
 	local byHost: { [string]: { [string]: KeyRepo } } = {}
 
@@ -36,10 +37,12 @@ local function getUnresolved(doc: Doc): { [string]: { [string]: KeyRepo } }
 end
 
 --[[
-	Asks GitHub for the id and current name of each repository the canvas's GitHub refs name without an id, in one
-	aliased query per 25 repositories. GitHub answers a repository's old name after a rename or transfer, so refs from
-	before a move still resolve. It reads `doc` without changing it. A repository GitHub doesn't find, or a failed
-	query, is left out, and its refs try again next time.
+	Asks GitHub for the id and current name of each repository the canvas's
+	GitHub refs name without an id, in one aliased query per 25 repositories.
+	GitHub answers a repository's old name after a rename or transfer, so refs
+	from before a move still resolve. It reads `doc` without changing it. A
+	repository GitHub doesn't find, or a failed query, is left out, and its refs
+	try again next time.
 ]]
 local function fetchRepositoriesAsync(doc: Doc, run: CommandRunner): { FoundRepository }
 	local found: { FoundRepository } = {}

@@ -41,7 +41,8 @@ export type Options = {
 -- `parent` marks something removed along with the group it sits in.
 type Change = { id: string, label: string, parent: string? }
 
--- The operation one target gets. The app sends the same operations, so both paths edit the document one way.
+-- The operation one target gets. The app sends the same operations, so both
+-- paths edit the document one way.
 local function editFor(options: Options, id: string, destination: string?): operationTypes.Operation
 	if options.action == "done" then
 		return { op = "setFields", id = id, fields = { status = "done" } }
@@ -118,7 +119,8 @@ local function batchEdit(options: Options)
 			end
 		end
 
-		-- A group inside another target group leaves with it, so it isn't removed twice.
+		-- A group inside another target group leaves with it, so it isn't
+		-- removed twice.
 		local targetedGroups: { [string]: boolean } = {}
 
 		if options.action == "removeGroup" then

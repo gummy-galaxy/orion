@@ -2,7 +2,8 @@ local aliasTypes = require("@root/aliases/types")
 
 type Alias = aliasTypes.Alias
 
--- Every alias in this release, each with a row in README.md. Each release removes the ones from before it.
+-- Every alias in this release, each with a row in README.md. Each release
+-- removes the ones from before it.
 local entries: { Alias } = {
 	{ kind = "command", from = "card add", to = "card create", added = "2026-10-21", pr = 566 },
 	{ kind = "command", from = "note add", to = "note create", added = "2026-10-21", pr = 566 },

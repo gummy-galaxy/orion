@@ -69,7 +69,8 @@ local function checkArguments(tool: Tool, arguments: json.Object)
 	end
 end
 
--- The text an option carries: lists joined with commas, and JSON lists serialized.
+-- The text an option carries: lists joined with commas, and JSON lists
+-- serialized.
 local function getOptionText(field: Field, value: json.Value): string
 	if field.type == "commaList" then
 		return table.concat(json.asArray(value) :: json.Array, ",")
@@ -90,7 +91,8 @@ local function hasValue(field: Field, value: json.Value): boolean
 	return list == nil or #list > 0
 end
 
--- Places each field where its command expects it: positionals and variadics first, then options and flags.
+-- Places each field where its command expects it: positionals and variadics
+-- first, then options and flags.
 local function buildArgv(tool: Tool, arguments: json.Object): { string }
 	local argv = table.clone(tool.command)
 

@@ -7,9 +7,11 @@ type Ref = githubTypes.Ref
 type CommandRunner = types.CommandRunner
 
 export type Poll = {
-	-- False when GitHub answered 304, which doesn't count against the rate limit.
+	-- False when GitHub answered 304, which doesn't count against the rate
+	-- limit.
 	changed: boolean,
-	-- The newest notification's time, sent back as `If-Modified-Since` on the next poll.
+	-- The newest notification's time, sent back as `If-Modified-Since` on the
+	-- next poll.
 	lastModified: string?,
 	-- Seconds GitHub asks clients to wait before polling again.
 	interval: number,
@@ -33,7 +35,8 @@ local MONTHS = {
 	Dec = "12",
 }
 
--- Turns an HTTP date such as `Sun, 18 Oct 2026 15:53:33 GMT` into the ISO 8601 time the `since` parameter takes.
+-- Turns an HTTP date such as `Sun, 18 Oct 2026 15:53:33 GMT` into the ISO 8601
+-- time the `since` parameter takes.
 local function toIso(httpDate: string): string?
 	local day, month, year, time = httpDate:match("(%d+) (%a+) (%d+) (%d+:%d+:%d+)")
 	local monthNumber = if month then MONTHS[month] else nil
@@ -45,7 +48,8 @@ local function toIso(httpDate: string): string?
 	return `{year}-{monthNumber}-{string.format("%02d", tonumber(day) :: number)}T{time}Z`
 end
 
--- Splits `gh api --include` output into its status code, lowercased headers, and body.
+-- Splits `gh api --include` output into its status code, lowercased headers,
+-- and body.
 local function parseResponse(output: string): (number?, { [string]: string }, string)
 	local headers: { [string]: string } = {}
 	local status: number? = nil
@@ -96,10 +100,13 @@ local function getPullRef(raw: json.Value, host: string): Ref?
 end
 
 --[[
-	Polls the viewer's notifications on `host` for pull requests that changed since `lastModified`. Notifications cover
-	reviews, comments, review requests, and state changes by other people, never the viewer's own activity. Without
-	`lastModified`, the poll only records the newest notification's time, since a full refresh covers everything before
-	it. A poll that names more than a page of pull requests keeps the first page; the light sweep catches the rest.
+	Polls the viewer's notifications on `host` for pull requests that changed
+	since `lastModified`. Notifications cover reviews, comments, review
+	requests, and state changes by other people, never the viewer's own
+	activity. Without `lastModified`, the poll only records the newest
+	notification's time, since a full refresh covers everything before it. A
+	poll that names more than a page of pull requests keeps the first page; the
+	light sweep catches the rest.
 ]]
 local function pollNotificationsAsync(run: CommandRunner, host: string, lastModified: string?): Poll
 	local since = if lastModified then toIso(lastModified) else nil
@@ -122,7 +129,8 @@ local function pollNotificationsAsync(run: CommandRunner, host: string, lastModi
 			else "/notifications?all=true&per_page=1"
 	)
 
-	-- gh exits non-zero on a 304, so the status line decides, not the exit code.
+	-- gh exits non-zero on a 304, so the status line decides, not the exit
+	-- code.
 	local response = run(argv, nil)
 	local status, headers, body = parseResponse(response.stdout)
 	local interval = tonumber(headers["x-poll-interval"]) or DEFAULT_INTERVAL

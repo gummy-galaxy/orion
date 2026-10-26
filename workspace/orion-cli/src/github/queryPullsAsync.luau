@@ -16,7 +16,8 @@ export type QueryResult = {
 
 local NAME_PATTERN = "^[%w%-%._]+$"
 
--- Queries one batch, halving it and trying each half when GitHub times out, until a single pull request fails alone.
+-- Queries one batch, halving it and trying each half when GitHub times out,
+-- until a single pull request fails alone.
 local function queryBatchAsync(run: CommandRunner, host: string, refs: { Ref }, fields: string, result: QueryResult)
 	local parts = {}
 	local batch: { [string]: Ref } = {}
@@ -61,9 +62,10 @@ local function queryBatchAsync(run: CommandRunner, host: string, refs: { Ref }, 
 end
 
 --[[
-	Queries `fields` on each pull request, `batchSize` to a query, keyed by `getKey`. A batch that still fails after
-	halving is reported in `failures` rather than raised, so the other batches keep their results. `checked` holds the
-	keys each successful query covered, found or not.
+	Queries `fields` on each pull request, `batchSize` to a query, keyed by
+	`getKey`. A batch that still fails after halving is reported in `failures`
+	rather than raised, so the other batches keep their results. `checked` holds
+	the keys each successful query covered, found or not.
 ]]
 local function queryPullsAsync(run: CommandRunner, refs: { Ref }, fields: string, batchSize: number): QueryResult
 	local result: QueryResult = { objects = {}, checked = {}, failures = {} }

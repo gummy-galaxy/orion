@@ -4,8 +4,9 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Links a new item after `after` and before `before`. When both are given and already linked, the item splits that
--- link and keeps its kind; otherwise each side gets a blocking link.
+-- Links a new item after `after` and before `before`. When both are given and
+-- already linked, the item splits that link and keeps its kind; otherwise each
+-- side gets a blocking link.
 local function linkNeighbors(doc: Doc, id: string, after: string?, before: string?)
 	if after and before then
 		for _, link in doc.links do

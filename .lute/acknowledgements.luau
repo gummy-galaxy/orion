@@ -1,8 +1,10 @@
 --[[
-	Writes `workspace/orion-app/dist/acknowledgements.html`, the page the desktop app opens from Help › Acknowledgements. It lists
-	the license of every third-party project the app ships: the npm packages Vite bundles into the canvas, the Rust
-	crates compiled into the shell, the Luau packages compiled into the CLI sidecar, and the native libraries in
-	Lute's runtime. Run it after the canvas build, which writes Vite's license report.
+	Writes `workspace/orion-app/dist/acknowledgements.html`, the page the
+	desktop app opens from Help › Acknowledgements. It lists the license of
+	every third-party project the app ships: the npm packages Vite bundles into
+	the canvas, the Rust crates compiled into the shell, the Luau packages
+	compiled into the CLI sidecar, and the native libraries in Lute's runtime.
+	Run it after the canvas build, which writes Vite's license report.
 ]]
 local fs = require("@std/fs")
 local json = require("@std/json")
@@ -45,7 +47,8 @@ local function optionalString(value: unknown): string?
 	return if type(value) == "string" and value ~= "" then value else nil
 end
 
--- Runs a command quietly and returns what it printed; cargo metadata alone prints megabytes of JSON.
+-- Runs a command quietly and returns what it printed; cargo metadata alone
+-- prints megabytes of JSON.
 local function output(command: { string }): string
 	local result = process.run(command)
 	assert(result.ok, `{command[1]} failed: {result.stderr}`)
@@ -63,7 +66,8 @@ local function isLicenseFile(name: string): boolean
 	return false
 end
 
--- Joins every license file in a package's folder, such as both halves of an MIT OR Apache-2.0 crate.
+-- Joins every license file in a package's folder, such as both halves of an MIT
+-- OR Apache-2.0 crate.
 local function readLicenseFiles(directory: path.Pathlike): string?
 	local names: { string } = {}
 	for _, entry in fs.listDirectory(directory) do
@@ -110,8 +114,9 @@ local function isProcMacro(package: any): boolean
 	return false
 end
 
--- Follows the shell's normal dependencies for this platform. Build scripts and procedural macros only run while
--- compiling, so neither they nor what only they depend on end up in the app.
+-- Follows the shell's normal dependencies for this platform. Build scripts and
+-- procedural macros only run while compiling, so neither they nor what only
+-- they depend on end up in the app.
 local function rustCrates(): { Project }
 	local rustcVersion = output({ "rustc", "-vV" })
 	local triple = assert(string.match(rustcVersion, "host: (%S+)"), "Could not determine the Rust host target triple")
@@ -207,9 +212,10 @@ local function fetchLicense(remote: string, revision: string): string?
 	return nil
 end
 
--- Lute pins each library it links into its runtime with a `.tune` file. Their license texts aren't in the package,
--- so they're fetched from each repository at the pinned revision. Without a network connection the page still
--- lists the library and links to it.
+-- Lute pins each library it links into its runtime with a `.tune` file. Their
+-- license texts aren't in the package, so they're fetched from each repository
+-- at the pinned revision. Without a network connection the page still lists the
+-- library and links to it.
 local function luteLibraries(): { Project }
 	local lute = loomConfig.package.dependencies.lute
 	local extern = path.join(store, `lute@{lute.rev}`, "extern")
@@ -255,8 +261,8 @@ end
 
 local SPDX_OPERATORS = { AND = true, OR = true, WITH = true }
 
--- Some packages ship without their license files, so each SPDX identifier in their license expression links to
--- the canonical text instead.
+-- Some packages ship without their license files, so each SPDX identifier in
+-- their license expression links to the canonical text instead.
 local function linkIdentifiers(expression: string): string
 	return (
 		string.gsub(escape(expression), "[%w%.%-%+]+", function(token: string): string

@@ -36,10 +36,12 @@ local function getWrite(batch: unknown): CanvasWrite
 end
 
 --[[
-	Finishes a write that stopped partway, such as one whose process was killed. Callers hold the lock, so a write
-	marker still down belongs to a writer that's gone. Each operation the journal still has unfinished is put in
-	place again from the start, in order, which leaves the canvas as it is after that write. Without a journaled
-	operation, no file of the write moved yet, so the canvas is whole and only the marker goes.
+	Finishes a write that stopped partway, such as one whose process was killed.
+	Callers hold the lock, so a write marker still down belongs to a writer
+	that's gone. Each operation the journal still has unfinished is put in place
+	again from the start, in order, which leaves the canvas as it is after that
+	write. Without a journaled operation, no file of the write moved yet, so the
+	canvas is whole and only the marker goes.
 ]]
 local function recoverCanvasWrite(dir: string)
 	local marker = path.join(dir, fileNames.pendingWrite)

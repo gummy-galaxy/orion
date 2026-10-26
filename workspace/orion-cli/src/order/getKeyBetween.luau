@@ -16,7 +16,8 @@ local function getIndex(digit: string): number
 	return (assert(digits:find(digit, 1, true), `"{digit}" isn't an order key digit`)) - 1
 end
 
--- A fraction strictly between `a` and `b`, where an empty `a` is zero and a nil `b` is one. Neither ends in zero.
+-- A fraction strictly between `a` and `b`, where an empty `a` is zero and a nil
+-- `b` is one. Neither ends in zero.
 local function getMidpoint(a: string, b: string?): string
 	if b then
 		local shared = 0
@@ -114,10 +115,12 @@ local function decrementInteger(integer: string): string?
 end
 
 --[[
-	An order key that sorts after `before` and before `after`, either of which can be nil for an open end. Keys
-	compare as plain strings and never run out of room between two of them. Keys made only at the ends stay short,
-	since they count up or down an integer part, and only keys squeezed between two others grow a fraction. Follows
-	David Greenspan's fractional indexing, as in the `fractional-indexing` package.
+	An order key that sorts after `before` and before `after`, either of which
+	can be nil for an open end. Keys compare as plain strings and never run out
+	of room between two of them. Keys made only at the ends stay short, since
+	they count up or down an integer part, and only keys squeezed between two
+	others grow a fraction. Follows David Greenspan's fractional indexing, as in
+	the `fractional-indexing` package.
 ]]
 local function getKeyBetween(before: string?, after: string?): string
 	assert(before == nil or isOrderKey(before), `"{before}" isn't an order key`)

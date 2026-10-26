@@ -36,8 +36,9 @@ local function getPullList(nodes: json.Array?): { PullState }
 end
 
 --[[
-	Lists the viewer's open pull requests with the light fields from `getListFields`, most recently updated first. A
-	page that times out is retried at half the size, down to 25.
+	Lists the viewer's open pull requests with the light fields from
+	`getListFields`, most recently updated first. A page that times out is
+	retried at half the size, down to 25.
 ]]
 local function getAuthoredOpenAsync(run: CommandRunner): ({ PullState }, string)
 	local authored: { PullState } = {}

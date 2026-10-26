@@ -1,7 +1,8 @@
 local json = require("@std/json")
 
--- Refuses a canvas object below data version 2. One with no version is from before versions were recorded. Version 1
--- kept a card's pull request, issue, and branch in their own fields instead of refs.
+-- Refuses a canvas object below data version 2. One with no version is from
+-- before versions were recorded. Version 1 kept a card's pull request, issue,
+-- and branch in their own fields instead of refs.
 local function checkDataVersion(root: json.Object, file: string?)
 	local version = if type(root.version) == "number" then root.version else 1
 	assert(

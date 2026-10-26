@@ -7,7 +7,8 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Snapshot = operationTypes.Snapshot
 
--- Copies every node and link as it is now, with its index, for `diffDocs` to compare against later.
+-- Copies every node and link as it is now, with its index, for `diffDocs` to
+-- compare against later.
 local function captureDoc(doc: Doc): Snapshot
 	local snapshot: Snapshot = { nodes = {}, links = {} }
 

@@ -4,7 +4,8 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- The group a new item goes into: the one asked for, or else the group of the item it follows or leads into.
+-- The group a new item goes into: the one asked for, or else the group of the
+-- item it follows or leads into.
 local function getNeighborGroup(doc: Doc, group: string?, after: string?, before: string?): string?
 	if group then
 		getGroup(doc, group)

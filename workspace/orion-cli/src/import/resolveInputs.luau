@@ -7,8 +7,9 @@ local types = require("@root/types")
 type Entry = importTypes.Entry
 type Source = types.Source
 
--- Resolves each input with the same grammar as --ref. An input that doesn't resolve, or repeats an earlier one, becomes an
--- entry with an error instead of a ref.
+-- Resolves each input with the same grammar as --ref. An input that doesn't
+-- resolve, or repeats an earlier one, becomes an entry with an error instead of
+-- a ref.
 local function resolveInputs(inputs: { string }, sources: { Source }): { Entry }
 	local entries: { Entry } = {}
 	local seen: { [string]: boolean } = {}

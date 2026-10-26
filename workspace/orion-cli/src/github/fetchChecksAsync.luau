@@ -12,8 +12,9 @@ type CommandRunner = types.CommandRunner
 local BATCH_SIZE = 50
 
 --[[
-	Fetches only the checks on each pull request's latest commit, with the head they ran on, so a refresh can fully fetch
-	only the ones whose checks moved. A finished check run doesn't move `updatedAt` or produce a notification.
+	Fetches only the checks on each pull request's latest commit, with the head
+	they ran on, so a refresh can fully fetch only the ones whose checks moved.
+	A finished check run doesn't move `updatedAt` or produce a notification.
 ]]
 local function fetchChecksAsync(run: CommandRunner, refs: { Ref }): PullResult
 	local queried = queryPullsAsync(run, refs, `number state url headRefOid {getCheckFields()}`, BATCH_SIZE)

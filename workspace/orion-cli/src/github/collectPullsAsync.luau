@@ -34,11 +34,13 @@ local function getViewerAsync(doc: Doc, run: CommandRunner): string
 end
 
 --[[
-	Fetches what a refresh needs from GitHub, reading `doc` without changing it so the caller can fetch outside the
-	workspace lock. Merged pull requests can't change, so their cards aren't fetched again. Your open pull requests are
-	listed with light fields, and only the ones about to become cards by branch fetch the full set.
-	A failed authored list is reported in `failures` and the cards still refresh. A `scope` limits the cards fetched to
-	its keys and skips the authored list unless it asks for it.
+	Fetches what a refresh needs from GitHub, reading `doc` without changing it
+	so the caller can fetch outside the workspace lock. Merged pull requests
+	can't change, so their cards aren't fetched again. Your open pull requests
+	are listed with light fields, and only the ones about to become cards by
+	branch fetch the full set. A failed authored list is reported in `failures`
+	and the cards still refresh. A `scope` limits the cards fetched to its keys
+	and skips the authored list unless it asks for it.
 ]]
 local function collectPullsAsync(doc: Doc, run: CommandRunner, scope: Scope?): Fetched
 	local refs: { Ref } = {}
@@ -98,7 +100,8 @@ local function collectPullsAsync(doc: Doc, run: CommandRunner, scope: Scope?): F
 		end
 	end
 
-	-- Only failing pull requests need their jobs by name, to tell optional failures and snoozed jobs apart.
+	-- Only failing pull requests need their jobs by name, to tell optional
+	-- failures and snoozed jobs apart.
 	local didFetchRuns, checkRuns = pcall(fetchCheckRunsAsync, run, failing)
 
 	if not didFetchRuns then

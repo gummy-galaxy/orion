@@ -9,7 +9,8 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Item = types.Item
 
--- Attaches outside work to an item. The repository fills in only when the item has none yet.
+-- Attaches outside work to an item. The repository fills in only when the item
+-- has none yet.
 local function attachRef(doc: Doc, id: string, resolved: types.ResolvedRef): Item
 	local item = getItem(doc, id)
 	assert(not isGroup(item), "groups don't take refs; attach it to an item")

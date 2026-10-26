@@ -95,7 +95,8 @@ test.case("sync ticks poll and sweep quietly between full passes and write only 
 
 	loop.tickAsync()
 	local revision = loadDoc(dir).revision
-	-- The first full pass gives the card's ref its repository's id, so later passes don't ask again.
+	-- The first full pass gives the card's ref its repository's id, so later
+	-- passes don't ask again.
 	assert.eq(table.concat(calls, ","), "repositories,authored,full")
 	assert.eq(table.concat(states, ","), "running,idle")
 

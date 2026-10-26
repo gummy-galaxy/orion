@@ -7,7 +7,8 @@ local platformTypes = require("@root/platform/types")
 
 type Platform = platformTypes.Platform
 
--- Lute reports the OS only as a string and per-platform booleans, so name the platforms Orion supports.
+-- Lute reports the OS only as a string and per-platform booleans, so name the
+-- platforms Orion supports.
 local function getPlatform(): Platform
 	if system.win32 then
 		return "windows"

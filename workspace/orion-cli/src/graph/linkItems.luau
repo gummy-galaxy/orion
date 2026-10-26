@@ -6,8 +6,9 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Link = types.Link
 
--- Links two items. A label names what the link carries, like "HTTP" in a system diagram; an empty one clears it,
--- and leaving it out keeps the label an existing link already has.
+-- Links two items. A label names what the link carries, like "HTTP" in a system
+-- diagram; an empty one clears it, and leaving it out keeps the label an
+-- existing link already has.
 local function linkItems(doc: Doc, from: string, to: string, kind: string, label: string?): Link
 	assert(from ~= to, "an item can't link to itself")
 

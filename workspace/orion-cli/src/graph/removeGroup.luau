@@ -8,8 +8,9 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- Removes a group with everything inside it. Each card goes the way `removeItem` takes it, so a note's links
--- reconnect around it, and a parent left empty disappears.
+-- Removes a group with everything inside it. Each card goes the way
+-- `removeItem` takes it, so a note's links reconnect around it, and a parent
+-- left empty disappears.
 local function removeGroup(doc: Doc, id: string)
 	local parentId = getGroup(doc, id).parentId
 	local groupIds = { [id] = true }

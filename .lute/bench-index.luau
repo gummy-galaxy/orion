@@ -1,6 +1,7 @@
 --[[
-	Compares opening a canvas and answering `orion next` from its SQLite index with reading every file. Writes a
-	generated canvas of cards in groups, chained by links, to a scratch folder, then times each side several times
+	Compares opening a canvas and answering `orion next` from its SQLite index
+	with reading every file. Writes a generated canvas of cards in groups,
+	chained by links, to a scratch folder, then times each side several times
 	and prints the medians in milliseconds.
 
 	lute run bench-index [--cards <count>] [--runs <count>]

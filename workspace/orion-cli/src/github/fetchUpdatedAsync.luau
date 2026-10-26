@@ -12,9 +12,10 @@ export type UpdatedResult = { updatedAt: { [string]: string }, failures: { strin
 local BATCH_SIZE = 100
 
 --[[
-	Fetches when each pull request last changed, keyed by `getKey`, so a refresh can fully fetch only the ones that moved.
-	`updatedAt` moves on pushes, reviews, comments, edits, and state changes, including the viewer's own, but not when a
-	check run finishes.
+	Fetches when each pull request last changed, keyed by `getKey`, so a refresh
+	can fully fetch only the ones that moved. `updatedAt` moves on pushes,
+	reviews, comments, edits, and state changes, including the viewer's own, but
+	not when a check run finishes.
 ]]
 local function fetchUpdatedAsync(run: CommandRunner, refs: { Ref }): UpdatedResult
 	local queried = queryPullsAsync(run, refs, "updatedAt", BATCH_SIZE)

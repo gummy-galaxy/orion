@@ -2,8 +2,9 @@ local types = require("@root/types")
 
 type CommandRunner = types.CommandRunner
 
--- Posts `body` as a comment on a pull request or issue, replacing the first comment by the bot that starts with
--- `marker`. The body should start with the same marker so the next run finds it.
+-- Posts `body` as a comment on a pull request or issue, replacing the first
+-- comment by the bot that starts with `marker`. The body should start with the
+-- same marker so the next run finds it.
 local function upsertCommentAsync(
 	run: CommandRunner,
 	repository: string,

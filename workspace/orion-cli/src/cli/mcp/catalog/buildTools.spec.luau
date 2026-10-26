@@ -9,7 +9,8 @@ local describeCommands = require("@root/cli/describeCommands")
 
 type Annotations = cliTypes.Annotations
 
--- A small command table: card add declares its tool, card path skips MCP, and card show declares nothing.
+-- A small command table: card add declares its tool, card path skips MCP, and
+-- card show declares nothing.
 local function createRoot(): (cli.Parser, cli.Parser)
 	local root = cli.parser()
 	local card = root:subcommand("card", { help = "Cards" })

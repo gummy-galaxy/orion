@@ -18,8 +18,9 @@ type StoredEntry = storeTypes.StoredEntry
 
 local logger = archivist.getLogger("orion.index")
 
--- Brings the index up to date with the folder. A file is read again when it's new, its time changed, or it changed
--- in the same second it was last read, which a time in whole seconds can't tell apart. Rows for files that are gone
+-- Brings the index up to date with the folder. A file is read again when it's
+-- new, its time changed, or it changed in the same second it was last read,
+-- which a time in whole seconds can't tell apart. Rows for files that are gone
 -- are dropped, and `counts` records what changed for the log.
 local SYNC = [[
 BEGIN IMMEDIATE;
@@ -39,10 +40,11 @@ CREATE TEMP TABLE counts AS SELECT
 DELETE FROM files WHERE path NOT IN (SELECT path FROM disk) OR path IN (SELECT path FROM fresh WHERE text IS NULL);
 ]]
 
--- Joins the index back into one canvas object, the way `joinCanvasFiles` joins the files: entries in the order of
--- their keys, ties broken by id, then those without a key, the ones listed in an older canvas's order first, and
--- only one file per id. Each entry leaves its order key and field times behind. `json()` marks each array as JSON
--- so `json_set` doesn't store it as text.
+-- Joins the index back into one canvas object, the way `joinCanvasFiles` joins
+-- the files: entries in the order of their keys, ties broken by id, then those
+-- without a key, the ones listed in an older canvas's order first, and only one
+-- file per id. Each entry leaves its order key and field times behind. `json()`
+-- marks each array as JSON so `json_set` doesn't store it as text.
 local ENTRIES = [[
 json((SELECT json_group_array(json(json_remove(text, '$.order', '$.changedAt'))) FROM (
 	SELECT text, entry, position, CASE WHEN json_type(text, '$.order') = 'text'
@@ -59,15 +61,17 @@ json((SELECT json_group_array(json(json_remove(text, '$.order', '$.changedAt')))
 	ORDER BY orderKey IS NULL, orderKey, position IS NULL, position, entry
 )))]]
 
--- What each node and link file stored beside its entry, by path, for a write to keep or replace.
+-- What each node and link file stored beside its entry, by path, for a write to
+-- keep or replace.
 local STORED = [[
 json((SELECT json_group_object(path, json_object(
 	'order', json_extract(text, '$.order'),
 	'changedAt', json(json_extract(text, '$.changedAt'))
 )) FROM files WHERE folder IN ('nodes', 'links') AND isValid))]]
 
--- One JSON object, so the canvas is parsed once rather than as a string inside `sqlite3 -json`'s rows. `json()`
--- marks each value as JSON so `json_object` doesn't store it as text.
+-- One JSON object, so the canvas is parsed once rather than as a string inside
+-- `sqlite3 -json`'s rows. `json()` marks each value as JSON so `json_object`
+-- doesn't store it as text.
 local QUERY = [[
 SELECT json_object(
 	'invalid', json((SELECT json_group_array(path) FROM files WHERE NOT isValid)),
@@ -109,7 +113,8 @@ local function buildScript(dir: string, includeFiles: boolean): string
 	end
 
 	local prefix = quoteSqlString(dir .. "/")
-	-- A file that doesn't parse sends the read down the slower path through every file's text.
+	-- A file that doesn't parse sends the read down the slower path through
+	-- every file's text.
 	local condition = if includeFiles then "1" else "EXISTS (SELECT 1 FROM files WHERE NOT isValid)"
 	local files = `CASE WHEN {condition} THEN json((SELECT json_group_object(path, text) FROM files)) END`
 	local stored = if includeFiles then STORED else "NULL"
@@ -147,11 +152,14 @@ local function query(dir: string, includeFiles: boolean): json.Object
 end
 
 --[[
-	Brings a canvas folder's index up to date with its files and reads the canvas from it, or nil when the folder
-	has no `canvas.json`. Only files whose time changed are read again. With `includeFiles`, the snapshot also maps
-	each file's path to its text, which a write compares against to rewrite only what changed. Files that don't
-	parse, such as ones with git's conflict markers, are worked around by `resolveCanvasFiles`, and the snapshot
-	lists the problems. Its fingerprint changes whenever any file's text does, revision or not.
+	Brings a canvas folder's index up to date with its files and reads the
+	canvas from it, or nil when the folder has no `canvas.json`. Only files
+	whose time changed are read again. With `includeFiles`, the snapshot also
+	maps each file's path to its text, which a write compares against to rewrite
+	only what changed. Files that don't parse, such as ones with git's conflict
+	markers, are worked around by `resolveCanvasFiles`, and the snapshot lists
+	the problems. Its fingerprint changes whenever any file's text does,
+	revision or not.
 ]]
 local function readCanvasIndex(dir: string, includeFiles: boolean): CanvasSnapshot?
 	if not fs.exists(path.join(dir, fileNames.document)) then
@@ -208,8 +216,9 @@ local function readCanvasIndex(dir: string, includeFiles: boolean): CanvasSnapsh
 
 	local fingerprint = if type(row.fingerprint) == "string" then row.fingerprint else nil
 
-	-- Files that don't parse are rare, such as after a git merge that conflicted, so their canvas is joined from
-	-- every file's text rather than in SQL.
+	-- Files that don't parse are rare, such as after a git merge that
+	-- conflicted, so their canvas is joined from every file's text rather than
+	-- in SQL.
 	if #invalid > 0 then
 		local resolved, problems = resolveCanvasFiles(files :: { [string]: string })
 

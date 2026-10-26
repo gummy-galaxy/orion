@@ -20,7 +20,8 @@ type CommandRunner = types.CommandRunner
 
 export type Changes = { fetched: Fetched?, failures: { string }, refetched: number }
 
--- Whether the authored list would leave the recorded unplaced list as it is: the same pull requests, none updated.
+-- Whether the authored list would leave the recorded unplaced list as it is:
+-- the same pull requests, none updated.
 local function isUnplacedCurrent(
 	doc: Doc,
 	authored: { githubTypes.PullState },
@@ -57,7 +58,8 @@ local function isUnplacedCurrent(
 	return count == 0
 end
 
--- Whether the checks fetched for a pull request differ from the ones its card recorded.
+-- Whether the checks fetched for a pull request differ from the ones its card
+-- recorded.
 local function hasChecksMoved(details: json.Object, pull: githubTypes.PullState): boolean
 	local counts = json.asObject(details.checkCounts)
 	local fetched = pull.checkCounts
@@ -73,13 +75,16 @@ local function hasChecksMoved(details: json.Object, pull: githubTypes.PullState)
 end
 
 --[[
-	Fetches only the pull request cards that changed. Notifications name the ones other people touched, polled with
-	`If-Modified-Since` so an unchanged poll is free, and `poll` keeps each host's newest notification time between
-	calls. A `sweep` also compares every open card's `updatedAt` with the recorded one, which catches the viewer's own
-	activity, and lists the viewer's open pull requests to attach new ones by branch. Without a `sweep`, `sweepCards`
-	compares only the `updatedAt` of the cards with those ids and lists nothing. `checks` reads only the checks of cards
-	whose recorded checks are pending, since a finished check run moves neither. `fetched` is nil when nothing changed,
-	so the caller can skip writing.
+	Fetches only the pull request cards that changed. Notifications name the
+	ones other people touched, polled with `If-Modified-Since` so an unchanged
+	poll is free, and `poll` keeps each host's newest notification time between
+	calls. A `sweep` also compares every open card's `updatedAt` with the
+	recorded one, which catches the viewer's own activity, and lists the
+	viewer's open pull requests to attach new ones by branch. Without a `sweep`,
+	`sweepCards` compares only the `updatedAt` of the cards with those ids and
+	lists nothing. `checks` reads only the checks of cards whose recorded checks
+	are pending, since a finished check run moves neither. `fetched` is nil when
+	nothing changed, so the caller can skip writing.
 ]]
 local function collectChangedAsync(doc: Doc, run: CommandRunner, poll: PollState, want: Want): Changes
 	local sweep = want.sweep

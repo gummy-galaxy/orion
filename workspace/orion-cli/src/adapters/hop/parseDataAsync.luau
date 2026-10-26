@@ -12,7 +12,8 @@ local function getString(value: json.Value): string?
 	return if type(value) == "string" then value else nil
 end
 
--- Runs `hop` from the PATH unless this machine set another hop executable for the source.
+-- Runs `hop` from the PATH unless this machine set another hop executable for
+-- the source.
 local function parseDataAsync(run: CommandRunner, command: { string }?): ({ Worktree }, { Session })
 	local binary = if command then command[1] else "hop"
 	local list = json.asObject(getCommandJsonAsync(run, { binary, "list", "--json" }))

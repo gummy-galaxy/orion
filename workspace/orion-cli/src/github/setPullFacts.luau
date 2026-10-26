@@ -45,7 +45,8 @@ local function getStateLabel(details: json.Object): string?
 	return `{label} on GitHub`
 end
 
--- What stops an open pull request from merging, from a conflict to nothing at all.
+-- What stops an open pull request from merging, from a conflict to nothing at
+-- all.
 local function getReadiness(details: json.Object): string?
 	if details.state ~= "OPEN" then
 		return nil
@@ -70,7 +71,8 @@ local function getReadiness(details: json.Object): string?
 	return if details.checks == "SUCCESS" then "passing" else nil
 end
 
--- The jobs that failed, by name, and whether each one is optional, so it doesn't count toward the checks failing.
+-- The jobs that failed, by name, and whether each one is optional, so it
+-- doesn't count toward the checks failing.
 local function getFailures(details: json.Object): json.Array?
 	local recorded = json.asArray(details.failedChecks)
 
@@ -94,8 +96,8 @@ local function getFailures(details: json.Object): json.Array?
 	return failures
 end
 
--- Check counts, progress, and failed jobs describe checks still to come or still to fix, so they only matter while
--- the pull request is open.
+-- Check counts, progress, and failed jobs describe checks still to come or
+-- still to fix, so they only matter while the pull request is open.
 local function getChecks(details: json.Object): json.Object?
 	local state = CHECK_STATE[getString(details.checks) or ""]
 
@@ -123,8 +125,9 @@ local function getChecks(details: json.Object): json.Object?
 	return checks
 end
 
--- Sets the source-neutral facts the app shows from a pull request's recorded GitHub details. Facts the details no
--- longer support are cleared, so a merged pull request stops reading as ready to merge.
+-- Sets the source-neutral facts the app shows from a pull request's recorded
+-- GitHub details. Facts the details no longer support are cleared, so a merged
+-- pull request stops reading as ready to merge.
 local function setPullFacts(ref: Ref, details: json.Object)
 	ref.checkedAt = getString(details.checkedAt)
 	ref.stateLabel = getStateLabel(details)

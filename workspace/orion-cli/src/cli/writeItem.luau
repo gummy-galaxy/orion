@@ -10,7 +10,8 @@ type Context = context.Context
 type Doc = types.Doc
 type Item = types.Item
 
--- Reports the item a command added or changed, with the revision it made, as JSON or as one line led by the verb.
+-- Reports the item a command added or changed, with the revision it made, as
+-- JSON or as one line led by the verb.
 local function writeItem(options: Context, doc: Doc, item: Item, verb: string)
 	if options.asJson then
 		local value = json.object({

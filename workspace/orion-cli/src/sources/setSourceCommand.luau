@@ -19,7 +19,8 @@ local function readFile(file: string): json.Object
 	return if succeeded and decoded then decoded else json.object({})
 end
 
--- json.object keeps a marker under a key that isn't a string, so emptiness counts only string keys.
+-- json.object keeps a marker under a key that isn't a string, so emptiness
+-- counts only string keys.
 local function isEmpty(object: json.Object): boolean
 	for key in object do
 		if type(key) == "string" then
@@ -31,9 +32,10 @@ local function isEmpty(object: json.Object): boolean
 end
 
 --[[
-	Records the command this machine runs for one of a canvas's sources in the data folder's `commands.json`, or
-	removes it when `command` is nil. Writes hold the data folder's lock, so two canvases changing their sources at
-	once both keep their commands.
+	Records the command this machine runs for one of a canvas's sources in the
+	data folder's `commands.json`, or removes it when `command` is nil. Writes
+	hold the data folder's lock, so two canvases changing their sources at once
+	both keep their commands.
 ]]
 local function setSourceCommand(root: string, canvas: string, id: string, command: { string }?)
 	runWithLock(root, function(): nil

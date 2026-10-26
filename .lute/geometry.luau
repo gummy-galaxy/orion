@@ -1,7 +1,10 @@
 --[[
-	Writes `workspace/orion-app/src/geometry.ts` from the CLI's geometry constants, so the app draws cards and groups at the sizes and
-	spacing the CLI places them with. Run it after changing `workspace/orion-cli/src/geometry.luau`, and commit what it writes. With
-	`--check`, it leaves the file as it was and exits nonzero when it's out of date.
+	Writes `workspace/orion-app/src/geometry.ts` from the CLI's geometry
+	constants, so the app draws cards and groups at the sizes and spacing the
+	CLI places them with. Run it after changing
+	`workspace/orion-cli/src/geometry.luau`, and commit what it writes. With
+	`--check`, it leaves the file as it was and exits nonzero when it's out of
+	date.
 ]]
 local fs = require("@std/fs")
 local path = require("@std/path")

@@ -1,7 +1,8 @@
 --[[
-	Records CI's perf run in PostHog so results can be charted across commits. It reads workspace/orion-app/.perf/raw.json and sends
-	one `perf_run` event per side. Without a PostHog token, or when PostHog refuses or can't be reached, it warns and
-	leaves the job alone.
+	Records CI's perf run in PostHog so results can be charted across commits.
+	It reads workspace/orion-app/.perf/raw.json and sends one `perf_run` event
+	per side. Without a PostHog token, or when PostHog refuses or can't be
+	reached, it warns and leaves the job alone.
 ]]
 local fs = require("@std/fs")
 local json = require("@std/json")

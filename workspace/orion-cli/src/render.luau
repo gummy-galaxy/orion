@@ -68,7 +68,8 @@ function render.itemJson(doc: Doc, derived: graphTypes.Derived, item: Item): jso
 	})
 	object.label = asString(item.data.label)
 
-	-- Notes pass blocking through and components draw a system, so neither carries a status.
+	-- Notes pass blocking through and components draw a system, so neither
+	-- carries a status.
 	if not isNote(item) then
 		object.unblocks = derived.leverage[item.id] or 0
 	end
@@ -134,7 +135,8 @@ function render.table(doc: Doc, derived: graphTypes.Derived, items: { Item }): s
 	return table.concat(lines, "\n")
 end
 
--- Children without a status, such as components and images, show what they are instead.
+-- Children without a status, such as components and images, show what they are
+-- instead.
 local function kindOf(child: Item): string
 	return if isComponent(child) then "component" else child.type
 end

@@ -1,4 +1,5 @@
--- Collects the refs to import: the arguments, then each line of stdin when it was read. Blank lines are skipped.
+-- Collects the refs to import: the arguments, then each line of stdin when it
+-- was read. Blank lines are skipped.
 local function getInputs(arguments: { string }, stdin: string?): { string }
 	local inputs: { string } = {}
 

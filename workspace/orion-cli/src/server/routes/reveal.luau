@@ -16,7 +16,8 @@ export type Hub = {
 
 local reveal = {}
 
--- Selects cards or groups in the app and asks it to zoom to them. Switches to their canvas first, the way the app does.
+-- Selects cards or groups in the app and asks it to zoom to them. Switches to
+-- their canvas first, the way the app does.
 function reveal.handle(
 	request: net.ReceivedRequest,
 	root: string,
@@ -55,7 +56,8 @@ function reveal.handle(
 			end
 		end
 
-		-- Checked before switching canvases, so a failed reveal leaves the canvas where it was.
+		-- Checked before switching canvases, so a failed reveal leaves the
+		-- canvas where it was.
 		if not hub or hub.count() == 0 then
 			return shared.reply(409, json.object({ error = "no app is open" }))
 		end

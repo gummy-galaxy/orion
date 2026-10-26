@@ -12,7 +12,8 @@ local writeDoc = require("@root/store/writeDoc")
 
 local NOW = "2026-10-04T00:00:00Z"
 
--- The commands this machine runs for the sources these tests configure. Hop sources run `hop` without one.
+-- The commands this machine runs for the sources these tests configure. Hop
+-- sources run `hop` without one.
 local COMMANDS = {
 	jira = { "acli", "jira", "workitem", "search", "--json" },
 	["jira-one"] = { "acli", "one" },

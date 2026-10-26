@@ -17,7 +17,8 @@ end
 
 local OPTIONS: migrateWorkspaces.Options = { findOtherServer = noServer }
 
--- The revision of the `orion.json` a folder moved with, before it moves to files of its own.
+-- The revision of the `orion.json` a folder moved with, before it moves to
+-- files of its own.
 local function readRevision(dir: string): number
 	return decodeDoc(fs.readFileToString(path.join(dir, "orion.json"))).revision
 end
@@ -28,7 +29,8 @@ local LEGACY_LIST = [[{
 	"archived": [{ "name": "old", "label": "Old" }]
 }]]
 
--- A data folder as an older Orion left it: the list, and a folder for each named workspace.
+-- A data folder as an older Orion left it: the list, and a folder for each
+-- named workspace.
 local function legacyRoot(name: string): string
 	local root = testing.directory(name)
 

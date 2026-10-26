@@ -2,7 +2,8 @@ local isAssetId = require("@root/media/isAssetId")
 
 local HEX_DIGIT_COUNTS: { [number]: boolean } = { [3] = true, [4] = true, [6] = true, [8] = true }
 
--- A background is a hex color, a color token such as card.background, or an image asset id.
+-- A background is a hex color, a color token such as card.background, or an
+-- image asset id.
 return function(value: string)
 	if isAssetId(value) then
 		return

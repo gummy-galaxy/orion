@@ -5,8 +5,9 @@ local writeWorkspaces = require("@root/store/writeWorkspaces")
 
 type WorkspaceList = storeTypes.WorkspaceList
 
--- Takes a workspace off the list without touching its folder. The default workspace is the data root
--- itself and is always listed, so it can't be archived, and neither can the one in use.
+-- Takes a workspace off the list without touching its folder. The default
+-- workspace is the data root itself and is always listed, so it can't be
+-- archived, and neither can the one in use.
 local function archiveWorkspace(root: string, name: string, inUse: string): WorkspaceList
 	assert(isValidWorkspace(name), `invalid canvas name: {name}`)
 	assert(name ~= "default", "the default canvas can't be archived")

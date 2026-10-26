@@ -17,8 +17,9 @@ local function comparison(field: string, value: string): Expression
 	return { kind = "comparison", field = field, operator = "=", value = value }
 end
 
--- A value with a URL or a source prefix is a ref that --ref would resolve, and it matches by that ref's key.
--- A bare value is already a key, such as owner/name#12 or ABC-12. A repository that moved matches by its old name too.
+-- A value with a URL or a source prefix is a ref that --ref would resolve, and
+-- it matches by that ref's key. A bare value is already a key, such as
+-- owner/name#12 or ABC-12. A repository that moved matches by its old name too.
 local function refKey(value: string, doc: Doc): string
 	if value:match("^https?://") or value:match("^[a-z][a-z0-9%-]*:") then
 		return getCurrentKey(doc, resolveRef(value, doc.settings.sources).ref.key)
@@ -40,14 +41,17 @@ local function selectorExpression(selector: string, value: string, doc: Doc): Ex
 	return comparison("ref", refKey(value, doc))
 end
 
--- Strips one pair of matching quotes, so label:"Extract slider" and label:'Extract slider' select the same card.
+-- Strips one pair of matching quotes, so label:"Extract slider" and
+-- label:'Extract slider' select the same card.
 local function unquote(value: string): string
 	return value:match('^"(.*)"$') or value:match("^'(.*)'$") or value
 end
 
--- Resolves an id argument to the id of one item or group. A plain id passes through unchanged, and getItem reports it
--- if it's missing. A selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 matches the way --where does,
--- and it has to match exactly one item, so an ambiguous selector lists its matches instead of picking one.
+-- Resolves an id argument to the id of one item or group. A plain id passes
+-- through unchanged, and getItem reports it if it's missing. A selector such as
+-- label:"Extract slider", ref:jira:ABC-12, or pr:86 matches the way --where
+-- does, and it has to match exactly one item, so an ambiguous selector lists
+-- its matches instead of picking one.
 local function resolveId(doc: Doc, input: string): string
 	local selector, rest = input:match("^(%a+):(.*)$")
 

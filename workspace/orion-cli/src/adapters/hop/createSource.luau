@@ -5,7 +5,8 @@ local types = require("@root/types")
 
 type Source = types.Source
 
--- The command is nil when it's left out, since hop runs `hop` from the PATH by default.
+-- The command is nil when it's left out, since hop runs `hop` from the PATH by
+-- default.
 local function createSource(options: { [string]: { string } }): (Source, { string }?)
 	checkOptions("hop", options, { command = true })
 	local command = getOne(options, "command")

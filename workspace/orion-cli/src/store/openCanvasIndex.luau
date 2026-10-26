@@ -7,7 +7,8 @@ local runSqlite = require("@root/sqlite/runSqlite")
 
 local logger = archivist.getLogger("orion.index")
 
--- Bump when the tables change. An index of any other version is deleted and built again from the files.
+-- Bump when the tables change. An index of any other version is deleted and
+-- built again from the files.
 local SCHEMA_VERSION = 2
 
 local SCHEMA = [[
@@ -35,7 +36,8 @@ PRAGMA user_version = %d;
 COMMIT;
 ]]
 
--- Index folders this process has already checked, so each opens with one query per process.
+-- Index folders this process has already checked, so each opens with one query
+-- per process.
 local opened: { [string]: boolean } = {}
 
 local function remove(database: string)
@@ -68,7 +70,8 @@ local function prepare(database: string)
 		return
 	end
 
-	-- A new database reads as version 0, and so does one with tables Orion didn't make, which the schema then fails on.
+	-- A new database reads as version 0, and so does one with tables Orion
+	-- didn't make, which the schema then fails on.
 	if version == 0 and pcall(runSqlite, database, SCHEMA:format(SCHEMA_VERSION), nil) then
 		return
 	end
@@ -80,9 +83,10 @@ local function prepare(database: string)
 end
 
 --[[
-	Opens a canvas folder's index, creating its tables when it has none, and returns the database's path. An index
-	that is damaged, isn't a database, or was made for another schema is deleted and built again, since the files
-	hold everything it does. With `shouldRebuild`, the index is deleted first.
+	Opens a canvas folder's index, creating its tables when it has none, and
+	returns the database's path. An index that is damaged, isn't a database, or
+	was made for another schema is deleted and built again, since the files hold
+	everything it does. With `shouldRebuild`, the index is deleted first.
 ]]
 local function openCanvasIndex(dir: string, shouldRebuild: boolean?): string
 	local database = getIndexPath(dir)

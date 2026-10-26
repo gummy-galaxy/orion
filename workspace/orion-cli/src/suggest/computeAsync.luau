@@ -499,8 +499,9 @@ local function getAgentGroupsAsync(
 	return groups
 end
 
--- Groups related cards. With a command, it gets the cards as a prompt on stdin and names the groups, and its
--- reply replaces the heuristic groups unless it fails or returns none.
+-- Groups related cards. With a command, it gets the cards as a prompt on stdin
+-- and names the groups, and its reply replaces the heuristic groups unless it
+-- fails or returns none.
 local function computeAsync(
 	doc: Doc,
 	scope: string,
