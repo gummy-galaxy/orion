@@ -1,6 +1,8 @@
 local adapterTypes = require("@root/adapters/types")
 local getErrorText = require("@root/getErrorText")
+local getGithubId = require("@root/refs/getGithubId")
 local getRefKey = require("@root/adapters/getRefKey")
+local getRepoId = require("@root/github/getRepoId")
 local getString = require("@root/github/getString")
 local json = require("@std/json")
 local query = require("@root/github/query")
@@ -34,7 +36,7 @@ local function lookupBatch(batch: { ResolvedRef }, host: string, run: CommandRun
 		local field = getField(resolved.ref)
 		table.insert(
 			parts,
-			`p{index}: repository(owner: {json.serialize(assert(owner))}, name: {json.serialize(assert(name))}) \{ {field}(number: {number}) \{ title url } }`
+			`p{index}: repository(owner: {json.serialize(assert(owner))}, name: {json.serialize(assert(name))}) \{ databaseId {field}(number: {number}) \{ title url } }`
 		)
 	end
 
@@ -64,7 +66,9 @@ local function lookupBatch(batch: { ResolvedRef }, host: string, run: CommandRun
 		end
 
 		local recorded = table.clone(ref)
+		local repoId = getRepoId(repository)
 		recorded.url = getString(item.url) or ref.url
+		recorded.id = if repoId then getGithubId(repoId, assert(ref.key:match("[#@].*$")), host) else nil
 		result.records[key] = {
 			ref = recorded,
 			label = title,

@@ -13,7 +13,7 @@ type CanvasSnapshot = storeTypes.CanvasSnapshot
 
 -- Fields that record this machine's view of a canvas rather than the canvas itself, kept out of the shared files.
 -- The revision counts this machine's writes, so `canvas.json` only changes when the canvas's own fields do.
-local LOCAL_FIELDS: { [string]: boolean } = { github = true, revision = true, suggestions = true }
+local LOCAL_FIELDS: { [string]: boolean } = { github = true, revision = true, suggestions = true, repositories = true }
 
 local function copyObject(object: json.Object?): json.Object
 	local copy = json.object({})

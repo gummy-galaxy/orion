@@ -3,6 +3,7 @@ local json = require("@std/json")
 local adapterTypes = require("@root/adapters/types")
 local findBranch = require("@root/adapters/findBranch")
 local findRef = require("@root/refs/findRef")
+local getGithubId = require("@root/refs/getGithubId")
 local getGithubKey = require("@root/refs/getGithubKey")
 local getInvolved = require("@root/github/getInvolved")
 local setDesired = require("@root/github/setDesired")
@@ -65,6 +66,7 @@ local function collect(source: Source, run: CommandRunner, context: Context): { 
 				source = source.id,
 				kind = "issue",
 				key = getGithubKey(issue.owner, issue.name, `#{issue.number}`, issue.host),
+				id = if issue.repoId then getGithubId(issue.repoId, `#{issue.number}`, issue.host) else nil,
 				url = issue.url,
 			},
 			label = issue.title,

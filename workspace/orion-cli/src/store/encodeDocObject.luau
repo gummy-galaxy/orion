@@ -80,6 +80,7 @@ local function encodeDocObject(doc: Doc): json.Object
 	root.links = links
 	root.github = doc.github
 	root.suggestions = doc.suggestions
+	root.repositories = doc.repositories
 
 	return root
 end

@@ -104,6 +104,9 @@ export type Doc = {
 	links: { Link },
 	github: json.Object?,
 	suggestions: json.Object?,
+	-- What this machine last heard from GitHub about each repository its refs name, by repository id: its current
+	-- owner/name and when that was checked. A cache, rebuilt from GitHub's answers.
+	repositories: json.Object?,
 	raw: json.Object?,
 }
 
