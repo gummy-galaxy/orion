@@ -1,3 +1,5 @@
+local asObject = require("@root/asObject")
+local getStringField = require("@root/getStringField")
 local types = require("@root/types")
 
 type ErrorCode = types.ErrorCode
@@ -5,11 +7,9 @@ type ErrorCode = types.ErrorCode
 -- The code a failure carries, such as "revision-conflict", or nil when it has
 -- none.
 local function getErrorCode(failure: unknown): ErrorCode?
-	if type(failure) == "table" and type((failure :: any).code) == "string" then
-		return (failure :: any).code
-	end
+	local object = asObject(failure)
 
-	return nil
+	return getStringField(object and object.code) :: ErrorCode?
 end
 
 return getErrorCode
