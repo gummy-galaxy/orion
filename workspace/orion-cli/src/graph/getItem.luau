@@ -1,11 +1,18 @@
 local findItem = require("@root/graph/findItem")
+local raiseFailure = require("@root/raiseFailure")
 local types = require("@root/types")
 
 type Doc = types.Doc
 type Item = types.Item
 
 local function getItem(doc: Doc, id: string): Item
-	return assert(findItem(doc, id), `no item or group with id "{id}"`)
+	local item = findItem(doc, id)
+
+	if not item then
+		raiseFailure("missing-item", `no item or group with id "{id}"`)
+	end
+
+	return item :: Item
 end
 
 return getItem

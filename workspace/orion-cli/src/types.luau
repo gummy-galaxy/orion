@@ -9,6 +9,9 @@ export type CommandResult = {
 
 export type CommandRunner = ({ string }, string?) -> CommandResult
 
+-- A failure a script can act on, which --json prints as the error's code.
+export type ErrorCode = "revision-conflict" | "missing-item" | "ambiguous-selector"
+
 export type Position = { x: number, y: number }
 
 export type Ref = {

@@ -119,6 +119,9 @@ test.case("tools round-trip through the CLI and workspace storage", function(ass
 	local missing = call(run, "orion_node_show", json.object({ canvas = "sample", id = "missing" }))
 	assert.eq(missing.isError, true)
 	assert.eq(string.find(firstText(missing), "%.luau:%d+:"), nil)
+	local failure = need(json.asObject(need(json.asObject(json.deserialize(firstText(missing)) :: json.Value)).error))
+	assert.eq(failure.code, "missing-item")
+	assert.eq(failure.message, 'no item or group with id "missing"')
 end)
 
 test.case("tidy marks a group and check reports it waiting for layout without stopping the server", function(assert)
@@ -150,6 +153,7 @@ test.case("tidy marks a group and check reports it waiting for layout without st
 	local stale = call(run, "orion_group_tidy", json.object({ ids = { "ws" }, ifRevision = 0 }))
 	assert.eq(stale.isError, true)
 	assert.strContains(firstText(stale), "revision changed")
+	assert.strContains(firstText(stale), '"code":"revision-conflict"')
 
 	local checked = call(run, "orion_canvas_check", json.object({}))
 	assert.eq(checked.isError, nil)
