@@ -83,6 +83,7 @@ import {
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { DetailStepper } from './DetailStepper'
 import { DetailsPanel } from './DetailsPanel'
+import { DETAILS_TABS, type DetailsTab } from '../detailsTabs'
 import { ResizeHandle } from './ResizeHandle'
 import { EmptyCanvas } from './EmptyCanvas'
 import { ComponentInspector } from './ComponentInspector'
@@ -144,6 +145,7 @@ import {
   type Workspaces,
 } from '../persist'
 import { Sidebar } from './Sidebar'
+import { TableTab } from './TableTab'
 import { Settings, type SettingsSection } from './Settings'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
@@ -225,6 +227,7 @@ const SIDEBAR_KEY = 'orion:sidebar'
 const DETAILS_KEY = 'orion:details'
 const SIDEBAR_WIDTH_KEY = 'orion:sidebar-width'
 const DETAILS_WIDTH_KEY = 'orion:details-width'
+const DETAILS_TAB_KEY = 'orion:details-tab'
 const SIDEBAR_WIDTH = { min: 200, max: 480 }
 const DETAILS_WIDTH = { min: 320, max: 720 }
 const DEBUG_KEY = 'orion:debug'
@@ -361,6 +364,16 @@ function writeFlag(key: SavedSetting, value: boolean) {
   saveSettings({ [key]: value ? '1' : '0' })
 }
 
+function readDetailsTab(): DetailsTab {
+  try {
+    const stored = localStorage.getItem(DETAILS_TAB_KEY)
+
+    return DETAILS_TABS.find((entry) => entry.id === stored)?.id ?? 'details'
+  } catch {
+    return 'details'
+  }
+}
+
 /**
  * The server's copy in the form the canvas compares: shown at this card size and stored again, so it rounds the same
  * way a save does, with the same defaults the canvas applies.
@@ -485,15 +498,28 @@ export function Canvas() {
   const [showDetails, setShowDetails] = useState(() => readFlag(DETAILS_KEY, true))
   const [sidebarWidth, setSidebarWidth] = useState(() => readWidth(SIDEBAR_WIDTH_KEY))
   const [detailsWidth, setDetailsWidth] = useState(() => readWidth(DETAILS_WIDTH_KEY))
-  // Renaming and editing happen in the details panel, so starting either brings a hidden panel back.
-  const setEditing = useCallback((id: string | null) => {
-    setEditingState(id)
-
-    if (id === null || readFlag(DETAILS_KEY, true)) return
-
-    setShowDetails(true)
-    writeFlag('details', true)
+  const [detailsTab, setDetailsTab] = useState(readDetailsTab)
+  const chooseDetailsTab = useCallback((tab: DetailsTab) => {
+    setDetailsTab(tab)
+    saveSettings({ 'details-tab': tab })
   }, [])
+  // Renaming and editing happen in the details panel's Details tab, so starting either brings a hidden panel back on
+  // that tab.
+  const setEditing = useCallback(
+    (id: string | null) => {
+      setEditingState(id)
+
+      if (id === null) return
+
+      if (readDetailsTab() !== 'details') chooseDetailsTab('details')
+
+      if (readFlag(DETAILS_KEY, true)) return
+
+      setShowDetails(true)
+      writeFlag('details', true)
+    },
+    [chooseDetailsTab],
+  )
   const [appearance, setAppearance] = useState(readAppearance)
   /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
   const [themes, setThemes] = useState<Theme[]>(cachedThemes)
@@ -1325,6 +1351,15 @@ export function Canvas() {
       }
     },
     [root, focusNode, openRoot, remember],
+  )
+
+  /**
+   * Lands on a card from the Table tab: in place when it's inside the open group, so the table keeps its scope, or by
+   * opening the group it's in. Reads the nodes when called, so moving cards doesn't make a new function and redraw the table.
+   */
+  const revealFromTable = useCallback(
+    (id: string) => (!root || ancestors(id, byId(latest.current.nodes)).includes(root) ? focusNode(id) : jumpTo(id)),
+    [root, focusNode, jumpTo],
   )
 
   /** Moves nodes to new positions over a few frames so edges follow along. */
@@ -3588,6 +3623,15 @@ export function Canvas() {
       run: () => toggleDetails(!showDetails),
     },
     {
+      id: 'table-tab',
+      label: showDetails && detailsTab === 'table' ? 'Show details tab' : 'Show cards as a table',
+      detail: 'Every card in the open group, in the details panel',
+      run: () => {
+        chooseDetailsTab(showDetails && detailsTab === 'table' ? 'details' : 'table')
+        toggleDetails(true)
+      },
+    },
+    {
       id: 'sync',
       label: 'Sync with GitHub',
       detail: 'Refresh pull request status now',
@@ -3679,6 +3723,8 @@ export function Canvas() {
       ungroup={selection ? () => doUngroup([group.id]) : undefined}
     />
   )
+
+  const tableScope = root ? (map.get(root)?.data as ClusterData | undefined)?.label || 'Untitled group' : 'Whole canvas'
 
   // The panel follows the focused card, then the selection, then a picked link, and otherwise describes the open level.
   const details = focused ? (
@@ -4168,8 +4214,8 @@ export function Canvas() {
           <ResizeHandle panel="after" label="Resize the details panel" {...DETAILS_WIDTH} resize={resizeDetails} reset={() => resizeDetails(null)} />
         )}
         {showDetails && (
-          <DetailsPanel width={detailsWidth ?? undefined} hide={() => toggleDetails(false)}>
-            {details}
+          <DetailsPanel width={detailsWidth ?? undefined} tab={detailsTab} chooseTab={chooseDetailsTab} hide={() => toggleDetails(false)}>
+            {detailsTab === 'table' ? ready && <TableTab root={root} scope={tableScope} reveal={revealFromTable} /> : details}
           </DetailsPanel>
         )}
         {paletteQuery !== null && (
