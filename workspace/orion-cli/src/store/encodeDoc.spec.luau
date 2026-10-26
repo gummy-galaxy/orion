@@ -48,5 +48,5 @@ test.case("encodeDoc round-trips top-level GitHub data and unknown fields", func
 	assert.eq(futureSetting and futureSetting.kept, true)
 	assert.eq(sources and #sources, 1)
 	assert.eq(settings and settings.githubOwner, nil)
-	assert.eq(encoded and encoded.version, 2)
+	assert.eq(encoded and encoded.version, 3)
 end)

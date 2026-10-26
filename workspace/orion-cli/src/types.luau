@@ -60,11 +60,29 @@ export type Ref = {
 export type Item = {
 	id: string,
 	type: string,
+	-- Where the node's first placement puts it, and the group that holds it
+	-- there. Changing them moves that placement when the canvas is written.
 	position: Position,
 	parentId: string?,
+	-- The id of that placement. A node a change just added has none until the
+	-- canvas is written, which places it.
+	placement: string?,
+	-- Set on a node with no placement, which isn't on the canvas anywhere. Its
+	-- position and group mean nothing until a change moves it, which places it.
+	unplaced: boolean?,
 	width: number?,
 	height: number?,
 	data: json.Object,
+}
+
+-- One appearance of a node on the canvas: where it sits, and the group that
+-- holds it there. A node can have any number of placements, or none, and none
+-- of them is its home.
+export type Placement = {
+	id: string,
+	node: string,
+	parentId: string?,
+	position: Position,
 }
 
 export type Link = {
@@ -115,6 +133,9 @@ export type Doc = {
 	},
 	nodes: { Item },
 	links: { Link },
+	-- Every placement, grouped by node in the nodes' order. A write brings the
+	-- first one of each node in line with the node's position and group.
+	placements: { Placement },
 	github: json.Object?,
 	suggestions: json.Object?,
 	-- What this machine last heard from GitHub about each repository its refs

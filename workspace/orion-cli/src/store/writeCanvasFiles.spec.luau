@@ -70,8 +70,8 @@ test.case("canvas files keep node order and sorted keys", function(assert)
 
 	local text = fs.readFileToString(path.join(dir, "nodes", "a.json"))
 	assert.eq(text:sub(-1), "\n")
-	local data, id, position = text:find('\n  "data"'), text:find('\n  "id"'), text:find('\n  "position"')
-	assert.eq((data :: number) < (id :: number) and (id :: number) < (position :: number), true)
+	local data, id, kind = text:find('\n  "data"'), text:find('\n  "id"'), text:find('\n  "type"')
+	assert.eq((data :: number) < (id :: number) and (id :: number) < (kind :: number), true)
 end)
 
 test.case("a node file that arrives without Orion joins the canvas after the listed ones", function(assert)
@@ -156,4 +156,53 @@ test.case("a read waits out a write in progress", function(assert)
 	local saved = loadDoc(dir)
 	assert.eq(saved.revision, 1)
 	assert.eq(saved.nodes[1].data.label, "After")
+end)
+
+test.case("writeCanvasFiles keeps each node's position and group in its placement's file", function(assert)
+	local dir = testing.directory("canvas-files-placements")
+	local doc = testing.createDoc({ testing.group("g", "Group"), testing.task("a", "A", "todo", "g") })
+	doc.nodes[2].position = { x = 10, y = 20 }
+	write(dir, doc)
+
+	local nodeFile = path.join(dir, "nodes", "a.json")
+	local nodeText = fs.readFileToString(nodeFile)
+	assert.strNotContains(nodeText, '"position"')
+	assert.strNotContains(nodeText, '"parentId"')
+
+	local placement = doc.nodes[2].placement :: string
+	local placementFile = path.join(dir, "placements", `{placement}.json`)
+	local stored = json.asObject(json.deserialize(fs.readFileToString(placementFile)) :: json.Value) :: json.Object
+	assert.eq(stored.node, "a")
+	assert.eq(stored.parentId, "g")
+	local position = json.asObject(stored.position) :: json.Object
+	assert.eq(position.x, 10)
+	assert.eq(position.y, 20)
+	assert.eq(type(stored.order), "string")
+
+	-- Moving the card rewrites its placement and leaves the card's own file be.
+	local before = modifiedAt(nodeFile)
+	doc.nodes[2].position = { x = 30, y = 20 }
+	doc.revision = 1
+	write(dir, doc)
+	assert.eq(modifiedAt(nodeFile), before)
+	assert.strContains(fs.readFileToString(placementFile), '"x": 30')
+	assert.eq(loadDoc(dir).nodes[2].position, { x = 30, y = 20 })
+
+	-- Removing the card removes its placement.
+	table.remove(doc.nodes, 2)
+	doc.revision = 2
+	write(dir, doc)
+	assert.eq(fs.exists(placementFile), false)
+end)
+
+test.case("writeCanvasFiles keeps a card with no placement off the canvas", function(assert)
+	local dir = testing.directory("canvas-files-unplaced")
+	local doc = testing.createDoc({ testing.task("a", "A", "todo") })
+	doc.nodes[1].unplaced = true
+	write(dir, doc)
+
+	assert.eq(#fs.listDirectory(path.join(dir, "placements")), 0)
+	local saved = loadDoc(dir)
+	assert.eq(saved.nodes[1].unplaced, true)
+	assert.eq(#saved.placements, 0)
 end)

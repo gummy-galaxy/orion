@@ -5,15 +5,13 @@ local path = require("@std/path")
 local encodeStableJson = require("@root/store/encodeStableJson")
 local fileNames = require("@root/fileNames")
 local findOtherServer = require("@root/server/findOtherServer")
+local getCanvasNames = require("@root/migrations/getCanvasNames")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local isValidWorkspace = require("@root/store/isValidWorkspace")
 local replaceFile = require("@root/store/replaceFile")
 local runTransaction = require("@root/store/runTransaction")
 local runWithLock = require("@root/store/runWithLock")
 
 type Server = findOtherServer.Server
-
-local CANVAS_FOLDER = "canvases"
 
 export type Options = {
 	-- Returns the `orion server start` from another build still serving the
@@ -22,21 +20,6 @@ export type Options = {
 }
 
 type Found = { canvas: string, dir: string, commands: json.Object }
-
-local function getCanvasNames(root: string): { string }
-	local names = { "default" }
-	local folder = path.join(root, CANVAS_FOLDER)
-
-	if fs.exists(folder) and fs.type(folder) == "dir" then
-		for _, entry in fs.listDirectory(folder) do
-			if entry.type == "dir" and entry.name ~= "default" and isValidWorkspace(entry.name) then
-				table.insert(names, entry.name)
-			end
-		end
-	end
-
-	return names
-end
 
 -- The commands a canvas's `canvas.json` keeps on its sources, by source id, or
 -- nil when it keeps none.

@@ -8,7 +8,8 @@ return table.freeze({
 INSERT OR REPLACE INTO files (path, folder, entry, isValid, mtime, checked, hash, text)
 	SELECT
 		path,
-		CASE WHEN path GLOB 'nodes/*' THEN 'nodes' WHEN path GLOB 'links/*' THEN 'links' ELSE '' END,
+		CASE WHEN path GLOB 'nodes/*' THEN 'nodes' WHEN path GLOB 'links/*' THEN 'links'
+			WHEN path GLOB 'placements/*' THEN 'placements' ELSE '' END,
 		CASE WHEN isValid THEN
 			CASE WHEN json_type(text, '$.id') = 'text' THEN json_extract(text, '$.id') END
 		END,

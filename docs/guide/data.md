@@ -21,6 +21,7 @@ A canvas is a folder of small JSON files:
 - `canvas.json` holds its settings.
 - `nodes/<id>.json` holds each card, note, group, and image, with its place in the canvas's order and when each of its fields last changed.
 - `links/<id>.json` holds each link.
+- `placements/<id>.json` holds each place a card, note, group, or image appears on the canvas: its position and the group it sits in. A card keeps no position of its own, so it can appear in more than one place, or in none.
 - `local.json` holds what this machine recorded about it, such as its revision, the last GitHub check, and what each GitHub repository its cards name is called now.
 
 Keys are sorted and formatting is stable, so a change rewrites only the files it touches. New cards and links get random ids, so two copies of a canvas in git that each add or edit different cards merge without a conflict. Keep `local.json` and `index.sqlite` out of git, since they change on every write. Change the files through the CLI rather than by hand.
@@ -28,6 +29,8 @@ Keys are sorted and formatting is stable, so a change rewrites only the files it
 Orion reads a canvas through `index.sqlite` beside its files, which it builds from them with the `sqlite3` command and keeps up to date. It holds nothing the files don't, so deleting it is safe. Without `sqlite3` installed, Orion reads every file instead, which is slower on large canvases.
 
 A canvas folder can sit in a git repository. While the app is open, files a `git pull` or an editor changes show up without a restart. A note with a git conflict shows both versions between the conflict markers. Edit it to the version you want, and Orion writes the file without them. Any other card file that doesn't parse shows as a note holding its text.
+
+Older versions of Orion kept each card's position and group in its own file. The first command a newer Orion runs moves them into placements, backing up each canvas first. Quit an older Orion that is still open first, since it would keep writing positions onto cards.
 
 Older versions of Orion kept a Jira or hop source's command in `canvas.json`. The first command a newer Orion runs moves those commands into `commands.json`. After that, a command in a canvas's files is ignored, so one that arrives with a cloned canvas never runs.
 

@@ -60,6 +60,7 @@ test.case("readCanvasIndex reads the same canvas as joining its files", function
 	assert.eq(snapshot.document, document)
 	assert.eq(snapshot.entries, entries)
 	assert.eq(getLabel(snapshot.document, 1), "B")
+	assert.eq(#(json.asArray(snapshot.document.placements) :: json.Array), 2)
 	assert.eq(snapshot.files, files)
 	assert.eq((snapshot.document.github :: json.Object).viewer, "vocksel")
 	assert.eq(fs.exists(getIndexPath(dir)), true)
