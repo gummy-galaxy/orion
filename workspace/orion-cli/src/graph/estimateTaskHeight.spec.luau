@@ -15,12 +15,14 @@ end)
 
 test.case("estimateTaskHeight grows a note a line at a time and never below a card", function(assert)
 	assert.eq(estimateTaskHeight(note("Short")), geometry.TASK_HEIGHT)
-	-- Six lines of 15.6 under 36 of chrome, plus slack, rounded up to a multiple of 4.
+	-- Six lines of 15.6 under 36 of chrome, plus slack, rounded up to a
+	-- multiple of 4.
 	assert.eq(estimateTaskHeight(note("a\nb\nc\nd\ne\nf")), 136)
 end)
 
 test.case("estimateTaskHeight wraps long text between words and stops at the most a card grows", function(assert)
-	-- About 25 characters fit on a note's line, so five four-letter words do and twelve take three lines.
+	-- About 25 characters fit on a note's line, so five four-letter words do
+	-- and twelve take three lines.
 	assert.eq(estimateTaskHeight(note(string.rep("word ", 12))), 88)
 	assert.eq(estimateTaskHeight(note(string.rep("word ", 200))), geometry.TASK_MAX_HEIGHT)
 	-- A word too long for a line breaks anywhere: 400 characters take 16 lines.

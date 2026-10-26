@@ -24,8 +24,9 @@ COMMIT;
 ]]
 
 --[[
-	Marks a journaled write finished once every file is in place, and records the files it wrote in the index with
-	the times `stamps` gives them, so the next read doesn't open them again and the index knows what Orion wrote.
+	Marks a journaled write finished once every file is in place, and records
+	the files it wrote in the index with the times `stamps` gives them, so the
+	next read doesn't open them again and the index knows what Orion wrote.
 ]]
 local function finishCanvasWrite(dir: string, id: number, stamps: { [string]: number })
 	local script = FINISH:format(id, id, id) .. indexStatements.upsertFresh .. PRUNE:format(id - KEPT_OPERATIONS)

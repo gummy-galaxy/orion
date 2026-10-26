@@ -29,7 +29,8 @@ type Operation = operationTypes.Operation
 type Restore = operationTypes.Restore
 
 local handlers: { [string]: (Doc, Operation) -> () } = {}
--- Operations that answer with what they did, which goes back to the client with the change.
+-- Operations that answer with what they did, which goes back to the client with
+-- the change.
 local answering: { [string]: (Doc, Operation) -> json.Value } = {}
 
 local function required<T>(value: T?, name: string): T
@@ -37,7 +38,8 @@ local function required<T>(value: T?, name: string): T
 	return value :: T
 end
 
--- Sets fields with the CLI's rules. `pr` points a card at a pull request in its repository, or takes it off when empty.
+-- Sets fields with the CLI's rules. `pr` points a card at a pull request in its
+-- repository, or takes it off when empty.
 handlers.setFields = function(doc: Doc, operation: Operation)
 	local id = required(operation.id, "id")
 	local fields = table.clone(required(operation.fields, "fields"))
@@ -89,7 +91,8 @@ handlers.removeGroup = function(doc: Doc, operation: Operation)
 	removeGroup(doc, required(operation.id, "id"))
 end
 
--- Moves an item or group into another group, or to the top level when `group` is absent.
+-- Moves an item or group into another group, or to the top level when `group`
+-- is absent.
 handlers.move = function(doc: Doc, operation: Operation)
 	moveItem(doc, required(operation.id, "id"), operation.group)
 end
@@ -98,12 +101,14 @@ handlers.tidy = function(doc: Doc, operation: Operation)
 	markForTidy(doc, required(operation.id, "id"))
 end
 
--- Closes out one card finished in the app, leaving the cards chained to it waiting.
+-- Closes out one card finished in the app, leaving the cards chained to it
+-- waiting.
 handlers.closeOut = function(doc: Doc, operation: Operation)
 	closeOut(doc, required(operation.id, "id"))
 end
 
--- Closes out a finished card and its chain, and answers with each card closed and passed, with its hops from the card.
+-- Closes out a finished card and its chain, and answers with each card closed
+-- and passed, with its hops from the card.
 answering.chainClose = function(doc: Doc, operation: Operation): json.Value
 	local result = closeChain(doc, required(operation.id, "id"))
 	local function steps(list: { graphTypes.ChainStep }): json.Array
@@ -119,7 +124,8 @@ answering.chainClose = function(doc: Doc, operation: Operation): json.Value
 	return json.object({ closed = steps(result.closed), passed = steps(result.passed) })
 end
 
--- Adds an item the app built, at the id and position it chose. The id must be free, and a group must be a group.
+-- Adds an item the app built, at the id and position it chose. The id must be
+-- free, and a group must be a group.
 local function addItem(doc: Doc, operation: Operation)
 	local id = required(operation.id, "id")
 	assert(findItem(doc, id) == nil, `"{id}" is already taken`)
@@ -138,7 +144,8 @@ local function addItem(doc: Doc, operation: Operation)
 		data = required(operation.data, "data"),
 	}
 
-	-- A card is added as it is, so one pasted from a card still waiting to be closed out doesn't wait too.
+	-- A card is added as it is, so one pasted from a card still waiting to be
+	-- closed out doesn't wait too.
 	item.data.celebrate = nil
 	table.insert(doc.nodes, item)
 end
@@ -148,8 +155,8 @@ handlers.addNote = addItem
 handlers.addImage = addItem
 handlers.addGroup = addItem
 
--- Replaces a group's or image's data with the data the app holds for it. Cards change through setFields, so no client
--- skips their field rules.
+-- Replaces a group's or image's data with the data the app holds for it. Cards
+-- change through setFields, so no client skips their field rules.
 handlers.setData = function(doc: Doc, operation: Operation)
 	local data = required(operation.data, "data")
 	local id = required(operation.id, "id")
@@ -182,8 +189,8 @@ handlers.setStickerLoadout = function(doc: Doc, operation: Operation)
 	setRawValue(doc, "stickerLoadout", required(operation.stickerLoadout, "stickerLoadout"))
 end
 
--- Applies one operation and returns its inverse, and what the operation answered, if anything. A failed operation
--- leaves the document as it was.
+-- Applies one operation and returns its inverse, and what the operation
+-- answered, if anything. A failed operation leaves the document as it was.
 local function applyOperation(doc: Doc, operation: Operation): (Restore, json.Value?)
 	local handler = handlers[operation.op]
 	local answerer = answering[operation.op]

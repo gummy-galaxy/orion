@@ -1,5 +1,7 @@
--- The token names, groups, and custom properties in workspace/orion-app/src/tokens.ts. The CLI checks theme files against
--- this list, since it cannot read the app's source. workspace/orion-app/src/tokens.test.ts fails when the two disagree.
+-- The token names, groups, and custom properties in
+-- workspace/orion-app/src/tokens.ts. The CLI checks theme files against this
+-- list, since it cannot read the app's source.
+-- workspace/orion-app/src/tokens.test.ts fails when the two disagree.
 export type Token = { group: string, cssVar: string }
 
 local tokens: { [string]: Token } = {

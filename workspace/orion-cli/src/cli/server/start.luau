@@ -23,7 +23,8 @@ return table.freeze({
 	run = function(parser: cli.Parser, options: Context)
 		local port = tonumber(parser:get("port") or "5198")
 		assert(port and port >= 0 and port <= 65535 and port % 1 == 0, "port must be an integer from 0 to 65535")
-		-- Exit once whatever started the server is gone, so a crashed app or dev server can't leave it running.
+		-- Exit once whatever started the server is gone, so a crashed app or
+		-- dev server can't leave it running.
 		local parentProcessId = getParentPid(options.runner)
 		local isWatchingParent = parentProcessId ~= nil and parentProcessId > 1
 		local devPortOption = parser:get("dev-port")

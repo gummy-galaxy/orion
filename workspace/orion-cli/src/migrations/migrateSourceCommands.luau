@@ -16,7 +16,8 @@ type Server = findOtherServer.Server
 local CANVAS_FOLDER = "canvases"
 
 export type Options = {
-	-- Returns the `orion server start` from another build still serving the data folder.
+	-- Returns the `orion server start` from another build still serving the
+	-- data folder.
 	findOtherServer: ((root: string) -> Server?)?,
 }
 
@@ -37,7 +38,8 @@ local function getCanvasNames(root: string): { string }
 	return names
 end
 
--- The commands a canvas's `canvas.json` keeps on its sources, by source id, or nil when it keeps none.
+-- The commands a canvas's `canvas.json` keeps on its sources, by source id, or
+-- nil when it keeps none.
 local function readCommands(dir: string): json.Object?
 	local file = tostring(path.join(dir, fileNames.document))
 
@@ -66,11 +68,14 @@ local function readCommands(dir: string): json.Object?
 end
 
 --[[
-	Moves the commands sources kept in each canvas's `canvas.json` into the data folder's `commands.json`, keyed by
-	canvas name, then rewrites each `canvas.json` without them. It runs once: the first run writes `commands.json`,
-	even with nothing to move, and later runs leave alone a command a cloned canvas brings in its `canvas.json`,
-	which Orion no longer reads. It refuses while another build of Orion is serving the folder, since that server
-	would keep running the commands it read. Returns whether it moved anything.
+	Moves the commands sources kept in each canvas's `canvas.json` into the data
+	folder's `commands.json`, keyed by canvas name, then rewrites each
+	`canvas.json` without them. It runs once: the first run writes
+	`commands.json`, even with nothing to move, and later runs leave alone a
+	command a cloned canvas brings in its `canvas.json`, which Orion no longer
+	reads. It refuses while another build of Orion is serving the folder, since
+	that server would keep running the commands it read. Returns whether it
+	moved anything.
 ]]
 local function migrateSourceCommands(root: string, options: Options?): boolean
 	local file = path.join(root, fileNames.commands)
@@ -105,7 +110,8 @@ local function migrateSourceCommands(root: string, options: Options?): boolean
 		end
 	end
 
-	-- Written before the canvases change, so a run that stops partway keeps every command.
+	-- Written before the canvases change, so a run that stops partway keeps
+	-- every command.
 	runWithLock(root, function(): nil
 		if not fs.exists(file) then
 			replaceFile(root, fileNames.commands, encodeStableJson(all))
@@ -114,7 +120,8 @@ local function migrateSourceCommands(root: string, options: Options?): boolean
 		return nil
 	end)
 
-	-- Orion no longer writes a source's command into `canvas.json`, so any write drops it.
+	-- Orion no longer writes a source's command into `canvas.json`, so any
+	-- write drops it.
 	local failures: { string } = {}
 
 	for _, entry in found do

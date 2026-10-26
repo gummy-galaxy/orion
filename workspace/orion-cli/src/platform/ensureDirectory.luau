@@ -9,7 +9,8 @@ local path = require("@std/path")
 local function ensureDirectory(dir: path.Pathlike)
 	local failure: unknown = nil
 
-	-- A parent made by another process at the same moment can fail one attempt, so try twice.
+	-- A parent made by another process at the same moment can fail one attempt,
+	-- so try twice.
 	for _ = 1, 2 do
 		if fs.exists(dir) then
 			return

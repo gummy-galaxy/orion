@@ -6,9 +6,10 @@ local shared = require("@root/server/routes/shared")
 
 local static = {}
 
--- The desktop shell sets no policy of its own. Fonts come from Google Fonts, and link favicons and card
--- images from any https site. `host` is the address the page was loaded from, already checked by the
--- server, and names the WebSocket since some WebKit versions don't match `ws:` against `'self'`.
+-- The desktop shell sets no policy of its own. Fonts come from Google Fonts,
+-- and link favicons and card images from any https site. `host` is the address
+-- the page was loaded from, already checked by the server, and names the
+-- WebSocket since some WebKit versions don't match `ws:` against `'self'`.
 local function getContentSecurityPolicy(host: string?): string
 	local connect = if host then `'self' ws://{host} ipc: http://ipc.localhost` else "'self' ipc: http://ipc.localhost"
 

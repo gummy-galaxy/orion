@@ -4,8 +4,9 @@ local process = require("@std/process")
 
 local writeSequence = 0
 
--- Replaces one file of a canvas folder, given by its path under the folder such as `nodes/a.json`, in a single
--- move, so a reader sees either the old text or the new.
+-- Replaces one file of a canvas folder, given by its path under the folder such
+-- as `nodes/a.json`, in a single move, so a reader sees either the old text or
+-- the new.
 local function replaceFile(dir: string, file: string, contents: string)
 	local full = tostring(path.join(dir, table.unpack(file:split("/"))))
 	writeSequence += 1

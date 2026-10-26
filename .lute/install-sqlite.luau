@@ -1,7 +1,9 @@
 --[[
-	Installs a pinned `sqlite3` command on a Linux x86_64 CI runner that has none, which the CLI's index specs need.
-	Downloads SQLite's own tools archive, checks its SHA-256, unpacks `sqlite3` into the runner's temporary folder,
-	and adds that folder to the job's path. Does nothing when `sqlite3` already runs.
+	Installs a pinned `sqlite3` command on a Linux x86_64 CI runner that has
+	none, which the CLI's index specs need. Downloads SQLite's own tools
+	archive, checks its SHA-256, unpacks `sqlite3` into the runner's temporary
+	folder, and adds that folder to the job's path. Does nothing when `sqlite3`
+	already runs.
 
 	lute run install-sqlite
 ]]

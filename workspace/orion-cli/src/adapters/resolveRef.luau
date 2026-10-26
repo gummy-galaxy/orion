@@ -7,7 +7,8 @@ type Source = types.Source
 
 -- Kinds whose adapters recognize pasted URLs, tried in this order.
 local URL_KINDS = { "github", "jira" }
--- Reserved for branch:owner/name@branch, so no configured source may take this id.
+-- Reserved for branch:owner/name@branch, so no configured source may take this
+-- id.
 local BRANCH_PREFIX = "branch"
 local NAME_PATTERN = "^[%w_.%-]+$"
 
@@ -21,8 +22,9 @@ local function findSource(sources: { Source }, id: string): Source?
 	return nil
 end
 
--- A branch ref has the key hop records for its branches: owner/name@branch, with the host in front
--- on GitHub Enterprise. The first @ splits it, because repositories never contain one.
+-- A branch ref has the key hop records for its branches: owner/name@branch,
+-- with the host in front on GitHub Enterprise. The first @ splits it, because
+-- repositories never contain one.
 local function refFromBranch(input: string, sources: { Source }): ResolvedRef
 	local location, branch = input:match("^([^@]+)@(%S+)$")
 	assert(location and branch, `branch: takes owner/name@branch, not "{input}"`)
@@ -56,9 +58,9 @@ local function refFromBranch(input: string, sources: { Source }): ResolvedRef
 	}
 end
 
--- Turns the value of --ref into a ref. A URL goes to whichever adapter recognizes it; branch:
--- records the branch work started on; source:key goes to the configured source with that id,
--- which its adapter parses.
+-- Turns the value of --ref into a ref. A URL goes to whichever adapter
+-- recognizes it; branch: records the branch work started on; source:key goes to
+-- the configured source with that id, which its adapter parses.
 local function resolveRef(input: string, sources: { Source }): ResolvedRef
 	assert(input ~= "", "--ref needs a URL, source:key, or branch:owner/name@branch")
 

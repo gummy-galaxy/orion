@@ -1,7 +1,8 @@
 --[[
-	How many characters an order key's integer part takes, head included, from its head. `a` to `z` head integers
-	of two to 27 characters that count up, and `Z` down to `A` head ones that count down below them. Nil for any
-	other head.
+	How many characters an order key's integer part takes, head included, from
+	its head. `a` to `z` head integers of two to 27 characters that count up,
+	and `Z` down to `A` head ones that count down below them. Nil for any other
+	head.
 ]]
 local function getIntegerLength(head: string): number?
 	local byte = string.byte(head)

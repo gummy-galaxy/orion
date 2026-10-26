@@ -11,7 +11,8 @@ local runEdit = require("@root/cli/runEdit")
 
 type Context = context.Context
 
--- The plan comes from a file, from stdin with -, or inline with --plan, which is how MCP calls pass it.
+-- The plan comes from a file, from stdin with -, or inline with --plan, which
+-- is how MCP calls pass it.
 local function readPlan(parser: cli.Parser): string
 	local file = parser:get("file")
 	local plan = parser:get("plan")

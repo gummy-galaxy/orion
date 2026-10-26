@@ -58,8 +58,8 @@ return table.freeze({
 		local applyRefreshes = refreshAdapters(snapshot, options.runner, now, selected)
 		local report: ingestTypes.Report
 
-		-- Fetching happens above, outside the lock. Refreshing after placing skips the cards this run added when listing
-		-- what's unplaced.
+		-- Fetching happens above, outside the lock. Refreshing after placing
+		-- skips the cards this run added when listing what's unplaced.
 		local function apply(doc: Doc)
 			report = placeRecords(doc, fetched)
 			report.refreshes = applyRefreshes(doc)

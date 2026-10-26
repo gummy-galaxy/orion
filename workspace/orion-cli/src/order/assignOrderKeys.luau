@@ -1,7 +1,8 @@
 local getKeysBetween = require("@root/order/getKeysBetween")
 local isOrderKey = require("@root/order/isOrderKey")
 
--- The positions of the longest run of strictly increasing keys, in order, skipping missing ones. Patience sorting.
+-- The positions of the longest run of strictly increasing keys, in order,
+-- skipping missing ones. Patience sorting.
 local function findKept(keys: { [number]: string? }, count: number): { number }
 	local tails: { number } = {}
 	local previous: { [number]: number } = {}
@@ -38,7 +39,8 @@ local function findKept(keys: { [number]: string? }, count: number): { number }
 	return kept
 end
 
--- Gives the entries from `first` to `last` new keys between `before` and `after`.
+-- Gives the entries from `first` to `last` new keys between `before` and
+-- `after`.
 local function fill(assigned: { string }, first: number, last: number, before: string?, after: string?)
 	for offset, key in getKeysBetween(before, after, last - first + 1) do
 		assigned[first + offset - 1] = key
@@ -46,9 +48,11 @@ local function fill(assigned: { string }, first: number, last: number, before: s
 end
 
 --[[
-	Order keys for `count` entries in order, given the key each one had before, if any. As many entries as can keep
-	their keys do, so moving or adding one entry gives only that entry a new key, and the rest get keys between the
-	kept keys around them. Two entries that came back with the same key, such as from a merge, keep one of them.
+	Order keys for `count` entries in order, given the key each one had before,
+	if any. As many entries as can keep their keys do, so moving or adding one
+	entry gives only that entry a new key, and the rest get keys between the
+	kept keys around them. Two entries that came back with the same key, such as
+	from a merge, keep one of them.
 ]]
 local function assignOrderKeys(previous: { [number]: string? }, count: number): { string }
 	local keys: { [number]: string? } = {}

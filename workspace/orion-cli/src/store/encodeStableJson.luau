@@ -2,7 +2,8 @@ local json = require("@std/json")
 
 local INDENT = "  "
 
--- Tells objects from arrays the way `json.serialize` does, so a plain table with string keys stays an object.
+-- Tells objects from arrays the way `json.serialize` does, so a plain table
+-- with string keys stays an object.
 local function isObject(value: { [unknown]: unknown }): boolean
 	return #value == 0 and next(value) ~= nil
 end
@@ -54,8 +55,9 @@ local function encode(value: json.Value, depth: number): string
 	return json.serialize(value)
 end
 
--- JSON text with sorted keys, two-space indents, and a final newline, so the same value always writes the same
--- bytes and a change to one field shows as one line in a diff.
+-- JSON text with sorted keys, two-space indents, and a final newline, so the
+-- same value always writes the same bytes and a change to one field shows as
+-- one line in a diff.
 local function encodeStableJson(value: json.Value): string
 	return `{encode(value, 0)}\n`
 end

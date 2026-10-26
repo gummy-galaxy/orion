@@ -5,14 +5,16 @@ type Doc = types.Doc
 export type Change = {
 	repo: string,
 	name: string,
-	-- Whether the job is snoozed after the change. Unsnoozing a job that isn't snoozed changes nothing.
+	-- Whether the job is snoozed after the change. Unsnoozing a job that isn't
+	-- snoozed changes nothing.
 	snoozed: boolean,
 	untilTime: string?,
 	at: string,
 }
 
--- Snoozes a CI job for every card in its repository, or ends its snooze. Snoozing it again replaces the old snooze,
--- so the job starts over on cards where it already passed.
+-- Snoozes a CI job for every card in its repository, or ends its snooze.
+-- Snoozing it again replaces the old snooze, so the job starts over on cards
+-- where it already passed.
 local function changeCheckSnooze(doc: Doc, change: Change)
 	assert(change.repo:match("^[^/%s]+/[^/%s]+$"), `"{change.repo}" isn't a repository such as owner/name`)
 	assert(change.name ~= "", "a snooze needs the job's name")

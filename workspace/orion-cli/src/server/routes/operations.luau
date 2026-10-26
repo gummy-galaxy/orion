@@ -15,12 +15,14 @@ type Response = shared.Response
 
 local logger = archivist.getLogger("orion.operations")
 
--- Applies slower than this are logged as warnings, so a slow write shows up in `orion serve`'s output.
+-- Applies slower than this are logged as warnings, so a slow write shows up in
+-- `orion serve`'s output.
 local SLOW_APPLY_MS = 250
 
 local operations = {}
 
--- Keeps a failure that isn't a rejection or a stale revision, with the stack where it was raised, so the log can say where.
+-- Keeps a failure that isn't a rejection or a stale revision, with the stack
+-- where it was raised, so the log can say where.
 local function captureFailure(failure: unknown): unknown
 	if type(failure) == "table" then
 		return failure
@@ -29,10 +31,11 @@ local function captureFailure(failure: unknown): unknown
 	return { message = getErrorText(failure), traceback = debug.traceback("", 2) }
 end
 
--- Applies a list of edits as one change, under the store lock. If any edit no longer applies, the whole list is
--- refused with the position of the edit that failed, and the file is left alone. `baseRevision`, when sent, must
--- still be the saved revision. The answer's `results` holds what each edit answered, such as a chain close, or
--- null, in the order of the list.
+-- Applies a list of edits as one change, under the store lock. If any edit no
+-- longer applies, the whole list is refused with the position of the edit that
+-- failed, and the file is left alone. `baseRevision`, when sent, must still be
+-- the saved revision. The answer's `results` holds what each edit answered,
+-- such as a chain close, or null, in the order of the list.
 function operations.handle(request: net.ReceivedRequest, root: string, active: string): Response
 	if request.method ~= "POST" then
 		return shared.reply(405, json.object({ error = "method not allowed" }))

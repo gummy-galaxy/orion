@@ -29,7 +29,8 @@ local function refFromUrl(url: string, sources: { Source }): ResolvedRef?
 		end
 	end
 
-	-- Without a configured source, only github.com is known well enough to attach.
+	-- Without a configured source, only github.com is known well enough to
+	-- attach.
 	if not configured and lowerHost ~= PUBLIC_HOST then
 		return nil
 	end

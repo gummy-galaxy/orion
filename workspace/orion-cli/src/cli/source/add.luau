@@ -19,7 +19,8 @@ type Option = {
 	name: string,
 	help: string,
 	isList: boolean?,
-	-- A command is a program for Orion to run, which only a person at the CLI chooses.
+	-- A command is a program for Orion to run, which only a person at the CLI
+	-- chooses.
 	isCommand: boolean?,
 	-- The kind's createSource fails without it, so a tool call must give it.
 	isRequired: boolean?,
@@ -33,8 +34,8 @@ type Kind = {
 
 local COMMAND_REASON = "runs a program, which only a person at the CLI should choose"
 
--- Each kind has its own options, so help lists only the ones it takes. The adapter's
--- createSource validates them.
+-- Each kind has its own options, so help lists only the ones it takes. The
+-- adapter's createSource validates them.
 local KIND_ORDER = { "github", "jira", "hop" }
 
 local KINDS: { [string]: Kind } = {
@@ -88,8 +89,9 @@ local function readValues(kind: string, parser: cli.Parser): { [string]: { strin
 	return values
 end
 
--- A source added again keeps the settings it's given and the ones it had, so setting this machine's command for a
--- source that came with a shared canvas doesn't need its other settings repeated.
+-- A source added again keeps the settings it's given and the ones it had, so
+-- setting this machine's command for a source that came with a shared canvas
+-- doesn't need its other settings repeated.
 local function mergeSource(existing: Source, source: Source)
 	for key, value in source :: any do
 		(existing :: any)[key] = value
@@ -142,7 +144,8 @@ return table.freeze({
 			table.insert(current.settings.sources, source)
 		end)
 
-		-- The command goes in this machine's config, never the canvas's files, which can be shared through git.
+		-- The command goes in this machine's config, never the canvas's files,
+		-- which can be shared through git.
 		if command then
 			setSourceCommand(options.root, options.workspace, source.id, command)
 		end

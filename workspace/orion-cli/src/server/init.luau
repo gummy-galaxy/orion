@@ -66,7 +66,8 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		function(revision: number, doc: types.Doc, isReindexed)
 			local event = json.object({ revision = revision, derived = serializeDerived(derive(doc)) })
 
-			-- Files changed outside Orion without a new revision, so the app reloads despite seeing its own revision.
+			-- Files changed outside Orion without a new revision, so the app
+			-- reloads despite seeing its own revision.
 			if isReindexed then
 				event.reindexed = true
 			end

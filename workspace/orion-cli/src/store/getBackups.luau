@@ -6,7 +6,8 @@ local storeTypes = require("@root/store/types")
 
 type Backup = storeTypes.Backup
 
--- Lists a workspace's backups, newest first. Files that aren't named like a backup are left out.
+-- Lists a workspace's backups, newest first. Files that aren't named like a
+-- backup are left out.
 local function getBackups(dir: string): { Backup }
 	local folder = path.join(dir, fileNames.backups)
 	local found: { Backup } = {}

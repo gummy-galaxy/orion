@@ -138,8 +138,8 @@ local function addCanvasOption(parser: cli.Parser)
 	parser:add("canvas", "option", { help = "Use this canvas for this command" })
 end
 
--- Every command takes --json. Commands that print JSON of their own define it, and the rest take it here, so a
--- failure under it still prints JSON.
+-- Every command takes --json. Commands that print JSON of their own define it,
+-- and the rest take it here, so a failure under it still prints JSON.
 local function addJsonFlags(parser: cli.Parser)
 	if #parser.commands > 0 then
 		for _, command in parser.commands do
@@ -170,7 +170,8 @@ local function createParsers(): Parsers
 	addCanvasOption(root)
 	local commands: { [string]: cli.Parser } = {}
 
-	-- Every command takes the help flag and --canvas option, then defines the rest itself.
+	-- Every command takes the help flag and --canvas option, then defines the
+	-- rest itself.
 	local function addCommand(name: string, help: string): cli.Parser
 		local parser = root:subcommand(name, { help = help })
 		addHelpFlag(parser)
@@ -215,7 +216,8 @@ local DETAILS: formatAllHelp.Details = {
 	["orion node query"] = QUERY_HELP,
 }
 
--- Everything orion help prints, with every command and its options in place of the top-level list.
+-- Everything orion help prints, with every command and its options in place of
+-- the top-level list.
 local function allHelp(parser: cli.Parser): string
 	return table.concat({
 		SUMMARY,
@@ -230,7 +232,8 @@ local function allHelp(parser: cli.Parser): string
 	}, "\n")
 end
 
--- Finds the parser for a command path such as {"card", "list"}, along with the help its parent lists for it.
+-- Finds the parser for a command path such as {"card", "list"}, along with the
+-- help its parent lists for it.
 local function findCommand(root: cli.Parser, names: { string }): (cli.Parser?, string?)
 	local current = root
 	local help: string? = nil
@@ -261,7 +264,8 @@ local function commandHelp(name: string, help: string?, parser: cli.Parser): str
 	return `{help or ""}\n\n{parser:usage(`orion {name}`)}\n\n{parser:help()}{syntax}`
 end
 
--- Returns the help for the outermost command on the path that was given --help, if any.
+-- Returns the help for the outermost command on the path that was given --help,
+-- if any.
 local function helpFor(root: cli.Parser, names: { string }): string?
 	for depth = 1, #names do
 		local path = table.move(names, 1, depth, 1, {})
@@ -275,7 +279,8 @@ local function helpFor(root: cli.Parser, names: { string }): string?
 	return nil
 end
 
--- Walks the chosen commands from the root down, returning their names and the deepest parser.
+-- Walks the chosen commands from the root down, returning their names and the
+-- deepest parser.
 local function selectedPath(root: cli.Parser): ({ string }, cli.Parser)
 	local names: { string } = {}
 	local current = root
@@ -292,7 +297,8 @@ local function selectedPath(root: cli.Parser): ({ string }, cli.Parser)
 	end
 end
 
--- Lute's io only reaches stdout, so notices go through the stderr device to keep --json output clean.
+-- Lute's io only reaches stdout, so notices go through the stderr device to
+-- keep --json output clean.
 local function writeStderr(line: string)
 	local opened, handle = pcall(fs.open, "/dev/stderr", "a")
 
@@ -334,7 +340,8 @@ local function requestedCanvas(root: cli.Parser): string?
 	return selected
 end
 
--- Describes every command and option, for the generated reference in docs/ and the MCP tools.
+-- Describes every command and option, for the generated reference in docs/ and
+-- the MCP tools.
 local function describe(): describeCommands.CommandDescription
 	return describeCommands(createParsers().root, "orion", SUMMARY)
 end

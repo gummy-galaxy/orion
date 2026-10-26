@@ -10,9 +10,11 @@ type CardLookup = importTypes.CardLookup
 type CommandRunner = types.CommandRunner
 type Doc = types.Doc
 
--- Finds the card a URL or source:key would import, without saving it: the card already tracking it, or a new card shaped the
--- way `orion card import` shapes one. The document is left unchanged. Raises the reason when the input can't be resolved or found.
--- `commands` holds the programs this machine runs for the canvas's sources, by source id.
+-- Finds the card a URL or source:key would import, without saving it: the card
+-- already tracking it, or a new card shaped the way `orion card import` shapes
+-- one. The document is left unchanged. Raises the reason when the input can't
+-- be resolved or found. `commands` holds the programs this machine runs for the
+-- canvas's sources, by source id.
 local function lookupCard(
 	input: string,
 	doc: Doc,

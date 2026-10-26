@@ -5,14 +5,17 @@ type Story = types.Story
 export type Report = {
 	storybookUrl: string,
 	stories: { Story },
-	-- How many imports away each touched stories file is from its nearest changed file, from findTouchedStories.
+	-- How many imports away each touched stories file is from its nearest
+	-- changed file, from findTouchedStories.
 	touched: { [string]: number },
-	-- Whether a stylesheet or Storybook's preview changed, which any story can pick up.
+	-- Whether a stylesheet or Storybook's preview changed, which any story can
+	-- pick up.
 	stylesChanged: boolean,
 }
 
--- Stories this many imports or fewer from a change are listed up front. Further ones reach a change through shared
--- code, such as state, so they're folded away.
+-- Stories this many imports or fewer from a change are listed up front. Further
+-- ones reach a change through shared code, such as state, so they're folded
+-- away.
 local NEAR_DEPTH = 1
 
 type Component = { title: string, stories: { Story } }
@@ -54,7 +57,8 @@ local function groupByComponent(stories: { Story }): { Component }
 	return components
 end
 
--- Lists stories under their sidebar folders, one line per component with a link to each of its stories.
+-- Lists stories under their sidebar folders, one line per component with a link
+-- to each of its stories.
 local function formatList(stories: { Story }, baseUrl: string): string
 	local lines = {}
 	local currentFolder: string? = nil
@@ -94,9 +98,10 @@ local function countComponents(stories: { Story }): number
 end
 
 --[[
-	Writes the Storybook comment for a pull request: a link to its whole Storybook, the stories that load a changed file
-	up front, the stories that reach one further down their imports folded away, and every story folded away below
-	that, each linked straight to the story.
+	Writes the Storybook comment for a pull request: a link to its whole
+	Storybook, the stories that load a changed file up front, the stories that
+	reach one further down their imports folded away, and every story folded
+	away below that, each linked straight to the story.
 ]]
 local function formatStorybookComment(report: Report): string
 	local baseUrl = string.gsub(report.storybookUrl, "/+$", "")

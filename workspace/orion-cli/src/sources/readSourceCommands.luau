@@ -5,9 +5,11 @@ local path = require("@std/path")
 local fileNames = require("@root/fileNames")
 
 --[[
-	The commands this machine runs for a canvas's sources, by source id. They live in the data folder's
-	`commands.json`, keyed by canvas name, rather than in the canvas's own files, so a canvas shared through git
-	can't carry a program for someone else's Orion to run. A missing or unreadable file reads as none.
+	The commands this machine runs for a canvas's sources, by source id. They
+	live in the data folder's `commands.json`, keyed by canvas name, rather than
+	in the canvas's own files, so a canvas shared through git can't carry a
+	program for someone else's Orion to run. A missing or unreadable file reads
+	as none.
 ]]
 local function readSourceCommands(root: string, canvas: string): { [string]: { string } }
 	local file = tostring(path.join(root, fileNames.commands))

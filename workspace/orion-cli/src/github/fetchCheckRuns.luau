@@ -12,7 +12,8 @@ type CommandRunner = types.CommandRunner
 local BATCH_SIZE = 25
 local NAME_PATTERN = "^[%w%-%._]+$"
 
--- The conclusions and states that fail a job match getCheckCounts, so a job counts the same way in both.
+-- The conclusions and states that fail a job match getCheckCounts, so a job
+-- counts the same way in both.
 local CHECK_RUN_STATES: { [string]: "failed" | "passed" } = {
 	FAILURE = "failed",
 	TIMED_OUT = "failed",
@@ -61,8 +62,9 @@ local function parseRun(node: json.Object): CheckRun?
 	return nil
 end
 
--- Lists every job on each pull request's head commit, keyed like fetchPulls. Asking whether a job is required needs
--- the pull request's number, which is why this is a second query rather than part of the fields fetchPulls reads.
+-- Lists every job on each pull request's head commit, keyed like fetchPulls.
+-- Asking whether a job is required needs the pull request's number, which is
+-- why this is a second query rather than part of the fields fetchPulls reads.
 local function fetchCheckRuns(run: CommandRunner, pulls: { PullState }): { [string]: { CheckRun } }
 	local found: { [string]: { CheckRun } } = {}
 	local byHost: { [string]: { PullState } } = {}

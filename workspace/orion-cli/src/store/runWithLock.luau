@@ -18,8 +18,8 @@ local function release(lockPath: string)
 end
 
 -- A lock is abandoned once its owner stamp is stale and its writer is gone. A
--- writer that crashes right after creating the lock leaves no readable stamp, so
--- the lock directory's own age stands in for it. A stamp far past stale is
+-- writer that crashes right after creating the lock leaves no readable stamp,
+-- so the lock directory's own age stands in for it. A stamp far past stale is
 -- abandoned even if its process id is alive, since the id may have been reused.
 local function isLockAbandoned(lockPath: string, ownerPath: path.Path): boolean
 	local succeeded, owner = pcall(fs.readFileToString, ownerPath)
@@ -70,8 +70,9 @@ local function acquire(dir: string): string
 	end
 end
 
--- Runs `run` while holding the workspace lock, and releases it whether or not `run` fails. Every write to a
--- workspace goes through here: the data file, and the files beside it such as the log.
+-- Runs `run` while holding the workspace lock, and releases it whether or not
+-- `run` fails. Every write to a workspace goes through here: the data file, and
+-- the files beside it such as the log.
 local function runWithLock<T>(dir: string, run: () -> T): T
 	ensureDirectory(dir)
 

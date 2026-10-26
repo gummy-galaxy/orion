@@ -9,8 +9,9 @@ type Doc = types.Doc
 type Restore = operationTypes.Restore
 type Snapshot = operationTypes.Snapshot
 
--- The restore that turns the document back into `before`: every item or link that changed or went missing comes
--- back as it was, and every one that's new is removed.
+-- The restore that turns the document back into `before`: every item or link
+-- that changed or went missing comes back as it was, and every one that's new
+-- is removed.
 local function diffDocs(before: Snapshot, doc: Doc): Restore
 	local restore: Restore = { nodes = {}, removedNodes = {}, links = {}, removedLinks = {} }
 	local currentNodes = {}

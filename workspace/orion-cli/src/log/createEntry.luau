@@ -14,7 +14,8 @@ export type Input = {
 	time: string,
 }
 
--- Builds the next entry. Each card it names must be on the canvas, and each card is attached once.
+-- Builds the next entry. Each card it names must be on the canvas, and each
+-- card is attached once.
 local function createEntry(entries: { LogEntry }, doc: Doc, input: Input): LogEntry
 	assert(input.text:match("%S"), "log text must not be empty")
 
@@ -34,7 +35,8 @@ local function createEntry(entries: { LogEntry }, doc: Doc, input: Input): LogEn
 	end
 
 	return {
-		-- Entries are never removed, so counting them gives each one a fresh id.
+		-- Entries are never removed, so counting them gives each one a fresh
+		-- id.
 		id = `log-{#entries + 1}`,
 		text = input.text,
 		time = input.time,

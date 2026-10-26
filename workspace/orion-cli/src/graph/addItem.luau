@@ -14,7 +14,8 @@ type AddOptions = graphTypes.AddOptions
 type Doc = types.Doc
 type Item = types.Item
 
--- Adds a work item beside the items it links to, after `after` and before `before` when given.
+-- Adds a work item beside the items it links to, after `after` and before
+-- `before` when given.
 local function addItem(doc: Doc, label: string, options: AddOptions): Item
 	assert(label ~= "", "an item needs a label")
 	checkFields(options)
@@ -24,7 +25,8 @@ local function addItem(doc: Doc, label: string, options: AddOptions): Item
 	local data: json.Object = json.object({
 		kind = "task",
 		label = label,
-		-- A shape only fits a component, so giving one makes the item a component.
+		-- A shape only fits a component, so giving one makes the item a
+		-- component.
 		itemKind = chooseItemKind(options.repo, nil, if options.shape then "component" else options.kind),
 		status = options.status or "todo",
 	})

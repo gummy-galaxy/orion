@@ -3,7 +3,8 @@ local process = require("@std/process")
 
 local getDefaultDataDir = require("@root/platform/getDefaultDataDir")
 
--- The folder that holds every canvas: `ORION_DATA_DIR` when it's set, otherwise the platform's data folder.
+-- The folder that holds every canvas: `ORION_DATA_DIR` when it's set, otherwise
+-- the platform's data folder.
 local function getDataRoot(): string
 	local configured = process.env.ORION_DATA_DIR
 

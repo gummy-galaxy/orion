@@ -11,7 +11,8 @@ type Doc = types.Doc
 type Item = types.Item
 type NoteOptions = graphTypes.NoteOptions
 
--- Adds a note beside the items it links to. An existing link keeps its kind when the note splits it.
+-- Adds a note beside the items it links to. An existing link keeps its kind
+-- when the note splits it.
 local function addNote(doc: Doc, text: string, options: NoteOptions): Item
 	assert(text ~= "", "a note needs text")
 	local parent = getNeighborGroup(doc, options.group, options.after, options.before)

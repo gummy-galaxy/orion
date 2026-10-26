@@ -1,8 +1,9 @@
 local getKeyBetween = require("@root/order/getKeyBetween")
 
 --[[
-	`count` order keys in order, all after `before` and before `after`, either of which can be nil for an open end.
-	Keys between two bounds split the gap in halves, so filling it with many keys keeps them short.
+	`count` order keys in order, all after `before` and before `after`, either
+	of which can be nil for an open end. Keys between two bounds split the gap
+	in halves, so filling it with many keys keeps them short.
 ]]
 local function getKeysBetween(before: string?, after: string?, count: number): { string }
 	if count <= 0 then

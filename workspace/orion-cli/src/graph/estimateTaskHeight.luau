@@ -10,7 +10,8 @@ local function measure(value: string, style: TextStyle): number
 	return (utf8.len(value) or #value) * style.size * text.characterWidth
 end
 
--- How many lines `value` wraps to at `width`, breaking between words and at newlines as the app's cards do.
+-- How many lines `value` wraps to at `width`, breaking between words and at
+-- newlines as the app's cards do.
 local function countLines(value: string, style: TextStyle, width: number): number
 	local lines = 0
 
@@ -30,7 +31,8 @@ local function countLines(value: string, style: TextStyle, width: number): numbe
 			line = word
 		end
 
-		-- A word too long for one line breaks anywhere, as the card's `overflow-wrap: anywhere` lets it.
+		-- A word too long for one line breaks anywhere, as the card's
+		-- `overflow-wrap: anywhere` lets it.
 		lines += math.max(0, math.ceil(measure(line, style) / width) - 1)
 	end
 
@@ -43,9 +45,11 @@ local function getText(item: Item, field: string, fallback: string): string
 end
 
 --[[
-	About how tall the app draws a card in the classic skin. Notes grow to show all their text and components size to
-	theirs, up to a limit; work cards keep the card height. The app measures text with the browser's fonts, and this
-	estimates it from the same geometry, so a stored height the app measured is closer when there is one.
+	About how tall the app draws a card in the classic skin. Notes grow to show
+	all their text and components size to theirs, up to a limit; work cards keep
+	the card height. The app measures text with the browser's fonts, and this
+	estimates it from the same geometry, so a stored height the app measured is
+	closer when there is one.
 ]]
 local function estimateTaskHeight(item: Item): number
 	local itemKind = item.data.itemKind

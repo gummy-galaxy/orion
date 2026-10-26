@@ -37,7 +37,8 @@ local function unreachableRunner(): types.CommandResult
 	error("no lookup should run")
 end
 
--- Runs the command expecting it to fail; returns whether it succeeded and the failure text.
+-- Runs the command expecting it to fail; returns whether it succeeded and the
+-- failure text.
 local function runFailing(dir: string, args: { string }, runner: types.CommandRunner): (boolean, string)
 	local ok, failure = pcall(function()
 		testing.run(dir, args, runner, NOW)

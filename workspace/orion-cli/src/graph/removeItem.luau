@@ -9,7 +9,8 @@ local types = require("@root/types")
 type Doc = types.Doc
 type Link = types.Link
 
--- A note's incoming and outgoing links are reconnected so nothing loses its blocker.
+-- A note's incoming and outgoing links are reconnected so nothing loses its
+-- blocker.
 local function removeItem(doc: Doc, id: string, reconnect: boolean?)
 	local item = getItem(doc, id)
 	assert(not isGroup(item), `"{id}" is a group; use group ungroup or group remove instead`)

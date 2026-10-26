@@ -27,7 +27,8 @@ local LEGACY_DOC = [[{
 	"links": [{ "from": "a", "to": "Upper", "kind": "blocks" }]
 }]]
 
--- A data folder as an older Orion left it: the default canvas in the root and one named canvas.
+-- A data folder as an older Orion left it: the default canvas in the root and
+-- one named canvas.
 local function legacyRoot(name: string): string
 	local root = testing.directory(name)
 	local planning = path.join(root, "canvases", "planning")
