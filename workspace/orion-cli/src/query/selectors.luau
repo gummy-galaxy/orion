@@ -22,7 +22,11 @@ local SELECTORS: { Selector } = {
 		name = "ref",
 		form = "ref:<key or ref>",
 		help = "The node with this ref. A bare key such as `owner/name#12` or `ABC-12` matches as it's stored, ignoring case, and a URL or `source:key` resolves the way `--ref` does first.",
-		examples = { "ref:gummy-galaxy/orion#86", "ref:https://github.com/gummy-galaxy/orion/pull/86", "ref:jira:ABC-12" },
+		examples = {
+			"ref:gummy-galaxy/orion#86",
+			"ref:https://github.com/gummy-galaxy/orion/pull/86",
+			"ref:jira:ABC-12",
+		},
 	},
 	{
 		name = "pr",
