@@ -9,6 +9,6 @@ These pages are generated from the code that defines each surface, so they alway
 
 The syntax commands take inside their arguments:
 
-- [Queries](./query): the 11 fields `--where` matches on, and how comparisons combine.
+- [Queries](./query): the 13 fields `--where` matches on, and how comparisons combine.
 - [Selectors](./selectors): the 3 ways to name a card or group in place of its id.
 - [Refs](./refs): the 7 forms `--ref` takes for pull requests, issues, and branches.

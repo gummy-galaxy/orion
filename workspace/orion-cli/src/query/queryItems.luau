@@ -1,4 +1,4 @@
-local derive = require("@root/graph/derive")
+local createScope = require("@root/query/createScope")
 local getFieldValue = require("@root/query/getFieldValue")
 local matchesExpression = require("@root/query/matchesExpression")
 local parseExpression = require("@root/query/parseExpression")
@@ -45,17 +45,17 @@ local function queryItems(doc: types.Doc, query: Query): Result
 
 	local expression = if query.where then parseExpression(query.where) else nil
 	local sort = query.sort or {}
-	local derived = derive(doc, query.now)
+	local scope = createScope(doc, query.now)
 	local matches: { Entry } = {}
 
 	for _, item in doc.nodes do
-		local isShown = query.includeDone or derived.status[item.id] ~= "done"
+		local isShown = query.includeDone or scope.derived.status[item.id] ~= "done"
 
-		if isShown and (expression == nil or matchesExpression(derived, item, expression)) then
+		if isShown and (expression == nil or matchesExpression(scope, item, expression)) then
 			local values: { string | false } = {}
 
 			for index, key in sort do
-				values[index] = getFieldValue(item, derived, key.field) or false
+				values[index] = getFieldValue(scope, item, key.field) or false
 			end
 
 			table.insert(matches, { item = item, values = values, sequence = #matches + 1 })
@@ -91,7 +91,7 @@ local function queryItems(doc: types.Doc, query: Query): Result
 		table.insert(items, matches[index].item)
 	end
 
-	return { total = #matches, offset = offset, items = items, derived = derived }
+	return { total = #matches, offset = offset, items = items, derived = scope.derived }
 end
 
 return queryItems

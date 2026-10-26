@@ -25,7 +25,7 @@ test.case("~ works on text fields only", function(assert)
 		if field.isText then
 			assert.eq(parseExpression(expression).operator, "~")
 		else
-			assert.throwsWith(`'~' is only supported for label, note, and ref`, function()
+			assert.throwsWith(`'~' is only supported for group, priority, label, note, and ref`, function()
 				parseExpression(expression)
 			end)
 		end

@@ -104,3 +104,16 @@ test.case("refuses offsets and limits that aren't whole numbers", function(asser
 		queryItems(createDoc(), { limit = 0 })
 	end)
 end)
+
+test.case("sorts groups by their path and cards by their group's path", function(assert)
+	local doc = testing.createDoc({
+		testing.group("zeta", "Zeta"),
+		testing.group("alpha", "Alpha"),
+		testing.group("inner", "Inner", "zeta"),
+		testing.task("in-zeta", "One", "todo", "zeta"),
+		testing.task("in-inner", "Two", "todo", "inner"),
+		testing.task("in-alpha", "Three", "todo", "alpha"),
+	})
+	local result = queryItems(doc, { where = [[kind = "step"]], sort = { { field = "group", isDescending = false } } })
+	assert.eq(getIds(result.items), "in-alpha in-zeta in-inner")
+end)
