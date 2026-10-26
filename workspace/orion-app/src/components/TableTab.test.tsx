@@ -18,7 +18,7 @@ function renderTable(nodes: AppNode[]) {
   const view = render(
     <Profiler id="table" onRender={() => renders.count++}>
       <Provider store={store}>
-        <TableTab root={null} scope="Whole canvas" reveal={reveal} />
+        <TableTab root={null} scope="All work" reveal={reveal} />
       </Provider>
     </Profiler>,
   )

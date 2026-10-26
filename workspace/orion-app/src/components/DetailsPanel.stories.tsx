@@ -39,7 +39,7 @@ export const Table: Story = {
     <Provider store={tableStore}>
       <div style={{ display: 'flex', height: 600 }}>
         <DetailsPanel width={640} tab="table" chooseTab={() => {}} hide={() => {}}>
-          <TableTab root={null} scope="Whole canvas" reveal={() => {}} />
+          <TableTab root={null} scope="All work" reveal={() => {}} />
         </DetailsPanel>
       </div>
     </Provider>

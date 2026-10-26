@@ -2781,7 +2781,7 @@ kbd {
 .table-ref {
   display: none;
 }
-@container (min-width: 480px) {
+@container (min-width: 440px) {
   .table-row {
     grid-template-columns: minmax(0, 1fr) 112px 96px;
   }
@@ -2789,7 +2789,7 @@ kbd {
     display: block;
   }
 }
-@container (min-width: 600px) {
+@container (min-width: 540px) {
   .table-row {
     grid-template-columns: minmax(0, 1fr) 112px 96px minmax(0, 0.6fr);
   }
@@ -2797,7 +2797,7 @@ kbd {
     display: block;
   }
 }
-@container (min-width: 720px) {
+@container (min-width: 640px) {
   .table-row {
     grid-template-columns: minmax(0, 1fr) 112px 96px minmax(0, 0.6fr) minmax(0, 0.6fr);
   }

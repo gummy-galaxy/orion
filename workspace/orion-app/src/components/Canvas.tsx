@@ -3724,7 +3724,7 @@ export function Canvas() {
     />
   )
 
-  const tableScope = root ? (map.get(root)?.data as ClusterData | undefined)?.label || 'Untitled group' : 'Whole canvas'
+  const tableScope = root ? (map.get(root)?.data as ClusterData | undefined)?.label || 'Untitled group' : 'All work'
 
   // The panel follows the focused card, then the selection, then a picked link, and otherwise describes the open level.
   const details = focused ? (
