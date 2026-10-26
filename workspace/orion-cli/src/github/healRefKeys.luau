@@ -15,9 +15,11 @@ export type Move = { from: string, to: string }
 local GITHUB_KINDS = { pull = true, issue = true, branch = true }
 
 --[[
-	Renames every GitHub ref whose repository the directory knows by a different name now, keeping its id, number or
-	branch, and the rest of its URL. A card's repository follows its refs. A card left with two refs that are now the
-	same keeps the first. Returns the moves that changed something, sorted by old name.
+	Renames every GitHub ref whose repository the directory knows by a different
+	name now, keeping its id, number or branch, and the rest of its URL. A
+	card's repository follows its refs. A card left with two refs that are now
+	the same keeps the first. Returns the moves that changed something, sorted
+	by old name.
 ]]
 local function healRefKeys(doc: Doc): { Move }
 	local repositories = doc.repositories
@@ -80,7 +82,8 @@ local function healRefKeys(doc: Doc): { Move }
 		end
 	end
 
-	-- A snooze moved onto a name that already had one for the same job gives way to it.
+	-- A snooze moved onto a name that already had one for the same job gives
+	-- way to it.
 	for index = #snoozes, 1, -1 do
 		for earlier = 1, index - 1 do
 			local snooze, other = snoozes[index], snoozes[earlier]

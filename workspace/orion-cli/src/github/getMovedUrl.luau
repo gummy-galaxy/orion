@@ -1,4 +1,5 @@
--- Points a URL at a repository's current name, when its path starts with the old owner/name, keeping the rest of it.
+-- Points a URL at a repository's current name, when its path starts with the
+-- old owner/name, keeping the rest of it.
 local function getMovedUrl(url: string, previous: string, current: string): string
 	local origin, path = url:match("^(https?://[^/]+/)([^/]+/[^/#?]+)")
 

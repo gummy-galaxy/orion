@@ -4,8 +4,8 @@ local types = require("@root/types")
 
 type Doc = types.Doc
 
--- A GitHub key under its repository's current name, when the canvas's directory knows the name it uses, current or old.
--- Any other key comes back as it is.
+-- A GitHub key under its repository's current name, when the canvas's directory
+-- knows the name it uses, current or old. Any other key comes back as it is.
 local function getCurrentKey(doc: Doc, key: string): string
 	local repo = getKeyRepo(key)
 	local found = if repo then findRepository(doc, repo.location) else nil

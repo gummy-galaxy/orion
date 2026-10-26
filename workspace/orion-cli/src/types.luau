@@ -14,10 +14,12 @@ export type Position = { x: number, y: number }
 export type Ref = {
 	source: string,
 	kind: string,
-	-- The readable name for the ref, such as owner/name#12, which can change when what it names moves.
+	-- The readable name for the ref, such as owner/name#12, which can change
+	-- when what it names moves.
 	key: string,
-	-- The source's stable identity for the ref, which survives a rename or move. Adapters choose its form, and a ref
-	-- has none until its source has been read.
+	-- The source's stable identity for the ref, which survives a rename or
+	-- move. Adapters choose its form, and a ref has none until its source has
+	-- been read.
 	id: string?,
 	url: string?,
 	status: string?,
@@ -112,8 +114,9 @@ export type Doc = {
 	links: { Link },
 	github: json.Object?,
 	suggestions: json.Object?,
-	-- What this machine last heard from GitHub about each repository its refs name, by repository id: its current
-	-- owner/name and when that was checked. A cache, rebuilt from GitHub's answers.
+	-- What this machine last heard from GitHub about each repository its refs
+	-- name, by repository id: its current owner/name and when that was checked.
+	-- A cache, rebuilt from GitHub's answers.
 	repositories: json.Object?,
 	raw: json.Object?,
 }

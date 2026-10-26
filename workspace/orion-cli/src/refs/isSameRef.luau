@@ -3,8 +3,9 @@ local types = require("@root/types")
 type Ref = types.Ref
 
 --[[
-	Whether two refs name the same work. Refs of one kind match by their sources' stable ids when both have one, since a
-	key changes when what it names moves. Otherwise they match by case-insensitive key.
+	Whether two refs name the same work. Refs of one kind match by their
+	sources' stable ids when both have one, since a key changes when what it
+	names moves. Otherwise they match by case-insensitive key.
 ]]
 local function isSameRef(a: Ref, b: Ref): boolean
 	if a.kind ~= b.kind then

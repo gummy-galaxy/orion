@@ -1,17 +1,19 @@
 export type KeyRepo = {
-	-- The key's repository, as renames are keyed: owner/name, with the host in front on GitHub Enterprise.
+	-- The key's repository, as renames are keyed: owner/name, with the host in
+	-- front on GitHub Enterprise.
 	location: string,
 	host: string,
 	owner: string,
 	name: string,
-	-- What follows the repository: #number for pull requests and issues, @branch for branches.
+	-- What follows the repository: #number for pull requests and issues,
+	-- @branch for branches.
 	suffix: string,
 }
 
 local PUBLIC_HOST = "github.com"
 
--- Splits a GitHub ref key into its repository and the rest. The first # or @ ends the repository, because names never
--- contain either.
+-- Splits a GitHub ref key into its repository and the rest. The first # or @
+-- ends the repository, because names never contain either.
 local function getKeyRepo(key: string): KeyRepo?
 	local location, suffix = key:match("^([^#@]+)([#@].*)$")
 

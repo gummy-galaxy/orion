@@ -44,14 +44,15 @@ export type PullState = {
 	branch: string?,
 	body: string?,
 	host: string?,
-	-- GitHub's number for the repository, and its owner/name now, which differs from `owner` and `name` after a move.
+	-- GitHub's number for the repository, and its owner/name now, which differs
+	-- from `owner` and `name` after a move.
 	repoId: string?,
 	repoName: string?,
 }
 
 export type Ref = { owner: string, name: string, number: number, host: string? }
--- A repository GitHub found by the name a ref's key gives it: the key's lowercased location, GitHub's id for it, and its
--- owner/name now.
+-- A repository GitHub found by the name a ref's key gives it: the key's
+-- lowercased location, GitHub's id for it, and its owner/name now.
 export type FoundRepository = { location: string, host: string, id: string, name: string }
 export type Change = {
 	id: string,

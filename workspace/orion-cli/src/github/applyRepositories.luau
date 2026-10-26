@@ -10,8 +10,9 @@ type FoundRepository = githubTypes.FoundRepository
 
 local GITHUB_KINDS = { pull = true, issue = true, branch = true }
 
--- Gives each GitHub ref with no id the id of the repository `fetchRepositories` found for its key, and records each
--- repository's current name in the directory.
+-- Gives each GitHub ref with no id the id of the repository `fetchRepositories`
+-- found for its key, and records each repository's current name in the
+-- directory.
 local function applyRepositories(doc: Doc, found: { FoundRepository }, checkedAt: string)
 	local byLocation: { [string]: FoundRepository } = {}
 

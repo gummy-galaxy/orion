@@ -56,8 +56,8 @@ return table.freeze({
 		local now = options.now()
 		local selected = parser:get("source")
 		local snapshot = loadDoc(options.dir)
-		-- Refs take their repositories' ids and current names before anything matches against them, so a repository that
-		-- moved keeps its cards.
+		-- Refs take their repositories' ids and current names before anything
+		-- matches against them, so a repository that moved keeps its cards.
 		local found = fetchRepositories(snapshot, options.runner)
 		applyRepositories(snapshot, found, now)
 		healRefKeys(snapshot)

@@ -22,7 +22,8 @@ local function refresh(doc: Doc, run: CommandRunner, options: RefreshOptions): (
 		local report = applyPulls(current, fetched, options.now)
 		trackCheckSnoozes(current, fetched, options.now)
 
-		-- Keys change last, since the fetched pull requests are keyed by the names the cards had when they were fetched.
+		-- Keys change last, since the fetched pull requests are keyed by the
+		-- names the cards had when they were fetched.
 		local function record(pull: githubTypes.PullState)
 			if pull.repoId and pull.repoName then
 				setRepository(current, pull.host, pull.repoId, pull.repoName, options.now)

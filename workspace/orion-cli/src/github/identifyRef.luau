@@ -9,10 +9,11 @@ type Ref = types.Ref
 local GITHUB_KINDS = { pull = true, issue = true, branch = true }
 
 --[[
-	Gives a GitHub ref with no id the id of the repository the canvas's directory knows by its key's name, current or
-	old, and moves its key and URL to the current name, so a ref someone names after a move still matches the card that
-	tracks it. Reads only what this machine has recorded. A name the directory doesn't know leaves the ref as it is,
-	until a refresh looks it up.
+	Gives a GitHub ref with no id the id of the repository the canvas's
+	directory knows by its key's name, current or old, and moves its key and URL
+	to the current name, so a ref someone names after a move still matches the
+	card that tracks it. Reads only what this machine has recorded. A name the
+	directory doesn't know leaves the ref as it is, until a refresh looks it up.
 ]]
 local function identifyRef(doc: Doc, ref: Ref): Ref
 	local repo = if GITHUB_KINDS[ref.kind] and not ref.id then getKeyRepo(ref.key) else nil
