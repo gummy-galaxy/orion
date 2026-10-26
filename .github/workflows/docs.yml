@@ -78,7 +78,7 @@ jobs:
         run: npm ci
 
       - name: Check the Reference
-        run: lute run docs --check
+        run: lute run generate docs --check
         working-directory: .
 
       - name: Lint

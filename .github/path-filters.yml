@@ -24,14 +24,16 @@ app:
   - docs/guide/tokens.md
   - examples/themes/**
   - workspace/orion-cli/src/themes/tokenContract.luau
-  - .lute/coverage-report.luau
+  - .lute/report/init.luau
+  - .lute/report/coverage.luau
 
 docs:
   - *shared
   - .github/workflows/docs.yml
   - docs/**
   - "workspace/orion-cli/**/!(*.md)"
-  - .lute/docs.luau
+  - .lute/generate/init.luau
+  - .lute/generate/docs.luau
   - .config.luau
 
 desktop:
@@ -53,6 +55,7 @@ perf:
   - .github/path-filters.yml
   - .github/workflows/perf.yml
   - "workspace/orion-app/**/!(*.md|*.test.ts|*.test.tsx)"
-  - .lute/perf-history.luau
-  - .lute/perf-report.luau
+  - .lute/report/init.luau
+  - .lute/report/perf.luau
+  - .lute/report/perfHistory.luau
   - workspace/orion-cli/src/perf/**

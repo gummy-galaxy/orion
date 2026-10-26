@@ -81,4 +81,4 @@ The packaged app saves the port it picks as `server-port` in its own folder (`~/
 
 The docs site in `docs/` is built with VitePress. Run `npm install` and `npm run dev` there to browse it.
 
-The CLI and MCP reference pages are generated from the command table and the MCP tool catalog. After changing a command, option, or MCP tool, run `lute run docs` from the repository root and commit what it writes. CI fails when they're out of date.
+The CLI and MCP reference pages are generated from the command table and the MCP tool catalog. After changing a command, option, or MCP tool, run `lute run generate docs` from the repository root and commit what it writes. CI fails when they're out of date.

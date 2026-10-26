@@ -35,7 +35,7 @@ The index also journals writes ([#477](https://github.com/vocksel/orion/issues/4
 
 The server's watcher also watches the `nodes` and `links` folders, so files changed outside Orion, such as by a `git pull`, reach the app without a restart. Every read returns a fingerprint of the index's file hashes. When it changes without a new revision, the watcher announces the change with `reindexed` set, and the app reloads despite seeing its own revision.
 
-On a generated canvas of 5,000 cards, opening it and answering `orion next` took about 140 ms from the index against about 590 ms from every file, and about 350 ms when building the index from nothing. `lute run bench-index` in `workspace/orion-cli/` measures it.
+On a generated canvas of 5,000 cards, opening it and answering `orion next` took about 140 ms from the index against about 590 ms from every file, and about 350 ms when building the index from nothing. `lute run bench index` from the repository root measures it.
 
 ## Rolling backups
 

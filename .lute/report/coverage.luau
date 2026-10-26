@@ -10,7 +10,6 @@ local path = require("@std/path")
 local process = require("@std/process")
 
 local command = require("@cli/command")
-local runScript = require("@cli/runScript")
 local upsertComment = require("@cli/github/upsertComment")
 
 type Metric = { total: number, covered: number, pct: number }
@@ -20,10 +19,9 @@ local METRICS = { "statements", "branches", "functions", "lines" }
 
 local env = process.env
 local summaryPath = path.resolve("workspace/orion-app/coverage/coverage-summary.json")
-local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
-local pullRequest = assert(env.PR, "PR is not set")
-
-runScript(function()
+local function reportCoverage()
+	local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
+	local pullRequest = assert(env.PR, "PR is not set")
 	local summary = json.deserialize(fs.readFileToString(summaryPath)) :: any
 	local totals: { [string]: Metric } = summary.total
 
@@ -48,4 +46,6 @@ runScript(function()
 
 	local posted, problem = upsertComment(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)
 	assert(posted, problem)
-end)
+end
+
+return reportCoverage
