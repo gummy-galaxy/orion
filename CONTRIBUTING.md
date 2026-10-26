@@ -10,15 +10,15 @@ Read [the charter](docs/development/charter.md) for where Orion is headed and [t
 
 ## CLI
 
-The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang/lute). Scripts in `.lute/` run from the repository root, and `lute pkg install` and `lute test` run from `workspace/orion-cli/`:
+The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang/lute). Scripts in `.lute/` run from the repository root, and `lute test` runs from `workspace/orion-cli/`:
 
 ```sh
 rokit install
-(cd workspace/orion-cli && lute pkg install)
+lute run install
 lute run build
 ```
 
-That writes `workspace/orion-cli/build/orion`. `lute pkg install` fills `~/.loom/store`, which the build reads in place, and Lute can only bundle it from a checkout under your home directory.
+That writes `workspace/orion-cli/build/orion`. `lute run install` installs the CLI's Luau packages and copies them into `workspace/orion-cli/packages`, so the build can bundle them from a checkout anywhere. Run it again after changing `loom.config.luau`.
 
 Before committing CLI changes, run these:
 

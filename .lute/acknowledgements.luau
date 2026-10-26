@@ -36,7 +36,7 @@ type Section = {
 
 local dist = path.join(orionProject.APP_PATH, "dist")
 local shell = orionProject.DESKTOP_PATH
-local store = path.join(process.homedir(), ".loom", "store")
+local packages = path.join(orionProject.CLI_PATH, "packages")
 
 local LICENSE_FILE_PREFIXES = { "license", "licence", "copying", "unlicense" }
 local REMOTE_LICENSE_FILES = { "LICENSE", "LICENSE.txt", "LICENSE.md", "COPYING" }
@@ -177,8 +177,8 @@ local function luauPackages(): { Project }
 	local projects = {}
 	local dependencies = loomConfig.package.dependencies :: { [string]: Dependency }
 	for name, dependency in dependencies do
-		local directory = path.join(store, `{name}@{dependency.rev}`)
-		assert(fs.exists(directory), `{directory} is missing; run lute pkg install`)
+		local directory = path.join(packages, `{name}@{dependency.rev}`)
+		assert(fs.exists(directory), `{directory} is missing; run lute run install`)
 
 		table.insert(projects, {
 			name = name,
@@ -218,7 +218,7 @@ end
 -- library and links to it.
 local function luteLibraries(): { Project }
 	local lute = loomConfig.package.dependencies.lute
-	local extern = path.join(store, `lute@{lute.rev}`, "extern")
+	local extern = path.join(packages, `lute@{lute.rev}`, "extern")
 
 	local projects = {}
 	for _, entry in fs.listDirectory(extern) do

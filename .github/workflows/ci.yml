@@ -67,7 +67,8 @@ jobs:
         run: lute setup
 
       - name: Install Dependencies
-        run: lute pkg install
+        run: lute run install
+        working-directory: .
 
       - name: Analyze
         run: lute run analyze
@@ -94,17 +95,14 @@ jobs:
           version: v1.2.0
           cache: true
 
-      - name: Move Home Beside the Checkout
-        if: runner.os == 'Windows'
-        run: lute run windows-home
-
       - name: Install Dependencies
-        run: lute pkg install
+        run: lute run install
+        working-directory: .
 
       # The CLI's index specs run the `sqlite3` command, which the Linux and Windows images don't have
       - name: Install SQLite
         if: runner.os != 'macOS'
-        run: lute run install-sqlite
+        run: lute run install sqlite
         working-directory: .
 
       - name: Test
@@ -215,10 +213,6 @@ jobs:
           version: v1.2.0
           cache: true
 
-      - name: Move Home Beside the Checkout
-        if: runner.os == 'Windows'
-        run: lute run windows-home
-
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -247,8 +241,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y build-essential libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: Install Luau Dependencies
-        working-directory: workspace/orion-cli
-        run: lute pkg install
+        run: lute run install
 
       - name: Install App Dependencies
         working-directory: workspace/orion-app

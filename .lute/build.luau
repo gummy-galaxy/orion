@@ -81,12 +81,11 @@ runScript(function()
 
 	assert(fs.exists(outputPath) and fs.type(outputPath) == "file", `native build did not produce {outputPath}`)
 
-	-- Lute bundles ~/.loom/store only from a checkout under the home directory.
-	-- Anywhere else the compile still succeeds, but the binary fails on its
-	-- first require, so run it here to catch that before anything ships it.
+	-- A binary missing a package still compiles but fails on its first require,
+	-- so run it here to catch that before anything ships it.
 	local smoke = process.run({ outputPath, "--help" })
 	assert(
 		smoke.ok,
-		`{outputPath} failed to start: {smoke.stderr}; Lute only bundles ~/.loom/store from a checkout under the home directory`
+		`{outputPath} failed to start: {smoke.stderr}; run lute run install so packages bundle from the checkout`
 	)
 end)
