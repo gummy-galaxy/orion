@@ -28,12 +28,12 @@ Leave a CI job's failures off every card in a repository until it passes, or unt
 orion ci snooze [name] [options]
 ```
 
-| Argument          | Description                                                                                                                                |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `[name]`          | The job's name, as GitHub shows it                                                                                                         |
-| `--repo <value>`  | Repository the job runs in, as owner/name (required)                                                                                       |
-| `--until <value>` | End the snooze at a UTC time such as 2026-10-14T18:00:00Z, or a date. Without it, the snooze lasts on each card until the job passes there |
-| `--json`          | Print JSON                                                                                                                                 |
+| Argument          | Description                                                                                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `[name]`          | The job's name, as GitHub shows it                                                                                                                                |
+| `--repo <value>`  | Repository the job runs in, as owner/name (required)                                                                                                              |
+| `--until <value>` | When it ends: an ISO 8601 date or date-time, in local time unless it ends in Z or an offset. Without it, the snooze lasts on each card until the job passes there |
+| `--json`          | Print JSON                                                                                                                                                        |
 
 ## orion ci unsnooze
 

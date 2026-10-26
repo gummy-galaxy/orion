@@ -3,15 +3,14 @@ local getCurrentKey = require("@root/github/getCurrentKey")
 local getLabel = require("@root/graph/getLabel")
 local matchesExpression = require("@root/query/matchesExpression")
 local parseExpression = require("@root/query/parseExpression")
+local raiseFailure = require("@root/raiseFailure")
 local resolveRef = require("@root/adapters/resolveRef")
+local selectors = require("@root/query/selectors")
 local types = require("@root/types")
 
 type Doc = types.Doc
 type Item = types.Item
 type Expression = parseExpression.Expression
-
--- The fields a selector can name, each matched the way --where matches it.
-local SELECTORS = { label = true, ref = true, pr = true }
 
 local function comparison(field: string, value: string): Expression
 	return { kind = "comparison", field = field, operator = "=", value = value }
@@ -59,7 +58,16 @@ local function resolveId(doc: Doc, input: string): string
 		return input
 	end
 
-	assert(SELECTORS[selector], `"{input}" uses an unknown selector; use label:"...", ref:..., or pr:...`)
+	if not selectors.byName[selector] then
+		local forms: { string } = {}
+
+		for _, known in selectors.list do
+			table.insert(forms, known.form)
+		end
+
+		error(`"{input}" uses an unknown selector; use {table.concat(forms, ", ")}`, 0)
+	end
+
 	local value = unquote(rest)
 	assert(value ~= "", `{selector}: needs a value`)
 
@@ -73,7 +81,9 @@ local function resolveId(doc: Doc, input: string): string
 		end
 	end
 
-	assert(#matches > 0, `{input} matches no item or group`)
+	if #matches == 0 then
+		raiseFailure("missing-item", `{input} matches no item or group`)
+	end
 
 	if #matches > 1 then
 		local lines: { string } = {}
@@ -82,7 +92,10 @@ local function resolveId(doc: Doc, input: string): string
 			table.insert(lines, `  {item.id} · {getLabel(item)}`)
 		end
 
-		error(`{input} matches {#matches} items; use one of their ids:\n{table.concat(lines, "\n")}`, 0)
+		raiseFailure(
+			"ambiguous-selector",
+			`{input} matches {#matches} items; use one of their ids:\n{table.concat(lines, "\n")}`
+		)
 	end
 
 	return matches[1].id

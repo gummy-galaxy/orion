@@ -2,7 +2,7 @@ local json = require("@std/json")
 local test = require("@std/test")
 
 local change = require("@root/suggest/change")
-local compute = require("@root/suggest/compute")
+local computeAsync = require("@root/suggest/computeAsync")
 local getItem = require("@root/graph/getItem")
 local getStored = require("@root/suggest/getStored")
 local save = require("@root/suggest/save")
@@ -14,7 +14,7 @@ local function runUnexpected(_argv: { string }, _stdin: string?): types.CommandR
 end
 
 local function getSuggestions(doc: types.Doc)
-	return compute(doc, "unsorted", nil, runUnexpected, "2026-10-04T00:00:00Z")
+	return computeAsync(doc, "unsorted", nil, runUnexpected, "2026-10-04T00:00:00Z")
 end
 
 local function getPair(extraA: json.Object?, extraB: json.Object?)

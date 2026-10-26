@@ -15,7 +15,7 @@ local findTouchedStories = require("@cli/storybook/findTouchedStories")
 local formatStorybookComment = require("@cli/storybook/formatStorybookComment")
 local parseStoryIndex = require("@cli/storybook/parseStoryIndex")
 local runScript = require("@cli/runScript")
-local upsertComment = require("@cli/github/upsertComment")
+local upsertCommentAsync = require("@cli/github/upsertCommentAsync")
 
 local MARKER = "<!-- orion-storybook -->"
 local STORYBOOK_ROOT = "workspace/orion-app"
@@ -82,7 +82,8 @@ runScript(function()
 		stylesChanged = changesStyles(changedFiles),
 	})
 
-	local posted, problem = upsertComment(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)
+	local posted, problem =
+		upsertCommentAsync(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)
 	assert(posted, problem)
 
 	print(`Linked {storybookUrl} and {#stories} stories from #{pullRequest}`)

@@ -211,7 +211,7 @@ Runs `orion node show`.
 
 ## orion_node_query
 
-Find cards and groups with an expression. Fields: kind, repo, status, recordedStatus, group, draft, label, pr, ref, note, snoozed. Compare quoted values with = or !=, quoting numbers and booleans too; label, ref, and note also take ~ for case-insensitive text.
+Find cards and groups with an expression. Fields: kind, repo, status, recordedStatus, group, draft, label, note, pr, ref, snoozed. Compare quoted values with = or !=, quoting numbers and booleans too; label, note, and ref also take ~ for case-insensitive text.
 
 Runs `orion node query`.
 
@@ -659,12 +659,12 @@ Leave a CI job's failures off every card in a repository until it passes, or unt
 
 Runs `orion ci snooze`.
 
-| Argument | Type   | Description                                                                                                                                |
-| -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `name`   | string | **Required.** The job's name, as GitHub shows it                                                                                           |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                                                     |
-| `repo`   | string | **Required.** Repository the job runs in, as owner/name (required)                                                                         |
-| `until`  | string | End the snooze at a UTC time such as 2026-10-14T18:00:00Z, or a date. Without it, the snooze lasts on each card until the job passes there |
+| Argument | Type   | Description                                                                                                                                                       |
+| -------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`   | string | **Required.** The job's name, as GitHub shows it                                                                                                                  |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                                                                            |
+| `repo`   | string | **Required.** Repository the job runs in, as owner/name (required)                                                                                                |
+| `until`  | string | When it ends: an ISO 8601 date or date-time, in local time unless it ends in Z or an offset. Without it, the snooze lasts on each card until the job passes there |
 
 ## orion_ci_unsnooze
 

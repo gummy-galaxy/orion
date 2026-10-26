@@ -6,6 +6,7 @@ local getToolArgv = require("@root/cli/mcp/catalog/getToolArgv")
 local getVersion = require("@root/getVersion")
 local mcpTypes = require("@root/cli/mcp/types")
 local orientation = require("@root/cli/orientation")
+local serializeFailure = require("@root/cli/serializeFailure")
 
 type Run = mcpTypes.Run
 type Tool = mcpTypes.Tool
@@ -46,11 +47,6 @@ local function createToolResult(text: string, isError: boolean): json.Object
 	return result
 end
 
--- Drops the file and line prefix Luau adds to error messages.
-local function cleanErrorMessage(message: unknown): string
-	return (tostring(message):gsub("^[^\n]-:%d+: ", "", 1))
-end
-
 -- Agrees to the client's protocol version when the server speaks it, and offers
 -- the newest otherwise.
 local function initialize(params: json.Object): json.Object
@@ -70,7 +66,8 @@ local function initialize(params: json.Object): json.Object
 end
 
 -- Command failures become tool results marked as errors so the client can show
--- them to the model.
+-- them to the model. Their text is the JSON error that --json prints, so a
+-- failure's code reaches the model too.
 local function callTool(id: json.Value, params: json.Object, tools: { Tool }, run: Run): json.Object
 	local name = params.name
 
@@ -95,7 +92,7 @@ local function callTool(id: json.Value, params: json.Object, tools: { Tool }, ru
 		return createSuccess(id, createToolResult(table.concat(lines, "\n"), false))
 	end
 
-	return createSuccess(id, createToolResult(cleanErrorMessage(message), true))
+	return createSuccess(id, createToolResult(serializeFailure(message), true))
 end
 
 -- Answers one JSON-RPC message, calling tools with run. Notifications get no

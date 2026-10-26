@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local addArgument = require("@root/cli/addArgument")
-local compute = require("@root/suggest/compute")
+local computeAsync = require("@root/suggest/computeAsync")
 local context = require("@root/cli/context")
 local convertToJson = require("@root/suggest/convertToJson")
 local loadDoc = require("@root/store/loadDoc")
@@ -37,7 +37,7 @@ return table.freeze({
 		local command = if commandText then parseCommand(commandText) else nil
 		local current = loadDoc(options.dir)
 		local result, didFallback =
-			compute(current, parser:get("scope") or "unsorted", command, options.runner, options.now())
+			computeAsync(current, parser:get("scope") or "unsorted", command, options.runner, options.now())
 		local revision = current.revision
 
 		if not parser:has("dry-run") then

@@ -599,6 +599,14 @@ The repository's packages sit together in `workspace/`: `orion-app` is the canva
 
 2026-10-24
 
+### Functions that wait on the command runner end in `Async`
+
+A Luau function that waits on a `CommandRunner`, directly or through a call, ends in `Async`, such as `refreshAsync` and `fetchRepositoriesAsync`. That covers local programs like git and hop as well as network calls. The suffix spreads up through callers, including adapter fields such as `collectAsync`, the server's route handlers, and the sync loop's `runAsync` and `tickAsync`. It stops at callbacks whose name a shared shape sets, such as a command's `run`, and at the runner itself. The process probes `isProcessAlive` and `getParentPid` are exempt: they return at once, and following them through the workspace lock would put the suffix on nearly every read and write.
+
+**Why:** callers can see that a call may take a while and might belong in a `task.spawn`. Tying the rule to the runner, rather than to whether a call reaches the network, makes it something to check mechanically, so it gets applied consistently.
+
+2026-10-25 · [#627](https://github.com/vocksel/orion/pull/627)
+
 ## Docs
 
 ### The docs site has Guide, Reference, and Development sections
