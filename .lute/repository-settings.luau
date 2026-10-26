@@ -1,11 +1,10 @@
 --[[
-	Applies the repository settings that GitHub allows only once the repository
-	is public: the ruleset whose checks every pull request into the default
-	branch must pass, approval before an outside contributor's workflows run,
-	and the orion-admins team as the reviewer a fork's perf run waits on before
-	it runs on artemis. Run it from a checkout with an admin's `gh` login after
-	going public, and again after changing anything below. It updates what it
-	set before rather than adding to it.
+	Applies the repository settings kept in this file: the ruleset whose checks
+	every pull request into the default branch must pass, approval before an
+	outside contributor's workflows run, and the orion-admins team as the
+	reviewer a fork's perf run waits on before it runs on artemis. Run it with
+	an admin's `gh` login after changing anything below. It updates what it set
+	before rather than adding to it.
 
 	lute run repository-settings
 ]]
