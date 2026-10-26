@@ -23,7 +23,6 @@ jobs:
   # On a pull request, each job below runs only when a change touches what it builds or checks. A job skipped by its
   # condition reports as skipped, which still satisfies a required check, unlike a workflow skipped by `paths`.
   ci-loading:
-    name: CI Changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -47,8 +46,7 @@ jobs:
         with:
           filters: .github/path-filters.yml
 
-  analysis:
-    name: CLI Analysis
+  cli-analysis:
     needs: ci-loading
     if: needs.ci-loading.outputs.cli == 'true'
     runs-on: ubuntu-latest
@@ -76,7 +74,6 @@ jobs:
         working-directory: .
 
   cli:
-    name: CLI (${{ matrix.runner }})
     needs: ci-loading
     if: needs.ci-loading.outputs.cli == 'true'
     strategy:
@@ -135,7 +132,6 @@ jobs:
           retention-days: 14
 
   app:
-    name: App
     needs: ci-loading
     if: needs.ci-loading.outputs.app == 'true'
     runs-on: ubuntu-latest
@@ -198,7 +194,6 @@ jobs:
           retention-days: 1
 
   desktop:
-    name: Desktop (${{ matrix.runner }})
     needs: ci-loading
     if: needs.ci-loading.outputs.desktop == 'true'
     strategy:
@@ -274,7 +269,6 @@ jobs:
           retention-days: 1
 
   changelog:
-    name: Changelog
     needs: ci-loading
     if: needs.ci-loading.outputs.changelog == 'true'
     runs-on: ubuntu-latest

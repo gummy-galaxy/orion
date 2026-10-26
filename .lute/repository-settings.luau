@@ -15,21 +15,20 @@ local command = require("@cli/command")
 local runScript = require("@cli/runScript")
 
 -- The checks every pull request into the default branch must pass. A required
--- check matches a job's `name:` alone. Storybook Publish stays optional
--- because its workflow skips by `paths`, so it never reports on pull requests
--- that don't touch the app. Docs Deploy and Perf Report publish rather than
--- check.
+-- check matches a job's name alone. storybook-publish stays optional because
+-- its workflow skips by `paths`, so it never reports on pull requests that
+-- don't touch the app. docs-deploy and perf-report publish rather than check.
 local REQUIRED_CHECKS = {
-	"CI Changes",
-	"CLI Analysis",
-	"CLI (ubuntu-latest)",
-	"App",
-	"Desktop (ubuntu-latest)",
-	"Changelog",
-	"Docs Changes",
-	"Docs",
-	"Perf Changes",
-	"Perf",
+	"ci-loading",
+	"cli-analysis",
+	"cli (ubuntu-latest)",
+	"app",
+	"desktop (ubuntu-latest)",
+	"changelog",
+	"docs-loading",
+	"docs",
+	"perf-loading",
+	"perf",
 }
 
 local RULESET_NAME = "Default branch"
