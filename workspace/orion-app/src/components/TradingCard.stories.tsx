@@ -54,6 +54,9 @@ function toView(args: TradingArgs): CardView {
   return {
     id: 'playground',
     kind: args.kind,
+    layout: args.kind === 'note' ? 'note' : 'card',
+    fields: [],
+    badges: [],
     title: args.title,
     tag: 'vocksel/orion#158',
     url: null,
@@ -261,6 +264,26 @@ export const FarZoomRunning: Story = {
 
 export const Done: Story = {
   args: { title: 'Add a card skin registry with Classic and Plain skins', status: 'done', statusBadge: 'none', unblocks: 0 },
+}
+
+/** A type a source declares, with no app code of its own: its face shows the fields it names, and a type a person attached shows as a badge. */
+export const DeclaredType: Story = {
+  name: 'A type a source declares',
+  args: { kind: 'figma.frame', title: 'Settings panel in dark mode', status: 'active', statusBadge: 'none', unblocks: 1, group: 'navigation' },
+  render: (args) => (
+    <TradingFrame
+      view={{
+        ...toView(args),
+        fields: [
+          { name: 'stage', label: 'Stage', text: 'In review' },
+          { name: 'screens', label: 'Screens', text: '4' },
+          { name: 'due', label: 'Due', text: 'Nov 2' },
+        ],
+        badges: ['Design review'],
+      }}
+      far={args.far}
+    />
+  ),
 }
 
 export const Note: Story = {

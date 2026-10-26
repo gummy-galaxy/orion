@@ -1744,6 +1744,17 @@ kbd {
   width: auto;
   margin: 0;
 }
+/* The fields a card's types declare, each a label over its input. */
+.insp .type-fields,
+.insp .type-field {
+  display: grid;
+  gap: var(--space-3);
+}
+.insp .type-field input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+  justify-self: start;
+}
 .insp input,
 .insp select {
   width: 100%;

@@ -5,6 +5,7 @@ local graphTypes = require("@root/graph/types")
 local isComponent = require("@root/graph/isComponent")
 local isGroup = require("@root/graph/isGroup")
 local isNote = require("@root/graph/isNote")
+local setFieldValue = require("@root/graph/setFieldValue")
 local setLook = require("@root/graph/setLook")
 local snooze = require("@root/graph/snooze")
 local types = require("@root/types")
@@ -45,7 +46,8 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 				and fields.note == nil
 				and fields.kind == nil
 				and fields.shape == nil
-				and fields.snoozedUntil == nil,
+				and fields.snoozedUntil == nil
+				and fields.values == nil,
 			"groups only take a label, blurb, arrange, cover, background, header, and color"
 		)
 
@@ -135,6 +137,11 @@ local function setFields(doc: Doc, id: string, fields: ItemFields): Item
 
 	if fields.snoozedUntil then
 		snooze(doc, id, if fields.snoozedUntil == "" then nil else fields.snoozedUntil)
+	end
+
+	-- After the kind, so a field the new kind declares can be set with it.
+	for name, text in fields.values or {} do
+		setFieldValue(doc, id, name, text)
 	end
 
 	setLook(item, fields)

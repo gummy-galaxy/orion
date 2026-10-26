@@ -1,6 +1,8 @@
 local json = require("@std/json")
 
+local coreFields = require("@root/cardTypes/coreFields")
 local findItem = require("@root/graph/findItem")
+local getFieldValues = require("@root/cardTypes/getFieldValues")
 local getItemTypes = require("@root/cardTypes/getItemTypes")
 local getLabel = require("@root/graph/getLabel")
 local getPrimaryRef = require("@root/refs/getPrimaryRef")
@@ -69,6 +71,18 @@ function render.itemJson(doc: Doc, derived: graphTypes.Derived, item: Item): jso
 	local itemTypes = assert(getItemTypes(item))
 	object.kind = itemTypes.primary
 	object.types = itemTypes.types :: any
+	-- The fields a card's types declare beyond the ones listed above.
+	local fields = json.object({})
+	local hasFields = false
+
+	for _, entry in getFieldValues(item) do
+		if not coreFields[entry.field.name] then
+			fields[entry.field.name] = entry.value
+			hasFields = true
+		end
+	end
+
+	object.fields = if hasFields then fields else nil
 	object.label = asString(item.data.label)
 
 	-- Notes pass blocking through and components draw a system, so neither

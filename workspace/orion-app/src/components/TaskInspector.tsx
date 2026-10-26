@@ -8,6 +8,7 @@ import { StatusIcon } from './StatusIcon'
 import { getPullRepo } from '../getPullRepo'
 import { withSnoozedFacts } from '../withSnoozedFacts'
 import { Timeline } from './Timeline'
+import { TypeFields } from './TypeFields'
 import { useCardLog } from '../useCardLog'
 import type { SnoozedJob, Work } from '../derive'
 import { workspaceAtom } from '../state'
@@ -268,6 +269,7 @@ export function TaskInspector({
           <input type="checkbox" checked={data.type === 'gate'} onChange={(event) => save({ kind: event.target.checked ? 'gate' : 'step' })} />
           Gate: done once everything it waits on is
         </label>
+        <TypeFields data={data} save={save} />
         {suggestions.length > 0 && (
           <div className="suggestions">
             <span className="label-text">Possible pull requests</span>

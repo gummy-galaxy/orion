@@ -40,6 +40,8 @@ export type TaskData = {
   type?: string
   /** Card types people attached beyond the card's own, which add fields and badges. */
   types?: string[]
+  /** Values for the fields the card's types declare, by name, beyond the ones stored on the card itself. */
+  fields?: Record<string, string | number | boolean>
   status: Status
   /** Full owner/name of the repository this work belongs to. */
   repo?: string

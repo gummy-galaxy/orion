@@ -63,7 +63,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   const tint = useTint(id)
   // A card keeps its badge while the badge clears, after the flag itself is already gone.
   const clearing = useCelebrating(id)
-  const finished = view.kind !== 'note' && view.kind !== 'component' && view.status === 'done'
+  const finished = view.layout === 'card' && view.status === 'done'
   // Finished work shimmers until someone closes it out, then carries a Done stamp from then on.
   const waiting = finished && !!data.celebrate && clearing === undefined
   const badged = waiting || clearing !== undefined
@@ -72,14 +72,14 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
   const finale = finaleDelay !== undefined && clearing !== undefined
   const skin = useAtomValue(skinAtom, { store: skinStore })
   const className =
-    view.kind === 'note'
+    view.layout === 'note'
       ? `card skin-${skin} note${trace ? ' tr-' + trace : ''}`
-      : view.kind === 'component'
+      : view.layout === 'component'
         ? `card component shape-${data.shape ?? 'service'}${tint ? ' tint-' + tint : ''}${trace ? ' tr-' + trace : ''}`
         : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}${snoozedUntil ? ' snoozed' : ''}`
   const body = (
     <>
-      {view.kind === 'component' ? (
+      {view.layout === 'component' ? (
         <ComponentCard view={view} shape={data.shape ?? 'service'} width={width ?? TASK_WIDTH} height={height ?? TASK_HEIGHT} />
       ) : (
         <CardBody view={view} />
@@ -127,7 +127,7 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
       <Handle type="target" position={Position.Left} />
       {/* Only one card at a time grows into a tag, so tags never pile over their neighbors. */}
       {peeking ? (
-        <PeekCard className={className} note={view.kind === 'note' || view.kind === 'component' ? undefined : view.note}>
+        <PeekCard className={className} note={view.layout === 'card' ? view.note : undefined}>
           {body}
         </PeekCard>
       ) : far ? (

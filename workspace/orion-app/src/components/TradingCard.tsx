@@ -45,7 +45,7 @@ function LockIcon() {
 }
 
 export function TradingCard({ view }: { view: CardView }) {
-  if (view.kind === 'note') {
+  if (view.layout === 'note') {
     return (
       <div className="trading-frame trading-note">
         <div className="trading-note-text">{view.title || 'Empty note'}</div>
@@ -67,6 +67,11 @@ export function TradingCard({ view }: { view: CardView }) {
       <div className="trading-facts">
         {facts.priority !== undefined && <FactChip text={`P${facts.priority}`} name="Priority" severity={PRIORITY_SEVERITY[facts.priority]} />}
         {facts.size && <FactChip text={facts.size} name="Size" severity={SIZE_SEVERITY[facts.size]} />}
+        {view.badges.map((badge) => (
+          <span key={badge} className="trading-fact trading-fact-type">
+            {badge}
+          </span>
+        ))}
       </div>
       {facts.statusBadge === 'mergeable' && view.merge ? (
         <Tooltip label="Ready to merge. Click twice to merge it.">
@@ -108,6 +113,15 @@ export function TradingCard({ view }: { view: CardView }) {
         <Tooltip label={view.title}>
           <h3 className="trading-title">{view.title}</h3>
         </Tooltip>
+        {view.fields.length > 0 && (
+          <p className="trading-fields">
+            {view.fields.map((field) => (
+              <Tooltip key={field.name} label={`${field.label}: ${field.text}`}>
+                <span className="trading-field">{field.text}</span>
+              </Tooltip>
+            ))}
+          </p>
+        )}
         <div className="trading-bottom">
           <Tooltip label={`${facts.blockers} open ${facts.blockers === 1 ? 'blocker' : 'blockers'}`}>
             <span className="trading-blockers">{facts.blockers}</span>
