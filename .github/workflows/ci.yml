@@ -23,7 +23,7 @@ jobs:
   # On a pull request, each job below runs only when a change touches what it builds or checks. A job skipped by its
   # condition reports as skipped, which still satisfies a required check, unlike a workflow skipped by `paths`.
   ci-loading:
-    runs-on: beelink
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
@@ -46,10 +46,10 @@ jobs:
         with:
           filters: .github/path-filters.yml
 
-  analysis:
+  cli-analysis:
     needs: ci-loading
     if: needs.ci-loading.outputs.cli == 'true'
-    runs-on: beelink
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     defaults:
       run:
@@ -79,8 +79,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Restore hosted runners when the repo is public. Until then, Linux jobs run on the self-hosted Beelink to save private minutes
-        runner: [beelink] # [ubuntu-latest, macos-latest, windows-latest]
+        runner: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 5
     defaults:
@@ -134,7 +133,7 @@ jobs:
   app:
     needs: ci-loading
     if: needs.ci-loading.outputs.app == 'true'
-    runs-on: beelink
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
       contents: read
@@ -199,10 +198,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Restore hosted runners when the repo is public. Until then, Linux jobs run on the self-hosted Beelink to save private minutes
-        runner: [beelink] # [ubuntu-latest, macos-latest, windows-latest]
+        runner: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.runner }}
-    # A build without the Rust cache takes about 30 minutes on the Beelink's shared cores
+    # A build without the Rust cache can take about 30 minutes
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
@@ -230,7 +228,7 @@ jobs:
         with:
           workspaces: workspace/orion-desktop
           # Pull requests restore main's cache but don't save their own, since
-          # each save uploads hundreds of megabytes from the self-hosted runner
+          # each save uploads hundreds of megabytes into the shared cache quota
           save-if: ${{ github.ref == 'refs/heads/main' }}
           # Save even when a later step fails, so one failed main run doesn't leave
           # every pull request building from scratch
@@ -271,7 +269,7 @@ jobs:
   changelog:
     needs: ci-loading
     if: needs.ci-loading.outputs.changelog == 'true'
-    runs-on: beelink
+    runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v7
