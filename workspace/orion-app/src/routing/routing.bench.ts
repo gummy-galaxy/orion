@@ -1,9 +1,11 @@
 import { test } from 'vitest'
+import { PLUG_THRESHOLD } from './approaches'
 import { buildMessyCanvas } from './buildMessyCanvas'
 import { createAvoidRouter, loadAvoid } from './createAvoidRouter'
 import { createLaneRouter } from './createLaneRouter'
 import { routeBundles } from './routeBundles'
 import { routeCurves } from './routeCurves'
+import { routePlugs } from './routePlugs'
 import { sceneOf } from './sceneOf'
 import type { Scene } from './types'
 
@@ -29,6 +31,8 @@ for (const links of SIZES) {
   test(`${links} links`, async ({ bench }) => {
     await bench('curves', () => routeCurves(scene)).run(RUN)
     await bench('bundles', () => routeBundles(scene)).run(RUN)
+    await bench('plugs', () => routePlugs(scene, { threshold: PLUG_THRESHOLD })).run(RUN)
+    await bench('plugs and bundles', () => routePlugs(scene, { threshold: PLUG_THRESHOLD, bundles: true })).run(RUN)
     await bench('lanes, from scratch', () => createLaneRouter().route(scene)).run(RUN)
 
     const lanes = createLaneRouter()

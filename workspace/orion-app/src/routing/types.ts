@@ -26,10 +26,20 @@ export type RoutedLine = {
   width?: number
   label?: string
   labelAt?: Point
+  plug?: Plug
 }
+
+/**
+ * A small copy of the card at the far end of a link too long to draw, where its stub stops. `at` is the plug's top-left
+ * corner, `owner` is the card the stub leaves, `port` is where the stub meets it, and `more` counts the other links folded into it when a card
+ * has more far links than plugs fit beside it.
+ */
+export type Plug = { at: Point; owner: string; port: Point; side: 'out' | 'in'; card: string; links: string[]; more: number }
 
 export type Routing = {
   lines: RoutedLine[]
   /** Links the router couldn't keep off cards, drawn anyway. */
   fallbacks: number
+  /** Links drawn as stubs and plugs instead of in full. */
+  stubbed?: number
 }
