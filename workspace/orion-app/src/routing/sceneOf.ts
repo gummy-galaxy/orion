@@ -1,14 +1,16 @@
+import type { CardSize } from '../cardSize'
 import { absolutePosition, isTask, sizeOf, type AppNode, type Link } from '../model'
+import { skinOf } from '../skins'
 import type { Scene } from './types'
 
-/** Flattens canvas nodes into absolute boxes, so routers never deal with nesting. */
-export function sceneOf(nodes: AppNode[], links: Link[]): Scene {
+/** Flattens canvas nodes into absolute boxes, so routers never deal with nesting. Cards default to the trading card's size. */
+export function sceneOf(nodes: AppNode[], links: Link[], cardSize: CardSize = skinOf('trading').size): Scene {
   const nodeMap = new Map(nodes.map((node) => [node.id, node]))
   const scene: Scene = { cards: [], groups: [], links: [] }
 
   for (const node of nodes) {
     const { x, y } = absolutePosition(node, nodeMap)
-    const { width, height } = sizeOf(node)
+    const { width, height } = sizeOf(node, cardSize)
 
     if (isTask(node)) scene.cards.push({ id: node.id, x, y, width, height, group: node.parentId ?? null })
     else scene.groups.push({ id: node.id, x, y, width, height })

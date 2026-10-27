@@ -30,6 +30,8 @@ const noResize = { start: () => {}, move: () => {}, end: () => {}, active: () =>
 const actions = { open: () => {}, reflow: () => {}, celebrate: () => {}, resizeGroup: noResize }
 const MARKER = { type: MarkerType.ArrowClosed, width: 14, height: 14, color: 'var(--edge-still)' }
 const LABEL = { labelBgPadding: [5, 2] as [number, number], labelBgBorderRadius: 4, labelStyle: { fontSize: 11, fontWeight: 600 } }
+/** Fits the canvas below the panel, so the panel never covers the top-left group. */
+const FIT = { padding: { top: '230px', right: '24px', bottom: '24px', left: '24px' } }
 /** Frames kept for the running average. */
 const WINDOW = 60
 /** How long a card stays marked after a plug jumps to it. */
@@ -277,7 +279,7 @@ export function ArrowRoutingSpike({
                 onNodesChange={onNodesChange}
                 minZoom={0.05}
                 fitView
-                fitViewOptions={{ padding: 0.06 }}
+                fitViewOptions={FIT}
                 proOptions={{ hideAttribution: true }}
               />
             </div>

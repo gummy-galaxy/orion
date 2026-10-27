@@ -14,15 +14,21 @@ export type PlugOptions = {
 // A stub and its plug fill the gap between two cards in a group, so plugs never sit on a neighbor.
 export const STUB = 16
 export const PLUG = { width: 40, height: 14 }
-/** Plugs on each side of a card. The last one stands for every link past it. */
-const SLOTS = 2
+/** The most plugs on each side of a card. The last one stands for every link past it. */
+const MAX_SLOTS = 4
 const SLOT_STEP = 17
 const INSET = 4
+/** Room left between a card's port and its first plug, above for outgoing plugs and below for incoming ones. */
+const PORT_GAP = 2
+
+/** How many plugs fit between a card's port and its top or bottom edge. */
+const slotsOf = (height: number) =>
+  Math.min(MAX_SLOTS, Math.max(1, Math.floor((height / 2 - INSET - PORT_GAP + SLOT_STEP - PLUG.height) / SLOT_STEP)))
 
 /**
  * Like a schematic's off-page connectors: links shorter than the threshold draw in full, and longer ones become a
  * short stub out of each card that fades into a plug, a small copy of the card at the other end. Outgoing plugs stack
- * down from the top of a card's right side and incoming ones up from the bottom of its left side, so a plug in the gap
+ * up from the port on a card's right side and incoming ones down from the port on its left side, so a plug in the gap
  * between two cards never sits on the plug of the card across from it.
  */
 export function routePlugs(scene: Scene, { threshold, bundles = false }: PlugOptions): Routing {
@@ -64,12 +70,15 @@ export function routePlugs(scene: Scene, { threshold, bundles = false }: PlugOpt
     const port = sourcePort(card)
     const far = (link: Scene['links'][number]) => cards.get(link.to)!
 
-    // Plugs follow the order of the cards they stand for, top to bottom, so the stack reads like the canvas does.
-    links.sort((a, b) => far(a).y - far(b).y)
+    const slots = slotsOf(card.height)
 
-    for (let slot = 0; slot < Math.min(SLOTS, links.length); slot++) {
-      const rest = slot === SLOTS - 1 ? links.slice(slot) : [links[slot]]
-      const at = { x: port.x + STUB, y: card.y + INSET + slot * SLOT_STEP }
+    // Plugs follow the order of the cards they stand for, top to bottom, so the stack reads like the canvas does. The
+    // stack grows up from the port, so the lowest far card comes first.
+    links.sort((a, b) => far(b).y - far(a).y)
+
+    for (let slot = 0; slot < Math.min(slots, links.length); slot++) {
+      const rest = slot === slots - 1 ? links.slice(slot) : [links[slot]]
+      const at = { x: port.x + STUB, y: port.y - PORT_GAP - PLUG.height - slot * SLOT_STEP }
       const attach = { x: at.x, y: at.y + PLUG.height / 2 }
 
       lines.push({
@@ -88,11 +97,13 @@ export function routePlugs(scene: Scene, { threshold, bundles = false }: PlugOpt
     const port = targetPort(card)
     const far = (link: Scene['links'][number]) => cards.get(link.from)!
 
-    links.sort((a, b) => far(b).y - far(a).y)
+    const slots = slotsOf(card.height)
 
-    for (let slot = 0; slot < Math.min(SLOTS, links.length); slot++) {
-      const rest = slot === SLOTS - 1 ? links.slice(slot) : [links[slot]]
-      const at = { x: port.x - STUB - PLUG.width, y: card.y + card.height - INSET - PLUG.height - slot * SLOT_STEP }
+    links.sort((a, b) => far(a).y - far(b).y)
+
+    for (let slot = 0; slot < Math.min(slots, links.length); slot++) {
+      const rest = slot === slots - 1 ? links.slice(slot) : [links[slot]]
+      const at = { x: port.x - STUB - PLUG.width, y: port.y + PORT_GAP + slot * SLOT_STEP }
       const attach = { x: at.x + PLUG.width, y: at.y + PLUG.height / 2 }
 
       lines.push({

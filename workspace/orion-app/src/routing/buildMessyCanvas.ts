@@ -1,5 +1,6 @@
-import { GAP, GROUP_PADDING, TASK_HEIGHT, TASK_WIDTH } from '../geometry'
+import { GAP, GROUP_PADDING } from '../geometry'
 import { groupHeaderHeight, normalize, type AppNode, type ClusterNode, type Link, type Status, type TaskNode } from '../model'
+import { skinOf } from '../skins'
 
 export type MessyOptions = {
   /** Links to aim for. The canvas grows with it, at about 2.4 links per card like a busy real canvas. */
@@ -15,6 +16,8 @@ const CARDS_PER_GROUP = 10
 const LOOSE = { x: 48, y: 40 }
 const DRIFT = { x: 40, y: 32 }
 const LINKS_PER_CARD = 2.4
+/** Cards are laid out at the default skin's size, the portrait trading card, so routes meet the shapes people see. */
+const CARD = skinOf('trading').size
 
 /** A small seeded generator, so every run builds the same canvas. */
 function random(seed: number) {
@@ -54,8 +57,8 @@ export function buildMessyCanvas({ links: target, seed = 26 }: MessyOptions): { 
     const shape = { perRow, rows: Math.ceil(CARDS_PER_GROUP / perRow), hand: index % 3 === 2 }
     const gapX = GAP.inner.x + (shape.hand ? LOOSE.x : 0)
     const gapY = GAP.inner.y + (shape.hand ? LOOSE.y : 0)
-    const width = 2 * GROUP_PADDING + perRow * TASK_WIDTH + (perRow - 1) * gapX + (shape.hand ? DRIFT.x : 0)
-    const height = headerHeight + shape.rows * TASK_HEIGHT + (shape.rows - 1) * gapY + GROUP_PADDING + (shape.hand ? DRIFT.y : 0)
+    const width = 2 * GROUP_PADDING + perRow * CARD.width + (perRow - 1) * gapX + (shape.hand ? DRIFT.x : 0)
+    const height = headerHeight + shape.rows * CARD.height + (shape.rows - 1) * gapY + GROUP_PADDING + (shape.hand ? DRIFT.y : 0)
 
     shapes.push(shape)
     columnWidths[index % columns] = Math.max(columnWidths[index % columns] ?? 0, width)
@@ -96,8 +99,8 @@ export function buildMessyCanvas({ links: target, seed = 26 }: MessyOptions): { 
         type: 'task',
         parentId: groupId,
         position: {
-          x: GROUP_PADDING + (i % perRow) * (TASK_WIDTH + gapX) + driftX,
-          y: headerHeight + Math.floor(i / perRow) * (TASK_HEIGHT + gapY) + driftY,
+          x: GROUP_PADDING + (i % perRow) * (CARD.width + gapX) + driftX,
+          y: headerHeight + Math.floor(i / perRow) * (CARD.height + gapY) + driftY,
         },
         data: { kind: 'task', itemKind: i === 0 && index % 4 === 3 ? 'gate' : 'step', label: `${group.data.label} ${i + 1}`, status: pick(STATUSES) },
       }
@@ -160,5 +163,5 @@ export function buildMessyCanvas({ links: target, seed = 26 }: MessyOptions): { 
     if (from !== to) link(pick(from), pick(to))
   }
 
-  return { nodes: normalize(nodes), links: links.slice(0, target) }
+  return { nodes: normalize(nodes, CARD), links: links.slice(0, target) }
 }
