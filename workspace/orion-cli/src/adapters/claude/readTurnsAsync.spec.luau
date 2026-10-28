@@ -4,13 +4,12 @@ local test = require("@std/test")
 local readTurnsAsync = require("@root/adapters/claude/readTurnsAsync")
 local testing = require("@root/testing")
 local types = require("@root/types")
-local writeFixture = require("@root/adapters/claude/writeFixture")
 
 type Source = types.Source
 
 test.case("a session's last turns read from its transcript, and an unknown id reads nothing", function(assert)
 	local dir = testing.directory("claude-turns")
-	local id = writeFixture(dir, { branch = "agent/fix", stop = "end_turn" })
+	local id = testing.writeClaudeFixture(dir, { branch = "agent/fix", stop = "end_turn" })
 	local source: Source = { id = "claude", kind = "claude", dir = dir }
 	local run = function()
 		return testing.result(false, "")

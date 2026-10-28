@@ -8,7 +8,6 @@ local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local sessions = require("@root/server/routes/sessions")
 local testing = require("@root/testing")
 local writeDoc = require("@root/store/writeDoc")
-local writeFixture = require("@root/adapters/claude/writeFixture")
 
 local function request(query: { [string]: string }, method: string?): net.ReceivedRequest
 	return { method = method or "GET", path = "/api/sessions/turns", body = "", query = query, headers = {} }
@@ -25,7 +24,7 @@ end
 test.case("a session's turns are read live from its agent", function(assert)
 	local root = testing.directory("route-sessions")
 	local claudeDir = testing.directory("route-sessions-claude")
-	local sessionId = writeFixture(claudeDir, { branch = "agent/fix", stop = "end_turn" })
+	local sessionId = testing.writeClaudeFixture(claudeDir, { branch = "agent/fix", stop = "end_turn" })
 	local doc = testing.createDoc({})
 	doc.settings.sources = { { id = "claude", kind = "claude", dir = claudeDir } }
 	createWorkspace(root, "work")
