@@ -1,5 +1,6 @@
 local adapterTypes = require("@root/adapters/types")
 local claudeCreateSource = require("@root/adapters/claude/createSource")
+local claudeGetWatchPaths = require("@root/adapters/claude/getWatchPaths")
 local claudeListSessionsAsync = require("@root/adapters/claude/listSessionsAsync")
 local claudeReadTurnsAsync = require("@root/adapters/claude/readTurnsAsync")
 local githubCollectAsync = require("@root/adapters/github/collectAsync")
@@ -26,6 +27,7 @@ local adapters: { [string]: Adapter } = {
 			name = "Claude Code",
 			listSessionsAsync = claudeListSessionsAsync,
 			readTurnsAsync = claudeReadTurnsAsync,
+			watchPaths = claudeGetWatchPaths,
 		},
 	},
 	github = {

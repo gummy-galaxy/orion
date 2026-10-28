@@ -54,7 +54,7 @@ orion source add claude
 orion ingest
 ```
 
-It reads Claude Code's data folder, `~/.claude` unless `CLAUDE_CONFIG_DIR` or `--dir` names another, and never writes to it. Ingest looks at sessions active in the last three weeks, reading only the end of each transcript. A session attaches to the card with a branch ref, or a pull request, for the branch checked out where it ran. Sessions on `main` or with no matching card are left out, and a session never adds a card.
+It reads Claude Code's data folder, `~/.claude` unless `CLAUDE_CONFIG_DIR` or `--dir` names another, and never writes to it. Ingest looks at sessions active in the last three weeks, reading only the end of each transcript. A session attaches to the card with a branch ref, or a pull request, for the branch checked out where it ran. Sessions on `main` or with no matching card are left out, and a session never adds a card. While the app is open, `orion server start` keeps session refs current on its own: a card's session flips between working and waiting on you within a second or so of Claude Code changing state.
 
 The ref records whose move it is. `sessionState` is `working` while Claude Code runs a turn, and `waiting` once it's your move, whether the session finished its turn or stopped on a permission prompt. `stateLabel` says the same in words. Nothing a session said is stored: the canvas's files keep only its state, and the app reads the session's turns from Claude Code when it shows them. Agents can't add a Claude Code source through MCP, since it reads every transcript on the machine.
 

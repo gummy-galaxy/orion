@@ -4,12 +4,14 @@ local adapterTypes = require("@root/adapters/types")
 local findBranch = require("@root/adapters/findBranch")
 local findRef = require("@root/refs/findRef")
 local getUnix = require("@root/adapters/getUnix")
+local ingestTypes = require("@root/ingest/types")
 local types = require("@root/types")
 
 type AgentVerbs = adapterTypes.AgentVerbs
 type Record = adapterTypes.Record
 type Context = adapterTypes.Context
 type Session = adapterTypes.Session
+type SessionCache = ingestTypes.SessionCache
 type Doc = types.Doc
 type Item = types.Item
 type Source = types.Source
@@ -58,11 +60,20 @@ end
 	with no card on its branch waits for triage. A session's repository comes
 	from its adapter or, failing that, from its folder's `origin` remote. What
 	a session said stays out of the ref, so the canvas's files never copy a
-	transcript; `readTurnsAsync` reads it live.
+	transcript; `readTurnsAsync` reads it live. A `cache` kept between calls
+	skips what was already read.
 ]]
-local function collectSessionsAsync(source: Source, agent: AgentVerbs, run: CommandRunner, context: Context): { Record }
-	local sessions = agent.listSessionsAsync(source, run, getUnix(context.now) - LOOKBACK_DAYS * 86400)
-	local repos: { [string]: string | false } = {}
+local function collectSessionsAsync(
+	source: Source,
+	agent: AgentVerbs,
+	run: CommandRunner,
+	context: Context,
+	cache: SessionCache?
+): { Record }
+	local remembered = cache or { repos = {}, agent = {} }
+	local since = getUnix(context.now) - LOOKBACK_DAYS * 86400
+	local sessions = agent.listSessionsAsync(source, run, since, remembered.agent)
+	local repos = remembered.repos
 	local records: { Record } = {}
 
 	local function getRepoAsync(cwd: string): string?

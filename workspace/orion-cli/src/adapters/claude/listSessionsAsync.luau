@@ -1,6 +1,7 @@
 local fs = require("@std/fs")
 
 local adapterTypes = require("@root/adapters/types")
+local claudeTypes = require("@root/adapters/claude/types")
 local getClaudeDir = require("@root/adapters/claude/getClaudeDir")
 local parseTranscript = require("@root/adapters/claude/parseTranscript")
 local readLiveSessions = require("@root/adapters/claude/readLiveSessions")
@@ -11,6 +12,9 @@ type Session = adapterTypes.Session
 type SessionState = adapterTypes.SessionState
 type Source = types.Source
 type CommandRunner = types.CommandRunner
+type Transcript = claudeTypes.Transcript
+-- A transcript as last read, with the size and modification time it had.
+type Read = { size: number, modified: number, transcript: Transcript }
 
 local TAIL_BYTES = 256 * 1024
 local DEFAULT_BRANCHES = { main = true, master = true, HEAD = true }
@@ -18,10 +22,16 @@ local DEFAULT_BRANCHES = { main = true, master = true, HEAD = true }
 --[[
 	Claude Code sessions changed since `since`, read without writing anything.
 	Each transcript lives in `projects/<folder>/<session id>.jsonl`, and only
-	the end of each is read. Sessions on a default branch are left out, since
+	the end of each is read, and only when its size or modification time moved
+	since `cache` last saw it. Sessions on a default branch are left out, since
 	no one card owns them.
 ]]
-local function listSessionsAsync(source: Source, run: CommandRunner, since: number): { Session }
+local function listSessionsAsync(
+	source: Source,
+	run: CommandRunner,
+	since: number,
+	cache: { [string]: any }
+): { Session }
 	local dir = getClaudeDir(source)
 	local projects = `{dir}/projects`
 	local sessions: { Session } = {}
@@ -47,13 +57,25 @@ local function listSessionsAsync(source: Source, run: CommandRunner, since: numb
 			end
 
 			local filePath = `{folder}/{entry.name}`
-			local modified = fs.metadata(filePath).modified:toNanoseconds() / 1e9
+			local metadata = fs.metadata(filePath)
+			local modified = metadata.modified:toNanoseconds() / 1e9
 
 			if modified < since then
 				continue
 			end
 
-			local transcript = parseTranscript(readTail(filePath, TAIL_BYTES))
+			local read: Read? = cache[filePath]
+
+			if not read or read.size ~= metadata.size or read.modified ~= modified then
+				read = {
+					size = metadata.size,
+					modified = modified,
+					transcript = parseTranscript(readTail(filePath, TAIL_BYTES)),
+				}
+				cache[filePath] = read
+			end
+
+			local transcript = (read :: Read).transcript
 			local branch = transcript.branch
 
 			if not branch or not transcript.cwd or DEFAULT_BRANCHES[branch] then
