@@ -475,6 +475,7 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
   // ELK already folded each block toward the aspect ratio, so only a person's width wraps it again.
   const frame = (part: Map<string, Box>, maxWidth?: number) =>
     layoutSpike.wrap && maxWidth === undefined ? frameBlock(part, gap.layer, Infinity) : frameBlock(part, gap.layer, maxWidth)
+
   const shapesFor = (maxWidth?: number) => {
     const shapes = [...blocks.map((block) => ({ ids: block.ids, first: block.first, ...frame(block.part, maxWidth) })), ...singles]
 
@@ -482,6 +483,7 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
 
     return shapes
   }
+
   // ELK runs asynchronously, so its packing is worked out here for the natural width only.
   const rectPacked =
     layoutSpike.pack === 'rect'

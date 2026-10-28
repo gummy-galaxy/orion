@@ -146,6 +146,7 @@ function measure(nodes: AppNode[], links: Link[]) {
   return nodes.filter(isCluster).map((group) => {
     const own = box(group)
     const children = nodes.filter((node) => node.parentId === group.id)
+
     const lift = (id: string) => {
       let current = nodeMap.get(id)
 
@@ -153,6 +154,7 @@ function measure(nodes: AppNode[], links: Link[]) {
 
       return current
     }
+
     let backward = 0
     let wrapped = 0
     let linked = 0
@@ -214,6 +216,7 @@ describe('square groups spike', () => {
 
     // SPIKE_INPUT adds another saved canvas, such as one exported from a scratch data folder.
     if (process.env.SPIKE_INPUT) inputs.input = JSON.parse(readFileSync(process.env.SPIKE_INPUT, 'utf8')) as Saved
+
     const results: Record<string, Record<string, ReturnType<typeof measure>>> = {}
     const stored: Record<string, Record<string, ReturnType<typeof storedOverlaps>>> = {}
 
