@@ -641,6 +641,16 @@ The docs site lives at the bare `oriongraph.app`, served from the root path, by 
 
 2026-10-25 · [#327](https://github.com/vocksel/orion/pull/327) · [#575](https://github.com/vocksel/orion/issues/575)
 
+## Telemetry
+
+### Only the person chooses whether to share usage data
+
+The app asks once on launch, and Settings changes the answer. `orion telemetry on` and `off` cover machines without the app. The CLI and MCP server never prompt, and agents get `orion_telemetry_status` but no tool to change the choice. `DO_NOT_TRACK` and `ORION_TELEMETRY=0` turn telemetry off whatever was chosen. The choice and the anonymous install id live in `telemetry.json` in the data folder, outside `settings.json`, so they never travel with exported or synced settings.
+
+**Why:** consent an agent can give isn't the person's consent. A prompt from the CLI would hang an agent that runs it, so the CLI stays silent and sends nothing until someone opts in.
+
+2026-10-28 · [#507](https://github.com/gummy-galaxy/orion/issues/507), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
 ## Releases
 
 ### Changes arrive with entries, and release notes are built from them
