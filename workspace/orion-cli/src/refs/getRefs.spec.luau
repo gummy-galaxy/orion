@@ -9,6 +9,7 @@ test.case("getRefs skips malformed entries", function(assert)
 		refs = {
 			json.object({ source = "jira", kind = "issue", key = "ORN-1" }),
 			json.object({ source = "jira", kind = "issue" }),
+			json.object({ source = "jira", key = "ORN-2" }),
 			json.object({ source = "hop", kind = "branch", key = "vocksel/orion@main", isDone = "yes" }),
 			"invalid",
 		},
@@ -33,4 +34,11 @@ test.case("getRefs keeps a string id and skips a ref with any other id", functio
 	local refs = getRefs(item)
 	assert.eq(#refs, 1)
 	assert.eq(refs[1].id, "R_1#1")
+end)
+
+test.case("getRefs keeps refs of any kind", function(assert)
+	local item = testing.task("a", "A", "todo", nil, {
+		refs = { json.object({ source = "claude", kind = "session", key = "Fix the bug", id = "claude:1" }) },
+	})
+	assert.eq(getRefs(item)[1].kind, "session")
 end)
