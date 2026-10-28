@@ -12,4 +12,4 @@ export type RefreshReport = { kind: string, report: githubTypes.Report?, failed:
 export type Report = { sources: { SourceReport }, refreshes: { RefreshReport }? }
 export type Result = { source: Source, report: SourceReport, records: { Record }?, order: number? }
 
-return {}
+return nil

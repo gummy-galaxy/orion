@@ -68,4 +68,4 @@ export type Adapter = {
 	lookupRefsAsync: ((refs: { ResolvedRef }, context: Context, run: CommandRunner) -> LookupResult)?,
 }
 
-return {}
+return nil

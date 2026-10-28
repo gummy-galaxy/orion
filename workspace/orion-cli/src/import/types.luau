@@ -32,4 +32,4 @@ export type Report = {
 	outcomes: { Outcome },
 }
 
-return {}
+return nil

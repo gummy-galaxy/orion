@@ -155,4 +155,4 @@ export type Focus = {
 	updatedAt: string?,
 }
 
-return {}
+return nil
