@@ -38,7 +38,12 @@ local function setUp(name: string, status: string): (string, string)
 	return root, claudeDir
 end
 
+-- Every fixture process is alive, through `kill -0` or Windows' `tasklist`.
 local function run(argv: { string })
+	if argv[1] == "tasklist" then
+		return testing.result(true, '"42"')
+	end
+
 	return testing.result(argv[1] == "kill" or argv[1] == "git", "git@github.com:owner/repo.git\n")
 end
 
