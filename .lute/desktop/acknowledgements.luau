@@ -14,8 +14,6 @@ local orionProject = require("@repository/project")
 local path = require("@std/path")
 local process = require("@std/process")
 
-local runScript = require("@cli/runScript")
-
 type Project = {
 	name: string,
 	version: string,
@@ -408,7 +406,7 @@ local function byName(a: Project, b: Project): boolean
 	return a.version < b.version
 end
 
-runScript(function()
+local function writeAcknowledgements()
 	local sections: { Section } = {
 		{ title = "Canvas", projects = javascriptPackages() },
 		{ title = "Desktop shell", projects = rustCrates() },
@@ -425,4 +423,6 @@ runScript(function()
 	local outputPath = path.join(dist, "acknowledgements.html")
 	fs.writeStringToFile(outputPath, render(sections))
 	print(`Wrote {count} projects to {outputPath}`)
-end)
+end
+
+return writeAcknowledgements

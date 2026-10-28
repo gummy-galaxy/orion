@@ -66,9 +66,20 @@ jobs:
       - name: Set Up Lute Type Definitions
         run: lute setup
 
+      # The docs reference check formats pages with the docs site's Prettier
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
       - name: Install Dependencies
         run: lute run install
         working-directory: .
+
+      - name: Install Docs Dependencies
+        run: npm ci
+        working-directory: docs
 
       - name: Analyze
         run: lute run analyze
@@ -108,10 +119,6 @@ jobs:
       - name: Test
         run: lute test
 
-      - name: Check the App's Geometry
-        run: lute run geometry --check
-        working-directory: .
-
       - name: Build
         run: lute run build
         working-directory: .
@@ -120,7 +127,7 @@ jobs:
         run: ./build/orion --help
 
       - name: Package
-        run: lute run package
+        run: lute run build package
         working-directory: .
 
       - name: Upload CLI
@@ -176,7 +183,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SHA: ${{ github.event.pull_request.head.sha }}
-        run: lute run coverage-report
+        run: lute run report coverage
 
       - name: Build
         run: npm run build

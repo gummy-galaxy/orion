@@ -23,4 +23,7 @@ runScript(function()
 	-- resume a non-thread reference". Sequential linting avoids the workers.
 	run("lute", { "lint", "--sequential", table.unpack(sources) }, { cwd = project.CLI_PATH })
 	run("lute", { "check", table.unpack(sources) }, { cwd = project.CLI_PATH })
+	-- The docs generator formats with the docs site's Prettier, so this needs
+	-- `npm ci` in docs/ first.
+	run("lute", { "run", "generate", "--check" })
 end)
