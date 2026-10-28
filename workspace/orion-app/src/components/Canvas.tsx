@@ -145,6 +145,7 @@ import {
 } from '../persist'
 import { Sidebar } from './Sidebar'
 import { Settings, type SettingsSection } from './Settings'
+import { TelemetryPrompt } from './TelemetryPrompt'
 import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
 import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
 import { selectAllIds, selectNodes } from '../selectAll'
@@ -161,6 +162,8 @@ import { useUndo } from '../useUndo'
 import { useGroupResize } from '../resize/useGroupResize'
 import { groupEdgeAt } from '../resize/groupEdgeAt'
 import { useInspecting } from '../useInspecting'
+import { shouldAskTelemetry } from '../telemetry'
+import { useTelemetry } from '../useTelemetry'
 import {
   attentionAtom,
   celebratingAtom,
@@ -502,6 +505,9 @@ export function Canvas() {
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
   const [settings, setSettings] = useState<SettingsSection | null>(null)
+  const [telemetry, chooseTelemetry] = useTelemetry()
+  /** Set when the launch dialog is closed without an answer, so it asks again next launch but not this one. */
+  const [telemetryDismissed, setTelemetryDismissed] = useState(false)
   const cardSize = useAtomValue(cardSizeAtom, { store: skinStore })
   const cardSizeRef = useRef(cardSize)
 
@@ -4194,7 +4200,12 @@ export function Canvas() {
             chooseAppearance={chooseAppearance}
             keybindings={keybindings}
             chooseKeybindings={chooseKeybindings}
+            telemetry={telemetry}
+            chooseTelemetry={chooseTelemetry}
           />
+        )}
+        {!settings && !telemetryDismissed && shouldAskTelemetry(telemetry) && (
+          <TelemetryPrompt choose={chooseTelemetry} dismiss={() => setTelemetryDismissed(true)} />
         )}
       </div>
     </ActionsContext.Provider>

@@ -72,7 +72,9 @@ function orionServer(port: number): Plugin {
         const devPort = typeof address === 'object' && address ? address.port : server.config.server.port
 
         child = spawn(binary, ['server', 'start', '--host', '127.0.0.1', '--port', String(port), '--dev-port', String(devPort)], {
-          env: dataDir ? { ...process.env, ORION_DATA_DIR: dataDir } : process.env,
+          // Development never sends usage data, which also keeps the consent dialog out of dev sessions and PR captures.
+          // ORION_TELEMETRY=1 brings it back to try the dialog.
+          env: { ...process.env, ORION_TELEMETRY: process.env.ORION_TELEMETRY ?? '0', ...(dataDir ? { ORION_DATA_DIR: dataDir } : {}) },
           stdio: ['ignore', 'pipe', 'pipe'],
         })
 
