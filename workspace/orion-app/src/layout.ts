@@ -18,6 +18,26 @@ import type { CardSize } from './cardSize'
 
 const elk = new ELK()
 
+/**
+ * Spike toggles for compact, roughly square groups, read from `?layout=` (such as `?layout=wrap,skyline`) so one build
+ * can show each. `wrap` folds each linked block with ELK's layered wrapping toward `aspect`; `rect` packs a group's
+ * shapes with ELK's rectpacking and `skyline` with an area-aware packer here; `round` lays out small, densely linked
+ * blocks with ELK's stress algorithm. `wrapAspect` is looser than `aspect`, so a fan into a gate keeps its gate on
+ * the same row and only long chains fold. With none set, layout is unchanged.
+ */
+export const layoutSpike = { wrap: false, pack: 'grid' as 'grid' | 'rect' | 'skyline', round: false, aspect: 1, wrapAspect: 1.6 }
+
+{
+  const options = new URLSearchParams(globalThis.location?.search ?? '').get('layout')?.split(',') ?? []
+
+  layoutSpike.wrap = options.includes('wrap')
+  layoutSpike.pack = options.includes('rect') ? 'rect' : options.includes('skyline') ? 'skyline' : 'grid'
+  layoutSpike.round = options.includes('round')
+}
+
+/** A linked block this small, with at least as many links as boxes, counts as dense enough for `round`. */
+const ROUND_MAX = 8
+
 /** The default flow keeps chains, and runs of interchangeable siblings, to about this many across. */
 export const WRAP = 6
 /** A wrapped row stops growing at about this width, so chains of large nested groups stack instead of sprawling. */
@@ -140,10 +160,10 @@ const bounds = (boxes: Box[]): Box => {
   }
 }
 
-async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Gap): Promise<Map<string, Box>> {
+async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Gap, extra: Record<string, string> = {}): Promise<Map<string, Box>> {
   const result = await elk.layout({
     id: 'root',
-    layoutOptions: elkOptions(gap),
+    layoutOptions: { ...elkOptions(gap), ...extra },
     children: units.map((unit) => ({ id: unit.id, width: unit.width, height: unit.height })),
     // Labels make ELK leave room for them between the boxes they join.
     edges: edges.map(([source, target, label]) => ({
@@ -200,6 +220,140 @@ function columnsWithin(sizes: Size[], maxWidth: number, gap: number): number {
   for (let columns = sizes.length; columns > 1; columns--) if (grid(sizes, columns, gap).width <= maxWidth) return columns
 
   return 1
+}
+
+/**
+ * Lays out each linked block on its own, so ELK can fold it toward `layoutSpike.wrapAspect` (`wrap`) or arrange a small,
+ * dense one around its center (`round`).
+ */
+async function componentBoxes(
+  linked: string[],
+  edges: Edge[],
+  roots: Map<string, string>,
+  sizes: Map<string, Size>,
+  gap: Gap,
+): Promise<Map<string, Box>> {
+  const components = new Map<string, { ids: string[]; edges: Edge[] }>()
+
+  for (const id of linked) {
+    const root = roots.get(id)!
+    const component = components.get(root) ?? { ids: [], edges: [] }
+
+    component.ids.push(id)
+    components.set(root, component)
+  }
+
+  for (const edge of edges) components.get(roots.get(edge[0])!)!.edges.push(edge)
+
+  const boxes = new Map<string, Box>()
+
+  for (const component of components.values()) {
+    const units = component.ids.map((id) => ({ id, ...sizes.get(id)! }))
+    const dense = component.ids.length >= 3 && component.ids.length <= ROUND_MAX && component.edges.length >= component.ids.length
+    const reach = Math.max(...units.map((unit) => Math.hypot(unit.width, unit.height)))
+    const extra: Record<string, string> =
+      layoutSpike.round && dense
+        ? { 'elk.algorithm': 'stress', 'elk.stress.desiredEdgeLength': String(reach + gap.layer) }
+        : layoutSpike.wrap
+          ? {
+              'elk.layered.wrapping.strategy': 'MULTI_EDGE',
+              'elk.layered.wrapping.multiEdge.improveCuts': 'true',
+              'elk.layered.wrapping.multiEdge.improveWrappedEdges': 'true',
+              'elk.aspectRatio': String(layoutSpike.wrapAspect),
+            }
+          : {}
+
+    for (const [id, box] of await elkBoxes(units, component.edges, gap, extra)) boxes.set(id, box)
+  }
+
+  return boxes
+}
+
+/** Packs sizes with ELK's rectpacking toward `layoutSpike.aspect`, largest first. */
+async function rectPack(sizes: Size[], gap: number): Promise<{ at: Point[] } & Size> {
+  const result = await elk.layout({
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'rectpacking',
+      'elk.aspectRatio': String(layoutSpike.aspect),
+      'elk.spacing.nodeNode': String(gap),
+      'elk.padding': '[top=0,left=0,bottom=0,right=0]',
+      'elk.rectpacking.orderBySize': 'true',
+      'elk.rectpacking.widthApproximation.optimizationGoal': 'ASPECT_RATIO_DRIVEN',
+      'elk.rectpacking.whiteSpaceElimination.strategy': 'NONE',
+    },
+    children: sizes.map((size, i) => ({ id: String(i), ...size })),
+  })
+  const at = sizes.map(() => ({ x: 0, y: 0 }))
+
+  for (const child of result.children ?? []) at[Number(child.id)] = { x: child.x ?? 0, y: child.y ?? 0 }
+
+  const boxes = sizes.map((size, i) => ({ ...at[i], ...size }))
+  const frame = bounds(boxes)
+
+  return { at: at.map((point) => ({ x: point.x - frame.x, y: point.y - frame.y })), width: frame.width, height: frame.height }
+}
+
+/**
+ * Packs sizes tallest first, each at the lowest free spot along a skyline as wide as `maxWidth`. Without one it tries
+ * a few widths around the square root of the total area and keeps the closest to `layoutSpike.aspect`, so big blocks
+ * take the corners and small ones fill the gaps beside them.
+ */
+export function skyline(sizes: Size[], gap: number, maxWidth?: number): { at: Point[] } & Size {
+  const order = sizes.map((_, i) => i).sort((a, b) => sizes[b].height - sizes[a].height || sizes[b].width - sizes[a].width)
+  const widest = Math.max(...sizes.map((size) => size.width))
+
+  const pack = (width: number) => {
+    // Each segment is a run of x where the packed shapes reach down to `y`, including the gap below them.
+    let line = [{ x: 0, width: Infinity, y: 0 }]
+    const at: Point[] = sizes.map(() => ({ x: 0, y: 0 }))
+
+    for (const i of order) {
+      const size = sizes[i]
+      let best: Point | undefined
+
+      for (const segment of line) {
+        if (segment.x + size.width > width && segment.x > 0) continue
+
+        const y = Math.max(
+          ...line.filter((other) => other.x < segment.x + size.width + gap && other.x + other.width > segment.x).map((other) => other.y),
+        )
+
+        if (!best || y < best.y) best = { x: segment.x, y }
+      }
+
+      at[i] = best!
+
+      const left = best!.x
+      const right = left + size.width + gap
+      const next = line.flatMap((segment) => {
+        const end = segment.x + segment.width
+
+        if (end <= left || segment.x >= right) return [segment]
+
+        return [
+          ...(segment.x < left ? [{ ...segment, width: left - segment.x }] : []),
+          ...(end > right ? [{ x: right, width: end - right, y: segment.y }] : []),
+        ]
+      })
+
+      next.push({ x: left, width: right - left, y: best!.y + size.height + gap })
+      line = next.sort((a, b) => a.x - b.x)
+    }
+
+    const frame = bounds(sizes.map((size, i) => ({ ...at[i], ...size })))
+
+    return { at, width: frame.width, height: frame.height }
+  }
+
+  if (maxWidth !== undefined) return pack(Math.max(maxWidth, widest))
+
+  const area = sizes.reduce((sum, size) => sum + (size.width + gap) * (size.height + gap), 0)
+  const target = Math.sqrt(area * layoutSpike.aspect)
+  const tries = [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4].map((scale) => pack(Math.max(widest, target * scale)))
+  const score = (packed: Size) => Math.abs(Math.log(packed.width / packed.height / layoutSpike.aspect)) + (packed.width * packed.height) / area - 1
+
+  return tries.reduce((best, packed) => (score(packed) < score(best) ? packed : best))
 }
 
 /**
@@ -286,13 +440,16 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
 
   const linked = new Set(unitEdges.flatMap(([source, target]) => [source, target]))
   const roots = linkRoots([...linked], unitEdges)
-  const linkedBoxes = unitEdges.length
-    ? await elkBoxes(
-        [...linked].map((id) => ({ id, ...sizes.get(id)! })),
-        unitEdges,
-        gap,
-      )
-    : new Map<string, Box>()
+  const linkedBoxes =
+    layoutSpike.wrap || layoutSpike.round
+      ? await componentBoxes([...linked], unitEdges, roots, sizes, gap)
+      : unitEdges.length
+        ? await elkBoxes(
+            [...linked].map((id) => ({ id, ...sizes.get(id)! })),
+            unitEdges,
+            gap,
+          )
+        : new Map<string, Box>()
   const parts = new Map<string, Map<string, Box>>()
 
   for (const id of linked) {
@@ -315,17 +472,38 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
     singles.push({ ids: [id], first: earliest([id]), boxes: new Map([[id, { x: 0, y: 0, ...size }]]), size })
   }
 
-  return (maxWidth) => {
-    const shapes = [...blocks.map((block) => ({ ids: block.ids, first: block.first, ...frameBlock(block.part, gap.layer, maxWidth) })), ...singles]
+  // ELK already folded each block toward the aspect ratio, so only a person's width wraps it again.
+  const frame = (part: Map<string, Box>, maxWidth?: number) =>
+    layoutSpike.wrap && maxWidth === undefined ? frameBlock(part, gap.layer, Infinity) : frameBlock(part, gap.layer, maxWidth)
+  const shapesFor = (maxWidth?: number) => {
+    const shapes = [...blocks.map((block) => ({ ids: block.ids, first: block.first, ...frame(block.part, maxWidth) })), ...singles]
 
     shapes.sort((a, b) => reading(a.first, b.first))
 
+    return shapes
+  }
+  // ELK runs asynchronously, so its packing is worked out here for the natural width only.
+  const rectPacked =
+    layoutSpike.pack === 'rect'
+      ? await rectPack(
+          shapesFor().map((shape) => shape.size),
+          gap.component,
+        )
+      : undefined
+
+  return (maxWidth) => {
+    const shapes = shapesFor(maxWidth)
     const shapeSizes = shapes.map((shape) => shape.size)
-    const laidOut = grid(
-      shapeSizes,
-      maxWidth === undefined ? Math.ceil(Math.sqrt(shapes.length)) : columnsWithin(shapeSizes, maxWidth, gap.component),
-      gap.component,
-    )
+    const laidOut =
+      rectPacked && maxWidth === undefined
+        ? rectPacked
+        : layoutSpike.pack === 'skyline'
+          ? skyline(shapeSizes, gap.component, maxWidth)
+          : grid(
+              shapeSizes,
+              maxWidth === undefined ? Math.ceil(Math.sqrt(shapes.length)) : columnsWithin(shapeSizes, maxWidth, gap.component),
+              gap.component,
+            )
     const positions = new Map<string, Point>()
 
     shapes.forEach((shape, i) => {
