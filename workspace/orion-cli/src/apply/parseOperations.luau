@@ -51,7 +51,7 @@ local STEP_KEYS: { [string]: { [string]: boolean } } = {
 	addNote = { handle = true, text = true, group = true, after = true, before = true },
 	group = { handle = true, label = true, items = true },
 	setFields = { id = true, fields = true },
-	link = { from = true, to = true, kind = true },
+	link = { from = true, to = true, kind = true, label = true },
 	unlink = { from = true, to = true },
 	insert = { id = true, from = true, to = true },
 	move = { id = true, group = true },
@@ -59,6 +59,8 @@ local STEP_KEYS: { [string]: { [string]: boolean } } = {
 	removeGroup = { id = true },
 	ungroup = { id = true },
 	tidy = { id = true },
+	attachRef = { id = true, ref = true },
+	detachRef = { id = true, ref = true },
 }
 
 local function optionalString(object: json.Object, key: string): string?
@@ -69,6 +71,18 @@ local function optionalString(object: json.Object, key: string): string?
 	end
 
 	assert(type(value) == "string" and value ~= "", `{key} must be a nonempty string`)
+	return value :: string
+end
+
+-- A string that may be empty, such as a link label, where empty clears it.
+local function optionalText(object: json.Object, key: string): string?
+	local value = object[key]
+
+	if isAbsent(value) then
+		return nil
+	end
+
+	assert(type(value) == "string", `{key} must be a string`)
 	return value :: string
 end
 
@@ -183,6 +197,7 @@ local function parseStep(object: json.Object): Operation
 		operation.to = requireString(object, "to")
 		operation.kind = optionalString(object, "kind") or "blocks"
 		assert(LINK_KINDS[operation.kind :: string], "kind must be blocks or related")
+		operation.label = optionalText(object, "label")
 	elseif name == "unlink" then
 		operation.from = requireString(object, "from")
 		operation.to = requireString(object, "to")
@@ -196,6 +211,9 @@ local function parseStep(object: json.Object): Operation
 		-- level, so a missing group can't do it by accident.
 		assert(object.group ~= nil, "move needs group, or null for the top level")
 		operation.group = optionalString(object, "group")
+	elseif name == "attachRef" or name == "detachRef" then
+		operation.id = requireString(object, "id")
+		operation.ref = requireString(object, "ref")
 	elseif name == "remove" then
 		operation.id = requireString(object, "id")
 		operation.reconnect = optionalBoolean(object, "reconnect")

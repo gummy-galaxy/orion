@@ -4,11 +4,17 @@ local json = require("@std/json")
 
 local addArgument = require("@root/cli/addArgument")
 local applyOperations = require("@root/apply/applyOperations")
+local captureDoc = require("@root/operations/captureDoc")
 local context = require("@root/cli/context")
+local describeChanges = require("@root/operations/describeChanges")
+local getChanges = require("@root/operations/getChanges")
+local operationTypes = require("@root/operations/types")
 local parseOperations = require("@root/apply/parseOperations")
 local requestedRevision = require("@root/cli/requestedRevision")
 local runEdit = require("@root/cli/runEdit")
+local serializeChanges = require("@root/operations/serializeChanges")
 
+type Changes = operationTypes.Changes
 type Context = context.Context
 
 -- The plan comes from a file, from stdin with -, or inline with --plan, which
@@ -31,7 +37,8 @@ local function getText(
 	dryRun: boolean,
 	baseRevision: number,
 	revision: number,
-	handles: { [string]: string }
+	handles: { [string]: string },
+	changes: Changes
 ): string
 	local noun = if count == 1 then "operation" else "operations"
 	local revisionText = if dryRun then `{baseRevision}` else `{baseRevision} → {revision}`
@@ -48,13 +55,17 @@ local function getText(
 		table.insert(lines, `  @{handle} → {handles[handle]}`)
 	end
 
+	for _, line in describeChanges(changes) do
+		table.insert(lines, line)
+	end
+
 	return table.concat(lines, "\n")
 end
 
 return table.freeze({
 	help = "Apply a plan of cards, notes, groups, and links in one step",
 	mcp = {
-		description = 'Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link, unlink, insert, move, ungroup, tidy, remove, removeGroup. Use dryRun to preview the plan and the ids each handle gets.',
+		description = 'Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link (with an optional label, empty to clear), unlink, insert, move, ungroup, tidy, remove, removeGroup, and attachRef and detachRef, which take id and ref and change only Orion\'s record of a card, never the source. Use dryRun to preview the plan, the ids each handle gets, and the items, links, and refs it would change.',
 		annotations = { destructiveHint = true },
 		omit = {
 			{
@@ -89,9 +100,12 @@ return table.freeze({
 		local operations = parseOperations(values)
 		local dryRun = parser:has("dry-run")
 		local handles: { [string]: string } = {}
+		local changes: Changes
 
 		local doc, baseRevision = runEdit(options.dir, dryRun, requestedRevision(parser), function(current)
+			local before = captureDoc(current)
 			handles = applyOperations(current, operations)
+			changes = getChanges(before, current)
 		end)
 
 		if options.asJson then
@@ -109,11 +123,12 @@ return table.freeze({
 					revision = doc.revision,
 					operations = #operations,
 					ids = ids,
+					changes = serializeChanges(changes),
 				}),
 				true
 			))
 		else
-			options.write(getText(#operations, dryRun, baseRevision, doc.revision, handles))
+			options.write(getText(#operations, dryRun, baseRevision, doc.revision, handles, changes))
 		end
 	end,
 })

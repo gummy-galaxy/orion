@@ -2,6 +2,7 @@ local addItem = require("@root/graph/addItem")
 local addNote = require("@root/graph/addNote")
 local applyTypes = require("@root/apply/types")
 local attachRef = require("@root/graph/attachRef")
+local detachRequestedRef = require("@root/graph/detachRequestedRef")
 local getErrorCode = require("@root/getErrorCode")
 local getErrorText = require("@root/getErrorText")
 local insertBetween = require("@root/graph/insertBetween")
@@ -101,7 +102,7 @@ end
 handlers.link = function(doc: Doc, operation: Operation, handles: Handles)
 	local from = resolve(handles, required(operation.from, "from"))
 	local to = resolve(handles, required(operation.to, "to"))
-	linkItems(doc, from, to, operation.kind or "blocks")
+	linkItems(doc, from, to, operation.kind or "blocks", operation.label)
 end
 
 handlers.unlink = function(doc: Doc, operation: Operation, handles: Handles)
@@ -136,6 +137,18 @@ end
 
 handlers.tidy = function(doc: Doc, operation: Operation, handles: Handles)
 	markForTidy(doc, resolve(handles, required(operation.id, "id")))
+end
+
+-- Attaches a ref the way --ref does, resolving it against the canvas's sources.
+-- It changes only Orion's record of the card, never the source.
+handlers.attachRef = function(doc: Doc, operation: Operation, handles: Handles)
+	local id = resolve(handles, required(operation.id, "id"))
+	attachRef(doc, id, resolveRef(required(operation.ref, "ref"), doc.settings.sources))
+end
+
+-- Takes a ref off by its key, URL, or source:key, as orion ref remove does.
+handlers.detachRef = function(doc: Doc, operation: Operation, handles: Handles)
+	detachRequestedRef(doc, resolve(handles, required(operation.id, "id")), required(operation.ref, "ref"))
 end
 
 -- Applies the steps in order to the document. A step that fails raises an error
