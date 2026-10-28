@@ -6,7 +6,6 @@ local loadDoc = require("@root/store/loadDoc")
 local setSourceCommand = require("@root/sources/setSourceCommand")
 local testing = require("@root/testing")
 local writeDoc = require("@root/store/writeDoc")
-local writeFixture = require("@root/adapters/claude/writeFixture")
 
 local NOW = "2026-10-04T00:00:00Z"
 
@@ -94,7 +93,7 @@ end)
 test.case("ingest puts a Claude Code session on the card for its branch", function(assert)
 	local dir = testing.directory("ingest-claude")
 	local claudeDir = testing.directory("ingest-claude-data")
-	writeFixture(claudeDir, { branch = "agent/fix", stop = "end_turn" })
+	testing.writeClaudeFixture(claudeDir, { branch = "agent/fix", stop = "end_turn" })
 	local card = testing.task("fix", "Fix", "active", nil, json.object({ repo = "owner/repo" }))
 	card.data.refs = { json.object({ source = "branch", kind = "branch", key = "owner/repo@agent/fix" }) } :: json.Array
 	writeDoc(dir, testing.createDoc({ card }))

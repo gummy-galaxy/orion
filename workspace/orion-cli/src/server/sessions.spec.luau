@@ -9,7 +9,6 @@ local loadDoc = require("@root/store/loadDoc")
 local sessions = require("@root/server/sessions")
 local testing = require("@root/testing")
 local writeDoc = require("@root/store/writeDoc")
-local writeFixture = require("@root/adapters/claude/writeFixture")
 
 local WAIT_STEP_SECONDS = 0.05
 local WAIT_LIMIT_SECONDS = 3
@@ -29,7 +28,7 @@ end
 local function setUp(name: string, status: string): (string, string)
 	local root = testing.directory(name)
 	local claudeDir = testing.directory(`{name}-claude`)
-	writeFixture(claudeDir, { branch = "agent/fix", stop = "tool_use", status = status })
+	testing.writeClaudeFixture(claudeDir, { branch = "agent/fix", stop = "tool_use", status = status })
 	local card = testing.task("fix", "Fix", "active", nil, json.object({ repo = "owner/repo" }))
 	card.data.refs = { json.object({ source = "branch", kind = "branch", key = "owner/repo@agent/fix" }) } :: json.Array
 	local doc = testing.createDoc({ card })
@@ -66,7 +65,7 @@ test.case("a refresh writes only when a session ref's facts change", function(as
 	assert.eq(loop.refreshAsync(), false)
 	assert.eq(loadDoc(getWorkspaceDir(root, "default")).revision, revision)
 
-	writeFixture(claudeDir, { branch = "agent/fix", stop = "tool_use", status = "idle" })
+	testing.writeClaudeFixture(claudeDir, { branch = "agent/fix", stop = "tool_use", status = "idle" })
 	assert.eq(loop.refreshAsync(), true)
 	assert.eq(getState(root), "waiting")
 	loop.close()
@@ -85,7 +84,7 @@ test.case("a change in the sessions folder refreshes on its own", function(asser
 	end)
 	assert.eq(getState(root), "working")
 
-	writeFixture(claudeDir, { branch = "agent/fix", stop = "tool_use", status = "idle" })
+	testing.writeClaudeFixture(claudeDir, { branch = "agent/fix", stop = "tool_use", status = "idle" })
 	waitUntil(function()
 		return getState(root) == "waiting"
 	end)

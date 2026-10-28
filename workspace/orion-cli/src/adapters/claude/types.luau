@@ -18,4 +18,4 @@ export type Transcript = {
 -- it runs a turn, and idle or waiting once it's your move.
 export type LiveSession = { pid: number, status: string, name: string? }
 
-return {}
+return nil
