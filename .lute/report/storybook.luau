@@ -14,16 +14,13 @@ local command = require("@cli/command")
 local findTouchedStories = require("@cli/storybook/findTouchedStories")
 local formatStorybookComment = require("@cli/storybook/formatStorybookComment")
 local parseStoryIndex = require("@cli/storybook/parseStoryIndex")
-local runScript = require("@cli/runScript")
 local upsertCommentAsync = require("@cli/github/upsertCommentAsync")
 
 local MARKER = "<!-- orion-storybook -->"
 local STORYBOOK_ROOT = "workspace/orion-app"
 
 local env = process.env
-local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
-local pullRequest = assert(env.PR, "PR is not set")
-local storybookUrl = assert(env.STORYBOOK_URL, "STORYBOOK_URL is not set")
+
 -- Reads a file by its path from the repository root, or returns nil for a
 -- missing file or a folder.
 local function readFile(file: string): string?
@@ -32,7 +29,7 @@ local function readFile(file: string): string?
 	return if succeeded then contents else nil
 end
 
-local function getChangedFiles(): { string }
+local function getChangedFiles(repository: string, pullRequest: string): { string }
 	local listed = command({
 		"gh",
 		"api",
@@ -66,10 +63,13 @@ local function changesStyles(files: { string }): boolean
 	return false
 end
 
-runScript(function()
+local function commentStorybook()
+	local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
+	local pullRequest = assert(env.PR, "PR is not set")
+	local storybookUrl = assert(env.STORYBOOK_URL, "STORYBOOK_URL is not set")
 	local indexText = readFile(`{STORYBOOK_ROOT}/storybook-static/index.json`)
 	local stories = if indexText then parseStoryIndex(indexText, STORYBOOK_ROOT, readFile) else {}
-	local changedFiles = getChangedFiles()
+	local changedFiles = getChangedFiles(repository, pullRequest)
 
 	local sha = string.sub(env.SHA or "", 1, 7)
 	local footer =
@@ -87,4 +87,6 @@ runScript(function()
 	assert(posted, problem)
 
 	print(`Linked {storybookUrl} and {#stories} stories from #{pullRequest}`)
-end)
+end
+
+return commentStorybook

@@ -15,7 +15,8 @@ on:
       - "!workspace/orion-app/**/*.test.tsx"
       - "!workspace/orion-app/**/*.bench.ts"
       - "!workspace/orion-app/scripts/**"
-      - .lute/storybook-comment.luau
+      - .lute/report/init.luau
+      - .lute/report/storybook.luau
       - workspace/orion-cli/src/storybook/**
       - rokit.toml
       - .github/workflows/storybook.yml
@@ -107,4 +108,4 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SHA: ${{ github.event.pull_request.head.sha }}
           STORYBOOK_URL: ${{ steps.chromatic.outputs.storybookUrl }}
-        run: lute run storybook-comment
+        run: lute run report storybook

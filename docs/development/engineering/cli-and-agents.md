@@ -59,7 +59,7 @@ The MCP server is kept generic. Orion documents how to register `orion mcp start
 
 ## Reference
 
-The CLI and MCP reference pages are generated from the command table and the tool catalog, so they match the code. `lute run docs` regenerates them, and CI fails when they're out of date ([#326](https://github.com/vocksel/orion/pull/326)). See the [CLI reference](/reference/cli/) and the [MCP reference](/reference/mcp).
+The CLI and MCP reference pages are generated from the command table and the tool catalog, so they match the code. `lute run generate docs` regenerates them, and CI fails when they're out of date ([#326](https://github.com/vocksel/orion/pull/326)). See the [CLI reference](/reference/cli/) and the [MCP reference](/reference/mcp).
 
 ## Agent features in review
 

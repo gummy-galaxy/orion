@@ -94,7 +94,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           STATUS: ${{ job.status }}
-        run: lute run perf-report
+        run: lute run report perf
 
       # A fork's token can't comment, so the Perf Report workflow posts what this uploads.
       - name: Upload Report for Perf Report
@@ -116,4 +116,4 @@ jobs:
           POSTHOG_TOKEN: ${{ secrets.POSTHOG_PROJECT_TOKEN }}
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: lute run perf-history
+        run: lute run report perf-history
