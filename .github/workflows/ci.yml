@@ -87,7 +87,8 @@ jobs:
 
   cli:
     needs: ci-loading
-    if: needs.ci-loading.outputs.cli == 'true'
+    # Each step checks the filter instead of the job, since a skipped matrix job reports
+    # one check under the bare job name and the required per-runner checks never arrive
     strategy:
       fail-fast: false
       matrix:
@@ -99,38 +100,46 @@ jobs:
         working-directory: workspace/orion-cli
     steps:
       - uses: actions/checkout@v7
+        if: needs.ci-loading.outputs.cli == 'true'
 
       - name: Install Luau Tools with Rokit
+        if: needs.ci-loading.outputs.cli == 'true'
         uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
         with:
           version: v1.2.0
           cache: true
 
       - name: Install Dependencies
+        if: needs.ci-loading.outputs.cli == 'true'
         run: lute run install
         working-directory: .
 
       # The CLI's index specs run the `sqlite3` command, which the Linux and Windows images don't have
       - name: Install SQLite
-        if: runner.os != 'macOS'
+        if: needs.ci-loading.outputs.cli == 'true' && runner.os != 'macOS'
         run: lute run install sqlite
         working-directory: .
 
       - name: Test
+        if: needs.ci-loading.outputs.cli == 'true'
         run: lute test
 
       - name: Build
+        if: needs.ci-loading.outputs.cli == 'true'
         run: lute run build
         working-directory: .
 
       - name: Smoke Test the Binary
+        if: needs.ci-loading.outputs.cli == 'true'
         run: ./build/orion --help
 
       - name: Package
+        if: needs.ci-loading.outputs.cli == 'true'
         run: lute run build package
         working-directory: .
 
       - name: Upload CLI
+        if: needs.ci-loading.outputs.cli == 'true'
         # A full artifact storage quota shouldn't fail the build
         continue-on-error: true
         uses: actions/upload-artifact@v7
@@ -203,7 +212,8 @@ jobs:
 
   desktop:
     needs: ci-loading
-    if: needs.ci-loading.outputs.desktop == 'true'
+    # Each step checks the filter instead of the job, since a skipped matrix job reports
+    # one check under the bare job name and the required per-runner checks never arrive
     strategy:
       fail-fast: false
       matrix:
@@ -213,14 +223,17 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        if: needs.ci-loading.outputs.desktop == 'true'
 
       - name: Install Luau Tools with Rokit
+        if: needs.ci-loading.outputs.desktop == 'true'
         uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
         with:
           version: v1.2.0
           cache: true
 
       - uses: actions/setup-node@v7
+        if: needs.ci-loading.outputs.desktop == 'true'
         with:
           node-version: 24
           cache: npm
@@ -229,11 +242,13 @@ jobs:
             workspace/orion-desktop/package-lock.json
 
       - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        if: needs.ci-loading.outputs.desktop == 'true'
         with:
           toolchain: stable
           components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        if: needs.ci-loading.outputs.desktop == 'true'
         with:
           workspaces: workspace/orion-desktop
           # Pull requests restore main's cache but don't save their own, since
@@ -244,25 +259,29 @@ jobs:
           cache-on-failure: true
 
       - name: Install Tauri System Dependencies
-        if: runner.os == 'Linux'
+        if: needs.ci-loading.outputs.desktop == 'true' && runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y build-essential libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: Install Luau Dependencies
+        if: needs.ci-loading.outputs.desktop == 'true'
         run: lute run install
 
       - name: Install App Dependencies
+        if: needs.ci-loading.outputs.desktop == 'true'
         working-directory: workspace/orion-app
         run: npm ci
 
       - name: Install Desktop Dependencies
+        if: needs.ci-loading.outputs.desktop == 'true'
         working-directory: workspace/orion-desktop
         run: npm ci
 
       - name: Check and Build
+        if: needs.ci-loading.outputs.desktop == 'true'
         run: lute run desktop
 
       - name: Upload Desktop Installer
-        if: github.ref == 'refs/heads/main'
+        if: needs.ci-loading.outputs.desktop == 'true' && github.ref == 'refs/heads/main'
         # A full artifact storage quota shouldn't fail the build
         continue-on-error: true
         uses: actions/upload-artifact@v7
