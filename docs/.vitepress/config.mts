@@ -87,6 +87,7 @@ export default defineConfig({
           link: '/development/engineering/',
           collapsed: false,
           items: [
+            { text: 'Adapters', link: '/development/engineering/adapters' },
             { text: 'Architecture', link: '/development/engineering/architecture' },
             { text: 'CLI and agents', link: '/development/engineering/cli-and-agents' },
             { text: 'Data and sync', link: '/development/engineering/data-and-sync' },

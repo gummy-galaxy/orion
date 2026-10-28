@@ -32,10 +32,8 @@ local function collectSourcesAsync(
 
 		found = true
 		local succeeded, adapter = pcall(getAdapter, source.kind)
-		table.insert(
-			sources,
-			{ source = source, index = index, order = if succeeded then (adapter :: Adapter).collectOrder or 0 else 0 }
-		)
+		local verbs = if succeeded then (adapter :: Adapter).source else nil
+		table.insert(sources, { source = source, index = index, order = if verbs then verbs.collectOrder or 0 else 0 })
 	end
 
 	assert(found or not selected, `no source with id "{selected}"`)
@@ -69,11 +67,11 @@ local function collectSourcesAsync(
 		local result: Result =
 			{ source = source, report = { id = source.id, added = 0, updated = 0, linked = 0 }, order = entry.order }
 		local succeeded, failure = pcall(function()
-			result.records = getAdapter(source.kind).collectAsync(
-				source,
-				run,
-				{ now = now, since = since, doc = shadow, commands = commands }
-			)
+			local verbs = getAdapter(source.kind).source
+			-- A kind with only agent verbs brings in no cards.
+			result.records = if verbs
+				then verbs.collectAsync(source, run, { now = now, since = since, doc = shadow, commands = commands })
+				else {}
 		end)
 
 		if not succeeded then
