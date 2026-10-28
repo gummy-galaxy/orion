@@ -7,6 +7,7 @@ import {
   byId,
   groupHeaderHeight,
   isCluster,
+  isTask,
   normalize,
   pruneEmptied,
   sizeOf,
@@ -25,7 +26,9 @@ const elk = new ELK()
  * blocks with ELK's stress algorithm. `wrapAspect` is looser than `aspect`, so a fan into a gate keeps its gate on
  * the same row and only long chains fold. `orphans` lays out `related` links inside a group with its blocks, keeps
  * cards with no links at all in a block of their own, and moves cards linked only outside the group to the edge that
- * faces their links. With none set, layout is unchanged.
+ * faces their links. With any of them set, `spread` multiplies the room between the shapes packed inside a group, so
+ * clusters stand apart from the cards within them; `?layout=...,tight` keeps it at today's. With none set, layout is
+ * unchanged.
  */
 export const layoutSpike = {
   wrap: false,
@@ -34,6 +37,7 @@ export const layoutSpike = {
   orphans: false,
   aspect: 1,
   wrapAspect: 1.6,
+  spread: 2,
 }
 
 {
@@ -43,6 +47,8 @@ export const layoutSpike = {
   layoutSpike.pack = options.includes('rect') ? 'rect' : options.includes('skyline') ? 'skyline' : 'grid'
   layoutSpike.round = options.includes('round')
   layoutSpike.orphans = options.includes('orphans')
+
+  if (options.includes('tight')) layoutSpike.spread = 1
 }
 
 /** A linked block this small, with at least as many links as boxes, counts as dense enough for `round`. */
@@ -498,7 +504,8 @@ async function planFlow(
       continue
     }
 
-    if (layoutSpike.orphans) {
+    // Only cards count as orphans; a nested group with no links is packed with the rest.
+    if (layoutSpike.orphans && isTask(members.get(id)![0])) {
       orphans.push(id)
       continue
     }
@@ -740,7 +747,9 @@ export async function planReflow(
     for (const [id, count] of tally) sides.set(id, count >= 0 ? 'left' : 'right')
   }
 
-  const arrangeFor = await planFlow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize, sides)
+  const spiked = layoutSpike.wrap || layoutSpike.pack !== 'grid' || layoutSpike.round || layoutSpike.orphans
+  const gap = groupId ? { ...INNER_GAP, component: INNER_GAP.component * (spiked ? layoutSpike.spread : 1) } : TOP_GAP
+  const arrangeFor = await planFlow(children, edges, gap, cardSize, sides)
   const offset = groupId ? { x: GROUP_PADDING, y: groupHeaderHeight(group && isCluster(group) ? group.data : undefined) } : { x: 0, y: 0 }
   const measured = new Map<number | undefined, Arrangement>()
 

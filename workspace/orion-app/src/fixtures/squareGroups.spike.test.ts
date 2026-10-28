@@ -24,6 +24,8 @@ const MODES: Record<string, Partial<typeof layoutSpike>> = {
   'wrap+skyline': { wrap: true, pack: 'skyline' },
   'wrap+skyline+round': { wrap: true, pack: 'skyline', round: true },
   orphans: { orphans: true },
+  'wrap+skyline+tight': { wrap: true, pack: 'skyline', spread: 1 },
+  'wrap+skyline+orphans+tight': { wrap: true, pack: 'skyline', orphans: true, spread: 1 },
   'wrap+skyline+orphans': { wrap: true, pack: 'skyline', orphans: true },
 }
 
@@ -233,7 +235,9 @@ function measure(nodes: AppNode[], links: Link[], before: AppNode[]) {
 
     const ofKind = (kind: string) => children.filter((child) => kinds.get(child.id) === kind).map(box)
     const insideBoxes = ofKind('inside')
-    const orphanBoxes = ofKind('orphan')
+    // Only cards count as orphans, as in the layout.
+    const orphanCards = new Set(children.filter((child) => kinds.get(child.id) === 'orphan' && child.type === 'task'))
+    const orphanBoxes = [...orphanCards].map(box)
     const orphanFrame =
       orphanBoxes.length > 1
         ? orphanBoxes.reduce((frame, next) => {
@@ -249,7 +253,7 @@ function measure(nodes: AppNode[], links: Link[], before: AppNode[]) {
           })
         : undefined
     // Connected cards sitting among the orphans, inside the frame around them.
-    const intruders = orphanFrame ? children.filter((child) => kinds.get(child.id) !== 'orphan' && intersect(box(child), orphanFrame)).length : 0
+    const intruders = orphanFrame ? children.filter((child) => !orphanCards.has(child) && intersect(box(child), orphanFrame)).length : 0
     const outsideIds = children.filter((child) => kinds.get(child.id) === 'outside').map((child) => child.id)
     // A card linked only outside faces its links when nothing linked inside the group sits further toward them.
     const faced = outsideIds.filter((id) => {
@@ -306,7 +310,7 @@ describe('square groups spike', () => {
     const stored: Record<string, Record<string, ReturnType<typeof storedOverlaps>>> = {}
 
     for (const [mode, settings] of Object.entries(MODES)) {
-      Object.assign(layoutSpike, { wrap: false, pack: 'grid', round: false, orphans: false, aspect: 1, wrapAspect: 1.6 }, settings)
+      Object.assign(layoutSpike, { wrap: false, pack: 'grid', round: false, orphans: false, aspect: 1, wrapAspect: 1.6, spread: 2 }, settings)
       results[mode] = {}
 
       for (const [name, saved] of Object.entries(inputs)) {
@@ -317,7 +321,7 @@ describe('square groups spike', () => {
       }
     }
 
-    Object.assign(layoutSpike, { wrap: false, pack: 'grid', round: false, orphans: false, aspect: 1, wrapAspect: 1.6 })
+    Object.assign(layoutSpike, { wrap: false, pack: 'grid', round: false, orphans: false, aspect: 1, wrapAspect: 1.6, spread: 2 })
 
     if (process.env.SPIKE_OUT) writeFileSync(process.env.SPIKE_OUT, JSON.stringify({ results, stored }, null, 2))
 
