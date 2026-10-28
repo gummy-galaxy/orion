@@ -9,10 +9,11 @@ local writeFixture = require("@root/adapters/claude/writeFixture")
 type CommandRunner = types.CommandRunner
 type Source = types.Source
 
--- Answers `kill -0` for the pids in `alive`.
+-- Answers `kill -0`, or `tasklist` on Windows, for the fixture's pid while
+-- `alive`.
 local function runner(alive: boolean): CommandRunner
 	return function(argv)
-		return testing.result(argv[1] == "kill" and alive, "")
+		return testing.result(alive and (argv[1] == "kill" or argv[1] == "tasklist"), '"42"')
 	end
 end
 
