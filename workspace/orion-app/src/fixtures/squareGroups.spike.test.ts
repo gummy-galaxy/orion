@@ -23,6 +23,8 @@ const MODES: Record<string, Partial<typeof layoutSpike>> = {
   'wrap+rect': { wrap: true, pack: 'rect' },
   'wrap+skyline': { wrap: true, pack: 'skyline' },
   'wrap+skyline+round': { wrap: true, pack: 'skyline', round: true },
+  orphans: { orphans: true },
+  'wrap+skyline+orphans': { wrap: true, pack: 'skyline', orphans: true },
 }
 
 type Box = { x: number; y: number; width: number; height: number }
@@ -34,14 +36,15 @@ const task = (id: string, parentId: string): AppNode => ({
   position: { x: 0, y: 0 },
   data: { kind: 'task', label: id, itemKind: 'step', status: 'todo' },
 })
-const cluster = (id: string, parentId?: string, data: Partial<ClusterData> = {}): AppNode => ({
+const cluster = (id: string, parentId?: string, data: Partial<ClusterData> = {}, x = 0): AppNode => ({
   id,
   type: 'cluster',
   parentId,
-  position: { x: 0, y: 0 },
+  position: { x, y: 0 },
   data: { kind: 'cluster', label: id, ...data },
 })
 const blocks = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, to, kind: 'blocks' })
+const related = (from: string, to: string): Link => ({ id: `${from}>${to}`, from, to, kind: 'related' })
 const range = (count: number, prefix: string) => Array.from({ length: count }, (_, i) => `${prefix}${i}`)
 const chain = (ids: string[]) => ids.slice(1).map((id, i) => blocks(ids[i], id))
 
@@ -83,6 +86,25 @@ function cases(): Record<string, Saved> {
     phase,
     // One epic: five steps into its gate, and two parallel runs of four into a gate.
     epic: { nodes: [cluster('epic'), ...range(6, 'p').map((id) => task(id, 'epic'))], links: chain(range(6, 'p')) },
+    // A group whose cards link in every way: a chain inside, a related pair inside, cards that only wait on or feed
+    // groups to either side, one related to a card outside, and cards with no links at all.
+    edges: {
+      nodes: [
+        cluster('upstream', undefined, {}, -3000),
+        task('up', 'upstream'),
+        cluster('downstream', undefined, {}, 5000),
+        task('down', 'downstream'),
+        cluster('edges'),
+        ...['c0', 'c1', 'c2', 'c3', 'r0', 'r1', 'i0', 'i1', 'i2', 'x0', 'x1', 'q0', ...range(6, 'o')].map((id) => task(id, 'edges')),
+      ],
+      links: [
+        ...chain(['c0', 'c1', 'c2', 'c3']),
+        related('r0', 'r1'),
+        ...['i0', 'i1', 'i2'].map((id) => blocks('up', id)),
+        ...['x0', 'x1'].map((id) => blocks(id, 'down')),
+        related('q0', 'up'),
+      ],
+    },
     twoRuns: {
       nodes: [
         cluster('twoRuns'),
@@ -139,8 +161,11 @@ function storedOverlaps(nodes: AppNode[]) {
   return found
 }
 
-function measure(nodes: AppNode[], links: Link[]) {
+/** `before` is the canvas as it was before layout, which decides the side a `related` link to the outside faces. */
+function measure(nodes: AppNode[], links: Link[], before: AppNode[]) {
   const nodeMap = byId(nodes)
+  const beforeMap = byId(before)
+  const startBox = (node: AppNode): Box => ({ ...absolutePosition(node, beforeMap), ...sizeOf(node, cardSize) })
   const box = (node: AppNode): Box => ({ ...absolutePosition(node, nodeMap), ...sizeOf(node, cardSize) })
 
   return nodes.filter(isCluster).map((group) => {
@@ -179,6 +204,62 @@ function measure(nodes: AppNode[], links: Link[]) {
       }
     }
 
+    // How each child links: inside the group, only outside it, or not at all.
+    const kinds = new Map(children.map((child) => [child.id, 'orphan' as 'inside' | 'outside' | 'orphan']))
+    const facing = new Map<string, number>()
+    const center = startBox(beforeMap.get(group.id)!).x + startBox(beforeMap.get(group.id)!).width / 2
+
+    for (const link of links) {
+      const source = lift(link.from)
+      const target = lift(link.to)
+
+      if (source && target) {
+        if (source !== target) for (const end of [source, target]) kinds.set(end.id, 'inside')
+
+        continue
+      }
+
+      const inside = source ?? target
+      const other = nodeMap.get(source ? link.to : link.from)
+
+      if (!inside || !other) continue
+
+      if (kinds.get(inside.id) === 'orphan') kinds.set(inside.id, 'outside')
+
+      const leftward = link.kind === 'blocks' ? !!target : startBox(beforeMap.get(other.id)!).x < center
+
+      facing.set(inside.id, (facing.get(inside.id) ?? 0) + (leftward ? 1 : -1))
+    }
+
+    const ofKind = (kind: string) => children.filter((child) => kinds.get(child.id) === kind).map(box)
+    const insideBoxes = ofKind('inside')
+    const orphanBoxes = ofKind('orphan')
+    const orphanFrame =
+      orphanBoxes.length > 1
+        ? orphanBoxes.reduce((frame, next) => {
+            const x = Math.min(frame.x, next.x)
+            const y = Math.min(frame.y, next.y)
+
+            return {
+              x,
+              y,
+              width: Math.max(frame.x + frame.width, next.x + next.width) - x,
+              height: Math.max(frame.y + frame.height, next.y + next.height) - y,
+            }
+          })
+        : undefined
+    // Connected cards sitting among the orphans, inside the frame around them.
+    const intruders = orphanFrame ? children.filter((child) => kinds.get(child.id) !== 'orphan' && intersect(box(child), orphanFrame)).length : 0
+    const outsideIds = children.filter((child) => kinds.get(child.id) === 'outside').map((child) => child.id)
+    // A card linked only outside faces its links when nothing linked inside the group sits further toward them.
+    const faced = outsideIds.filter((id) => {
+      const own = box(nodeMap.get(id)!)
+
+      return (facing.get(id) ?? 0) >= 0
+        ? insideBoxes.every((other) => own.x <= other.x)
+        : insideBoxes.every((other) => own.x + own.width >= other.x + other.width)
+    }).length
+
     const childBoxes = children.map(box)
     const overlaps = childBoxes.flatMap((a, i) =>
       childBoxes
@@ -206,6 +287,10 @@ function measure(nodes: AppNode[], links: Link[]) {
       backward,
       wrapped,
       overlaps: overlaps.map(Math.round),
+      orphans: orphanBoxes.length,
+      intruders,
+      outside: outsideIds.length,
+      faced,
     }
   })
 }
@@ -221,18 +306,18 @@ describe('square groups spike', () => {
     const stored: Record<string, Record<string, ReturnType<typeof storedOverlaps>>> = {}
 
     for (const [mode, settings] of Object.entries(MODES)) {
-      Object.assign(layoutSpike, { wrap: false, pack: 'grid', round: false, aspect: 1, wrapAspect: 1.6 }, settings)
+      Object.assign(layoutSpike, { wrap: false, pack: 'grid', round: false, orphans: false, aspect: 1, wrapAspect: 1.6 }, settings)
       results[mode] = {}
 
       for (const [name, saved] of Object.entries(inputs)) {
         const laidOut = await layOut(saved)
 
-        results[mode][name] = measure(laidOut, saved.links)
+        results[mode][name] = measure(laidOut, saved.links, normalize(saved.nodes, cardSize))
         stored[mode] = { ...stored[mode], [name]: storedOverlaps(laidOut) }
       }
     }
 
-    Object.assign(layoutSpike, { wrap: false, pack: 'grid', round: false, aspect: 1, wrapAspect: 1.6 })
+    Object.assign(layoutSpike, { wrap: false, pack: 'grid', round: false, orphans: false, aspect: 1, wrapAspect: 1.6 })
 
     if (process.env.SPIKE_OUT) writeFileSync(process.env.SPIKE_OUT, JSON.stringify({ results, stored }, null, 2))
 
