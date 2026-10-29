@@ -116,8 +116,9 @@ jobs:
         run: lute run install sqlite
         working-directory: .
 
+      # The repository's lint rules live in .lute/lints, outside the CLI's folder
       - name: Test
-        run: lute test
+        run: lute test . ../../.lute/lints
 
       - name: Build
         run: lute run build

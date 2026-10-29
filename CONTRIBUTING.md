@@ -24,7 +24,7 @@ Before committing CLI changes, run these:
 
 ```sh
 lute run analyze
-(cd workspace/orion-cli && lute test)
+(cd workspace/orion-cli && lute test . ../../.lute/lints)
 ```
 
 `lute run analyze` also checks the files `lute run generate` writes. It formats the docs reference with the docs site's Prettier, so run `npm ci` in `docs/` once first.
