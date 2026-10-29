@@ -146,5 +146,3 @@ test.case("looked-up refs carry their repository's id", function(assert)
 	local pull = result.records["pull:vocksel/orion#251"]
 	assert.eq(pull.ref.id, "1#251")
 end)
-
-return {}

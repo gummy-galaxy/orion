@@ -293,3 +293,15 @@ jobs:
 
       - name: Check Changelog Entries
         run: changewrite check
+
+  # A matrix job skipped by its condition reports one check under the bare job name instead of one per runner, so the
+  # ruleset requires this job rather than each runner's check. A skipped job counts as passing here too.
+  finish:
+    needs: [ci-loading, cli-analysis, cli, app, desktop, changelog]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fail When a Job Failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
