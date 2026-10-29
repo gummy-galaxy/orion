@@ -24,6 +24,7 @@ Every command also takes `--canvas <name>` to work on a specific canvas, and `--
 | [`orion log`](./log)               | Add to the canvas log, and list it                                   |
 | [`orion server`](./server)         | The server the app and agents talk to                                |
 | [`orion source`](./source)         | Sources that ingest imports work from                                |
+| [`orion session`](./session)       | Agent sessions started from cards                                    |
 | [`orion ingest`](./ingest)         | Import work from configured sources and refresh the cards they track |
 | [`orion media`](./media)           | Media on the canvas                                                  |
 | [`orion suggestion`](./suggestion) | Suggested groups for related cards                                   |

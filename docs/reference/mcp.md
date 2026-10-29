@@ -562,6 +562,30 @@ Runs `orion source matches`.
 | -------- | ------ | ------------------------------------------------------ |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
+## orion_session_start
+
+Open a new agent session, such as Claude Code in Claude Desktop, in the folder where a card's branch is checked out, with a preset's prompt filled in for the person to send. Nothing runs until they send it. orion session presets lists the presets that fit a card.
+
+Runs `orion session start`.
+
+| Argument | Type                      | Description                                                                                             |
+| -------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `id`     | id                        | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `canvas` | canvas                    | Canvas name. Omit to use the canvas selected in Orion.                                                  |
+| `preset` | work \| resolve-conflicts | What the session works on: work or resolve-conflicts (default work)                                     |
+| `dryRun` | boolean                   | Print the link without opening it                                                                       |
+
+## orion_session_presets
+
+List the presets that fit a card for orion session start, the agent that would run, and the folder it would start in, or what's in the way.
+
+Runs `orion session presets`.
+
+| Argument | Type   | Description                                                                                             |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------- |
+| `id`     | id     | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                  |
+
 ## orion_ingest
 
 Import work from configured sources and refresh the cards they track

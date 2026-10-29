@@ -567,6 +567,14 @@ A session ref keeps the session's state and its label, such as "Waiting on you i
 
 2026-10-26 · [#608](https://github.com/gummy-galaxy/orion/issues/608)
 
+### Starting a session hands the prompt to the agent's own app
+
+Starting an agent session from a card opens the agent's own app, such as Claude Desktop through a `claude://` link, in the folder where the card's branch is checked out, with a preset's prompt filled in. Nothing runs until the person reads and sends it there. Orion starts a session only when someone asks, from the app or `orion session start`, and finds the folder from the card's sessions and its sources rather than guessing. A preset is a Luau table in the CLI with the cards it fits and the prompt it builds. This settles "How far do links execute?" for agent sessions: on demand, and only as far as a prompt the person sends.
+
+**Why:** the point is to hand a card's work to an agent from the app, and the person keeps working in the agent's own app afterward. A prompt built from a card can carry text from a shared canvas, so the person reads it before anything runs. Running the agent headless can come later as another way to start, without changing presets or how a session attaches to its card.
+
+2026-10-28 · [#616](https://github.com/gummy-galaxy/orion/issues/616), [#293](https://github.com/gummy-galaxy/orion/issues/293)
+
 ### Programs Orion runs are chosen on this machine
 
 A person picks any program Orion runs, such as a Jira source's command or the agent `suggestion find` hands cards to, at the CLI. The command lives in this machine's config, never in a canvas's files, and no MCP tool takes one. The tool catalog refuses a tool that would. Setting up a source that runs nothing of its own choosing, such as GitHub or hop, is open to MCP. Jira's setup stays in the CLI until its command moves to local config. Adapter packages replace `--command` later, so a custom integration is something a person installs on purpose.

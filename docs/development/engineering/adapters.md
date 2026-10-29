@@ -22,6 +22,7 @@ An adapter's `source` field holds these. Only `collectAsync` is required.
 | `refFromUrl`          | Recognizes a pasted URL for this kind, for `--ref`.                                                                                                                                                |
 | `refFromKey`          | Builds a ref from `<source>:<key>` addressed to a source of this kind, for `--ref`.                                                                                                                |
 | `lookupRefsAsync`     | Looks up records for a batch of refs in as few calls as the service allows, for `orion card import`. A failure for one ref carries a reason.                                                       |
+| `findCheckoutAsync`   | Finds the folder where a repository's branch is checked out, for starting an agent session there. Hop answers from its worktrees.                                                                  |
 
 A ref keeps what the source said in its own terms in `details`, which only its adapter reads. The adapter also writes source-neutral facts beside it, such as `stateLabel`, `readiness`, and `checks`, and the app shows those as they are. A new source that fills in the same facts shows up on cards with no app change.
 
@@ -37,6 +38,7 @@ An adapter's `agent` field holds these. `name`, `listSessionsAsync`, and `readTu
 | `readTurnsAsync`    | Reads a session's last few turns, oldest first, with tool calls and their results left out. Returns nothing when the agent has no session with that id.                                             |
 | `resumeAsync`       | Sends a message to a session without opening it, and hands back each turn of the reply as it arrives. Nothing calls it yet, and its shape may change when headless resume lands.                    |
 | `startAsync`        | Starts a session in a folder with a prompt, and hands back its turns as `resumeAsync` does. Nothing calls it yet either.                                                                            |
+| `getStartUrl`       | Builds a link that opens a new session in the agent's own app, in a folder with a prompt filled in for the person to send. `orion session start` and the app's Agent section use it.                |
 
 Each session an adapter lists carries the same fields whatever the agent:
 
@@ -50,5 +52,7 @@ Each session an adapter lists carries the same fields whatever the agent:
 `orion ingest` turns an agent's sessions into `session` refs on the cards whose branch they ran on, the same way for every agent. It asks git for a session's repository when the adapter doesn't say, writes the state as `sessionState` and a label such as "Working in Claude Code" as `stateLabel`, and puts the folder, branch, and `isLive` in `details`. It stores nothing the session said. The app reads a session's turns live through `GET /api/sessions/turns`, which calls the adapter's `readTurnsAsync` on each request. A session never adds a card, and agents collect after every source, so a card a source adds in the same pass can take its sessions. Claude Code is the first agent adapter, in `adapters/claude/`.
 
 `orion server start` keeps session refs current between ingests. It watches each agent source's `watchPaths` and lists sessions again shortly after one changes, and once a minute regardless. It keeps each source's cache for as long as it runs, and writes the canvas only when a session ref's facts changed. Claude Code's adapter watches `sessions/`, where each running process records whether it's busy or idle, and rereads a transcript's tail only when the file's size or modification time moved.
+
+Starting a session from a card goes through `getStartUrl`. Orion picks a preset that fits the card, builds its prompt from the card, and finds the card's folder: the latest folder one of its sessions ran in that still has the branch checked out, and then any source's `findCheckoutAsync`. It opens the link on the machine running Orion and records nothing, since the new session attaches to the card by branch once the agent records it. Claude Code's link is `claude://code/new`, which Claude Desktop handles.
 
 Agent verbs read the agent's records each time Orion asks, so Orion keeps refs and derived state rather than a copy of a transcript. Reading those records cheaply is the adapter's job: Claude Code's, for example, reads only the end of each transcript and asks its running processes whether they're busy.

@@ -38,6 +38,7 @@ local resolveArguments = require("@root/aliases/resolveArguments")
 local reveal = require("@root/cli/reveal")
 local serializeCommands = require("@root/cli/serializeCommands")
 local server = require("@root/cli/server")
+local session = require("@root/cli/session")
 local source = require("@root/cli/source")
 local suggestion = require("@root/cli/suggestion")
 local theme = require("@root/cli/theme")
@@ -81,6 +82,7 @@ local COMMANDS: { [string]: Command } = {
 	ref = ref,
 	reveal = reveal,
 	server = server,
+	session = session,
 	source = source,
 	suggestion = suggestion,
 	theme = theme,
@@ -100,6 +102,7 @@ local COMMAND_ORDER = {
 	"log",
 	"server",
 	"source",
+	"session",
 	"ingest",
 	"media",
 	"suggestion",
