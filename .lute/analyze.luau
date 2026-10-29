@@ -7,7 +7,6 @@ local runScript = require("@cli/runScript")
 -- config live.
 local sources = {
 	"src",
-	"lints",
 	"cli.luau",
 	"loom.config.luau",
 	".config.luau",
