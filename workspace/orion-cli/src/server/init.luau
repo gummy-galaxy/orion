@@ -16,6 +16,7 @@ local readRuntime = require("@root/server/readRuntime")
 local removeRuntime = require("@root/server/removeRuntime")
 local routes = require("@root/server/routes")
 local serializeDerived = require("@root/server/serializeDerived")
+local sessions = require("@root/server/sessions")
 local storeTypes = require("@root/store/types")
 local sync = require("@root/server/sync")
 local types = require("@root/types")
@@ -86,6 +87,8 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		end
 	)
 
+	local sessionLoop = sessions.create(root, router.getActive)
+
 	local trustedPorts: { number } = {}
 	if devPort then
 		table.insert(trustedPorts, devPort)
@@ -132,6 +135,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	}
 	writeRuntime(root, runtime)
 	monitor.start()
+	sessionLoop.start()
 	task.delay(5, function()
 		while true do
 			syncLoop.tickAsync()
@@ -144,6 +148,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		port = running.port,
 		close = function()
 			assert(monitor).close()
+			sessionLoop.close()
 			running.close()
 			removeRuntime(root, runtime)
 			clearAllFocus()

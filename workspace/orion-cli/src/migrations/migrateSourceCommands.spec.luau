@@ -74,5 +74,3 @@ test.case("commands don't move while another build of Orion serves the folder", 
 	assert.eq(fs.exists(path.join(root, "commands.json")), false)
 	assert.strContains(fs.readFileToString(path.join(root, "canvas.json")), "acli")
 end)
-
-return {}

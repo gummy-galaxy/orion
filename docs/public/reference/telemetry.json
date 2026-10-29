@@ -1,0 +1,69 @@
+{
+  "events": {
+    "app_started": {
+      "properties": {
+        "card_count": "integer",
+        "startup_ms": "number"
+      }
+    },
+    "canvas_measured": {
+      "properties": {
+        "card_count": "integer",
+        "comment_count": "integer",
+        "group_count": "integer",
+        "link_count": "integer",
+        "media_count": "integer",
+        "nesting_depth": "integer",
+        "note_count": "integer",
+        "sticker_count": "integer"
+      }
+    },
+    "cli_command_ran": {
+      "properties": {
+        "command": "string",
+        "duration_ms": "number",
+        "exit_code": "integer",
+        "flags": "string",
+        "interactive": "boolean"
+      }
+    },
+    "features_used": {
+      "properties": {
+        "comment_tool_ms": "number",
+        "comments_left": "integer",
+        "groups_created": "integer",
+        "pan_tool_ms": "number",
+        "pastes": "integer",
+        "select_tool_ms": "number",
+        "session_ms": "number",
+        "sticker_tool_ms": "number",
+        "stickers_placed": "integer",
+        "tidies": "integer"
+      }
+    },
+    "mcp_tool_called": {
+      "properties": {
+        "client": "string",
+        "duration_ms": "number",
+        "failed": "boolean",
+        "tool": "string"
+      }
+    },
+    "performance_summarized": {
+      "properties": {
+        "card_count": "integer",
+        "group_count": "integer",
+        "max_ms": "number",
+        "metric": "string",
+        "p50_ms": "number",
+        "p95_ms": "number",
+        "sample_count": "integer"
+      }
+    },
+    "telemetry_opted_in": {
+      "properties": {
+        "surface": "string"
+      }
+    }
+  }
+}

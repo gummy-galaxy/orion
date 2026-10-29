@@ -16,7 +16,6 @@ local path = require("@std/path")
 local process = require("@std/process")
 
 local command = require("@cli/command")
-local runScript = require("@cli/runScript")
 local upsertCommentAsync = require("@cli/github/upsertCommentAsync")
 
 local MARKER = "<!-- orion-perf -->"
@@ -24,11 +23,10 @@ local MARKER = "<!-- orion-perf -->"
 local env = process.env
 local reportDir = path.resolve("workspace/orion-app/.perf")
 local reportPath = path.join(reportDir, "report.md")
-local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 
 -- Returns the runner that ran the run's perf job, or nil when the job never
 -- started, such as when a maintainer declined to run it.
-local function findPerfRunner(runId: string): string?
+local function findPerfRunner(repository: string, runId: string): string?
 	local listed = command({
 		"gh",
 		"api",
@@ -41,7 +39,7 @@ local function findPerfRunner(runId: string): string?
 	return string.match(listed.stdout, "[^\n]+")
 end
 
-local function findPullRequest(sha: string, headRepository: string): string?
+local function findPullRequest(repository: string, sha: string, headRepository: string): string?
 	local listed = command({
 		"gh",
 		"api",
@@ -55,21 +53,22 @@ local function findPullRequest(sha: string, headRepository: string): string?
 	return string.match(listed.stdout, "%d+")
 end
 
-runScript(function()
+local function reportPerf()
+	local repository = assert(env.GITHUB_REPOSITORY, "GITHUB_REPOSITORY is not set")
 	local pullRequest = env.PR
 	local runner = env.RUNNER_NAME
 	local runNumber = env.RUN_NUMBER or env.GITHUB_RUN_NUMBER
 
 	if env.RUN_ID then
 		local sha = assert(env.SHA, "SHA is not set")
-		runner = findPerfRunner(env.RUN_ID)
+		runner = findPerfRunner(repository, env.RUN_ID)
 
 		if not runner then
 			print(`Run {env.RUN_ID} never started its perf job, so there's nothing to publish.`)
 			return
 		end
 
-		pullRequest = findPullRequest(sha, assert(env.HEAD_REPOSITORY, "HEAD_REPOSITORY is not set"))
+		pullRequest = findPullRequest(repository, sha, assert(env.HEAD_REPOSITORY, "HEAD_REPOSITORY is not set"))
 
 		if not pullRequest then
 			print(`No open pull request has {sha} as its head, so there's nowhere to publish.`)
@@ -113,4 +112,6 @@ runScript(function()
 	local posted, problem =
 		upsertCommentAsync(command, repository, pullRequest, MARKER, `{MARKER}\n{report}\n{footer}\n`)
 	assert(posted, problem)
-end)
+end
+
+return reportPerf

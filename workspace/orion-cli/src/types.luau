@@ -53,6 +53,9 @@ export type Ref = {
 	-- The revision the facts describe, which an action taken from them, such as
 	-- a merge, must still match.
 	head: string?,
+	-- An agent session's state: working, or waiting on you. What the session
+	-- said is read live from the agent and never stored.
+	sessionState: string?,
 }
 
 -- Mirrors a node as the app saves it. `data` stays raw JSON so fields the app
@@ -84,6 +87,8 @@ export type Source = {
 	include: { string }?,
 	exclude: { string }?,
 	browse: string?,
+	-- Where an agent keeps its records, such as `~/.claude` for Claude Code.
+	dir: string?,
 }
 
 -- A CI job whose failures cards leave out, across every card in its repository.
@@ -155,4 +160,4 @@ export type Focus = {
 	updatedAt: string?,
 }
 
-return {}
+return nil

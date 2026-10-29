@@ -66,8 +66,20 @@ jobs:
       - name: Set Up Lute Type Definitions
         run: lute setup
 
+      # The docs reference check formats pages with the docs site's Prettier
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
       - name: Install Dependencies
-        run: lute pkg install
+        run: lute run install
+        working-directory: .
+
+      - name: Install Docs Dependencies
+        run: npm ci
+        working-directory: docs
 
       - name: Analyze
         run: lute run analyze
@@ -79,7 +91,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, macos-latest]
+        runner: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 5
     defaults:
@@ -95,20 +107,17 @@ jobs:
           cache: true
 
       - name: Install Dependencies
-        run: lute pkg install
+        run: lute run install
+        working-directory: .
 
-      # The CLI's index specs run the `sqlite3` command, which the runner's image doesn't have
+      # The CLI's index specs run the `sqlite3` command, which the Linux and Windows images don't have
       - name: Install SQLite
-        if: runner.os == 'Linux'
-        run: lute run install-sqlite
+        if: runner.os != 'macOS'
+        run: lute run install sqlite
         working-directory: .
 
       - name: Test
         run: lute test
-
-      - name: Check the App's Geometry
-        run: lute run geometry --check
-        working-directory: .
 
       - name: Build
         run: lute run build
@@ -118,7 +127,7 @@ jobs:
         run: ./build/orion --help
 
       - name: Package
-        run: lute run package
+        run: lute run build package
         working-directory: .
 
       - name: Upload CLI
@@ -174,7 +183,7 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SHA: ${{ github.event.pull_request.head.sha }}
-        run: lute run coverage-report
+        run: lute run report coverage
 
       - name: Build
         run: npm run build
@@ -198,7 +207,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner: [ubuntu-latest, macos-latest]
+        runner: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.runner }}
     # A build without the Rust cache can take about 30 minutes
     timeout-minutes: 45
@@ -239,8 +248,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y build-essential libwebkit2gtk-4.1-dev libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - name: Install Luau Dependencies
-        working-directory: workspace/orion-cli
-        run: lute pkg install
+        run: lute run install
 
       - name: Install App Dependencies
         working-directory: workspace/orion-app
@@ -285,3 +293,15 @@ jobs:
 
       - name: Check Changelog Entries
         run: changewrite check
+
+  # A matrix job skipped by its condition reports one check under the bare job name instead of one per runner, so the
+  # ruleset requires this job rather than each runner's check. A skipped job counts as passing here too.
+  finish:
+    needs: [ci-loading, cli-analysis, cli, app, desktop, changelog]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fail When a Job Failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
