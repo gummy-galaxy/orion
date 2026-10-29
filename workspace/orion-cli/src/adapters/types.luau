@@ -66,6 +66,19 @@ export type SourceVerbs = {
 	-- Looks up records for resolved refs of this kind, in as few calls as the
 	-- adapter allows. Failures carry a reason.
 	lookupRefsAsync: ((refs: { ResolvedRef }, context: Context, run: CommandRunner) -> LookupResult)?,
+	-- The folder where `branch` of `repo`, as `owner/name`, is checked out, or
+	-- nil when this source knows of none. `command` is the one this machine
+	-- runs for the source, if any.
+	findCheckoutAsync: ((
+		Source,
+		CommandRunner,
+		command: { string }?,
+		repo: string,
+		branch: string
+	) -> string?)?,
+	-- The main clone of `repo`, as `owner/name`, or nil when this source knows
+	-- of none.
+	findCloneAsync: ((Source, CommandRunner, command: { string }?, repo: string) -> string?)?,
 }
 
 -- working: the agent is running a turn. waiting: it's your move, because the
@@ -101,7 +114,9 @@ export type Session = {
 }
 
 export type ResumeRequest = { sessionId: string, message: string }
-export type StartRequest = { cwd: string, prompt: string }
+-- `cwd` is nil when Orion knows no folder for the work, and the agent's app
+-- asks for one.
+export type StartRequest = { cwd: string?, prompt: string }
 
 -- The verbs of an adapter that finds an agent tool's sessions, such as Claude
 -- Code's, and talks to them. Each one reads the agent's own records, so Orion
@@ -128,6 +143,10 @@ export type AgentVerbs = {
 	-- Starts a session in a folder with a prompt, calls `onTurn` as
 	-- `resumeAsync` does, and returns the new session. Nothing calls this yet.
 	startAsync: ((Source, StartRequest, onTurn: (Turn) -> ()) -> Session)?,
+	-- A link that opens a new session in the agent's own app, in a folder with
+	-- the prompt filled in for the person to send. The session attaches to its
+	-- card by branch once the agent records it.
+	getStartUrl: ((Source, StartRequest) -> string)?,
 }
 
 -- One kind of source. An adapter has source verbs, agent verbs, or both, and

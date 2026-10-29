@@ -58,6 +58,25 @@ It reads Claude Code's data folder, `~/.claude` unless `CLAUDE_CONFIG_DIR` or `-
 
 The ref records whose move it is. `sessionState` is `working` while Claude Code runs a turn, and `waiting` once it's your move, whether the session finished its turn or stopped on a permission prompt. `stateLabel` says the same in words. Nothing a session said is stored: the canvas's files keep only its state, and the app reads the session's turns from Claude Code when it shows them. Agents can't add a Claude Code source through MCP, since it reads every transcript on the machine.
 
+### Start a session from a card
+
+Select a card and choose a preset under **Agent** in the details panel to hand its work to Claude Code. Orion opens a new Claude Code session in Claude Desktop with a prompt built from the card. Desktop asks you to confirm the folder, and nothing runs until you send the prompt.
+
+```sh
+orion session presets <card>
+orion session start <card> --preset resolve-conflicts
+```
+
+**Work on this card** fits every card, and its prompt carries the card's title, note, and links. **Resolve conflicts** appears when the card's pull request conflicts with its base branch, and asks the agent to merge the base in, resolve, run the project's checks, and push, without rebasing or force-pushing.
+
+Any card can start a session, and Orion picks where:
+
+- **The card's checkout**, when a folder has its branch checked out: the latest folder one of its sessions ran in, or a worktree from your hop source.
+- **The repository's clone**, when nothing has the branch checked out yet. Orion finds the clone through hop or through any session in that repository, and the prompt asks the agent to make a worktree for the card's branch, or a new branch when it has none.
+- **No folder**, when Orion knows no clone. Desktop asks where to work, and the prompt names the repository.
+
+With a Claude Code source on the canvas, the new session shows up on the card like any other. Without one, the session still starts, and adding the source puts it on the card. `--dry-run` prints the link without opening it.
+
 ## Organize what came in
 
 `orion suggestion find` proposes groups for ungrouped cards by following links, Jira epics, shared branches, and refs. To have an agent name the groups and split them by outcome, pass its command as a JSON array with `--command`, such as `--command '["claude","-p","--output-format","json"]'`. Orion sends the cards as a prompt on stdin and reads the groups from the JSON it prints. The agent's CLI must already be signed in, and if it fails or replies with no usable groups, Orion keeps the groups it found itself.

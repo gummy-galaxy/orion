@@ -4,8 +4,8 @@
 
 These pages are generated from the code that defines each surface, so they always match what Orion accepts.
 
-- [CLI](./cli/): the 22 commands of `orion`, with every option they take.
-- [MCP](./mcp): the 60 tools `orion mcp start` serves to agents, each running a CLI command.
+- [CLI](./cli/): the 23 commands of `orion`, with every option they take.
+- [MCP](./mcp): the 62 tools `orion mcp start` serves to agents, each running a CLI command.
 - [Telemetry](./telemetry): the 7 events Orion sends once someone opts in to sharing usage data.
 
 The syntax commands take inside their arguments:
