@@ -1,10 +1,12 @@
 --[[
-	Compares opening a canvas and answering `orion next` from its SQLite index
-	with reading every file. Writes a generated canvas of cards in groups,
-	chained by links, to a scratch folder, then times each side several times
-	and prints the medians in milliseconds.
+	Times parts of the CLI on generated data and prints the medians in
+	milliseconds.
 
-	lute run bench-index [--cards <count>] [--runs <count>]
+	lute run bench index [--cards <count>] [--runs <count>]
+		Compares opening a canvas and answering `orion next` from its SQLite
+		index with reading every file. Writes a generated canvas of cards in
+		groups, chained by links, to a scratch folder, then times each side
+		several times.
 ]]
 local fs = require("@std/fs")
 local json = require("@std/json")
@@ -85,7 +87,7 @@ local function measure(runs: number, run: () -> ()): number
 	return times[math.ceil(#times / 2)]
 end
 
-runScript(function()
+local function benchIndex()
 	local cards = getOption("cards", 5000)
 	local runs = getOption("runs", 7)
 	local dir = tostring(path.join(system.tmpdir(), `orion-bench-index-{process.pid()}`))
@@ -109,4 +111,15 @@ runScript(function()
 	print(`  from the index        {math.floor(fromIndex)} ms`)
 
 	fs.removeDirectory(dir, { recursive = true })
+end
+
+local BENCHMARKS: { [string]: () -> () } = {
+	index = benchIndex,
+}
+
+runScript(function()
+	local name = process.args[2]
+	local benchmark = BENCHMARKS[name or ""]
+	assert(benchmark, `unknown benchmark {name}; try lute run bench index`)
+	benchmark()
 end)

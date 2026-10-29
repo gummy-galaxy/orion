@@ -10,6 +10,9 @@ export type SourceReport = { id: string, added: number, updated: number, linked:
 -- it failed.
 export type RefreshReport = { kind: string, report: githubTypes.Report?, failed: string? }
 export type Report = { sources: { SourceReport }, refreshes: { RefreshReport }? }
+-- What session collection remembers between calls: each folder's repository,
+-- or false when it has none, and the adapter's own cache.
+export type SessionCache = { repos: { [string]: string | false }, agent: { [string]: any } }
 export type Result = { source: Source, report: SourceReport, records: { Record }?, order: number? }
 
-return {}
+return nil

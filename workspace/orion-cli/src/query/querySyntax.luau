@@ -1,8 +1,9 @@
 --[[
 	The grammar `--where` and `--sort` take, as data. parseExpression reads its
 	fields and operators from here, `orion help node query` lists them, and
-	`lute run docs` writes the reference page from it, so all three describe
-	what the parser accepts. Every example has to parse; the spec checks.
+	`lute run generate docs` writes the reference page from it, so all three
+	describe what the parser accepts. Every example has to parse; the spec
+	checks.
 ]]
 
 local fieldValues = require("@root/fieldValues")

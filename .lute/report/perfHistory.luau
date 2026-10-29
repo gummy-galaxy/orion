@@ -11,7 +11,6 @@ local path = require("@std/path")
 local process = require("@std/process")
 
 local getPerfEvents = require("@cli/perf/getPerfEvents")
-local runScript = require("@cli/runScript")
 
 local DEFAULT_HOST = "https://us.i.posthog.com"
 local DISTINCT_ID = "orion-ci"
@@ -23,7 +22,7 @@ local function warn(message: string)
 	print(`::warning title=Perf history::{message}`)
 end
 
-runScript(function()
+local function recordPerfHistory()
 	local token = env.POSTHOG_TOKEN
 
 	if token == nil or token == "" then
@@ -83,4 +82,6 @@ runScript(function()
 	end
 
 	print(`Recorded {#events} perf events in PostHog.`)
-end)
+end
+
+return recordPerfHistory

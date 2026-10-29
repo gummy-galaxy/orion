@@ -10,4 +10,4 @@ export type JiraIssue = {
 	updated: string?,
 }
 
-return {}
+return nil

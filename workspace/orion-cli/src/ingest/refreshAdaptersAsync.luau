@@ -66,12 +66,13 @@ local function refreshAdaptersAsync(
 
 	for _, kind in kinds do
 		local succeeded, adapter = pcall(getAdapter, kind)
+		local refreshAsync = if succeeded and adapter.source then adapter.source.refreshAsync else nil
 
-		if not succeeded or not adapter.refreshAsync then
+		if not refreshAsync then
 			continue
 		end
 
-		local didFetch, result = pcall(adapter.refreshAsync, doc, run, { now = now })
+		local didFetch, result = pcall(refreshAsync, doc, run, { now = now })
 		table.insert(pending, {
 			kind = kind,
 			apply = if didFetch then result else nil,
