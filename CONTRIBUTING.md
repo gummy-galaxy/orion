@@ -10,7 +10,7 @@ Read [the charter](docs/development/charter.md) for where Orion is headed and [t
 
 ## CLI
 
-The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang/lute). Scripts in `.lute/` run from the repository root, and `lute test` runs from `workspace/orion-cli/`:
+The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang/lute). Scripts in `.lute/` and `lute test` run from the repository root:
 
 ```sh
 rokit install
@@ -24,7 +24,7 @@ Before committing CLI changes, run these:
 
 ```sh
 lute run analyze
-(cd workspace/orion-cli && lute test . ../../.lute/lints)
+lute test workspace/orion-cli .lute
 ```
 
 `lute run analyze` also checks the files `lute run generate` writes. It formats the docs reference with the docs site's Prettier, so run `npm ci` in `docs/` once first.
