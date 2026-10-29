@@ -6,7 +6,16 @@ afterEach(() => {
 })
 
 test('asks the server about the card on its canvas', async () => {
-  const options = { presets: [{ id: 'work', label: 'Work on this card' }], agent: 'Claude Code', folder: '/w', problem: null }
+  const options = {
+    presets: [{ id: 'work', label: 'Work on this card' }],
+    agent: 'Claude Code',
+    attaches: true,
+    repo: 'owner/repo',
+    branch: 'agent/fix',
+    place: 'checkout',
+    folder: '/w',
+    problem: null,
+  }
   const fetch = vi.fn(() => Promise.resolve(Response.json(options)))
 
   vi.stubGlobal('fetch', fetch)

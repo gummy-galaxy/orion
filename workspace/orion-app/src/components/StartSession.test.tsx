@@ -9,6 +9,10 @@ const ready: StartOptions = {
     { id: 'resolve-conflicts', label: 'Resolve conflicts' },
   ],
   agent: 'Claude Code',
+  attaches: true,
+  repo: 'owner/orion',
+  branch: 'agent/fix',
+  place: 'checkout',
   folder: '/Users/me/git/orion-fix',
   problem: null,
 }
@@ -20,15 +24,20 @@ test('offers each preset that fits and says where the agent opens', () => {
 
   expect(html).toContain('>Work on this card</button>')
   expect(html).toContain('>Resolve conflicts</button>')
-  expect(html).toContain('Opens Claude Code in <b title="/Users/me/git/orion-fix">orion-fix</b>')
+  expect(html).toContain('Opens Claude Code in <b title="/Users/me/git/orion-fix">orion-fix</b>.')
   expect(html).not.toContain('disabled')
 })
 
-test('says what is in the way and keeps the presets from starting', () => {
-  const html = renderToStaticMarkup(
-    <StartSession options={{ ...ready, folder: null, problem: 'No folder has agent/fix checked out.' }} start={start} />,
-  )
+test('starts in the clone to make a worktree when the branch has no checkout', () => {
+  const html = renderToStaticMarkup(<StartSession options={{ ...ready, place: 'clone', folder: '/Users/me/git/orion' }} start={start} />)
 
-  expect(html).toContain('No folder has agent/fix checked out.')
-  expect(html.match(/disabled=""/g)).toHaveLength(2)
+  expect(html).toContain('<b title="/Users/me/git/orion">orion</b> to make a worktree for agent/fix.')
+})
+
+test('starts with no folder, and says how to see the session on the card', () => {
+  const html = renderToStaticMarkup(<StartSession options={{ ...ready, place: 'none', folder: null, attaches: false }} start={start} />)
+
+  expect(html).toContain('Opens Claude Code, which asks where to work.')
+  expect(html).toContain('Add a Claude Code source to see it on this card.')
+  expect(html).not.toContain('disabled')
 })

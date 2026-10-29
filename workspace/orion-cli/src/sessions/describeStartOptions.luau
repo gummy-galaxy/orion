@@ -14,7 +14,11 @@ local function describeStartOptions(options: StartOptions): json.Object
 
 	return json.object({
 		presets = presets,
-		agent = options.agent or json.null,
+		agent = options.agent,
+		attaches = options.attaches,
+		repo = options.repo or json.null,
+		branch = options.branch or json.null,
+		place = options.place,
 		folder = options.folder or json.null,
 		problem = options.problem or json.null,
 	})

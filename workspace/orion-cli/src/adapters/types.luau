@@ -76,6 +76,9 @@ export type SourceVerbs = {
 		repo: string,
 		branch: string
 	) -> string?)?,
+	-- The main clone of `repo`, as `owner/name`, or nil when this source knows
+	-- of none.
+	findCloneAsync: ((Source, CommandRunner, command: { string }?, repo: string) -> string?)?,
 }
 
 -- working: the agent is running a turn. waiting: it's your move, because the
@@ -111,7 +114,9 @@ export type Session = {
 }
 
 export type ResumeRequest = { sessionId: string, message: string }
-export type StartRequest = { cwd: string, prompt: string }
+-- `cwd` is nil when Orion knows no folder for the work, and the agent's app
+-- asks for one.
+export type StartRequest = { cwd: string?, prompt: string }
 
 -- The verbs of an adapter that finds an agent tool's sessions, such as Claude
 -- Code's, and talks to them. Each one reads the agent's own records, so Orion

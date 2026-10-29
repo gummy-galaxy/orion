@@ -40,7 +40,6 @@ test.case("work fits every card and asks for the card's work", function(assert)
 	assert.strContains(prompt, "Fix the flaky test")
 	assert.strContains(prompt, "It fails on Windows.")
 	assert.strContains(prompt, "- https://github.com/owner/repo/pull/12")
-	assert.strContains(prompt, "agent/fix")
 	assert.eq(prompt:find("Earlier work", 1, true), nil)
 end)
 
@@ -53,4 +52,5 @@ test.case("resolve conflicts fits only a pull request with conflicts", function(
 	assert.eq(resolve.appliesTo(card()), false)
 	assert.strContains(prompt, "https://github.com/owner/repo/pull/12 has merge conflicts")
 	assert.strContains(prompt, "into agent/fix, without rebasing or force-pushing")
+	assert.strContains(resolve.buildPrompt(card("conflict"), nil), "into its branch")
 end)

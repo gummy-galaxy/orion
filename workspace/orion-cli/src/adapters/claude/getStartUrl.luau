@@ -11,11 +11,17 @@ local MAX_PROMPT_LENGTH = 14000
 --[[
 	A Claude Desktop link that opens a new Claude Code session in the folder
 	with the prompt filled in. Desktop asks the person to confirm the folder,
-	and nothing runs until they send the prompt.
+	or to pick one when there's none, and nothing runs until they send the
+	prompt.
 ]]
 local function getStartUrl(_source: Source, request: StartRequest): string
-	local prompt = request.prompt:sub(1, MAX_PROMPT_LENGTH)
-	return `claude://code/new?folder={encodeUrlComponent(request.cwd)}&q={encodeUrlComponent(prompt)}`
+	local query = `q={encodeUrlComponent(request.prompt:sub(1, MAX_PROMPT_LENGTH))}`
+
+	if request.cwd then
+		query = `folder={encodeUrlComponent(request.cwd)}&{query}`
+	end
+
+	return `claude://code/new?{query}`
 end
 
 return getStartUrl

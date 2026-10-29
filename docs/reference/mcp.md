@@ -564,7 +564,7 @@ Runs `orion source matches`.
 
 ## orion_session_start
 
-Open a new agent session, such as Claude Code in Claude Desktop, in the folder where a card's branch is checked out, with a preset's prompt filled in for the person to send. Nothing runs until they send it. orion session presets lists the presets that fit a card.
+Open a new agent session on a card's work, such as Claude Code in Claude Desktop, with a preset's prompt filled in for the person to send. It starts where the card's branch is checked out, or else in the repository's clone with the prompt asking for a worktree. Nothing runs until they send it. orion session presets lists the presets that fit a card and where it would start.
 
 Runs `orion session start`.
 

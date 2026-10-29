@@ -2,6 +2,7 @@ local cli = require("@batteries/cli")
 
 local addIdPositional = require("@root/cli/addIdPositional")
 local context = require("@root/cli/context")
+local describeStart = require("@root/sessions/describeStart")
 local describeStartOptions = require("@root/sessions/describeStartOptions")
 local getItem = require("@root/graph/getItem")
 local getRequired = require("@root/cli/getRequired")
@@ -42,11 +43,7 @@ return table.freeze({
 			table.insert(lines, `{preset.id}: {preset.label}`)
 		end
 
-		if startOptions.problem then
-			table.insert(lines, startOptions.problem)
-		else
-			table.insert(lines, `Starts {startOptions.agent} in {startOptions.folder}.`)
-		end
+		table.insert(lines, startOptions.problem or describeStart(startOptions))
 
 		local described = describeStartOptions(startOptions)
 		described.id = id

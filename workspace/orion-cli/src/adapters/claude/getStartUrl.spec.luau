@@ -18,3 +18,7 @@ test.case("a long prompt is cut to what Desktop keeps", function(assert)
 	local url = getStartUrl(SOURCE, { cwd = "/work", prompt = string.rep("a", 20000) })
 	assert.eq(#url, #"claude://code/new?folder=%2Fwork&q=" + 14000)
 end)
+
+test.case("with no folder, Desktop asks for one", function(assert)
+	assert.eq(getStartUrl(SOURCE, { prompt = "Go" }), "claude://code/new?q=Go")
+end)

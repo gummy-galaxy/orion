@@ -1,7 +1,6 @@
 local fs = require("@std/fs")
-local json = require("@std/json")
 
-local getCommandJsonAsync = require("@root/adapters/getCommandJsonAsync")
+local listWorktreesAsync = require("@root/adapters/hop/listWorktreesAsync")
 local types = require("@root/types")
 
 type CommandRunner = types.CommandRunner
@@ -19,25 +18,9 @@ local function findCheckoutAsync(
 	repo: string,
 	branch: string
 ): string?
-	local binary = if command then command[1] else "hop"
-	local succeeded, value = pcall(getCommandJsonAsync, run, { binary, "list", "--json" })
-	local list = if succeeded then json.asObject(value) else nil
-
-	for _, raw in json.asArray(if list then list.worktrees else nil) or {} do
-		local tree = json.asObject(raw)
-		local repository = if tree then json.asObject(tree.repository) else nil
-		local remote = if repository then repository.remote else nil
-		local folder = if tree then tree.path else nil
-
-		if
-			tree
-			and tree.branch == branch
-			and type(remote) == "string"
-			and remote:lower() == repo:lower()
-			and type(folder) == "string"
-			and fs.exists(folder)
-		then
-			return folder
+	for _, checkout in listWorktreesAsync(run, command) do
+		if checkout.branch == branch and checkout.repo:lower() == repo:lower() and fs.exists(checkout.folder) then
+			return checkout.folder
 		end
 	end
 

@@ -15,7 +15,7 @@ local function isConflicting(item: Item): boolean
 	return pull ~= nil and pull.readiness == "conflict" and not pull.isDone
 end
 
-local function buildWorkPrompt(item: Item, branch: string): string
+local function buildWorkPrompt(item: Item): string
 	local lines = { `Work on this card from Orion: {getText(item.data.label) or "Untitled"}` }
 	local note = getText(item.data.note)
 
@@ -41,18 +41,16 @@ local function buildWorkPrompt(item: Item, branch: string): string
 		end
 	end
 
-	table.insert(lines, "")
-	table.insert(lines, `This folder has {branch} checked out.`)
 	return table.concat(lines, "\n")
 end
 
-local function buildResolvePrompt(item: Item, branch: string): string
+local function buildResolvePrompt(item: Item, branch: string?): string
 	local pull = findRef(item, "pull")
-	local name = if pull then pull.url or pull.key else branch
+	local name = if pull then pull.url or pull.key else "This pull request"
 
 	return table.concat({
 		`{name} has merge conflicts with its base branch.`,
-		`Merge the latest base branch into {branch}, without rebasing or force-pushing.`,
+		`Merge the latest base branch into {branch or "its branch"}, without rebasing or force-pushing.`,
 		"Resolve each conflict so both sides' changes still hold, run the project's checks, then commit and push.",
 		"If a conflict needs a decision the code can't settle, stop and ask.",
 	}, " ")

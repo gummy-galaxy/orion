@@ -9,7 +9,12 @@ type CommandRunner = types.CommandRunner
 type Doc = types.Doc
 type Item = types.Item
 type Preset = sessionTypes.Preset
+type Source = types.Source
 type StartOptions = sessionTypes.StartOptions
+
+-- The agent that starts sessions when the canvas has no agent source of its
+-- own. Its sessions reach the card once someone adds the source.
+local DEFAULT_AGENT_SOURCE: Source = { id = "claude", kind = "claude" }
 
 -- The branch the card's work is on, from its branch ref or its pull request.
 local function getBranch(item: Item): string?
@@ -23,8 +28,8 @@ end
 
 --[[
 	What starting an agent session from the card would do: the presets that fit
-	it, the agent that would run, and the folder it would start in. `problem`
-	says what's in the way when one of those is missing.
+	it, the agent that would run, and where it would start. A session can start
+	from any card, so `problem` is set only for one that isn't a card.
 ]]
 local function getStartOptionsAsync(
 	doc: Doc,
@@ -40,37 +45,38 @@ local function getStartOptionsAsync(
 		end
 	end
 
-	local options: StartOptions = { presets = fitting }
+	local source = DEFAULT_AGENT_SOURCE
+	local attaches = false
 
-	for _, source in doc.settings.sources do
-		local succeeded, adapter = pcall(getAdapter, source.kind)
+	for _, candidate in doc.settings.sources do
+		local succeeded, adapter = pcall(getAdapter, candidate.kind)
 
 		if succeeded and adapter.agent and adapter.agent.getStartUrl then
-			options.agent = adapter.agent.name
-			options.source = source
+			source = candidate
+			attaches = true
 			break
 		end
 	end
 
-	local repo = item.data.repo
+	local repo = if type(item.data.repo) == "string" and item.data.repo ~= "" then item.data.repo else nil
 	local branch = getBranch(item)
-	options.branch = branch
+	local folder, place = nil, "none"
 
-	if #fitting == 0 then
-		options.problem = "Only cards can start sessions."
-	elseif not options.source then
-		options.problem = "Add an agent source first, such as with orion source add claude."
-	elseif type(repo) ~= "string" or not branch then
-		options.problem = "This card needs a branch or pull request to start from."
-	else
-		options.folder = findStartFolderAsync(doc, item, repo, branch, run, commands)
-
-		if not options.folder then
-			options.problem = `No folder has {branch} checked out. Check it out, then try again.`
-		end
+	if #fitting > 0 then
+		folder, place = findStartFolderAsync(doc, item, repo, branch, run, commands)
 	end
 
-	return options
+	return {
+		presets = fitting,
+		agent = assert(getAdapter(source.kind).agent).name,
+		source = source,
+		attaches = attaches,
+		repo = repo,
+		branch = branch,
+		place = place,
+		folder = folder,
+		problem = if #fitting == 0 then "Only cards can start sessions." else nil,
+	}
 end
 
 return getStartOptionsAsync

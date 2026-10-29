@@ -60,14 +60,22 @@ The ref records whose move it is. `sessionState` is `working` while Claude Code 
 
 ### Start a session from a card
 
-Select a card and choose a preset under **Agent** in the details panel to hand its work to Claude Code. Orion opens a new Claude Code session in Claude Desktop, in the folder where the card's branch is checked out, with a prompt built from the card. Desktop asks you to confirm the folder, and nothing runs until you send the prompt. The session then shows up on the card like any other.
+Select a card and choose a preset under **Agent** in the details panel to hand its work to Claude Code. Orion opens a new Claude Code session in Claude Desktop with a prompt built from the card. Desktop asks you to confirm the folder, and nothing runs until you send the prompt.
 
 ```sh
 orion session presets <card>
 orion session start <card> --preset resolve-conflicts
 ```
 
-**Work on this card** fits every card, and its prompt carries the card's title, note, and links. **Resolve conflicts** appears when the card's pull request conflicts with its base branch, and asks the agent to merge the base in, resolve, run the project's checks, and push, without rebasing or force-pushing. Orion looks for the card's folder where its last session ran, and then in hop's worktrees when you have a hop source. When neither has the branch checked out, the card says so instead of guessing. `--dry-run` prints the link without opening it.
+**Work on this card** fits every card, and its prompt carries the card's title, note, and links. **Resolve conflicts** appears when the card's pull request conflicts with its base branch, and asks the agent to merge the base in, resolve, run the project's checks, and push, without rebasing or force-pushing.
+
+Any card can start a session, and Orion picks where:
+
+- **The card's checkout**, when a folder has its branch checked out: the latest folder one of its sessions ran in, or a worktree from your hop source.
+- **The repository's clone**, when nothing has the branch checked out yet. Orion finds the clone through hop or through any session in that repository, and the prompt asks the agent to make a worktree for the card's branch, or a new branch when it has none.
+- **No folder**, when Orion knows no clone. Desktop asks where to work, and the prompt names the repository.
+
+With a Claude Code source on the canvas, the new session shows up on the card like any other. Without one, the session still starts, and adding the source puts it on the card. `--dry-run` prints the link without opening it.
 
 ## Organize what came in
 

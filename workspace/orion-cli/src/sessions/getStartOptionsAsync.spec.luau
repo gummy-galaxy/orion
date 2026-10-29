@@ -93,17 +93,64 @@ test.case("a session folder on another branch gives way to hop's worktree", func
 	fs.removeDirectory(hopFolder, { recursive = true })
 end)
 
-test.case("each missing piece says what's in the way", function(assert)
+test.case("a card with no checkout starts in its repository's clone", function(assert)
+	local hopFolder = testing.directory("start-session-clone")
+	fs.createDirectory(hopFolder, { makeParents = true })
 	local item = card()
-	local noBranch = testing.task("loose", "Loose", "todo", nil, { repo = "owner/repo" })
+	local function run(argv: { string })
+		local worktree = json.object({
+			path = hopFolder,
+			branch = "main",
+			primary = true,
+			repository = json.object({ remote = "owner/repo" }),
+		})
+		return testing.result(argv[1] == "hop", json.serialize(json.object({ worktrees = { worktree } })))
+	end
 
-	assert.strContains(getStartOptionsAsync(canvas(item, {}), item, runner("main"), {}).problem or "", "agent source")
-	assert.strContains(
-		getStartOptionsAsync(canvas(noBranch, { "claude" }), noBranch, runner("main"), {}).problem or "",
-		"needs a branch"
-	)
+	local options = getStartOptionsAsync(canvas(item, { "claude", "hop" }), item, run, {})
 
-	local options = getStartOptionsAsync(canvas(item, { "claude", "hop" }), item, runner("main"), {})
+	assert.eq(options.place, "clone")
+	assert.eq(options.folder, hopFolder)
+	assert.eq(options.problem, nil)
+	fs.removeDirectory(hopFolder, { recursive = true })
+end)
+
+test.case("another card's session in the repository finds its clone", function(assert)
+	local clone = testing.directory("start-session-common")
+	fs.createDirectory(`{clone}/.git`, { makeParents = true })
+	local item = card()
+	local other = testing.task("other", "Other", "active", nil, {
+		repo = "Owner/Repo",
+		refs = {
+			json.object({ source = "claude", kind = "session", key = "Other", details = json.object({ cwd = clone }) }),
+		},
+	})
+	local doc = canvas(item, { "claude" })
+	table.insert(doc.nodes, other)
+	local function run(argv: { string })
+		local isCommonDir = argv[1] == "git" and argv[4] == "rev-parse"
+		return testing.result(isCommonDir, `{clone}/.git\n`)
+	end
+
+	local options = getStartOptionsAsync(doc, item, run, {})
+
+	assert.eq(options.place, "clone")
+	assert.eq(options.folder, clone)
+	fs.removeDirectory(clone, { recursive = true })
+end)
+
+test.case("any card can start, with Claude Code when the canvas has no agent", function(assert)
+	local item = card()
+	local loose = testing.task("loose", "Loose", "todo")
+	local options = getStartOptionsAsync(canvas(item, {}), item, runner("main"), {})
+
+	assert.eq(options.agent, "Claude Code")
+	assert.eq(options.attaches, false)
+	assert.eq(options.place, "none")
 	assert.eq(options.folder, nil)
-	assert.strContains(options.problem or "", "No folder has agent/fix checked out")
+	assert.eq(options.problem, nil)
+	assert.eq(getStartOptionsAsync(canvas(loose, {}), loose, runner("main"), {}).problem, nil)
+
+	local group = testing.group("g", "Group")
+	assert.strContains(getStartOptionsAsync(canvas(group, {}), group, runner("main"), {}).problem or "", "Only cards")
 end)

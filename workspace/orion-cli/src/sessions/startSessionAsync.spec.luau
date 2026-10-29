@@ -55,20 +55,26 @@ test.case("starting a session opens the agent's link for the card", function(ass
 	fs.removeDirectory(folder, { recursive = true })
 end)
 
-test.case("a preset that doesn't fit, or a card that can't start, fails plainly", function(assert)
-	local folder = testing.directory("start-session-refuse")
-	fs.createDirectory(folder, { makeParents = true })
-	local item = card(folder)
+test.case("with no folder, the prompt says where the work is", function(assert)
+	local item = testing.task("fix", "Fix", "active", nil, { repo = "owner/repo" })
 	local doc = testing.createDoc({ item })
 	local function run()
-		return testing.result(true, "agent/fix\n")
+		return testing.result(false, "")
 	end
 
-	local _, noAgent = pcall(startSessionAsync, doc, item, "work", run, {}, false)
-	assert.strContains(tostring(noAgent), "agent source")
+	local start = startSessionAsync(doc, item, "work", run, {}, false)
 
-	table.insert(doc.settings.sources, { id = "claude", kind = "claude" })
-	local _, unfit = pcall(startSessionAsync, doc, item, "resolve-conflicts", run, {}, false)
+	assert.eq(start.place, "none")
+	assert.eq(start.url:find("folder=", 1, true), nil)
+	assert.strContains(start.url, "The%20work%20is%20in%20owner%2Frepo")
+end)
+
+test.case("a preset that doesn't fit the card fails plainly", function(assert)
+	local item = testing.task("fix", "Fix", "active", nil, { repo = "owner/repo" })
+	local function run()
+		return testing.result(false, "")
+	end
+
+	local _, unfit = pcall(startSessionAsync, testing.createDoc({ item }), item, "resolve-conflicts", run, {}, false)
 	assert.strContains(tostring(unfit), "doesn't fit")
-	fs.removeDirectory(folder, { recursive = true })
 end)

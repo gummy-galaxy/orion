@@ -80,7 +80,10 @@ function sessionStart.handleAsync(
 		return shared.reply(409, json.object({ error = getErrorText(start) }))
 	end
 
-	return shared.reply(200, json.object({ agent = start.agent, folder = start.folder, url = start.url }))
+	return shared.reply(
+		200,
+		json.object({ agent = start.agent, place = start.place, folder = start.folder or json.null, url = start.url })
+	)
 end
 
 return table.freeze(sessionStart)

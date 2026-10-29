@@ -13,6 +13,7 @@ local githubRefreshChangedAsync = require("@root/adapters/github/refreshChangedA
 local hopCollectAsync = require("@root/adapters/hop/collectAsync")
 local hopCreateSource = require("@root/adapters/hop/createSource")
 local hopFindCheckoutAsync = require("@root/adapters/hop/findCheckoutAsync")
+local hopFindCloneAsync = require("@root/adapters/hop/findCloneAsync")
 local jiraCollectAsync = require("@root/adapters/jira/collectAsync")
 local jiraCreateSource = require("@root/adapters/jira/createSource")
 local jiraLookupRefsAsync = require("@root/adapters/jira/lookupRefsAsync")
@@ -57,7 +58,12 @@ local adapters: { [string]: Adapter } = {
 	hop = {
 		kind = "hop",
 		createSource = hopCreateSource,
-		source = { collectAsync = hopCollectAsync, collectOrder = 1, findCheckoutAsync = hopFindCheckoutAsync },
+		source = {
+			collectAsync = hopCollectAsync,
+			collectOrder = 1,
+			findCheckoutAsync = hopFindCheckoutAsync,
+			findCloneAsync = hopFindCloneAsync,
+		},
 	},
 }
 
