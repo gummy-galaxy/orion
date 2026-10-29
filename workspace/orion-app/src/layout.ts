@@ -7,6 +7,7 @@ import {
   byId,
   groupHeaderHeight,
   isCluster,
+  isTask,
   normalize,
   pruneEmptied,
   sizeOf,
@@ -18,6 +19,41 @@ import type { CardSize } from './cardSize'
 
 const elk = new ELK()
 
+/**
+ * Spike toggles for compact, roughly square groups, read from `?layout=` (such as `?layout=wrap,skyline`) so one build
+ * can show each. `wrap` folds each linked block with ELK's layered wrapping toward `aspect`; `rect` packs a group's
+ * shapes with ELK's rectpacking and `skyline` with an area-aware packer here; `round` lays out small, densely linked
+ * blocks with ELK's stress algorithm. `wrapAspect` is looser than `aspect`, so a fan into a gate keeps its gate on
+ * the same row and only long chains fold. `orphans` lays out `related` links inside a group with its blocks, keeps
+ * cards with no links at all in a block of their own, and moves cards linked only outside the group to the edge that
+ * faces their links. With any of them set, `spread` multiplies the room between the shapes packed inside a group, so
+ * clusters stand apart from the cards within them; `?layout=...,tight` keeps it at today's. With none set, layout is
+ * unchanged.
+ */
+export const layoutSpike = {
+  wrap: false,
+  pack: 'grid' as 'grid' | 'rect' | 'skyline',
+  round: false,
+  orphans: false,
+  aspect: 1,
+  wrapAspect: 1.6,
+  spread: 2,
+}
+
+{
+  const options = new URLSearchParams(globalThis.location?.search ?? '').get('layout')?.split(',') ?? []
+
+  layoutSpike.wrap = options.includes('wrap')
+  layoutSpike.pack = options.includes('rect') ? 'rect' : options.includes('skyline') ? 'skyline' : 'grid'
+  layoutSpike.round = options.includes('round')
+  layoutSpike.orphans = options.includes('orphans')
+
+  if (options.includes('tight')) layoutSpike.spread = 1
+}
+
+/** A linked block this small, with at least as many links as boxes, counts as dense enough for `round`. */
+const ROUND_MAX = 8
+
 /** The default flow keeps chains, and runs of interchangeable siblings, to about this many across. */
 export const WRAP = 6
 /** A wrapped row stops growing at about this width, so chains of large nested groups stack instead of sprawling. */
@@ -27,8 +63,8 @@ type Gap = { node: number; layer: number; component: number }
 type Point = { x: number; y: number }
 type Size = { width: number; height: number }
 type Box = Point & Size
-/** A link between two laid-out boxes, with the label it's drawn with, if any. */
-type Edge = [string, string, string?]
+/** A link between two laid-out boxes, with the label it's drawn with, if any, and whether it's a loose `related` link. */
+type Edge = [string, string, string?, boolean?]
 
 const INNER_GAP: Gap = { node: GAP.inner.y, layer: GAP.inner.x, component: GAP.inner.component }
 const TOP_GAP: Gap = { node: GAP.top.y, layer: GAP.top.x, component: GAP.top.component }
@@ -140,16 +176,18 @@ const bounds = (boxes: Box[]): Box => {
   }
 }
 
-async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Gap): Promise<Map<string, Box>> {
+async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Gap, extra: Record<string, string> = {}): Promise<Map<string, Box>> {
   const result = await elk.layout({
     id: 'root',
-    layoutOptions: elkOptions(gap),
+    layoutOptions: { ...elkOptions(gap), ...extra },
     children: units.map((unit) => ({ id: unit.id, width: unit.width, height: unit.height })),
     // Labels make ELK leave room for them between the boxes they join.
-    edges: edges.map(([source, target, label]) => ({
+    edges: edges.map(([source, target, label, loose]) => ({
       id: source + '>' + target,
       sources: [source],
       targets: [target],
+      // When `related` links join the layout, ELK reverses them before a `blocks` link to break a cycle.
+      ...(edges.some((edge) => edge[3]) ? { layoutOptions: { 'elk.layered.priority.direction': loose ? '0' : '10' } } : {}),
       labels: label ? [{ id: source + '>' + target + ':label', text: label, width: labelWidth(label), height: LABEL_SIZE.height }] : [],
     })),
   })
@@ -194,12 +232,150 @@ function frameBlock(boxes: Map<string, Box>, gap: number, rowWidth?: number): { 
 
 /** Where a flow puts each child, and the size of what it laid out. */
 type Arrangement = { positions: Map<string, Point> } & Size
+/** Boxes placed as one piece: a linked block, a lone card, or a grid of them. */
+type Shape = { ids: string[]; first: AppNode; boxes: Map<string, Box>; size: Size }
+/** The edge of a group that faces a card's links to the world outside it. */
+type Side = 'left' | 'right'
 
 /** The most columns, at least one, that keep a grid of `sizes` within `maxWidth`. */
 function columnsWithin(sizes: Size[], maxWidth: number, gap: number): number {
   for (let columns = sizes.length; columns > 1; columns--) if (grid(sizes, columns, gap).width <= maxWidth) return columns
 
   return 1
+}
+
+/**
+ * Lays out each linked block on its own, so ELK can fold it toward `layoutSpike.wrapAspect` (`wrap`) or arrange a small,
+ * dense one around its center (`round`).
+ */
+async function componentBoxes(
+  linked: string[],
+  edges: Edge[],
+  roots: Map<string, string>,
+  sizes: Map<string, Size>,
+  gap: Gap,
+): Promise<Map<string, Box>> {
+  const components = new Map<string, { ids: string[]; edges: Edge[] }>()
+
+  for (const id of linked) {
+    const root = roots.get(id)!
+    const component = components.get(root) ?? { ids: [], edges: [] }
+
+    component.ids.push(id)
+    components.set(root, component)
+  }
+
+  for (const edge of edges) components.get(roots.get(edge[0])!)!.edges.push(edge)
+
+  const boxes = new Map<string, Box>()
+
+  for (const component of components.values()) {
+    const units = component.ids.map((id) => ({ id, ...sizes.get(id)! }))
+    const dense = component.ids.length >= 3 && component.ids.length <= ROUND_MAX && component.edges.length >= component.ids.length
+    const reach = Math.max(...units.map((unit) => Math.hypot(unit.width, unit.height)))
+    const extra: Record<string, string> =
+      layoutSpike.round && dense
+        ? { 'elk.algorithm': 'stress', 'elk.stress.desiredEdgeLength': String(reach + gap.layer) }
+        : layoutSpike.wrap
+          ? {
+              'elk.layered.wrapping.strategy': 'MULTI_EDGE',
+              'elk.layered.wrapping.multiEdge.improveCuts': 'true',
+              'elk.layered.wrapping.multiEdge.improveWrappedEdges': 'true',
+              'elk.aspectRatio': String(layoutSpike.wrapAspect),
+            }
+          : {}
+
+    for (const [id, box] of await elkBoxes(units, component.edges, gap, extra)) boxes.set(id, box)
+  }
+
+  return boxes
+}
+
+/** Packs sizes with ELK's rectpacking toward `layoutSpike.aspect`, largest first. */
+async function rectPack(sizes: Size[], gap: number): Promise<{ at: Point[] } & Size> {
+  const result = await elk.layout({
+    id: 'root',
+    layoutOptions: {
+      'elk.algorithm': 'rectpacking',
+      'elk.aspectRatio': String(layoutSpike.aspect),
+      'elk.spacing.nodeNode': String(gap),
+      'elk.padding': '[top=0,left=0,bottom=0,right=0]',
+      'elk.rectpacking.orderBySize': 'true',
+      'elk.rectpacking.widthApproximation.optimizationGoal': 'ASPECT_RATIO_DRIVEN',
+      'elk.rectpacking.whiteSpaceElimination.strategy': 'NONE',
+    },
+    children: sizes.map((size, i) => ({ id: String(i), ...size })),
+  })
+  const at = sizes.map(() => ({ x: 0, y: 0 }))
+
+  for (const child of result.children ?? []) at[Number(child.id)] = { x: child.x ?? 0, y: child.y ?? 0 }
+
+  const boxes = sizes.map((size, i) => ({ ...at[i], ...size }))
+  const frame = bounds(boxes)
+
+  return { at: at.map((point) => ({ x: point.x - frame.x, y: point.y - frame.y })), width: frame.width, height: frame.height }
+}
+
+/**
+ * Packs sizes tallest first, each at the lowest free spot along a skyline as wide as `maxWidth`. Without one it tries
+ * a few widths around the square root of the total area and keeps the closest to `layoutSpike.aspect`, so big blocks
+ * take the corners and small ones fill the gaps beside them.
+ */
+export function skyline(sizes: Size[], gap: number, maxWidth?: number): { at: Point[] } & Size {
+  const order = sizes.map((_, i) => i).sort((a, b) => sizes[b].height - sizes[a].height || sizes[b].width - sizes[a].width)
+  const widest = Math.max(...sizes.map((size) => size.width))
+
+  const pack = (width: number) => {
+    // Each segment is a run of x where the packed shapes reach down to `y`, including the gap below them.
+    let line = [{ x: 0, width: Infinity, y: 0 }]
+    const at: Point[] = sizes.map(() => ({ x: 0, y: 0 }))
+
+    for (const i of order) {
+      const size = sizes[i]
+      let best: Point | undefined
+
+      for (const segment of line) {
+        if (segment.x + size.width > width && segment.x > 0) continue
+
+        const y = Math.max(
+          ...line.filter((other) => other.x < segment.x + size.width + gap && other.x + other.width > segment.x).map((other) => other.y),
+        )
+
+        if (!best || y < best.y) best = { x: segment.x, y }
+      }
+
+      at[i] = best!
+
+      const left = best!.x
+      const right = left + size.width + gap
+      const next = line.flatMap((segment) => {
+        const end = segment.x + segment.width
+
+        if (end <= left || segment.x >= right) return [segment]
+
+        return [
+          ...(segment.x < left ? [{ ...segment, width: left - segment.x }] : []),
+          ...(end > right ? [{ x: right, width: end - right, y: segment.y }] : []),
+        ]
+      })
+
+      next.push({ x: left, width: right - left, y: best!.y + size.height + gap })
+      line = next.sort((a, b) => a.x - b.x)
+    }
+
+    const frame = bounds(sizes.map((size, i) => ({ ...at[i], ...size })))
+
+    return { at, width: frame.width, height: frame.height }
+  }
+
+  if (maxWidth !== undefined) return pack(Math.max(maxWidth, widest))
+
+  const area = sizes.reduce((sum, size) => sum + (size.width + gap) * (size.height + gap), 0)
+  const target = Math.sqrt(area * layoutSpike.aspect)
+  const tries = [0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.4].map((scale) => pack(Math.max(widest, target * scale)))
+  const score = (packed: Size) => Math.abs(Math.log(packed.width / packed.height / layoutSpike.aspect)) + (packed.width * packed.height) / area - 1
+
+  return tries.reduce((best, packed) => (score(packed) < score(best) ? packed : best))
 }
 
 /**
@@ -212,7 +388,13 @@ function columnsWithin(sizes: Size[], maxWidth: number, gap: number): number {
  * follow the square root of its count; with one, chains wrap and the grid takes as many columns as fit in it. That
  * part is quick, so a resize can try widths as it goes.
  */
-async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: CardSize): Promise<(maxWidth?: number) => Arrangement> {
+async function planFlow(
+  children: AppNode[],
+  edges: Edge[],
+  gap: Gap,
+  cardSize: CardSize,
+  sides: Map<string, Side> = new Map(),
+): Promise<(maxWidth?: number) => Arrangement> {
   const ends = new Map(children.map((child) => [child.id, { in: [] as string[], out: [] as string[] }]))
 
   for (const [source, target] of edges) {
@@ -271,14 +453,14 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
   const seen = new Set<string>()
   const unitEdges: Edge[] = []
 
-  for (const [source, target, label] of edges) {
-    const edge: Edge = [unitOf.get(source)!, unitOf.get(target)!]
-    const key = edge.join('>')
+  for (const [source, target, label, loose] of edges) {
+    const edge: Edge = [unitOf.get(source)!, unitOf.get(target)!, undefined, loose]
+    const key = edge[0] + '>' + edge[1]
 
     if (edge[0] === edge[1] || seen.has(key)) continue
 
     // A label only makes room between the two boxes it's drawn between, not around a grid of siblings.
-    if (label && edge[0] === source && edge[1] === target) edge.push(label)
+    if (label && edge[0] === source && edge[1] === target) edge[2] = label
 
     seen.add(key)
     unitEdges.push(edge)
@@ -286,13 +468,16 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
 
   const linked = new Set(unitEdges.flatMap(([source, target]) => [source, target]))
   const roots = linkRoots([...linked], unitEdges)
-  const linkedBoxes = unitEdges.length
-    ? await elkBoxes(
-        [...linked].map((id) => ({ id, ...sizes.get(id)! })),
-        unitEdges,
-        gap,
-      )
-    : new Map<string, Box>()
+  const linkedBoxes =
+    layoutSpike.wrap || layoutSpike.round
+      ? await componentBoxes([...linked], unitEdges, roots, sizes, gap)
+      : unitEdges.length
+        ? await elkBoxes(
+            [...linked].map((id) => ({ id, ...sizes.get(id)! })),
+            unitEdges,
+            gap,
+          )
+        : new Map<string, Box>()
   const parts = new Map<string, Map<string, Box>>()
 
   for (const id of linked) {
@@ -305,27 +490,85 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
 
   const earliest = (ids: string[]) => ids.flatMap((id) => members.get(id)!).reduce((first, node) => (reading(node, first) < 0 ? node : first))
   const blocks = [...parts.values()].map((part) => ({ ids: [...part.keys()], first: earliest([...part.keys()]), part }))
-  const singles: { ids: string[]; first: AppNode; boxes: Map<string, Box>; size: Size }[] = []
+  const singles: Shape[] = []
+  const edgeUnits = { left: [] as string[], right: [] as string[] }
+  const orphans: string[] = []
 
   for (const id of members.keys()) {
     if (linked.has(id)) continue
+
+    const side = sides.get(id)
+
+    if (layoutSpike.orphans && side) {
+      edgeUnits[side].push(id)
+      continue
+    }
+
+    // Only cards count as orphans; a nested group with no links is packed with the rest.
+    if (layoutSpike.orphans && isTask(members.get(id)![0])) {
+      orphans.push(id)
+      continue
+    }
 
     const size = sizes.get(id)!
 
     singles.push({ ids: [id], first: earliest([id]), boxes: new Map([[id, { x: 0, y: 0, ...size }]]), size })
   }
 
-  return (maxWidth) => {
-    const shapes = [...blocks.map((block) => ({ ids: block.ids, first: block.first, ...frameBlock(block.part, gap.layer, maxWidth) })), ...singles]
+  /** Units in reading order as a grid of `columns`, one shape. */
+  const stack = (ids: string[], columns: number): Shape => {
+    const ordered = [...ids].sort((a, b) => reading(earliest([a]), earliest([b])))
+    const laidOut = grid(
+      ordered.map((id) => sizes.get(id)!),
+      columns,
+      gap.node,
+    )
+
+    return {
+      ids: ordered,
+      first: earliest(ordered),
+      boxes: new Map(ordered.map((id, i) => [id, { ...laidOut.at[i], ...sizes.get(id)! }])),
+      size: { width: laidOut.width, height: laidOut.height },
+    }
+  }
+
+  // Cards with no links at all stay together in one block, apart from everything that's connected.
+  if (orphans.length) singles.push(stack(orphans, Math.min(WRAP, Math.ceil(Math.sqrt(orphans.length)))))
+
+  // ELK already folded each block toward the aspect ratio, so only a person's width wraps it again.
+  const frame = (part: Map<string, Box>, maxWidth?: number) =>
+    layoutSpike.wrap && maxWidth === undefined ? frameBlock(part, gap.layer, Infinity) : frameBlock(part, gap.layer, maxWidth)
+
+  const shapesFor = (maxWidth?: number) => {
+    const shapes = [...blocks.map((block) => ({ ids: block.ids, first: block.first, ...frame(block.part, maxWidth) })), ...singles]
 
     shapes.sort((a, b) => reading(a.first, b.first))
 
+    return shapes
+  }
+
+  // ELK runs asynchronously, so its packing is worked out here for the natural width only.
+  const rectPacked =
+    layoutSpike.pack === 'rect'
+      ? await rectPack(
+          shapesFor().map((shape) => shape.size),
+          gap.component,
+        )
+      : undefined
+
+  return (maxWidth) => {
+    const shapes = shapesFor(maxWidth)
     const shapeSizes = shapes.map((shape) => shape.size)
-    const laidOut = grid(
-      shapeSizes,
-      maxWidth === undefined ? Math.ceil(Math.sqrt(shapes.length)) : columnsWithin(shapeSizes, maxWidth, gap.component),
-      gap.component,
-    )
+    const laidOut =
+      rectPacked && maxWidth === undefined
+        ? rectPacked
+        : layoutSpike.pack === 'skyline'
+          ? skyline(shapeSizes, gap.component, maxWidth)
+          : grid(
+              shapeSizes,
+              maxWidth === undefined ? Math.ceil(Math.sqrt(shapes.length)) : columnsWithin(shapeSizes, maxWidth, gap.component),
+              gap.component,
+            )
     const positions = new Map<string, Point>()
 
     shapes.forEach((shape, i) => {
@@ -343,7 +586,35 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
       }
     })
 
-    return { positions, width: laidOut.width, height: laidOut.height }
+    if (!edgeUnits.left.length && !edgeUnits.right.length) return { positions, width: laidOut.width, height: laidOut.height }
+
+    // Cards linked only outside the group line the edge that faces their links, as columns about as tall as the rest.
+    const tallest = Math.max(...[...edgeUnits.left, ...edgeUnits.right].map((id) => sizes.get(id)!.height))
+    const rows = Math.max(1, Math.floor((laidOut.height + gap.node) / (tallest + gap.node)))
+    const column = (ids: string[]) => (ids.length ? stack(ids, Math.ceil(ids.length / rows)) : undefined)
+    const left = column(edgeUnits.left)
+    const right = column(edgeUnits.right)
+    const shift = left ? left.size.width + gap.component : 0
+    const rightX = shift + (laidOut.width > 0 ? laidOut.width + gap.component : 0)
+
+    for (const [id, point] of positions) positions.set(id, { x: point.x + shift, y: point.y })
+
+    for (const [edge, x] of [
+      [left, 0],
+      [right, rightX],
+    ] as const)
+      if (edge)
+        for (const id of edge.ids) {
+          const box = edge.boxes.get(id)!
+
+          for (const member of members.get(id)!) positions.set(member.id, { x: x + box.x, y: box.y })
+        }
+
+    return {
+      positions,
+      width: right ? rightX + right.size.width : laidOut.width > 0 ? shift + laidOut.width : left!.size.width,
+      height: Math.max(laidOut.height, left?.size.height ?? 0, right?.size.height ?? 0),
+    }
   }
 }
 
@@ -425,7 +696,60 @@ export async function planReflow(
     edges.push(source === link.from && target === link.to && link.label ? [source, target, link.label] : [source, target])
   }
 
-  const arrangeFor = await planFlow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize)
+  const sides = new Map<string, Side>()
+
+  if (layoutSpike.orphans) {
+    // How many `blocks` steps lead to each child, so a `related` link can point the way the work already flows.
+    const step = new Map<string, number>()
+
+    for (let pass = 0; pass < children.length; pass++) {
+      let changed = false
+
+      for (const [source, target] of edges) {
+        const next = (step.get(source) ?? 0) + 1
+
+        if (next > (step.get(target) ?? 0)) {
+          step.set(target, next)
+          changed = true
+        }
+      }
+
+      if (!changed) break
+    }
+
+    const tally = new Map<string, number>()
+    const groupCenter = group ? absolutePosition(group, nodeMap).x + sizeOf(group, cardSize).width / 2 : 0
+
+    for (const link of links) {
+      const source = lift(link.from)
+      const target = lift(link.to)
+
+      // A `related` link inside the group keeps its two cards together, as a block does.
+      if (link.kind === 'related' && source && target && source !== target) {
+        if (!seen.has(source + '>' + target) && !seen.has(target + '>' + source))
+          edges.push((step.get(source) ?? 0) <= (step.get(target) ?? 0) ? [source, target, undefined, true] : [target, source, undefined, true])
+
+        seen.add(source + '>' + target)
+        continue
+      }
+
+      const inside = source ?? target
+      const other = nodeMap.get(source ? link.to : link.from)
+
+      if (!inside || (source && target) || !other) continue
+
+      // Work that waits on the outside sits on the left, work the outside waits on on the right; related links face where the other card is.
+      const leftward = link.kind === 'blocks' ? !!target : absolutePosition(other, nodeMap).x < groupCenter
+
+      tally.set(inside, (tally.get(inside) ?? 0) + (leftward ? 1 : -1))
+    }
+
+    for (const [id, count] of tally) sides.set(id, count >= 0 ? 'left' : 'right')
+  }
+
+  const spiked = layoutSpike.wrap || layoutSpike.pack !== 'grid' || layoutSpike.round || layoutSpike.orphans
+  const gap = groupId ? { ...INNER_GAP, component: INNER_GAP.component * (spiked ? layoutSpike.spread : 1) } : TOP_GAP
+  const arrangeFor = await planFlow(children, edges, gap, cardSize, sides)
   const offset = groupId ? { x: GROUP_PADDING, y: groupHeaderHeight(group && isCluster(group) ? group.data : undefined) } : { x: 0, y: 0 }
   const measured = new Map<number | undefined, Arrangement>()
 
