@@ -558,6 +558,32 @@ test.case("flat command names and --workspace are gone, and help uses the noun f
 	assert.strContains(run({ "card", "--help" }), "import")
 end)
 
+test.case("node query sorts and pages its matches", function(assert)
+	local _, run = testing.createHarness("query-page")
+	local sorted = json.asArray(
+		json.deserialize(run({ "node", "query", "--where", [[group = "ws"]], "--sort", "-label", "--json" })) :: json.Value
+	)
+	local ids: { string } = {}
+
+	for _, value in sorted or {} do
+		local item = json.asObject(value)
+		table.insert(ids, if item then tostring(item.id) else "")
+	end
+
+	assert.eq(table.concat(ids, ","), "ci,pub")
+
+	local page =
+		run({ "node", "query", "--where", [[group = "ws"]], "--sort", "label", "--offset", "1", "--limit", "1" })
+	assert.strContains(page, "Report release health")
+	assert.strContains(page, "Showing 2 of 2 matches.")
+	assert.throwsWith("sort: unknown field 'owner'", function()
+		run({ "node", "query", "--where", [[kind = "step"]], "--sort", "owner" })
+	end)
+	assert.throwsWith("offset must be a whole number", function()
+		run({ "node", "query", "--where", [[kind = "step"]], "--offset", "soon" })
+	end)
+end)
+
 test.case("node find matches labels, refs, and notes, label matches first", function(assert)
 	local _, run = testing.createHarness("find-rank")
 	run({ "card", "set", "pub", "--note", "Needs the release checklist" })

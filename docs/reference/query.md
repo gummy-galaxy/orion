@@ -57,3 +57,12 @@ orion node query --where 'kind = "group" and label ~ "release"'
 orion node query --where 'pr = "86" or ref = "ABC-12"'
 orion node query --where 'not (draft = "true") and status != "done"'
 ```
+
+## Sorting and paging
+
+`orion node query` also takes `--sort`: fields from the table above, separated by commas. A leading `-` sorts that field descending. Numbers sort by size and other values ignore case. Nodes without the field come last either way, and ties fall to the next field, then to canvas order. After sorting, `--offset` skips matches and `--limit` caps how many print.
+
+```sh
+orion node query --where 'repo = "gummy-galaxy/orion" and status = "ready"' --sort 'label' --limit 20
+orion node query --where 'repo = "gummy-galaxy/orion" and status = "ready"' --sort 'status,-pr' --limit 20
+```

@@ -11,6 +11,7 @@ local getVersion = require("@root/getVersion")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
 local isTrustedRequest = require("@root/server/isTrustedRequest")
+local queries = require("@root/server/queries")
 local readRuntime = require("@root/server/readRuntime")
 local removeRuntime = require("@root/server/removeRuntime")
 local routes = require("@root/server/routes")
@@ -48,6 +49,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	end)
 
 	local monitor
+	local openQueries = queries.create(root)
 	local router = routes.create(root, workspace, syncLoop, function(name: string)
 		assert(monitor).switchTo(name)
 		syncLoop.switchTo(name)
@@ -56,6 +58,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			writeRuntime(root, runtime)
 		end
 		hub.publish("orion:canvas", json.object({ active = name }))
+		openQueries.refresh(name)
 		task.spawn(function()
 			syncLoop.runAsync(true)
 		end)
@@ -74,6 +77,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			end
 
 			hub.publish("orion:changed", event)
+			openQueries.refresh(router.getActive())
 		end,
 		function(list: WorkspaceList)
 			hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
@@ -111,8 +115,12 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 
 		websocket = {
 			open = hub.open,
+			message = function(socket, message)
+				openQueries.receive(socket, message, router.getActive())
+			end,
 			close = function(socket)
 				hub.close(socket)
+				openQueries.close(socket)
 			end,
 		},
 	})

@@ -14,6 +14,7 @@ local log = require("@root/server/routes/log")
 local merge = require("@root/server/routes/merge")
 local operations = require("@root/server/routes/operations")
 local orion = require("@root/server/routes/orion")
+local query = require("@root/server/routes/query")
 local reveal = require("@root/server/routes/reveal")
 local sessions = require("@root/server/routes/sessions")
 local settings = require("@root/server/routes/settings")
@@ -75,6 +76,9 @@ function routes.create(
 		end
 		if route == "/api/operations" then
 			return operations.handle(request, root, active)
+		end
+		if route == "/api/query" then
+			return query.handle(request, root, active)
 		end
 		if route == "/api/focus" then
 			return focus.handle(request, root, active)
