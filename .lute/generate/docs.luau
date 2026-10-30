@@ -117,7 +117,7 @@ end
 
 -- The Reference section's own page, so the nav's Reference link lands on
 -- content rather than a menu.
-local function renderHome(root: CommandDescription, tools: { Tool }): string
+local function renderHome(): string
 	local lines = {
 		HEADER,
 		"",
@@ -125,15 +125,15 @@ local function renderHome(root: CommandDescription, tools: { Tool }): string
 		"",
 		"These pages are generated from the code that defines each surface, so they always match what Orion accepts.",
 		"",
-		`- [CLI](./cli/): the {#root.commands} commands of \`orion\`, with every option they take.`,
-		`- [MCP](./mcp): the {#tools} tools \`orion mcp start\` serves to agents, each running a CLI command.`,
-		`- [Telemetry](./telemetry): the {#telemetryEvents.list} events Orion sends once someone opts in to sharing usage data.`,
+		"- [CLI](./cli/): every command of `orion`, with the options it takes.",
+		"- [MCP](./mcp): the tools `orion mcp start` serves to agents, each running a CLI command.",
+		"- [Telemetry](./telemetry): the events Orion sends once someone opts in to sharing usage data.",
 		"",
 		"The syntax commands take inside their arguments:",
 		"",
-		`- [Queries](./query): the {#querySyntax.fields} fields \`--where\` matches on, and how comparisons combine.`,
-		`- [Selectors](./selectors): the {#selectors.list} ways to name a card or group in place of its id.`,
-		`- [Refs](./refs): the {#refForms} forms \`--ref\` takes for pull requests, issues, and branches.`,
+		"- [Queries](./query): the fields `--where` matches on, and how comparisons combine.",
+		"- [Selectors](./selectors): the ways to name a card or group in place of its id.",
+		"- [Refs](./refs): the forms `--ref` takes for pull requests, issues, and branches.",
 	}
 
 	return table.concat(lines, "\n") .. "\n"
@@ -480,7 +480,7 @@ local function collectPages(): { Page }
 	local root = cliModule.describe()
 	local tools = buildTools(root)
 	local pages: { Page } = {
-		{ file = path.join(referenceDir, "index.md"), contents = renderHome(root, tools) },
+		{ file = path.join(referenceDir, "index.md"), contents = renderHome() },
 		{ file = path.join(referenceDir, "cli", "index.md"), contents = renderIndex(root) },
 		{ file = path.join(referenceDir, "cli", "sidebar.json"), contents = renderSidebar(root) },
 		{ file = path.join(referenceDir, "mcp.md"), contents = renderMcp(tools) },
