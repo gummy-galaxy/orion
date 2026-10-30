@@ -301,7 +301,10 @@ local function renderQuery(): string
 	table.insert(parts, "")
 	table.insert(
 		parts,
-		"`orion node query` also takes `--sort`: fields from the table above, separated by commas. A leading `-` sorts that field descending. Numbers sort by size and other values ignore case. Nodes without the field come last either way, and ties fall to the next field, then to canvas order. After sorting, `--offset` skips matches and `--limit` caps how many print."
+		"`orion node query` also takes `--sort`: fields from the table above, separated by commas. "
+			.. "A leading `-` sorts that field descending. Numbers sort by size and other values ignore case. "
+			.. "Nodes without the field come last either way, and ties fall to the next field, then to canvas order. "
+			.. "After sorting, `--offset` skips matches and `--limit` caps how many print."
 	)
 	table.insert(parts, "")
 	table.insert(parts, "```sh")
