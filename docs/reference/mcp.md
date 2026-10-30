@@ -731,6 +731,16 @@ Runs `orion backup restore`.
 | `revision` | string | **Required.** Revision to restore                      |
 | `canvas`   | canvas | Canvas name. Omit to use the canvas selected in Orion. |
 
+## orion_telemetry_status
+
+Show whether this machine shares anonymous usage data
+
+Runs `orion telemetry status`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+
 ## orion_focus
 
 Show the group open in the app and what's selected
