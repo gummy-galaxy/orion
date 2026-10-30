@@ -1,6 +1,7 @@
 local test = require("@std/test")
 
 local parseExpression = require("@root/query/parseExpression")
+local parseSort = require("@root/query/parseSort")
 local querySyntax = require("@root/query/querySyntax")
 
 test.case("every documented field and example parses", function(assert)
@@ -11,6 +12,10 @@ test.case("every documented field and example parses", function(assert)
 	for _, example in querySyntax.examples do
 		parseExpression(example)
 	end
+
+	for _, example in querySyntax.sortExamples do
+		parseSort(example)
+	end
 end)
 
 test.case("~ works on text fields only", function(assert)
@@ -20,7 +25,7 @@ test.case("~ works on text fields only", function(assert)
 		if field.isText then
 			assert.eq(parseExpression(expression).operator, "~")
 		else
-			assert.throwsWith(`'~' is only supported for label, note, and ref`, function()
+			assert.throwsWith(`'~' is only supported for group, priority, label, note, and ref`, function()
 				parseExpression(expression)
 			end)
 		end

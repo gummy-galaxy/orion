@@ -302,6 +302,24 @@ local function renderQuery(): string
 	end
 
 	table.insert(parts, "```")
+	table.insert(parts, "")
+	table.insert(parts, "## Sorting and paging")
+	table.insert(parts, "")
+	table.insert(
+		parts,
+		"`orion node query` also takes `--sort`: fields from the table above, separated by commas. "
+			.. "A leading `-` sorts that field descending. Numbers sort by size and other values ignore case. "
+			.. "Nodes without the field come last either way, and ties fall to the next field, then to canvas order. "
+			.. "After sorting, `--offset` skips matches and `--limit` caps how many print."
+	)
+	table.insert(parts, "")
+	table.insert(parts, "```sh")
+
+	for _, example in querySyntax.sortExamples do
+		table.insert(parts, `orion node query --where '{querySyntax.examples[1]}' --sort '{example}' --limit 20`)
+	end
+
+	table.insert(parts, "```")
 
 	return table.concat(parts, "\n") .. "\n"
 end
