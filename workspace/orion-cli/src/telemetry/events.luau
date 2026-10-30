@@ -97,12 +97,14 @@ local EVENTS: { Event } = {
 		name = "performance_summarized",
 		family = "Performance",
 		sources = { "app", "cli" },
-		help = "A summary of one timing over a session of the app or of `orion server start`, sent when the session ends.",
+		help = "A summary of one timing over a session of the app or of `orion server start`, sent when "
+			.. "the session ends.",
 		properties = {
 			{
 				name = "metric",
 				type = "string",
-				help = "What was timed: a pan or zoom frame, a `derive` or `layout` pass, or a flush by `orion server start`.",
+				help = "What was timed: a pan or zoom frame, a `derive` or `layout` pass, or a flush by "
+					.. "`orion server start`.",
 				values = { "pan_frame", "zoom_frame", "derive", "layout", "server_flush" },
 			},
 			count("sample_count", "How many times it was measured."),
@@ -161,7 +163,8 @@ local EVENTS: { Event } = {
 			{
 				name = "flags",
 				type = "string",
-				help = "The names of the flags it was given, sorted and comma-separated, such as `--json,--where`. Never their values.",
+				help = "The names of the flags it was given, sorted and comma-separated, such as `--json,--where`. "
+					.. "Never their values.",
 			},
 			duration("duration_ms", "How long it ran, in milliseconds."),
 			{ name = "exit_code", type = "integer", help = "The code it exited with." },

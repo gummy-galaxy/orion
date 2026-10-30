@@ -127,7 +127,8 @@ Set ORION_CANVAS to pick a canvas, as --canvas does for a single command.
 Set DO_NOT_TRACK=1 or ORION_TELEMETRY=0 to never send usage data; orion telemetry status shows the choice.
 The Orion app talks to orion server start, which watches the data files.
 Use orion server status [--json] to find the running server.
-While the app is open, orion focus shows its open group and selection, and orion reveal selects items in it and zooms to them.]]
+While the app is open, orion focus shows its open group and selection, and orion reveal selects items
+  in it and zooms to them.]]
 
 local QUERY_HELP = table.concat({
 	`Fields: {table.concat(querySyntax.fieldNames, ", ")}.`,

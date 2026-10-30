@@ -30,14 +30,20 @@ local function runGh(argv: { string })
 	if query:find("is:open is:issue", 1, true) then
 		return testing.result(
 			true,
-			[[{"data":{"search":{"nodes":[{"number":14,"title":"Fix avatar loading","url":"https://github.com/Roblox/avatar/issues/14","repository":{"name":"avatar","owner":{"login":"Roblox"}}}],"pageInfo":{"hasNextPage":false}}}}]]
+			[[{"data":{"search":{"nodes":[{"number":14,"title":"Fix avatar loading",]]
+				.. [["url":"https://github.com/Roblox/avatar/issues/14","repository":{"name":"avatar",]]
+				.. [["owner":{"login":"Roblox"}}}],"pageInfo":{"hasNextPage":false}}}}]]
 		)
 	end
 
 	if query:find("is:open is:pr", 1, true) then
 		return testing.result(
 			true,
-			[[{"data":{"search":{"nodes":[{"number":20,"title":"Fix ABC-123 and closes #14","body":"Fixes Roblox/avatar#14","url":"https://github.com/Roblox/avatar/pull/20","state":"OPEN","isDraft":false,"headRefName":"ABC-123-avatar-fix","author":{"login":"vocksel"},"repository":{"name":"avatar","owner":{"login":"Roblox"}}}],"pageInfo":{"hasNextPage":false}}}}]]
+			[[{"data":{"search":{"nodes":[{"number":20,"title":"Fix ABC-123 and closes #14",]]
+				.. [["body":"Fixes Roblox/avatar#14","url":"https://github.com/Roblox/avatar/pull/20",]]
+				.. [["state":"OPEN","isDraft":false,"headRefName":"ABC-123-avatar-fix",]]
+				.. [["author":{"login":"vocksel"},"repository":{"name":"avatar","owner":{"login":"Roblox"}}}],]]
+				.. [["pageInfo":{"hasNextPage":false}}}}]]
 		)
 	end
 
@@ -62,7 +68,9 @@ test.case("GitHub and Jira ingest dedupe cards and mention links on re-ingest", 
 
 		return testing.result(
 			true,
-			[[{"issues":[{"key":"ABC-123","fields":{"summary":"Avatar loading","status":{"name":"In Progress","statusCategory":{"key":"indeterminate"}},"issuetype":{"name":"Story"},"epic":{"key":"ABC-1","summary":"Avatar"},"updated":"2026-10-03T00:00:00Z"}}]}]]
+			[[{"issues":[{"key":"ABC-123","fields":{"summary":"Avatar loading","status":{"name":"In Progress",]]
+				.. [["statusCategory":{"key":"indeterminate"}},"issuetype":{"name":"Story"},]]
+				.. [["epic":{"key":"ABC-1","summary":"Avatar"},"updated":"2026-10-03T00:00:00Z"}}]}]]
 		)
 	end
 
@@ -139,13 +147,15 @@ test.case("hop step converts to a pull request without changing placement or not
 		if argv[2] == "list" then
 			return testing.result(
 				true,
-				[[{"worktrees":[{"branch":"feature/ABC-123-avatar-fix","onDefaultBranch":false,"lastActivity":1791072000,"repository":{"name":"Roblox/avatar","root":"/tmp/avatar"}}]}]]
+				[[{"worktrees":[{"branch":"feature/ABC-123-avatar-fix","onDefaultBranch":false,]]
+					.. [["lastActivity":1791072000,"repository":{"name":"Roblox/avatar","root":"/tmp/avatar"}}]}]]
 			)
 		end
 
 		return testing.result(
 			true,
-			[=[[{"title":"Investigate avatar","repository":"Roblox/avatar","branch":"feature/ABC-123-avatar-fix","updatedAt":1791072000}]]=]
+			[=[[{"title":"Investigate avatar","repository":"Roblox/avatar","branch":"feature/ABC-123-avatar-fix",]=]
+				.. [=["updatedAt":1791072000}]]=]
 		)
 	end
 
@@ -164,7 +174,10 @@ test.case("hop step converts to a pull request without changing placement or not
 		if argv[#argv]:find("is:open is:pr", 1, true) then
 			return testing.result(
 				true,
-				[[{"data":{"search":{"nodes":[{"number":20,"title":"Fix avatar","url":"u","state":"OPEN","isDraft":true,"headRefName":"feature/ABC-123-avatar-fix","author":{"login":"vocksel"},"repository":{"name":"avatar","owner":{"login":"Roblox"}}}],"pageInfo":{"hasNextPage":false}}}}]]
+				[[{"data":{"search":{"nodes":[{"number":20,"title":"Fix avatar","url":"u","state":"OPEN",]]
+					.. [["isDraft":true,"headRefName":"feature/ABC-123-avatar-fix","author":{"login":"vocksel"},]]
+					.. [["repository":{"name":"avatar","owner":{"login":"Roblox"}}}],]]
+					.. [["pageInfo":{"hasNextPage":false}}}}]]
 			)
 		end
 
@@ -192,7 +205,8 @@ test.case("hop resolves bare repository names without changing case and matches 
 		if argv[2] == "list" then
 			return testing.result(
 				true,
-				[[{"worktrees":[{"branch":"feature/new","onDefaultBranch":false,"lastActivity":1791072000,"repository":{"name":"Avatar"}}]}]]
+				[[{"worktrees":[{"branch":"feature/new","onDefaultBranch":false,"lastActivity":1791072000,]]
+					.. [["repository":{"name":"Avatar"}}]}]]
 			)
 		end
 
@@ -210,7 +224,8 @@ test.case("hop resolves bare repository names without changing case and matches 
 		if argv[2] == "list" then
 			return testing.result(
 				true,
-				[[{"worktrees":[{"branch":"feature/new","onDefaultBranch":false,"lastActivity":1791072000,"repository":{"name":"roblox/avatar"}}]}]]
+				[[{"worktrees":[{"branch":"feature/new","onDefaultBranch":false,"lastActivity":1791072000,]]
+					.. [["repository":{"name":"roblox/avatar"}}]}]]
 			)
 		end
 
@@ -237,7 +252,8 @@ test.case("one failed source does not stop other sources", function(assert)
 
 		return testing.result(
 			true,
-			[[[{"key":"ABC-2","summary":"Continue","status":"To Do","statusCategory":"new","type":"Task","updatedAt":"2026-10-03T00:00:00Z"}] ]]
+			[[[{"key":"ABC-2","summary":"Continue","status":"To Do","statusCategory":"new","type":"Task",]]
+				.. [["updatedAt":"2026-10-03T00:00:00Z"}] ]]
 		)
 	end, NOW)
 	local report = placeRecords(doc, fetched)
@@ -259,7 +275,8 @@ test.case("hop observes GitHub cards collected later in source configuration", f
 		elseif argv[2] == "list" then
 			return testing.result(
 				true,
-				[[{"worktrees":[{"branch":"ABC-123-avatar-fix","onDefaultBranch":false,"lastActivity":1791072000,"repository":{"name":"avatar"}}]}]]
+				[[{"worktrees":[{"branch":"ABC-123-avatar-fix","onDefaultBranch":false,"lastActivity":1791072000,]]
+					.. [["repository":{"name":"avatar"}}]}]]
 			)
 		end
 
@@ -277,7 +294,21 @@ end)
 
 test.case("hop attaches worktree activity to pull cards", function(assert)
 	local doc = decodeDoc(
-		[[{"version":2,"settings":{"sources":[{"id":"gh-flipbook-labs","kind":"github","host":"github.com","owners":["flipbook-labs"]},{"id":"hop","kind":"hop"}]},"nodes":[{"id":"st-161","type":"task","position":{"x":24,"y":240},"data":{"label":"Batch matching discovery queries","status":"done","kind":"task","itemKind":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github","kind":"pull","key":"flipbook-labs/storyteller#161","url":"https://github.com/flipbook-labs/storyteller/pull/161","status":"merged","isDone":true,"details":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/161","branch":"batch-discovery-queries"}}]}},{"id":"st-162","type":"task","position":{"x":24,"y":150},"data":{"label":"Reference-count Storyteller consumers","status":"done","kind":"task","itemKind":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github","kind":"pull","key":"flipbook-labs/storyteller#162","url":"https://github.com/flipbook-labs/storyteller/pull/162","status":"merged","isDone":true,"details":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/162","branch":"reference-count-storyteller-runtime"}}]}}]}]]
+		[[{"version":2,"settings":{"sources":[{"id":"gh-flipbook-labs","kind":"github","host":"github.com",]]
+			.. [["owners":["flipbook-labs"]},{"id":"hop","kind":"hop"}]},"nodes":[{"id":"st-161","type":"task",]]
+			.. [["position":{"x":24,"y":240},"data":{"label":"Batch matching discovery queries","status":"done",]]
+			.. [["kind":"task","itemKind":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github",]]
+			.. [["kind":"pull","key":"flipbook-labs/storyteller#161",]]
+			.. [["url":"https://github.com/flipbook-labs/storyteller/pull/161","status":"merged","isDone":true,]]
+			.. [["details":{"state":"MERGED","url":"https://github.com/flipbook-labs/storyteller/pull/161",]]
+			.. [["branch":"batch-discovery-queries"}}]}},{"id":"st-162","type":"task","position":{"x":24,]]
+			.. [["y":150},"data":{"label":"Reference-count Storyteller consumers","status":"done","kind":"task",]]
+			.. [["itemKind":"pr","repo":"flipbook-labs/storyteller","refs":[{"source":"github","kind":"pull",]]
+			.. [["key":"flipbook-labs/storyteller#162",]]
+			.. [["url":"https://github.com/flipbook-labs/storyteller/pull/162","status":"merged","isDone":true,]]
+			.. [["details":{"state":"MERGED",]]
+			.. [["url":"https://github.com/flipbook-labs/storyteller/pull/162",]]
+			.. [["branch":"reference-count-storyteller-runtime"}}]}}]}]]
 	)
 	for _, branch in { "batch-discovery-queries", "reference-count-storyteller-runtime" } do
 		table.insert(
@@ -289,8 +320,11 @@ test.case("hop attaches worktree activity to pull cards", function(assert)
 		)
 	end
 
-	local list =
-		[[{"worktrees":[{"repository":{"remote":"flipbook-labs/storyteller"},"branch":"batch-discovery-queries","onDefaultBranch":false,"lastActivity":1789941379.617885},{"repository":{"remote":"flipbook-labs/storyteller"},"branch":"reference-count-storyteller-runtime","onDefaultBranch":false,"lastActivity":1789940593.504069}]}]]
+	local list = [[{"worktrees":[{"repository":{"remote":"flipbook-labs/storyteller"},"branch":"batch-discovery-queries",]]
+		.. [["onDefaultBranch":false,"lastActivity":1789941379.617885},]]
+		.. [[{"repository":{"remote":"flipbook-labs/storyteller"},]]
+		.. [["branch":"reference-count-storyteller-runtime","onDefaultBranch":false,]]
+		.. [["lastActivity":1789940593.504069}]}]]
 	local function runHop(argv: { string })
 		return testing.result(true, if argv[2] == "list" then list else "[]")
 	end
@@ -332,7 +366,8 @@ test.case("hop session activity follows the pull card before a duplicate branch 
 			true,
 			if argv[2] == "list"
 				then [[{"worktrees":[]}]]
-				else '[{"repository":"flipbook-labs/storyteller","branch":"batch-discovery-queries","title":"Review","updatedAt":1789941379}]'
+				else '[{"repository":"flipbook-labs/storyteller","branch":"batch-discovery-queries","title":"Review",'
+					.. '"updatedAt":1789941379}]'
 		)
 	end
 

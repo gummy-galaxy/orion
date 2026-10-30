@@ -15,7 +15,9 @@ test.case("Jira adapter parses issue state and details into records", function(a
 		assert.eq(argv, { "acli", "jira" })
 		return testing.result(
 			true,
-			'{"issues":[{"key":"ABC-1","fields":{"summary":"Work","status":{"name":"Done","statusCategory":{"key":"done"}},"issuetype":{"name":"Story"},"epic":{"key":"ABC-0","summary":"Epic"},"updated":"2026-10-03T00:00:00Z"}}]}'
+			'{"issues":[{"key":"ABC-1","fields":{"summary":"Work","status":{"name":"Done",'
+				.. '"statusCategory":{"key":"done"}},"issuetype":{"name":"Story"},"epic":{"key":"ABC-0",'
+				.. '"summary":"Epic"},"updated":"2026-10-03T00:00:00Z"}}]}'
 		)
 	end, { now = NOW, since = "2026-09-20", doc = doc, commands = { jira = { "acli", "jira" } } })
 	assert.eq(#records, 1)

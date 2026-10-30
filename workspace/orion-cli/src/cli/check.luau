@@ -41,7 +41,10 @@ end
 return table.freeze({
 	help = "Report layout problems: overlaps, items outside their group, dangling links, and groups waiting for layout",
 	mcp = {
-		description = "Report layout problems from stored positions and sizes: overlapping siblings, children outside their group, links to missing items, and groups waiting for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a dangling link, and an empty list when the layout is clean.",
+		description = "Report layout problems from stored positions and sizes: "
+			.. "overlapping siblings, children outside their group, links to missing items, and groups waiting "
+			.. "for layout. Returns a list of {kind, ids, bounds} in canvas coordinates, with bounds null for a "
+			.. "dangling link, and an empty list when the layout is clean.",
 		annotations = { readOnlyHint = true },
 	},
 	define = function(parser: cli.Parser)

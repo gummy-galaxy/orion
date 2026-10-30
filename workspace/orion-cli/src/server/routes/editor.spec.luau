@@ -40,10 +40,8 @@ test.case("editor rejects unsafe references and missing launchers", function(ass
 		return { ok = argv[2] ~= "hop", exitCode = 1, stdout = "", stderr = "" }
 	end
 	assert.eq(editor.handleAsync(request("GET"), missingHop).body, [[{"available":false}]])
-	assert.eq(
-		editor.handleAsync(request("POST", json.object({ url = "https://github.com/x/y/pull/1;open bad" })), missingHop).status,
-		400
-	)
+	local badRequest = request("POST", json.object({ url = "https://github.com/x/y/pull/1;open bad" }))
+	assert.eq(editor.handleAsync(badRequest, missingHop).status, 400)
 	assert.eq(editor.handleAsync(request("POST", json.object({ url = URL })), missingHop).status, 503)
 	assert.eq(calls, 4)
 end)

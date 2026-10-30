@@ -26,7 +26,9 @@ test.case("decode reads a version 2 document and keeps unknown fields through a 
 		"version":2,"revision":3,
 		"settings":{"githubOwner":"Vocksel","future":"kept","sources":[{"id":"hop-local","kind":"hop"}]},
 		"nodes":[
-			{"id":"pull","type":"task","data":{"repo":"Vocksel/Orion","refs":[{"source":"github","kind":"pull","key":"Vocksel/Orion#12","status":"draft"}]}},
+			{"id":"pull","type":"task","data":{"repo":"Vocksel/Orion","refs":[
+				{"source":"github","kind":"pull","key":"Vocksel/Orion#12","status":"draft"}
+			]}},
 			{"id":"jira","type":"task","data":{"refs":[{"source":"jira","kind":"issue","key":"ORN-1","isDone":true}]}},
 			{"id":"group","type":"cluster","data":{"repo":"short"}}
 		],"links":[],"future":{"kept":true}
@@ -52,7 +54,8 @@ end)
 test.case("decode moves an image's workspace to canvas", function(assert)
 	local doc = decodeDoc([[{
 		"version":2,"revision":1,
-		"nodes":[{"id":"picture","type":"image","position":{"x":0,"y":0},"data":{"kind":"image","label":"Picture","asset":"a.png","workspace":"planning"}}],
+		"nodes":[{"id":"picture","type":"image","position":{"x":0,"y":0},
+			"data":{"kind":"image","label":"Picture","asset":"a.png","workspace":"planning"}}],
 		"links":[]
 	}]])
 	assert.eq(doc.nodes[1].data.canvas, "planning")

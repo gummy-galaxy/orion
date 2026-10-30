@@ -19,12 +19,17 @@ test.case("GitHub adapter collects pull and issue records without writing cards"
 		elseif query:find("is:open is:pr", 1, true) then
 			return testing.result(
 				true,
-				'{"data":{"search":{"nodes":[{"number":2,"title":"Fix ABC-1","body":"Closes #3","url":"https://github.com/owner/repo/pull/2","state":"OPEN","isDraft":true,"headRefName":"ABC-1-fix","author":{"login":"me"},"repository":{"name":"repo","owner":{"login":"owner"}}}],"pageInfo":{"hasNextPage":false}}}}'
+				'{"data":{"search":{"nodes":[{"number":2,"title":"Fix ABC-1","body":"Closes #3",'
+					.. '"url":"https://github.com/owner/repo/pull/2","state":"OPEN","isDraft":true,'
+					.. '"headRefName":"ABC-1-fix","author":{"login":"me"},"repository":{"name":"repo",'
+					.. '"owner":{"login":"owner"}}}],"pageInfo":{"hasNextPage":false}}}}'
 			)
 		elseif query:find("is:open is:issue", 1, true) then
 			return testing.result(
 				true,
-				'{"data":{"search":{"nodes":[{"number":3,"title":"Issue","url":"https://github.com/owner/repo/issues/3","repository":{"name":"repo","owner":{"login":"owner"}}}],"pageInfo":{"hasNextPage":false}}}}'
+				'{"data":{"search":{"nodes":[{"number":3,"title":"Issue",'
+					.. '"url":"https://github.com/owner/repo/issues/3","repository":{"name":"repo",'
+					.. '"owner":{"login":"owner"}}}],"pageInfo":{"hasNextPage":false}}}}'
 			)
 		end
 

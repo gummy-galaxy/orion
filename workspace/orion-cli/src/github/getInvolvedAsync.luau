@@ -28,8 +28,10 @@ local function getSearchPageAsync(
 ): (json.Array, string?, boolean, number)
 	local first = size or PAGE_SIZE
 	local after = if cursor then `, after: {json.serialize(cursor)}` else ""
-	local source =
-		`query \{ search(query: {json.serialize(expression)}, type: ISSUE, first: {first}{after}) \{ nodes \{ ... on PullRequest \{ {getPullFields()} repository \{ name owner \{ login } } } ... on Issue \{ number title url repository \{ databaseId name owner \{ login } } } } pageInfo \{ hasNextPage endCursor } } }`
+	local source = `query \{ search(query: {json.serialize(expression)}, type: ISSUE, first: {first}{after}) \{ nodes \{ ... `
+		.. `on PullRequest \{ {getPullFields()} repository \{ name owner \{ login } } } ... `
+		.. `on Issue \{ number title url repository \{ databaseId name owner \{ login } } } } pageInfo \{ `
+		.. `hasNextPage endCursor } } }`
 	local succeeded, data = pcall(queryAsync, run, source, host)
 
 	if not succeeded then

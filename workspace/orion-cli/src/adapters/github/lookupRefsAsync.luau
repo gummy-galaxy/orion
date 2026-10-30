@@ -38,7 +38,8 @@ local function lookupBatchAsync(batch: { ResolvedRef }, host: string, run: Comma
 		local field = getField(resolved.ref)
 		table.insert(
 			parts,
-			`p{index}: repository(owner: {json.serialize(assert(owner))}, name: {json.serialize(assert(name))}) \{ databaseId {field}(number: {number}) \{ title url } }`
+			`p{index}: repository(owner: {json.serialize(assert(owner))}, name: `
+				.. `{json.serialize(assert(name))}) \{ databaseId {field}(number: {number}) \{ title url } }`
 		)
 	end
 
