@@ -56,4 +56,4 @@ export type Snapshot = {
 	stickerLoadout: json.Array?,
 }
 
-return {}
+return nil

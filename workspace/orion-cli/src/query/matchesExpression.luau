@@ -1,44 +1,34 @@
-local json = require("@std/json")
-
-local findRef = require("@root/refs/findRef")
+local getFieldValue = require("@root/query/getFieldValue")
 local getRefs = require("@root/refs/getRefs")
-local graphTypes = require("@root/graph/types")
-local isGroup = require("@root/graph/isGroup")
 local parseExpression = require("@root/query/parseExpression")
+local queryTypes = require("@root/query/types")
 local types = require("@root/types")
 
 type Item = types.Item
 type Expression = parseExpression.Expression
 
-local function getField(item: Item, derived: graphTypes.Derived, field: string): string?
-	local value: json.Value = nil
-	if field == "kind" then
-		value = if isGroup(item) then "group" elseif item.type == "image" then "image" else item.data.itemKind or "step"
-	elseif field == "status" then
-		value = derived.status[item.id]
-	elseif field == "recordedStatus" then
-		value = item.data.status
-	elseif field == "group" then
-		value = item.parentId
-	elseif field == "snoozed" then
-		-- Groups can't be snoozed, so they have no value for this field.
-		value = if isGroup(item) then nil else tostring(derived.snoozed[item.id] ~= nil)
-	elseif field == "draft" then
-		local pull = findRef(item, "pull")
-		value = if pull and pull.details then pull.details.draft else nil
-	elseif field == "pr" then
-		local pull = findRef(item, "pull")
-		value = if pull then pull.key:match("#(%d+)$") else nil
-	else
-		value = item.data[field]
+-- Whether a group's path of labels is the one named: a lone label names the
+-- group itself, and labels separated by `/` name it from the top level down.
+-- Case and the spaces around each label don't count.
+local function isPathNamed(path: { string }, value: string): boolean
+	local names = value:split("/")
+
+	if #path == 0 or (#names > 1 and #names ~= #path) then
+		return false
 	end
-	if type(value) == "string" or type(value) == "number" or type(value) == "boolean" then
-		return tostring(value)
+
+	for index, name in names do
+		local label = path[#path - #names + index]
+
+		if label:lower() ~= (name:match("^%s*(.-)%s*$") :: string):lower() then
+			return false
+		end
 	end
-	return nil
+
+	return true
 end
 
-local function matchesExpression(derived: graphTypes.Derived, item: Item, expression: Expression): boolean
+local function matchesExpression(scope: queryTypes.Scope, item: Item, expression: Expression): boolean
 	local function evaluate(node: Expression): boolean?
 		if node.kind == "comparison" then
 			local field = node.field :: string
@@ -62,7 +52,24 @@ local function matchesExpression(derived: graphTypes.Derived, item: Item, expres
 				return node.operator == "!="
 			end
 
-			local actual = getField(item, derived, field)
+			if field == "group" then
+				local parentId = item.parentId
+
+				if parentId == nil then
+					return nil
+				end
+
+				local path = scope.groupPaths[parentId] or {}
+
+				if node.operator == "~" then
+					return table.concat(path, " / "):lower():find(value:lower(), 1, true) ~= nil
+				end
+
+				local isNamed = parentId == value or isPathNamed(path, value)
+				return if node.operator == "=" then isNamed else not isNamed
+			end
+
+			local actual = getFieldValue(scope, item, field)
 			if actual == nil then
 				return nil
 			end

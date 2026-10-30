@@ -1,16 +1,19 @@
 import { useEffect, useRef } from 'react'
 import type { Appearance, Theme } from '../appearance'
 import type { Keybindings } from '../keybindings'
+import type { TelemetryStatus } from '../telemetry'
 import { AccessibilitySettings } from './AccessibilitySettings'
 import { AppearanceSettings } from './AppearanceSettings'
+import { PrivacySettings } from './PrivacySettings'
 import { ShortcutSettings } from './ShortcutSettings'
 
-export type SettingsSection = 'appearance' | 'accessibility' | 'shortcuts'
+export type SettingsSection = 'appearance' | 'accessibility' | 'shortcuts' | 'privacy'
 
 const SECTIONS: { id: SettingsSection; label: string }[] = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'accessibility', label: 'Accessibility' },
   { id: 'shortcuts', label: 'Keyboard Shortcuts' },
+  { id: 'privacy', label: 'Privacy' },
 ]
 
 type Props = {
@@ -22,10 +25,24 @@ type Props = {
   chooseAppearance: (appearance: Appearance) => void
   keybindings: Keybindings
   chooseKeybindings: (keybindings: Keybindings) => void
+  /** Null with no server to ask, which leaves the Privacy section read-only. */
+  telemetry: TelemetryStatus | null
+  chooseTelemetry: (enabled: boolean) => void
 }
 
 /** Preferences saved on this device, one section at a time beside a list of sections. */
-export function Settings({ section, showSection, close, appearance, themes, chooseAppearance, keybindings, chooseKeybindings }: Props) {
+export function Settings({
+  section,
+  showSection,
+  close,
+  appearance,
+  themes,
+  chooseAppearance,
+  keybindings,
+  chooseKeybindings,
+  telemetry,
+  chooseTelemetry,
+}: Props) {
   const dialog = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -76,6 +93,7 @@ export function Settings({ section, showSection, close, appearance, themes, choo
           {section === 'appearance' && <AppearanceSettings appearance={appearance} themes={themes} chooseAppearance={chooseAppearance} />}
           {section === 'accessibility' && <AccessibilitySettings appearance={appearance} chooseAppearance={chooseAppearance} />}
           {section === 'shortcuts' && <ShortcutSettings keybindings={keybindings} chooseKeybindings={chooseKeybindings} />}
+          {section === 'privacy' && <PrivacySettings telemetry={telemetry} chooseTelemetry={chooseTelemetry} />}
         </div>
       </div>
     </div>

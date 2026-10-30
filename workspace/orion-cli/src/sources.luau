@@ -27,7 +27,7 @@ local function getJson(values: { Source }, commands: { [string]: { string } }): 
 		local value = json.object({ id = source.id, kind = source.kind })
 		value.host, value.owners, value.include, value.exclude =
 			source.host, getStringArray(source.owners), getStringArray(source.include), getStringArray(source.exclude)
-		value.command, value.browse = getStringArray(commands[source.id]), source.browse
+		value.command, value.browse, value.dir = getStringArray(commands[source.id]), source.browse, source.dir
 		table.insert(result, value)
 	end
 

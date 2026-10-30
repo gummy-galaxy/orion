@@ -59,6 +59,7 @@ local function encodeDocObject(doc: Doc): json.Object
 		value.include = getStringArray(source.include)
 		value.exclude = getStringArray(source.exclude)
 		value.browse = source.browse
+		value.dir = source.dir
 		table.insert(sources, value)
 	end
 

@@ -1,7 +1,7 @@
 --[[
 	The selectors an id argument takes in place of an id, as data. resolveId
-	reads which ones exist from here, and `lute run docs` writes the reference
-	page from it. Every example has to resolve; the spec checks.
+	reads which ones exist from here, and `lute run generate docs` writes the
+	reference page from it. Every example has to resolve; the spec checks.
 ]]
 
 export type Selector = {

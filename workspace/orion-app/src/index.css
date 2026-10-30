@@ -3128,6 +3128,46 @@ kbd {
   outline: var(--ring-width-default) solid var(--accent-default);
   outline-offset: calc(-1 * var(--ring-offset-default));
 }
+.telemetry-prompt {
+  display: grid;
+  gap: var(--space-5);
+  width: min(460px, 100%);
+  padding: var(--space-9);
+  box-shadow: var(--shadow-dialog);
+}
+.telemetry-prompt:focus {
+  outline: none;
+}
+.telemetry-prompt h2 {
+  margin: 0;
+  font-size: var(--text-size-heading);
+}
+.telemetry-prompt p {
+  margin: 0 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-size-body);
+}
+.telemetry-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+.telemetry-prompt-actions button {
+  padding: var(--space-3) var(--space-6);
+  border: var(--border-width-default) solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--canvas-background);
+  color: var(--text-primary);
+  font-size: var(--text-size-body);
+  cursor: pointer;
+}
+.telemetry-prompt-actions button:hover {
+  background: var(--accent-subtle);
+}
+.telemetry-prompt-actions button:focus-visible {
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-default);
+}
 .settings-empty {
   margin: 0;
   color: var(--text-muted);

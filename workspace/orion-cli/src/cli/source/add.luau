@@ -36,7 +36,7 @@ local COMMAND_REASON = "runs a program, which only a person at the CLI should ch
 
 -- Each kind has its own options, so help lists only the ones it takes. The
 -- adapter's createSource validates them.
-local KIND_ORDER = { "github", "jira", "hop" }
+local KIND_ORDER = { "github", "jira", "hop", "claude" }
 
 local KINDS: { [string]: Kind } = {
 	github = {
@@ -63,6 +63,15 @@ local KINDS: { [string]: Kind } = {
 			{ name = "command", help = "JSON array naming the hop executable", isCommand = true },
 		},
 		mcp = { omit = { { option = "command", reason = COMMAND_REASON } } },
+	},
+	claude = {
+		help = "Add a Claude Code source, which puts sessions on the cards whose branch they ran on",
+		options = {
+			{ name = "dir", help = "Claude Code's data folder, ~/.claude by default" },
+		},
+		mcp = {
+			skip = "reads every Claude Code transcript on this machine, which only a person at the CLI should allow",
+		},
 	},
 }
 
@@ -99,7 +108,7 @@ local function mergeSource(existing: Source, source: Source)
 end
 
 return table.freeze({
-	help = "Add a GitHub, Jira, or hop source",
+	help = "Add a GitHub, Jira, hop, or Claude Code source",
 	define = function(parser: cli.Parser)
 		for _, kind in KIND_ORDER do
 			local kindParser = parser:subcommand(kind, { help = KINDS[kind].help })
