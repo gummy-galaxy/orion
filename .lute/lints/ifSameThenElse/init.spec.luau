@@ -1,7 +1,7 @@
 local test = require("@std/test")
 
-local ifSameThenElse = require("@repo/lints/ifSameThenElse")
-local testing = require("@root/testing")
+local ifSameThenElse = require("@repository/.lute/lints/ifSameThenElse")
+local testing = require("@cli/testing")
 
 test.case("ifSameThenElse flags a branch with the same body as an earlier one", function(assert)
 	local source = [[

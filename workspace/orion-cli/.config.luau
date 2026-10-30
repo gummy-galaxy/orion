@@ -13,7 +13,7 @@ return {
 	},
 	lute = {
 		lint = {
-			rulepaths = { "./lints" },
+			rulepaths = { "../../.lute/lints" },
 		},
 	},
 }
