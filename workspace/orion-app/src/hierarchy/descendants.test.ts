@@ -3,7 +3,13 @@ import { node } from './fixtures/node'
 import { descendants } from './descendants'
 import { indexNodes } from './indexNodes'
 
-const nodes = [node('outer', undefined, 'cluster'), node('inner', 'outer', 'cluster'), node('c', 'outer'), node('b', 'inner'), node('loose')]
+const nodes = [
+  node('outer', undefined, 'cluster'),
+  node('inner', 'outer', 'cluster'),
+  node('c', 'outer'),
+  node('b', 'inner'),
+  node('loose'),
+]
 
 test('gathers everything inside at any depth, each node before what it holds', () => {
   expect([...descendants('outer', indexNodes(nodes).children)]).toEqual(['inner', 'b', 'c'])

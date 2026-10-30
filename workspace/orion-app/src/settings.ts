@@ -59,7 +59,9 @@ let posting: Promise<unknown> = Promise.resolve()
 // One at a time, since the server reads, merges, and writes the whole file for each.
 function post(changes: Record<string, unknown>) {
   posting = posting
-    .then(() => fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(changes) }))
+    .then(() =>
+      fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(changes) }),
+    )
     .catch(() => {
       // No server, as in Storybook; browser storage keeps the value for this origin.
     })

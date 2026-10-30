@@ -5,7 +5,15 @@ import { useState } from 'react'
  * Edits a canvas or group header in Markdown. The header saves when the field loses focus, so typing doesn't
  * refit the group or write the workspace on every key. Clearing the field removes the header.
  */
-export function HeaderSettings({ title, value, change }: { title: string; value: string | undefined; change: (header: string | null) => void }) {
+export function HeaderSettings({
+  title,
+  value,
+  change,
+}: {
+  title: string
+  value: string | undefined
+  change: (header: string | null) => void
+}) {
   const [draft, setDraft] = useState(value ?? '')
 
   const save = () => {
@@ -29,7 +37,9 @@ export function HeaderSettings({ title, value, change }: { title: string; value:
         onChange={(event) => setDraft(event.target.value)}
         onBlur={save}
       />
-      <p className="header-hint">Layout classes: header-row, header-column, header-center, header-end. Scripts and styles are removed.</p>
+      <p className="header-hint">
+        Layout classes: header-row, header-column, header-center, header-end. Scripts and styles are removed.
+      </p>
     </section>
   )
 }

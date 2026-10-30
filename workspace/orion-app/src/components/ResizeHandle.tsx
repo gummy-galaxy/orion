@@ -2,7 +2,8 @@ import { useRef, type KeyboardEvent, type PointerEvent } from 'react'
 
 const KEY_STEP = 16
 
-const clamp = (value: number, minimum: number, maximum: number) => Math.round(Math.max(minimum, Math.min(maximum, value)))
+const clamp = (value: number, minimum: number, maximum: number) =>
+  Math.round(Math.max(minimum, Math.min(maximum, value)))
 
 /**
  * A splitter between a side panel and the canvas. Dragging it, or pressing the arrow keys while it has focus, sets the

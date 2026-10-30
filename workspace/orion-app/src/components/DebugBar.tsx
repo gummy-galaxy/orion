@@ -71,7 +71,9 @@ export function DebugBar({
           longest: Math.round(Math.max(0, ...tasks)),
           nodes: root?.querySelectorAll('.react-flow__node').length ?? 0,
           edges: root?.querySelectorAll('.react-flow__edge').length ?? 0,
-          live: root?.querySelectorAll('.react-flow__edge.e-live:not(.tr-e-dim) .react-flow__edge-path:not(.is-offscreen)').length ?? 0,
+          live:
+            root?.querySelectorAll('.react-flow__edge.e-live:not(.tr-e-dim) .react-flow__edge-path:not(.is-offscreen)')
+              .length ?? 0,
           glowing: root?.querySelectorAll('.card.st-active:not(.lens)').length ?? 0,
           moving: root?.hasAttribute('data-moving') ?? false,
         })
@@ -122,7 +124,9 @@ export function DebugBar({
             ×
           </label>
           <span title="Long tasks blocking the page in the last half second">
-            {sample.longTasks === null ? 'long tasks n/a' : `long tasks ${sample.longTasks} · longest ${sample.longest} ms`}
+            {sample.longTasks === null
+              ? 'long tasks n/a'
+              : `long tasks ${sample.longTasks} · longest ${sample.longest} ms`}
           </span>
           <span>nodes {sample.nodes}</span>
           <span>
@@ -140,9 +144,16 @@ export function DebugBar({
           <input type="checkbox" checked={motion.glow} onChange={() => toggle('glow')} /> Glow
         </label>
         <label>
-          <input type="checkbox" checked={motion.pauseWhileMoving} onChange={() => toggle('pauseWhileMoving')} /> Pause while moving
+          <input type="checkbox" checked={motion.pauseWhileMoving} onChange={() => toggle('pauseWhileMoving')} /> Pause
+          while moving
         </label>
-        <button type="button" className="debug-close" onClick={close} aria-label="Hide the debug bar" title="Hide the debug bar">
+        <button
+          type="button"
+          className="debug-close"
+          onClick={close}
+          aria-label="Hide the debug bar"
+          title="Hide the debug bar"
+        >
           ×
         </button>
       </span>

@@ -6,7 +6,9 @@ const BASE = { 'canvas of 1000 cards › parseCanvas': [10, 10, 10], 'canvas of 
 
 /** A benchmark-only comparison where each benchmark's head is its base times the given factor. */
 function compare(factors: Record<string, number> = {}): string {
-  const head = Object.fromEntries(Object.entries(BASE).map(([name, runs]) => [name, runs.map((value) => value * (factors[name] ?? 1))]))
+  const head = Object.fromEntries(
+    Object.entries(BASE).map(([name, runs]) => [name, runs.map((value) => value * (factors[name] ?? 1))]),
+  )
   const input: ReportInput = {
     base: { ref: 'main', sha: '1111111aaaa' },
     head: { ref: 'agent/change', sha: '2222222bbbb' },
@@ -19,8 +21,9 @@ function compare(factors: Record<string, number> = {}): string {
 test('leads with an emoji heading and a summary of every measurement', () => {
   const report = compare({ 'canvas of 1000 cards › parseCanvas': 1.5 })
 
-  expect(report).toMatch(
-    /^## ⏱️ Performance\n\nComparing `agent\/change` \(2222222\) with `main` \(1111111\) across 2 measurements: 1 slower, 1 within noise\.\n/,
+  expect(report).toMatch(/^## ⏱️ Performance\n\n/)
+  expect(report).toContain(
+    'Comparing `agent/change` (2222222) with `main` (1111111) across 2 measurements: 1 slower, 1 within noise.\n',
   )
   expect(report).toContain('### 🔬 All measurements')
   expect(report).toContain('<summary>🧮 <b>Data benchmarks</b> · 2 measured · 🔴 1 slower</summary>')

@@ -30,7 +30,10 @@ export function SourceMenu({ domain, sources }: { domain: string; sources: Sourc
       onPointerDown={stopPropagation}
       onClick={stopPropagation}
     >
-      <summary aria-label={`${domain}: ${sources.length} sources`} title={`${domain}: ${sources.length} sources. Click to show them.`}>
+      <summary
+        aria-label={`${domain}: ${sources.length} sources`}
+        title={`${domain}: ${sources.length} sources. Click to show them.`}
+      >
         <Favicon domain={domain} />
         <span className="source-count">{sources.length}</span>
       </summary>

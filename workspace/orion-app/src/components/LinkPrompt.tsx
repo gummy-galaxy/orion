@@ -8,7 +8,10 @@ type Props = {
   close: () => void
 }
 
-/** A field for pasting a pull request, issue, or Jira link to make a card from, opened where the canvas was right-clicked. */
+/**
+ * A field for pasting a pull request, issue, or Jira link to make a card from, opened where the canvas was
+ * right-clicked.
+ */
 export function LinkPrompt({ x, y, submit, close }: Props) {
   const ref = useRef<HTMLFormElement>(null)
   const [url, setUrl] = useState('')
