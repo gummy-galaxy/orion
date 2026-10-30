@@ -1,13 +1,34 @@
 local getFieldValue = require("@root/query/getFieldValue")
 local getRefs = require("@root/refs/getRefs")
-local graphTypes = require("@root/graph/types")
 local parseExpression = require("@root/query/parseExpression")
+local queryTypes = require("@root/query/types")
 local types = require("@root/types")
 
 type Item = types.Item
 type Expression = parseExpression.Expression
 
-local function matchesExpression(derived: graphTypes.Derived, item: Item, expression: Expression): boolean
+-- Whether a group's path of labels is the one named: a lone label names the
+-- group itself, and labels separated by `/` name it from the top level down.
+-- Case and the spaces around each label don't count.
+local function isPathNamed(path: { string }, value: string): boolean
+	local names = value:split("/")
+
+	if #path == 0 or (#names > 1 and #names ~= #path) then
+		return false
+	end
+
+	for index, name in names do
+		local label = path[#path - #names + index]
+
+		if label:lower() ~= (name:match("^%s*(.-)%s*$") :: string):lower() then
+			return false
+		end
+	end
+
+	return true
+end
+
+local function matchesExpression(scope: queryTypes.Scope, item: Item, expression: Expression): boolean
 	local function evaluate(node: Expression): boolean?
 		if node.kind == "comparison" then
 			local field = node.field :: string
@@ -31,7 +52,24 @@ local function matchesExpression(derived: graphTypes.Derived, item: Item, expres
 				return node.operator == "!="
 			end
 
-			local actual = getFieldValue(item, derived, field)
+			if field == "group" then
+				local parentId = item.parentId
+
+				if parentId == nil then
+					return nil
+				end
+
+				local path = scope.groupPaths[parentId] or {}
+
+				if node.operator == "~" then
+					return table.concat(path, " / "):lower():find(value:lower(), 1, true) ~= nil
+				end
+
+				local isNamed = parentId == value or isPathNamed(path, value)
+				return if node.operator == "=" then isNamed else not isNamed
+			end
+
+			local actual = getFieldValue(scope, item, field)
 			if actual == nil then
 				return nil
 			end

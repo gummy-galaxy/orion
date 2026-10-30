@@ -1,6 +1,13 @@
 local graphTypes = require("@root/graph/types")
 local types = require("@root/types")
 
+-- What a query reads nodes against: the derived graph, and each group's
+-- labels from the top level down to it, by id.
+export type Scope = {
+	derived: graphTypes.Derived,
+	groupPaths: { [string]: { string } },
+}
+
 -- One key to sort by. Ties fall to the next key, then to canvas order.
 export type Sort = { field: string, isDescending: boolean }
 

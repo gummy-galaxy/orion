@@ -6,6 +6,8 @@
 	checks.
 ]]
 
+local fieldValues = require("@root/fieldValues")
+
 export type Field = {
 	name: string,
 	help: string,
@@ -44,8 +46,21 @@ local FIELDS: { Field } = {
 	},
 	{
 		name = "group",
-		help = "The id of the group that directly holds the node.",
-		example = [[group = "6f1c2a90-3d4e-4b5f-8a7b-9c0d1e2f3a4b"]],
+		help = "The group that directly holds the node, named by its id, its label, or its path of labels from the top level separated by `/`, ignoring case. With `~` it matches text in that path.",
+		isText = true,
+		example = [[group = "Release / Docs"]],
+	},
+	{
+		name = "who",
+		help = "Whose move a card is: yours, a reviewer's, or CI's.",
+		values = fieldValues.who,
+		example = [[who = "you"]],
+	},
+	{
+		name = "priority",
+		help = "The priority a card's source gives it, such as `High` from Jira.",
+		isText = true,
+		example = [[priority = "High"]],
 	},
 	{
 		name = "draft",
@@ -103,6 +118,7 @@ local EXAMPLES: { string } = {
 	[[kind = "group" and label ~ "release"]],
 	[[pr = "86" or ref = "ABC-12"]],
 	[[not (draft = "true") and status != "done"]],
+	[[group ~ "release" and who = "you"]],
 }
 
 -- What `--sort` takes: fields separated by commas, each descending when it
