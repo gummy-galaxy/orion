@@ -47,7 +47,8 @@ local FIELDS: { Field } = {
 	},
 	{
 		name = "group",
-		help = "The group that directly holds the node, named by its id, its label, or its path of labels from the top level separated by `/`, ignoring case. With `~` it matches text in that path.",
+		help = "The group that directly holds the node, named by its id, its label, or its path of labels from the "
+			.. "top level separated by `/`, ignoring case. With `~` it matches text in that path.",
 		isText = true,
 		example = [[group = "Release / Docs"]],
 	},
