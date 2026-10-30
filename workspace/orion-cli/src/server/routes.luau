@@ -21,6 +21,7 @@ local settings = require("@root/server/routes/settings")
 local shared = require("@root/server/routes/shared")
 local static = require("@root/server/routes/static")
 local sync = require("@root/server/routes/sync")
+local telemetry = require("@root/server/routes/telemetry")
 local themes = require("@root/server/routes/themes")
 
 type Request = net.ReceivedRequest
@@ -105,6 +106,9 @@ function routes.create(
 		end
 		if route == "/api/themes" then
 			return themes.handle(request, root)
+		end
+		if route == "/api/telemetry" then
+			return telemetry.handle(request, root)
 		end
 
 		if route == "/api/canvases" or route == "/api/canvases/active" then
