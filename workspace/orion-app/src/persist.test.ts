@@ -1,6 +1,17 @@
 import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { adoptedPrint, clearFocus, compactDoc, displayedDoc, fetchRemote, fingerprint, reportFocus, storedPrint, type Remote } from './persist'
+import {
+  adoptedPrint,
+  clearFocus,
+  compactDoc,
+  displayedDoc,
+  fetchRemote,
+  fingerprint,
+  reportFocus,
+  storedPrint,
+  watchQuery,
+  type Remote,
+} from './persist'
 import { pushAside } from './pushAside'
 import { skinOf } from './skins'
 
@@ -45,6 +56,65 @@ it('sends a closing report for the same workspace', async () => {
 
   expect(url).toBe('/api/focus')
   expect(JSON.parse(await (body as Blob).text())).toEqual({ tab: expect.any(String), canvas: 'planning', closed: true })
+})
+
+/** Stands in for the event socket: records what the app sends and lets a test open it and answer. */
+class FakeSocket {
+  static opened: FakeSocket[] = []
+  readonly OPEN = 1
+  readyState = 0
+  sent: unknown[] = []
+  onopen?: () => void
+  onmessage?: (message: { data: string }) => void
+  onclose?: () => void
+  onerror?: () => void
+
+  constructor() {
+    FakeSocket.opened.push(this)
+  }
+
+  send(data: string) {
+    this.sent.push(JSON.parse(data))
+  }
+
+  close() {
+    this.readyState = 3
+    this.onclose?.()
+  }
+
+  open() {
+    this.readyState = this.OPEN
+    this.onopen?.()
+  }
+
+  answer(data: unknown) {
+    this.onmessage?.({ data: JSON.stringify({ type: 'custom', event: 'orion:query', data }) })
+  }
+}
+
+it('keeps a query open over the event socket until it is dropped', () => {
+  FakeSocket.opened = []
+  vi.stubGlobal('WebSocket', FakeSocket)
+  vi.stubGlobal('location', { protocol: 'http:', host: 'localhost' })
+
+  const answers: unknown[] = []
+  const stop = watchQuery({ where: 'kind = "step"', all: true }, (answer) => answers.push(answer))
+  const socket = FakeSocket.opened[0]
+
+  socket.open()
+  const [sent] = socket.sent as { id: string }[]
+
+  expect(sent).toEqual({ type: 'query', id: sent.id, where: 'kind = "step"', all: true })
+
+  socket.answer({ id: 'someone-else', canvas: 'default', revision: 1, total: 0, offset: 0, rows: [] })
+  socket.answer({ id: sent.id, canvas: 'default', revision: 2, total: 0, offset: 0, rows: [] })
+
+  expect(answers).toEqual([{ canvas: 'default', revision: 2, total: 0, offset: 0, rows: [] }])
+
+  stop()
+
+  expect(socket.sent.at(-1)).toEqual({ type: 'unquery', id: sent.id })
+  expect(socket.readyState).toBe(3)
 })
 
 describe('adopting a server document', () => {

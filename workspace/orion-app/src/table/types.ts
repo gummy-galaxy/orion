@@ -7,8 +7,8 @@ export type TableRow = {
   kind: ItemKind
   /** Undefined for notes and components, which aren't work. */
   status?: ViewStatus
-  /** The groups the card sits in below the table's scope, outermost first. */
-  groups: string[]
+  /** The label of the group that directly holds the card, if any. */
+  group?: string
   /** The card's main source ref, such as its pull request. */
   ref?: string
 }

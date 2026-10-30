@@ -1,21 +1,22 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { createStore, Provider } from 'jotai'
-import { derivedAtom, linksAtom, nodesAtom } from '../state'
+import type { TableRow } from '../table/types'
+import { CardTable } from './CardTable'
 import { DetailsPanel } from './DetailsPanel'
 import { NoteInspector } from './NoteInspector'
-import { blocker, component, derived, group, links, note, task } from './storySupport/data'
-import { TableTab } from './TableTab'
+import { note } from './storySupport/data'
 
 const meta = { title: 'Interface/Chrome/DetailsPanel' } satisfies Meta
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-const tableStore = createStore()
-
-tableStore.set(nodesAtom, [group, { ...task, parentId: 'group' }, { ...blocker, parentId: 'group' }, note, component])
-tableStore.set(linksAtom, links)
-tableStore.set(derivedAtom, derived)
+const rows: TableRow[] = [
+  { id: 'task', label: 'Ship the query endpoint', kind: 'pr', status: 'review', group: 'Release', ref: 'gummy-galaxy/orion#655' },
+  { id: 'blocker', label: 'Add a Table tab', kind: 'pr', status: 'blocked', group: 'Release', ref: 'gummy-galaxy/orion#656' },
+  { id: 'step', label: 'Measure at 5,000 cards', kind: 'step', status: 'ready', group: 'Release' },
+  { id: 'note', label: 'Rows come from orion serve', kind: 'note' },
+  { id: 'component', label: 'orion serve', kind: 'component' },
+]
 
 export const Default: Story = {
   render: () => (
@@ -36,12 +37,10 @@ export const Default: Story = {
 
 export const Table: Story = {
   render: () => (
-    <Provider store={tableStore}>
-      <div style={{ display: 'flex', height: 600 }}>
-        <DetailsPanel width={640} tab="table" chooseTab={() => {}} hide={() => {}}>
-          <TableTab root={null} scope="All work" reveal={() => {}} />
-        </DetailsPanel>
-      </div>
-    </Provider>
+    <div style={{ display: 'flex', height: 600 }}>
+      <DetailsPanel width={640} tab="table" chooseTab={() => {}} hide={() => {}}>
+        <CardTable rows={rows} scope="All work" reveal={() => {}} />
+      </DetailsPanel>
+    </div>
   ),
 }
