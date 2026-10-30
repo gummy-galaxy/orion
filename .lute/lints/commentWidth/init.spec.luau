@@ -1,8 +1,8 @@
 local syntax = require("@std/syntax")
 local test = require("@std/test")
 
-local commentWidth = require("@repo/lints/commentWidth")
-local testing = require("@root/testing")
+local commentWidth = require("@repository/.lute/lints/commentWidth")
+local testing = require("@cli/testing")
 
 local LONG = "one two three four five six seven eight nine ten eleven twelve thirteen fourteen"
 

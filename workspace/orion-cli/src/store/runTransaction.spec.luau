@@ -4,6 +4,8 @@ local path = require("@std/path")
 local process = require("@std/process")
 local test = require("@std/test")
 
+local project = require("@repository/project")
+
 local applyOperations = require("@root/operations/applyOperations")
 local decodeDoc = require("@root/store/decodeDoc")
 local getBackups = require("@root/store/getBackups")
@@ -138,7 +140,7 @@ exit "$failed"
 		script,
 		"sh",
 		tostring(process.execPath()),
-		tostring(path.join(process.cwd(), "cli.luau")),
+		tostring(path.join(project.CLI_PATH, "cli.luau")),
 		tostring(writers),
 		tostring(writesEach),
 	}, { env = environment })
