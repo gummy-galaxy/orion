@@ -47,6 +47,9 @@ export type ItemFields = {
 	-- The UTC time a snooze ends, in the form Orion stores; empty to wake it
 	-- now.
 	snoozedUntil: string?,
+	-- Fields the card's types declare, by name, as typed text; empty clears
+	-- one.
+	values: { [string]: string }?,
 }
 
 export type Progress = { total: number, done: number, ready: number, components: number }
