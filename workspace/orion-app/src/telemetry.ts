@@ -61,10 +61,17 @@ export async function sendTelemetryEvents(events: TelemetryEvent[]): Promise<voi
   if (events.length === 0) return
 
   const timestamp = new Date().toISOString()
-  const body = JSON.stringify({ events: events.map((event) => ({ ...event, sessionId: TELEMETRY_SESSION_ID, timestamp })) })
+  const body = JSON.stringify({
+    events: events.map((event) => ({ ...event, sessionId: TELEMETRY_SESSION_ID, timestamp })),
+  })
 
   try {
-    await fetch(`${API}/events`, { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true })
+    await fetch(`${API}/events`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      keepalive: true,
+    })
   } catch {
     // Telemetry is best effort.
   }

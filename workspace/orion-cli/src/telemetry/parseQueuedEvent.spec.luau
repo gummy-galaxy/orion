@@ -12,7 +12,8 @@ end
 
 test.case("an event keeps its session, time, and flat properties", function(assert)
 	local event = parse(
-		`\{"name":"app_started","sessionId":"{SESSION_ID}","timestamp":"2026-10-30T11:59:58.250Z","properties":\{"startup_ms":812.5,"card_count":40\}\}`
+		`\{"name":"app_started","sessionId":"{SESSION_ID}","timestamp":"2026-10-30T11:59:58.250Z",`
+			.. '"properties":{"startup_ms":812.5,"card_count":40}}'
 	)
 
 	assert.eq(event.name, "app_started")
