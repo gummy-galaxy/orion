@@ -54,12 +54,19 @@ end
 return table.freeze({
 	help = "Apply a plan of cards, notes, groups, and links in one step",
 	mcp = {
-		description = 'Apply a plan of cards, notes, groups, and links in one call. The plan is a list of operations that run in order, and it lands whole or not at all. addCard and addNote create items, and group wraps items; each may declare a handle, and later operations refer to it as "@handle". Existing cards and groups are named by id. Other operations: setFields, link, unlink, insert, move, ungroup, tidy, remove, removeGroup. Use dryRun to preview the plan and the ids each handle gets.',
+		description = "Apply a plan of cards, notes, groups, and links in one call. "
+			.. "The plan is a list of operations that run in order, and it lands whole or not at all. "
+			.. "addCard and addNote create items, and group wraps items; "
+			.. 'each may declare a handle, and later operations refer to it as "@handle". '
+			.. "Existing cards and groups are named by id. Other operations: "
+			.. "setFields, link, unlink, insert, move, ungroup, tidy, remove, removeGroup. "
+			.. "Use dryRun to preview the plan and the ids each handle gets.",
 		annotations = { destructiveHint = true },
 		omit = {
 			{
 				option = "file",
-				reason = "reads the plan from a file or stdin, which a tool call can't pass; the tool takes it inline as plan",
+				reason = "reads the plan from a file or stdin, which a tool call can't pass; "
+					.. "the tool takes it inline as plan",
 			},
 		},
 	},
@@ -70,7 +77,9 @@ return table.freeze({
 			type = "jsonList",
 			mcp = {
 				required = true,
-				description = "Operations in order. Each has an op field, such as addCard with label, or link with from and to. New cards and notes are placed after the last operation, beside the items they link to. Move needs group, or null for the top level.",
+				description = "Operations in order. Each has an op field, such as addCard with label, or link with "
+					.. "from and to. New cards and notes are placed after the last operation, beside the items "
+					.. "they link to. Move needs group, or null for the top level.",
 			},
 		})
 		parser:add("dry-run", "flag", { help = "Preview the plan without writing" })

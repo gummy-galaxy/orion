@@ -2,13 +2,23 @@ import { describe, expect, it } from 'vitest'
 import { CHAIN_BEATS_MS, CHAIN_STEP_MS, chainDelay, chainFinale, chainPulses, closesOut, timeChain } from './celebrate'
 import type { AppNode, ItemKind, Link, Status, TaskData } from './model'
 
-const task = (id: string, status: Status = 'todo', extra: Partial<TaskData> = {}, itemKind: ItemKind = 'step'): AppNode => ({
+const task = (
+  id: string,
+  status: Status = 'todo',
+  extra: Partial<TaskData> = {},
+  itemKind: ItemKind = 'step',
+): AppNode => ({
   id,
   type: 'task',
   position: { x: 0, y: 0 },
   data: { kind: 'task', label: id, itemKind, status, ...extra },
 })
-const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({ id: `${from}>${to}`, from, to, kind })
+const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({
+  id: `${from}>${to}`,
+  from,
+  to,
+  kind,
+})
 
 describe('chainDelay', () => {
   it('times the click and the first three hops as climbing beats, then spaces later hops evenly', () => {

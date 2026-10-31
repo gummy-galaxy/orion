@@ -239,7 +239,8 @@ test.case("command reply drops unknown and duplicate ids while retaining ignored
 		prompt = stdin
 		return testing.result(
 			true,
-			[[{"result":"{\"groups\":[{\"title\":\"Avatar work\",\"members\":[\"a\",\"missing\",\"a\",\"b\"]},{\"title\":\"Too small\",\"members\":[\"b\",\"c\"]}]}"}]]
+			[[{"result":"{\"groups\":[{\"title\":\"Avatar work\",\"members\":[\"a\",\"missing\",\"a\",\"b\"]},]]
+				.. [[{\"title\":\"Too small\",\"members\":[\"b\",\"c\"]}]}"}]]
 		)
 	end)
 

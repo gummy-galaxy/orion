@@ -15,7 +15,8 @@ export const FALLBACK_STICKER = '🎉'
 const STARTER: Loadout = ['🎉', '🔥', '👀', '❤️', '🚀', '✅', '⭐', '👍']
 
 /** A saved loadout, padded or trimmed to the wheel; files without one get the starter set. */
-export const loadoutOf = (saved?: Loadout | null) => Array.from({ length: WHEEL_SLOTS }, (_, i) => (saved ? (saved[i] ?? null) : STARTER[i]))
+export const loadoutOf = (saved?: Loadout | null) =>
+  Array.from({ length: WHEEL_SLOTS }, (_, i) => (saved ? (saved[i] ?? null) : STARTER[i]))
 
 const EMOJI_PATTERN = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u20e3/u
 const graphemes = new Intl.Segmenter(undefined, { granularity: 'grapheme' })
@@ -30,10 +31,14 @@ export function firstEmoji(text: string): string | null {
 /** A cursor that shows the sticker about to be stamped. */
 export const stickerCursor = (emoji: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><text x="16" y="17" font-size="24" text-anchor="middle" dominant-baseline="middle">${emoji}</text></svg>`,
+    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">' +
+      `<text x="16" y="17" font-size="24" text-anchor="middle" dominant-baseline="middle">${emoji}</text></svg>`,
   )}") 16 16, crosshair`
 
-/** Half a sticker's size on the canvas, which is how far its box reaches from its center when a selection box picks it up. */
+/**
+ * Half a sticker's size on the canvas, which is how far its box reaches from its center when a selection box picks it
+ * up.
+ */
 export const STICKER_HALF_SIZE = 20
 
 /**
@@ -56,10 +61,17 @@ export function pressedStickers(picked: ReadonlySet<string>, id: string, additiv
  * group are left out, since those move with it already.
  */
 export function offsetsFrom(anchor: { x: number; y: number }, stickers: Sticker[]) {
-  return new Map(stickers.filter((sticker) => !sticker.on).map((sticker) => [sticker.id, { x: sticker.x - anchor.x, y: sticker.y - anchor.y }]))
+  return new Map(
+    stickers
+      .filter((sticker) => !sticker.on)
+      .map((sticker) => [sticker.id, { x: sticker.x - anchor.x, y: sticker.y - anchor.y }]),
+  )
 }
 
-/** Where each sticker shows: a loose one where it is, one on a card or group moved along with it, and none while that card or group is hidden. */
+/**
+ * Where each sticker shows: a loose one where it is, one on a card or group moved along with it, and none while that
+ * card or group is hidden.
+ */
 export function placeStickers(stickers: Sticker[], map: Map<string, AppNode>, hidden: ReadonlySet<string>) {
   return stickers.flatMap((sticker) => {
     if (!sticker.on) return [sticker]

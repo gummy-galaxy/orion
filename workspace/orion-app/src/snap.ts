@@ -22,7 +22,8 @@ const end = (box: Box, axis: Axis) => start(box, axis) + length(box, axis)
 const center = (box: Box, axis: Axis) => start(box, axis) + length(box, axis) / 2
 const otherAxis = (axis: Axis): Axis => (axis === 'x' ? 'y' : 'x')
 /** Whether two boxes cover some of the same span along `axis`. */
-const sharesSpan = (first: Box, second: Box, axis: Axis) => start(first, axis) < end(second, axis) && start(second, axis) < end(first, axis)
+const sharesSpan = (first: Box, second: Box, axis: Axis) =>
+  start(first, axis) < end(second, axis) && start(second, axis) < end(first, axis)
 const intersects = (first: Box, second: Box) => sharesSpan(first, second, 'x') && sharesSpan(first, second, 'y')
 const separation = (first: Box, second: Box, axis: Axis) =>
   Math.max(0, start(second, axis) - end(first, axis), start(first, axis) - end(second, axis))
@@ -91,7 +92,8 @@ function hits({ moving, others, gaps }: Scene, axis: Axis, tolerance: number, re
 
     if (distance > reach) continue
 
-    const addHit = (offset: number, guide: Guide) => Math.abs(offset) <= tolerance && matches.push({ offset, guide, distance })
+    const addHit = (offset: number, guide: Guide) =>
+      Math.abs(offset) <= tolerance && matches.push({ offset, guide, distance })
     const beside = sharesSpan(moving, otherBox, perpendicular)
     const from = Math.min(start(moving, perpendicular), start(otherBox, perpendicular))
     const to = Math.max(end(moving, perpendicular), end(otherBox, perpendicular))
@@ -108,7 +110,9 @@ function hits({ moving, others, gaps }: Scene, axis: Axis, tolerance: number, re
 
     if (!beside) continue
 
-    const at = Math.max(start(moving, perpendicular), start(otherBox, perpendicular)) + overlap(moving, otherBox, perpendicular) / 2
+    const at =
+      Math.max(start(moving, perpendicular), start(otherBox, perpendicular)) +
+      overlap(moving, otherBox, perpendicular) / 2
 
     for (const gap of gaps[axis]) {
       addHit(end(otherBox, axis) + gap - start(moving, axis), {
@@ -135,7 +139,9 @@ function hits({ moving, others, gaps }: Scene, axis: Axis, tolerance: number, re
 export function shift(nodes: AppNode[], ids: string[], deltaX: number, deltaY: number): AppNode[] {
   const movedIds = new Set(ids)
 
-  return nodes.map((node) => (movedIds.has(node.id) ? { ...node, position: { x: node.position.x + deltaX, y: node.position.y + deltaY } } : node))
+  return nodes.map((node) =>
+    movedIds.has(node.id) ? { ...node, position: { x: node.position.x + deltaX, y: node.position.y + deltaY } } : node,
+  )
 }
 
 /**
@@ -143,17 +149,26 @@ export function shift(nodes: AppNode[], ids: string[], deltaX: number, deltaY: n
  * Each pull only holds within `tolerance` (canvas units), so dragging on slides past it.
  * Only siblings within `reach` (canvas units) of the dragged nodes can pull them.
  */
-export function snapDrag(nodes: AppNode[], ids: string[], tolerance: number, reach: number, cardSize?: CardSize): AppNode[] {
+export function snapDrag(
+  nodes: AppNode[],
+  ids: string[],
+  tolerance: number,
+  reach: number,
+  cardSize?: CardSize,
+): AppNode[] {
   const currentScene = scene(nodes, ids, cardSize)
 
   if (!currentScene) return nodes
 
   // The smallest offset wins; on a tie, the sibling closest to the dragged nodes wins.
   const closer = (candidate: Hit, best: Hit) =>
-    Math.abs(candidate.offset) < Math.abs(best.offset) || (Math.abs(candidate.offset) === Math.abs(best.offset) && candidate.distance < best.distance)
+    Math.abs(candidate.offset) < Math.abs(best.offset) ||
+    (Math.abs(candidate.offset) === Math.abs(best.offset) && candidate.distance < best.distance)
   const pull = (axis: Axis) =>
-    hits(currentScene, axis, tolerance, reach).reduce<Hit | null>((best, candidate) => (!best || closer(candidate, best) ? candidate : best), null)
-      ?.offset ?? 0
+    hits(currentScene, axis, tolerance, reach).reduce<Hit | null>(
+      (best, candidate) => (!best || closer(candidate, best) ? candidate : best),
+      null,
+    )?.offset ?? 0
   const deltaX = pull('x')
   const deltaY = pull('y')
 
@@ -171,10 +186,16 @@ export function snapGuides(nodes: AppNode[], reach: number, cardSize?: CardSize)
 
   for (const axis of ['x', 'y'] as const)
     for (const { guide } of hits(currentScene, axis, 0.5, reach)) {
-      const key = guide.kind === 'line' ? `${axis}:${Math.round(guide.at)}` : `${axis}:${guide.from}:${guide.to}:${guide.at}`
+      const key =
+        guide.kind === 'line' ? `${axis}:${Math.round(guide.at)}` : `${axis}:${guide.from}:${guide.to}:${guide.at}`
       const previous = lines.get(key)
 
-      lines.set(key, previous ? { ...previous, from: Math.min(previous.from, guide.from), to: Math.max(previous.to, guide.to) } : guide)
+      lines.set(
+        key,
+        previous
+          ? { ...previous, from: Math.min(previous.from, guide.from), to: Math.max(previous.to, guide.to) }
+          : guide,
+      )
     }
 
   return [...lines.values()]
@@ -194,9 +215,14 @@ export function settleDrop(nodes: AppNode[], ids: string[], thrown: boolean, car
   const reach = Math.max(gap.x, gap.y) * 2
   const intersectionArea = (otherBox: Box) => overlap(moving, otherBox, 'x') * overlap(moving, otherBox, 'y')
   const distance = (otherBox: Box) => Math.hypot(separation(moving, otherBox, 'x'), separation(moving, otherBox, 'y'))
-  const landed = others.filter((otherBox) => intersects(moving, otherBox)).sort((a, b) => intersectionArea(b) - intersectionArea(a))[0]
+  const landed = others
+    .filter((otherBox) => intersects(moving, otherBox))
+    .sort((a, b) => intersectionArea(b) - intersectionArea(a))[0]
   const anchor =
-    landed ?? (thrown ? others.filter((otherBox) => distance(otherBox) <= reach).sort((a, b) => distance(a) - distance(b))[0] : undefined)
+    landed ??
+    (thrown
+      ? others.filter((otherBox) => distance(otherBox) <= reach).sort((a, b) => distance(a) - distance(b))[0]
+      : undefined)
 
   if (!anchor) return null
 
@@ -205,8 +231,14 @@ export function settleDrop(nodes: AppNode[], ids: string[], thrown: boolean, car
   const yPositions: number[] = []
 
   for (let i = -RINGS; i <= RINGS; i++) {
-    xPositions.push(anchor.x + i * (anchor.width + gap.x), anchor.x + anchor.width - moving.width + i * (anchor.width + gap.x))
-    yPositions.push(anchor.y + i * (anchor.height + gap.y), anchor.y + anchor.height - moving.height + i * (anchor.height + gap.y))
+    xPositions.push(
+      anchor.x + i * (anchor.width + gap.x),
+      anchor.x + anchor.width - moving.width + i * (anchor.width + gap.x),
+    )
+    yPositions.push(
+      anchor.y + i * (anchor.height + gap.y),
+      anchor.y + anchor.height - moving.height + i * (anchor.height + gap.y),
+    )
   }
 
   const clearance = Math.min(gap.x, gap.y) / 2
@@ -214,7 +246,12 @@ export function settleDrop(nodes: AppNode[], ids: string[], thrown: boolean, car
 
   for (const x of xPositions)
     for (const y of yPositions) {
-      const room = { x: x - clearance, y: y - clearance, width: moving.width + clearance * 2, height: moving.height + clearance * 2 }
+      const room = {
+        x: x - clearance,
+        y: y - clearance,
+        width: moving.width + clearance * 2,
+        height: moving.height + clearance * 2,
+      }
 
       if (others.some((otherBox) => intersects(room, otherBox))) continue
 
@@ -237,7 +274,9 @@ export function finishDrag(
   thrown: boolean,
   cardSize?: CardSize,
 ): AppNode[] {
-  const restored = origins.size ? nodes.map((node) => (origins.has(node.id) ? { ...node, position: origins.get(node.id)! } : node)) : nodes
+  const restored = origins.size
+    ? nodes.map((node) => (origins.has(node.id) ? { ...node, position: origins.get(node.id)! } : node))
+    : nodes
   const movableIds = ids.filter((id) => !origins.has(id))
 
   return free || !movableIds.length ? restored : (settleDrop(restored, movableIds, thrown, cardSize) ?? restored)

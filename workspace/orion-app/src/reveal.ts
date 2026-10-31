@@ -29,7 +29,9 @@ function groupsBelow(id: string, root: string | null, nodeMap: Map<string, AppNo
 export function revealDetail(nodes: AppNode[], root: string | null, ids: string[], detail: Detail): Detail {
   const nodeMap = byId(nodes)
   const inRoot = (id: string) => !root || id === root || ancestors(id, nodeMap).includes(root)
-  const depths = nodes.filter((node) => isCluster(node) && node.id !== root && inRoot(node.id)).map((node) => groupsBelow(node.id, root, nodeMap))
+  const depths = nodes
+    .filter((node) => isCluster(node) && node.id !== root && inRoot(node.id))
+    .map((node) => groupsBelow(node.id, root, nodeMap))
   const levels = detailLevels(depths)
   // Each group an id sits inside has to stay open, so the level must be one past the deepest of them.
   const needed = Math.max(0, ...ids.map((id) => groupsBelow(id, root, nodeMap))) + 1

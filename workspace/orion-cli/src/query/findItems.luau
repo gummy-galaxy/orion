@@ -1,4 +1,4 @@
-local derive = require("@root/graph/derive")
+local createScope = require("@root/query/createScope")
 local getLabel = require("@root/graph/getLabel")
 local graphTypes = require("@root/graph/types")
 local matchesExpression = require("@root/query/matchesExpression")
@@ -38,22 +38,22 @@ local function findItems(canvases: { Canvas }, text: string, limit: number): Res
 	local found: { Entry } = {}
 
 	for _, canvas in canvases do
-		local derived = derive(canvas.doc)
+		local scope = createScope(canvas.doc)
 
 		for _, item in canvas.doc.nodes do
-			if matchesExpression(derived, item, anywhere) then
+			if matchesExpression(scope, item, anywhere) then
 				local rank = NOTE
 
 				if getLabel(item):lower() == lowered then
 					rank = EXACT_LABEL
-				elseif matchesExpression(derived, item, inLabel) then
+				elseif matchesExpression(scope, item, inLabel) then
 					rank = LABEL
-				elseif matchesExpression(derived, item, inRef) then
+				elseif matchesExpression(scope, item, inRef) then
 					rank = REF
 				end
 
 				table.insert(found, {
-					hit = { name = canvas.name, doc = canvas.doc, derived = derived, item = item },
+					hit = { name = canvas.name, doc = canvas.doc, derived = scope.derived, item = item },
 					rank = rank,
 					sequence = #found + 1,
 				})

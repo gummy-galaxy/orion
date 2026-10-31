@@ -26,6 +26,7 @@ local function collectAsync(source: Source, run: CommandRunner, context: Context
 			elseif issue.category == "indeterminate" then "active"
 			else "todo"
 		local details = json.object({ type = issue.issueType })
+		details.priority = issue.priority
 		details.epicKey = issue.epicKey
 		details.epicSummary = issue.epicSummary
 		table.insert(records, {

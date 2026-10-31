@@ -1,9 +1,12 @@
 --[[
-	The grammar `--where` takes, as data. parseExpression reads its fields and
-	operators from here, `orion help node query` lists them, and `lute run docs`
-	writes the reference page from it, so all three describe what the parser
-	accepts. Every example has to parse; the spec checks.
+	The grammar `--where` and `--sort` take, as data. parseExpression reads its
+	fields and operators from here, `orion help node query` lists them, and
+	`lute run generate docs` writes the reference page from it, so all three
+	describe what the parser accepts. Every example has to parse; the spec
+	checks.
 ]]
+
+local fieldValues = require("@root/fieldValues")
 
 export type Field = {
 	name: string,
@@ -23,12 +26,14 @@ export type Operator = {
 local FIELDS: { Field } = {
 	{
 		name = "kind",
-		help = "What the node is: `pr` for a card with a pull request, `placeholder` for one with only a repository, `step`, `gate`, `component`, `note`, `group`, or `image`.",
+		help = "What the node is: `pr` for a card with a pull request, `placeholder` for one with only a repository, "
+			.. "`step`, `gate`, `component`, `note`, `group`, or `image`.",
 		example = [[kind = "gate"]],
 	},
 	{
 		name = "type",
-		help = "Any card type the node carries, from itself, its sources, or a person, such as `pr` or `gate`. `orion type list` lists them.",
+		help = "Any card type the node carries, from itself, its sources, or a person, such as `pr` or `gate`. "
+			.. "`orion type list` lists them.",
 		example = [[type = "gate"]],
 	},
 	{
@@ -48,8 +53,22 @@ local FIELDS: { Field } = {
 	},
 	{
 		name = "group",
-		help = "The id of the group that directly holds the node.",
-		example = [[group = "6f1c2a90-3d4e-4b5f-8a7b-9c0d1e2f3a4b"]],
+		help = "The group that directly holds the node, named by its id, its label, or its path of labels from the "
+			.. "top level separated by `/`, ignoring case. With `~` it matches text in that path.",
+		isText = true,
+		example = [[group = "Release / Docs"]],
+	},
+	{
+		name = "who",
+		help = "Whose move a card is: yours, a reviewer's, or CI's.",
+		values = fieldValues.who,
+		example = [[who = "you"]],
+	},
+	{
+		name = "priority",
+		help = "The priority a card's source gives it, such as `High` from Jira.",
+		isText = true,
+		example = [[priority = "High"]],
 	},
 	{
 		name = "draft",
@@ -76,7 +95,8 @@ local FIELDS: { Field } = {
 	},
 	{
 		name = "ref",
-		help = "The key of any ref on the card, such as `owner/name#12` or `ABC-12`. With `=` and `!=` it matches whole keys, ignoring case.",
+		help = "The key of any ref on the card, such as `owner/name#12` or `ABC-12`. "
+			.. "With `=` and `!=` it matches whole keys, ignoring case.",
 		isText = true,
 		example = [[ref = "gummy-galaxy/orion#86"]],
 	},
@@ -107,6 +127,14 @@ local EXAMPLES: { string } = {
 	[[kind = "group" and label ~ "release"]],
 	[[pr = "86" or ref = "ABC-12"]],
 	[[not (draft = "true") and status != "done"]],
+	[[group ~ "release" and who = "you"]],
+}
+
+-- What `--sort` takes: fields separated by commas, each descending when it
+-- starts with `-`.
+local SORT_EXAMPLES: { string } = {
+	"label",
+	"status,-pr",
 }
 
 local fieldsByName: { [string]: Field } = {}
@@ -145,4 +173,5 @@ return table.freeze({
 	operators = table.freeze(OPERATORS),
 	combinators = table.freeze(COMBINATORS),
 	examples = table.freeze(EXAMPLES),
+	sortExamples = table.freeze(SORT_EXAMPLES),
 })

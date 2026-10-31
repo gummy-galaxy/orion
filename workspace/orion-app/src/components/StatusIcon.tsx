@@ -25,7 +25,9 @@ const SHAPES: Record<ViewStatus, ReactNode> = {
       fillRule="evenodd"
     />
   ),
-  deferred: <circle cx="5" cy="5" r="3.9" fill="none" stroke="currentColor" strokeWidth="1.3" strokeDasharray="1.6 1.46" />,
+  deferred: (
+    <circle cx="5" cy="5" r="3.9" fill="none" stroke="currentColor" strokeWidth="1.3" strokeDasharray="1.6 1.46" />
+  ),
   blocked: (
     <>
       <path d="M3.1 4.6V3.4a1.9 1.9 0 0 1 3.8 0v1.2" fill="none" stroke="currentColor" strokeWidth="1.3" />
@@ -47,7 +49,14 @@ const COLOR: Record<ViewStatus, string> = {
 /** A shape for each status, so telling them apart never rests on color alone. */
 export function StatusIcon({ status }: { status: ViewStatus }) {
   return (
-    <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true" className="status-icon" style={{ color: COLOR[status] }}>
+    <svg
+      viewBox="0 0 10 10"
+      width="10"
+      height="10"
+      aria-hidden="true"
+      className="status-icon"
+      style={{ color: COLOR[status] }}
+    >
       {SHAPES[status]}
     </svg>
   )

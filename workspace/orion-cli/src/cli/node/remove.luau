@@ -16,7 +16,8 @@ return table.freeze({
 	define = function(parser: cli.Parser)
 		addBatchOptions(parser, "Item ids or selectors")
 		parser:add("reconnect", "flag", {
-			help = "Also reconnect cards with at most one incoming and one outgoing link; every selected card must qualify",
+			help = "Also reconnect cards with at most one incoming and one outgoing link; "
+				.. "every selected card must qualify",
 		})
 	end,
 

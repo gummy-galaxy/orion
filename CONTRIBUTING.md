@@ -10,22 +10,24 @@ Read [the charter](docs/development/charter.md) for where Orion is headed and [t
 
 ## CLI
 
-The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang/lute). Scripts in `.lute/` run from the repository root, and `lute pkg install` and `lute test` run from `workspace/orion-cli/`:
+The CLI is written in Luau and compiled with [Lute](https://github.com/luau-lang/lute). Scripts in `.lute/` and `lute test` run from the repository root:
 
 ```sh
 rokit install
-(cd workspace/orion-cli && lute pkg install)
+lute run install
 lute run build
 ```
 
-That writes `workspace/orion-cli/build/orion`. `lute pkg install` fills `~/.loom/store`, which the build reads in place, and Lute can only bundle it from a checkout under your home directory.
+That writes `workspace/orion-cli/build/orion`. `lute run install` installs the CLI's Luau packages and copies them into `workspace/orion-cli/packages`, so the build can bundle them from a checkout anywhere. Run it again after changing `loom.config.luau`.
 
 Before committing CLI changes, run these:
 
 ```sh
 lute run analyze
-(cd workspace/orion-cli && lute test)
+lute test workspace/orion-cli .lute
 ```
+
+`lute run analyze` also checks the files `lute run generate` writes. It formats the docs reference with the docs site's Prettier, so run `npm ci` in `docs/` once first.
 
 To see how well a module's spec pins down its behavior, run `lute run mutate workspace/orion-cli/src/<module>.luau`. It makes one small change at a time, runs the module's sibling spec against each, and lists the changes the spec didn't catch. Pass `--spec <path>` when the tests live elsewhere. Some survivors make no real difference, so read each one before writing a test for it.
 
@@ -81,4 +83,4 @@ The packaged app saves the port it picks as `server-port` in its own folder (`~/
 
 The docs site in `docs/` is built with VitePress. Run `npm install` and `npm run dev` there to browse it.
 
-The CLI and MCP reference pages are generated from the command table and the MCP tool catalog. After changing a command, option, or MCP tool, run `lute run docs` from the repository root and commit what it writes. CI fails when they're out of date.
+The CLI and MCP reference pages are generated from the command table and the MCP tool catalog. After changing a command, option, or MCP tool, run `lute run generate docs` from the repository root and commit what it writes. CI fails when they're out of date.

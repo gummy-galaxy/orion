@@ -25,6 +25,7 @@ local function parseIssues(value: json.Value): { JiraIssue }
 		local categoryKey = (if issue then getString(issue.statusCategory) else nil)
 			or (if category then getString(category.key) else nil)
 		local issueType = if fields then json.asObject(fields.issuetype) else nil
+		local priority = if fields then json.asObject(fields.priority) else nil
 
 		if not key or not summary then
 			continue
@@ -42,6 +43,8 @@ local function parseIssues(value: json.Value): { JiraIssue }
 			issueType = (if issue then getString(issue.type) else nil) or (if issueType
 				then getString(issueType.name)
 				else nil) or "",
+			priority = (if issue then getString(issue.priority) else nil)
+				or (if priority then getString(priority.name) else nil),
 			epicKey = (if issue then getString(issue.epicKey) else nil) or (if epic then getString(epic.key) else nil),
 			epicSummary = (if issue then getString(issue.epicSummary) else nil) or (if epic
 				then getString(epic.summary) or getString(epic.name) or (if epicFields

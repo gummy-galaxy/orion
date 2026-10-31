@@ -42,8 +42,10 @@ test.case("collect batches pull request lookups by host", function(assert)
 	assert.eq(hosts["github.example.com"], true)
 end)
 
-local AUTHORED =
-	[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":7,"state":"OPEN","url":"u7","headRefName":"agent/branch","repository":{"name":"orion","owner":{"login":"vocksel"}}},{"number":8,"state":"OPEN","url":"u8","headRefName":"agent/other","repository":{"name":"orion","owner":{"login":"vocksel"}}}]}}}}]]
+local AUTHORED = [[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":7,"state":"OPEN","url":"u7",]]
+	.. [["headRefName":"agent/branch","repository":{"name":"orion","owner":{"login":"vocksel"}}},]]
+	.. [[{"number":8,"state":"OPEN","url":"u8","headRefName":"agent/other","repository":{"name":"orion",]]
+	.. [["owner":{"login":"vocksel"}}}]}}}}]]
 
 test.case("collect skips merged cards and fetches full state only for branch matches", function(assert)
 	local doc = testing.createDoc({
@@ -120,13 +122,20 @@ test.case("collect asks for the jobs of failing pull requests and leaves optiona
 			jobQueries += 1
 			return testing.result(
 				true,
-				[[{"data":{"c1":{"pullRequest":{"commits":{"nodes":[{"commit":{"statusCheckRollup":{"contexts":{"nodes":[{"__typename":"CheckRun","name":"docs","conclusion":"FAILURE","isRequired":false},{"__typename":"CheckRun","name":"test","conclusion":"SUCCESS","isRequired":true}]}}}}]}}}}}]]
+				[[{"data":{"c1":{"pullRequest":{"commits":{"nodes":[{"commit":{"statusCheckRollup":{"contexts":]]
+					.. [[{"nodes":[{"__typename":"CheckRun","name":"docs","conclusion":"FAILURE","isRequired":false},]]
+					.. [[{"__typename":"CheckRun","name":"test","conclusion":"SUCCESS",]]
+					.. [["isRequired":true}]}}}}]}}}}}]]
 			)
 		end
 
 		return testing.result(
 			true,
-			[[{"data":{"p1":{"pullRequest":{"number":341,"title":"t","url":"u","state":"OPEN","isDraft":true,"author":{"login":"vocksel"},"updatedAt":"now","additions":1,"deletions":1,"reviewRequests":{"totalCount":0},"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"FAILURE","count":1},{"state":"SUCCESS","count":1}]}}}}]}}}}}]]
+			[[{"data":{"p1":{"pullRequest":{"number":341,"title":"t","url":"u","state":"OPEN","isDraft":true,]]
+				.. [["author":{"login":"vocksel"},"updatedAt":"now","additions":1,"deletions":1,]]
+				.. [["reviewRequests":{"totalCount":0},"commits":{"nodes":[{"commit":{"statusCheckRollup":]]
+				.. [[{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"FAILURE","count":1},]]
+				.. [[{"state":"SUCCESS","count":1}]}}}}]}}}}}]]
 		)
 	end)
 	local pull = fetched.pulls["vocksel/orion#341"]

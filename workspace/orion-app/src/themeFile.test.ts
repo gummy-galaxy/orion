@@ -12,7 +12,12 @@ describe('parseThemeFile', () => {
   it('reads both schemes and the name and author', () => {
     const theme = parseThemeFile(
       'dusk.json',
-      file({ name: 'Dusk', author: 'Orion', light: { 'canvas.background': '#fff' }, dark: { 'canvas.background': '#000' } }),
+      file({
+        name: 'Dusk',
+        author: 'Orion',
+        light: { 'canvas.background': '#fff' },
+        dark: { 'canvas.background': '#000' },
+      }),
     )
 
     expect(theme).toEqual({
@@ -67,7 +72,9 @@ describe('parseThemeFile', () => {
   })
 
   it('reports a value that is not a string', () => {
-    expect(parseThemeFile('x.json', file({ dark: { 'canvas.background': 3 } })).error).toBe('dark canvas.background must be a string')
+    expect(parseThemeFile('x.json', file({ dark: { 'canvas.background': 3 } })).error).toBe(
+      'dark canvas.background must be a string',
+    )
   })
 
   it('reports the first value that is not plain CSS for its token', () => {
