@@ -1,9 +1,9 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local applyCanvasStyle = require("@root/style/applyCanvasStyle")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local runTransaction = require("@root/store/runTransaction")
+local applyCanvasStyle = require("@root/canvas/appearance/applyCanvasStyle")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local runTransaction = require("@root/storage/transactions/runTransaction")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response

@@ -1,11 +1,11 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local getAdapter = require("@root/adapters/getAdapter")
-local getErrorText = require("@root/getErrorText")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local loadDoc = require("@root/store/loadDoc")
-local runCommand = require("@root/command")
+local getAdapter = require("@root/sources/getAdapter")
+local getErrorText = require("@root/common/errors/getErrorText")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local loadDoc = require("@root/storage/canvases/loadDoc")
+local runCommand = require("@root/common/process/command")
 local shared = require("@root/server/routes/shared")
 local types = require("@root/types")
 

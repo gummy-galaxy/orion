@@ -1,7 +1,7 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local derive = require("@root/graph/derive")
+local derive = require("@root/canvas/derive")
 local serializeDerived = require("@root/server/serializeDerived")
 local testing = require("@root/testing")
 

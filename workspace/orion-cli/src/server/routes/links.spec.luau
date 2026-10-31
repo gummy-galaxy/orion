@@ -2,13 +2,13 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
 
-local createWorkspace = require("@root/store/createWorkspace")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local createWorkspace = require("@root/storage/canvases/createWorkspace")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local links = require("@root/server/routes/links")
-local loadDoc = require("@root/store/loadDoc")
+local loadDoc = require("@root/storage/canvases/loadDoc")
 local testing = require("@root/testing")
 local types = require("@root/types")
-local writeDoc = require("@root/store/writeDoc")
+local writeDoc = require("@root/storage/canvases/writeDoc")
 
 local PULL_URL = "https://github.com/Roblox/foundation/pull/2376"
 
