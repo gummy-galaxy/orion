@@ -40,7 +40,10 @@ function match(query: string, value: string): Match | null {
   if (at >= 0) {
     const isWordStart = at === 0 || !/[a-z0-9]/i.test(value[at - 1])
 
-    return { score: 1000 + (isWordStart ? 200 : 0) - at, indices: Array.from({ length: needle.length }, (_, i) => at + i) }
+    return {
+      score: 1000 + (isWordStart ? 200 : 0) - at,
+      indices: Array.from({ length: needle.length }, (_, i) => at + i),
+    }
   }
 
   const indices: number[] = []
@@ -76,7 +79,16 @@ export const COMMAND_PREFIX = '>'
 
 const NO_RECENTS: Recent[] = []
 
-export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '', recents = NO_RECENTS, remember }: Props) {
+export function Palette({
+  nodes,
+  commands,
+  jumpTo,
+  open,
+  close,
+  initialQuery = '',
+  recents = NO_RECENTS,
+  remember,
+}: Props) {
   const [query, setQuery] = useState(initialQuery)
   const [selected, setSelected] = useState(0)
   const input = useRef<HTMLInputElement>(null)
@@ -103,7 +115,9 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
         .join(' › ')
 
     // Recents that still exist, newest first. A recent's place in this list decides how far it rises.
-    const usable = recents.filter((recent) => (recent.kind === 'node' ? map.has(recent.id) : commandById.has(recent.id)))
+    const usable = recents.filter((recent) =>
+      recent.kind === 'node' ? map.has(recent.id) : commandById.has(recent.id),
+    )
     const rank = new Map(usable.map((recent, index) => [recentKey(recent), index]))
 
     const boost = (kind: Recent['kind'], id: string) => {
@@ -125,7 +139,20 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
 
         const node = map.get(recent.id)
 
-        return node ? [{ kind: 'node', node, path: pathOf(node), score: 0, labelMatch: [], tagMatch: [], idMatch: false, recent: true }] : []
+        return node
+          ? [
+              {
+                kind: 'node',
+                node,
+                path: pathOf(node),
+                score: 0,
+                labelMatch: [],
+                tagMatch: [],
+                idMatch: false,
+                recent: true,
+              },
+            ]
+          : []
       })
 
       if (isCommandMode) {
@@ -140,7 +167,8 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
       const nodeResults = nodes
         .filter(
           (node) =>
-            (isCluster(node) || (node.type === 'task' && node.data.who === 'you')) && !shownKeys.has(recentKey({ kind: 'node', id: node.id })),
+            (isCluster(node) || (node.type === 'task' && node.data.who === 'you')) &&
+            !shownKeys.has(recentKey({ kind: 'node', id: node.id })),
         )
         .sort((a, b) => Number(isCluster(b)) - Number(isCluster(a)))
         .slice(0, 50)
@@ -164,7 +192,12 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
 
           if (!labelMatch) return null
 
-          return { kind: 'command', command, score: labelMatch.score + boost('command', command.id), labelMatch: labelMatch.indices }
+          return {
+            kind: 'command',
+            command,
+            score: labelMatch.score + boost('command', command.id),
+            labelMatch: labelMatch.indices,
+          }
         })
         .filter((result): result is CommandResult => result !== null)
         .sort((a, b) => b.score - a.score)
@@ -175,7 +208,11 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
         const labelMatch = match(term, node.data.label)
         const tagMatch = node.type === 'task' ? match(term, getTaskTag(node.data)) : null
         const idMatch = node.type === 'task' ? match(term, node.id) : null
-        const score = Math.max(labelMatch?.score ?? -Infinity, tagMatch?.score ?? -Infinity, idMatch?.score ?? -Infinity)
+        const score = Math.max(
+          labelMatch?.score ?? -Infinity,
+          tagMatch?.score ?? -Infinity,
+          idMatch?.score ?? -Infinity,
+        )
 
         if (score === -Infinity) return null
 
@@ -190,7 +227,12 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
         }
       })
       .filter((result): result is NodeResult => result !== null)
-      .sort((a, b) => b.score - a.score || a.node.data.label.length - b.node.data.label.length || a.node.data.label.localeCompare(b.node.data.label))
+      .sort(
+        (a, b) =>
+          b.score - a.score ||
+          a.node.data.label.length - b.node.data.label.length ||
+          a.node.data.label.localeCompare(b.node.data.label),
+      )
       .slice(0, 50)
   }, [nodes, query, commands, recents])
 
@@ -200,7 +242,9 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
 
   const pick = (result: Result) => {
     close()
-    remember?.(result.kind === 'command' ? { kind: 'command', id: result.command.id } : { kind: 'node', id: result.node.id })
+    remember?.(
+      result.kind === 'command' ? { kind: 'command', id: result.command.id } : { kind: 'node', id: result.node.id },
+    )
 
     if (result.kind === 'command') {
       result.command.run()
@@ -232,7 +276,8 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
       event.preventDefault()
       event.stopPropagation()
 
-      if (results.length) setSelected((index) => (index + (event.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length)
+      if (results.length)
+        setSelected((index) => (index + (event.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length)
 
       input.current?.focus()
     } else if (event.key === 'Enter' && event.target === input.current) {
@@ -254,7 +299,9 @@ export function Palette({ nodes, commands, jumpTo, open, close, initialQuery = '
           aria-expanded="true"
           aria-controls="palette-results"
           aria-activedescendant={results[selected] ? `palette-result-${selected}` : undefined}
-          placeholder={query.startsWith(COMMAND_PREFIX) ? 'Run an action…' : 'Search groups, cards, and PRs, or type > for actions'}
+          placeholder={
+            query.startsWith(COMMAND_PREFIX) ? 'Run an action…' : 'Search groups, cards, and PRs, or type > for actions'
+          }
           value={query}
           onChange={(event) => {
             setQuery(event.target.value)

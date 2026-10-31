@@ -198,7 +198,11 @@ test.case("ingest refreshes pull request cards without any sources configured", 
 
 		return testing.result(
 			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health to PostHog","url":"u","state":"MERGED","isDraft":false,"reviewDecision":null,"reviewRequests":{"totalCount":0},"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"SUCCESS"}}}]}}}}}]]
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health to PostHog","url":"u",]]
+				.. [["state":"MERGED","isDraft":false,"reviewDecision":null,]]
+				.. [["reviewRequests":{"totalCount":0},"author":{"login":"vocksel"},]]
+				.. [["updatedAt":"2026-10-04T01:00:00Z","additions":120,"deletions":30,]]
+				.. [["commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"SUCCESS"}}}]}}}}}]]
 		)
 	end)
 
@@ -227,7 +231,8 @@ local function refreshRunner(state: string)
 			true,
 			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"]]
 				.. state
-				.. [[","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z","additions":1,"deletions":1,"reviewRequests":{"totalCount":0}}}}}]]
+				.. [[","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z",]]
+				.. [["additions":1,"deletions":1,"reviewRequests":{"totalCount":0}}}}}]]
 		)
 	end
 end
@@ -262,7 +267,8 @@ test.case("ingest --dry-run leaves the data alone", function(assert)
 
 		return testing.result(
 			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,"reviewRequests":{"totalCount":0}}}}}]]
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,]]
+				.. [["reviewRequests":{"totalCount":0}}}}}]]
 		)
 	end)
 
@@ -299,7 +305,10 @@ test.case("ingest records unplaced authored pulls without adding review request 
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
-				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,]]
+					.. [["title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,]]
+					.. [["author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,]]
+					.. [["deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
 			)
 		elseif argv[5]:find("review-requested", 1, true) then
 			isSearched = true
@@ -446,7 +455,11 @@ test.case("ingest attaches a new pull request to the card its branch was recorde
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
-				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a","author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,]]
+					.. [["title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,]]
+					.. [["headRefName":"feature/a","author":{"login":"vocksel"},]]
+					.. [["updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,]]
+					.. [["repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
 			)
 		elseif argv[5]:find("search(", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
@@ -460,7 +473,9 @@ test.case("ingest attaches a new pull request to the card its branch was recorde
 		if alias then
 			return testing.result(
 				true,
-				`\{"data":\{"{alias}":\{"pullRequest":\{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a","author":\{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z"}}}}`
+				`\{"data":\{"{alias}":\{"pullRequest":\{"number":670,"title":"Add release health dashboard",`
+					.. `"url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a",`
+					.. `"author":\{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z"}}}}`
 			)
 		end
 

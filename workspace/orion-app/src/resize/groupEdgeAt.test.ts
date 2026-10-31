@@ -8,7 +8,8 @@ import { groupEdgeAt } from './groupEdgeAt'
 const size = { width: TASK_WIDTH, height: TASK_HEIGHT }
 
 /** `outer` at the origin holding `inner`, which holds one card. */
-const canvas = () => normalize([cluster('outer', undefined, 0, 0), cluster('inner', 'outer', 32, 78), task('card', 'inner', 32, 78)])
+const canvas = () =>
+  normalize([cluster('outer', undefined, 0, 0), cluster('inner', 'outer', 32, 78), task('card', 'inner', 32, 78)])
 
 const groupEdge = (point: { x: number; y: number }) => {
   const nodes = canvas()

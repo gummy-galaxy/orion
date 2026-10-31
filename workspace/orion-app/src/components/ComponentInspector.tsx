@@ -91,7 +91,12 @@ export function ComponentInspector({
         </div>
         <div>
           <label htmlFor="c-color">Color</label>
-          <TintSelect id="c-color" value={data.color} inherit="Its group's" change={(color) => update(node.id, { color })} />
+          <TintSelect
+            id="c-color"
+            value={data.color}
+            inherit="Its group's"
+            change={(color) => update(node.id, { color })}
+          />
         </div>
       </div>
       <label htmlFor="c-repo">Repository</label>
@@ -118,10 +123,23 @@ export function ComponentInspector({
       />
       <p className="facts">Components are parts of a system. They have no status and never count as work.</p>
       {connections && (
-        <LinkList node={node} work={work} nodeMap={map} links={links} jumpTo={jumpTo} addLink={addLink} removeLink={removeLink} flipLink={flipLink} />
+        <LinkList
+          node={node}
+          work={work}
+          nodeMap={map}
+          links={links}
+          jumpTo={jumpTo}
+          addLink={addLink}
+          removeLink={removeLink}
+          flipLink={flipLink}
+        />
       )}
       <div className="row">
-        <button type="button" className="btn" onClick={() => void saveFields(node.id, { kind: 'step', status: 'todo' })}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => void saveFields(node.id, { kind: 'step', status: 'todo' })}
+        >
           Turn into a work item
         </button>
         <button type="button" className="btn danger" onClick={remove}>

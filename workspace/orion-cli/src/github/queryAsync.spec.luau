@@ -18,7 +18,8 @@ test.case("queryAsync raises GitHub's error when a query returns no data", funct
 	local succeeded, message = pcall(queryAsync, function()
 		return testing.result(
 			false,
-			[[{"data":null,"errors":[{"message":"Something went wrong while executing your query. This may be the result of a timeout"}]}]]
+			[[{"data":null,"errors":[{"message":"Something went wrong while executing your query. This may be the ]]
+				.. [[result of a timeout"}]}]]
 		)
 	end, "query { viewer { login } }", nil)
 	assert.eq(succeeded, false)

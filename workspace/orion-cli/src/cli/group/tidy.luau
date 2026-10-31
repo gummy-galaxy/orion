@@ -21,7 +21,9 @@ end
 return table.freeze({
 	help = "Mark groups for the app to lay out in place",
 	mcp = {
-		description = "Mark groups for the app to lay out in place, deepest first, such as after adding cards in bulk. The app does the layout, so appConnected in the result says whether it runs now or when the app next opens. Custom groups keep their arrangement.",
+		description = "Mark groups for the app to lay out in place, deepest first, such as after adding cards in "
+			.. "bulk. The app does the layout, so appConnected in the result says whether it runs now or when "
+			.. "the app next opens. Custom groups keep their arrangement.",
 	},
 	define = function(parser: cli.Parser)
 		parser:add("ids", "variadic", { help = "Group ids" })

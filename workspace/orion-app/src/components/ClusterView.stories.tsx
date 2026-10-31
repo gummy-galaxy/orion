@@ -11,6 +11,9 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
   render: () => (
-    <StoryGraph nodes={[group, { ...task, parentId: group.id, position: { x: 60, y: 120 } }]} nodeTypes={{ cluster: ClusterView, task: TaskView }} />
+    <StoryGraph
+      nodes={[group, { ...task, parentId: group.id, position: { x: 60, y: 120 } }]}
+      nodeTypes={{ cluster: ClusterView, task: TaskView }}
+    />
   ),
 }

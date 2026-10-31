@@ -55,7 +55,12 @@ export function useDrawnCards(cards: DrawCard[]): Set<string> {
   useEffect(
     () =>
       store.subscribe((state, previous) => {
-        if (state.transform === previous.transform && state.width === previous.width && state.height === previous.height) return
+        if (
+          state.transform === previous.transform &&
+          state.width === previous.width &&
+          state.height === previous.height
+        )
+          return
 
         plan()
       }),

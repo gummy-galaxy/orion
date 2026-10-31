@@ -44,7 +44,10 @@ describe('Markdown layout', () => {
   it('keeps layout boxes and the layout classes they name', () => {
     const html = layout('<div class="header-row"><span class="header-center">Orion</span></div>')
 
-    expect(html).toContain('<div class="markdown markdown-layout"><div class="header-row"><span class="header-center">Orion</span></div></div>')
+    expect(html).toContain(
+      '<div class="markdown markdown-layout">' +
+        '<div class="header-row"><span class="header-center">Orion</span></div></div>',
+    )
   })
 
   it('drops classes outside the layout list, styles, and ids', () => {
@@ -65,7 +68,10 @@ describe('Markdown layout', () => {
   })
 
   it('keeps remote images and drops relative or non-web image sources', () => {
-    const html = layout('<img src="https://example.com/banner.png" alt="Banner"> <img src="/api/images/x.png"> <img src="javascript:alert(1)">')
+    const html = layout(
+      '<img src="https://example.com/banner.png" alt="Banner"> ' +
+        '<img src="/api/images/x.png"> <img src="javascript:alert(1)">',
+    )
 
     expect(html).toContain('src="https://example.com/banner.png"')
     expect(html).toContain('no-referrer')

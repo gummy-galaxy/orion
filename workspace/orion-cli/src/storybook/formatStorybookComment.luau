@@ -130,7 +130,8 @@ local function formatStorybookComment(report: Report): string
 	if report.stylesChanged then
 		table.insert(
 			sections,
-			"> [!NOTE]\n> This pull request changes stylesheets or Storybook's preview, so any story might look different."
+			"> [!NOTE]\n> This pull request changes stylesheets or Storybook's preview, so any story "
+				.. "might look different."
 		)
 	end
 
@@ -156,7 +157,8 @@ local function formatStorybookComment(report: Report): string
 	if #report.stories > 0 then
 		table.insert(
 			sections,
-			`<details>\n<summary>🗂️ <b>Every story</b></summary>\n\n{formatList(report.stories, baseUrl)}\n\n</details>`
+			`<details>\n<summary>🗂️ <b>Every story</b></summary>\n\n`
+				.. `{formatList(report.stories, baseUrl)}\n\n</details>`
 		)
 	end
 

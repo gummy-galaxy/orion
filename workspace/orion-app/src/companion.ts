@@ -61,7 +61,12 @@ const distanceTo = (rect: Rect, x: number, y: number) =>
  * crosses a gap. Targets must already be clipped to the view. Returns the current perch's id while it still shows and
  * nothing is clearly closer, and null when nothing shows.
  */
-export function pickPerch(targets: readonly PerchTarget[], x: number, y: number, current: string | null): string | null {
+export function pickPerch(
+  targets: readonly PerchTarget[],
+  x: number,
+  y: number,
+  current: string | null,
+): string | null {
   let best: PerchTarget | null = null
   let bestDistance = Infinity
   let currentDistance = Infinity

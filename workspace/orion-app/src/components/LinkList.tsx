@@ -24,7 +24,9 @@ export function LinkList({
   removeLink: (id: string) => void
   flipLink: (id: string) => void
 }) {
-  const ownLinks = links.filter((link) => (link.from === node.id || link.to === node.id) && nodeMap.has(link.from) && nodeMap.has(link.to))
+  const ownLinks = links.filter(
+    (link) => (link.from === node.id || link.to === node.id) && nodeMap.has(link.from) && nodeMap.has(link.to),
+  )
   const groups = {
     waits: ownLinks.filter((link) => link.kind === 'blocks' && link.to === node.id),
     unblocks: ownLinks.filter((link) => link.kind === 'blocks' && link.from === node.id),

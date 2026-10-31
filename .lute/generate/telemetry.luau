@@ -77,7 +77,8 @@ local function generateTelemetry(checkOnly: boolean): boolean
 
 	if checkOnly then
 		print(
-			"docs/public/reference/telemetry.json is out of date. Run `lute run generate telemetry` and commit the result."
+			"docs/public/reference/telemetry.json is out of date. "
+				.. "Run `lute run generate telemetry` and commit the result."
 		)
 		return false
 	end

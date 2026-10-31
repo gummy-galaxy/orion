@@ -152,7 +152,13 @@ export function StickerWheel({
               type="button"
               role="menuitem"
               className={classes.filter(Boolean).join(' ')}
-              style={{ '--x': `${Math.sin(angle) * WHEEL_RADIUS}px`, '--y': `${-Math.cos(angle) * WHEEL_RADIUS}px`, '--i': i } as CSSProperties}
+              style={
+                {
+                  '--x': `${Math.sin(angle) * WHEEL_RADIUS}px`,
+                  '--y': `${-Math.cos(angle) * WHEEL_RADIUS}px`,
+                  '--i': i,
+                } as CSSProperties
+              }
               title={emoji ? `${emoji} (${i + 1}), right-click to change` : `Empty slot (${i + 1}), click to fill`}
               aria-label={emoji ?? `Empty slot ${i + 1}`}
               onClick={() => choose(i)}
