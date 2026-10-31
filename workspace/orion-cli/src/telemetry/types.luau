@@ -25,7 +25,8 @@ export type PropertyValue = string | number | boolean
 
 -- One event waiting in the queue, in the shape the backend takes. Events from
 -- the app carry a session id, which is the same from launch to quit, so one
--- session's events can be read together. Events from the CLI have none.
+-- session's events can be read together. Events from CLI commands and the MCP
+-- server have none.
 export type QueuedEvent = {
 	name: string,
 	sessionId: string?,

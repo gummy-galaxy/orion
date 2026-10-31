@@ -9,9 +9,8 @@ return table.freeze({
 	-- running locally for testing.
 	BASE_URL = "https://api.oriongraph.app/telemetry/v1",
 
-	-- `orion server start` sends what's queued this often. A minute of normal
-	-- use fits in one batch, and the backend accepts up to 30 batches a minute
-	-- from each install.
+	-- `orion server start` sends what's queued this often. The backend accepts
+	-- up to 30 batches a minute from each install.
 	SEND_SECONDS = 60,
 
 	-- A request to the backend that takes longer than this is given up on.
