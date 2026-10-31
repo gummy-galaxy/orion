@@ -23,7 +23,7 @@ local function getRefs(item: Item): { Ref }
 		then
 			local isValid = true
 
-			for _, field in { "id", "url", "status", "updatedAt" } do
+			for _, field in { "id", "type", "url", "status", "updatedAt" } do
 				isValid = isValid and (ref[field] == nil or type(ref[field]) == "string")
 			end
 

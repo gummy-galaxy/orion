@@ -52,6 +52,7 @@ local function refFromBranch(input: string, sources: { Source }): ResolvedRef
 		ref = {
 			source = if configured then configured.id else "github",
 			kind = "branch",
+			type = "step",
 			key = getGithubKey(assert(owner), assert(name), `@{branch}`, lowerHost),
 		},
 		repo = `{owner}/{name}`,

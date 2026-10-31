@@ -130,6 +130,14 @@ A card's note renders as Markdown: headings, lists, emphasis, links, and inline 
 
 2026-10-12 · [#298](https://github.com/vocksel/orion/issues/298)
 
+### Types ship in packs, then come from mods, then from canvases
+
+A card type declares its fields, face, states, and meaning in Luau, and every type registers through one registry. The types Orion ships come first, as a pack beside the CLI, and source kinds register theirs through the same path. Mods add types next, and types declared in a canvas's own files come later. A card carries several types: its own, which picks its face, then the ones its sources attach, then the ones people attach. The built-in kinds are types on that registry, so none of them is a special case.
+
+**Why:** a new source or type has to reach the card face without an app change, which means the app reads declarations rather than knowing kinds by name. Shipping packs first proves the declaration shape on types Orion already has, and one registry keeps mods and canvas types from each needing a path of their own. This settles the charter's open question on where type definitions live.
+
+2026-10-26 · [#215](https://github.com/gummy-galaxy/orion/issues/215)
+
 ### Empty groups stay until an edit empties them
 
 A group with nothing inside stays on the canvas, at the size of one card, with a faint "Empty group" hint. `orion group create` makes one, and the app keeps it through loads, saves, and writes from elsewhere. A group goes when an edit takes its last card out: a drop, a removal, or a move out. A group that was already empty is never removed by an edit that doesn't touch it, and a group the removal leaves empty goes too, cascading upward.

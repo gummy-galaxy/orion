@@ -24,6 +24,10 @@
     "link": "/reference/cli/ref"
   },
   {
+    "text": "type",
+    "link": "/reference/cli/type"
+  },
+  {
     "text": "next",
     "link": "/reference/cli/next"
   },
