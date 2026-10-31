@@ -51,7 +51,9 @@ local function getAuthoredOpenAsync(run: CommandRunner): ({ PullState }, string)
 		local succeeded, data = pcall(
 			queryAsync,
 			run,
-			`query \{ viewer \{ login pullRequests(first: {size}, states: OPEN, orderBy: \{field: UPDATED_AT, direction: DESC}{after}) \{ nodes \{ {getListFields()} repository \{ name owner \{ login } } } pageInfo \{ hasNextPage endCursor } } } }`,
+			`query \{ viewer \{ login pullRequests(first: {size}, states: OPEN, orderBy: \{field: `
+				.. `UPDATED_AT, direction: DESC}{after}) \{ nodes \{ {getListFields()} repository \{ name owner `
+				.. `\{ login } } } pageInfo \{ hasNextPage endCursor } } } }`,
 			nil
 		)
 

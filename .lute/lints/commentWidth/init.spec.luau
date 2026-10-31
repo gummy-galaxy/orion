@@ -46,7 +46,8 @@ test.case("commentWidth rewraps the inside of a block comment", function(assert)
 	local source = `--[[\n\t{LONG} fifteen\n\n\tkept\n]]\nlocal value = 1\n`
 
 	assert.eq(getFixes(source), {
-		"--[[\n\tone two three four five six seven eight nine ten eleven twelve thirteen\n\tfourteen fifteen\n\n\tkept\n]]",
+		"--[[\n\tone two three four five six seven eight nine ten eleven twelve thirteen\n"
+			.. "\tfourteen fifteen\n\n\tkept\n]]",
 	})
 end)
 

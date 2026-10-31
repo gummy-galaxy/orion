@@ -6,7 +6,13 @@ import type { Point } from './types'
  * The group among `groups` whose border runs within `reach` of `point`, in canvas coordinates, or null. When borders
  * of several are that close, the nearest wins, and a group inside another wins a tie. `nodeMap` places them.
  */
-export function groupEdgeAt(nodeMap: Map<string, AppNode>, groups: AppNode[], point: Point, reach: number, cardSize: CardSize): string | null {
+export function groupEdgeAt(
+  nodeMap: Map<string, AppNode>,
+  groups: AppNode[],
+  point: Point,
+  reach: number,
+  cardSize: CardSize,
+): string | null {
   let best: { id: string; distance: number } | null = null
 
   for (const group of groups) {

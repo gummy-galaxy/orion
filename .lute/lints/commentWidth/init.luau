@@ -13,10 +13,12 @@ local syntax = require("@std/syntax")
 local utils = require("@std/syntax/utils")
 local visitorLib = require("@std/syntax/visitor")
 
+local getSourceLines = require("@repository/.lute/lints/shared/getSourceLines")
+local getWidth = require("@repository/.lute/lints/shared/getWidth")
+
 local name = "comment_width"
 
 local MAX_WIDTH = 80
-local TAB_WIDTH = 4
 
 type Comment = {
 	trivia: syntax.Trivia,
@@ -26,20 +28,6 @@ type Comment = {
 	-- Blank, a directive, or indented further: kept as written.
 	isLoose: boolean,
 }
-
-local function getWidth(text: string): number
-	local width = 0
-
-	for index = 1, #text do
-		if text:sub(index, index) == "\t" then
-			width += TAB_WIDTH - width % TAB_WIDTH
-		else
-			width += 1
-		end
-	end
-
-	return width
-end
 
 local function isTooWide(lines: { string }): boolean
 	for _, line in lines do
@@ -96,39 +84,6 @@ local function isSameLines(first: { string }, second: { string }): boolean
 	end
 
 	return true
-end
-
--- Rebuilds the source from the tokens and the trivia around them.
-local function getSourceLines(cst: syntax.CstStatBlock): { string }
-	local tokens: { syntax.CstToken } = {}
-	local visitor = visitorLib.create()
-
-	function visitor.visitToken(token: syntax.CstToken)
-		table.insert(tokens, token)
-		return true
-	end
-
-	visitorLib.visitBlock(cst, visitor)
-
-	table.sort(tokens, function(a: syntax.CstToken, b: syntax.CstToken)
-		return a.location < b.location
-	end)
-
-	local pieces: { string } = {}
-
-	for _, token in tokens do
-		for _, trivia in token.leadingTrivia do
-			table.insert(pieces, trivia.text)
-		end
-
-		table.insert(pieces, token.text)
-
-		for _, trivia in token.trailingTrivia do
-			table.insert(pieces, trivia.text)
-		end
-	end
-
-	return table.concat(pieces):split("\n")
 end
 
 local function getComments(cst: syntax.CstStatBlock): { syntax.Trivia }

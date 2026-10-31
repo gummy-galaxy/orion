@@ -27,7 +27,13 @@ export function DetailsPanel({
           ›
         </button>
       </div>
-      <div className="details-body" role="tabpanel" id="details-tabpanel" aria-labelledby={`details-tab-${tab}`} data-tab={tab}>
+      <div
+        className="details-body"
+        role="tabpanel"
+        id="details-tabpanel"
+        aria-labelledby={`details-tab-${tab}`}
+        data-tab={tab}
+      >
         {children}
       </div>
     </aside>

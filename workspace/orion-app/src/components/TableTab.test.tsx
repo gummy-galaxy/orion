@@ -23,7 +23,13 @@ test("lists the server's answer and asks again when the open group changes", () 
   const view = render(<TableTab root={null} scope="All work" reveal={reveal} />)
 
   act(() =>
-    watched[0].answer({ canvas: 'default', revision: 1, total: 1, offset: 0, rows: [{ id: 'a', kind: 'step', label: 'First', status: 'ready' }] }),
+    watched[0].answer({
+      canvas: 'default',
+      revision: 1,
+      total: 1,
+      offset: 0,
+      rows: [{ id: 'a', kind: 'step', label: 'First', status: 'ready' }],
+    }),
   )
 
   expect(view.container.textContent).toContain('First')

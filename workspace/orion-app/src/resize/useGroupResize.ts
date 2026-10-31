@@ -55,7 +55,10 @@ export function useGroupResize({
       const group = current.before.find((node) => node.id === current.id)
       const header = groupHeaderHeight(group && isCluster(group) ? group.data : undefined)
       const minimum = { width: cardSize.width + GROUP_PADDING * 2, height: cardSize.height + header + GROUP_PADDING }
-      const delta = { x: (current.point.x - current.origin.x) / current.zoom, y: (current.point.y - current.origin.y) / current.zoom }
+      const delta = {
+        x: (current.point.x - current.origin.x) / current.zoom,
+        y: (current.point.y - current.origin.y) / current.zoom,
+      }
       const box = resizeBox(current.start, current.edges, delta, minimum)
       const sized = current.custom
         ? resizeCustomGroup(current.before, current.id, box, cardSize)

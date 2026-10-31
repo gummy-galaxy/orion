@@ -63,12 +63,19 @@ export const ShortcutsSection: Story = { render: () => <Interactive section="sho
 
 /** A changed binding offers a reset, and one that clashes names the other shortcut. */
 export const CustomizedShortcuts: Story = {
-  render: () => <Interactive section="shortcuts" keybindings={{ ...DEFAULT_KEYBINDINGS, 'add-note': 'V', 'go-forward': '' }} />,
+  render: () => (
+    <Interactive section="shortcuts" keybindings={{ ...DEFAULT_KEYBINDINGS, 'add-note': 'V', 'go-forward': '' }} />
+  ),
 }
 
 export const PrivacySection: Story = { render: () => <Interactive section="privacy" /> }
 
 /** An environment variable turns telemetry off, and the section says which one. */
 export const PrivacyOverridden: Story = {
-  render: () => <Interactive section="privacy" telemetry={{ choice: 'on', installId: 'example', override: 'DO_NOT_TRACK', enabled: false }} />,
+  render: () => (
+    <Interactive
+      section="privacy"
+      telemetry={{ choice: 'on', installId: 'example', override: 'DO_NOT_TRACK', enabled: false }}
+    />
+  ),
 }

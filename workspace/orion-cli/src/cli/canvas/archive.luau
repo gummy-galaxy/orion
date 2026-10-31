@@ -9,7 +9,8 @@ local writeResult = require("@root/cli/writeResult")
 type Context = context.Context
 
 return table.freeze({
-	help = "Archive a canvas. Its data stays in place, and restore brings it back. The active canvas and default can't be archived",
+	help = "Archive a canvas. Its data stays in place, and restore brings it back. "
+		.. "The active canvas and default can't be archived",
 	mcp = { omit = { { option = "canvas", reason = "names the canvas it archives" } } },
 	define = function(parser: cli.Parser)
 		addArgument(parser, "name", "positional", { help = "Canvas name", type = "canvas" })

@@ -408,7 +408,12 @@ select {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--status-done) 22%, transparent) 50%, transparent 65%);
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    color-mix(in srgb, var(--status-done) 22%, transparent) 50%,
+    transparent 65%
+  );
   background-size: 250% 100%;
   background-position: 100% 0;
 }
@@ -448,7 +453,8 @@ select {
   pointer-events: none;
 }
 :where(:root[data-motion='on']) .card > .done-stamp.is-landing {
-  animation: done-stamp-land var(--motion-duration-stamp) var(--motion-easing-pop) calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
+  animation: done-stamp-land var(--motion-duration-stamp) var(--motion-easing-pop)
+    calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
 }
 @keyframes done-stamp-land {
   from {
@@ -480,7 +486,8 @@ select {
   animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-exit) var(--clear-delay, 0ms) reverse both;
 }
 :where(:root[data-motion='reduced']) .card > .done-stamp.is-landing {
-  animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-enter) calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
+  animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-enter)
+    calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
 }
 @keyframes stamp-fade {
   from {
@@ -547,14 +554,16 @@ select {
   --flourish-delay: calc(var(--clear-delay, 0ms) + var(--motion-duration-fade) + var(--motion-duration-stamp) / 2);
 }
 :where(:root[data-motion='on']) .card > .chain-flourish {
-  animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter) var(--flourish-delay) forwards;
+  animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter)
+    var(--flourish-delay) forwards;
 }
 :where(:root[data-motion='on']) .card > .chain-flourish::after {
   animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter)
     calc(var(--flourish-delay) + var(--motion-duration-flourish) * 0.25) forwards;
 }
 :where(:root[data-motion='on'], :root[data-motion='reduced']) .card > .chain-flourish::before {
-  animation: chain-flourish-glow var(--motion-duration-flourish) var(--motion-easing-standard) var(--flourish-delay) both;
+  animation: chain-flourish-glow var(--motion-duration-flourish) var(--motion-easing-standard) var(--flourish-delay)
+    both;
 }
 @keyframes chain-flourish-ring {
   from {
@@ -1322,7 +1331,9 @@ select {
   background: var(--surface-background);
   /* A sheet peeking out behind marks a folded group as a stack of work rather than one card. */
   box-shadow:
-    var(--stack) var(--stack) 0 calc(-1 * max(var(--border-width-strong), calc(var(--border-width-strong) * var(--inv, 1)))) var(--surface-background),
+    var(--stack) var(--stack) 0
+      calc(-1 * max(var(--border-width-strong), calc(var(--border-width-strong) * var(--inv, 1))))
+      var(--surface-background),
     var(--stack) var(--stack) 0 0 var(--edge-default),
     var(--shadow-raised);
 }
@@ -2020,8 +2031,9 @@ kbd {
   line-height: var(--line-height-glyph);
   transform: translate(-50%, -50%) rotate(var(--tilt));
   /* A die-cut white edge and a little lift off the canvas. */
-  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge)) drop-shadow(0 1.5px 0 var(--sticker-edge))
-    drop-shadow(0 -1.5px 0 var(--sticker-edge)) drop-shadow(var(--shadow-sticker));
+  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
+    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge))
+    drop-shadow(var(--shadow-sticker));
   pointer-events: none;
   transition: scale var(--motion-duration-quick) var(--motion-easing-standard);
 }
@@ -2035,8 +2047,9 @@ kbd {
 .sticker.is-held .sticker-art {
   scale: 1.16;
   cursor: grabbing;
-  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge)) drop-shadow(0 1.5px 0 var(--sticker-edge))
-    drop-shadow(0 -1.5px 0 var(--sticker-edge)) drop-shadow(var(--shadow-sticker-held));
+  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
+    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge))
+    drop-shadow(var(--shadow-sticker-held));
 }
 .sticker::after {
   content: '';

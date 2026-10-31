@@ -194,7 +194,8 @@ function testing.writeClaudeFixture(dir: string, fixture: { branch: string, stop
 	fs.writeStringToFile(
 		`{dir}/projects/-work/{CLAUDE_SESSION}.jsonl`,
 		`\{"type":"user","gitBranch":"{fixture.branch}","cwd":"/work","message":\{"content":"Go"}}\n`
-			.. `\{"type":"assistant","gitBranch":"{fixture.branch}","cwd":"/work","message":\{"stop_reason":"{fixture.stop}","content":[\{"type":"text","text":"On it."}]}}\n`
+			.. `\{"type":"assistant","gitBranch":"{fixture.branch}","cwd":"/work",`
+			.. `"message":\{"stop_reason":"{fixture.stop}","content":[\{"type":"text","text":"On it."}]}}\n`
 	)
 
 	if fixture.status then

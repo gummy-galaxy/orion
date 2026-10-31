@@ -42,7 +42,12 @@ it('reports the selection with a tab and workspace', () => {
 
   expect(url).toBe('/api/focus')
   expect(options.method).toBe('POST')
-  expect(JSON.parse(options.body)).toEqual({ tab: expect.any(String), canvas: 'planning', open: 'group', selected: ['card'] })
+  expect(JSON.parse(options.body)).toEqual({
+    tab: expect.any(String),
+    canvas: 'planning',
+    open: 'group',
+    selected: ['card'],
+  })
 })
 
 it('sends a closing report for the same workspace', async () => {
@@ -126,11 +131,26 @@ describe('adopting a server document', () => {
     "revision": 7,
     "settings": {},
     "nodes": [
-      { "id": "loose", "type": "task", "position": { "y": 40, "x": 900 }, "data": { "status": "todo", "label": "Loose card", "kind": "task", "itemKind": "step" } },
-      { "id": "picture", "type": "image", "position": { "y": 600, "x": 0 }, "width": 200, "height": 150, "data": { "kind": "image", "label": "Picture", "asset": "a", "canvas": "default" } },
-      { "id": "group", "type": "cluster", "position": { "y": 0, "x": 0 }, "width": 280, "height": 182, "data": { "label": "Group", "kind": "cluster" } },
-      { "id": "inside", "type": "task", "parentId": "group", "position": { "y": 78, "x": 32 }, "data": { "kind": "task", "label": "Inside", "itemKind": "step", "status": "active" } },
-      { "id": "aside", "type": "task", "position": { "y": 300, "x": 900 }, "data": { "kind": "task", "label": "a\\nb\\nc\\nd\\ne\\nf", "itemKind": "note", "status": "todo" } }
+      {
+        "id": "loose", "type": "task", "position": { "y": 40, "x": 900 },
+        "data": { "status": "todo", "label": "Loose card", "kind": "task", "itemKind": "step" }
+      },
+      {
+        "id": "picture", "type": "image", "position": { "y": 600, "x": 0 }, "width": 200, "height": 150,
+        "data": { "kind": "image", "label": "Picture", "asset": "a", "canvas": "default" }
+      },
+      {
+        "id": "group", "type": "cluster", "position": { "y": 0, "x": 0 }, "width": 280, "height": 182,
+        "data": { "label": "Group", "kind": "cluster" }
+      },
+      {
+        "id": "inside", "type": "task", "parentId": "group", "position": { "y": 78, "x": 32 },
+        "data": { "kind": "task", "label": "Inside", "itemKind": "step", "status": "active" }
+      },
+      {
+        "id": "aside", "type": "task", "position": { "y": 300, "x": 900 },
+        "data": { "kind": "task", "label": "a\\nb\\nc\\nd\\ne\\nf", "itemKind": "note", "status": "todo" }
+      }
     ],
     "links": [{ "to": "inside", "kind": "blocks", "id": "link", "from": "loose" }]
   }`) as Remote
@@ -164,7 +184,9 @@ describe('adopting a server document', () => {
 
   it('saves positions that moved aside', () => {
     const shown = displayedDoc(serverDoc, TRADING)
-    const nodes = shown.nodes.map((node) => (node.id === 'loose' ? { ...node, position: { x: node.position.x + 400, y: node.position.y } } : node))
+    const nodes = shown.nodes.map((node) =>
+      node.id === 'loose' ? { ...node, position: { x: node.position.x + 400, y: node.position.y } } : node,
+    )
 
     expect(storedPrint({ ...shown, nodes }, TRADING)).not.toBe(adoptedPrint(serverDoc, TRADING))
   })

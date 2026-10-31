@@ -11,8 +11,22 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 const rows: TableRow[] = [
-  { id: 'task', label: 'Ship the query endpoint', kind: 'pr', status: 'review', group: 'Release', ref: 'gummy-galaxy/orion#655' },
-  { id: 'blocker', label: 'Add a Table tab', kind: 'pr', status: 'blocked', group: 'Release', ref: 'gummy-galaxy/orion#656' },
+  {
+    id: 'task',
+    label: 'Ship the query endpoint',
+    kind: 'pr',
+    status: 'review',
+    group: 'Release',
+    ref: 'gummy-galaxy/orion#655',
+  },
+  {
+    id: 'blocker',
+    label: 'Add a Table tab',
+    kind: 'pr',
+    status: 'blocked',
+    group: 'Release',
+    ref: 'gummy-galaxy/orion#656',
+  },
   { id: 'step', label: 'Measure at 5,000 cards', kind: 'step', status: 'ready', group: 'Release' },
   { id: 'note', label: 'Rows come from orion serve', kind: 'note' },
   { id: 'component', label: 'orion serve', kind: 'component' },

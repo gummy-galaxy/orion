@@ -5,7 +5,17 @@ import { StatusIcon } from './StatusIcon'
 const EMPTY = <span className="table-empty">—</span>
 
 /** One card in the Table tab, placed `top` pixels down the list. Its label shows the card on the canvas. */
-export function TableTabRow({ row, index, top, reveal }: { row: TableRow; index: number; top: number; reveal: (id: string) => void }) {
+export function TableTabRow({
+  row,
+  index,
+  top,
+  reveal,
+}: {
+  row: TableRow
+  index: number
+  top: number
+  reveal: (id: string) => void
+}) {
   // The header is row 1, so the cards count from 2.
   return (
     <div role="row" className="table-row" aria-rowindex={index + 2} style={{ top }}>

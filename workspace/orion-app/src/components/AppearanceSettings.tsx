@@ -88,7 +88,9 @@ export function AppearanceSettings({ appearance, themes, chooseAppearance }: Pro
             Color mode
           </span>
           <p className="settings-field-detail">
-            {fixed ? `${theme.label} is ${theme.schemes[0]} only.` : 'System follows your computer’s light or dark setting.'}
+            {fixed
+              ? `${theme.label} is ${theme.schemes[0]} only.`
+              : 'System follows your computer’s light or dark setting.'}
           </p>
         </div>
         <div className="options" role="group" aria-labelledby="settings-color-mode">
@@ -110,7 +112,9 @@ export function AppearanceSettings({ appearance, themes, chooseAppearance }: Pro
           <span className="settings-field-label" id="settings-companion">
             Companion
           </span>
-          <p className="settings-field-detail">A little star that perches on the card nearest the pointer and reacts to its status.</p>
+          <p className="settings-field-detail">
+            A little star that perches on the card nearest the pointer and reacts to its status.
+          </p>
         </div>
         <div className="options" role="group" aria-labelledby="settings-companion">
           {[true, false].map((shown) => (

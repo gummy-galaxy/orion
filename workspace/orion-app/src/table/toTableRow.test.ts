@@ -12,10 +12,22 @@ test('keeps the fields the table shows', () => {
       groupLabel: 'Docs',
       refs: [
         { source: 'jira', kind: 'issue', key: 'ABC-12' },
-        { source: 'github', kind: 'pull', key: 'gummy-galaxy/orion#86', url: 'https://github.com/gummy-galaxy/orion/pull/86' },
+        {
+          source: 'github',
+          kind: 'pull',
+          key: 'gummy-galaxy/orion#86',
+          url: 'https://github.com/gummy-galaxy/orion/pull/86',
+        },
       ],
     }),
-  ).toEqual({ id: 'card', label: 'Fix the query', kind: 'pr', status: 'review', group: 'Docs', ref: 'gummy-galaxy/orion#86' })
+  ).toEqual({
+    id: 'card',
+    label: 'Fix the query',
+    kind: 'pr',
+    status: 'review',
+    group: 'Docs',
+    ref: 'gummy-galaxy/orion#86',
+  })
 })
 
 test('labels untitled notes and components the way the canvas does', () => {

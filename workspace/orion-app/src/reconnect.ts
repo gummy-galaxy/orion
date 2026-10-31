@@ -18,11 +18,15 @@ export function reconnectLink(links: Link[], id: string, ends: { from?: string; 
 
   if (from === to || (from === link.from && to === link.to)) return links
 
-  const taken = links.some((other) => other !== link && ((other.from === from && other.to === to) || (other.from === to && other.to === from)))
+  const taken = links.some(
+    (other) => other !== link && ((other.from === from && other.to === to) || (other.from === to && other.to === from)),
+  )
 
   if (taken) return links
 
   const { origin: _, ...kept } = link
 
-  return links.map((candidate) => (candidate === link ? { ...kept, id: linkId(from, to, link.kind), from, to } : candidate))
+  return links.map((candidate) =>
+    candidate === link ? { ...kept, id: linkId(from, to, link.kind), from, to } : candidate,
+  )
 }

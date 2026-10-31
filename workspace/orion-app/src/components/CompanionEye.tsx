@@ -12,11 +12,20 @@ export function CompanionEye({ side, x }: { side: 'l' | 'r'; x: number }) {
       />
       <circle className="o" cx={x} cy={-4} r={12} />
       <path className="line" d={`M${x - 12} 0 L${x + 12} 0`} />
-      <path className="lid" fill="currentColor" strokeWidth={6} d={`M${x - 12} -10 L${x + 12} -10 C${x + 12} 6 ${x - 12} 6 ${x - 12} -10 Z`} />
+      <path
+        className="lid"
+        fill="currentColor"
+        strokeWidth={6}
+        d={`M${x - 12} -10 L${x + 12} -10 C${x + 12} 6 ${x - 12} 6 ${x - 12} -10 Z`}
+      />
       <circle className="ring" cx={x} cy={-6} r={14} strokeWidth={6} />
       <circle className="pupil" cx={x + 6} cy={-10} r={7} fill="currentColor" stroke="none" />
       <circle className="pip" cx={x} cy={-2} r={7} fill="currentColor" stroke="none" />
-      <path className="brow" strokeWidth={8} d={side === 'l' ? `M${x - 13} -20 L${x + 9} -29` : `M${x - 9} -29 L${x + 13} -20`} />
+      <path
+        className="brow"
+        strokeWidth={8}
+        d={side === 'l' ? `M${x - 13} -20 L${x + 9} -29` : `M${x - 9} -29 L${x + 13} -20`}
+      />
     </g>
   )
 }

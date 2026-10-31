@@ -18,7 +18,8 @@ The panel now reads top to bottom: **status** first, then this note, then the pu
 
 - Open question: do notes stay once the timeline exists?
 
-See [the charter](https://example.com/charter) for the roadmap. Inline \`code\` and paths like \`app/src/components/NoteBody.tsx\` stay readable.`
+See [the charter](https://example.com/charter) for the roadmap. Inline \`code\` and paths like
+\`app/src/components/NoteBody.tsx\` stay readable.`
 
 function NoteDemo() {
   const [note, setNote] = useState<string | undefined>(SAMPLE_NOTE)

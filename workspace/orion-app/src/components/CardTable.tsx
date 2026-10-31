@@ -21,8 +21,10 @@ export function CardTable({ rows, scope, reveal }: { rows: TableRow[]; scope: st
   const [viewportHeight, setViewportHeight] = useState(0)
   const { start, end } = getVisibleRange(scrollTop, viewportHeight, ROW_HEIGHT, rows.length, OVERSCAN)
 
-  // Rounded down to a whole row, so scrolling within a row doesn't redraw the table. The overscan covers the difference.
-  const scroll = (event: UIEvent<HTMLDivElement>) => setScrollTop(Math.floor(event.currentTarget.scrollTop / ROW_HEIGHT) * ROW_HEIGHT)
+  // Rounded down to a whole row, so scrolling within a row doesn't redraw the table. The overscan covers the
+  // difference.
+  const scroll = (event: UIEvent<HTMLDivElement>) =>
+    setScrollTop(Math.floor(event.currentTarget.scrollTop / ROW_HEIGHT) * ROW_HEIGHT)
 
   useLayoutEffect(() => {
     const element = scroller.current
@@ -58,7 +60,13 @@ export function CardTable({ rows, scope, reveal }: { rows: TableRow[]; scope: st
         <div role="rowgroup" className="table-scroll" ref={scroller} onScroll={scroll}>
           <div className="table-rows" style={{ height: rows.length * ROW_HEIGHT }}>
             {rows.slice(start, end).map((row, offset) => (
-              <TableTabRow key={row.id} row={row} index={start + offset} top={(start + offset) * ROW_HEIGHT} reveal={reveal} />
+              <TableTabRow
+                key={row.id}
+                row={row}
+                index={start + offset}
+                top={(start + offset) * ROW_HEIGHT}
+                reveal={reveal}
+              />
             ))}
           </div>
           {!rows.length && <p className="table-none">No cards here yet.</p>}

@@ -121,7 +121,9 @@ export function Sidebar({
         </span>
       </button>
       <ul className="side-list">{children(undefined).map((cluster) => row(cluster, 0))}</ul>
-      <p className="side-foot">The bar shows how much of each group is done. ↗ counts open work outside the group that waits on it.</p>
+      <p className="side-foot">
+        The bar shows how much of each group is done. ↗ counts open work outside the group that waits on it.
+      </p>
       <button type="button" className="side-row side-settings" onClick={openSettings}>
         <span className="side-label">Settings</span>
         {settingsHint && <kbd>{settingsHint}</kbd>}
