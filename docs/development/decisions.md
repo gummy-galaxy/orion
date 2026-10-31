@@ -629,7 +629,7 @@ A Luau function that waits on a `CommandRunner`, directly or through a call, end
 
 **Why:** with dozens of folders and loose files at the top of `src`, nothing said where a module belonged, and GitHub code sat in two places. A layer answers where a new module goes and which way its requires may point, and it leaves the requires that point up, such as the canvas model reading GitHub pull request facts, easy to spot.
 
-2026-10-31
+2026-10-31 · [#707](https://github.com/gummy-galaxy/orion/pull/707)
 
 ## Docs
 
