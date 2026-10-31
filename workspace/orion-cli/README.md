@@ -4,4 +4,4 @@
 
 Each module exports one function and has its spec beside it as `<module>.spec.luau`.
 
-`store/runWithLock.luau` is the one place that holds a canvas's lock, and `store/runTransaction.luau` and `store/writeDoc.luau` are the only writers of a canvas's files. [Architecture](../../docs/development/engineering/architecture.md) covers how the CLI, server, and app fit together.
+`storage/transactions/runWithLock.luau` is the one place that holds a canvas's lock, and `storage/transactions/runTransaction.luau` and `storage/canvases/writeDoc.luau` are the only writers of a canvas's files. [Architecture](../../docs/development/engineering/architecture.md) covers how the CLI, server, and app fit together.

@@ -1,11 +1,11 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local createWorkspace = require("@root/store/createWorkspace")
-local getStringField = require("@root/getStringField")
-local getWorkspaces = require("@root/store/getWorkspaces")
+local createWorkspace = require("@root/storage/canvases/createWorkspace")
+local getStringField = require("@root/common/getStringField")
+local getWorkspaces = require("@root/storage/canvases/getWorkspaces")
 local shared = require("@root/server/routes/shared")
-local useWorkspace = require("@root/store/useWorkspace")
+local useWorkspace = require("@root/storage/canvases/useWorkspace")
 
 type Response = shared.Response
 

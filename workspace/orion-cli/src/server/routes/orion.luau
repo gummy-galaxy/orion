@@ -1,13 +1,13 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local derive = require("@root/graph/derive")
-local encodeDocObject = require("@root/store/encodeDocObject")
-local getDocPath = require("@root/store/getDocPath")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local readDoc = require("@root/store/readDoc")
+local derive = require("@root/canvas/derive")
+local encodeDocObject = require("@root/storage/files/encodeDocObject")
+local getDocPath = require("@root/storage/canvases/getDocPath")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local readDoc = require("@root/storage/canvases/readDoc")
 local serializeDerived = require("@root/server/serializeDerived")
-local serializeRegistry = require("@root/cardTypes/serializeRegistry")
+local serializeRegistry = require("@root/canvas/cardTypes/serializeRegistry")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response

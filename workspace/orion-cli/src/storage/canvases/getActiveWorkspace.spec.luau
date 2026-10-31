@@ -1,0 +1,21 @@
+local test = require("@std/test")
+
+local createWorkspace = require("@root/storage/canvases/createWorkspace")
+local getActiveWorkspace = require("@root/storage/canvases/getActiveWorkspace")
+local testing = require("@root/testing")
+local useWorkspace = require("@root/storage/canvases/useWorkspace")
+
+test.case("the requested workspace wins over the configured one, which wins over the list's", function(assert)
+	local root = testing.directory("active")
+	createWorkspace(root, "work", nil)
+	createWorkspace(root, "home", nil)
+	useWorkspace(root, "home")
+
+	assert.eq(getActiveWorkspace(root, "work", "default"), "work")
+	assert.eq(getActiveWorkspace(root, nil, "default"), "default")
+	assert.eq(getActiveWorkspace(root, nil, ""), "home")
+	assert.eq(getActiveWorkspace(root, nil, nil), "home")
+	assert.throwsWith("unknown canvas: gone", function()
+		getActiveWorkspace(root, "gone", nil)
+	end)
+end)
