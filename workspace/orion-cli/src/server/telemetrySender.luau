@@ -84,6 +84,15 @@ function telemetrySender.create(root: string, options: Options)
 			local eventsEndpoint = getTelemetryEndpoint(options.environment, "events")
 
 			for _, batch in splitTelemetryBatches(events, limits) do
+				-- Sending yields, so the person can opt out between batches.
+				-- Read their choice again first, and stop if they turned
+				-- sharing off or it's now a different install.
+				local current = getTelemetryStatus(root, options.environment)
+
+				if not current.enabled or current.installId ~= status.installId then
+					break
+				end
+
 				local isAccepted, failure =
 					send(eventsEndpoint, status.installId :: string, build, batch, telemetryConstants.TIMEOUT_SECONDS)
 

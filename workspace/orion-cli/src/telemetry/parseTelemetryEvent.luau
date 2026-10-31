@@ -7,7 +7,38 @@ type QueuedEvent = telemetryTypes.QueuedEvent
 
 local MAX_NAME_LENGTH = 64
 local UUID_PATTERN = "^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$"
-local TIMESTAMP_PATTERN = "^%d%d%d%d%-%d%d%-%d%dT%d%d:%d%d:%d%d%.?%d*Z$"
+local TIMESTAMP_PATTERN = "^(%d%d%d%d)%-(%d%d)%-(%d%d)T(%d%d):(%d%d):(%d%d)(%.?%d*)Z$"
+local DAYS_IN_MONTH = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+
+-- Whether a time is UTC in ISO 8601 and names a real moment, such as
+-- 2026-10-30T12:00:00Z or 2026-10-30T12:00:00.250Z. The pattern alone would
+-- let through a date like 2026-99-99, which the backend can't parse.
+local function isTimestamp(value: unknown): boolean
+	if type(value) ~= "string" then
+		return false
+	end
+
+	local year, month, day, hour, minute, second, fraction = value:match(TIMESTAMP_PATTERN)
+
+	if not year or (fraction ~= "" and not fraction:match("^%.%d+$")) then
+		return false
+	end
+
+	local yearNumber, monthNumber = tonumber(year) :: number, tonumber(month) :: number
+	local isLeapYear = yearNumber % 4 == 0 and (yearNumber % 100 ~= 0 or yearNumber % 400 == 0)
+
+	if monthNumber < 1 or monthNumber > 12 then
+		return false
+	end
+
+	local daysInMonth = if monthNumber == 2 and isLeapYear then 29 else DAYS_IN_MONTH[monthNumber]
+
+	return (tonumber(day) :: number) >= 1
+		and (tonumber(day) :: number) <= daysInMonth
+		and (tonumber(hour) :: number) <= 23
+		and (tonumber(minute) :: number) <= 59
+		and (tonumber(second) :: number) <= 59
+end
 
 --[[
 	Checks one event's shape and returns it as the queue stores it, stamped
@@ -32,10 +63,7 @@ local function parseTelemetryEvent(value: json.Value, now: string): QueuedEvent
 	)
 
 	local timestamp = object.timestamp
-	assert(
-		timestamp == nil or (type(timestamp) == "string" and timestamp:match(TIMESTAMP_PATTERN) ~= nil),
-		"timestamp must be a UTC time such as 2026-10-30T12:00:00Z"
-	)
+	assert(timestamp == nil or isTimestamp(timestamp), "timestamp must be a UTC time such as 2026-10-30T12:00:00Z")
 
 	local properties: { [string]: PropertyValue } = {}
 

@@ -190,3 +190,29 @@ test.case("without the backend's limits, batches use the built-in ones and the n
 	assert.eq(sent[1].count, 100)
 	assert.eq(asked, 2)
 end)
+
+test.case("opting out partway through a send stops the batches after it", function(assert)
+	local root = testing.directory("sender-opt-out")
+	writeTelemetryConsent(root, true)
+	queue(root, 150)
+	local batches = 0
+	local sender = telemetrySender.create(root, {
+		environment = {},
+		build = RELEASE,
+		sendTelemetryBatchAsync = function(
+			_endpoint: string,
+			_installId: string,
+			_build: Build,
+			_events: { QueuedEvent },
+			_timeoutSeconds: number
+		): (boolean, string?)
+			batches += 1
+			writeTelemetryConsent(root, false)
+			return true, nil
+		end,
+		getTelemetryConfigAsync = offlineConfigAsync,
+	})
+
+	assert.eq(sender.flushAsync(), 100)
+	assert.eq(batches, 1)
+end)

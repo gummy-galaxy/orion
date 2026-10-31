@@ -1,3 +1,4 @@
+local clearTelemetryQueue = require("@root/telemetry/clearTelemetryQueue")
 local formatTimestamp = require("@root/time/formatTimestamp")
 local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
 local readTelemetryConsent = require("@root/telemetry/readTelemetryConsent")
@@ -10,7 +11,8 @@ type Consent = telemetryTypes.Consent
 
 -- Records the person's answer from the app or the CLI. Opting in queues one
 -- `telemetry_opted_in` event saying where the choice was made, and choosing
--- "on" again doesn't queue another. Opting out sends nothing.
+-- "on" again doesn't queue another. Opting out deletes anything still waiting
+-- to be sent, and sends nothing.
 local function chooseTelemetry(
 	root: string,
 	enabled: boolean,
@@ -21,7 +23,9 @@ local function chooseTelemetry(
 	local previous = readTelemetryConsent(root)
 	local consent = writeTelemetryConsent(root, enabled)
 
-	if enabled and previous.choice ~= "on" then
+	if not enabled then
+		clearTelemetryQueue(root)
+	elseif previous.choice ~= "on" then
 		queueTelemetryEvents(root, {
 			{
 				name = "telemetry_opted_in",

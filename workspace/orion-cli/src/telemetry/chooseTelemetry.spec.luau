@@ -1,5 +1,6 @@
 local test = require("@std/test")
 
+local appendTelemetryQueue = require("@root/telemetry/appendTelemetryQueue")
 local chooseTelemetry = require("@root/telemetry/chooseTelemetry")
 local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
 local getBuild = require("@root/getBuild")
@@ -27,6 +28,20 @@ test.case("opting out queues nothing", function(assert)
 	chooseTelemetry(root, false, "app", {}, RELEASE)
 
 	assert.eq(#drainTelemetryQueue(root, NOW), 0)
+end)
+
+test.case("opting out deletes events still waiting to be sent", function(assert)
+	local root = testing.directory("choose-telemetry-clear")
+
+	chooseTelemetry(root, true, "cli", {}, RELEASE)
+	appendTelemetryQueue(root, { { name = "cli_command_ran", timestamp = NOW, properties = {} } })
+	chooseTelemetry(root, false, "cli", {}, RELEASE)
+	chooseTelemetry(root, true, "cli", {}, RELEASE)
+
+	local events = drainTelemetryQueue(root, NOW)
+
+	assert.eq(#events, 1)
+	assert.eq(events[1].name, "telemetry_opted_in")
 end)
 
 test.case("dev builds and overrides record the choice but queue nothing", function(assert)
