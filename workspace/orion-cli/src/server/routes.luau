@@ -14,6 +14,7 @@ local log = require("@root/server/routes/log")
 local merge = require("@root/server/routes/merge")
 local operations = require("@root/server/routes/operations")
 local orion = require("@root/server/routes/orion")
+local performanceSummaries = require("@root/server/performanceSummaries")
 local query = require("@root/server/routes/query")
 local reveal = require("@root/server/routes/reveal")
 local sessions = require("@root/server/routes/sessions")
@@ -41,7 +42,8 @@ function routes.create(
 	syncLoop: SyncLoop,
 	onSwitch: (string) -> (),
 	staticDir: string?,
-	hub: RevealHub?
+	hub: RevealHub?,
+	timings: performanceSummaries.Timings?
 )
 	local active = initialWorkspace
 	local router = {}
@@ -66,7 +68,7 @@ function routes.create(
 			return imageRoutes.handle(request, root)
 		end
 		if route == "/api/orion" then
-			return orion.handle(request, root, active)
+			return orion.handle(request, root, active, timings)
 		end
 		if route == "/api/orion/style" then
 			return canvasStyle.handle(request, root, active)
@@ -75,7 +77,7 @@ function routes.create(
 			return checkSnoozes.handle(request, root, active)
 		end
 		if route == "/api/operations" then
-			return operations.handle(request, root, active)
+			return operations.handle(request, root, active, timings)
 		end
 		if route == "/api/query" then
 			return query.handle(request, root, active)

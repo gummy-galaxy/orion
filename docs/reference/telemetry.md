@@ -30,24 +30,24 @@ How long Orion takes to draw, lay out, and save, so slow spots can be found and 
 
 The app opened and drew its first canvas. Sent by the app.
 
-| Property     | Type    | Description                                         |
-| ------------ | ------- | --------------------------------------------------- |
-| `startup_ms` | number  | Milliseconds from launch to the first drawn canvas. |
-| `card_count` | integer | Cards on the canvas it opened to.                   |
+| Property     | Type    | Description                                                                                        |
+| ------------ | ------- | -------------------------------------------------------------------------------------------------- |
+| `startup_ms` | number  | Milliseconds from launching the app, including the wait for its server, to the first drawn canvas. |
+| `card_count` | integer | Cards on the canvas it opened to.                                                                  |
 
 ### performance_summarized
 
-A summary of one timing over a session of the app or of `orion server start`, sent when the session ends. Sent by the app and the CLI.
+A summary of one timing over a stretch of a session of the app or of `orion server start`, sent every few minutes and when the session ends. Sent by the app and the CLI.
 
-| Property       | Type    | Description                                                                                                                                                                 |
-| -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `metric`       | string  | What was timed: a pan or zoom frame, a `derive` or `layout` pass, or a flush by `orion server start`. One of `pan_frame`, `zoom_frame`, `derive`, `layout`, `server_flush`. |
-| `sample_count` | integer | How many times it was measured.                                                                                                                                             |
-| `p50_ms`       | number  | The median, in milliseconds.                                                                                                                                                |
-| `p95_ms`       | number  | The 95th percentile, in milliseconds.                                                                                                                                       |
-| `max_ms`       | number  | The slowest, in milliseconds.                                                                                                                                               |
-| `card_count`   | integer | Cards on the canvas when the summary was taken.                                                                                                                             |
-| `group_count`  | integer | Groups on the canvas when the summary was taken.                                                                                                                            |
+| Property       | Type    | Description                                                                                                                                                                                                                       |
+| -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `metric`       | string  | What was timed: a pan or zoom frame or a `layout` pass in the app, or a `derive` pass or applying the app's edits (`server_flush`) in `orion server start`. One of `pan_frame`, `zoom_frame`, `derive`, `layout`, `server_flush`. |
+| `sample_count` | integer | How many times it was measured.                                                                                                                                                                                                   |
+| `p50_ms`       | number  | The median, in milliseconds.                                                                                                                                                                                                      |
+| `p95_ms`       | number  | The 95th percentile, in milliseconds.                                                                                                                                                                                             |
+| `max_ms`       | number  | The slowest, in milliseconds.                                                                                                                                                                                                     |
+| `card_count`   | integer | Cards on the canvas when the summary was taken.                                                                                                                                                                                   |
+| `group_count`  | integer | Groups on the canvas when the summary was taken.                                                                                                                                                                                  |
 
 ## Canvas shape
 
@@ -66,7 +66,6 @@ The size of a canvas, taken when it opens and at most once a day after that. Sen
 | `note_count`    | integer | Notes.                                     |
 | `media_count`   | integer | Images and other media.                    |
 | `sticker_count` | integer | Stickers.                                  |
-| `comment_count` | integer | Comments.                                  |
 
 ## Feature use
 
@@ -74,20 +73,20 @@ Which parts of the app get used, counted per session.
 
 ### features_used
 
-How much each feature was used during a session, sent when the session ends. Sent by the app.
+How much each feature was used during a stretch of a session, sent every few minutes and when the session ends. Sent by the app.
 
-| Property          | Type    | Description                                   |
-| ----------------- | ------- | --------------------------------------------- |
-| `session_ms`      | number  | How long the session lasted, in milliseconds. |
-| `select_tool_ms`  | number  | Milliseconds with the Select tool active.     |
-| `pan_tool_ms`     | number  | Milliseconds with the Pan tool active.        |
-| `comment_tool_ms` | number  | Milliseconds with the Comment tool active.    |
-| `sticker_tool_ms` | number  | Milliseconds with the Sticker tool active.    |
-| `stickers_placed` | integer | Stickers placed.                              |
-| `comments_left`   | integer | Comments left.                                |
-| `groups_created`  | integer | Groups created.                               |
-| `tidies`          | integer | Times the canvas was tidied.                  |
-| `pastes`          | integer | Pastes onto the canvas.                       |
+| Property          | Type    | Description                                           |
+| ----------------- | ------- | ----------------------------------------------------- |
+| `session_ms`      | number  | How much of the session this covers, in milliseconds. |
+| `select_tool_ms`  | number  | Milliseconds with the Select tool active.             |
+| `pan_tool_ms`     | number  | Milliseconds with the Pan tool active.                |
+| `comment_tool_ms` | number  | Milliseconds with the Comment tool active.            |
+| `sticker_tool_ms` | number  | Milliseconds with the Sticker tool active.            |
+| `stickers_placed` | integer | Stickers placed.                                      |
+| `comments_left`   | integer | Comments left.                                        |
+| `groups_created`  | integer | Groups created.                                       |
+| `tidies`          | integer | Times the canvas was tidied.                          |
+| `pastes`          | integer | Pastes onto the canvas.                               |
 
 ## Agent use
 
