@@ -12,7 +12,9 @@ export const task: TaskNode = {
     status: 'active',
     repo: 'vocksel/orion',
     who: 'you',
-    refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#127', url: 'https://github.com/vocksel/orion/pull/127' }],
+    refs: [
+      { source: 'github', kind: 'pull', key: 'vocksel/orion#127', url: 'https://github.com/vocksel/orion/pull/127' },
+    ],
   },
 }
 
@@ -48,10 +50,22 @@ export const store: TaskNode = {
   id: 'store',
   type: 'task',
   position: { x: 460, y: 150 },
-  data: { kind: 'task', itemKind: 'component', label: 'Store', status: 'todo', note: 'One lock for every write; revisions, migrations, backups' },
+  data: {
+    kind: 'task',
+    itemKind: 'component',
+    label: 'Store',
+    status: 'todo',
+    note: 'One lock for every write; revisions, migrations, backups',
+  },
 }
 
-export const componentLink: Link = { id: 'component>store', from: 'component', to: 'store', kind: 'blocks', label: 'reads, writes, watches' }
+export const componentLink: Link = {
+  id: 'component>store',
+  from: 'component',
+  to: 'store',
+  kind: 'blocks',
+  label: 'reads, writes, watches',
+}
 
 export const group: ClusterNode = {
   id: 'group',
@@ -66,7 +80,14 @@ export const ghost: GhostNode = {
   id: 'ghost',
   type: 'ghost',
   position: { x: 50, y: 170 },
-  data: { kind: 'ghost', taskId: 'task', label: 'Review the component split', where: 'Canvas', status: 'review', side: 'in' },
+  data: {
+    kind: 'ghost',
+    taskId: 'task',
+    label: 'Review the component split',
+    where: 'Canvas',
+    status: 'review',
+    side: 'in',
+  },
 }
 
 export const links: Link[] = [{ id: 'link', from: 'task', to: 'blocker', kind: 'blocks' }]
@@ -85,4 +106,8 @@ export const derived: Derived = {
 }
 export const work = buildWork(toServerFacts(derived), [task, blocker, note, group], links)
 export const nodeMap = new Map<string, AppNode>([task, blocker, note, group].map((node) => [node.id, node]))
-export const source: SourceRef = { domain: 'github.com', label: 'vocksel/orion#127', href: 'https://github.com/vocksel/orion/pull/127' }
+export const source: SourceRef = {
+  domain: 'github.com',
+  label: 'vocksel/orion#127',
+  href: 'https://github.com/vocksel/orion/pull/127',
+}

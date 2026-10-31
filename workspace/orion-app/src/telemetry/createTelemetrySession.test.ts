@@ -50,14 +50,23 @@ test('timings are summarized with the canvas size, and each stretch starts over'
   const events = session.takeEvents({ ...SIZE, nesting_depth: 2, link_count: 9 } as typeof SIZE)
 
   expect(events.slice(1)).toEqual([
-    { name: 'performance_summarized', properties: { metric: 'pan_frame', sample_count: 3, p50_ms: 17, p95_ms: 50, max_ms: 50, ...SIZE } },
-    { name: 'performance_summarized', properties: { metric: 'layout', sample_count: 1, p50_ms: 120, p95_ms: 120, max_ms: 120, ...SIZE } },
+    {
+      name: 'performance_summarized',
+      properties: { metric: 'pan_frame', sample_count: 3, p50_ms: 17, p95_ms: 50, max_ms: 50, ...SIZE },
+    },
+    {
+      name: 'performance_summarized',
+      properties: { metric: 'layout', sample_count: 1, p50_ms: 120, p95_ms: 120, max_ms: 120, ...SIZE },
+    },
   ])
 
   clock.advance(100)
 
   expect(session.takeEvents(SIZE)).toEqual([
-    { name: 'features_used', properties: { session_ms: 100, select_tool_ms: 100, pan_tool_ms: 0, comment_tool_ms: 0, sticker_tool_ms: 0 } },
+    {
+      name: 'features_used',
+      properties: { session_ms: 100, select_tool_ms: 100, pan_tool_ms: 0, comment_tool_ms: 0, sticker_tool_ms: 0 },
+    },
   ])
 })
 

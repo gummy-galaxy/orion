@@ -26,15 +26,25 @@ describe('getTradingFacts', () => {
   })
 
   it('picks the most urgent status badge', () => {
-    expect(getTradingFacts(createView({ readiness: 'conflict', changesRequested: true }), NOW).statusBadge).toBe('conflict')
-    expect(getTradingFacts(createView({ readiness: 'failing', changesRequested: true }), NOW).statusBadge).toBe('failing')
-    expect(getTradingFacts(createView({ readiness: 'passing', changesRequested: true }), NOW).statusBadge).toBe('changes')
-    expect(getTradingFacts(createView({ readiness: 'mergeable', readyToMerge: true }), NOW).statusBadge).toBe('mergeable')
+    expect(getTradingFacts(createView({ readiness: 'conflict', changesRequested: true }), NOW).statusBadge).toBe(
+      'conflict',
+    )
+    expect(getTradingFacts(createView({ readiness: 'failing', changesRequested: true }), NOW).statusBadge).toBe(
+      'failing',
+    )
+    expect(getTradingFacts(createView({ readiness: 'passing', changesRequested: true }), NOW).statusBadge).toBe(
+      'changes',
+    )
+    expect(getTradingFacts(createView({ readiness: 'mergeable', readyToMerge: true }), NOW).statusBadge).toBe(
+      'mergeable',
+    )
   })
 
   it('marks pull requests with no change in two weeks stale', () => {
     expect(getTradingFacts(createView({ updatedAt: '2026-09-20T12:00:00Z' }), NOW).statusBadge).toBe('stale')
-    expect(getTradingFacts(createView({ kind: 'step', updatedAt: '2026-09-20T12:00:00Z' }), NOW).statusBadge).toBeUndefined()
+    expect(
+      getTradingFacts(createView({ kind: 'step', updatedAt: '2026-09-20T12:00:00Z' }), NOW).statusBadge,
+    ).toBeUndefined()
   })
 
   it('shows checks still running or queued as motion, not a status badge', () => {

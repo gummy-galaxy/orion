@@ -7,7 +7,10 @@ type Move = { zoom: number; frame: number; last: number | null; gaps: number[] }
  * Times frames while the camera moves, and files them as pan or zoom frames once it stops, depending on whether the
  * zoom changed. Call `start` and `end` from React Flow's move callbacks with the viewport's zoom.
  */
-export function useMoveFrames(session: TelemetrySession): { start: (zoom: number) => void; end: (zoom: number) => void } {
+export function useMoveFrames(session: TelemetrySession): {
+  start: (zoom: number) => void
+  end: (zoom: number) => void
+} {
   const move = useRef<Move | null>(null)
 
   const stop = useCallback(() => {

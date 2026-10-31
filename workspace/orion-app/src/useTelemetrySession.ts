@@ -3,7 +3,10 @@ import { inDesktop } from './external'
 import { sendTelemetryEvents } from './telemetry'
 import { createTelemetrySession, type TelemetrySession } from './telemetry/createTelemetrySession'
 
-/** How often a stretch of the session is sent. The app can quit or crash without warning, so waiting for the end would lose most of it. */
+/**
+ * How often a stretch of the session is sent. The app can quit or crash without warning, so waiting for the end would
+ * lose most of it.
+ */
 const STRETCH_MS = 5 * 60 * 1000
 
 type CanvasSize = { card_count: number; group_count: number }

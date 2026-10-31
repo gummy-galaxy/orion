@@ -18,8 +18,8 @@ export function AccessibilitySettings({ appearance, chooseAppearance }: Props) {
             Colorblind colors
           </span>
           <p className="settings-field-detail">
-            Status colors tuned for protanopia and deuteranopia (red-green) or tritanopia (blue-yellow), in any theme. Every status also has its own
-            shape.
+            Status colors tuned for protanopia and deuteranopia (red-green) or tritanopia (blue-yellow), in any theme.
+            Every status also has its own shape.
           </p>
         </div>
         <div className="options" role="group" aria-labelledby="settings-status-colors">
@@ -41,8 +41,8 @@ export function AccessibilitySettings({ appearance, chooseAppearance }: Props) {
             Animations
           </span>
           <p className="settings-field-detail">
-            Follows your computer’s reduced motion setting until you pick a level. Reduced stops looping effects and gliding but keeps fades. Off
-            stops every animation.
+            Follows your computer’s reduced motion setting until you pick a level. Reduced stops looping effects and
+            gliding but keeps fades. Off stops every animation.
           </p>
         </div>
         <div className="options" role="group" aria-labelledby="settings-animations">

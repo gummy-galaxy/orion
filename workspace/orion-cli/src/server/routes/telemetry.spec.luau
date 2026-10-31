@@ -69,7 +69,8 @@ test.case("the app's events are queued on a machine that opted in", function(ass
 
 	local response = telemetry.handleEvents(
 		createEventsRequest(
-			'{"events":[{"name":"app_started","sessionId":"0b7e3a52-5d43-4c8e-8f0e-6d3e1f2a9c11","properties":{"startup_ms":640}}]}'
+			'{"events":[{"name":"app_started","sessionId":"0b7e3a52-5d43-4c8e-8f0e-6d3e1f2a9c11",'
+				.. '"properties":{"startup_ms":640}}]}'
 		),
 		root,
 		{},

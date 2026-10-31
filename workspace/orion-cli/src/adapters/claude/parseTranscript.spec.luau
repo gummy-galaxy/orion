@@ -7,23 +7,29 @@ local function line(entry: string): string
 end
 
 local PROMPT = line(
-	'{"type":"user","gitBranch":"agent/a","cwd":"/work","timestamp":"2026-10-18T10:00:00Z","message":{"role":"user","content":"Fix the bug"}}'
+	'{"type":"user","gitBranch":"agent/a","cwd":"/work","timestamp":"2026-10-18T10:00:00Z","message":{"role":"user",'
+		.. '"content":"Fix the bug"}}'
 )
 local REMINDER = line(
-	'{"type":"user","gitBranch":"agent/a","cwd":"/work","message":{"role":"user","content":"<system-reminder>x</system-reminder>"}}'
+	'{"type":"user","gitBranch":"agent/a","cwd":"/work","message":{"role":"user",'
+		.. '"content":"<system-reminder>x</system-reminder>"}}'
 ) .. line(
-	'{"type":"user","gitBranch":"agent/a","cwd":"/work","message":{"role":"user","content":"<system-reminder>y</system-reminder>\\nAnd add a test"}}'
+	'{"type":"user","gitBranch":"agent/a","cwd":"/work","message":{"role":"user",'
+		.. '"content":"<system-reminder>y</system-reminder>\\nAnd add a test"}}'
 )
 local TOOL_CALL = line(
-	'{"type":"assistant","gitBranch":"agent/a","cwd":"/work","message":{"stop_reason":"tool_use","content":[{"type":"text","text":"Running tests."},{"type":"tool_use","name":"Bash"}]}}'
+	'{"type":"assistant","gitBranch":"agent/a","cwd":"/work","message":{"stop_reason":"tool_use",'
+		.. '"content":[{"type":"text","text":"Running tests."},{"type":"tool_use","name":"Bash"}]}}'
 )
 local TOOL_RESULT =
 	line('{"type":"user","gitBranch":"agent/a","cwd":"/work","message":{"content":[{"type":"tool_result"}]}}')
 local FINISHED = line(
-	'{"type":"assistant","gitBranch":"agent/a","cwd":"/work","timestamp":"2026-10-18T10:05:00Z","message":{"stop_reason":"end_turn","content":[{"type":"text","text":"Fixed and pushed."}]}}'
+	'{"type":"assistant","gitBranch":"agent/a","cwd":"/work","timestamp":"2026-10-18T10:05:00Z",'
+		.. '"message":{"stop_reason":"end_turn","content":[{"type":"text","text":"Fixed and pushed."}]}}'
 )
 local INTERRUPTED = line(
-	'{"type":"user","gitBranch":"agent/a","cwd":"/work","message":{"content":[{"type":"text","text":"[Request interrupted by user]"}]}}'
+	'{"type":"user","gitBranch":"agent/a","cwd":"/work","message":{"content":[{"type":"text",'
+		.. '"text":"[Request interrupted by user]"}]}}'
 )
 
 test.case("a finished turn is your move, with its last message and prose-only turns", function(assert)
@@ -63,7 +69,8 @@ end)
 
 test.case("broken lines and sidechains are skipped", function(assert)
 	local sidechain = line(
-		'{"type":"assistant","isSidechain":true,"gitBranch":"other","message":{"stop_reason":"end_turn","content":[{"type":"text","text":"sub"}]}}'
+		'{"type":"assistant","isSidechain":true,"gitBranch":"other","message":{"stop_reason":"end_turn",'
+			.. '"content":[{"type":"text","text":"sub"}]}}'
 	)
 	local transcript = parseTranscript("{not json\n" .. PROMPT .. sidechain)
 

@@ -29,7 +29,12 @@ export function ClassicCard({ view }: { view: CardView }) {
         <span className="meta-tag" title={view.tag}>
           {view.tag}
         </span>
-        <span className="st" title={readiness && !view.readyToMerge ? `${view.statusLabel} · ${READINESS_LABEL[readiness]}` : view.statusLabel}>
+        <span
+          className="st"
+          title={
+            readiness && !view.readyToMerge ? `${view.statusLabel} · ${READINESS_LABEL[readiness]}` : view.statusLabel
+          }
+        >
           {view.readyToMerge ? (
             <ChecksIcon readiness="mergeable" />
           ) : (

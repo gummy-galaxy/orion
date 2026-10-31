@@ -26,7 +26,8 @@ export type Operator = {
 local FIELDS: { Field } = {
 	{
 		name = "kind",
-		help = "What the node is: `pr` for a card with a pull request, `placeholder` for one with only a repository, `step`, `gate`, `component`, `note`, `group`, or `image`.",
+		help = "What the node is: `pr` for a card with a pull request, `placeholder` for one with only a repository, "
+			.. "`step`, `gate`, `component`, `note`, `group`, or `image`.",
 		example = [[kind = "gate"]],
 	},
 	{
@@ -46,7 +47,8 @@ local FIELDS: { Field } = {
 	},
 	{
 		name = "group",
-		help = "The group that directly holds the node, named by its id, its label, or its path of labels from the top level separated by `/`, ignoring case. With `~` it matches text in that path.",
+		help = "The group that directly holds the node, named by its id, its label, or its path of labels from the "
+			.. "top level separated by `/`, ignoring case. With `~` it matches text in that path.",
 		isText = true,
 		example = [[group = "Release / Docs"]],
 	},
@@ -87,7 +89,8 @@ local FIELDS: { Field } = {
 	},
 	{
 		name = "ref",
-		help = "The key of any ref on the card, such as `owner/name#12` or `ABC-12`. With `=` and `!=` it matches whole keys, ignoring case.",
+		help = "The key of any ref on the card, such as `owner/name#12` or `ABC-12`. "
+			.. "With `=` and `!=` it matches whole keys, ignoring case.",
 		isText = true,
 		example = [[ref = "gummy-galaxy/orion#86"]],
 	},

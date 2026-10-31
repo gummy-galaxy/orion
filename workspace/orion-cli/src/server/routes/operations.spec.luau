@@ -62,7 +62,8 @@ test.case("POST applies a list as one revision", function(assert)
 			"POST",
 			"/api/operations",
 			edits(
-				[[{"operations":[{"op":"setFields","id":"pub","fields":{"status":"done"}},{"op":"place","id":"ci","x":40,"y":60}]}]]
+				[[{"operations":[{"op":"setFields","id":"pub","fields":{"status":"done"}},{"op":"place","id":"ci",]]
+					.. [["x":40,"y":60}]}]]
 			)
 		)
 	)

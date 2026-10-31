@@ -35,6 +35,7 @@ const PORT_FILE: &str = "server-port";
 const QUIT_FLUSH_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// How long the server gets to stop on its own, queueing its last usage summaries, before it's killed.
+#[cfg(unix)]
 const SERVER_STOP_TIMEOUT: Duration = Duration::from_secs(2);
 
 /// Tracks the handshake that lets the page send its usage summaries before the app quits.

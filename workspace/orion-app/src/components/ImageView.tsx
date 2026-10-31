@@ -30,7 +30,11 @@ export const ImageView = memo(function ImageView({ data }: NodeProps<ImageNode>)
 
   return (
     <div className="image-node" title={data.label}>
-      {source ? <img src={source} alt={data.label} draggable={false} /> : <span className="image-missing">Image unavailable</span>}
+      {source ? (
+        <img src={source} alt={data.label} draggable={false} />
+      ) : (
+        <span className="image-missing">Image unavailable</span>
+      )}
       <span className="image-label">{data.label}</span>
     </div>
   )

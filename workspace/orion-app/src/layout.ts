@@ -52,7 +52,10 @@ export function labelWidth(text: string): number {
 /** Top to bottom, then left to right. */
 const reading = (a: AppNode, b: AppNode) => a.position.y - b.position.y || a.position.x - b.position.x
 
-/** Places sizes row by row, `columns` across. Each column is as wide as its widest box and each row as tall as its tallest. */
+/**
+ * Places sizes row by row, `columns` across. Each column is as wide as its widest box and each row as tall as its
+ * tallest.
+ */
 export function grid(sizes: Size[], columns: number, gap: number): { at: Point[] } & Size {
   const columnCount = Math.max(1, Math.min(Math.floor(columns), sizes.length))
   const widths = Array<number>(columnCount).fill(0)
@@ -98,7 +101,9 @@ export function wrapLayers(boxes: Map<string, Box>, gap: number, rowWidth?: numb
     const strip = strips[strips.length - 1]
 
     const fits =
-      rowWidth === undefined ? strip && strip.length < WRAP && layer.right - strip[0].x <= ROW_WIDTH : strip && layer.right - strip[0].x <= rowWidth
+      rowWidth === undefined
+        ? strip && strip.length < WRAP && layer.right - strip[0].x <= ROW_WIDTH
+        : strip && layer.right - strip[0].x <= rowWidth
 
     if (strip && fits) strip.push(layer)
     else strips.push([layer])
@@ -150,12 +155,17 @@ async function elkBoxes(units: ({ id: string } & Size)[], edges: Edge[], gap: Ga
       id: source + '>' + target,
       sources: [source],
       targets: [target],
-      labels: label ? [{ id: source + '>' + target + ':label', text: label, width: labelWidth(label), height: LABEL_SIZE.height }] : [],
+      labels: label
+        ? [{ id: source + '>' + target + ':label', text: label, width: labelWidth(label), height: LABEL_SIZE.height }]
+        : [],
     })),
   })
 
   return new Map(
-    (result.children ?? []).map((child) => [child.id, { x: child.x ?? 0, y: child.y ?? 0, width: child.width ?? 0, height: child.height ?? 0 }]),
+    (result.children ?? []).map((child) => [
+      child.id,
+      { x: child.x ?? 0, y: child.y ?? 0, width: child.width ?? 0, height: child.height ?? 0 },
+    ]),
   )
 }
 
@@ -197,7 +207,8 @@ type Arrangement = { positions: Map<string, Point> } & Size
 
 /** The most columns, at least one, that keep a grid of `sizes` within `maxWidth`. */
 function columnsWithin(sizes: Size[], maxWidth: number, gap: number): number {
-  for (let columns = sizes.length; columns > 1; columns--) if (grid(sizes, columns, gap).width <= maxWidth) return columns
+  for (let columns = sizes.length; columns > 1; columns--)
+    if (grid(sizes, columns, gap).width <= maxWidth) return columns
 
   return 1
 }
@@ -212,7 +223,12 @@ function columnsWithin(sizes: Size[], maxWidth: number, gap: number): number {
  * follow the square root of its count; with one, chains wrap and the grid takes as many columns as fit in it. That
  * part is quick, so a resize can try widths as it goes.
  */
-async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: CardSize): Promise<(maxWidth?: number) => Arrangement> {
+async function planFlow(
+  children: AppNode[],
+  edges: Edge[],
+  gap: Gap,
+  cardSize: CardSize,
+): Promise<(maxWidth?: number) => Arrangement> {
   const ends = new Map(children.map((child) => [child.id, { in: [] as string[], out: [] as string[] }]))
 
   for (const [source, target] of edges) {
@@ -303,7 +319,8 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
     parts.set(root, part)
   }
 
-  const earliest = (ids: string[]) => ids.flatMap((id) => members.get(id)!).reduce((first, node) => (reading(node, first) < 0 ? node : first))
+  const earliest = (ids: string[]) =>
+    ids.flatMap((id) => members.get(id)!).reduce((first, node) => (reading(node, first) < 0 ? node : first))
   const blocks = [...parts.values()].map((part) => ({ ids: [...part.keys()], first: earliest([...part.keys()]), part }))
   const singles: { ids: string[]; first: AppNode; boxes: Map<string, Box>; size: Size }[] = []
 
@@ -316,7 +333,14 @@ async function planFlow(children: AppNode[], edges: Edge[], gap: Gap, cardSize: 
   }
 
   return (maxWidth) => {
-    const shapes = [...blocks.map((block) => ({ ids: block.ids, first: block.first, ...frameBlock(block.part, gap.layer, maxWidth) })), ...singles]
+    const shapes = [
+      ...blocks.map((block) => ({
+        ids: block.ids,
+        first: block.first,
+        ...frameBlock(block.part, gap.layer, maxWidth),
+      })),
+      ...singles,
+    ]
 
     shapes.sort((a, b) => reading(a.first, b.first))
 
@@ -422,11 +446,15 @@ export async function planReflow(
 
     seen.add(source + '>' + target)
     // Only a link drawn directly between the two shows its label; lifted links are bundled.
-    edges.push(source === link.from && target === link.to && link.label ? [source, target, link.label] : [source, target])
+    edges.push(
+      source === link.from && target === link.to && link.label ? [source, target, link.label] : [source, target],
+    )
   }
 
   const arrangeFor = await planFlow(children, edges, groupId ? INNER_GAP : TOP_GAP, cardSize)
-  const offset = groupId ? { x: GROUP_PADDING, y: groupHeaderHeight(group && isCluster(group) ? group.data : undefined) } : { x: 0, y: 0 }
+  const offset = groupId
+    ? { x: GROUP_PADDING, y: groupHeaderHeight(group && isCluster(group) ? group.data : undefined) }
+    : { x: 0, y: 0 }
   const measured = new Map<number | undefined, Arrangement>()
 
   const arrangement = (maxWidth?: number) => {
@@ -445,7 +473,9 @@ export async function planReflow(
     measure: (maxWidth) => {
       const { width, height } = arrangement(maxWidth)
 
-      return groupId ? { width: width + GROUP_PADDING * 2, height: height + offset.y + GROUP_PADDING } : { width, height }
+      return groupId
+        ? { width: width + GROUP_PADDING * 2, height: height + offset.y + GROUP_PADDING }
+        : { width, height }
     },
     sameLayout: (first, second) => {
       const a = arrangement(first).positions
@@ -487,7 +517,8 @@ export async function reflow(
   return plan ? plan.place(sizedWidth(groupId ? nodes.find((node) => node.id === groupId) : undefined)) : nodes
 }
 
-// Group changes show at once with this geometry. Which items belong to a group is the server's rule, applied through operations.
+// Group changes show at once with this geometry. Which items belong to a group is the server's rule, applied through
+// operations.
 /** Wraps the selection in a new group under the selection's nearest shared parent. */
 export function groupSelection(
   nodes: AppNode[],
@@ -495,7 +526,8 @@ export function groupSelection(
 ): { nodes: AppNode[]; groupId: string } | null {
   const nodeMap = byId(nodes)
   const selection = nodes.filter(
-    (node) => node.selected && !node.hidden && !ancestors(node.id, nodeMap).some((ancestor) => nodeMap.get(ancestor)?.selected),
+    (node) =>
+      node.selected && !node.hidden && !ancestors(node.id, nodeMap).some((ancestor) => nodeMap.get(ancestor)?.selected),
   )
 
   if (!selection.length) return null
@@ -535,7 +567,11 @@ export function groupSelection(
 }
 
 /** Dissolves the given groups, handing their children to the group's parent in place. */
-export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+export function ungroup(
+  nodes: AppNode[],
+  ids: string[],
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): AppNode[] {
   let next = nodes
 
   for (const id of ids) {
@@ -561,8 +597,8 @@ export function ungroup(nodes: AppNode[], ids: string[], cardSize: CardSize = { 
 }
 
 /**
- * The first spot at or below `preferred` that no sibling overlaps, `gap` below any in the way, so a moved group keeps its
- * place when it's free.
+ * The first spot at or below `preferred` that no sibling overlaps, `gap` below any in the way, so a moved group keeps
+ * its place when it's free.
  */
 function freeSpotBelow(
   siblings: AppNode[],
@@ -599,7 +635,11 @@ function freeSpotBelow(
  * where it was on screen when nothing covers it. The parent shrinks or grows to fit what remains. Anything else returns
  * the nodes unchanged.
  */
-export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+export function moveOutOfGroup(
+  nodes: AppNode[],
+  id: string,
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): AppNode[] {
   const nodeMap = byId(nodes)
   const group = nodeMap.get(id)
 
@@ -614,7 +654,9 @@ export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize 
     nodes,
     normalize(
       nodes.map((node) =>
-        node.id === id ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } } : node,
+        node.id === id
+          ? { ...node, parentId: grandparent?.id, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } }
+          : node,
       ),
       cardSize,
     ),
@@ -624,7 +666,13 @@ export function moveOutOfGroup(nodes: AppNode[], id: string, cardSize: CardSize 
   if (!landed) return lifted
 
   const siblings = lifted.filter((node) => node.parentId === landed.parentId && node.id !== id)
-  const position = freeSpotBelow(siblings, landed.position, sizeOf(landed, cardSize), (grandparent ? GAP.inner : GAP.top).component, cardSize)
+  const position = freeSpotBelow(
+    siblings,
+    landed.position,
+    sizeOf(landed, cardSize),
+    (grandparent ? GAP.inner : GAP.top).component,
+    cardSize,
+  )
 
   return normalize(
     lifted.map((node) => (node.id === id ? { ...node, position } : node)),

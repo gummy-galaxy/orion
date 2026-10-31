@@ -3,7 +3,14 @@ import type { ImageNode } from '../model'
 import { ImageView } from './ImageView'
 import { StoryGraph } from './storySupport/StoryGraph'
 
-const preview = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect width="256" height="256" fill="#e8dcbf"/><circle cx="128" cy="112" r="72" fill="#76a88e"/><path d="M32 205 112 112l52 52 34-39 42 80" fill="none" stroke="#315b6c" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+const preview = [
+  '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">',
+  '<rect width="256" height="256" fill="#e8dcbf"/>',
+  '<circle cx="128" cy="112" r="72" fill="#76a88e"/>',
+  '<path d="M32 205 112 112l52 52 34-39 42 80" fill="none" stroke="#315b6c" stroke-width="16" stroke-linecap="round"',
+  ' stroke-linejoin="round"/>',
+  '</svg>',
+].join('')
 
 const meta = {
   title: 'Canvas/Cards and edges/ImageView',
@@ -35,5 +42,10 @@ const image: ImageNode = {
 
 export const Default: Story = { render: () => <StoryGraph nodes={[image]} nodeTypes={{ image: ImageView }} /> }
 export const MissingAsset: Story = {
-  render: () => <StoryGraph nodes={[{ ...image, data: { ...image.data, asset: 'missing.png' } }]} nodeTypes={{ image: ImageView }} />,
+  render: () => (
+    <StoryGraph
+      nodes={[{ ...image, data: { ...image.data, asset: 'missing.png' } }]}
+      nodeTypes={{ image: ImageView }}
+    />
+  ),
 }

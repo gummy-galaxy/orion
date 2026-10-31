@@ -10,7 +10,10 @@ end
 test.case("check counts add check runs and status contexts", function(assert)
 	local counts = getCheckCounts(
 		rollup(
-			[[{"contexts":{"checkRunCountsByState":[{"state":"SUCCESS","count":3},{"state":"FAILURE","count":1},{"state":"IN_PROGRESS","count":2},{"state":"QUEUED","count":1}],"statusContextCountsByState":[{"state":"SUCCESS","count":1},{"state":"PENDING","count":1}]}}]]
+			[[{"contexts":{"checkRunCountsByState":[{"state":"SUCCESS","count":3},]]
+				.. [[{"state":"FAILURE","count":1},{"state":"IN_PROGRESS","count":2},]]
+				.. [[{"state":"QUEUED","count":1}],]]
+				.. [["statusContextCountsByState":[{"state":"SUCCESS","count":1},{"state":"PENDING","count":1}]}}]]
 		)
 	)
 
@@ -22,7 +25,8 @@ end)
 test.case("check counts treat cancelled and skipped checks as finished without failing", function(assert)
 	local counts = getCheckCounts(
 		rollup(
-			[[{"contexts":{"checkRunCountsByState":[{"state":"CANCELLED","count":1},{"state":"SKIPPED","count":2},{"state":"SUCCESS","count":1}]}}]]
+			[[{"contexts":{"checkRunCountsByState":[{"state":"CANCELLED","count":1},{"state":"SKIPPED","count":2},]]
+				.. [[{"state":"SUCCESS","count":1}]}}]]
 		)
 	)
 

@@ -4,7 +4,18 @@
  * theme defines every token.
  */
 export type TokenGroup =
-  'color' | 'status' | 'font' | 'weight' | 'size' | 'line-height' | 'radius' | 'border' | 'space' | 'shadow' | 'duration' | 'easing'
+  | 'color'
+  | 'status'
+  | 'font'
+  | 'weight'
+  | 'size'
+  | 'line-height'
+  | 'radius'
+  | 'border'
+  | 'space'
+  | 'shadow'
+  | 'duration'
+  | 'easing'
 
 export type Token = {
   /** The role-based name documented in docs/guide/tokens.md, such as card.background. */

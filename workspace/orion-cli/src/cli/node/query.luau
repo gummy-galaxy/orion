@@ -63,7 +63,9 @@ end
 return table.freeze({
 	help = "Find cards and groups with an expression",
 	mcp = {
-		description = `Find cards and groups with an expression. Fields: {FIELD_NAMES}. Compare quoted values with = or !=, quoting numbers and booleans too; {TEXT_FIELD_NAMES} also take ~ for case-insensitive text.`,
+		description = `Find cards and groups with an expression. Fields: {FIELD_NAMES}. `
+			.. `Compare quoted values with = or !=, quoting numbers and booleans too; `
+			.. `{TEXT_FIELD_NAMES} also take ~ for case-insensitive text.`,
 		annotations = { readOnlyHint = true },
 	},
 	define = function(parser: cli.Parser)

@@ -19,7 +19,14 @@ const card = (id: string, itemKind: 'step' | 'note' | 'component' = 'step', pare
 })
 
 test('a canvas is counted by kind, with notes and components kept out of cards', () => {
-  const nodes = [group('outer'), group('inner', 'outer'), card('a', 'step', 'inner'), card('b'), card('n', 'note'), card('c', 'component')]
+  const nodes = [
+    group('outer'),
+    group('inner', 'outer'),
+    card('a', 'step', 'inner'),
+    card('b'),
+    card('n', 'note'),
+    card('c', 'component'),
+  ]
   const links: Link[] = [
     { id: 'l1', from: 'a', to: 'b', kind: 'blocks' },
     { id: 'l2', from: 'b', to: 'n', kind: 'related' },

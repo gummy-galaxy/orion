@@ -10,7 +10,10 @@ export type TelemetrySession = {
   setTool: (tool: Tool) => void
   count: (counter: FeatureCounter) => void
   record: (metric: TimedMetric, durationMs: number) => void
-  /** The stretch since the last call as `features_used` and `performance_summarized` events, after which the next stretch starts. */
+  /**
+   * The stretch since the last call as `features_used` and `performance_summarized` events, after which the next
+   * stretch starts.
+   */
   takeEvents: (size: { card_count: number; group_count: number }) => TelemetryEvent[]
 }
 
@@ -69,7 +72,8 @@ export function createTelemetrySession(now: () => number = () => performance.now
 
       const features: Record<string, number> = { session_ms: Math.round(at - stretchStart), ...counters }
 
-      for (const [name, property] of Object.entries(TOOL_PROPERTIES)) features[property] = Math.round(toolTime[name as Tool] ?? 0)
+      for (const [name, property] of Object.entries(TOOL_PROPERTIES))
+        features[property] = Math.round(toolTime[name as Tool] ?? 0)
 
       const events: TelemetryEvent[] = [{ name: 'features_used', properties: features }]
 

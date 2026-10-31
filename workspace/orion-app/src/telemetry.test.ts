@@ -1,5 +1,11 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { chooseTelemetry, readTelemetry, sendTelemetryEvents, shouldAskTelemetry, TELEMETRY_SESSION_ID } from './telemetry'
+import {
+  chooseTelemetry,
+  readTelemetry,
+  sendTelemetryEvents,
+  shouldAskTelemetry,
+  TELEMETRY_SESSION_ID,
+} from './telemetry'
 
 afterEach(() => vi.unstubAllGlobals())
 

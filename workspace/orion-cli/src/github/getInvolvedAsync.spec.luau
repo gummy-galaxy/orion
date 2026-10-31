@@ -12,7 +12,8 @@ test.case("involved search filters repositories", function(assert)
 		end
 		return testing.result(
 			true,
-			[[{"data":{"search":{"nodes":[{"number":14,"title":"Issue","url":"u","repository":{"name":"orion","owner":{"login":"vocksel"}}}],"pageInfo":{"hasNextPage":false}}}}]]
+			[[{"data":{"search":{"nodes":[{"number":14,"title":"Issue","url":"u","repository":{"name":"orion",]]
+				.. [["owner":{"login":"vocksel"}}}],"pageInfo":{"hasNextPage":false}}}}]]
 		)
 	end, "github.com", { "vocksel" }, "2026-10-01", { "orion" }, nil)
 	assert.eq(viewer, "vocksel")

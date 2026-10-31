@@ -1,7 +1,14 @@
 import type { Preview } from '@storybook/react-vite'
 import '@xyflow/react/dist/style.css'
 import '../src/index.css'
-import { COLOR_MODES, STATUS_COLORS, THEMES, applyAppearance, type ColorMode, type StatusColors } from '../src/appearance'
+import {
+  COLOR_MODES,
+  STATUS_COLORS,
+  THEMES,
+  applyAppearance,
+  type ColorMode,
+  type StatusColors,
+} from '../src/appearance'
 import { SKINS, skinOf } from '../src/skins'
 import { skinAtom, skinStore } from '../src/state'
 
@@ -10,11 +17,21 @@ const preview: Preview = {
   globalTypes: {
     theme: {
       description: 'Theme',
-      toolbar: { title: 'Theme', icon: 'paintbrush', items: THEMES.map((theme) => ({ value: theme.id, title: theme.label })), dynamicTitle: true },
+      toolbar: {
+        title: 'Theme',
+        icon: 'paintbrush',
+        items: THEMES.map((theme) => ({ value: theme.id, title: theme.label })),
+        dynamicTitle: true,
+      },
     },
     skin: {
       description: 'Cards',
-      toolbar: { title: 'Cards', icon: 'box', items: SKINS.map((skin) => ({ value: skin.id, title: skin.label })), dynamicTitle: true },
+      toolbar: {
+        title: 'Cards',
+        icon: 'box',
+        items: SKINS.map((skin) => ({ value: skin.id, title: skin.label })),
+        dynamicTitle: true,
+      },
     },
     colorMode: {
       description: 'Color mode',

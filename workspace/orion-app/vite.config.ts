@@ -26,7 +26,10 @@ function getDataDir(logger: Logger): string | undefined {
   // The sample plan goes through the CLI, so it lands in whatever layout this branch writes.
   if (!existsSync(scratchDataDir)) {
     try {
-      execFileSync(binary, ['apply', seedPlan], { env: { ...process.env, ORION_DATA_DIR: scratchDataDir }, stdio: 'pipe' })
+      execFileSync(binary, ['apply', seedPlan], {
+        env: { ...process.env, ORION_DATA_DIR: scratchDataDir },
+        stdio: 'pipe',
+      })
     } catch (error) {
       rmSync(scratchDataDir, { recursive: true, force: true })
       logger.error(`[orion] couldn't seed ${scratchDataDir}: ${(error as Error).message}`)
@@ -71,12 +74,20 @@ function orionServer(port: number): Plugin {
         const address = server.httpServer?.address()
         const devPort = typeof address === 'object' && address ? address.port : server.config.server.port
 
-        child = spawn(binary, ['server', 'start', '--host', '127.0.0.1', '--port', String(port), '--dev-port', String(devPort)], {
-          // Development never sends usage data, which also keeps the consent dialog out of dev sessions and PR captures.
-          // ORION_TELEMETRY=1 brings it back to try the dialog.
-          env: { ...process.env, ORION_TELEMETRY: process.env.ORION_TELEMETRY ?? '0', ...(dataDir ? { ORION_DATA_DIR: dataDir } : {}) },
-          stdio: ['ignore', 'pipe', 'pipe'],
-        })
+        child = spawn(
+          binary,
+          ['server', 'start', '--host', '127.0.0.1', '--port', String(port), '--dev-port', String(devPort)],
+          {
+            // Development never sends usage data, which also keeps the consent dialog out of dev sessions and PR
+            // captures. ORION_TELEMETRY=1 brings it back to try the dialog.
+            env: {
+              ...process.env,
+              ORION_TELEMETRY: process.env.ORION_TELEMETRY ?? '0',
+              ...(dataDir ? { ORION_DATA_DIR: dataDir } : {}),
+            },
+            stdio: ['ignore', 'pipe', 'pipe'],
+          },
+        )
 
         // Both streams are read: an unread pipe fills up and stalls the server once it logs enough.
         child.stdout?.on('data', (chunk: Buffer) => server.config.logger.info(`[orion] ${chunk.toString().trim()}`))

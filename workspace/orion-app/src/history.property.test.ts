@@ -33,7 +33,11 @@ function docOf(ids: string[]): fc.Arbitrary<Saved> {
       fc.record({
         nodes: fc.tuple(...present.map(node)),
         links: fc.uniqueArray(
-          fc.record({ from: fc.constantFrom(...present, '?'), to: fc.constantFrom(...present, '?'), kind: fc.constantFrom('blocks', 'related') }),
+          fc.record({
+            from: fc.constantFrom(...present, '?'),
+            to: fc.constantFrom(...present, '?'),
+            kind: fc.constantFrom('blocks', 'related'),
+          }),
           { selector: ({ from, to }) => `${from}>${to}`, maxLength: 4 },
         ),
         stickerLoadout: fc.array(fc.constantFrom(null, ...STICKER_KINDS), { maxLength: 8 }),
@@ -56,7 +60,9 @@ function docOf(ids: string[]): fc.Arbitrary<Saved> {
         links: links
           .filter(({ from, to }) => from !== to && present.has(from) && present.has(to))
           .map((link): Link => ({ id: `${link.from}>${link.to}`, ...link })),
-        stickers: stickers.filter((sticker) => !sticker.on || present.has(sticker.on)).map((sticker): Sticker => ({ ...sticker, y: 0, tilt: 0 })),
+        stickers: stickers
+          .filter((sticker) => !sticker.on || present.has(sticker.on))
+          .map((sticker): Sticker => ({ ...sticker, y: 0, tilt: 0 })),
         stickerLoadout,
       })
     })
@@ -65,7 +71,12 @@ function docOf(ids: string[]): fc.Arbitrary<Saved> {
 const byId = <T extends { id: string }>(items: T[] = []) => [...items].sort((a, b) => a.id.localeCompare(b.id))
 
 /** Documents compare ignoring the order of cards, links, and stickers. */
-const normalize = (doc: Saved) => ({ ...doc, nodes: byId(doc.nodes), links: byId(doc.links), stickers: byId(doc.stickers) })
+const normalize = (doc: Saved) => ({
+  ...doc,
+  nodes: byId(doc.nodes),
+  links: byId(doc.links),
+  stickers: byId(doc.stickers),
+})
 
 /** Problems that would leave a document the canvas can't show or save as it is. */
 function findProblems(doc: Saved): string[] {
@@ -78,11 +89,13 @@ function findProblems(doc: Saved): string[] {
 
   for (const link of doc.links) if (!ids.has(link.from) || !ids.has(link.to)) problems.push(`dangling link ${link.id}`)
 
-  for (const sticker of doc.stickers ?? []) if (sticker.on && !ids.has(sticker.on)) problems.push(`dangling sticker ${sticker.id}`)
+  for (const sticker of doc.stickers ?? [])
+    if (sticker.on && !ids.has(sticker.on)) problems.push(`dangling sticker ${sticker.id}`)
 
   if (doc.stickerLoadout?.length !== 8) problems.push('loadout is not 8 slots')
 
-  if (!doc.nodes.every((node) => Object.values(node.data).every((value) => typeof value !== 'symbol'))) problems.push('placeholder left in card data')
+  if (!doc.nodes.every((node) => Object.values(node.data).every((value) => typeof value !== 'symbol')))
+    problems.push('placeholder left in card data')
 
   return problems
 }
@@ -166,18 +179,24 @@ describe('history properties', () => {
     const theirs = ['x', 'y', 'z']
 
     fc.assert(
-      fc.property(docOf(ours), docOf(ours), docOf(theirs), docOf(theirs), (oursBefore, oursAfter, theirsBefore, theirsNow) => {
-        const before = join(oursBefore, theirsBefore)
-        const after = join(oursAfter, theirsBefore)
-        const current = join(oursAfter, theirsNow)
-        const undone = undo(record(emptyHistory(), { before, after }), current)!
+      fc.property(
+        docOf(ours),
+        docOf(ours),
+        docOf(theirs),
+        docOf(theirs),
+        (oursBefore, oursAfter, theirsBefore, theirsNow) => {
+          const before = join(oursBefore, theirsBefore)
+          const after = join(oursAfter, theirsBefore)
+          const current = join(oursAfter, theirsNow)
+          const undone = undo(record(emptyHistory(), { before, after }), current)!
 
-        expect(normalize(undone.doc)).toEqual(normalize(join(oursBefore, theirsNow)))
+          expect(normalize(undone.doc)).toEqual(normalize(join(oursBefore, theirsNow)))
 
-        const redone = redo(undone.history, undone.doc)!
+          const redone = redo(undone.history, undone.doc)!
 
-        expect(normalize(redone.doc)).toEqual(normalize(current))
-      }),
+          expect(normalize(redone.doc)).toEqual(normalize(current))
+        },
+      ),
     )
   })
 })
