@@ -147,7 +147,7 @@ test.case("batches follow the backend's limits, asked for once a run", function(
 		sendBatchAsync = send,
 		fetchLimitsAsync = function(endpoint: string, _timeoutSeconds: number): (Limits?, string?)
 			table.insert(askedAt, endpoint)
-			return { maxEvents = 40, maxBytes = 64 * 1024 }
+			return { maxEvents = 40, maxBytes = 64 * 1024 }, nil
 		end,
 	})
 

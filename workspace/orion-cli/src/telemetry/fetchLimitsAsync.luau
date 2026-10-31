@@ -34,7 +34,7 @@ local function fetchLimitsAsync(eventsEndpoint: string, timeoutSeconds: number):
 		return nil, "the backend's config has no batch limits"
 	end
 
-	return { maxEvents = limits.maxEvents, maxBytes = limits.maxBytes }
+	return { maxEvents = limits.maxEvents, maxBytes = limits.maxBytes }, nil
 end
 
 return fetchLimitsAsync

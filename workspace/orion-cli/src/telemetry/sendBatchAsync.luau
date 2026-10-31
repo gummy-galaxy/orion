@@ -46,7 +46,7 @@ local function sendBatchAsync(
 		return false, `the backend answered {response.status}`
 	end
 
-	return true
+	return true, nil
 end
 
 return sendBatchAsync
