@@ -1,6 +1,17 @@
 import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { adoptedPrint, clearFocus, compactDoc, displayedDoc, fetchRemote, fingerprint, reportFocus, storedPrint, type Remote } from './persist'
+import {
+  adoptedPrint,
+  clearFocus,
+  compactDoc,
+  displayedDoc,
+  fetchRemote,
+  fingerprint,
+  reportFocus,
+  storedPrint,
+  watchQuery,
+  type Remote,
+} from './persist'
 import { pushAside } from './pushAside'
 import { skinOf } from './skins'
 
@@ -31,7 +42,12 @@ it('reports the selection with a tab and workspace', () => {
 
   expect(url).toBe('/api/focus')
   expect(options.method).toBe('POST')
-  expect(JSON.parse(options.body)).toEqual({ tab: expect.any(String), canvas: 'planning', open: 'group', selected: ['card'] })
+  expect(JSON.parse(options.body)).toEqual({
+    tab: expect.any(String),
+    canvas: 'planning',
+    open: 'group',
+    selected: ['card'],
+  })
 })
 
 it('sends a closing report for the same workspace', async () => {
@@ -47,6 +63,65 @@ it('sends a closing report for the same workspace', async () => {
   expect(JSON.parse(await (body as Blob).text())).toEqual({ tab: expect.any(String), canvas: 'planning', closed: true })
 })
 
+/** Stands in for the event socket: records what the app sends and lets a test open it and answer. */
+class FakeSocket {
+  static opened: FakeSocket[] = []
+  readonly OPEN = 1
+  readyState = 0
+  sent: unknown[] = []
+  onopen?: () => void
+  onmessage?: (message: { data: string }) => void
+  onclose?: () => void
+  onerror?: () => void
+
+  constructor() {
+    FakeSocket.opened.push(this)
+  }
+
+  send(data: string) {
+    this.sent.push(JSON.parse(data))
+  }
+
+  close() {
+    this.readyState = 3
+    this.onclose?.()
+  }
+
+  open() {
+    this.readyState = this.OPEN
+    this.onopen?.()
+  }
+
+  answer(data: unknown) {
+    this.onmessage?.({ data: JSON.stringify({ type: 'custom', event: 'orion:query', data }) })
+  }
+}
+
+it('keeps a query open over the event socket until it is dropped', () => {
+  FakeSocket.opened = []
+  vi.stubGlobal('WebSocket', FakeSocket)
+  vi.stubGlobal('location', { protocol: 'http:', host: 'localhost' })
+
+  const answers: unknown[] = []
+  const stop = watchQuery({ where: 'kind = "step"', all: true }, (answer) => answers.push(answer))
+  const socket = FakeSocket.opened[0]
+
+  socket.open()
+  const [sent] = socket.sent as { id: string }[]
+
+  expect(sent).toEqual({ type: 'query', id: sent.id, where: 'kind = "step"', all: true })
+
+  socket.answer({ id: 'someone-else', canvas: 'default', revision: 1, total: 0, offset: 0, rows: [] })
+  socket.answer({ id: sent.id, canvas: 'default', revision: 2, total: 0, offset: 0, rows: [] })
+
+  expect(answers).toEqual([{ canvas: 'default', revision: 2, total: 0, offset: 0, rows: [] }])
+
+  stop()
+
+  expect(socket.sent.at(-1)).toEqual({ type: 'unquery', id: sent.id })
+  expect(socket.readyState).toBe(3)
+})
+
 describe('adopting a server document', () => {
   const CLASSIC = { width: TASK_WIDTH, height: TASK_HEIGHT }
   const TRADING = skinOf('trading').size
@@ -56,11 +131,26 @@ describe('adopting a server document', () => {
     "revision": 7,
     "settings": {},
     "nodes": [
-      { "id": "loose", "type": "task", "position": { "y": 40, "x": 900 }, "data": { "status": "todo", "label": "Loose card", "kind": "task", "itemKind": "step" } },
-      { "id": "picture", "type": "image", "position": { "y": 600, "x": 0 }, "width": 200, "height": 150, "data": { "kind": "image", "label": "Picture", "asset": "a", "canvas": "default" } },
-      { "id": "group", "type": "cluster", "position": { "y": 0, "x": 0 }, "width": 280, "height": 182, "data": { "label": "Group", "kind": "cluster" } },
-      { "id": "inside", "type": "task", "parentId": "group", "position": { "y": 78, "x": 32 }, "data": { "kind": "task", "label": "Inside", "itemKind": "step", "status": "active" } },
-      { "id": "aside", "type": "task", "position": { "y": 300, "x": 900 }, "data": { "kind": "task", "label": "a\\nb\\nc\\nd\\ne\\nf", "itemKind": "note", "status": "todo" } }
+      {
+        "id": "loose", "type": "task", "position": { "y": 40, "x": 900 },
+        "data": { "status": "todo", "label": "Loose card", "kind": "task", "itemKind": "step" }
+      },
+      {
+        "id": "picture", "type": "image", "position": { "y": 600, "x": 0 }, "width": 200, "height": 150,
+        "data": { "kind": "image", "label": "Picture", "asset": "a", "canvas": "default" }
+      },
+      {
+        "id": "group", "type": "cluster", "position": { "y": 0, "x": 0 }, "width": 280, "height": 182,
+        "data": { "label": "Group", "kind": "cluster" }
+      },
+      {
+        "id": "inside", "type": "task", "parentId": "group", "position": { "y": 78, "x": 32 },
+        "data": { "kind": "task", "label": "Inside", "itemKind": "step", "status": "active" }
+      },
+      {
+        "id": "aside", "type": "task", "position": { "y": 300, "x": 900 },
+        "data": { "kind": "task", "label": "a\\nb\\nc\\nd\\ne\\nf", "itemKind": "note", "status": "todo" }
+      }
     ],
     "links": [{ "to": "inside", "kind": "blocks", "id": "link", "from": "loose" }]
   }`) as Remote
@@ -94,7 +184,9 @@ describe('adopting a server document', () => {
 
   it('saves positions that moved aside', () => {
     const shown = displayedDoc(serverDoc, TRADING)
-    const nodes = shown.nodes.map((node) => (node.id === 'loose' ? { ...node, position: { x: node.position.x + 400, y: node.position.y } } : node))
+    const nodes = shown.nodes.map((node) =>
+      node.id === 'loose' ? { ...node, position: { x: node.position.x + 400, y: node.position.y } } : node,
+    )
 
     expect(storedPrint({ ...shown, nodes }, TRADING)).not.toBe(adoptedPrint(serverDoc, TRADING))
   })

@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { reconnectLink } from './reconnect'
 import type { Link } from './model'
 
-const blocks = (from: string, to: string, extra: Partial<Link> = {}): Link => ({ id: `${from}>${to}`, from, to, kind: 'blocks', ...extra })
+const blocks = (from: string, to: string, extra: Partial<Link> = {}): Link => ({
+  id: `${from}>${to}`,
+  from,
+  to,
+  kind: 'blocks',
+  ...extra,
+})
 
 describe('reconnect a link', () => {
   it('moves the target end and renames the link after its new pair', () => {

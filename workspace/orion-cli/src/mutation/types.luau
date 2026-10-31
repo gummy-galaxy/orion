@@ -10,4 +10,4 @@ export type Mutation = {
 -- What became of a mutation once its module's spec ran against it.
 export type Outcome = "killed" | "survived" | "timedOut"
 
-return {}
+return nil

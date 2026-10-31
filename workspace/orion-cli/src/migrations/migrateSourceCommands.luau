@@ -87,7 +87,8 @@ local function migrateSourceCommands(root: string, options: Options?): boolean
 		if server then
 			local build = if server.version then ` {server.version}` else ""
 			error(
-				`another Orion{build} is serving {root} (pid {server.pid}); quit it so Orion can move source commands out of canvas files`,
+				`another Orion{build} is serving {root} (pid {server.pid}); `
+					.. `quit it so Orion can move source commands out of canvas files`,
 				0
 			)
 		end

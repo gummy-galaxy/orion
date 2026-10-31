@@ -30,7 +30,13 @@ function ComponentDemo() {
         links={links}
         addLink={(from, to, kind) => setLinks([...links, { id: `${from}>${to}`, from, to, kind }])}
         removeLink={(id) => setLinks(links.filter((link) => link.id !== id))}
-        flipLink={(id) => setLinks(links.map((link) => (link.id === id ? { ...link, kind: link.kind === 'blocks' ? 'related' : 'blocks' } : link)))}
+        flipLink={(id) =>
+          setLinks(
+            links.map((link) =>
+              link.id === id ? { ...link, kind: link.kind === 'blocks' ? 'related' : 'blocks' } : link,
+            ),
+          )
+        }
       />
     </div>
   )

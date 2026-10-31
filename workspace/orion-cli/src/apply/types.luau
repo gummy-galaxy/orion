@@ -27,4 +27,4 @@ export type Operation = {
 	fields: { [string]: string | number }?,
 }
 
-return {}
+return nil

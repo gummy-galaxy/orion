@@ -35,7 +35,7 @@ The API is internal to the app, and the server refuses anything else a browser s
 
 The app is a React Flow canvas. Its state lives in Jotai atoms, and each card reads only the values it shows through its own selector, so an edit redraws the cards it touches and not the whole canvas ([#124](https://github.com/vocksel/orion/pull/124)). The app talks to the server over HTTP and the WebSocket. If the CLI binary is missing, the app falls back to browser storage, so it still opens for development without the CLI.
 
-The app draws cards and groups at sizes and spacing it imports from `workspace/orion-app/src/geometry.ts`, which `lute run geometry` generates from the CLI's `workspace/orion-cli/src/geometry.luau`, so cards the CLI places sit where the app's layout would put them ([#457](https://github.com/vocksel/orion/issues/457)).
+The app draws cards and groups at sizes and spacing it imports from `workspace/orion-app/src/geometry.ts`, which `lute run generate geometry` generates from the CLI's `workspace/orion-cli/src/geometry.luau`, so cards the CLI places sit where the app's layout would put them ([#457](https://github.com/vocksel/orion/issues/457)).
 
 Components have their own stories in Storybook ([#128](https://github.com/vocksel/orion/pull/128)). The perf harness has a story of its own that seeds a generated canvas and drives it. See [performance](/development/engineering/performance).
 
@@ -57,7 +57,7 @@ The MCP server is kept generic. Orion documents how to register `orion mcp start
 
 ## Sources and adapters
 
-GitHub, Jira, and hop feed the canvas through `orion ingest` ([#24](https://github.com/vocksel/orion/pull/24)). Each kind of source is an adapter with two jobs: `createSource` checks the options given to `orion source add`, and `collect` runs the source's command, which this machine keeps in `commands.json` rather than the canvas's files, and returns records. GitHub also has `refresh`, which keeps the pull request cards already on the canvas current ([#155](https://github.com/vocksel/orion/pull/155)). A single `orion ingest` runs both, so there is one command that pulls from outside ([#328](https://github.com/vocksel/orion/pull/328)).
+GitHub, Jira, and hop feed the canvas through `orion ingest` ([#24](https://github.com/vocksel/orion/pull/24)). Each kind of source is an adapter: `createSource` checks the options given to `orion source add`, and its source verbs bring work in. `collectAsync` runs the source's command, which this machine keeps in `commands.json` rather than the canvas's files, and returns records. GitHub also has `refreshAsync`, which keeps the pull request cards already on the canvas current ([#155](https://github.com/vocksel/orion/pull/155)). Agent verbs sit beside the source verbs for adapters that find agent sessions. [Adapters](/development/engineering/adapters) documents the whole contract. A single `orion ingest` runs both, so there is one command that pulls from outside ([#328](https://github.com/vocksel/orion/pull/328)).
 
 Cards point to external work through a list of refs in `data.refs`. Each ref records its source, kind, key, URL, and status, so a card doesn't need a field for each service ([#152](https://github.com/vocksel/orion/pull/152)). The [charter](/development/charter) keeps sources as the source of truth. Orion keeps references and derived state, not a copy that can drift.
 

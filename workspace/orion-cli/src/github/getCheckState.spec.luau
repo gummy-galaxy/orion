@@ -11,7 +11,8 @@ test.case("check state stays pending when a cancelled job sits beside unfinished
 	assert.eq(
 		getCheckState(
 			rollup(
-				[[{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"CANCELLED","count":1},{"state":"QUEUED","count":2},{"state":"SUCCESS","count":3}]}}]]
+				[[{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"CANCELLED","count":1},]]
+					.. [[{"state":"QUEUED","count":2},{"state":"SUCCESS","count":3}]}}]]
 			)
 		),
 		"PENDING"
@@ -22,7 +23,8 @@ test.case("check state fails on a real failure even while others run", function(
 	assert.eq(
 		getCheckState(
 			rollup(
-				[[{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"FAILURE","count":1},{"state":"IN_PROGRESS","count":1}]}}]]
+				[[{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"FAILURE","count":1},]]
+					.. [[{"state":"IN_PROGRESS","count":1}]}}]]
 			)
 		),
 		"FAILURE"
@@ -45,7 +47,8 @@ test.case("check state succeeds when the only other jobs were cancelled or skipp
 	assert.eq(
 		getCheckState(
 			rollup(
-				[[{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"CANCELLED","count":1},{"state":"SKIPPED","count":1},{"state":"SUCCESS","count":4}]}}]]
+				[[{"state":"FAILURE","contexts":{"checkRunCountsByState":[{"state":"CANCELLED","count":1},]]
+					.. [[{"state":"SKIPPED","count":1},{"state":"SUCCESS","count":4}]}}]]
 			)
 		),
 		"SUCCESS"

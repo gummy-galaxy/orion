@@ -110,7 +110,8 @@ local function getUnreadableNode(file: string, text: string): json.Object
 			kind = "task",
 			itemKind = "note",
 			label = `Unreadable {file}`,
-			note = `This file isn't valid JSON, so Orion shows its text here. Fix the file to bring the card back.\n\n\`\`\`\n{text}\n\`\`\``,
+			note = `This file isn't valid JSON, so Orion shows its text here. Fix the file to bring the card back.\n`
+				.. `\n\`\`\`\n{text}\n\`\`\``,
 		}),
 	})
 end

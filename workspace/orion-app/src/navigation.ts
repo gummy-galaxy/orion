@@ -12,7 +12,9 @@ export type Place<Extra = unknown> = {
 export type Trail<Extra = unknown> = { back: Place<Extra>[]; forward: Place<Extra>[] }
 
 export const TRAIL_LIMIT = 50
-/** The desktop shell dispatches this on `window`, with `back` or `forward` as its detail, for the mouse's side buttons. */
+/**
+ * The desktop shell dispatches this on `window`, with `back` or `forward` as its detail, for the mouse's side buttons.
+ */
 export const NAVIGATE_EVENT = 'orion:navigate'
 /** Views closer than this, in screen pixels and zoom, count as the same place. */
 const NEAR_PX = 2
@@ -57,5 +59,8 @@ export function travel<Extra>(
   const rest = ahead.slice(0, index)
   const behind = [...(direction === 'back' ? trail.forward : trail.back), here]
 
-  return { place: ahead[index], trail: direction === 'back' ? { back: rest, forward: behind } : { back: behind, forward: rest } }
+  return {
+    place: ahead[index],
+    trail: direction === 'back' ? { back: rest, forward: behind } : { back: behind, forward: rest },
+  }
 }

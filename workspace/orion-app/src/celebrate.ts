@@ -21,7 +21,9 @@ export const FADE_MS = 180
 /** How long a Done stamp takes to land. `motion.duration.stamp` overrides it. */
 export const STAMP_MS = 360
 
-/** How long the flourish on a chain's last beat runs once its Done stamp lands. `motion.duration.flourish` overrides it. */
+/**
+ * How long the flourish on a chain's last beat runs once its Done stamp lands. `motion.duration.flourish` overrides it.
+ */
 export const FLOURISH_MS = 640
 
 /** The delay before the stamp a number of hops from the click starts clearing, following the chain's beats. */
@@ -38,8 +40,8 @@ export function chainDelay(hops: number, stepMs = CHAIN_STEP_MS): number {
 export type ChainStep = { id: string; hops: number }
 
 /**
- * What `orion serve` answers a chain close with: the cards it closed out, starting with the one clicked, and the finished
- * cards the chain passed through that weren't waiting.
+ * What `orion serve` answers a chain close with: the cards it closed out, starting with the one clicked, and the
+ * finished cards the chain passed through that weren't waiting.
  */
 export type ChainAnswer = { closed: ChainStep[]; passed: ChainStep[] }
 
@@ -87,7 +89,8 @@ export function chainPulses(beats: ReadonlyMap<string, number>, links: Link[], u
     const from = beats.get(link.from)
     const to = beats.get(link.to)
 
-    if (link.kind !== 'blocks' || from === undefined || to === undefined || from === to || Math.max(from, to) > untilMs) continue
+    if (link.kind !== 'blocks' || from === undefined || to === undefined || from === to || Math.max(from, to) > untilMs)
+      continue
 
     pulses.set(link.id, { delayMs: Math.min(from, to), durationMs: Math.abs(to - from), reverse: to < from })
   }

@@ -40,6 +40,7 @@ local serializeCommands = require("@root/cli/serializeCommands")
 local server = require("@root/cli/server")
 local source = require("@root/cli/source")
 local suggestion = require("@root/cli/suggestion")
+local telemetry = require("@root/cli/telemetry")
 local theme = require("@root/cli/theme")
 local types = require("@root/types")
 
@@ -83,6 +84,7 @@ local COMMANDS: { [string]: Command } = {
 	server = server,
 	source = source,
 	suggestion = suggestion,
+	telemetry = telemetry,
 	theme = theme,
 }
 
@@ -106,6 +108,7 @@ local COMMAND_ORDER = {
 	"ci",
 	"theme",
 	"backup",
+	"telemetry",
 	"mcp",
 	"focus",
 	"reveal",
@@ -121,9 +124,11 @@ Repositories are "owner/name".
 Items and groups take an id, or a selector that must match exactly one: label:"text", ref:key or URL, or pr:number.
 Data lives in Orion's user data folder (run orion canvas path to see it); set ORION_DATA_DIR to change it.
 Set ORION_CANVAS to pick a canvas, as --canvas does for a single command.
+Set DO_NOT_TRACK=1 or ORION_TELEMETRY=0 to never send usage data; orion telemetry status shows the choice.
 The Orion app talks to orion server start, which watches the data files.
 Use orion server status [--json] to find the running server.
-While the app is open, orion focus shows its open group and selection, and orion reveal selects items in it and zooms to them.]]
+While the app is open, orion focus shows its open group and selection, and orion reveal selects items
+  in it and zooms to them.]]
 
 local QUERY_HELP = table.concat({
 	`Fields: {table.concat(querySyntax.fieldNames, ", ")}.`,
@@ -131,6 +136,7 @@ local QUERY_HELP = table.concat({
 	'Compare quoted values with = or !=, quoting numbers and booleans too: pr = "86", draft = "true".',
 	`{formatList(querySyntax.textFieldNames)} also support ~ for case-insensitive text.`,
 	"Combine with and, or, not, and parentheses. Missing fields never match.",
+	"--sort takes fields separated by commas, such as status,-pr; a leading - sorts descending.",
 }, "\n")
 
 local function addHelpFlag(parser: cli.Parser)

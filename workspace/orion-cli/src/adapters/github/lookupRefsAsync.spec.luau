@@ -39,7 +39,9 @@ test.case("one query looks up issues and pull requests from one repository", fun
 			return testing.result(
 				true,
 				[[{"data": {
-				"p1": {"issue": {"title": "Import a list of sources", "url": "https://github.com/vocksel/orion/issues/91"}},
+				"p1": {"issue": {
+					"title": "Import a list of sources", "url": "https://github.com/vocksel/orion/issues/91"
+				}},
 				"p2": {"pullRequest": {"title": "Add --ref", "url": "https://github.com/vocksel/orion/pull/251"}}
 			}}]]
 			)
@@ -137,7 +139,8 @@ test.case("looked-up refs carry their repository's id", function(assert)
 			table.insert(queries, argv)
 			return testing.result(
 				true,
-				[[{"data": {"p1": {"databaseId": 1, "pullRequest": {"title": "Add --ref", "url": "https://github.com/gummy-galaxy/orion/pull/251"}}}}]]
+				[[{"data": {"p1": {"databaseId": 1, "pullRequest": {"title": "Add --ref",]]
+					.. [[ "url": "https://github.com/gummy-galaxy/orion/pull/251"}}}}]]
 			)
 		end
 	)
@@ -146,5 +149,3 @@ test.case("looked-up refs carry their repository's id", function(assert)
 	local pull = result.records["pull:vocksel/orion#251"]
 	assert.eq(pull.ref.id, "1#251")
 end)
-
-return {}

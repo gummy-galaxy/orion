@@ -75,7 +75,10 @@ json((SELECT json_group_object(path, json_object(
 local QUERY = [[
 SELECT json_object(
 	'invalid', json((SELECT json_group_array(path) FROM files WHERE NOT isValid)),
-	'fingerprint', (SELECT hex(sha3(group_concat(path || ':' || hash, ','))) FROM (SELECT path, hash FROM files ORDER BY path)),
+	'fingerprint', (
+		SELECT hex(sha3(group_concat(path || ':' || hash, ',')))
+		FROM (SELECT path, hash FROM files ORDER BY path)
+	),
 	'document', json(json_set(
 		json_remove((SELECT text FROM files WHERE path = 'canvas.json' AND isValid), '$.order'),
 		'$.nodes', %s,

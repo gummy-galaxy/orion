@@ -19,7 +19,8 @@ function declaredValues(css: string): Record<string, string> {
   const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, '')
   const values: Record<string, string> = {}
 
-  for (const [, property, value] of withoutComments.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi)) values[property] ??= collapse(value)
+  for (const [, property, value] of withoutComments.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/gi))
+    values[property] ??= collapse(value)
 
   return values
 }
@@ -76,7 +77,10 @@ describe.each(THEMES.map((theme) => theme.id))('theme %s', (themeId) => {
 
 it('declares no custom property that the token list does not name', () => {
   const known = new Set(TOKENS.map((token) => token.cssVar))
-  const sheets = { 'tokens.css': sharedCss, ...Object.fromEntries(THEMES.map((theme) => [`${theme.id}.css`, themeCss[theme.id]])) }
+  const sheets = {
+    'tokens.css': sharedCss,
+    ...Object.fromEntries(THEMES.map((theme) => [`${theme.id}.css`, themeCss[theme.id]])),
+  }
   const unknown = Object.entries(sheets).flatMap(([file, css]) =>
     [...declaredProperties(css)].filter((property) => !known.has(property)).map((property) => `${file}: ${property}`),
   )
@@ -108,11 +112,13 @@ describe('the tokens page in the docs', () => {
 
 it('matches the token contract that the CLI checks theme files against', () => {
   const contract = read('../../orion-cli/src/themes/tokenContract.luau')
-  const entries = [...contract.matchAll(/\["([^"]+)"\] = \{ group = "([^"]+)", cssVar = "([^"]+)" \}/g)].map(([, name, group, cssVar]) => ({
-    name,
-    group,
-    cssVar,
-  }))
+  const entries = [...contract.matchAll(/\["([^"]+)"\] = \{ group = "([^"]+)", cssVar = "([^"]+)" \}/g)].map(
+    ([, name, group, cssVar]) => ({
+      name,
+      group,
+      cssVar,
+    }),
+  )
 
   expect(entries).toEqual(TOKENS.map(({ name, group, cssVar }) => ({ name, group, cssVar })))
 })
