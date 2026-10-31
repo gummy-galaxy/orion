@@ -8,6 +8,7 @@ local backup = require("@root/cli/backup")
 local canvas = require("@root/cli/canvas")
 local card = require("@root/cli/card")
 local ci = require("@root/cli/ci")
+local collectFlagNames = require("@root/telemetry/collectFlagNames")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local definitions = require("@root/cli/definitions")
@@ -32,6 +33,7 @@ local node = require("@root/cli/node")
 local note = require("@root/cli/note")
 local orientation = require("@root/cli/orientation")
 local querySyntax = require("@root/query/querySyntax")
+local queueCommandRan = require("@root/telemetry/queueCommandRan")
 local ref = require("@root/cli/ref")
 local reportFailure = require("@root/cli/reportFailure")
 local resolveArguments = require("@root/aliases/resolveArguments")
@@ -42,6 +44,7 @@ local source = require("@root/cli/source")
 local suggestion = require("@root/cli/suggestion")
 local telemetry = require("@root/cli/telemetry")
 local theme = require("@root/cli/theme")
+local time = require("@std/time")
 local types = require("@root/types")
 
 type Context = context.Context
@@ -58,6 +61,7 @@ type Resolved = {
 	workspace: string?,
 	now: () -> string,
 	exit: (code: number) -> (),
+	onCommand: (command: string, flags: string) -> (),
 }
 
 local SUMMARY = "orion — keep a graph of work up to date from the command line"
@@ -287,20 +291,22 @@ local function helpFor(root: cli.Parser, names: { string }): string?
 	return nil
 end
 
--- Walks the chosen commands from the root down, returning their names and the
--- deepest parser.
-local function selectedPath(root: cli.Parser): ({ string }, cli.Parser)
+-- Walks the chosen commands from the root down, returning their names, the
+-- deepest parser, and every parser on the way.
+local function selectedPath(root: cli.Parser): ({ string }, cli.Parser, { cli.Parser })
 	local names: { string } = {}
+	local parsers = { root }
 	local current = root
 
 	while true do
 		local name, child = current:selected()
 
 		if not (name and child) then
-			return names, current
+			return names, current, parsers
 		end
 
 		table.insert(names, name)
+		table.insert(parsers, child)
 		current = child
 	end
 end
@@ -331,6 +337,7 @@ local function dependencies(options: Dependencies?): Resolved
 		exit = given.exit or function(code: number)
 			process.exit(code)
 		end,
+		onCommand = given.onCommand or function(_command: string, _flags: string) end,
 	}
 end
 
@@ -364,8 +371,12 @@ local function execute(args: { string }, options: Dependencies?)
 	end
 
 	parsers.root:parse(resolved)
-	local names, parser = selectedPath(parsers.root)
+	local names, parser, path = selectedPath(parsers.root)
 	local command = names[1]
+
+	if command then
+		deps.onCommand(table.concat(names, " "), collectFlagNames(path))
+	end
 
 	if parsers.root:has("version") then
 		deps.write(`orion {getVersion()}`)
@@ -439,15 +450,48 @@ local function execute(args: { string }, options: Dependencies?)
 	COMMANDS[command].run(assert(parsers.commands[command], `unknown command: {command}`), commandContext)
 end
 
--- Lute passes the program path as the first argument.
+-- Lute passes the program path as the first argument. Once a command
+-- finishes, however it exits, it's queued as usage telemetry on a machine that
+-- shares it.
 local function run(argv: { string })
 	local args = { table.unpack(argv, 2) }
-	local succeeded, message = pcall(execute, args, nil)
+	local startedAt = time.now()
+	local ran: { command: string, flags: string }? = nil
+
+	local function record(exitCode: number)
+		if ran == nil then
+			return
+		end
+
+		local finished: queueCommandRan.Run = {
+			command = ran.command,
+			flags = ran.flags,
+			durationMs = math.floor(time.since(startedAt) * 1000),
+			exitCode = exitCode,
+		}
+		local options: queueCommandRan.Options = { environment = process.env }
+
+		pcall(queueCommandRan, getDataRoot(), finished, options)
+	end
+
+	local hooks: Dependencies = {
+		onCommand = function(command: string, flags: string)
+			ran = { command = command, flags = flags }
+		end,
+		exit = function(code: number)
+			record(code)
+			process.exit(code)
+		end,
+	}
+	local succeeded, message = pcall(execute, args, hooks)
 
 	if not succeeded then
 		reportFailure(args, message, print, writeStderr)
+		record(1)
 		process.exit(1)
 	end
+
+	record(0)
 end
 
 return table.freeze({

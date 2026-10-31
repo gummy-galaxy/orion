@@ -3,6 +3,7 @@ local json = require("@std/json")
 local handleMessage = require("@root/cli/mcp/server/handleMessage")
 local mcpTypes = require("@root/cli/mcp/types")
 
+type Hooks = mcpTypes.Hooks
 type Run = mcpTypes.Run
 type Tool = mcpTypes.Tool
 
@@ -10,7 +11,14 @@ type Tool = mcpTypes.Tool
 -- stops at end of input. Once isStale says the binary has been replaced, the
 -- pending message gets an error saying so, and the server stops, so the client
 -- starts the new build instead of getting tools from the old one.
-local function serve(read: () -> string, write: (string) -> (), tools: { Tool }, run: Run, isStale: (() -> boolean)?)
+local function serve(
+	read: () -> string,
+	write: (string) -> (),
+	tools: { Tool },
+	run: Run,
+	isStale: (() -> boolean)?,
+	hooks: Hooks?
+)
 	local pending = ""
 
 	while true do
@@ -34,7 +42,7 @@ local function serve(read: () -> string, write: (string) -> (), tools: { Tool },
 
 			if string.find(line, "%S") then
 				local stale = isStale ~= nil and isStale()
-				local response = handleMessage(line, tools, run, stale)
+				local response = handleMessage(line, tools, run, stale, hooks)
 
 				if response then
 					write(json.serialize(response) .. "\n")

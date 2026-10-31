@@ -243,3 +243,41 @@ test.case("an old tool or argument name still calls the tool, and tools/list lea
 	))
 	assert.strContains(firstText(need(json.asObject(both.result))), "folder is now group")
 end)
+
+test.case("hooks hear the client's name and each tool call under its current name", function(assert)
+	local run = runner(testing.directory("mcp-hooks"))
+	local clientName: string? = nil
+	local calls: { { name: string, failed: boolean } } = {}
+	local hooks: mcpTypes.Hooks = {
+		connected = function(name: string?)
+			clientName = name
+		end,
+		toolCalled = function(name: string, durationMs: number, failed: boolean)
+			assert.eq(durationMs >= 0, true)
+			table.insert(calls, { name = name, failed = failed })
+		end,
+	}
+	local params = json.object({ protocolVersion = "2025-06-18", clientInfo = json.object({ name = "claude-code" }) })
+
+	handleMessage(request(1, "initialize", params), TOOLS, run, false, hooks)
+	handleMessage(
+		request(2, "tools/call", json.object({ name = "orion_card_list", arguments = json.object({}) })),
+		TOOLS,
+		run,
+		false,
+		hooks
+	)
+	handleMessage(
+		request(3, "tools/call", json.object({ name = "orion_node_show", arguments = json.object({ id = "missing" }) })),
+		TOOLS,
+		run,
+		false,
+		hooks
+	)
+
+	assert.eq(clientName, "claude-code")
+	assert.eq(#calls, 2)
+	assert.eq(calls[1].name, "orion_card_list")
+	assert.eq(calls[1].failed, false)
+	assert.eq(calls[2].failed, true)
+end)
