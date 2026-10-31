@@ -21,7 +21,7 @@ local function appendTelemetryQueue(root: string, events: { QueuedEvent }): numb
 		return 0
 	end
 
-	local file = tostring(path.join(root, fileNames.telemetryQueue))
+	local file = path.join(root, fileNames.telemetryQueue)
 	local didMeasure, metadata = pcall(fs.metadata, file)
 	local size = if didMeasure then metadata.size else 0
 	local lines = {}

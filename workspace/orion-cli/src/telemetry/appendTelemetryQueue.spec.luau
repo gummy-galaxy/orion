@@ -50,7 +50,7 @@ test.case("a line cut short is skipped and the rest still send", function(assert
 	local root = testing.directory("telemetry-queue-broken")
 	appendTelemetryQueue(root, { event("app_started") })
 
-	local file = tostring(path.join(root, "telemetry-queue.jsonl"))
+	local file = path.join(root, "telemetry-queue.jsonl")
 	fs.writeStringToFile(file, fs.readFileToString(file) .. '{"name":"cli_comm')
 	appendTelemetryQueue(root, { event("mcp_tool_called") })
 

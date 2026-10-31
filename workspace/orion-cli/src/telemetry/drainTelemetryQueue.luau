@@ -8,7 +8,7 @@ local telemetryTypes = require("@root/telemetry/types")
 
 type QueuedEvent = telemetryTypes.QueuedEvent
 
-local function readLines(file: string, events: { QueuedEvent }, now: string)
+local function readLines(file: path.Pathlike, events: { QueuedEvent }, now: string)
 	local didRead, text = pcall(fs.readFileToString, file)
 	pcall(fs.remove, file)
 
@@ -36,8 +36,8 @@ end
 	one cut short, is skipped.
 ]]
 local function drainTelemetryQueue(root: string, now: string): { QueuedEvent }
-	local queue = tostring(path.join(root, fileNames.telemetryQueue))
-	local sending = tostring(path.join(root, fileNames.telemetrySending))
+	local queue = path.join(root, fileNames.telemetryQueue)
+	local sending = path.join(root, fileNames.telemetrySending)
 	local events: { QueuedEvent } = {}
 
 	-- Left behind by a server that stopped mid-send.
