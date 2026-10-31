@@ -1,6 +1,6 @@
 # Aliases
 
-An alias keeps a renamed command or option working under its old name, as a migration in [`../migrations/`](../migrations/README.md) keeps an older data folder working. They share one lifecycle: the code here is permanent, and the entries are pruned.
+An alias keeps a renamed command or option working under its old name, as a migration in [`storage/migrations/`](../../storage/migrations/README.md) keeps an older data folder working. They share one lifecycle: the code here is permanent, and the entries are pruned.
 
 - `resolveArguments.luau` rewrites an old command path or option before the CLI parses it, and the CLI prints a one-line notice to stderr for each rewrite, so `--json` output stays the same. Help doesn't list aliases.
 - `../cli/mcp/catalog/buildTools.luau` gives each MCP tool the old names and argument names its aliases imply, and a `tools/call` with one of them runs the current tool. `tools/list` doesn't show them.
