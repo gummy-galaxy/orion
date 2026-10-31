@@ -1,9 +1,9 @@
 --[[
 	Writes `workspace/orion-app/src/cardTypes/builtinTypes.json` from the card
-	types the CLI ships, so the app draws built-in cards before the server
-	sends its declarations, and its tests have them. Run it after changing
-	`workspace/orion-cli/src/canvas/cardTypes/builtinTypes.luau`, and commit what it
-	writes.
+	types the CLI ships, so the app draws built-in cards before the server sends
+	its declarations, and its tests have them. Run it after changing
+	`workspace/orion-cli/src/canvas/cardTypes/builtinTypes.luau`, and commit
+	what it writes.
 ]]
 local fs = require("@std/fs")
 local json = require("@std/json")
