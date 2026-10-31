@@ -1,4 +1,4 @@
-local findInView = require("@root/graph/findInView")
+local findInView = require("@root/canvas/placement/findInView")
 local types = require("@root/types")
 
 type Doc = types.Doc

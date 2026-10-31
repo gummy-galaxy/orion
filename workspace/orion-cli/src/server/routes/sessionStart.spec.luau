@@ -3,11 +3,11 @@ local json = require("@std/json")
 local net = require("@lute/net/server")
 local test = require("@std/test")
 
-local createWorkspace = require("@root/store/createWorkspace")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
+local createWorkspace = require("@root/storage/canvases/createWorkspace")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
 local sessionStart = require("@root/server/routes/sessionStart")
 local testing = require("@root/testing")
-local writeDoc = require("@root/store/writeDoc")
+local writeDoc = require("@root/storage/canvases/writeDoc")
 
 local function request(method: string, query: { [string]: string }, body: json.Object?): net.ReceivedRequest
 	return {

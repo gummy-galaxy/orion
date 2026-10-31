@@ -1,10 +1,10 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local loadDoc = require("@root/store/loadDoc")
+local loadDoc = require("@root/storage/canvases/loadDoc")
 local queries = require("@root/server/queries")
 local testing = require("@root/testing")
-local writeDoc = require("@root/store/writeDoc")
+local writeDoc = require("@root/storage/canvases/writeDoc")
 
 -- A socket that keeps what the server sent it, decoded.
 local function createSocket()

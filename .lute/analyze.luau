@@ -1,7 +1,7 @@
 local project = require("@repository/project")
 
-local run = require("@cli/run")
-local runScript = require("@cli/runScript")
+local run = require("@cli/common/process/run")
+local runScript = require("@cli/common/process/runScript")
 
 -- The tools run from the CLI's folder, where stylua.toml and the lint rules'
 -- config live.

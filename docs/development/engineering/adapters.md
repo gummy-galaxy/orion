@@ -2,7 +2,7 @@
 
 Everything Orion reads from outside comes through an adapter, one per kind of source, such as `github`, `jira`, or `hop`. An adapter answers two kinds of question. Source verbs bring work in from a service as cards and refs. Agent verbs find an agent tool's sessions and talk to them. An adapter offers either set or both, and Orion calls only the verbs an adapter has, so a new kind of source or a second agent plugs in without a change to the app.
 
-The contract lives in `workspace/orion-cli/src/adapters/types.luau`, and `adapters/getAdapter.luau` registers each adapter by its kind. Every adapter has:
+The contract lives in `workspace/orion-cli/src/sources/types.luau`, and `sources/getAdapter.luau` registers each adapter by its kind. Every adapter has:
 
 - **`kind`**, the word `orion source add <kind>` takes.
 - **`createSource`**, which checks the options given to `orion source add` and returns the source to record, plus the command this machine runs for it when the kind runs a program. The command goes to this machine's `commands.json`, never to the canvas's files.
