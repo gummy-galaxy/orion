@@ -78,7 +78,8 @@ local function matchesExpression(scope: queryTypes.Scope, item: Item, expression
 				local seen: { [string]: boolean } = {}
 				local groupId: string? = item.parentId
 
-				-- A group nested in itself through a broken file stops the walk.
+				-- A group nested in itself through a broken file stops the
+				-- walk.
 				while groupId and not seen[groupId] do
 					if groupId == value or isPathNamed(scope.groupPaths[groupId] or {}, value) then
 						isNamed = true
