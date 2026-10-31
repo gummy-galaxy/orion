@@ -2,11 +2,11 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 local process = require("@std/process")
 
+local chooseTelemetry = require("@root/telemetry/chooseTelemetry")
 local context = require("@root/cli/context")
 local describeStatus = require("@root/telemetry/describeStatus")
 local getStatus = require("@root/telemetry/getStatus")
 local serializeStatus = require("@root/telemetry/serializeStatus")
-local writeConsent = require("@root/telemetry/writeConsent")
 
 type Context = context.Context
 
@@ -16,7 +16,7 @@ return table.freeze({
 	define = function(_parser: cli.Parser) end,
 
 	run = function(_parser: cli.Parser, options: Context)
-		writeConsent(options.root, true)
+		chooseTelemetry(options.root, true, "cli", process.env)
 
 		local status = getStatus(options.root, process.env)
 		options.write(if options.asJson then json.serialize(serializeStatus(status), true) else describeStatus(status))

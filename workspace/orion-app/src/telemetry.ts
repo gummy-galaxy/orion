@@ -39,3 +39,29 @@ export async function chooseTelemetry(enabled: boolean): Promise<TelemetryStatus
 
 /** Whether to ask on launch: nobody has answered, and no override has already answered for them. */
 export const shouldAskTelemetry = (status: TelemetryStatus | null) => status?.choice === 'undecided' && !status.override
+
+/** One usage event from the catalog. Properties hold counts, durations, flags, and Orion's own names, never content. */
+export type TelemetryEvent = {
+  name: string
+  properties?: Record<string, string | number | boolean>
+}
+
+/** Runs from launch to quit, so every event from one session of the app can be read together. */
+export const TELEMETRY_SESSION_ID = crypto.randomUUID()
+
+/**
+ * Hands events to `orion server start`, which queues them only when this machine shares usage data and sends them in
+ * the background. Sending never gets in the way, so a failure is dropped without a word.
+ */
+export async function sendTelemetryEvents(events: TelemetryEvent[]): Promise<void> {
+  if (events.length === 0) return
+
+  const timestamp = new Date().toISOString()
+  const body = JSON.stringify({ events: events.map((event) => ({ ...event, sessionId: TELEMETRY_SESSION_ID, timestamp })) })
+
+  try {
+    await fetch(`${API}/events`, { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true })
+  } catch {
+    // Telemetry is best effort.
+  }
+}
