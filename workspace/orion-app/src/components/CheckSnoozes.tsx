@@ -10,15 +10,25 @@ import { workspaceAtom } from '../state'
 function snoozeLabel(job: SnoozedJob) {
   if (!job.until) return 'snoozed until it passes'
 
-  return `snoozed until ${new Date(job.until).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`
+  const until = new Date(job.until).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' })
+
+  return `snoozed until ${until}`
 }
 
 /**
- * The jobs failing on a card's pull request, each with a checkbox for whether it counts. Unchecking one snoozes that job
- * on every card in the repository, for as long as the length picked above the list. Which jobs are snoozed on this card
- * comes from `orion serve`, with the snooze's end.
+ * The jobs failing on a card's pull request, each with a checkbox for whether it counts. Unchecking one snoozes that
+ * job on every card in the repository, for as long as the length picked above the list. Which jobs are snoozed on this
+ * card comes from `orion serve`, with the snooze's end.
  */
-export function CheckSnoozes({ repo, failures, snoozed }: { repo: string; failures: FailedCheck[]; snoozed: SnoozedJob[] }) {
+export function CheckSnoozes({
+  repo,
+  failures,
+  snoozed,
+}: {
+  repo: string
+  failures: FailedCheck[]
+  snoozed: SnoozedJob[]
+}) {
   const workspace = useAtomValue(workspaceAtom)
   const [length, setLength] = useState<SnoozeLength>('pass')
   // Toggles show at once, until the server answers with a new list of snoozed jobs. They're dropped then, so they

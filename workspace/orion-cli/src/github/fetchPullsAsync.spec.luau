@@ -14,7 +14,13 @@ test.case("fetch batches pull requests into one GraphQL query", function(assert)
 		query = argv[5]
 		return testing.result(
 			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health","url":"u","state":"OPEN","baseRefName":"main","headRefName":"feature/a","isDraft":false,"reviewDecision":"REVIEW_REQUIRED","reviewRequests":{"totalCount":2,"nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"author":{"login":"colleague"},"updatedAt":"2026-10-04T18:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"PENDING"}}}]}}},"p2":{"pullRequest":null}}}]]
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health","url":"u","state":"OPEN",]]
+				.. [["baseRefName":"main","headRefName":"feature/a","isDraft":false,]]
+				.. [["reviewDecision":"REVIEW_REQUIRED","reviewRequests":{"totalCount":2,]]
+				.. [["nodes":[{"requestedReviewer":{"login":"vocksel"}}]},"author":{"login":"colleague"},]]
+				.. [["updatedAt":"2026-10-04T18:00:00Z","additions":120,"deletions":30,]]
+				.. [["commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"PENDING"}}}]}}},]]
+				.. [["p2":{"pullRequest":null}}}]]
 		)
 	end, {
 		{ owner = "flipbook-labs", name = "flipbook", number = 658 },

@@ -16,7 +16,10 @@ local OPTIONS: migrateSourceCommands.Options = { findOtherServer = noServer }
 local JIRA_CANVAS = [[{
 	"version": 2,
 	"settings": { "sources": [
-		{ "id": "jira", "kind": "jira", "command": ["acli", "jira", "workitem", "search"], "browse": "https://jira.example.com/browse" },
+		{
+			"id": "jira", "kind": "jira", "command": ["acli", "jira", "workitem", "search"],
+			"browse": "https://jira.example.com/browse"
+		},
 		{ "id": "gh", "kind": "github", "host": "github.com", "owners": ["vocksel"] }
 	] }
 }]]

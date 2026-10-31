@@ -20,13 +20,23 @@ export function drawViewOf(transform: [number, number, number], width: number, h
   const margin = DRAW_MARGIN_PX / zoom
 
   return {
-    box: { x: -tx / zoom - margin, y: -ty / zoom - margin, width: width / zoom + 2 * margin, height: height / zoom + 2 * margin },
+    box: {
+      x: -tx / zoom - margin,
+      y: -ty / zoom - margin,
+      width: width / zoom + 2 * margin,
+      height: height / zoom + 2 * margin,
+    },
     center: { x: (width / 2 - tx) / zoom, y: (height / 2 - ty) / zoom },
   }
 }
 
 function overlaps(card: Rect, box: Rect): boolean {
-  return card.x < box.x + box.width && card.x + card.width > box.x && card.y < box.y + box.height && card.y + card.height > box.y
+  return (
+    card.x < box.x + box.width &&
+    card.x + card.width > box.x &&
+    card.y < box.y + box.height &&
+    card.y + card.height > box.y
+  )
 }
 
 /**

@@ -52,7 +52,9 @@ export function LinkSection({
                 <button
                   type="button"
                   className="link link-flip"
-                  aria-label={`${link.kind === 'blocks' ? 'Make related' : 'Make blocking'} link to ${cardLabel(other)}`}
+                  aria-label={
+                    `${link.kind === 'blocks' ? 'Make related' : 'Make blocking'} link to ` + cardLabel(other)
+                  }
                   onClick={() => flipLink(link.id)}
                 >
                   {link.kind === 'blocks' ? 'Related' : 'Blocking'}

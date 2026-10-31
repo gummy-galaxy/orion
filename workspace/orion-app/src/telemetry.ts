@@ -30,7 +30,11 @@ export async function readTelemetry(): Promise<TelemetryStatus | null> {
 
 /** Records the person's answer and returns the status it leaves. Rejects when the server doesn't save it. */
 export async function chooseTelemetry(enabled: boolean): Promise<TelemetryStatus> {
-  const response = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ enabled }) })
+  const response = await fetch(API, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  })
 
   if (!response.ok) throw new Error(`telemetry choice failed: ${response.status}`)
 
@@ -57,10 +61,17 @@ export async function sendTelemetryEvents(events: TelemetryEvent[]): Promise<voi
   if (events.length === 0) return
 
   const timestamp = new Date().toISOString()
-  const body = JSON.stringify({ events: events.map((event) => ({ ...event, sessionId: TELEMETRY_SESSION_ID, timestamp })) })
+  const body = JSON.stringify({
+    events: events.map((event) => ({ ...event, sessionId: TELEMETRY_SESSION_ID, timestamp })),
+  })
 
   try {
-    await fetch(`${API}/events`, { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true })
+    await fetch(`${API}/events`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      keepalive: true,
+    })
   } catch {
     // Telemetry is best effort.
   }
