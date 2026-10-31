@@ -5,7 +5,7 @@ Every visible property in the app reads a named token. [`docs/guide/tokens.md`](
 - `tokens.css` sets the values every theme shares.
 - `themes/<id>.css` sets the colors for one theme. A theme can set any token.
 - `tokens.ts` lists every token, its CSS property, and its group.
-- `workspace/orion-cli/src/themes/tokenContract.luau` repeats that list, so `orion theme add` can check files without the app's source.
+- `workspace/orion-cli/src/canvas/appearance/tokenContract.luau` repeats that list, so `orion theme add` can check files without the app's source.
 
 `tokens.test.ts` fails when these disagree: a token missing from a theme, from the docs page, or from the CLI's list, or a default on the docs page that doesn't match the stylesheet.
 
@@ -23,4 +23,4 @@ Never drop a token silently. Removing one is a deliberate change that says so.
 
 ## Checks
 
-Names and values in theme files are checked in `themeFile.ts`, which `themeFile.test.ts` covers. `orion theme add` runs the same checks in `workspace/orion-cli/src/themes/checkThemeFile.luau` and `checkThemeValue.luau`. The app also asks the browser whether it accepts each value, which the CLI can't do. The data folder's `themes` folder is read by `workspace/orion-cli/src/themes/readThemeFiles.luau` and served by `GET /api/themes`, which returns each file's text for the app to check.
+Names and values in theme files are checked in `themeFile.ts`, which `themeFile.test.ts` covers. `orion theme add` runs the same checks in `workspace/orion-cli/src/canvas/appearance/checkThemeFile.luau` and `checkThemeValue.luau`. The app also asks the browser whether it accepts each value, which the CLI can't do. The data folder's `themes` folder is read by `workspace/orion-cli/src/canvas/appearance/readThemeFiles.luau` and served by `GET /api/themes`, which returns each file's text for the app to check.

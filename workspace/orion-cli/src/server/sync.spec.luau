@@ -1,10 +1,10 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local clearFocus = require("@root/store/clearFocus")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local loadDoc = require("@root/store/loadDoc")
-local putFocus = require("@root/store/putFocus")
+local clearFocus = require("@root/storage/focus/clearFocus")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local loadDoc = require("@root/storage/canvases/loadDoc")
+local putFocus = require("@root/storage/focus/putFocus")
 local sync = require("@root/server/sync")
 local testing = require("@root/testing")
 

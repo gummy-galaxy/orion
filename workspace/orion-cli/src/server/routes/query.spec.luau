@@ -4,7 +4,7 @@ local test = require("@std/test")
 
 local routes = require("@root/server/routes")
 local testing = require("@root/testing")
-local writeDoc = require("@root/store/writeDoc")
+local writeDoc = require("@root/storage/canvases/writeDoc")
 
 local function createRequest(method: string, value: json.Object?, canvas: string?): net.ReceivedRequest
 	return {

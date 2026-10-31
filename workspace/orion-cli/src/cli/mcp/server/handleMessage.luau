@@ -3,10 +3,10 @@ local json = require("@std/json")
 local describeTools = require("@root/cli/mcp/catalog/describeTools")
 local findTool = require("@root/cli/mcp/catalog/findTool")
 local getToolArgv = require("@root/cli/mcp/catalog/getToolArgv")
-local getVersion = require("@root/getVersion")
+local getVersion = require("@root/common/getVersion")
 local mcpTypes = require("@root/cli/mcp/types")
 local orientation = require("@root/cli/orientation")
-local serializeFailure = require("@root/cli/serializeFailure")
+local serializeFailure = require("@root/cli/output/serializeFailure")
 
 type Run = mcpTypes.Run
 type Tool = mcpTypes.Tool
