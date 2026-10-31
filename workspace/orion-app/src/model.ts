@@ -239,6 +239,15 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   done: 'Done',
 }
 
+export const ITEM_KIND_LABEL: Record<ItemKind, string> = {
+  pr: 'Pull request',
+  placeholder: 'Placeholder',
+  step: 'Step',
+  gate: 'Gate',
+  note: 'Note',
+  component: 'Component',
+}
+
 /** The statuses a person can record on a card, in the order the inspector lists them. */
 export const STATUS_CHOICES: { value: Status; label: string }[] = [
   { value: 'todo', label: 'To do' },

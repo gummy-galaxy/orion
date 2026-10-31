@@ -659,6 +659,22 @@ The app asks once on launch, and Settings changes the answer. `orion telemetry o
 
 2026-10-28 · [#507](https://github.com/gummy-galaxy/orion/issues/507), [#433](https://github.com/gummy-galaxy/orion/issues/433)
 
+### An event needs a reason from outside
+
+A new usage event joins the catalog only when something outside pushes for it: a decision it would change, a target it measures, such as 80% of new installs reaching a canvas, or a problem seen in real use. Performance on people's machines comes first: frame times, CPU, memory, crashes, and time to interactive. Events carry counts, durations, and Orion's own names, never content.
+
+**Why:** every event lengthens the list people read before they opt in, needs code to emit it, and adds to what PostHog stores. Collecting only what a decision needs keeps that list short enough to read and keeps telemetry within what people agreed to. Screen views were left out on this basis until a specific question needs them.
+
+2026-10-30 · [#624](https://github.com/gummy-galaxy/orion/issues/624), [#692](https://github.com/gummy-galaxy/orion/issues/692), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
+### People can delete what they've shared
+
+Settings and `orion telemetry delete` erase every event sent under the install ID, separately from opting out. Opting out stops sending but keeps the ID, so the data can still be deleted afterward. Deleting forgets the ID, and opting in again starts a new one. Erasure ships before any release that sends events.
+
+**Why:** consent that can be withdrawn should be able to take back what was given too, and data protection law such as GDPR expects that. Keeping deletion apart from opting out means stopping doesn't silently discard data someone was happy to share, and deleting stays possible after they stop.
+
+2026-10-30 · [#691](https://github.com/gummy-galaxy/orion/issues/691), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
 ## Releases
 
 ### Changes arrive with entries, and release notes are built from them
