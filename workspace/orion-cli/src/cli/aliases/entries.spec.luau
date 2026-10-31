@@ -13,7 +13,7 @@ test.case("every shipped alias points at a live name and hides none", function(a
 end)
 
 test.case("every shipped alias has its row in the README", function(assert)
-	local readme = fs.readFileToString(tostring(path.join(project.CLI_PATH, "src", "aliases", "README.md")))
+	local readme = fs.readFileToString(tostring(path.join(project.CLI_PATH, "src", "cli", "aliases", "README.md")))
 
 	for _, alias in entries do
 		local name = if alias.kind == "option" then `--{alias.from}` else `orion {alias.from}`

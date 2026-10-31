@@ -73,7 +73,8 @@ return table.freeze({
 			.. "setFields, link (with an optional label, empty to clear), unlink, insert, move, ungroup, tidy, "
 			.. "remove, removeGroup, and attachRef and detachRef, which take id and ref and change only "
 			.. "Orion's record of a card, never the source. "
-			.. "Use dryRun to preview the plan, the ids each handle gets, and the items, links, and refs it would change.",
+			.. "Use dryRun to preview the plan, the ids each handle gets, "
+			.. "and the items, links, and refs it would change.",
 		annotations = { destructiveHint = true },
 		omit = {
 			{
