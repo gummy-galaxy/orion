@@ -6,7 +6,7 @@ type Status = telemetryTypes.Status
 
 -- The status as `orion telemetry status --json` prints it and the server's
 -- telemetry route returns it.
-local function serializeStatus(status: Status): json.Object
+local function serializeTelemetryStatus(status: Status): json.Object
 	return json.object({
 		choice = status.choice,
 		installId = status.installId,
@@ -15,4 +15,4 @@ local function serializeStatus(status: Status): json.Object
 	})
 end
 
-return serializeStatus
+return serializeTelemetryStatus

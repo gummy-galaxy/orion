@@ -5,7 +5,7 @@ local telemetryTypes = require("@root/telemetry/types")
 type QueuedEvent = telemetryTypes.QueuedEvent
 
 -- One event as the queue stores it and the backend takes it.
-local function serializeQueuedEvent(event: QueuedEvent): json.Object
+local function serializeTelemetryEvent(event: QueuedEvent): json.Object
 	local properties: json.Object = {}
 
 	for key, value in event.properties do
@@ -20,4 +20,4 @@ local function serializeQueuedEvent(event: QueuedEvent): json.Object
 	})
 end
 
-return serializeQueuedEvent
+return serializeTelemetryEvent

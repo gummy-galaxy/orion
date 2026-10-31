@@ -4,7 +4,7 @@ local cli = require("@batteries/cli")
 -- `--name`s sorted and joined with commas, such as `--json,--where`. Only the
 -- names the parser defines are read, so a value or positional argument never
 -- ends up here, even one that looks like a flag.
-local function collectFlagNames(parsers: { cli.Parser }): string
+local function collectTelemetryFlagNames(parsers: { cli.Parser }): string
 	local seen: { [string]: boolean } = {}
 	local names: { string } = {}
 
@@ -27,4 +27,4 @@ local function collectFlagNames(parsers: { cli.Parser }): string
 	return table.concat(names, ",")
 end
 
-return collectFlagNames
+return collectTelemetryFlagNames

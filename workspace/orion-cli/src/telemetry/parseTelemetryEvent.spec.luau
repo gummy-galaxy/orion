@@ -1,13 +1,13 @@
 local json = require("@std/json")
 local test = require("@std/test")
 
-local parseQueuedEvent = require("@root/telemetry/parseQueuedEvent")
+local parseTelemetryEvent = require("@root/telemetry/parseTelemetryEvent")
 
 local NOW = "2026-10-30T12:00:00Z"
 local SESSION_ID = "0b7e3a52-5d43-4c8e-8f0e-6d3e1f2a9c11"
 
 local function parse(text: string)
-	return parseQueuedEvent(json.deserialize(text) :: json.Value, NOW)
+	return parseTelemetryEvent(json.deserialize(text) :: json.Value, NOW)
 end
 
 test.case("an event keeps its session, time, and flat properties", function(assert)
@@ -31,6 +31,11 @@ test.case("an event without a time is stamped with now", function(assert)
 	assert.eq(next(event.properties), nil)
 end)
 
+test.case("a leap day is a real date", function(assert)
+	assert.eq(parse('{"name":"app_started","timestamp":"2028-02-29T00:00:00Z"}').timestamp, "2028-02-29T00:00:00Z")
+	assert.eq(pcall(parse, '{"name":"app_started","timestamp":"2100-02-29T00:00:00Z"}'), false)
+end)
+
 test.case("shapes the backend would refuse a whole batch over are rejected", function(assert)
 	for _, text in
 		{
@@ -38,6 +43,10 @@ test.case("shapes the backend would refuse a whole batch over are rejected", fun
 			'{"name":"App Started"}',
 			'{"name":"app_started","sessionId":"launch-1"}',
 			'{"name":"app_started","timestamp":"yesterday"}',
+			'{"name":"app_started","timestamp":"2026-99-99T99:99:99Z"}',
+			'{"name":"app_started","timestamp":"2026-02-30T12:00:00Z"}',
+			'{"name":"app_started","timestamp":"2026-10-30T24:00:00Z"}',
+			'{"name":"app_started","timestamp":"2026-10-30T12:00:00.Z"}',
 			'{"name":"app_started","properties":[]}',
 			'{"name":"app_started","properties":{"nested":{"a":1}}}',
 		}

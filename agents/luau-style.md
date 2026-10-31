@@ -1,6 +1,8 @@
 # Luau style
 
 - Export one function per module, from a file named after it with a verb first, such as `platform/getDataDir.luau`. Put shared types in a sibling `types.luau` and tests in `<function>.spec.luau` beside it. Constant tables, data lists, and command modules stay tables.
+- Name a function for its domain as well as its action, such as `telemetry/getTelemetryStatus.luau` rather than `telemetry/getStatus.luau`. Callers name the require after the function, so the domain then shows at every call site, not just in the require path.
+- Keep a path as the `Path` that `path.join` returns, and pass it straight to `fs`, whose functions all take a path or a string. Convert it with `tostring` only where a string is required, such as in string interpolation, a JSON field, or a process argument.
 - End a function's name in `Async` when it waits on a `CommandRunner`, either by calling one or by calling a function that does, such as `github/fetchRepositoriesAsync.luau`. The suffix spreads to callers, table fields like an adapter's `collectAsync` included, so a caller can tell which calls might belong in a `task.spawn`. It stops at callbacks whose name a shared shape sets, such as a command's `run`, and skips the quick process probes `isProcessAlive` and `getParentPid`.
 - Keep a helper that only one module uses as a local function there. Once a second module needs it, move it into its own module rather than copying it. Look for an existing helper, such as `getStringField`, before writing one.
 - Keep related requires, type aliases, constants, and short assignments together. Separate those groups and adjacent functions with blank lines.

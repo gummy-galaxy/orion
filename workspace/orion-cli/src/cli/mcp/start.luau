@@ -4,10 +4,11 @@ local process = require("@std/process")
 
 local buildTools = require("@root/cli/mcp/catalog/buildTools")
 local context = require("@root/cli/context")
+local formatTimestamp = require("@root/time/formatTimestamp")
 local getBinaryFingerprint = require("@root/cli/mcp/server/getBinaryFingerprint")
 local mcpTypes = require("@root/cli/mcp/types")
 local queueBehindLock = require("@root/cli/mcp/server/queueBehindLock")
-local queueEvents = require("@root/telemetry/queueEvents")
+local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
 local serve = require("@root/cli/mcp/server/serve")
 
 type Context = context.Context
@@ -60,10 +61,10 @@ return table.freeze({
 					properties.client = clientName
 				end
 
-				queueEvents(options.root, {
+				queueTelemetryEvents(options.root, {
 					{
 						name = "mcp_tool_called",
-						timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string,
+						timestamp = formatTimestamp(),
 						properties = properties,
 					},
 				}, process.env)

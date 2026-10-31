@@ -9,8 +9,8 @@ type Consent = telemetryTypes.Consent
 
 -- The choice saved for this machine. A missing or unreadable file reads as
 -- undecided, so the app asks again rather than guessing.
-local function readConsent(root: string): Consent
-	local file = tostring(path.join(root, fileNames.telemetry))
+local function readTelemetryConsent(root: string): Consent
+	local file = path.join(root, fileNames.telemetry)
 
 	if not fs.exists(file) then
 		return { choice = "undecided" }
@@ -38,4 +38,4 @@ local function readConsent(root: string): Consent
 	return { choice = "undecided" }
 end
 
-return readConsent
+return readTelemetryConsent

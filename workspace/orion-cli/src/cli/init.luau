@@ -8,7 +8,7 @@ local backup = require("@root/cli/backup")
 local canvas = require("@root/cli/canvas")
 local card = require("@root/cli/card")
 local ci = require("@root/cli/ci")
-local collectFlagNames = require("@root/telemetry/collectFlagNames")
+local collectTelemetryFlagNames = require("@root/telemetry/collectTelemetryFlagNames")
 local context = require("@root/cli/context")
 local defaultRun = require("@root/command")
 local definitions = require("@root/cli/definitions")
@@ -16,6 +16,7 @@ local describeCommands = require("@root/cli/describeCommands")
 local focus = require("@root/cli/focus")
 local formatAllHelp = require("@root/cli/formatAllHelp")
 local formatList = require("@root/render/formatList")
+local formatTimestamp = require("@root/time/formatTimestamp")
 local fs = require("@std/fs")
 local getActiveWorkspace = require("@root/store/getActiveWorkspace")
 local getDataRoot = require("@root/store/getDataRoot")
@@ -33,7 +34,7 @@ local node = require("@root/cli/node")
 local note = require("@root/cli/note")
 local orientation = require("@root/cli/orientation")
 local querySyntax = require("@root/query/querySyntax")
-local queueCommandRan = require("@root/telemetry/queueCommandRan")
+local queueTelemetryCommandRan = require("@root/telemetry/queueTelemetryCommandRan")
 local ref = require("@root/cli/ref")
 local reportFailure = require("@root/cli/reportFailure")
 local resolveArguments = require("@root/aliases/resolveArguments")
@@ -333,7 +334,7 @@ local function dependencies(options: Dependencies?): Resolved
 		dataDir = given.dataDir or getDataRoot(),
 		workspace = if given.workspace == nil then process.env.ORION_CANVAS else given.workspace,
 		now = given.now or function()
-			return os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+			return formatTimestamp()
 		end,
 		exit = given.exit or function(code: number)
 			process.exit(code)
@@ -376,7 +377,7 @@ local function execute(args: { string }, options: Dependencies?)
 	local command = names[1]
 
 	if command then
-		deps.onCommand(table.concat(names, " "), collectFlagNames(path))
+		deps.onCommand(table.concat(names, " "), collectTelemetryFlagNames(path))
 	end
 
 	if parsers.root:has("version") then
@@ -464,15 +465,15 @@ local function run(argv: { string })
 			return
 		end
 
-		local finished: queueCommandRan.Run = {
+		local finished: queueTelemetryCommandRan.Run = {
 			command = ran.command,
 			flags = ran.flags,
 			durationMs = math.floor(time.since(startedAt) * 1000),
 			exitCode = exitCode,
 		}
-		local options: queueCommandRan.Options = { environment = process.env }
+		local options: queueTelemetryCommandRan.Options = { environment = process.env }
 
-		pcall(queueCommandRan, getDataRoot(), finished, options)
+		pcall(queueTelemetryCommandRan, getDataRoot(), finished, options)
 	end
 
 	local hooks: Dependencies = {

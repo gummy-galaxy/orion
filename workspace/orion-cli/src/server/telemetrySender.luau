@@ -1,44 +1,59 @@
+local archivist = require("@archivist")
 local task = require("@std/task")
 
-local getBuild = require("@root/telemetry/getBuild")
-local getEndpoint = require("@root/telemetry/getEndpoint")
-local getQuietReason = require("@root/telemetry/getQuietReason")
-local getStatus = require("@root/telemetry/getStatus")
-local sendBatchAsync = require("@root/telemetry/sendBatchAsync")
-local splitBatches = require("@root/telemetry/splitBatches")
-local takeQueue = require("@root/telemetry/takeQueue")
+local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
+local formatTimestamp = require("@root/time/formatTimestamp")
+local getBuild = require("@root/getBuild")
+local getTelemetryConfigAsync = require("@root/telemetry/getTelemetryConfigAsync")
+local getTelemetryEndpoint = require("@root/telemetry/getTelemetryEndpoint")
+local getTelemetryQuietReason = require("@root/telemetry/getTelemetryQuietReason")
+local getTelemetryStatus = require("@root/telemetry/getTelemetryStatus")
+local sendTelemetryBatchAsync = require("@root/telemetry/sendTelemetryBatchAsync")
+local splitTelemetryBatches = require("@root/telemetry/splitTelemetryBatches")
+local telemetryConstants = require("@root/telemetry/constants")
 local telemetryTypes = require("@root/telemetry/types")
+local types = require("@root/types")
 
-type Build = telemetryTypes.Build
+type Build = types.Build
+type TelemetryConfig = telemetryTypes.TelemetryConfig
+
+local logger = archivist.getLogger("orion.telemetry")
 
 local telemetrySender = {}
 
--- How often queued events go out. The backend allows 30 batches a minute per
--- install, far more than this sends.
-telemetrySender.SEND_SECONDS = 60
--- Long enough for a slow network, short enough that a backend that can't be
--- reached doesn't keep a send hanging.
-telemetrySender.TIMEOUT_SECONDS = 5
-
 export type Options = {
 	environment: { [string]: string },
-	-- A server started for the app's dev server, which never sends.
+	-- True when this server was started with a dev port, to serve the app's
+	-- dev server. Like a dev build, it never sends.
 	isDevServer: boolean?,
 	build: Build?,
-	-- Stands in for sending in specs.
-	sendBatchAsync: typeof(sendBatchAsync)?,
+	-- Specs pass these to stand in for the backend.
+	sendTelemetryBatchAsync: typeof(sendTelemetryBatchAsync)?,
+	getTelemetryConfigAsync: typeof(getTelemetryConfigAsync)?,
 }
 
 --[[
-	Sends the queue from `orion server start` in the background. Each send takes
-	the whole queue. When sending isn't allowed, because nobody opted in, an
-	override is set, or this is a dev build, perf run, or CI, the queue is
-	dropped rather than kept for later. A batch that fails is dropped too, with
-	no retry and nothing shown to the person.
+	Events wait in a queue file in the data folder until `orion server start`
+	sends them. This creates the part of the server that does that, every
+	minute in the background.
+
+	Each send empties the whole queue and splits it into batches. Sending can
+	be off for several reasons: nobody opted in, `DO_NOT_TRACK` or
+	`ORION_TELEMETRY=0` is set, or this is a dev build, a perf run, CI, or a
+	server for the app's dev server. Then the queue is deleted rather than kept
+	for later. A batch the backend doesn't accept is dropped too. It isn't
+	retried, and the only sign of it is a warning in the log.
+
+	The backend publishes how big a batch may be. The server asks for those
+	limits before its first send and keeps them for the rest of the run. If the
+	backend can't be reached, the server uses the limits this build shipped
+	with and asks again on the next send.
 ]]
 function telemetrySender.create(root: string, options: Options)
 	local build = options.build or getBuild()
-	local send = options.sendBatchAsync or sendBatchAsync
+	local send = options.sendTelemetryBatchAsync or sendTelemetryBatchAsync
+	local getConfigAsync = options.getTelemetryConfigAsync or getTelemetryConfigAsync
+	local config: TelemetryConfig?
 	local isClosed = false
 	local isFlushing = false
 	local sender = {}
@@ -52,20 +67,46 @@ function telemetrySender.create(root: string, options: Options)
 		isFlushing = true
 
 		local didFlush, accepted = pcall(function(): number
-			local events = takeQueue(root, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
-			local status = getStatus(root, options.environment)
-			local isQuiet = options.isDevServer or getQuietReason(options.environment, build) ~= nil
+			local events = drainTelemetryQueue(root, formatTimestamp())
+			local status = getTelemetryStatus(root, options.environment)
+			local isQuiet = options.isDevServer or getTelemetryQuietReason(options.environment, build) ~= nil
 			local count = 0
 
 			if #events == 0 or not status.enabled or not status.installId or isQuiet then
 				return count
 			end
 
-			local endpoint = getEndpoint(options.environment)
+			if not config then
+				local configEndpoint = getTelemetryEndpoint(options.environment, "config")
+				local fetched, failure = getConfigAsync(configEndpoint, telemetryConstants.TIMEOUT_SECONDS)
 
-			for _, batch in splitBatches(events) do
-				if send(endpoint, status.installId :: string, build, batch, telemetrySender.TIMEOUT_SECONDS) then
+				if not fetched then
+					logger.warn("using built-in batch limits:", failure)
+				end
+
+				config = fetched
+			end
+
+			local limits = if config then config.limits else telemetryConstants.DEFAULT_LIMITS
+			local eventsEndpoint = getTelemetryEndpoint(options.environment, "events")
+
+			for _, batch in splitTelemetryBatches(events, limits) do
+				-- Sending yields, so the person can opt out between batches.
+				-- Read their choice again first, and stop if they turned
+				-- sharing off or it's now a different install.
+				local current = getTelemetryStatus(root, options.environment)
+
+				if not current.enabled or current.installId ~= status.installId then
+					break
+				end
+
+				local isAccepted, failure =
+					send(eventsEndpoint, status.installId :: string, build, batch, telemetryConstants.TIMEOUT_SECONDS)
+
+				if isAccepted then
 					count += #batch
+				else
+					logger.warn("dropped", #batch, "usage events:", failure or "the backend refused them")
 				end
 			end
 
@@ -74,6 +115,10 @@ function telemetrySender.create(root: string, options: Options)
 
 		isFlushing = false
 
+		if not didFlush then
+			logger.warn("could not send usage events:", accepted)
+		end
+
 		return if didFlush then accepted else 0
 	end
 
@@ -81,7 +126,7 @@ function telemetrySender.create(root: string, options: Options)
 		task.spawn(function()
 			while not isClosed do
 				sender.flushAsync()
-				task.wait(telemetrySender.SEND_SECONDS)
+				task.wait(telemetryConstants.SEND_SECONDS)
 			end
 		end)
 	end
