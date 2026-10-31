@@ -67,7 +67,11 @@ test.case("ingest keeps a card whose repository moved, under its new name", func
 		elseif query:find("is:open is:pr", 1, true) then
 			return testing.result(
 				true,
-				'{"data":{"search":{"nodes":[{"number":12,"title":"Fix","url":"https://github.com/gummy-galaxy/orion/pull/12","state":"OPEN","headRefName":"fix","author":{"login":"me"},"repository":{"databaseId":1,"nameWithOwner":"gummy-galaxy/orion","name":"orion","owner":{"login":"gummy-galaxy"}}}],"pageInfo":{"hasNextPage":false}}}}'
+				'{"data":{"search":{"nodes":[{"number":12,"title":"Fix",'
+					.. '"url":"https://github.com/gummy-galaxy/orion/pull/12","state":"OPEN","headRefName":"fix",'
+					.. '"author":{"login":"me"},"repository":{"databaseId":1,'
+					.. '"nameWithOwner":"gummy-galaxy/orion","name":"orion","owner":{"login":"gummy-galaxy"}}}],'
+					.. '"pageInfo":{"hasNextPage":false}}}}'
 			)
 		end
 

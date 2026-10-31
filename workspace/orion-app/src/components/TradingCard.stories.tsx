@@ -28,7 +28,11 @@ function readinessOf(args: TradingArgs): Pick<CardView, 'readiness' | 'readyToMe
   if (args.statusBadge === 'conflict' || args.statusBadge === 'failing') return { readiness: args.statusBadge }
 
   if (args.statusBadge === 'mergeable')
-    return { readiness: 'mergeable', readyToMerge: true, merge: { url: 'https://github.com/vocksel/orion/pull/158', head: 'storybook' } }
+    return {
+      readiness: 'mergeable',
+      readyToMerge: true,
+      merge: { url: 'https://github.com/vocksel/orion/pull/158', head: 'storybook' },
+    }
 
   if (args.motion === 'running') return { readiness: 'running' }
 
@@ -45,7 +49,10 @@ function checksOf(args: TradingArgs): Pick<CardView, 'checkProgress' | 'checkCou
 
   if (args.checksTotal === 0) return { checkProgress }
 
-  return { checkProgress, checkCounts: { total: args.checksTotal, finished: args.checksFinished, failed: args.checksFailed } }
+  return {
+    checkProgress,
+    checkCounts: { total: args.checksTotal, finished: args.checksFinished, failed: args.checksFailed },
+  }
 }
 
 function toView(args: TradingArgs): CardView {
@@ -82,8 +89,8 @@ function TradingFrame({ view, far }: { view: CardView; far: boolean }) {
   const className =
     (view.kind === 'note'
       ? 'card skin-trading note'
-      : `card skin-trading st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}`) +
-    (far ? ' far-card' : '')
+      : `card skin-trading st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}` +
+        `${view.kind === 'gate' ? ' gate' : ''}`) + (far ? ' far-card' : '')
 
   if (far)
     return (
@@ -137,11 +144,18 @@ const meta = {
     motion: { control: 'inline-radio', options: ['none', 'running', 'queued'] },
     checksFinished: { control: { type: 'range', min: 0, max: 20 } },
     checksFailed: { control: { type: 'range', min: 0, max: 20 } },
-    checksTotal: { control: { type: 'range', min: 0, max: 20 }, description: 'Zero hides the count, as for records synced before counts.' },
+    checksTotal: {
+      control: { type: 'range', min: 0, max: 20 },
+      description: 'Zero hides the count, as for records synced before counts.',
+    },
     blockers: { control: { type: 'range', min: 0, max: 9 } },
     unblocks: { control: { type: 'range', min: 0, max: 9 } },
     far: { control: 'boolean', description: 'The compact form the canvas shows when zoomed far out.' },
-    group: { control: 'select', options: ['pr-queue', 'navigation', 'workspaces', 'backlog', 'release'], description: 'Picks the art palette.' },
+    group: {
+      control: 'select',
+      options: ['pr-queue', 'navigation', 'workspaces', 'backlog', 'release'],
+      description: 'Picks the art palette.',
+    },
   },
 } satisfies Meta<TradingArgs>
 
@@ -198,7 +212,12 @@ export const ChangesRequested: Story = {
 }
 
 export const Stale: Story = {
-  args: { title: 'Pan with touchpad and hide shortcuts by default', statusBadge: 'stale', unblocks: 0, group: 'navigation' },
+  args: {
+    title: 'Pan with touchpad and hide shortcuts by default',
+    statusBadge: 'stale',
+    unblocks: 0,
+    group: 'navigation',
+  },
 }
 
 export const CalmIssue: Story = {
@@ -256,11 +275,22 @@ export const FarZoom: Story = {
 }
 
 export const FarZoomRunning: Story = {
-  args: { far: true, title: "Show a card's far-zoom tag only while hovered or selected", statusBadge: 'none', motion: 'running', unblocks: 0 },
+  args: {
+    far: true,
+    title: "Show a card's far-zoom tag only while hovered or selected",
+    statusBadge: 'none',
+    motion: 'running',
+    unblocks: 0,
+  },
 }
 
 export const Done: Story = {
-  args: { title: 'Add a card skin registry with Classic and Plain skins', status: 'done', statusBadge: 'none', unblocks: 0 },
+  args: {
+    title: 'Add a card skin registry with Classic and Plain skins',
+    status: 'done',
+    statusBadge: 'none',
+    unblocks: 0,
+  },
 }
 
 export const Note: Story = {

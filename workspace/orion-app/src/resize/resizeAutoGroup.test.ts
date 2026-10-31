@@ -16,10 +16,15 @@ const CLI_GAP = 48
 
 /** An automatic group at (100, 100) holding six unlinked cards in a row, `gap` apart. */
 const canvas = (gap = COMPONENT_GAP) =>
-  normalize([cluster('g', undefined, 100, 100), ...Array.from({ length: 6 }, (_, i) => task(`t${i}`, 'g', 32 + i * (TASK_WIDTH + gap), 78))])
+  normalize([
+    cluster('g', undefined, 100, 100),
+    ...Array.from({ length: 6 }, (_, i) => task(`t${i}`, 'g', 32 + i * (TASK_WIDTH + gap), 78)),
+  ])
 
-const columns = (nodes: AppNode[]) => new Set(nodes.filter((node) => node.parentId === 'g').map((node) => node.position.x)).size
-const rows = (nodes: AppNode[]) => new Set(nodes.filter((node) => node.parentId === 'g').map((node) => node.position.y)).size
+const columns = (nodes: AppNode[]) =>
+  new Set(nodes.filter((node) => node.parentId === 'g').map((node) => node.position.x)).size
+const rows = (nodes: AppNode[]) =>
+  new Set(nodes.filter((node) => node.parentId === 'g').map((node) => node.position.y)).size
 
 const widthFor = (count: number) => count * TASK_WIDTH + (count - 1) * COMPONENT_GAP + GROUP_PADDING * 2
 
@@ -31,7 +36,10 @@ test('reflows to the width a side edge asks for, and hugs the result', async () 
 
   expect(columns(after)).toBe(3)
   expect(boxOf(after, 'g')).toMatchObject({ x: 100, y: 100, width: widthFor(3) })
-  expect((byId(after).get('g')!.data as ClusterData).size).toEqual({ width: widthFor(3), height: boxOf(after, 'g').height })
+  expect((byId(after).get('g')!.data as ClusterData).size).toEqual({
+    width: widthFor(3),
+    height: boxOf(after, 'g').height,
+  })
 })
 
 test('holds the right edge while the left edge moves', async () => {
@@ -70,6 +78,10 @@ test('keeps the spacing of a group the CLI placed until its cards rearrange', as
   const plan = (await planReflow(before, [], 'g', size))!
 
   expect(resizeAutoGroup(before, plan, 'g', start, start, { right: true }, size)).toBe(before)
-  expect(resizeAutoGroup(before, plan, 'g', start, { ...start, width: start.width - 40 }, { right: true }, size)).toBe(before)
-  expect(columns(resizeAutoGroup(before, plan, 'g', start, { ...start, width: widthFor(5) }, { right: true }, size))).toBe(5)
+  expect(resizeAutoGroup(before, plan, 'g', start, { ...start, width: start.width - 40 }, { right: true }, size)).toBe(
+    before,
+  )
+  expect(
+    columns(resizeAutoGroup(before, plan, 'g', start, { ...start, width: widthFor(5) }, { right: true }, size)),
+  ).toBe(5)
 })

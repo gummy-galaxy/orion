@@ -4,7 +4,15 @@ import { useMemo } from 'react'
 import { getCardView } from './cardView'
 import { readAppearance } from './appearance'
 import type { Pulse } from './celebrate'
-import { buildWork, toServerFacts, traceFrom, type AttentionMark, type Derived, type GroupStats, type SourceRef } from './derive'
+import {
+  buildWork,
+  toServerFacts,
+  traceFrom,
+  type AttentionMark,
+  type Derived,
+  type GroupStats,
+  type SourceRef,
+} from './derive'
 import { indexNodes } from './hierarchy/indexNodes'
 import { isImage, isTask, tintOf, type AppNode, type Link, type TaskNode, type Tint, type ViewStatus } from './model'
 import { sameFoldPreview, type FoldPreviewItem } from './foldPreview'
@@ -33,14 +41,18 @@ export const resizeHandlesAtom = atom<string | null>(null)
 export const celebratingAtom = atom<Map<string, number>>(new Map<string, number>())
 /** Links a chain closing out pulses along, each with when its pulse leaves and how long it takes to arrive. */
 export const chainPulsesAtom = atom<Map<string, Pulse>>(new Map<string, Pulse>())
-/** Cards on the last beat of a chain closing out, which close it with a flourish, each with the delay before it starts. */
+/**
+ * Cards on the last beat of a chain closing out, which close it with a flourish, each with the delay before it starts.
+ */
 export const chainFinaleAtom = atom<Map<string, number>>(new Map<string, number>())
 
 /** The graph facts `orion serve` derived for the open document. Null until the server answers, or with no server. */
 export const derivedAtom = atom<Derived | null>(null)
 const serverFactsAtom = atom((get) => toServerFacts(get(derivedAtom)))
 
-export const workAtom = atom((get) => buildWork(get(serverFactsAtom), get(nodesAtom), get(linksAtom), get(nodeIndexAtom)))
+export const workAtom = atom((get) =>
+  buildWork(get(serverFactsAtom), get(nodesAtom), get(linksAtom), get(nodeIndexAtom)),
+)
 
 /** Each group's and component's tint, its own or its nearest group's. */
 export const tintsAtom = atom((get) => {
@@ -94,23 +106,30 @@ const sameStats = (a: GroupStats, b: GroupStats) =>
   a.total === b.total && a.done === b.done && a.ready === b.ready && a.blocked === b.blocked && a.outside === b.outside
 
 const sameSources = (a: SourceRef[], b: SourceRef[]) =>
-  a.length === b.length && a.every((source, i) => source.domain === b[i].domain && source.label === b[i].label && source.href === b[i].href)
+  a.length === b.length &&
+  a.every((source, i) => source.domain === b[i].domain && source.label === b[i].label && source.href === b[i].href)
 
 // Each hook below reads one card's part, so a card redraws only when its own part changes.
 
-export const useStatus = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.status.get(id) ?? 'ready'), [id]))
+export const useStatus = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.status.get(id) ?? 'ready'), [id]))
 
-export const useLeverage = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.leverage.get(id) ?? 0), [id]))
+export const useLeverage = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.leverage.get(id) ?? 0), [id]))
 
 /** The card's pull request facts with its snoozed CI jobs left out, or undefined when no snooze leaves one out. */
-export const useSnoozedFacts = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.pulls.get(id)), [id]))
+export const useSnoozedFacts = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.pulls.get(id)), [id]))
 
 /** When a snooze ends for this card, or undefined when it isn't snoozed. */
-export const useSnoozed = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.snoozed.get(id)), [id]))
+export const useSnoozed = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.snoozed.get(id)), [id]))
 
-export const useUpstream = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.upstream.get(id) ?? 0), [id]))
+export const useUpstream = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.upstream.get(id) ?? 0), [id]))
 
-export const useRarity = (id: string) => useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.rarity.get(id)), [id]))
+export const useRarity = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.rarity.get(id)), [id]))
 
 export const useGroupStats = (id: string) =>
   useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.groups.get(id) ?? NO_STATS, sameStats), [id]))
@@ -118,7 +137,8 @@ export const useGroupStats = (id: string) =>
 export const useSources = (id: string) =>
   useAtomValue(useMemo(() => selectAtom(workAtom, (work) => work.sources.get(id) ?? NO_SOURCES, sameSources), [id]))
 
-const countOpen = (ids: string[] | undefined, status: Map<string, ViewStatus>) => (ids ?? []).filter((other) => status.get(other) !== 'done').length
+const countOpen = (ids: string[] | undefined, status: Map<string, ViewStatus>) =>
+  (ids ?? []).filter((other) => status.get(other) !== 'done').length
 
 export const useBlockers = (id: string) =>
   useAtomValue(useMemo(() => selectAtom(workAtom, (work) => countOpen(work.preds.get(id), work.status)), [id]))
@@ -160,26 +180,35 @@ export const useTraceRole = (id: string) =>
     ),
   )
 
-export const useCelebrating = (id: string) => useAtomValue(useMemo(() => selectAtom(celebratingAtom, (clearing) => clearing.get(id)), [id]))
+export const useCelebrating = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(celebratingAtom, (clearing) => clearing.get(id)), [id]))
 
-export const useChainPulse = (id: string) => useAtomValue(useMemo(() => selectAtom(chainPulsesAtom, (pulses) => pulses.get(id)), [id]))
+export const useChainPulse = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(chainPulsesAtom, (pulses) => pulses.get(id)), [id]))
 
-export const useChainFinale = (id: string) => useAtomValue(useMemo(() => selectAtom(chainFinaleAtom, (finale) => finale.get(id)), [id]))
+export const useChainFinale = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(chainFinaleAtom, (finale) => finale.get(id)), [id]))
 
-export const useMarked = (id: string) => useAtomValue(useMemo(() => selectAtom(attentionAtom, (attention) => !!attention?.has(id)), [id]))
+export const useMarked = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(attentionAtom, (attention) => !!attention?.has(id)), [id]))
 
-export const useIsDropTarget = (id: string) => useAtomValue(useMemo(() => selectAtom(dropTargetAtom, (target) => target === id), [id]))
+export const useIsDropTarget = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(dropTargetAtom, (target) => target === id), [id]))
 
-export const useShowsResizeHandles = (id: string) => useAtomValue(useMemo(() => selectAtom(resizeHandlesAtom, (shown) => shown === id), [id]))
+export const useShowsResizeHandles = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(resizeHandlesAtom, (shown) => shown === id), [id]))
 
-export const useCollapsed = (id: string) => useAtomValue(useMemo(() => selectAtom(collapsedAtom, (collapsed) => collapsed.has(id)), [id]))
+export const useCollapsed = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(collapsedAtom, (collapsed) => collapsed.has(id)), [id]))
 
-export const useTint = (id: string) => useAtomValue(useMemo(() => selectAtom(tintsAtom, (tints) => tints.get(id)), [id]))
+export const useTint = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(tintsAtom, (tints) => tints.get(id)), [id]))
 
 const NO_PARTS: string[] = []
 
 /** Whether a group holds nothing at all, not even notes, components, or images. */
-export const useIsEmptyGroup = (id: string) => useAtomValue(useMemo(() => selectAtom(nodeIndexAtom, (index) => !index.children.has(id)), [id]))
+export const useIsEmptyGroup = (id: string) =>
+  useAtomValue(useMemo(() => selectAtom(nodeIndexAtom, (index) => !index.children.has(id)), [id]))
 
 /** The names of what's directly inside a group, in reading order, for a folded group that holds no work to list. */
 export const useGroupParts = (id: string) =>

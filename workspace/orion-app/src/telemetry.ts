@@ -30,7 +30,11 @@ export async function readTelemetry(): Promise<TelemetryStatus | null> {
 
 /** Records the person's answer and returns the status it leaves. Rejects when the server doesn't save it. */
 export async function chooseTelemetry(enabled: boolean): Promise<TelemetryStatus> {
-  const response = await fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ enabled }) })
+  const response = await fetch(API, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ enabled }),
+  })
 
   if (!response.ok) throw new Error(`telemetry choice failed: ${response.status}`)
 

@@ -32,7 +32,12 @@ export function WindowControls() {
 
   return (
     <div className="window-controls" role="group" aria-label="Window">
-      <button type="button" title="Minimize" aria-label="Minimize" onClick={() => void loadWindow().then((appWindow) => appWindow.minimize())}>
+      <button
+        type="button"
+        title="Minimize"
+        aria-label="Minimize"
+        onClick={() => void loadWindow().then((appWindow) => appWindow.minimize())}
+      >
         <svg viewBox="0 0 10 10" width="10" height="10" aria-hidden="true">
           <path d="M0 5h10" />
         </svg>

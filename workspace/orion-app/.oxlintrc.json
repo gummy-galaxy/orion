@@ -5,6 +5,7 @@
   "rules": {
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }],
+    "@stylistic/max-len": ["error", { "code": 120, "tabWidth": 2 }],
     "@stylistic/padding-line-between-statements": [
       "error",
       { "blankLine": "always", "prev": "*", "next": "return" },
@@ -13,5 +14,11 @@
       { "blankLine": "always", "prev": "*", "next": ["block-like", "if", "for", "while", "switch", "try"] },
       { "blankLine": "always", "prev": ["block-like", "if", "for", "while", "switch", "try"], "next": "*" }
     ]
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/geometry.ts"],
+      "rules": { "@stylistic/max-len": "off" }
+    }
+  ]
 }
