@@ -53,7 +53,6 @@
       "data": {
         "kind": "task",
         "label": "Card 1",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -326,7 +325,6 @@
       "data": {
         "kind": "task",
         "label": "Card 2",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -341,7 +339,6 @@
       "data": {
         "kind": "task",
         "label": "Card 3",
-        "itemKind": "step",
         "status": "done"
       }
     },
@@ -356,7 +353,6 @@
       "data": {
         "kind": "task",
         "label": "Card 4",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -371,7 +367,6 @@
       "data": {
         "kind": "task",
         "label": "Card 5",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -386,7 +381,6 @@
       "data": {
         "kind": "task",
         "label": "Card 6",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -401,7 +395,6 @@
       "data": {
         "kind": "task",
         "label": "Card 7",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -416,7 +409,6 @@
       "data": {
         "kind": "task",
         "label": "Card 8",
-        "itemKind": "pr",
         "status": "active"
       }
     },
@@ -431,7 +423,6 @@
       "data": {
         "kind": "task",
         "label": "Card 9",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -446,7 +437,6 @@
       "data": {
         "kind": "task",
         "label": "Card 10",
-        "itemKind": "placeholder",
         "status": "done"
       }
     },
@@ -461,7 +451,6 @@
       "data": {
         "kind": "task",
         "label": "Card 11",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -476,7 +465,6 @@
       "data": {
         "kind": "task",
         "label": "Card 12",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -491,7 +479,6 @@
       "data": {
         "kind": "task",
         "label": "Card 13",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -506,7 +493,6 @@
       "data": {
         "kind": "task",
         "label": "Card 14",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -521,7 +507,6 @@
       "data": {
         "kind": "task",
         "label": "Card 15",
-        "itemKind": "placeholder",
         "status": "done"
       }
     },
@@ -536,7 +521,6 @@
       "data": {
         "kind": "task",
         "label": "Card 16",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -551,7 +535,6 @@
       "data": {
         "kind": "task",
         "label": "Card 17",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -566,7 +549,6 @@
       "data": {
         "kind": "task",
         "label": "Card 18",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -581,7 +563,6 @@
       "data": {
         "kind": "task",
         "label": "Card 19",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -596,7 +577,6 @@
       "data": {
         "kind": "task",
         "label": "Card 20",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -611,7 +591,6 @@
       "data": {
         "kind": "task",
         "label": "Card 21",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -626,7 +605,6 @@
       "data": {
         "kind": "task",
         "label": "Card 22",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -641,7 +619,6 @@
       "data": {
         "kind": "task",
         "label": "Card 23",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -656,7 +633,6 @@
       "data": {
         "kind": "task",
         "label": "Card 24",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -671,7 +647,6 @@
       "data": {
         "kind": "task",
         "label": "Card 25",
-        "itemKind": "placeholder",
         "status": "done"
       }
     },
@@ -686,7 +661,6 @@
       "data": {
         "kind": "task",
         "label": "Card 26",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -701,7 +675,6 @@
       "data": {
         "kind": "task",
         "label": "Card 27",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -716,7 +689,6 @@
       "data": {
         "kind": "task",
         "label": "Card 28",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -731,7 +703,6 @@
       "data": {
         "kind": "task",
         "label": "Card 29",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -746,7 +717,6 @@
       "data": {
         "kind": "task",
         "label": "Card 30",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -763,7 +733,7 @@
       "data": {
         "kind": "task",
         "label": "Card 31",
-        "itemKind": "note",
+        "type": "note",
         "status": "todo"
       }
     },
@@ -778,7 +748,6 @@
       "data": {
         "kind": "task",
         "label": "Card 32",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -793,7 +762,6 @@
       "data": {
         "kind": "task",
         "label": "Card 33",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -808,7 +776,6 @@
       "data": {
         "kind": "task",
         "label": "Card 34",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -823,7 +790,6 @@
       "data": {
         "kind": "task",
         "label": "Card 35",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -838,7 +804,6 @@
       "data": {
         "kind": "task",
         "label": "Card 36",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -853,7 +818,6 @@
       "data": {
         "kind": "task",
         "label": "Card 37",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -868,7 +832,6 @@
       "data": {
         "kind": "task",
         "label": "Card 38",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -883,7 +846,6 @@
       "data": {
         "kind": "task",
         "label": "Card 39",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -898,7 +860,6 @@
       "data": {
         "kind": "task",
         "label": "Card 40",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -913,7 +874,6 @@
       "data": {
         "kind": "task",
         "label": "Card 41",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -928,7 +888,6 @@
       "data": {
         "kind": "task",
         "label": "Card 42",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -943,7 +902,6 @@
       "data": {
         "kind": "task",
         "label": "Card 43",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -958,7 +916,6 @@
       "data": {
         "kind": "task",
         "label": "Card 44",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -973,7 +930,6 @@
       "data": {
         "kind": "task",
         "label": "Card 45",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -988,7 +944,6 @@
       "data": {
         "kind": "task",
         "label": "Card 46",
-        "itemKind": "placeholder",
         "status": "done"
       }
     },
@@ -1003,7 +958,6 @@
       "data": {
         "kind": "task",
         "label": "Card 47",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1018,7 +972,6 @@
       "data": {
         "kind": "task",
         "label": "Card 48",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1033,7 +986,6 @@
       "data": {
         "kind": "task",
         "label": "Card 49",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1048,7 +1000,6 @@
       "data": {
         "kind": "task",
         "label": "Card 50",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1063,7 +1014,6 @@
       "data": {
         "kind": "task",
         "label": "Card 51",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1078,7 +1028,6 @@
       "data": {
         "kind": "task",
         "label": "Card 52",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1093,7 +1042,6 @@
       "data": {
         "kind": "task",
         "label": "Card 53",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1108,7 +1056,6 @@
       "data": {
         "kind": "task",
         "label": "Card 54",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1123,7 +1070,6 @@
       "data": {
         "kind": "task",
         "label": "Card 55",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1138,7 +1084,6 @@
       "data": {
         "kind": "task",
         "label": "Card 56",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -1153,7 +1098,6 @@
       "data": {
         "kind": "task",
         "label": "Card 57",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1168,7 +1112,6 @@
       "data": {
         "kind": "task",
         "label": "Card 58",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1183,7 +1126,6 @@
       "data": {
         "kind": "task",
         "label": "Card 59",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1198,7 +1140,6 @@
       "data": {
         "kind": "task",
         "label": "Card 60",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1213,7 +1154,6 @@
       "data": {
         "kind": "task",
         "label": "Card 61",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1228,7 +1168,6 @@
       "data": {
         "kind": "task",
         "label": "Card 62",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1243,7 +1182,6 @@
       "data": {
         "kind": "task",
         "label": "Card 63",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1260,7 +1198,7 @@
       "data": {
         "kind": "task",
         "label": "Card 64",
-        "itemKind": "note",
+        "type": "note",
         "status": "todo"
       }
     },
@@ -1275,7 +1213,6 @@
       "data": {
         "kind": "task",
         "label": "Card 65",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1290,7 +1227,6 @@
       "data": {
         "kind": "task",
         "label": "Card 66",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1305,7 +1241,6 @@
       "data": {
         "kind": "task",
         "label": "Card 67",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1320,7 +1255,6 @@
       "data": {
         "kind": "task",
         "label": "Card 68",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1335,7 +1269,6 @@
       "data": {
         "kind": "task",
         "label": "Card 69",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1350,7 +1283,6 @@
       "data": {
         "kind": "task",
         "label": "Card 70",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1365,7 +1297,6 @@
       "data": {
         "kind": "task",
         "label": "Card 71",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1380,7 +1311,6 @@
       "data": {
         "kind": "task",
         "label": "Card 72",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1395,7 +1325,6 @@
       "data": {
         "kind": "task",
         "label": "Card 73",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1410,7 +1339,6 @@
       "data": {
         "kind": "task",
         "label": "Card 74",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1425,7 +1353,7 @@
       "data": {
         "kind": "task",
         "label": "Card 75",
-        "itemKind": "gate",
+        "type": "gate",
         "status": "todo"
       }
     },
@@ -1440,7 +1368,6 @@
       "data": {
         "kind": "task",
         "label": "Card 76",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1455,7 +1382,6 @@
       "data": {
         "kind": "task",
         "label": "Card 77",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1470,7 +1396,6 @@
       "data": {
         "kind": "task",
         "label": "Card 78",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1500,7 +1425,6 @@
       "data": {
         "kind": "task",
         "label": "Card 79",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1515,7 +1439,6 @@
       "data": {
         "kind": "task",
         "label": "Card 80",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1530,7 +1453,6 @@
       "data": {
         "kind": "task",
         "label": "Card 81",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1545,7 +1467,6 @@
       "data": {
         "kind": "task",
         "label": "Card 82",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1560,7 +1481,6 @@
       "data": {
         "kind": "task",
         "label": "Card 83",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1575,7 +1495,6 @@
       "data": {
         "kind": "task",
         "label": "Card 84",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1590,7 +1509,6 @@
       "data": {
         "kind": "task",
         "label": "Card 85",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1605,7 +1523,6 @@
       "data": {
         "kind": "task",
         "label": "Card 86",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1620,7 +1537,6 @@
       "data": {
         "kind": "task",
         "label": "Card 87",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1635,7 +1551,6 @@
       "data": {
         "kind": "task",
         "label": "Card 88",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1650,7 +1565,6 @@
       "data": {
         "kind": "task",
         "label": "Card 89",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1665,7 +1579,6 @@
       "data": {
         "kind": "task",
         "label": "Card 90",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1680,7 +1593,6 @@
       "data": {
         "kind": "task",
         "label": "Card 91",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1695,7 +1607,6 @@
       "data": {
         "kind": "task",
         "label": "Card 92",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1710,7 +1621,6 @@
       "data": {
         "kind": "task",
         "label": "Card 93",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1725,7 +1635,6 @@
       "data": {
         "kind": "task",
         "label": "Card 94",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1740,7 +1649,6 @@
       "data": {
         "kind": "task",
         "label": "Card 95",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1755,7 +1663,6 @@
       "data": {
         "kind": "task",
         "label": "Card 96",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1770,7 +1677,6 @@
       "data": {
         "kind": "task",
         "label": "Card 97",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1785,7 +1691,6 @@
       "data": {
         "kind": "task",
         "label": "Card 98",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1800,7 +1705,6 @@
       "data": {
         "kind": "task",
         "label": "Card 99",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1815,7 +1719,6 @@
       "data": {
         "kind": "task",
         "label": "Card 100",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1830,7 +1733,6 @@
       "data": {
         "kind": "task",
         "label": "Card 101",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1845,7 +1747,6 @@
       "data": {
         "kind": "task",
         "label": "Card 102",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1860,7 +1761,6 @@
       "data": {
         "kind": "task",
         "label": "Card 103",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1875,7 +1775,6 @@
       "data": {
         "kind": "task",
         "label": "Card 104",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1890,7 +1789,6 @@
       "data": {
         "kind": "task",
         "label": "Card 105",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1905,7 +1803,6 @@
       "data": {
         "kind": "task",
         "label": "Card 106",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1920,7 +1817,6 @@
       "data": {
         "kind": "task",
         "label": "Card 107",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1935,7 +1831,6 @@
       "data": {
         "kind": "task",
         "label": "Card 108",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1950,7 +1845,6 @@
       "data": {
         "kind": "task",
         "label": "Card 109",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -1965,7 +1859,6 @@
       "data": {
         "kind": "task",
         "label": "Card 110",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1980,7 +1873,6 @@
       "data": {
         "kind": "task",
         "label": "Card 111",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -1995,7 +1887,6 @@
       "data": {
         "kind": "task",
         "label": "Card 112",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2010,7 +1901,6 @@
       "data": {
         "kind": "task",
         "label": "Card 113",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2025,7 +1915,6 @@
       "data": {
         "kind": "task",
         "label": "Card 114",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2040,7 +1929,6 @@
       "data": {
         "kind": "task",
         "label": "Card 115",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2055,7 +1943,6 @@
       "data": {
         "kind": "task",
         "label": "Card 116",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2070,7 +1957,6 @@
       "data": {
         "kind": "task",
         "label": "Card 117",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2085,7 +1971,6 @@
       "data": {
         "kind": "task",
         "label": "Card 118",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2100,7 +1985,6 @@
       "data": {
         "kind": "task",
         "label": "Card 119",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2115,7 +1999,6 @@
       "data": {
         "kind": "task",
         "label": "Card 120",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2130,7 +2013,6 @@
       "data": {
         "kind": "task",
         "label": "Card 121",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2145,7 +2027,6 @@
       "data": {
         "kind": "task",
         "label": "Card 122",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2160,7 +2041,6 @@
       "data": {
         "kind": "task",
         "label": "Card 123",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2175,7 +2055,6 @@
       "data": {
         "kind": "task",
         "label": "Card 124",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2190,7 +2069,6 @@
       "data": {
         "kind": "task",
         "label": "Card 125",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2205,7 +2083,6 @@
       "data": {
         "kind": "task",
         "label": "Card 126",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2220,7 +2097,6 @@
       "data": {
         "kind": "task",
         "label": "Card 127",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2235,7 +2111,6 @@
       "data": {
         "kind": "task",
         "label": "Card 128",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2250,7 +2125,6 @@
       "data": {
         "kind": "task",
         "label": "Card 129",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2265,7 +2139,6 @@
       "data": {
         "kind": "task",
         "label": "Card 130",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2280,7 +2153,6 @@
       "data": {
         "kind": "task",
         "label": "Card 131",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2295,7 +2167,6 @@
       "data": {
         "kind": "task",
         "label": "Card 132",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2310,7 +2181,6 @@
       "data": {
         "kind": "task",
         "label": "Card 133",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2325,7 +2195,6 @@
       "data": {
         "kind": "task",
         "label": "Card 134",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2340,7 +2209,6 @@
       "data": {
         "kind": "task",
         "label": "Card 135",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2355,7 +2223,6 @@
       "data": {
         "kind": "task",
         "label": "Card 136",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2370,7 +2237,6 @@
       "data": {
         "kind": "task",
         "label": "Card 137",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2385,7 +2251,6 @@
       "data": {
         "kind": "task",
         "label": "Card 138",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2400,7 +2265,6 @@
       "data": {
         "kind": "task",
         "label": "Card 139",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2415,7 +2279,6 @@
       "data": {
         "kind": "task",
         "label": "Card 140",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2430,7 +2293,6 @@
       "data": {
         "kind": "task",
         "label": "Card 141",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2445,7 +2307,6 @@
       "data": {
         "kind": "task",
         "label": "Card 142",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2460,7 +2321,6 @@
       "data": {
         "kind": "task",
         "label": "Card 143",
-        "itemKind": "placeholder",
         "status": "done"
       }
     },
@@ -2475,7 +2335,6 @@
       "data": {
         "kind": "task",
         "label": "Card 144",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2490,7 +2349,6 @@
       "data": {
         "kind": "task",
         "label": "Card 145",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2505,7 +2363,6 @@
       "data": {
         "kind": "task",
         "label": "Card 146",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2520,7 +2377,6 @@
       "data": {
         "kind": "task",
         "label": "Card 147",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2551,7 +2407,6 @@
       "data": {
         "kind": "task",
         "label": "Card 148",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2566,7 +2421,6 @@
       "data": {
         "kind": "task",
         "label": "Card 149",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2581,7 +2435,6 @@
       "data": {
         "kind": "task",
         "label": "Card 150",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2596,7 +2449,6 @@
       "data": {
         "kind": "task",
         "label": "Card 151",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2611,7 +2463,6 @@
       "data": {
         "kind": "task",
         "label": "Card 152",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2626,7 +2477,6 @@
       "data": {
         "kind": "task",
         "label": "Card 153",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2641,7 +2491,6 @@
       "data": {
         "kind": "task",
         "label": "Card 154",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2656,7 +2505,6 @@
       "data": {
         "kind": "task",
         "label": "Card 155",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2671,7 +2519,6 @@
       "data": {
         "kind": "task",
         "label": "Card 156",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2686,7 +2533,6 @@
       "data": {
         "kind": "task",
         "label": "Card 157",
-        "itemKind": "step",
         "status": "todo"
       }
     },
@@ -2701,7 +2547,6 @@
       "data": {
         "kind": "task",
         "label": "Card 158",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2716,7 +2561,6 @@
       "data": {
         "kind": "task",
         "label": "Card 159",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2731,7 +2575,6 @@
       "data": {
         "kind": "task",
         "label": "Card 160",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2746,7 +2589,6 @@
       "data": {
         "kind": "task",
         "label": "Card 161",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2761,7 +2603,6 @@
       "data": {
         "kind": "task",
         "label": "Card 162",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2776,7 +2617,6 @@
       "data": {
         "kind": "task",
         "label": "Card 163",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2791,7 +2631,6 @@
       "data": {
         "kind": "task",
         "label": "Card 164",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2806,7 +2645,6 @@
       "data": {
         "kind": "task",
         "label": "Card 165",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2821,7 +2659,6 @@
       "data": {
         "kind": "task",
         "label": "Card 166",
-        "itemKind": "step",
         "status": "todo"
       }
     },
@@ -2836,7 +2673,6 @@
       "data": {
         "kind": "task",
         "label": "Card 167",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2851,7 +2687,6 @@
       "data": {
         "kind": "task",
         "label": "Card 168",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2866,7 +2701,6 @@
       "data": {
         "kind": "task",
         "label": "Card 169",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2881,7 +2715,6 @@
       "data": {
         "kind": "task",
         "label": "Card 170",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2896,7 +2729,6 @@
       "data": {
         "kind": "task",
         "label": "Card 171",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2911,7 +2743,6 @@
       "data": {
         "kind": "task",
         "label": "Card 172",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2926,7 +2757,6 @@
       "data": {
         "kind": "task",
         "label": "Card 173",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -2941,7 +2771,6 @@
       "data": {
         "kind": "task",
         "label": "Card 174",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2956,7 +2785,6 @@
       "data": {
         "kind": "task",
         "label": "Card 175",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -2971,7 +2799,6 @@
       "data": {
         "kind": "task",
         "label": "Card 176",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -2986,7 +2813,6 @@
       "data": {
         "kind": "task",
         "label": "Card 177",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3001,7 +2827,6 @@
       "data": {
         "kind": "task",
         "label": "Card 178",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3016,7 +2841,6 @@
       "data": {
         "kind": "task",
         "label": "Card 179",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3031,7 +2855,6 @@
       "data": {
         "kind": "task",
         "label": "Card 180",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3046,7 +2869,6 @@
       "data": {
         "kind": "task",
         "label": "Card 181",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3061,7 +2883,6 @@
       "data": {
         "kind": "task",
         "label": "Card 182",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3076,7 +2897,6 @@
       "data": {
         "kind": "task",
         "label": "Card 183",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3093,7 +2913,7 @@
       "data": {
         "kind": "task",
         "label": "Card 184",
-        "itemKind": "note",
+        "type": "note",
         "status": "todo"
       }
     },
@@ -3108,7 +2928,6 @@
       "data": {
         "kind": "task",
         "label": "Card 185",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -3123,7 +2942,6 @@
       "data": {
         "kind": "task",
         "label": "Card 186",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3138,7 +2956,6 @@
       "data": {
         "kind": "task",
         "label": "Card 187",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3153,7 +2970,6 @@
       "data": {
         "kind": "task",
         "label": "Card 188",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3168,7 +2984,6 @@
       "data": {
         "kind": "task",
         "label": "Card 189",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3183,7 +2998,6 @@
       "data": {
         "kind": "task",
         "label": "Card 190",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3198,7 +3012,6 @@
       "data": {
         "kind": "task",
         "label": "Card 191",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3213,7 +3026,6 @@
       "data": {
         "kind": "task",
         "label": "Card 192",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3228,7 +3040,6 @@
       "data": {
         "kind": "task",
         "label": "Card 193",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3243,7 +3054,6 @@
       "data": {
         "kind": "task",
         "label": "Card 194",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3258,7 +3068,6 @@
       "data": {
         "kind": "task",
         "label": "Card 195",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3273,7 +3082,6 @@
       "data": {
         "kind": "task",
         "label": "Card 196",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3288,7 +3096,6 @@
       "data": {
         "kind": "task",
         "label": "Card 197",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3303,7 +3110,6 @@
       "data": {
         "kind": "task",
         "label": "Card 198",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3318,7 +3124,6 @@
       "data": {
         "kind": "task",
         "label": "Card 199",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3333,7 +3138,6 @@
       "data": {
         "kind": "task",
         "label": "Card 200",
-        "itemKind": "pr",
         "status": "active"
       }
     },
@@ -3348,7 +3152,6 @@
       "data": {
         "kind": "task",
         "label": "Card 201",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3363,7 +3166,6 @@
       "data": {
         "kind": "task",
         "label": "Card 202",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3378,7 +3180,6 @@
       "data": {
         "kind": "task",
         "label": "Card 203",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3393,7 +3194,6 @@
       "data": {
         "kind": "task",
         "label": "Card 204",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3408,7 +3208,6 @@
       "data": {
         "kind": "task",
         "label": "Card 205",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3423,7 +3222,6 @@
       "data": {
         "kind": "task",
         "label": "Card 206",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3438,7 +3236,6 @@
       "data": {
         "kind": "task",
         "label": "Card 207",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3453,7 +3250,6 @@
       "data": {
         "kind": "task",
         "label": "Card 208",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3468,7 +3264,6 @@
       "data": {
         "kind": "task",
         "label": "Card 209",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3483,7 +3278,6 @@
       "data": {
         "kind": "task",
         "label": "Card 210",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3498,7 +3292,6 @@
       "data": {
         "kind": "task",
         "label": "Card 211",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3513,7 +3306,6 @@
       "data": {
         "kind": "task",
         "label": "Card 212",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3528,7 +3320,6 @@
       "data": {
         "kind": "task",
         "label": "Card 213",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3543,7 +3334,6 @@
       "data": {
         "kind": "task",
         "label": "Card 214",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3558,7 +3348,6 @@
       "data": {
         "kind": "task",
         "label": "Card 215",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3573,7 +3362,6 @@
       "data": {
         "kind": "task",
         "label": "Card 216",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3588,7 +3376,6 @@
       "data": {
         "kind": "task",
         "label": "Card 217",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3603,7 +3390,6 @@
       "data": {
         "kind": "task",
         "label": "Card 218",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3618,7 +3404,6 @@
       "data": {
         "kind": "task",
         "label": "Card 219",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3633,7 +3418,6 @@
       "data": {
         "kind": "task",
         "label": "Card 220",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3648,7 +3432,6 @@
       "data": {
         "kind": "task",
         "label": "Card 221",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3663,7 +3446,6 @@
       "data": {
         "kind": "task",
         "label": "Card 222",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3678,7 +3460,6 @@
       "data": {
         "kind": "task",
         "label": "Card 223",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3693,7 +3474,6 @@
       "data": {
         "kind": "task",
         "label": "Card 224",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3708,7 +3488,6 @@
       "data": {
         "kind": "task",
         "label": "Card 225",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3723,7 +3502,6 @@
       "data": {
         "kind": "task",
         "label": "Card 226",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3738,7 +3516,6 @@
       "data": {
         "kind": "task",
         "label": "Card 227",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3753,7 +3530,6 @@
       "data": {
         "kind": "task",
         "label": "Card 228",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3768,7 +3544,6 @@
       "data": {
         "kind": "task",
         "label": "Card 229",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3783,7 +3558,6 @@
       "data": {
         "kind": "task",
         "label": "Card 230",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3798,7 +3572,6 @@
       "data": {
         "kind": "task",
         "label": "Card 231",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3813,7 +3586,6 @@
       "data": {
         "kind": "task",
         "label": "Card 232",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3828,7 +3600,6 @@
       "data": {
         "kind": "task",
         "label": "Card 233",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3843,7 +3614,6 @@
       "data": {
         "kind": "task",
         "label": "Card 234",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3858,7 +3628,6 @@
       "data": {
         "kind": "task",
         "label": "Card 235",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3873,7 +3642,6 @@
       "data": {
         "kind": "task",
         "label": "Card 236",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3888,7 +3656,6 @@
       "data": {
         "kind": "task",
         "label": "Card 237",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3903,7 +3670,6 @@
       "data": {
         "kind": "task",
         "label": "Card 238",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3918,7 +3684,6 @@
       "data": {
         "kind": "task",
         "label": "Card 239",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -3933,7 +3698,6 @@
       "data": {
         "kind": "task",
         "label": "Card 240",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3948,7 +3712,6 @@
       "data": {
         "kind": "task",
         "label": "Card 241",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3963,7 +3726,6 @@
       "data": {
         "kind": "task",
         "label": "Card 242",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3978,7 +3740,6 @@
       "data": {
         "kind": "task",
         "label": "Card 243",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -3993,7 +3754,6 @@
       "data": {
         "kind": "task",
         "label": "Card 244",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4008,7 +3768,6 @@
       "data": {
         "kind": "task",
         "label": "Card 245",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4023,7 +3782,6 @@
       "data": {
         "kind": "task",
         "label": "Card 246",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4038,7 +3796,6 @@
       "data": {
         "kind": "task",
         "label": "Card 247",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4053,7 +3810,6 @@
       "data": {
         "kind": "task",
         "label": "Card 248",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -4068,7 +3824,6 @@
       "data": {
         "kind": "task",
         "label": "Card 249",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4083,7 +3838,6 @@
       "data": {
         "kind": "task",
         "label": "Card 250",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4098,7 +3852,6 @@
       "data": {
         "kind": "task",
         "label": "Card 251",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4113,7 +3866,6 @@
       "data": {
         "kind": "task",
         "label": "Card 252",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4128,7 +3880,6 @@
       "data": {
         "kind": "task",
         "label": "Card 253",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -4143,7 +3894,6 @@
       "data": {
         "kind": "task",
         "label": "Card 254",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -4158,7 +3908,6 @@
       "data": {
         "kind": "task",
         "label": "Card 255",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4173,7 +3922,6 @@
       "data": {
         "kind": "task",
         "label": "Card 256",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -4188,7 +3936,6 @@
       "data": {
         "kind": "task",
         "label": "Card 257",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4218,7 +3965,6 @@
       "data": {
         "kind": "task",
         "label": "Card 258",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -4233,7 +3979,6 @@
       "data": {
         "kind": "task",
         "label": "Card 259",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4248,7 +3993,6 @@
       "data": {
         "kind": "task",
         "label": "Card 260",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -4263,7 +4007,6 @@
       "data": {
         "kind": "task",
         "label": "Card 261",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4278,7 +4021,6 @@
       "data": {
         "kind": "task",
         "label": "Card 262",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -4293,7 +4035,6 @@
       "data": {
         "kind": "task",
         "label": "Card 263",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -4308,7 +4049,6 @@
       "data": {
         "kind": "task",
         "label": "Card 264",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4323,7 +4063,6 @@
       "data": {
         "kind": "task",
         "label": "Card 265",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4338,7 +4077,6 @@
       "data": {
         "kind": "task",
         "label": "Card 266",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4353,7 +4091,6 @@
       "data": {
         "kind": "task",
         "label": "Card 267",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4368,7 +4105,6 @@
       "data": {
         "kind": "task",
         "label": "Card 268",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4383,7 +4119,6 @@
       "data": {
         "kind": "task",
         "label": "Card 269",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4413,7 +4148,6 @@
       "data": {
         "kind": "task",
         "label": "Card 270",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4428,7 +4162,6 @@
       "data": {
         "kind": "task",
         "label": "Card 271",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4443,7 +4176,6 @@
       "data": {
         "kind": "task",
         "label": "Card 272",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4458,7 +4190,6 @@
       "data": {
         "kind": "task",
         "label": "Card 273",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4473,7 +4204,6 @@
       "data": {
         "kind": "task",
         "label": "Card 274",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -4488,7 +4218,6 @@
       "data": {
         "kind": "task",
         "label": "Card 275",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4503,7 +4232,6 @@
       "data": {
         "kind": "task",
         "label": "Card 276",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4518,7 +4246,6 @@
       "data": {
         "kind": "task",
         "label": "Card 277",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4533,7 +4260,6 @@
       "data": {
         "kind": "task",
         "label": "Card 278",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4548,7 +4274,6 @@
       "data": {
         "kind": "task",
         "label": "Card 279",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4563,7 +4288,6 @@
       "data": {
         "kind": "task",
         "label": "Card 280",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4578,7 +4302,6 @@
       "data": {
         "kind": "task",
         "label": "Card 281",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4593,7 +4316,6 @@
       "data": {
         "kind": "task",
         "label": "Card 282",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4610,7 +4332,7 @@
       "data": {
         "kind": "task",
         "label": "Card 283",
-        "itemKind": "note",
+        "type": "note",
         "status": "todo"
       }
     },
@@ -4625,7 +4347,6 @@
       "data": {
         "kind": "task",
         "label": "Card 284",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4640,7 +4361,6 @@
       "data": {
         "kind": "task",
         "label": "Card 285",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -4655,7 +4375,6 @@
       "data": {
         "kind": "task",
         "label": "Card 286",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -4670,7 +4389,6 @@
       "data": {
         "kind": "task",
         "label": "Card 287",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4685,7 +4403,6 @@
       "data": {
         "kind": "task",
         "label": "Card 288",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -4700,7 +4417,6 @@
       "data": {
         "kind": "task",
         "label": "Card 289",
-        "itemKind": "placeholder",
         "status": "done"
       }
     },
@@ -4715,7 +4431,6 @@
       "data": {
         "kind": "task",
         "label": "Card 290",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4730,7 +4445,6 @@
       "data": {
         "kind": "task",
         "label": "Card 291",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4745,7 +4459,6 @@
       "data": {
         "kind": "task",
         "label": "Card 292",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4760,7 +4473,6 @@
       "data": {
         "kind": "task",
         "label": "Card 293",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4775,7 +4487,6 @@
       "data": {
         "kind": "task",
         "label": "Card 294",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4790,7 +4501,6 @@
       "data": {
         "kind": "task",
         "label": "Card 295",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4805,7 +4515,6 @@
       "data": {
         "kind": "task",
         "label": "Card 296",
-        "itemKind": "placeholder",
         "status": "active"
       }
     },
@@ -4820,7 +4529,6 @@
       "data": {
         "kind": "task",
         "label": "Card 297",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4835,7 +4543,6 @@
       "data": {
         "kind": "task",
         "label": "Card 298",
-        "itemKind": "placeholder",
         "status": "done"
       }
     },
@@ -4850,7 +4557,6 @@
       "data": {
         "kind": "task",
         "label": "Card 299",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4865,7 +4571,6 @@
       "data": {
         "kind": "task",
         "label": "Card 300",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4880,7 +4585,6 @@
       "data": {
         "kind": "task",
         "label": "Card 301",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4895,7 +4599,6 @@
       "data": {
         "kind": "task",
         "label": "Card 302",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4910,7 +4613,6 @@
       "data": {
         "kind": "task",
         "label": "Card 303",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4925,7 +4627,6 @@
       "data": {
         "kind": "task",
         "label": "Card 304",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4940,7 +4641,6 @@
       "data": {
         "kind": "task",
         "label": "Card 305",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4955,7 +4655,6 @@
       "data": {
         "kind": "task",
         "label": "Card 306",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4970,7 +4669,6 @@
       "data": {
         "kind": "task",
         "label": "Card 307",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -4985,7 +4683,6 @@
       "data": {
         "kind": "task",
         "label": "Card 308",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5000,7 +4697,6 @@
       "data": {
         "kind": "task",
         "label": "Card 309",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5015,7 +4711,6 @@
       "data": {
         "kind": "task",
         "label": "Card 310",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5030,7 +4725,6 @@
       "data": {
         "kind": "task",
         "label": "Card 311",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5045,7 +4739,6 @@
       "data": {
         "kind": "task",
         "label": "Card 312",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5060,7 +4753,6 @@
       "data": {
         "kind": "task",
         "label": "Card 313",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5075,7 +4767,6 @@
       "data": {
         "kind": "task",
         "label": "Card 314",
-        "itemKind": "placeholder",
         "status": "active"
       }
     },
@@ -5090,7 +4781,6 @@
       "data": {
         "kind": "task",
         "label": "Card 315",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5105,7 +4795,6 @@
       "data": {
         "kind": "task",
         "label": "Card 316",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5122,7 +4811,7 @@
       "data": {
         "kind": "task",
         "label": "Card 317",
-        "itemKind": "note",
+        "type": "note",
         "status": "todo"
       }
     },
@@ -5137,7 +4826,6 @@
       "data": {
         "kind": "task",
         "label": "Card 318",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5152,7 +4840,6 @@
       "data": {
         "kind": "task",
         "label": "Card 319",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5182,7 +4869,6 @@
       "data": {
         "kind": "task",
         "label": "Card 320",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5197,7 +4883,6 @@
       "data": {
         "kind": "task",
         "label": "Card 321",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5212,7 +4897,6 @@
       "data": {
         "kind": "task",
         "label": "Card 322",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5227,7 +4911,6 @@
       "data": {
         "kind": "task",
         "label": "Card 323",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5242,7 +4925,6 @@
       "data": {
         "kind": "task",
         "label": "Card 324",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5257,7 +4939,6 @@
       "data": {
         "kind": "task",
         "label": "Card 325",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5272,7 +4953,6 @@
       "data": {
         "kind": "task",
         "label": "Card 326",
-        "itemKind": "step",
         "status": "done"
       }
     },
@@ -5287,7 +4967,6 @@
       "data": {
         "kind": "task",
         "label": "Card 327",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5302,7 +4981,6 @@
       "data": {
         "kind": "task",
         "label": "Card 328",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5317,7 +4995,6 @@
       "data": {
         "kind": "task",
         "label": "Card 329",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5332,7 +5009,6 @@
       "data": {
         "kind": "task",
         "label": "Card 330",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5347,7 +5023,6 @@
       "data": {
         "kind": "task",
         "label": "Card 331",
-        "itemKind": "placeholder",
         "status": "done"
       }
     },
@@ -5362,7 +5037,6 @@
       "data": {
         "kind": "task",
         "label": "Card 332",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5377,7 +5051,6 @@
       "data": {
         "kind": "task",
         "label": "Card 333",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5392,7 +5065,6 @@
       "data": {
         "kind": "task",
         "label": "Card 334",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5407,7 +5079,6 @@
       "data": {
         "kind": "task",
         "label": "Card 335",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5422,7 +5093,6 @@
       "data": {
         "kind": "task",
         "label": "Card 336",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5437,7 +5107,6 @@
       "data": {
         "kind": "task",
         "label": "Card 337",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5452,7 +5121,6 @@
       "data": {
         "kind": "task",
         "label": "Card 338",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5467,7 +5135,6 @@
       "data": {
         "kind": "task",
         "label": "Card 339",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5482,7 +5149,6 @@
       "data": {
         "kind": "task",
         "label": "Card 340",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5497,7 +5163,6 @@
       "data": {
         "kind": "task",
         "label": "Card 341",
-        "itemKind": "placeholder",
         "status": "done"
       }
     },
@@ -5512,7 +5177,6 @@
       "data": {
         "kind": "task",
         "label": "Card 342",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5527,7 +5191,6 @@
       "data": {
         "kind": "task",
         "label": "Card 343",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5558,7 +5221,6 @@
       "data": {
         "kind": "task",
         "label": "Card 344",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5573,7 +5235,6 @@
       "data": {
         "kind": "task",
         "label": "Card 345",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5588,7 +5249,6 @@
       "data": {
         "kind": "task",
         "label": "Card 346",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5603,7 +5263,6 @@
       "data": {
         "kind": "task",
         "label": "Card 347",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5618,7 +5277,6 @@
       "data": {
         "kind": "task",
         "label": "Card 348",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5633,7 +5291,6 @@
       "data": {
         "kind": "task",
         "label": "Card 349",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5648,7 +5305,6 @@
       "data": {
         "kind": "task",
         "label": "Card 350",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5663,7 +5319,6 @@
       "data": {
         "kind": "task",
         "label": "Card 351",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5678,7 +5333,6 @@
       "data": {
         "kind": "task",
         "label": "Card 352",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5693,7 +5347,6 @@
       "data": {
         "kind": "task",
         "label": "Card 353",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5708,7 +5361,6 @@
       "data": {
         "kind": "task",
         "label": "Card 354",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5723,7 +5375,6 @@
       "data": {
         "kind": "task",
         "label": "Card 355",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5738,7 +5389,6 @@
       "data": {
         "kind": "task",
         "label": "Card 356",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5753,7 +5403,6 @@
       "data": {
         "kind": "task",
         "label": "Card 357",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5768,7 +5417,6 @@
       "data": {
         "kind": "task",
         "label": "Card 358",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5783,7 +5431,6 @@
       "data": {
         "kind": "task",
         "label": "Card 359",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5798,7 +5445,6 @@
       "data": {
         "kind": "task",
         "label": "Card 360",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5813,7 +5459,6 @@
       "data": {
         "kind": "task",
         "label": "Card 361",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5828,7 +5473,6 @@
       "data": {
         "kind": "task",
         "label": "Card 362",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5843,7 +5487,6 @@
       "data": {
         "kind": "task",
         "label": "Card 363",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5858,7 +5501,6 @@
       "data": {
         "kind": "task",
         "label": "Card 364",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5873,7 +5515,6 @@
       "data": {
         "kind": "task",
         "label": "Card 365",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5888,7 +5529,6 @@
       "data": {
         "kind": "task",
         "label": "Card 366",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5903,7 +5543,6 @@
       "data": {
         "kind": "task",
         "label": "Card 367",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5918,7 +5557,6 @@
       "data": {
         "kind": "task",
         "label": "Card 368",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5933,7 +5571,6 @@
       "data": {
         "kind": "task",
         "label": "Card 369",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5948,7 +5585,6 @@
       "data": {
         "kind": "task",
         "label": "Card 370",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -5963,7 +5599,6 @@
       "data": {
         "kind": "task",
         "label": "Card 371",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -5978,7 +5613,6 @@
       "data": {
         "kind": "task",
         "label": "Card 372",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -5993,7 +5627,6 @@
       "data": {
         "kind": "task",
         "label": "Card 373",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6008,7 +5641,6 @@
       "data": {
         "kind": "task",
         "label": "Card 374",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6023,7 +5655,6 @@
       "data": {
         "kind": "task",
         "label": "Card 375",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6038,7 +5669,6 @@
       "data": {
         "kind": "task",
         "label": "Card 376",
-        "itemKind": "pr",
         "status": "active"
       }
     },
@@ -6053,7 +5683,6 @@
       "data": {
         "kind": "task",
         "label": "Card 377",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6068,7 +5697,6 @@
       "data": {
         "kind": "task",
         "label": "Card 378",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6083,7 +5711,6 @@
       "data": {
         "kind": "task",
         "label": "Card 379",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6098,7 +5725,6 @@
       "data": {
         "kind": "task",
         "label": "Card 380",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6113,7 +5739,6 @@
       "data": {
         "kind": "task",
         "label": "Card 381",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6128,7 +5753,6 @@
       "data": {
         "kind": "task",
         "label": "Card 382",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6143,7 +5767,6 @@
       "data": {
         "kind": "task",
         "label": "Card 383",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6158,7 +5781,6 @@
       "data": {
         "kind": "task",
         "label": "Card 384",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6173,7 +5795,6 @@
       "data": {
         "kind": "task",
         "label": "Card 385",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6188,7 +5809,6 @@
       "data": {
         "kind": "task",
         "label": "Card 386",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6203,7 +5823,6 @@
       "data": {
         "kind": "task",
         "label": "Card 387",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6218,7 +5837,6 @@
       "data": {
         "kind": "task",
         "label": "Card 388",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6233,7 +5851,6 @@
       "data": {
         "kind": "task",
         "label": "Card 389",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6248,7 +5865,6 @@
       "data": {
         "kind": "task",
         "label": "Card 390",
-        "itemKind": "pr",
         "status": "active"
       }
     },
@@ -6263,7 +5879,6 @@
       "data": {
         "kind": "task",
         "label": "Card 391",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6278,7 +5893,6 @@
       "data": {
         "kind": "task",
         "label": "Card 392",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6293,7 +5907,6 @@
       "data": {
         "kind": "task",
         "label": "Card 393",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6308,7 +5921,6 @@
       "data": {
         "kind": "task",
         "label": "Card 394",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6323,7 +5935,6 @@
       "data": {
         "kind": "task",
         "label": "Card 395",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6338,7 +5949,6 @@
       "data": {
         "kind": "task",
         "label": "Card 396",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6353,7 +5963,6 @@
       "data": {
         "kind": "task",
         "label": "Card 397",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6368,7 +5977,6 @@
       "data": {
         "kind": "task",
         "label": "Card 398",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6383,7 +5991,6 @@
       "data": {
         "kind": "task",
         "label": "Card 399",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6398,7 +6005,6 @@
       "data": {
         "kind": "task",
         "label": "Card 400",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6413,7 +6019,6 @@
       "data": {
         "kind": "task",
         "label": "Card 401",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6428,7 +6033,6 @@
       "data": {
         "kind": "task",
         "label": "Card 402",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6443,7 +6047,6 @@
       "data": {
         "kind": "task",
         "label": "Card 403",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6458,7 +6061,6 @@
       "data": {
         "kind": "task",
         "label": "Card 404",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6473,7 +6075,6 @@
       "data": {
         "kind": "task",
         "label": "Card 405",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6488,7 +6089,6 @@
       "data": {
         "kind": "task",
         "label": "Card 406",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6503,7 +6103,6 @@
       "data": {
         "kind": "task",
         "label": "Card 407",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6518,7 +6117,6 @@
       "data": {
         "kind": "task",
         "label": "Card 408",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6533,7 +6131,6 @@
       "data": {
         "kind": "task",
         "label": "Card 409",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6548,7 +6145,6 @@
       "data": {
         "kind": "task",
         "label": "Card 410",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -6563,7 +6159,6 @@
       "data": {
         "kind": "task",
         "label": "Card 411",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -6578,7 +6173,6 @@
       "data": {
         "kind": "task",
         "label": "Card 412",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6593,7 +6187,6 @@
       "data": {
         "kind": "task",
         "label": "Card 413",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6608,7 +6201,6 @@
       "data": {
         "kind": "task",
         "label": "Card 414",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6623,7 +6215,6 @@
       "data": {
         "kind": "task",
         "label": "Card 415",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6638,7 +6229,6 @@
       "data": {
         "kind": "task",
         "label": "Card 416",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6653,7 +6243,6 @@
       "data": {
         "kind": "task",
         "label": "Card 417",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6683,7 +6272,6 @@
       "data": {
         "kind": "task",
         "label": "Card 418",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6698,7 +6286,6 @@
       "data": {
         "kind": "task",
         "label": "Card 419",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6713,7 +6300,6 @@
       "data": {
         "kind": "task",
         "label": "Card 420",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6728,7 +6314,6 @@
       "data": {
         "kind": "task",
         "label": "Card 421",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6743,7 +6328,6 @@
       "data": {
         "kind": "task",
         "label": "Card 422",
-        "itemKind": "pr",
         "status": "review"
       }
     },
@@ -6758,7 +6342,6 @@
       "data": {
         "kind": "task",
         "label": "Card 423",
-        "itemKind": "pr",
         "status": "active"
       }
     },
@@ -6773,7 +6356,6 @@
       "data": {
         "kind": "task",
         "label": "Card 424",
-        "itemKind": "pr",
         "status": "active"
       }
     },
@@ -6788,7 +6370,6 @@
       "data": {
         "kind": "task",
         "label": "Card 425",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6803,7 +6384,6 @@
       "data": {
         "kind": "task",
         "label": "Card 426",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6820,7 +6400,7 @@
       "data": {
         "kind": "task",
         "label": "Card 427",
-        "itemKind": "note",
+        "type": "note",
         "status": "todo"
       }
     },
@@ -6835,7 +6415,6 @@
       "data": {
         "kind": "task",
         "label": "Card 428",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6850,7 +6429,6 @@
       "data": {
         "kind": "task",
         "label": "Card 429",
-        "itemKind": "pr",
         "status": "active"
       }
     },
@@ -6865,7 +6443,6 @@
       "data": {
         "kind": "task",
         "label": "Card 430",
-        "itemKind": "pr",
         "status": "active"
       }
     },
@@ -6880,7 +6457,6 @@
       "data": {
         "kind": "task",
         "label": "Card 431",
-        "itemKind": "placeholder",
         "status": "active"
       }
     },
@@ -6895,7 +6471,6 @@
       "data": {
         "kind": "task",
         "label": "Card 432",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6910,7 +6485,6 @@
       "data": {
         "kind": "task",
         "label": "Card 433",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6925,7 +6499,6 @@
       "data": {
         "kind": "task",
         "label": "Card 434",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6940,7 +6513,6 @@
       "data": {
         "kind": "task",
         "label": "Card 435",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -6955,7 +6527,6 @@
       "data": {
         "kind": "task",
         "label": "Card 436",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6970,7 +6541,6 @@
       "data": {
         "kind": "task",
         "label": "Card 437",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -6985,7 +6555,6 @@
       "data": {
         "kind": "task",
         "label": "Card 438",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -7000,7 +6569,6 @@
       "data": {
         "kind": "task",
         "label": "Card 439",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -7015,7 +6583,6 @@
       "data": {
         "kind": "task",
         "label": "Card 440",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -7030,7 +6597,6 @@
       "data": {
         "kind": "task",
         "label": "Card 441",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7045,7 +6611,6 @@
       "data": {
         "kind": "task",
         "label": "Card 442",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7060,7 +6625,6 @@
       "data": {
         "kind": "task",
         "label": "Card 443",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -7075,7 +6639,6 @@
       "data": {
         "kind": "task",
         "label": "Card 444",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -7090,7 +6653,6 @@
       "data": {
         "kind": "task",
         "label": "Card 445",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7105,7 +6667,6 @@
       "data": {
         "kind": "task",
         "label": "Card 446",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -7120,7 +6681,6 @@
       "data": {
         "kind": "task",
         "label": "Card 447",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -7135,7 +6695,6 @@
       "data": {
         "kind": "task",
         "label": "Card 448",
-        "itemKind": "placeholder",
         "status": "todo"
       }
     },
@@ -7150,7 +6709,6 @@
       "data": {
         "kind": "task",
         "label": "Card 449",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7165,7 +6723,6 @@
       "data": {
         "kind": "task",
         "label": "Card 450",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7182,7 +6739,7 @@
       "data": {
         "kind": "task",
         "label": "Card 451",
-        "itemKind": "note",
+        "type": "note",
         "status": "todo"
       }
     },
@@ -7197,7 +6754,6 @@
       "data": {
         "kind": "task",
         "label": "Card 452",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7212,7 +6768,6 @@
       "data": {
         "kind": "task",
         "label": "Card 453",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7227,7 +6782,6 @@
       "data": {
         "kind": "task",
         "label": "Card 454",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7242,7 +6796,6 @@
       "data": {
         "kind": "task",
         "label": "Card 455",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7257,7 +6810,6 @@
       "data": {
         "kind": "task",
         "label": "Card 456",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -7289,7 +6841,6 @@
       "data": {
         "kind": "task",
         "label": "Card 458",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7304,7 +6855,6 @@
       "data": {
         "kind": "task",
         "label": "Card 459",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7319,7 +6869,6 @@
       "data": {
         "kind": "task",
         "label": "Card 460",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7351,7 +6900,6 @@
       "data": {
         "kind": "task",
         "label": "Card 462",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7366,7 +6914,6 @@
       "data": {
         "kind": "task",
         "label": "Card 463",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7381,7 +6928,6 @@
       "data": {
         "kind": "task",
         "label": "Card 464",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -7396,7 +6942,6 @@
       "data": {
         "kind": "task",
         "label": "Card 465",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -7413,7 +6958,7 @@
       "data": {
         "kind": "task",
         "label": "Card 466",
-        "itemKind": "note",
+        "type": "note",
         "status": "todo"
       }
     },
@@ -7428,7 +6973,6 @@
       "data": {
         "kind": "task",
         "label": "Card 467",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7443,7 +6987,6 @@
       "data": {
         "kind": "task",
         "label": "Card 468",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7458,7 +7001,6 @@
       "data": {
         "kind": "task",
         "label": "Card 469",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7473,7 +7015,7 @@
       "data": {
         "kind": "task",
         "label": "Card 470",
-        "itemKind": "gate",
+        "type": "gate",
         "status": "todo"
       }
     },
@@ -7488,7 +7030,7 @@
       "data": {
         "kind": "task",
         "label": "Card 471",
-        "itemKind": "gate",
+        "type": "gate",
         "status": "todo"
       }
     },
@@ -7503,7 +7045,7 @@
       "data": {
         "kind": "task",
         "label": "Card 472",
-        "itemKind": "gate",
+        "type": "gate",
         "status": "todo"
       }
     },
@@ -7518,7 +7060,7 @@
       "data": {
         "kind": "task",
         "label": "Card 473",
-        "itemKind": "gate",
+        "type": "gate",
         "status": "todo"
       }
     },
@@ -7533,7 +7075,6 @@
       "data": {
         "kind": "task",
         "label": "Card 474",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7548,7 +7089,6 @@
       "data": {
         "kind": "task",
         "label": "Card 475",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7563,7 +7103,6 @@
       "data": {
         "kind": "task",
         "label": "Card 476",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7578,7 +7117,6 @@
       "data": {
         "kind": "task",
         "label": "Card 477",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7593,7 +7131,6 @@
       "data": {
         "kind": "task",
         "label": "Card 478",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7608,7 +7145,6 @@
       "data": {
         "kind": "task",
         "label": "Card 479",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7623,7 +7159,6 @@
       "data": {
         "kind": "task",
         "label": "Card 480",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7638,7 +7173,7 @@
       "data": {
         "kind": "task",
         "label": "Card 481",
-        "itemKind": "gate",
+        "type": "gate",
         "status": "todo"
       }
     },
@@ -7653,7 +7188,6 @@
       "data": {
         "kind": "task",
         "label": "Card 482",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -7668,7 +7202,6 @@
       "data": {
         "kind": "task",
         "label": "Card 483",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7683,7 +7216,6 @@
       "data": {
         "kind": "task",
         "label": "Card 484",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7698,7 +7230,6 @@
       "data": {
         "kind": "task",
         "label": "Card 485",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7713,7 +7244,6 @@
       "data": {
         "kind": "task",
         "label": "Card 486",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7728,7 +7258,6 @@
       "data": {
         "kind": "task",
         "label": "Card 487",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7743,7 +7272,6 @@
       "data": {
         "kind": "task",
         "label": "Card 488",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7758,7 +7286,6 @@
       "data": {
         "kind": "task",
         "label": "Card 489",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7773,7 +7300,6 @@
       "data": {
         "kind": "task",
         "label": "Card 490",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7788,7 +7314,6 @@
       "data": {
         "kind": "task",
         "label": "Card 491",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -7803,7 +7328,6 @@
       "data": {
         "kind": "task",
         "label": "Card 492",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7818,7 +7342,6 @@
       "data": {
         "kind": "task",
         "label": "Card 493",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7833,7 +7356,6 @@
       "data": {
         "kind": "task",
         "label": "Card 494",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7848,7 +7370,6 @@
       "data": {
         "kind": "task",
         "label": "Card 495",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7863,7 +7384,6 @@
       "data": {
         "kind": "task",
         "label": "Card 496",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7929,7 +7449,6 @@
       "data": {
         "kind": "task",
         "label": "Card 500",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -7944,7 +7463,7 @@
       "data": {
         "kind": "task",
         "label": "Card 501",
-        "itemKind": "gate",
+        "type": "gate",
         "status": "todo"
       }
     },
@@ -7959,7 +7478,6 @@
       "data": {
         "kind": "task",
         "label": "Card 502",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7974,7 +7492,6 @@
       "data": {
         "kind": "task",
         "label": "Card 503",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -7989,7 +7506,6 @@
       "data": {
         "kind": "task",
         "label": "Card 504",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -8021,7 +7537,6 @@
       "data": {
         "kind": "task",
         "label": "Card 506",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -8036,7 +7551,6 @@
       "data": {
         "kind": "task",
         "label": "Card 507",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -8051,7 +7565,6 @@
       "data": {
         "kind": "task",
         "label": "Card 508",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -8066,7 +7579,6 @@
       "data": {
         "kind": "task",
         "label": "Card 509",
-        "itemKind": "pr",
         "status": "deferred"
       }
     },
@@ -8081,7 +7593,6 @@
       "data": {
         "kind": "task",
         "label": "Card 510",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -8096,7 +7607,6 @@
       "data": {
         "kind": "task",
         "label": "Card 511",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -8111,7 +7621,6 @@
       "data": {
         "kind": "task",
         "label": "Card 512",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -8126,7 +7635,6 @@
       "data": {
         "kind": "task",
         "label": "Card 513",
-        "itemKind": "pr",
         "status": "done"
       }
     },
@@ -8141,7 +7649,6 @@
       "data": {
         "kind": "task",
         "label": "Card 514",
-        "itemKind": "pr",
         "status": "done"
       }
     }
