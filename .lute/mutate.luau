@@ -5,8 +5,8 @@
 	tests don't pin the behavior down. The module is restored after every run,
 	and on Ctrl-C.
 
-	lute run mutate workspace/orion-cli/src/storage/backups/pruneBackups.luau [...]
-	[--spec <spec or folder>]...
+	lute run mutate workspace/orion-cli/src/storage/backups/pruneBackups.luau
+	[...] [--spec <spec or folder>]...
 
 	Repeat --spec, or pass a folder such as workspace/orion-cli/src/cli, to
 	count tests outside the sibling spec. Every module is checked against the
