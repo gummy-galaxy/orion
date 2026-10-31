@@ -30,7 +30,9 @@ local STATUS_CONTEXT_STATES: { [string]: "failed" | "passed" | "pending" } = {
 }
 
 local function getContexts(number: number): string
-	return `contexts(first: 100) \{ nodes \{ __typename ... on CheckRun \{ name status conclusion isRequired(pullRequestNumber: {number}) } ... on StatusContext \{ context state isRequired(pullRequestNumber: {number}) } } }`
+	return `contexts(first: 100) \{ nodes \{ __typename ... on CheckRun \{ name status conclusion `
+		.. `isRequired(pullRequestNumber: {number}) } ... on StatusContext \{ context state `
+		.. `isRequired(pullRequestNumber: {number}) } } }`
 end
 
 local function parseRun(node: json.Object): CheckRun?
@@ -91,9 +93,9 @@ local function fetchCheckRunsAsync(run: CommandRunner, pulls: { PullState }): { 
 				batch[alias] = pull
 				table.insert(
 					parts,
-					`{alias}: repository(owner: "{pull.owner}", name: "{pull.name}") \{ pullRequest(number: {pull.number}) \{ commits(last: 1) \{ nodes \{ commit \{ statusCheckRollup \{ {getContexts(
-						pull.number
-					)} } } } } } }`
+					`{alias}: repository(owner: "{pull.owner}", name: "{pull.name}") \{ pullRequest(number: {pull.number}) `
+						.. `\{ commits(last: 1) \{ nodes \{ commit \{ statusCheckRollup \{ {getContexts(pull.number)} `
+						.. "} } } } } }"
 				)
 			end
 

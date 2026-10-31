@@ -1,7 +1,10 @@
 import { memo } from 'react'
 import type { MiniMapNodeProps } from '@xyflow/react'
 
-/** A minimap card that fills as work moves, like the status shapes: hollow when ready, half in progress, solid in review. */
+/**
+ * A minimap card that fills as work moves, like the status shapes: hollow when ready, half in progress, solid in
+ * review.
+ */
 export const MiniMapNode = memo(function MiniMapNode({
   id,
   x,
@@ -27,7 +30,16 @@ export const MiniMapNode = memo(function MiniMapNode({
         shapeRendering={shapeRendering}
         onClick={onClick ? (event) => onClick(event, id) : undefined}
       />
-      {className === 'mm-active' && <rect className="mm-active-half" x={x} y={y} width={width / 2} height={height} shapeRendering={shapeRendering} />}
+      {className === 'mm-active' && (
+        <rect
+          className="mm-active-half"
+          x={x}
+          y={y}
+          width={width / 2}
+          height={height}
+          shapeRendering={shapeRendering}
+        />
+      )}
     </>
   )
 })

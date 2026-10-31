@@ -57,7 +57,8 @@ local SAMPLES: { { name: string, edit: string } } = {
 	},
 	{
 		name = "addNote",
-		edit = [=[{"op":"addNote","id":"note-new","x":10,"y":20,"group":"ws","data":{"kind":"task","label":"New","type":"note","status":"todo"}}]=],
+		edit = [=[{"op":"addNote","id":"note-new","x":10,"y":20,"group":"ws","data":{"kind":"task","label":"New",]=]
+			.. [=["type":"note","status":"todo"}}]=],
 	},
 	{
 		name = "setData",
@@ -172,9 +173,11 @@ test.case("a created item joins the canvas and its inverse removes it", function
 	local restores = applyOperations(
 		doc,
 		parse([=[[
-			{"op":"addImage","id":"img","x":4,"y":8,"data":{"kind":"image","label":"Photo","asset":"a.png","canvas":"default"}},
+			{"op":"addImage","id":"img","x":4,"y":8,
+				"data":{"kind":"image","label":"Photo","asset":"a.png","canvas":"default"}},
 			{"op":"addGroup","id":"batch","x":0,"y":0,"data":{"kind":"cluster","label":"Batch"}},
-			{"op":"addCard","id":"inner","x":16,"y":32,"group":"batch","data":{"kind":"task","label":"In","status":"todo"}}
+			{"op":"addCard","id":"inner","x":16,"y":32,"group":"batch",
+				"data":{"kind":"task","label":"In","status":"todo"}}
 		]]=])
 	)
 	assert.eq(#restores, 3)
@@ -323,7 +326,8 @@ test.case("an added card never starts out waiting to be closed out", function(as
 	applyOperations(
 		doc,
 		parse(
-			[=[[{"op":"addCard","id":"copy","x":0,"y":0,"data":{"kind":"task","label":"Copy","status":"done","celebrate":true}}]]=]
+			[=[[{"op":"addCard","id":"copy","x":0,"y":0,"data":{"kind":"task","label":"Copy",]=]
+				.. [=["status":"done","celebrate":true}}]]=]
 		)
 	)
 	assert.eq(doc.nodes[#doc.nodes].data.celebrate, nil)

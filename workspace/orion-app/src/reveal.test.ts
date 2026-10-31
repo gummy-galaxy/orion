@@ -54,7 +54,14 @@ describe('reveal detail', () => {
 
   it('unfolds just enough levels to show a card inside a folded group', () => {
     // The card sits in a group at the top level, and a deeper group elsewhere keeps the canvas from showing everything.
-    const nodes = [group('one'), task('x', 'one'), group('two'), group('mid', 'two'), group('deep', 'mid'), task('y', 'deep')]
+    const nodes = [
+      group('one'),
+      task('x', 'one'),
+      group('two'),
+      group('mid', 'two'),
+      group('deep', 'mid'),
+      task('y', 'deep'),
+    ]
 
     expect(revealDetail(nodes, null, ['x'], 1)).toBe(2)
     expect(revealDetail(nodes, null, ['x'], 2)).toBe(2)
@@ -67,7 +74,14 @@ describe('reveal detail', () => {
   })
 
   it('counts the groups inside the open one, not above it', () => {
-    const nodes = [group('outer'), group('inner', 'outer'), group('deep', 'inner'), task('a', 'deep'), group('spare', 'outer'), task('b', 'spare')]
+    const nodes = [
+      group('outer'),
+      group('inner', 'outer'),
+      group('deep', 'inner'),
+      task('a', 'deep'),
+      group('spare', 'outer'),
+      task('b', 'spare'),
+    ]
 
     expect(revealDetail(nodes, 'outer', ['a'], 1)).toBe(null)
     expect(revealDetail(nodes, 'outer', ['b'], 1)).toBe(2)
@@ -94,7 +108,11 @@ describe('reveal bounds and framing', () => {
   })
 
   it('fits a wide selection inside the padding', () => {
-    const viewport = framedViewport({ x: 0, y: 0, width: 2000, height: 1000 }, { width: 1000, height: 800 }, { padding: 0.2, maxZoom: 1.25 })
+    const viewport = framedViewport(
+      { x: 0, y: 0, width: 2000, height: 1000 },
+      { width: 1000, height: 800 },
+      { padding: 0.2, maxZoom: 1.25 },
+    )
 
     expect(viewport.zoom).toBeCloseTo(0.3)
     expect(viewport.x).toBeCloseTo(500 - 1000 * 0.3)

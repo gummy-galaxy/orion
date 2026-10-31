@@ -89,7 +89,18 @@ export function Companion({ targets, describe, syncing = false, paused = false }
     const tethers = { left: leftTetherRef.current, right: rightTetherRef.current }
     const eyes = stars.main?.querySelector('.eyes')
 
-    if (!root || !hintElement || !snooze || !stars.main || !stars.left || !stars.right || !tetherBox || !tethers.left || !tethers.right || !eyes) {
+    if (
+      !root ||
+      !hintElement ||
+      !snooze ||
+      !stars.main ||
+      !stars.left ||
+      !stars.right ||
+      !tetherBox ||
+      !tethers.left ||
+      !tethers.right ||
+      !eyes
+    ) {
       return
     }
 
@@ -221,7 +232,13 @@ export function Companion({ targets, describe, syncing = false, paused = false }
       const [x, y] = goal(motionReduced())
 
       for (const part of Object.keys(PARTS) as Part[]) {
-        bodies[part] = { x: x + PARTS[part].offset[0], y: y + PARTS[part].offset[1], velocityX: 0, velocityY: 0, lean: 0 }
+        bodies[part] = {
+          x: x + PARTS[part].offset[0],
+          y: y + PARTS[part].offset[1],
+          velocityX: 0,
+          velocityY: 0,
+          lean: 0,
+        }
       }
     }
 
@@ -270,7 +287,11 @@ export function Companion({ targets, describe, syncing = false, paused = false }
       }
 
       for (let i = 0; i < steps; i++) {
-        const hover = reduced ? 0 : sleeping ? Math.sin(seconds * 1.1) * 2 + 4 : Math.sin(seconds * 2.2) * 3 * (1 - Math.abs(sway))
+        const hover = reduced
+          ? 0
+          : sleeping
+            ? Math.sin(seconds * 1.1) * 2 + 4
+            : Math.sin(seconds * 2.2) * 3 * (1 - Math.abs(sway))
 
         spring(main, PARTS.main, goalX + sway * 6, goalY + hover)
 
@@ -296,7 +317,8 @@ export function Companion({ targets, describe, syncing = false, paused = false }
         const size = PARTS[part]
 
         body.lean = Math.max(-18, Math.min(18, body.velocityX * 0.03)) + (part === 'main' ? sway * 8 : 0)
-        stars[part]!.style.transform = `translate(${body.x - size.width / 2}px, ${body.y - size.height / 2}px) rotate(${body.lean}deg)`
+        stars[part]!.style.transform =
+          `translate(${body.x - size.width / 2}px, ${body.y - size.height / 2}px) rotate(${body.lean}deg)`
       }
 
       // Tethers are noodles with a little slack: one S-shaped wiggle that sways, goes slacker as a star comes closer,
@@ -327,13 +349,11 @@ export function Companion({ targets, describe, syncing = false, paused = false }
         const second = -amplitude * 0.8 + drag
         const point = (x: number, y: number) => `${(x - boxLeft).toFixed(1)} ${(y - boxTop).toFixed(1)}`
 
-        tethers[side]!.setAttribute(
-          'd',
-          `M${point(body.x, body.y)} C${point(body.x + deltaX / 3 + normalX * first, body.y + deltaY / 3 + normalY * first)} ${point(
-            body.x + (deltaX * 2) / 3 + normalX * second,
-            body.y + (deltaY * 2) / 3 + normalY * second,
-          )} ${point(attachX, attachY)}`,
-        )
+        const start = point(body.x, body.y)
+        const near = point(body.x + deltaX / 3 + normalX * first, body.y + deltaY / 3 + normalY * first)
+        const far = point(body.x + (deltaX * 2) / 3 + normalX * second, body.y + (deltaY * 2) / 3 + normalY * second)
+
+        tethers[side]!.setAttribute('d', `M${start} C${near} ${far} ${point(attachX, attachY)}`)
       }
 
       // The eyes look where it's heading, and a fast dash startles it.

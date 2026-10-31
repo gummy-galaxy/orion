@@ -6,8 +6,11 @@ import { describeCard, type Hint, type PerchTarget } from './companion'
 import { groupHeaderHeight, isComponent, isNote, type AppNode, type ClusterData } from './model'
 import { collapsedAtom, nodesAtom, workAtom } from './state'
 
-/** How far into an open group, in canvas units, its top row of cards ends. The header band, if any, sits above that row. */
-const topRowDepthOf = (group: { data: unknown }) => groupHeaderHeight(group.data as ClusterData) + GROUP_PADDING + TASK_HEIGHT
+/**
+ * How far into an open group, in canvas units, its top row of cards ends. The header band, if any, sits above that row.
+ */
+const topRowDepthOf = (group: { data: unknown }) =>
+  groupHeaderHeight(group.data as ClusterData) + GROUP_PADDING + TASK_HEIGHT
 
 /**
  * What the companion can perch on and what it says there, read from React Flow's measured nodes and the derived work
@@ -27,7 +30,9 @@ export function useCompanionTargets() {
       if (node.hidden) continue
 
       // Cards and folded groups; an open group's frame would always be nearest whatever is inside it.
-      const perchable = (node.type === 'task' && !isNote(node as unknown as AppNode)) || (node.type === 'cluster' && collapsed.has(node.id))
+      const perchable =
+        (node.type === 'task' && !isNote(node as unknown as AppNode)) ||
+        (node.type === 'cluster' && collapsed.has(node.id))
 
       if (!perchable) continue
 
@@ -38,7 +43,8 @@ export function useCompanionTargets() {
       const top = y * zoom + translateY
       const parent = node.parentId ? nodeLookup.get(node.parentId) : undefined
       // A card in the top row of an open group perches above the group's header rather than on it.
-      const parentY = parent?.type === 'cluster' && !collapsed.has(parent.id) ? parent.internals.positionAbsolute.y : undefined
+      const parentY =
+        parent?.type === 'cluster' && !collapsed.has(parent.id) ? parent.internals.positionAbsolute.y : undefined
       const underHeader = parent !== undefined && parentY !== undefined && y - parentY < topRowDepthOf(parent)
 
       shown.push({

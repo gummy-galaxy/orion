@@ -93,7 +93,8 @@ export function getCardView(node: TaskNode, facts: CardFacts): CardView {
   const checkProgress = pullRef?.checks?.progress
   const checkCounts = getCheckCounts(pullRef?.checks)
   // Work parked or blocked by hand stays that way even when GitHub would merge it.
-  const readyToMerge = readiness === 'mergeable' && (facts.status === 'review' || facts.status === 'ready' || facts.status === 'active')
+  const readyToMerge =
+    readiness === 'mergeable' && (facts.status === 'review' || facts.status === 'ready' || facts.status === 'active')
   const merge = readyToMerge && pullRef?.url && pullRef.head ? { url: pullRef.url, head: pullRef.head } : undefined
   // The primary ref's URL, so a badge for another GitHub ref can't change what opens from a pull request card.
   const url = getTaskUrl(data)

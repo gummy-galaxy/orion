@@ -105,13 +105,13 @@ function sync.create(
 		-- edits don't wait on GitHub.
 		local didSucceed, failure = pcall(function()
 			local dir = getWorkspaceDir(root, target)
-			local adapter = getAdapter("github")
+			local verbs = assert(getAdapter("github").source)
 			local snapshot = loadDoc(dir)
 			local timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
 			local apply: ((types.Doc) -> githubTypes.Report)?
 
 			if want == nil then
-				apply = assert(adapter.refreshAsync)(snapshot, command, { now = timestamp })
+				apply = assert(verbs.refreshAsync)(snapshot, command, { now = timestamp })
 			else
 				if sweepsSooner and not want.sweep then
 					local cards = findRefreshSooner(snapshot, readFocus(dir))
@@ -122,7 +122,7 @@ function sync.create(
 					end
 				end
 
-				local changed = assert(adapter.refreshChangedAsync)(snapshot, command, poll, want, timestamp)
+				local changed = assert(verbs.refreshChangedAsync)(snapshot, command, poll, want, timestamp)
 				failures, fetched, apply = changed.failures, changed.fetched, changed.apply
 			end
 

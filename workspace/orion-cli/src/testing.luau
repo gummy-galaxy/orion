@@ -20,6 +20,8 @@ type Doc = types.Doc
 type Item = types.Item
 type PullState = githubTypes.PullState
 
+local CLAUDE_SESSION = "0b6c3a9e-1111-4222-8333-944455556666"
+
 -- Shared fixtures for specs.
 local testing = {}
 
@@ -190,6 +192,32 @@ function testing.createHarness(name: string)
 	end
 
 	return dir, run, setWorkspace
+end
+
+-- A Claude Code data folder with one transcript and, with a status, the
+-- record of the process running it. Returns the session id.
+function testing.writeClaudeFixture(dir: string, fixture: { branch: string, stop: string, status: string? }): string
+	fs.createDirectory(`{dir}/projects/-work`, { makeParents = true })
+	fs.writeStringToFile(
+		`{dir}/projects/-work/{CLAUDE_SESSION}.jsonl`,
+		`\{"type":"user","gitBranch":"{fixture.branch}","cwd":"/work","message":\{"content":"Go"}}\n`
+			.. `\{"type":"assistant","gitBranch":"{fixture.branch}","cwd":"/work",`
+			.. `"message":\{"stop_reason":"{fixture.stop}","content":[\{"type":"text","text":"On it."}]}}\n`
+	)
+
+	if fixture.status then
+		fs.createDirectory(`{dir}/sessions`, { makeParents = true })
+		fs.writeStringToFile(
+			`{dir}/sessions/42.json`,
+			json.serialize(
+				json.object({ pid = 42, sessionId = CLAUDE_SESSION, status = fixture.status, name = "Fix the bug" })
+			)
+		)
+		-- Key files sit beside the records and must never be read.
+		fs.writeStringToFile(`{dir}/sessions/42.secret.key`, "not json")
+	end
+
+	return CLAUDE_SESSION
 end
 
 return testing

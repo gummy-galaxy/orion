@@ -24,8 +24,13 @@ describe('patch work', () => {
   it('sets and clears whose move it is', () => {
     const nodes = [card('a'), card('b', { who: 'ci' })]
 
-    expect(patchWork(nodes, new Set(['a', 'b']), { who: 'you' }).map((node) => (node.data as TaskData).who)).toEqual(['you', 'you'])
-    expect(patchWork(nodes, new Set(['a', 'b']), { who: undefined }).map((node) => (node.data as TaskData).who)).toEqual([undefined, undefined])
+    expect(patchWork(nodes, new Set(['a', 'b']), { who: 'you' }).map((node) => (node.data as TaskData).who)).toEqual([
+      'you',
+      'you',
+    ])
+    expect(
+      patchWork(nodes, new Set(['a', 'b']), { who: undefined }).map((node) => (node.data as TaskData).who),
+    ).toEqual([undefined, undefined])
   })
 
   it('leaves notes, components, and groups alone', () => {

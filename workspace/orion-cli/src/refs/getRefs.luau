@@ -5,6 +5,7 @@ local types = require("@root/types")
 type Item = types.Item
 type Ref = types.Ref
 
+-- A card's well-formed refs, of any kind, so a new kind needs no change here.
 local function getRefs(item: Item): { Ref }
 	local refs: { Ref } = {}
 
@@ -15,7 +16,8 @@ local function getRefs(item: Item): { Ref }
 			ref
 			and type(ref.source) == "string"
 			and ref.source ~= ""
-			and (ref.kind == "pull" or ref.kind == "issue" or ref.kind == "branch")
+			and type(ref.kind) == "string"
+			and ref.kind ~= ""
 			and type(ref.key) == "string"
 			and ref.key ~= ""
 		then

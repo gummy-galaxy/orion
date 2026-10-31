@@ -46,7 +46,13 @@ function arrangedGroup(id: string, x: number, y: number): AppNode[] {
 describe('skin space', () => {
   const nodes = normalize([
     { id: 'outer', type: 'cluster', position: { x: 360, y: 200 }, data: { kind: 'cluster', label: 'Outer' } },
-    { id: 'inner', type: 'cluster', parentId: 'outer', position: { x: 320, y: 180 }, data: { kind: 'cluster', label: 'Inner' } },
+    {
+      id: 'inner',
+      type: 'cluster',
+      parentId: 'outer',
+      position: { x: 320, y: 180 },
+      data: { kind: 'cluster', label: 'Inner' },
+    },
     task('nested-a', 'inner', 32, 78),
     task('nested-b', 'inner', 304, 174),
     task('outer-card', 'outer', 32, 78),
@@ -91,7 +97,8 @@ describe('skin space', () => {
     const displayed = toDisplayed(stored, largeSize)
 
     for (const first of displayed)
-      for (const second of displayed) if (first.id < second.id && first.parentId === second.parentId) expect(boxesOverlap(first, second)).toBe(false)
+      for (const second of displayed)
+        if (first.id < second.id && first.parentId === second.parentId) expect(boxesOverlap(first, second)).toBe(false)
 
     expect(toStored(displayed, largeSize)).toEqual(stored)
   })
@@ -110,6 +117,8 @@ describe('skin space', () => {
     const group = shown.find((node) => node.id === 'g')!
 
     expect(group.width).toBeGreaterThan(900)
-    expect(toStored(shown, largeSize).find((node) => node.id === 'g')!.data).toEqual(sized.find((node) => node.id === 'g')!.data)
+    expect(toStored(shown, largeSize).find((node) => node.id === 'g')!.data).toEqual(
+      sized.find((node) => node.id === 'g')!.data,
+    )
   })
 })

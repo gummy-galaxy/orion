@@ -52,7 +52,12 @@ export function GroupInspector({
       {data.blurb && <p className="blurb">{data.blurb}</p>}
       <GroupFacts stats={stats} />
       <label htmlFor="g-color">Color</label>
-      <TintSelect id="g-color" value={data.color} inherit={node.parentId ? "Its group's" : 'None'} change={(color) => update(node.id, { color })} />
+      <TintSelect
+        id="g-color"
+        value={data.color}
+        inherit={node.parentId ? "Its group's" : 'None'}
+        change={(color) => update(node.id, { color })}
+      />
       <GroupArrange data={data} change={arrange} />
       <CoverSettings title="Cover and background" workspace={workspace} current={data} change={changeStyle} />
       <HeaderSettings title="Header" value={data.header} change={(header) => changeStyle({ header })} />

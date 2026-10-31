@@ -10,7 +10,13 @@ const task = (id: string, x: number, y: number, parentId?: string): AppNode => (
   data: { kind: 'task', label: id, status: 'todo' },
 })
 
-const group = (id: string, x: number, y: number, arrange: 'auto' | 'custom' = 'custom', parentId?: string): ClusterNode => ({
+const group = (
+  id: string,
+  x: number,
+  y: number,
+  arrange: 'auto' | 'custom' = 'custom',
+  parentId?: string,
+): ClusterNode => ({
   id,
   type: 'cluster',
   parentId,

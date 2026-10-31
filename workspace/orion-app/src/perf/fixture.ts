@@ -1,4 +1,13 @@
-import { groupHeaderHeight, normalize, sizeOf, type AppNode, type ClusterNode, type Link, type Status, type TaskNode } from '../model'
+import {
+  groupHeaderHeight,
+  normalize,
+  sizeOf,
+  type AppNode,
+  type ClusterNode,
+  type Link,
+  type Status,
+  type TaskNode,
+} from '../model'
 import type { Saved } from '../persist'
 
 export type FixtureOptions = {
@@ -25,7 +34,10 @@ const { width: TASK_WIDTH, height: TASK_HEIGHT } = sizeOf({
 const GROUP_HEADER_HEIGHT = groupHeaderHeight(undefined)
 // An empty group is one card wide plus its padding on each side.
 const GROUP_PADDING =
-  ((normalize([{ id: 'size', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: '' } }])[0].width ?? 0) - TASK_WIDTH) / 2
+  ((normalize([{ id: 'size', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: '' } }])[0]
+    .width ?? 0) -
+    TASK_WIDTH) /
+  2
 const AREA_COLUMNS = 2
 const TOP_COLUMNS = 4
 const STATUSES: [Status, number][] = [
@@ -63,8 +75,10 @@ function pickStatus(roll: number): Status {
   return 'todo'
 }
 
-const groupWidth = (columns: number, inner: number, gap: number) => 2 * GROUP_PADDING + columns * inner + (columns - 1) * gap
-const groupHeight = (rows: number, inner: number, gap: number) => GROUP_HEADER_HEIGHT + rows * inner + (rows - 1) * gap + GROUP_PADDING
+const groupWidth = (columns: number, inner: number, gap: number) =>
+  2 * GROUP_PADDING + columns * inner + (columns - 1) * gap
+const groupHeight = (rows: number, inner: number, gap: number) =>
+  GROUP_HEADER_HEIGHT + rows * inner + (rows - 1) * gap + GROUP_PADDING
 
 /**
  * A canvas shaped like a busy real one: top-level areas of nested groups, chains of dependent cards in each group,
@@ -88,7 +102,10 @@ export function generateCanvas({ cards, perGroup = 24, perArea = 4, seed = 1 }: 
     const areaNode: ClusterNode = {
       id: `area-${area}`,
       type: 'cluster',
-      position: { x: (area % TOP_COLUMNS) * (areaWidth + GAP * 4), y: Math.floor(area / TOP_COLUMNS) * (areaHeight + GAP * 4) },
+      position: {
+        x: (area % TOP_COLUMNS) * (areaWidth + GAP * 4),
+        y: Math.floor(area / TOP_COLUMNS) * (areaHeight + GAP * 4),
+      },
       width: areaWidth,
       height: areaHeight,
       data: { kind: 'cluster', label: `Area ${area + 1}` },
@@ -122,14 +139,20 @@ export function generateCanvas({ cards, perGroup = 24, perArea = 4, seed = 1 }: 
           id,
           type: 'task',
           parentId: groupId,
-          position: { x: GROUP_PADDING + (i % ROW) * (TASK_WIDTH + GAP), y: GROUP_HEADER_HEIGHT + Math.floor(i / ROW) * (TASK_HEIGHT + GAP) },
+          position: {
+            x: GROUP_PADDING + (i % ROW) * (TASK_WIDTH + GAP),
+            y: GROUP_HEADER_HEIGHT + Math.floor(i / ROW) * (TASK_HEIGHT + GAP),
+          },
           data: {
             kind: 'task',
             label: `Card ${made + 1} in stream ${index + 1}`,
             ...(kindRoll < 0.04 ? { type: 'note' } : kindRoll < 0.07 ? { type: 'gate' } : {}),
             status: pickStatus(roll()),
             ...(isPullRequest
-              ? { repo: 'vocksel/orion', refs: [{ source: 'github', kind: 'pull', type: 'pr', key: `vocksel/orion#${1000 + made}` }] }
+              ? {
+                  repo: 'vocksel/orion',
+                  refs: [{ source: 'github', kind: 'pull', type: 'pr', key: `vocksel/orion#${1000 + made}` }],
+                }
               : {}),
           },
         }
@@ -146,7 +169,8 @@ export function generateCanvas({ cards, perGroup = 24, perArea = 4, seed = 1 }: 
     for (let i = 1; i < ids.length; i++) {
       if (roll() < 0.7) links.push({ id: `chain-${ids[i]}`, from: ids[i - 1], to: ids[i], kind: 'blocks' })
 
-      if (i > 2 && roll() < 0.2) links.push({ id: `skip-${ids[i]}`, from: ids[Math.floor(roll() * (i - 1))], to: ids[i], kind: 'blocks' })
+      if (i > 2 && roll() < 0.2)
+        links.push({ id: `skip-${ids[i]}`, from: ids[Math.floor(roll() * (i - 1))], to: ids[i], kind: 'blocks' })
     }
 
     // Links only run forward between groups, so dependencies never form a loop.

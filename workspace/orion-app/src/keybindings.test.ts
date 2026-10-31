@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_KEYBINDINGS, SHORTCUTS, chordOf, conflictsOf, formatChord, matchesChord, normalizeChord } from './keybindings'
+import {
+  DEFAULT_KEYBINDINGS,
+  SHORTCUTS,
+  chordOf,
+  conflictsOf,
+  formatChord,
+  matchesChord,
+  normalizeChord,
+} from './keybindings'
 import { largeChordOf } from './nudge'
 
-const press = (key: string, code: string, held: { meta?: boolean; ctrl?: boolean; alt?: boolean; shift?: boolean } = {}) => ({
+const press = (
+  key: string,
+  code: string,
+  held: { meta?: boolean; ctrl?: boolean; alt?: boolean; shift?: boolean } = {},
+) => ({
   key,
   code,
   metaKey: held.meta ?? false,
@@ -78,9 +90,13 @@ describe('keybindings', () => {
   it('keeps bring forward and send backward apart from back and forward navigation', () => {
     expect(DEFAULT_KEYBINDINGS['go-forward']).toBe('Mod+]')
     expect(DEFAULT_KEYBINDINGS['go-back']).toBe('Mod+[')
-    expect(matchesChord(press(']', 'BracketRight', { meta: true, alt: true }), DEFAULT_KEYBINDINGS['bring-forward'])).toBe(true)
+    expect(
+      matchesChord(press(']', 'BracketRight', { meta: true, alt: true }), DEFAULT_KEYBINDINGS['bring-forward']),
+    ).toBe(true)
     expect(matchesChord(press(']', 'BracketRight', { meta: true }), DEFAULT_KEYBINDINGS['bring-forward'])).toBe(false)
-    expect(matchesChord(press('[', 'BracketLeft', { meta: true, alt: true }), DEFAULT_KEYBINDINGS['send-backward'])).toBe(true)
+    expect(
+      matchesChord(press('[', 'BracketLeft', { meta: true, alt: true }), DEFAULT_KEYBINDINGS['send-backward']),
+    ).toBe(true)
   })
 
   it('reads the new chords from key presses', () => {

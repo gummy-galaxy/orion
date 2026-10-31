@@ -120,6 +120,7 @@ local function decodeDocObject(root: json.Object): Doc
 				include = getStrings(source.include),
 				exclude = getStrings(source.exclude),
 				browse = getStringField(source.browse),
+				dir = getStringField(source.dir),
 			})
 		end
 	end

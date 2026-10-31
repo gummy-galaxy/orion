@@ -2,7 +2,18 @@ import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import type { CardSize } from './cardSize'
 import { descendants } from './hierarchy/descendants'
 import { indexNodes } from './hierarchy/indexNodes'
-import { absolutePosition, ancestors, byId, isCluster, isImage, isTask, normalize, sizeOf, type AppNode, type Link } from './model'
+import {
+  absolutePosition,
+  ancestors,
+  byId,
+  isCluster,
+  isImage,
+  isTask,
+  normalize,
+  sizeOf,
+  type AppNode,
+  type Link,
+} from './model'
 import { pushAside } from './pushAside'
 import { STICKER_HALF_SIZE, type Sticker } from './sticker'
 
@@ -60,7 +71,8 @@ export function copySelection(
 ): Clip | null {
   const { byId: nodeMap, children } = indexNodes(doc.nodes)
   const roots = doc.nodes.filter(
-    (node) => selection.nodes.has(node.id) && !ancestors(node.id, nodeMap).some((ancestor) => selection.nodes.has(ancestor)),
+    (node) =>
+      selection.nodes.has(node.id) && !ancestors(node.id, nodeMap).some((ancestor) => selection.nodes.has(ancestor)),
   )
   const copied = new Set(roots.flatMap((node) => [node.id, ...descendants(node.id, children)]))
   const stickers = doc.stickers
@@ -71,7 +83,13 @@ export function copySelection(
       const node = nodeMap.get(sticker.on)
       const origin = node ? absolutePosition(node, nodeMap) : { x: 0, y: 0 }
 
-      return { id: sticker.id, kind: sticker.kind, tilt: sticker.tilt, x: origin.x + sticker.x, y: origin.y + sticker.y }
+      return {
+        id: sticker.id,
+        kind: sticker.kind,
+        tilt: sticker.tilt,
+        x: origin.x + sticker.x,
+        y: origin.y + sticker.y,
+      }
     })
 
   if (!roots.length && !stickers.length) return null
@@ -126,7 +144,11 @@ export function pasteClip(
 ): Pasted {
   const cardSize = options.cardSize ?? DEFAULT_CARD_SIZE
   const nodeMap = byId(doc.nodes)
-  const taken = new Set([...doc.nodes.map((node) => node.id), ...doc.links.map((link) => link.id), ...doc.stickers.map((sticker) => sticker.id)])
+  const taken = new Set([
+    ...doc.nodes.map((node) => node.id),
+    ...doc.links.map((link) => link.id),
+    ...doc.stickers.map((sticker) => sticker.id),
+  ])
 
   const freshId = () => {
     let id = options.makeId()
@@ -171,7 +193,12 @@ export function pasteClip(
     cardSize,
   )
 
-  return { nodes, links: [...doc.links, ...links], stickers: [...doc.stickers, ...stickers], stickerIds: stickers.map((sticker) => sticker.id) }
+  return {
+    nodes,
+    links: [...doc.links, ...links],
+    stickers: [...doc.stickers, ...stickers],
+    stickerIds: stickers.map((sticker) => sticker.id),
+  }
 }
 
 /**
@@ -204,22 +231,30 @@ export function moveClipAssets(clip: Clip, workspace: string, copied: ReadonlyMa
     workspace,
     nodes: clip.nodes.map((node): AppNode => {
       if (isImage(node))
-        return copied.has(node.data.asset) ? { ...node, data: { ...node.data, asset: copied.get(node.data.asset)!, canvas: workspace } } : node
+        return copied.has(node.data.asset)
+          ? { ...node, data: { ...node.data, asset: copied.get(node.data.asset)!, canvas: workspace } }
+          : node
 
       if (isCluster(node) && (copied.has(node.data.cover ?? '') || copied.has(node.data.background ?? '')))
-        return { ...node, data: { ...node.data, cover: asset(node.data.cover), background: asset(node.data.background) } }
+        return {
+          ...node,
+          data: { ...node.data, cover: asset(node.data.cover), background: asset(node.data.background) },
+        }
 
       return node
     }),
   }
 }
 
-/** The asset ids a clip's images and group covers and backgrounds use, which a paste into another workspace copies over. */
+/**
+ * The asset ids a clip's images and group covers and backgrounds use, which a paste into another workspace copies over.
+ */
 export function clipAssets(clip: Clip, isAsset: (value: string | undefined) => boolean): string[] {
   const assets = clip.nodes.flatMap((node) => {
     if (isImage(node)) return [node.data.asset]
 
-    if (isCluster(node)) return [node.data.cover, node.data.background].filter((value): value is string => isAsset(value))
+    if (isCluster(node))
+      return [node.data.cover, node.data.background].filter((value): value is string => isAsset(value))
 
     return []
   })

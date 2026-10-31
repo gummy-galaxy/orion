@@ -12,7 +12,11 @@ const TEXT = {
     size: CARD_TEXT.label.size,
     lineHeight: CARD_TEXT.label.size * CARD_TEXT.label.lineHeight,
   },
-  note: { font: `${CARD_TEXT.note.size}px ${FONT_UI}`, size: CARD_TEXT.note.size, lineHeight: CARD_TEXT.note.size * CARD_TEXT.note.lineHeight },
+  note: {
+    font: `${CARD_TEXT.note.size}px ${FONT_UI}`,
+    size: CARD_TEXT.note.size,
+    lineHeight: CARD_TEXT.note.size * CARD_TEXT.note.lineHeight,
+  },
   description: {
     font: `${CARD_TEXT.description.size}px ${FONT_UI}`,
     size: CARD_TEXT.description.size,
@@ -31,7 +35,8 @@ function measure(text: string, style: (typeof TEXT)[keyof typeof TEXT]): number 
 
   if (known !== undefined) return known
 
-  if (context === undefined) context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d')
+  if (context === undefined)
+    context = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d')
 
   let width: number
 
@@ -87,19 +92,26 @@ export function taskHeight(data: TaskData, cardSize: CardSize): number {
   let height: number
 
   if (layout === 'note') {
-    height = CARD_TEXT.chrome + lineCount(data.label || 'Empty note', TEXT.note, cardSize.width - CARD_TEXT.sides.note) * TEXT.note.lineHeight
+    height =
+      CARD_TEXT.chrome +
+      lineCount(data.label || 'Empty note', TEXT.note, cardSize.width - CARD_TEXT.sides.note) * TEXT.note.lineHeight
   } else if (layout === 'component') {
     const room = SHAPE_ROOM[data.shape ?? ''] ?? { x: 0, y: 0 }
     const width = cardSize.width - CARD_TEXT.sides.component - room.x
     const label = lineCount(data.label || 'Untitled component', TEXT.label, width) * TEXT.label.lineHeight
-    const description = data.note ? CARD_TEXT.descriptionGap + lineCount(data.note, TEXT.description, width) * TEXT.description.lineHeight : 0
+    const description = data.note
+      ? CARD_TEXT.descriptionGap + lineCount(data.note, TEXT.description, width) * TEXT.description.lineHeight
+      : 0
 
     height = CARD_TEXT.chrome + room.y + label + description
   } else return cardSize.height
 
   // A little slack covers rounding and a web font that measures slightly wider than its fallback. Components never
   // shrink below a classic card, whatever the skin.
-  const fit = Math.min(TASK_MAX_HEIGHT, Math.max(TASK_HEIGHT, Math.ceil((height + CARD_TEXT.slack) / CARD_TEXT.step) * CARD_TEXT.step))
+  const fit = Math.min(
+    TASK_MAX_HEIGHT,
+    Math.max(TASK_HEIGHT, Math.ceil((height + CARD_TEXT.slack) / CARD_TEXT.step) * CARD_TEXT.step),
+  )
 
   return layout === 'note' ? Math.max(cardSize.height, fit) : fit
 }

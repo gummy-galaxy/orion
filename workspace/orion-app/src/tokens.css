@@ -190,7 +190,6 @@
   color-scheme: light dark;
 }
 
-
 :root[data-color-mode='light'] {
   color-scheme: light;
 }

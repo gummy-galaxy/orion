@@ -11,10 +11,12 @@ local getVersion = require("@root/getVersion")
 local getWorkspaceDir = require("@root/store/getWorkspaceDir")
 local getWorkspaces = require("@root/store/getWorkspaces")
 local isTrustedRequest = require("@root/server/isTrustedRequest")
+local queries = require("@root/server/queries")
 local readRuntime = require("@root/server/readRuntime")
 local removeRuntime = require("@root/server/removeRuntime")
 local routes = require("@root/server/routes")
 local serializeDerived = require("@root/server/serializeDerived")
+local sessions = require("@root/server/sessions")
 local storeTypes = require("@root/store/types")
 local sync = require("@root/server/sync")
 local types = require("@root/types")
@@ -47,6 +49,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	end)
 
 	local monitor
+	local openQueries = queries.create(root)
 	local router = routes.create(root, workspace, syncLoop, function(name: string)
 		assert(monitor).switchTo(name)
 		syncLoop.switchTo(name)
@@ -55,6 +58,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			writeRuntime(root, runtime)
 		end
 		hub.publish("orion:canvas", json.object({ active = name }))
+		openQueries.refresh(name)
 		task.spawn(function()
 			syncLoop.runAsync(true)
 		end)
@@ -73,6 +77,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			end
 
 			hub.publish("orion:changed", event)
+			openQueries.refresh(router.getActive())
 		end,
 		function(list: WorkspaceList)
 			hub.publish("orion:canvases", json.object({ active = list.active, canvases = list.workspaces }))
@@ -81,6 +86,8 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 			hub.publish("orion:log", json.object({ canvas = name }))
 		end
 	)
+
+	local sessionLoop = sessions.create(root, router.getActive)
 
 	local trustedPorts: { number } = {}
 	if devPort then
@@ -108,8 +115,12 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 
 		websocket = {
 			open = hub.open,
+			message = function(socket, message)
+				openQueries.receive(socket, message, router.getActive())
+			end,
 			close = function(socket)
 				hub.close(socket)
+				openQueries.close(socket)
 			end,
 		},
 	})
@@ -124,6 +135,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 	}
 	writeRuntime(root, runtime)
 	monitor.start()
+	sessionLoop.start()
 	task.delay(5, function()
 		while true do
 			syncLoop.tickAsync()
@@ -136,6 +148,7 @@ function server.start(root: string, workspace: string, host: string, port: numbe
 		port = running.port,
 		close = function()
 			assert(monitor).close()
+			sessionLoop.close()
 			running.close()
 			removeRuntime(root, runtime)
 			clearAllFocus()

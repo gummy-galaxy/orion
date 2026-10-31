@@ -11,7 +11,8 @@ const task = (id: string, parentId?: string, selected?: boolean): AppNode => ({
   data: { kind: 'task', label: id, status: 'todo' },
 })
 
-const many = (count: number, parentId?: string) => Array.from({ length: count }, (_, i) => task(`${parentId ?? 'top'}-${i}`, parentId))
+const many = (count: number, parentId?: string) =>
+  Array.from({ length: count }, (_, i) => task(`${parentId ?? 'top'}-${i}`, parentId))
 
 describe('select all', () => {
   it('takes the items directly inside the open group', () => {
