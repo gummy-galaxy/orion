@@ -15,6 +15,7 @@ const SAVED = [
   'companion',
   'sidebar',
   'details',
+  'details-tab',
   'sidebar-width',
   'details-width',
   'debug',
