@@ -57,7 +57,9 @@ export function useNodeSnapping({
       // Capture the session before queueing the node update; the last position change can arrive just before drag stop.
       const session = drag.current
       const movedIds =
-        session && !session.free ? changes.flatMap((change) => (change.type === 'position' && session.ids.has(change.id) ? [change.id] : [])) : []
+        session && !session.free
+          ? changes.flatMap((change) => (change.type === 'position' && session.ids.has(change.id) ? [change.id] : []))
+          : []
       const tolerance = SNAP_PX / reactFlow.getZoom()
       const reach = SNAP_REACH_PX / reactFlow.getZoom()
       const pop = POP_DISTANCE / reactFlow.getZoom()
@@ -95,7 +97,8 @@ export function useNodeSnapping({
         const node = nodeMap.get(draggedNode.id)
         const parent = node?.parentId ? nodeMap.get(node.parentId) : undefined
 
-        if (node && parent && isCluster(parent) && parent.data.arrange !== 'custom') dragOrigins.current.set(node.id, node.position)
+        if (node && parent && isCluster(parent) && parent.data.arrange !== 'custom')
+          dragOrigins.current.set(node.id, node.position)
       }
     },
     [getCurrentNodes, setNodes, cardSize],
@@ -111,12 +114,17 @@ export function useNodeSnapping({
       setSkipSnapGuides(event.ctrlKey)
       const point = 'touches' in event ? event.touches[0] : event
 
-      if (point) session.samples = [...session.samples.slice(-7), { x: point.clientX, y: point.clientY, time: performance.now() }]
+      if (point)
+        session.samples = [
+          ...session.samples.slice(-7),
+          { x: point.clientX, y: point.clientY, time: performance.now() },
+        ]
 
       const escape = session.escape
       const target = escape ? dropTarget(getCurrentNodes(), escape, cardSize) : undefined
 
-      // Only a group that isn't the one the work started in is highlighted. Landing at the top level has nothing to show.
+      // Only a group that isn't the one the work started in is highlighted. Landing at the top level has nothing to
+      // show.
       setDropTarget(escape && target && target !== escape.from ? target : null)
     },
     [getCurrentNodes, cardSize, setDropTarget],
@@ -137,7 +145,11 @@ export function useNodeSnapping({
 
       // The drop is the edit, so a group the drag took its last card out of goes, judged against where the drag began.
       const released = (currentNodes: AppNode[]) =>
-        pushAside(session.before, pruneEmptied(session.before, normalize(unliftNodes(currentNodes, session.ids), cardSize)), cardSize)
+        pushAside(
+          session.before,
+          pruneEmptied(session.before, normalize(unliftNodes(currentNodes, session.ids), cardSize)),
+          cardSize,
+        )
       const now = performance.now()
       const recentSamples = session.samples.filter((sample) => now - sample.time <= THROW_WINDOW_MS)
       const firstSample = recentSamples[0]
@@ -145,14 +157,17 @@ export function useNodeSnapping({
       const thrown =
         !!firstSample &&
         lastSample.time > firstSample.time &&
-        Math.hypot(lastSample.x - firstSample.x, lastSample.y - firstSample.y) / (lastSample.time - firstSample.time) >= THROW_SPEED
+        Math.hypot(lastSample.x - firstSample.x, lastSample.y - firstSample.y) / (lastSample.time - firstSample.time) >=
+          THROW_SPEED
       const draggedIds = [...session.ids]
 
       // The last position change lands a frame after drag stop, so where the work ended up is read then, and whether
       // it got far enough to pop out is checked once more from there.
       requestAnimationFrame(() => {
         const currentNodes = getCurrentNodes()
-        const escape = session.escape && followEscape(currentNodes, session.escape, session.before, POP_DISTANCE / reactFlow.getZoom(), cardSize)
+        const escape =
+          session.escape &&
+          followEscape(currentNodes, session.escape, session.before, POP_DISTANCE / reactFlow.getZoom(), cardSize)
         const target = escape ? dropTarget(currentNodes, escape, cardSize) : undefined
 
         // Work dropped into another group, or popped out of its own, lands where it was let go.
@@ -160,14 +175,19 @@ export function useNodeSnapping({
           return setNodes((latestNodes) =>
             pushAside(
               session.before,
-              pruneEmptied(session.before, normalize(reparent(unliftNodes(latestNodes, session.ids), escape.roots, target, escape.from), cardSize)),
+              pruneEmptied(
+                session.before,
+                normalize(reparent(unliftNodes(latestNodes, session.ids), escape.roots, target, escape.from), cardSize),
+              ),
               cardSize,
             ),
           )
 
         const free = session.free || event.ctrlKey
         const settled =
-          !origins.size && (free || !draggedIds.length) ? currentNodes : finishDrag(currentNodes, origins, draggedIds, free, thrown, cardSize)
+          !origins.size && (free || !draggedIds.length)
+            ? currentNodes
+            : finishDrag(currentNodes, origins, draggedIds, free, thrown, cardSize)
         // Work that stays in its group lands within it, so a drop never grows the group.
         const finished = landInside(settled, session.ids, cardSize)
         const result = released(finished)

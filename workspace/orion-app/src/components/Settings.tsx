@@ -86,13 +86,25 @@ export function Settings({
             </button>
           ))}
         </nav>
-        <button type="button" className="settings-close" aria-label="Close settings" title="Close (Esc)" onClick={close}>
+        <button
+          type="button"
+          className="settings-close"
+          aria-label="Close settings"
+          title="Close (Esc)"
+          onClick={close}
+        >
           ×
         </button>
         <div className="settings-body">
-          {section === 'appearance' && <AppearanceSettings appearance={appearance} themes={themes} chooseAppearance={chooseAppearance} />}
-          {section === 'accessibility' && <AccessibilitySettings appearance={appearance} chooseAppearance={chooseAppearance} />}
-          {section === 'shortcuts' && <ShortcutSettings keybindings={keybindings} chooseKeybindings={chooseKeybindings} />}
+          {section === 'appearance' && (
+            <AppearanceSettings appearance={appearance} themes={themes} chooseAppearance={chooseAppearance} />
+          )}
+          {section === 'accessibility' && (
+            <AccessibilitySettings appearance={appearance} chooseAppearance={chooseAppearance} />
+          )}
+          {section === 'shortcuts' && (
+            <ShortcutSettings keybindings={keybindings} chooseKeybindings={chooseKeybindings} />
+          )}
           {section === 'privacy' && <PrivacySettings telemetry={telemetry} chooseTelemetry={chooseTelemetry} />}
         </div>
       </div>

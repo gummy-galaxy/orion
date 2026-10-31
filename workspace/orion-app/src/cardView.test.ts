@@ -12,9 +12,22 @@ const createTaskData = (overrides: Partial<TaskData> = {}): TaskData => ({
   ...overrides,
 })
 
-const createTaskNode = (taskData: TaskData): TaskNode => ({ id: 'card-1', type: 'task', position: { x: 0, y: 0 }, data: taskData })
-const sources: SourceRef[] = [{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }]
-const createFacts = (status: ViewStatus = 'ready', upstream = 0, rarity: Rarity = 'common') => ({ status, leverage: 3, upstream, rarity, sources })
+const createTaskNode = (taskData: TaskData): TaskNode => ({
+  id: 'card-1',
+  type: 'task',
+  position: { x: 0, y: 0 },
+  data: taskData,
+})
+const sources: SourceRef[] = [
+  { domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' },
+]
+const createFacts = (status: ViewStatus = 'ready', upstream = 0, rarity: Rarity = 'common') => ({
+  status,
+  leverage: 3,
+  upstream,
+  rarity,
+  sources,
+})
 
 describe('getCardView', () => {
   it('passes through the kind, tag, URL, sources, and card identity', () => {
@@ -50,7 +63,9 @@ describe('getCardView', () => {
   })
 
   it('shows the rarity the server derived for work and leaves it absent for notes', () => {
-    expect(getCardView(createTaskNode(createTaskData({ itemKind: 'gate' })), createFacts('ready', 14, 'mythic'))).toMatchObject({
+    expect(
+      getCardView(createTaskNode(createTaskData({ itemKind: 'gate' })), createFacts('ready', 14, 'mythic')),
+    ).toMatchObject({
       upstream: 14,
       rarity: 'mythic',
     })
@@ -70,13 +85,17 @@ describe('getCardView', () => {
   })
 
   it.each(['passing', 'failing', 'pending'] as const)('carries %s checks', (state) => {
-    const taskNode = createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', checks: { state } }] }))
+    const taskNode = createTaskNode(
+      createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', checks: { state } }] }),
+    )
 
     expect(getCardView(taskNode, createFacts()).checks).toBe(state)
   })
 
   it('omits checks when the pull has no check state', () => {
-    const taskNode = createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1' }] }))
+    const taskNode = createTaskNode(
+      createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1' }] }),
+    )
 
     expect(getCardView(taskNode, createFacts()).checks).toBeUndefined()
     expect(getCardView(createTaskNode(createTaskData()), createFacts()).checks).toBeUndefined()
@@ -85,9 +104,14 @@ describe('getCardView', () => {
   it('carries check progress and counts when the source reports them', () => {
     const checks = { state: 'failing', progress: 'running', total: 8, finished: 3, failed: 1 } as const
     const pull = (refChecks: SourceRefData['checks']) =>
-      createTaskNode(createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', checks: refChecks }] }))
+      createTaskNode(
+        createTaskData({ refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', checks: refChecks }] }),
+      )
 
-    expect(getCardView(pull(checks), createFacts())).toMatchObject({ checkProgress: 'running', checkCounts: { total: 8, finished: 3, failed: 1 } })
+    expect(getCardView(pull(checks), createFacts())).toMatchObject({
+      checkProgress: 'running',
+      checkCounts: { total: 8, finished: 3, failed: 1 },
+    })
     expect(getCardView(pull({ state: 'failing' }), createFacts())).not.toHaveProperty('checkCounts')
     expect(getCardView(pull({ state: 'failing' }), createFacts())).not.toHaveProperty('checkProgress')
   })
@@ -109,12 +133,18 @@ describe('getCardView', () => {
       { domain: 'github.com', label: 'vocksel/orion#187', href: issueUrl },
     ]
 
-    expect(getCardView(taskNode, { ...createFacts(), sources: badges })).toMatchObject({ url: pullUrl, pullRequestUrl: pullUrl })
+    expect(getCardView(taskNode, { ...createFacts(), sources: badges })).toMatchObject({
+      url: pullUrl,
+      pullRequestUrl: pullUrl,
+    })
   })
 
   it('does not open a pull request card when its primary ref is not on GitHub', () => {
     const taskNode = createTaskNode(
-      createTaskData({ itemKind: 'pr', refs: [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }] }),
+      createTaskData({
+        itemKind: 'pr',
+        refs: [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }],
+      }),
     )
 
     expect(getCardView(taskNode, createFacts())).not.toHaveProperty('pullRequestUrl')
@@ -124,7 +154,17 @@ describe('getCardView', () => {
     const url = 'https://github.com/vocksel/orion/pull/1'
     const taskNode = createTaskNode(
       createTaskData({
-        refs: [{ source: 'github', kind: 'pull', key: 'vocksel/orion#1', url, readiness: 'mergeable', checks: { state: 'passing' }, head: 'abc123' }],
+        refs: [
+          {
+            source: 'github',
+            kind: 'pull',
+            key: 'vocksel/orion#1',
+            url,
+            readiness: 'mergeable',
+            checks: { state: 'passing' },
+            head: 'abc123',
+          },
+        ],
       }),
     )
 
@@ -134,7 +174,10 @@ describe('getCardView', () => {
       statusLabel: 'Ready to merge',
       merge: { url, head: 'abc123' },
     })
-    expect(getCardView(taskNode, createFacts('blocked'))).toMatchObject({ readiness: 'mergeable', statusLabel: 'Blocked' })
+    expect(getCardView(taskNode, createFacts('blocked'))).toMatchObject({
+      readiness: 'mergeable',
+      statusLabel: 'Blocked',
+    })
     expect(getCardView(taskNode, createFacts('blocked'))).not.toHaveProperty('readyToMerge')
     expect(getCardView(taskNode, createFacts('blocked'))).not.toHaveProperty('merge')
   })

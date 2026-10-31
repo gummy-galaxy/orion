@@ -44,7 +44,9 @@ describe('drag snapping', () => {
     const dragging = (id: string, x: number, y: number): AppNode => ({ ...task(id, x, y), dragging: true })
 
     expect(snapGuides([task('far', 0, 0), dragging('dragged', 0, 72 + 200)], REACH)).toEqual([])
-    expect(snapGuides([task('near', 0, 0), dragging('dragged', 0, 72 + 72)], REACH).some((guide) => guide.kind === 'line')).toBe(true)
+    expect(
+      snapGuides([task('near', 0, 0), dragging('dragged', 0, 72 + 72)], REACH).some((guide) => guide.kind === 'line'),
+    ).toBe(true)
   })
 
   it('restores an arranged card after snapping during the drag', () => {

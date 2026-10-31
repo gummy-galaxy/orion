@@ -64,7 +64,13 @@ const LOAD_METRICS: Metric[] = [
 ]
 
 const format = (value: number | undefined, kind: Kind) =>
-  value === undefined ? '–' : kind === 'count' ? String(Math.round(value)) : value < 10 ? value.toFixed(2) : Math.round(value).toLocaleString('en-US')
+  value === undefined
+    ? '–'
+    : kind === 'count'
+      ? String(Math.round(value))
+      : value < 10
+        ? value.toFixed(2)
+        : Math.round(value).toLocaleString('en-US')
 
 const unit = (kind: Kind) => (kind === 'ms' ? ' ms' : '')
 
@@ -84,10 +90,12 @@ const spread = (values: number[]) => {
 
 const scenarioName = (scenario: string) => SCENARIOS[scenario] ?? scenario
 
-const percent = (change: number) => (change === Infinity ? 'new' : `${change > 0 ? '+' : '−'}${Math.abs(Math.round(change * 100))}%`)
+const percent = (change: number) =>
+  change === Infinity ? 'new' : `${change > 0 ? '+' : '−'}${Math.abs(Math.round(change * 100))}%`
 
 /** 🔴 for a large change for the worse, 🟠 for a smaller one, 🟢 for a change for the better. */
-const mark = (row: Row) => (row.verdict === 'worse' ? ((row.change ?? 0) >= LARGE ? '🔴' : '🟠') : row.verdict === 'better' ? '🟢' : '')
+const mark = (row: Row) =>
+  row.verdict === 'worse' ? ((row.change ?? 0) >= LARGE ? '🔴' : '🟠') : row.verdict === 'better' ? '🟢' : ''
 
 /**
  * Compares the medians of each side's runs. A change reads as noise unless it's larger than both `NOISE` and how far
@@ -105,7 +113,8 @@ function judge(baseRuns: number[], headRuns: number[], kind: Kind, { neutral = f
 
   const change = base === 0 ? Infinity : (head - base) / base
   const noise = Math.max(NOISE, spread(baseRuns) + spread(headRuns))
-  const tiny = floor && ((kind === 'count' && Math.abs(head - base) < 2) || (kind === 'ms' && Math.abs(head - base) < 0.5))
+  const tiny =
+    floor && ((kind === 'count' && Math.abs(head - base) < 2) || (kind === 'ms' && Math.abs(head - base) < 0.5))
   const small = Math.abs(change) < noise || tiny
 
   if (neutral || small) return { base, head, change, verdict: 'same' as const }
@@ -121,7 +130,9 @@ function cell(row: Row): string {
 }
 
 function table(header: string[], align: string[], rows: string[][]): string {
-  return [`| ${header.join(' | ')} |`, `| ${align.join(' | ')} |`, ...rows.map((row) => `| ${row.join(' | ')} |`)].join('\n')
+  return [`| ${header.join(' | ')} |`, `| ${align.join(' | ')} |`, ...rows.map((row) => `| ${row.join(' | ')} |`)].join(
+    '\n',
+  )
 }
 
 function details(summary: string, body: string[]): string {
@@ -149,7 +160,12 @@ function benchSection(bench: NonNullable<ReportInput['bench']>): { rows: Row[]; 
     const [canvas, name] = full.includes(' › ') ? full.split(' › ') : ['', full]
     const where = canvas.replace(/\d{4,}/, (count) => Number(count).toLocaleString('en-US'))
 
-    return { name: `\`${name}\``, where, kind: 'ms', ...judge(bench.base[full] ?? [], bench.head[full] ?? [], 'ms', { floor: false }) }
+    return {
+      name: `\`${name}\``,
+      where,
+      kind: 'ms',
+      ...judge(bench.base[full] ?? [], bench.head[full] ?? [], 'ms', { floor: false }),
+    }
   })
   const text = details(`🧮 <b>Data benchmarks</b> · ${tally(rows)}`, [
     `Median time per call over generated canvases, then the median of ${bench.rounds} rounds on each side.`,
@@ -173,10 +189,13 @@ function storySection(
   renderer?: Renderer,
 ) {
   const scenarios = Object.keys(head[0] ?? {}).filter((scenario) => scenario !== 'load')
-  const values = (samples: Record<string, Sample>[], scenario: string, key: string) => samples.flatMap((sample) => sample[scenario]?.[key] ?? [])
+  const values = (samples: Record<string, Sample>[], scenario: string, key: string) =>
+    samples.flatMap((sample) => sample[scenario]?.[key] ?? [])
   // A machine that can't keep up with the display drops frames instead of doing more work, so paced rows would
   // measure how far behind it fell rather than what changed.
-  const idleFrames = Math.min(...[base, head].map((samples) => median(values(samples, 'idle', 'frames')) || IDLE_FRAMES))
+  const idleFrames = Math.min(
+    ...[base, head].map((samples) => median(values(samples, 'idle', 'frames')) || IDLE_FRAMES),
+  )
   const saturated = idleFrames < IDLE_FRAMES * 0.9
   const metrics = METRICS.filter((metric) => !saturated || !metric.paced)
 
@@ -184,14 +203,19 @@ function storySection(
     name: metric.label,
     where: label ? `${scenarioName(scenario)} · ${label}` : scenarioName(scenario),
     kind: metric.kind,
-    ...judge(values(base, scenario, metric.key), values(head, scenario, metric.key), metric.kind, { neutral: metric.neutral }),
+    ...judge(values(base, scenario, metric.key), values(head, scenario, metric.key), metric.kind, {
+      neutral: metric.neutral,
+    }),
   })
 
   const load = LOAD_METRICS.map((metric) => row(metric, 'load'))
   const grid = metrics.map((metric) => scenarios.map((scenario) => row(metric, scenario)))
   const rows = [...load, ...grid.flat()]
+  const drawnOn = renderer ? `, drawn ${renderer.gpu ? 'on' : 'in software by'} \`${renderer.device}\`` : ''
   const body = [
-    `Medians of ${runs} runs in headless Chromium at 2x scale${renderer ? `, drawn ${renderer.gpu ? 'on' : 'in software by'} \`${renderer.device}\`` : ''}. Idle waits ${IDLE_MS / 1000} s with motion on; the others pan, pinch-zoom, hover across cards, and drag one card.`,
+    `Medians of ${runs} runs in headless Chromium at 2x scale${drawnOn}. ` +
+      `Idle waits ${IDLE_MS / 1000} s with motion on; ` +
+      'the others pan, pinch-zoom, hover across cards, and drag one card.',
     '',
     table(
       ['Loading', 'Base → head'],
@@ -242,7 +266,9 @@ export function buildReport(input: ReportInput): string {
 
       if (section.saturated) {
         notes.push(
-          `This machine drew ${Math.round(section.idleFrames)} of ${IDLE_FRAMES} frames while idle${label ? ` in ${label}` : ''}, so raster time and frame counts are left out. Run \`npm run perf\` locally to compare them.`,
+          `This machine drew ${Math.round(section.idleFrames)} of ${IDLE_FRAMES} frames while idle` +
+            `${label ? ` in ${label}` : ''}, ` +
+            'so raster time and frame counts are left out. Run `npm run perf` locally to compare them.',
         )
       }
     }
@@ -258,16 +284,24 @@ export function buildReport(input: ReportInput): string {
   const large = worse.filter((row) => mark(row) === '🔴').length
   const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
   const within = rows.length - worse.length - better.length
-  const counts = [worse.length && `${worse.length} slower`, better.length && `${better.length} faster`, within && `${within} within noise`]
+  const counts = [
+    worse.length && `${worse.length} slower`,
+    better.length && `${better.length} faster`,
+    within && `${within} within noise`,
+  ]
   const callout = large
     ? [
         '> [!CAUTION]',
-        `> 🐢 **${plural(worse.length, 'measurement')} got slower**${worse.length === 1 ? '' : large === worse.length ? ', all' : `, ${large} of them`} by ${LARGE * 100}% or more.`,
+        `> 🐢 **${plural(worse.length, 'measurement')} got slower**` +
+          `${worse.length === 1 ? '' : large === worse.length ? ', all' : `, ${large} of them`}` +
+          ` by ${LARGE * 100}% or more.`,
       ]
     : worse.length
       ? [
           '> [!WARNING]',
-          `> 🐌 **${plural(worse.length, 'measurement')} got a little slower**, by less than ${LARGE * 100}%. Small changes can be noise, so see whether ${worse.length === 1 ? 'it repeats' : 'they repeat'} on the next run.`,
+          `> 🐌 **${plural(worse.length, 'measurement')} got a little slower**, by less than ${LARGE * 100}%. ` +
+            'Small changes can be noise, so see whether ' +
+            `${worse.length === 1 ? 'it repeats' : 'they repeat'} on the next run.`,
         ]
       : better.length
         ? ['> [!TIP]', `> 🚀 **Nothing got slower, and ${plural(better.length, 'measurement')} got faster.** Nice!`]
@@ -275,9 +309,9 @@ export function buildReport(input: ReportInput): string {
   const lines = [
     '## ⏱️ Performance',
     '',
-    `Comparing \`${input.head.ref}\` (${input.head.sha.slice(0, 7)}) with \`${input.base.ref}\` (${input.base.sha.slice(0, 7)}) across ${plural(rows.length, 'measurement')}: ${
-      within === rows.length ? 'all within noise' : counts.filter(Boolean).join(', ')
-    }.`,
+    `Comparing \`${input.head.ref}\` (${input.head.sha.slice(0, 7)}) with \`${input.base.ref}\` ` +
+      `(${input.base.sha.slice(0, 7)}) across ${plural(rows.length, 'measurement')}: ` +
+      `${within === rows.length ? 'all within noise' : counts.filter(Boolean).join(', ')}.`,
     '',
     ...callout,
   ]

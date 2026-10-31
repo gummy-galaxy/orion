@@ -46,16 +46,64 @@ export type Keybindings = Record<ShortcutId, string>
 
 export const SHORTCUTS: readonly Shortcut[] = [
   { id: 'search', label: 'Search canvas', detail: 'Find a group or card', category: 'General', chord: 'Mod+K' },
-  { id: 'actions', label: 'Show all actions', detail: 'Open the palette in action mode', category: 'General', chord: 'Mod+Shift+P' },
-  { id: 'settings', label: 'Open settings', detail: 'Appearance, accessibility, and keyboard shortcuts', category: 'General', chord: 'Mod+,' },
+  {
+    id: 'actions',
+    label: 'Show all actions',
+    detail: 'Open the palette in action mode',
+    category: 'General',
+    chord: 'Mod+Shift+P',
+  },
+  {
+    id: 'settings',
+    label: 'Open settings',
+    detail: 'Appearance, accessibility, and keyboard shortcuts',
+    category: 'General',
+    chord: 'Mod+,',
+  },
   { id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', category: 'Editing', chord: 'Mod+Z' },
   { id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', category: 'Editing', chord: 'Mod+Shift+Z' },
-  { id: 'copy', label: 'Copy', detail: 'Copy the selection with the links between it', category: 'Editing', chord: 'Mod+C' },
-  { id: 'cut', label: 'Cut', detail: 'Copy the selection and take it off the canvas', category: 'Editing', chord: 'Mod+X' },
-  { id: 'paste', label: 'Paste', detail: 'Place a copy at the cursor, in the open group', category: 'Editing', chord: 'Mod+V' },
-  { id: 'duplicate', label: 'Duplicate', detail: 'Place a copy of the selection beside it', category: 'Editing', chord: 'Mod+D' },
-  { id: 'group', label: 'Group selection', detail: 'Put the selected items in a new group', category: 'Editing', chord: 'Mod+G' },
-  { id: 'ungroup', label: 'Ungroup', detail: 'Release the selected groups’ contents', category: 'Editing', chord: 'Mod+Shift+G' },
+  {
+    id: 'copy',
+    label: 'Copy',
+    detail: 'Copy the selection with the links between it',
+    category: 'Editing',
+    chord: 'Mod+C',
+  },
+  {
+    id: 'cut',
+    label: 'Cut',
+    detail: 'Copy the selection and take it off the canvas',
+    category: 'Editing',
+    chord: 'Mod+X',
+  },
+  {
+    id: 'paste',
+    label: 'Paste',
+    detail: 'Place a copy at the cursor, in the open group',
+    category: 'Editing',
+    chord: 'Mod+V',
+  },
+  {
+    id: 'duplicate',
+    label: 'Duplicate',
+    detail: 'Place a copy of the selection beside it',
+    category: 'Editing',
+    chord: 'Mod+D',
+  },
+  {
+    id: 'group',
+    label: 'Group selection',
+    detail: 'Put the selected items in a new group',
+    category: 'Editing',
+    chord: 'Mod+G',
+  },
+  {
+    id: 'ungroup',
+    label: 'Ungroup',
+    detail: 'Release the selected groups’ contents',
+    category: 'Editing',
+    chord: 'Mod+Shift+G',
+  },
   {
     id: 'select-all',
     label: 'Select all',
@@ -64,12 +112,48 @@ export const SHORTCUTS: readonly Shortcut[] = [
     chord: 'Mod+A',
   },
   { id: 'rename', label: 'Rename', detail: 'Edit the name of the selected item', category: 'Editing', chord: 'F2' },
-  { id: 'bring-forward', label: 'Bring forward', detail: 'Stack the selection one step higher', category: 'Editing', chord: 'Mod+Alt+]' },
-  { id: 'send-backward', label: 'Send backward', detail: 'Stack the selection one step lower', category: 'Editing', chord: 'Mod+Alt+[' },
-  { id: 'nudge-up', label: 'Nudge up', detail: 'Move the selection 1 unit, or 10 with ⇧', category: 'Editing', chord: 'ArrowUp' },
-  { id: 'nudge-down', label: 'Nudge down', detail: 'Move the selection 1 unit, or 10 with ⇧', category: 'Editing', chord: 'ArrowDown' },
-  { id: 'nudge-left', label: 'Nudge left', detail: 'Move the selection 1 unit, or 10 with ⇧', category: 'Editing', chord: 'ArrowLeft' },
-  { id: 'nudge-right', label: 'Nudge right', detail: 'Move the selection 1 unit, or 10 with ⇧', category: 'Editing', chord: 'ArrowRight' },
+  {
+    id: 'bring-forward',
+    label: 'Bring forward',
+    detail: 'Stack the selection one step higher',
+    category: 'Editing',
+    chord: 'Mod+Alt+]',
+  },
+  {
+    id: 'send-backward',
+    label: 'Send backward',
+    detail: 'Stack the selection one step lower',
+    category: 'Editing',
+    chord: 'Mod+Alt+[',
+  },
+  {
+    id: 'nudge-up',
+    label: 'Nudge up',
+    detail: 'Move the selection 1 unit, or 10 with ⇧',
+    category: 'Editing',
+    chord: 'ArrowUp',
+  },
+  {
+    id: 'nudge-down',
+    label: 'Nudge down',
+    detail: 'Move the selection 1 unit, or 10 with ⇧',
+    category: 'Editing',
+    chord: 'ArrowDown',
+  },
+  {
+    id: 'nudge-left',
+    label: 'Nudge left',
+    detail: 'Move the selection 1 unit, or 10 with ⇧',
+    category: 'Editing',
+    chord: 'ArrowLeft',
+  },
+  {
+    id: 'nudge-right',
+    label: 'Nudge right',
+    detail: 'Move the selection 1 unit, or 10 with ⇧',
+    category: 'Editing',
+    chord: 'ArrowRight',
+  },
   { id: 'add-note', label: 'Add a note', detail: 'At the middle of the view', category: 'Editing', chord: 'N' },
   { id: 'open-group', label: 'Open group', detail: 'Open the selected group', category: 'Navigation', chord: 'Enter' },
   {
@@ -80,16 +164,58 @@ export const SHORTCUTS: readonly Shortcut[] = [
     chord: 'Escape',
   },
   { id: 'go-back', label: 'Go back', detail: 'Return to the previous view', category: 'Navigation', chord: 'Mod+[' },
-  { id: 'go-forward', label: 'Go forward', detail: 'Return to the view you went back from', category: 'Navigation', chord: 'Mod+]' },
-  { id: 'fit', label: 'Fit to screen', detail: 'Show everything in the open group', category: 'Navigation', chord: 'Shift+1' },
-  { id: 'fit-selection', label: 'Fit selection', detail: 'Zoom to frame the selected items', category: 'Navigation', chord: 'Shift+2' },
-  { id: 'zoom-actual', label: 'Zoom to 100%', detail: 'Show cards at their actual size', category: 'Navigation', chord: 'Shift+0' },
-  { id: 'less-detail', label: 'Show less detail', detail: 'Fold one more level of groups', category: 'Navigation', chord: '[' },
-  { id: 'more-detail', label: 'Show more detail', detail: 'Open one more level of groups', category: 'Navigation', chord: ']' },
+  {
+    id: 'go-forward',
+    label: 'Go forward',
+    detail: 'Return to the view you went back from',
+    category: 'Navigation',
+    chord: 'Mod+]',
+  },
+  {
+    id: 'fit',
+    label: 'Fit to screen',
+    detail: 'Show everything in the open group',
+    category: 'Navigation',
+    chord: 'Shift+1',
+  },
+  {
+    id: 'fit-selection',
+    label: 'Fit selection',
+    detail: 'Zoom to frame the selected items',
+    category: 'Navigation',
+    chord: 'Shift+2',
+  },
+  {
+    id: 'zoom-actual',
+    label: 'Zoom to 100%',
+    detail: 'Show cards at their actual size',
+    category: 'Navigation',
+    chord: 'Shift+0',
+  },
+  {
+    id: 'less-detail',
+    label: 'Show less detail',
+    detail: 'Fold one more level of groups',
+    category: 'Navigation',
+    chord: '[',
+  },
+  {
+    id: 'more-detail',
+    label: 'Show more detail',
+    detail: 'Open one more level of groups',
+    category: 'Navigation',
+    chord: ']',
+  },
   { id: 'tool-select', label: 'Select tool', detail: 'Drag to select', category: 'Tools', chord: 'V' },
   { id: 'tool-hand', label: 'Pan tool', detail: 'Drag anywhere to pan', category: 'Tools', chord: 'H' },
   { id: 'tool-comment', label: 'Comment tool', detail: 'Click to leave a note', category: 'Tools', chord: 'C' },
-  { id: 'tool-sticker', label: 'Sticker tool', detail: 'Hold to pick from the wheel, then click to stamp', category: 'Tools', chord: 'S' },
+  {
+    id: 'tool-sticker',
+    label: 'Sticker tool',
+    detail: 'Hold to pick from the wheel, then click to stamp',
+    category: 'Tools',
+    chord: 'S',
+  },
 ]
 
 export type Gesture = { label: string; how: string }
@@ -112,7 +238,9 @@ export const GESTURES: readonly Gesture[] = [
   { label: 'Inspect the canvas', how: 'Hold Ctrl' },
 ]
 
-export const DEFAULT_KEYBINDINGS = Object.fromEntries(SHORTCUTS.map((shortcut) => [shortcut.id, shortcut.chord])) as Keybindings
+export const DEFAULT_KEYBINDINGS = Object.fromEntries(
+  SHORTCUTS.map((shortcut) => [shortcut.id, shortcut.chord]),
+) as Keybindings
 
 const KEYBINDINGS_KEY = 'orion:keybindings'
 const MODIFIERS = ['Mod', 'Alt', 'Shift'] as const
@@ -181,7 +309,9 @@ export function normalizeChord(chord: string): string {
   const parts = chord.split('+')
   const key = parts.pop() ?? ''
   const held = new Set(parts.map((part) => part.toLowerCase()))
-  const modifiers = MODIFIERS.filter((modifier) => held.has(modifier.toLowerCase()) || (modifier === 'Mod' && (held.has('cmd') || held.has('ctrl'))))
+  const modifiers = MODIFIERS.filter(
+    (modifier) => held.has(modifier.toLowerCase()) || (modifier === 'Mod' && (held.has('cmd') || held.has('ctrl'))),
+  )
 
   return [...modifiers, key.length === 1 ? key.toUpperCase() : key].join('+')
 }
@@ -201,7 +331,9 @@ export function formatChord(chord: string): string {
 
   const parts = chord.split('+')
   const key = parts.pop() ?? ''
-  const modifiers = DISPLAY_ORDER.filter((modifier) => parts.includes(modifier)).map((modifier) => MODIFIER_SYMBOLS[modifier])
+  const modifiers = DISPLAY_ORDER.filter((modifier) => parts.includes(modifier)).map(
+    (modifier) => MODIFIER_SYMBOLS[modifier],
+  )
 
   return modifiers.join('') + (KEY_SYMBOLS[key] ?? key)
 }
@@ -217,7 +349,9 @@ export function conflictsOf(bindings: Keybindings, id: ShortcutId): ShortcutId[]
 
   if (!chord) return []
 
-  return SHORTCUTS.filter((shortcut) => shortcut.id !== id && bindings[shortcut.id] === chord).map((shortcut) => shortcut.id)
+  return SHORTCUTS.filter((shortcut) => shortcut.id !== id && bindings[shortcut.id] === chord).map(
+    (shortcut) => shortcut.id,
+  )
 }
 
 /** Only changed bindings are saved, so a later default change reaches anyone who kept the old one. */
@@ -240,7 +374,10 @@ export function readKeybindings(): Keybindings {
 
 export function writeKeybindings(bindings: Keybindings) {
   const changed = Object.fromEntries(
-    SHORTCUTS.filter((shortcut) => bindings[shortcut.id] !== shortcut.chord).map((shortcut) => [shortcut.id, bindings[shortcut.id]]),
+    SHORTCUTS.filter((shortcut) => bindings[shortcut.id] !== shortcut.chord).map((shortcut) => [
+      shortcut.id,
+      bindings[shortcut.id],
+    ]),
   )
 
   saveSettings({ keybindings: Object.keys(changed).length ? JSON.stringify(changed) : null })

@@ -4,7 +4,17 @@ import { ShapeOutline } from './ShapeOutline'
 import { SourceBadges } from './SourceBadges'
 
 /** A part of a system diagram, drawn the same in every skin: its shape's outline, name, and what it does. */
-export function ComponentCard({ view, shape, width, height }: { view: CardView; shape: ComponentShape; width: number; height: number }) {
+export function ComponentCard({
+  view,
+  shape,
+  width,
+  height,
+}: {
+  view: CardView
+  shape: ComponentShape
+  width: number
+  height: number
+}) {
   return (
     <>
       <ShapeOutline shape={shape} width={width} height={height} />

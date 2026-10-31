@@ -306,7 +306,14 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: 
 p { color: var(--muted); margin: 0; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-ul { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
 li { display: flex; gap: 12px; align-items: baseline; padding: 6px 12px; border-top: 1px solid var(--line); }
 li:first-child { border-top: 0; }
 .name { font-weight: 600; }

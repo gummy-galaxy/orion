@@ -38,8 +38,8 @@ export function TelemetryPrompt({ choose, dismiss }: Props) {
         <h2 id="telemetry-prompt-title">Help make Orion faster?</h2>
         <div id="telemetry-prompt-detail">
           <p>
-            Orion can share anonymous usage data: how long the canvas takes to draw, how big canvases get, and which tools and commands get used. It
-            never includes titles, notes, links, repository names, or file paths.
+            Orion can share anonymous usage data: how long the canvas takes to draw, how big canvases get, and which
+            tools and commands get used. It never includes titles, notes, links, repository names, or file paths.
           </p>
           <p>
             <a href={TELEMETRY_EVENTS_URL} target="_blank" rel="noreferrer">
