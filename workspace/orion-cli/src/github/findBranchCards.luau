@@ -1,5 +1,6 @@
 local findRef = require("@root/refs/findRef")
 local getGithubKey = require("@root/refs/getGithubKey")
+local getStateMeaning = require("@root/cardTypes/getStateMeaning")
 local githubTypes = require("@root/github/types")
 local isNote = require("@root/graph/isNote")
 local types = require("@root/types")
@@ -24,7 +25,7 @@ local function findBranchCards(doc: Doc, pull: PullState): { Item }
 		if
 			item.type == "task"
 			and not isNote(item)
-			and item.data.status ~= "done"
+			and getStateMeaning(item) ~= "done"
 			and findRef(item, "branch", key)
 			and not findRef(item, "pull")
 		then

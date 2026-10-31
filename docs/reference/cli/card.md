@@ -36,7 +36,7 @@ orion card create [options] [label...]
 | `--group <value>`  | Group to add it to                                                                                                                                    |
 | `--after <value>`  | Item the card follows; it lands beside it, in its group                                                                                               |
 | `--before <value>` | Item the card leads into; it lands beside it, in its group                                                                                            |
-| `--status <value>` | todo, active, review, blocked, deferred, or done                                                                                                      |
+| `--status <value>` | A state the card's type declares: todo, active, review, blocked, deferred, or done for the shipped types                                              |
 | `--repo <value>`   | Repository it belongs to, as owner/name (empty to clear)                                                                                              |
 | `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                                                                       |
 | `--note <value>`   | Free-form note (empty to clear)                                                                                                                       |
@@ -58,7 +58,7 @@ orion card set [id] [options]
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `[id]`             | Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86                                                             |
 | `--label <value>`  | New label                                                                                                                                             |
-| `--status <value>` | todo, active, review, blocked, deferred, or done                                                                                                      |
+| `--status <value>` | A state the card's type declares: todo, active, review, blocked, deferred, or done for the shipped types                                              |
 | `--repo <value>`   | Repository it belongs to, as owner/name (empty to clear)                                                                                              |
 | `--who <value>`    | Whose move: you, review, or ci (empty to clear)                                                                                                       |
 | `--note <value>`   | Free-form note (empty to clear)                                                                                                                       |

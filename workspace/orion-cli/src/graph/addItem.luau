@@ -1,9 +1,11 @@
 local json = require("@std/json")
 
 local checkFields = require("@root/graph/checkFields")
+local checkState = require("@root/cardTypes/checkState")
 local createId = require("@root/graph/createId")
 local findPlacement = require("@root/graph/findPlacement")
 local getNeighborGroup = require("@root/graph/getNeighborGroup")
+local getStringField = require("@root/getStringField")
 local graphTypes = require("@root/graph/types")
 local linkNeighbors = require("@root/graph/linkNeighbors")
 local setLook = require("@root/graph/setLook")
@@ -40,6 +42,7 @@ local function addItem(doc: Doc, label: string, options: AddOptions): Item
 		data = data,
 	}
 
+	checkState(item, getStringField(data.status) :: string)
 	setLook(item, options)
 	table.insert(doc.nodes, item)
 	linkNeighbors(doc, item.id, options.after, options.before)

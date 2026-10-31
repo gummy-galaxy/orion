@@ -1,4 +1,5 @@
 import { sharedValue, type BatchPatch } from '../batchEdit'
+import { getStateMeaning } from '../cardTypes/getStateMeaning'
 import { STATUS_CHOICES, WHO_CHOICES, type Status, type TaskData, type Who } from '../model'
 
 type Props = {
@@ -9,7 +10,7 @@ type Props = {
 
 /** Status and whose move it is for a multi-selection, set on every work item in it at once. */
 export function SelectionStatus({ items, update }: Props) {
-  const status = sharedValue(items.map((item) => item.status))
+  const status = sharedValue(items.map((item) => getStateMeaning(item)))
   const who = sharedValue(items.map((item) => item.who))
 
   return (

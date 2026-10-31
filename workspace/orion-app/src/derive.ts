@@ -1,4 +1,5 @@
 import { createContext } from 'react'
+import { getStateMeaning } from './cardTypes/getStateMeaning'
 import { descendants } from './hierarchy/descendants'
 import { indexNodes } from './hierarchy/indexNodes'
 import type { NodeIndex } from './hierarchy/types'
@@ -223,7 +224,9 @@ export function buildWork(facts: ServerFacts, nodes: AppNode[], links: Link[], i
 
     if (status === facts.status) status = new Map(facts.status)
 
-    status.set(node.id, node.data.status === 'todo' ? 'ready' : node.data.status)
+    const means = getStateMeaning(node.data)
+
+    status.set(node.id, means === 'todo' ? 'ready' : means)
   }
 
   return { ...facts, status, sources: deriveSources(nodes, index), ...linkGraph(links) }

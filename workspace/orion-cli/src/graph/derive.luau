@@ -1,6 +1,7 @@
 local cardTypes = require("@root/cardTypes/types")
 local getMeaning = require("@root/cardTypes/getMeaning")
 local getSnoozedFacts = require("@root/github/getSnoozedFacts")
+local getStateMeaning = require("@root/cardTypes/getStateMeaning")
 local getStringField = require("@root/getStringField")
 local graphTypes = require("@root/graph/types")
 local isGroup = require("@root/graph/isGroup")
@@ -193,7 +194,7 @@ local function derive(doc: Doc, now: string?): Derived
 		local passesThrough = not meaning.canBlock or (meaning.doneWhen == "inputs" and predecessors[id] ~= nil)
 
 		if not passesThrough then
-			return getStringField(item.data.status) ~= "done"
+			return getStateMeaning(item) ~= "done"
 		end
 
 		if noteOpen[id] ~= nil then
@@ -229,7 +230,7 @@ local function derive(doc: Doc, now: string?): Derived
 			continue
 		end
 
-		local recorded = getStringField(item.data.status) or "todo"
+		local recorded = getStateMeaning(item)
 		local blockedByDeps = false
 
 		for _, predecessor in predecessors[id] or {} do
@@ -336,12 +337,7 @@ local function derive(doc: Doc, now: string?): Derived
 			for _, next in successors[current] or {} do
 				local nextItem = tasks[next]
 
-				if
-					reached[next]
-					or not nextItem
-					or not isOpen(next)
-					or getStringField(nextItem.data.status) == "deferred"
-				then
+				if reached[next] or not nextItem or not isOpen(next) or getStateMeaning(nextItem) == "deferred" then
 					continue
 				end
 
