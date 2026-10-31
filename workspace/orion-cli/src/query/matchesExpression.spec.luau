@@ -104,6 +104,39 @@ test.case("group matches by id, label, or path, ignoring case", function(assert)
 	assert.eq(matchesExpression(scope, loose, parseExpression([[group ~ "e"]])), false)
 end)
 
+test.case("within matches a group holding the node at any depth", function(assert)
+	local item = testing.task("card", "Card", "todo", "docs")
+	local loose = testing.task("loose", "Loose", "todo")
+	local doc = testing.createDoc({
+		testing.group("release", "Release"),
+		testing.group("docs", "Docs", "release"),
+		testing.group("other", "Other"),
+		item,
+		loose,
+	})
+	local scope = createScope(doc)
+
+	for _, expression in
+		{
+			[[within = "docs"]],
+			[[within = "release"]],
+			[[within = "Release"]],
+			[[within = "Release / Docs"]],
+			[[within != "Other"]],
+		}
+	do
+		assert.eq(matchesExpression(scope, item, parseExpression(expression)), true)
+	end
+
+	for _, expression in { [[within = "Other"]], [[within = "Docs / Release"]], [[within != "Release"]] } do
+		assert.eq(matchesExpression(scope, item, parseExpression(expression)), false)
+	end
+
+	assert.eq(matchesExpression(scope, doc.nodes[2], parseExpression([[within = "Release"]])), true)
+	assert.eq(matchesExpression(scope, doc.nodes[2], parseExpression([[within = "Docs"]])), false)
+	assert.eq(matchesExpression(scope, loose, parseExpression([[within != "Release"]])), false)
+end)
+
 test.case("who and a source's priority match, and cards without them never do", function(assert)
 	local item = testing.task("jira-card", "Jira card", "todo", nil, {
 		who = "you",

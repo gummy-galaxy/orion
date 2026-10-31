@@ -212,7 +212,7 @@ Runs `orion node show`.
 
 ## orion_node_query
 
-Find cards and groups with an expression. Fields: kind, type, repo, status, recordedStatus, group, who, priority, draft, label, note, pr, ref, snoozed. Compare quoted values with = or !=, quoting numbers and booleans too; group, priority, label, note, and ref also take ~ for case-insensitive text.
+Find cards and groups with an expression. Fields: kind, repo, status, recordedStatus, group, within, who, priority, draft, label, note, pr, ref, snoozed. Compare quoted values with = or !=, quoting numbers and booleans too; group, priority, label, note, and ref also take ~ for case-insensitive text.
 
 Runs `orion node query`.
 
@@ -362,51 +362,6 @@ Runs `orion ref remove`.
 | -------- | ------ | ------------------------------------------------------------------------------------------------------- |
 | `id`     | id     | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
 | `ref`    | string | **Required.** The ref's key as orion node show lists it, such as owner/name#12, or a URL or source:key  |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                  |
-
-## orion_type_list
-
-List the card types this build knows, from Orion and from sources
-
-Runs `orion type list`.
-
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-
-## orion_type_show
-
-Show a card type's fields, face, states, and meaning
-
-Runs `orion type show`.
-
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `name`   | string | **Required.** The type's name, such as gate            |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-
-## orion_type_attach
-
-Attach a card type to a card, after the ones it carries
-
-Runs `orion type attach`.
-
-| Argument | Type   | Description                                                                                             |
-| -------- | ------ | ------------------------------------------------------------------------------------------------------- |
-| `id`     | id     | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
-| `type`   | string | **Required.** The type's name, as orion type list shows it                                              |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                  |
-
-## orion_type_detach
-
-Take off a card type a person attached
-
-Runs `orion type detach`.
-
-| Argument | Type   | Description                                                                                             |
-| -------- | ------ | ------------------------------------------------------------------------------------------------------- |
-| `id`     | id     | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
-| `type`   | string | **Required.** The type's name, as orion type list shows it                                              |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                  |
 
 ## orion_next
