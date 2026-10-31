@@ -88,6 +88,30 @@ local function matchesExpression(scope: queryTypes.Scope, item: Item, expression
 				return if node.operator == "=" then isNamed else not isNamed
 			end
 
+			if field == "within" then
+				if item.parentId == nil then
+					return nil
+				end
+
+				local isNamed = false
+				local seen: { [string]: boolean } = {}
+				local groupId: string? = item.parentId
+
+				-- A group nested in itself through a broken file stops the
+				-- walk.
+				while groupId and not seen[groupId] do
+					if groupId == value or isPathNamed(scope.groupPaths[groupId] or {}, value) then
+						isNamed = true
+						break
+					end
+
+					seen[groupId] = true
+					groupId = scope.groupParents[groupId]
+				end
+
+				return if node.operator == "=" then isNamed else not isNamed
+			end
+
 			local actual = getFieldValue(scope, item, field)
 			if actual == nil then
 				return nil

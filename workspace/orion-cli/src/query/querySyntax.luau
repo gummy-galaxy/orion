@@ -59,6 +59,12 @@ local FIELDS: { Field } = {
 		example = [[group = "Release / Docs"]],
 	},
 	{
+		name = "within",
+		help = "A group that holds the node at any depth, named the way `group` names one. "
+			.. "With `!=` it matches nodes in a group but outside that one.",
+		example = [[within = "Release"]],
+	},
+	{
 		name = "who",
 		help = "Whose move a card is: yours, a reviewer's, or CI's.",
 		values = fieldValues.who,
