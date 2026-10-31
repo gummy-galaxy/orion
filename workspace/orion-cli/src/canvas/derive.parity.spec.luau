@@ -14,7 +14,7 @@ local types = require("@root/types")
 
 -- Each case was produced by the app's previous derive over a seeded random
 -- canvas, so these checks hold the Luau port to the rules the app used to run.
-local FIXTURE = path.join(project.CLI_PATH, "src", "graph", "derive.parity.json")
+local FIXTURE = path.join(project.CLI_PATH, "src", "canvas", "derive.parity.json")
 
 local function buildDoc(case: json.Object): types.Doc
 	local nodes: { types.Item } = {}
