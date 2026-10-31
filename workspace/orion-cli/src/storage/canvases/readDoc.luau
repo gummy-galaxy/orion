@@ -1,0 +1,13 @@
+local decodeDocObject = require("@root/storage/files/decodeDocObject")
+local readCanvasFiles = require("@root/storage/files/readCanvasFiles")
+local types = require("@root/types")
+
+type Doc = types.Doc
+
+-- Nil when the canvas has no files yet.
+local function readDoc(dir: string): Doc?
+	local snapshot = readCanvasFiles(dir)
+	return if snapshot then decodeDocObject(snapshot.document) else nil
+end
+
+return readDoc

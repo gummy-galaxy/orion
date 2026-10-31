@@ -1,6 +1,6 @@
 local json = require("@std/json")
 
-local graphTypes = require("@root/graph/types")
+local graphTypes = require("@root/canvas/types")
 
 type Derived = graphTypes.Derived
 type GroupStats = graphTypes.GroupStats

@@ -22,7 +22,7 @@ export type Face = {
   shows: string[]
 }
 
-/** How cards of the type feed what Orion derives. The CLI's `cardTypes/types.luau` explains each flag. */
+/** How cards of the type feed what Orion derives. The CLI's `canvas/cardTypes/types.luau` explains each flag. */
 export type Meaning = { isWork: boolean; canBlock: boolean; canBeDone: boolean; doneWhen: 'state' | 'inputs' }
 
 /**
