@@ -1,9 +1,10 @@
 local archivist = require("@archivist")
 local task = require("@std/task")
 
+local appendTelemetryQueue = require("@root/telemetry/appendTelemetryQueue")
 local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
-local formatTimestamp = require("@root/time/formatTimestamp")
-local getBuild = require("@root/getBuild")
+local formatTimestamp = require("@root/common/time/formatTimestamp")
+local getBuild = require("@root/common/getBuild")
 local getTelemetryConfigAsync = require("@root/telemetry/getTelemetryConfigAsync")
 local getTelemetryEndpoint = require("@root/telemetry/getTelemetryEndpoint")
 local getTelemetryQuietReason = require("@root/telemetry/getTelemetryQuietReason")
@@ -15,6 +16,7 @@ local telemetryTypes = require("@root/telemetry/types")
 local types = require("@root/types")
 
 type Build = types.Build
+type QueuedEvent = telemetryTypes.QueuedEvent
 type TelemetryConfig = telemetryTypes.TelemetryConfig
 
 local logger = archivist.getLogger("orion.telemetry")
@@ -23,8 +25,8 @@ local telemetrySender = {}
 
 export type Options = {
 	environment: { [string]: string },
-	-- True when this server was started with a dev port, to serve the app's
-	-- dev server. Like a dev build, it never sends.
+	-- True when the app's dev server started this server for local work on the
+	-- app, which `--dev-port` marks. Such a server never sends.
 	isDevServer: boolean?,
 	build: Build?,
 	-- Specs pass these to stand in for the backend.
@@ -34,20 +36,23 @@ export type Options = {
 
 --[[
 	Events wait in a queue file in the data folder until `orion server start`
-	sends them. This creates the part of the server that does that, every
-	minute in the background.
+	sends them. This creates the sender, which runs in the background and sends
+	the queue once a minute.
 
-	Each send empties the whole queue and splits it into batches. Sending can
-	be off for several reasons: nobody opted in, `DO_NOT_TRACK` or
-	`ORION_TELEMETRY=0` is set, or this is a dev build, a perf run, CI, or a
-	server for the app's dev server. Then the queue is deleted rather than kept
-	for later. A batch the backend doesn't accept is dropped too. It isn't
-	retried, and the only sign of it is a warning in the log.
+	Each send empties the whole queue and splits it into batches. When there
+	are more batches than the backend accepts in a minute, the extra ones go
+	back in the queue for the next send. Sending can be
+	off for several reasons: nobody opted in, `DO_NOT_TRACK` or
+	`ORION_TELEMETRY=0` is set, or this is a dev build, a perf run
+	(`ORION_PERF=1`), CI, or a server started for the app's dev server. When
+	it's off, the queue is deleted rather than kept for later. A batch the
+	backend doesn't accept is dropped too. It isn't retried, and the only sign
+	of it is a warning in the log.
 
 	The backend publishes how big a batch may be. The server asks for those
 	limits before its first send and keeps them for the rest of the run. If the
-	backend can't be reached, the server uses the limits this build shipped
-	with and asks again on the next send.
+	backend can't be reached, the server uses the limits this build shipped with
+	and asks again on the next send.
 ]]
 function telemetrySender.create(root: string, options: Options)
 	local build = options.build or getBuild()
@@ -90,13 +95,26 @@ function telemetrySender.create(root: string, options: Options)
 			local limits = if config then config.limits else telemetryConstants.DEFAULT_LIMITS
 			local eventsEndpoint = getTelemetryEndpoint(options.environment, "events")
 
-			for _, batch in splitTelemetryBatches(events, limits) do
+			local batches = splitTelemetryBatches(events, limits)
+
+			for index, batch in batches do
 				-- Sending yields, so the person can opt out between batches.
 				-- Read their choice again first, and stop if they turned
 				-- sharing off or it's now a different install.
 				local current = getTelemetryStatus(root, options.environment)
 
 				if not current.enabled or current.installId ~= status.installId then
+					break
+				end
+
+				if index > telemetryConstants.MAX_BATCHES_PER_SEND then
+					local rest: { QueuedEvent } = {}
+
+					for later = index, #batches do
+						table.move(batches[later], 1, #batches[later], #rest + 1, rest)
+					end
+
+					appendTelemetryQueue(root, rest)
 					break
 				end
 

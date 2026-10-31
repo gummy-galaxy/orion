@@ -45,10 +45,11 @@ end
 	stores it. An event without a time of its own is stamped with `now`.
 
 	This checks the form of an event, not whether it's one Orion records. The
-	backend checks names and properties against the published event list, and
-	it drops an unknown event on its own. A session id or timestamp it can't
-	parse is different: the backend refuses the whole batch over it. So those
-	two are checked in full here.
+	backend checks names and properties against the published event list.
+	When an event isn't on the list, the backend drops just that event and
+	keeps the rest of the batch. A session id or timestamp the backend can't
+	parse is different, because the backend refuses the whole batch over it.
+	So those two are checked in full here.
 ]]
 local function parseTelemetryEvent(value: json.Value, now: string): QueuedEvent
 	local object = assert(json.asObject(value), "an event must be an object")

@@ -1,10 +1,10 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local changeCheckSnooze = require("@root/checks/changeCheckSnooze")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local parseUntil = require("@root/time/parseUntil")
-local runTransaction = require("@root/store/runTransaction")
+local changeCheckSnooze = require("@root/sources/github/checks/changeCheckSnooze")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local parseUntil = require("@root/common/time/parseUntil")
+local runTransaction = require("@root/storage/transactions/runTransaction")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response

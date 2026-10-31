@@ -1,10 +1,10 @@
 local json = require("@std/json")
 
-local createId = require("@root/graph/createId")
-local ensureDirectory = require("@root/platform/ensureDirectory")
+local createId = require("@root/common/createId")
+local ensureDirectory = require("@root/common/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local readTelemetryConsent = require("@root/telemetry/readTelemetryConsent")
-local replaceFile = require("@root/store/replaceFile")
+local replaceFile = require("@root/storage/files/replaceFile")
 local telemetryTypes = require("@root/telemetry/types")
 
 type Consent = telemetryTypes.Consent

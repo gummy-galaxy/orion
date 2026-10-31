@@ -19,8 +19,8 @@ local process = require("@std/process")
 local project = require("@repository/project")
 local system = require("@std/system")
 
-local run = require("@cli/run")
-local runScript = require("@cli/runScript")
+local run = require("@cli/common/process/run")
+local runScript = require("@cli/common/process/runScript")
 
 local BUILD_INFO_PATH = path.join(project.CLI_PATH, "src", "buildInfo.luau")
 -- The commit buildInfo.luau is checked in with. Builds stamp their own commit

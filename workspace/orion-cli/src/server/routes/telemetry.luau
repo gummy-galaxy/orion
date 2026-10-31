@@ -3,7 +3,7 @@ local net = require("@lute/net/server")
 local process = require("@std/process")
 
 local chooseTelemetry = require("@root/telemetry/chooseTelemetry")
-local formatTimestamp = require("@root/time/formatTimestamp")
+local formatTimestamp = require("@root/common/time/formatTimestamp")
 local getTelemetryStatus = require("@root/telemetry/getTelemetryStatus")
 local parseTelemetryEvent = require("@root/telemetry/parseTelemetryEvent")
 local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")

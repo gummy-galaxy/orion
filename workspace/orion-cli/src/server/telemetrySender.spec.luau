@@ -2,7 +2,7 @@ local test = require("@std/test")
 
 local appendTelemetryQueue = require("@root/telemetry/appendTelemetryQueue")
 local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
-local getBuild = require("@root/getBuild")
+local getBuild = require("@root/common/getBuild")
 local telemetrySender = require("@root/server/telemetrySender")
 local telemetryTypes = require("@root/telemetry/types")
 local testing = require("@root/testing")
@@ -101,6 +101,7 @@ test.case("the queue is dropped unsent when sending isn't allowed", function(ass
 		{ name = "opted out", consent = false, environment = {}, build = RELEASE },
 		{ name = "override", consent = true, environment = { ORION_TELEMETRY = "0" }, build = RELEASE },
 		{ name = "dev build", consent = true, environment = {}, build = getBuild("dev") },
+		{ name = "build outside git", consent = true, environment = {}, build = getBuild("unknown") },
 		{ name = "CI", consent = true, environment = { CI = "true" }, build = RELEASE },
 		{ name = "dev server", consent = true, environment = {}, build = RELEASE, isDevServer = true },
 	}
@@ -215,4 +216,23 @@ test.case("opting out partway through a send stops the batches after it", functi
 
 	assert.eq(sender.flushAsync(), 100)
 	assert.eq(batches, 1)
+end)
+
+test.case("a send stops at the batches the backend accepts in a minute and keeps the rest", function(assert)
+	local root = testing.directory("sender-batch-cap")
+	writeTelemetryConsent(root, true)
+	queue(root, 30)
+	local sent, send = createFake(true)
+	local sender = telemetrySender.create(root, {
+		environment = {},
+		build = RELEASE,
+		sendTelemetryBatchAsync = send,
+		getTelemetryConfigAsync = function(_endpoint: string, _timeoutSeconds: number): (TelemetryConfig?, string?)
+			return { limits = { maxEvents = 1, maxBytes = 64 * 1024 } }, nil
+		end,
+	})
+
+	assert.eq(sender.flushAsync(), 25)
+	assert.eq(#sent, 25)
+	assert.eq(#drainTelemetryQueue(root, NOW), 5)
 end)

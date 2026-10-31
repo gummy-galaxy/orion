@@ -33,7 +33,9 @@ end
 	Empties the queue and returns the events that were in it. The queue file is
 	moved aside before it's read. That way, a command that adds an event in the
 	meantime starts a new queue file instead of writing to the one being read.
-	A line that doesn't parse, such as one cut short, is skipped.
+	A file left aside by a server that stopped mid-send is read first, so its
+	events still go out. A line that doesn't parse, such as one cut short, is
+	skipped.
 ]]
 local function drainTelemetryQueue(root: string, now: string): { QueuedEvent }
 	local queue = path.join(root, fileNames.telemetryQueue)

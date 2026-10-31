@@ -2,7 +2,7 @@ local fs = require("@std/fs")
 local json = require("@std/json")
 local path = require("@std/path")
 
-local ensureDirectory = require("@root/platform/ensureDirectory")
+local ensureDirectory = require("@root/common/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local serializeTelemetryEvent = require("@root/telemetry/serializeTelemetryEvent")
 local telemetryConstants = require("@root/telemetry/constants")

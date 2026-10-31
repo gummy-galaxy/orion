@@ -3,7 +3,7 @@ local path = require("@std/path")
 local project = require("@repository/project")
 local system = require("@std/system")
 
-local run = require("@cli/run")
+local run = require("@cli/common/process/run")
 
 local binariesPath = path.join(project.DESKTOP_PATH, "binaries")
 

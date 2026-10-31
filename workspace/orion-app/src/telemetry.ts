@@ -58,8 +58,8 @@ export const TELEMETRY_SESSION_ID = crypto.randomUUID()
 
 /**
  * Hands events to `orion server start`, which queues them when this machine shares usage data and sends them on to the
- * telemetry backend later. Nothing here is worth stopping for, so this never throws: a failure only logs a warning in
- * the console, and callers needn't wait for it.
+ * telemetry backend later. A failure only logs a warning in the console and never throws, so callers can send without
+ * awaiting the result.
  */
 export async function sendTelemetryEvents(events: TelemetryEvent[]): Promise<void> {
   if (events.length === 0) return

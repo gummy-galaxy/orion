@@ -1,4 +1,4 @@
-local getBuild = require("@root/getBuild")
+local getBuild = require("@root/common/getBuild")
 local getTelemetryQuietReason = require("@root/telemetry/getTelemetryQuietReason")
 local getTelemetryStatus = require("@root/telemetry/getTelemetryStatus")
 local types = require("@root/types")

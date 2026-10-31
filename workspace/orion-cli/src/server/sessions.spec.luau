@@ -3,12 +3,12 @@ local json = require("@std/json")
 local task = require("@std/task")
 local test = require("@std/test")
 
-local findRef = require("@root/refs/findRef")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local loadDoc = require("@root/store/loadDoc")
+local findRef = require("@root/canvas/refs/findRef")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local loadDoc = require("@root/storage/canvases/loadDoc")
 local sessions = require("@root/server/sessions")
 local testing = require("@root/testing")
-local writeDoc = require("@root/store/writeDoc")
+local writeDoc = require("@root/storage/canvases/writeDoc")
 
 local WAIT_STEP_SECONDS = 0.05
 local WAIT_LIMIT_SECONDS = 3

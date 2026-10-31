@@ -1,7 +1,7 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local readThemeFiles = require("@root/themes/readThemeFiles")
+local readThemeFiles = require("@root/canvas/appearance/readThemeFiles")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response

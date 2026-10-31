@@ -1,5 +1,5 @@
 local clearTelemetryQueue = require("@root/telemetry/clearTelemetryQueue")
-local formatTimestamp = require("@root/time/formatTimestamp")
+local formatTimestamp = require("@root/common/time/formatTimestamp")
 local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
 local readTelemetryConsent = require("@root/telemetry/readTelemetryConsent")
 local telemetryTypes = require("@root/telemetry/types")

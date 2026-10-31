@@ -1,6 +1,16 @@
 import type { Derived } from './derive'
 import { IMAGE_MAX_BYTES } from './geometry'
-import { isComponent, isNote, normalize, type AppNode, type GithubSnapshot, type Link, type TaskData } from './model'
+import {
+  isComponent,
+  isNote,
+  normalize,
+  type AppNode,
+  type GithubSnapshot,
+  type Link,
+  type SourceRef,
+  type TaskData,
+  type ViewStatus,
+} from './model'
 import { loadoutOf, type Loadout, type Sticker } from './sticker'
 import type { Operation } from './operations'
 import { stableJson } from './stableJson'
@@ -28,6 +38,23 @@ export type CommitResult =
 export type Workspaces = { active: string; canvases: { name: string; label: string }[] }
 /** What `orion reveal` asked the open app to select and frame, on the canvas named. */
 export type Reveal = { canvas: string; ids: string[]; selectOnly: boolean }
+/** A query for `orion serve`, with `orion node query`'s options. A blank `where` matches every node. */
+export type QueryRequest = { where?: string; sort?: string; offset?: number; limit?: number; all?: boolean }
+/**
+ * One node in a query's answer, the way `orion node query --json` prints it. Only the fields the app reads are listed.
+ */
+export type QueryRow = {
+  id: string
+  kind: string
+  label?: string
+  status?: ViewStatus
+  group?: string
+  groupLabel?: string
+  refs?: SourceRef[]
+}
+/** One page of a query's matches, read at `revision`, with `total` counting every match before paging. */
+export type QueryAnswer =
+  { canvas: string; revision: number; total: number; offset: number; rows: QueryRow[] } | { error: string }
 
 const API = '/api/orion'
 const OPERATIONS_API = '/api/operations'
@@ -37,6 +64,7 @@ const WORKSPACE_EVENT = 'orion:canvas'
 const WORKSPACES_EVENT = 'orion:canvases'
 const REVEAL_EVENT = 'orion:reveal'
 const LOG_EVENT = 'orion:log'
+const QUERY_EVENT = 'orion:query'
 
 export type ImageAsset = { asset: string; mime: string }
 
@@ -143,8 +171,12 @@ type EventName =
   | typeof WORKSPACES_EVENT
   | typeof REVEAL_EVENT
   | typeof LOG_EVENT
+  | typeof QUERY_EVENT
 const listeners = new Map<EventName, Set<(data: never) => void>>()
+/** The queries the app keeps open, by id, sent again whenever the socket reconnects. */
+const openQueries = new Map<string, QueryRequest>()
 let socket: WebSocket | undefined
+let lastQueryId = 0
 let retryTimer: ReturnType<typeof setTimeout> | undefined
 let retryDelay = 250
 
@@ -158,6 +190,7 @@ function connectEvents() {
 
   current.onopen = () => {
     retryDelay = 250
+    openQueries.forEach((request, id) => sendQuery({ type: 'query', id, ...request }))
   }
 
   current.onmessage = (message) => {
@@ -201,6 +234,30 @@ function subscribe<T>(event: EventName, callback: (data: T) => void) {
       socket?.close()
       socket = undefined
     }
+  }
+}
+
+function sendQuery(message: { type: 'query' | 'unquery'; id: string }) {
+  if (socket && socket.readyState === socket.OPEN) socket.send(JSON.stringify(message))
+}
+
+/**
+ * Keeps a query open on the active canvas. `orion serve` answers right away and again whenever a change alters the
+ * answer, so a change that leaves the rows alone, such as moving a card, sends nothing.
+ */
+export function watchQuery(request: QueryRequest, callback: (answer: QueryAnswer) => void) {
+  const id = `query-${++lastQueryId}`
+  const unsubscribe = subscribe<QueryAnswer & { id: string }>(QUERY_EVENT, ({ id: answered, ...answer }) => {
+    if (answered === id) callback(answer)
+  })
+
+  openQueries.set(id, request)
+  sendQuery({ type: 'query', id, ...request })
+
+  return () => {
+    openQueries.delete(id)
+    sendQuery({ type: 'unquery', id })
+    unsubscribe()
   }
 }
 
