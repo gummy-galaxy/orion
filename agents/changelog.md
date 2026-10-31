@@ -4,7 +4,7 @@ Each change that people will notice gets an entry in [`.changes/`](../.changes/R
 
 ## When an entry is needed
 
-A pull request that changes anything under `workspace/`, apart from Markdown files, needs an entry. CI's `changelog` job runs the check on those pull requests and fails without a valid entry. Changes elsewhere, such as the docs, `.lute/`, or the CI setup, don't need one.
+A pull request that changes anything under `workspace/`, apart from Markdown files, adds one entry. CI's `changelog` job runs the check on those pull requests and fails without a valid entry. Changes elsewhere, such as the docs, `.lute/`, or the CI setup, don't need one.
 
 ## Choosing the fields
 
@@ -13,7 +13,7 @@ A pull request that changes anything under `workspace/`, apart from Markdown fil
 - **`category`** names the surface the change lands on. Pick the one where a person would notice it. A change to a card's look is Cards even if it touched the canvas code. Use Agents for anything the `orion` CLI or the MCP tools do. Use Under the hood for internal work with no visible effect, such as refactors, tests, build, and CI. Under the hood entries are `patch` and usually `improved` or `fixed`.
 - **`highlight`** is optional. Add a short title only for a change that deserves a headline in the release notes, such as a new way to work. Leave it out for most entries.
 
-If a change spans two surfaces, split it into two entries, one per surface, so each reads on its own.
+A pull request adds one entry even when it spans two surfaces. Use the category where most people would notice it, mention the rest in the body, and take the larger `bump` of the two.
 
 ## Writing the body
 
