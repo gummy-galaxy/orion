@@ -111,7 +111,7 @@ describe('the tokens page in the docs', () => {
 })
 
 it('matches the token contract that the CLI checks theme files against', () => {
-  const contract = read('../../orion-cli/src/themes/tokenContract.luau')
+  const contract = read('../../orion-cli/src/canvas/appearance/tokenContract.luau')
   const entries = [...contract.matchAll(/\["([^"]+)"\] = \{ group = "([^"]+)", cssVar = "([^"]+)" \}/g)].map(
     ([, name, group, cssVar]) => ({
       name,

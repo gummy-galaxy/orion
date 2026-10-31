@@ -1,10 +1,10 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local encodeEntry = require("@root/log/encodeEntry")
-local getErrorText = require("@root/getErrorText")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local readLog = require("@root/log/readLog")
+local encodeEntry = require("@root/storage/log/encodeEntry")
+local getErrorText = require("@root/common/errors/getErrorText")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local readLog = require("@root/storage/log/readLog")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response
