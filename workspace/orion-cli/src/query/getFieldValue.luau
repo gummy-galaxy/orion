@@ -10,9 +10,9 @@ local types = require("@root/types")
 type Item = types.Item
 
 -- A node's value for a query field, as text, or nil when it has none. For
--- `ref` it's the first ref's key and for `group` the path of labels to the
--- group, which sorting uses; matching checks every ref and each way of naming
--- the group itself.
+-- `ref` it's the first ref's key and for `group` and `within` the path of
+-- labels to the group, which sorting uses; matching checks every ref and each
+-- way of naming the groups themselves.
 local function getFieldValue(scope: queryTypes.Scope, item: Item, field: string): string?
 	local derived = scope.derived
 	local value: json.Value = nil
@@ -24,7 +24,7 @@ local function getFieldValue(scope: queryTypes.Scope, item: Item, field: string)
 		value = derived.status[item.id]
 	elseif field == "recordedStatus" then
 		value = item.data.status
-	elseif field == "group" then
+	elseif field == "group" or field == "within" then
 		local path = if item.parentId then scope.groupPaths[item.parentId] else nil
 		value = if path then table.concat(path, " / ") else item.parentId
 	elseif field == "snoozed" then
