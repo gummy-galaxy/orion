@@ -34,7 +34,7 @@ orion telemetry on [options]
 
 ## orion telemetry off
 
-Stop sharing usage data and delete this machine's install id
+Stop sharing usage data, keeping the install id so shared data can still be deleted
 
 ```sh
 orion telemetry off [options]

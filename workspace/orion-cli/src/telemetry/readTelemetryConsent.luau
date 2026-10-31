@@ -25,13 +25,14 @@ local function readTelemetryConsent(root: string): Consent
 	end
 
 	local choice = object.choice
-	local installId = object.installId
+	local storedId = object.installId
+	local installId = if type(storedId) == "string" and storedId ~= "" then storedId else nil
 
 	if choice == "off" then
-		return { choice = "off" }
+		return { choice = "off", installId = installId }
 	end
 
-	if choice == "on" and type(installId) == "string" and installId ~= "" then
+	if choice == "on" and installId then
 		return { choice = "on", installId = installId }
 	end
 

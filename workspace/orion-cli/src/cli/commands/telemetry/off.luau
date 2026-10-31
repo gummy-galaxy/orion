@@ -11,7 +11,7 @@ local serializeTelemetryStatus = require("@root/telemetry/serializeTelemetryStat
 type Context = context.Context
 
 return table.freeze({
-	help = "Stop sharing usage data and delete this machine's install id",
+	help = "Stop sharing usage data, keeping the install id so shared data can still be deleted",
 	mcp = { skip = "changes the person's consent, which only they should give" },
 	define = function(_parser: cli.Parser) end,
 
