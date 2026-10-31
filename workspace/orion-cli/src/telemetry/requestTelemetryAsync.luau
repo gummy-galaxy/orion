@@ -1,7 +1,7 @@
 local net = require("@std/net")
 local task = require("@std/task")
 
-local POLL_SECONDS = 0.1
+local telemetryConstants = require("@root/telemetry/constants")
 
 --[[
 	Makes a request to the telemetry backend and returns its response, or why
@@ -33,8 +33,8 @@ local function requestTelemetryAsync(
 	local waited = 0
 
 	while not isDone and waited < timeoutSeconds do
-		task.wait(POLL_SECONDS)
-		waited += POLL_SECONDS
+		task.wait(telemetryConstants.POLL_SECONDS)
+		waited += telemetryConstants.POLL_SECONDS
 	end
 
 	if not isDone then

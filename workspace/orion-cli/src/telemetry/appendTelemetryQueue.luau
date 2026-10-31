@@ -5,13 +5,10 @@ local path = require("@std/path")
 local ensureDirectory = require("@root/platform/ensureDirectory")
 local fileNames = require("@root/fileNames")
 local serializeTelemetryEvent = require("@root/telemetry/serializeTelemetryEvent")
+local telemetryConstants = require("@root/telemetry/constants")
 local telemetryTypes = require("@root/telemetry/types")
 
 type QueuedEvent = telemetryTypes.QueuedEvent
-
--- Enough for days of events between sends. A machine whose server never runs
--- stops queueing here rather than filling its disk.
-local MAX_QUEUE_BYTES = 256 * 1024
 
 --[[
 	Appends events to the queue in the data folder, one JSON line each, for
@@ -32,7 +29,7 @@ local function appendTelemetryQueue(root: string, events: { QueuedEvent }): numb
 	for _, event in events do
 		local line = json.serialize(serializeTelemetryEvent(event)) .. "\n"
 
-		if size + #line > MAX_QUEUE_BYTES then
+		if size + #line > telemetryConstants.MAX_QUEUE_BYTES then
 			break
 		end
 

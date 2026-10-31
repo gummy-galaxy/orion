@@ -1,11 +1,17 @@
-local DEFAULT_ENDPOINT = "https://api.oriongraph.app/telemetry/v1/events"
+local telemetryConstants = require("@root/telemetry/constants")
 
--- Where batches go. `ORION_TELEMETRY_ENDPOINT` points them at a test backend
--- instead, so moving hosts never needs a new client.
-local function getTelemetryEndpoint(environment: { [string]: string }): string
-	local endpoint = environment.ORION_TELEMETRY_ENDPOINT
+export type EndpointName = "events" | "config"
 
-	return if endpoint and endpoint ~= "" then endpoint else DEFAULT_ENDPOINT
+--[[
+	Builds the address of one of the backend's endpoints from its base address.
+	`ORION_TELEMETRY_URL` replaces the base, so a test backend gets every
+	endpoint without a new build.
+]]
+local function getTelemetryEndpoint(environment: { [string]: string }, name: EndpointName): string
+	local override = environment.ORION_TELEMETRY_URL
+	local base = if override and override ~= "" then override else telemetryConstants.BASE_URL
+
+	return `{base}/{name}`
 end
 
 return getTelemetryEndpoint

@@ -3,22 +3,19 @@ local net = require("@lute/net/server")
 local process = require("@std/process")
 
 local chooseTelemetry = require("@root/telemetry/chooseTelemetry")
+local formatTimestamp = require("@root/time/formatTimestamp")
 local getTelemetryStatus = require("@root/telemetry/getTelemetryStatus")
 local parseTelemetryEvent = require("@root/telemetry/parseTelemetryEvent")
 local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
 local serializeTelemetryStatus = require("@root/telemetry/serializeTelemetryStatus")
 local shared = require("@root/server/routes/shared")
+local telemetryConstants = require("@root/telemetry/constants")
 local telemetryTypes = require("@root/telemetry/types")
 local types = require("@root/types")
 
 type Build = types.Build
 type QueuedEvent = telemetryTypes.QueuedEvent
 type Response = shared.Response
-
--- The most the app may post at once. Only this route checks them: serve splits
--- what it queues by the backend's own limits, so these needn't match.
-local MAX_EVENTS = 100
-local MAX_BODY_BYTES = 64 * 1024
 
 local telemetry = {}
 
@@ -68,18 +65,21 @@ function telemetry.handleEvents(
 		return shared.reply(405, json.object({ error = "method not allowed" }))
 	end
 
-	if #request.body > MAX_BODY_BYTES then
+	if #request.body > telemetryConstants.MAX_APP_BODY_BYTES then
 		return shared.reply(413, json.object({ error = "a batch is at most 64 KiB" }))
 	end
 
 	local didSucceed, response = pcall(function(): Response
 		local rawEvents = assert(json.asArray(shared.parseBody(request).events), "events must be an array")
 
-		if #rawEvents > MAX_EVENTS then
-			return shared.reply(413, json.object({ error = `a batch holds at most {MAX_EVENTS} events` }))
+		if #rawEvents > telemetryConstants.MAX_APP_EVENTS then
+			return shared.reply(
+				413,
+				json.object({ error = `a batch holds at most {telemetryConstants.MAX_APP_EVENTS} events` })
+			)
 		end
 
-		local now = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string
+		local now = formatTimestamp()
 		local events: { QueuedEvent } = {}
 
 		for _, rawEvent in rawEvents do

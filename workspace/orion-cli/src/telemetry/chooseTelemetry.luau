@@ -1,3 +1,4 @@
+local formatTimestamp = require("@root/time/formatTimestamp")
 local queueTelemetryEvents = require("@root/telemetry/queueTelemetryEvents")
 local readTelemetryConsent = require("@root/telemetry/readTelemetryConsent")
 local telemetryTypes = require("@root/telemetry/types")
@@ -24,7 +25,7 @@ local function chooseTelemetry(
 		queueTelemetryEvents(root, {
 			{
 				name = "telemetry_opted_in",
-				timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ") :: string,
+				timestamp = formatTimestamp(),
 				properties = { surface = surface },
 			},
 		}, environment, build)

@@ -10,7 +10,7 @@ local types = require("@root/types")
 local writeTelemetryConsent = require("@root/telemetry/writeTelemetryConsent")
 
 type Build = types.Build
-type Limits = telemetryTypes.Limits
+type TelemetryConfig = telemetryTypes.TelemetryConfig
 type QueuedEvent = telemetryTypes.QueuedEvent
 
 type Sent = { endpoint: string, installId: string, build: Build, count: number }
@@ -53,7 +53,7 @@ local function createFake(isAccepted: boolean)
 end
 
 -- A backend whose config can't be reached, so the built-in limits apply.
-local function offlineLimitsAsync(_endpoint: string, _timeoutSeconds: number): (Limits?, string?)
+local function offlineConfigAsync(_endpoint: string, _timeoutSeconds: number): (TelemetryConfig?, string?)
 	return nil, "the backend answered 503"
 end
 
@@ -67,7 +67,7 @@ test.case("an opted-in machine sends its queue in batches and empties it", funct
 		environment = {},
 		build = RELEASE,
 		sendTelemetryBatchAsync = send,
-		getTelemetryConfigAsync = offlineLimitsAsync,
+		getTelemetryConfigAsync = offlineConfigAsync,
 	})
 
 	assert.eq(sender.flushAsync(), 150)
@@ -88,7 +88,7 @@ test.case("a batch that fails is dropped, not retried", function(assert)
 		environment = {},
 		build = RELEASE,
 		sendTelemetryBatchAsync = send,
-		getTelemetryConfigAsync = offlineLimitsAsync,
+		getTelemetryConfigAsync = offlineConfigAsync,
 	})
 
 	assert.eq(sender.flushAsync(), 0)
@@ -115,7 +115,7 @@ test.case("the queue is dropped unsent when sending isn't allowed", function(ass
 			build = case.build,
 			isDevServer = case.isDevServer,
 			sendTelemetryBatchAsync = send,
-			getTelemetryConfigAsync = offlineLimitsAsync,
+			getTelemetryConfigAsync = offlineConfigAsync,
 		})
 
 		assert.eq(sender.flushAsync(), 0)
@@ -124,16 +124,16 @@ test.case("the queue is dropped unsent when sending isn't allowed", function(ass
 	end
 end)
 
-test.case("ORION_TELEMETRY_ENDPOINT points batches at another backend", function(assert)
+test.case("ORION_TELEMETRY_URL points the sender at another backend", function(assert)
 	local root = testing.directory("sender-endpoint")
 	writeTelemetryConsent(root, true)
 	queue(root, 1)
 	local sent, send = createFake(true)
 	local sender = telemetrySender.create(root, {
-		environment = { ORION_TELEMETRY_ENDPOINT = "http://127.0.0.1:3000/telemetry/v1/events" },
+		environment = { ORION_TELEMETRY_URL = "http://127.0.0.1:3000/telemetry/v1" },
 		build = RELEASE,
 		sendTelemetryBatchAsync = send,
-		getTelemetryConfigAsync = offlineLimitsAsync,
+		getTelemetryConfigAsync = offlineConfigAsync,
 	})
 
 	sender.flushAsync()
@@ -150,9 +150,9 @@ test.case("batches follow the backend's limits, asked for once a run", function(
 		environment = {},
 		build = RELEASE,
 		sendTelemetryBatchAsync = send,
-		getTelemetryConfigAsync = function(endpoint: string, _timeoutSeconds: number): (Limits?, string?)
+		getTelemetryConfigAsync = function(endpoint: string, _timeoutSeconds: number): (TelemetryConfig?, string?)
 			table.insert(askedAt, endpoint)
-			return { maxEvents = 40, maxBytes = 64 * 1024 }, nil
+			return { limits = { maxEvents = 40, maxBytes = 64 * 1024 } }, nil
 		end,
 	})
 
@@ -164,7 +164,7 @@ test.case("batches follow the backend's limits, asked for once a run", function(
 	assert.eq(#sent, 5)
 	assert.eq(sent[1].count, 40)
 	assert.eq(#askedAt, 1)
-	assert.eq(askedAt[1], "https://api.oriongraph.app/telemetry/v1/events")
+	assert.eq(askedAt[1], "https://api.oriongraph.app/telemetry/v1/config")
 end)
 
 test.case("without the backend's limits, batches use the built-in ones and the next send asks again", function(assert)
@@ -176,9 +176,9 @@ test.case("without the backend's limits, batches use the built-in ones and the n
 		environment = {},
 		build = RELEASE,
 		sendTelemetryBatchAsync = send,
-		getTelemetryConfigAsync = function(endpoint: string, timeoutSeconds: number): (Limits?, string?)
+		getTelemetryConfigAsync = function(endpoint: string, timeoutSeconds: number): (TelemetryConfig?, string?)
 			asked += 1
-			return offlineLimitsAsync(endpoint, timeoutSeconds)
+			return offlineConfigAsync(endpoint, timeoutSeconds)
 		end,
 	})
 

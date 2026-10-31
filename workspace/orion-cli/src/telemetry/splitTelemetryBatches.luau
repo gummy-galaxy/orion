@@ -1,17 +1,15 @@
 local json = require("@std/json")
 
 local serializeTelemetryEvent = require("@root/telemetry/serializeTelemetryEvent")
+local telemetryConstants = require("@root/telemetry/constants")
 local telemetryTypes = require("@root/telemetry/types")
 
 type Limits = telemetryTypes.Limits
 type QueuedEvent = telemetryTypes.QueuedEvent
 
--- Room left in each batch for the install id and build around the events.
-local ENVELOPE_BYTES = 4 * 1024
-
 -- Splits events into batches within the backend's limits, in order.
 local function splitTelemetryBatches(events: { QueuedEvent }, limits: Limits): { { QueuedEvent } }
-	local maxEventBytes = math.max(limits.maxBytes - ENVELOPE_BYTES, 1)
+	local maxEventBytes = math.max(limits.maxBytes - telemetryConstants.ENVELOPE_BYTES, 1)
 	local batches: { { QueuedEvent } } = {}
 	local current: { QueuedEvent } = {}
 	local bytes = 0

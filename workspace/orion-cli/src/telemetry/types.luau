@@ -38,4 +38,9 @@ export type Limits = {
 	maxBytes: number,
 }
 
+-- What the backend tells a sender before it sends, from its `config` endpoint.
+export type TelemetryConfig = {
+	limits: Limits,
+}
+
 return nil

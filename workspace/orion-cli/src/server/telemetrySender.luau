@@ -2,6 +2,7 @@ local archivist = require("@archivist")
 local task = require("@std/task")
 
 local drainTelemetryQueue = require("@root/telemetry/drainTelemetryQueue")
+local formatTimestamp = require("@root/time/formatTimestamp")
 local getBuild = require("@root/getBuild")
 local getTelemetryConfigAsync = require("@root/telemetry/getTelemetryConfigAsync")
 local getTelemetryEndpoint = require("@root/telemetry/getTelemetryEndpoint")
@@ -9,25 +10,16 @@ local getTelemetryQuietReason = require("@root/telemetry/getTelemetryQuietReason
 local getTelemetryStatus = require("@root/telemetry/getTelemetryStatus")
 local sendTelemetryBatchAsync = require("@root/telemetry/sendTelemetryBatchAsync")
 local splitTelemetryBatches = require("@root/telemetry/splitTelemetryBatches")
+local telemetryConstants = require("@root/telemetry/constants")
 local telemetryTypes = require("@root/telemetry/types")
 local types = require("@root/types")
 
 type Build = types.Build
-type Limits = telemetryTypes.Limits
+type TelemetryConfig = telemetryTypes.TelemetryConfig
 
 local logger = archivist.getLogger("orion.telemetry")
 
--- What the backend took when this build shipped, used until it says otherwise.
-local DEFAULT_LIMITS: Limits = { maxEvents = 100, maxBytes = 64 * 1024 }
-
 local telemetrySender = {}
-
--- How often queued events go out. The backend allows 30 batches a minute per
--- install, far more than this sends.
-telemetrySender.SEND_SECONDS = 60
--- Long enough for a slow network, short enough that a backend that can't be
--- reached doesn't keep a send hanging.
-telemetrySender.TIMEOUT_SECONDS = 5
 
 export type Options = {
 	environment: { [string]: string },
@@ -53,8 +45,8 @@ export type Options = {
 function telemetrySender.create(root: string, options: Options)
 	local build = options.build or getBuild()
 	local send = options.sendTelemetryBatchAsync or sendTelemetryBatchAsync
-	local fetchLimits = options.getTelemetryConfigAsync or getTelemetryConfigAsync
-	local limits: Limits?
+	local getConfigAsync = options.getTelemetryConfigAsync or getTelemetryConfigAsync
+	local config: TelemetryConfig?
 	local isClosed = false
 	local isFlushing = false
 	local sender = {}
@@ -68,7 +60,7 @@ function telemetrySender.create(root: string, options: Options)
 		isFlushing = true
 
 		local didFlush, accepted = pcall(function(): number
-			local events = drainTelemetryQueue(root, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
+			local events = drainTelemetryQueue(root, formatTimestamp())
 			local status = getTelemetryStatus(root, options.environment)
 			local isQuiet = options.isDevServer or getTelemetryQuietReason(options.environment, build) ~= nil
 			local count = 0
@@ -77,21 +69,23 @@ function telemetrySender.create(root: string, options: Options)
 				return count
 			end
 
-			local endpoint = getTelemetryEndpoint(options.environment)
-
-			if not limits then
-				local fetched, failure = fetchLimits(endpoint, telemetrySender.TIMEOUT_SECONDS)
+			if not config then
+				local configEndpoint = getTelemetryEndpoint(options.environment, "config")
+				local fetched, failure = getConfigAsync(configEndpoint, telemetryConstants.TIMEOUT_SECONDS)
 
 				if not fetched then
 					logger.warn("using built-in batch limits:", failure)
 				end
 
-				limits = fetched
+				config = fetched
 			end
 
-			for _, batch in splitTelemetryBatches(events, limits or DEFAULT_LIMITS) do
+			local limits = if config then config.limits else telemetryConstants.DEFAULT_LIMITS
+			local eventsEndpoint = getTelemetryEndpoint(options.environment, "events")
+
+			for _, batch in splitTelemetryBatches(events, limits) do
 				local isAccepted, failure =
-					send(endpoint, status.installId :: string, build, batch, telemetrySender.TIMEOUT_SECONDS)
+					send(eventsEndpoint, status.installId :: string, build, batch, telemetryConstants.TIMEOUT_SECONDS)
 
 				if isAccepted then
 					count += #batch
@@ -116,7 +110,7 @@ function telemetrySender.create(root: string, options: Options)
 		task.spawn(function()
 			while not isClosed do
 				sender.flushAsync()
-				task.wait(telemetrySender.SEND_SECONDS)
+				task.wait(telemetryConstants.SEND_SECONDS)
 			end
 		end)
 	end
