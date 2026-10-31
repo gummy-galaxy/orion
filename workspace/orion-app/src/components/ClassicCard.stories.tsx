@@ -28,7 +28,8 @@ function renderCard(view: CardView) {
   const className =
     view.kind === 'note'
       ? 'card note'
-      : `card st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}`
+      : `card st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}` +
+        `${view.kind === 'gate' ? ' gate' : ''}`
 
   return (
     <div style={{ width: 216, height: 72 }}>
@@ -55,7 +56,9 @@ export const ActivePullRequest: Story = {
       who: 'you',
       whoLabel: 'Your move',
       checks: 'passing',
-      sources: [{ domain: 'github.com', label: 'vocksel/orion#127', href: 'https://github.com/vocksel/orion/pull/127' }],
+      sources: [
+        { domain: 'github.com', label: 'vocksel/orion#127', href: 'https://github.com/vocksel/orion/pull/127' },
+      ],
       repo: 'vocksel/orion',
       artSeed: 'active-pr',
     }),
@@ -82,10 +85,26 @@ export const Gate: Story = {
 }
 
 export const Done: Story = {
-  render: () => renderCard({ ...ready, id: 'done', title: 'Review the canvas', status: 'done', statusLabel: 'Done', artSeed: 'done' }),
+  render: () =>
+    renderCard({
+      ...ready,
+      id: 'done',
+      title: 'Review the canvas',
+      status: 'done',
+      statusLabel: 'Done',
+      artSeed: 'done',
+    }),
 }
 
 export const Note: Story = {
   render: () =>
-    renderCard({ ...ready, id: 'note', kind: 'note', title: 'Keep the intent visible', status: 'done', statusLabel: 'Done', artSeed: 'note' }),
+    renderCard({
+      ...ready,
+      id: 'note',
+      kind: 'note',
+      title: 'Keep the intent visible',
+      status: 'done',
+      statusLabel: 'Done',
+      artSeed: 'note',
+    }),
 }

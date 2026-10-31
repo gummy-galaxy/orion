@@ -8,7 +8,12 @@ const task = (id: string, status: Status = 'todo', extra: Partial<TaskData> = {}
   position: { x: 0, y: 0 },
   data: { kind: 'task', label: id, ...(type ? { type } : {}), status, ...extra },
 })
-const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({ id: `${from}>${to}`, from, to, kind })
+const link = (from: string, to: string, kind: Link['kind'] = 'blocks'): Link => ({
+  id: `${from}>${to}`,
+  from,
+  to,
+  kind,
+})
 
 describe('chainDelay', () => {
   it('times the click and the first three hops as climbing beats, then spaces later hops evenly', () => {

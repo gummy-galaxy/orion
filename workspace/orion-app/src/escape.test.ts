@@ -13,7 +13,13 @@ const task = (id: string, parentId: string | undefined, x: number, y: number): A
   position: { x, y },
   data: { kind: 'task', label: id, status: 'todo' },
 })
-const cluster = (id: string, parentId: string | undefined, x: number, y: number, data: Partial<ClusterData> = {}): AppNode => ({
+const cluster = (
+  id: string,
+  parentId: string | undefined,
+  x: number,
+  y: number,
+  data: Partial<ClusterData> = {},
+): AppNode => ({
   id,
   type: 'cluster',
   parentId,
@@ -34,7 +40,9 @@ const canvas = () =>
   ])
 
 const moved = (nodes: AppNode[], id: string, dx: number, dy: number) =>
-  nodes.map((node) => (node.id === id ? { ...node, position: { x: node.position.x + dx, y: node.position.y + dy } } : node))
+  nodes.map((node) =>
+    node.id === id ? { ...node, position: { x: node.position.x + dx, y: node.position.y + dy } } : node,
+  )
 
 describe('dragRoots', () => {
   it('drops dragged nodes whose parent is dragged too', () => {
@@ -88,7 +96,10 @@ describe('landInside', () => {
     const outer = byId(before).get('outer')!
     const landed = byId(landInside(moved(before, 'stay', outer.width!, 60), ['stay'], size))
 
-    expect(landed.get('stay')!.position).toEqual({ x: outer.width! - 32 - TASK_WIDTH, y: outer.height! - 32 - TASK_HEIGHT })
+    expect(landed.get('stay')!.position).toEqual({
+      x: outer.width! - 32 - TASK_WIDTH,
+      y: outer.height! - 32 - TASK_HEIGHT,
+    })
   })
 
   it('keeps the formation of work dropped together', () => {
@@ -146,7 +157,10 @@ describe('reparent', () => {
     const lifted = byId(reparent(nodes, ['inner'], undefined, 'outer'))
 
     expect(lifted.get('inner')!.parentId).toBeUndefined()
-    expect(lifted.get('inner')!.position).toEqual({ x: outer.position.x + inner.position.x, y: outer.position.y + inner.position.y })
+    expect(lifted.get('inner')!.position).toEqual({
+      x: outer.position.x + inner.position.x,
+      y: outer.position.y + inner.position.y,
+    })
     expect((lifted.get('outer')!.data as ClusterData).layout).toBe('refit')
   })
 

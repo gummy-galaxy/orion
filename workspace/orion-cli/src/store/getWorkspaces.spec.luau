@@ -18,7 +18,8 @@ test.case("getWorkspaces reads labels, archived workspaces, and the active one",
 	fs.createDirectory(root, { makeParents = true })
 	fs.writeStringToFile(
 		path.join(root, "canvases.json"),
-		[[{"active":"work","canvases":[{"name":"default","label":"Home"},{"name":"work","label":"Work"},{"name":"work","label":"Again"}],"archived":[{"name":"old","label":"Old"}]}]]
+		[[{"active":"work","canvases":[{"name":"default","label":"Home"},{"name":"work","label":"Work"},]]
+			.. [[{"name":"work","label":"Again"}],"archived":[{"name":"old","label":"Old"}]}]]
 	)
 
 	local list = getWorkspaces(root)

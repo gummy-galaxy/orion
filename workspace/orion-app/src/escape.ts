@@ -4,7 +4,9 @@ import { indexNodes } from './hierarchy/indexNodes'
 import { absolutePosition, byId, groupHeaderHeight, isCluster, sizeOf, type AppNode } from './model'
 import type { CardSize } from './cardSize'
 
-/** How far past a group's edge, in screen pixels, dragged work goes before it pops out. Stickers use the same distance. */
+/**
+ * How far past a group's edge, in screen pixels, dragged work goes before it pops out. Stickers use the same distance.
+ */
 export const POP_DISTANCE = 90
 
 type Box = { x: number; y: number; width: number; height: number }
@@ -50,7 +52,8 @@ export function dragRoots(nodes: AppNode[], ids: Iterable<string>): string[] {
   const nodeMap = byId(nodes)
 
   return [...dragged].filter((id) => {
-    for (let parent = nodeMap.get(id)?.parentId; parent; parent = nodeMap.get(parent)?.parentId) if (dragged.has(parent)) return false
+    for (let parent = nodeMap.get(id)?.parentId; parent; parent = nodeMap.get(parent)?.parentId)
+      if (dragged.has(parent)) return false
 
     return true
   })
@@ -75,11 +78,19 @@ export function startEscape(nodes: AppNode[], ids: Iterable<string>, cardSize: C
  * than `pop` past its home's walls, it pops out to the next level, and leaving several levels in one sweep pops
  * through each. `before` is the canvas when the drag started.
  */
-export function followEscape(nodes: AppNode[], escape: Escape, before: AppNode[], pop: number, cardSize: CardSize): Escape {
+export function followEscape(
+  nodes: AppNode[],
+  escape: Escape,
+  before: AppNode[],
+  pop: number,
+  cardSize: CardSize,
+): Escape {
   if (!escape.walls) return escape
 
   const nodeMap = byId(nodes)
-  const block = boundsOf(escape.roots.flatMap((id) => (nodeMap.has(id) ? [boxOf(nodeMap.get(id)!, nodeMap, cardSize)] : [])))
+  const block = boundsOf(
+    escape.roots.flatMap((id) => (nodeMap.has(id) ? [boxOf(nodeMap.get(id)!, nodeMap, cardSize)] : [])),
+  )
   const startMap = byId(before)
   let next = escape
 
@@ -142,14 +153,20 @@ export function landInside(nodes: AppNode[], ids: Iterable<string>, cardSize: Ca
  */
 export function dropTarget(nodes: AppNode[], escape: Escape, cardSize: CardSize): string | undefined {
   const { byId: nodeMap, children } = indexNodes(nodes)
-  const block = boundsOf(escape.roots.flatMap((id) => (nodeMap.has(id) ? [boxOf(nodeMap.get(id)!, nodeMap, cardSize)] : [])))
+  const block = boundsOf(
+    escape.roots.flatMap((id) => (nodeMap.has(id) ? [boxOf(nodeMap.get(id)!, nodeMap, cardSize)] : [])),
+  )
   const center = { x: block.x + block.width / 2, y: block.y + block.height / 2 }
   const excluded = new Set(escape.roots.flatMap((id) => [id, ...descendants(id, children)]))
   let target = escape.home
 
   for (;;) {
     const inside = nodes.find(
-      (node) => isCluster(node) && node.parentId === target && !excluded.has(node.id) && depthInside(center, boxOf(node, nodeMap, cardSize)) >= 0,
+      (node) =>
+        isCluster(node) &&
+        node.parentId === target &&
+        !excluded.has(node.id) &&
+        depthInside(center, boxOf(node, nodeMap, cardSize)) >= 0,
     )
 
     if (!inside) return target
@@ -163,7 +180,12 @@ export function dropTarget(nodes: AppNode[], escape: Escape, cardSize: CardSize)
  * leaves is marked to lay itself out again, as the CLI's move does. Returns the same nodes when the target is where
  * the work already is.
  */
-export function reparent(nodes: AppNode[], roots: string[], target: string | undefined, from: string | undefined): AppNode[] {
+export function reparent(
+  nodes: AppNode[],
+  roots: string[],
+  target: string | undefined,
+  from: string | undefined,
+): AppNode[] {
   if (target === from) return nodes
 
   const nodeMap = byId(nodes)
@@ -177,7 +199,12 @@ export function reparent(nodes: AppNode[], roots: string[], target: string | und
       return { ...node, parentId: target, position: { x: absolute.x - origin.x, y: absolute.y - origin.y } }
     }
 
-    if ((node.id === target || node.id === from) && isCluster(node) && node.data.arrange !== 'custom' && !node.data.layout)
+    if (
+      (node.id === target || node.id === from) &&
+      isCluster(node) &&
+      node.data.arrange !== 'custom' &&
+      !node.data.layout
+    )
       return { ...node, data: { ...node.data, layout: 'refit' } }
 
     return node

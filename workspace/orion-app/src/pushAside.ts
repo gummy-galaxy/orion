@@ -25,7 +25,12 @@ const overlapsColumns = (a: Box, b: Box) => a.x < right(b) && b.x < right(a)
  * Each sibling that moves pushes its own neighbors in turn. Gaps are measured from `earlier`, so running this again
  * changes nothing. Returns the boxes that moved.
  */
-function pushSiblings(boxes: Map<string, Box>, earlier: Map<string, Box>, movers: string[], gap: { x: number; y: number }): Set<string> {
+function pushSiblings(
+  boxes: Map<string, Box>,
+  earlier: Map<string, Box>,
+  movers: string[],
+  gap: { x: number; y: number },
+): Set<string> {
   const pushed = new Set<string>()
   const queue = [...movers]
 
@@ -71,8 +76,8 @@ function pushSiblings(boxes: Map<string, Box>, earlier: Map<string, Box>, movers
 
 /**
  * Keeps a group that grew from `previous` to `next` from covering its neighbors. Siblings on the side it grew toward
- * move aside, and each parent that grows as a result does the same at its own level, up to the top. Only a group that got
- * bigger pushes; one that was dragged somewhere else doesn't, and neither do nodes that only appear in `next`.
+ * move aside, and each parent that grows as a result does the same at its own level, up to the top. Only a group that
+ * got bigger pushes; one that was dragged somewhere else doesn't, and neither do nodes that only appear in `next`.
  * Returns `next` itself when nothing had to move.
  */
 export function pushAside(previous: AppNode[], next: AppNode[], cardSize: CardSize): AppNode[] {
@@ -115,7 +120,8 @@ export function pushAside(previous: AppNode[], next: AppNode[], cardSize: CardSi
         parentId ? GAP.inner : GAP.top,
       )
 
-      for (const id of pushed) shifts.set(id, { x: boxes.get(id)!.x - start.get(id)!.x, y: boxes.get(id)!.y - start.get(id)!.y })
+      for (const id of pushed)
+        shifts.set(id, { x: boxes.get(id)!.x - start.get(id)!.x, y: boxes.get(id)!.y - start.get(id)!.y })
     }
 
     if (!shifts.size) break

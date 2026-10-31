@@ -35,6 +35,8 @@ import {
 // One empty list, so the snooze checkboxes can tell when the server answers a toggle on a card with none snoozed yet.
 const NO_SNOOZED_JOBS: SnoozedJob[] = []
 
+const confidenceOf = (score: number) => (score >= 0.6 ? 'High' : score >= 0.35 ? 'Medium' : 'Low')
+
 export function TaskInspector({
   node,
   work,
@@ -97,7 +99,9 @@ export function TaskInspector({
     : (github?.unplaced ?? [])
         .filter((pullRequest) => !linked.has(`${pullRequest.repo}#${pullRequest.number}`.toLowerCase()))
         .flatMap((pullRequest) =>
-          pullRequest.matches.filter((match) => match.id === node.id).map((match) => ({ pr: pullRequest, score: match.score })),
+          pullRequest.matches
+            .filter((match) => match.id === node.id)
+            .map((match) => ({ pr: pullRequest, score: match.score })),
         )
         .sort((a, b) => b.score - a.score)
   // The repository and pull request show as typed until they save, which happens when either input loses focus.
@@ -155,7 +159,9 @@ export function TaskInspector({
                 href={ref.url}
                 target="_blank"
                 rel="noreferrer"
-                title={ref.kind === 'pull' ? 'Open pull request' : ref.kind === 'issue' ? 'Open issue' : `Open ${ref.key}`}
+                title={
+                  ref.kind === 'pull' ? 'Open pull request' : ref.kind === 'issue' ? 'Open issue' : `Open ${ref.key}`
+                }
               >
                 {ref.key} ↗
               </a>
@@ -168,7 +174,11 @@ export function TaskInspector({
         <div className="grid2">
           <div>
             <label htmlFor="t-status">Status</label>
-            <select id="t-status" value={data.status} onChange={(event) => update(node.id, { status: event.target.value })}>
+            <select
+              id="t-status"
+              value={data.status}
+              onChange={(event) => update(node.id, { status: event.target.value })}
+            >
               {getStateChoices(data).map((choice) => (
                 <option key={choice.value} value={choice.value}>
                   {choice.label}
@@ -265,7 +275,11 @@ export function TaskInspector({
           </p>
         )}
         <label className="gate-toggle">
-          <input type="checkbox" checked={data.type === 'gate'} onChange={(event) => save({ kind: event.target.checked ? 'gate' : 'step' })} />
+          <input
+            type="checkbox"
+            checked={data.type === 'gate'}
+            onChange={(event) => save({ kind: event.target.checked ? 'gate' : 'step' })}
+          />
           Gate: done once everything it waits on is
         </label>
         <TypeFields data={data} save={save} />
@@ -279,10 +293,14 @@ export function TaskInspector({
                     {pullRequest.title}
                   </a>
                   <span>
-                    {pullRequest.repo}#{pullRequest.number} · {score >= 0.6 ? 'High' : score >= 0.35 ? 'Medium' : 'Low'} confidence
+                    {pullRequest.repo}#{pullRequest.number} · {confidenceOf(score)} confidence
                   </span>
                 </div>
-                <button type="button" className="btn" onClick={() => save({ repo: pullRequest.repo, pr: pullRequest.number })}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => save({ repo: pullRequest.repo, pr: pullRequest.number })}
+                >
                   Link
                 </button>
               </div>

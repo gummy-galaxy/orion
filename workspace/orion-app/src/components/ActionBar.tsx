@@ -22,10 +22,22 @@ const SYNC = 'M15.5 8A6 6 0 0 0 4.7 6.3M4.5 3v3.5H8M4.5 12a6 6 0 0 0 10.8 1.7M15
 export function ActionBar({ keybindings, search, addNote, addImage, tidy, sync }: Props) {
   return (
     <div className="panel toolbar vertical" role="toolbar" aria-label="Canvas actions" aria-orientation="vertical">
-      <button type="button" className="tool" title={withChord('Search', keybindings.search)} aria-label="Search" onClick={search}>
+      <button
+        type="button"
+        className="tool"
+        title={withChord('Search', keybindings.search)}
+        aria-label="Search"
+        onClick={search}
+      >
         <ToolIcon path={SEARCH} />
       </button>
-      <button type="button" className="tool" title={withChord('Add note', keybindings['add-note'])} aria-label="Add note" onClick={addNote}>
+      <button
+        type="button"
+        className="tool"
+        title={withChord('Add note', keybindings['add-note'])}
+        aria-label="Add note"
+        onClick={addNote}
+      >
         <ToolIcon path={NOTE} />
       </button>
       <label className="tool image-upload" title="Add image">

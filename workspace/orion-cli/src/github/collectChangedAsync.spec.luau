@@ -111,7 +111,8 @@ test.case("a sweep refetches the open cards whose updatedAt moved", function(ass
 	local doc, poll = fixture()
 	local run, queries = createRunner(
 		nil,
-		`\{"data":\{"p1":\{"pullRequest":\{"updatedAt":"{RECORDED}"}},"p2":\{"pullRequest":\{"updatedAt":"2026-10-18T00:00:00Z"}}}}`
+		`\{"data":\{"p1":\{"pullRequest":\{"updatedAt":"{RECORDED}"}},`
+			.. `"p2":\{"pullRequest":\{"updatedAt":"2026-10-18T00:00:00Z"}}}}`
 	)
 	local changes = collectChangedAsync(doc, run, poll, SWEEP)
 
@@ -189,7 +190,9 @@ local function checksResponse(finished: number): string
 	local states = if finished == 2
 		then [[{"state":"SUCCESS","count":2}]]
 		else `\{"state":"SUCCESS","count":{finished}},\{"state":"IN_PROGRESS","count":{2 - finished}}`
-	return `\{"data":\{"p1":\{"pullRequest":\{"number":4,"state":"OPEN","url":"u4","headRefOid":"abc","commits":\{"nodes":[\{"commit":\{"statusCheckRollup":\{"state":"PENDING","contexts":\{"checkRunCountsByState":[{states}],"statusContextCountsByState":[]}}}}]}}}}}`
+	return `\{"data":\{"p1":\{"pullRequest":\{"number":4,"state":"OPEN","url":"u4","headRefOid":"abc",`
+		.. `"commits":\{"nodes":[\{"commit":\{"statusCheckRollup":\{"state":"PENDING",`
+		.. `"contexts":\{"checkRunCountsByState":[{states}],"statusContextCountsByState":[]}}}}]}}}}}`
 end
 
 test.case("a checks pass refetches only pending cards whose checks moved", function(assert)

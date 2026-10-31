@@ -18,7 +18,11 @@ export function SelectionStatus({ items, update }: Props) {
       <div className="grid2">
         <div>
           <label htmlFor="selection-status">Status</label>
-          <select id="selection-status" value={status} onChange={(event) => update({ status: event.target.value as Status })}>
+          <select
+            id="selection-status"
+            value={status}
+            onChange={(event) => update({ status: event.target.value as Status })}
+          >
             {status === 'mixed' && (
               <option value="mixed" disabled>
                 Mixed
@@ -33,7 +37,11 @@ export function SelectionStatus({ items, update }: Props) {
         </div>
         <div>
           <label htmlFor="selection-who">Whose move</label>
-          <select id="selection-who" value={who ?? ''} onChange={(event) => update({ who: (event.target.value || undefined) as Who | undefined })}>
+          <select
+            id="selection-who"
+            value={who ?? ''}
+            onChange={(event) => update({ who: (event.target.value || undefined) as Who | undefined })}
+          >
             {who === 'mixed' && (
               <option value="mixed" disabled>
                 Mixed

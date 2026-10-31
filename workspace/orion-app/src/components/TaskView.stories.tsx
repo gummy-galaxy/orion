@@ -17,7 +17,15 @@ const shapes: TaskNode[] = COMPONENT_SHAPES.map((shape, i) => ({
   id: shape,
   type: 'task',
   position: { x: (i % 4) * 260, y: Math.floor(i / 4) * 150 },
-  data: { kind: 'task', type: 'component', label: SHAPE_LABEL[shape], status: 'todo', shape, color: TINTS[i], note: `A ${shape} component` },
+  data: {
+    kind: 'task',
+    type: 'component',
+    label: SHAPE_LABEL[shape],
+    status: 'todo',
+    shape,
+    color: TINTS[i],
+    note: `A ${shape} component`,
+  },
 }))
 
 /** Every component shape, each in its own tint. */
@@ -36,7 +44,10 @@ const OPEN_PULL: Partial<SourceRef> = {
 const READINESS: [string, Partial<SourceRef>][] = [
   ['Merge conflicts', { readiness: 'conflict', checks: { state: 'passing' } }],
   ['Checks failing', { readiness: 'failing', checks: { state: 'failing' } }],
-  ['Checks running', { readiness: 'running', checks: { state: 'pending', progress: 'running', total: 8, finished: 5, failed: 0 } }],
+  [
+    'Checks running',
+    { readiness: 'running', checks: { state: 'pending', progress: 'running', total: 8, finished: 5, failed: 0 } },
+  ],
   ['Checks queued', { readiness: 'waiting', checks: { state: 'pending', progress: 'waiting' } }],
   ['Checks passing, awaiting review', { readiness: 'passing', checks: { state: 'passing' } }],
   ['Ready to merge', { readiness: 'mergeable', checks: { state: 'passing' }, stateLabel: 'Approved on GitHub' }],
@@ -71,14 +82,23 @@ const severalRefs: TaskNode = {
 
 export const SeveralRefs: Story = { render: () => <StoryGraph nodes={[severalRefs]} nodeTypes={{ task: TaskView }} /> }
 
-export const PullReadiness: Story = { render: () => <StoryGraph nodes={readinessCards} nodeTypes={{ task: TaskView }} /> }
+export const PullReadiness: Story = {
+  render: () => <StoryGraph nodes={readinessCards} nodeTypes={{ task: TaskView }} />,
+}
 
 /** Finished and waiting to be closed out: the card shimmers and shows the close-out badge. */
 export const WaitingToCloseOut: Story = {
-  render: () => <StoryGraph nodes={[{ ...task, data: { ...task.data, status: 'done', celebrate: true } }]} nodeTypes={{ task: TaskView }} />,
+  render: () => (
+    <StoryGraph
+      nodes={[{ ...task, data: { ...task.data, status: 'done', celebrate: true } }]}
+      nodeTypes={{ task: TaskView }}
+    />
+  ),
 }
 
 /** Closed out: the card carries a Done stamp. */
 export const ClosedOut: Story = {
-  render: () => <StoryGraph nodes={[{ ...task, data: { ...task.data, status: 'done' } }]} nodeTypes={{ task: TaskView }} />,
+  render: () => (
+    <StoryGraph nodes={[{ ...task, data: { ...task.data, status: 'done' } }]} nodeTypes={{ task: TaskView }} />
+  ),
 }

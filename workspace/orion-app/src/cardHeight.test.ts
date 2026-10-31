@@ -28,12 +28,23 @@ describe('taskHeight', () => {
     expect(long).toBeGreaterThan(short)
     expect(huge).toBe(TASK_MAX_HEIGHT)
     expect(
-      taskHeight(card({ type: 'component', label: 'Store', note: 'One lock for every write; revisions, migrations, and backups' }), CLASSIC),
+      taskHeight(
+        card({
+          type: 'component',
+          label: 'Store',
+          note: 'One lock for every write; revisions, migrations, and backups',
+        }),
+        CLASSIC,
+      ),
     ).toBeGreaterThan(taskHeight(card({ type: 'component', label: 'Store' }), CLASSIC))
   })
 
   it('leaves room for the shapes that take some of the card', () => {
-    const data = { type: 'component' as const, label: 'orion.json', note: 'One per workspace: nodes, links, and settings' }
+    const data = {
+      type: 'component' as const,
+      label: 'orion.json',
+      note: 'One per workspace: nodes, links, and settings',
+    }
 
     expect(taskHeight(card({ ...data, shape: 'store' }), CLASSIC)).toBeGreaterThan(taskHeight(card(data), CLASSIC))
   })

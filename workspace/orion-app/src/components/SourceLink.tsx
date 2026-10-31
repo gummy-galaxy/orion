@@ -4,7 +4,17 @@ import type { SourceRef } from '../derive'
 /** Keeps a click on a link from also selecting, dragging, or opening the node it sits on. */
 const stopPropagation = (event: SyntheticEvent) => event.stopPropagation()
 
-export function SourceLink({ source, label, className, children }: { source: SourceRef; label?: string; className?: string; children: ReactNode }) {
+export function SourceLink({
+  source,
+  label,
+  className,
+  children,
+}: {
+  source: SourceRef
+  label?: string
+  className?: string
+  children: ReactNode
+}) {
   return source.href ? (
     <a
       className={className}

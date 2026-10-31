@@ -6,7 +6,9 @@ const card = (extra: Partial<TaskData> = {}): TaskData => ({ kind: 'task', label
 const pull = (key: string) => ({ source: 'github', kind: 'pull', key })
 
 test('sends only the fields that changed, with an empty string for one cleared', () => {
-  expect(diffCardFields(card({ who: 'you', note: 'Old' }), card({ label: 'Ship it', status: 'done', note: 'Old' }))).toEqual({
+  expect(
+    diffCardFields(card({ who: 'you', note: 'Old' }), card({ label: 'Ship it', status: 'done', note: 'Old' })),
+  ).toEqual({
     label: 'Ship it',
     status: 'done',
     who: '',
@@ -28,7 +30,12 @@ test('sends the pull request number in place of its ref, and leaves the server i
 
   expect(diffCardFields(before, card({ repo: 'vocksel/orion', refs: [pull('vocksel/orion#14')] }))).toEqual({ pr: 14 })
   expect(diffCardFields(before, card({ repo: 'vocksel/orion' }))).toEqual({ pr: '' })
-  expect(diffCardFields(before, { ...before, refs: [pull('vocksel/orion#12'), { source: 'jira', kind: 'issue', key: 'ABC-1' }] })).toEqual({})
+  expect(
+    diffCardFields(before, {
+      ...before,
+      refs: [pull('vocksel/orion#12'), { source: 'jira', kind: 'issue', key: 'ABC-1' }],
+    }),
+  ).toEqual({})
 })
 
 test('leaves out the close-out flag', () => {

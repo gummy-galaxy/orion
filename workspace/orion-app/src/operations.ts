@@ -29,7 +29,10 @@ function moveOp(node: StoredNode): Operation {
   return node.parentId ? { op: 'move', id: node.id, group: node.parentId } : { op: 'move', id: node.id }
 }
 
-/** The add operation for a new node. Ids and positions are the canvas's; the server only checks they're free and sit in a group. */
+/**
+ * The add operation for a new node. Ids and positions are the canvas's; the server only checks they're free and sit in
+ * a group.
+ */
 function addOp(node: StoredNode): Operation {
   const fields = {
     id: node.id,
@@ -94,7 +97,9 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
   const created = current.nodes.filter((node) => !before.has(node.id)).sort((a, b) => depth(a.id) - depth(b.id))
 
   for (const node of created) {
-    const members = isGroup(node) ? current.nodes.filter((item) => item.parentId === node.id && before.has(item.id)) : []
+    const members = isGroup(node)
+      ? current.nodes.filter((item) => item.parentId === node.id && before.has(item.id))
+      : []
 
     if (!members.length) {
       operations.push(addOp(node))
@@ -105,7 +110,9 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
       grouped.add(member.id)
 
       if (before.get(member.id)?.parentId !== node.parentId) {
-        operations.push(node.parentId ? { op: 'move', id: member.id, group: node.parentId } : { op: 'move', id: member.id })
+        operations.push(
+          node.parentId ? { op: 'move', id: member.id, group: node.parentId } : { op: 'move', id: member.id },
+        )
       }
     }
 
@@ -120,7 +127,8 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
     // The server sets its own size and label for the group, so the canvas's values follow.
     operations.push({ op: 'setData', id: node.id, data: node.data })
 
-    if (node.width !== undefined && node.height !== undefined) operations.push({ op: 'resize', id: node.id, width: node.width, height: node.height })
+    if (node.width !== undefined && node.height !== undefined)
+      operations.push({ op: 'resize', id: node.id, width: node.width, height: node.height })
 
     operations.push({ op: 'place', id: node.id, x: node.position.x, y: node.position.y })
   }
@@ -129,7 +137,8 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
   // that would empty a group another move still needs waits its turn.
   const childCount = new Map<string, number>()
 
-  for (const node of base.nodes) if (node.parentId) childCount.set(node.parentId, (childCount.get(node.parentId) ?? 0) + 1)
+  for (const node of base.nodes)
+    if (node.parentId) childCount.set(node.parentId, (childCount.get(node.parentId) ?? 0) + 1)
 
   const pending = current.nodes.filter((node) => {
     const previous = before.get(node.id)
@@ -189,7 +198,8 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
 
     if (previous.width === node.width && previous.height === node.height) continue
 
-    if (node.width === undefined || node.height === undefined) operations.push({ op: 'resize', id: node.id, clear: true })
+    if (node.width === undefined || node.height === undefined)
+      operations.push({ op: 'resize', id: node.id, clear: true })
     else operations.push({ op: 'resize', id: node.id, width: node.width, height: node.height })
   }
 
@@ -197,14 +207,16 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
     const previous = before.get(node.id)!
     const moved = previous.position.x !== node.position.x || previous.position.y !== node.position.y
 
-    if (moved || previous.parentId !== node.parentId) operations.push({ op: 'place', id: node.id, x: node.position.x, y: node.position.y })
+    if (moved || previous.parentId !== node.parentId)
+      operations.push({ op: 'place', id: node.id, x: node.position.x, y: node.position.y })
   }
 
   const beforeLinks = new Map(base.links.map((link) => [keyOf(link.from, link.to), link]))
   const afterLinks = new Map(current.links.map((link) => [keyOf(link.from, link.to), link]))
 
   for (const [key, link] of beforeLinks) {
-    if (!afterLinks.has(key) && after.has(link.from) && after.has(link.to)) operations.push({ op: 'unlink', from: link.from, to: link.to })
+    if (!afterLinks.has(key) && after.has(link.from) && after.has(link.to))
+      operations.push({ op: 'unlink', from: link.from, to: link.to })
   }
 
   for (const [key, link] of afterLinks) {
@@ -214,7 +226,13 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
 
     if ((!previous || previous.kind !== link.kind || relabeled) && after.has(link.from) && after.has(link.to)) {
       // An empty label clears one the link had.
-      operations.push({ op: 'link', from: link.from, to: link.to, kind: link.kind, ...(link.label || relabeled ? { label: link.label ?? '' } : {}) })
+      operations.push({
+        op: 'link',
+        from: link.from,
+        to: link.to,
+        kind: link.kind,
+        ...(link.label || relabeled ? { label: link.label ?? '' } : {}),
+      })
     }
   }
 
@@ -227,7 +245,8 @@ export function diffOperations(base: OperationDoc, current: OperationDoc): Opera
     if (!base.nodes.some((node) => node.parentId === group.id)) operations.push({ op: 'removeGroup', id: group.id })
   }
 
-  if (!sameJson(base.stickers ?? [], current.stickers ?? [])) operations.push({ op: 'setStickers', stickers: current.stickers ?? [] })
+  if (!sameJson(base.stickers ?? [], current.stickers ?? []))
+    operations.push({ op: 'setStickers', stickers: current.stickers ?? [] })
 
   if (!sameJson(base.stickerLoadout ?? [], current.stickerLoadout ?? [])) {
     operations.push({ op: 'setStickerLoadout', stickerLoadout: current.stickerLoadout ?? [] })

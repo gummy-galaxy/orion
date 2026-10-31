@@ -49,8 +49,8 @@ function liftOrigin(card: HTMLElement) {
 export const TaskView = memo(function TaskView({ id, data, parentId, selected, width, height }: NodeProps<TaskNode>) {
   const [hovered, setHovered] = useState(false)
   // Only a hovered or selected card reads the zoom, so zooming across the breakpoint doesn't re-render every card. The
-  // compact look for all cards is CSS keyed off the canvas's data-zoom. Retuning the breakpoint in the debug bar re-renders
-  // cards, so a selected card's tag follows the new value at once.
+  // compact look for all cards is CSS keyed off the canvas's data-zoom. Retuning the breakpoint in the debug bar
+  // re-renders cards, so a selected card's tag follows the new value at once.
   const breakpoint = useSyncExternalStore(subscribeCompactZoom, getCompactZoom)
   const far = useStore((state) => (hovered || selected) && state.transform[2] < breakpoint)
   // Inspect mode opens the hovered card in full.
@@ -76,11 +76,19 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
       ? `card skin-${skin} note${trace ? ' tr-' + trace : ''}`
       : view.layout === 'component'
         ? `card component shape-${data.shape ?? 'service'}${tint ? ' tint-' + tint : ''}${trace ? ' tr-' + trace : ''}`
-        : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}${snoozedUntil ? ' snoozed' : ''}`
+        : `card skin-${skin} st-${view.status}${view.kind === 'placeholder' ? ' placeholder' : ''}` +
+          `${view.kind === 'gate' ? ' gate' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}` +
+          `${view.readyToMerge ? ' ready-to-merge' : ''}${waiting ? ' is-waiting' : ''}` +
+          `${snoozedUntil ? ' snoozed' : ''}`
   const body = (
     <>
       {view.layout === 'component' ? (
-        <ComponentCard view={view} shape={data.shape ?? 'service'} width={width ?? TASK_WIDTH} height={height ?? TASK_HEIGHT} />
+        <ComponentCard
+          view={view}
+          shape={data.shape ?? 'service'}
+          width={width ?? TASK_WIDTH}
+          height={height ?? TASK_HEIGHT}
+        />
       ) : (
         <CardBody view={view} />
       )}
@@ -92,7 +100,13 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
           Done
         </span>
       )}
-      {finale && <span className="chain-flourish" style={{ '--clear-delay': `${finaleDelay}ms` } as CSSProperties} aria-hidden="true" />}
+      {finale && (
+        <span
+          className="chain-flourish"
+          style={{ '--clear-delay': `${finaleDelay}ms` } as CSSProperties}
+          aria-hidden="true"
+        />
+      )}
       {badged && (
         <button
           type="button"
@@ -107,7 +121,14 @@ export const TaskView = memo(function TaskView({ id, data, parentId, selected, w
           }}
         >
           <svg viewBox="0 0 10 10" aria-hidden="true">
-            <path d="M2.3 5.2 4.2 7.1 7.8 3.2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M2.3 5.2 4.2 7.1 7.8 3.2"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </button>
       )}

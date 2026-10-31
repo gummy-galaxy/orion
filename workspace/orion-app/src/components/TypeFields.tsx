@@ -19,7 +19,15 @@ function FieldInput({ id, entry, save }: { id: string; entry: FieldValue; save: 
   const key = `${field.name}:${text}`
 
   if (field.kind === 'boolean') {
-    return <input id={id} key={key} type="checkbox" defaultChecked={value === true} onChange={(event) => save(String(event.target.checked))} />
+    return (
+      <input
+        id={id}
+        key={key}
+        type="checkbox"
+        defaultChecked={value === true}
+        onChange={(event) => save(String(event.target.checked))}
+      />
+    )
   }
 
   if (field.kind === 'choice') {
@@ -36,7 +44,15 @@ function FieldInput({ id, entry, save }: { id: string; entry: FieldValue; save: 
   }
 
   if (field.kind === 'markdown') {
-    return <textarea id={id} key={key} defaultValue={text} rows={3} onBlur={(event) => event.target.value !== text && save(event.target.value)} />
+    return (
+      <textarea
+        id={id}
+        key={key}
+        defaultValue={text}
+        rows={3}
+        onBlur={(event) => event.target.value !== text && save(event.target.value)}
+      />
+    )
   }
 
   return (

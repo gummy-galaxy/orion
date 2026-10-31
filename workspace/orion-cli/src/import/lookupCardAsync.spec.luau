@@ -63,5 +63,3 @@ test.case("a pull request GitHub can't find raises the reason", function(assert)
 	assert.eq(succeeded, false)
 	assert.strContains(tostring(failure), "not found on github.com")
 end)
-
-return {}

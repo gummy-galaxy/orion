@@ -30,7 +30,14 @@ test.case("check runs list each job with its state and whether it's required", f
 		query = argv[5]
 		return testing.result(
 			true,
-			[[{"data":{"c1":{"pullRequest":{"commits":{"nodes":[{"commit":{"statusCheckRollup":{"contexts":{"nodes":[{"__typename":"CheckRun","name":"docs","status":"COMPLETED","conclusion":"FAILURE","isRequired":false},{"__typename":"CheckRun","name":"test","status":"COMPLETED","conclusion":"SUCCESS","isRequired":true},{"__typename":"CheckRun","name":"perf","status":"IN_PROGRESS","conclusion":null,"isRequired":false},{"__typename":"CheckRun","name":"skip","status":"COMPLETED","conclusion":"SKIPPED","isRequired":false},{"__typename":"StatusContext","context":"chromatic","state":"ERROR","isRequired":false}]}}}}]}}}}}]]
+			[[{"data":{"c1":{"pullRequest":{"commits":{"nodes":[{"commit":{"statusCheckRollup":{"contexts":{"nodes":]]
+				.. [[[{"__typename":"CheckRun","name":"docs","status":"COMPLETED","conclusion":"FAILURE",]]
+				.. [["isRequired":false},{"__typename":"CheckRun","name":"test","status":"COMPLETED",]]
+				.. [["conclusion":"SUCCESS","isRequired":true},{"__typename":"CheckRun","name":"perf",]]
+				.. [["status":"IN_PROGRESS","conclusion":null,"isRequired":false},{"__typename":"CheckRun",]]
+				.. [["name":"skip","status":"COMPLETED","conclusion":"SKIPPED","isRequired":false},]]
+				.. [[{"__typename":"StatusContext","context":"chromatic","state":"ERROR",]]
+				.. [["isRequired":false}]}}}}]}}}}}]]
 		)
 	end, { pull })
 

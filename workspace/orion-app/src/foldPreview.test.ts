@@ -19,7 +19,15 @@ const card = (id: string, x: number, y: number, parentId?: string): AppNode =>
   ({ id, type: 'task', parentId, position: { x, y }, data: { kind: 'task', label: id, status: 'todo' } }) as AppNode
 
 const image = (id: string, x: number, y: number, parentId?: string): AppNode =>
-  ({ id, type: 'image', parentId, position: { x, y }, width: 120, height: 90, data: { kind: 'image', label: id } }) as AppNode
+  ({
+    id,
+    type: 'image',
+    parentId,
+    position: { x, y },
+    width: 120,
+    height: 90,
+    data: { kind: 'image', label: id },
+  }) as AppNode
 
 const build = (nodes: AppNode[], folded: string[], status: Record<string, ViewStatus> = {}) =>
   foldPreviews(nodes, byId(nodes), new Set(folded), CARD_SIZE, new Map(Object.entries(status)))
@@ -75,7 +83,9 @@ describe('foldPreviews', () => {
   })
 
   it('draws nearest items first and caps the count per group', () => {
-    const many = Array.from({ length: FOLD_PREVIEW_LIMIT + 20 }, (_, index) => card(`deep-${index}`, index, index, 'inner'))
+    const many = Array.from({ length: FOLD_PREVIEW_LIMIT + 20 }, (_, index) =>
+      card(`deep-${index}`, index, index, 'inner'),
+    )
     const nodes = [group('a', 0, 0), card('near', 5, 5, 'a'), group('inner', 0, 0, 'a'), ...many]
     const items = build(nodes, ['a']).get('a')!
 

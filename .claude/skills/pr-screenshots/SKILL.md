@@ -41,7 +41,7 @@ In each tree, install the app's packages and build the CLI, which takes seconds:
 
 ```sh
 for tree in "$BEFORE" "$AFTER"; do
-  (cd "$tree/workspace/orion-app" && npm ci) && (cd "$tree/workspace/orion-cli" && lute pkg install) && (cd "$tree" && lute run build)
+  (cd "$tree/workspace/orion-app" && npm ci) && (cd "$tree" && lute run install && lute run build)
 done
 ```
 

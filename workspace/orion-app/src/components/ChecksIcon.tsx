@@ -24,7 +24,15 @@ const SHAPES: Record<Exclude<PullReadiness, 'mergeable'>, ReactNode> = {
  * How close a pull request is to merging: a conflict, failing, running or queued checks, passing, or ready.
  * `badge` adds a cutout of the card's fill around it, to sit on the corner of the status icon.
  */
-export function ChecksIcon({ readiness, title, badge = false }: { readiness: PullReadiness; title?: string; badge?: boolean }) {
+export function ChecksIcon({
+  readiness,
+  title,
+  badge = false,
+}: {
+  readiness: PullReadiness
+  title?: string
+  badge?: boolean
+}) {
   if (readiness === 'mergeable') return <MergeIcon title={title} className="checks-icon check-mergeable" />
 
   return (

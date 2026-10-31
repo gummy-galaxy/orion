@@ -36,7 +36,9 @@ export function PlainCard({ view }: { view: CardView }) {
                 {checkGlyph}
               </span>
             )}
-            {view.status !== 'done' && view.status !== 'deferred' && view.leverage > 0 && <span>unblocks {view.leverage}</span>}
+            {view.status !== 'done' && view.status !== 'deferred' && view.leverage > 0 && (
+              <span>unblocks {view.leverage}</span>
+            )}
           </span>
         )}
         <span className="plain-status" title={view.statusLabel}>

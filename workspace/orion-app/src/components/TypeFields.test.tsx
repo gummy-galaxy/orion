@@ -23,7 +23,11 @@ test("draws a declared type's fields and saves each change as text", () => {
   fireEvent.change(screens, { target: { value: '4' } })
   fireEvent.blur(screens)
 
-  expect(save.mock.calls).toEqual([[{ values: { stage: 'review' } }], [{ values: { shared: 'true' } }], [{ values: { screens: '4' } }]])
+  expect(save.mock.calls).toEqual([
+    [{ values: { stage: 'review' } }],
+    [{ values: { shared: 'true' } }],
+    [{ values: { screens: '4' } }],
+  ])
   expect(screen.getByText('Step · Figma frame')).toBeTruthy()
 })
 

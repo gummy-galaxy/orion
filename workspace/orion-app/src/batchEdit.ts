@@ -1,7 +1,10 @@
 import { findState } from './cardTypes/findState'
 import { isWork, type AppNode, type Status, type TaskData } from './model'
 
-/** The fields a multi-selection sets on every work item in it. Its status is a meaning, which each card records as its own type's state. */
+/**
+ * The fields a multi-selection sets on every work item in it. Its status is a meaning, which each card records as its
+ * own type's state.
+ */
 export type BatchPatch = { status?: Status; who?: TaskData['who'] }
 
 /** The edit a batch patch makes to one card, with the status as the state the card's type declares for it. */

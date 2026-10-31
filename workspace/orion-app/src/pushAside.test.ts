@@ -46,7 +46,11 @@ describe('pushAside', () => {
 
   it('moves a neighbor down when a group grows taller', () => {
     const start = normalize([cluster('a', undefined, 0, 0), task('a1', 'a', 32, 78)])
-    const previous = normalize([...start, cluster('c', undefined, 0, bottomOf(start, 'a') + 40), task('c1', 'c', 32, 78)])
+    const previous = normalize([
+      ...start,
+      cluster('c', undefined, 0, bottomOf(start, 'a') + 40),
+      task('c1', 'c', 32, 78),
+    ])
     const next = normalize([...previous, task('a2', 'a', 32, 78 + TASK_HEIGHT + GAP.inner.y)])
 
     const pushed = pushAside(previous, next, size)
@@ -68,7 +72,11 @@ describe('pushAside', () => {
 
   it('moves a neighbor up when a group grows upward', () => {
     const start = normalize([cluster('a', undefined, 0, 0), task('a1', 'a', 32, 78)])
-    const previous = normalize([...start, cluster('c', undefined, 0, bottomOf(start, 'a') + 40), task('c1', 'c', 32, 78)])
+    const previous = normalize([
+      ...start,
+      cluster('c', undefined, 0, bottomOf(start, 'a') + 40),
+      task('c1', 'c', 32, 78),
+    ])
     const next = normalize([...previous, task('c2', 'c', 32, 78 - TASK_HEIGHT - GAP.inner.y)])
 
     const pushed = pushAside(previous, next, size)
@@ -78,8 +86,16 @@ describe('pushAside', () => {
 
   it('carries the push through nested groups and up to the top level', () => {
     const inner = normalize([cluster('p', undefined, 0, 0), cluster('s1', 'p', 32, 78), task('s1a', 's1', 32, 78)])
-    const withSecond = normalize([...inner, cluster('s2', 'p', rightOf(inner, 's1') + GAP.inner.x, 78), task('s2a', 's2', 32, 78)])
-    const previous = normalize([...withSecond, cluster('q', undefined, rightOf(withSecond, 'p') + GAP.top.x, 0), task('q1', 'q', 32, 78)])
+    const withSecond = normalize([
+      ...inner,
+      cluster('s2', 'p', rightOf(inner, 's1') + GAP.inner.x, 78),
+      task('s2a', 's2', 32, 78),
+    ])
+    const previous = normalize([
+      ...withSecond,
+      cluster('q', undefined, rightOf(withSecond, 'p') + GAP.top.x, 0),
+      task('q1', 'q', 32, 78),
+    ])
     const next = normalize([...previous, task('s1b', 's1', 32 + TASK_WIDTH + GAP.inner.x, 78)])
 
     const pushed = pushAside(previous, next, size)
@@ -90,7 +106,11 @@ describe('pushAside', () => {
 
   it('pushes each neighbor along a row in turn', () => {
     const previous = sideBySide()
-    const third = normalize([...previous, cluster('c', undefined, rightOf(previous, 'b') + 40, 0), task('c1', 'c', 32, 78)])
+    const third = normalize([
+      ...previous,
+      cluster('c', undefined, rightOf(previous, 'b') + 40, 0),
+      task('c1', 'c', 32, 78),
+    ])
     const next = normalize([...third, task('a2', 'a', 32 + TASK_WIDTH + GAP.inner.x, 78)])
 
     const pushed = pushAside(third, next, size)
@@ -119,7 +139,11 @@ describe('pushAside', () => {
 describe('pushAside after a drag', () => {
   it('lets a group be dragged past its neighbor without pushing it', () => {
     const previous = sideBySide()
-    const next = normalize(previous.map((node) => (node.id === 'a' ? { ...node, position: { x: rightOf(previous, 'b') + GAP.top.x, y: 0 } } : node)))
+    const next = normalize(
+      previous.map((node) =>
+        node.id === 'a' ? { ...node, position: { x: rightOf(previous, 'b') + GAP.top.x, y: 0 } } : node,
+      ),
+    )
 
     expect(pushAside(previous, next, size)).toBe(next)
   })

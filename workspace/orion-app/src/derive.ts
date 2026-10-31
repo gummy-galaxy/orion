@@ -20,7 +20,10 @@ import type { Rarity } from './rarity'
 import type { GroupResize } from './resize/types'
 
 export type TraceRole = 'self' | 'up' | 'down' | 'related' | 'dim'
-/** How a link out of a card reads: moving, held behind work that's stuck, or still, out of a component that carries no work. */
+/**
+ * How a link out of a card reads: moving, held behind work that's stuck, or still, out of a component that carries no
+ * work.
+ */
 export type Flow = 'live' | 'held' | 'still'
 export type GroupStats = { total: number; done: number; ready: number; blocked: number; outside: number }
 export type SourceRef = { domain: string; label: string; href?: string }
@@ -95,7 +98,10 @@ export function sourcesOf(task: TaskNode): SourceRef[] {
   return seen.map(sourceOf)
 }
 
-/** A group's badges: the badges of every card inside it, once per domain and label, linked ones winning over unlinked ones. */
+/**
+ * A group's badges: the badges of every card inside it, once per domain and label, linked ones winning over unlinked
+ * ones.
+ */
 export function sourcesOfGroup(members: TaskNode[]): SourceRef[] {
   const groupSources = new Map<string, SourceRef>()
 
@@ -147,7 +153,10 @@ function walk(start: string, next: Map<string, string[]>, keep: (id: string) => 
   return seen
 }
 
-/** Where each card's work comes from, and what each group gathers from the cards inside it. Badges only: nothing here decides status. */
+/**
+ * Where each card's work comes from, and what each group gathers from the cards inside it. Badges only: nothing here
+ * decides status.
+ */
 export function deriveSources(nodes: AppNode[], index: NodeIndex = indexNodes(nodes)): Map<string, SourceRef[]> {
   const tasks = new Map(nodes.filter(isTask).map((node) => [node.id, node as TaskNode]))
   const sources = new Map<string, SourceRef[]>()
@@ -226,13 +235,23 @@ export function buildWork(facts: ServerFacts, nodes: AppNode[], links: Link[], i
 export type Work = ReturnType<typeof buildWork>
 
 /** What `id` needs, what it unlocks, and the cards related to it directly; everything else dims. */
-export function traceFrom(id: string, predecessors: Map<string, string[]>, successors: Map<string, string[]>, ids: string[], related: string[] = []) {
+export function traceFrom(
+  id: string,
+  predecessors: Map<string, string[]>,
+  successors: Map<string, string[]>,
+  ids: string[],
+  related: string[] = [],
+) {
   const up = walk(id, predecessors, () => true)
   const down = walk(id, successors, () => true)
   const near = new Set(related)
   const roles = new Map<string, TraceRole>()
 
-  for (const node of ids) roles.set(node, node === id ? 'self' : up.has(node) ? 'up' : down.has(node) ? 'down' : near.has(node) ? 'related' : 'dim')
+  for (const node of ids)
+    roles.set(
+      node,
+      node === id ? 'self' : up.has(node) ? 'up' : down.has(node) ? 'down' : near.has(node) ? 'related' : 'dim',
+    )
 
   return roles
 }
