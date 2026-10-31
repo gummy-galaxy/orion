@@ -74,4 +74,4 @@ export type Changes = {
 	detached: { RefChange },
 }
 
-return {}
+return nil

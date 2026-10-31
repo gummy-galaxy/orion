@@ -27,8 +27,12 @@ import { GroupResizeHandles } from './GroupResizeHandles'
 
 export const ClusterView = memo(function ClusterView({ id, data, width, height }: NodeProps<ClusterNode>) {
   const actions = useContext(ActionsContext)!
-  const compact = useStore((state) => (width ?? 320) * state.transform[2] < 180 || (height ?? 200) * state.transform[2] < 80)
-  const tiny = useStore((state) => (width ?? 320) * state.transform[2] < 120 || (height ?? 200) * state.transform[2] < 60)
+  const compact = useStore(
+    (state) => (width ?? 320) * state.transform[2] < 180 || (height ?? 200) * state.transform[2] < 80,
+  )
+  const tiny = useStore(
+    (state) => (width ?? 320) * state.transform[2] < 120 || (height ?? 200) * state.transform[2] < 60,
+  )
   const stats = useGroupStats(id)
   const collapsed = useCollapsed(id)
   const trace = useTraceRole(id)
@@ -49,7 +53,10 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
 
   return (
     <div
-      className={`cluster${tint ? ' tint-' + tint : ''}${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}${attention ? ' attn' : ''}${isDropTarget ? ' is-drop-target' : ''}`}
+      className={
+        `cluster${tint ? ' tint-' + tint : ''}${collapsed ? ' is-collapsed' : ''}${trace ? ' tr-' + trace : ''}` +
+        `${attention ? ' attn' : ''}${isDropTarget ? ' is-drop-target' : ''}`
+      }
       style={layers.color ? { background: layers.color } : undefined}
     >
       <Handle type="target" position={Position.Left} isConnectable={false} />
@@ -66,7 +73,10 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
       {collapsed ? (
         <>
           <FoldPreview id={id} width={width ?? 320} height={height ?? 200} />
-          <div className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`} title="Double-click to open">
+          <div
+            className={`cluster-card drag${compact ? ' is-compact' : ''}${tiny ? ' is-tiny' : ''}`}
+            title="Double-click to open"
+          >
             {/* The text wraps into all the room the group has and clips only at its edge. */}
             <div className="cluster-card-body">
               <div className="cluster-card-title">
@@ -96,7 +106,11 @@ export const ClusterView = memo(function ClusterView({ id, data, width, height }
                 )
               )}
             </div>
-            {stats.outside > 0 && <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>unblocks {stats.outside}</span>}
+            {stats.outside > 0 && (
+              <span className={`lev cluster-card-lev${stats.outside >= 4 ? ' big' : ''}`}>
+                unblocks {stats.outside}
+              </span>
+            )}
             <SourceBadges sources={sources} />
           </div>
         </>

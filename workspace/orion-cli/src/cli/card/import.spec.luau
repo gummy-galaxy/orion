@@ -24,12 +24,14 @@ local function githubRunner(argv: { string }): types.CommandResult
 	if query:find("pullRequest(number: 251)", 1, true) then
 		return testing.result(
 			true,
-			'{"data": {"p1": {"pullRequest": {"title": "Add --ref", "url": "https://github.com/vocksel/orion/pull/251"}}}}'
+			'{"data": {"p1": {"pullRequest": {"title": "Add --ref",'
+				.. ' "url": "https://github.com/vocksel/orion/pull/251"}}}}'
 		)
 	end
 	return testing.result(
 		true,
-		'{"data": {"p1": {"issue": {"title": "Import a list of sources", "url": "https://github.com/vocksel/orion/issues/91"}}}}'
+		'{"data": {"p1": {"issue": {"title": "Import a list of sources",'
+			.. ' "url": "https://github.com/vocksel/orion/issues/91"}}}}'
 	)
 end
 
@@ -234,5 +236,3 @@ test.case("a Jira source with no command on this machine says how to set one", f
 	assert.strContains(failure, "1 of 1 refs could not be imported")
 	assert.eq(#loadDoc(dir).nodes, 0)
 end)
-
-return {}

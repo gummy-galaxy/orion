@@ -43,7 +43,8 @@ test.case("a plan attaches refs, sets fields, and groups new cards with existing
 		"apply",
 		"--plan",
 		[=[[
-			{"op":"addCard","handle":"pr","label":"Review fix","group":"ws","ref":"https://github.com/flipbook-labs/flipbook/pull/12"},
+			{"op":"addCard","handle":"pr","label":"Review fix","group":"ws",
+				"ref":"https://github.com/flipbook-labs/flipbook/pull/12"},
 			{"op":"setFields","id":"@pr","fields":{"status":"review"}},
 			{"op":"group","handle":"ready","label":"Ready","items":["@pr","ci"]}
 		]]=],

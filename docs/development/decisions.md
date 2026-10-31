@@ -551,6 +551,22 @@ Source adapters are Lute packages built on a shared core package. Long term, the
 
 2026-10-11 · [#54](https://github.com/vocksel/orion/issues/54), [#98](https://github.com/vocksel/orion/issues/98)
 
+### Adapters have source verbs and agent verbs
+
+An adapter offers source verbs, which bring work in as cards and refs, agent verbs, which find an agent tool's sessions and talk to them, or both. The agent verbs are list, read, resume, and start, and each session an adapter lists has the same fields whatever the agent, such as its folder, branch, and whether it's working or waiting on you. Orion calls only the verbs an adapter has, and [Adapters](/development/engineering/adapters) documents the contract.
+
+**Why:** sessions run in many tools, and a second agent should plug in the way a second source does, with no change to the app. Keeping the agent verbs apart from the source verbs lets an agent adapter skip collecting cards, since sessions attach to cards that already exist.
+
+2026-10-26 · [#293](https://github.com/gummy-galaxy/orion/issues/293), [#606](https://github.com/gummy-galaxy/orion/issues/606)
+
+### Session refs store state, never what was said
+
+A session ref keeps the session's state and its label, such as "Waiting on you in Claude Code", and nothing from its transcript. The last message and recent turns are read live from the agent's own records through its adapter whenever the app shows them, and never written to a canvas's files, so `--json` shows only the stored state.
+
+**Why:** sources stay the source of truth, and a stored message would be a copy of the transcript that drifts. Canvas files can go in git and be shared, and a session's words can quote secrets or private context.
+
+2026-10-26 · [#608](https://github.com/gummy-galaxy/orion/issues/608)
+
 ### Programs Orion runs are chosen on this machine
 
 A person picks any program Orion runs, such as a Jira source's command or the agent `suggestion find` hands cards to, at the CLI. The command lives in this machine's config, never in a canvas's files, and no MCP tool takes one. The tool catalog refuses a tool that would. Setting up a source that runs nothing of its own choosing, such as GitHub or hop, is open to MCP. Jira's setup stays in the CLI until its command moves to local config. Adapter packages replace `--command` later, so a custom integration is something a person installs on purpose.
@@ -624,6 +640,32 @@ The docs site lives at the bare `oriongraph.app`, served from the root path, by 
 **Why:** the domain stays the same when the repository changes owners, while a GitHub Pages address would change with it. Cloudflare deploys while the repository is private, which GitHub Pages can't, and it sits beside the domain's DNS in Cloudflare. Deploying from CI rather than Cloudflare's own builds keeps every build in one place.
 
 2026-10-25 · [#327](https://github.com/vocksel/orion/pull/327) · [#575](https://github.com/vocksel/orion/issues/575)
+
+## Telemetry
+
+### Only the person chooses whether to share usage data
+
+The app asks once on launch, and Settings changes the answer. `orion telemetry on` and `off` cover machines without the app. The CLI and MCP server never prompt, and agents get `orion_telemetry_status` but no tool to change the choice. `DO_NOT_TRACK` and `ORION_TELEMETRY=0` turn telemetry off whatever was chosen. The choice and the anonymous install id live in `telemetry.json` in the data folder, outside `settings.json`, so they never travel with exported or synced settings.
+
+**Why:** consent an agent can give isn't the person's consent. A prompt from the CLI would hang an agent that runs it, so the CLI stays silent and sends nothing until someone opts in.
+
+2026-10-28 · [#507](https://github.com/gummy-galaxy/orion/issues/507), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
+### An event needs a reason from outside
+
+A new usage event joins the catalog only when something outside pushes for it: a decision it would change, a target it measures, such as 80% of new installs reaching a canvas, or a problem seen in real use. Performance on people's machines comes first: frame times, CPU, memory, crashes, and time to interactive. Events carry counts, durations, and Orion's own names, never content.
+
+**Why:** every event lengthens the list people read before they opt in, needs code to emit it, and adds to what PostHog stores. Collecting only what a decision needs keeps that list short enough to read and keeps telemetry within what people agreed to. Screen views were left out on this basis until a specific question needs them.
+
+2026-10-30 · [#624](https://github.com/gummy-galaxy/orion/issues/624), [#692](https://github.com/gummy-galaxy/orion/issues/692), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
+### People can delete what they've shared
+
+Settings and `orion telemetry delete` erase every event sent under the install ID, separately from opting out. Opting out stops sending but keeps the ID, so the data can still be deleted afterward. Deleting forgets the ID, and opting in again starts a new one. Erasure ships before any release that sends events.
+
+**Why:** consent that can be withdrawn should be able to take back what was given too, and data protection law such as GDPR expects that. Keeping deletion apart from opting out means stopping doesn't silently discard data someone was happy to share, and deleting stays possible after they stop.
+
+2026-10-30 · [#691](https://github.com/gummy-galaxy/orion/issues/691), [#433](https://github.com/gummy-galaxy/orion/issues/433)
 
 ## Releases
 

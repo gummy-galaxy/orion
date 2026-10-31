@@ -5,7 +5,15 @@ import { Markdown } from './Markdown'
  * A card's note, shown as rendered Markdown. Clicking it swaps in the Markdown source to edit
  * in place, and leaving the source goes back to the rendered view.
  */
-export function NoteBody({ id, note, change }: { id: string; note?: string; change: (note: string | undefined) => void }) {
+export function NoteBody({
+  id,
+  note,
+  change,
+}: {
+  id: string
+  note?: string
+  change: (note: string | undefined) => void
+}) {
   const [editing, setEditing] = useState(false)
 
   if (editing)
@@ -39,7 +47,14 @@ export function NoteBody({ id, note, change }: { id: string; note?: string; chan
   }
 
   return (
-    <div className="note-view" role="button" tabIndex={0} title="Click to edit" onClick={startEditing} onKeyDown={keyStartsEditing}>
+    <div
+      className="note-view"
+      role="button"
+      tabIndex={0}
+      title="Click to edit"
+      onClick={startEditing}
+      onKeyDown={keyStartsEditing}
+    >
       {note ? <Markdown source={note} /> : <p className="facts">Add a note</p>}
     </div>
   )

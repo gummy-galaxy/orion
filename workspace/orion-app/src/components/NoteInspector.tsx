@@ -33,7 +33,11 @@ export function NoteInspector({
       />
       <p className="facts">Notes pass blocking through but never count as work.</p>
       <div className="row">
-        <button type="button" className="btn" onClick={() => void saveFields(node.id, { kind: 'step', status: 'todo' })}>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => void saveFields(node.id, { kind: 'step', status: 'todo' })}
+        >
           Turn into a work item
         </button>
         <button type="button" className="btn danger" onClick={remove}>

@@ -16,7 +16,10 @@ local OPTIONS: migrateSourceCommands.Options = { findOtherServer = noServer }
 local JIRA_CANVAS = [[{
 	"version": 2,
 	"settings": { "sources": [
-		{ "id": "jira", "kind": "jira", "command": ["acli", "jira", "workitem", "search"], "browse": "https://jira.example.com/browse" },
+		{
+			"id": "jira", "kind": "jira", "command": ["acli", "jira", "workitem", "search"],
+			"browse": "https://jira.example.com/browse"
+		},
 		{ "id": "gh", "kind": "github", "host": "github.com", "owners": ["vocksel"] }
 	] }
 }]]
@@ -74,5 +77,3 @@ test.case("commands don't move while another build of Orion serves the folder", 
 	assert.eq(fs.exists(path.join(root, "commands.json")), false)
 	assert.strContains(fs.readFileToString(path.join(root, "canvas.json")), "acli")
 end)
-
-return {}

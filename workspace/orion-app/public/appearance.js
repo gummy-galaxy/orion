@@ -14,11 +14,16 @@ try {
 
   if (skin !== 'trading') document.documentElement.dataset.skin = skin
 
-  if (statusColors === 'red-green' || statusColors === 'blue-yellow') document.documentElement.dataset.statusColors = statusColors
+  if (statusColors === 'red-green' || statusColors === 'blue-yellow')
+    document.documentElement.dataset.statusColors = statusColors
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
 
-  document.documentElement.dataset.motion = ['on', 'reduced', 'off'].includes(animations) ? animations : reduce ? 'reduced' : 'on'
+  document.documentElement.dataset.motion = ['on', 'reduced', 'off'].includes(animations)
+    ? animations
+    : reduce
+      ? 'reduced'
+      : 'on'
 } catch {
   // Storage can be unavailable; use the default theme.
   document.documentElement.dataset.theme = 'vibrant'

@@ -108,14 +108,30 @@ export function FocusView({
     if (!start) return []
 
     const middle = card.y + card.height / 2
-    const pathData = side === 'in' ? curve(start, { x: card.x, y: middle }) : curve({ x: card.x + card.width, y: middle }, start)
-    const classNames = ['focus-line', item.related ? 'related' : item.flow, start.clipped ? 'clipped' : '', hot === key ? 'hot' : '']
+    const pathData =
+      side === 'in' ? curve(start, { x: card.x, y: middle }) : curve({ x: card.x + card.width, y: middle }, start)
+    const classNames = [
+      'focus-line',
+      item.related ? 'related' : item.flow,
+      start.clipped ? 'clipped' : '',
+      hot === key ? 'hot' : '',
+    ]
 
-    return [{ key, d: pathData, cls: classNames.filter(Boolean).join(' '), arrow: item.related ? undefined : `url(#focus-arrow-${item.flow})` }]
+    return [
+      {
+        key,
+        d: pathData,
+        cls: classNames.filter(Boolean).join(' '),
+        arrow: item.related ? undefined : `url(#focus-arrow-${item.flow})`,
+      },
+    ]
   })
 
   const column = (side: 'in' | 'out', items: FocusItem[]) => (
-    <section className={`focus-side side-${side}`} style={{ width: sideWidth, [side === 'in' ? 'left' : 'right']: inset }}>
+    <section
+      className={`focus-side side-${side}`}
+      style={{ width: sideWidth, [side === 'in' ? 'left' : 'right']: inset }}
+    >
       <header className="focus-head">
         {side === 'in' ? 'Waits on' : 'Leads to'} <span>{items.length}</span>
       </header>

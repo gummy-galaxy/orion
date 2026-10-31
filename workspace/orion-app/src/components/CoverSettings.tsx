@@ -51,7 +51,11 @@ export function CoverSettings({
     <section className="cover-settings" aria-label={title}>
       <h3>{title}</h3>
       <div className="cover-preview">
-        {current.cover ? <CoverImage workspace={workspace} asset={current.cover} className="cover-preview-image" /> : <span>No cover</span>}
+        {current.cover ? (
+          <CoverImage workspace={workspace} asset={current.cover} className="cover-preview-image" />
+        ) : (
+          <span>No cover</span>
+        )}
       </div>
       <div className="row">
         <label className="btn">

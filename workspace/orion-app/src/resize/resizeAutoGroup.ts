@@ -17,7 +17,8 @@ function widthForHeight(plan: ReflowPlan, width: number, height: number): number
     const heightOff = Math.abs(size.height - height)
     const widthOff = Math.abs(size.width - width)
 
-    if (heightOff < best.heightOff || (heightOff === best.heightOff && widthOff < best.widthOff)) best = { maxWidth, heightOff, widthOff }
+    if (heightOff < best.heightOff || (heightOff === best.heightOff && widthOff < best.widthOff))
+      best = { maxWidth, heightOff, widthOff }
   }
 
   return best.maxWidth
@@ -41,7 +42,8 @@ export function resizeAutoGroup(
   edges: ResizeEdges,
   cardSize: CardSize,
 ): AppNode[] {
-  const maxWidth = edges.left || edges.right ? box.width - GROUP_PADDING * 2 : widthForHeight(plan, start.width, box.height)
+  const maxWidth =
+    edges.left || edges.right ? box.width - GROUP_PADDING * 2 : widthForHeight(plan, start.width, box.height)
 
   if (plan.sameLayout(maxWidth, start.width - GROUP_PADDING * 2)) return nodes
 
@@ -54,7 +56,11 @@ export function resizeAutoGroup(
   return normalize(
     plan
       .place(maxWidth)
-      .map((node) => (node.id === groupId && isCluster(node) ? { ...node, position, data: { ...node.data, size, layout: undefined } } : node)),
+      .map((node) =>
+        node.id === groupId && isCluster(node)
+          ? { ...node, position, data: { ...node.data, size, layout: undefined } }
+          : node,
+      ),
     cardSize,
   )
 }

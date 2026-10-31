@@ -13,9 +13,20 @@ const commands = [
 ]
 
 export const Default: Story = {
-  render: () => <Palette nodes={[group, task]} commands={commands} jumpTo={() => {}} open={() => {}} close={() => {}} />,
+  render: () => (
+    <Palette nodes={[group, task]} commands={commands} jumpTo={() => {}} open={() => {}} close={() => {}} />
+  ),
 }
 
 export const Actions: Story = {
-  render: () => <Palette nodes={[group, task]} commands={commands} jumpTo={() => {}} open={() => {}} close={() => {}} initialQuery=">" />,
+  render: () => (
+    <Palette
+      nodes={[group, task]}
+      commands={commands}
+      jumpTo={() => {}}
+      open={() => {}}
+      close={() => {}}
+      initialQuery=">"
+    />
+  ),
 }

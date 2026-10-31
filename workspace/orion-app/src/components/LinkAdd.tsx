@@ -39,7 +39,11 @@ export function LinkAdd({
         <span>Add link</span>
       </summary>
       <div className="link-add">
-        <select aria-label="Link kind" value={direction} onChange={(event) => setDirection(event.target.value as Direction)}>
+        <select
+          aria-label="Link kind"
+          value={direction}
+          onChange={(event) => setDirection(event.target.value as Direction)}
+        >
           {(Object.keys(DIRECTION_LABEL) as Direction[]).map((key) => (
             <option key={key} value={key}>
               {labels[key]}
