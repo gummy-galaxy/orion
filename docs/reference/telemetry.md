@@ -8,7 +8,7 @@ Events hold counts, durations, and the names of Orion's own commands and feature
 
 The same list is published as [JSON](/reference/telemetry.json), which the telemetry service checks every event against. It drops any event or property that isn't listed.
 
-Nothing goes straight from the app, a command, or an agent to the network. Events wait in a small queue in Orion's data folder, and `orion server start`, which the app runs, sends them about once a minute. A batch that can't be sent is dropped, never retried. Setting `DO_NOT_TRACK=1` or `ORION_TELEMETRY=0` keeps everything off whatever was chosen, and a machine that isn't sharing keeps nothing to send later. Dev builds, perf runs, and CI never send.
+Nothing goes straight from the app, a command, or an agent to the network. Events wait in a small queue in Orion's data folder, and `orion server start`, which the app runs, sends them periodically. A batch that can't be sent is dropped, never retried. Setting `DO_NOT_TRACK=1` or `ORION_TELEMETRY=0` keeps everything off whatever was chosen, and a machine that isn't sharing keeps nothing to send later. Dev builds, perf runs, and CI never send.
 
 ## Consent
 
