@@ -25,7 +25,7 @@ end)
 test.case("attachCardType refuses unknown types and groups", function(assert)
 	local doc = testing.createDoc({ testing.task("a", "A", "todo"), testing.group("g", "Group") })
 
-	assert.throwsWith("no type named figma.frame; orion type list shows them", function()
+	assert.throwsWith("no type named figma.frame; orion card types shows them", function()
 		attachCardType(doc, "a", "figma.frame")
 	end)
 	assert.throwsWith("groups don't take types; attach it to a card", function()

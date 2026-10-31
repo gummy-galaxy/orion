@@ -5,11 +5,11 @@ local loadDoc = require("@root/storage/canvases/loadDoc")
 local testing = require("@root/testing")
 local writeDoc = require("@root/storage/canvases/writeDoc")
 
-test.case("type list and type show describe the registered types", function(assert)
+test.case("card types and card type-show describe the registered types", function(assert)
 	local dir = testing.directory("type-list")
 	writeDoc(dir, testing.createDoc({}))
 
-	local listed = json.asArray(json.deserialize(testing.run(dir, { "type", "list", "--json" }))) :: json.Array
+	local listed = json.asArray(json.deserialize(testing.run(dir, { "card", "types", "--json" }))) :: json.Array
 	local names: { string } = {}
 
 	for _, value in listed do
@@ -18,20 +18,21 @@ test.case("type list and type show describe the registered types", function(asse
 
 	assert.eq(table.concat(names, ","), "step,pr,placeholder,gate,note,component,image")
 
-	local gate = json.asObject(json.deserialize(testing.run(dir, { "type", "show", "gate", "--json" }))) :: json.Object
+	local gate =
+		json.asObject(json.deserialize(testing.run(dir, { "card", "type-show", "gate", "--json" }))) :: json.Object
 	assert.eq((json.asObject(gate.meaning) :: json.Object).doneWhen, "inputs")
-	assert.strContains(testing.run(dir, { "type", "show", "note" }), "done: when its inputs are")
+	assert.strContains(testing.run(dir, { "card", "type-show", "note" }), "done: when its inputs are")
 end)
 
-test.case("type attach and type detach change the types a person gave a card", function(assert)
+test.case("card attach-type and card detach-type change the types a person gave a card", function(assert)
 	local dir = testing.directory("type-attach")
 	writeDoc(dir, testing.createDoc({ testing.task("a", "A", "todo") }))
 
-	testing.run(dir, { "type", "attach", "a", "gate" })
+	testing.run(dir, { "card", "attach-type", "a", "gate" })
 	local shown = json.asObject(json.deserialize(testing.run(dir, { "node", "show", "a", "--json" }))) :: json.Object
 	assert.eq(table.concat(shown.types :: any, ","), "step,gate")
 
-	testing.run(dir, { "type", "detach", "a", "gate" })
+	testing.run(dir, { "card", "detach-type", "a", "gate" })
 	assert.eq(loadDoc(dir).nodes[1].data.types, nil)
 end)
 

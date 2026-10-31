@@ -18,7 +18,7 @@ return table.freeze({
 	mcp = {},
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
-		addArgument(parser, "type", "positional", { help = "The type's name, as orion type list shows it" })
+		addArgument(parser, "type", "positional", { help = "The type's name, as orion card types shows it" })
 		parser:add("json", "flag", { help = "Print JSON" })
 	end,
 

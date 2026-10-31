@@ -140,6 +140,51 @@ Runs `orion card unsnooze`.
 | `dryRun`     | boolean     | Preview changes and current revision without writing   |
 | `ifRevision` | integer     | Write only if the document has this revision           |
 
+## orion_card_attach-type
+
+Attach a card type to a card, after the ones it carries
+
+Runs `orion card attach-type`.
+
+| Argument | Type   | Description                                                                                             |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------- |
+| `id`     | id     | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `type`   | string | **Required.** The type's name, as orion card types shows it                                             |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                  |
+
+## orion_card_detach-type
+
+Take off a card type a person attached
+
+Runs `orion card detach-type`.
+
+| Argument | Type   | Description                                                                                             |
+| -------- | ------ | ------------------------------------------------------------------------------------------------------- |
+| `id`     | id     | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
+| `type`   | string | **Required.** The type's name, as orion card types shows it                                             |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                  |
+
+## orion_card_types
+
+List the card types this build knows, from Orion and from sources
+
+Runs `orion card types`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+
+## orion_card_type-show
+
+Show a card type's fields, face, states, and meaning
+
+Runs `orion card type-show`.
+
+| Argument | Type   | Description                                            |
+| -------- | ------ | ------------------------------------------------------ |
+| `name`   | string | **Required.** The type's name, such as gate            |
+| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
+
 ## orion_note_create
 
 Add a note, optionally between two linked items
@@ -361,51 +406,6 @@ Runs `orion ref remove`.
 | -------- | ------ | ------------------------------------------------------------------------------------------------------- |
 | `id`     | id     | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
 | `ref`    | string | **Required.** The ref's key as orion node show lists it, such as owner/name#12, or a URL or source:key  |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                  |
-
-## orion_type_list
-
-List the card types this build knows, from Orion and from sources
-
-Runs `orion type list`.
-
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-
-## orion_type_show
-
-Show a card type's fields, face, states, and meaning
-
-Runs `orion type show`.
-
-| Argument | Type   | Description                                            |
-| -------- | ------ | ------------------------------------------------------ |
-| `name`   | string | **Required.** The type's name, such as gate            |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion. |
-
-## orion_type_attach
-
-Attach a card type to a card, after the ones it carries
-
-Runs `orion type attach`.
-
-| Argument | Type   | Description                                                                                             |
-| -------- | ------ | ------------------------------------------------------------------------------------------------------- |
-| `id`     | id     | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
-| `type`   | string | **Required.** The type's name, as orion type list shows it                                              |
-| `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                  |
-
-## orion_type_detach
-
-Take off a card type a person attached
-
-Runs `orion type detach`.
-
-| Argument | Type   | Description                                                                                             |
-| -------- | ------ | ------------------------------------------------------------------------------------------------------- |
-| `id`     | id     | **Required.** Item or group id, or a selector such as label:"Extract slider", ref:jira:ABC-12, or pr:86 |
-| `type`   | string | **Required.** The type's name, as orion type list shows it                                              |
 | `canvas` | canvas | Canvas name. Omit to use the canvas selected in Orion.                                                  |
 
 ## orion_next

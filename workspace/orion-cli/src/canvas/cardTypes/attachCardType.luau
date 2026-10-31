@@ -16,7 +16,7 @@ type Item = types.Item
 local function attachCardType(doc: Doc, id: string, name: string): Item
 	local item = getItem(doc, id)
 	assert(not isGroup(item), "groups don't take types; attach it to a card")
-	assert(findCardType(name), `no type named {name}; orion type list shows them`)
+	assert(findCardType(name), `no type named {name}; orion card types shows them`)
 
 	local itemTypes = assert(getItemCardTypes(item))
 

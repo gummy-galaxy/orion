@@ -18,7 +18,7 @@ return table.freeze({
 
 	run = function(parser: cli.Parser, options: Context)
 		local name = getRequired(parser, "name")
-		local cardType = assert(findCardType(name), `no type named {name}; orion type list shows them`)
+		local cardType = assert(findCardType(name), `no type named {name}; orion card types shows them`)
 
 		if parser:has("json") then
 			options.write(json.serialize(serializeCardType(cardType), true))
