@@ -55,7 +55,7 @@ export const TELEMETRY_SESSION_ID = crypto.randomUUID()
 
 /**
  * Hands events to `orion server start`, which queues them only when this machine shares usage data and sends them in
- * the background. Sending never gets in the way, so a failure is dropped without a word.
+ * the background. Sending never gets in the way, so a failure is dropped with a warning in the console.
  */
 export async function sendTelemetryEvents(events: TelemetryEvent[]): Promise<void> {
   if (events.length === 0) return
@@ -66,13 +66,15 @@ export async function sendTelemetryEvents(events: TelemetryEvent[]): Promise<voi
   })
 
   try {
-    await fetch(`${API}/events`, {
+    const response = await fetch(`${API}/events`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body,
       keepalive: true,
     })
-  } catch {
-    // Telemetry is best effort.
+
+    if (!response.ok) console.warn('Could not queue usage events', response.status)
+  } catch (error) {
+    console.warn('Could not queue usage events', error)
   }
 }

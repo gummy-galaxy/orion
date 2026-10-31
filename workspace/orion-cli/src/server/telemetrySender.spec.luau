@@ -44,9 +44,9 @@ local function createFake(isAccepted: boolean)
 			build: Build,
 			events: { QueuedEvent },
 			_timeoutSeconds: number
-		): boolean
+		): (boolean, string?)
 			table.insert(sent, { endpoint = endpoint, installId = installId, build = build, count = #events })
-			return isAccepted
+			return isAccepted, if isAccepted then nil else "the backend answered 500"
 		end
 end
 

@@ -11,10 +11,11 @@ type QueuedEvent = telemetryTypes.QueuedEvent
 local POLL_SECONDS = 0.1
 
 --[[
-	Posts one batch to the backend and reports whether it was accepted. A
-	request that takes longer than `timeoutSeconds` is given up on and left to
-	finish in the background, since the request itself has no timeout. Nothing
-	here retries: a batch that fails is the caller's to drop.
+	Posts one batch to the backend and reports whether it was accepted, and why
+	not when it wasn't. A request that takes longer than `timeoutSeconds` is
+	given up on and left to finish in the background, since the request itself
+	has no timeout. Nothing here retries: a batch that fails is the caller's to
+	drop.
 ]]
 local function sendBatchAsync(
 	endpoint: string,
@@ -22,7 +23,7 @@ local function sendBatchAsync(
 	build: Build,
 	events: { QueuedEvent },
 	timeoutSeconds: number
-): boolean
+): (boolean, string?)
 	local serialized = {}
 
 	for _, event in events do
@@ -41,9 +42,17 @@ local function sendBatchAsync(
 	}
 	local isDone = false
 	local isAccepted = false
+	local failure: string?
 
 	task.spawn(function()
 		local didSend, response = pcall(net.request, endpoint, metadata)
+
+		if not didSend then
+			failure = tostring(response)
+		elseif not response.ok then
+			failure = `the backend answered {response.status}`
+		end
+
 		isAccepted = didSend and response.ok
 		isDone = true
 	end)
@@ -55,7 +64,11 @@ local function sendBatchAsync(
 		waited += POLL_SECONDS
 	end
 
-	return isDone and isAccepted
+	if not isDone then
+		return false, `no answer within {timeoutSeconds} seconds`
+	end
+
+	return isAccepted, failure
 end
 
 return sendBatchAsync

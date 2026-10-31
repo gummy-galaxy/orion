@@ -1,3 +1,4 @@
+local archivist = require("@archivist")
 local task = require("@std/task")
 
 local getBuild = require("@root/telemetry/getBuild")
@@ -10,6 +11,8 @@ local takeQueue = require("@root/telemetry/takeQueue")
 local telemetryTypes = require("@root/telemetry/types")
 
 type Build = telemetryTypes.Build
+
+local logger = archivist.getLogger("orion.telemetry")
 
 local telemetrySender = {}
 
@@ -34,7 +37,7 @@ export type Options = {
 	the whole queue. When sending isn't allowed, because nobody opted in, an
 	override is set, or this is a dev build, perf run, or CI, the queue is
 	dropped rather than kept for later. A batch that fails is dropped too, with
-	no retry and nothing shown to the person.
+	no retry and nothing shown to the person beyond a warning in the log.
 ]]
 function telemetrySender.create(root: string, options: Options)
 	local build = options.build or getBuild()
@@ -64,8 +67,13 @@ function telemetrySender.create(root: string, options: Options)
 			local endpoint = getEndpoint(options.environment)
 
 			for _, batch in splitBatches(events) do
-				if send(endpoint, status.installId :: string, build, batch, telemetrySender.TIMEOUT_SECONDS) then
+				local isAccepted, failure =
+					send(endpoint, status.installId :: string, build, batch, telemetrySender.TIMEOUT_SECONDS)
+
+				if isAccepted then
 					count += #batch
+				else
+					logger.warn("dropped", #batch, "usage events:", failure or "the backend refused them")
 				end
 			end
 
@@ -73,6 +81,10 @@ function telemetrySender.create(root: string, options: Options)
 		end)
 
 		isFlushing = false
+
+		if not didFlush then
+			logger.warn("could not send usage events:", accepted)
+		end
 
 		return if didFlush then accepted else 0
 	end

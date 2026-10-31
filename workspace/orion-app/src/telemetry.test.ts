@@ -54,10 +54,25 @@ it("tags the app's events with the session and posts them to the server", async 
   expect(event.timestamp).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d+Z$/)
 })
 
-it('drops events quietly when the server is gone', async () => {
-  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+it('warns and drops events when the server is gone', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const failure = new TypeError('Failed to fetch')
+
+  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(failure))
 
   await expect(sendTelemetryEvents([{ name: 'app_started' }])).resolves.toBeUndefined()
+  expect(warn).toHaveBeenCalledWith('Could not queue usage events', failure)
+  warn.mockRestore()
+})
+
+it('warns when the server refuses the events', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 413 }))
+
+  await sendTelemetryEvents([{ name: 'app_started' }])
+  expect(warn).toHaveBeenCalledWith('Could not queue usage events', 413)
+  warn.mockRestore()
 })
 
 it('posts nothing for no events', async () => {
