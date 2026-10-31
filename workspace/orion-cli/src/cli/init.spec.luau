@@ -198,7 +198,11 @@ test.case("ingest refreshes pull request cards without any sources configured", 
 
 		return testing.result(
 			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health to PostHog","url":"u","state":"MERGED","isDraft":false,"reviewDecision":null,"reviewRequests":{"totalCount":0},"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z","additions":120,"deletions":30,"commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"SUCCESS"}}}]}}}}}]]
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"Report release health to PostHog","url":"u",]]
+				.. [["state":"MERGED","isDraft":false,"reviewDecision":null,]]
+				.. [["reviewRequests":{"totalCount":0},"author":{"login":"vocksel"},]]
+				.. [["updatedAt":"2026-10-04T01:00:00Z","additions":120,"deletions":30,]]
+				.. [["commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"SUCCESS"}}}]}}}}}]]
 		)
 	end)
 
@@ -227,7 +231,8 @@ local function refreshRunner(state: string)
 			true,
 			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"]]
 				.. state
-				.. [[","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z","additions":1,"deletions":1,"reviewRequests":{"totalCount":0}}}}}]]
+				.. [[","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T01:00:00Z",]]
+				.. [["additions":1,"deletions":1,"reviewRequests":{"totalCount":0}}}}}]]
 		)
 	end
 end
@@ -262,7 +267,8 @@ test.case("ingest --dry-run leaves the data alone", function(assert)
 
 		return testing.result(
 			true,
-			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,"reviewRequests":{"totalCount":0}}}}}]]
+			[[{"data":{"p1":{"pullRequest":{"number":658,"title":"t","url":"u","state":"MERGED","isDraft":false,]]
+				.. [["reviewRequests":{"totalCount":0}}}}}]]
 		)
 	end)
 
@@ -299,7 +305,10 @@ test.case("ingest records unplaced authored pulls without adding review request 
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
-				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,]]
+					.. [["title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,]]
+					.. [["author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,]]
+					.. [["deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
 			)
 		elseif argv[5]:find("review-requested", 1, true) then
 			isSearched = true
@@ -446,7 +455,11 @@ test.case("ingest attaches a new pull request to the card its branch was recorde
 		if argv[5]:find("pullRequests", 1, true) then
 			return testing.result(
 				true,
-				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a","author":{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,"repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
+				[[{"data":{"viewer":{"login":"vocksel","pullRequests":{"nodes":[{"number":670,]]
+					.. [["title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,]]
+					.. [["headRefName":"feature/a","author":{"login":"vocksel"},]]
+					.. [["updatedAt":"2026-10-04T18:00:00Z","additions":80,"deletions":4,]]
+					.. [["repository":{"name":"flipbook","owner":{"login":"flipbook-labs"}}}]}}}}]]
 			)
 		elseif argv[5]:find("search(", 1, true) then
 			return testing.result(true, [[{"data":{"search":{"nodes":[]}}}]])
@@ -460,7 +473,9 @@ test.case("ingest attaches a new pull request to the card its branch was recorde
 		if alias then
 			return testing.result(
 				true,
-				`\{"data":\{"{alias}":\{"pullRequest":\{"number":670,"title":"Add release health dashboard","url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a","author":\{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z"}}}}`
+				`\{"data":\{"{alias}":\{"pullRequest":\{"number":670,"title":"Add release health dashboard",`
+					.. `"url":"u670","state":"OPEN","isDraft":false,"headRefName":"feature/a",`
+					.. `"author":\{"login":"vocksel"},"updatedAt":"2026-10-04T18:00:00Z"}}}}`
 			)
 		end
 
@@ -556,6 +571,32 @@ test.case("flat command names and --workspace are gone, and help uses the noun f
 	assert.strContains(run({ "help", "card", "list" }), "orion card list")
 	assert.strContains(run({ "help", "node", "query" }), "Fields: kind")
 	assert.strContains(run({ "card", "--help" }), "import")
+end)
+
+test.case("node query sorts and pages its matches", function(assert)
+	local _, run = testing.createHarness("query-page")
+	local sorted = json.asArray(
+		json.deserialize(run({ "node", "query", "--where", [[group = "ws"]], "--sort", "-label", "--json" })) :: json.Value
+	)
+	local ids: { string } = {}
+
+	for _, value in sorted or {} do
+		local item = json.asObject(value)
+		table.insert(ids, if item then tostring(item.id) else "")
+	end
+
+	assert.eq(table.concat(ids, ","), "ci,pub")
+
+	local page =
+		run({ "node", "query", "--where", [[group = "ws"]], "--sort", "label", "--offset", "1", "--limit", "1" })
+	assert.strContains(page, "Report release health")
+	assert.strContains(page, "Showing 2 of 2 matches.")
+	assert.throwsWith("sort: unknown field 'owner'", function()
+		run({ "node", "query", "--where", [[kind = "step"]], "--sort", "owner" })
+	end)
+	assert.throwsWith("offset must be a whole number", function()
+		run({ "node", "query", "--where", [[kind = "step"]], "--offset", "soon" })
+	end)
 end)
 
 test.case("node find matches labels, refs, and notes, label matches first", function(assert)

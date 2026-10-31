@@ -39,7 +39,14 @@ export function StoryGraph({
       <ActionsContext.Provider value={{ open: () => {}, reflow: () => {}, celebrate: () => {}, resizeGroup: noResize }}>
         <ReactFlowProvider>
           <div style={{ width: 760, height: 470 }}>
-            <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} fitView fitViewOptions={{ padding: 0.25 }}>
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={nodeTypes}
+              edgeTypes={edgeTypes}
+              fitView
+              fitViewOptions={{ padding: 0.25 }}
+            >
               {children}
             </ReactFlow>
           </div>

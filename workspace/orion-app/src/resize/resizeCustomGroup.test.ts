@@ -23,14 +23,22 @@ test('grows past its contents and keeps the room', () => {
   const after = resizeCustomGroup(before, 'g', { ...start, width: start.width + 300, height: start.height + 100 }, size)
 
   expect(boxOf(after, 'g')).toEqual({ ...start, width: start.width + 300, height: start.height + 100 })
-  expect((byId(after).get('g')!.data as ClusterData).size).toEqual({ width: start.width + 300, height: start.height + 100 })
+  expect((byId(after).get('g')!.data as ClusterData).size).toEqual({
+    width: start.width + 300,
+    height: start.height + 100,
+  })
   expect(byId(after).get('b')!.position).toEqual(byId(before).get('b')!.position)
 })
 
 test('grows to the left and up while its contents stay where they are on screen', () => {
   const before = canvas()
   const start = boxOf(before, 'g')
-  const after = resizeCustomGroup(before, 'g', { x: start.x - 100, y: start.y - 50, width: start.width + 100, height: start.height + 50 }, size)
+  const after = resizeCustomGroup(
+    before,
+    'g',
+    { x: start.x - 100, y: start.y - 50, width: start.width + 100, height: start.height + 50 },
+    size,
+  )
 
   expect(boxOf(after, 'g')).toMatchObject({ x: start.x - 100, y: start.y - 50 })
   expect(byId(after).get('a')!.position).toEqual({ x: 132, y: 128 })

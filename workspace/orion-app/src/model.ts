@@ -1,7 +1,15 @@
 import type { Node } from '@xyflow/react'
 import { taskHeight } from './cardHeight'
 import type { CardSize } from './cardSize'
-import { GROUP_HEADER_BAND, GROUP_HEADER_HEIGHT, GROUP_PADDING, GROUP_SIZE, IMAGE_SIZE, TASK_HEIGHT, TASK_WIDTH } from './geometry'
+import {
+  GROUP_HEADER_BAND,
+  GROUP_HEADER_HEIGHT,
+  GROUP_PADDING,
+  GROUP_SIZE,
+  IMAGE_SIZE,
+  TASK_HEIGHT,
+  TASK_WIDTH,
+} from './geometry'
 import { indexNodes } from './hierarchy/indexNodes'
 
 /** `blocked` is set by hand for blockers outside the graph; dependency blocking is derived. */
@@ -22,7 +30,15 @@ export type ItemKind = 'pr' | 'placeholder' | 'step' | 'gate' | 'note' | 'compon
  * command, and a stack for a stream of events.
  */
 export type ComponentShape = 'service' | 'store' | 'actor' | 'external' | 'interface' | 'process' | 'queue'
-export const COMPONENT_SHAPES: ComponentShape[] = ['service', 'store', 'actor', 'external', 'interface', 'process', 'queue']
+export const COMPONENT_SHAPES: ComponentShape[] = [
+  'service',
+  'store',
+  'actor',
+  'external',
+  'interface',
+  'process',
+  'queue',
+]
 export const SHAPE_LABEL: Record<ComponentShape, string> = {
   service: 'Service',
   store: 'Store',
@@ -67,7 +83,9 @@ export type SourceRef = {
   kind: string
   /** The readable name for the ref, such as `owner/name#12`, which can change when what it names moves. */
   key: string
-  /** The source's stable identity for the ref, which survives a rename or move. A ref has none until its source is read. */
+  /**
+   * The source's stable identity for the ref, which survives a rename or move. A ref has none until its source is read.
+   */
   id?: string
   url?: string
   status?: string
@@ -101,7 +119,10 @@ export type RefChecks = {
   /** The jobs that failed, by name, while the work is open. */
   failures?: FailedCheck[]
 }
-/** A commit's checks: how many have finished, and failed, out of all of them. Skipped and cancelled checks count as finished. */
+/**
+ * A commit's checks: how many have finished, and failed, out of all of them. Skipped and cancelled checks count as
+ * finished.
+ */
 export type CheckCounts = { total: number; finished: number; failed: number }
 /** A CI job that failed on a pull request, by the name GitHub shows for it. */
 export type FailedCheck = { name: string; optional?: boolean }
@@ -129,7 +150,8 @@ export const READINESS_LABEL: Record<PullReadiness, string> = {
 export function getCheckCountsLabel(counts: CheckCounts): string | undefined {
   const failed = counts.failed > 0 ? `${counts.failed} failed` : undefined
 
-  if (counts.finished < counts.total) return [`${counts.finished} of ${counts.total} done`, failed].filter(Boolean).join(', ')
+  if (counts.finished < counts.total)
+    return [`${counts.finished} of ${counts.total} done`, failed].filter(Boolean).join(', ')
 
   return failed && `${counts.failed} of ${counts.total} failed`
 }
@@ -146,9 +168,14 @@ export type UnplacedPullRequest = {
   matches: { id: string; score: number }[]
 }
 export type GithubSnapshot = { viewer: string; checkedAt: string; unplaced: UnplacedPullRequest[] }
-/** How reflow arranges a group's children: `auto` flows them by dependency and wraps long rows, and `custom` keeps them where they were put. */
+/**
+ * How reflow arranges a group's children: `auto` flows them by dependency and wraps long rows, and `custom` keeps them
+ * where they were put.
+ */
 export type Arrange = 'auto' | 'custom'
-/** `layout` asks the app to lay out a group the CLI changed: `pending` for a new group, `refit` to tidy one in place. */
+/**
+ * `layout` asks the app to lay out a group the CLI changed: `pending` for a new group, `refit` to tidy one in place.
+ */
 export type ClusterData = {
   kind: 'cluster'
   label: string
@@ -172,7 +199,14 @@ export type ClusterData = {
 export type ImageData = { kind: 'image'; label: string; asset: string; canvas: string }
 export type TaskNode = Node<TaskData, 'task'>
 /** Stand-in for work outside the opened group that links into it. Never stored. Components have no status. */
-export type GhostData = { kind: 'ghost'; taskId: string; label: string; where: string; status?: ViewStatus; side: 'in' | 'out' }
+export type GhostData = {
+  kind: 'ghost'
+  taskId: string
+  label: string
+  where: string
+  status?: ViewStatus
+  side: 'in' | 'out'
+}
 export type GhostNode = Node<GhostData, 'ghost'>
 export type ClusterNode = Node<ClusterData, 'cluster'>
 export type ImageNode = Node<ImageData, 'image'>
@@ -182,7 +216,14 @@ export type AppNode = TaskNode | ClusterNode | ImageNode
  * `origin` marks links Orion derived itself: stacked pull requests, or a reference in a title, body or branch.
  * `label` names what the link carries, like "HTTP" between two components.
  */
-export type Link = { id: string; from: string; to: string; kind: 'blocks' | 'related'; origin?: 'stack' | 'mention'; label?: string }
+export type Link = {
+  id: string
+  from: string
+  to: string
+  kind: 'blocks' | 'related'
+  origin?: 'stack' | 'mention'
+  label?: string
+}
 
 export const STATUS_LABEL: Record<ViewStatus, string> = {
   ready: 'Ready',
@@ -191,6 +232,15 @@ export const STATUS_LABEL: Record<ViewStatus, string> = {
   blocked: 'Blocked',
   deferred: 'Deferred',
   done: 'Done',
+}
+
+export const ITEM_KIND_LABEL: Record<ItemKind, string> = {
+  pr: 'Pull request',
+  placeholder: 'Placeholder',
+  step: 'Step',
+  gate: 'Gate',
+  note: 'Note',
+  component: 'Component',
 }
 
 /** The statuses a person can record on a card, in the order the inspector lists them. */
@@ -226,7 +276,11 @@ export function getPullRequestNumber(ref: SourceRef | undefined): number | undef
 }
 
 export function getTaskTag(data: TaskData): string {
-  return getPrimaryRef(data)?.key ?? data.repo ?? (data.itemKind === 'gate' || data.itemKind === 'component' ? data.itemKind : 'step')
+  return (
+    getPrimaryRef(data)?.key ??
+    data.repo ??
+    (data.itemKind === 'gate' || data.itemKind === 'component' ? data.itemKind : 'step')
+  )
 }
 
 export function getTaskUrl(data: TaskData): string | null {
@@ -237,12 +291,15 @@ export const isCluster = (node: AppNode): node is ClusterNode => node.type === '
 export const isTask = (node: AppNode): node is TaskNode => node.type === 'task'
 export const isImage = (node: AppNode): node is ImageNode => node.type === 'image'
 export const isNote = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.itemKind === 'note'
-export const isComponent = (node: AppNode | undefined): boolean => !!node && isTask(node) && node.data.itemKind === 'component'
+export const isComponent = (node: AppNode | undefined): boolean =>
+  !!node && isTask(node) && node.data.itemKind === 'component'
 /** Cards that count as work. Notes and components pass blocking through and never do. */
-export const isWork = (node: AppNode | undefined): boolean => !!node && isTask(node) && !isNote(node) && !isComponent(node)
+export const isWork = (node: AppNode | undefined): boolean =>
+  !!node && isTask(node) && !isNote(node) && !isComponent(node)
 
 /** A card's label for lists and links, with notes falling back to the word Note. */
-export const cardLabel = (node: AppNode): string => (node.data as TaskData).label || (isComponent(node) ? 'Untitled component' : 'Note')
+export const cardLabel = (node: AppNode): string =>
+  (node.data as TaskData).label || (isComponent(node) ? 'Untitled component' : 'Note')
 
 export function byId(nodes: AppNode[]): Map<string, AppNode> {
   return new Map(nodes.map((node) => [node.id, node]))
@@ -339,7 +396,9 @@ function sortNodes(nodes: AppNode[]): AppNode[] {
 function fitGroups(nodes: AppNode[], cardSize: CardSize): AppNode[] {
   const nodeMap = new Map(nodes.map((node) => [node.id, { ...node } as AppNode]))
   const index = indexNodes([...nodeMap.values()])
-  const clusters = [...nodeMap.values()].filter(isCluster).sort((a, b) => index.depth.get(b.id)! - index.depth.get(a.id)!)
+  const clusters = [...nodeMap.values()]
+    .filter(isCluster)
+    .sort((a, b) => index.depth.get(b.id)! - index.depth.get(a.id)!)
 
   for (const group of clusters) {
     const data = group.data as ClusterData
@@ -398,7 +457,10 @@ export function groupHeaderHeight(data: { header?: string } | undefined): number
   return GROUP_HEADER_HEIGHT + (data?.header?.trim() ? GROUP_HEADER_BAND : 0)
 }
 
-export function normalize(nodes: AppNode[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+export function normalize(
+  nodes: AppNode[],
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): AppNode[] {
   return sortNodes(fitGroups(nodes, cardSize)).map((node) => hydrate(node, cardSize))
 }
 
@@ -413,7 +475,11 @@ export function pruneEmptied(before: AppNode[], after: AppNode[]): AppNode[] {
 
   for (;;) {
     const haveChildren = new Set(next.map((node) => node.parentId).filter((id): id is string => !!id))
-    const emptied = new Set(next.filter((node) => isCluster(node) && hadChildren.has(node.id) && !haveChildren.has(node.id)).map((node) => node.id))
+    const emptied = new Set(
+      next
+        .filter((node) => isCluster(node) && hadChildren.has(node.id) && !haveChildren.has(node.id))
+        .map((node) => node.id),
+    )
 
     if (!emptied.size) return next
 
@@ -422,7 +488,11 @@ export function pruneEmptied(before: AppNode[], after: AppNode[]): AppNode[] {
 }
 
 /** Removes nodes from the canvas, dropping any group they were the last of. */
-export function removeNodes(nodes: AppNode[], ids: string[], cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT }): AppNode[] {
+export function removeNodes(
+  nodes: AppNode[],
+  ids: string[],
+  cardSize: CardSize = { width: TASK_WIDTH, height: TASK_HEIGHT },
+): AppNode[] {
   const removed = new Set(ids)
 
   return pruneEmptied(

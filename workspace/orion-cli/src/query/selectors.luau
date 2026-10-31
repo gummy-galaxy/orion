@@ -15,13 +15,15 @@ local SELECTORS: { Selector } = {
 	{
 		name = "label",
 		form = "label:<text>",
-		help = "The node whose label is exactly this text. Quote it with \" or ' when it has spaces, so the shell keeps it whole.",
+		help = "The node whose label is exactly this text. Quote it with \" or ' when it has spaces, so the "
+			.. "shell keeps it whole.",
 		examples = { 'label:"Extract slider"', "label:'Extract slider'" },
 	},
 	{
 		name = "ref",
 		form = "ref:<key or ref>",
-		help = "The node with this ref. A bare key such as `owner/name#12` or `ABC-12` matches as it's stored, ignoring case, and a URL or `source:key` resolves the way `--ref` does first.",
+		help = "The node with this ref. A bare key such as `owner/name#12` or `ABC-12` matches as it's stored, "
+			.. "ignoring case, and a URL or `source:key` resolves the way `--ref` does first.",
 		examples = {
 			"ref:gummy-galaxy/orion#86",
 			"ref:https://github.com/gummy-galaxy/orion/pull/86",
@@ -31,7 +33,8 @@ local SELECTORS: { Selector } = {
 	{
 		name = "pr",
 		form = "pr:<number>",
-		help = "The card whose pull request has this number, with or without `#`. A value that isn't a number matches as `ref:` does.",
+		help = "The card whose pull request has this number, with or without `#`. "
+			.. "A value that isn't a number matches as `ref:` does.",
 		examples = { "pr:86", "pr:#86" },
 	},
 }

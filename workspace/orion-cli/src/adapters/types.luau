@@ -160,4 +160,4 @@ export type Adapter = {
 	agent: AgentVerbs?,
 }
 
-return {}
+return nil

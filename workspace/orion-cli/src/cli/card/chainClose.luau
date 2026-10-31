@@ -33,7 +33,11 @@ end
 return table.freeze({
 	help = "Close out a done card and the waiting done cards chained to it, so their Done stamps show",
 	mcp = {
-		description = "Close out a done card and every waiting done card chained to it through finished cards, the same as double-clicking a shimmering card in the app. Closing out a chain is the person's reward for finishing it, so don't close out on your own: finishing a card with orion_card_done leaves it waiting for them. Close out only when the person asks.",
+		description = "Close out a done card and every waiting done card chained to it through finished cards, the "
+			.. "same as double-clicking a shimmering card in the app. "
+			.. "Closing out a chain is the person's reward for finishing it, so don't close out on your own: "
+			.. "finishing a card with orion_card_done leaves it waiting for them. "
+			.. "Close out only when the person asks.",
 	},
 	define = function(parser: cli.Parser)
 		addIdPositional(parser, "id")
@@ -75,7 +79,8 @@ return table.freeze({
 		local revision = if dryRun then `{baseRevision}` else `{baseRevision} → {doc.revision}`
 		local count = #result.closed
 		local lines = {
-			`{if dryRun then "Would close out" else "Closed out"} {count} {if count == 1 then "card" else "cards"} at revision {revision}`,
+			`{if dryRun then "Would close out" else "Closed out"} {count} {if count == 1 then "card" else "cards"} `
+				.. `at revision {revision}`,
 		}
 
 		for _, step in result.closed do

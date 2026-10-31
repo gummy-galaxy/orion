@@ -17,4 +17,5 @@ return table.freeze({
 	settings = "settings.json",
 	commands = "commands.json",
 	themes = "themes",
+	telemetry = "telemetry.json",
 })

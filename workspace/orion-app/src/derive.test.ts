@@ -16,13 +16,21 @@ describe('card sources', () => {
     const pull = taskNode('pull')
 
     pull.data.repo = 'vocksel/orion'
-    pull.data.refs = [{ source: 'github', kind: 'pull', key: 'vocksel/orion#42', url: 'https://github.com/vocksel/orion/pull/42' }]
+    pull.data.refs = [
+      { source: 'github', kind: 'pull', key: 'vocksel/orion#42', url: 'https://github.com/vocksel/orion/pull/42' },
+    ]
     const external = taskNode('external')
 
-    external.data.refs = [{ source: 'jira', kind: 'issue', key: 'WORK-7', url: 'https://jira.example.com/browse/WORK-7' }]
+    external.data.refs = [
+      { source: 'jira', kind: 'issue', key: 'WORK-7', url: 'https://jira.example.com/browse/WORK-7' },
+    ]
 
-    expect(sourcesOf(pull)).toEqual([{ domain: 'github.com', label: 'vocksel/orion#42', href: 'https://github.com/vocksel/orion/pull/42' }])
-    expect(sourcesOf(external)).toEqual([{ domain: 'jira.example.com', label: 'WORK-7', href: 'https://jira.example.com/browse/WORK-7' }])
+    expect(sourcesOf(pull)).toEqual([
+      { domain: 'github.com', label: 'vocksel/orion#42', href: 'https://github.com/vocksel/orion/pull/42' },
+    ])
+    expect(sourcesOf(external)).toEqual([
+      { domain: 'jira.example.com', label: 'WORK-7', href: 'https://jira.example.com/browse/WORK-7' },
+    ])
   })
 
   it('gives every linked ref its own badge and falls back to provenance without a URL', () => {
@@ -92,7 +100,9 @@ describe('group sources', () => {
     first.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }]
     second.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }]
 
-    expect(sourcesOfGroup([first, second])).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
+    expect(sourcesOfGroup([first, second])).toEqual([
+      { domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' },
+    ])
   })
 
   it('collects every ref from cards inside a group', () => {
@@ -107,17 +117,28 @@ describe('group sources', () => {
   })
 
   it('gives each group the badges of the cards inside it', () => {
-    const group: AppNode = { id: 'group', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
+    const group: AppNode = {
+      id: 'group',
+      type: 'cluster',
+      position: { x: 0, y: 0 },
+      data: { kind: 'cluster', label: 'Work' },
+    }
     const inside = { ...taskNode('inside'), parentId: 'group' } as TaskNode
     const outside = taskNode('outside')
 
     inside.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-12', url: 'https://jira.example.com/browse/ORN-12' }]
-    outside.data.refs = [{ source: 'jira', kind: 'issue', key: 'ORN-13', url: 'https://jira.example.com/browse/ORN-13' }]
+    outside.data.refs = [
+      { source: 'jira', kind: 'issue', key: 'ORN-13', url: 'https://jira.example.com/browse/ORN-13' },
+    ]
 
     const sources = deriveSources([group, inside, outside])
 
-    expect(sources.get('group')).toEqual([{ domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' }])
-    expect(sources.get('outside')).toEqual([{ domain: 'jira.example.com', label: 'ORN-13', href: 'https://jira.example.com/browse/ORN-13' }])
+    expect(sources.get('group')).toEqual([
+      { domain: 'jira.example.com', label: 'ORN-12', href: 'https://jira.example.com/browse/ORN-12' },
+    ])
+    expect(sources.get('outside')).toEqual([
+      { domain: 'jira.example.com', label: 'ORN-13', href: 'https://jira.example.com/browse/ORN-13' },
+    ])
   })
 })
 
@@ -136,7 +157,12 @@ describe('buildWork', () => {
   }
 
   it('reads the server values for each card and group', () => {
-    const group: AppNode = { id: 'g', type: 'cluster', position: { x: 0, y: 0 }, data: { kind: 'cluster', label: 'Work' } }
+    const group: AppNode = {
+      id: 'g',
+      type: 'cluster',
+      position: { x: 0, y: 0 },
+      data: { kind: 'cluster', label: 'Work' },
+    }
     const work = buildWork(toServerFacts(derived), [task('a', 'blocked'), task('b'), group], [link('a', 'b')])
 
     expect(work.status.get('a')).toBe('blocked')
@@ -159,7 +185,11 @@ describe('buildWork', () => {
   })
 
   it('shows recorded status for cards the server has not derived, without blocking or rarity', () => {
-    const work = buildWork(toServerFacts(null), [task('todo'), task('finished', 'done'), task('waiting')], [link('finished', 'waiting')])
+    const work = buildWork(
+      toServerFacts(null),
+      [task('todo'), task('finished', 'done'), task('waiting')],
+      [link('finished', 'waiting')],
+    )
 
     expect(work.status.get('todo')).toBe('ready')
     expect(work.status.get('finished')).toBe('done')

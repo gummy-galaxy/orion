@@ -37,7 +37,10 @@ describe('fetchLog', () => {
   })
 
   it('answers null for a static build that serves its page instead of JSON', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, headers: new Headers({ 'content-type': 'text/html' }) }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, status: 200, headers: new Headers({ 'content-type': 'text/html' }) }),
+    )
 
     expect(await fetchLog('default')).toBeNull()
   })

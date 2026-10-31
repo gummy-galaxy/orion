@@ -15,4 +15,4 @@ export type Report = { sources: { SourceReport }, refreshes: { RefreshReport }? 
 export type SessionCache = { repos: { [string]: string | false }, agent: { [string]: any } }
 export type Result = { source: Source, report: SourceReport, records: { Record }?, order: number? }
 
-return {}
+return nil

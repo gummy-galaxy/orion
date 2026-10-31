@@ -649,6 +649,32 @@ The docs site lives at the bare `oriongraph.app`, served from the root path, by 
 
 2026-10-25 · [#327](https://github.com/vocksel/orion/pull/327) · [#575](https://github.com/vocksel/orion/issues/575)
 
+## Telemetry
+
+### Only the person chooses whether to share usage data
+
+The app asks once on launch, and Settings changes the answer. `orion telemetry on` and `off` cover machines without the app. The CLI and MCP server never prompt, and agents get `orion_telemetry_status` but no tool to change the choice. `DO_NOT_TRACK` and `ORION_TELEMETRY=0` turn telemetry off whatever was chosen. The choice and the anonymous install id live in `telemetry.json` in the data folder, outside `settings.json`, so they never travel with exported or synced settings.
+
+**Why:** consent an agent can give isn't the person's consent. A prompt from the CLI would hang an agent that runs it, so the CLI stays silent and sends nothing until someone opts in.
+
+2026-10-28 · [#507](https://github.com/gummy-galaxy/orion/issues/507), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
+### An event needs a reason from outside
+
+A new usage event joins the catalog only when something outside pushes for it: a decision it would change, a target it measures, such as 80% of new installs reaching a canvas, or a problem seen in real use. Performance on people's machines comes first: frame times, CPU, memory, crashes, and time to interactive. Events carry counts, durations, and Orion's own names, never content.
+
+**Why:** every event lengthens the list people read before they opt in, needs code to emit it, and adds to what PostHog stores. Collecting only what a decision needs keeps that list short enough to read and keeps telemetry within what people agreed to. Screen views were left out on this basis until a specific question needs them.
+
+2026-10-30 · [#624](https://github.com/gummy-galaxy/orion/issues/624), [#692](https://github.com/gummy-galaxy/orion/issues/692), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
+### People can delete what they've shared
+
+Settings and `orion telemetry delete` erase every event sent under the install ID, separately from opting out. Opting out stops sending but keeps the ID, so the data can still be deleted afterward. Deleting forgets the ID, and opting in again starts a new one. Erasure ships before any release that sends events.
+
+**Why:** consent that can be withdrawn should be able to take back what was given too, and data protection law such as GDPR expects that. Keeping deletion apart from opting out means stopping doesn't silently discard data someone was happy to share, and deleting stays possible after they stop.
+
+2026-10-30 · [#691](https://github.com/gummy-galaxy/orion/issues/691), [#433](https://github.com/gummy-galaxy/orion/issues/433)
+
 ## Releases
 
 ### Changes arrive with entries, and release notes are built from them

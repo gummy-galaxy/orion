@@ -13,4 +13,4 @@ export type Issue = {
 	bounds: Box?,
 }
 
-return {}
+return nil

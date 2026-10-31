@@ -20,5 +20,3 @@ test.case("no arguments and no stdin gives no inputs", function(assert)
 	assert.eq(getInputs({}, nil), {})
 	assert.eq(getInputs({}, ""), {})
 end)
-
-return {}

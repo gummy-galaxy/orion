@@ -76,7 +76,10 @@ export function foldPreviews(
   }
 
   for (const [groupId, list] of previews) {
-    previews.set(groupId, list.length > FOLD_PREVIEW_LIMIT ? list.sort((a, b) => a.depth - b.depth).slice(0, FOLD_PREVIEW_LIMIT) : list)
+    previews.set(
+      groupId,
+      list.length > FOLD_PREVIEW_LIMIT ? list.sort((a, b) => a.depth - b.depth).slice(0, FOLD_PREVIEW_LIMIT) : list,
+    )
   }
 
   return previews
