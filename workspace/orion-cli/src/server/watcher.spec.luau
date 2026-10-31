@@ -3,15 +3,15 @@ local path = require("@std/path")
 local task = require("@std/task")
 local test = require("@std/test")
 
-local appendLog = require("@root/log/appendLog")
-local createWorkspace = require("@root/store/createWorkspace")
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local runTransaction = require("@root/store/runTransaction")
-local storeTypes = require("@root/store/types")
+local appendLog = require("@root/storage/log/appendLog")
+local createWorkspace = require("@root/storage/canvases/createWorkspace")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local runTransaction = require("@root/storage/transactions/runTransaction")
+local storeTypes = require("@root/storage/types")
 local testing = require("@root/testing")
-local useWorkspace = require("@root/store/useWorkspace")
+local useWorkspace = require("@root/storage/canvases/useWorkspace")
 local watcher = require("@root/server/watcher")
-local writeDoc = require("@root/store/writeDoc")
+local writeDoc = require("@root/storage/canvases/writeDoc")
 
 type WorkspaceList = storeTypes.WorkspaceList
 

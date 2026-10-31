@@ -1,9 +1,9 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local getWorkspaceDir = require("@root/store/getWorkspaceDir")
-local importImageBytes = require("@root/media/importImageBytes")
-local readImageAsset = require("@root/media/readImageAsset")
+local getWorkspaceDir = require("@root/storage/canvases/getWorkspaceDir")
+local importImageBytes = require("@root/storage/media/importImageBytes")
+local readImageAsset = require("@root/storage/media/readImageAsset")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response

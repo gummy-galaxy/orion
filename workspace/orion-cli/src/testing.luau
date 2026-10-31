@@ -7,13 +7,13 @@ local syntax = require("@std/syntax")
 local system = require("@std/system")
 
 local cli = require("@root/cli")
-local encodeStableJson = require("@root/store/encodeStableJson")
-local ensureDirectory = require("@root/platform/ensureDirectory")
-local githubTypes = require("@root/github/types")
-local readCanvasFiles = require("@root/store/readCanvasFiles")
+local encodeStableJson = require("@root/storage/files/encodeStableJson")
+local ensureDirectory = require("@root/common/platform/ensureDirectory")
+local githubTypes = require("@root/sources/github/types")
+local readCanvasFiles = require("@root/storage/files/readCanvasFiles")
 local types = require("@root/types")
-local writeCanvasFiles = require("@root/store/writeCanvasFiles")
-local writeDoc = require("@root/store/writeDoc")
+local writeCanvasFiles = require("@root/storage/files/writeCanvasFiles")
+local writeDoc = require("@root/storage/canvases/writeDoc")
 
 type Doc = types.Doc
 type Item = types.Item

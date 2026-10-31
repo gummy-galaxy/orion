@@ -1,8 +1,8 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local mergeSettings = require("@root/settings/mergeSettings")
-local readSettings = require("@root/settings/readSettings")
+local mergeSettings = require("@root/storage/settings/mergeSettings")
+local readSettings = require("@root/storage/settings/readSettings")
 local shared = require("@root/server/routes/shared")
 
 type Response = shared.Response

@@ -1,5 +1,5 @@
 local describeCommands = require("@root/cli/describeCommands")
-local getArgumentLabel = require("@root/cli/getArgumentLabel")
+local getArgumentLabel = require("@root/cli/arguments/getArgumentLabel")
 
 type Argument = describeCommands.Argument
 type CommandDescription = describeCommands.CommandDescription

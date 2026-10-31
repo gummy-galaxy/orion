@@ -5,7 +5,7 @@
 	tests don't pin the behavior down. The module is restored after every run,
 	and on Ctrl-C.
 
-	lute run mutate workspace/orion-cli/src/store/pruneBackups.luau [...]
+	lute run mutate workspace/orion-cli/src/storage/backups/pruneBackups.luau [...]
 	[--spec <spec or folder>]...
 
 	Repeat --spec, or pass a folder such as workspace/orion-cli/src/cli, to
@@ -16,10 +16,10 @@ local fs = require("@std/fs")
 local process = require("@std/process")
 local time = require("@std/time")
 
-local findMutations = require("@cli/mutation/findMutations")
-local mutationTypes = require("@cli/mutation/types")
+local findMutations = require("./lib/mutation/findMutations")
+local mutationTypes = require("./lib/mutation/types")
 
-local runScript = require("@cli/runScript")
+local runScript = require("@cli/common/process/runScript")
 
 type Mutation = mutationTypes.Mutation
 type Outcome = mutationTypes.Outcome
