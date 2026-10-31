@@ -4,11 +4,14 @@ import { ChecksIcon } from './ChecksIcon'
 import { CheckSnoozes } from './CheckSnoozes'
 import { LinkList } from './LinkList'
 import { NoteBody } from './NoteBody'
+import { StartSession } from './StartSession'
 import { StatusIcon } from './StatusIcon'
 import { getPullRepo } from '../getPullRepo'
 import { withSnoozedFacts } from '../withSnoozedFacts'
 import { Timeline } from './Timeline'
 import { useCardLog } from '../useCardLog'
+import { startSession } from '../sessions/startSession'
+import { useStartOptions } from '../sessions/useStartOptions'
 import type { SnoozedJob, Work } from '../derive'
 import { workspaceAtom } from '../state'
 import type { CardFields, SaveFields } from '../fields/types'
@@ -74,6 +77,8 @@ export function TaskInspector({
   const data = node.data as TaskData
   const workspace = useAtomValue(workspaceAtom)
   const log = useCardLog(workspace, node.id)
+  // Asked again when the card's refs change, since a new conflict or session can change what fits.
+  const startOptions = useStartOptions(workspace, node.id, JSON.stringify(data.refs ?? []))
   const status = work.status.get(node.id) ?? 'ready'
   const leverage = work.leverage.get(node.id) ?? 0
   // Every link a card carries to its pull requests and issues, so each one opens from the header.
@@ -208,6 +213,10 @@ export function TaskInspector({
           {leverage > 0 && <> · unblocks {leverage}</>}
         </p>
       </section>
+
+      {startOptions && startOptions.presets.length > 0 && (
+        <StartSession options={startOptions} start={(preset) => startSession(workspace, node.id, preset)} />
+      )}
 
       <section className="insp-section">
         <h3 className="insp-heading">Notes</h3>

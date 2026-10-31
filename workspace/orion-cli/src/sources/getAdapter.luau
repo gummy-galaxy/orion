@@ -1,5 +1,6 @@
 local adapterTypes = require("@root/sources/types")
 local claudeCreateSource = require("@root/sources/claude/createSource")
+local claudeGetStartUrl = require("@root/sources/claude/getStartUrl")
 local claudeGetWatchPaths = require("@root/sources/claude/getWatchPaths")
 local claudeListSessionsAsync = require("@root/sources/claude/listSessionsAsync")
 local claudeReadTurnsAsync = require("@root/sources/claude/readTurnsAsync")
@@ -11,6 +12,8 @@ local githubRefreshAsync = require("@root/sources/github/refreshAsync")
 local githubRefreshChangedAsync = require("@root/sources/github/refreshChangedAsync")
 local hopCollectAsync = require("@root/sources/hop/collectAsync")
 local hopCreateSource = require("@root/sources/hop/createSource")
+local hopFindCheckoutAsync = require("@root/sources/hop/findCheckoutAsync")
+local hopFindCloneAsync = require("@root/sources/hop/findCloneAsync")
 local jiraCollectAsync = require("@root/sources/jira/collectAsync")
 local jiraCreateSource = require("@root/sources/jira/createSource")
 local jiraLookupRefsAsync = require("@root/sources/jira/lookupRefsAsync")
@@ -28,6 +31,7 @@ local adapters: { [string]: Adapter } = {
 			listSessionsAsync = claudeListSessionsAsync,
 			readTurnsAsync = claudeReadTurnsAsync,
 			watchPaths = claudeGetWatchPaths,
+			getStartUrl = claudeGetStartUrl,
 		},
 	},
 	github = {
@@ -54,7 +58,12 @@ local adapters: { [string]: Adapter } = {
 	hop = {
 		kind = "hop",
 		createSource = hopCreateSource,
-		source = { collectAsync = hopCollectAsync, collectOrder = 1 },
+		source = {
+			collectAsync = hopCollectAsync,
+			collectOrder = 1,
+			findCheckoutAsync = hopFindCheckoutAsync,
+			findCloneAsync = hopFindCloneAsync,
+		},
 	},
 }
 

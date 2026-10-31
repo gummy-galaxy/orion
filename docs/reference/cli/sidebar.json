@@ -48,6 +48,10 @@
     "link": "/reference/cli/source"
   },
   {
+    "text": "session",
+    "link": "/reference/cli/session"
+  },
+  {
     "text": "ingest",
     "link": "/reference/cli/ingest"
   },
