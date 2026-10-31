@@ -1,4 +1,4 @@
-local getAdapter = require("@root/adapters/getAdapter")
+local getAdapter = require("@root/sources/getAdapter")
 local types = require("@root/types")
 
 type Source = types.Source

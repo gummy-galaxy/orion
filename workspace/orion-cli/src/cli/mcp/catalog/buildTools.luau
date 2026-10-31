@@ -1,5 +1,5 @@
-local aliasEntries = require("@root/aliases/entries")
-local aliasTypes = require("@root/aliases/types")
+local aliasEntries = require("@root/cli/aliases/entries")
+local aliasTypes = require("@root/cli/aliases/types")
 local describeCommands = require("@root/cli/describeCommands")
 local mcpTypes = require("@root/cli/mcp/types")
 

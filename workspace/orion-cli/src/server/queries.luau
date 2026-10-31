@@ -1,7 +1,7 @@
 local json = require("@std/json")
 local net = require("@lute/net/server")
 
-local getStringField = require("@root/getStringField")
+local getStringField = require("@root/common/getStringField")
 local runQuery = require("@root/server/runQuery")
 local shared = require("@root/server/routes/shared")
 

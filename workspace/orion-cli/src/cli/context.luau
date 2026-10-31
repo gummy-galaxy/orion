@@ -1,6 +1,6 @@
 local cli = require("@batteries/cli")
 
-local aliasTypes = require("@root/aliases/types")
+local aliasTypes = require("@root/cli/aliases/types")
 local cliTypes = require("@root/cli/types")
 local describeCommands = require("@root/cli/describeCommands")
 local types = require("@root/types")
