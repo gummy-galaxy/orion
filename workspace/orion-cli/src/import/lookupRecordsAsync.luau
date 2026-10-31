@@ -48,7 +48,8 @@ local function lookupRecordsAsync(entries: { Entry }, context: adapterTypes.Cont
 	end
 
 	for kind, pending in byKind do
-		local lookupRefsAsync = getAdapter(kind).lookupRefsAsync
+		local verbs = getAdapter(kind).source
+		local lookupRefsAsync = if verbs then verbs.lookupRefsAsync else nil
 
 		if not lookupRefsAsync then
 			for _, item in pending do

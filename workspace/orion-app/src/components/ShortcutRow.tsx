@@ -46,12 +46,23 @@ export function ShortcutRow({ shortcut, chord, conflicts, recording, record, can
           onKeyDown={onKeyDown}
           onBlur={() => recording && cancel()}
         >
-          {recording ? 'Press keys…' : chord ? <kbd>{formatChord(chord)}</kbd> : <span className="shortcut-unbound">None</span>}
+          {recording ? (
+            'Press keys…'
+          ) : chord ? (
+            <kbd>{formatChord(chord)}</kbd>
+          ) : (
+            <span className="shortcut-unbound">None</span>
+          )}
         </button>
       </td>
       <td className="shortcut-actions">
         {chord !== shortcut.chord && (
-          <button type="button" className="link" title={`Back to ${formatChord(shortcut.chord) || 'none'}`} onClick={() => bind(shortcut.chord)}>
+          <button
+            type="button"
+            className="link"
+            title={`Back to ${formatChord(shortcut.chord) || 'none'}`}
+            onClick={() => bind(shortcut.chord)}
+          >
             Reset
           </button>
         )}

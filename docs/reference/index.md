@@ -4,11 +4,12 @@
 
 These pages are generated from the code that defines each surface, so they always match what Orion accepts.
 
-- [CLI](./cli/): the 22 commands of `orion`, with every option they take.
-- [MCP](./mcp): the 60 tools `orion mcp start` serves to agents, each running a CLI command.
+- [CLI](./cli/): every command of `orion`, with the options it takes.
+- [MCP](./mcp): the tools `orion mcp start` serves to agents, each running a CLI command.
+- [Telemetry](./telemetry): the events Orion sends once someone opts in to sharing usage data.
 
 The syntax commands take inside their arguments:
 
-- [Queries](./query): the 11 fields `--where` matches on, and how comparisons combine.
-- [Selectors](./selectors): the 3 ways to name a card or group in place of its id.
-- [Refs](./refs): the 7 forms `--ref` takes for pull requests, issues, and branches.
+- [Queries](./query): the fields `--where` matches on, and how comparisons combine.
+- [Selectors](./selectors): the ways to name a card or group in place of its id.
+- [Refs](./refs): the forms `--ref` takes for pull requests, issues, and branches.

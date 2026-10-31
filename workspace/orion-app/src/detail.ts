@@ -22,7 +22,9 @@ const browserStore = (): DetailStore | null => {
   }
 }
 
-/** Levels there are to show for groups at these depths below the open group; one more than the deepest opens them all. */
+/**
+ * Levels there are to show for groups at these depths below the open group; one more than the deepest opens them all.
+ */
 export function detailLevels(depths: number[]): number {
   return depths.length ? Math.max(...depths) + 2 : 1
 }

@@ -30,7 +30,15 @@ const PATHS: Record<StatusBadge | Motion, ReactNode> = {
 
 export function TradingSignalIcon({ signal }: { signal: StatusBadge | Motion }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       {PATHS[signal]}
     </svg>
   )

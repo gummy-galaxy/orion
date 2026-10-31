@@ -51,9 +51,6 @@ jobs:
     if: needs.ci-loading.outputs.cli == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    defaults:
-      run:
-        working-directory: workspace/orion-cli
     steps:
       - uses: actions/checkout@v7
 
@@ -75,7 +72,6 @@ jobs:
 
       - name: Install Dependencies
         run: lute run install
-        working-directory: .
 
       - name: Install Docs Dependencies
         run: npm ci
@@ -83,7 +79,6 @@ jobs:
 
       - name: Analyze
         run: lute run analyze
-        working-directory: .
 
   cli:
     needs: ci-loading
@@ -94,9 +89,6 @@ jobs:
         runner: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 5
-    defaults:
-      run:
-        working-directory: workspace/orion-cli
     steps:
       - uses: actions/checkout@v7
 
@@ -108,27 +100,23 @@ jobs:
 
       - name: Install Dependencies
         run: lute run install
-        working-directory: .
 
       # The CLI's index specs run the `sqlite3` command, which the Linux and Windows images don't have
       - name: Install SQLite
         if: runner.os != 'macOS'
         run: lute run install sqlite
-        working-directory: .
 
       - name: Test
-        run: lute test
+        run: lute test workspace/orion-cli .lute
 
       - name: Build
         run: lute run build
-        working-directory: .
 
       - name: Smoke Test the Binary
-        run: ./build/orion --help
+        run: ./workspace/orion-cli/build/orion --help
 
       - name: Package
         run: lute run build package
-        working-directory: .
 
       - name: Upload CLI
         # A full artifact storage quota shouldn't fail the build
@@ -293,3 +281,15 @@ jobs:
 
       - name: Check Changelog Entries
         run: changewrite check
+
+  # A matrix job skipped by its condition reports one check under the bare job name instead of one per runner, so the
+  # ruleset requires this job rather than each runner's check. A skipped job counts as passing here too.
+  finish:
+    needs: [ci-loading, cli-analysis, cli, app, desktop, changelog]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fail When a Job Failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

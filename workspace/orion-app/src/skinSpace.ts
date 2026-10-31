@@ -5,7 +5,10 @@ import type { CardSize } from './cardSize'
 const CLASSIC_SIZE = { width: TASK_WIDTH, height: TASK_HEIGHT }
 
 export function cardPitchOf(size: CardSize): { x: number; y: number } {
-  return { x: (size.width + GAP.inner.x) / (TASK_WIDTH + GAP.inner.x), y: (size.height + GAP.inner.y) / (TASK_HEIGHT + GAP.inner.y) }
+  return {
+    x: (size.width + GAP.inner.x) / (TASK_WIDTH + GAP.inner.x),
+    y: (size.height + GAP.inner.y) / (TASK_HEIGHT + GAP.inner.y),
+  }
 }
 
 function mapPositions(nodes: AppNode[], size: CardSize, isInverse: boolean): AppNode[] {
@@ -19,7 +22,9 @@ function mapPositions(nodes: AppNode[], size: CardSize, isInverse: boolean): App
 
   return normalize(
     nodes.map((node): AppNode => {
-      const origin = node.parentId ? { x: GROUP_PADDING, y: headers.get(node.parentId) ?? groupHeaderHeight(undefined) } : { x: 0, y: 0 }
+      const origin = node.parentId
+        ? { x: GROUP_PADDING, y: headers.get(node.parentId) ?? groupHeaderHeight(undefined) }
+        : { x: 0, y: 0 }
       const position = { x: scale(origin.x, node.position.x, pitchX), y: scale(origin.y, node.position.y, pitchY) }
 
       // A group's size scales like the room inside it, so the padding and header stay as they are.
@@ -28,7 +33,11 @@ function mapPositions(nodes: AppNode[], size: CardSize, isInverse: boolean): App
       const { width, height } = node.data.size
       const frame = { x: GROUP_PADDING * 2, y: headers.get(node.id)! + GROUP_PADDING }
 
-      return { ...node, position, data: { ...node.data, size: { width: scale(frame.x, width, pitchX), height: scale(frame.y, height, pitchY) } } }
+      return {
+        ...node,
+        position,
+        data: { ...node.data, size: { width: scale(frame.x, width, pitchX), height: scale(frame.y, height, pitchY) } },
+      }
     }),
     isInverse ? CLASSIC_SIZE : size,
   )

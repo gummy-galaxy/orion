@@ -9,7 +9,19 @@
   font-family: var(--font-ui);
 }
 
-.card.skin-trading:is(.st-ready, .st-active, .st-review, .st-blocked, .st-done, .st-deferred, .tr-up, .tr-down, .tr-related, .tr-self, .attn) {
+.card.skin-trading:is(
+    .st-ready,
+    .st-active,
+    .st-review,
+    .st-blocked,
+    .st-done,
+    .st-deferred,
+    .tr-up,
+    .tr-down,
+    .tr-related,
+    .tr-self,
+    .attn
+  ) {
   background: transparent;
   color: var(--trading-text);
   box-shadow: none;
@@ -45,8 +57,8 @@
 .card.skin-trading .trading-frame {
   color-scheme: dark;
   --trading-art:
-    radial-gradient(circle at 72% 28%, #ff8fa3 0, transparent 38%), radial-gradient(circle at 18% 82%, #3b6cff 0, transparent 52%),
-    linear-gradient(160deg, #b45cff, #2a1577 70%);
+    radial-gradient(circle at 72% 28%, #ff8fa3 0, transparent 38%),
+    radial-gradient(circle at 18% 82%, #3b6cff 0, transparent 52%), linear-gradient(160deg, #b45cff, #2a1577 70%);
   position: relative;
   width: 100%;
   height: 100%;
@@ -60,26 +72,26 @@
 
 .card.skin-trading .trading-frame[data-hue='1'] {
   --trading-art:
-    radial-gradient(circle at 70% 25%, #7af0e0 0, transparent 38%), radial-gradient(circle at 20% 80%, #b45cff 0, transparent 52%),
-    linear-gradient(160deg, #3b6cff, #1b1442 70%);
+    radial-gradient(circle at 70% 25%, #7af0e0 0, transparent 38%),
+    radial-gradient(circle at 20% 80%, #b45cff 0, transparent 52%), linear-gradient(160deg, #3b6cff, #1b1442 70%);
 }
 
 .card.skin-trading .trading-frame[data-hue='2'] {
   --trading-art:
-    radial-gradient(circle at 70% 25%, #ffe08a 0, transparent 38%), radial-gradient(circle at 20% 80%, #d94dff 0, transparent 52%),
-    linear-gradient(160deg, #ff8f3d, #2a1577 72%);
+    radial-gradient(circle at 70% 25%, #ffe08a 0, transparent 38%),
+    radial-gradient(circle at 20% 80%, #d94dff 0, transparent 52%), linear-gradient(160deg, #ff8f3d, #2a1577 72%);
 }
 
 .card.skin-trading .trading-frame[data-hue='3'] {
   --trading-art:
-    radial-gradient(circle at 70% 25%, #b4ffd8 0, transparent 38%), radial-gradient(circle at 20% 80%, #3b6cff 0, transparent 52%),
-    linear-gradient(160deg, #18d6c0, #13285e 72%);
+    radial-gradient(circle at 70% 25%, #b4ffd8 0, transparent 38%),
+    radial-gradient(circle at 20% 80%, #3b6cff 0, transparent 52%), linear-gradient(160deg, #18d6c0, #13285e 72%);
 }
 
 .card.skin-trading .trading-frame[data-hue='4'] {
   --trading-art:
-    radial-gradient(circle at 70% 25%, #ffd166 0, transparent 38%), radial-gradient(circle at 20% 80%, #ff5e7e 0, transparent 52%),
-    linear-gradient(160deg, #d94dff, #2a1577 72%);
+    radial-gradient(circle at 70% 25%, #ffd166 0, transparent 38%),
+    radial-gradient(circle at 20% 80%, #ff5e7e 0, transparent 52%), linear-gradient(160deg, #d94dff, #2a1577 72%);
 }
 
 /* The card is drawn at 264 by 380 and zoomed down to its size on the canvas, so it sits in scale with group
@@ -437,7 +449,9 @@
   transform-origin: 0 0;
 }
 
-:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-status-badge {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card)
+  > .trading-frame
+  .trading-status-badge {
   width: 46px;
   height: 46px;
   padding: 0;
@@ -445,7 +459,10 @@
   box-shadow: none;
 }
 
-:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-status-badge svg {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card)
+  > .trading-frame
+  .trading-status-badge
+  svg {
   width: 26px;
   height: 26px;
 }
@@ -501,7 +518,9 @@
   font-size: 35px;
 }
 
-:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card) > .trading-frame .trading-motion:not(.trading-motion-counted) {
+:is(.canvas[data-zoom='compact'] .card.skin-trading, .card.skin-trading.far-card)
+  > .trading-frame
+  .trading-motion:not(.trading-motion-counted) {
   width: 56px;
   height: 56px;
 }
@@ -556,6 +575,10 @@
   left: 50%;
   translate: -50% -50%;
   border-width: 3px;
-  background: color-mix(in srgb, var(--status-done) 22%, color-mix(in srgb, var(--trading-background) 55%, transparent));
+  background: color-mix(
+    in srgb,
+    var(--status-done) 22%,
+    color-mix(in srgb, var(--trading-background) 55%, transparent)
+  );
   font-size: 22px;
 }

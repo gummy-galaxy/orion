@@ -14,11 +14,17 @@ import { toDisplayed, toStored } from './skinSpace'
 
 export type Saved = { nodes: AppNode[]; links: Link[]; stickers?: Sticker[]; stickerLoadout?: Loadout }
 /** `derived` is what `orion serve` computed for this revision; a server without it leaves the field out. */
-export type Remote = Saved & { revision: number; settings: Record<string, unknown>; github?: GithubSnapshot; derived?: Derived }
+export type Remote = Saved & {
+  revision: number
+  settings: Record<string, unknown>
+  github?: GithubSnapshot
+  derived?: Derived
+}
 export type SyncStatus = { state: 'idle' | 'running' | 'error' | 'unavailable'; lastRun?: string; message?: string }
 export type Loaded = { source: 'file'; doc: Remote } | { source: 'missing'; workspace: string }
 /** `results` holds what each operation answered, such as a chain close's cards, or null, in the order sent. */
-export type CommitResult = { ok: true; revision: number; results: unknown[] } | { ok: false; conflict: boolean; message?: string }
+export type CommitResult =
+  { ok: true; revision: number; results: unknown[] } | { ok: false; conflict: boolean; message?: string }
 export type Workspaces = { active: string; canvases: { name: string; label: string }[] }
 /** What `orion reveal` asked the open app to select and frame, on the canvas named. */
 export type Reveal = { canvas: string; ids: string[]; selectOnly: boolean }
@@ -66,8 +72,14 @@ export async function saveCanvasStyle(
   }
 }
 
-/** Snoozes a CI job for every card in its repository, or ends its snooze. The server bumps the revision, so open windows reload. */
-export async function saveCheckSnooze(workspace: string, change: { repo: string; name: string; snoozed: boolean; until?: string }): Promise<boolean> {
+/**
+ * Snoozes a CI job for every card in its repository, or ends its snooze. The server bumps the revision, so open windows
+ * reload.
+ */
+export async function saveCheckSnooze(
+  workspace: string,
+  change: { repo: string; name: string; snoozed: boolean; until?: string },
+): Promise<boolean> {
   try {
     const response = await fetch('/api/orion/check-snoozes', {
       method: 'PUT',
@@ -101,7 +113,8 @@ export async function copyImage(asset: string, from: string, to: string): Promis
 }
 
 /** The card a pasted link names: one already on the canvas, or a new one that isn't saved until the app places it. */
-export type LinkLookup = { status: 'existing'; id: string; label: string } | { status: 'found'; id: string; data: TaskData }
+export type LinkLookup =
+  { status: 'existing'; id: string; label: string } | { status: 'found'; id: string; data: TaskData }
 
 export async function lookupLink(url: string, workspace: string): Promise<LinkLookup> {
   const unserved = new Error('Creating from a link needs orion server start.')
@@ -123,7 +136,13 @@ export async function lookupLink(url: string, workspace: string): Promise<LinkLo
   return body
 }
 
-type EventName = typeof CHANGED_EVENT | typeof SYNC_EVENT | typeof WORKSPACE_EVENT | typeof WORKSPACES_EVENT | typeof REVEAL_EVENT | typeof LOG_EVENT
+type EventName =
+  | typeof CHANGED_EVENT
+  | typeof SYNC_EVENT
+  | typeof WORKSPACE_EVENT
+  | typeof WORKSPACES_EVENT
+  | typeof REVEAL_EVENT
+  | typeof LOG_EVENT
 const listeners = new Map<EventName, Set<(data: never) => void>>()
 let socket: WebSocket | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
@@ -198,7 +217,11 @@ export async function getWorkspaces(): Promise<Workspaces> {
 }
 
 async function workspaceRequest(url: string, value: object): Promise<Workspaces> {
-  const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(value) })
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(value),
+  })
   const result = await response.json()
 
   if (!response.ok) throw new Error(result.error || `Canvas request failed (${response.status})`)
@@ -256,7 +279,11 @@ export function onSyncStatus(callback: (status: SyncStatus) => void) {
  * Sends a list of edits the server applies as one change. `baseRevision` is the revision the edits were made against,
  * or null when the file doesn't exist yet. A conflict means the file changed since, and the list was not applied.
  */
-export async function commitOperations(workspace: string, baseRevision: number | null, operations: Operation[]): Promise<CommitResult> {
+export async function commitOperations(
+  workspace: string,
+  baseRevision: number | null,
+  operations: Operation[],
+): Promise<CommitResult> {
   try {
     const response = await fetch(OPERATIONS_API, {
       method: 'POST',
@@ -272,7 +299,11 @@ export async function commitOperations(workspace: string, baseRevision: number |
 
     const failure = (await response.json().catch(() => ({}))) as { error?: unknown }
 
-    return { ok: false, conflict: response.status === 409, message: typeof failure.error === 'string' ? failure.error : undefined }
+    return {
+      ok: false,
+      conflict: response.status === 409,
+      message: typeof failure.error === 'string' ? failure.error : undefined,
+    }
   } catch {
     return { ok: false, conflict: false }
   }
@@ -300,11 +331,14 @@ export function slim(nodes: AppNode[]) {
 }
 
 /** A stable fingerprint, so view-only changes don't cause writes. */
-export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) => stableJson({ nodes: slim(nodes), links, stickers, stickerLoadout })
+export const fingerprint = ({ nodes, links, stickers, stickerLoadout }: Saved) =>
+  stableJson({ nodes: slim(nodes), links, stickers, stickerLoadout })
 
 /** The stored shape of a document, for comparing and merging. */
 export const compactDoc = (doc: Saved): Saved =>
-  JSON.parse(fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) })) as Saved
+  JSON.parse(
+    fingerprint({ ...doc, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) }),
+  ) as Saved
 
 /** A document as the canvas shows it at this card size. */
 export function displayedDoc(doc: Saved, cardSize: CardSize): Saved & { stickers: Sticker[]; stickerLoadout: Loadout } {
@@ -390,12 +424,16 @@ export function reportFocus(report: FocusReport, workspace: string) {
 
 /** Withdraws this page's focus as it goes away. */
 export function clearFocus(workspace: string) {
-  navigator.sendBeacon?.(FOCUS_API, new Blob([JSON.stringify({ tab: TAB_ID, canvas: workspace, closed: true })], { type: 'application/json' }))
+  navigator.sendBeacon?.(
+    FOCUS_API,
+    new Blob([JSON.stringify({ tab: TAB_ID, canvas: workspace, closed: true })], { type: 'application/json' }),
+  )
 }
 
 /**
  * Calls back when another writer (the CLI, an agent, another window) changes the file, with the derived values for that
- * revision. `reindexed` means the canvas's files changed outside Orion, such as by a `git pull`, without a new revision.
+ * revision. `reindexed` means the canvas's files changed outside Orion, such as by a `git pull`, without a new
+ * revision.
  */
 export function onRemoteChange(callback: (revision: number, derived?: Derived, reindexed?: boolean) => void) {
   return subscribe<{ revision: number; derived?: Derived; reindexed?: boolean }>(CHANGED_EVENT, (data) =>

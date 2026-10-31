@@ -34,7 +34,8 @@ const CUBIC_BEZIER = new RegExp(`^cubic-bezier\\(\\s*${NUMBER}(\\s*,\\s*${NUMBER
 
 type Problem = string | null
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const tokensByName = new Map(TOKENS.map((token) => [token.name, token]))
 const cssVars = new Set(TOKENS.map((token) => token.cssVar))
@@ -46,7 +47,9 @@ export function brokenTheme(file: string, error: string): Theme {
   return { id: `custom:${file}`, label: fileLabel(file), schemes: [], error }
 }
 
-/** Checks one value against its token's type. Returns the problem, or null when the value is plain CSS for that type. */
+/**
+ * Checks one value against its token's type. Returns the problem, or null when the value is plain CSS for that type.
+ */
 export function checkValue(token: Token, value: string): Problem {
   const text = value.trim()
 
@@ -61,13 +64,18 @@ export function checkValue(token: Token, value: string): Problem {
     case 'font':
       return checkFont(text)
     case 'weight':
-      return WEIGHT.test(text) && Number(text) >= 100 && Number(text) <= 1000 ? null : 'must be a weight from 100 to 1000'
+      return WEIGHT.test(text) && Number(text) >= 100 && Number(text) <= 1000
+        ? null
+        : 'must be a weight from 100 to 1000'
     case 'size':
     case 'space':
     case 'border':
-      return SIZE.test(text) && Number.parseFloat(text) <= MAX_VALUE_LENGTH ? null : 'must be a length in px, rem, or em'
+      return SIZE.test(text) && Number.parseFloat(text) <= MAX_VALUE_LENGTH
+        ? null
+        : 'must be a length in px, rem, or em'
     case 'line-height':
-      return (LINE_HEIGHT.test(text) && Number(text) <= MAX_LINE_HEIGHT) || (SIZE.test(text) && Number.parseFloat(text) <= MAX_VALUE_LENGTH)
+      return (LINE_HEIGHT.test(text) && Number(text) <= MAX_LINE_HEIGHT) ||
+        (SIZE.test(text) && Number.parseFloat(text) <= MAX_VALUE_LENGTH)
         ? null
         : 'must be a number, such as 1.4, or a length in px, rem, or em'
     case 'radius':
@@ -79,7 +87,9 @@ export function checkValue(token: Token, value: string): Problem {
     case 'duration':
       return checkDuration(text)
     case 'easing':
-      return EASING_KEYWORDS.includes(text) || CUBIC_BEZIER.test(text) ? null : 'must be an easing keyword or cubic-bezier()'
+      return EASING_KEYWORDS.includes(text) || CUBIC_BEZIER.test(text)
+        ? null
+        : 'must be an easing keyword or cubic-bezier()'
   }
 }
 
@@ -90,21 +100,26 @@ export function checkValue(token: Token, value: string): Problem {
 function checkColor(text: string): Problem {
   if (!balanced(text)) return 'has unbalanced parentheses'
 
-  const unknown = [...text.matchAll(/([a-z-]+)\(/gi)].map((match) => match[1].toLowerCase()).find((name) => !COLOR_FUNCTIONS.includes(name))
+  const unknown = [...text.matchAll(/([a-z-]+)\(/gi)]
+    .map((match) => match[1].toLowerCase())
+    .find((name) => !COLOR_FUNCTIONS.includes(name))
 
   if (unknown) return `uses ${unknown}(), which a color cannot`
 
   const references = [...text.matchAll(/var\(\s*(--[a-z0-9-]+)\s*\)/gi)].map((match) => match[1].toLowerCase())
   const allVars = text.match(/var\(/gi) ?? []
 
-  if (references.some((name) => !cssVars.has(name)) || allVars.length !== references.length) return 'refers to a variable this theme cannot name'
+  if (references.some((name) => !cssVars.has(name)) || allVars.length !== references.length)
+    return 'refers to a variable this theme cannot name'
 
   if (!COLOR_TEXT.test(text)) return 'has characters that are not part of a color'
 
   return null
 }
 
-/** A shadow is lengths, the word inset, and colors, so it follows the color rules and lets the browser check the shape. */
+/**
+ * A shadow is lengths, the word inset, and colors, so it follows the color rules and lets the browser check the shape.
+ */
 function checkShadow(text: string): Problem {
   if (text === 'none') return null
 
@@ -122,7 +137,8 @@ function checkDuration(text: string): Problem {
 function checkFont(text: string): Problem {
   if (!FONT_TEXT.test(text)) return 'has characters that are not part of a font name'
 
-  if ((text.match(/'/g) ?? []).length % 2 !== 0 || (text.match(/"/g) ?? []).length % 2 !== 0) return 'has unbalanced quotes'
+  if ((text.match(/'/g) ?? []).length % 2 !== 0 || (text.match(/"/g) ?? []).length % 2 !== 0)
+    return 'has unbalanced quotes'
 
   return null
 }
@@ -156,7 +172,10 @@ const PROPERTY_FOR_GROUP: Record<Token['group'], string> = {
   easing: 'transition-timing-function',
 }
 
-/** Where the browser exists, it has the last word on a value its parser would drop. Elsewhere the checks above stand alone. */
+/**
+ * Where the browser exists, it has the last word on a value its parser would drop. Elsewhere the checks above stand
+ * alone.
+ */
 function browserRejects(token: Token, value: string): boolean {
   if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') return false
 
@@ -178,7 +197,8 @@ export function parseThemeFile(file: string, text: string): Theme {
 
   if (!isRecord(data)) return brokenTheme(file, 'must be a JSON object')
 
-  const label = typeof data.name === 'string' && data.name.trim() ? data.name.trim().slice(0, MAX_LABEL_LENGTH) : fileLabel(file)
+  const label =
+    typeof data.name === 'string' && data.name.trim() ? data.name.trim().slice(0, MAX_LABEL_LENGTH) : fileLabel(file)
   const notes: string[] = []
   const values: Partial<Record<Scheme, Record<string, string>>> = {}
 
@@ -205,7 +225,8 @@ export function parseThemeFile(file: string, text: string): Theme {
 
       if (problem) return brokenTheme(file, `${scheme} ${name} ${problem}`)
 
-      if (browserRejects(token, value.trim())) return brokenTheme(file, `${scheme} ${name} is not a value the browser accepts`)
+      if (browserRejects(token, value.trim()))
+        return brokenTheme(file, `${scheme} ${name} is not a value the browser accepts`)
 
       variant[name] = value.trim()
     }
@@ -217,7 +238,8 @@ export function parseThemeFile(file: string, text: string): Theme {
 
   if (schemes.length === 0) return brokenTheme(file, 'needs a "light" or "dark" object of token values')
 
-  const author = typeof data.author === 'string' && data.author.trim() ? data.author.trim().slice(0, MAX_LABEL_LENGTH) : undefined
+  const author =
+    typeof data.author === 'string' && data.author.trim() ? data.author.trim().slice(0, MAX_LABEL_LENGTH) : undefined
 
   return { id: `custom:${file}`, label, schemes, values, notes, author }
 }
@@ -227,7 +249,11 @@ let loaded: Theme[] = [...THEMES]
 
 /** The built-in themes, then the valid theme files, then the broken ones with their reasons. */
 export function themeList(files: readonly Theme[]): Theme[] {
-  return [...THEMES, ...files.filter((theme) => theme.error === undefined), ...files.filter((theme) => theme.error !== undefined)]
+  return [
+    ...THEMES,
+    ...files.filter((theme) => theme.error === undefined),
+    ...files.filter((theme) => theme.error !== undefined),
+  ]
 }
 
 /** Reads the theme files from the body of GET /api/themes. Entries that are not shaped like a file are skipped. */
@@ -237,7 +263,8 @@ function readThemeBody(body: unknown): Theme[] {
   return entries.flatMap((entry): Theme[] => {
     if (!isRecord(entry) || typeof entry.file !== 'string') return []
 
-    if (typeof entry.text !== 'string') return [brokenTheme(entry.file, typeof entry.error === 'string' ? entry.error : 'could not be read')]
+    if (typeof entry.text !== 'string')
+      return [brokenTheme(entry.file, typeof entry.error === 'string' ? entry.error : 'could not be read')]
 
     return [parseThemeFile(entry.file, entry.text)]
   })

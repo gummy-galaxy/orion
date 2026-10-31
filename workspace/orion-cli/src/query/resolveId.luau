@@ -1,4 +1,4 @@
-local derive = require("@root/graph/derive")
+local createScope = require("@root/query/createScope")
 local getCurrentKey = require("@root/github/getCurrentKey")
 local getLabel = require("@root/graph/getLabel")
 local matchesExpression = require("@root/query/matchesExpression")
@@ -72,11 +72,11 @@ local function resolveId(doc: Doc, input: string): string
 	assert(value ~= "", `{selector}: needs a value`)
 
 	local expression = selectorExpression(selector, value, doc)
-	local derived = derive(doc)
+	local scope = createScope(doc)
 	local matches: { Item } = {}
 
 	for _, item in doc.nodes do
-		if matchesExpression(derived, item, expression) then
+		if matchesExpression(scope, item, expression) then
 			table.insert(matches, item)
 		end
 	end

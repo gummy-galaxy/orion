@@ -4,6 +4,8 @@ local path = require("@std/path")
 local process = require("@std/process")
 local test = require("@std/test")
 
+local project = require("@repository/project")
+
 local applyOperations = require("@root/operations/applyOperations")
 local decodeDoc = require("@root/store/decodeDoc")
 local getBackups = require("@root/store/getBackups")
@@ -126,7 +128,14 @@ test.case("concurrent CLI writers never lose a change", function(assert)
 	-- Each writer adds its cards one at a time while the others do the same.
 	local script = [[
 for writer in $(seq 1 "$3"); do
-	(for write in $(seq 1 "$4"); do output=$("$1" run "$2" card create "card-$writer-$write" --canvas default 2>&1) || { echo "$output" >&2; exit 1; }; done) &
+	(
+		for write in $(seq 1 "$4"); do
+			output=$("$1" run "$2" card create "card-$writer-$write" --canvas default 2>&1) || {
+				echo "$output" >&2
+				exit 1
+			}
+		done
+	) &
 done
 failed=0
 for job in $(jobs -p); do wait "$job" || failed=1; done
@@ -138,7 +147,7 @@ exit "$failed"
 		script,
 		"sh",
 		tostring(process.execPath()),
-		tostring(path.join(process.cwd(), "cli.luau")),
+		tostring(path.join(project.CLI_PATH, "cli.luau")),
 		tostring(writers),
 		tostring(writesEach),
 	}, { env = environment })
@@ -187,7 +196,8 @@ test.case("an operation list from the app keeps what other writers own", functio
 	fs.createDirectory(dir, { makeParents = true })
 	testing.writeCanvasText(
 		dir,
-		[[{"version":2,"revision":4,"settings":{"sources":[{"id":"gh","kind":"github","owners":["vocksel"]}]},"github":{"viewer":"vocksel"},"future":{"kept":true},"nodes":[],"links":[]}]]
+		[[{"version":2,"revision":4,"settings":{"sources":[{"id":"gh","kind":"github","owners":["vocksel"]}]},]]
+			.. [["github":{"viewer":"vocksel"},"future":{"kept":true},"nodes":[],"links":[]}]]
 	)
 
 	local doc = runTransaction(dir, function(current)

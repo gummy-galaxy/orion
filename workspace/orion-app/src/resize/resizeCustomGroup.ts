@@ -41,7 +41,8 @@ function pushBack(boxes: Map<string, Box>, limit: number, gap: number): Map<stri
     for (const [otherId, other] of pushed) {
       const was = boxes.get(otherId)!
 
-      if (was.x >= right(box) && overlapsRows(was, box)) end = Math.min(end, other.x - Math.min(was.x - right(box), gap))
+      if (was.x >= right(box) && overlapsRows(was, box))
+        end = Math.min(end, other.x - Math.min(was.x - right(box), gap))
     }
 
     pushed.set(id, { ...box, x: Math.min(box.x, end - box.width) })
@@ -90,7 +91,11 @@ export function resizeCustomGroup(nodes: AppNode[], groupId: string, box: Box, c
   let top = box.y - group.position.y
   let right = left + box.width
   let bottom = top + box.height
-  let boxes = new Map(nodes.filter((node) => node.parentId === groupId).map((node) => [node.id, { ...node.position, ...sizeOf(node, cardSize) }]))
+  let boxes = new Map(
+    nodes
+      .filter((node) => node.parentId === groupId)
+      .map((node) => [node.id, { ...node.position, ...sizeOf(node, cardSize) }]),
+  )
 
   if (right < start.width) {
     const squeezed = squeeze(boxes, 'right', right - GROUP_PADDING, left + GROUP_PADDING, GAP.inner.x)

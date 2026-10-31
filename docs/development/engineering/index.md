@@ -6,6 +6,7 @@ An audit or proposal is a snapshot. It recommends changes as of the day it was w
 
 ## Threads
 
+- [Adapters](/development/engineering/adapters): the contract each kind of source implements, with source verbs for bringing work in and agent verbs for agent sessions.
 - [Architecture](/development/engineering/architecture): how the CLI, server, app, desktop shell, MCP server, and sources fit together.
 - [CLI and agents](/development/engineering/cli-and-agents): the CLI as the one implementation, its queries and batch edits, and the MCP server that wraps it.
 - [Data and sync](/development/engineering/data-and-sync): one document per canvas under a shared lock, backups, merges, undo, and the move toward operations and files.

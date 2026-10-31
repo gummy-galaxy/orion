@@ -112,7 +112,8 @@ test.case("a journaled write without its marker is never replayed over later wri
 	local dir = createCanvas("recover-stale")
 	runSqlite(
 		getIndexPath(dir),
-		[[INSERT INTO operations (startedAt, batch) VALUES ('2026-01-01T00:00:00Z', '{"writes":{"nodes/a.json":"{\"id\":\"a\"}"},"removes":[]}');]]
+		[[INSERT INTO operations (startedAt, batch) VALUES ('2026-01-01T00:00:00Z', ]]
+			.. [['{"writes":{"nodes/a.json":"{\"id\":\"a\"}"},"removes":[]}');]]
 	)
 
 	relabel(dir, " newer")

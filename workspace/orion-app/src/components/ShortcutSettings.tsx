@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import { DEFAULT_KEYBINDINGS, GESTURES, SHORTCUTS, conflictsOf, formatChord, type Keybindings, type ShortcutId } from '../keybindings'
+import {
+  DEFAULT_KEYBINDINGS,
+  GESTURES,
+  SHORTCUTS,
+  conflictsOf,
+  formatChord,
+  type Keybindings,
+  type ShortcutId,
+} from '../keybindings'
 import { ShortcutRow } from './ShortcutRow'
 
 type Props = { keybindings: Keybindings; chooseKeybindings: (keybindings: Keybindings) => void }
@@ -11,7 +19,13 @@ export function ShortcutSettings({ keybindings, chooseKeybindings }: Props) {
   const term = query.trim().toLowerCase()
   const found = (...values: string[]) => !term || values.some((value) => value.toLowerCase().includes(term))
   const shortcuts = SHORTCUTS.filter((shortcut) =>
-    found(shortcut.label, shortcut.detail, shortcut.category, keybindings[shortcut.id], formatChord(keybindings[shortcut.id])),
+    found(
+      shortcut.label,
+      shortcut.detail,
+      shortcut.category,
+      keybindings[shortcut.id],
+      formatChord(keybindings[shortcut.id]),
+    ),
   )
   const categories = [...new Set(shortcuts.map((shortcut) => shortcut.category))]
   const gestures = GESTURES.filter((gesture) => found(gesture.label, gesture.how))

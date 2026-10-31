@@ -37,7 +37,8 @@ end)
 
 test.case("a GitHub URL on a host without a configured source is refused", function(assert)
 	assert.throwsWith(
-		"no source recognizes https://git.example.org/Roblox/avatar/pull/1; add its GitHub or Jira source first, or use source:key",
+		"no source recognizes https://git.example.org/Roblox/avatar/pull/1; "
+			.. "add its GitHub or Jira source first, or use source:key",
 		resolveRef,
 		"https://git.example.org/Roblox/avatar/pull/1",
 		{}

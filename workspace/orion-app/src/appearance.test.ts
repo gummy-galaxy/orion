@@ -1,6 +1,15 @@
 import { TASK_HEIGHT, TASK_WIDTH } from './geometry'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { THEMES, applyAppearance, colorModeOf, readAppearance, themeOf, writeAppearance, type Appearance, type Theme } from './appearance'
+import {
+  THEMES,
+  applyAppearance,
+  colorModeOf,
+  readAppearance,
+  themeOf,
+  writeAppearance,
+  type Appearance,
+  type Theme,
+} from './appearance'
 import { SKINS, skinOf } from './skins'
 import { parseThemeFile } from './themeFile'
 
@@ -19,7 +28,14 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals())
 
-const base: Appearance = { theme: 'classic', skin: 'classic', colorMode: 'system', statusColors: 'theme', animations: 'system', companion: true }
+const base: Appearance = {
+  theme: 'classic',
+  skin: 'classic',
+  colorMode: 'system',
+  statusColors: 'theme',
+  animations: 'system',
+  companion: true,
+}
 
 /** A stand-in for the root element that records what applyAppearance sets on it. */
 function fakeRoot() {
@@ -263,10 +279,30 @@ describe('appearance', () => {
   it('applies nondefault attributes and clears them for defaults', () => {
     const { root, dataset } = fakeRoot()
 
-    applyAppearance({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', statusColors: 'theme', animations: 'system', companion: true }, root)
+    applyAppearance(
+      {
+        theme: 'vibrant',
+        skin: 'plain',
+        colorMode: 'dark',
+        statusColors: 'theme',
+        animations: 'system',
+        companion: true,
+      },
+      root,
+    )
     expect(dataset).toEqual({ theme: 'vibrant', skin: 'plain', colorMode: 'dark', motion: 'on' })
 
-    applyAppearance({ theme: 'classic', skin: 'trading', colorMode: 'system', statusColors: 'theme', animations: 'system', companion: true }, root)
+    applyAppearance(
+      {
+        theme: 'classic',
+        skin: 'trading',
+        colorMode: 'system',
+        statusColors: 'theme',
+        animations: 'system',
+        companion: true,
+      },
+      root,
+    )
     expect(dataset).toEqual({ motion: 'on' })
   })
 

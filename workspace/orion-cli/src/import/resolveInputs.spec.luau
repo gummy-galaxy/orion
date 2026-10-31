@@ -35,5 +35,3 @@ test.case("a ref listed twice by key and by URL fails its second listing", funct
 	assert.eq(entries[1].resolved ~= nil, true)
 	assert.eq(entries[2].error, "listed more than once")
 end)
-
-return {}

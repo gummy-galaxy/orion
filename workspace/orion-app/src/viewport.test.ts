@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from './viewport'
+import {
+  MAX_ZOOM,
+  MIN_ZOOM,
+  OPEN_ZOOM,
+  mapViewportForCardSize,
+  openGroupViewport,
+  readViewport,
+  writeViewport,
+} from './viewport'
 
 const classicSize = { width: 216, height: 72 }
 const largeSize = { width: 288, height: 400 }
@@ -7,7 +15,10 @@ const largeSize = { width: 288, height: 400 }
 const memory = () => {
   const items = new Map<string, string>()
 
-  return { getItem: (key: string) => items.get(key) ?? null, setItem: (key: string, value: string) => void items.set(key, value) }
+  return {
+    getItem: (key: string) => items.get(key) ?? null,
+    setItem: (key: string, value: string) => void items.set(key, value),
+  }
 }
 
 describe('viewport storage', () => {
@@ -44,7 +55,10 @@ describe('viewport card size mapping', () => {
   it('keeps the displayed center on the same mapped world point', () => {
     const original = { x: -600, y: -1200, zoom: 0.8 }
     const mapped = mapViewportForCardSize(original, box, classicSize, largeSize)
-    const originalWorld = { x: (box.width / 2 - original.x) / original.zoom, y: (box.height / 2 - original.y) / original.zoom }
+    const originalWorld = {
+      x: (box.width / 2 - original.x) / original.zoom,
+      y: (box.height / 2 - original.y) / original.zoom,
+    }
     const mappedWorld = { x: (box.width / 2 - mapped.x) / mapped.zoom, y: (box.height / 2 - mapped.y) / mapped.zoom }
 
     expect(mappedWorld.x).toBeCloseTo(originalWorld.x * (344 / 272), 9)
@@ -59,7 +73,10 @@ describe('viewport card size mapping', () => {
 
     expect(enlarged.zoom).toBe(MIN_ZOOM)
     expect(reduced.zoom).toBe(MAX_ZOOM)
-    expect((box.width / 2 - enlarged.x) / enlarged.zoom).toBeCloseTo(((box.width / 2 - viewport.x) / viewport.zoom) * (344 / 272), 9)
+    expect((box.width / 2 - enlarged.x) / enlarged.zoom).toBeCloseTo(
+      ((box.width / 2 - viewport.x) / viewport.zoom) * (344 / 272),
+      9,
+    )
   })
 })
 
