@@ -60,12 +60,17 @@ export function TradingCard({ view }: { view: CardView }) {
 
   return (
     <div
-      className={`trading-frame trading-${view.status}${view.kind === 'placeholder' ? ' trading-expected' : ''}${view.kind === 'gate' ? ' trading-gate' : ''}`}
+      className={
+        `trading-frame trading-${view.status}${view.kind === 'placeholder' ? ' trading-expected' : ''}` +
+        `${view.kind === 'gate' ? ' trading-gate' : ''}`
+      }
       data-hue={facts.hue}
     >
       <div className="trading-art" aria-hidden="true" />
       <div className="trading-facts">
-        {facts.priority !== undefined && <FactChip text={`P${facts.priority}`} name="Priority" severity={PRIORITY_SEVERITY[facts.priority]} />}
+        {facts.priority !== undefined && (
+          <FactChip text={`P${facts.priority}`} name="Priority" severity={PRIORITY_SEVERITY[facts.priority]} />
+        )}
         {facts.size && <FactChip text={facts.size} name="Size" severity={SIZE_SEVERITY[facts.size]} />}
       </div>
       {facts.statusBadge === 'mergeable' && view.merge ? (

@@ -49,7 +49,14 @@ it('forgets cards and groups that no longer exist but keeps commands', () => {
 
 it('reads a saved list and skips anything malformed', () => {
   expect(
-    readRecents([{ kind: 'command', id: 'fit' }, { kind: 'other', id: 'x' }, { kind: 'node' }, 'nope', null, { kind: 'node', id: 'a' }]),
+    readRecents([
+      { kind: 'command', id: 'fit' },
+      { kind: 'other', id: 'x' },
+      { kind: 'node' },
+      'nope',
+      null,
+      { kind: 'node', id: 'a' },
+    ]),
   ).toEqual([
     { kind: 'command', id: 'fit' },
     { kind: 'node', id: 'a' },

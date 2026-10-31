@@ -20,7 +20,10 @@ test.case("history set takes the newest matching backup and backs up the current
 	fs.createDirectory(folder)
 	local older = decodeDoc([[{"version":2,"revision":7,"settings":{},"nodes":[],"links":[]}]])
 	local newest = decodeDoc(
-		[[{"version":2,"revision":7,"settings":{"future":"kept"},"nodes":[{"id":"saved","type":"task","position":{"x":1,"y":2},"data":{"label":"Saved","status":"todo"}}],"links":[{"id":"saved>saved","from":"saved","to":"saved","kind":"related"}],"github":{"viewer":"saved"}}]]
+		[[{"version":2,"revision":7,"settings":{"future":"kept"},"nodes":[{"id":"saved","type":"task",]]
+			.. [["position":{"x":1,"y":2},"data":{"label":"Saved","status":"todo"}}],]]
+			.. [["links":[{"id":"saved>saved","from":"saved","to":"saved","kind":"related"}],]]
+			.. [["github":{"viewer":"saved"}}]]
 	)
 	fs.writeStringToFile(path.join(folder, "orion-r7-20261001T000000Z.json"), encodeDoc(older))
 	fs.writeStringToFile(path.join(folder, "orion-r7-20261002T000000Z.json"), encodeDoc(newest))

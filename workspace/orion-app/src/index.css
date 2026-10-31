@@ -408,7 +408,12 @@ select {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 35%, color-mix(in srgb, var(--status-done) 22%, transparent) 50%, transparent 65%);
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    color-mix(in srgb, var(--status-done) 22%, transparent) 50%,
+    transparent 65%
+  );
   background-size: 250% 100%;
   background-position: 100% 0;
 }
@@ -448,7 +453,8 @@ select {
   pointer-events: none;
 }
 :where(:root[data-motion='on']) .card > .done-stamp.is-landing {
-  animation: done-stamp-land var(--motion-duration-stamp) var(--motion-easing-pop) calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
+  animation: done-stamp-land var(--motion-duration-stamp) var(--motion-easing-pop)
+    calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
 }
 @keyframes done-stamp-land {
   from {
@@ -480,7 +486,8 @@ select {
   animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-exit) var(--clear-delay, 0ms) reverse both;
 }
 :where(:root[data-motion='reduced']) .card > .done-stamp.is-landing {
-  animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-enter) calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
+  animation: stamp-fade var(--motion-duration-fade) var(--motion-easing-enter)
+    calc(var(--clear-delay, 0ms) + var(--motion-duration-fade)) both;
 }
 @keyframes stamp-fade {
   from {
@@ -547,14 +554,16 @@ select {
   --flourish-delay: calc(var(--clear-delay, 0ms) + var(--motion-duration-fade) + var(--motion-duration-stamp) / 2);
 }
 :where(:root[data-motion='on']) .card > .chain-flourish {
-  animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter) var(--flourish-delay) forwards;
+  animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter)
+    var(--flourish-delay) forwards;
 }
 :where(:root[data-motion='on']) .card > .chain-flourish::after {
   animation: chain-flourish-ring calc(var(--motion-duration-flourish) * 0.75) var(--motion-easing-enter)
     calc(var(--flourish-delay) + var(--motion-duration-flourish) * 0.25) forwards;
 }
 :where(:root[data-motion='on'], :root[data-motion='reduced']) .card > .chain-flourish::before {
-  animation: chain-flourish-glow var(--motion-duration-flourish) var(--motion-easing-standard) var(--flourish-delay) both;
+  animation: chain-flourish-glow var(--motion-duration-flourish) var(--motion-easing-standard) var(--flourish-delay)
+    both;
 }
 @keyframes chain-flourish-ring {
   from {
@@ -1322,7 +1331,9 @@ select {
   background: var(--surface-background);
   /* A sheet peeking out behind marks a folded group as a stack of work rather than one card. */
   box-shadow:
-    var(--stack) var(--stack) 0 calc(-1 * max(var(--border-width-strong), calc(var(--border-width-strong) * var(--inv, 1)))) var(--surface-background),
+    var(--stack) var(--stack) 0
+      calc(-1 * max(var(--border-width-strong), calc(var(--border-width-strong) * var(--inv, 1))))
+      var(--surface-background),
     var(--stack) var(--stack) 0 0 var(--edge-default),
     var(--shadow-raised);
 }
@@ -2020,8 +2031,9 @@ kbd {
   line-height: var(--line-height-glyph);
   transform: translate(-50%, -50%) rotate(var(--tilt));
   /* A die-cut white edge and a little lift off the canvas. */
-  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge)) drop-shadow(0 1.5px 0 var(--sticker-edge))
-    drop-shadow(0 -1.5px 0 var(--sticker-edge)) drop-shadow(var(--shadow-sticker));
+  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
+    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge))
+    drop-shadow(var(--shadow-sticker));
   pointer-events: none;
   transition: scale var(--motion-duration-quick) var(--motion-easing-standard);
 }
@@ -2035,8 +2047,9 @@ kbd {
 .sticker.is-held .sticker-art {
   scale: 1.16;
   cursor: grabbing;
-  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge)) drop-shadow(0 1.5px 0 var(--sticker-edge))
-    drop-shadow(0 -1.5px 0 var(--sticker-edge)) drop-shadow(var(--shadow-sticker-held));
+  filter: drop-shadow(1.5px 0 0 var(--sticker-edge)) drop-shadow(-1.5px 0 0 var(--sticker-edge))
+    drop-shadow(0 1.5px 0 var(--sticker-edge)) drop-shadow(0 -1.5px 0 var(--sticker-edge))
+    drop-shadow(var(--shadow-sticker-held));
 }
 .sticker::after {
   content: '';
@@ -2657,9 +2670,30 @@ kbd {
   user-select: none;
   -webkit-user-select: none;
 }
-.details-title {
-  font-size: var(--text-size-detail);
+.details-tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: calc(-1 * var(--space-3));
+}
+.details-tab {
+  border: 0;
+  background: none;
   color: var(--text-muted);
+  font-size: var(--text-size-detail);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.details-tab:hover,
+.details-tab[aria-selected='true'] {
+  background: var(--canvas-background);
+}
+.details-tab[aria-selected='true'] {
+  color: var(--text-primary);
+}
+.details-tab:focus-visible {
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: calc(-1 * var(--ring-offset-wide));
 }
 /* The app's own window controls sit over the top-right corner. */
 :root[data-titlebar='custom'] .details-head {
@@ -2671,6 +2705,151 @@ kbd {
   padding: 0 var(--space-9) var(--space-9);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+/* The table scrolls its own rows under a fixed header, and runs to the panel's edges. */
+.details-body[data-tab='table'] {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Table tab */
+.table-tab {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
+  font-size: var(--text-size-small);
+  color: var(--text-primary);
+}
+.table-scope {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0 var(--space-9) var(--space-4);
+}
+.table-scope span,
+.table-empty,
+.table-kind,
+.table-group,
+.table-ref,
+.table-none {
+  color: var(--text-muted);
+}
+.table-grid {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.table-head {
+  flex: none;
+  border-bottom: var(--border-width-default) solid var(--border-default);
+}
+.table-head .table-cell {
+  color: var(--text-muted);
+  font-size: var(--text-size-caption);
+  font-weight: var(--weight-medium);
+}
+.table-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.table-rows {
+  position: relative;
+}
+/* Narrow panels keep the card and its status; wider ones add columns as they fit. */
+.table-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  align-items: center;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 0 var(--space-6);
+}
+.table-rows .table-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-bottom: var(--border-width-default) solid var(--border-default);
+}
+.table-rows .table-row:hover {
+  background: var(--canvas-background);
+}
+.table-cell {
+  min-width: 0;
+  padding: 0 var(--space-3);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.table-kind,
+.table-group,
+.table-ref {
+  display: none;
+}
+@container (min-width: 440px) {
+  .table-row {
+    grid-template-columns: minmax(0, 1fr) 112px 96px;
+  }
+  .table-kind {
+    display: block;
+  }
+}
+@container (min-width: 540px) {
+  .table-row {
+    grid-template-columns: minmax(0, 1fr) 112px 96px minmax(0, 0.6fr);
+  }
+  .table-group {
+    display: block;
+  }
+}
+@container (min-width: 640px) {
+  .table-row {
+    grid-template-columns: minmax(0, 1fr) 112px 96px minmax(0, 0.6fr) minmax(0, 0.6fr);
+  }
+  .table-ref {
+    display: block;
+  }
+}
+.table-card button {
+  max-width: 100%;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.table-card button:hover {
+  text-decoration: underline;
+}
+.table-card button:focus-visible {
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.table-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.table-ref {
+  font-family: var(--font-data);
+  font-size: var(--text-size-caption);
+}
+.table-none {
+  margin: 0;
+  padding: var(--space-6) var(--space-9);
 }
 /* The macOS shell draws its traffic lights over the top-left corner, centered in the title bar. */
 :root[data-titlebar='overlay'] .side-head {
@@ -2961,6 +3140,46 @@ kbd {
 .settings-search:focus {
   outline: var(--ring-width-default) solid var(--accent-default);
   outline-offset: calc(-1 * var(--ring-offset-default));
+}
+.telemetry-prompt {
+  display: grid;
+  gap: var(--space-5);
+  width: min(460px, 100%);
+  padding: var(--space-9);
+  box-shadow: var(--shadow-dialog);
+}
+.telemetry-prompt:focus {
+  outline: none;
+}
+.telemetry-prompt h2 {
+  margin: 0;
+  font-size: var(--text-size-heading);
+}
+.telemetry-prompt p {
+  margin: 0 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: var(--text-size-body);
+}
+.telemetry-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+.telemetry-prompt-actions button {
+  padding: var(--space-3) var(--space-6);
+  border: var(--border-width-default) solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--canvas-background);
+  color: var(--text-primary);
+  font-size: var(--text-size-body);
+  cursor: pointer;
+}
+.telemetry-prompt-actions button:hover {
+  background: var(--accent-subtle);
+}
+.telemetry-prompt-actions button:focus-visible {
+  outline: var(--ring-width-default) solid var(--accent-default);
+  outline-offset: var(--ring-offset-default);
 }
 .settings-empty {
   margin: 0;

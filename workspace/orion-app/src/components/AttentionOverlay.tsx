@@ -14,7 +14,10 @@ const CHIP_MAX_WIDTH = 180
 const clamp = (value: number, minimum: number, maximum: number) => Math.max(minimum, Math.min(maximum, value))
 
 function nearest(point: Point, rectangle: Rect): Point {
-  return { x: clamp(point.x, rectangle.x, rectangle.x + rectangle.width), y: clamp(point.y, rectangle.y, rectangle.y + rectangle.height) }
+  return {
+    x: clamp(point.x, rectangle.x, rectangle.x + rectangle.width),
+    y: clamp(point.y, rectangle.y, rectangle.y + rectangle.height),
+  }
 }
 
 /** Where the line from `from` toward `to` leaves the inset frame. */
@@ -55,11 +58,20 @@ export function AttentionOverlay({
 }) {
   const lines = targets.map((target) => {
     const rectangle = target.rect
-    const onScreen = rectangle.x + rectangle.width > 0 && rectangle.y + rectangle.height > 0 && rectangle.x < width && rectangle.y < height
+    const onScreen =
+      rectangle.x + rectangle.width > 0 &&
+      rectangle.y + rectangle.height > 0 &&
+      rectangle.x < width &&
+      rectangle.y < height
 
     if (onScreen) return { t: target, end: nearest(cursor, rectangle), chip: null }
 
-    const end = exitPoint(cursor, { x: rectangle.x + rectangle.width / 2, y: rectangle.y + rectangle.height / 2 }, width, height)
+    const end = exitPoint(
+      cursor,
+      { x: rectangle.x + rectangle.width / 2, y: rectangle.y + rectangle.height / 2 },
+      width,
+      height,
+    )
 
     return { t: target, end, chip: end }
   })
@@ -99,7 +111,10 @@ export function AttentionOverlay({
             </button>
           ),
       )}
-      <div className="attn-tally" style={{ left: clamp(cursor.x + 14, 8, width - 220), top: clamp(cursor.y + 16, 8, height - 30) }}>
+      <div
+        className="attn-tally"
+        style={{ left: clamp(cursor.x + 14, 8, width - 220), top: clamp(cursor.y + 16, 8, height - 30) }}
+      >
         <strong>{count}</strong> your move
         {elsewhere > 0 && <> · {elsewhere} outside this group</>}
       </div>

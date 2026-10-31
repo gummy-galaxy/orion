@@ -83,6 +83,7 @@ import {
 import { DebugBar, type MotionSettings } from './DebugBar'
 import { DetailStepper } from './DetailStepper'
 import { DetailsPanel } from './DetailsPanel'
+import { DETAILS_TABS, type DetailsTab } from '../detailsTabs'
 import { ResizeHandle } from './ResizeHandle'
 import { EmptyCanvas } from './EmptyCanvas'
 import { ComponentInspector } from './ComponentInspector'
@@ -144,13 +145,30 @@ import {
   type Workspaces,
 } from '../persist'
 import { Sidebar } from './Sidebar'
+import { TableTab } from './TableTab'
 import { Settings, type SettingsSection } from './Settings'
-import { formatChord, matchesChord, readKeybindings, writeKeybindings, type Keybindings, type ShortcutId } from '../keybindings'
+import { TelemetryPrompt } from './TelemetryPrompt'
+import {
+  formatChord,
+  matchesChord,
+  readKeybindings,
+  writeKeybindings,
+  type Keybindings,
+  type ShortcutId,
+} from '../keybindings'
 import { NUDGES, NUDGE_LARGE_STEP, NUDGE_STEP, largeChordOf, nudgeNodes } from '../nudge'
 import { selectAllIds, selectNodes } from '../selectAll'
 import { framedViewport, revealBounds, revealDetail, revealRoot } from '../reveal'
 import { stackNodes } from '../stack'
-import { clipAssets, copySelection, cutClip, DUPLICATE_OFFSET, moveClipAssets, pasteClip, type Clip } from '../clipboard'
+import {
+  clipAssets,
+  copySelection,
+  cutClip,
+  DUPLICATE_OFFSET,
+  moveClipAssets,
+  pasteClip,
+  type Clip,
+} from '../clipboard'
 import { patchWork, type BatchPatch } from '../batchEdit'
 import { reconnectLink } from '../reconnect'
 import { ActionBar } from './ActionBar'
@@ -161,6 +179,8 @@ import { useUndo } from '../useUndo'
 import { useGroupResize } from '../resize/useGroupResize'
 import { groupEdgeAt } from '../resize/groupEdgeAt'
 import { useInspecting } from '../useInspecting'
+import { shouldAskTelemetry } from '../telemetry'
+import { useTelemetry } from '../useTelemetry'
 import {
   attentionAtom,
   celebratingAtom,
@@ -182,19 +202,59 @@ import {
   workAtom,
   workspaceAtom,
 } from '../state'
-import { applyStyleChange, backgroundColor, headerText, isAssetId, readCanvasStyle, type CanvasStyle, type StyleChange } from '../style'
+import {
+  applyStyleChange,
+  backgroundColor,
+  headerText,
+  isAssetId,
+  readCanvasStyle,
+  type CanvasStyle,
+  type StyleChange,
+} from '../style'
 import { CoverImage } from './CoverImage'
 import { CoverSettings } from './CoverSettings'
 import { HeaderSettings } from './HeaderSettings'
 import { Markdown } from './Markdown'
-import { StickerLayer, type PlacedSticker, type PressModifiers, type StickerBounds, type StickerMove } from './StickerLayer'
+import {
+  StickerLayer,
+  type PlacedSticker,
+  type PressModifiers,
+  type StickerBounds,
+  type StickerMove,
+} from './StickerLayer'
 import { StickerWheel } from './StickerWheel'
-import { FALLBACK_STICKER, STICKER_HALF_SIZE, loadoutOf, placeStickers, pressedStickers, stickerCursor, type Loadout, type Sticker } from '../sticker'
+import {
+  FALLBACK_STICKER,
+  STICKER_HALF_SIZE,
+  loadoutOf,
+  placeStickers,
+  pressedStickers,
+  stickerCursor,
+  type Loadout,
+  type Sticker,
+} from '../sticker'
 import { covers, MARQUEE_REACH, type Box } from '../marquee'
 import { Toolbar, type Tool } from './Toolbar'
-import { DEFAULT_DETAIL, detailLevels, foldDepth, readDetail, shownLevel, stepDetail, writeDetail, type Detail } from '../detail'
+import {
+  DEFAULT_DETAIL,
+  detailLevels,
+  foldDepth,
+  readDetail,
+  shownLevel,
+  stepDetail,
+  writeDetail,
+  type Detail,
+} from '../detail'
 import { foldPreviews } from '../foldPreview'
-import { MAX_ZOOM, MIN_ZOOM, OPEN_ZOOM, mapViewportForCardSize, openGroupViewport, readViewport, writeViewport } from '../viewport'
+import {
+  MAX_ZOOM,
+  MIN_ZOOM,
+  OPEN_ZOOM,
+  mapViewportForCardSize,
+  openGroupViewport,
+  readViewport,
+  writeViewport,
+} from '../viewport'
 import { subscribeCompactZoom, zoomLevel } from '../zoomLevel'
 import { NAVIGATE_EVENT, emptyTrail, leave, travel, type Place, type Trail } from '../navigation'
 import { type DrawCard } from '../cardDraw'
@@ -206,7 +266,9 @@ import { SelectionStatus } from './SelectionStatus'
 
 type ViewNode = AppNode | GhostNode
 type FocusEntry = { viewport: Viewport; moved: boolean }
-/** What a commit came to: each extra operation's answer, or the server's reason for refusing the write when it gave one. */
+/**
+ * What a commit came to: each extra operation's answer, or the server's reason for refusing the write when it gave one.
+ */
 type Committed = { ok: true; answers: unknown[] } | { ok: false; message?: string }
 
 const nodeTypes: NodeTypes = { task: CardSlot, cluster: ClusterView, image: ImageView, ghost: GhostView }
@@ -218,13 +280,15 @@ const isAway = (node: AppNode) => isTask(node) && !!(node.data as CardSlotData).
 function cardAt(event: MouseEvent | TouchEvent): string | undefined {
   const point = 'changedTouches' in event ? event.changedTouches[0] : event
 
-  return document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node-task')?.dataset.id
+  return document.elementFromPoint(point.clientX, point.clientY)?.closest<HTMLElement>('.react-flow__node-task')
+    ?.dataset.id
 }
 
 const SIDEBAR_KEY = 'orion:sidebar'
 const DETAILS_KEY = 'orion:details'
 const SIDEBAR_WIDTH_KEY = 'orion:sidebar-width'
 const DETAILS_WIDTH_KEY = 'orion:details-width'
+const DETAILS_TAB_KEY = 'orion:details-tab'
 const SIDEBAR_WIDTH = { min: 200, max: 480 }
 const DETAILS_WIDTH = { min: 320, max: 720 }
 const DEBUG_KEY = 'orion:debug'
@@ -280,7 +344,12 @@ const FOCUS_ZOOM = 1.2
 const FOCUS_COLUMN_GAP = 48
 const FOCUS_MIN_ZOOM = 0.5
 /** Focus moves head straight for the card and start fast. */
-const focusMove = () => ({ duration: focusGlide(), ease: (progress: number) => 1 - Math.pow(1 - progress, 3), interpolate: 'linear' }) as const
+const focusMove = () =>
+  ({
+    duration: focusGlide(),
+    ease: (progress: number) => 1 - Math.pow(1 - progress, 3),
+    interpolate: 'linear',
+  }) as const
 /** Stickers land up to this many degrees off straight. */
 const STICKER_TILT = 14
 /** A fresh sticker stamps down while its ring opens after a beat. These are the defaults; the theme can change each. */
@@ -312,7 +381,8 @@ type Menu = {
   flow: { x: number; y: number }
   /** When the menu opened, so snooze choices are made from the moment the reader saw them. */
   now: Date
-  target: { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string } | { kind: 'sticker'; id: string }
+  target:
+    { kind: 'pane' } | { kind: 'node'; id: string } | { kind: 'edge'; id: string } | { kind: 'sticker'; id: string }
 }
 
 /** Whether the window is in the background, where looping motion only costs power. */
@@ -361,6 +431,16 @@ function writeFlag(key: SavedSetting, value: boolean) {
   saveSettings({ [key]: value ? '1' : '0' })
 }
 
+function readDetailsTab(): DetailsTab {
+  try {
+    const stored = localStorage.getItem(DETAILS_TAB_KEY)
+
+    return DETAILS_TABS.find((entry) => entry.id === stored)?.id ?? 'details'
+  } catch {
+    return 'details'
+  }
+}
+
 /**
  * The server's copy in the form the canvas compares: shown at this card size and stored again, so it rounds the same
  * way a save does, with the same defaults the canvas applies.
@@ -392,21 +472,35 @@ const ease = (progress: number) => 1 - Math.pow(1 - progress, 3)
 const newId = () => crypto.randomUUID()
 
 /** Opens a group at the same zoom as every other, with the connections outside it peeking in from the sides. */
-function groupOpenViewport(group: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
+function groupOpenViewport(
+  group: AppNode,
+  map: Map<string, AppNode>,
+  box: { width: number; height: number },
+  cardSize: CardSize,
+): Viewport {
   const margin = { x: GHOST_GAP + GHOST_WIDTH * GHOST_PEEK, y: FIT_VERTICAL_MARGIN }
 
   return openGroupViewport({ ...absolutePosition(group, map), ...sizeOf(group, cardSize) }, box, margin)
 }
 
 /** Puts a card between the focus columns, a little larger than life. */
-function focusViewport(card: AppNode, map: Map<string, AppNode>, box: { width: number; height: number }, cardSize: CardSize): Viewport {
+function focusViewport(
+  card: AppNode,
+  map: Map<string, AppNode>,
+  box: { width: number; height: number },
+  cardSize: CardSize,
+): Viewport {
   const position = absolutePosition(card, map)
   const size = sizeOf(card, cardSize)
   // A narrow canvas zooms out so the card fits between the two columns instead of running under them.
   const room = box.width - 2 * (FOCUS_INSET + FOCUS_SIDE_WIDTH + FOCUS_COLUMN_GAP)
   const zoom = Math.max(FOCUS_MIN_ZOOM, Math.min(FOCUS_ZOOM, room / size.width))
 
-  return { x: box.width / 2 - (position.x + size.width / 2) * zoom, y: box.height / 2 - (position.y + size.height / 2) * zoom, zoom }
+  return {
+    x: box.width / 2 - (position.x + size.width / 2) * zoom,
+    y: box.height / 2 - (position.y + size.height / 2) * zoom,
+    zoom,
+  }
 }
 
 /**
@@ -457,7 +551,10 @@ export function Canvas() {
   const setChainFinale = useSetAtom(chainFinaleAtom)
   const [github, setGithub] = useState<GithubSnapshot | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
-  const [workspaces, setWorkspaces] = useState<Workspaces>({ active: 'default', canvases: [{ name: 'default', label: 'Default' }] })
+  const [workspaces, setWorkspaces] = useState<Workspaces>({
+    active: 'default',
+    canvases: [{ name: 'default', label: 'Default' }],
+  })
   const [clock, setClock] = useState(() => Date.now())
   const [ready, setReady] = useState(false)
   const [root, setRoot] = useState<string | null>(null)
@@ -485,15 +582,28 @@ export function Canvas() {
   const [showDetails, setShowDetails] = useState(() => readFlag(DETAILS_KEY, true))
   const [sidebarWidth, setSidebarWidth] = useState(() => readWidth(SIDEBAR_WIDTH_KEY))
   const [detailsWidth, setDetailsWidth] = useState(() => readWidth(DETAILS_WIDTH_KEY))
-  // Renaming and editing happen in the details panel, so starting either brings a hidden panel back.
-  const setEditing = useCallback((id: string | null) => {
-    setEditingState(id)
-
-    if (id === null || readFlag(DETAILS_KEY, true)) return
-
-    setShowDetails(true)
-    writeFlag('details', true)
+  const [detailsTab, setDetailsTab] = useState(readDetailsTab)
+  const chooseDetailsTab = useCallback((tab: DetailsTab) => {
+    setDetailsTab(tab)
+    saveSettings({ 'details-tab': tab })
   }, [])
+  // Renaming and editing happen in the details panel's Details tab, so starting either brings a hidden panel back on
+  // that tab.
+  const setEditing = useCallback(
+    (id: string | null) => {
+      setEditingState(id)
+
+      if (id === null) return
+
+      if (readDetailsTab() !== 'details') chooseDetailsTab('details')
+
+      if (readFlag(DETAILS_KEY, true)) return
+
+      setShowDetails(true)
+      writeFlag('details', true)
+    },
+    [chooseDetailsTab],
+  )
   const [appearance, setAppearance] = useState(readAppearance)
   /** Shareable themes from the data folder, reloaded when settings or the palette open so a new file shows up. */
   const [themes, setThemes] = useState<Theme[]>(cachedThemes)
@@ -502,6 +612,9 @@ export function Canvas() {
   const [keybindings, setKeybindings] = useState(readKeybindings)
   /** The settings section on show, or null while settings are closed. */
   const [settings, setSettings] = useState<SettingsSection | null>(null)
+  const [telemetry, chooseTelemetry] = useTelemetry()
+  /** Set when the launch dialog is closed without an answer, so it asks again next launch but not this one. */
+  const [telemetryDismissed, setTelemetryDismissed] = useState(false)
   const cardSize = useAtomValue(cardSizeAtom, { store: skinStore })
   const cardSizeRef = useRef(cardSize)
 
@@ -519,7 +632,10 @@ export function Canvas() {
   /** The text the palette opened with, or null while it's closed. */
   const [paletteQuery, setPaletteQuery] = useState<string | null>(null)
   const paletteOpen = paletteQuery !== null
-  /** Commands and places the palette used lately, newest first, for the workspace named. Null until that workspace's copy is read. */
+  /**
+   * Commands and places the palette used lately, newest first, for the workspace named. Null until that workspace's
+   * copy is read.
+   */
   const [recents, setRecents] = useState<{ workspace: string; list: Recent[] } | null>(null)
   const [stickers, setStickers] = useState<Sticker[]>([])
   const [loadout, setLoadout] = useState<Loadout>(() => loadoutOf())
@@ -565,7 +681,10 @@ export function Canvas() {
   )
 
   /** Records where the canvas is before it navigates somewhere else. */
-  const remember = useCallback((viewport?: Viewport) => updateTrail(leave(trail.current, here(viewport))), [here, updateTrail])
+  const remember = useCallback(
+    (viewport?: Viewport) => updateTrail(leave(trail.current, here(viewport))),
+    [here, updateTrail],
+  )
 
   const openRoot = useCallback(
     (target: string | null) => {
@@ -590,9 +709,16 @@ export function Canvas() {
 
         if (!previous) return node
 
-        return JSON.stringify(slim([previous])) === JSON.stringify(slim([node])) ? previous : { ...node, selected: previous.selected }
+        return JSON.stringify(slim([previous])) === JSON.stringify(slim([node]))
+          ? previous
+          : { ...node, selected: previous.selected }
       })
-      const next = { nodes, links: doc.links, stickers: doc.stickers ?? [], stickerLoadout: loadoutOf(doc.stickerLoadout) }
+      const next = {
+        nodes,
+        links: doc.links,
+        stickers: doc.stickers ?? [],
+        stickerLoadout: loadoutOf(doc.stickerLoadout),
+      }
 
       latest.current = next
       setNodes(nodes)
@@ -656,7 +782,8 @@ export function Canvas() {
     const target = event.target as HTMLElement
     const node = target.closest('.react-flow__node')
 
-    if (event.metaKey || event.shiftKey || event.ctrlKey || !node || target.closest('button, input, textarea, select')) return
+    if (event.metaKey || event.shiftKey || event.ctrlKey || !node || target.closest('button, input, textarea, select'))
+      return
 
     plainClick.current = node.classList.contains('react-flow__node-cluster') ? 'defer' : null
     setTimeout(() => (plainClick.current = null))
@@ -740,10 +867,12 @@ export function Canvas() {
       const nodeMap = byId(mapped)
       const focusedNode = focusPick ? nodeMap.get(focusPick) : undefined
       const openGroup = root ? nodeMap.get(root) : undefined
-      const groupViewport = openGroup && isCluster(openGroup) ? groupOpenViewport(openGroup, nodeMap, box, cardSize) : undefined
+      const groupViewport =
+        openGroup && isCluster(openGroup) ? groupOpenViewport(openGroup, nodeMap, box, cardSize) : undefined
 
       if (focusEntry.current)
-        focusEntry.current.viewport = groupViewport ?? mapViewportForCardSize(focusEntry.current.viewport, box, previousSize, cardSize)
+        focusEntry.current.viewport =
+          groupViewport ?? mapViewportForCardSize(focusEntry.current.viewport, box, previousSize, cardSize)
 
       const viewport =
         focusedNode && isTask(focusedNode)
@@ -783,7 +912,9 @@ export function Canvas() {
       rebaseHistory(adopted)
       latest.current = adopted
       setNodes((currentNodes) => {
-        const picked = new Set(preserveSelection ? currentNodes.filter((node) => node.selected).map((node) => node.id) : [])
+        const picked = new Set(
+          preserveSelection ? currentNodes.filter((node) => node.selected).map((node) => node.id) : [],
+        )
 
         return picked.size ? next.map((node) => (picked.has(node.id) ? { ...node, selected: true } : node)) : next
       })
@@ -815,7 +946,12 @@ export function Canvas() {
 
       if (!discard && fingerprint(local) !== savedPrint.current) return
 
-      if (!discard && doc.revision === revision.current && fingerprint(local) === fingerprint(serverCopyOf(doc, cardSizeRef.current))) return
+      if (
+        !discard &&
+        doc.revision === revision.current &&
+        fingerprint(local) === fingerprint(serverCopyOf(doc, cardSizeRef.current))
+      )
+        return
 
       adopt(doc, doc, true, latest.current.nodes)
     },
@@ -831,7 +967,8 @@ export function Canvas() {
       if (loaded.source === 'file') {
         resetHistory(adopt(loaded.doc, loaded.doc, !switched))
       } else {
-        // No file yet, or no server to read from: the canvas starts empty, and the first edit that saves creates the file.
+        // No file yet, or no server to read from: the canvas starts empty, and the first edit that saves creates the
+        // file.
         const empty = compactDoc({ nodes: [], links: [] })
 
         revision.current = null
@@ -890,14 +1027,16 @@ export function Canvas() {
 
         // Files changed outside Orion keep their revision, so they reload whatever the revision says.
         queue.current = queue.current.then(() =>
-          epoch === workspaceEpoch.current && (reindexed || next !== revision.current) ? reload(name, epoch) : undefined,
+          epoch === workspaceEpoch.current && (reindexed || next !== revision.current)
+            ? reload(name, epoch)
+            : undefined,
         )
       }),
     [reload, setDerived],
   )
 
-  // A snooze ends on its own, and the server doesn't push when it does, so the app asks again when the nearest one ends:
-  // a card's, or a CI job's that a card's pull request facts leave out.
+  // A snooze ends on its own, and the server doesn't push when it does, so the app asks again when the nearest one
+  // ends: a card's, or a CI job's that a card's pull request facts leave out.
   const derivedStore = useAtomStore()
 
   useEffect(() => {
@@ -988,7 +1127,8 @@ export function Canvas() {
 
         if (epoch !== workspaceEpoch.current) return unsent
 
-        // A refused list means another writer got there first, or an edit no longer applies. The server's copy replaces this one.
+        // A refused list means another writer got there first, or an edit no longer applies. The server's copy replaces
+        // this one.
         if (!result.ok) {
           await reload(name, epoch, true)
 
@@ -1014,7 +1154,10 @@ export function Canvas() {
     [reload, storedOf],
   )
 
-  /** Sends operations the server answers, after the edits waiting to save and in the same write, and resolves with the answers. */
+  /**
+   * Sends operations the server answers, after the edits waiting to save and in the same write, and resolves with the
+   * answers.
+   */
   const commitNow = useCallback(
     (operations: Operation[]): Promise<Committed> => {
       const epoch = workspaceEpoch.current
@@ -1075,7 +1218,8 @@ export function Canvas() {
 
         const pendingIds = new Set(pending.map((group) => group.id))
 
-        // A new group is placed beside existing work below, so only groups that were already placed push their neighbors.
+        // A new group is placed beside existing work below, so only groups that were already placed push their
+        // neighbors.
         next = pushAside(
           nodes.filter((node) => !pendingIds.has(node.id)),
           next,
@@ -1087,7 +1231,9 @@ export function Canvas() {
         console.error('Could not lay out canvas', error)
       } finally {
         if (epoch === workspaceEpoch.current) {
-          const laidOut = next.map((node) => (isCluster(node) && node.data.layout ? { ...node, data: { ...node.data, layout: undefined } } : node))
+          const laidOut = next.map((node) =>
+            isCluster(node) && node.data.layout ? { ...node, data: { ...node.data, layout: undefined } } : node,
+          )
 
           // Laying out groups another writer added finishes their write, so it isn't a step to undo.
           rebaseHistory({ ...latest.current, nodes: laidOut })
@@ -1165,7 +1311,10 @@ export function Canvas() {
     [recents],
   )
 
-  useEffect(() => onWorkspaceListChange((list) => setWorkspaces((current) => ({ ...current, canvases: list.canvases }))), [])
+  useEffect(
+    () => onWorkspaceListChange((list) => setWorkspaces((current) => ({ ...current, canvases: list.canvases }))),
+    [],
+  )
 
   useEffect(() => {
     if (!ready || pendingWorkspaceFit.current !== workspaceEpoch.current) return
@@ -1215,7 +1364,9 @@ export function Canvas() {
     (target: string | null) => {
       const currentNodes = latest.current.nodes
       const nodeMap = byId(currentNodes)
-      const items = target ? [nodeMap.get(target)].filter((node) => !!node) : currentNodes.filter((node) => !node.parentId)
+      const items = target
+        ? [nodeMap.get(target)].filter((node) => !!node)
+        : currentNodes.filter((node) => !node.parentId)
 
       if (!items.length) return
 
@@ -1237,7 +1388,10 @@ export function Canvas() {
       const box = canvasRef.current?.getBoundingClientRect()
 
       if (!target || !box) {
-        reactFlow.fitBounds({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 }, { padding: 0.08, duration: cameraGlide() })
+        reactFlow.fitBounds(
+          { x: x0, y: y0, width: x1 - x0, height: y1 - y0 },
+          { padding: 0.08, duration: cameraGlide() },
+        )
 
         return
       }
@@ -1259,7 +1413,9 @@ export function Canvas() {
     (id: string) => {
       clearStickerPicks()
       setNodes((currentNodes) =>
-        currentNodes.map((node) => (node.id === id ? { ...node, selected: true } : node.selected ? { ...node, selected: false } : node)),
+        currentNodes.map((node) =>
+          node.id === id ? { ...node, selected: true } : node.selected ? { ...node, selected: false } : node,
+        ),
       )
     },
     [setNodes, clearStickerPicks],
@@ -1355,7 +1511,10 @@ export function Canvas() {
 
             return {
               ...node,
-              position: { x: lerp(sourceNode.position.x, node.position.x), y: lerp(sourceNode.position.y, node.position.y) },
+              position: {
+                x: lerp(sourceNode.position.x, node.position.x),
+                y: lerp(sourceNode.position.y, node.position.y),
+              },
               ...(isCluster(node) && sourceNode.width && node.width
                 ? { width: lerp(sourceNode.width, node.width), height: lerp(sourceNode.height ?? 0, node.height ?? 0) }
                 : {}),
@@ -1407,7 +1566,9 @@ export function Canvas() {
     return root ? chain.indexOf(root) : chain.length
   }
 
-  const groupDepths = nodes.filter((node) => isCluster(node) && node.id !== root && inView(node.id)).map((node) => depthInView(node.id))
+  const groupDepths = nodes
+    .filter((node) => isCluster(node) && node.id !== root && inView(node.id))
+    .map((node) => depthInView(node.id))
   const levels = detailLevels(groupDepths)
   const foldFrom = foldDepth(detail, levels)
   const small = nodes
@@ -1417,7 +1578,10 @@ export function Canvas() {
   const collapsedKey = small.filter((id) => !ancestors(id, map).some((ancestor) => smallSet.has(ancestor))).join(',')
   const collapsed = useMemo(() => new Set(collapsedKey ? collapsedKey.split(',') : []), [collapsedKey])
   // What each folded group hints at inside, in its own coordinates, so zooming never recomputes it.
-  const foldPreviewsShown = useMemo(() => foldPreviews(nodes, map, collapsed, cardSize, work.status), [nodes, map, collapsed, cardSize, work.status])
+  const foldPreviewsShown = useMemo(
+    () => foldPreviews(nodes, map, collapsed, cardSize, work.status),
+    [nodes, map, collapsed, cardSize, work.status],
+  )
   const level = shownLevel(detail, levels)
 
   /** Shows one level less or more of the nesting below the open group, and remembers it for this workspace. */
@@ -1488,7 +1652,14 @@ export function Canvas() {
           // Ghosts are rebuilt every render, so declare their handles instead of waiting on a measure.
           handles: [
             side === 'in'
-              ? { type: 'source', position: Position.Right, x: GHOST_WIDTH - 4, y: GHOST_HEIGHT / 2 - 4, width: 8, height: 8 }
+              ? {
+                  type: 'source',
+                  position: Position.Right,
+                  x: GHOST_WIDTH - 4,
+                  y: GHOST_HEIGHT / 2 - 4,
+                  width: 8,
+                  height: 8,
+                }
               : { type: 'target', position: Position.Left, x: -4, y: GHOST_HEIGHT / 2 - 4, width: 8, height: 8 },
           ],
           selectable: false,
@@ -1514,7 +1685,8 @@ export function Canvas() {
 
   // React Flow redraws a node whenever its object changes, so unchanged nodes keep last render's object.
   const [shownNodes] = useState(() => new WeakMap<AppNode, AppNode>())
-  // Cards far from the view keep their node but not their body, and get bodies a batch at a time, nearest the center first.
+  // Cards far from the view keep their node but not their body, and get bodies a batch at a time, nearest the center
+  // first.
   const drawCards = useMemo<DrawCard[]>(
     () =>
       nodes
@@ -1524,18 +1696,27 @@ export function Canvas() {
   )
   const drawn = useDrawnCards(drawCards)
   // Folded groups show no handles, and hidden ones aren't on screen.
-  const resizableGroups = useMemo(() => nodes.filter((node) => isCluster(node) && !node.hidden && !collapsed.has(node.id)), [nodes, collapsed])
+  const resizableGroups = useMemo(
+    () => nodes.filter((node) => isCluster(node) && !node.hidden && !collapsed.has(node.id)),
+    [nodes, collapsed],
+  )
   const viewNodes = useMemo<ViewNode[]>(
     () => [
       ...nodes.map((node) => {
         const hidden = view.hidden.has(node.id)
         const away = isTask(node) && !hidden && !drawn.has(node.id)
-        const className = [node.className, focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : ''].filter(Boolean).join(' ') || undefined
+        const className =
+          [node.className, focus ? (node.id === focus ? 'is-focused' : 'is-unfocused') : '']
+            .filter(Boolean)
+            .join(' ') || undefined
         const shown = shownNodes.get(node)
 
         if (shown && shown.hidden === hidden && shown.className === className && isAway(shown) === away) return shown
 
-        const next = away && isTask(node) ? { ...node, hidden, className, data: { ...node.data, away: true } } : { ...node, hidden, className }
+        const next =
+          away && isTask(node)
+            ? { ...node, hidden, className, data: { ...node.data, away: true } }
+            : { ...node, hidden, className }
 
         shownNodes.set(node, next)
 
@@ -1553,9 +1734,15 @@ export function Canvas() {
     .map((node) => node.id)
     .join(',')
   /** Related links never block, so they stay faint except around the cards being looked at. */
-  const relatedFocus = useMemo(() => new Set([pinned, ...selectedKey.split(',')].filter(Boolean)), [pinned, selectedKey])
+  const relatedFocus = useMemo(
+    () => new Set([pinned, ...selectedKey.split(',')].filter(Boolean)),
+    [pinned, selectedKey],
+  )
 
-  /** Where a link is drawn: the nodes standing in for its ends, ghosts for ends outside the open group, or null when it isn't drawn. */
+  /**
+   * Where a link is drawn: the nodes standing in for its ends, ghosts for ends outside the open group, or null when it
+   * isn't drawn.
+   */
   const drawnEnds = useCallback(
     (link: Link) => {
       let source = view.rep(link.from)
@@ -1575,7 +1762,12 @@ export function Canvas() {
   const [drawnEdges] = useState(() => new Map<string, { edge: Edge; print: string }>())
   const edges = useMemo(() => {
     const resultEdges: Edge[] = []
-    const marker = (flow: Flow) => ({ type: MarkerType.ArrowClosed, width: 14, height: 14, color: `var(${EDGE_COLOR[flow]})` })
+    const marker = (flow: Flow) => ({
+      type: MarkerType.ArrowClosed,
+      width: 14,
+      height: 14,
+      color: `var(${EDGE_COLOR[flow]})`,
+    })
     const aggregates = new Map<string, Bundle>()
 
     for (const link of links) {
@@ -1585,18 +1777,21 @@ export function Canvas() {
 
       const { source, target } = ends
       const flow = work.flow.get(link.from) ?? 'live'
-      const direct = (source === link.from || source.startsWith('ghost:')) && (target === link.to || target.startsWith('ghost:'))
+      const direct =
+        (source === link.from || source.startsWith('ghost:')) && (target === link.to || target.startsWith('ghost:'))
 
       if (direct) {
         let className = link.kind === 'related' ? 'e-rel' : `e-${flow}`
 
-        if (link.kind === 'related' && !relatedFocus.has(link.from) && !relatedFocus.has(link.to)) className += ' e-rel-quiet'
+        if (link.kind === 'related' && !relatedFocus.has(link.from) && !relatedFocus.has(link.to))
+          className += ' e-rel-quiet'
 
         if (trace) {
           const sourceRole = trace.get(link.from)
           const targetRole = trace.get(link.to)
           const up = link.kind === 'blocks' && sourceRole === 'up' && (targetRole === 'up' || targetRole === 'self')
-          const down = link.kind === 'blocks' && (sourceRole === 'down' || sourceRole === 'self') && targetRole === 'down'
+          const down =
+            link.kind === 'blocks' && (sourceRole === 'down' || sourceRole === 'self') && targetRole === 'down'
           const near = link.kind === 'related' && (sourceRole === 'self' || targetRole === 'self')
 
           className += up ? ' tr-e-up' : down ? ' tr-e-down' : near ? ' tr-e-rel' : ' tr-e-dim'
@@ -1793,7 +1988,9 @@ export function Canvas() {
       const want = new Set([...base, ...hit])
 
       setNodes((currentNodes) =>
-        currentNodes.map((node) => (!!node.selected === want.has(node.id) ? node : { ...node, selected: want.has(node.id) })),
+        currentNodes.map((node) =>
+          !!node.selected === want.has(node.id) ? node : { ...node, selected: want.has(node.id) },
+        ),
       )
       setStickerPicks(new Set([...stickerBase, ...hitStickers]))
     }
@@ -1884,7 +2081,12 @@ export function Canvas() {
         jump: nodeMap.ids[0],
         count: nodeMap.ids.length,
         label: nodeMap.ids.length === 1 ? (map.get(nodeMap.ids[0])?.data.label ?? '') : node.data.label,
-        rect: { x: position.x * zoom + panX, y: position.y * zoom + panY, width: size.width * zoom, height: size.height * zoom },
+        rect: {
+          x: position.x * zoom + panX,
+          y: position.y * zoom + panY,
+          width: size.width * zoom,
+          height: size.height * zoom,
+        },
       })
     }
 
@@ -1902,18 +2104,36 @@ export function Canvas() {
     setFoldPreviewsShown(foldPreviewsShown)
     setAttentionShown(attention?.marks ?? null)
     setFocusedShown(focus !== null)
-  }, [collapsed, foldPreviewsShown, attention, focus, setCollapsedShown, setFoldPreviewsShown, setAttentionShown, setFocusedShown])
+  }, [
+    collapsed,
+    foldPreviewsShown,
+    attention,
+    focus,
+    setCollapsedShown,
+    setFoldPreviewsShown,
+    setAttentionShown,
+    setFocusedShown,
+  ])
 
   const getCurrentNodes = useCallback(() => latest.current.nodes, [])
-  const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({ nodes, getCurrentNodes, setNodes, tweenTo, cardSize })
+  const { snapChanges, onDragStart, onDrag, onDragStop, guides } = useNodeSnapping({
+    nodes,
+    getCurrentNodes,
+    setNodes,
+    tweenTo,
+    cardSize,
+  })
   const getLinks = useCallback(() => latest.current.links, [])
   const resizeGroup = useGroupResize({ getCurrentNodes, getLinks, setNodes, cardSize })
   const onNodesChange = useCallback(
     (changes: NodeChange<ViewNode>[]) => {
       // A plain press that selects a card replaces the stickers picked alongside it.
-      if (!pressModifiers.current && changes.some((change) => change.type === 'select' && change.selected)) clearStickerPicks()
+      if (!pressModifiers.current && changes.some((change) => change.type === 'select' && change.selected))
+        clearStickerPicks()
 
-      let own = changes.filter((change) => !('id' in change) || !change.id.startsWith('ghost:')) as NodeChange<AppNode>[]
+      let own = changes.filter(
+        (change) => !('id' in change) || !change.id.startsWith('ghost:'),
+      ) as NodeChange<AppNode>[]
 
       if (plainClick.current) {
         const picks = own.filter((change) => change.type === 'select')
@@ -1958,7 +2178,9 @@ export function Canvas() {
 
       setPinned(null)
       setNodes((currentNodes) =>
-        currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
+        currentNodes.some((node) => node.selected)
+          ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node))
+          : currentNodes,
       )
       clearStickerPicks()
       setFocus(id)
@@ -2007,7 +2229,9 @@ export function Canvas() {
       setFocus(place.focus)
       focusEntry.current = place.focus && place.extra ? { ...place.extra } : null
       setNodes((currentNodes) =>
-        currentNodes.map((node) => (!!node.selected === picked.has(node.id) ? node : { ...node, selected: picked.has(node.id) })),
+        currentNodes.map((node) =>
+          !!node.selected === picked.has(node.id) ? node : { ...node, selected: picked.has(node.id) },
+        ),
       )
       void reactFlow.setViewport(place.viewport, place.focus || focus ? focusMove() : { duration: cameraGlide() })
     },
@@ -2080,14 +2304,17 @@ export function Canvas() {
     [],
   )
 
-  /** Selects the cards, opens the innermost group that holds them all, and frames them, as one step in history. */
+  /**
+   * Selects the cards, opens the innermost group that holds them all, or `within` when it's given, and frames them, as
+   * one step in history.
+   */
   const showReveal = useCallback(
-    (reveal: Reveal) => {
+    (reveal: Reveal, within?: string | null) => {
       const found = reveal.ids.filter((id) => latest.current.nodes.some((node) => node.id === id))
 
       if (!found.length) return
 
-      const target = revealRoot(latest.current.nodes, found)
+      const target = within === undefined ? revealRoot(latest.current.nodes, found) : within
       const nextDetail = revealDetail(latest.current.nodes, target, found, detail)
       const bounds = revealBounds(latest.current.nodes, found, cardSize)
       const box = canvasRef.current?.getBoundingClientRect()
@@ -2116,9 +2343,17 @@ export function Canvas() {
 
       if (reveal.selectOnly || !bounds || !box) return
 
-      void reactFlow.setViewport(framedViewport(bounds, box, { padding: 0.2, maxZoom: FIT_MAX_ZOOM }), { duration: cameraGlide() })
+      void reactFlow.setViewport(framedViewport(bounds, box, { padding: 0.2, maxZoom: FIT_MAX_ZOOM }), {
+        duration: cameraGlide(),
+      })
     },
     [remember, detail, cardSize, root, reactFlow, setPinned, setNodes, clearStickerPicks],
+  )
+
+  // The Table tab lists the open group's cards, so landing on one keeps that group open and the table's scope with it.
+  const revealFromTable = useCallback(
+    (id: string) => showReveal({ canvas: workspace.current, ids: [id], selectOnly: false }, root),
+    [showReveal, root],
   )
 
   // Waits for the canvas to finish loading, since its cards aren't on screen before then.
@@ -2280,7 +2515,13 @@ export function Canvas() {
   }, [])
 
   const fitSelection = useCallback(
-    () => void reactFlow.fitView({ nodes: selected.map((node) => ({ id: node.id })), padding: 0.2, maxZoom: FIT_MAX_ZOOM, duration: cameraGlide() }),
+    () =>
+      void reactFlow.fitView({
+        nodes: selected.map((node) => ({ id: node.id })),
+        padding: 0.2,
+        maxZoom: FIT_MAX_ZOOM,
+        duration: cameraGlide(),
+      }),
     [reactFlow, selected],
   )
 
@@ -2309,7 +2550,9 @@ export function Canvas() {
   )
 
   const doGroup = useCallback(() => {
-    const visibleSel = nodes.map((node) => (node.selected && view.hidden.has(node.id) ? { ...node, selected: false } : node))
+    const visibleSel = nodes.map((node) =>
+      node.selected && view.hidden.has(node.id) ? { ...node, selected: false } : node,
+    )
     const result = groupSelection(visibleSel, cardSize)
 
     if (!result) return
@@ -2332,7 +2575,8 @@ export function Canvas() {
   /** Lands the Done stamps on cards that were just closed out, each after its delay. */
   const landStamps = useCallback(
     (delays: Map<string, number>, chain?: { pulses: Map<string, Pulse>; finale: Map<string, number> }) => {
-      // Animations off clears the stamps at once. Reduced keeps the timing and fades them; they only animate while listed here.
+      // Animations off clears the stamps at once. Reduced keeps the timing and fades them; they only animate while
+      // listed here.
       if (document.documentElement.dataset.motion === 'off') return
 
       const pulses = chain?.pulses ?? new Map<string, Pulse>()
@@ -2360,7 +2604,8 @@ export function Canvas() {
           setChainPulses((current) => new Map([...current].filter(([key]) => !pulses.has(key))))
           setChainFinale((current) => new Map([...current].filter(([key]) => !finale.has(key))))
         },
-        Math.max(0, ...delays.values(), ...finale.values()) + Math.max(readDurationMs('--motion-duration-clear', CLEAR_MS), flourishMs),
+        Math.max(0, ...delays.values(), ...finale.values()) +
+          Math.max(readDurationMs('--motion-duration-clear', CLEAR_MS), flourishMs),
       )
     },
     [setCelebrating, setChainPulses, setChainFinale],
@@ -2408,7 +2653,9 @@ export function Canvas() {
   const arrangeGroup = useCallback(
     (groupId: string, patch: Pick<ClusterData, 'arrange'>) => {
       const { nodes: currentNodes, links: currentLinks } = latest.current
-      const next = currentNodes.map((node) => (node.id === groupId && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node))
+      const next = currentNodes.map((node) =>
+        node.id === groupId && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node,
+      )
 
       reflow(next, currentLinks, groupId, cardSize).then(tweenTo)
     },
@@ -2499,7 +2746,9 @@ export function Canvas() {
       patch.header = change.header ?? undefined
       setNodes((currentNodes) =>
         normalize(
-          currentNodes.map((node) => (node.id === id && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node)),
+          currentNodes.map((node) =>
+            node.id === id && isCluster(node) ? { ...node, data: { ...node.data, ...patch } } : node,
+          ),
           cardSize,
         ),
       )
@@ -2507,7 +2756,10 @@ export function Canvas() {
     [updateData, setNodes, cardSize],
   )
 
-  /** The canvas's cover and background go to the server and show at once. The server bumps the revision, so the page reloads to match it. */
+  /**
+   * The canvas's cover and background go to the server and show at once. The server bumps the revision, so the page
+   * reloads to match it.
+   */
   const changeCanvasStyle = useCallback((change: StyleChange) => {
     setCanvasStyle((current) => applyStyleChange(current, change))
     void saveCanvasStyle(workspace.current, change)
@@ -2516,13 +2768,19 @@ export function Canvas() {
   // ---- Notes and links ----
 
   /**
-   * Adds a note, or a work item with `itemKind: 'step'` or a component with `itemKind: 'component'`, with its top-left at
-   * `at` (flow coordinates), optionally spliced into links.
+   * Adds a note, or a work item with `itemKind: 'step'` or a component with `itemKind: 'component'`, with its top-left
+   * at `at` (flow coordinates), optionally spliced into links.
    */
   const addNote = useCallback(
     (
       at: { x: number; y: number },
-      options: { parent?: string | null; from?: string; to?: string; replace?: string; itemKind?: 'note' | 'step' | 'component' } = {},
+      options: {
+        parent?: string | null
+        from?: string
+        to?: string
+        replace?: string
+        itemKind?: 'note' | 'step' | 'component'
+      } = {},
     ) => {
       const { nodes: currentNodes, links: currentLinks } = latest.current
       const nodeMap = byId(currentNodes)
@@ -2548,7 +2806,10 @@ export function Canvas() {
 
       const nextNodes = pushAside(
         currentNodes,
-        normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note], cardSize),
+        normalize(
+          [...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), note],
+          cardSize,
+        ),
         cardSize,
       )
 
@@ -2556,7 +2817,8 @@ export function Canvas() {
       setLinks(next)
       setEditing(id)
 
-      // An automatic group lays out its new item in line. Only positions and sizes come back, so text typed meanwhile stays.
+      // An automatic group lays out its new item in line. Only positions and sizes come back, so text typed meanwhile
+      // stays.
       if (options.replace && parentNode && isCluster(parentNode) && parentNode.data.arrange !== 'custom')
         void reflow(nextNodes, next, parentNode.id).then((laidOut) => {
           const placed = byId(laidOut)
@@ -2580,7 +2842,10 @@ export function Canvas() {
 
     if (!rectangle) return { x: 0, y: 0 }
 
-    const center = reactFlow.screenToFlowPosition({ x: rectangle.left + rectangle.width / 2, y: rectangle.top + rectangle.height / 2 })
+    const center = reactFlow.screenToFlowPosition({
+      x: rectangle.left + rectangle.width / 2,
+      y: rectangle.top + rectangle.height / 2,
+    })
 
     return { x: center.x - cardSize.width / 2, y: center.y - cardSize.height / 2 }
   }, [reactFlow, cardSize])
@@ -2617,7 +2882,10 @@ export function Canvas() {
 
           return pushAside(
             currentNodes,
-            normalize([...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image], cardSize),
+            normalize(
+              [...currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)), image],
+              cardSize,
+            ),
             cardSize,
           )
         })
@@ -2641,7 +2909,9 @@ export function Canvas() {
       // A card made from this link moments ago may not be saved yet, so the server can't know about it.
       const ref = found.status === 'found' ? found.data.refs?.[0] : undefined
       const unsaved = ref
-        ? currentNodes.find((node) => node.type === 'task' && (node.data as TaskData).refs?.some((other) => isSameRef(other, ref)))
+        ? currentNodes.find(
+            (node) => node.type === 'task' && (node.data as TaskData).refs?.some((other) => isSameRef(other, ref)),
+          )
         : undefined
       const existingId = found.status === 'existing' ? found.id : unsaved?.id
 
@@ -2668,7 +2938,11 @@ export function Canvas() {
 
       syncAfterSave.current = true
       setNodes((nodesNow) =>
-        pushAside(nodesNow, normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize), cardSize),
+        pushAside(
+          nodesNow,
+          normalize([...nodesNow.map((node) => (node.selected ? { ...node, selected: false } : node)), card], cardSize),
+          cardSize,
+        ),
       )
     },
     [root, selectOnly, jumpTo, setNodes, cardSize],
@@ -2783,7 +3057,12 @@ export function Canvas() {
   const duplicate = useCallback(() => {
     const copied = copySelected()
 
-    if (copied) void place(copied, { x: copied.bounds.x + DUPLICATE_OFFSET, y: copied.bounds.y + DUPLICATE_OFFSET }, copied.parent)
+    if (copied)
+      void place(
+        copied,
+        { x: copied.bounds.x + DUPLICATE_OFFSET, y: copied.bounds.y + DUPLICATE_OFFSET },
+        copied.parent,
+      )
   }, [copySelected, place])
 
   /** The innermost visible card or group under a canvas point that `accept` allows. */
@@ -2850,7 +3129,10 @@ export function Canvas() {
       const id = newId()
       const at = anchorAt(reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY }))
 
-      setStickers((stickers) => [...stickers, { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at }])
+      setStickers((stickers) => [
+        ...stickers,
+        { id, kind: sticker, tilt: Math.round((Math.random() * 2 - 1) * STICKER_TILT), ...at },
+      ])
       setFresh((freshStickers) => new Set(freshStickers).add(id))
       setTimeout(
         () =>
@@ -2863,7 +3145,8 @@ export function Canvas() {
           }),
         Math.max(
           readDurationMs('--motion-duration-sticker-stamp', STICKER_STAMP_MS),
-          readDurationMs('--motion-duration-quick', STICKER_RING_DELAY_MS) + readDurationMs('--motion-duration-sticker-ring', STICKER_RING_MS),
+          readDurationMs('--motion-duration-quick', STICKER_RING_DELAY_MS) +
+            readDurationMs('--motion-duration-sticker-ring', STICKER_RING_MS),
         ),
       )
     },
@@ -2885,13 +3168,18 @@ export function Canvas() {
     [anchorAt],
   )
 
-  /** A press on a sticker picks it the way a press on a card selects it: plain replaces the selection, ⇧ or ⌘ adds to it. */
+  /**
+   * A press on a sticker picks it the way a press on a card selects it: plain replaces the selection, ⇧ or ⌘ adds to
+   * it.
+   */
   const selectSticker = (modifiers: PressModifiers, id: string) => {
     const additive = modifiers.metaKey || modifiers.shiftKey
 
     if (!additive && !stickerPicks.has(id))
       setNodes((currentNodes) =>
-        currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
+        currentNodes.some((node) => node.selected)
+          ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node))
+          : currentNodes,
       )
 
     setStickerPicks((picked) => pressedStickers(picked, id, additive))
@@ -2905,7 +3193,10 @@ export function Canvas() {
   const pickedStickers = stickers.filter((sticker) => stickerPicks.has(sticker.id))
 
   /** Loose stickers picked along with a dragged card keep their spot from it, so they move with the selection. */
-  const stickerFollow = useRef<{ origin: { x: number; y: number }; stickers: Map<string, { x: number; y: number }> } | null>(null)
+  const stickerFollow = useRef<{
+    origin: { x: number; y: number }
+    stickers: Map<string, { x: number; y: number }>
+  } | null>(null)
 
   const followStart = (node: ViewNode) => {
     const picked = stickers.filter((sticker) => !sticker.on && stickerPicks.has(sticker.id))
@@ -2980,11 +3271,16 @@ export function Canvas() {
     const position = pointer.current
 
     if (rectangle)
-      setWheel({ x: rectangle.left + (position?.x ?? rectangle.width / 2), y: rectangle.top + (position?.y ?? rectangle.height / 2), held: true })
+      setWheel({
+        x: rectangle.left + (position?.x ?? rectangle.width / 2),
+        y: rectangle.top + (position?.y ?? rectangle.height / 2),
+        held: true,
+      })
   }, [])
 
   const assignSlot = useCallback(
-    (slot: number, emoji: string | null) => setLoadout((loadout) => loadout.map((sticker, i) => (i === slot ? emoji : sticker))),
+    (slot: number, emoji: string | null) =>
+      setLoadout((loadout) => loadout.map((sticker, i) => (i === slot ? emoji : sticker))),
     [],
   )
 
@@ -3005,7 +3301,10 @@ export function Canvas() {
     const sourcePosition = absolutePosition(sourceNode, map)
     const targetPosition = absolutePosition(targetNode, map)
     const chainB = [targetNode.parentId, ...ancestors(targetNode.id, map)]
-    const parent = [sourceNode.parentId, ...ancestors(sourceNode.id, map)].find((position) => position && chainB.includes(position)) ?? null
+    const parent =
+      [sourceNode.parentId, ...ancestors(sourceNode.id, map)].find(
+        (position) => position && chainB.includes(position),
+      ) ?? null
 
     addNote(
       { x: (sourcePosition.x + targetPosition.x) / 2, y: (sourcePosition.y + targetPosition.y) / 2 + cardSize.height },
@@ -3055,11 +3354,17 @@ export function Canvas() {
   /** One link per pair of cards: adding a link replaces whatever already joined them. */
   const addLink = (from: string, to: string, kind: Link['kind']) =>
     setLinks((currentLinks) => [
-      ...currentLinks.filter((link) => !((link.from === from && link.to === to) || (link.from === to && link.to === from))),
+      ...currentLinks.filter(
+        (link) => !((link.from === from && link.to === to) || (link.from === to && link.to === from)),
+      ),
       { id: `${from}>${to}`, from, to, kind },
     ])
   const flipLink = (id: string) =>
-    setLinks((currentLinks) => currentLinks.map((link) => (link.id === id ? { ...link, kind: link.kind === 'blocks' ? 'related' : 'blocks' } : link)))
+    setLinks((currentLinks) =>
+      currentLinks.map((link) =>
+        link.id === id ? { ...link, kind: link.kind === 'blocks' ? 'related' : 'blocks' } : link,
+      ),
+    )
 
   const tidy = () => reflow(nodes, links, root ?? undefined, cardSize).then(tweenTo)
   const rootCustom = !!root && (map.get(root)?.data as ClusterData | undefined)?.arrange === 'custom'
@@ -3087,7 +3392,13 @@ export function Canvas() {
       const ids = stickerPicks.has(target.id) ? new Set(stickerPicks) : new Set([target.id])
       const count = stickers.filter((sticker) => ids.has(sticker.id)).length
 
-      return [{ label: count > 1 ? `Remove ${count} stickers` : 'Remove sticker', danger: true, run: () => removeStickers(ids) }]
+      return [
+        {
+          label: count > 1 ? `Remove ${count} stickers` : 'Remove sticker',
+          danger: true,
+          run: () => removeStickers(ids),
+        },
+      ]
     }
 
     if (target.kind === 'edge' && target.id.startsWith('agg:')) {
@@ -3099,7 +3410,11 @@ export function Canvas() {
       })
       const labelOf = (id: string) => map.get(id)?.data.label || 'Untitled'
 
-      return bundled.map((link) => ({ label: `Remove ${labelOf(link.from)} → ${labelOf(link.to)}`, danger: true, run: () => removeLink(link.id) }))
+      return bundled.map((link) => ({
+        label: `Remove ${labelOf(link.from)} → ${labelOf(link.to)}`,
+        danger: true,
+        run: () => removeLink(link.id),
+      }))
     }
 
     if (target.kind === 'edge') {
@@ -3111,7 +3426,10 @@ export function Canvas() {
         { label: 'Add card here', run: () => insertOnLink(link.id, 'step') },
         { label: 'Insert a note here', run: () => insertOnLink(link.id, 'note') },
         { label: link.label ? 'Edit label' : 'Add a label', run: () => editLink(link.id) },
-        { label: link.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link', run: () => flipLink(link.id) },
+        {
+          label: link.kind === 'blocks' ? 'Make it a related link' : 'Make it a blocking link',
+          run: () => flipLink(link.id),
+        },
         'divider',
         { label: 'Remove link', danger: true, run: () => removeLink(link.id) },
       ]
@@ -3129,7 +3447,9 @@ export function Canvas() {
       if (!node) return []
 
       const many: MenuItem[] =
-        selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }, 'divider'] : []
+        selected.length > 1
+          ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }, 'divider']
+          : []
 
       if (isCluster(node))
         return [
@@ -3139,7 +3459,12 @@ export function Canvas() {
           { label: 'Cover and background', run: () => selectOnly(node.id) },
           ...(node.data.arrange === 'custom' ? [] : [{ label: 'Reflow', run: () => actions.reflow(node.id) }]),
           ...(node.parentId
-            ? [{ label: 'Move out of group', run: () => setNodes((currentNodes) => moveOutOfGroup(currentNodes, node.id, cardSize)) }]
+            ? [
+                {
+                  label: 'Move out of group',
+                  run: () => setNodes((currentNodes) => moveOutOfGroup(currentNodes, node.id, cardSize)),
+                },
+              ]
             : []),
           { label: 'Ungroup', hint: hintOf('ungroup'), run: () => doUngroup([node.id]) },
         ]
@@ -3154,9 +3479,18 @@ export function Canvas() {
           : snoozedUntil
             ? [{ label: 'Wake it now', run: () => updateData(node.id, { snoozedUntil: undefined }) }]
             : [
-                { label: 'Snooze until later today', run: () => updateData(node.id, { snoozedUntil: snoozeUntil('later', today) }) },
-                { label: 'Snooze until tomorrow', run: () => updateData(node.id, { snoozedUntil: snoozeUntil('tomorrow', today) }) },
-                { label: 'Snooze until next week', run: () => updateData(node.id, { snoozedUntil: snoozeUntil('nextWeek', today) }) },
+                {
+                  label: 'Snooze until later today',
+                  run: () => updateData(node.id, { snoozedUntil: snoozeUntil('later', today) }),
+                },
+                {
+                  label: 'Snooze until tomorrow',
+                  run: () => updateData(node.id, { snoozedUntil: snoozeUntil('tomorrow', today) }),
+                },
+                {
+                  label: 'Snooze until next week',
+                  run: () => updateData(node.id, { snoozedUntil: snoozeUntil('nextWeek', today) }),
+                },
                 {
                   label: 'Snooze until a date',
                   min: localDateValue(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1)),
@@ -3177,7 +3511,10 @@ export function Canvas() {
         return [
           ...many,
           { label: 'Rename component', run: () => (selectOnly(node.id), setEditing(node.id)) },
-          { label: 'Add a component after this', run: () => addNote(after, { parent: node.parentId ?? null, from: node.id, itemKind: 'component' }) },
+          {
+            label: 'Add a component after this',
+            run: () => addNote(after, { parent: node.parentId ?? null, from: node.id, itemKind: 'component' }),
+          },
           {
             label: 'Turn into a work item',
             run: () => void saveFields(node.id, { kind: 'step', status: 'todo' }),
@@ -3226,7 +3563,9 @@ export function Canvas() {
       { label: 'Add a component here', run: () => addNote(menu.flow, { itemKind: 'component' }) },
       { label: 'Create from link…', run: () => setLinkPrompt({ x: menu.x, y: menu.y, flow: menu.flow }) },
       ...(clip ? [{ label: 'Paste here', hint: hintOf('paste'), run: () => paste(menu.flow) }] : []),
-      ...(selected.length > 1 ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }] : []),
+      ...(selected.length > 1
+        ? [{ label: `Group ${selected.length} selected`, hint: hintOf('group'), run: doGroup }]
+        : []),
       'divider',
       ...(rootCustom ? [] : [{ label: root ? 'Tidy this group' : 'Tidy canvas', run: tidy }]),
       { label: 'Fit to screen', hint: hintOf('fit'), run: () => fitTo(root) },
@@ -3234,7 +3573,9 @@ export function Canvas() {
         label: root ? 'Cover and background' : 'Canvas cover and background',
         run: showLevelDetails,
       },
-      ...(root ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => openRoot(map.get(root)?.parentId ?? null) }] : []),
+      ...(root
+        ? [{ label: 'Go up a level', hint: hintOf('step-back'), run: () => openRoot(map.get(root)?.parentId ?? null) }]
+        : []),
     ]
   }
 
@@ -3245,7 +3586,9 @@ export function Canvas() {
 
       if ((event.target as HTMLElement).closest('input, textarea, select, [contenteditable="true"]')) return
 
-      const direction = NUDGES.find(({ id }) => matchesChord(event, keybindings[id]) || matchesChord(event, largeChordOf(keybindings[id])))
+      const direction = NUDGES.find(
+        ({ id }) => matchesChord(event, keybindings[id]) || matchesChord(event, largeChordOf(keybindings[id])),
+      )
 
       if (!direction) return
 
@@ -3425,7 +3768,8 @@ export function Canvas() {
   const one = selected.length === 1 ? selected[0] : null
   const selectedWorkData = selected.filter(isWork).map((node) => node.data as TaskData)
   const pickedLinkData = pickedLink ? links.find((link) => link.id === pickedLink) : undefined
-  // An inspector's name field only auto-focuses when it mounts, so a rename of a card that is already selected remounts it.
+  // An inspector's name field only auto-focuses when it mounts, so a rename of a card that is already selected remounts
+  // it.
   const inspectorKey = one && editing === one.id ? `${one.id}:editing` : one?.id
   const focused = focus ? map.get(focus) : undefined
   const focusPos = focused && absolutePosition(focused, map)
@@ -3434,7 +3778,15 @@ export function Canvas() {
 
   const commands: Command[] = [
     ...(trailSize.back
-      ? [{ id: 'go-back', label: 'Go back', detail: 'Return to the previous view', hint: hintOf('go-back'), run: () => travelTo('back') }]
+      ? [
+          {
+            id: 'go-back',
+            label: 'Go back',
+            detail: 'Return to the previous view',
+            hint: hintOf('go-back'),
+            run: () => travelTo('back'),
+          },
+        ]
       : []),
     ...(trailSize.forward
       ? [
@@ -3472,13 +3824,39 @@ export function Canvas() {
     ...(selected.length || pickedStickers.length
       ? [
           { id: 'copy', label: 'Copy', detail: 'Copy the selection', hint: hintOf('copy'), run: copy },
-          { id: 'cut', label: 'Cut', detail: 'Copy the selection and take it off the canvas', hint: hintOf('cut'), run: cut },
-          { id: 'duplicate', label: 'Duplicate', detail: 'Place a copy of the selection beside it', hint: hintOf('duplicate'), run: duplicate },
+          {
+            id: 'cut',
+            label: 'Cut',
+            detail: 'Copy the selection and take it off the canvas',
+            hint: hintOf('cut'),
+            run: cut,
+          },
+          {
+            id: 'duplicate',
+            label: 'Duplicate',
+            detail: 'Place a copy of the selection beside it',
+            hint: hintOf('duplicate'),
+            run: duplicate,
+          },
         ]
       : []),
-    ...(clip ? [{ id: 'paste', label: 'Paste', detail: 'Place what you copied in the open group', hint: hintOf('paste'), run: () => paste() }] : []),
-    ...(canUndo ? [{ id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', hint: hintOf('undo'), run: undo }] : []),
-    ...(canRedo ? [{ id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', hint: hintOf('redo'), run: redo }] : []),
+    ...(clip
+      ? [
+          {
+            id: 'paste',
+            label: 'Paste',
+            detail: 'Place what you copied in the open group',
+            hint: hintOf('paste'),
+            run: () => paste(),
+          },
+        ]
+      : []),
+    ...(canUndo
+      ? [{ id: 'undo', label: 'Undo', detail: 'Take back the last canvas edit', hint: hintOf('undo'), run: undo }]
+      : []),
+    ...(canRedo
+      ? [{ id: 'redo', label: 'Redo', detail: 'Make the last undone edit again', hint: hintOf('redo'), run: redo }]
+      : []),
     {
       id: 'fit-board',
       label: 'Fit entire board',
@@ -3497,7 +3875,13 @@ export function Canvas() {
           },
         ]
       : []),
-    { id: 'zoom-actual', label: 'Zoom to 100%', detail: 'Show cards at their actual size', hint: hintOf('zoom-actual'), run: zoomActual },
+    {
+      id: 'zoom-actual',
+      label: 'Zoom to 100%',
+      detail: 'Show cards at their actual size',
+      hint: hintOf('zoom-actual'),
+      run: zoomActual,
+    },
     ...(canSelectAll
       ? [
           {
@@ -3549,7 +3933,15 @@ export function Canvas() {
       run: () => setSettings('appearance'),
     },
     ...(one
-      ? [{ id: 'rename', label: 'Rename', detail: 'Edit the name of the selected item', hint: hintOf('rename'), run: () => setEditing(one.id) }]
+      ? [
+          {
+            id: 'rename',
+            label: 'Rename',
+            detail: 'Edit the name of the selected item',
+            hint: hintOf('rename'),
+            run: () => setEditing(one.id),
+          },
+        ]
       : []),
     ...(selected.length
       ? [
@@ -3586,6 +3978,15 @@ export function Canvas() {
       label: showDetails ? 'Hide details panel' : 'Show details panel',
       detail: 'What is selected, or the open group',
       run: () => toggleDetails(!showDetails),
+    },
+    {
+      id: 'table-tab',
+      label: showDetails && detailsTab === 'table' ? 'Show details tab' : 'Show cards as a table',
+      detail: 'Every card in the open group, in the details panel',
+      run: () => {
+        chooseDetailsTab(showDetails && detailsTab === 'table' ? 'details' : 'table')
+        toggleDetails(true)
+      },
     },
     {
       id: 'sync',
@@ -3633,7 +4034,9 @@ export function Canvas() {
   // Clears the selection so the details panel describes the open group, or the canvas at the top level.
   const showLevelDetails = () => {
     setNodes((currentNodes) =>
-      currentNodes.some((node) => node.selected) ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node)) : currentNodes,
+      currentNodes.some((node) => node.selected)
+        ? currentNodes.map((node) => (node.selected ? { ...node, selected: false } : node))
+        : currentNodes,
     )
     clearStickerPicks()
     setPickedLink(null)
@@ -3679,6 +4082,8 @@ export function Canvas() {
       ungroup={selection ? () => doUngroup([group.id]) : undefined}
     />
   )
+
+  const tableScope = root ? (map.get(root)?.data as ClusterData | undefined)?.label || 'Untitled group' : 'All work'
 
   // The panel follows the focused card, then the selection, then a picked link, and otherwise describes the open level.
   const details = focused ? (
@@ -3738,7 +4143,11 @@ export function Canvas() {
       <strong>
         {pickedStickers.length} {pickedStickers.length === 1 ? 'sticker' : 'stickers'} selected
       </strong>
-      <button type="button" className="btn" onClick={() => removeStickers(new Set(pickedStickers.map((sticker) => sticker.id)))}>
+      <button
+        type="button"
+        className="btn"
+        onClick={() => removeStickers(new Set(pickedStickers.map((sticker) => sticker.id)))}
+      >
         Remove {pickedStickers.length === 1 ? 'sticker' : 'stickers'}
       </button>
     </div>
@@ -3833,8 +4242,17 @@ export function Canvas() {
     <div className="insp">
       <strong>{workspaces.canvases.find((item) => item.name === workspaces.active)?.label ?? workspaces.active}</strong>
       <p className="facts">{readyTotal} ready to start. Select a card, group, or link to see its details here.</p>
-      <CoverSettings title="Canvas cover and background" workspace={workspaces.active} current={canvasStyle} change={changeCanvasStyle} />
-      <HeaderSettings title="Canvas header" value={canvasStyle.header} change={(header) => changeCanvasStyle({ header })} />
+      <CoverSettings
+        title="Canvas cover and background"
+        workspace={workspaces.active}
+        current={canvasStyle}
+        change={changeCanvasStyle}
+      />
+      <HeaderSettings
+        title="Canvas header"
+        value={canvasStyle.header}
+        change={(header) => changeCanvasStyle({ header })}
+      />
     </div>
   )
 
@@ -3858,10 +4276,22 @@ export function Canvas() {
           />
         )}
         {sidebar && (
-          <ResizeHandle panel="before" label="Resize the group list" {...SIDEBAR_WIDTH} resize={resizeSidebar} reset={() => resizeSidebar(null)} />
+          <ResizeHandle
+            panel="before"
+            label="Resize the group list"
+            {...SIDEBAR_WIDTH}
+            resize={resizeSidebar}
+            reset={() => resizeSidebar(null)}
+          />
         )}
         <div
-          className={`canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}${canvasImage ? ' has-backdrop' : ''}${canvasHeader ? ' has-header' : ''}`}
+          className={
+            `canvas tool-${tool}${attending ? ' is-attending' : ''}${inspecting ? ' is-inspecting' : ''}` +
+            `${trace ? ' is-tracing' : ''}${focus ? ' is-focus' : ''}${linking ? ' is-linking' : ''}` +
+            `${still ? ' is-still' : ''}${quietZoom ? ' is-quiet' : ''}${away ? ' is-away' : ''}` +
+            `${motion.arrows ? '' : ' no-arrow-motion'}${motion.glow ? '' : ' no-glow'}${debug ? ' has-debug' : ''}` +
+            `${canvasImage ? ' has-backdrop' : ''}${canvasHeader ? ' has-header' : ''}`
+          }
           style={
             {
               ...(canvasColor ? { '--canvas-background': canvasColor } : {}),
@@ -3944,7 +4374,8 @@ export function Canvas() {
                 // A card waiting to be closed out closes out instead of opening in focus.
                 if (node.type === 'task' && (node.data as TaskData).celebrate) return actions.celebrate(node.id)
 
-                if (node.type === 'task' || node.type === 'ghost') return focusOn(node.type === 'ghost' ? node.data.taskId : node.id)
+                if (node.type === 'task' || node.type === 'ghost')
+                  return focusOn(node.type === 'ghost' ? node.data.taskId : node.id)
 
                 if (node.type !== 'cluster') return
 
@@ -3985,7 +4416,9 @@ export function Canvas() {
 
                 openMenu(event, { kind: 'node', id: node.id })
               }}
-              onSelectionContextMenu={(event, currentNodes) => openMenu(event, { kind: 'node', id: currentNodes[0]?.id ?? '' })}
+              onSelectionContextMenu={(event, currentNodes) =>
+                openMenu(event, { kind: 'node', id: currentNodes[0]?.id ?? '' })
+              }
               onEdgeContextMenu={(event, edge) => openMenu(event, { kind: 'edge', id: edge.id })}
               panOnDrag={focus ? false : tool === 'hand' ? [0, 1] : [1]}
               selectionKeyCode={null}
@@ -4016,7 +4449,11 @@ export function Canvas() {
               {marquee && (
                 <div
                   className="react-flow__selection marquee"
-                  style={{ transform: `translate(${marquee.x}px, ${marquee.y}px)`, width: marquee.width, height: marquee.height }}
+                  style={{
+                    transform: `translate(${marquee.x}px, ${marquee.y}px)`,
+                    width: marquee.width,
+                    height: marquee.height,
+                  }}
                 />
               )}
               <Background variant={BackgroundVariant.Dots} gap={24} size={1.3} color="var(--canvas-dots)" />
@@ -4026,7 +4463,12 @@ export function Canvas() {
                 <DetailStepper level={level} levels={levels} keybindings={keybindings} change={changeDetail} />
               </Controls>
               {/* The desktop shell hides the native title bar, so this strip along the top drags the window. */}
-              <div className="window-drag" data-tauri-drag-region aria-hidden="true" onPointerDown={(event) => event.stopPropagation()} />
+              <div
+                className="window-drag"
+                data-tauri-drag-region
+                aria-hidden="true"
+                onPointerDown={(event) => event.stopPropagation()}
+              />
               {imageError && (
                 <Panel
                   position="bottom-left"
@@ -4034,7 +4476,12 @@ export function Canvas() {
                   role="alert"
                 >
                   {imageError}
-                  <button type="button" className="link" onClick={() => setImageError(null)} aria-label="Dismiss image error">
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => setImageError(null)}
+                    aria-label="Dismiss image error"
+                  >
                     ×
                   </button>
                 </Panel>
@@ -4056,7 +4503,12 @@ export function Canvas() {
 
               <Panel position="top-left" className="panel crumbs" data-tauri-drag-region="deep">
                 {!sidebar && (
-                  <button type="button" className="crumb" onClick={() => toggleSidebar(true)} title="Show the group list">
+                  <button
+                    type="button"
+                    className="crumb"
+                    onClick={() => toggleSidebar(true)}
+                    title="Show the group list"
+                  >
                     ☰
                   </button>
                 )}
@@ -4066,7 +4518,11 @@ export function Canvas() {
                 {crumbs.map((id) => (
                   <span key={id} className="crumb-wrap">
                     <span className="sep">›</span>
-                    <button type="button" className={id === root ? 'crumb current' : 'crumb'} onClick={() => openRoot(id)}>
+                    <button
+                      type="button"
+                      className={id === root ? 'crumb current' : 'crumb'}
+                      onClick={() => openRoot(id)}
+                    >
                       {(map.get(id)?.data as ClusterData | undefined)?.label}
                     </button>
                   </span>
@@ -4102,7 +4558,12 @@ export function Canvas() {
 
               {!showDetails && (
                 <Panel position="top-right" className="panel crumbs">
-                  <button type="button" className="crumb" onClick={() => toggleDetails(true)} title="Show the details panel">
+                  <button
+                    type="button"
+                    className="crumb"
+                    onClick={() => toggleDetails(true)}
+                    title="Show the details panel"
+                  >
                     ☰
                   </button>
                 </Panel>
@@ -4114,7 +4575,12 @@ export function Canvas() {
             </ReactFlow>
           )}
           {ready && appearance.companion && !focus && (
-            <Companion targets={companion.targets} describe={companion.describe} syncing={syncStatus?.state === 'running'} paused={away} />
+            <Companion
+              targets={companion.targets}
+              describe={companion.describe}
+              syncing={syncStatus?.state === 'running'}
+              paused={away}
+            />
           )}
           {attending && cursor && (
             <AttentionOverlay
@@ -4146,10 +4612,17 @@ export function Canvas() {
             />
           )}
           {!ready && <div className="loading">Laying out…</div>}
-          {debug && <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />}
+          {debug && (
+            <DebugBar canvas={canvasRef} motion={motion} setMotion={changeMotion} close={() => toggleDebug(false)} />
+          )}
           {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} close={() => setMenu(null)} />}
           {linkPrompt && (
-            <LinkPrompt x={linkPrompt.x} y={linkPrompt.y} submit={(url) => createFromLink(url, linkPrompt.flow)} close={() => setLinkPrompt(null)} />
+            <LinkPrompt
+              x={linkPrompt.x}
+              y={linkPrompt.y}
+              submit={(url) => createFromLink(url, linkPrompt.flow)}
+              close={() => setLinkPrompt(null)}
+            />
           )}
           {wheel && (
             <StickerWheel
@@ -4165,11 +4638,24 @@ export function Canvas() {
           )}
         </div>
         {showDetails && (
-          <ResizeHandle panel="after" label="Resize the details panel" {...DETAILS_WIDTH} resize={resizeDetails} reset={() => resizeDetails(null)} />
+          <ResizeHandle
+            panel="after"
+            label="Resize the details panel"
+            {...DETAILS_WIDTH}
+            resize={resizeDetails}
+            reset={() => resizeDetails(null)}
+          />
         )}
         {showDetails && (
-          <DetailsPanel width={detailsWidth ?? undefined} hide={() => toggleDetails(false)}>
-            {details}
+          <DetailsPanel
+            width={detailsWidth ?? undefined}
+            tab={detailsTab}
+            chooseTab={chooseDetailsTab}
+            hide={() => toggleDetails(false)}
+          >
+            {detailsTab === 'table'
+              ? ready && <TableTab root={root} scope={tableScope} reveal={revealFromTable} />
+              : details}
           </DetailsPanel>
         )}
         {paletteQuery !== null && (
@@ -4194,7 +4680,12 @@ export function Canvas() {
             chooseAppearance={chooseAppearance}
             keybindings={keybindings}
             chooseKeybindings={chooseKeybindings}
+            telemetry={telemetry}
+            chooseTelemetry={chooseTelemetry}
           />
+        )}
+        {!settings && !telemetryDismissed && shouldAskTelemetry(telemetry) && (
+          <TelemetryPrompt choose={chooseTelemetry} dismiss={() => setTelemetryDismissed(true)} />
         )}
       </div>
     </ActionsContext.Provider>

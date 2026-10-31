@@ -57,7 +57,11 @@ export function LinkInspector({
       />
       {/* Links between work block; links that touch a component only show the way something flows. */}
       {isWork(map.get(link.from)) && isWork(map.get(link.to)) && (
-        <p className="facts">{link.kind === 'blocks' ? 'Blocking: the second waits on the first.' : 'Related: drawn faintly and never blocks.'}</p>
+        <p className="facts">
+          {link.kind === 'blocks'
+            ? 'Blocking: the second waits on the first.'
+            : 'Related: drawn faintly and never blocks.'}
+        </p>
       )}
       <div className="row">
         <button type="button" className="btn" onClick={() => flip(link.id)}>

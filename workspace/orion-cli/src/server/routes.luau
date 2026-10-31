@@ -14,11 +14,14 @@ local log = require("@root/server/routes/log")
 local merge = require("@root/server/routes/merge")
 local operations = require("@root/server/routes/operations")
 local orion = require("@root/server/routes/orion")
+local query = require("@root/server/routes/query")
 local reveal = require("@root/server/routes/reveal")
+local sessions = require("@root/server/routes/sessions")
 local settings = require("@root/server/routes/settings")
 local shared = require("@root/server/routes/shared")
 local static = require("@root/server/routes/static")
 local sync = require("@root/server/routes/sync")
+local telemetry = require("@root/server/routes/telemetry")
 local themes = require("@root/server/routes/themes")
 
 type Request = net.ReceivedRequest
@@ -74,6 +77,9 @@ function routes.create(
 		if route == "/api/operations" then
 			return operations.handle(request, root, active)
 		end
+		if route == "/api/query" then
+			return query.handle(request, root, active)
+		end
 		if route == "/api/focus" then
 			return focus.handle(request, root, active)
 		end
@@ -92,11 +98,17 @@ function routes.create(
 		if route == "/api/log" then
 			return log.handle(request, root)
 		end
+		if route == "/api/sessions/turns" then
+			return sessions.handleAsync(request, root, router.getActive())
+		end
 		if route == "/api/settings" then
 			return settings.handle(request, root)
 		end
 		if route == "/api/themes" then
 			return themes.handle(request, root)
+		end
+		if route == "/api/telemetry" then
+			return telemetry.handle(request, root)
 		end
 
 		if route == "/api/canvases" or route == "/api/canvases/active" then

@@ -20,8 +20,14 @@ local LEGACY_DOC = [[{
 	"stickers": [{ "id": "star" }],
 	"github": { "viewer": "vocksel" },
 	"nodes": [
-		{ "id": "group", "type": "cluster", "position": { "x": 0, "y": 0 }, "width": 400, "height": 200, "data": { "kind": "cluster", "label": "Group" } },
-		{ "id": "a", "type": "task", "parentId": "group", "position": { "x": 10, "y": 20 }, "data": { "kind": "task", "label": "A", "status": "todo" } },
+		{
+			"id": "group", "type": "cluster", "position": { "x": 0, "y": 0 }, "width": 400, "height": 200,
+			"data": { "kind": "cluster", "label": "Group" }
+		},
+		{
+			"id": "a", "type": "task", "parentId": "group", "position": { "x": 10, "y": 20 },
+			"data": { "kind": "task", "label": "A", "status": "todo" }
+		},
 		{ "id": "Upper", "type": "note", "position": { "x": 0, "y": 0 }, "data": { "kind": "note", "text": "Hello" } }
 	],
 	"links": [{ "from": "a", "to": "Upper", "kind": "blocks" }]

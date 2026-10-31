@@ -4,9 +4,10 @@ export type JiraIssue = {
 	status: string,
 	category: string,
 	issueType: string,
+	priority: string?,
 	epicKey: string?,
 	epicSummary: string?,
 	updated: string?,
 }
 
-return {}
+return nil

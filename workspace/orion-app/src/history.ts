@@ -27,7 +27,13 @@ function fieldsOf(item: AppNode | Link | Sticker | undefined): Fields | undefine
 
   if (!('type' in item)) return { kind: item.kind }
 
-  const fields: Fields = { type: item.type, position: item.position, parentId: item.parentId, width: item.width, height: item.height }
+  const fields: Fields = {
+    type: item.type,
+    position: item.position,
+    parentId: item.parentId,
+    width: item.width,
+    height: item.height,
+  }
 
   for (const [key, value] of Object.entries(item.data)) fields[`data.${key}`] = value
 
@@ -35,8 +41,9 @@ function fieldsOf(item: AppNode | Link | Sticker | undefined): Fields | undefine
 }
 
 /**
- * Applies one field-level change: a field the step left alone keeps `current`'s value, and a field `current` changed since
- * the step keeps `current`'s value. Only a field that still holds what the step left is moved back to what it was.
+ * Applies one field-level change: a field the step left alone keeps `current`'s value, and a field `current` changed
+ * since the step keeps `current`'s value. Only a field that still holds what the step left is moved back to what it
+ * was.
  */
 function carryFields(from: Fields = {}, to: Fields = {}, current: Fields = {}): Fields {
   const result: Fields = {}
@@ -50,7 +57,11 @@ function carryFields(from: Fields = {}, to: Fields = {}, current: Fields = {}): 
   return result
 }
 
-function carryNode(from: AppNode | undefined, to: AppNode | undefined, current: AppNode | undefined): AppNode | undefined {
+function carryNode(
+  from: AppNode | undefined,
+  to: AppNode | undefined,
+  current: AppNode | undefined,
+): AppNode | undefined {
   const fields = carryFields(fieldsOf(from), fieldsOf(to), fieldsOf(current))
   const id = (current ?? to ?? from)?.id
 
@@ -58,7 +69,8 @@ function carryNode(from: AppNode | undefined, to: AppNode | undefined, current: 
 
   const data: Record<string, unknown> = {}
 
-  for (const [key, value] of Object.entries(fields)) if (key.startsWith('data.')) data[key.slice('data.'.length)] = value
+  for (const [key, value] of Object.entries(fields))
+    if (key.startsWith('data.')) data[key.slice('data.'.length)] = value
 
   const node = { id, type: fields.type, position: fields.position, data } as AppNode
 
@@ -80,7 +92,13 @@ function carry(from: Saved, to: Saved, current: Saved): Saved {
   const fromNodes = new Map(from.nodes.map((node) => [node.id, node]))
   const toNodes = new Map(to.nodes.map((node) => [node.id, node]))
   const currentNodes = new Map(current.nodes.map((node) => [node.id, node]))
-  const ids = [...new Set([...current.nodes.map((node) => node.id), ...to.nodes.map((node) => node.id), ...from.nodes.map((node) => node.id)])]
+  const ids = [
+    ...new Set([
+      ...current.nodes.map((node) => node.id),
+      ...to.nodes.map((node) => node.id),
+      ...from.nodes.map((node) => node.id),
+    ]),
+  ]
   const nodes: AppNode[] = []
 
   for (const id of ids) {
@@ -101,7 +119,8 @@ function carry(from: Saved, to: Saved, current: Saved): Saved {
     const kept = carryFields(fieldsOf(fromLinks.get(key)), fieldsOf(toLinks.get(key)), fieldsOf(currentLinks.get(key)))
     const link = currentLinks.get(key) ?? toLinks.get(key)
 
-    if (link && kept.kind !== undefined && present.has(link.from) && present.has(link.to)) links.push({ ...link, kind: kept.kind as Link['kind'] })
+    if (link && kept.kind !== undefined && present.has(link.from) && present.has(link.to))
+      links.push({ ...link, kind: kept.kind as Link['kind'] })
   }
 
   const fromStickers = new Map((from.stickers ?? []).map((sticker) => [sticker.id, sticker]))
@@ -111,7 +130,11 @@ function carry(from: Saved, to: Saved, current: Saved): Saved {
   const stickers: Sticker[] = []
 
   for (const id of stickerIds) {
-    const kept = carryFields(fieldsOf(fromStickers.get(id)), fieldsOf(toStickers.get(id)), fieldsOf(currentStickers.get(id)))
+    const kept = carryFields(
+      fieldsOf(fromStickers.get(id)),
+      fieldsOf(toStickers.get(id)),
+      fieldsOf(currentStickers.get(id)),
+    )
 
     if (kept.kind === undefined || (kept.on !== undefined && !present.has(kept.on as string))) continue
 
@@ -132,7 +155,10 @@ export function undo(history: History, current: Saved): { history: History; doc:
 
   if (!step) return null
 
-  return { history: { undo: history.undo.slice(0, -1), redo: [...history.redo, step] }, doc: carry(step.after, step.before, current) }
+  return {
+    history: { undo: history.undo.slice(0, -1), redo: [...history.redo, step] },
+    doc: carry(step.after, step.before, current),
+  }
 }
 
 export function redo(history: History, current: Saved): { history: History; doc: Saved } | null {
@@ -140,5 +166,8 @@ export function redo(history: History, current: Saved): { history: History; doc:
 
   if (!step) return null
 
-  return { history: { undo: [...history.undo, step], redo: history.redo.slice(0, -1) }, doc: carry(step.before, step.after, current) }
+  return {
+    history: { undo: [...history.undo, step], redo: history.redo.slice(0, -1) },
+    doc: carry(step.before, step.after, current),
+  }
 }

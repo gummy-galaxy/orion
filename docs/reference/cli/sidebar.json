@@ -72,6 +72,10 @@
     "link": "/reference/cli/history"
   },
   {
+    "text": "telemetry",
+    "link": "/reference/cli/telemetry"
+  },
+  {
     "text": "mcp",
     "link": "/reference/cli/mcp"
   },

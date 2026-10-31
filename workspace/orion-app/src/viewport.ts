@@ -34,7 +34,11 @@ type Box = { x: number; y: number; width: number; height: number }
  * `margin`, and lined up with its left or top edge, past the margin, on an axis it doesn't fit. A big group opens on
  * its first columns and rows, where its dependency flow starts.
  */
-export function openGroupViewport(group: Box, screen: { width: number; height: number }, margin: { x: number; y: number }): Viewport {
+export function openGroupViewport(
+  group: Box,
+  screen: { width: number; height: number },
+  margin: { x: number; y: number },
+): Viewport {
   const zoom = OPEN_ZOOM
 
   const place = (start: number, length: number, room: number, edge: number) =>
@@ -63,7 +67,13 @@ const browserStore = (): ViewStore | null => {
 function isViewport(value: unknown): value is Viewport {
   const viewport = value as Viewport | null
 
-  return !!viewport && Number.isFinite(viewport.x) && Number.isFinite(viewport.y) && Number.isFinite(viewport.zoom) && viewport.zoom > 0
+  return (
+    !!viewport &&
+    Number.isFinite(viewport.x) &&
+    Number.isFinite(viewport.y) &&
+    Number.isFinite(viewport.zoom) &&
+    viewport.zoom > 0
+  )
 }
 
 export function readViewport(workspace: string, store = browserStore()): Viewport | null {

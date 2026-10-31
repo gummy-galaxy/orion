@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { emptyTrail, leave, travel, type Place } from './navigation'
 
-const at = (root: string | null, focus: string | null = null, x = 0): Place => ({ root, focus, selected: [], viewport: { x, y: 0, zoom: 1 } })
+const at = (root: string | null, focus: string | null = null, x = 0): Place => ({
+  root,
+  focus,
+  selected: [],
+  viewport: { x, y: 0, zoom: 1 },
+})
 const always = () => true
 
 describe('navigation', () => {

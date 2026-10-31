@@ -10,7 +10,7 @@ Orion keeps everything in plain files on your machine. The CLI owns them: the ap
 | Windows  | `%APPDATA%\Orion`                                            |
 | Linux    | `$XDG_DATA_HOME/orion`, or `~/.local/share/orion` without it |
 
-Set `ORION_DATA_DIR` to use another folder on any platform. It takes precedence over `XDG_DATA_HOME` and `APPDATA`, and a relative path resolves from the current folder. The app's preferences, such as the theme and keyboard shortcuts, live in its `settings.json` and apply to every canvas. `commands.json` holds the programs this machine runs for each canvas's sources, such as a Jira source's command, keyed by canvas and source id. It stays out of the canvases' own files, so sharing a canvas never shares a command.
+Set `ORION_DATA_DIR` to use another folder on any platform. It takes precedence over `XDG_DATA_HOME` and `APPDATA`, and a relative path resolves from the current folder. The app's preferences, such as the theme and keyboard shortcuts, live in its `settings.json` and apply to every canvas. `commands.json` holds the programs this machine runs for each canvas's sources, such as a Jira source's command, keyed by canvas and source id. It stays out of the canvases' own files, so sharing a canvas never shares a command. `telemetry.json` records whether this machine shares anonymous usage data, which `orion telemetry status` reports, and the [events it would send](/reference/telemetry).
 
 ## Canvases
 

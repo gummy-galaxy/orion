@@ -10,6 +10,7 @@ return table.freeze({
 	focus = "focus.json",
 	log = "log.jsonl",
 	lock = "orion.lock",
+	lockQueue = "orion.lock-queue",
 	backups = "backups",
 	revisions = "revisions.jsonl",
 	canvases = "canvases.json",
@@ -17,4 +18,5 @@ return table.freeze({
 	settings = "settings.json",
 	commands = "commands.json",
 	themes = "themes",
+	telemetry = "telemetry.json",
 })

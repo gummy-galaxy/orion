@@ -1,8 +1,9 @@
 # Paths each CI job depends on, read by ci.yml's `ci-loading` job, docs.yml's `docs-loading` job, and perf.yml's
 # `perf-loading` job through dorny/paths-filter. A job runs when a change matches its filter. The app's tests read the
-# token docs, the example theme, and the CLI's token contract to check they agree. The docs reference is generated from
-# the CLI, and the desktop build bundles the app and the CLI sidecar. The CLI checks the app's geometry module, which it
-# generates. The changelog check runs only for changes to `workspace/`, so it leaves out the shared block.
+# token docs, the example theme, and the CLI's token contract to check they agree. The desktop build bundles the app and
+# the CLI sidecar. The CLI analysis checks the docs reference and the app's geometry module, which it generates, and
+# formats the reference with the docs site's Prettier. The changelog check runs only for changes to `workspace/`, so it
+# leaves out the shared block.
 
 # Every job reruns when the toolchain or the CI setup changes
 shared: &shared
@@ -17,6 +18,9 @@ cli:
   - .config.luau
   - project.luau
   - workspace/orion-app/src/geometry.ts
+  - docs/reference/**
+  - docs/package-lock.json
+  - docs/.prettier*
 
 app:
   - *shared
@@ -24,15 +28,13 @@ app:
   - docs/guide/tokens.md
   - examples/themes/**
   - workspace/orion-cli/src/themes/tokenContract.luau
-  - .lute/coverage-report.luau
+  - .lute/report/init.luau
+  - .lute/report/coverage.luau
 
 docs:
   - *shared
   - .github/workflows/docs.yml
   - docs/**
-  - "workspace/orion-cli/**/!(*.md)"
-  - .lute/docs.luau
-  - .config.luau
 
 desktop:
   - *shared
@@ -53,6 +55,7 @@ perf:
   - .github/path-filters.yml
   - .github/workflows/perf.yml
   - "workspace/orion-app/**/!(*.md|*.test.ts|*.test.tsx)"
-  - .lute/perf-history.luau
-  - .lute/perf-report.luau
+  - .lute/report/init.luau
+  - .lute/report/perf.luau
+  - .lute/report/perfHistory.luau
   - workspace/orion-cli/src/perf/**

@@ -5,7 +5,15 @@ import { useFoldPreview } from '../state'
  * Faded miniatures of what's inside a folded group, drawn in the group's own coordinates behind its label.
  * It has no pointer events and doesn't read the zoom, so zooming only moves the group's box.
  */
-export const FoldPreview = memo(function FoldPreview({ id, width, height }: { id: string; width: number; height: number }) {
+export const FoldPreview = memo(function FoldPreview({
+  id,
+  width,
+  height,
+}: {
+  id: string
+  width: number
+  height: number
+}) {
   const items = useFoldPreview(id)
 
   if (!items?.length) return null

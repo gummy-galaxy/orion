@@ -12,7 +12,10 @@ export type Theme = {
   label: string
   /** A theme with one scheme ignores the color mode. */
   schemes: readonly Scheme[]
-  /** A shareable theme's token values by scheme, keyed by token name. Built-in themes read their colors from CSS and leave this out. */
+  /**
+   * A shareable theme's token values by scheme, keyed by token name. Built-in themes read their colors from CSS and
+   * leave this out.
+   */
   values?: Partial<Record<Scheme, Record<string, string>>>
   /** Who made a shareable theme, from its file. */
   author?: string
@@ -95,12 +98,20 @@ export function readAppearance(): Appearance {
       theme: localStorage.getItem(THEME_KEY) || THEMES[0].id,
       skin: skinOf(localStorage.getItem(SKIN_KEY) ?? '').id,
       colorMode: mode === 'light' || mode === 'dark' ? mode : 'system',
-      statusColors: STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
+      statusColors:
+        STATUS_COLORS.find((option) => option.id === localStorage.getItem(STATUS_COLORS_KEY))?.id ?? 'theme',
       animations: ANIMATIONS.find((option) => option.id === localStorage.getItem(ANIMATIONS_KEY))?.id ?? 'system',
       companion: localStorage.getItem(COMPANION_KEY) !== 'off',
     }
   } catch {
-    return { theme: THEMES[0].id, skin: SKINS[0].id, colorMode: 'system', statusColors: 'theme', animations: 'system', companion: true }
+    return {
+      theme: THEMES[0].id,
+      skin: SKINS[0].id,
+      colorMode: 'system',
+      statusColors: 'theme',
+      animations: 'system',
+      companion: true,
+    }
   }
 }
 
@@ -115,7 +126,11 @@ export function writeAppearance(appearance: Appearance) {
   })
 }
 
-export function applyAppearance(appearance: Appearance, root = document.documentElement, themes: readonly Theme[] = THEMES) {
+export function applyAppearance(
+  appearance: Appearance,
+  root = document.documentElement,
+  themes: readonly Theme[] = THEMES,
+) {
   const theme = themeOf(appearance.theme, themes)
 
   // A shareable theme sets its values on the root instead, so it needs no attribute.

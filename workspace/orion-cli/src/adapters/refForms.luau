@@ -1,7 +1,7 @@
 --[[
 	The forms `--ref` takes, as data, in the order resolveRef tries them.
-	`lute run docs` writes the reference page from it. Every example has to
-	resolve to its key with the adapter it names; the spec checks.
+	`lute run generate docs` writes the reference page from it. Every example
+	has to resolve to its key with the adapter it names; the spec checks.
 ]]
 
 export type RefForm = {

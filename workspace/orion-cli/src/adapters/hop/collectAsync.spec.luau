@@ -15,7 +15,8 @@ test.case("hop adapter merges worktree and session activity without writing card
 		if argv[2] == "list" then
 			return testing.result(
 				true,
-				'{"worktrees":[{"branch":"feature/ABC-1","onDefaultBranch":false,"lastActivity":1791072000,"repository":{"name":"owner/repo"}}]}'
+				'{"worktrees":[{"branch":"feature/ABC-1","onDefaultBranch":false,"lastActivity":1791072000,'
+					.. '"repository":{"name":"owner/repo"}}]}'
 			)
 		end
 

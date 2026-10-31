@@ -15,7 +15,9 @@ test.case("Jira adapter parses issue state and details into records", function(a
 		assert.eq(argv, { "acli", "jira" })
 		return testing.result(
 			true,
-			'{"issues":[{"key":"ABC-1","fields":{"summary":"Work","status":{"name":"Done","statusCategory":{"key":"done"}},"issuetype":{"name":"Story"},"epic":{"key":"ABC-0","summary":"Epic"},"updated":"2026-10-03T00:00:00Z"}}]}'
+			'{"issues":[{"key":"ABC-1","fields":{"summary":"Work","status":{"name":"Done",'
+				.. '"statusCategory":{"key":"done"}},"issuetype":{"name":"Story"},"priority":{"name":"High"},'
+				.. '"epic":{"key":"ABC-0","summary":"Epic"},"updated":"2026-10-03T00:00:00Z"}}]}'
 		)
 	end, { now = NOW, since = "2026-09-20", doc = doc, commands = { jira = { "acli", "jira" } } })
 	assert.eq(#records, 1)
@@ -24,6 +26,7 @@ test.case("Jira adapter parses issue state and details into records", function(a
 	assert.eq(records[1].ref.isDone, true)
 	local details = records[1].ref.details
 	assert.eq(details and details.epicKey, "ABC-0")
+	assert.eq(details and details.priority, "High")
 	assert.eq(records[1].status, "done")
 	assert.eq(records[1].who, nil)
 	assert.eq(#doc.nodes, 0)
