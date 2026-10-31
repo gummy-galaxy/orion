@@ -41,7 +41,7 @@ end
 local function getRemovals(dir: string, files: { [string]: string }): { string }
 	local removes: { string } = {}
 
-	for _, folder in { fileNames.nodes, fileNames.links } do
+	for _, folder in { fileNames.nodes, fileNames.links, fileNames.placements } do
 		for _, entry in fs.listDirectory(path.join(dir, folder)) do
 			local file = `{folder}/{entry.name}`
 
@@ -57,13 +57,13 @@ end
 --[[
 	Writes a whole canvas, in the shape `encodeDocObject` returns, as the files
 	of its folder. Only files whose text differs from `previous` are rewritten,
-	node and link files the canvas no longer has are removed, and `local.json`,
-	which holds the revision, goes last. A marker stays down for the length of
-	the write so readers wait it out, and the index journals the write before
-	any file moves, so `recoverCanvasWrite` can finish one that stops partway.
-	Callers hold the lock, and pass what they read under it as `previous`, with
-	its files, whose canvas is backed up first. Fields that changed since
-	`previous` are stamped with the current time.
+	node, link, and placement files the canvas no longer has are removed, and
+	`local.json`, which holds the revision, goes last. A marker stays down for
+	the length of the write so readers wait it out, and the index journals the
+	write before any file moves, so `recoverCanvasWrite` can finish one that
+	stops partway. Callers hold the lock, and pass what they read under it as
+	`previous`, with its files, whose canvas is backed up first. Fields that
+	changed since `previous` are stamped with the current time.
 ]]
 local function writeCanvasFiles(dir: string, document: json.Object, previous: CanvasSnapshot?)
 	local files = splitDocObject(document, previous, os.date("!%Y-%m-%dT%H:%M:%SZ") :: string)
@@ -86,6 +86,7 @@ local function writeCanvasFiles(dir: string, document: json.Object, previous: Ca
 
 	ensureDirectory(path.join(dir, fileNames.nodes))
 	ensureDirectory(path.join(dir, fileNames.links))
+	ensureDirectory(path.join(dir, fileNames.placements))
 
 	local write: CanvasWrite = { writes = writes, removes = getRemovals(dir, files) }
 	local revision = if type(document.revision) == "number" then document.revision else nil

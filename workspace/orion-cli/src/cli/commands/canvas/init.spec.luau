@@ -14,7 +14,7 @@ test.case("workspace create and list use a temporary data root", function(assert
 	run({ "canvas", "create", "roblox", "--label", "Roblox" })
 	local dir = tostring(path.join(root, "canvases", "roblox"))
 	local doc = loadDoc(dir)
-	assert.eq(doc.version, 2)
+	assert.eq(doc.version, 3)
 	assert.eq(doc.revision, 0)
 	assert.eq(#doc.settings.sources, 0)
 	assert.eq(#doc.nodes, 0)

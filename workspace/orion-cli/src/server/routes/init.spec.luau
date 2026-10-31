@@ -82,12 +82,38 @@ test.case("GET returns the document with unknown root data", function(assert)
 	local nodes = json.asArray(response.nodes)
 	local item = if nodes then json.asObject(nodes[1]) else nil
 	local data = if item then json.asObject(item.data) else nil
-	assert.eq(response.version, 2)
+	assert.eq(response.version, 3)
 	assert.eq(response.extra, "kept")
 	assert.eq(settings and settings.theme, "dark")
 	assert.eq(settings and settings.githubOwner, nil)
 	assert.eq(data and data.repo, "Vocksel/orion")
 	assert.eq(data and #(json.asArray(data.refs) or {}), 1)
+end)
+
+test.case("GET gives each node the position and group of its first placement", function(assert)
+	local root, router = createRouter("routes-placements")
+	fs.createDirectory(root, { makeParents = true })
+	testing.writeCanvasText(
+		root,
+		[[{
+			"version": 3,
+			"settings": {},
+			"nodes": [{"id": "g", "type": "cluster", "data": {}}, {"id": "a", "type": "task", "data": {}}],
+			"links": [],
+			"placements": [
+				{"id": "p1", "node": "g", "position": {"x": 5, "y": 6}},
+				{"id": "p2", "node": "a", "parentId": "g", "position": {"x": 1, "y": 2}}
+			]
+		}]]
+	)
+	local response = decodeResponse(router.handleAsync(createRequest("GET", "/api/orion")))
+	local nodes = json.asArray(response.nodes) :: json.Array
+	local card = json.asObject(nodes[2]) :: json.Object
+	local position = json.asObject(card.position) :: json.Object
+	assert.eq(card.parentId, "g")
+	assert.eq(position.x, 1)
+	assert.eq(position.y, 2)
+	assert.eq(#(json.asArray(response.placements) :: json.Array), 2)
 end)
 
 test.case("GET sends derived values beside the document without storing them", function(assert)

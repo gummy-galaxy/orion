@@ -61,13 +61,13 @@ json((SELECT json_group_array(json(json_remove(text, '$.order', '$.changedAt')))
 	ORDER BY orderKey IS NULL, orderKey, position IS NULL, position, entry
 )))]]
 
--- What each node and link file stored beside its entry, by path, for a write to
--- keep or replace.
+-- What each node, link, and placement file stored beside its entry, by path,
+-- for a write to keep or replace.
 local STORED = [[
 json((SELECT json_group_object(path, json_object(
 	'order', json_extract(text, '$.order'),
 	'changedAt', json(json_extract(text, '$.changedAt'))
-)) FROM files WHERE folder IN ('nodes', 'links') AND isValid))]]
+)) FROM files WHERE folder IN ('nodes', 'links', 'placements') AND isValid))]]
 
 -- One JSON object, so the canvas is parsed once rather than as a string inside
 -- `sqlite3 -json`'s rows. `json()` marks each value as JSON so `json_object`
@@ -82,7 +82,8 @@ SELECT json_object(
 	'document', json(json_set(
 		json_remove((SELECT text FROM files WHERE path = 'canvas.json' AND isValid), '$.order'),
 		'$.nodes', %s,
-		'$.links', %s
+		'$.links', %s,
+		'$.placements', %s
 	)),
 	'localState', json((SELECT text FROM files WHERE path = 'local.json' AND isValid)),
 	'files', %s,
@@ -97,7 +98,7 @@ local function getFolderScan(dir: string, name: string): string?
 	end
 
 	local base = quoteSqlString(dir)
-	local isFolder = name == fileNames.nodes or name == fileNames.links
+	local isFolder = name == fileNames.nodes or name == fileNames.links or name == fileNames.placements
 	local filter = if isFolder then ` AND name GLOB '{name}/*.json' AND name NOT GLOB '{name}/*/*'` else ""
 
 	-- 0o170000 masks the file type and 0o100000 is a regular file.
@@ -107,7 +108,7 @@ end
 local function buildScript(dir: string, includeFiles: boolean): string
 	local scans: { string } = {}
 
-	for _, name in { fileNames.document, fileNames.localState, fileNames.nodes, fileNames.links } do
+	for _, name in { fileNames.document, fileNames.localState, fileNames.nodes, fileNames.links, fileNames.placements } do
 		local scan = getFolderScan(dir, name)
 
 		if scan then
@@ -125,7 +126,13 @@ local function buildScript(dir: string, includeFiles: boolean): string
 	return SYNC:format(table.concat(scans, " UNION ALL "), prefix)
 		.. indexStatements.upsertFresh
 		.. "COMMIT;\n"
-		.. QUERY:format(ENTRIES:format("nodes", "nodes"), ENTRIES:format("links", "links"), files, stored)
+		.. QUERY:format(
+			ENTRIES:format("nodes", "nodes"),
+			ENTRIES:format("links", "links"),
+			ENTRIES:format("placements", "placements"),
+			files,
+			stored
+		)
 end
 
 local function getObject(value: json.Value?, label: string): json.Object

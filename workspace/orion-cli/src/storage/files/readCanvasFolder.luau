@@ -25,6 +25,7 @@ local function readCanvasFolder(dir: string): { [string]: string }
 	files[fileNames.document] = fs.readFileToString(getDocPath(dir))
 	readFolder(dir, fileNames.nodes, files)
 	readFolder(dir, fileNames.links, files)
+	readFolder(dir, fileNames.placements, files)
 
 	local localState = path.join(dir, fileNames.localState)
 

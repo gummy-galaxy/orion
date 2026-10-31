@@ -1,5 +1,6 @@
 local json = require("@std/json")
 
+local syncPlacements = require("@root/canvas/placement/syncPlacements")
 local types = require("@root/types")
 
 type Doc = types.Doc
@@ -19,21 +20,31 @@ local function getStringArray(values: { string }?): json.Array?
 end
 
 -- The JSON object a document is stored as. Fields Orion doesn't know about,
--- kept in `raw`, pass through unchanged.
+-- kept in `raw`, pass through unchanged. Nodes keep no position or group,
+-- since those belong to placements, which the document's nodes bring up to date
+-- first.
 local function encodeDocObject(doc: Doc): json.Object
+	syncPlacements(doc)
+
 	local nodes: json.Array = {}
 
 	for _, item in doc.nodes do
-		local object: json.Object = json.object({
-			id = item.id,
-			type = item.type,
-			position = json.object({ x = item.position.x, y = item.position.y }),
-			data = json.object(item.data),
-		})
-		object.parentId = item.parentId
+		local object: json.Object = json.object({ id = item.id, type = item.type, data = json.object(item.data) })
 		object.width = item.width
 		object.height = item.height
 		table.insert(nodes, object)
+	end
+
+	local placements: json.Array = {}
+
+	for _, placement in doc.placements do
+		local object = json.object({
+			id = placement.id,
+			node = placement.node,
+			position = json.object({ x = placement.position.x, y = placement.position.y }),
+		})
+		object.parentId = placement.parentId
+		table.insert(placements, object)
 	end
 
 	local links: json.Array = {}
@@ -46,7 +57,7 @@ local function encodeDocObject(doc: Doc): json.Object
 	end
 
 	local root = json.object(doc.raw or {})
-	root.version = 2
+	root.version = 3
 	root.revision = doc.revision
 	local settings = json.object(json.asObject(root.settings) or {})
 	settings.githubOwner = nil
@@ -80,6 +91,7 @@ local function encodeDocObject(doc: Doc): json.Object
 	root.settings = settings
 	root.nodes = nodes
 	root.links = links
+	root.placements = placements
 	root.github = doc.github
 	root.suggestions = doc.suggestions
 	root.repositories = doc.repositories

@@ -28,12 +28,12 @@ local function getWrittenPath(dir: string): string
 	return tostring(path.join(dir, fileNames.localState))
 end
 
--- Watches a canvas's node and link folders, which change on their own when a
--- `git pull` or an editor touches them.
+-- Watches a canvas's node, link, and placement folders, which change on their
+-- own when a `git pull` or an editor touches them.
 local function watchEntries(dir: string): { Watch }
 	local watches: { Watch } = {}
 
-	for _, folder in { fileNames.nodes, fileNames.links } do
+	for _, folder in { fileNames.nodes, fileNames.links, fileNames.placements } do
 		local succeeded, watch = pcall(fs.watch, path.join(dir, folder))
 
 		if succeeded then

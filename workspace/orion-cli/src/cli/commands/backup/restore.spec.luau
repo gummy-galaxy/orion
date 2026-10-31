@@ -32,7 +32,7 @@ test.case("restore takes the newest matching backup and backs up the current rev
 	assert.eq(restored.revision, 1)
 	assert.eq(restored.nodes[1].id, "saved")
 	assert.eq(restored.links[1].kind, "related")
-	assert.eq(restored.version, 2)
+	assert.eq(restored.version, 3)
 	assert.eq(restored.github and restored.github.viewer, "saved")
 	local settings = if restored.raw then json.asObject(restored.raw.settings) else nil
 	assert.eq(settings and settings.future, "kept")

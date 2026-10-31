@@ -114,9 +114,10 @@ end
 --[[
 	Splits a whole canvas, in the shape `encodeDocObject` returns, into the
 	files of its folder, keyed by path: `canvas.json` for the canvas's own
-	fields, `nodes/<id>.json` and `links/<id>.json` for each node and link, and
-	`local.json` for the revision and the other local fields. Each node and link
-	file keeps an order key, so moving or adding one rewrites only its file, and
+	fields, `nodes/<id>.json`, `links/<id>.json`, and `placements/<id>.json` for
+	each node, link, and placement, and `local.json` for the revision and the
+	other local fields. Each of those entry files keeps an order key, so moving
+	or adding one rewrites only its file, and
 	when each of its fields last changed, compared with the files in `previous`
 	and stamped `now`. A link without an id gets the one Orion has always read
 	it as.
@@ -128,7 +129,7 @@ local function splitDocObject(document: json.Object, previous: CanvasSnapshot?, 
 	local hasLocalState = false
 
 	for key, value in document do
-		if type(key) ~= "string" or key == "nodes" or key == "links" then
+		if type(key) ~= "string" or key == "nodes" or key == "links" or key == "placements" then
 			continue
 		end
 
@@ -146,6 +147,9 @@ local function splitDocObject(document: json.Object, previous: CanvasSnapshot?, 
 	splitEntries(files, fileNames.links, document.links, function(object)
 		local from, to = getStringField(object.from), getStringField(object.to)
 		return getStringField(object.id) or (if from and to then `{from}>{to}` else nil)
+	end, previous, now)
+	splitEntries(files, fileNames.placements, document.placements, function(object)
+		return getStringField(object.id)
 	end, previous, now)
 
 	files[fileNames.document] = encodeStableJson(canvas)

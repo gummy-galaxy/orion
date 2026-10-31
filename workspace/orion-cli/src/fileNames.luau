@@ -2,6 +2,7 @@ return table.freeze({
 	document = "canvas.json",
 	nodes = "nodes",
 	links = "links",
+	placements = "placements",
 	localState = "local.json",
 	index = "index.sqlite",
 	pendingWrite = "orion.writing",

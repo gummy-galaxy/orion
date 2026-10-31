@@ -94,11 +94,12 @@ function testing.createDoc(nodes: { Item }, links: { { string } }?): Doc
 	end
 
 	return {
-		version = 2,
+		version = 3,
 		revision = 0,
 		settings = { sources = {}, checkSnoozes = {} },
 		nodes = nodes,
 		links = output,
+		placements = {},
 	}
 end
 

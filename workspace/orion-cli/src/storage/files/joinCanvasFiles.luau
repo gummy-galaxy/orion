@@ -51,8 +51,8 @@ end
 
 --[[
 	Joins a canvas folder's files, keyed by path as `splitDocObject` writes
-	them, back into one canvas object. The order key and field times each node
-	and link file keeps come back apart from the canvas, by path.
+	them, back into one canvas object. The order key and field times each node,
+	link, and placement file keeps come back apart from the canvas, by path.
 ]]
 local function joinCanvasFiles(files: { [string]: string }): (json.Object, { [string]: StoredEntry })
 	assert(files[fileNames.document], `a canvas folder needs a {fileNames.document}`)
@@ -61,7 +61,8 @@ local function joinCanvasFiles(files: { [string]: string }): (json.Object, { [st
 	local legacyOrder = json.asObject(document.order) or json.object({})
 	document.order = nil
 
-	local byFolder: { [string]: { Found } } = { [fileNames.nodes] = {}, [fileNames.links] = {} }
+	local byFolder: { [string]: { Found } } =
+		{ [fileNames.nodes] = {}, [fileNames.links] = {}, [fileNames.placements] = {} }
 	local stored: { [string]: StoredEntry } = {}
 
 	for file in files do
@@ -85,6 +86,7 @@ local function joinCanvasFiles(files: { [string]: string }): (json.Object, { [st
 
 	document.nodes = collectEntries(byFolder[fileNames.nodes], legacyOrder.nodes)
 	document.links = collectEntries(byFolder[fileNames.links], legacyOrder.links)
+	document.placements = collectEntries(byFolder[fileNames.placements], nil)
 
 	if files[fileNames.localState] then
 		for key, value in parseObject(files, fileNames.localState) do
