@@ -6,6 +6,6 @@ type CardType = cardTypes.CardType
 -- ones Orion ships. A source whose refs only attach shipped types, as GitHub,
 -- Jira, and hop do, needs no entry. Packs stay apart from the adapters, so
 -- reading types never loads a source's code.
-local sourcePacks: { [string]: { CardType } } = {}
+local sourceCardTypePacks: { [string]: { CardType } } = {}
 
-return table.freeze(sourcePacks)
+return table.freeze(sourceCardTypePacks)

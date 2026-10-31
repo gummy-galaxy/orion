@@ -7,7 +7,7 @@ type Registry = cardTypes.Registry
 -- Checks every type in the packs and indexes them by name. Packs register
 -- through this one path, whether Orion ships them or a source adds them, and
 -- a name can be taken only once.
-local function createRegistry(packs: { { CardType } }): Registry
+local function createCardTypeRegistry(packs: { { CardType } }): Registry
 	local registry: Registry = { byName = {}, ordered = {} }
 
 	for _, pack in packs do
@@ -25,4 +25,4 @@ local function createRegistry(packs: { { CardType } }): Registry
 	return registry
 end
 
-return createRegistry
+return createCardTypeRegistry

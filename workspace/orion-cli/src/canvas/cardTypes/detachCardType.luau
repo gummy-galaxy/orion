@@ -1,7 +1,7 @@
 local json = require("@std/json")
 
 local getItem = require("@root/canvas/items/getItem")
-local getItemTypes = require("@root/canvas/cardTypes/getItemTypes")
+local getItemCardTypes = require("@root/canvas/cardTypes/getItemCardTypes")
 local getStringField = require("@root/common/getStringField")
 local isGroup = require("@root/canvas/groups/isGroup")
 local types = require("@root/types")
@@ -11,7 +11,7 @@ type Item = types.Item
 
 -- Takes off a type a person attached. The card's own type and the ones its
 -- sources attach come from elsewhere, so they stay.
-local function detachType(doc: Doc, id: string, name: string): Item
+local function detachCardType(doc: Doc, id: string, name: string): Item
 	local item = getItem(doc, id)
 	assert(not isGroup(item), "groups don't take types")
 
@@ -27,7 +27,7 @@ local function detachType(doc: Doc, id: string, name: string): Item
 	end
 
 	if not found then
-		local itemTypes = assert(getItemTypes(item))
+		local itemTypes = assert(getItemCardTypes(item))
 		local reason = if itemTypes.primary == name
 			then "it's the card's own type"
 			elseif table.find(itemTypes.types, name) then "a source attached it"
@@ -40,4 +40,4 @@ local function detachType(doc: Doc, id: string, name: string): Item
 	return item
 end
 
-return detachType
+return detachCardType

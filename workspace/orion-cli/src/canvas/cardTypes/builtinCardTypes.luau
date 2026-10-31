@@ -33,7 +33,7 @@ local WORK: Meaning = { isWork = true, canBlock = true, canBeDone = true, doneWh
 
 -- The types Orion ships. Every card the app and CLI know how to make carries
 -- one of these, so none of them is a special case.
-local builtinTypes: { CardType } = {
+local builtinCardTypes: { CardType } = {
 	{
 		name = "step",
 		label = "Step",
@@ -133,4 +133,4 @@ local builtinTypes: { CardType } = {
 	},
 }
 
-return builtinTypes
+return builtinCardTypes

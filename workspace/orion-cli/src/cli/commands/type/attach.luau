@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 
 local addArgument = require("@root/cli/arguments/addArgument")
 local addIdPositional = require("@root/cli/arguments/addIdPositional")
-local attachType = require("@root/canvas/cardTypes/attachType")
+local attachCardType = require("@root/canvas/cardTypes/attachCardType")
 local context = require("@root/cli/context")
 local getRequired = require("@root/cli/arguments/getRequired")
 local resolveId = require("@root/canvas/query/resolveId")
@@ -28,7 +28,7 @@ return table.freeze({
 
 		local changed: Item
 		local doc = runTransaction(options.dir, function(current)
-			changed = attachType(current, resolveId(current, idInput), name)
+			changed = attachCardType(current, resolveId(current, idInput), name)
 		end)
 
 		writeItem(options, doc, changed, "Updated")

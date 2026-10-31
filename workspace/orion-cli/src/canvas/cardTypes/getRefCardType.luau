@@ -5,7 +5,7 @@ type Ref = types.Ref
 
 -- The type a ref attaches to its card. Its adapter records one when it reads
 -- the source; refs recorded before types existed are read by their kind.
-local function getRefType(ref: Ref): string?
+local function getRefCardType(ref: Ref): string?
 	local recorded = getStringField((ref :: any).type)
 
 	if recorded then
@@ -23,4 +23,4 @@ local function getRefType(ref: Ref): string?
 	return nil
 end
 
-return getRefType
+return getRefCardType

@@ -2,7 +2,7 @@ local cli = require("@batteries/cli")
 local json = require("@std/json")
 
 local context = require("@root/cli/context")
-local getRegistry = require("@root/canvas/cardTypes/getRegistry")
+local getCardTypeRegistry = require("@root/canvas/cardTypes/getCardTypeRegistry")
 local serializeCardType = require("@root/canvas/cardTypes/serializeCardType")
 
 type Context = context.Context
@@ -18,7 +18,7 @@ return table.freeze({
 		local items: json.Array = {}
 		local lines: { string } = {}
 
-		for _, cardType in getRegistry().ordered do
+		for _, cardType in getCardTypeRegistry().ordered do
 			table.insert(items, serializeCardType(cardType))
 			table.insert(lines, `{cardType.name}  {cardType.label}  ({cardType.pack})`)
 		end

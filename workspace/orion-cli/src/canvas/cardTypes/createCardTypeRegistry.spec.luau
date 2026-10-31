@@ -1,8 +1,8 @@
 local test = require("@std/test")
 
-local builtinTypes = require("@root/canvas/cardTypes/builtinTypes")
+local builtinCardTypes = require("@root/canvas/cardTypes/builtinCardTypes")
 local cardTypes = require("@root/canvas/cardTypes/types")
-local createRegistry = require("@root/canvas/cardTypes/createRegistry")
+local createCardTypeRegistry = require("@root/canvas/cardTypes/createCardTypeRegistry")
 
 type CardType = cardTypes.CardType
 
@@ -18,8 +18,8 @@ local function thread(pack: string): CardType
 	}
 end
 
-test.case("createRegistry indexes every pack's types by name, in order", function(assert)
-	local registry = createRegistry({ builtinTypes, { thread("slack") } })
+test.case("createCardTypeRegistry indexes every pack's types by name, in order", function(assert)
+	local registry = createCardTypeRegistry({ builtinCardTypes, { thread("slack") } })
 
 	assert.eq(registry.ordered[1].name, "step")
 	assert.eq(registry.ordered[#registry.ordered].name, "slack.thread")
@@ -27,16 +27,16 @@ test.case("createRegistry indexes every pack's types by name, in order", functio
 	assert.eq(registry.byName.gate.meaning.doneWhen, "inputs")
 end)
 
-test.case("createRegistry refuses a name two packs declare", function(assert)
+test.case("createCardTypeRegistry refuses a name two packs declare", function(assert)
 	assert.throwsWith("other declares slack.thread, which slack already declares", function()
-		createRegistry({ { thread("slack") }, { thread("other") } })
+		createCardTypeRegistry({ { thread("slack") }, { thread("other") } })
 	end)
 end)
 
-test.case("createRegistry checks each type as it registers", function(assert)
+test.case("createCardTypeRegistry checks each type as it registers", function(assert)
 	local broken = thread("slack")
 	broken.label = ""
 	assert.throwsWith("slack.thread needs a label", function()
-		createRegistry({ { broken } })
+		createCardTypeRegistry({ { broken } })
 	end)
 end)

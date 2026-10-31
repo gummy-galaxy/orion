@@ -1,7 +1,7 @@
 local json = require("@std/json")
 
 local cardTypes = require("@root/canvas/cardTypes/types")
-local getRefType = require("@root/canvas/cardTypes/getRefType")
+local getRefCardType = require("@root/canvas/cardTypes/getRefCardType")
 local getRefs = require("@root/canvas/refs/getRefs")
 local getStringField = require("@root/common/getStringField")
 local isGroup = require("@root/canvas/groups/isGroup")
@@ -13,7 +13,7 @@ type ItemTypes = cardTypes.ItemTypes
 -- The types attached to a card: its own kind first, which picks its face, then
 -- what its sources attach, in the order of its refs, then what people
 -- attached. Each appears once. Groups aren't cards and carry none.
-local function getItemTypes(item: Item): ItemTypes?
+local function getItemCardTypes(item: Item): ItemTypes?
 	if isGroup(item) then
 		return nil
 	end
@@ -30,7 +30,7 @@ local function getItemTypes(item: Item): ItemTypes?
 	end
 
 	for _, ref in getRefs(item) do
-		attach(getRefType(ref))
+		attach(getRefCardType(ref))
 	end
 
 	for _, value in json.asArray(item.data.types) or {} do
@@ -40,4 +40,4 @@ local function getItemTypes(item: Item): ItemTypes?
 	return { primary = primary, types = attached }
 end
 
-return getItemTypes
+return getItemCardTypes
